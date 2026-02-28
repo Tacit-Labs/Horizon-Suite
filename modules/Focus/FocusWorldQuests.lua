@@ -436,8 +436,8 @@ local function GetWorldAndCallingQuestIDsToShow(nearbySet, taskQuestOnlySet)
                           if IsTaskQuestCurrentlyActive(questID) then
                               ids[#ids + 1] = questID
                           end
-                      elseif fromTaskQuestMap then
-                          -- Fallback: task/event quests from map APIs that don't match world/calling/campaign/recurring.
+                      elseif fromTaskQuestMap and qc == Enum.QuestClassification.BonusObjective then
+                          -- Fallback: zone events (bonus objectives) from map APIs.
                           if IsTaskQuestCurrentlyActive(questID) then
                               ids[#ids + 1] = questID
                           end
@@ -470,7 +470,7 @@ local function GetWorldAndCallingQuestIDsToShow(nearbySet, taskQuestOnlySet)
                 isTracked = true
             end
             local isAutoAdded = (not isTracked) and (not isFromWQT)
-            local isEventQuest = (fromTaskQuestMap and not isWorld and not isCalling)
+            local isEventQuest = (fromTaskQuestMap and not isWorld and not isCalling and qc == Enum.QuestClassification.BonusObjective)
             out[#out + 1] = { questID = questID, isTracked = isTracked, isInQuestArea = isInQuestArea, forceCategory = forceCategory, isAutoAdded = isAutoAdded, isEventQuest = isEventQuest }
         end
     end
