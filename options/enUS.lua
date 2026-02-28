@@ -186,6 +186,7 @@ L["Drag to reorder. Delves and Scenarios stay first."] = true
 L["Drawer close delay"] = true
 L["Deletes the selected profile."] = true
 L["Delves"] = true
+L["Delve Complete"] = true
 L["Difficulty font"] = true
 L["Difficulty font size"] = true
 L["Difficulty Text"] = true

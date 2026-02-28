@@ -28,7 +28,7 @@
 ![Presence - Zone Text & Notifications](https://raw.githubusercontent.com/Crystilac93/Horizon-Suite/main/docs/Presence.gif)
 
 - **Cinematic notifications** – Replaces Blizzard's default zone text, level-up banner, boss emote frame, and achievement alerts with styled toasts: smooth entrance and exit animations, a dividing line between title and subtitle, and an optional "Discovered!" third line on first visits.
-- **Full notification coverage** – Zone entry, subzone changes, level-up, boss emotes, achievements, quest accepted/complete/progress, world quest accepted/complete, scenario start, and scenario or delve objective updates — 12 types in total.
+- **Full notification coverage** – Zone entry, subzone changes, level-up, boss emotes, achievements, quest accepted/complete/progress, world quest accepted/complete, scenario start, scenario or delve complete, and scenario or delve objective updates — 13 types in total.
 - **Per-type toggles** – Enable or disable each notification type individually. Mythic+ suppression silences zone, quest, and scenario notifications while inside a keystone dungeon.
 - **Prioritised queue** – Up to five notifications queue when one is already playing; higher-priority events (level-up, boss emotes, achievements) play ahead of routine quest updates.
 - **Visual customisation** – Vertical screen position, frame scale, and independent font types and sizes for title and subtitle. Entrance speed, exit speed, and hold-duration multiplier are all adjustable.

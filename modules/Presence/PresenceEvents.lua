@@ -697,8 +697,23 @@ local function TryShowScenarioStart()
     if scenarioCheckPending then return end
     if not addon.IsScenarioActive or not addon.IsScenarioActive() then return end
     if wasInScenario then return end
-    -- Delve objective update feature disabled for now; zone entry already shows ZONE_CHANGE
-    if addon.IsDelveActive and addon.IsDelveActive() then return end
+    -- Delve objective update feature disabled for now; zone entry already shows ZONE_CHANGE.
+    -- Seed lastScenarioTitle for completion toast; don't show scenario start.
+    if addon.IsDelveActive and addon.IsDelveActive() then
+        if addon.GetScenarioDisplayInfo then
+            local title, subtitle, category = addon.GetScenarioDisplayInfo()
+            if title and title ~= "" then
+                lastScenarioTitle    = title
+                lastScenarioCategory = category
+                local seedKey, seedObjs = GetMainStepCriteria()
+                if seedKey then
+                    lastScenarioCriteriaCache = seedKey
+                    lastScenarioObjectives = seedObjs
+                end
+            end
+        end
+        return
+    end
     if ShouldSuppressInMplus() then return end
     if ShouldSuppressInInstance() then return end
     if addon.GetDB and not addon.GetDB("showScenarioEvents", true) then return end
@@ -748,12 +763,27 @@ local function OnPlayerEnteringWorld()
 
     if not addon.Presence._scenarioInitDone then
         addon.Presence._scenarioInitDone = true
-        -- Delve objective update disabled; don't treat delve as scenario for this flow
-        local inScenario = addon.IsScenarioActive and addon.IsScenarioActive()
-        if inScenario and addon.IsDelveActive and addon.IsDelveActive() then inScenario = false end
-        wasInScenario = inScenario
         lastScenarioTitle    = nil
         lastScenarioCategory = nil
+        -- Delve objective update disabled; don't treat delve as scenario for this flow.
+        -- Seed lastScenarioTitle for completion toast when in delve.
+        local inScenario = addon.IsScenarioActive and addon.IsScenarioActive()
+        if inScenario and addon.IsDelveActive and addon.IsDelveActive() then
+            if addon.GetScenarioDisplayInfo then
+                local title, subtitle, category = addon.GetScenarioDisplayInfo()
+                if title and title ~= "" then
+                    lastScenarioTitle    = title
+                    lastScenarioCategory = category
+                    local seedKey, seedObjs = GetMainStepCriteria()
+                    if seedKey and seedKey ~= "" then
+                        lastScenarioCriteriaCache = seedKey
+                        lastScenarioObjectives = seedObjs
+                    end
+                end
+            end
+            inScenario = false
+        end
+        wasInScenario = inScenario
         -- Seed criteria baseline and title so completion toast works after /reload
         if inScenario and addon.GetScenarioDisplayInfo then
             local title, subtitle, category = addon.GetScenarioDisplayInfo()
@@ -810,6 +840,20 @@ local function OnScenarioCompleted()
         if not subtitle or subtitle == "" then
             subtitle = (L["Scenario Complete"] and L["Scenario Complete"] ~= "")
                        and L["Scenario Complete"] or "Scenario Complete"
+        end
+        -- Delve-specific: use "Delve Complete" as title, delve name or tier as subtitle
+        if category == "DELVES" then
+            local delveComplete = (L["Delve Complete"] and L["Delve Complete"] ~= "") and L["Delve Complete"] or "Delve Complete"
+            title = delveComplete
+            if not subtitle or subtitle == "" or subtitle == (L["Scenario Complete"] or "Scenario Complete") then
+                local origTitle = lastScenarioTitle
+                if origTitle and origTitle ~= "Delves" and not origTitle:match("^Delves %(Tier ") then
+                    subtitle = origTitle
+                else
+                    local tier = origTitle and origTitle:match("Tier (%d+)")
+                    subtitle = tier and ("Tier " .. tier) or delveComplete
+                end
+            end
         end
         addon.Presence.QueueOrPlay("SCENARIO_COMPLETE",
             StripPresenceMarkup(title),
