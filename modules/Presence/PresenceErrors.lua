@@ -61,7 +61,9 @@ end
 local alertsMuted = false
 local alertEventsUnregistered = {}
 
---- Unregister AlertFrame from ACHIEVEMENT_EARNED and QUEST_TURNED_IN so Presence can replace them. Idempotent.
+--- Unregister AlertFrame from achievement/quest/criteria events so Presence can replace them.
+--- Includes CRITERIA_UPDATE, TRACKED_ACHIEVEMENT_UPDATE, and CRITERIA_EARNED to suppress
+--- Blizzard's default achievement-progress popups (CriteriaAlertSystem). Idempotent.
 --- @return nil
 local function MuteAlerts()
     if alertsMuted then return end
@@ -72,6 +74,12 @@ local function MuteAlerts()
             alertEventsUnregistered["ACHIEVEMENT_EARNED"] = true
             AlertFrame:UnregisterEvent("QUEST_TURNED_IN")
             alertEventsUnregistered["QUEST_TURNED_IN"] = true
+            AlertFrame:UnregisterEvent("CRITERIA_UPDATE")
+            alertEventsUnregistered["CRITERIA_UPDATE"] = true
+            AlertFrame:UnregisterEvent("TRACKED_ACHIEVEMENT_UPDATE")
+            alertEventsUnregistered["TRACKED_ACHIEVEMENT_UPDATE"] = true
+            AlertFrame:UnregisterEvent("CRITERIA_EARNED")
+            alertEventsUnregistered["CRITERIA_EARNED"] = true
         end
     end)
     alertsMuted = true
@@ -84,13 +92,17 @@ local function RestoreAlerts()
     -- pcall: AlertFrame may not exist or methods may throw.
     pcall(function()
         if AlertFrame and AlertFrame.RegisterEvent then
-            if alertEventsUnregistered["ACHIEVEMENT_EARNED"] then
-                AlertFrame:RegisterEvent("ACHIEVEMENT_EARNED")
-                alertEventsUnregistered["ACHIEVEMENT_EARNED"] = nil
-            end
-            if alertEventsUnregistered["QUEST_TURNED_IN"] then
-                AlertFrame:RegisterEvent("QUEST_TURNED_IN")
-                alertEventsUnregistered["QUEST_TURNED_IN"] = nil
+            for _, evt in ipairs({
+                "ACHIEVEMENT_EARNED",
+                "QUEST_TURNED_IN",
+                "CRITERIA_UPDATE",
+                "TRACKED_ACHIEVEMENT_UPDATE",
+                "CRITERIA_EARNED",
+            }) do
+                if alertEventsUnregistered[evt] then
+                    AlertFrame:RegisterEvent(evt)
+                    alertEventsUnregistered[evt] = nil
+                end
             end
         end
     end)

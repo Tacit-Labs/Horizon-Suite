@@ -36,6 +36,82 @@ floatingQuestItemBtn:SetScript("OnDragStop", function(self)
     end
 end)
 floatingQuestItemBtn:Hide()
+
+-- ============================================================================
+-- DRAG ANCHOR (visible when position is unlocked, drags the floating button)
+-- ============================================================================
+
+local ANCHOR_W, ANCHOR_H = 10, 20
+local dragAnchor = CreateFrame("Frame", nil, UIParent)
+dragAnchor:SetSize(ANCHOR_W, ANCHOR_H)
+dragAnchor:SetPoint("RIGHT", floatingQuestItemBtn, "LEFT", -2, 0)
+dragAnchor:SetFrameStrata(floatingQuestItemBtn:GetFrameStrata())
+dragAnchor:SetFrameLevel(floatingQuestItemBtn:GetFrameLevel() + 10)
+dragAnchor:EnableMouse(true)
+dragAnchor:SetMovable(true)
+dragAnchor:SetClampedToScreen(true)
+dragAnchor:RegisterForDrag("LeftButton")
+dragAnchor:Hide()
+
+local anchorBg = dragAnchor:CreateTexture(nil, "BACKGROUND")
+anchorBg:SetAllPoints()
+anchorBg:SetColorTexture(0.25, 0.60, 0.90, 0.70)
+
+for i = 1, 3 do
+    local line = dragAnchor:CreateTexture(nil, "OVERLAY")
+    line:SetColorTexture(1, 1, 1, 0.5)
+    line:SetHeight(1)
+    line:SetPoint("LEFT", dragAnchor, "LEFT", 2, (i - 2) * 4)
+    line:SetPoint("RIGHT", dragAnchor, "RIGHT", -2, 0)
+end
+
+dragAnchor:SetScript("OnEnter", function(self)
+    anchorBg:SetColorTexture(0.35, 0.70, 1.0, 0.90)
+    if GameTooltip then
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Drag to move quest item button")
+        GameTooltip:Show()
+    end
+end)
+dragAnchor:SetScript("OnLeave", function(self)
+    anchorBg:SetColorTexture(0.25, 0.60, 0.90, 0.70)
+    if GameTooltip then GameTooltip:Hide() end
+end)
+
+dragAnchor:SetScript("OnDragStart", function(self)
+    if InCombatLockdown() then return end
+    floatingQuestItemBtn:StartMoving()
+end)
+dragAnchor:SetScript("OnDragStop", function(self)
+    floatingQuestItemBtn:StopMovingOrSizing()
+    floatingQuestItemBtn:SetUserPlaced(false)
+    if InCombatLockdown() then return end
+    addon.EnsureDB()
+    local l, b = floatingQuestItemBtn:GetLeft(), floatingQuestItemBtn:GetBottom()
+    if l and b then
+        addon.SetDB("floatingQuestItemPoint", "BOTTOMLEFT")
+        addon.SetDB("floatingQuestItemRelPoint", "BOTTOMLEFT")
+        addon.SetDB("floatingQuestItemX", l)
+        addon.SetDB("floatingQuestItemY", b)
+        floatingQuestItemBtn:ClearAllPoints()
+        floatingQuestItemBtn:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", l, b)
+    end
+    -- Re-anchor the grip to the button's new position
+    dragAnchor:ClearAllPoints()
+    dragAnchor:SetPoint("RIGHT", floatingQuestItemBtn, "LEFT", -2, 0)
+end)
+
+local function UpdateDragAnchorVisibility()
+    if floatingQuestItemBtn:IsShown() and not addon.GetDB("lockFloatingQuestItemPosition", false) then
+        dragAnchor:ClearAllPoints()
+        dragAnchor:SetPoint("RIGHT", floatingQuestItemBtn, "LEFT", -2, 0)
+        dragAnchor:Show()
+    else
+        dragAnchor:Hide()
+    end
+end
+addon._UpdateFloatingItemDragAnchor = UpdateDragAnchorVisibility
+
 local INSET = 0
 local floatingQuestItemIcon = floatingQuestItemBtn:CreateTexture(nil, "ARTWORK")
 floatingQuestItemIcon:SetPoint("TOPLEFT", floatingQuestItemBtn, "TOPLEFT", INSET, -INSET)
@@ -91,7 +167,7 @@ local function UpdateKeybindLabel()
         keybindLabel:Hide()
         return
     end
-    local key = GetBindingKey("CLICK HSFloatingQuestItem:LeftButton")
+    local key = GetBindingKey("CLICK HSSecureItemOverlay:LeftButton")
     if key and key ~= "" then
         -- Shorten common modifier names for display
         local display = key
@@ -116,9 +192,14 @@ C_Timer.After(0, function()
 end)
 
 -- Listen for keybind changes so the label stays current.
+local pendingQuestsFlat = nil
+local hasPendingUpdate = false
+local UpdateFloatingQuestItem -- forward declaration for PLAYER_REGEN_ENABLED handler
+
 local keybindWatcher = CreateFrame("Frame")
 keybindWatcher:RegisterEvent("UPDATE_BINDINGS")
 keybindWatcher:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+keybindWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
 keybindWatcher:SetScript("OnEvent", function(_, event)
     if event == "UPDATE_BINDINGS" then
         UpdateKeybindLabel()
@@ -127,12 +208,26 @@ keybindWatcher:SetScript("OnEvent", function(_, event)
         if floatingQuestItemBtn:IsShown() and floatingQuestItemBtn._itemLink then
             addon.ApplyItemCooldown(floatingQuestItemBtn.cooldown, floatingQuestItemBtn._itemLink)
         end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if hasPendingUpdate then
+            UpdateFloatingQuestItem(pendingQuestsFlat)
+        end
     end
 end)
 
-local function UpdateFloatingQuestItem(questsFlat)
+
+UpdateFloatingQuestItem = function(questsFlat)
+    if InCombatLockdown() then
+        pendingQuestsFlat = questsFlat
+        hasPendingUpdate = true
+        return
+    end
+    pendingQuestsFlat = nil
+    hasPendingUpdate = false
+
     if addon.ShouldHideInCombat() or not addon.GetDB("showFloatingQuestItem", false) or (addon.ShouldShowInInstance and not addon.ShouldShowInInstance()) then
         floatingQuestItemBtn:Hide()
+        UpdateDragAnchorVisibility()
         return
     end
     local superTracked = (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) and C_SuperTrack.GetSuperTrackedQuestID() or 0
@@ -214,8 +309,10 @@ local function UpdateFloatingQuestItem(questsFlat)
         floatingQuestItemBtn:Show()
         UpdateKeybindLabel()
         addon.ApplyItemCooldown(floatingQuestItemBtn.cooldown, chosenLink)
+        UpdateDragAnchorVisibility()
     else
         floatingQuestItemBtn:Hide()
+        UpdateDragAnchorVisibility()
     end
 end
 

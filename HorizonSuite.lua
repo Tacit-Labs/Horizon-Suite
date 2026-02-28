@@ -180,4 +180,4 @@ end
 -- Binding display names for Key Bindings UI (must match Binding name in Bindings.xml exactly)
 _G["BINDING_NAME_CLICK HSCollapseButton:LeftButton"] = "Collapse Tracker"
 _G["BINDING_NAME_CLICK HSNearbyToggleButton:LeftButton"] = "Toggle Nearby Group"
-_G["BINDING_NAME_CLICK HSFloatingQuestItem:LeftButton"] = "Use Floating Quest Item"
+_G["BINDING_NAME_CLICK HSSecureItemOverlay:LeftButton"] = "Use Floating Quest Item"

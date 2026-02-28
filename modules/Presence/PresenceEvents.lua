@@ -154,6 +154,7 @@ local PRESENCE_EVENTS = {
     "SCENARIO_CRITERIA_UPDATE",
     "SCENARIO_COMPLETED",
     "CRITERIA_UPDATE",
+    "CRITERIA_EARNED",
     "TRACKED_ACHIEVEMENT_UPDATE",
 }
 
@@ -978,6 +979,21 @@ local function GetAchievementProgressText(achievementID)
             end
         end
     end
+    for i = 1, numCriteria do
+        local cOk, criteriaString, _, completed, quantity, reqQuantity = pcall(GetAchievementCriteriaInfo, achievementID, i)
+        if cOk and completed then
+            local name = (criteriaString and criteriaString ~= "") and criteriaString or nil
+            if quantity and reqQuantity and tonumber(quantity) and tonumber(reqQuantity) and tonumber(reqQuantity) > 0 then
+                if name then
+                    return ("%d/%d %s"):format(tonumber(quantity), tonumber(reqQuantity), name)
+                else
+                    return ("%d/%d"):format(tonumber(quantity), tonumber(reqQuantity))
+                end
+            elseif name then
+                return name
+            end
+        end
+    end
     return nil
 end
 
@@ -1016,12 +1032,12 @@ local function ExecuteAchievementProgressCheck()
                 local progressText = GetAchievementProgressText(achID)
                 if progressText then
                     local now = GetTime()
-                    if lastAchProgressText ~= progressText or (now - lastAchProgressTime) > ACHIEVEMENT_PROGRESS_DEDUPE then
+                    local isDupe = (lastAchProgressText == progressText and (now - lastAchProgressTime) <= ACHIEVEMENT_PROGRESS_DEDUPE)
+                    if not isDupe then
                         lastAchProgressText = progressText
                         lastAchProgressTime = now
-                        local _, achName = pcall(GetAchievementInfo, achID)
-                        achName = StripPresenceMarkup(achName or "")
-                        local L = addon.L or {}
+                        local aOk, _, achName = pcall(GetAchievementInfo, achID)
+                        achName = StripPresenceMarkup(tostring(achName or ""))
                         addon.Presence.QueueOrPlay("ACHIEVEMENT_PROGRESS", achName, progressText, { source = "CRITERIA_UPDATE" })
                     end
                 end
@@ -1124,6 +1140,7 @@ local eventHandlers = {
     PLAYER_REGEN_DISABLED    = function() OnPlayerRegenDisabled() end,
     PLAYER_REGEN_ENABLED     = function() OnPlayerRegenEnabled() end,
     CRITERIA_UPDATE          = function() OnAchievementCriteriaUpdate() end,
+    CRITERIA_EARNED          = function() OnAchievementCriteriaUpdate() end,
     TRACKED_ACHIEVEMENT_UPDATE = function() OnAchievementCriteriaUpdate() end,
 }
 

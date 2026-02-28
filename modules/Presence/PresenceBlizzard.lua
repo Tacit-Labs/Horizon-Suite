@@ -143,6 +143,7 @@ local function ApplyBlizzardSuppression()
 
     -- Event toasts (achievements, quest accept/complete/progress, scenario) - shared frame
     local anyToast = isTypeEnabled("presenceAchievement", nil, true)
+        or isTypeEnabled("presenceAchievementProgress", nil, false)
         or isTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)
         or isTypeEnabled("presenceWorldQuestAccept", "presenceQuestEvents", true)
         or isTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)
@@ -243,6 +244,7 @@ local function DumpBlizzardSuppression(p)
     p("Boss emote:    option=" .. tostring(bossOn) .. " | RaidBossEmoteFrame=" .. frameState(bossEmoteFrame))
 
     local anyToast = isTypeEnabled("presenceAchievement", nil, true)
+        or isTypeEnabled("presenceAchievementProgress", nil, false)
         or isTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)
         or isTypeEnabled("presenceWorldQuestAccept", "presenceQuestEvents", true)
         or isTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)

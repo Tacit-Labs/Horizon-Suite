@@ -780,3 +780,4 @@ function addon.SetSecureItemOverlayItem(itemLink)
     secureItemOverlay:SetAttribute("item", itemLink)
 end
 
+CreateSecureItemOverlay()
