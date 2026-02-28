@@ -560,7 +560,8 @@ end
 --- Build display string for an objective. Prefers Blizzard quantityString when present (completed).
 local function formatObjectiveMsg(o)
     if not o then return nil end
-    if o.quantityString and o.quantityString ~= "" and o.quantityString ~= "0" then
+    if o.quantityString and o.quantityString ~= "" and o.quantityString ~= "0"
+       and not (o.text and o.text ~= "" and o.quantityString:match("^%d+$")) then
         return o.quantityString
     end
     if o.text and o.text ~= "" and o.text ~= "0" then
