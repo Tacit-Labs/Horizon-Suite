@@ -808,6 +808,10 @@ local function HandleFocusDebugSlash(msg)
         else
             HSPrint("IsDelveInProgress: not available")
         end
+        if C_GossipInfo and C_GossipInfo.GetActiveDelveGossip then
+            local ok, g = pcall(C_GossipInfo.GetActiveDelveGossip)
+            HSPrint("GetActiveDelveGossip: " .. (ok and g and type(g.orderIndex) == "number" and ("tier=" .. tostring(g.orderIndex + 1)) or "nil/error"))
+        end
         if GetCVarTableValue and C_DelvesUI and C_DelvesUI.GetTieredEntrancePDEID then
             local ok, pdeID = pcall(C_DelvesUI.GetTieredEntrancePDEID)
             if ok and pdeID then

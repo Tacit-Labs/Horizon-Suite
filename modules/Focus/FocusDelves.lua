@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Focus - Delve Provider
-    C_PartyInfo.IsDelveInProgress, C_DelvesUI.GetTieredEntrancePDEID.
-    CVar lastSelectedTieredEntranceTier (per-delve, via GetCVarTableValue).
+    C_PartyInfo.IsDelveInProgress, C_GossipInfo.GetActiveDelveGossip, C_DelvesUI.GetTieredEntrancePDEID.
+    CVar lastSelectedTieredEntranceTier (per-delve, via GetCVarTableValue) as fallback.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -37,12 +37,27 @@ local function IsDelveActive()
 end
 
 --- Current Delve tier (1-12) or nil if unknown/not in delve. Guarded API.
---- Uses GetCVarTableValue + lastSelectedTieredEntranceTier (per-delve, keyed by pdeID).
+--- Primary: C_GossipInfo.GetActiveDelveGossip (actual active tier; Blizzard's picker uses this when HasActiveDelve).
+--- Fallback: GetCVarTableValue + lastSelectedTieredEntranceTier (per-delve, keyed by pdeID).
 --- Fallback: GetCVarNumberOrDefault("lastSelectedDelvesTier") when table CVar unavailable.
 local function GetActiveDelveTier()
     if not IsDelveActive() then return nil end
 
-    -- Primary: Blizzard stores tier per-delve in table CVar (Gethe/wow-ui-source Blizzard_DelvesDifficultyPicker)
+    -- Primary: C_GossipInfo.GetActiveDelveGossip returns actual active delve tier (Blizzard's picker uses this when HasActiveDelve)
+    if C_GossipInfo and C_GossipInfo.GetActiveDelveGossip then
+        local ok, gossip = pcall(C_GossipInfo.GetActiveDelveGossip)
+        if ok and gossip and type(gossip) == "table" then
+            local orderIndex = gossip.orderIndex
+            if type(orderIndex) == "number" and orderIndex >= 0 then
+                local tier = orderIndex + 1  -- 0-based to 1-based
+                if tier >= TIER_MIN and tier <= TIER_MAX then
+                    return tier
+                end
+            end
+        end
+    end
+
+    -- Fallback: Blizzard stores tier per-delve in table CVar (Gethe/wow-ui-source Blizzard_DelvesDifficultyPicker)
     if GetCVarTableValue and C_DelvesUI and C_DelvesUI.GetTieredEntrancePDEID then
         local ok, pdeID = pcall(C_DelvesUI.GetTieredEntrancePDEID)
         if ok and pdeID and type(pdeID) == "number" then
