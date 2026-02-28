@@ -458,16 +458,17 @@ local function StripHealthAndPowerText()
         for _, suffix in ipairs({ "Left", "Right" }) do
             local font = _G[name .. "Text" .. suffix .. i]
             if font then
-                local ok, rawVal = pcall(font.GetText, font)
-                local raw = tostring((ok and rawVal) or "")
-                if raw == "" then
-                    -- nothing
-                else
-                    local text = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-                    if text:match("%d[%d,]*%s*/%s*%d[%d,]*") then
-                        font:SetText("")
+                -- pcall: GetText/compare can throw when text is secret/tainted; skip line on error.
+                pcall(function()
+                    local ok2, rawVal = pcall(font.GetText, font)
+                    local raw = tostring((ok2 and rawVal) or "")
+                    if raw ~= "" then
+                        local text = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+                        if text:match("%d[%d,]*%s*/%s*%d[%d,]*") then
+                            font:SetText("")
+                        end
                     end
-                end
+                end)
             end
         end
     end
