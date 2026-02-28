@@ -227,7 +227,15 @@ local function GetScenarioDisplayInfo()
     end
 
     local title = scenarioName
-    if not title or title == "" then
+    if inPartyDungeon then
+        -- C_Scenario.GetInfo returns step/area name in dungeons; prefer instance name
+        local instanceName = GetInstanceInfo()
+        if instanceName and instanceName ~= "" then
+            title = instanceName
+        elseif not title or title == "" then
+            title = "Dungeon"
+        end
+    elseif not title or title == "" then
         if isDelve then
             -- Same system as zone-entry: C_ScenarioInfo, widget headerText, zone/subzone, then fallback
             title = GetDelveNameFromAPIs()
@@ -237,8 +245,6 @@ local function GetScenarioDisplayInfo()
             else
                 title = tier and ("Delves (Tier " .. tier .. ")") or "Delves"
             end
-        elseif inPartyDungeon then
-            title = "Dungeon"
         else
             title = "Scenario"
         end
