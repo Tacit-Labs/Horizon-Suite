@@ -4,7 +4,7 @@
     Uses C_Map.GetBestMapForUnit in RunMapCheck for zone change detection.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local HEIGHT_SNAP_THRESHOLD   = 0.5
 local DRIFT_THRESHOLD        = 0.1

@@ -4,7 +4,7 @@
     Supports full options: map size, border, typography, visibility, button drawer modes, per-addon filtering.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 addon.Vista = addon.Vista or {}
@@ -1647,7 +1647,7 @@ do
 end
 
 local function SaveButtonState(btn)
-    if buttonOriginalState[btn] then return end  -- already saved
+    if buttonOriginalState[btn] then return end
     local parent = btn:GetParent()
     local point, relFrame, relPoint, x, y = btn:GetPoint()
     local ok, strata = pcall(function() return btn:GetFrameStrata() end)
@@ -1659,6 +1659,7 @@ local function SaveButtonState(btn)
         x        = x or 0,
         y        = y or 0,
         strata   = (ok and strata) or "MEDIUM",
+        originalShow = btn.Show,
     }
 end
 
@@ -1687,6 +1688,20 @@ local function ResetButtonBrightness(btn)
             end
         end
     end)
+end
+
+local function SuppressButtonShow(btn)
+    local s = buttonOriginalState[btn]
+    if not s then return end
+    if not s.originalShow then s.originalShow = btn.Show end
+    btn.Show = function() end
+end
+
+local function RestoreButtonShow(btn)
+    local s = buttonOriginalState[btn]
+    if s and s.originalShow then
+        btn.Show = s.originalShow
+    end
 end
 
 -- Reset button for use inside a panel (drawer / right-click).
@@ -1810,6 +1825,7 @@ local function HideAllProxyButtons()
 end
 
 local function RestoreButton(btn)
+    RestoreButtonShow(btn)
     local s = buttonOriginalState[btn]
     if not s then
         pcall(function() btn:SetParent(Minimap); btn:Show() end)
@@ -1823,7 +1839,6 @@ local function RestoreButton(btn)
         btn:SetPoint(s.point, s.relFrame or (s.parent or Minimap), s.relPoint, s.x, s.y)
         btn:Show()
     end)
-    -- Restore .background/.border textures that ResetButtonForPanel may have hidden
     ResetButtonBrightness(btn)
 end
 
@@ -2685,8 +2700,8 @@ local function CollectMinimapButtons()
     -- Step 1: restore buttons currently in our panels to their natural state
     -- so ScanMinimapButtons can find them again (they may be parented to our panel)
     for btn in pairs(allManagedButtons) do
+        RestoreButtonShow(btn)
         pcall(function()
-            -- Re-parent to Minimap temporarily so the scan can see them
             local s = buttonOriginalState[btn]
             if s then
                 btn:SetParent(s.parent or Minimap)
@@ -2741,6 +2756,7 @@ local function CollectMinimapButtons()
                 visible[#visible + 1] = btn
             else
                 pcall(function() btn:Hide() end)
+                SuppressButtonShow(btn)
             end
         end
     end
@@ -2752,6 +2768,7 @@ local function CollectMinimapButtons()
         for _, btn in ipairs(visible) do
             collectedButtons[#collectedButtons + 1] = btn
             btn:Hide()
+            SuppressButtonShow(btn)
         end
         LayoutCollectedButtons()
 
@@ -2761,6 +2778,7 @@ local function CollectMinimapButtons()
         for _, btn in ipairs(visible) do
             collectedButtons[#collectedButtons + 1] = btn
             btn:Hide()
+            SuppressButtonShow(btn)
         end
         LayoutRightClickPanel(collectedButtons)
         if collectorBar then collectorBar:SetWidth(1) end
@@ -2771,6 +2789,7 @@ local function CollectMinimapButtons()
         for _, btn in ipairs(visible) do
             drawerPanelButtons[#drawerPanelButtons + 1] = btn
             btn:Hide()
+            SuppressButtonShow(btn)
         end
         UpdateDrawerPanelLayout()
         if collectorBar then collectorBar:SetWidth(1) end

@@ -4,7 +4,7 @@
     GetQuestBaseCategory, GetQuestTypeAtlas, GetQuestZoneName. Used by multiple providers.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- Single source of truth: QuestUtils_IsQuestWorldQuest (Blizzard) or C_QuestLog.IsWorldQuest.
 local function IsQuestWorldQuest(questID)

@@ -3,7 +3,7 @@
     /h yield [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.Yield or not addon.RegisterSlashHandler then return end
 
 local Y = addon.Yield

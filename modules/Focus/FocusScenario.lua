@@ -3,7 +3,7 @@
     C_Scenario / C_ScenarioInfo / C_UIWidgetManager data provider for main and bonus steps.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local function ScenarioDebug(fmt, ...)
     if addon.GetDB and addon.GetDB("scenarioDebug", false) and addon.HSPrint then

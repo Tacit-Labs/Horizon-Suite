@@ -3,7 +3,7 @@
     Instance detection (GetInstanceInfo) and dungeon quest collection. Isolated API boundary.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 --- True when the player is in any party dungeon (Normal, Heroic, Mythic, or Mythic+). Guarded.
 local function IsInPartyDungeon()

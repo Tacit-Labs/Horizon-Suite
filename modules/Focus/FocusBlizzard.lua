@@ -4,7 +4,7 @@
     APIs: ObjectiveTrackerFrame, C_Timer, C_AddOns, C_QuestLog; hooks WorldQuestTracker.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local WQT_SUPPRESSION_TICK_INTERVAL = 1.0
 local WQT_ADDON_LOAD_DELAY = 0.5

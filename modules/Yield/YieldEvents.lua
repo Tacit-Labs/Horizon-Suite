@@ -3,7 +3,7 @@
     Event registration and dispatch for loot, money, currency, reputation.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.Yield then return end
 
 local Y = addon.Yield
@@ -15,7 +15,7 @@ local eventsRegistered = false
 local function OnEvent(self, event, msg, ...)
     if event == "ADDON_LOADED" then
         local loaded = msg
-        if loaded == "HorizonSuite" then
+        if loaded == addon.ADDON_NAME then
             Y.RestoreSavedPosition()
         end
         if loaded == "Blizzard_AlertFrames" or loaded == "Blizzard_LootFrame" then

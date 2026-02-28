@@ -3,7 +3,7 @@
     PopulateEntry, FullLayout, ToggleCollapse, AcquireEntry, section headers, header button, keybind, floating item, M+ block.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- ============================================================================
 -- LAYOUT ENGINE
@@ -253,12 +253,20 @@ local function CollectAllEntries(rares)
 end
 
 local lastMinimal = false
+local function HideAllItemButtons()
+    for i = 1, addon.POOL_SIZE do
+        local e = pool[i]
+        if e and e.itemBtn then e.itemBtn:Hide() end
+    end
+end
+
 local function FullLayout()
     if not addon.focus.enabled then return end
     addon.focus.layoutPendingAfterCombat = false
 
     if not addon.ShouldShowInInstance() then
         addon.HS:Hide()
+        HideAllItemButtons()
         addon.UpdateFloatingQuestItem(nil)
         if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
         return
@@ -266,6 +274,7 @@ local function FullLayout()
 
     if addon.ShouldHideInCombat() then
         addon.HS:Hide()
+        HideAllItemButtons()
         addon.UpdateFloatingQuestItem(nil)
         if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
         return
@@ -470,6 +479,10 @@ local function FullLayout()
         if #quests > 0 then
             ApplyShowAlpha()
             addon.HS:Show()
+        else
+            addon.HS:Hide()
+            HideAllItemButtons()
+            addon.UpdateFloatingQuestItem(nil)
         end
         return
     end
@@ -916,6 +929,10 @@ local function FullLayout()
     if #quests > 0 then
         ApplyShowAlpha()
         addon.HS:Show()
+    else
+        addon.HS:Hide()
+        HideAllItemButtons()
+        addon.UpdateFloatingQuestItem(nil)
     end
 
     if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end

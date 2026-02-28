@@ -3,7 +3,7 @@
     Mouse scripts on pool entries (click, tooltip, scroll).
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- INTERACTIONS
 -- ============================================================================
@@ -170,6 +170,164 @@ StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSU
     whileDead = true,
     hideOnEscape = true,
 }
+
+-- ============================================================================
+-- QUEST WAYPOINT (TomTom / native)
+-- ============================================================================
+
+local activeQuestWaypointUID
+
+local function TryWaypointOnMap(questID, mapID)
+    if not mapID then return nil, nil end
+    if C_QuestLog.GetNextWaypointForMap then
+        local ok, x, y = pcall(C_QuestLog.GetNextWaypointForMap, questID, mapID)
+        if ok and x and y then return x, y end
+    end
+    if C_SuperTrack and C_SuperTrack.GetNextWaypointForMap then
+        local ok, x, y = pcall(C_SuperTrack.GetNextWaypointForMap, mapID)
+        if ok and x and y then return x, y end
+    end
+    return nil, nil
+end
+
+local function FindQuestOnMap(questID, mapID)
+    if not mapID or not C_QuestLog.GetQuestsOnMap then return nil, nil end
+    local ok, quests = pcall(C_QuestLog.GetQuestsOnMap, mapID)
+    if not ok or not quests then return nil, nil end
+    for _, q in ipairs(quests) do
+        if q.questID == questID and q.x and q.y and q.x > 0 and q.y > 0 then
+            return q.x, q.y
+        end
+    end
+    return nil, nil
+end
+
+local function GetParentChain(mapID)
+    local chain = {}
+    local current = mapID
+    for _ = 1, 10 do
+        if not current or current == 0 then break end
+        local info = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(current)
+        if not info then break end
+        local parent = info.parentMapID
+        if not parent or parent == 0 or parent == current then break end
+        chain[#chain + 1] = parent
+        current = parent
+    end
+    return chain
+end
+
+local function GetQuestObjectiveCoords(questID)
+    local playerMap = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+
+    if C_QuestLog.GetNextWaypoint then
+        local ok, mapID, x, y = pcall(C_QuestLog.GetNextWaypoint, questID)
+        if ok and mapID and x and y then return mapID, x, y end
+    end
+
+    local mapsToTry = {}
+    local seen = {}
+    local function addMap(m)
+        if m and m ~= 0 and not seen[m] then
+            seen[m] = true
+            mapsToTry[#mapsToTry + 1] = m
+        end
+    end
+
+    addMap(playerMap)
+
+    if C_QuestLog.GetMapForQuestPOIs then
+        local ok, poiMap = pcall(C_QuestLog.GetMapForQuestPOIs)
+        if ok and poiMap then addMap(poiMap) end
+    end
+
+    if playerMap then
+        for _, parent in ipairs(GetParentChain(playerMap)) do
+            addMap(parent)
+        end
+    end
+
+    for _, m in ipairs(mapsToTry) do
+        local x, y = TryWaypointOnMap(questID, m)
+        if x and y then return m, x, y end
+    end
+
+    for _, m in ipairs(mapsToTry) do
+        local x, y = FindQuestOnMap(questID, m)
+        if x and y then return m, x, y end
+    end
+
+    if playerMap and C_Map and C_Map.GetMapChildrenInfo then
+        local continentMap = nil
+        for _, m in ipairs(mapsToTry) do
+            local info = C_Map.GetMapInfo(m)
+            if info and info.mapType and info.mapType == 2 then
+                continentMap = m
+                break
+            end
+        end
+        if continentMap then
+            local ok, children = pcall(C_Map.GetMapChildrenInfo, continentMap, Enum.UIMapType.Zone, true)
+            if ok and children then
+                for _, child in ipairs(children) do
+                    local childID = child.mapID
+                    if childID and not seen[childID] then
+                        seen[childID] = true
+                        local x, y = FindQuestOnMap(questID, childID)
+                        if x and y then return childID, x, y end
+                    end
+                end
+            end
+        end
+    end
+
+    if C_TaskQuest and C_TaskQuest.GetQuestLocation and playerMap then
+        local ok, x, y = pcall(C_TaskQuest.GetQuestLocation, questID, playerMap)
+        if ok and x and y then return playerMap, x, y end
+    end
+
+    return nil, nil, nil
+end
+
+local function SetQuestWaypoint(questID)
+    if not questID or questID <= 0 then return end
+    if not C_QuestLog then return end
+    local mapID, x, y = GetQuestObjectiveCoords(questID)
+    if not mapID or not x or not y then return end
+    local title = (C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(questID)) or ("Quest " .. questID)
+
+    local TomTom = _G.TomTom
+    if TomTom and TomTom.AddWaypoint then
+        if activeQuestWaypointUID and TomTom.RemoveWaypoint then
+            pcall(TomTom.RemoveWaypoint, TomTom, activeQuestWaypointUID)
+        end
+        local okAdd, uid = pcall(TomTom.AddWaypoint, TomTom, mapID, x, y, { title = title, persistent = false, minimap = true, world = true, crazy = true })
+        activeQuestWaypointUID = okAdd and uid or nil
+        return
+    end
+
+    if C_Map and C_Map.SetUserWaypoint and UiMapPoint then
+        local point = UiMapPoint.CreateFromCoordinates(mapID, x, y)
+        if point then
+            pcall(C_Map.SetUserWaypoint, point)
+            if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+                pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+            end
+        end
+    end
+end
+
+local function ClearQuestWaypoint()
+    if not activeQuestWaypointUID then return end
+    local TomTom = _G.TomTom
+    if TomTom and TomTom.RemoveWaypoint then
+        pcall(TomTom.RemoveWaypoint, TomTom, activeQuestWaypointUID)
+    end
+    activeQuestWaypointUID = nil
+end
+
+addon.SetQuestWaypoint = SetQuestWaypoint
+addon.ClearQuestWaypoint = ClearQuestWaypoint
 
 local function AppendDelveTooltipData(self, tooltip)
     if self.tierSpellID and addon.GetDB("showDelveAffixes", true) then
@@ -391,8 +549,10 @@ for i = 1, addon.POOL_SIZE do
             if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
                 local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
                 if currentFocused and currentFocused == self.questID then
-                    -- Re-click: remove focus
                     C_SuperTrack.SetSuperTrackedQuestID(0)
+                    if addon.GetDB("tomtomQuestWaypoint", false) then
+                        ClearQuestWaypoint()
+                    end
                     local wqtPanel = _G.WorldQuestTrackerScreenPanel
                     if wqtPanel and wqtPanel:IsShown() then
                         wqtPanel:Hide()
@@ -403,6 +563,9 @@ for i = 1, addon.POOL_SIZE do
                     return
                 end
                 C_SuperTrack.SetSuperTrackedQuestID(self.questID)
+                if addon.GetDB("tomtomQuestWaypoint", false) then
+                    SetQuestWaypoint(self.questID)
+                end
                 local wqtPanel = _G.WorldQuestTrackerScreenPanel
                 if wqtPanel and wqtPanel:IsShown() then
                     wqtPanel:Hide()

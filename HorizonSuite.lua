@@ -11,8 +11,45 @@
     - WQT  = World Quest / Task Quest (C_TaskQuest API)
 ]]
 
-if not _G.HorizonSuite then _G.HorizonSuite = {} end
-local addon = _G.HorizonSuite
+-- ============================================================================
+-- ADDON IDENTITY DETECTION
+-- ============================================================================
+-- Detect whether this code is running from the "HorizonSuite" or
+-- "HorizonSuiteBeta" folder so both can be loaded simultaneously without
+-- colliding on global namespace, SavedVariables, or frame names.
+
+local ADDON_NAME
+do
+    -- Walk the call stack to find the originating file path.  When WoW (or
+    -- the test harness) loads "Interface/AddOns/<FolderName>/HorizonSuite.lua"
+    -- the folder name tells us which copy we are.
+    local info = debugstack and debugstack(1, 1, 0) or ""
+    if info:find("HorizonSuiteBeta") then
+        ADDON_NAME = "HorizonSuiteBeta"
+    else
+        ADDON_NAME = "HorizonSuite"
+    end
+end
+
+local isBeta    = (ADDON_NAME == "HorizonSuiteBeta")
+local GLOBAL_NS = isBeta and "HorizonSuiteBeta" or "HorizonSuite"
+local DB_NAME   = isBeta and "HorizonBetaDB"     or "HorizonDB"
+
+
+if not _G[GLOBAL_NS] then _G[GLOBAL_NS] = {} end
+local addon = _G[GLOBAL_NS]
+
+-- Loading marker: WoW loads all TOC files for one addon sequentially before
+-- moving to the next addon. Every subsequent file in this addon's TOC checks
+-- _G._HorizonSuite_Loading to find the correct namespace, avoiding the bug
+-- where the main addon's files accidentally bind to the beta namespace (or
+-- vice-versa) when both are loaded simultaneously.
+_G._HorizonSuite_Loading = addon
+
+-- Store identity so every other file can query it.
+addon.ADDON_NAME = ADDON_NAME
+addon.IS_BETA    = isBeta
+addon.DB_NAME    = DB_NAME
 
 -- ============================================================================
 -- MODULE REGISTRY AND LIFECYCLE
@@ -82,10 +119,11 @@ end
 function addon:EnableModule(key)
     local m = self.modules[key]
     if not m or m.enabled then return end
-    if not HorizonDB then HorizonDB = {} end
-    if not HorizonDB.modules then HorizonDB.modules = {} end
-    if not HorizonDB.modules[key] then HorizonDB.modules[key] = {} end
-    HorizonDB.modules[key].enabled = true
+    local db = _G[self.DB_NAME]
+    if not db then db = {}; _G[self.DB_NAME] = db end
+    if not db.modules then db.modules = {} end
+    if not db.modules[key] then db.modules[key] = {} end
+    db.modules[key].enabled = true
     if not m.initialized and m.OnInit then
         m.OnInit(self)
         m.initialized = true
@@ -100,8 +138,9 @@ function addon:DisableModule(key)
     if not m or not m.enabled then return end
     if m.OnDisable then m.OnDisable(self) end
     m.enabled = false
-    if HorizonDB and HorizonDB.modules and HorizonDB.modules[key] then
-        HorizonDB.modules[key].enabled = false
+    local db = _G[self.DB_NAME]
+    if db and db.modules and db.modules[key] then
+        db.modules[key].enabled = false
     end
 end
 
@@ -112,28 +151,29 @@ end
 
 --- Ensure modules table exists and migrate legacy installs (no modules table = all defaults).
 function addon:EnsureModulesDB()
-    if not HorizonDB then HorizonDB = {} end
-    if not HorizonDB.modules then
-        HorizonDB.modules = {}
+    local db = _G[self.DB_NAME]
+    if not db then db = {}; _G[self.DB_NAME] = db end
+    if not db.modules then
+        db.modules = {}
         -- Legacy install: focus, Presence, Vista enabled; Insight, Yield off by default (beta modules)
-        HorizonDB.modules.focus = { enabled = true }
-        HorizonDB.modules.presence = { enabled = true }
-        HorizonDB.modules.insight = { enabled = false }
-        HorizonDB.modules.yield = { enabled = false }
-        HorizonDB.modules.vista = { enabled = true }
+        db.modules.focus = { enabled = true }
+        db.modules.presence = { enabled = true }
+        db.modules.insight = { enabled = false }
+        db.modules.yield = { enabled = false }
+        db.modules.vista = { enabled = true }
     end
     -- Migrate old Vista (Presence) module key to Presence; repurpose vista for minimap
-    if HorizonDB.modules.vista and not HorizonDB.modules.presence then
-        HorizonDB.modules.presence = { enabled = (HorizonDB.modules.vista.enabled ~= false) }
-        HorizonDB.modules.vista = { enabled = false }
+    if db.modules.vista and not db.modules.presence then
+        db.modules.presence = { enabled = (db.modules.vista.enabled ~= false) }
+        db.modules.vista = { enabled = false }
     end
     -- Ensure vista exists for existing installs (default enabled)
-    if not HorizonDB.modules.vista then
-        HorizonDB.modules.vista = { enabled = true }
+    if not db.modules.vista then
+        db.modules.vista = { enabled = true }
     end
     -- Ensure insight exists for existing installs (default disabled, beta module)
-    if not HorizonDB.modules.insight then
-        HorizonDB.modules.insight = { enabled = false }
+    if not db.modules.insight then
+        db.modules.insight = { enabled = false }
     end
 end
 

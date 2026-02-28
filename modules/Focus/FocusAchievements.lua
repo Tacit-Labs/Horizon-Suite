@@ -5,7 +5,7 @@
     Step-by-step flow notes: notes/FocusAchievements.md
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local TRACKING_TYPE_ACHIEVEMENT = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Achievement) or 2
 local DEFAULT_ACHIEVEMENT_COLOR = { 0.78, 0.48, 0.22 }

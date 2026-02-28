@@ -5,7 +5,7 @@
     Settings via addon.GetDB/SetDB (profile-backed).
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 addon.Insight = addon.Insight or {}
@@ -317,7 +317,7 @@ local function HookGameTooltipAnimation()
         if not IsEnabled() then return end
         if self.GetUnit and self:GetUnit() then
             C_Timer.After(0, function()
-                local fn = _G.HorizonSuite and _G.HorizonSuite.Insight and _G.HorizonSuite.Insight.StripHealthAndPowerText
+                local fn = addon and addon.Insight and addon.Insight.StripHealthAndPowerText
                 if fn then fn() end
             end)
         end
@@ -458,7 +458,8 @@ local function StripHealthAndPowerText()
         for _, suffix in ipairs({ "Left", "Right" }) do
             local font = _G[name .. "Text" .. suffix .. i]
             if font then
-                local raw = font:GetText() or ""
+                local ok, rawVal = pcall(font.GetText, font)
+                local raw = tostring((ok and rawVal) or "")
                 if raw == "" then
                     -- nothing
                 else

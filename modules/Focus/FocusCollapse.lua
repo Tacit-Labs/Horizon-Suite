@@ -3,7 +3,7 @@
     ToggleCollapse, StartGroupCollapse, ShouldShowInInstance, CountTrackedInLog, RefreshContentInCombat.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local pool       = addon.pool
 local activeMap  = addon.activeMap

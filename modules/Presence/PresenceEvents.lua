@@ -5,7 +5,7 @@
     Step-by-step flow notes: notes/PresenceEvents.md
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.Presence then return end
 
 -- Temporary diagnostics for debugging.
@@ -153,6 +153,8 @@ local PRESENCE_EVENTS = {
     "SCENARIO_UPDATE",
     "SCENARIO_CRITERIA_UPDATE",
     "SCENARIO_COMPLETED",
+    "CRITERIA_UPDATE",
+    "TRACKED_ACHIEVEMENT_UPDATE",
 }
 
 local function OnAddonLoaded(addonName)
@@ -231,6 +233,7 @@ end
 local lastQuestObjectivesCache = {}  -- questID -> serialized objectives
 local lastQuestObjectivesState = {}  -- questID -> { { text = string, finished = boolean }, ... }
 local bufferedUpdates = {}           -- questID -> timerObject
+local recentlyDisposed = {}          -- questID -> GetTime() when disposed
 
 --- Remove cached quest state for a quest that is no longer relevant (turned in, abandoned, etc.)
 --- @param questID number
@@ -238,6 +241,7 @@ local function DisposeQuestState(questID)
     if not questID then return end
     lastQuestObjectivesCache[questID] = nil
     lastQuestObjectivesState[questID] = nil
+    recentlyDisposed[questID] = GetTime()
     if bufferedUpdates[questID] then
         bufferedUpdates[questID]:Cancel()
         bufferedUpdates[questID] = nil
@@ -287,6 +291,11 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
     bufferedUpdates[questID] = nil -- Clear the timer ref
 
     if not questID or questID <= 0 then return end
+
+    local disposedAt = recentlyDisposed[questID]
+    if disposedAt and (GetTime() - disposedAt) < 2.0 then return end
+
+    if C_QuestLog and C_QuestLog.IsOnQuest and not C_QuestLog.IsOnQuest(questID) then return end
     
     -- Note: We removed the IsComplete check here so 8/8 progress can show before the quest turn-in event takes over.
     
@@ -728,6 +737,13 @@ local function OnPlayerEnteringWorld()
     rareVignetteSnapshot = BuildRareSnapshot()
     rareSnapshotInit = true
 
+    -- Seed achievement progress cache (prevents false progress toasts on login/reload)
+    C_Timer.After(1, function()
+        if addon.Presence._seedAchievementProgress then
+            addon.Presence._seedAchievementProgress()
+        end
+    end)
+
     if not addon.Presence._scenarioInitDone then
         addon.Presence._scenarioInitDone = true
         -- Delve objective update disabled; don't treat delve as scenario for this flow
@@ -922,6 +938,113 @@ local function OnZoneChanged()
 end
 
 -- ============================================================================
+-- ACHIEVEMENT PROGRESS TRACKING
+-- ============================================================================
+
+local achievementProgressCache = {}
+local achievementProgressTimer = nil
+local ACHIEVEMENT_PROGRESS_DEBOUNCE = 0.6
+local ACHIEVEMENT_PROGRESS_DEDUPE = 3
+
+local lastAchProgressText = nil
+local lastAchProgressTime = 0
+
+local function SerializeAchievementProgress(achievementID)
+    if not GetAchievementCriteriaInfo or not GetAchievementNumCriteria then return nil end
+    local ok, numCriteria = pcall(GetAchievementNumCriteria, achievementID)
+    if not ok or not numCriteria or numCriteria == 0 then return nil end
+    local parts = {}
+    for i = 1, numCriteria do
+        local cOk, _, _, completed, quantity, reqQuantity = pcall(GetAchievementCriteriaInfo, achievementID, i)
+        if cOk then
+            parts[#parts + 1] = ("%s:%s:%s"):format(tostring(completed), tostring(quantity), tostring(reqQuantity))
+        end
+    end
+    return table.concat(parts, ";")
+end
+
+local function GetAchievementProgressText(achievementID)
+    if not GetAchievementCriteriaInfo or not GetAchievementNumCriteria then return nil end
+    local ok, numCriteria = pcall(GetAchievementNumCriteria, achievementID)
+    if not ok or not numCriteria or numCriteria == 0 then return nil end
+    for i = 1, numCriteria do
+        local cOk, criteriaString, _, completed, quantity, reqQuantity = pcall(GetAchievementCriteriaInfo, achievementID, i)
+        if cOk and not completed and quantity and reqQuantity and tonumber(quantity) and tonumber(reqQuantity) and tonumber(reqQuantity) > 0 and tonumber(quantity) > 0 then
+            local name = (criteriaString and criteriaString ~= "") and criteriaString or nil
+            if name then
+                return ("%d/%d %s"):format(tonumber(quantity), tonumber(reqQuantity), name)
+            else
+                return ("%d/%d"):format(tonumber(quantity), tonumber(reqQuantity))
+            end
+        end
+    end
+    return nil
+end
+
+local function GetTrackedAchievementIDs()
+    local ids = {}
+    if C_ContentTracking and C_ContentTracking.GetTrackedIDs then
+        local achType = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Achievement) or 2
+        local ok, tracked = pcall(C_ContentTracking.GetTrackedIDs, achType)
+        if ok and tracked then
+            for _, id in ipairs(tracked) do ids[#ids + 1] = id end
+        end
+    end
+    if GetTrackedAchievements and #ids == 0 then
+        local ok, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 = pcall(GetTrackedAchievements)
+        if ok then
+            for _, id in ipairs({ a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 }) do
+                if id then ids[#ids + 1] = id end
+            end
+        end
+    end
+    return ids
+end
+
+local function ExecuteAchievementProgressCheck()
+    achievementProgressTimer = nil
+    if not IsPresenceTypeEnabled("presenceAchievementProgress", nil, false) then return end
+
+    local trackedIDs = GetTrackedAchievementIDs()
+    if #trackedIDs == 0 then return end
+
+    for _, achID in ipairs(trackedIDs) do
+        local newState = SerializeAchievementProgress(achID)
+        if newState then
+            local oldState = achievementProgressCache[achID]
+            if oldState and oldState ~= newState then
+                local progressText = GetAchievementProgressText(achID)
+                if progressText then
+                    local now = GetTime()
+                    if lastAchProgressText ~= progressText or (now - lastAchProgressTime) > ACHIEVEMENT_PROGRESS_DEDUPE then
+                        lastAchProgressText = progressText
+                        lastAchProgressTime = now
+                        local _, achName = pcall(GetAchievementInfo, achID)
+                        achName = StripPresenceMarkup(achName or "")
+                        local L = addon.L or {}
+                        addon.Presence.QueueOrPlay("ACHIEVEMENT_PROGRESS", achName, progressText, { source = "CRITERIA_UPDATE" })
+                    end
+                end
+            end
+            achievementProgressCache[achID] = newState
+        end
+    end
+end
+
+local function OnAchievementCriteriaUpdate()
+    if not IsPresenceTypeEnabled("presenceAchievementProgress", nil, false) then return end
+    if achievementProgressTimer then achievementProgressTimer:Cancel() end
+    achievementProgressTimer = C_Timer.After(ACHIEVEMENT_PROGRESS_DEBOUNCE, ExecuteAchievementProgressCheck)
+end
+
+addon.Presence._seedAchievementProgress = function()
+    local trackedIDs = GetTrackedAchievementIDs()
+    for _, achID in ipairs(trackedIDs) do
+        achievementProgressCache[achID] = SerializeAchievementProgress(achID)
+    end
+end
+
+-- ============================================================================
 -- RARE DEFEATED DETECTION
 -- ============================================================================
 
@@ -1000,6 +1123,8 @@ local eventHandlers = {
     VIGNETTES_UPDATED        = function() OnVignettesUpdated() end,
     PLAYER_REGEN_DISABLED    = function() OnPlayerRegenDisabled() end,
     PLAYER_REGEN_ENABLED     = function() OnPlayerRegenEnabled() end,
+    CRITERIA_UPDATE          = function() OnAchievementCriteriaUpdate() end,
+    TRACKED_ACHIEVEMENT_UPDATE = function() OnAchievementCriteriaUpdate() end,
 }
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)

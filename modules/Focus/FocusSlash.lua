@@ -3,7 +3,7 @@
     /h focus [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.RegisterSlashHandler then return end
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite - Focus:|r " .. tostring(msg or "")) end
 local colorCheckState = nil
@@ -733,8 +733,8 @@ local function HandleFocusDebugSlash(msg)
         local numSpecs = _G.GetNumSpecializations and _G.GetNumSpecializations() or "?"
         local curSpec = _G.GetSpecialization and _G.GetSpecialization() or "?"
         HSPrint("Specs: " .. tostring(numSpecs) .. " | Current spec index: " .. tostring(curSpec))
-        if _G.HorizonDB then
-            local db = _G.HorizonDB
+        if _G[addon.DB_NAME] then
+            local db = _G[addon.DB_NAME]
             HSPrint("useGlobalProfile: " .. tostring(db.useGlobalProfile))
             HSPrint("globalProfileKey: " .. tostring(db.globalProfileKey))
             HSPrint("usePerSpecProfiles: " .. tostring(db.usePerSpecProfiles))

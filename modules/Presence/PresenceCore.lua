@@ -13,7 +13,7 @@
       line; opts.questID is for colour/icon only, never displayed.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 addon.Presence = addon.Presence or {}
@@ -57,6 +57,8 @@ local TYPES = {
     SUBZONE_CHANGE     = { pri = 1, category = "DEFAULT",   subCategory = "CAMPAIGN", sz = 36, dur = 3.0 },
     SCENARIO_START     = { pri = 2, category = "SCENARIO", subCategory = "DEFAULT", sz = 36, dur = 3.5 },
     SCENARIO_UPDATE     = { pri = 1, category = "SCENARIO", subCategory = "DEFAULT", sz = 36, dur = 2.5, liveUpdate = true, replaceInQueue = true },
+    ACHIEVEMENT_PROGRESS = { pri = 1, category = "ACHIEVEMENT", subCategory = "DEFAULT", sz = 28, dur = 2.5, liveUpdate = true, replaceInQueue = true, subGap = 12 },
+    RARE_DEFEATED      = { pri = 2, category = "DEFAULT",  subCategory = "DEFAULT", sz = 36, dur = 3.5 },
 }
 
 local function getFrameY()
@@ -195,10 +197,6 @@ local function resolveColors(typeName, cfg, opts)
     end
     local c = getCategoryColor(cat, { 0.9, 0.9, 0.9 })
     local subCat = cfg.subCategory or "DEFAULT"
-    -- Use quest category colour for subtitle when we have questID (QUEST_UPDATE, QUEST_ACCEPT)
-    if opts.questID and (typeName == "QUEST_UPDATE" or typeName == "QUEST_ACCEPT") then
-        subCat = cat
-    end
     local sc = getCategoryColor(subCat, { 1, 1, 1 })
     return c, sc
 end
@@ -741,8 +739,15 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     opts = opts or {}
     cachedCompactLayout = (typeName == "QUEST_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
 
-    if typeName == "QUEST_UPDATE" and subtitle and addon.Presence.NormalizeQuestUpdateText then
-        lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(subtitle)
+    local originalSubtitle = subtitle
+
+    if typeName == "QUEST_UPDATE" and addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false) then
+        title = subtitle or ""
+        subtitle = ""
+    end
+
+    if typeName == "QUEST_UPDATE" and originalSubtitle and addon.Presence.NormalizeQuestUpdateText then
+        lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(originalSubtitle)
         lastQuestUpdateTime = GetTime()
     end
     local L = curLayer

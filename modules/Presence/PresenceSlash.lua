@@ -3,7 +3,7 @@
     /h presence [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.Presence or not addon.RegisterSlashHandler then return end
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
@@ -37,6 +37,9 @@ local function HandlePresenceSlash(msg)
     elseif cmd == "update" then
         local L = addon.L or {}
         addon.Presence.QueueOrPlay("QUEST_UPDATE", L["QUEST UPDATE"], L["Boar Pelts: 7/10"])
+    elseif cmd == "achprogress" then
+        local L = addon.L or {}
+        addon.Presence.QueueOrPlay("ACHIEVEMENT_PROGRESS", L["Exploring the Midnight Isles"], L["Dragon Glyphs: 3/5"])
     elseif cmd == "scenario" then
         if addon.GetScenarioDisplayInfo and addon.IsScenarioActive and addon.IsScenarioActive() then
             local title, subtitle, category = addon.GetScenarioDisplayInfo()
@@ -65,6 +68,7 @@ local function HandlePresenceSlash(msg)
             { "WORLD_QUEST",         L["WORLD QUEST"],                  L["Azerite Mining"] },
             { "SCENARIO_START",      "Cinderbrew Meadery",              "Defend the tavern", { category = "SCENARIO" } },
             { "ACHIEVEMENT",         L["ACHIEVEMENT EARNED"],           L["Exploring Khaz Algar"] },
+            { "ACHIEVEMENT_PROGRESS", L["Exploring the Midnight Isles"], L["Dragon Glyphs: 3/5"] },
             { "BOSS_EMOTE",          "Ragnaros",                        "BY FIRE BE PURGED!" },
             { "LEVEL_UP",            L["LEVEL UP"],                     L["You have reached level 80"] },
         }
@@ -90,6 +94,7 @@ local function HandlePresenceSlash(msg)
         HSPrint(L["  /h presence quest    - Test Quest Complete"])
         HSPrint(L["  /h presence wq       - Test World Quest"])
         HSPrint(L["  /h presence update   - Test Quest Update"])
+        HSPrint(L["  /h presence achprogress - Test Achievement Progress"])
         HSPrint(L["  /h presence all      - Demo reel (all types)"])
         addon.Presence.QueueOrPlay("ZONE_CHANGE", GetZoneText() or "Unknown Zone", GetSubZoneText() or "")
     else

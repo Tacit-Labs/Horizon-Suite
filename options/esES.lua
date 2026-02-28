@@ -1,6 +1,6 @@
 if GetLocale() ~= "esES" then return end
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 local L = setmetatable({}, { __index = function(t, k) return k end })
@@ -532,6 +532,9 @@ L["Keep campaign quests in category"]                    = "Mantener misiones de
 L["When on, campaign quests that are ready to turn in remain in the Campaign category instead of moving to Complete."] = "Activado: las misiones de campaña listas para entregar permanecen en Campaña en lugar de pasar a Completadas."
 L["Keep important quests in category"]                   = "Mantener misiones importantes en categoría"
 L["When on, important quests that are ready to turn in remain in the Important category instead of moving to Complete."] = "Activado: las misiones importantes listas para entregar permanecen en Importante en lugar de pasar a Completadas."
+L["TomTom quest waypoint"]                               = "Punto de referencia TomTom"
+L["Set a TomTom waypoint when focusing a quest."]        = "Establecer un punto de referencia TomTom al enfocar una misión."
+L["Requires TomTom. Points the arrow to the next quest objective."] = "Requiere TomTom. Apunta la flecha al siguiente objetivo de misión."
 
 -- =====================================================================
 -- OptionsData.lua Blacklist
@@ -576,6 +579,8 @@ L["Show boss emotes"]                                   = "Mostrar emotes de jef
 L["Show raid and dungeon boss emote notifications."]    = "Muestra notificaciones de emotes de jefes en banda y mazmorra."
 L["Show achievements"]                                  = "Mostrar logros"
 L["Show achievement earned notifications."]             = "Muestra notificaciones de logros obtenidos."
+L["Achievement progress"]                               = "Progreso de logros"
+L["Show notification when tracked achievement criteria update."] = "Muestra notificación cuando se actualizan los criterios de un logro rastreado."
 L["Show quest accept"]                                  = "Mostrar aceptación de misión"
 L["Show notification when accepting a quest."]          = "Muestra notificación al aceptar una misión."
 L["Show world quest accept"]                            = "Mostrar aceptación de misión de mundo"
@@ -586,6 +591,8 @@ L["Show world quest complete"]                         = "Mostrar misión de mun
 L["Show notification when completing a world quest."]   = "Muestra notificación al completar una misión de mundo."
 L["Show quest progress"]                                = "Mostrar progreso de misiones"
 L["Show notification when quest objectives update."]    = "Muestra notificación cuando se actualizan los objetivos."
+L["Objective only"]                                     = "Solo objetivo"
+L["Show only the objective line on quest progress toasts, hiding the 'Quest Update' title."] = "Muestra solo la línea del objetivo en las notificaciones de progreso, ocultando el título 'Actualización de misión'."
 L["Show scenario start"]                                = "Mostrar inicio de escenario"
 L["Show notification when entering a scenario or Delve."] = "Muestra notificación al entrar en un escenario o Sima."
 L["Show scenario progress"]                             = "Mostrar progreso de escenario"
@@ -735,6 +742,7 @@ L["  /h presence scenario - Test Scenario Start"]                               
 L["  /h presence quest    - Test Quest Complete"]                                             = "  /h presence quest    - Probar misión completada"
 L["  /h presence wq       - Test World Quest"]                                                = "  /h presence wq       - Probar misión de mundo"
 L["  /h presence update   - Test Quest Update"]                                                = "  /h presence update   - Probar actualización de misión"
+L["  /h presence achprogress - Test Achievement Progress"]                                     = "  /h presence achprogress - Probar progreso de logro"
 L["  /h presence all      - Demo reel (all types)"]                                          = "  /h presence all      - Demostración (todos los tipos)"
 L["  /h presence debug    - Dump state to chat"]                                             = "  /h presence debug    - Volcar estado al chat"
 L["  /h presence debuglive - Toggle live debug panel (log as events happen)"]                = "  /h presence debuglive - Activar/desactivar panel de depuración en vivo (registrar eventos)"

@@ -4,14 +4,25 @@
     Constants, colors, fonts, and labels live in Config.lua.
 ]]
 
-if not _G.HorizonSuite then _G.HorizonSuite = {} end
-local addon = _G.HorizonSuite
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- ---------------------------------------------------------------------------
 -- Forward declarations (Lua local scoping)
 -- ---------------------------------------------------------------------------
 
 local EnsureProfilesAndMigrateLegacy
+
+-- ---------------------------------------------------------------------------
+-- Dynamic DB accessor: returns _G[addon.DB_NAME] (HorizonDB or HorizonBetaDB)
+-- ---------------------------------------------------------------------------
+local function rawDB()
+    local db = _G[addon.DB_NAME]
+    if not db then
+        db = {}; _G[addon.DB_NAME] = db
+    end
+    return db
+end
 
 -- ==========================================================================
 -- DB AND DIMENSION HELPERS (depend on Config constants)
@@ -264,48 +275,50 @@ end
 local function GetCharPerSpecKeys()
     local charKey = GetCurrentCharacterProfileKey()
     if not charKey then return nil end
-    HorizonDB.charPerSpecKeys = HorizonDB.charPerSpecKeys or {}
-    HorizonDB.charPerSpecKeys[charKey] = HorizonDB.charPerSpecKeys[charKey] or {}
-    return HorizonDB.charPerSpecKeys[charKey]
+    local db = rawDB()
+    db.charPerSpecKeys = db.charPerSpecKeys or {}
+    db.charPerSpecKeys[charKey] = db.charPerSpecKeys[charKey] or {}
+    return db.charPerSpecKeys[charKey]
 end
 
 function addon.GetProfileModeState()
     addon.EnsureDB()
     EnsureProfilesAndMigrateLegacy()
-    local useGlobal = HorizonDB.useGlobalProfile == true
-    local usePerSpec = HorizonDB.usePerSpecProfiles == true
-    local globalKey = HorizonDB.globalProfileKey
+    local db = rawDB()
+    local useGlobal = db.useGlobalProfile == true
+    local usePerSpec = db.usePerSpecProfiles == true
+    local globalKey = db.globalProfileKey
     local perSpec = GetCharPerSpecKeys()
     return useGlobal, usePerSpec, globalKey, perSpec
 end
 
 function addon.SetUseGlobalProfile(v)
     addon.EnsureDB()
-    if HorizonDB then HorizonDB._profilesValidated = nil end
+    rawDB()._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.useGlobalProfile = v and true or false
+    rawDB().useGlobalProfile = v and true or false
 end
 
 function addon.SetUsePerSpecProfiles(v)
     addon.EnsureDB()
-    if HorizonDB then HorizonDB._profilesValidated = nil end
+    rawDB()._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.usePerSpecProfiles = v and true or false
+    rawDB().usePerSpecProfiles = v and true or false
 end
 
 function addon.SetGlobalProfileKey(key)
     if type(key) ~= "string" or key == "" then return end
     addon.EnsureDB()
-    if HorizonDB then HorizonDB._profilesValidated = nil end
+    rawDB()._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.globalProfileKey = key
+    rawDB().globalProfileKey = key
 end
 
 function addon.SetPerSpecProfileKey(specIndex, key)
     if type(specIndex) ~= "number" then return end
     if type(key) ~= "string" or key == "" then return end
     addon.EnsureDB()
-    if HorizonDB then HorizonDB._profilesValidated = nil end
+    rawDB()._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
     local perSpec = GetCharPerSpecKeys()
     if perSpec then
@@ -317,15 +330,16 @@ function addon.GetEffectiveProfileKey()
     addon.EnsureDB()
     EnsureProfilesAndMigrateLegacy()
 
+    local db = rawDB()
     local charKey = GetCurrentCharacterProfileKey()
 
-    if HorizonDB.useGlobalProfile == true then
-        if type(HorizonDB.globalProfileKey) == "string" and HorizonDB.globalProfileKey ~= "" and HorizonDB.globalProfileKey ~= "Default" then
-            return HorizonDB.globalProfileKey
+    if db.useGlobalProfile == true then
+        if type(db.globalProfileKey) == "string" and db.globalProfileKey ~= "" and db.globalProfileKey ~= "Default" then
+            return db.globalProfileKey
         end
     end
 
-    if HorizonDB.usePerSpecProfiles == true then
+    if db.usePerSpecProfiles == true then
         local spec = GetSpecIndexSafe()
         local perSpec = GetCharPerSpecKeys()
         if spec and perSpec and type(perSpec[spec]) == "string" and perSpec[spec] ~= "" and perSpec[spec] ~= "Default" then
@@ -335,8 +349,8 @@ function addon.GetEffectiveProfileKey()
 
     if not charKey or charKey == "" then return nil end
 
-    HorizonDB.charProfileKeys = HorizonDB.charProfileKeys or {}
-    local selected = HorizonDB.charProfileKeys[charKey] or charKey
+    db.charProfileKeys = db.charProfileKeys or {}
+    local selected = db.charProfileKeys[charKey] or charKey
     if selected == "Default" then selected = charKey end
     return selected
 end
@@ -355,43 +369,44 @@ function addon.GetActiveProfile()
         addon._earlyLoadProfile = addon._earlyLoadProfile or {}
         return addon._earlyLoadProfile, nil
     end
-    HorizonDB.profiles = HorizonDB.profiles or {}
-    HorizonDB.profiles[key] = HorizonDB.profiles[key] or {}
-    return HorizonDB.profiles[key], key
+    local db = rawDB()
+    db.profiles = db.profiles or {}
+    db.profiles[key] = db.profiles[key] or {}
+    return db.profiles[key], key
 end
 
 function addon.SetActiveProfileKey(key)
     if type(key) ~= "string" or key == "" or key == "Default" then return end
     addon.EnsureDB()
-    if HorizonDB then HorizonDB._profilesValidated = nil end
+    local db = rawDB()
+    db._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.profiles = HorizonDB.profiles or {}
-    HorizonDB.profiles[key] = HorizonDB.profiles[key] or {}
+    db.profiles = db.profiles or {}
+    db.profiles[key] = db.profiles[key] or {}
 
     local charKey = GetCurrentCharacterProfileKey()
     if not charKey or charKey == "" then return end
-    HorizonDB.charProfileKeys = HorizonDB.charProfileKeys or {}
-    HorizonDB.charProfileKeys[charKey] = key
+    db.charProfileKeys = db.charProfileKeys or {}
+    db.charProfileKeys[charKey] = key
 
-    if HorizonDB.useGlobalProfile == true then
-        HorizonDB.globalProfileKey = key
+    if db.useGlobalProfile == true then
+        db.globalProfileKey = key
     end
 end
 
 EnsureProfilesAndMigrateLegacy = function()
-    if HorizonDB and HorizonDB._profilesValidated then return end
+    local db = rawDB()
+    if db._profilesValidated then return end
 
-    if not HorizonDB then HorizonDB = {} end
-
-    HorizonDB.profiles = HorizonDB.profiles or {}
-    HorizonDB.charProfileKeys = HorizonDB.charProfileKeys or {}
-    HorizonDB.charPerSpecKeys = HorizonDB.charPerSpecKeys or {}
+    db.profiles = db.profiles or {}
+    db.charProfileKeys = db.charProfileKeys or {}
+    db.charPerSpecKeys = db.charPerSpecKeys or {}
 
     local charKey = GetCurrentCharacterProfileKey()
 
     -- Ensure the Default profile always exists (empty = all default values).
-    if not HorizonDB.profiles["Default"] then
-        HorizonDB.profiles["Default"] = {}
+    if not db.profiles["Default"] then
+        db.profiles["Default"] = {}
     end
 
     -- If character info is not yet available (early load), skip charProfileKeys
@@ -399,46 +414,46 @@ EnsureProfilesAndMigrateLegacy = function()
     if not charKey or charKey == "" then return end
 
     -- If we've already migrated, just ensure the selected key exists.
-    if HorizonDB._profilesMigrated then
+    if db._profilesMigrated then
         -- Clean up stale "Profile" entries from older early-load fallback bug.
-        if HorizonDB.charProfileKeys["Profile"] then
-            HorizonDB.charProfileKeys["Profile"] = nil
+        if db.charProfileKeys["Profile"] then
+            db.charProfileKeys["Profile"] = nil
         end
-        if HorizonDB.profiles["Profile"] and not HorizonDB.charProfileKeys[charKey] then
-            HorizonDB.profiles["Profile"] = nil
+        if db.profiles["Profile"] and not db.charProfileKeys[charKey] then
+            db.profiles["Profile"] = nil
         end
 
         -- For characters that haven't picked a profile yet, default to their
         -- own character-named profile (NOT the stale shared profileKey).
-        if not HorizonDB.charProfileKeys[charKey] or HorizonDB.charProfileKeys[charKey] == "Default" then
-            HorizonDB.charProfileKeys[charKey] = charKey
+        if not db.charProfileKeys[charKey] or db.charProfileKeys[charKey] == "Default" then
+            db.charProfileKeys[charKey] = charKey
         end
-        local activeKey = HorizonDB.charProfileKeys[charKey] or charKey
-        HorizonDB.profiles[activeKey] = HorizonDB.profiles[activeKey] or {}
+        local activeKey = db.charProfileKeys[charKey] or charKey
+        db.profiles[activeKey] = db.profiles[activeKey] or {}
         -- Validate referenced keys: reset dangling references instead of auto-creating profiles.
-        if type(HorizonDB.globalProfileKey) == "string" and HorizonDB.globalProfileKey ~= "" then
-            if not HorizonDB.profiles[HorizonDB.globalProfileKey] or HorizonDB.globalProfileKey == "Default" then
-                HorizonDB.globalProfileKey = activeKey
+        if type(db.globalProfileKey) == "string" and db.globalProfileKey ~= "" then
+            if not db.profiles[db.globalProfileKey] or db.globalProfileKey == "Default" then
+                db.globalProfileKey = activeKey
             end
         end
         -- Per-character spec keys: initialize if missing, default all to the character's active profile.
-        HorizonDB.charPerSpecKeys[charKey] = HorizonDB.charPerSpecKeys[charKey] or {}
-        local charSpecs = HorizonDB.charPerSpecKeys[charKey]
+        db.charPerSpecKeys[charKey] = db.charPerSpecKeys[charKey] or {}
+        local charSpecs = db.charPerSpecKeys[charKey]
         for i = 1, 4 do
             charSpecs[i] = charSpecs[i] or activeKey
             -- Validate: if the referenced profile was deleted, reset to activeKey.
             if type(charSpecs[i]) == "string" and charSpecs[i] ~= "" then
-                if not HorizonDB.profiles[charSpecs[i]] or charSpecs[i] == "Default" then
+                if not db.profiles[charSpecs[i]] or charSpecs[i] == "Default" then
                     charSpecs[i] = activeKey
                 end
             end
         end
-        HorizonDB._profilesValidated = true
+        db._profilesValidated = true
         return
     end
 
     -- Migration: move legacy top-level settings into the character profile.
-    HorizonDB.profiles[charKey] = HorizonDB.profiles[charKey] or {}
+    db.profiles[charKey] = db.profiles[charKey] or {}
 
     -- Keep only options window geometry at root.
     local keepRoot = {
@@ -463,22 +478,22 @@ EnsureProfilesAndMigrateLegacy = function()
         perSpecProfileKeys = true,
     }
 
-    for k, v in pairs(HorizonDB) do
+    for k, v in pairs(db) do
         if not keepRoot[k] then
-            HorizonDB.profiles[charKey][k] = v
-            HorizonDB[k] = nil
+            db.profiles[charKey][k] = v
+            db[k] = nil
         end
     end
 
-    HorizonDB.charProfileKeys[charKey] = charKey
-    HorizonDB.profileKey = charKey
-    HorizonDB._profilesMigrated = true
+    db.charProfileKeys[charKey] = charKey
+    db.profileKey = charKey
+    db._profilesMigrated = true
 
     -- Initialize derived selectors.
-    HorizonDB.globalProfileKey = HorizonDB.globalProfileKey or charKey
-    HorizonDB.charPerSpecKeys[charKey] = HorizonDB.charPerSpecKeys[charKey] or {}
+    db.globalProfileKey = db.globalProfileKey or charKey
+    db.charPerSpecKeys[charKey] = db.charPerSpecKeys[charKey] or {}
     for i = 1, 4 do
-        HorizonDB.charPerSpecKeys[charKey][i] = HorizonDB.charPerSpecKeys[charKey][i] or charKey
+        db.charPerSpecKeys[charKey][i] = db.charPerSpecKeys[charKey][i] or charKey
     end
 end
 
@@ -499,9 +514,10 @@ end
 function addon.ListProfiles()
     addon.EnsureDB()
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.profiles = HorizonDB.profiles or {}
+    local db = rawDB()
+    db.profiles = db.profiles or {}
     local out = {}
-    for k in pairs(HorizonDB.profiles) do
+    for k in pairs(db.profiles) do
         out[#out + 1] = k
     end
     table.sort(out)
@@ -512,17 +528,18 @@ function addon.CreateProfile(newKey, sourceKey)
     if type(newKey) ~= "string" or newKey == "" then return false end
     addon.EnsureDB()
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.profiles = HorizonDB.profiles or {}
-    if HorizonDB.profiles[newKey] then return false end
-    HorizonDB.profiles[newKey] = {}
-    if type(sourceKey) == "string" and sourceKey ~= "" and HorizonDB.profiles[sourceKey] then
-        for k, v in pairs(HorizonDB.profiles[sourceKey]) do
+    local db = rawDB()
+    db.profiles = db.profiles or {}
+    if db.profiles[newKey] then return false end
+    db.profiles[newKey] = {}
+    if type(sourceKey) == "string" and sourceKey ~= "" and db.profiles[sourceKey] then
+        for k, v in pairs(db.profiles[sourceKey]) do
             if type(v) == "table" then
                 local copy = {}
                 for kk, vv in pairs(v) do copy[kk] = vv end
-                HorizonDB.profiles[newKey][k] = copy
+                db.profiles[newKey][k] = copy
             else
-                HorizonDB.profiles[newKey][k] = v
+                db.profiles[newKey][k] = v
             end
         end
     end
@@ -533,19 +550,20 @@ function addon.DeleteProfile(key)
     if type(key) ~= "string" or key == "" then return false end
     if key == "Default" then return false end
     addon.EnsureDB()
-    if HorizonDB then HorizonDB._profilesValidated = nil end
+    local db = rawDB()
+    db._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.profiles = HorizonDB.profiles or {}
-    if not HorizonDB.profiles[key] then return false end
+    db.profiles = db.profiles or {}
+    if not db.profiles[key] then return false end
     local activeKey = addon.GetActiveProfileKey()
     if key == activeKey then return false end
-    HorizonDB.profiles[key] = nil
-    if HorizonDB.globalProfileKey == key then
-        HorizonDB.globalProfileKey = activeKey
+    db.profiles[key] = nil
+    if db.globalProfileKey == key then
+        db.globalProfileKey = activeKey
     end
     -- Clean up per-character spec keys for all characters.
-    if HorizonDB.charPerSpecKeys then
-        for _, specMap in pairs(HorizonDB.charPerSpecKeys) do
+    if db.charPerSpecKeys then
+        for _, specMap in pairs(db.charPerSpecKeys) do
             if type(specMap) == "table" then
                 for i = 1, 4 do
                     if specMap[i] == key then
@@ -556,17 +574,17 @@ function addon.DeleteProfile(key)
         end
     end
     -- Also clean up legacy global perSpecProfileKeys if still present.
-    if HorizonDB.perSpecProfileKeys then
+    if db.perSpecProfileKeys then
         for i = 1, 4 do
-            if HorizonDB.perSpecProfileKeys[i] == key then
-                HorizonDB.perSpecProfileKeys[i] = activeKey
+            if db.perSpecProfileKeys[i] == key then
+                db.perSpecProfileKeys[i] = activeKey
             end
         end
     end
-    if HorizonDB.charProfileKeys then
-        for ck, pk in pairs(HorizonDB.charProfileKeys) do
+    if db.charProfileKeys then
+        for ck, pk in pairs(db.charProfileKeys) do
             if pk == key then
-                HorizonDB.charProfileKeys[ck] = activeKey
+                db.charProfileKeys[ck] = activeKey
             end
         end
     end
@@ -582,8 +600,9 @@ function addon.TryCreateProfile(newKey, sourceKey)
     if newKey == "" then return false, "empty" end
 
     addon.EnsureDB()
-    HorizonDB.profiles = HorizonDB.profiles or {}
-    if HorizonDB.profiles[newKey] then return false, "exists" end
+    local db = rawDB()
+    db.profiles = db.profiles or {}
+    if db.profiles[newKey] then return false, "exists" end
 
     local ok = addon.CreateProfile(newKey, sourceKey)
     if not ok then return false, "failed" end
@@ -896,13 +915,14 @@ function addon.ExportProfile(key)
     if type(key) ~= "string" or key == "" then return nil end
     addon.EnsureDB()
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.profiles = HorizonDB.profiles or {}
+    local db = rawDB()
+    db.profiles = db.profiles or {}
     local profile
     local activeKey = addon.GetEffectiveProfileKey()
     if activeKey and activeKey == key then
         profile = addon.GetActiveProfile()
     else
-        profile = HorizonDB.profiles[key]
+        profile = db.profiles[key]
     end
     if not profile or type(profile) ~= "table" or next(profile) == nil then return nil end
     -- Strip machine-specific addon button selections before serialization.
@@ -940,24 +960,25 @@ function addon.ImportProfile(name, dataString)
     if not next(tbl) then return false, "corrupt" end
 
     addon.EnsureDB()
-    if HorizonDB then HorizonDB._profilesValidated = nil end
+    local db = rawDB()
+    db._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
-    HorizonDB.profiles = HorizonDB.profiles or {}
+    db.profiles = db.profiles or {}
 
     local finalName = name
-    if HorizonDB.profiles[finalName] then
+    if db.profiles[finalName] then
         local base = finalName
         local i = 2
-        while HorizonDB.profiles[base .. " " .. i] do i = i + 1 end
+        while db.profiles[base .. " " .. i] do i = i + 1 end
         finalName = base .. " " .. i
     end
 
-    HorizonDB.profiles[finalName] = tbl
+    db.profiles[finalName] = tbl
 
     local charKey = GetCurrentCharacterProfileKey()
     if charKey and charKey ~= "" then
-        HorizonDB.charProfileKeys = HorizonDB.charProfileKeys or {}
-        HorizonDB.charProfileKeys[charKey] = finalName
+        db.charProfileKeys = db.charProfileKeys or {}
+        db.charProfileKeys[charKey] = finalName
     end
 
     return true, finalName
@@ -971,11 +992,12 @@ local specChangeFrame = CreateFrame("Frame")
 specChangeFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 specChangeFrame:SetScript("OnEvent", function(_, event, unit)
     if unit and unit ~= "player" then return end
-    if not HorizonDB then return end
-    if HorizonDB.useGlobalProfile == true then return end
-    if HorizonDB.usePerSpecProfiles ~= true then return end
+    local db = rawDB()
+    if not db then return end
+    if db.useGlobalProfile == true then return end
+    if db.usePerSpecProfiles ~= true then return end
 
-    HorizonDB._profilesValidated = nil
+    db._profilesValidated = nil
 
     local newKey = addon.GetEffectiveProfileKey and addon.GetEffectiveProfileKey()
     if addon.HSPrint then
@@ -995,7 +1017,7 @@ end)
 -- ==========================================================================
 
 function addon.GetDB(key, default)
-    if not HorizonDB then return default end
+    if not _G[addon.DB_NAME] then return default end
     EnsureProfilesAndMigrateLegacy()
     local profile = addon.GetActiveProfile()
     local v = profile[key]
@@ -1038,18 +1060,18 @@ function addon.GetCombatFadeAlpha()
 end
 
 function addon.EnsureDB()
-    if not HorizonDB then HorizonDB = {} end
+    rawDB() -- ensures _G[DB_NAME] exists
     if addon._ensureDBInProgress then return end
     addon._ensureDBInProgress = true
     if addon.EnsureModulesDB then addon:EnsureModulesDB() end
     EnsureProfilesAndMigrateLegacy()
     -- One-time migration from legacy hideInCombat toggle.
-    -- Check both the active profile and the root HorizonDB for the legacy key,
+    -- Check both the active profile and the root DB for the legacy key,
     -- then write the migrated value into the active profile where GetDB reads it.
     local profile = addon.GetActiveProfile()
     if profile and profile.combatVisibility == nil then
         local legacyHide = profile.hideInCombat
-        if legacyHide == nil then legacyHide = HorizonDB.hideInCombat end
+        if legacyHide == nil then legacyHide = rawDB().hideInCombat end
         if legacyHide ~= nil then
             profile.combatVisibility = legacyHide and "hide" or "show"
         end
@@ -1170,7 +1192,11 @@ optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
 -- Delayed tooltip hide: cancels if mouse re-enters within 0.15s (stops flicker when cursor briefly leaves)
 local optionsTooltipHideRequested = false
 optionsBtn:SetScript("OnClick", function()
-    if _G.HorizonSuite_ShowOptions then _G.HorizonSuite_ShowOptions() end
+    if addon.ShowOptions then
+        addon.ShowOptions()
+    elseif _G.HorizonSuite_ShowOptions then
+        _G.HorizonSuite_ShowOptions()
+    end
 end)
 optionsBtn:SetScript("OnEnter", function(self)
     optionsTooltipHideRequested = false
@@ -1642,7 +1668,7 @@ end
 local visUpdateFrame = CreateFrame("Frame")
 visUpdateFrame:RegisterEvent("ADDON_LOADED")
 visUpdateFrame:SetScript("OnEvent", function(self, event, addonName)
-    if addonName == "HorizonSuite" then
+    if addonName == addon.ADDON_NAME then
         addon.UpdateResizeHandleVisibility()
         self:UnregisterEvent("ADDON_LOADED")
     end

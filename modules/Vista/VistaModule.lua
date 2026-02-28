@@ -4,7 +4,7 @@
     Registers with addon:RegisterModule. Migrated from ModernMinimap.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.RegisterModule then return end
 
 addon:RegisterModule("vista", {
@@ -16,11 +16,12 @@ addon:RegisterModule("vista", {
         addon.EnsureDB()
         if not addon.GetActiveProfile or not addon.SetDB then return end
 
-        -- One-time migration: HorizonDB.modules.vista and ModernMinimapDB -> profile
-        if not HorizonDB then HorizonDB = {} end
-        if not HorizonDB.modules then HorizonDB.modules = {} end
-        if not HorizonDB.modules.vista then HorizonDB.modules.vista = {} end
-        local modDb = HorizonDB.modules.vista
+        -- One-time migration: DB.modules.vista and ModernMinimapDB -> profile
+        local db = _G[addon.DB_NAME]
+        if not db then db = {}; _G[addon.DB_NAME] = db end
+        if not db.modules then db.modules = {} end
+        if not db.modules.vista then db.modules.vista = {} end
+        local modDb = db.modules.vista
         if not modDb.migratedToProfile then
             modDb.migratedToProfile = true
             local hasProfileData = addon.GetDB("vistaPoint", nil) or addon.GetDB("vistaX", nil) or addon.GetDB("vistaY", nil)

@@ -3,7 +3,7 @@
     Quest entry frames, section headers, ApplyTypography, ApplyDimensions.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 local function T(key)
     return (addon.L and addon.L[key]) or key
 end
@@ -94,12 +94,14 @@ local function CreateQuestEntry(parent, index)
             pcall(GameTooltip.SetHyperlink, GameTooltip, entry.itemLink)
             GameTooltip:Show()
         end
+        addon.AttachSecureItemOverlay(self, entry and entry.itemLink)
     end)
     e.itemBtn:SetScript("OnLeave", function(self)
         self:SetAlpha(0.9)
         if GameTooltip:GetOwner() == self then
             GameTooltip:Hide()
         end
+        addon.DetachSecureItemOverlay(self)
     end)
     e.itemBtn:SetAlpha(0.9)
 
@@ -112,10 +114,6 @@ local function CreateQuestEntry(parent, index)
             local link = GetQuestLogSpecialItemInfo(logIndex)
             if link and ChatFrameUtil.InsertLink then
                 ChatFrameUtil.InsertLink(link)
-            end
-        else
-            if UseQuestLogSpecialItem then
-                UseQuestLogSpecialItem(logIndex)
             end
         end
     end)

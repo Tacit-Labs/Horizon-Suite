@@ -4,7 +4,7 @@
     CVar lastSelectedTieredEntranceTier (per-delve, via GetCVarTableValue).
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local LAST_TIER_CVAR = "lastSelectedTieredEntranceTier"
 local TIER_MIN, TIER_MAX = 1, 12

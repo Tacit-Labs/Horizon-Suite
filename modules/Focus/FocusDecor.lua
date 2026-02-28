@@ -3,7 +3,7 @@
     C_ContentTracking.GetTrackedIDs(ContentTrackingType.Decor) for tracked housing decor.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- ============================================================================
 -- DECOR DATA PROVIDER

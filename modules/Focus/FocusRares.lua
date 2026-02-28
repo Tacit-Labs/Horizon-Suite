@@ -3,7 +3,7 @@
     RARES_BY_MAP, vignette detection, GetRaresOnMap.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- ============================================================================
 -- RARE BOSSES BY ZONE AND VIGNETTE DETECTION
@@ -172,7 +172,7 @@ local function SetRareWaypoint(entry)
     -- Priority 1: TomTom addon
     local TomTom = _G.TomTom
     if TomTom and TomTom.AddWaypoint and mapID and x and y then
-        pcall(TomTom.AddWaypoint, TomTom, mapID, x, y, { title = name, persistent = false, minimap = true, world = true })
+        pcall(TomTom.AddWaypoint, TomTom, mapID, x, y, { title = name, persistent = false, minimap = true, world = true, crazy = true })
         return
     end
 

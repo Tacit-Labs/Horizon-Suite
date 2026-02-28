@@ -3,7 +3,7 @@
     Quests on map (GetNearbyQuestIDs), world/calling watch list, merge into tracker.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- Defensive fallback: ensure addon.GetNearbyQuestIDs exists even if portions of this module fail.
 -- This prevents FocusAggregator from crashing and at least returns task quests on the player's current map.

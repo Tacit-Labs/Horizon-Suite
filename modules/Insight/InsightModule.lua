@@ -4,7 +4,7 @@
     Registers with addon:RegisterModule. Migrated from ModernTooltip.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.RegisterModule then return end
 
 addon:RegisterModule("insight", {
@@ -14,11 +14,12 @@ addon:RegisterModule("insight", {
 
     OnInit = function()
         -- Ensure module DB and defaults
-        if not HorizonDB then HorizonDB = {} end
-        if not HorizonDB.modules then HorizonDB.modules = {} end
-        if not HorizonDB.modules.insight then HorizonDB.modules.insight = {} end
+        local db = _G[addon.DB_NAME]
+        if not db then db = {}; _G[addon.DB_NAME] = db end
+        if not db.modules then db.modules = {} end
+        if not db.modules.insight then db.modules.insight = {} end
 
-        local modDb = HorizonDB.modules.insight
+        local modDb = db.modules.insight
         if modDb.enabled == nil then modDb.enabled = true end
 
         -- Migrate from standalone ModernTooltipDB into active profile (once per character)

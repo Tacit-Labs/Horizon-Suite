@@ -3,7 +3,7 @@
 ## Notes: Core addon with pluggable modules. Focus (objective tracker) is the first module.
 ## Author: Crystilac
 ## Version: 3.2.0-beta
-## SavedVariables: HorizonDB
+## SavedVariables: HorizonBetaDB
 ## IconTexture: Interface\AddOns\HorizonSuiteBeta\icon
 
 HorizonSuite.lua

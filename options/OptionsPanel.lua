@@ -3,7 +3,7 @@
     Main panel frame, title bar, search bar, sidebar, content scroll, BuildCategory, FilterBySearch, animations.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.OptionCategories then return end
 
 local L = addon.L
@@ -31,11 +31,12 @@ local function setDB(k, v) return addon.OptionsData_SetDB(k, v) end
 local function notifyMainAddon() return addon.OptionsData_NotifyMainAddon() end
 
 -- Card collapse state: default collapsed (true) when key not in table
-local cardCollapsed = (HorizonDB and HorizonDB.optionsCardCollapsed) or {}
+local cardCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsCardCollapsed) or {}
 local function GetCardCollapsed(sectionKey) return cardCollapsed[sectionKey] ~= false end
 local function SetCardCollapsed(sectionKey, v)
     cardCollapsed[sectionKey] = v
-    if HorizonDB then HorizonDB.optionsCardCollapsed = cardCollapsed end
+    local db = _G[addon.DB_NAME]
+    if db then db.optionsCardCollapsed = cardCollapsed end
 end
 
 -- ---------------------------------------------------------------------------
@@ -96,6 +97,7 @@ local function StopPanelDrag()
     if not isDraggingPanel then return end
     isDraggingPanel = false
     panel:SetScript("OnUpdate", nil)
+    local db = _G[addon.DB_NAME]
     if InCombatLockdown() then
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -104,22 +106,23 @@ local function StopPanelDrag()
             self:SetScript("OnEvent", nil)
             if not InCombatLockdown() then
                 panel:StopMovingOrSizing()
-                if HorizonDB then
+                db = _G[addon.DB_NAME]
+                if db then
                     local x, y = panel:GetCenter()
                     local uix, uiy = UIParent:GetCenter()
-                    HorizonDB.optionsLeft = x - uix
-                    HorizonDB.optionsTop = y - uiy
+                    db.optionsLeft = x - uix
+                    db.optionsTop = y - uiy
                 end
             end
         end)
         return
     end
     panel:StopMovingOrSizing()
-    if HorizonDB then
+    if db then
         local x, y = panel:GetCenter()
         local uix, uiy = UIParent:GetCenter()
-        HorizonDB.optionsLeft = x - uix
-        HorizonDB.optionsTop = y - uiy
+        db.optionsLeft = x - uix
+        db.optionsTop = y - uiy
     end
 end
 
@@ -194,7 +197,9 @@ SetTextColor(closeLabel, Def.TextColorSection)
 closeLabel:SetText("X")
 closeLabel:SetPoint("CENTER", closeBtn, "CENTER", 0, 0)
 closeBtn:SetScript("OnClick", function()
-    if _G.HorizonSuite_OptionsRequestClose then _G.HorizonSuite_OptionsRequestClose() else panel:Hide() end
+    if _G.HorizonSuite_OptionsRequestClose then _G.HorizonSuite_OptionsRequestClose()
+    elseif addon.OptionsRequestClose then addon.OptionsRequestClose()
+    else panel:Hide() end
 end)
 closeBtn:SetScript("OnEnter", function()
     closeBtnBg:Show()
@@ -380,9 +385,10 @@ resizeHandle:SetScript("OnDragStop", function(self)
     if not isResizing then return end
     isResizing = false
     self:SetScript("OnUpdate", nil)
-    if HorizonDB then
-        HorizonDB.optionsPanelWidth = panel:GetWidth()
-        HorizonDB.optionsPanelHeight = panel:GetHeight()
+    local db = _G[addon.DB_NAME]
+    if db then
+        db.optionsPanelWidth = panel:GetWidth()
+        db.optionsPanelHeight = panel:GetHeight()
     end
 end)
 
@@ -402,7 +408,7 @@ versionLabel:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.SectionSize or 1
 SetTextColor(versionLabel, Def.TextColorSection)
 versionLabel:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 10, 10)
 local getMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
-local versionText = getMetadata and getMetadata("HorizonSuite", "Version")
+local versionText = getMetadata and getMetadata(addon.ADDON_NAME or "HorizonSuite", "Version")
 if versionText and versionText ~= "" then
     versionLabel:SetText("v" .. versionText)
     versionLabel:Show()
@@ -710,7 +716,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local swatches = {}
             for _, key in ipairs(keys) do
                 local getTbl = function() local db = getDB(opt.dbKey, nil) return db and db[key] end
-                local setKeyVal = function(v) addon.EnsureDB() if not HorizonDB[opt.dbKey] then HorizonDB[opt.dbKey] = {} end HorizonDB[opt.dbKey][key] = v if not addon._colorPickerLive then notifyMainAddon() end end
+                local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DB_NAME]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
                 local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], defaultMap[key], getTbl, setKeyVal, notifyMainAddon)
                 currentCard.contentAnchor = row
                 currentCard.contentHeight = currentCard.contentHeight + 4 + 24
@@ -1506,7 +1512,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local swatches = {}
             for _, key in ipairs(keys) do
                 local getTbl = function() local db = getDB(opt.dbKey, nil) return db and db[key] end
-                local setKeyVal = function(v) addon.EnsureDB() if not HorizonDB[opt.dbKey] then HorizonDB[opt.dbKey] = {} end HorizonDB[opt.dbKey][key] = v if not addon._colorPickerLive then notifyMainAddon() end end
+                local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DB_NAME]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
                 local def = defaultMap[key] or {0.5,0.5,0.5}
                 local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], def, getTbl, setKeyVal, notifyMainAddon)
                 currentCard.contentAnchor = row
@@ -2043,7 +2049,8 @@ panel:SetScript("OnShow", function()
     if sidebarScrollFrame and sidebarScrollFrame.SetVerticalScroll then sidebarScrollFrame:SetVerticalScroll(0) end
     -- Reset section cards to collapsed on each open
     for k in pairs(cardCollapsed) do cardCollapsed[k] = nil end
-    if HorizonDB then HorizonDB.optionsCardCollapsed = cardCollapsed end
+    local _cdb = _G[addon.DB_NAME]
+    if _cdb then _cdb.optionsCardCollapsed = cardCollapsed end
     for _, card in ipairs(allCollapsibleCards) do
         if card and card.sectionKey and card.contentContainer and card.headerHeight then
             card.contentContainer:SetShown(false)
@@ -2064,19 +2071,20 @@ panel:SetScript("OnShow", function()
     end
     updateOptionsPanelFonts()
     -- Restore saved dimensions
-    if HorizonDB then
-        if HorizonDB.optionsPanelWidth then
-            panel:SetWidth(math.max(600, math.min(1400, HorizonDB.optionsPanelWidth)))
+    local _db = _G[addon.DB_NAME]
+    if _db then
+        if _db.optionsPanelWidth then
+            panel:SetWidth(math.max(600, math.min(1400, _db.optionsPanelWidth)))
         end
-        if HorizonDB.optionsPanelHeight then
-            panel:SetHeight(math.max(500, math.min(1200, HorizonDB.optionsPanelHeight)))
+        if _db.optionsPanelHeight then
+            panel:SetHeight(math.max(500, math.min(1200, _db.optionsPanelHeight)))
         end
     end
     ApplyPanelDimensions()
     -- Restore saved position
-    if HorizonDB and HorizonDB.optionsLeft ~= nil and HorizonDB.optionsTop ~= nil then
+    if _db and _db.optionsLeft ~= nil and _db.optionsTop ~= nil then
         panel:ClearAllPoints()
-        panel:SetPoint("CENTER", UIParent, "CENTER", HorizonDB.optionsLeft, HorizonDB.optionsTop)
+        panel:SetPoint("CENTER", UIParent, "CENTER", _db.optionsLeft, _db.optionsTop)
     else
         panel:ClearAllPoints()
         panel:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
@@ -2134,12 +2142,13 @@ function _G.HorizonSuite_OptionsRequestClose()
         self:SetAlpha(1 - easeOut(elapsed / ANIM_DUR))
     end)
 end
+addon.OptionsRequestClose = _G.HorizonSuite_OptionsRequestClose
 
 function _G.HorizonSuite_ShowOptions()
-    local p = _G.HorizonSuiteOptionsPanel
+    local p = _G.HorizonSuiteOptionsPanel or panel
     if p then
         if p:IsShown() then
-            if _G.HorizonSuite_OptionsRequestClose then _G.HorizonSuite_OptionsRequestClose() else p:Hide() end
+            if addon.OptionsRequestClose then addon.OptionsRequestClose() else p:Hide() end
         else
             p:Show()
             if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
@@ -2152,6 +2161,7 @@ function _G.HorizonSuite_ShowOptions()
         end
     end
 end
+addon.ShowOptions = _G.HorizonSuite_ShowOptions
 
 -- Rebuild a single options category tab by key (e.g. "VistaButtons")
 addon.OptionsPanel_RebuildCategory = function(catKey)
@@ -2205,5 +2215,7 @@ addon.OptionsPanel_RebuildCategory = function(catKey)
 end
 
 function _G.HorizonSuite_ShowEditPanel()
-    if _G.HorizonSuite_ShowOptions then _G.HorizonSuite_ShowOptions() end
+    if addon.ShowOptions then addon.ShowOptions()
+    elseif _G.HorizonSuite_ShowOptions then _G.HorizonSuite_ShowOptions() end
 end
+addon.ShowEditPanel = _G.HorizonSuite_ShowEditPanel

@@ -3,8 +3,8 @@
     Centralized /h and /horizon handler. Core commands (options, edit, help) and dispatcher to module handlers.
 ]]
 
-if not _G.HorizonSuite then _G.HorizonSuite = {} end
-local addon = _G.HorizonSuite
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
@@ -64,7 +64,9 @@ local function OnSlashCommand(msg)
     end
 
     if lower == "options" or lower == "config" then
-        if _G.HorizonSuite_ShowOptions then
+        if addon.ShowOptions then
+            addon.ShowOptions()
+        elseif _G.HorizonSuite_ShowOptions then
             _G.HorizonSuite_ShowOptions()
         else
             HSPrint("Options not loaded.")
@@ -73,7 +75,9 @@ local function OnSlashCommand(msg)
     end
 
     if lower == "edit" then
-        if _G.HorizonSuite_ShowEditPanel then
+        if addon.ShowEditPanel then
+            addon.ShowEditPanel()
+        elseif _G.HorizonSuite_ShowEditPanel then
             _G.HorizonSuite_ShowEditPanel()
         else
             HSPrint("Edit panel not loaded.")

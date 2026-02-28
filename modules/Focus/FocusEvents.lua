@@ -4,7 +4,7 @@
     global API for Options.
 ]]
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- ============================================================================
 -- EVENT DISPATCH
@@ -159,8 +159,9 @@ end
 -- ============================================================================
 
 local function OnAddonLoaded(addonName)
-    if addonName == "HorizonSuite" then
+    if addonName == addon.ADDON_NAME then
         addon:EnsureModulesDB()
+        local db = _G[addon.DB_NAME]
         local dev = _G.HorizonSuiteDevOverride
         for key in pairs(addon.modules or {}) do
             -- Beta modules (Insight, Yield): only enable when dev addon shows their toggle
@@ -168,20 +169,20 @@ local function OnAddonLoaded(addonName)
                 local showToggle = (key == "insight" and dev and dev.showInsightToggle)
                     or (key == "yield" and dev and dev.showYieldToggle)
                 if not showToggle then
-                    if HorizonDB and HorizonDB.modules and HorizonDB.modules[key] then
-                        HorizonDB.modules[key].enabled = false
+                    if db and db.modules and db.modules[key] then
+                        db.modules[key].enabled = false
                     end
                     if addon.modules[key] and addon.modules[key].enabled then
                         addon:DisableModule(key)
                     end
                 else
-                    local modDb = HorizonDB and HorizonDB.modules and HorizonDB.modules[key]
+                    local modDb = db and db.modules and db.modules[key]
                     if modDb and modDb.enabled ~= false then
                         addon:EnableModule(key)
                     end
                 end
             else
-                local modDb = HorizonDB and HorizonDB.modules and HorizonDB.modules[key]
+                local modDb = db and db.modules and db.modules[key]
                 if modDb and modDb.enabled ~= false then
                     addon:EnableModule(key)
                 end
