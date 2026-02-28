@@ -6,7 +6,23 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-<!-- Changelog entries are generated from closed GitHub Issues at release time. -->
+### ✨ New Features
+
+- **(Vista) All The Things minimap button can be tracked** — Add the All The Things minimap button to Vista's button bar.
+- **(Focus) TomTom integration** — Click a quest in Focus to set TomTom's arrow to the next objective with distance display.
+- **(Insight) Mount and All The Things info in character tooltips** — Character tooltips show the player's current mount and ATT collection data.
+
+### 🔧 Improvements
+
+- **(Presence) Option to hide "Quest Update" title on Presence toasts** — Show only the objective line without the redundant header.
+
+### 🐛 Fixes
+
+- **(Focus) Progress bar hides when objective is complete** — Bar no longer stays visible at full fill after completion.
+- **(Presence) Event quest completion no longer shows 0/10 toast** — Completion state shown instead of a progress update.
+- **(Focus) Quel'danas bonus objectives in Midnight intro now show in quest tracker** — Bonus objectives appear correctly during the phased intro.
+- **(Focus) Quest tooltip no longer duplicates when in a party with All The Things** — Hover info shows once when in a party.
+- **(Core) Settings search description displays fully on first open** — Clicking a search result no longer cuts off the description until you scroll.
 
 ---
 
