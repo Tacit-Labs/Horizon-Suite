@@ -247,6 +247,7 @@ end
 local function OnQuestTurnedIn(_, questID)
     if ShouldSuppressInMplus() then return end
     if ShouldSuppressInInstance() then return end
+    local L = addon.L or {}
     local opts = (questID and { questID = questID }) or {}
     local questName = "Objective"
     if C_QuestLog then
@@ -256,14 +257,13 @@ local function OnQuestTurnedIn(_, questID)
         if IsDNTQuest(questName) then return end
         if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
             if not IsPresenceTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true) then return end
-            local L = addon.L or {}
             addon.Presence.QueueOrPlay("WORLD_QUEST", L["WORLD QUEST"], questName, opts)
             DisposeQuestState(questID)
             return
         end
     end
     if not IsPresenceTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true) then return end
-    addon.Presence.QueueOrPlay("QUEST_COMPLETE", "QUEST COMPLETE", questName, opts)
+    addon.Presence.QueueOrPlay("QUEST_COMPLETE", L["QUEST COMPLETE"] or "QUEST COMPLETE", questName, opts)
     DisposeQuestState(questID)
 end
 

@@ -278,11 +278,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     if questData.isComplete and shownObjs == 0 then
         local obj = entry.objectives[1]
         local isAutoComplete = questData.isAutoComplete and true or false
+        local L = addon.L or {}
+        local readyToTurnIn = L["READY TO TURN IN"] or "Ready to turn in"
         local firstLineText = isAutoComplete
             and (_G.QUEST_WATCH_QUEST_COMPLETE or "Quest Complete")
-            or (addon.GetDB("objectivePrefixStyle", "none") == "numbers" and "1. Ready to turn in"
-                or addon.GetDB("objectivePrefixStyle", "none") == "hyphens" and "- Ready to turn in"
-                or "Ready to turn in")
+            or (addon.GetDB("objectivePrefixStyle", "none") == "numbers" and ("1. " .. readyToTurnIn)
+                or addon.GetDB("objectivePrefixStyle", "none") == "hyphens" and ("- " .. readyToTurnIn)
+                or readyToTurnIn)
         obj.text:SetText(firstLineText)
         obj.shadow:SetText(firstLineText)
         obj._hsFinished = true
