@@ -1837,7 +1837,7 @@ local OptionCategories = {
                 { type = "slider", name = L["Right-click close delay"] or "Right-click close delay",
                   desc = L["How long (in seconds) the panel stays open after the cursor leaves. 0 = never auto-close (close by right-clicking again)."] or "How long (in seconds) the panel stays open after the cursor leaves. 0 = never auto-close (close by right-clicking again).",
                   dbKey = "vistaRightClickCloseDelay", min = 0, max = 10, step = 0.5,
-                  get = function() return math.max(0, math.min(10, tonumber(getDB("vistaRightClickCloseDelay", 0.3)) or 0.3)) end,
+                  get = function() return math.max(0, math.min(10, tonumber(getDB("vistaRightClickCloseDelay", 2.5)) or 2.5)) end,
                   set = function(v) setDB("vistaRightClickCloseDelay", math.max(0, math.min(10, v))) end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
                 },

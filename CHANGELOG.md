@@ -6,6 +6,12 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
+<!-- Changelog entries are generated from closed GitHub Issues at release time. -->
+
+---
+
+## [3.4.0] – 2026-02-28
+
 ### ✨ New Features
 
 - **(Vista) All The Things minimap button can be tracked** — Add the All The Things minimap button to Vista's button bar.

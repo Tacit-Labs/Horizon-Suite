@@ -174,7 +174,7 @@ do
     G.MouseoverBarY         = function() return tonumber(DB("vistaMouseoverBarY", nil)) end
     G.MouseoverBarVisible   = function() return DB("vistaMouseoverBarVisible", false) end
     G.MouseoverCloseDelay   = function() return tonumber(DB("vistaMouseoverCloseDelay", 0)) or 0 end
-    G.RightClickCloseDelay  = function() return tonumber(DB("vistaRightClickCloseDelay", 0.3)) or 0.3 end
+    G.RightClickCloseDelay  = function() return tonumber(DB("vistaRightClickCloseDelay", 2.5)) or 2.5 end
     G.DrawerCloseDelay      = function() return tonumber(DB("vistaDrawerCloseDelay", 0)) or 0 end
     G.MailBlink             = function() return DB("vistaMailBlink", true) end
     G.BarBgColor            = function()
