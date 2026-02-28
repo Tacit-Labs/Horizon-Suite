@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.5.0] – 2026-02-28
+
+### ✨ New Features
+
+- **(Presence) Achievement progress toast notifications** — Cinematic toasts when you make progress on tracked achievements (e.g. 50/300, 100/500), not only on completion.
+
+### 🔧 Improvements
+
+- **(Focus) Accurate delve tier display** — The tracker uses the correct API so the displayed tier matches what Blizzard considers active when in a delve.
+- **(Focus) Instance name in dungeon scenario header** — Dungeon scenarios show the instance name (e.g. Blackrock Caverns) instead of blank or generic text.
+- **(Focus) Restrict world quest fallback to bonus objectives only** — Zone events (bonus objectives) from the map appear in the tracker; unrelated task quests are excluded.
+- **(Presence) Cleaner objective progress toasts** — Avoids duplicate numeric values when both quantity and text already contain the same info.
+
+---
+
 ## [3.4.0] – 2026-02-28
 
 ### ✨ New Features
