@@ -195,6 +195,10 @@ local function resolveColors(typeName, cfg, opts)
     end
     local c = getCategoryColor(cat, { 0.9, 0.9, 0.9 })
     local subCat = cfg.subCategory or "DEFAULT"
+    -- Use quest category colour for subtitle when we have questID (QUEST_UPDATE, QUEST_ACCEPT)
+    if opts.questID and (typeName == "QUEST_UPDATE" or typeName == "QUEST_ACCEPT") then
+        subCat = cat
+    end
     local sc = getCategoryColor(subCat, { 1, 1, 1 })
     return c, sc
 end
@@ -271,10 +275,11 @@ local subtitleTransition  -- { phase = "fadeOut"|"fadeIn", elapsed = 0, newText 
 local PlayCinematic
 
 -- Cached at PlayCinematic time so OnUpdate never calls GetDB.
-local cachedEntranceDur  = 0.7
-local cachedExitDur      = 0.8
-local cachedHasDiscovery = false
-local cachedSubGap       = 10  -- px below divider; QUEST_UPDATE uses 12 for compact layout
+local cachedEntranceDur   = 0.7
+local cachedExitDur       = 0.8
+local cachedHasDiscovery  = false
+local cachedSubGap        = 10  -- px below divider; QUEST_UPDATE uses 12 for compact layout
+local cachedCompactLayout = false  -- when true, hide title/divider; show only subtitle (QUEST_UPDATE with presenceHideQuestUpdateTitle)
 
 -- Skip-trackers: avoid redundant layout calls when value hasn't changed.
 local lastTitleOffsetY = nil
@@ -465,7 +470,11 @@ local function setSubOffset(L, offsetY)
     if lastSubOffsetY ~= offsetY then
         lastSubOffsetY = offsetY
         L.subText:ClearAllPoints()
-        L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -cachedSubGap + offsetY)
+        if cachedCompactLayout and F then
+            L.subText:SetPoint("TOP", F, "TOP", 0, 20 + offsetY)
+        else
+            L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -cachedSubGap + offsetY)
+        end
     end
 end
 
@@ -484,13 +493,20 @@ local function updateEntrance()
     local de = entEase(e, DELAY_DIVIDER)
     local se = entEase(e, DELAY_SUBTITLE)
 
-    L.titleText:SetAlpha(te)
-    L.titleShadow:SetAlpha(te * 0.8)
-    if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(te) end
-    setTitleOffset(L, (1 - te) * 20)
-
-    L.divider:SetAlpha(de * 0.5)
-    setDividerWidth(L, DIVIDER_W * de)
+    if cachedCompactLayout then
+        L.titleText:SetAlpha(0)
+        L.titleShadow:SetAlpha(0)
+        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(se) end
+        L.divider:SetAlpha(0)
+        setDividerWidth(L, 0.01)
+    else
+        L.titleText:SetAlpha(te)
+        L.titleShadow:SetAlpha(te * 0.8)
+        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(te) end
+        setTitleOffset(L, (1 - te) * 20)
+        L.divider:SetAlpha(de * 0.5)
+        setDividerWidth(L, DIVIDER_W * de)
+    end
 
     L.subText:SetAlpha(se)
     L.subShadow:SetAlpha(se * 0.8)
@@ -526,13 +542,20 @@ local function updateExit()
     local inv = 1 - e
     local inv8 = inv * 0.8
 
-    L.titleText:SetAlpha(inv)
-    L.titleShadow:SetAlpha(inv8)
-    if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
-    setTitleOffset(L, e * 15)
-
-    L.divider:SetAlpha(0.5 * inv)
-    setDividerWidth(L, DIVIDER_W * inv)
+    if cachedCompactLayout then
+        L.titleText:SetAlpha(0)
+        L.titleShadow:SetAlpha(0)
+        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
+        L.divider:SetAlpha(0)
+        setDividerWidth(L, 0.01)
+    else
+        L.titleText:SetAlpha(inv)
+        L.titleShadow:SetAlpha(inv8)
+        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
+        setTitleOffset(L, e * 15)
+        L.divider:SetAlpha(0.5 * inv)
+        setDividerWidth(L, DIVIDER_W * inv)
+    end
 
     L.subText:SetAlpha(inv)
     L.subShadow:SetAlpha(inv8)
@@ -575,12 +598,20 @@ end
 
 local function finalizeEntrance()
     local L = curLayer
-    L.titleText:SetAlpha(1)
-    L.titleShadow:SetAlpha(0.8)
-    if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
-    setTitleOffset(L, 0)
-    L.divider:SetAlpha(0.5)
-    setDividerWidth(L, DIVIDER_W)
+    if cachedCompactLayout then
+        L.titleText:SetAlpha(0)
+        L.titleShadow:SetAlpha(0)
+        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
+        L.divider:SetAlpha(0)
+        setDividerWidth(L, 0.01)
+    else
+        L.titleText:SetAlpha(1)
+        L.titleShadow:SetAlpha(0.8)
+        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
+        setTitleOffset(L, 0)
+        L.divider:SetAlpha(0.5)
+        setDividerWidth(L, DIVIDER_W)
+    end
     L.subText:SetAlpha(1)
     L.subShadow:SetAlpha(0.8)
     setSubOffset(L, 0)
@@ -708,6 +739,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     if not cfg then return end
 
     opts = opts or {}
+    cachedCompactLayout = (typeName == "QUEST_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
 
     if typeName == "QUEST_UPDATE" and subtitle and addon.Presence.NormalizeQuestUpdateText then
         lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(subtitle)
@@ -727,8 +759,13 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     L.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
     L.divider:SetVertexColor(c[1], c[2], c[3])
 
-    L.titleText:SetText(title or "")
-    L.titleShadow:SetText(title or "")
+    if cachedCompactLayout then
+        L.titleText:SetText("")
+        L.titleShadow:SetText("")
+    else
+        L.titleText:SetText(title or "")
+        L.titleShadow:SetText(title or "")
+    end
     L.subText:SetText(subtitle or "")
     L.subShadow:SetText(subtitle or "")
 
@@ -755,12 +792,11 @@ PlayCinematic = function(typeName, title, subtitle, opts)
         end
         if showIcon and atlas then
             L.questTypeIcon:SetAtlas(atlas)
-            -- Scale icon to match title size so it aligns visually
             local iconMax = (addon.GetDB and addon.GetDB("presenceIconSize", 24)) or QUEST_ICON_SIZE
-            local iconSz = (mainSz < iconMax) and mainSz or iconMax
+            local iconSz = cachedCompactLayout and ((subSz < iconMax) and subSz or iconMax) or ((mainSz < iconMax) and mainSz or iconMax)
             L.questTypeIcon:SetSize(iconSz, iconSz)
             L.questTypeIcon:ClearAllPoints()
-            L.questTypeIcon:SetPoint("RIGHT", L.titleText, "LEFT", -6, 0)
+            L.questTypeIcon:SetPoint("RIGHT", cachedCompactLayout and L.subText or L.titleText, "LEFT", -6, 0)
             L.questTypeIcon:Show()
         else
             L.questTypeIcon:Hide()
@@ -773,7 +809,11 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     L.titleText:ClearAllPoints()
     L.titleText:SetPoint("TOP", 0, 20)
     L.subText:ClearAllPoints()
-    L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -(cachedSubGap + subAnimDelta))
+    if cachedCompactLayout and F then
+        L.subText:SetPoint("TOP", F, "TOP", 0, 20)
+    else
+        L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -(cachedSubGap + subAnimDelta))
+    end
 
     if addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)) then
         L.discoveryText:SetText(addon.L["Discovered"])

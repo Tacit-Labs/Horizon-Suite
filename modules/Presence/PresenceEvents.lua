@@ -387,7 +387,10 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
     if ShouldSuppressInMplus() then return end
     if ShouldSuppressInInstance() then return end
     local L = addon.L or {}
-    addon.Presence.QueueOrPlay("QUEST_UPDATE", L["QUEST UPDATE"], normalized, { questID = questID, source = source })
+    local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID) and StripPresenceMarkup(C_QuestLog.GetTitleForQuestID(questID) or "") or ""
+    if IsDNTQuest(questName) then return end
+    local title = (questName ~= "" and questName) or L["QUEST UPDATE"]
+    addon.Presence.QueueOrPlay("QUEST_UPDATE", title, normalized, { questID = questID, source = source })
     DbgWQ("ExecuteQuestUpdate: Shown", questID, msg)
 end
 
@@ -419,10 +422,11 @@ local function OnQuestWatchUpdate(_, questID)
     RequestQuestUpdate(questID, false, "QUEST_WATCH_UPDATE")
 end
 
--- Guess active WQ ID for blind QUEST_LOG_UPDATE/UI_INFO_MESSAGE (super-tracked or nearby).
+-- Guess active quest ID for blind QUEST_LOG_UPDATE/UI_INFO_MESSAGE (super-tracked or nearby WQ).
+-- Super-tracked quest is used for any type (campaign, world, etc.) so normal quests get correct colour/name.
 local function GetWorldQuestIDForObjectiveUpdate()
     local super = (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) and C_SuperTrack.GetSuperTrackedQuestID() or 0
-    if super and super > 0 and addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(super) then
+    if super and super > 0 then
         if not (C_QuestLog and C_QuestLog.IsComplete and C_QuestLog.IsComplete(super)) then
             return super
         end
