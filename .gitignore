@@ -18,6 +18,7 @@ docs/plans/
 
 # Generated release artifacts (local review only)
 .release/discord-issuelog-payload.json
+.release/discord-issuelog-message-id
 
 # Local dev tools
 tools/pipeline-viewer.html

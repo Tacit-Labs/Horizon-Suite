@@ -1,7 +1,7 @@
 name: Post Issue Log to Discord
 # Requires repository secret: DISCORD_WEBHOOK_ISSUELOG
-# Keeps a single persistent message and edits it on each run.
-# Message ID is cached (not committed) to avoid pushing to protected main.
+# Deletes old Discord message and posts a new one each run (triggers channel activity).
+# Message ID is persisted via GitHub Actions cache (delete-before-save to avoid immutability).
 
 on:
   workflow_dispatch:
@@ -10,6 +10,8 @@ on:
 
 permissions:
   issues: read
+  contents: read
+  actions: write
 
 concurrency:
   group: issuelog
@@ -26,12 +28,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Restore Discord message ID cache
-        id: cache-issuelog
+      - name: Restore cached message ID
         uses: actions/cache/restore@v4
         with:
-          path: .release
-          key: issuelog-message-id-${{ github.repository }}
+          path: .release/discord-issuelog-message-id
+          key: issuelog-msg-id
 
       - name: Generate issue log payload
         run: bash .release/run-issuelog.sh
@@ -46,22 +47,11 @@ jobs:
           [ -f "$MSG_ID_FILE" ] && MSG_ID=$(cat "$MSG_ID_FILE" | tr -d '[:space:]')
 
           if [ -n "$MSG_ID" ]; then
-            # Edit existing message to keep a single persistent issue log.
-            RESP=$(curl -s -w "\n%{http_code}" -X PATCH \
-              "${WEBHOOK_URL}/messages/${MSG_ID}" \
-              -H "Content-Type: application/json" \
-              -d @.release/discord-issuelog-payload.json)
-            HTTP=$(echo "$RESP" | tail -1)
-            BODY=$(echo "$RESP" | sed '$d')
-            if [ "$HTTP" = "200" ]; then
-              echo "id=$MSG_ID" >> $GITHUB_OUTPUT
-              echo "Updated existing Discord message ${MSG_ID}"
-              exit 0
-            fi
-            echo "PATCH returned ${HTTP}; falling back to create new message"
+            DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+              "${WEBHOOK_URL}/messages/${MSG_ID}" || echo "000")
+            echo "DELETE returned ${DEL_HTTP}"
           fi
 
-          # Fallback/create path (?wait=true returns the message object with id)
           RESP=$(curl -s -w "\n%{http_code}" -X POST \
             "${WEBHOOK_URL}?wait=true" \
             -H "Content-Type: application/json" \
@@ -69,19 +59,26 @@ jobs:
           HTTP=$(echo "$RESP" | tail -1)
           BODY=$(echo "$RESP" | sed '$d')
           NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
-          if [ "$HTTP" = "200" ] && [ -n "$NEW_ID" ]; then
+          if [ -n "$NEW_ID" ]; then
             echo "$NEW_ID" > "$MSG_ID_FILE"
             echo "id=$NEW_ID" >> $GITHUB_OUTPUT
             echo "Posted new Discord message ${NEW_ID}"
           else
-            echo "Failed to create or update Discord message (HTTP ${HTTP}): $BODY"
+            echo "Failed to post (HTTP ${HTTP}): $BODY"
             exit 1
           fi
 
-      - name: Save Discord message ID cache
-        if: success()
+      - name: Save message ID to cache
+        if: steps.discord.outputs.id != ''
+        run: |
+          gh cache delete issuelog-msg-id --repo "$GITHUB_REPOSITORY" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write cache
+        if: steps.discord.outputs.id != ''
         uses: actions/cache/save@v4
         with:
-          path: .release
-          key: ${{ steps.cache-issuelog.outputs.cache-primary-key }}
+          path: .release/discord-issuelog-message-id
+          key: issuelog-msg-id
 
