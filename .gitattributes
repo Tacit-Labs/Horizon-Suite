@@ -1,2 +1,5 @@
 # Normalize line endings to CRLF for Windows
 * text=auto eol=crlf
+
+# Shell scripts must use LF (bash fails with CRLF on Linux/GitHub Actions)
+*.sh text eol=lf
