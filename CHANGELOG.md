@@ -8,6 +8,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
+- **(Focus) Sort ready-to-turn-in quests to bottom of Current Zone** — Completed quests in the Current Zone (Nearby) section sort to the bottom, keeping in-progress objectives visible at the top.
 - **(Presence) Scenario and delve completion notification** — Cinematic toasts when completing a scenario or delve; delves show "Delve Complete" with name or tier, scenarios show "Scenario Complete".
 
 ---
