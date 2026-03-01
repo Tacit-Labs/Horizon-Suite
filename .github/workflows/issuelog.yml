@@ -1,6 +1,6 @@
 name: Post Issue Log to Discord
 # Requires repository secret: DISCORD_WEBHOOK_ISSUELOG
-# Deletes old message and posts new on each run (for channel activity / unread indicators).
+# Keeps a single persistent message and edits it on each run.
 # Message ID is cached (not committed) to avoid pushing to protected main.
 
 on:
@@ -46,12 +46,22 @@ jobs:
           [ -f "$MSG_ID_FILE" ] && MSG_ID=$(cat "$MSG_ID_FILE" | tr -d '[:space:]')
 
           if [ -n "$MSG_ID" ]; then
-            # Delete old message (best-effort; 204 or 404 both OK)
-            DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "${WEBHOOK_URL}/messages/${MSG_ID}" || echo "000")
-            echo "DELETE returned ${DEL_HTTP}"
+            # Edit existing message to keep a single persistent issue log.
+            RESP=$(curl -s -w "\n%{http_code}" -X PATCH \
+              "${WEBHOOK_URL}/messages/${MSG_ID}" \
+              -H "Content-Type: application/json" \
+              -d @.release/discord-issuelog-payload.json)
+            HTTP=$(echo "$RESP" | tail -1)
+            BODY=$(echo "$RESP" | sed '$d')
+            if [ "$HTTP" = "200" ]; then
+              echo "id=$MSG_ID" >> $GITHUB_OUTPUT
+              echo "Updated existing Discord message ${MSG_ID}"
+              exit 0
+            fi
+            echo "PATCH returned ${HTTP}; falling back to create new message"
           fi
 
-          # Always post new message (?wait=true returns the message object with id)
+          # Fallback/create path (?wait=true returns the message object with id)
           RESP=$(curl -s -w "\n%{http_code}" -X POST \
             "${WEBHOOK_URL}?wait=true" \
             -H "Content-Type: application/json" \
@@ -59,12 +69,12 @@ jobs:
           HTTP=$(echo "$RESP" | tail -1)
           BODY=$(echo "$RESP" | sed '$d')
           NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
-          if [ -n "$NEW_ID" ]; then
+          if [ "$HTTP" = "200" ] && [ -n "$NEW_ID" ]; then
             echo "$NEW_ID" > "$MSG_ID_FILE"
             echo "id=$NEW_ID" >> $GITHUB_OUTPUT
-            echo "Posted new Discord message"
+            echo "Posted new Discord message ${NEW_ID}"
           else
-            echo "Failed to post: $BODY"
+            echo "Failed to create or update Discord message (HTTP ${HTTP}): $BODY"
             exit 1
           fi
 
