@@ -31,6 +31,7 @@ jobs:
         with:
           path: .release
           key: issuelog-message-id-${{ github.repository }}
+          save-always: true
 
       - name: Generate issue log payload
         run: bash .release/run-issuelog.sh
@@ -46,7 +47,8 @@ jobs:
 
           if [ -n "$MSG_ID" ]; then
             # Delete old message (best-effort; 204 or 404 both OK)
-            curl -s -o /dev/null -w "%{http_code}" -X DELETE "${WEBHOOK_URL}/messages/${MSG_ID}" || true
+            DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "${WEBHOOK_URL}/messages/${MSG_ID}" || echo "000")
+            echo "DELETE returned ${DEL_HTTP}"
           fi
 
           # Always post new message (?wait=true returns the message object with id)
