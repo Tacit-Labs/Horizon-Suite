@@ -6,7 +6,9 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-<!-- Changelog entries are generated from closed GitHub Issues at release time. -->
+### ✨ New Features
+
+- **(Presence) Scenario and delve completion notification** — Cinematic toasts when completing a scenario or delve; delves show "Delve Complete" with name or tier, scenarios show "Scenario Complete".
 
 ---
 
