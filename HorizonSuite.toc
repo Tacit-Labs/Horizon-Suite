@@ -67,6 +67,7 @@ modules/Vista/VistaModule.lua
 modules/Insight/InsightCore.lua
 modules/Insight/InsightModule.lua
 
+options/deDE.lua
 options/koKR.lua
 options/frFR.lua
 options/ptBR.lua
