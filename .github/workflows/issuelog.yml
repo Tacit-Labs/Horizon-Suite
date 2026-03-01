@@ -26,12 +26,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache Discord message ID
-        uses: actions/cache@v4
+      - name: Restore Discord message ID cache
+        id: cache-issuelog
+        uses: actions/cache/restore@v4
         with:
           path: .release
           key: issuelog-message-id-${{ github.repository }}
-          save-always: true
 
       - name: Generate issue log payload
         run: bash .release/run-issuelog.sh
@@ -67,4 +67,11 @@ jobs:
             echo "Failed to post: $BODY"
             exit 1
           fi
+
+      - name: Save Discord message ID cache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: .release
+          key: ${{ steps.cache-issuelog.outputs.cache-primary-key }}
 
