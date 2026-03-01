@@ -519,8 +519,14 @@ function OptionsWidgets_CreateCustomDropdown(parent, labelText, description, opt
         local descH = desc:GetStringHeight() or 0
         local neededH = labelH + 2 + descH + 4 + 26 + 2
         local h = math.max(row._baseHeight, neededH)
+        local oldH = row._measuredHeight or row._baseHeight
         row:SetHeight(h)
         row._measuredHeight = h
+        if h ~= oldH and row._card then
+            local card = row._card
+            card.contentHeight = (card.contentHeight or 0) + (h - oldH)
+            card.fullHeight = card.contentHeight + Def.CardBottomPadding
+        end
     end
     C_Timer.After(0, updateDropdownRowHeight)
 

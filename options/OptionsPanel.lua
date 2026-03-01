@@ -535,6 +535,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
              w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
              currentCard.contentAnchor = w
              currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.dropdown
+             w._card = currentCard
              if type(opt.hidden) == "function" then
                  w._hiddenFn = opt.hidden
                  w._normalHeight = RowHeights.dropdown
