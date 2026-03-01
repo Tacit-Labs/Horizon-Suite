@@ -14,6 +14,8 @@ local UNKNOWN_TITLE_PLACEHOLDER = "..."
 -- Entry sort mode: alpha, questType, zone, level (DB key entrySortMode, default questType)
 local VALID_ENTRY_SORT = { alpha = true, questType = true, zone = true, level = true }
 
+local currentSortGroup  -- set before each table.sort so comparator knows its group
+
 --- Current entry sort mode from DB (alpha, questType, zone, or level).
 --- @return string Sort mode key
 local function GetSortMode()
@@ -29,6 +31,11 @@ local CATEGORY_SORT_ORDER = {
 }
 
 local function CompareEntriesBySortMode(a, b)
+    if currentSortGroup == "NEARBY" and addon.GetDB("nearbyCompleteToBottom", true) then
+        local ac = a.isComplete and 1 or 0
+        local bc = b.isComplete and 1 or 0
+        if ac ~= bc then return ac < bc end  -- non-complete (0) before complete (1)
+    end
     if a.category == "WORLD" or a.category == "CALLING" then
         -- Priority: tracked/accepted (2) > proximity/in-quest-area (1) > zone-only (0)
         local pa = ((a.isTracked or a.isAccepted) and 2) or ((a.isInQuestArea and 1) or 0)
@@ -118,6 +125,7 @@ local function SortAndGroupQuests(quests)
 
     for _, key in ipairs(order) do
         if #groups[key] > 0 then
+            currentSortGroup = key
             table.sort(groups[key], CompareEntriesBySortMode)
             -- Always assign numbering at the source of truth so renderers can rely on it.
             for i = 1, #groups[key] do
