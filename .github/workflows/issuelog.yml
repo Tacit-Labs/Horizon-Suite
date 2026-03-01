@@ -1,6 +1,7 @@
 name: Post Issue Log to Discord
 # Requires repository secret: DISCORD_WEBHOOK_ISSUELOG
 # Updates the same Discord message on each run (edit in place rather than post new).
+# Message ID is cached (not committed) to avoid pushing to protected main.
 
 on:
   workflow_dispatch:
@@ -9,7 +10,6 @@ on:
 
 permissions:
   issues: read
-  contents: write  # to commit updated message ID
 
 concurrency:
   group: issuelog
@@ -25,8 +25,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Cache Discord message ID
+        uses: actions/cache@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          path: .release
+          key: issuelog-message-id-${{ github.repository }}
 
       - name: Generate issue log payload
         run: bash .release/run-issuelog.sh
@@ -77,12 +81,3 @@ jobs:
             fi
           fi
 
-      - name: Commit message ID if changed
-        if: steps.discord.outputs.id != ''
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .release/discord-issuelog-message-id
-          git diff --staged --quiet && exit 0
-          git commit -m "chore: update Discord issuelog message ID"
-          git push

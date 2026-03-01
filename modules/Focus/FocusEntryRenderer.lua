@@ -102,26 +102,40 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     local maxObjs = addon.MAX_OBJECTIVES
     local showEllipsis = (questData.isAchievement or questData.isEndeavor) and questData.objectives and #questData.objectives > maxObjs
 
-    -- Progress bar: determine if the entry has exactly 1 arithmetic objective with numRequired > 1
+    -- Progress bar: determine if the entry has exactly 1 progress-bar-eligible objective.
+    -- Eligible: (a) arithmetic (numFulfilled/numRequired, numRequired > 1) or (b) percent-only (percent set, numRequired nil/0/1 or type progressbar).
     local showProgressBar = addon.GetDB("showObjectiveProgressBar", false)
     local progressBarObjIdx = nil
     local progressBarNf, progressBarNr = nil, nil
+    local progressBarPercent = nil
     if showProgressBar and questData.objectives then
-        local arithmeticCount = 0
-        local arithmeticIdx = nil
-        local arithmeticNf, arithmeticNr = nil, nil
+        local barCount = 0
+        local barIdx = nil
+        local barNf, barNr = nil, nil
+        local barPct = nil
         for idx, o in ipairs(questData.objectives) do
-            if not o.finished and o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
-                arithmeticCount = arithmeticCount + 1
-                arithmeticIdx = idx
-                arithmeticNf = o.numFulfilled
-                arithmeticNr = o.numRequired
+            if o.finished then
+                -- skip
+            elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
+                -- Arithmetic (x/10 style)
+                barCount = barCount + 1
+                barIdx = idx
+                barNf = o.numFulfilled
+                barNr = o.numRequired
+                barPct = nil
+            elseif o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar") then
+                -- Percent-only (no discrete count, or Blizzard progressbar type)
+                barCount = barCount + 1
+                barIdx = idx
+                barNf, barNr = nil, nil
+                barPct = o.percent
             end
         end
-        if arithmeticCount == 1 then
-            progressBarObjIdx = arithmeticIdx
-            progressBarNf = arithmeticNf
-            progressBarNr = arithmeticNr
+        if barCount == 1 then
+            progressBarObjIdx = barIdx
+            progressBarNf = barNf
+            progressBarNr = barNr
+            progressBarPercent = barPct
         end
     end
 
@@ -224,8 +238,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             prevAnchor = obj.text
 
             -- Progress bar for this objective
+            local pctVal = progressBarPercent or oData.percent
             if thisObjHasBar and nf and nr and type(nf) == "number" and type(nr) == "number" and nr > 0 then
-                -- Bar width: subtract the left pad applied to THIS objective so it doesn't overflow the panel.
+                -- Arithmetic (x/10): use nf/nr for fraction and "X/Y (Z%)" label
                 local barW = objTextWidth - leftPad
                 if barW < 20 then barW = objTextWidth end
                 local fraction = math.min(nf / nr, 1)
@@ -244,10 +259,39 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 obj.progressBarFill:SetColorTexture(progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
                 obj.progressBarFill:Show()
 
-                -- Label: "X/Y (Z%)" centered INSIDE the bar
                 if obj.progressBarLabel then
                     local pct = math.floor(100 * fraction)
                     obj.progressBarLabel:SetText(("%d/%d (%d%%)"):format(nf, nr, pct))
+                    obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], 1)
+                    obj.progressBarLabel:ClearAllPoints()
+                    obj.progressBarLabel:SetPoint("CENTER", obj.progressBarBg, "CENTER", 0, 0)
+                    obj.progressBarLabel:Show()
+                end
+
+                totalH = totalH + PROGRESS_BAR_SPACING + PROGRESS_BAR_HEIGHT
+                prevAnchor = obj.progressBarBg
+            elseif thisObjHasBar and pctVal ~= nil and type(pctVal) == "number" then
+                -- Percent-only: use percent/100 for fraction and "Z%" label
+                local barW = objTextWidth - leftPad
+                if barW < 20 then barW = objTextWidth end
+                local fraction = math.min(math.max(0, pctVal / 100), 1)
+                local fillW = math.max(1, barW * fraction)
+
+                obj.progressBarBg:ClearAllPoints()
+                obj.progressBarBg:SetPoint("TOPLEFT", obj.text, "BOTTOMLEFT", 0, -PROGRESS_BAR_SPACING)
+                obj.progressBarBg:SetSize(barW, PROGRESS_BAR_HEIGHT)
+                obj.progressBarBg:SetColorTexture(0.15, 0.15, 0.18, 0.7)
+                obj.progressBarBg:Show()
+
+                obj.progressBarFill:ClearAllPoints()
+                obj.progressBarFill:SetPoint("TOPLEFT", obj.progressBarBg, "TOPLEFT", 0, 0)
+                obj.progressBarFill:SetPoint("BOTTOMLEFT", obj.progressBarBg, "BOTTOMLEFT", 0, 0)
+                obj.progressBarFill:SetWidth(fillW)
+                obj.progressBarFill:SetColorTexture(progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
+                obj.progressBarFill:Show()
+
+                if obj.progressBarLabel then
+                    obj.progressBarLabel:SetText(("%d%%"):format(math.floor(pctVal)))
                     obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], 1)
                     obj.progressBarLabel:ClearAllPoints()
                     obj.progressBarLabel:SetPoint("CENTER", obj.progressBarBg, "CENTER", 0, 0)
@@ -651,16 +695,29 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
 end
 
 local function PopulateEntry(entry, questData, groupKey)
+    -- Derive percent when missing so progress bar eligibility and rendering can use it.
+    if questData.objectives then
+        for _, o in ipairs(questData.objectives) do
+            if o.percent == nil and o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 0 then
+                o.percent = math.floor(100 * math.min(o.numFulfilled, o.numRequired) / o.numRequired)
+            end
+        end
+    end
+
     -- Pre-compute progress bar eligibility so the title renderer can suppress (X/Y).
     questData._progressBarActive = false
     if addon.GetDB("showObjectiveProgressBar", false) and questData.objectives then
-        local ac = 0
+        local barCount = 0
         for _, o in ipairs(questData.objectives) do
-            if o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
-                ac = ac + 1
+            if o.finished then
+                -- skip
+            elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
+                barCount = barCount + 1
+            elseif o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar") then
+                barCount = barCount + 1
             end
         end
-        if ac == 1 then questData._progressBarActive = true end
+        if barCount == 1 then questData._progressBarActive = true end
     end
 
     local hasItem = (questData.itemTexture and questData.itemLink) and true or false
