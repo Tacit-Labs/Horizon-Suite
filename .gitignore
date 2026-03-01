@@ -16,6 +16,9 @@ CLAUDE.md
 docs/plans/
 
 
+# Generated release artifacts (local review only)
+.release/discord-issuelog-payload.json
+
 # Local dev tools
 tools/pipeline-viewer.html
 tools/serve-pipeline.ps1

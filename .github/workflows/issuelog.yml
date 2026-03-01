@@ -1,0 +1,29 @@
+name: Post Issue Log to Discord
+# Requires repository secret: DISCORD_WEBHOOK_ISSUELOG
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: read
+
+jobs:
+  issuelog:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate issue log payload
+        run: bash .release/run-issuelog.sh
+
+      - name: Post to Discord
+        continue-on-error: true
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_ISSUELOG }}
+          raw-data: .release/discord-issuelog-payload.json
