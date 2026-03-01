@@ -160,6 +160,11 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     if not progTextColor or type(progTextColor) ~= "table" then progTextColor = { 0.95, 0.95, 0.95 } end
 
     local shownObjs = 0
+    local entryKey = questData.entryKey or entry.entryKey
+    -- Default collapsed when key not in table (nil).
+    local optCollapsed = not (addon.focus and addon.focus.recipeOptionalCollapsed and addon.focus.recipeOptionalCollapsed[entryKey] == false)
+    local finCollapsed = not (addon.focus and addon.focus.recipeFinishingCollapsed and addon.focus.recipeFinishingCollapsed[entryKey] == false)
+
     for j = 1, addon.MAX_OBJECTIVES do
         local obj = entry.objectives[j]
         local oData = questData.objectives[j]
@@ -171,6 +176,10 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             end
         end
 
+        -- Skip optional/finishing reagents when their section is collapsed.
+        if oData and oData.isOptionalReagent and optCollapsed then oData = nil end
+        if oData and oData.isFinishingReagent and finCollapsed then oData = nil end
+
         obj.text:SetWidth(objTextWidth)
         obj.shadow:SetWidth(objTextWidth)
 
@@ -178,21 +187,31 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             local objText = oData.text or ""
             local nf, nr = oData.numFulfilled, oData.numRequired
             local thisObjHasBar = (progressBarObjIdx == j)
-            -- Skip appending (X/Y) to objectives when the title already shows it (single-criterion numeric achievement).
-            -- Also skip when a progress bar is shown for this objective.
-            local titleShowsNumeric = questData.numericQuantity ~= nil and questData.numericRequired and type(questData.numericRequired) == "number" and questData.numericRequired > 1
-            local singleObjective = questData.objectives and #questData.objectives == 1
-            if not thisObjHasBar and nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 1 and not (titleShowsNumeric and singleObjective) then
-                local pattern = tostring(nf) .. "/" .. tostring(nr)
-                if not objText:find(pattern, 1, true) then
-                    objText = objText .. (" (%d/%d)"):format(nf, nr)
+            local isRecipeHeader = oData.isOptionalHeader or oData.isFinishingHeader
+
+            if isRecipeHeader then
+                local baseText = oData.text or ""
+                local count = oData.sectionCount
+                if count and type(count) == "number" then baseText = baseText .. " (" .. count .. ")" end
+                local collapsed = (oData.isOptionalHeader and optCollapsed) or (oData.isFinishingHeader and finCollapsed)
+                objText = baseText .. " " .. (collapsed and "+" or "-")
+            else
+                -- Skip appending (X/Y) to objectives when the title already shows it (single-criterion numeric achievement).
+                -- Also skip when a progress bar is shown for this objective.
+                local titleShowsNumeric = questData.numericQuantity ~= nil and questData.numericRequired and type(questData.numericRequired) == "number" and questData.numericRequired > 1
+                local singleObjective = questData.objectives and #questData.objectives == 1
+                if not thisObjHasBar and nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 1 and not (titleShowsNumeric and singleObjective) then
+                    local pattern = tostring(nf) .. "/" .. tostring(nr)
+                    if not objText:find(pattern, 1, true) then
+                        objText = objText .. (" (%d/%d)"):format(nf, nr)
+                    end
                 end
-            end
-            local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
-            if prefixStyle == "numbers" then
-                objText = ("%d. %s"):format(j, objText)
-            elseif prefixStyle == "hyphens" then
-                objText = "- " .. objText
+                local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
+                if prefixStyle == "numbers" then
+                    objText = ("%d. %s"):format(j, objText)
+                elseif prefixStyle == "hyphens" then
+                    objText = "- " .. objText
+                end
             end
             local useTick = oData.finished and addon.GetDB("useTickForCompletedObjectives", false) and not questData.isComplete
             obj.text:SetText(objText)
@@ -214,14 +233,20 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             end
             obj._hsFinished = oData.finished and true or false
             obj._hsAlpha = alpha
+            obj._hsItemQuality = oData.itemQuality
+            local useObjColor = objColor
+            if questData.isRecipe and addon.GetDB("recipeRarityColors", false) and oData.itemQuality then
+                local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[oData.itemQuality]
+                if qc then useObjColor = { qc.r, qc.g, qc.b } end
+            end
             if oData.finished then
                 if useTick then
-                    obj.text:SetTextColor(objColor[1], objColor[2], objColor[3], alpha)
+                    obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], alpha)
                 else
                     obj.text:SetTextColor(effectiveDoneColor[1], effectiveDoneColor[2], effectiveDoneColor[3], alpha)
                 end
             else
-                obj.text:SetTextColor(objColor[1], objColor[2], objColor[3], alpha)
+                obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], alpha)
             end
 
             obj.text:ClearAllPoints()
@@ -230,6 +255,34 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", leftPad, -objSpacing)
             obj.text:Show()
             obj.shadow:Show()
+
+            -- Collapsible header: show button and set click handler.
+            if obj.collapseBtn then
+                if isRecipeHeader then
+                    obj.collapseBtn:ClearAllPoints()
+                    obj.collapseBtn:SetPoint("TOPLEFT", obj.text, "TOPLEFT", -leftPad, 2)
+                    obj.collapseBtn:SetPoint("BOTTOMRIGHT", obj.text, "BOTTOMRIGHT", 0, -2)
+                    obj.collapseBtn:Show()
+                    local isOpt = oData.isOptionalHeader
+                    obj.collapseBtn:SetScript("OnClick", function(_, button)
+                        if button ~= "LeftButton" then return end
+                        local key = entry.entryKey or questData.entryKey
+                        if not key or not addon.focus then return end
+                        local collapsed
+                        if isOpt then collapsed = optCollapsed else collapsed = finCollapsed end
+                        if isOpt then
+                            addon.focus.recipeOptionalCollapsed = addon.focus.recipeOptionalCollapsed or {}
+                            addon.focus.recipeOptionalCollapsed[key] = not collapsed
+                        else
+                            addon.focus.recipeFinishingCollapsed = addon.focus.recipeFinishingCollapsed or {}
+                            addon.focus.recipeFinishingCollapsed[key] = not collapsed
+                        end
+                        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                    end)
+                else
+                    obj.collapseBtn:Hide()
+                end
+            end
 
             local objH = obj.text:GetStringHeight()
             if not objH or objH < 1 then objH = addon.OBJ_SIZE + 2 end
@@ -310,9 +363,11 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         else
             obj._hsFinished = nil
             obj._hsAlpha = nil
+            obj._hsItemQuality = nil
             obj.text:Hide()
             obj.shadow:Hide()
             if obj.tick then obj.tick:Hide() end
+            if obj.collapseBtn then obj.collapseBtn:Hide() end
             if obj.progressBarBg then obj.progressBarBg:Hide() end
             if obj.progressBarFill then obj.progressBarFill:Hide() end
             if obj.progressBarLabel then obj.progressBarLabel:Hide() end
@@ -725,7 +780,8 @@ local function PopulateEntry(entry, questData, groupKey)
     local showQuestIcons = addon.GetDB("showQuestTypeIcons", false)
     local showAchievementIcons = addon.GetDB("showAchievementIcons", true)
     local showDecorIcons = addon.GetDB("showDecorIcons", true)
-    local hasIcon = ((questData.questTypeAtlas ~= nil) and showQuestIcons) or (questData.isAchievement and questData.achievementIcon and showQuestIcons and showAchievementIcons) or (questData.isDecor and questData.decorIcon and showQuestIcons and showDecorIcons)
+    local showRecipeIcons = addon.GetDB("showRecipeIcons", true)
+    local hasIcon = ((questData.questTypeAtlas ~= nil) and showQuestIcons) or (questData.isAchievement and questData.achievementIcon and showQuestIcons and showAchievementIcons) or (questData.isDecor and questData.decorIcon and showQuestIcons and showDecorIcons) or (questData.isRecipe and questData.recipeIcon and showQuestIcons and showRecipeIcons)
     local isOffMapWorld = (questData.category == "WORLD") and questData.isTracked and not questData.isNearby
 
     local S = addon.Scaled or function(v) return v end
@@ -827,6 +883,9 @@ local function PopulateEntry(entry, questData, groupKey)
     elseif questData.isDecor and questData.decorIcon and showDecorIcons then
         entry.questTypeIcon:SetTexture(questData.decorIcon)
         entry.questTypeIcon:Show()
+    elseif questData.isRecipe and questData.recipeIcon and showRecipeIcons then
+        entry.questTypeIcon:SetTexture(questData.recipeIcon)
+        entry.questTypeIcon:Show()
     elseif questData.questTypeAtlas then
         entry.questTypeIcon:SetAtlas(questData.questTypeAtlas)
         entry.questTypeIcon:Show()
@@ -926,9 +985,24 @@ local function PopulateEntry(entry, questData, groupKey)
     elseif addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked then
         c = addon.ApplyDimColor(c)
     end
+    if questData.isRecipe and addon.GetDB("recipeRarityColors", false) and questData.outputQuality then
+        local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[questData.outputQuality]
+        if qc then c = { qc.r, qc.g, qc.b } end
+    end
     local dimAlpha = (addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked) and addon.GetDimAlpha() or 1
-    entry.titleText:SetTextColor(c[1], c[2], c[3], dimAlpha)
-    entry._savedColor = nil
+    local baseColor = { c[1], c[2], c[3], dimAlpha }
+    entry._baseTitleColor = baseColor
+    if not entry.hoverAnimState then
+        entry.titleText:SetTextColor(c[1], c[2], c[3], dimAlpha)
+        entry._savedColor = nil
+        if entry:IsMouseOver() then
+            entry._savedColor = { c[1], c[2], c[3] }
+            entry.titleText:SetTextColor(
+                math.min(c[1] * 1.25, 1),
+                math.min(c[2] * 1.25, 1),
+                math.min(c[3] * 1.25, 1), 1)
+        end
+    end
 
     local highlightStyle, hc, ha, barW, topPadding, bottomPadding = ApplyHighlightStyle(entry, questData)
 
@@ -1125,6 +1199,19 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.decorID    = questData.decorID
         entry.adventureGuideID   = nil
         entry.adventureGuideType = nil
+        entry.isTracked  = true
+        entry.vignetteGUID = nil; entry.vignetteMapID = nil; entry.vignetteX = nil; entry.vignetteY = nil; entry.title = nil
+    elseif questData.isRecipe or questData.category == "RECIPE" then
+        entry.questID    = nil
+        entry.entryKey   = questData.entryKey
+        entry.category   = questData.category
+        entry.creatureID = nil
+        entry.achievementID = nil
+        entry.endeavorID = nil
+        entry.decorID    = nil
+        entry.recipeID   = questData.recipeID
+        entry.isRecipe   = true
+        entry.outputQuality = questData.outputQuality
         entry.isTracked  = true
         entry.vignetteGUID = nil; entry.vignetteMapID = nil; entry.vignetteX = nil; entry.vignetteY = nil; entry.title = nil
     elseif questData.isAdventureGuide or questData.category == "ADVENTURE" then

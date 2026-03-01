@@ -1,8 +1,10 @@
 # 🌌 Horizon Suite
 
-[![Release](https://img.shields.io/github/v/release/Crystilac93/Horizon-Suite)](https://github.com/Crystilac93/Horizon-Suite/releases) [![Release Date](https://img.shields.io/github/release-date/Crystilac93/Horizon-Suite)](https://github.com/Crystilac93/Horizon-Suite/releases) [![Beta](https://img.shields.io/github/release-date-pre/Crystilac93/Horizon-Suite?label=Beta&color=orange)](https://github.com/Crystilac93/Horizon-Suite/releases/tag/beta)
+![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge) ![GitHub Release Date](https://img.shields.io/github/release-date/Crystilac93/Horizon-Suite?style=for-the-badge) ![GitHub Release Date](https://img.shields.io/github/release-date-pre/Crystilac93/Horizon-Suite?style=for-the-badge&label=beta%20update&color=orange)
 
-[![Discord](https://img.shields.io/discord/1471477531805749412?label=Discord&labelColor=%237289da)](https://discord.gg/MndCSYQ2ra) [![Patreon](https://img.shields.io/badge/build-donate-orange?label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?label=Ko-fi)](https://ko-fi.com/horizonsuite)
+![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) ![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)
+
+[![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite)
 
 **Horizon Suite** is a core addon with pluggable modules: **Focus** (objective tracker), **Presence** (zone text & notifications), **Insight** (cinematic tooltips), **Vista** (minimap), and **Yield** (loot toasts). Designed for the Midnight era—clean, cinematic, player-in-control. It replaces static, cluttered lists with a fluid interface that grants you total agency over your goals. Additional suites will appear as modules in the same options panel.
 
@@ -13,7 +15,7 @@
 ![Focus - Objective Tracker](https://raw.githubusercontent.com/Crystilac93/Horizon-Suite/main/docs/Focus.gif)
 
 - **Smart zone tracking** – Nearby quests float to the top; list updates as you move. Delves, scenarios, raids, and world events get their own sections with progress bars and timers.
-- **Track what matters** – Achievements, Endeavors (housing), Decor, and Traveler's Log objectives appear in the tracker. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open achievement panel, housing dashboard, decor catalog, or Adventure Guide.
+- **Track what matters** – Achievements, Endeavors (housing), Decor, Recipes (professions), and Traveler's Log objectives appear in the tracker. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open achievement panel, housing dashboard, decor catalog, or Adventure Guide.
 - **Rare boss alerts** – Super-track nearby rares with one click and optional audio alerts.
 - **Live quest sync** – World quests, dailies, and weeklies update dynamically. Quests auto-track when you accept them. Choose a radar icon for auto-tracked in-zone entries.
 - **All The Things integration** – Collection data appears directly in your objectives.

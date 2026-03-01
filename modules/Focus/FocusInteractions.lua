@@ -462,6 +462,22 @@ for i = 1, addon.POOL_SIZE do
                     end
                     return
                 end
+                if self.isRecipe and self.recipeID then
+                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
+                    if requireCtrl and not IsControlKeyDown() then return end
+                    local recipeID = self.recipeID
+                    -- ProfessionsUtil opens profession frame + navigates to recipe (works when closed)
+                    if C_AddOns and C_AddOns.LoadAddOn then
+                        pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
+                    end
+                    if ProfessionsUtil and ProfessionsUtil.OpenProfessionFrameToRecipe then
+                        pcall(ProfessionsUtil.OpenProfessionFrameToRecipe, recipeID)
+                    elseif C_TradeSkillUI and C_TradeSkillUI.OpenRecipe then
+                        -- Fallback: only works when profession window is already open
+                        pcall(C_TradeSkillUI.OpenRecipe, recipeID)
+                    end
+                    return
+                end
                 local vignetteGUID = self.entryKey:match("^vignette:(.+)$")
                 local rareCreatureID = self.entryKey:match("^rare:(%d+)$")
                 if vignetteGUID or rareCreatureID then
@@ -723,12 +739,19 @@ for i = 1, addon.POOL_SIZE do
 
     e:SetScript("OnEnter", function(self)
         if not self.questID and not self.entryKey then return end
-        local r, g, b = self.titleText:GetTextColor()
+        local r, g, b, a = self.titleText:GetTextColor()
+        local base = { r, g, b, a or 1 }
+        local bright = { math.min(r * 1.25, 1), math.min(g * 1.25, 1), math.min(b * 1.25, 1), 1 }
         self._savedColor = { r, g, b }
-        self.titleText:SetTextColor(
-            math.min(r * 1.25, 1),
-            math.min(g * 1.25, 1),
-            math.min(b * 1.25, 1), 1)
+        if addon.GetDB("animations", true) and addon.EnsureFocusUpdateRunning then
+            self.hoverAnimState = "in"
+            self.hoverAnimTime = 0
+            self._hoverFromColor = base
+            self._hoverToColor = bright
+            addon.EnsureFocusUpdateRunning()
+        else
+            self.titleText:SetTextColor(bright[1], bright[2], bright[3], 1)
+        end
         if self.creatureID then
             local link = ("unit:Creature-0-0-0-0-%d-0000000000"):format(self.creatureID)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -871,7 +894,17 @@ for i = 1, addon.POOL_SIZE do
     end)
 
     e:SetScript("OnLeave", function(self)
-        if self._savedColor then
+        if addon.GetDB("animations", true) and addon.EnsureFocusUpdateRunning then
+            local sc = self._savedColor
+            if sc then
+                self.hoverAnimState = "out"
+                self.hoverAnimTime = 0
+                local r, g, b, a = self.titleText:GetTextColor()
+                self._hoverFromColor = { r, g, b, a or 1 }
+                self._hoverToColor = { sc[1], sc[2], sc[3], 1 }
+                addon.EnsureFocusUpdateRunning()
+            end
+        elseif self._savedColor then
             local sc = self._savedColor
             self.titleText:SetTextColor(sc[1], sc[2], sc[3], 1)
             self._savedColor = nil

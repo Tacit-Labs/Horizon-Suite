@@ -27,7 +27,7 @@ end
 -- Category order for questType sort (lower = earlier)
 local CATEGORY_SORT_ORDER = {
     COMPLETE = 1, CAMPAIGN = 2, IMPORTANT = 3, LEGENDARY = 4,
-    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, DAILY = 8, CALLING = 9, RARE = 10, DEFAULT = 11,
+    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, DAILY = 8, CALLING = 9, RARE = 10, DEFAULT = 11,
 }
 
 local function CompareEntriesBySortMode(a, b)
@@ -104,6 +104,8 @@ local function SortAndGroupQuests(quests)
             groups["ENDEAVORS"][#groups["ENDEAVORS"] + 1] = q
         elseif q.category == "DECOR" or q.isDecor then
             groups["DECOR"][#groups["DECOR"] + 1] = q
+        elseif q.category == "RECIPE" or q.isRecipe then
+            groups["RECIPES"][#groups["RECIPES"] + 1] = q
         elseif q.category == "ADVENTURE" or q.isAdventureGuide then
             groups["ADVENTURE"][#groups["ADVENTURE"] + 1] = q
         elseif q.category == "WORLD" or q.category == "CALLING" then

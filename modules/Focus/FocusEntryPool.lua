@@ -262,7 +262,14 @@ local function CreateQuestEntry(parent, index)
         progLabel:SetJustifyH("CENTER")
         progLabel:Hide()
 
-        e.objectives[j] = { text = objText, shadow = objShadow, tick = tickTex, progressBarBg = progBg, progressBarFill = progFill, progressBarLabel = progLabel }
+        -- Collapsible header button for recipe optional/finishing sections.
+        local collapseBtn = CreateFrame("Button", nil, e)
+        collapseBtn:EnableMouse(true)
+        collapseBtn:RegisterForClicks("LeftButtonDown", "RightButtonDown")
+        collapseBtn:SetFrameLevel(e:GetFrameLevel() + 10)
+        collapseBtn:Hide()
+
+        e.objectives[j] = { text = objText, shadow = objShadow, tick = tickTex, progressBarBg = progBg, progressBarFill = progFill, progressBarLabel = progLabel, collapseBtn = collapseBtn }
         objText:Hide()
         objShadow:Hide()
     end
@@ -603,6 +610,9 @@ local function ClearEntry(entry, full)
     entry.achievementID = nil
     entry.endeavorID = nil
     entry.decorID    = nil
+    entry.recipeID   = nil
+    entry.isRecipe   = nil
+    entry.outputQuality = nil
     entry.affixData  = nil
     entry.tierSpellID = nil
     entry.itemLink   = nil
@@ -622,6 +632,12 @@ local function ClearEntry(entry, full)
     entry.isGroupQuest   = nil
     entry.isAutoComplete = nil
     entry._inlineTimerBaseTitle, entry._inlineTimerStr, entry._inlineTimerDuration, entry._inlineTimerStartTime = nil, nil, nil, nil
+    entry.hoverAnimState = nil
+    entry.hoverAnimTime = nil
+    entry._baseTitleColor = nil
+    entry._hoverFromColor = nil
+    entry._hoverToColor = nil
+    entry._savedColor = nil
     if full ~= false then
         entry:SetAlpha(0)
         entry:SetHitRectInsets(0, 0, 0, 0)

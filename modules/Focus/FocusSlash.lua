@@ -45,6 +45,7 @@ local function MatrixKey(category)
     if category == "ACHIEVEMENT" then return "ACHIEVEMENTS" end
     if category == "ENDEAVOR" then return "ENDEAVORS" end
     if category == "DECOR" then return "DECOR" end
+    if category == "RECIPE" then return "RECIPES" end
     return category
 end
 
@@ -56,6 +57,7 @@ local function CategoryFromEntry(entry)
     if groupKey == "ACHIEVEMENTS" then return "ACHIEVEMENT" end
     if groupKey == "ENDEAVORS" then return "ENDEAVOR" end
     if groupKey == "DECOR" then return "DECOR" end
+    if groupKey == "RECIPES" then return "RECIPE" end
     return nil
 end
 
@@ -119,7 +121,7 @@ local function ShowFocusDebugHelp()
     HSPrint("Focus debug commands (/h debug focus [cmd]):")
     HSPrint("  wqdebug, scendebug, nearbydebug, headercountdebug, groupdebug")
     HSPrint("  delvedebug, mplusaffixdebug, mplusdebug, endeavordebug, achievementdebug")
-    HSPrint("  unaccepted, clicktodebug, profiledebug")
+    HSPrint("  recipedebug, unaccepted, clicktodebug, profiledebug")
 end
 
 -- ============================================================================
@@ -798,6 +800,15 @@ local function HandleFocusDebugSlash(msg)
                 end
             end
             HSPrint("Eligible for click-to-complete: " .. tostring(eligible))
+        end
+
+    elseif cmd == "recipedebug" or cmd:match("^recipedebug%s") then
+        local arg = cmd:match("^recipedebug%s+(%d+)")
+        local rid = arg and tonumber(arg)
+        if addon.DebugRecipeReagents then
+            addon.DebugRecipeReagents(rid)
+        else
+            HSPrint("DebugRecipeReagents not available.")
         end
 
     elseif cmd == "delvedebug" then

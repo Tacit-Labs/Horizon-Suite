@@ -85,6 +85,13 @@ addon.focus = {
     lastWorldQuestWatchSet            = nil,
     wqtTrackedQuests                 = nil,  -- [questID] = true; synced from WorldQuestTracker
 
+    -- Recipe reagent collapse state
+    recipeOptionalCollapsed   = {},
+    recipeFinishingCollapsed  = {},
+    recipeFinishingAnimating  = {},
+    recipeFinishingAnimTime   = {},
+    recipeChoiceSlotCollapsed = {},
+
     -- Objective signature cache for reliable quest-update flash (FocusEvents)
     lastQuestObjectiveSignature       = {},
 

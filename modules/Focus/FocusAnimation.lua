@@ -873,6 +873,46 @@ local function UpdateOptionCollapseCompletion()
     end
 end
 
+--- Lerps entry title color for hover brighten/restore. Driven by entry.hoverAnimState ("in" | "out").
+local function UpdateEntryHoverAnimations(dt, useAnim)
+    if not useAnim or not pool then return false end
+    local dur = (anim.hoverTitleDur or 0.15)
+    local anyAnimating = false
+    for i = 1, addon.POOL_SIZE do
+        local e = pool[i]
+        local state = e and e.hoverAnimState
+        if state then
+            anyAnimating = true
+            e.hoverAnimTime = (e.hoverAnimTime or 0) + dt
+            local from = e._hoverFromColor
+            local to = e._hoverToColor
+            if not from or not to or not e.titleText then
+                e.hoverAnimState = nil
+                e.hoverAnimTime = nil
+                e._hoverFromColor = nil
+                e._hoverToColor = nil
+            else
+                local p = math.min((e.hoverAnimTime or 0) / dur, 1)
+                local ep = (state == "in") and addon.easeOut and addon.easeOut(p) or addon.easeIn and addon.easeIn(p) or p
+                local r = from[1] + (to[1] - from[1]) * ep
+                local g = from[2] + (to[2] - from[2]) * ep
+                local b = from[3] + (to[3] - from[3]) * ep
+                local a = (from[4] ~= nil and to[4] ~= nil) and (from[4] + (to[4] - from[4]) * ep) or 1
+                e.titleText:SetTextColor(r, g, b, a)
+                if p >= 1 then
+                    e.titleText:SetTextColor(to[1], to[2], to[3], to[4] or 1)
+                    e.hoverAnimState = nil
+                    e.hoverAnimTime = nil
+                    e._hoverFromColor = nil
+                    e._hoverToColor = nil
+                    if state == "out" then e._savedColor = nil end
+                end
+            end
+        end
+    end
+    return anyAnimating
+end
+
 -- ============================================================================
 -- EXPORTS (defined last so local Update* functions are in scope)
 -- ============================================================================
@@ -899,6 +939,7 @@ function addon.EnsureFocusUpdateRunning()
         UpdateOptionCollapseCompletion()
         UpdateSectionHeaderSlideUp(dt, useAnim)
         UpdateSectionHeaderFadeIn(dt, useAnim)
+        local anyHoverTitleAnimating = UpdateEntryHoverAnimations(dt, useAnim)
 
         local anySectionSliding = false
         for i = 1, addon.SECTION_POOL_SIZE do
@@ -918,6 +959,7 @@ function addon.EnsureFocusUpdateRunning()
         end
 
         local stillAnimating = anyEntryAnimating
+            or anyHoverTitleAnimating
             or anySectionSliding
             or addon.focus.collapse.animating
             or (addon.focus.combat and addon.focus.combat.fadeState ~= nil)

@@ -28,6 +28,7 @@ modules/Focus/FocusScenario.lua
 modules/Focus/FocusAchievements.lua
 modules/Focus/FocusEndeavors.lua
 modules/Focus/FocusDecor.lua
+modules/Focus/FocusRecipes.lua
 modules/Focus/FocusAdventureGuide.lua
 modules/Focus/FocusAggregator.lua
 modules/Focus/FocusEntryPool.lua

@@ -58,6 +58,8 @@ pcall(function() eventFrame:RegisterEvent("INITIATIVE_TASKS_TRACKED_LIST_CHANGED
 pcall(function() eventFrame:RegisterEvent("TRACKING_TARGET_INFO_UPDATE") end)
 pcall(function() eventFrame:RegisterEvent("TRACKABLE_INFO_UPDATE") end)
 pcall(function() eventFrame:RegisterEvent("QUEST_AUTOCOMPLETE") end)
+pcall(function() eventFrame:RegisterEvent("TRACKED_RECIPE_UPDATE") end)
+pcall(function() eventFrame:RegisterEvent("BAG_UPDATE_DELAYED") end)
 -- CHALLENGE_MODE_START: fires when an M+ run begins. Replaces the instance-state
 -- recursive poll for detecting that the player is now inside a dungeon.
 pcall(function() eventFrame:RegisterEvent("CHALLENGE_MODE_START") end)
@@ -520,6 +522,17 @@ local eventHandlers = {
     INITIATIVE_TASKS_TRACKED_LIST_CHANGED = function() ScheduleRefresh() end,
     TRACKING_TARGET_INFO_UPDATE = function() ScheduleRefresh() end,
     TRACKABLE_INFO_UPDATE = function() ScheduleRefresh() end,
+    TRACKED_RECIPE_UPDATE = function()
+        if addon.InvalidateRecipeCache then addon.InvalidateRecipeCache() end
+        ScheduleRefresh()
+    end,
+    BAG_UPDATE_DELAYED = function()
+        if addon.InvalidateRecipeCache then addon.InvalidateRecipeCache() end
+        -- Only refresh if recipes are tracked (avoid extra layouts for non-recipe players).
+        if addon.GetDB("showRecipes", true) and addon.GetTrackedRecipeIDs and #addon.GetTrackedRecipeIDs() > 0 then
+            ScheduleRefresh()
+        end
+    end,
     -- QUEST_AUTOCOMPLETE: fires for popup quests (auto-accepted quests that complete via dialog).
     -- Add them to the watch list so they appear in the tracker.
     QUEST_AUTOCOMPLETE = function(_, questID)

@@ -246,6 +246,9 @@ local function CollectAllEntries(rares)
     if addon.ReadTrackedDecor then
         for _, d in ipairs(addon.ReadTrackedDecor()) do quests[#quests + 1] = d end
     end
+    if addon.GetDB("showRecipes", true) and addon.ReadTrackedRecipes then
+        for _, rp in ipairs(addon.ReadTrackedRecipes()) do quests[#quests + 1] = rp end
+    end
     if addon.ReadTrackedAdventureGuide then
         for _, ag in ipairs(addon.ReadTrackedAdventureGuide()) do quests[#quests + 1] = ag end
     end
@@ -967,6 +970,7 @@ function addon.ApplyFocusColors()
             if not category and entry.groupKey == "ACHIEVEMENTS" then category = "ACHIEVEMENT" end
             if not category and entry.groupKey == "ENDEAVORS" then category = "ENDEAVOR" end
             if not category and entry.groupKey == "DECOR" then category = "DECOR" end
+            if not category and entry.groupKey == "RECIPES" then category = "RECIPE" end
             local effectiveCat = (addon.GetEffectiveColorCategory and addon.GetEffectiveColorCategory(category, entry.groupKey, entry.baseCategory, entry.isEventQuest)) or category
 
             local titleColor = (addon.GetTitleColor and addon.GetTitleColor(effectiveCat)) or addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT
@@ -978,6 +982,10 @@ function addon.ApplyFocusColors()
                 elseif addon.GetDB("dimNonSuperTracked", false) and not entry.isSuperTracked then
                     titleColor = addon.ApplyDimColor(titleColor)
                     dimAlpha = addon.GetDimAlpha()
+                end
+                if entry.isRecipe and addon.GetDB("recipeRarityColors", false) and entry.outputQuality then
+                    local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[entry.outputQuality]
+                    if qc then titleColor = { qc.r, qc.g, qc.b } end
                 end
                 entry.titleText:SetTextColor(titleColor[1], titleColor[2], titleColor[3], dimAlpha)
             end
@@ -1013,6 +1021,10 @@ function addon.ApplyFocusColors()
                         local isFinished = obj._hsFinished == true
                         local useTick = isFinished and addon.GetDB("useTickForCompletedObjectives", false) and not entry.isComplete
                         local targetColor = objColor
+                        if entry.isRecipe and addon.GetDB("recipeRarityColors", false) and obj._hsItemQuality then
+                            local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[obj._hsItemQuality]
+                            if qc then targetColor = { qc.r, qc.g, qc.b } end
+                        end
                         if isFinished and not useTick then
                             targetColor = doneColor
                         end
