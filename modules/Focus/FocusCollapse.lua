@@ -23,6 +23,8 @@ local function ToggleCollapse()
         addon.focus.collapse.sectionHeadersFadingOut = false
         addon.focus.collapse.sectionHeadersFadingOutKeys = nil
         addon.focus.collapse.sectionHeadersFadingIn = false
+        addon.focus.collapse.headerSlidingToBottom = false
+        addon.focus.collapse.headerSlidingToTop = false
         for i = 1, addon.POOL_SIZE do
             if pool[i].animState == "collapsing" then
                 addon.ClearEntry(pool[i])
@@ -41,6 +43,9 @@ local function ToggleCollapse()
     end
 
     addon.focus.collapsed = not addon.focus.collapsed
+    if addon.focus.collapse.panelCollapsedExpandedGroups then
+        wipe(addon.focus.collapse.panelCollapsedExpandedGroups)
+    end
     if addon.focus.collapsed then
         addon.chevron:SetText("+")
 
@@ -73,8 +78,19 @@ local function ToggleCollapse()
             end
         end
 
-        addon.focus.collapse.animating = #visibleEntries > 0 or addon.focus.collapse.sectionHeadersFadingOut
+        addon.focus.collapse.animating = #visibleEntries > 0 or addon.focus.collapse.sectionHeadersFadingOut or addon.focus.collapse.headerSlidingToBottom
         addon.focus.collapse.animStart = GetTime()
+        -- Start header slide animation when growUp + collapse mode
+        if addon.GetDB("growUp", false) and addon.GetDB("growUpHeaderMode", "always") == "collapse" and addon.GetDB("animations", true) then
+            local panelH = addon.HS and addon.HS:GetHeight() or (addon.focus.layout and addon.focus.layout.currentHeight) or addon.GetCollapsedHeight()
+            local minimal = addon.GetDB("hideObjectivesHeader", false)
+            local S = addon.Scaled or function(v) return v end
+            local pad = S(addon.PADDING)
+            local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+            addon.focus.collapse.headerSlidingToBottom = true
+            addon.focus.collapse.headerSlideStartY = math.max(0, (panelH or 0) - headerH)
+            addon.focus.collapse.headerSlideTime = 0
+        end
         if addon.focus.collapse.animating and addon.EnsureFocusUpdateRunning then
             addon.EnsureFocusUpdateRunning()
         end
@@ -92,6 +108,17 @@ local function ToggleCollapse()
         if addon.GetDB("animations", true) then
             addon.focus.collapse.sectionHeadersFadingIn  = true
             addon.focus.collapse.sectionHeaderFadeTime    = 0
+        end
+        -- Start header slide up when growUp + collapse mode (header animates from bottom to top)
+        if addon.GetDB("growUp", false) and addon.GetDB("growUpHeaderMode", "always") == "collapse" and addon.GetDB("animations", true) then
+            local panelH = addon.focus.layout and addon.focus.layout.targetHeight or (addon.HS and addon.HS:GetHeight()) or addon.MIN_HEIGHT
+            local minimal = addon.GetDB("hideObjectivesHeader", false)
+            local S = addon.Scaled or function(v) return v end
+            local pad = S(addon.PADDING)
+            local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+            addon.focus.collapse.headerSlidingToTop = true
+            addon.focus.collapse.headerSlideEndY = math.max(0, (panelH or 0) - headerH)
+            addon.focus.collapse.headerSlideTime = 0
         end
         addon.FullLayout()
     end

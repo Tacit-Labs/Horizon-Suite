@@ -9,6 +9,7 @@ Thumbs.db
 .idea/
 .vscode/
 .cursor/
+.claude/
 *.sublime-*
 
 # Local dev notes (not for version control)

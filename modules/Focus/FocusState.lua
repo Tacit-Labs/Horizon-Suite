@@ -39,6 +39,7 @@ addon.focus = {
         pendingWQCollapse      = false,
         pendingWQExpand        = false, -- when showWorldQuests is toggled on for slide-down animation
         optionCollapseKeys     = nil,   -- { [questID|entryKey] = true } when animating WQ toggle off
+        panelCollapsedExpandedGroups = {},  -- session-only: { [groupKey]=true } for categories expanded while panel is collapsed
     },
 
     combat = {

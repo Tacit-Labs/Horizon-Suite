@@ -951,7 +951,8 @@ local OptionCategories = {
         options = {
             { type = "section", name = L["Position & layout"] },
             { type = "toggle", name = L["Lock position"], desc = L["Prevent dragging the tracker."], dbKey = "lockPosition", get = function() return getDB("lockPosition", false) end, set = function(v) setDB("lockPosition", v) end },
-            { type = "toggle", name = L["Grow upward"], desc = L["Anchor at bottom so the list grows upward."], dbKey = "growUp", get = function() return getDB("growUp", false) end, set = function(v) setDB("growUp", v) end },
+            { type = "toggle", name = L["Grow upward"], desc = L["Anchor at bottom so the list grows upward."], dbKey = "growUp", get = function() return getDB("growUp", false) end, set = function(v) setDB("growUp", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "growUpHeaderMode" } },
+            { type = "dropdown", name = L["Grow-up header"], desc = L["When growing upward: keep header at bottom, or at top until collapsed."], dbKey = "growUpHeaderMode", options = { { L["Header at bottom"], "always" }, { L["Header slides on collapse"], "collapse" } }, get = function() return getDB("growUpHeaderMode", "always") end, set = function(v) setDB("growUpHeaderMode", v); if addon.FullLayout then addon.FullLayout() end end, disabled = function() return not getDB("growUp", false) end },
             { type = "toggle", name = L["Start collapsed"], desc = L["Start with only the header shown until you expand."], dbKey = "collapsed", get = function() return getDB("collapsed", false) end, set = function(v) setDB("collapsed", v) end },
             { type = "section", name = L["Dimensions"] },
             { type = "slider", name = L["Panel width"], desc = L["Tracker width in pixels."], dbKey = "panelWidth", min = 180, max = 800, get = function() return getDB("panelWidth", 260) end, set = function(v) setDB("panelWidth", math.max(180, math.min(800, v))) end },

@@ -155,6 +155,7 @@ local function SafeEntryFadeIn(entry, staggerIndex)
 end
 
 local headerBtn = CreateFrame("Button", nil, addon.HS)
+addon.headerBtn = headerBtn
 headerBtn:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
 headerBtn:SetPoint("TOPRIGHT", addon.HS, "TOPRIGHT", 0, 0)
 headerBtn:SetHeight(addon.GetScaledPadding() + addon.GetHeaderHeight())
@@ -286,6 +287,9 @@ local function FullLayout()
     if addon.GetDB("growUp", false) then
         addon.ApplyGrowUpAnchor()
     end
+    if addon.ApplyGrowUpLayout then
+        addon.ApplyGrowUpLayout()
+    end
 
     -- Layout indentation model:
     --  - Category chevron '−/+' is the left pivot.
@@ -377,8 +381,30 @@ local function FullLayout()
 
     local blockFrame = hasMplus and mplus or nil
     local blockPos = hasMplus and mplusPos or "top"
+    local growUp = addon.GetDB("growUp", false)
+    local headerMode = addon.GetDB("growUpHeaderMode", "always")
+    local collapsed = addon.focus and addon.focus.collapsed
+    local collapse = addon.focus and addon.focus.collapse
+    local useGrowUpScrollLayout = growUp and (headerMode == "always"
+        or (headerMode == "collapse" and collapsed
+            and not (collapse and collapse.headerSlidingToTop)))
 
-    if blockFrame and blockPos == "top" then
+    if useGrowUpScrollLayout then
+        -- Header at bottom; scrollFrame fills from top down to just above header (or M+ block)
+        local headerArea = addon.GetDB("hideObjectivesHeader", false)
+            and (addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4))
+            or (addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
+        if blockFrame and blockPos == "top" then
+            scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
+            scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+        elseif blockFrame and blockPos == "bottom" then
+            scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
+            scrollFrame:SetPoint("BOTTOMRIGHT", blockFrame, "TOPRIGHT", 0, gap)
+        else
+            scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
+            scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+        end
+    elseif blockFrame and blockPos == "top" then
         scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
         scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
     elseif blockFrame and blockPos == "bottom" then
@@ -412,6 +438,7 @@ local function FullLayout()
         addon.focus.rares.prevKeys = {}
     end
 
+    local collapsedFallThrough = false
     if addon.focus.collapsed then
         if addon.focus.collapse.pendingWQCollapse then
             addon.focus.collapse.pendingWQCollapse = false
@@ -430,13 +457,40 @@ local function FullLayout()
             end
             return
         end
-
         if addon.GetDB("showSectionHeadersWhenCollapsed", false) then
-            -- Collapsed-with-headers: show section headers only, no entries.
+            -- Collapsed-with-headers: show section headers. If any category is expanded, fall through
+            -- to full layout to show that category's entries (expand category only, not whole tracker).
             local grouped = addon.SortAndGroupQuests(quests)
             local showSections = #grouped >= 1 and addon.GetDB("showSectionHeaders", true)
-
-            if showSections and #grouped > 0 then
+            local anyExpanded = false
+            local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
+            if pceg then
+                for _, grp in ipairs(grouped) do
+                    if grp.key and pceg[grp.key] then
+                        anyExpanded = true
+                        break
+                    end
+                end
+            end
+            if anyExpanded then
+                scrollFrame:Show()
+                collapsedFallThrough = true
+                -- Clear stale section-header fade-in state so the fall-through layout
+                -- doesn't inherit animation timing from the collapsed-headers layout.
+                addon.focus.collapse.sectionHeadersFadingIn = false
+                addon.focus.collapse.sectionHeaderFadeTime  = 0
+            elseif showSections and #grouped > 0 then
+                -- Transitioning (back) to headers-only view: hide and clear any entries
+                -- left over from a previous collapsedFallThrough layout.
+                -- Preserve entries that are still animating out (collapsing/fadeout/completing).
+                for key, entry in pairs(activeMap) do
+                    if entry.animState == "collapsing" or entry.animState == "fadeout" or entry.animState == "completing" then
+                        -- Let the animation engine finish these; don't remove from activeMap.
+                    else
+                        entry:Hide()
+                        activeMap[key] = nil
+                    end
+                end
                 scrollFrame:Show()
                 addon.HideAllSectionHeaders()
                 addon.focus.layout.sectionIdx = 0
@@ -479,15 +533,17 @@ local function FullLayout()
             addon.focus.layout.targetHeight = addon.GetCollapsedHeight()
         end
 
-        if #quests > 0 then
-            ApplyShowAlpha()
-            addon.HS:Show()
-        else
-            addon.HS:Hide()
-            HideAllItemButtons()
-            addon.UpdateFloatingQuestItem(nil)
+        if not collapsedFallThrough then
+            if #quests > 0 then
+                ApplyShowAlpha()
+                addon.HS:Show()
+            else
+                addon.HS:Hide()
+                HideAllItemButtons()
+                addon.UpdateFloatingQuestItem(nil)
+            end
+            return
         end
-        return
     end
 
     scrollFrame:Show()
@@ -594,23 +650,32 @@ local function FullLayout()
         end
     end
 
+    -- When panel is collapsed with individual categories expanded, determine which
+    -- groups are collapsed so we can skip acquiring entries for them entirely.
+    local pcegForAcquire = collapsedFallThrough and addon.focus.collapsed
+        and addon.focus.collapse and addon.focus.collapse.panelCollapsedExpandedGroups
     for _, grp in ipairs(grouped) do
-        for _, qData in ipairs(grp.quests) do
-            local key = qData.entryKey or qData.questID
-            local entry = activeMap[key]
-            if not entry then
-                entry = AcquireEntry()
-                if entry then
+        -- Skip entry acquisition for groups that are collapsed during panel-collapsed fall-through.
+        if pcegForAcquire and not pcegForAcquire[grp.key] then
+            -- Collapsed group: don't acquire entries (saves pool slots, prevents stale animation)
+        else
+            for _, qData in ipairs(grp.quests) do
+                local key = qData.entryKey or qData.questID
+                local entry = activeMap[key]
+                if not entry then
+                    entry = AcquireEntry()
+                    if entry then
+                        SafeEntryFadeIn(entry, 0)
+                        activeMap[key] = entry
+                    end
+                elseif entry.animState == "idle" and not entry.questID and not entry.entryKey then
+                    -- Zombie entry left over from a group collapse: reset it for fadein.
                     SafeEntryFadeIn(entry, 0)
-                    activeMap[key] = entry
                 end
-            elseif entry.animState == "idle" and not entry.questID and not entry.entryKey then
-                -- Zombie entry left over from a group collapse: reset it for fadein.
-                SafeEntryFadeIn(entry, 0)
-            end
-            if entry then
-                entry.groupKey = grp.key
-                addon.PopulateEntry(entry, qData, grp.key)
+                if entry then
+                    entry.groupKey = grp.key
+                    addon.PopulateEntry(entry, qData, grp.key)
+                end
             end
         end
     end
@@ -744,9 +809,14 @@ local function FullLayout()
     -- Hide all section dividers first
     for _, div in ipairs(sectionDividers) do div:Hide() end
 
+    -- When panel is expanded, never use panel-collapsed session state; use persisted category state only.
+    local usePanelCollapsedState = addon.focus.collapsed and collapsedFallThrough
     for gi, grp in ipairs(grouped) do
         local isCollapsed = false
-        if showSections and addon.IsCategoryCollapsed then
+        if usePanelCollapsedState then
+            local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
+            isCollapsed = not (pceg and pceg[grp.key])
+        elseif showSections and addon.IsCategoryCollapsed then
             isCollapsed = addon.IsCategoryCollapsed(grp.key)
         end
 
@@ -878,6 +948,16 @@ local function FullLayout()
         end
     end
 
+    -- Safety: hide any entry whose group is collapsed (catches stale/edge cases after panel toggle)
+    if not usePanelCollapsedState and addon.IsCategoryCollapsed then
+        for _, entry in pairs(activeMap) do
+            if entry and entry.groupKey and entry.animState ~= "collapsing"
+                and addon.IsCategoryCollapsed(entry.groupKey) then
+                entry:Hide()
+            end
+        end
+    end
+
     if slideUpStarts and next(slideUpStarts) and addon.GetDB("animations", true) then
         for i = 1, addon.POOL_SIZE do
             local e = pool[i]
@@ -928,6 +1008,16 @@ local function FullLayout()
     local blockHeight   = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
     local desiredH      = math.max(addon.GetScaledMinHeight(), headerArea + visibleH + addon.GetScaledPadding() + blockHeight)
     addon.focus.layout.targetHeight  = math.min(desiredH, GetMaxPanelHeight())
+
+    -- Header slide up: use expanded targetHeight for headerSlideEndY (set in ToggleCollapse before FullLayout had the new height)
+    if addon.focus.collapse and addon.focus.collapse.headerSlidingToTop then
+        local panelH = addon.focus.layout.targetHeight
+        local minimal = addon.GetDB("hideObjectivesHeader", false)
+        local S = addon.Scaled or function(v) return v end
+        local pad = S(addon.PADDING)
+        local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+        addon.focus.collapse.headerSlideEndY = math.max(0, (panelH or 0) - headerH)
+    end
 
     if #quests > 0 then
         ApplyShowAlpha()
