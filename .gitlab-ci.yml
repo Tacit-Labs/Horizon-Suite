@@ -1,0 +1,64 @@
+# GitLab CI: same as GitHub release.yml — BigWigs packager, zip, upload to CurseForge & Wago.
+# Trigger: push tag v* (e.g. v3.5.0).
+# Required CI/CD variables: CF_API_KEY, WAGO_API_TOKEN (Settings -> CI/CD -> Variables).
+# Optional: DISCORD_WEBHOOK_RELEASE for release Discord notification.
+
+stages:
+  - build
+  - release
+
+variables:
+  PACKAGER_VERSION: "v2.5.1"
+  GIT_DEPTH: "0"
+
+# Use BigWigs packager: package addon, upload to CurseForge and Wago.
+# Mirrors .github/workflows/release.yml behavior.
+build:
+  stage: build
+  image: ubuntu:22.04
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[\d.]+$/
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq bash git curl zip unzip
+    - bash --version | head -1
+    # Fetch BigWigs packager release.sh (same as GitHub Action)
+    - curl -sSL "https://raw.githubusercontent.com/BigWigsMods/packager/${PACKAGER_VERSION}/release.sh" -o /tmp/release.sh
+    - chmod +x /tmp/release.sh
+  script:
+    # GitLab doesn't set GITHUB_*; set them so release.sh runs in "tag push" mode.
+    - export GITHUB_ACTIONS=1
+    - export GITHUB_EVENT_NAME=push
+    - export GITHUB_REF="refs/tags/${CI_COMMIT_TAG}"
+    - export GITHUB_REF_NAME="${CI_COMMIT_TAG}"
+    - export GITHUB_WORKSPACE="${CI_PROJECT_DIR}"
+    # Secrets from GitLab CI/CD variables (CF_API_KEY, WAGO_API_TOKEN)
+    - export CF_API_KEY="${CF_API_KEY}"
+    - export WAGO_API_TOKEN="${WAGO_API_TOKEN}"
+    # No GitHub upload from GitLab; leave GITHUB_OAUTH unset so packager skips GitHub
+    - cd "${CI_PROJECT_DIR}"
+    - bash /tmp/release.sh
+    - |
+      if [ -n "${DISCORD_WEBHOOK_RELEASE}" ]; then
+        curl -sS -X POST -H "Content-Type: application/json" -d "{\"username\":\"Addon Release Bot\",\"embeds\":[{\"title\":\"New Release: Horizon Suite — ${CI_COMMIT_TAG}\",\"url\":\"${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}\",\"description\":\"**Full release.** [Download on GitLab](${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}) · CurseForge · Wago\"}]}" "${DISCORD_WEBHOOK_RELEASE}" || true
+      fi
+  artifacts:
+    paths:
+      - .release/*.zip
+
+# Create GitLab Release and attach the packaged zip.
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[\d.]+$/
+  script:
+    - |
+      ZIP=$(ls .release/*.zip 2>/dev/null | head -1)
+      if [ -z "$ZIP" ]; then echo "No zip in .release/"; exit 1; fi
+      NAME=$(basename "$ZIP")
+      ASSET_URL="${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/.release/${NAME}?job=build"
+      release-cli create --name "Release ${CI_COMMIT_TAG}" --tag-name "${CI_COMMIT_TAG}" \
+        --description "$(git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "${CI_COMMIT_TAG}" 2>/dev/null || echo "${CI_COMMIT_TAG}")" \
+        --assets-link "{\"name\":\"${NAME}\",\"url\":\"${ASSET_URL}\"}"
