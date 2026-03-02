@@ -19,7 +19,7 @@ build:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v[\d.]+$/
   before_script:
-    - apt-get update -qq && apt-get install -y -qq bash git curl zip unzip
+    - apt-get update -qq && apt-get install -y -qq bash git curl zip unzip jq
     - bash --version | head -1
     # Fetch BigWigs packager release.sh (same as GitHub Action)
     - curl -sSL "https://raw.githubusercontent.com/BigWigsMods/packager/${PACKAGER_VERSION}/release.sh" -o /tmp/release.sh
@@ -31,6 +31,8 @@ build:
     - export GITHUB_REF="refs/tags/${CI_COMMIT_TAG}"
     - export GITHUB_REF_NAME="${CI_COMMIT_TAG}"
     - export GITHUB_WORKSPACE="${CI_PROJECT_DIR}"
+    # release.sh writes to GITHUB_OUTPUT; use a temp file so it doesn't fail in GitLab CI
+    - export GITHUB_OUTPUT="$(mktemp)"
     # Secrets from GitLab CI/CD variables (CF_API_KEY, WAGO_API_TOKEN)
     - export CF_API_KEY="${CF_API_KEY}"
     - export WAGO_API_TOKEN="${WAGO_API_TOKEN}"
