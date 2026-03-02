@@ -6,6 +6,12 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
+<!-- Changelog entries are generated from closed GitHub Issues at release time. -->
+
+---
+
+## [3.6.0] – 2026-03-02
+
 ### ✨ New Features
 
 - **(Focus) Sort ready-to-turn-in quests to bottom of Current Zone** — Completed quests in the Current Zone (Nearby) section sort to the bottom, keeping in-progress objectives visible at the top.
