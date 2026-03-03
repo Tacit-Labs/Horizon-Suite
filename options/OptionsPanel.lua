@@ -1744,7 +1744,7 @@ for _, mk in ipairs(groupOrder) do
                 btn.categoryIndex = catIdx
                 btn.label = btn:CreateFontString(nil, "OVERLAY")
                 btn.label:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
-                btn.label:SetPoint("LEFT", btn, "LEFT", 12, 0)
+                btn.label:SetPoint("LEFT", btn, "LEFT", 24, 0)
                 btn.label:SetText(cat.name)
                 btn.highlight = btn:CreateTexture(nil, "BACKGROUND")
                 btn.highlight:SetAllPoints(btn)
@@ -1796,6 +1796,39 @@ C_Timer.After(0, function()
         local h = math.max(1, top - bottom + SIDEBAR_TOP_PAD)
         sidebarScrollChild:SetHeight(h)
     end
+end)
+
+-- ---------------------------------------------------------------------------
+-- Class color accent tinting
+-- ---------------------------------------------------------------------------
+local defaultAccentColor = { Def.AccentColor[1], Def.AccentColor[2], Def.AccentColor[3], Def.AccentColor[4] or 0.9 }
+local defaultTrackOn = { Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4] or 0.85 }
+
+function addon.ApplyOptionsClassColor()
+    local cc = addon.GetOptionsClassColor and addon.GetOptionsClassColor()
+    if cc then
+        Def.AccentColor = { cc[1], cc[2], cc[3], 0.9 }
+        Def.TrackOn = { cc[1], cc[2], cc[3], 0.85 }
+    else
+        Def.AccentColor = { defaultAccentColor[1], defaultAccentColor[2], defaultAccentColor[3], defaultAccentColor[4] }
+        Def.TrackOn = { defaultTrackOn[1], defaultTrackOn[2], defaultTrackOn[3], defaultTrackOn[4] }
+    end
+    -- Update sidebar left-accent bars
+    for _, btn in ipairs(tabButtons) do
+        if btn.leftAccent then
+            btn.leftAccent:SetColorTexture(Def.AccentColor[1], Def.AccentColor[2], Def.AccentColor[3], Def.AccentColor[4])
+        end
+    end
+    -- Update selected tab text color
+    UpdateTabVisuals()
+    -- Refresh all toggles and sliders so their track fills update
+    for _, r in ipairs(allRefreshers) do
+        if r and r.Refresh then r:Refresh() end
+    end
+end
+-- Apply once on initial load (deferred so all widgets are built)
+C_Timer.After(0.1, function()
+    if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
 end)
 
 -- ---------------------------------------------------------------------------

@@ -110,6 +110,7 @@ L["Sort"]                                                           = "Sortierun
 L["Behaviour"]                                                      = "Verhalten"
 L["Content Types"]                                                  = "Inhaltstypen"
 L["Delves"]                                                         = "Tiefen"
+L["Delves & Dungeons"]                                               = "Tiefen & Dungeons"
 L["Delve Complete"]                                                 = "Tiefe abgeschlossen"
 L["Interactions"]                                                   = "Interaktionen"
 L["Tracking"]                                                       = "Verfolgung"
