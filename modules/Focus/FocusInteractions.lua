@@ -650,6 +650,19 @@ for i = 1, addon.POOL_SIZE do
                         end
                     end
                 end
+                if self.isRecipe and self.recipeID then
+                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
+                    if requireCtrl and not IsControlKeyDown() then return end
+                    if C_AddOns and C_AddOns.LoadAddOn then
+                        pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
+                    end
+                    if C_TradeSkillUI and C_TradeSkillUI.SetRecipeTracked then
+                        local isRecraft = (self.recipeIsRecraft == true)
+                        pcall(C_TradeSkillUI.SetRecipeTracked, self.recipeID, false, isRecraft)
+                    end
+                    addon.ScheduleRefresh()
+                    return
+                end
                 return
             end
             if self.questID then

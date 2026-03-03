@@ -611,6 +611,7 @@ local function ClearEntry(entry, full)
     entry.endeavorID = nil
     entry.decorID    = nil
     entry.recipeID   = nil
+    entry.recipeIsRecraft = nil
     entry.isRecipe   = nil
     entry.outputQuality = nil
     entry.affixData  = nil
