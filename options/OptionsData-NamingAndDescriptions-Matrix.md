@@ -63,10 +63,10 @@ Drop "Enable", "Show", "Use" where the control type (toggle/dropdown) already im
 | Behaviour | Keep campaign quests in category            | Keep campaign in category  |
 | Behaviour | Keep important quests in category           | Keep important in category |
 | Behaviour | Permanently suppress untracked quests       | Blacklist untracked        |
-| Delves    | Show scenario events                        | Scenario events            |
-| Delves    | Hide other categories in Delve or Dungeon   | Delve/Dungeon only         |
-| Delves    | Show affix names in Delves                  | Delve affix names          |
-| Delves    | Cinematic scenario bar                      | Scenario bar               |
+| Delves & Dungeons | Show scenario events                        | Scenario events            |
+| Delves & Dungeons | Hide other categories in Delve or Dungeon   | Delve/Dungeon only         |
+| Delves & Dungeons | Show affix names in Delves                  | Delve affix names          |
+| Delves & Dungeons | Cinematic scenario bar                      | Scenario bar               |
 | Content   | Show in-zone world quests                   | In-zone world quests       |
 | Content   | Show rare bosses                            | Rare bosses                |
 | Content   | Rare added sound                            | Rare sound alert           |
@@ -165,9 +165,9 @@ Short `desc` shown inline. Optional `tooltip` shown on hover for detail. "—" m
 | Behaviour  | Auto-track accepted quests       | Track new quests from quest log automatically.                              | Does not apply to world quests.                                                     |
 | Behaviour  | Suppress untracked until reload  | Hide untracked WQs/weeklies until reload.                                   | When off, they reappear when you return to the zone.                                |
 | Behaviour  | Blacklist untracked              | Permanently hide untracked WQs/weeklies.                                    | Takes priority over suppress-until-reload. Accepting removes from blacklist.        |
-| Delves     | Scenario events                  | Track Delves and scenario activities.                                       | Delves appear in Delves section; other scenarios in Scenario Events.                |
-| Delves     | Delve/Dungeon only               | Show only the active instance section.                                      | Hides other categories while in a Delve or party dungeon.                           |
-| Delves     | Delve affix names                | Show affix names on first Delve entry.                                      | May not appear with full tracker replacements.                                      |
+| Delves & Dungeons | Scenario events                  | Track Delve, Dungeon, and scenario activities.                              | Delves appear in Delves section; dungeons in Dungeon; other scenarios in Scenario Events. |
+| Delves & Dungeons | Delve/Dungeon only               | Show only the active instance section.                                      | Hides other categories while in a Delve or party dungeon.                           |
+| Delves & Dungeons | Delve affix names                | Show affix names on first Delve entry.                                      | May not appear with full tracker replacements.                                      |
 | Content    | In-zone world quests             | Auto-add WQs in your current zone.                                          | Off: only tracked or nearby WQs appear (Blizzard default).                          |
 | Content    | Include completed (achievements) | Show completed achievements in the list.                                    | Off: only in-progress tracked achievements shown.                                   |
 | Content    | Achievement icons                | Icon next to achievement title.                                             | Requires quest type icons to be enabled in Display.                                 |

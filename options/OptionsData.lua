@@ -847,6 +847,8 @@ local OptionCategories = {
             if dev and dev.showYieldToggle then
                 opts[#opts + 1] = { type = "toggle", name = L["Yield"] .. betaSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end }
             end
+            opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
+            opts[#opts + 1] = { type = "toggle", name = L["Class colors"] or "Class colors", desc = L["Tint the options panel accent with your class color."] or "Tint the options panel accent with your class color.", dbKey = "optionsClassColor", get = function() return getDB("optionsClassColor", false) end, set = function(v) setDB("optionsClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end end }
             opts[#opts + 1] = { type = "section", name = L["Scaling"] }
             -- helper: refresh all modules after any scale change
             local function refreshAllScaling()
@@ -1154,8 +1156,8 @@ local OptionCategories = {
                 setDB("mplusBossSize", 12)
                 setDB("mplusBossColorR", 0.78); setDB("mplusBossColorG", 0.82); setDB("mplusBossColorB", 0.92)
             end, refreshIds = { "mplusDungeonSize", "mplusDungeonColor", "mplusTimerSize", "mplusTimerColor", "mplusTimerOvertimeColor", "mplusProgressSize", "mplusProgressColor", "mplusBarColor", "mplusBarDoneColor", "mplusAffixSize", "mplusAffixColor", "mplusBossSize", "mplusBossColor" } },
-            { type = "section", name = L["Delves"] },
-            { type = "toggle", name = L["Scenario events"], desc = L["Track Delves and scenario activities."], dbKey = "showScenarioEvents", get = function() return getDB("showScenarioEvents", true) end, set = function(v) setDB("showScenarioEvents", v) end, tooltip = L["Delves appear in Delves section; other scenarios in Scenario Events."] },
+            { type = "section", name = L["Delves & Dungeons"] },
+            { type = "toggle", name = L["Scenario events"], desc = L["Track Delve, Dungeon, and scenario activities."], dbKey = "showScenarioEvents", get = function() return getDB("showScenarioEvents", true) end, set = function(v) setDB("showScenarioEvents", v) end, tooltip = L["Delves appear in Delves section; dungeons in Dungeon; other scenarios in Scenario Events."] },
             { type = "toggle", name = L["Delve/Dungeon only"], desc = L["Show only the active instance section."], dbKey = "hideOtherCategoriesInDelve", get = function() return getDB("hideOtherCategoriesInDelve", false) end, set = function(v) setDB("hideOtherCategoriesInDelve", v) end, tooltip = L["Hides other categories while in a Delve or party dungeon."] },
             { type = "toggle", name = L["Delve affix names"], desc = L["Show affix names on first Delve entry."], dbKey = "showDelveAffixes", get = function() return getDB("showDelveAffixes", getDB("delveBlockShowAffixes", true)) end, set = function(v) setDB("showDelveAffixes", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end, tooltip = L["May not appear with full tracker replacements."] },
             { type = "section", name = L["Scenario Bar"] },

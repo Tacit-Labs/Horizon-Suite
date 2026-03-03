@@ -50,6 +50,19 @@ function _G.OptionsWidgets_SetDef(overrides)
     if not overrides then return end
     for k, v in pairs(overrides) do Def[k] = v end
 end
+addon.OptionsWidgetsDef = Def
+
+-- Class color helper: returns {r, g, b} when optionsClassColor is enabled, nil otherwise.
+function addon.GetOptionsClassColor()
+    if not (addon.GetDB and addon.GetDB("optionsClassColor", false)) then return nil end
+    local _, classFile = UnitClass("player")
+    if not classFile then return nil end
+    local cc = C_ClassColor and C_ClassColor.GetClassColor(classFile)
+    if cc then return { cc.r, cc.g, cc.b } end
+    local rc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+    if rc then return { rc.r, rc.g, rc.b } end
+    return nil
+end
 
 local SetTextColor = addon.SetTextColor or function(obj, color)
     if not color or not obj then return end
@@ -208,6 +221,7 @@ function OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, 
         row.thumbPos = on and 1 or 0
         row.animStart = nil
         track:SetScript("OnUpdate", nil)
+        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4])
         updateVisuals(row.thumbPos)
         applyDisabledVisuals()
     end
@@ -461,6 +475,7 @@ function OptionsWidgets_CreateSlider(parent, labelText, description, get, set, m
     end
 
     function row:Refresh()
+        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4])
         updateFromValue(get())
         applyDisabledVisual()
     end
