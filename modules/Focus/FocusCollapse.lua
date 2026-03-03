@@ -244,7 +244,7 @@ local function ShouldShowInInstance()
             local v = addon.GetDB("showInDungeonMythicPlus", nil)
             if v ~= nil then return v end
         end
-        return addon.GetDB("showInDungeon", false)
+        return addon.GetDB("showInDungeon", true)
     end
     if inType == "raid" then
         -- Per-difficulty raid toggles; fall back to legacy showInRaid
