@@ -41,6 +41,69 @@ local function ToggleCollapse()
         scrollFrame:Hide()
         addon.focus.layout.targetHeight = addon.GetCollapsedHeight()
     end
+    -- When panel is collapsed but categories are expanded via pceg, the panel
+    -- is visually "expanded". Clicking the header should re-collapse everything
+    -- instead of toggling to the fully expanded state.
+    local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
+    if addon.focus.collapsed and pceg and next(pceg) ~= nil then
+        wipe(pceg)
+        addon.chevron:SetText("+")
+
+        -- Animate visible entries out
+        local visibleEntries = {}
+        for i = 1, addon.POOL_SIZE do
+            local e = pool[i]
+            if (e.questID or e.entryKey) and (e.animState == "active" or e.animState == "fadein") then
+                visibleEntries[#visibleEntries + 1] = e
+            end
+        end
+        table.sort(visibleEntries, function(a, b) return a.finalY < b.finalY end)
+        for _, e in ipairs(visibleEntries) do
+            addon.SetEntryCollapsing(e, 0)
+        end
+
+        local useAnim = addon.GetDB("animations", true)
+        if useAnim then
+            addon.focus.collapse.sectionHeadersFadingOut = true
+            addon.focus.collapse.sectionHeaderFadeTime   = 0
+        else
+            for i = 1, addon.SECTION_POOL_SIZE do
+                if sectionPool[i].active then
+                    sectionPool[i]:SetAlpha(0)
+                    sectionPool[i]:Hide()
+                    sectionPool[i].active = false
+                end
+            end
+        end
+
+        -- Slide header from top to bottom
+        if addon.GetDB("growUp", false) and addon.GetDB("growUpHeaderMode", "always") == "collapse" and useAnim then
+            local panelH = addon.HS and addon.HS:GetHeight() or (addon.focus.layout and addon.focus.layout.currentHeight) or addon.GetCollapsedHeight()
+            local minimal = addon.GetDB("hideObjectivesHeader", false)
+            local S = addon.Scaled or function(v) return v end
+            local pad = S(addon.PADDING)
+            local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+            addon.focus.collapse.headerSlidingToBottom = true
+            addon.focus.collapse.headerSlideStartY = math.max(0, (panelH or 0) - headerH)
+            addon.focus.collapse.headerSlideTime = 0
+        end
+
+        addon.focus.collapse.animating = #visibleEntries > 0 or addon.focus.collapse.sectionHeadersFadingOut or addon.focus.collapse.headerSlidingToBottom
+        addon.focus.collapse.animStart = GetTime()
+        if addon.focus.collapse.animating and addon.EnsureFocusUpdateRunning then
+            addon.EnsureFocusUpdateRunning()
+        end
+        if not addon.focus.collapse.animating then
+            local showHeadersWhenCollapsed = addon.GetDB("showSectionHeadersWhenCollapsed", false)
+            if showHeadersWhenCollapsed then
+                addon.FullLayout()
+            else
+                scrollFrame:Hide()
+                addon.focus.layout.targetHeight = addon.GetCollapsedHeight()
+            end
+        end
+        return
+    end
 
     addon.focus.collapsed = not addon.focus.collapsed
     if addon.focus.collapse.panelCollapsedExpandedGroups then

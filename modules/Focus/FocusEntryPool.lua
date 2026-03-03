@@ -572,8 +572,13 @@ local function ApplyDimensions(widthOverride)
     local growUp = addon.GetDB("growUp", false)
     local headerMode = addon.GetDB("growUpHeaderMode", "always")
     local collapsed = addon.focus and addon.focus.collapsed
+    local collapseState = addon.focus and addon.focus.collapse
+    local pceg = collapseState and collapseState.panelCollapsedExpandedGroups
+    local hasPanelCollapsedExpanded = collapsed and pceg and next(pceg) ~= nil
+    local effectiveCollapsed = collapsed and not hasPanelCollapsedExpanded
     local dividerAtBottom = growUp and not addon.GetDB("hideObjectivesHeader", false)
-        and (headerMode == "always" or (headerMode == "collapse" and collapsed))
+        and (headerMode == "always" or (headerMode == "collapse" and (effectiveCollapsed
+            or (addon.focus.layout and addon.focus.layout.allCategoriesCollapsed))))
     if dividerAtBottom then
         local pad = S(addon.PADDING)
         local headerH = pad + addon.GetHeaderHeight()

@@ -1090,6 +1090,14 @@ function addon.IsCategoryCollapsed(groupKey)
     return t[groupKey] == true
 end
 
+function addon.AreAllCategoriesCollapsed(grouped)
+    if not grouped or #grouped == 0 then return false end
+    for _, grp in ipairs(grouped) do
+        if not addon.IsCategoryCollapsed(grp.key) then return false end
+    end
+    return true
+end
+
 function addon.SetCategoryCollapsed(groupKey, collapsed)
     if type(groupKey) ~= "string" or groupKey == "" then return end
     local t = addon.GetDB("collapsedCategories", nil)
@@ -1764,7 +1772,13 @@ function addon.ApplyGrowUpLayout()
     local growUp = addon.GetDB("growUp", false)
     local headerMode = addon.GetDB("growUpHeaderMode", "always")
     local collapsed = addon.focus and addon.focus.collapsed
-    local headerAtBottom = growUp and (headerMode == "always" or (headerMode == "collapse" and collapsed))
+    local collapseState = addon.focus and addon.focus.collapse
+    local pceg = collapseState and collapseState.panelCollapsedExpandedGroups
+    local hasPanelCollapsedExpanded = collapsed and pceg and next(pceg) ~= nil
+    local effectiveCollapsed = collapsed and not hasPanelCollapsedExpanded
+    local headerAtBottom = growUp and (headerMode == "always"
+        or (headerMode == "collapse" and (effectiveCollapsed
+            or (addon.focus.layout and addon.focus.layout.allCategoriesCollapsed))))
     local S = addon.Scaled or function(v) return v end
     local pad = S(addon.PADDING)
     local minimal = addon.GetDB("hideObjectivesHeader", false)

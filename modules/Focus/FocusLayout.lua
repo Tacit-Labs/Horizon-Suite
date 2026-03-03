@@ -385,8 +385,13 @@ local function FullLayout()
     local headerMode = addon.GetDB("growUpHeaderMode", "always")
     local collapsed = addon.focus and addon.focus.collapsed
     local collapse = addon.focus and addon.focus.collapse
+    -- When panel is collapsed but individual categories are expanded, treat as "not collapsed" for header position.
+    local pceg = collapse and collapse.panelCollapsedExpandedGroups
+    local hasPanelCollapsedExpanded = collapsed and pceg and next(pceg) ~= nil
+    local effectiveCollapsed = collapsed and not hasPanelCollapsedExpanded
     local useGrowUpScrollLayout = growUp and (headerMode == "always"
-        or (headerMode == "collapse" and collapsed
+        or (headerMode == "collapse" and (effectiveCollapsed
+                or (addon.focus.layout and addon.focus.layout.allCategoriesCollapsed))
             and not (collapse and collapse.headerSlidingToTop)))
 
     if useGrowUpScrollLayout then
@@ -508,22 +513,22 @@ local function FullLayout()
                         sec.finalX, sec.finalY = x, yOff
                         yOff = yOff - addon.GetSectionHeaderHeight() - addon.GetSectionToEntryGap()
                     end
-            end
-            local totalContentH = math.max(-yOff, 1)
-            scrollChild:SetHeight(totalContentH)
-            addon.ApplyScrollOffset(0)
-            addon.focus.layout.scrollOffset = 0
-            if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
-            local headerArea
-            if addon.GetDB("hideObjectivesHeader", false) then
-                headerArea = addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4)
-            else
-                headerArea = addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
-            end
-            local visibleH = math.min(totalContentH, addon.GetMaxContentHeight())
-            local blockHeight = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
-            local desiredH = math.max(addon.GetScaledMinHeight(), headerArea + visibleH + addon.GetScaledPadding() + blockHeight)
-            addon.focus.layout.targetHeight = math.min(desiredH, GetMaxPanelHeight())
+                end
+                local totalContentH = math.max(-yOff, 1)
+                scrollChild:SetHeight(totalContentH)
+                addon.ApplyScrollOffset(0)
+                addon.focus.layout.scrollOffset = 0
+                if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
+                local headerArea
+                if addon.GetDB("hideObjectivesHeader", false) then
+                    headerArea = addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4)
+                else
+                    headerArea = addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
+                end
+                local visibleH = math.min(totalContentH, addon.GetMaxContentHeight())
+                local blockHeight = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
+                local desiredH = math.max(addon.GetScaledMinHeight(), headerArea + visibleH + addon.GetScaledPadding() + blockHeight)
+                addon.focus.layout.targetHeight = math.min(desiredH, GetMaxPanelHeight())
             else
                 scrollFrame:Hide()
                 addon.focus.layout.targetHeight = addon.GetCollapsedHeight()
@@ -556,6 +561,47 @@ local function FullLayout()
     SchedulePlaceholderRefreshes(quests)
     addon.UpdateFloatingQuestItem(quests)
     local grouped = addon.SortAndGroupQuests(quests)
+
+    -- Track whether all categories are individually collapsed (for grow-up header positioning).
+    local allCatCollapsed = addon.GetDB("showSectionHeaders", true)
+        and addon.AreAllCategoriesCollapsed and addon.AreAllCategoriesCollapsed(grouped)
+    addon.focus.layout.allCategoriesCollapsed = allCatCollapsed
+
+    -- Re-evaluate scroll anchoring when growUp + collapse mode detects all-categories-collapsed.
+    if growUp and headerMode == "collapse" and (not collapsed or hasPanelCollapsedExpanded) then
+        local needHeaderAtBottom = allCatCollapsed
+            and not (collapse and collapse.headerSlidingToTop)
+        if needHeaderAtBottom ~= useGrowUpScrollLayout then
+            scrollFrame:ClearAllPoints()
+            if needHeaderAtBottom then
+                local headerArea = addon.GetDB("hideObjectivesHeader", false)
+                    and (addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4))
+                    or (addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
+                if blockFrame and blockPos == "top" then
+                    scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
+                    scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+                elseif blockFrame and blockPos == "bottom" then
+                    scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
+                    scrollFrame:SetPoint("BOTTOMRIGHT", blockFrame, "TOPRIGHT", 0, gap)
+                else
+                    scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
+                    scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+                end
+            else
+                if blockFrame and blockPos == "top" then
+                    scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
+                    scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
+                elseif blockFrame and blockPos == "bottom" then
+                    scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, contentTop)
+                    scrollFrame:SetPoint("BOTTOMRIGHT", blockFrame, "TOPRIGHT", 0, gap)
+                else
+                    scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, contentTop)
+                    scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
+                end
+            end
+            useGrowUpScrollLayout = needHeaderAtBottom
+        end
+    end
 
     -- When a category is collapsing, skip full layout to avoid section header flicker.
     if addon.focus.collapse.groups and next(addon.focus.collapse.groups) then
