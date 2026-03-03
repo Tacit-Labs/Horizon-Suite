@@ -196,14 +196,19 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 local collapsed = (oData.isOptionalHeader and optCollapsed) or (oData.isFinishingHeader and finCollapsed)
                 objText = baseText .. " " .. (collapsed and "+" or "-")
             else
-                -- Skip appending (X/Y) to objectives when the title already shows it (single-criterion numeric achievement).
-                -- Also skip when a progress bar is shown for this objective.
-                local titleShowsNumeric = questData.numericQuantity ~= nil and questData.numericRequired and type(questData.numericRequired) == "number" and questData.numericRequired > 1
-                local singleObjective = questData.objectives and #questData.objectives == 1
-                if not thisObjHasBar and nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 1 and not (titleShowsNumeric and singleObjective) then
-                    local pattern = tostring(nf) .. "/" .. tostring(nr)
-                    if not objText:find(pattern, 1, true) then
-                        objText = objText .. (" (%d/%d)"):format(nf, nr)
+                -- Recipe reagents: count before text (e.g. "0/1 Hochenblume"). Skip informational lines (Can craft, Quality, Requirements).
+                local isRecipeReagent = questData.isRecipe and not oData.isCraftableCount and not oData.isQualityInfo and not oData.isRequirement
+                if isRecipeReagent and not thisObjHasBar and nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 0 then
+                    objText = ("%d/%d %s"):format(nf, nr, objText)
+                else
+                    -- Quest objectives: append (X/Y) when nr > 1. Skip when title shows it or progress bar is active.
+                    local titleShowsNumeric = questData.numericQuantity ~= nil and questData.numericRequired and type(questData.numericRequired) == "number" and questData.numericRequired > 1
+                    local singleObjective = questData.objectives and #questData.objectives == 1
+                    if not thisObjHasBar and nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 1 and not (titleShowsNumeric and singleObjective) then
+                        local pattern = tostring(nf) .. "/" .. tostring(nr)
+                        if not objText:find(pattern, 1, true) then
+                            objText = objText .. (" (%d/%d)"):format(nf, nr)
+                        end
                     end
                 end
                 local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
@@ -1210,6 +1215,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.endeavorID = nil
         entry.decorID    = nil
         entry.recipeID   = questData.recipeID
+        entry.recipeIsRecraft = questData.recipeIsRecraft == true
         entry.isRecipe   = true
         entry.outputQuality = questData.outputQuality
         entry.isTracked  = true
