@@ -123,6 +123,13 @@ end
 
 --- Set initial alpha when showing the tracker. Combat fade "in" overrides; otherwise apply hover-fade state.
 local function ApplyShowAlpha()
+    if addon.ShouldFadeInCombat and addon.ShouldFadeInCombat() then
+        local fadeAlpha = addon.GetCombatFadeAlpha and addon.GetCombatFadeAlpha() or 0.3
+        addon.HS:SetAlpha(fadeAlpha)
+        local floatingBtn = _G.HSFloatingQuestItem
+        if floatingBtn and floatingBtn:IsShown() then floatingBtn:SetAlpha(fadeAlpha) end
+        return
+    end
     if addon.focus.combat.fadeState == "in" then
         local startAlpha = addon.focus.combat.fadeInFromAlpha
         addon.HS:SetAlpha((startAlpha ~= nil) and startAlpha or 0)
