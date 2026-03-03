@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.6.3] – 2026-03-03
+
+### 🔧 Improvements
+
+- **(Core) Options panel: class color accent and Delves and Dungeons section rename** — Tint the options panel accent with your class color; renamed Delves section to Delves and Dungeons with updated descriptions.
+- **(Focus) Focus Delve tier sometimes wrong or missing in tracker** — Uses ScenarioHeaderDelvesWidget tierText for accurate tier display in delves.
+- **(Focus) Focus tracker: improved collapse/expand behavior with grow-up header animations** — Clearer animated feedback when expanding/collapsing categories in grow-up layout.
+
+---
+
 ## [3.6.2] – 2026-03-03
 
 ### 🔧 Improvements
