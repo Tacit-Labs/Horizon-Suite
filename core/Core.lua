@@ -1090,6 +1090,14 @@ function addon.IsCategoryCollapsed(groupKey)
     return t[groupKey] == true
 end
 
+function addon.AreAllCategoriesCollapsed(grouped)
+    if not grouped or #grouped == 0 then return false end
+    for _, grp in ipairs(grouped) do
+        if not addon.IsCategoryCollapsed(grp.key) then return false end
+    end
+    return true
+end
+
 function addon.SetCategoryCollapsed(groupKey, collapsed)
     if type(groupKey) ~= "string" or groupKey == "" then return end
     local t = addon.GetDB("collapsedCategories", nil)
@@ -1701,6 +1709,135 @@ local function ApplyGrowUpAnchor()
     addon.SetDB("relPoint", "BOTTOMRIGHT")
     addon.SetDB("x", x)
     addon.SetDB("y", y)
+end
+
+--- Sets header position at given Y offset from HS bottom (for grow-up header slide animation).
+--- offsetFromBottom: 0 = at bottom, larger = higher. Used when headerSlidingToBottom/ToTop.
+function addon.ApplyGrowUpHeaderPosition(offsetFromBottom)
+    if InCombatLockdown() then return end
+    local hb = addon.headerBtn
+    if not hb then return end
+    local S = addon.Scaled or function(v) return v end
+    local pad = S(addon.PADDING)
+    local minimal = addon.GetDB("hideObjectivesHeader", false)
+    local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+    local headerBottomY = pad
+
+    hb:ClearAllPoints()
+    hb:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", 0, offsetFromBottom)
+    hb:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", 0, offsetFromBottom)
+    hb:SetHeight(headerH)
+
+    headerText:ClearAllPoints()
+    headerText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, offsetFromBottom + headerBottomY)
+    countText:ClearAllPoints()
+    countText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, offsetFromBottom + headerBottomY + 3)
+    chevron:ClearAllPoints()
+    chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
+    optionsBtn:ClearAllPoints()
+    optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+
+    if not minimal then
+        divider:ClearAllPoints()
+        local divH = addon.GetScaledDividerHeight()
+        local dividerY
+        local c = addon.focus and addon.focus.collapse
+        local rangeY = (c and c.headerSlidingToBottom and c.headerSlideStartY) or (c and c.headerSlidingToTop and c.headerSlideEndY)
+        if rangeY and rangeY > 0 then
+            -- Smooth interpolation during header slide: lerp from (pad+headerH) at bottom to (rangeY-divH) at top
+            local t = offsetFromBottom / rangeY
+            t = math.max(0, math.min(1, t))
+            dividerY = (1 - t) * (headerBottomY + headerH) + t * (rangeY - divH)
+        else
+            -- Static layout: match ApplyGrowUpLayout
+            dividerY = (offsetFromBottom <= 0) and (headerBottomY + headerH) or (offsetFromBottom - divH)
+        end
+        divider:SetPoint("BOTTOM", HS, "BOTTOMLEFT", addon.GetPanelWidth() / 2, dividerY)
+    end
+end
+
+--- Repositions header elements when growUp: header at bottom (always) or at top until collapsed (collapse mode).
+--- When growUp is false, restores default top-anchored layout.
+--- Call from FullLayout after ApplyGrowUpAnchor.
+function addon.ApplyGrowUpLayout()
+    if InCombatLockdown() then return end
+    local collapse = addon.focus and addon.focus.collapse
+    if collapse and collapse.headerSlidingToTop then
+        addon.ApplyGrowUpHeaderPosition(0)
+        return
+    end
+    if collapse and collapse.headerSlidingToBottom then
+        return
+    end
+    local growUp = addon.GetDB("growUp", false)
+    local headerMode = addon.GetDB("growUpHeaderMode", "always")
+    local collapsed = addon.focus and addon.focus.collapsed
+    local collapseState = addon.focus and addon.focus.collapse
+    local pceg = collapseState and collapseState.panelCollapsedExpandedGroups
+    local hasPanelCollapsedExpanded = collapsed and pceg and next(pceg) ~= nil
+    local effectiveCollapsed = collapsed and not hasPanelCollapsedExpanded
+    local headerAtBottom = growUp and (headerMode == "always"
+        or (headerMode == "collapse" and (effectiveCollapsed
+            or (addon.focus.layout and addon.focus.layout.allCategoriesCollapsed))))
+    local S = addon.Scaled or function(v) return v end
+    local pad = S(addon.PADDING)
+    local minimal = addon.GetDB("hideObjectivesHeader", false)
+
+    if headerAtBottom then
+        -- Header at bottom of panel. Content (scrollFrame) is positioned by FullLayout.
+        local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+        local headerBottomY = pad
+
+        -- headerBtn (created in FocusLayout; may not exist yet on first load)
+        local hb = addon.headerBtn
+        if hb then
+            hb:ClearAllPoints()
+            hb:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", 0, 0)
+            hb:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", 0, 0)
+            hb:SetHeight(headerH)
+        end
+
+        -- headerText, countText, etc. anchored to bottom
+        headerText:ClearAllPoints()
+        headerText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, headerBottomY)
+        countText:ClearAllPoints()
+        countText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, headerBottomY + 3)
+        chevron:ClearAllPoints()
+        chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
+        optionsBtn:ClearAllPoints()
+        optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+
+        -- Divider just above the header (between content and header)
+        if not minimal then
+            divider:ClearAllPoints()
+            divider:SetPoint("BOTTOM", HS, "BOTTOMLEFT", addon.GetPanelWidth() / 2, headerBottomY + headerH)
+        end
+    else
+        -- Default: header at top
+        local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+
+        local hb = addon.headerBtn
+        if hb then
+            hb:ClearAllPoints()
+            hb:SetPoint("TOPLEFT", HS, "TOPLEFT", 0, 0)
+            hb:SetPoint("TOPRIGHT", HS, "TOPRIGHT", 0, 0)
+            hb:SetHeight(headerH)
+        end
+
+        headerText:ClearAllPoints()
+        headerText:SetPoint("TOPLEFT", HS, "TOPLEFT", pad, -pad)
+        countText:ClearAllPoints()
+        countText:SetPoint("TOPRIGHT", HS, "TOPRIGHT", -pad, -pad - 3)
+        chevron:ClearAllPoints()
+        chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
+        optionsBtn:ClearAllPoints()
+        optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+
+        if not minimal then
+            divider:ClearAllPoints()
+            divider:SetPoint("TOP", HS, "TOPLEFT", addon.GetPanelWidth() / 2, -(pad + addon.GetHeaderHeight()))
+        end
+    end
 end
 
 function addon.UpdateHeaderQuestCount(questCount, trackedInLogCount)

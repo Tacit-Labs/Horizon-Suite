@@ -569,7 +569,23 @@ local function ApplyDimensions(widthOverride)
     local w = (widthOverride and type(widthOverride) == "number") and widthOverride or addon.GetPanelWidth()
     addon.HS:SetSize(w, addon.HS:GetHeight() or S(addon.MIN_HEIGHT))
     addon.divider:SetSize(w - S(addon.PADDING) * 2, S(addon.DIVIDER_HEIGHT))
-    addon.divider:SetPoint("TOP", addon.HS, "TOPLEFT", w / 2, -(S(addon.PADDING) + addon.GetHeaderHeight()))
+    local growUp = addon.GetDB("growUp", false)
+    local headerMode = addon.GetDB("growUpHeaderMode", "always")
+    local collapsed = addon.focus and addon.focus.collapsed
+    local collapseState = addon.focus and addon.focus.collapse
+    local pceg = collapseState and collapseState.panelCollapsedExpandedGroups
+    local hasPanelCollapsedExpanded = collapsed and pceg and next(pceg) ~= nil
+    local effectiveCollapsed = collapsed and not hasPanelCollapsedExpanded
+    local dividerAtBottom = growUp and not addon.GetDB("hideObjectivesHeader", false)
+        and (headerMode == "always" or (headerMode == "collapse" and (effectiveCollapsed
+            or (addon.focus.layout and addon.focus.layout.allCategoriesCollapsed))))
+    if dividerAtBottom then
+        local pad = S(addon.PADDING)
+        local headerH = pad + addon.GetHeaderHeight()
+        addon.divider:SetPoint("BOTTOM", addon.HS, "BOTTOMLEFT", w / 2, pad + headerH)
+    else
+        addon.divider:SetPoint("TOP", addon.HS, "TOPLEFT", w / 2, -(S(addon.PADDING) + addon.GetHeaderHeight()))
+    end
     addon.scrollChild:SetWidth(w)
     local leftOffset = addon.GetContentLeftOffset and addon.GetContentLeftOffset() or S(addon.PADDING + addon.ICON_COLUMN_WIDTH)
     for i = 1, addon.POOL_SIZE do

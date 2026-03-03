@@ -682,6 +682,68 @@ local function UpdateSectionHeaderFadeIn(dt, useAnim)
     end
 end
 
+--- Drives header slide animation when growUp + collapse mode: header slides down to bottom on collapse,
+--- or up from bottom to top on expand. Uses ApplyGrowUpHeaderPosition(offsetFromBottom).
+local function UpdateHeaderSlide(dt, useAnim)
+    local c = addon.focus and addon.focus.collapse
+    if not c then return end
+    if not useAnim then
+        if c.headerSlidingToBottom then
+            if addon.ApplyGrowUpHeaderPosition then addon.ApplyGrowUpHeaderPosition(0) end
+            c.headerSlidingToBottom = false
+            c.headerSlideStartY = nil
+            c.headerSlideTime = nil
+        end
+        if c.headerSlidingToTop then
+            local endY = c.headerSlideEndY or 0
+            if addon.ApplyGrowUpHeaderPosition then addon.ApplyGrowUpHeaderPosition(endY) end
+            c.headerSlidingToTop = false
+            c.headerSlideEndY = nil
+            c.headerSlideTime = nil
+        end
+        return
+    end
+    if c.headerSlidingToBottom then
+        c.headerSlideTime = (c.headerSlideTime or 0) + dt
+        local p = GetProgress(c.headerSlideTime, 0, anim.dur)
+        local ep = addon.easeOut and addon.easeOut(p) or p
+        local startY = c.headerSlideStartY or 0
+        local currentY = startY + (0 - startY) * ep
+        if addon.ApplyGrowUpHeaderPosition then addon.ApplyGrowUpHeaderPosition(currentY) end
+        if p >= 1 then
+            if addon.ApplyGrowUpHeaderPosition then addon.ApplyGrowUpHeaderPosition(0) end
+            c.headerSlidingToBottom = false
+            c.headerSlideStartY = nil
+            c.headerSlideTime = nil
+        end
+    end
+    if c.headerSlidingToTop then
+        -- headerSlideEndY is set in FullLayout after targetHeight; fallback if missed
+        local endY = c.headerSlideEndY
+        if not endY or endY <= 0 then
+            local layout = addon.focus.layout
+            local panelH = layout and layout.targetHeight or (addon.HS and addon.HS:GetHeight()) or addon.MIN_HEIGHT
+            local minimal = addon.GetDB("hideObjectivesHeader", false)
+            local S = addon.Scaled or function(v) return v end
+            local pad = S(addon.PADDING)
+            local headerH = minimal and addon.GetScaledMinimalHeaderHeight() or (pad + addon.GetHeaderHeight())
+            endY = math.max(0, (panelH or 0) - headerH)
+            c.headerSlideEndY = endY
+        end
+        c.headerSlideTime = (c.headerSlideTime or 0) + dt
+        local p = GetProgress(c.headerSlideTime, 0, anim.dur)
+        local ep = addon.easeOut and addon.easeOut(p) or p
+        local currentY = 0 + (endY - 0) * ep
+        if addon.ApplyGrowUpHeaderPosition then addon.ApplyGrowUpHeaderPosition(currentY) end
+        if p >= 1 then
+            if addon.ApplyGrowUpHeaderPosition then addon.ApplyGrowUpHeaderPosition(endY) end
+            c.headerSlidingToTop = false
+            c.headerSlideEndY = nil
+            c.headerSlideTime = nil
+        end
+    end
+end
+
 local function UpdateCollapseAnimations(dt, useAnim)
     if not addon.focus.collapse.animating then return end
     local stillCollapsing = false
@@ -710,6 +772,10 @@ end
 
 -- Group collapse completion: when no entries in a group are collapsing anymore,
 -- mark that group as collapsed and trigger a layout refresh.
+-- Early reflow: triggers FullLayout + slide-up after 50% of collapse duration so
+-- the slide animation overlaps with the tail end of the fade-out, removing the
+-- visible delay before remaining entries move to fill the gap.
+local groupReflowed = {}
 local function UpdateGroupCollapseCompletion()
     if not addon.focus.collapse.groups then return end
     for groupKey, startTime in pairs(addon.focus.collapse.groups) do
@@ -725,14 +791,22 @@ local function UpdateGroupCollapseCompletion()
         -- Safety timeout in case something goes wrong with anim state.
         local timedOut = (GetTime() - startTime) > GROUP_COLLAPSE_TIMEOUT
 
-        if not stillCollapsing or timedOut then
-            addon.focus.collapse.groups[groupKey] = nil
+        -- Early reflow: once half the collapse duration has elapsed, trigger
+        -- layout + slide even though some entries are still fading out.
+        local elapsed = GetTime() - startTime
+        local earlyReflow = stillCollapsing
+            and not timedOut
+            and elapsed >= (anim.dur * 0.5)
+            and not groupReflowed[groupKey]
 
+        if not stillCollapsing or timedOut or earlyReflow then
             -- Capture Y positions of entries and section headers in other groups before layout reflow.
             local slideUpStarts = {}
             local slideUpStartsSec = {}
             local useAnim = addon.GetDB("animations", true)
-            if useAnim then
+            local needsReflow = not groupReflowed[groupKey]
+
+            if needsReflow and useAnim then
                 for i = 1, addon.POOL_SIZE do
                     local e = pool[i]
                     if e and (e.questID or e.entryKey)
@@ -751,21 +825,34 @@ local function UpdateGroupCollapseCompletion()
                 end
             end
 
-            -- Clean up any lingering collapsing entries for this group.
-            for i = 1, addon.POOL_SIZE do
-                local e = pool[i]
-                if e.groupKey == groupKey and e.animState == "collapsing" then
-                    addon.ClearEntry(e)
+            if earlyReflow then
+                -- Mark as reflowed so we don't re-trigger on subsequent ticks.
+                -- Remove from collapse.groups now so FullLayout doesn't bail out
+                -- (it skips layout when any group is still in collapse.groups).
+                -- Track in groupReflowed for final entry cleanup.
+                groupReflowed[groupKey] = startTime
+                addon.focus.collapse.groups[groupKey] = nil
+            else
+                -- Final cleanup: remove from groups and clean up tracking.
+                addon.focus.collapse.groups[groupKey] = nil
+                groupReflowed[groupKey] = nil
+
+                -- Clean up any lingering collapsing entries for this group.
+                for i = 1, addon.POOL_SIZE do
+                    local e = pool[i]
+                    if e.groupKey == groupKey and e.animState == "collapsing" then
+                        addon.ClearEntry(e)
+                    end
                 end
             end
 
-            -- Re-run layout so remaining groups close up the gap.
-            if addon.FullLayout then
+            -- Re-run layout so remaining groups close up the gap (only once per group).
+            if needsReflow and addon.FullLayout then
                 addon.FullLayout()
             end
 
             -- Apply slide-up animation to entries that moved up.
-            if useAnim and next(slideUpStarts) then
+            if needsReflow and useAnim and next(slideUpStarts) then
                 for i = 1, addon.POOL_SIZE do
                     local e = pool[i]
                     if e and (e.questID or e.entryKey) and e.animState == "active" and e.finalY ~= nil then
@@ -779,7 +866,7 @@ local function UpdateGroupCollapseCompletion()
             end
 
             -- Apply slide-up animation to section headers that moved up.
-            if useAnim and next(slideUpStartsSec) then
+            if needsReflow and useAnim and next(slideUpStartsSec) then
                 for i = 1, addon.SECTION_POOL_SIZE do
                     local s = sectionPool[i]
                     if s and s.active and s.groupKey and s.finalY ~= nil then
@@ -789,6 +876,28 @@ local function UpdateGroupCollapseCompletion()
                             s.slideUpAnimTime = 0
                         end
                     end
+                end
+            end
+        end
+    end
+
+    -- Second pass: clean up groups that were early-reflowed once their entries finish collapsing.
+    for groupKey, startTime in pairs(groupReflowed) do
+        local stillCollapsing = false
+        for i = 1, addon.POOL_SIZE do
+            local e = pool[i]
+            if e.groupKey == groupKey and e.animState == "collapsing" then
+                stillCollapsing = true
+                break
+            end
+        end
+        local timedOut = (GetTime() - startTime) > GROUP_COLLAPSE_TIMEOUT
+        if not stillCollapsing or timedOut then
+            groupReflowed[groupKey] = nil
+            for i = 1, addon.POOL_SIZE do
+                local e = pool[i]
+                if e.groupKey == groupKey and e.animState == "collapsing" then
+                    addon.ClearEntry(e)
                 end
             end
         end
@@ -939,6 +1048,7 @@ function addon.EnsureFocusUpdateRunning()
         UpdateOptionCollapseCompletion()
         UpdateSectionHeaderSlideUp(dt, useAnim)
         UpdateSectionHeaderFadeIn(dt, useAnim)
+        UpdateHeaderSlide(dt, useAnim)
         local anyHoverTitleAnimating = UpdateEntryHoverAnimations(dt, useAnim)
 
         local anySectionSliding = false
@@ -961,11 +1071,15 @@ function addon.EnsureFocusUpdateRunning()
         local stillAnimating = anyEntryAnimating
             or anyHoverTitleAnimating
             or anySectionSliding
+            or (math.abs(addon.focus.layout.currentHeight - addon.focus.layout.targetHeight) > HEIGHT_SNAP_THRESHOLD)
             or addon.focus.collapse.animating
+            or addon.focus.collapse.headerSlidingToBottom
+            or addon.focus.collapse.headerSlidingToTop
             or (addon.focus.combat and addon.focus.combat.fadeState ~= nil)
             or hoverFadeNeedsUpdate
             or (mouseoverOnly and HS:IsShown() and not addon.focus.combat.fadeState)  -- Keep polling for hover when show-on-mouseover is on
             or (addon.focus.collapse.groups and next(addon.focus.collapse.groups) ~= nil)
+            or next(groupReflowed) ~= nil
             or (addon.focus.collapse.optionCollapseKeys and next(addon.focus.collapse.optionCollapseKeys) ~= nil)
             or addon.focus.collapse.sectionHeadersFadingOut
             or addon.focus.collapse.sectionHeadersFadingIn

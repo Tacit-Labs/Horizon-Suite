@@ -509,7 +509,18 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             anchor = currentCard
         elseif opt.type == "toggle" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
-            local w = OptionsWidgets_CreateToggleSwitch(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, opt.set, opt.disabled, opt.tooltip)
+            local origSet = opt.set
+            local setFn = origSet
+            if opt.refreshIds and optionFrames then
+                setFn = function(v)
+                    origSet(v)
+                    for _, k in ipairs(opt.refreshIds) do
+                        local f = optionFrames[k]
+                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                    end
+                end
+            end
+            local w = OptionsWidgets_CreateToggleSwitch(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, setFn, opt.disabled, opt.tooltip)
             w:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
