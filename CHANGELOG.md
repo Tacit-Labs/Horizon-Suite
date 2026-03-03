@@ -6,7 +6,20 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-<!-- Changelog entries are generated from closed GitHub Issues at release time. -->
+<!-- Changelog entries are generated from closed GitLab Issues at release time. -->
+
+---
+
+## [3.6.2] – 2026-03-03
+
+### 🔧 Improvements
+
+- **(Focus) Right-click recipe to untrack and improved reagent display** — Crafting recipes can be untracked via right-click; reagent display improved.
+- **(Focus) Show tracker in dungeons by default instead of hidden** — Tracker is visible in dungeons by default for easier objective tracking.
+
+### 🐛 Fixes
+
+- **(Focus) Apply combat fade alpha when tracker is shown in combat** — Tracker now respects combat fade when shown during combat.
 
 ---
 
