@@ -1,12 +1,10 @@
 --[[
     Horizon Suite - Focus - Delve Provider
-    C_PartyInfo.IsDelveInProgress, C_GossipInfo.GetActiveDelveGossip, C_DelvesUI.GetTieredEntrancePDEID.
-    CVar lastSelectedTieredEntranceTier (per-delve, via GetCVarTableValue) as fallback.
+    ScenarioHeaderDelvesWidget (tierText), C_PartyInfo.IsDelveInProgress.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
-local LAST_TIER_CVAR = "lastSelectedTieredEntranceTier"
 local TIER_MIN, TIER_MAX = 1, 12
 -- Scenario step widget set contains Delve header; Objective Tracker set may not when tracker is hidden.
 local WIDGET_TYPE_SCENARIO_HEADER_DELVES = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.ScenarioHeaderDelves) or 29
@@ -37,44 +35,47 @@ local function IsDelveActive()
 end
 
 --- Current Delve tier (1-12) or nil if unknown/not in delve. Guarded API.
---- Primary: C_GossipInfo.GetActiveDelveGossip (actual active tier; Blizzard's picker uses this when HasActiveDelve).
---- Fallback: GetCVarTableValue + lastSelectedTieredEntranceTier (per-delve, keyed by pdeID).
---- Fallback: GetCVarNumberOrDefault("lastSelectedDelvesTier") when table CVar unavailable.
+--- Uses ScenarioHeaderDelvesWidget tierText (always available inside an active delve).
 local function GetActiveDelveTier()
     if not IsDelveActive() then return nil end
 
-    -- Primary: C_GossipInfo.GetActiveDelveGossip returns actual active delve tier (Blizzard's picker uses this when HasActiveDelve)
-    if C_GossipInfo and C_GossipInfo.GetActiveDelveGossip then
-        local ok, gossip = pcall(C_GossipInfo.GetActiveDelveGossip)
-        if ok and gossip and type(gossip) == "table" then
-            local orderIndex = gossip.orderIndex
-            if type(orderIndex) == "number" and orderIndex >= 0 then
-                local tier = orderIndex + 1  -- 0-based to 1-based
-                if tier >= TIER_MIN and tier <= TIER_MAX then
-                    return tier
+    if C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
+        local setID
+        if C_Scenario and C_Scenario.GetStepInfo then
+            local sOk, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
+            if sOk and t and type(t) == "table" and #t >= 12 then
+                local ws = t[12]
+                if type(ws) == "number" and ws ~= 0 then setID = ws end
+            end
+        end
+        if not setID and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+            local oOk, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
+            if oOk and objSet and type(objSet) == "number" then setID = objSet end
+        end
+        if setID then
+            local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+            if wOk and widgets and type(widgets) == "table" then
+                for _, wInfo in pairs(widgets) do
+                    local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
+                        or (type(wInfo) == "number" and wInfo > 0) and wInfo
+                    local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
+                    if widgetID and (not wType or wType == WIDGET_TYPE_SCENARIO_HEADER_DELVES) then
+                        local dOk, widgetInfo = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
+                        if dOk and widgetInfo and type(widgetInfo) == "table" then
+                            local tierText = widgetInfo.tierText
+                            if tierText and type(tierText) == "string" and tierText ~= "" then
+                                local tier = tonumber(tierText:match("%d+"))
+                                if tier and tier >= TIER_MIN and tier <= TIER_MAX then
+                                    return tier
+                                end
+                            end
+                        end
+                    end
                 end
             end
         end
     end
 
-    -- Fallback: Blizzard stores tier per-delve in table CVar (Gethe/wow-ui-source Blizzard_DelvesDifficultyPicker)
-    if GetCVarTableValue and C_DelvesUI and C_DelvesUI.GetTieredEntrancePDEID then
-        local ok, pdeID = pcall(C_DelvesUI.GetTieredEntrancePDEID)
-        if ok and pdeID and type(pdeID) == "number" then
-            local vOk, tier = pcall(GetCVarTableValue, LAST_TIER_CVAR, pdeID, 0)
-            if vOk and type(tier) == "number" and tier >= TIER_MIN and tier <= TIER_MAX then
-                return tier
-            end
-        end
-    end
-
-    -- Fallback: legacy simple CVar (may not exist; pass default to avoid bad-argument error)
-    if GetCVarNumberOrDefault then
-        local ok, cvarTier = pcall(GetCVarNumberOrDefault, "lastSelectedDelvesTier", TIER_MIN)
-        if ok and type(cvarTier) == "number" and cvarTier >= TIER_MIN and cvarTier <= TIER_MAX then
-            return cvarTier
-        end
-    end
     return nil
 end
 
