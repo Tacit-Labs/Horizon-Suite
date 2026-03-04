@@ -114,6 +114,8 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         local barNf, barNr = nil, nil
         local barPct = nil
         for idx, o in ipairs(questData.objectives) do
+            local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
+            local isProgressBarType = (o.type == "progressbar" or o.type == 8)
             if o.finished then
                 -- skip
             elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
@@ -123,12 +125,12 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 barNf = o.numFulfilled
                 barNr = o.numRequired
                 barPct = nil
-            elseif o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar") then
-                -- Percent-only (no discrete count, or Blizzard progressbar type)
+            elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
+                -- Percent-only (detected via text, type, or existing percent field)
                 barCount = barCount + 1
                 barIdx = idx
                 barNf, barNr = nil, nil
-                barPct = o.percent
+                barPct = textPct or o.percent or 0
             end
         end
         if barCount == 1 then
@@ -297,7 +299,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
             -- Progress bar for this objective
             local pctVal = progressBarPercent or oData.percent
-            if thisObjHasBar and nf and nr and type(nf) == "number" and type(nr) == "number" and nr > 0 then
+            if thisObjHasBar and nf and nr and type(nf) == "number" and type(nr) == "number" and nr > 1 then
                 -- Arithmetic (x/10): use nf/nr for fraction and "X/Y (Z%)" label
                 local barW = objTextWidth - leftPad
                 if barW < 20 then barW = objTextWidth end
@@ -758,7 +760,10 @@ local function PopulateEntry(entry, questData, groupKey)
     -- Derive percent when missing so progress bar eligibility and rendering can use it.
     if questData.objectives then
         for _, o in ipairs(questData.objectives) do
-            if o.percent == nil and o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 0 then
+            local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
+            if textPct then
+                o.percent = textPct
+            elseif o.percent == nil and o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 0 then
                 o.percent = math.floor(100 * math.min(o.numFulfilled, o.numRequired) / o.numRequired)
             end
         end
@@ -769,11 +774,13 @@ local function PopulateEntry(entry, questData, groupKey)
     if addon.GetDB("showObjectiveProgressBar", false) and questData.objectives then
         local barCount = 0
         for _, o in ipairs(questData.objectives) do
+            local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
+            local isProgressBarType = (o.type == "progressbar" or o.type == 8)
             if o.finished then
                 -- skip
             elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
                 barCount = barCount + 1
-            elseif o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar") then
+            elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
                 barCount = barCount + 1
             end
         end
