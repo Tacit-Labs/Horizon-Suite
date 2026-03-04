@@ -15,15 +15,7 @@
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
-local function PresenceDebugLog(msg)
-    local ts = ("%.1f"):format(GetTime() or 0)
-    local line = "[" .. ts .. "] " .. tostring(msg or "")
-    if addon.HSPrint then addon.HSPrint("|cFF00CCFF[Presence Core]|r " .. line) end
-end
 
-local function IsDebugLive()
-    return addon.GetDB and addon.GetDB("presenceDebugLive", false)
-end
 
 addon.Presence = addon.Presence or {}
 
@@ -747,7 +739,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
 
     opts = opts or {}
     cachedCompactLayout = (typeName == "QUEST_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
-    PresenceDebugLog_Internal(("PlayCinematic %s title=\"%s\" sub=\"%s\" compact=%s"):format(typeName, tostring(title), tostring(subtitle), tostring(cachedCompactLayout)))
+
 
     local originalSubtitle = subtitle
 

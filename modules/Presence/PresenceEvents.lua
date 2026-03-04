@@ -8,14 +8,7 @@
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.Presence then return end
 
--- Temporary diagnostics for debugging.
-local PRESENCE_DEBUG_WQ = false
-local function DbgWQ(...)
-    if not PRESENCE_DEBUG_WQ or not addon.HSPrint then return end
-    local parts = {}
-    for i = 1, select("#", ...) do parts[i] = tostring(select(i, ...)) end
-    addon.HSPrint("[Presence WQ] " .. table.concat(parts, " "))
-end
+
 
 
 -- ============================================================================
@@ -361,7 +354,6 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
 
     -- 3. Compare with cache
     if lastQuestObjectivesCache[questID] == objKey then
-        DbgWQ("ExecuteQuestUpdate: Unchanged", questID)
         return 
     end
 
@@ -372,7 +364,6 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
     lastQuestObjectivesState[questID] = state
 
     if isBlindUpdate and isNew then
-        DbgWQ("ExecuteQuestUpdate: Suppressed blind new entry", questID)
         return
     end
 
@@ -442,7 +433,6 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
         bufferedUpdates[questID] = C_Timer.After(ZERO_PROGRESS_RETRY_TIME, function()
             ExecuteQuestUpdate(questID, isBlindUpdate, source, true)
         end)
-        DbgWQ("ExecuteQuestUpdate: Deferred 0/X retry", questID)
         return
     end
 
@@ -461,7 +451,6 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
     lastUIInfoTime = GetTime()
     
     addon.Presence.QueueOrPlay("QUEST_UPDATE", title, normalized, { questID = questID, source = source })
-    DbgWQ("ExecuteQuestUpdate: Shown", questID, msg)
 end
 
 -- Entry point for requesting an update. Resets the timer to ensure we only process the *final* state.
@@ -542,7 +531,6 @@ local UI_MSG_THROTTLE = 1.0
 local pendingStandaloneTimer = nil  -- deferred standalone popup timer
 
 local function OnUIInfoMessage(_, msgType, msg)
-    DbgWQ("EVENT: UI_INFO_MESSAGE", "msg=", msg or "nil", "isQuestText=", IsQuestText(msg))
     if IsQuestText(msg) and not (msg and (msg:find("Quest Accepted") or msg:find("Accepted"))) then
         -- Skip generic Blizzard completion messages (locale-safe).
         -- These are handled by QUEST_WATCH_UPDATE / QUEST_TURNED_IN which produce
