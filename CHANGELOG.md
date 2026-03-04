@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.6.6] – 2026-03-04
+
+### 🐛 Fixes
+
+- **(Presence) Fix Presence debug function nil errors** — Quest update notifications and live debug no longer crash from undefined debug functions.
+
+---
+
 ## [3.6.5] – 2026-03-04
 
 ### 🐛 Fixes
