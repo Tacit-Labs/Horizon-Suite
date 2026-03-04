@@ -530,7 +530,18 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             table.insert(refreshers, w)
         elseif opt.type == "slider" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
-            local w = OptionsWidgets_CreateSlider(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, opt.set, opt.min, opt.max, opt.disabled, opt.step, opt.tooltip)
+            local origSet = opt.set
+            local setFn = origSet
+            if opt.refreshIds and optionFrames then
+                setFn = function(v)
+                    origSet(v)
+                    for _, k in ipairs(opt.refreshIds) do
+                        local f = optionFrames[k]
+                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                    end
+                end
+            end
+            local w = OptionsWidgets_CreateSlider(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, setFn, opt.min, opt.max, opt.disabled, opt.step, opt.tooltip)
             w:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
@@ -539,23 +550,34 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = w } end
             table.insert(refreshers, w)
         elseif opt.type == "dropdown" and currentCard then
-             local cardContent = currentCard.contentContainer or currentCard
-             local searchable = (opt.dbKey == "fontPath") or (opt.searchable == true)
-             local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, opt.set, opt.displayFn, searchable, opt.disabled, opt.tooltip)
-             w:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
-             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
-             currentCard.contentAnchor = w
-             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.dropdown
-             w._card = currentCard
-             if type(opt.hidden) == "function" then
-                 w._hiddenFn = opt.hidden
-                 w._normalHeight = RowHeights.dropdown
-                 w._parentCard = currentCard
-                 w._gapHeight = OptionGap
-             end
-             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
-             if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = w } end
-             table.insert(refreshers, w)
+            local cardContent = currentCard.contentContainer or currentCard
+            local searchable = (opt.dbKey == "fontPath") or (opt.searchable == true)
+            local origSet = opt.set
+            local setFn = origSet
+            if opt.refreshIds and optionFrames then
+                setFn = function(v)
+                    origSet(v)
+                    for _, k in ipairs(opt.refreshIds) do
+                        local f = optionFrames[k]
+                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                    end
+                end
+            end
+            local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, setFn, opt.displayFn, searchable, opt.disabled, opt.tooltip)
+            w:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
+            currentCard.contentAnchor = w
+            currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.dropdown
+            w._card = currentCard
+            if type(opt.hidden) == "function" then
+                w._hiddenFn = opt.hidden
+                w._normalHeight = RowHeights.dropdown
+                w._parentCard = currentCard
+                w._gapHeight = OptionGap
+            end
+            local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
+            if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = w } end
+            table.insert(refreshers, w)
         elseif opt.type == "color" and currentCard then
             local def = (opt.default and type(opt.default) == "table" and #opt.default >= 3) and opt.default or addon.HEADER_COLOR
             local hasAlpha = opt.hasAlpha == true
