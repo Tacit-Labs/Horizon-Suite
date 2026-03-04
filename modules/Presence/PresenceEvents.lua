@@ -8,6 +8,8 @@
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.Presence then return end
 
+-- Debug: WQ event logging; no-op (DbgWQ was never defined; guards against nil call).
+local function DbgWQ(...) end
 
 
 
