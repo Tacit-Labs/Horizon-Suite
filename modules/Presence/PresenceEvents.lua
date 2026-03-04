@@ -56,6 +56,7 @@ end
 --- Build locale-safe keywords for quest text detection at load time.
 --- WoW global strings (QUEST_COMPLETE, ERR_QUEST_OBJECTIVE_COMPLETE_S, etc.) are pre-translated per locale.
 local questTextKeywords = { "slain", "destroyed", "Quest Accepted", "Complete" }
+local questAcceptedKeywords = { "Quest Accepted", "Accepted" }
 do
     -- Blizzard global string sources (auto-localized by the WoW client):
     local globalSources = {
@@ -75,6 +76,23 @@ do
             end
         end
     end
+
+    -- Build acceptance keywords from Blizzard global strings
+    local acceptSources = {
+        "ERR_QUEST_ACCEPTED_S", -- "Quest accepted: %s"
+        "ERR_QUEST_ADD_FOUND_SII", -- "Quest accepted: %s" (sometimes used)
+    }
+    for _, gName in ipairs(acceptSources) do
+        local gs = _G[gName]
+        if gs and type(gs) == "string" then
+            local clean = gs:gsub("%%[%d$]*[sd]", ""):gsub("[:]", ""):gsub("%s+", " ")
+            clean = strtrim(clean)
+            if clean ~= "" and #clean > 2 then
+                questAcceptedKeywords[#questAcceptedKeywords + 1] = clean
+            end
+        end
+    end
+
     -- Addon L table entries (locale-safe translations shipped with the addon)
     local L = addon.L or {}
     if L["QUEST COMPLETE"] and type(L["QUEST COMPLETE"]) == "string" then
@@ -87,6 +105,7 @@ do
         local clean = strtrim(L["QUEST ACCEPTED"])
         if clean ~= "" and #clean > 2 then
             questTextKeywords[#questTextKeywords + 1] = clean
+            questAcceptedKeywords[#questAcceptedKeywords + 1] = clean
         end
     end
 end
@@ -533,20 +552,28 @@ local UI_MSG_THROTTLE = 1.0
 local pendingStandaloneTimer = nil  -- deferred standalone popup timer
 
 local function OnUIInfoMessage(_, msgType, msg)
-    if IsQuestText(msg) and not (msg and (msg:find("Quest Accepted") or msg:find("Accepted"))) then
+    if not msg then return end
+
+    local function IsAcceptMsg(s)
+        for _, kw in ipairs(questAcceptedKeywords) do
+            if s:find(kw, 1, true) then return true end
+        end
+        return false
+    end
+
+    if IsQuestText(msg) and not IsAcceptMsg(msg) then
         -- Skip generic Blizzard completion messages (locale-safe).
         -- These are handled by QUEST_WATCH_UPDATE / QUEST_TURNED_IN which produce
         -- a proper notification with the actual quest name.
-        if msg then
-            local plain = strtrim(msg)
-            local objComplete  = _G["OBJECTIVE_COMPLETE"]             -- "Objective Complete"
-            local questComplete = _G["QUEST_COMPLETE"]                -- "Quest Complete"
-            local readyTurnIn  = _G["QUEST_WATCH_QUEST_READY"]       -- "Ready for turn-in"
-            if (objComplete and plain == objComplete)
-                or (questComplete and plain == questComplete)
-                or (readyTurnIn and plain == readyTurnIn) then
-                return
-            end
+        local plain = strtrim(msg):gsub("[%.%!%?]$","") -- remove trailing punctuation for matching
+        local objComplete  = _G["OBJECTIVE_COMPLETE"] and _G["OBJECTIVE_COMPLETE"]:gsub("[%.%!%?]$","")
+        local questComplete = _G["QUEST_COMPLETE"]    and _G["QUEST_COMPLETE"]:gsub("[%.%!%?]$","")
+        local readyTurnIn  = _G["QUEST_WATCH_QUEST_READY"] and _G["QUEST_WATCH_QUEST_READY"]:gsub("[%.%!%?]$","")
+
+        if (objComplete and plain == objComplete)
+            or (questComplete and plain == questComplete)
+            or (readyTurnIn and plain == readyTurnIn) then
+            return
         end
         -- Try to map this message to the active WQ
         local questID = GetWorldQuestIDForObjectiveUpdate()
