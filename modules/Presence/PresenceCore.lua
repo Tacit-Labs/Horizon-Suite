@@ -302,6 +302,7 @@ local debugLogFrame
 local function IsDebugLive_Internal()
     return addon.GetDB and addon.GetDB("presenceDebugLive", false)
 end
+local IsDebugLive = IsDebugLive_Internal
 
 local function PresenceDebugLog_Internal(msg)
     if not IsDebugLive_Internal() then return end
@@ -316,6 +317,7 @@ local function PresenceDebugLog_Internal(msg)
         debugLogFrame.msg:AddMessage(line, 0.7, 0.9, 1, 1)
     end
 end
+local PresenceDebugLog = PresenceDebugLog_Internal
 
 local function CreateDebugPanel()
     if debugLogFrame then return end
