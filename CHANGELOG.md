@@ -10,6 +10,19 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.6.5] – 2026-03-04
+
+### 🐛 Fixes
+
+- **(Presence) Presence quest update notifications show duplicates or wrong text** — One notification per objective completion with correct text; no more duplicate popups or generic Blizzard messages.
+
+### 🔧 Improvements
+
+- **(Presence) Remove Presence debug logging** — Temporary debug output removed.
+- **(Core) Options panel: refresh dependent widgets when parent toggle changes** — Dependent dropdowns and sliders update immediately when toggling options like Scroll indicator, Dim unfocused entries, or Rare sound alert.
+
+---
+
 ## [3.6.4] – 2026-03-04
 
 ### 🔧 Improvements
