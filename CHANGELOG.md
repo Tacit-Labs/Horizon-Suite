@@ -10,6 +10,19 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.6.7] – 2026-03-04
+
+### 🐛 Fixes
+
+- **(Focus) Objective progress bars fail to show when percent comes from text or type is progressbar** — Progress bars now appear for objectives that report percent via text or Blizzard progressbar type; single-objective (1/1) uses discrete count instead of bar.
+- **(Presence) Quest acceptance detection fails in non-English locales** — Locale-safe keyword matching from Blizzard globals and addon translations; completion message matching strips trailing punctuation for locale variants.
+
+### 🔧 Improvements
+
+- **(Core) Reorganize Focus options into clearer categories** — Appearance, Sorting & Filtering, Animations, and Instances sections; renamed labels for clarity (e.g. Enemy forces size, Active instance only).
+
+---
+
 ## [3.6.6] – 2026-03-04
 
 ### 🐛 Fixes
