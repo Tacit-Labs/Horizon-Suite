@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.6.4] – 2026-03-04
+
+### 🔧 Improvements
+
+- **(Focus, Presence) Fix scenario percentage display and delve completion notification subtitle** — Scenario criteria now show correct percentage values; delve completion toasts display the actual delve name instead of a generic fallback.
+
+---
+
 ## [3.6.3] – 2026-03-03
 
 ### 🔧 Improvements
