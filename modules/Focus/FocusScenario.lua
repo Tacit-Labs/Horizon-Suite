@@ -308,13 +308,17 @@ local function ReadScenarioEntries()
                     local text = (criteriaInfo.description and criteriaInfo.description ~= "") and criteriaInfo.description or (criteriaInfo.criteriaString or "")
                     local qty, totalQty = criteriaInfo.quantity, criteriaInfo.totalQuantity
                     local hasQuantity = qty ~= nil and totalQty ~= nil and type(qty) == "number" and type(totalQty) == "number" and totalQty > 0
+                    -- Detect percentage-based criteria: Blizzard returns the percent as quantity
+                    -- (e.g. qty=84, totalQty=50) with quantityString like "84%".
+                    local qtyStr = criteriaInfo.quantityString
+                    local isPercentQty = hasQuantity and qtyStr and type(qtyStr) == "string" and qtyStr:find("%%")
                     -- Option 4: Include timer-only criteria (no text) as standalone timer objectives.
                     local obj = {
                         text = text ~= "" and text or nil,
                         finished = criteriaInfo.complete or criteriaInfo.completed or false,
-                        percent = hasQuantity and math.floor(100 * qty / totalQty) or nil,
-                        numFulfilled = hasQuantity and qty or nil,
-                        numRequired = hasQuantity and totalQty or nil,
+                        percent = isPercentQty and qty or (hasQuantity and math.floor(100 * qty / totalQty) or nil),
+                        numFulfilled = (hasQuantity and not isPercentQty) and qty or nil,
+                        numRequired = (hasQuantity and not isPercentQty) and totalQty or nil,
                         timerDuration = hasTimer and d or nil,
                         timerStartTime = hasTimer and s or nil,
                     }
@@ -407,12 +411,14 @@ local function ReadScenarioEntries()
                                 local text = (criteriaInfo.description and criteriaInfo.description ~= "") and criteriaInfo.description or (criteriaInfo.criteriaString or "")
                                 local qty, totalQty = criteriaInfo.quantity, criteriaInfo.totalQuantity
                                 local hasQuantity = qty ~= nil and totalQty ~= nil and type(qty) == "number" and type(totalQty) == "number" and totalQty > 0
+                                local qtyStr = criteriaInfo.quantityString
+                                local isPercentQty = hasQuantity and qtyStr and type(qtyStr) == "string" and qtyStr:find("%%")
                                 objectives[#objectives + 1] = {
                                     text = text ~= "" and text or nil,
                                     finished = criteriaInfo.complete or criteriaInfo.completed or false,
-                                    percent = hasQuantity and math.floor(100 * qty / totalQty) or nil,
-                                    numFulfilled = hasQuantity and qty or nil,
-                                    numRequired = hasQuantity and totalQty or nil,
+                                    percent = isPercentQty and qty or (hasQuantity and math.floor(100 * qty / totalQty) or nil),
+                                    numFulfilled = (hasQuantity and not isPercentQty) and qty or nil,
+                                    numRequired = (hasQuantity and not isPercentQty) and totalQty or nil,
                                     timerDuration = hasTimer and d or nil,
                                     timerStartTime = hasTimer and s or nil,
                                 }
@@ -471,3 +477,4 @@ end
 addon.ReadScenarioEntries    = ReadScenarioEntries
 addon.IsScenarioActive      = IsScenarioActive
 addon.GetScenarioDisplayInfo = GetScenarioDisplayInfo
+addon.GetDelveNameFromAPIs   = GetDelveNameFromAPIs

@@ -847,11 +847,25 @@ local function OnScenarioCompleted()
             title = delveComplete
             if not subtitle or subtitle == "" or subtitle == (L["Scenario Complete"] or "Scenario Complete") then
                 local origTitle = lastScenarioTitle
-                if origTitle and origTitle ~= "Delves" and not origTitle:match("^Delves %(Tier ") then
-                    subtitle = origTitle
+                -- If origTitle is the generic fallback, try to re-resolve the actual delve name
+                if not origTitle or origTitle == "Delves" or origTitle:match("^Delves %(Tier ") then
+                    local resolvedName = addon.GetDelveNameFromAPIs and addon.GetDelveNameFromAPIs()
+                    if not resolvedName or resolvedName == "" then
+                        -- Last resort: zone/subzone text
+                        local zone = (GetZoneText and GetZoneText()) or ""
+                        local sub = (GetSubZoneText and GetSubZoneText()) or ""
+                        if zone ~= "" and zone ~= "Delves" then resolvedName = zone
+                        elseif sub ~= "" and sub ~= "Delves" then resolvedName = sub end
+                    end
+                    if resolvedName and resolvedName ~= "" then
+                        local tier = origTitle and origTitle:match("Tier (%d+)")
+                        subtitle = tier and (resolvedName .. " (Tier " .. tier .. ")") or resolvedName
+                    else
+                        local tier = origTitle and origTitle:match("Tier (%d+)")
+                        subtitle = tier and ("Tier " .. tier) or delveComplete
+                    end
                 else
-                    local tier = origTitle and origTitle:match("Tier (%d+)")
-                    subtitle = tier and ("Tier " .. tier) or delveComplete
+                    subtitle = origTitle
                 end
             end
         end
