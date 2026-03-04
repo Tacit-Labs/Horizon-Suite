@@ -58,17 +58,55 @@ local function IsDNTQuest(questName)
     return questName and questName:match("^%[DNT%]")
 end
 
+--- Build locale-safe keywords for quest text detection at load time.
+--- WoW global strings (QUEST_COMPLETE, ERR_QUEST_OBJECTIVE_COMPLETE_S, etc.) are pre-translated per locale.
+local questTextKeywords = { "slain", "destroyed", "Quest Accepted", "Complete" }
+do
+    -- Blizzard global string sources (auto-localized by the WoW client):
+    local globalSources = {
+        "QUEST_COMPLETE",                 -- e.g. "Quest Complete" / "Aufgabe abgeschlossen"
+        "ERR_QUEST_OBJECTIVE_COMPLETE_S", -- e.g. "%s completed" / "%s abgeschlossen"
+        "QUEST_WATCH_QUEST_READY",        -- e.g. "Ready for turn-in"
+        "OBJECTIVE_COMPLETE",             -- e.g. "Objective Complete"
+    }
+    for _, gName in ipairs(globalSources) do
+        local gs = _G[gName]
+        if gs and type(gs) == "string" then
+            -- Strip format tokens (%s, %d, %1$s) and trim for a clean keyword
+            local clean = gs:gsub("%%[%d$]*[sd]", ""):gsub("%s+", " ")
+            clean = strtrim(clean)
+            if clean ~= "" and #clean > 2 then
+                questTextKeywords[#questTextKeywords + 1] = clean
+            end
+        end
+    end
+    -- Addon L table entries (locale-safe translations shipped with the addon)
+    local L = addon.L or {}
+    if L["QUEST COMPLETE"] and type(L["QUEST COMPLETE"]) == "string" then
+        local clean = strtrim(L["QUEST COMPLETE"])
+        if clean ~= "" and #clean > 2 then
+            questTextKeywords[#questTextKeywords + 1] = clean
+        end
+    end
+    if L["QUEST ACCEPTED"] and type(L["QUEST ACCEPTED"]) == "string" then
+        local clean = strtrim(L["QUEST ACCEPTED"])
+        if clean ~= "" and #clean > 2 then
+            questTextKeywords[#questTextKeywords + 1] = clean
+        end
+    end
+end
+
 --- Returns true if the message looks like quest objective progress (e.g. "7/10", "slain", "Complete").
+--- Uses both universal patterns (%d+/%d+, %%) and locale-safe keywords built at load time.
 --- @param msg string|nil Message text to check
 --- @return boolean
 local function IsQuestText(msg)
     if not msg then return false end
-    return msg:find("%d+/%d+")
-        or msg:find("%%")
-        or msg:find("slain")
-        or msg:find("destroyed")
-        or msg:find("Quest Accepted")
-        or msg:find("Complete")
+    if msg:find("%d+/%d+") or msg:find("%%") then return true end
+    for _, kw in ipairs(questTextKeywords) do
+        if msg:find(kw, 1, true) then return true end
+    end
+    return false
 end
 
 -- ============================================================================
@@ -235,6 +273,7 @@ local lastQuestObjectivesCache = {}  -- questID -> serialized objectives
 local lastQuestObjectivesState = {}  -- questID -> { { text = string, finished = boolean }, ... }
 local bufferedUpdates = {}           -- questID -> timerObject
 local recentlyDisposed = {}          -- questID -> GetTime() when disposed
+local pendingNonBlind = {}           -- questID -> true when a non-blind source fired during debounce
 
 --- Remove cached quest state for a quest that is no longer relevant (turned in, abandoned, etc.)
 --- @param questID number
@@ -243,6 +282,7 @@ local function DisposeQuestState(questID)
     lastQuestObjectivesCache[questID] = nil
     lastQuestObjectivesState[questID] = nil
     recentlyDisposed[questID] = GetTime()
+    pendingNonBlind[questID] = nil
     if bufferedUpdates[questID] then
         bufferedUpdates[questID]:Cancel()
         bufferedUpdates[questID] = nil
@@ -355,6 +395,19 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
         end
     end
 
+    -- When first seen (isNew), we have no oldState to diff against.
+    -- Prefer finished objectives: the event was triggered by something changing,
+    -- and the most recent change is most likely a completion (e.g. "1/1 Keem slain").
+    if not msg and isNew then
+        for i = 1, #state do
+            local o = state[i]
+            if o and o.text ~= "" and o.finished then
+                msg = o.text
+                break
+            end
+        end
+    end
+
     -- Fallback: first unfinished objective with text.
     if not msg then
         for i = 1, #state do
@@ -382,7 +435,8 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
 
     -- 7. Re-sample when we get 0/X from QUEST_WATCH_UPDATE (meta quests like "0/8 WQs completed"
     --    often lag; client may not have updated yet when we first sample after completion).
-    if not isRetry and source == "QUEST_WATCH_UPDATE" and normalized and normalized:match("^0/%d+") then
+    --    Skip when isNew: the 0/X text is a fallback guess, not a stale read.
+    if not isRetry and not isNew and source == "QUEST_WATCH_UPDATE" and normalized and normalized:match("^0/%d+") then
         lastQuestObjectivesCache[questID] = nil -- Roll back cache so retry sees "changed"
         lastQuestObjectivesState[questID] = nil
         bufferedUpdates[questID] = C_Timer.After(ZERO_PROGRESS_RETRY_TIME, function()
@@ -400,6 +454,12 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
     local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID) and StripPresenceMarkup(C_QuestLog.GetTitleForQuestID(questID) or "") or ""
     if IsDNTQuest(questName) then return end
     local title = (questName ~= "" and questName) or L["QUEST UPDATE"]
+    DbgWQ("ExecuteQuestUpdate: QueueOrPlay", questID, "title=", title, "sub=", normalized, "source=", source, "isNew=", isNew, "isBlind=", isBlindUpdate)
+
+    -- Update UI message throttle baseline so standalone path doesn't fire duplicate
+    lastUIInfoMsg = msg
+    lastUIInfoTime = GetTime()
+    
     addon.Presence.QueueOrPlay("QUEST_UPDATE", title, normalized, { questID = questID, source = source })
     DbgWQ("ExecuteQuestUpdate: Shown", questID, msg)
 end
@@ -411,6 +471,15 @@ end
 local function RequestQuestUpdate(questID, isBlindUpdate, source)
     if not questID then return end
 
+    -- Once a non-blind source (QUEST_WATCH_UPDATE) fires for this quest during
+    -- the debounce window, lock it so later blind events (QUEST_LOG_UPDATE,
+    -- UI_INFO_MESSAGE) don't override.  This prevents the "blind + new = skip"
+    -- guard from suppressing a legitimate first-time objective change.
+    if not isBlindUpdate then
+        pendingNonBlind[questID] = true
+    end
+    local effectiveBlind = isBlindUpdate and not pendingNonBlind[questID]
+
     -- Cancel existing timer for this quest (debounce)
     if bufferedUpdates[questID] then
         bufferedUpdates[questID]:Cancel()
@@ -418,7 +487,8 @@ local function RequestQuestUpdate(questID, isBlindUpdate, source)
 
     -- Schedule new timer
     bufferedUpdates[questID] = C_Timer.After(UPDATE_BUFFER_TIME, function()
-        ExecuteQuestUpdate(questID, isBlindUpdate, source)
+        pendingNonBlind[questID] = nil
+        ExecuteQuestUpdate(questID, effectiveBlind, source)
     end)
 end
 
@@ -429,6 +499,7 @@ end
 
 local function OnQuestWatchUpdate(_, questID)
     -- Direct update from the game for a specific quest. Not blind.
+    DbgWQ("EVENT: QUEST_WATCH_UPDATE", questID)
     RequestQuestUpdate(questID, false, "QUEST_WATCH_UPDATE")
 end
 
@@ -459,6 +530,7 @@ local function OnQuestLogUpdate()
 
     -- Blind scan: we don't know exactly which quest changed, so we guess the active WQ.
     local questID = GetWorldQuestIDForObjectiveUpdate()
+    DbgWQ("EVENT: QUEST_LOG_UPDATE", "questID=", questID or "nil")
     if questID then
         -- Pass true for isBlindUpdate to suppress popup if we've never seen this quest before
         RequestQuestUpdate(questID, true, "QUEST_LOG_UPDATE")
@@ -467,9 +539,25 @@ end
 
 local lastUIInfoMsg, lastUIInfoTime = nil, 0
 local UI_MSG_THROTTLE = 1.0
+local pendingStandaloneTimer = nil  -- deferred standalone popup timer
 
 local function OnUIInfoMessage(_, msgType, msg)
+    DbgWQ("EVENT: UI_INFO_MESSAGE", "msg=", msg or "nil", "isQuestText=", IsQuestText(msg))
     if IsQuestText(msg) and not (msg and (msg:find("Quest Accepted") or msg:find("Accepted"))) then
+        -- Skip generic Blizzard completion messages (locale-safe).
+        -- These are handled by QUEST_WATCH_UPDATE / QUEST_TURNED_IN which produce
+        -- a proper notification with the actual quest name.
+        if msg then
+            local plain = strtrim(msg)
+            local objComplete  = _G["OBJECTIVE_COMPLETE"]             -- "Objective Complete"
+            local questComplete = _G["QUEST_COMPLETE"]                -- "Quest Complete"
+            local readyTurnIn  = _G["QUEST_WATCH_QUEST_READY"]       -- "Ready for turn-in"
+            if (objComplete and plain == objComplete)
+                or (questComplete and plain == questComplete)
+                or (readyTurnIn and plain == readyTurnIn) then
+                return
+            end
+        end
         -- Try to map this message to the active WQ
         local questID = GetWorldQuestIDForObjectiveUpdate()
         
@@ -477,13 +565,11 @@ local function OnUIInfoMessage(_, msgType, msg)
             -- If we have an ID, use the standard update path (it handles debounce/cache)
             RequestQuestUpdate(questID, true, "UI_INFO_MESSAGE")
         else
-            -- Fallback for non-mapped messages (standard throttle)
-            -- Suppress when debounced path has pending update (prefer QUEST_WATCH_UPDATE)
-            local hasPendingUpdate = false
-            for _, t in pairs(bufferedUpdates) do
-                if t then hasPendingUpdate = true break end
-            end
-            if hasPendingUpdate then return end
+            -- Fallback for non-mapped messages.
+            -- Defer by UPDATE_BUFFER_TIME so QUEST_WATCH_UPDATE (which fires slightly
+            -- later) gets a chance to create a proper debounced update with the
+            -- correct questID, title, and icon.  If a pending update appears in
+            -- that window we skip the standalone popup entirely.
             if not IsPresenceTypeEnabled("presenceQuestUpdate", "presenceQuestEvents", true) then return end
             if ShouldSuppressInMplus() then return end
             if ShouldSuppressInInstance() then return end
@@ -494,8 +580,29 @@ local function OnUIInfoMessage(_, msgType, msg)
 
             local stripped = StripPresenceMarkup(msg or "")
             local normalized = NormalizeQuestUpdateText(stripped)
-            local L = addon.L or {}
-            addon.Presence.QueueOrPlay("QUEST_UPDATE", L["QUEST UPDATE"], normalized, { source = "UI_INFO_MESSAGE" })
+
+            -- Cancel any previous standalone timer (only one in-flight at a time)
+            if pendingStandaloneTimer then
+                pendingStandaloneTimer:Cancel()
+                pendingStandaloneTimer = nil
+            end
+
+            pendingStandaloneTimer = C_Timer.After(UPDATE_BUFFER_TIME, function()
+                pendingStandaloneTimer = nil
+                -- Re-check: if a debounced QUEST_WATCH_UPDATE update appeared while
+                -- we were waiting, let that path handle it instead.
+                local hasPendingUpdate = false
+                for _, t in pairs(bufferedUpdates) do
+                    if t then hasPendingUpdate = true break end
+                end
+                if hasPendingUpdate then
+                    DbgWQ("UI_INFO_MESSAGE standalone: skipped (pending debounced update)")
+                    return
+                end
+                DbgWQ("UI_INFO_MESSAGE standalone popup:", "sub=", normalized)
+                local L = addon.L or {}
+                addon.Presence.QueueOrPlay("QUEST_UPDATE", L["QUEST UPDATE"], normalized, { source = "UI_INFO_MESSAGE" })
+            end)
         end
     end
 end

@@ -12,9 +12,18 @@
     - QueueOrPlay(typeName, title, subtitle, opts): title = heading, subtitle = second
       line; opts.questID is for colour/icon only, never displayed.
 ]]
-
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
+
+local function PresenceDebugLog(msg)
+    local ts = ("%.1f"):format(GetTime() or 0)
+    local line = "[" .. ts .. "] " .. tostring(msg or "")
+    if addon.HSPrint then addon.HSPrint("|cFF00CCFF[Presence Core]|r " .. line) end
+end
+
+local function IsDebugLive()
+    return addon.GetDB and addon.GetDB("presenceDebugLive", false)
+end
 
 addon.Presence = addon.Presence or {}
 
@@ -298,12 +307,12 @@ local debugLogHead   = 1
 local debugLogCount  = 0
 local debugLogFrame
 
-local function IsDebugLive()
+local function IsDebugLive_Internal()
     return addon.GetDB and addon.GetDB("presenceDebugLive", false)
 end
 
-local function PresenceDebugLog(msg)
-    if not IsDebugLive() then return end
+local function PresenceDebugLog_Internal(msg)
+    if not IsDebugLive_Internal() then return end
     local ts = ("%.1f"):format(GetTime() or 0)
     local line = "[" .. ts .. "] " .. tostring(msg or "")
 
@@ -469,11 +478,7 @@ local function setSubOffset(L, offsetY)
     if lastSubOffsetY ~= offsetY then
         lastSubOffsetY = offsetY
         L.subText:ClearAllPoints()
-        if cachedCompactLayout and F then
-            L.subText:SetPoint("TOP", F, "TOP", 0, 20 + offsetY)
-        else
-            L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -cachedSubGap + offsetY)
-        end
+        L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -cachedSubGap + offsetY)
     end
 end
 
@@ -495,20 +500,28 @@ local function updateEntrance()
     if cachedCompactLayout then
         L.titleText:SetAlpha(0)
         L.titleShadow:SetAlpha(0)
-        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(se) end
-        L.divider:SetAlpha(0)
-        setDividerWidth(L, 0.01)
+        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(te) end
     else
         L.titleText:SetAlpha(te)
         L.titleShadow:SetAlpha(te * 0.8)
         if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(te) end
         setTitleOffset(L, (1 - te) * 20)
-        L.divider:SetAlpha(de * 0.5)
-        setDividerWidth(L, DIVIDER_W * de)
     end
 
-    L.subText:SetAlpha(se)
-    L.subShadow:SetAlpha(se * 0.8)
+    L.divider:SetAlpha(de * 0.5)
+    setDividerWidth(L, DIVIDER_W * de)
+
+    local subAlpha = se
+    if subtitleTransition then
+        local st = subtitleTransition
+        local t = math.min(st.elapsed / SUBTITLE_TRANSITION_DUR, 1)
+        local stAlpha = (st.phase == "fadeOut") and (1 - t) or t
+        -- Subtitle is still entering; don't go brighter than entrance progress
+        subAlpha = math.min(subAlpha, stAlpha)
+    end
+
+    L.subText:SetAlpha(subAlpha)
+    L.subShadow:SetAlpha(subAlpha * 0.8)
     setSubOffset(L, (1 - se) * (-10))
 
     if cachedHasDiscovery then
@@ -544,17 +557,15 @@ local function updateExit()
     if cachedCompactLayout then
         L.titleText:SetAlpha(0)
         L.titleShadow:SetAlpha(0)
-        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
-        L.divider:SetAlpha(0)
-        setDividerWidth(L, 0.01)
     else
         L.titleText:SetAlpha(inv)
         L.titleShadow:SetAlpha(inv8)
-        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
         setTitleOffset(L, e * 15)
-        L.divider:SetAlpha(0.5 * inv)
-        setDividerWidth(L, DIVIDER_W * inv)
     end
+
+    if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(inv) end
+    L.divider:SetAlpha(0.5 * inv)
+    setDividerWidth(L, DIVIDER_W * inv)
 
     L.subText:SetAlpha(inv)
     L.subShadow:SetAlpha(inv8)
@@ -600,17 +611,14 @@ local function finalizeEntrance()
     if cachedCompactLayout then
         L.titleText:SetAlpha(0)
         L.titleShadow:SetAlpha(0)
-        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
-        L.divider:SetAlpha(0)
-        setDividerWidth(L, 0.01)
     else
         L.titleText:SetAlpha(1)
         L.titleShadow:SetAlpha(0.8)
-        if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
         setTitleOffset(L, 0)
-        L.divider:SetAlpha(0.5)
-        setDividerWidth(L, DIVIDER_W)
     end
+    if L.questTypeIcon and L.questTypeIcon:IsShown() then L.questTypeIcon:SetAlpha(1) end
+    L.divider:SetAlpha(0.5)
+    setDividerWidth(L, DIVIDER_W)
     L.subText:SetAlpha(1)
     L.subShadow:SetAlpha(0.8)
     setSubOffset(L, 0)
@@ -739,13 +747,9 @@ PlayCinematic = function(typeName, title, subtitle, opts)
 
     opts = opts or {}
     cachedCompactLayout = (typeName == "QUEST_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
+    PresenceDebugLog_Internal(("PlayCinematic %s title=\"%s\" sub=\"%s\" compact=%s"):format(typeName, tostring(title), tostring(subtitle), tostring(cachedCompactLayout)))
 
     local originalSubtitle = subtitle
-
-    if typeName == "QUEST_UPDATE" and addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false) then
-        title = subtitle or ""
-        subtitle = ""
-    end
 
     if typeName == "QUEST_UPDATE" and originalSubtitle and addon.Presence.NormalizeQuestUpdateText then
         lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(originalSubtitle)
@@ -815,11 +819,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     L.titleText:ClearAllPoints()
     L.titleText:SetPoint("TOP", 0, 20)
     L.subText:ClearAllPoints()
-    if cachedCompactLayout and F then
-        L.subText:SetPoint("TOP", F, "TOP", 0, 20)
-    else
-        L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -(cachedSubGap + subAnimDelta))
-    end
+    L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -(cachedSubGap + subAnimDelta))
 
     if addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)) then
         L.discoveryText:SetText(addon.L["Discovered"])
