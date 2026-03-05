@@ -668,6 +668,24 @@ local function FullLayout()
             end
         end
     end
+    local categoryChangeSlideUpStarts = addon.focus.categoryChange and addon.focus.categoryChange.slideUpStarts
+    local categoryChangeSlideUpStartsSec = addon.focus.categoryChange and addon.focus.categoryChange.slideUpStartsSec
+    if addon.focus.categoryChange then
+        addon.focus.categoryChange.slideUpStarts = nil
+        addon.focus.categoryChange.slideUpStartsSec = nil
+    end
+    if categoryChangeSlideUpStarts and next(categoryChangeSlideUpStarts) then
+        slideUpStarts = slideUpStarts or {}
+        for key, startY in pairs(categoryChangeSlideUpStarts) do
+            slideUpStarts[key] = startY
+        end
+    end
+    if categoryChangeSlideUpStartsSec and next(categoryChangeSlideUpStartsSec) then
+        slideUpStartsSec = slideUpStartsSec or {}
+        for key, startY in pairs(categoryChangeSlideUpStartsSec) do
+            slideUpStartsSec[key] = startY
+        end
+    end
     local toRemove = {}
     for key, entry in pairs(activeMap) do
         if not currentIDs[key] then
@@ -802,8 +820,13 @@ local function FullLayout()
     addon.focus.promotion.prevWeekly = curPriority.WEEKLY or {}
     addon.focus.promotion.prevDaily  = curPriority.DAILY  or {}
 
-    -- Category-change animation: when a quest moves between CURRENT and any other category, fade out then reflow and fade in.
-    if addon.GetDB("animations", true) and addon.GetDB("showCurrentQuestCategory", true) then
+    -- Category-change animation: when a quest moves between CURRENT/CURRENT_EVENT and any other category, fade out then reflow and fade in.
+    local showCurrent = addon.GetDB("showCurrentQuestCategory", true)
+    local hasCurrentEvent = false
+    for _, grp in ipairs(grouped) do
+        if grp.key == "CURRENT_EVENT" then hasCurrentEvent = true break end
+    end
+    if addon.GetDB("animations", true) and (showCurrent or hasCurrentEvent) then
         addon.focus.categoryChange.prevGroupKey = addon.focus.categoryChange.prevGroupKey or {}
         local categoryChangeKeys = {}
         for key in pairs(currentIDs) do
@@ -811,12 +834,28 @@ local function FullLayout()
             if entry and (entry.animState == "active" or entry.animState == "fadein") and entry.finalX and entry.finalY then
                 local prevKey = addon.focus.categoryChange.prevGroupKey[key]
                 local curKey = curGroupKey[key]
-                if prevKey and prevKey ~= curKey and (prevKey == "CURRENT" or curKey == "CURRENT") then
+                if prevKey and prevKey ~= curKey and (prevKey == "CURRENT" or curKey == "CURRENT" or prevKey == "CURRENT_EVENT" or curKey == "CURRENT_EVENT") then
                     categoryChangeKeys[key] = entry
                 end
             end
         end
         if next(categoryChangeKeys) then
+            local categoryChangeSlideUpStartsNow = {}
+            for key in pairs(currentIDs) do
+                if not categoryChangeKeys[key] then
+                    local entry = activeMap[key]
+                    if entry and (entry.animState == "active" or entry.animState == "fadein") and entry.finalY ~= nil then
+                        categoryChangeSlideUpStartsNow[key] = entry.finalY
+                    end
+                end
+            end
+            local categoryChangeSlideUpStartsSecNow = {}
+            for i = 1, addon.SECTION_POOL_SIZE do
+                local s = sectionPool[i]
+                if s and s.active and s.groupKey and s.finalY ~= nil then
+                    categoryChangeSlideUpStartsSecNow[s.groupKey] = s.finalY
+                end
+            end
             local categoryChangeFadeOutCount = 0
             for _, entry in pairs(categoryChangeKeys) do
                 addon.SetEntryFadeOut(entry)
@@ -827,7 +866,24 @@ local function FullLayout()
             addon.onCategoryChangeFadeOutCompleteCallback = function()
                 addon.onCategoryChangeFadeOutCompleteCallback = nil
                 addon.categoryChangeFadeOutCount = nil
-                if addon.FullLayout then addon.FullLayout() end
+                addon.focus.categoryChange.slideUpStarts = categoryChangeSlideUpStartsNow
+                addon.focus.categoryChange.slideUpStartsSec = categoryChangeSlideUpStartsSecNow
+                -- Invalidate nearby cache so reflow picks up Events in Zone and other fresh data.
+                addon.focus.nearbyQuestCacheDirty = true
+                addon.focus.nearbyQuestCache = nil
+                addon.focus.nearbyTaskQuestCache = nil
+                if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+            end
+            -- Hide section headers for groups that are now empty so they don't linger during fade.
+            local newGroupKeys = {}
+            for _, grp in ipairs(grouped) do newGroupKeys[grp.key] = true end
+            for i = 1, addon.SECTION_POOL_SIZE do
+                local s = sectionPool[i]
+                if s and s.active and s.groupKey and not newGroupKeys[s.groupKey] then
+                    s.active = false
+                    s:Hide()
+                    s:SetAlpha(0)
+                end
             end
             addon.UpdateHeaderQuestCount(#quests, addon.CountTrackedInLog(quests))
             if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end

@@ -100,7 +100,8 @@ addon.ZONE_COLOR      = { 0.55, 0.65, 0.75 }
 addon.QUEST_COLORS = {
     DEFAULT   = { 0.90, 0.90, 0.90 },
     CURRENT   = { 0.95, 0.55, 0.45 },  -- coral, matches SECTION_COLORS.CURRENT (Current Quest)
-    AVAILABLE = { 0.25, 0.88, 0.92 },  -- cyan/teal, matches SECTION_COLORS.AVAILABLE (Available in Zone)
+    AVAILABLE     = { 0.25, 0.88, 0.92 },  -- cyan/teal, matches SECTION_COLORS.AVAILABLE (Events in Zone)
+    CURRENT_EVENT = { 0.25, 0.88, 0.92 },  -- cyan (continuity with Events in Zone)
     NEARBY    = { 0.35, 0.75, 0.98 },  -- sky blue, matches SECTION_COLORS.NEARBY (Current Zone)
     CAMPAIGN  = { 1.00, 0.82, 0.20 },
     IMPORTANT = { 1.00, 0.45, 0.80 },  -- pink to match importantavailablequesticon
@@ -154,7 +155,8 @@ addon.ProgressBarFont = CreateFont("HorizonSuiteProgressBarFont")
 addon.ProgressBarFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
 addon.SECTION_LABELS = {
-    CURRENT   = "CURRENT QUEST",
+    CURRENT      = "CURRENT QUEST",
+    CURRENT_EVENT = "CURRENT EVENT",
     DUNGEON   = "DUNGEON",
     RAID      = "RAID",
     DELVES    = "DELVES",
@@ -183,7 +185,8 @@ addon.SECTION_COLORS = {
     RAID      = { 0.85, 0.25, 0.25 },  -- red: raid quests
     DELVES    = { 0.32, 0.72, 0.68 },  -- teal: Delve section
     SCENARIO  = { 0.38, 0.52, 0.88 },  -- deep blue: event/scenario steps
-    AVAILABLE = { 0.25, 0.88, 0.92 },  -- cyan/teal (available to pick up)
+    AVAILABLE    = { 0.25, 0.88, 0.92 },  -- cyan/teal (available to pick up)
+    CURRENT_EVENT = { 0.25, 0.88, 0.92 },  -- cyan (continuity with Events in Zone)
     NEARBY    = { 0.35, 0.75, 0.98 },  -- sky blue (accepted, in zone)
     CAMPAIGN  = { 1.00, 0.82, 0.20 },
     IMPORTANT = { 1.00, 0.45, 0.80 },  -- pink to match importantavailablequesticon
@@ -201,18 +204,18 @@ addon.SECTION_COLORS = {
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
 
-addon.GROUP_ORDER = { "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
+addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
 addon.GROUP_ORDER_PRESETS = {
-    ["Collection Focused"] = { "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
-    ["Quest Focused"]      = { "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["Campaign Focused"]   = { "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "DAILY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["World / Rare Focused"] = { "CURRENT", "WORLD", "WEEKLY", "DAILY", "RARES", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
+    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "DAILY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "DAILY", "RARES", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
 -- Category keys (enum-style) for consistent string usage across modules.
 addon.CATEGORY_KEYS = {
-    CURRENT = "CURRENT", DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
+    CURRENT = "CURRENT", CURRENT_EVENT = "CURRENT_EVENT", DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
     IMPORTANT = "IMPORTANT", LEGENDARY = "LEGENDARY", WORLD = "WORLD", WEEKLY = "WEEKLY",
     DAILY = "DAILY", RARES = "RARES", RARE = "RARE",     ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVOR = "ENDEAVOR", ENDEAVORS = "ENDEAVORS",
@@ -273,10 +276,14 @@ function addon.GetGroupOrder()
             seen[k] = true
         end
     end
-    -- Migration: prepend CURRENT when missing so existing users get it at top.
+    -- Migration: prepend CURRENT_EVENT and CURRENT when missing so existing users get them at top.
     if not seen["CURRENT"] and known["CURRENT"] then
         table.insert(out, 1, "CURRENT")
         seen["CURRENT"] = true
+    end
+    if not seen["CURRENT_EVENT"] and known["CURRENT_EVENT"] then
+        table.insert(out, 1, "CURRENT_EVENT")
+        seen["CURRENT_EVENT"] = true
     end
     for i = 1, #addon.GROUP_ORDER do
         local k = addon.GROUP_ORDER[i]

@@ -448,6 +448,13 @@ EnsureProfilesAndMigrateLegacy = function()
                 end
             end
         end
+        -- Ensure fade in/out animations are explicitly set (default on for new/legacy profiles).
+        for profKey, prof in pairs(db.profiles) do
+            if type(prof) == "table" then
+                if prof.animations == nil then prof.animations = true end
+                if prof.presenceAnimations == nil then prof.presenceAnimations = true end
+            end
+        end
         db._profilesValidated = true
         return
     end
@@ -488,6 +495,13 @@ EnsureProfilesAndMigrateLegacy = function()
     db.charProfileKeys[charKey] = charKey
     db.profileKey = charKey
     db._profilesMigrated = true
+
+    -- Ensure fade in/out animations are explicitly set (default on).
+    local prof = db.profiles[charKey]
+    if type(prof) == "table" then
+        if prof.animations == nil then prof.animations = true end
+        if prof.presenceAnimations == nil then prof.presenceAnimations = true end
+    end
 
     -- Initialize derived selectors.
     db.globalProfileKey = db.globalProfileKey or charKey

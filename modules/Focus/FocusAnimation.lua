@@ -102,6 +102,16 @@ local function RunMapCheck()
         addon.focus.lastZoneMapID = zoneMapID
         addon.focus.lastPlayerMapID = rawMapID
         if addon.zoneTaskQuestCache then wipe(addon.zoneTaskQuestCache) end
+        addon.focus.nearbyQuestCacheDirty = true
+        addon.focus.nearbyQuestCache = nil
+        addon.focus.nearbyTaskQuestCache = nil
+        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+    elseif rawMapID and rawMapID ~= addon.focus.lastPlayerMapID then
+        -- rawMapID changed (e.g. left event area within same zone); invalidate nearby cache.
+        addon.focus.lastPlayerMapID = rawMapID
+        addon.focus.nearbyQuestCacheDirty = true
+        addon.focus.nearbyQuestCache = nil
+        addon.focus.nearbyTaskQuestCache = nil
         if addon.ScheduleRefresh then addon.ScheduleRefresh() end
     elseif not addon.focus.lastZoneMapID and zoneMapID then
         addon.focus.lastZoneMapID = zoneMapID

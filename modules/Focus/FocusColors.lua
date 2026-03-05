@@ -32,8 +32,8 @@ local function EnsureColorMatrix()
         end
     end
 
-    -- Seed CURRENT and NEARBY title to match section (coral / sky blue) when not already set
-    for _, key in ipairs({ "CURRENT", "NEARBY" }) do
+    -- Seed CURRENT, CURRENT_EVENT, and NEARBY title to match section when not already set
+    for _, key in ipairs({ "CURRENT", "CURRENT_EVENT", "NEARBY" }) do
         local sec = addon.SECTION_COLORS and addon.SECTION_COLORS[key]
         if sec and type(sec) == "table" and sec[1] and sec[2] and sec[3] then
             if not cm.categories[key] then cm.categories[key] = {} end
@@ -81,6 +81,10 @@ local function GetEffectiveColorCategory(category, groupKey, baseCategory, isEve
     -- AVAILABLE (Events in Zone): all entries use the same colour.
     if groupKey == "AVAILABLE" then
         return "AVAILABLE"
+    end
+    -- CURRENT_EVENT: accepted event quests use the same colour as Events in Zone.
+    if groupKey == "CURRENT_EVENT" then
+        return "CURRENT_EVENT"
     end
     return category
 end

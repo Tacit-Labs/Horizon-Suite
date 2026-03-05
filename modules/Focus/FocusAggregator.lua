@@ -139,9 +139,19 @@ local function SortAndGroupQuests(quests)
     local showCurrent = addon.GetDB("showCurrentQuestCategory", true) and groups["CURRENT"]
     local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
     for _, q in ipairs(quests) do
-        if showCurrent and q.questID and IsQuestRecentlyProgressed(q.questID) then
+        local isEventInPlayerZone = q.isEventQuest
+            and (q.isNearby or (q.zoneName and playerZone and q.zoneName:lower() == playerZone:lower()))
+
+        -- Event quests never participate in Current Quest / expired-from-Current routing.
+        -- In-zone events move between Current Event and Events in Zone based on proximity.
+        if q.isEventQuest and q.isAccepted and q.isNearby and groups["CURRENT_EVENT"] then
+            groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
+        elseif isEventInPlayerZone and groups["AVAILABLE"] then
+            groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
+        elseif not q.isEventQuest and showCurrent and q.questID and IsQuestRecentlyProgressed(q.questID) then
             groups["CURRENT"][#groups["CURRENT"] + 1] = q
-        elseif addon.GetDB("showNearbyGroup", true) and groups["NEARBY"]
+        elseif not q.isEventQuest
+            and addon.GetDB("showNearbyGroup", true) and groups["NEARBY"]
             and q.questID and q.isAccepted
             and IsQuestRecentlyExpiredFromCurrent(q.questID)
             and (q.isNearby or (q.zoneName and playerZone and q.zoneName:lower() == playerZone:lower()))
@@ -372,6 +382,18 @@ local function ReadTrackedQuests()
         local questTypeAtlas = addon.GetQuestTypeAtlas(questID, category)
         local isGroupQuest = addon.IsGroupQuest and addon.IsGroupQuest(questID) or false
 
+        -- Derive isEventQuest when provider did not set it (e.g. CollectTrackedQuests, super-tracked).
+        -- Event quests from watch list or other sources must still route to CURRENT_EVENT.
+        local isEventQuest = opts.isEventQuest
+        if isEventQuest == nil and C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification and Enum and Enum.QuestClassification then
+            local qc = C_QuestInfoSystem.GetQuestClassification(questID)
+            local isWorld = (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)) or (C_QuestLog and C_QuestLog.IsWorldQuest and C_QuestLog.IsWorldQuest(questID))
+            local isCalling = C_QuestLog and C_QuestLog.IsQuestCalling and C_QuestLog.IsQuestCalling(questID)
+            if qc == Enum.QuestClassification.BonusObjective and not isWorld and not isCalling then
+                isEventQuest = true
+            end
+        end
+
         local timerDuration, timerStartTime
         if C_QuestLog and C_QuestLog.GetTimeAllowed then
             local tokT, total, elapsed = pcall(C_QuestLog.GetTimeAllowed, questID)
@@ -406,7 +428,7 @@ local function ReadTrackedQuests()
             isAutoComplete = isAutoComplete,
             isAutoAdded = isAutoAdded,
             isInQuestArea = isInQuestArea,
-            isEventQuest = opts.isEventQuest,
+            isEventQuest = isEventQuest,
             isGroupQuest = isGroupQuest,
             timerDuration = timerDuration,
             timerStartTime = timerStartTime,
