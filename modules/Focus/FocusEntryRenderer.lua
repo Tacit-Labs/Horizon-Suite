@@ -763,7 +763,7 @@ local function PopulateEntry(entry, questData, groupKey)
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
             if textPct then
                 o.percent = textPct
-            elseif o.percent == nil and o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 0 then
+            elseif o.percent == nil and o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
                 o.percent = math.floor(100 * math.min(o.numFulfilled, o.numRequired) / o.numRequired)
             end
         end
