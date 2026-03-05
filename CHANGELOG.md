@@ -10,6 +10,24 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.7.0] – 2026-03-05
+
+### ✨ New Features
+
+- **(Focus) Current Quest category with zone routing and animations** — Section at top with coral colour; quests with progress in the last minute (configurable 30–120 sec); expired quests route to Current Zone when in zone; fade-out and fade-in when moving between categories; horizontal fade-out for consistency.
+
+### 🐛 Fixes
+
+- **(Presence) Quest update toast missing quest name when quest is not super-tracked** — Non-super-tracked quests now show quest name and objective in the update toast.
+- **(Focus) Skip percent calculation for single-objective quests in progress display** — Single-objective quests use discrete count instead of percent bar.
+
+### 🔧 Improvements
+
+- **(Focus) Use IsOnQuest for quest acceptance and preserve super-track when placing waypoints** — Authoritative quest acceptance check; waypoints no longer override quest super-track.
+- **(Core) Options panel: default collapsed for advanced sections, header labels, persist sidebar group collapse** — Advanced sections collapsed by default; header labels; sidebar group collapse persisted.
+
+---
+
 ## [3.6.7] – 2026-03-04
 
 ### 🐛 Fixes
