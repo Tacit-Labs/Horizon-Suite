@@ -921,7 +921,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 -- Swatch preview: show the title colour as a small swatch on the header.
                 local baseTitleColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[key]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                 local baseSectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.7, 0.7, 0.7 }
-                local titleDef = (key == "NEARBY" or key == "CURRENT") and baseSectionColor or baseTitleColor  -- Current Zone / Current Quest: title matches section
+                local titleDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and baseSectionColor or baseTitleColor  -- Current Zone / Current Quest / Current Event: title matches section
 
                 -- Reset button (child of container so click does not toggle expand)
                 local resetBtn = OptionsWidgets_CreateButton(container, L["Reset"], function()

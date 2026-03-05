@@ -57,6 +57,7 @@ L["Auto-track accepted quests"] = true
 L["Auto-track icon"] = true
 L["AVAILABLE IN ZONE"] = true
 L["EVENTS IN ZONE"] = "Events in Zone"
+L["CURRENT EVENT"] = "Current Event"
 L["Azerite Mining"] = true
 L["Backdrop color"] = true
 L["Backdrop opacity"] = true

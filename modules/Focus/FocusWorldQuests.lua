@@ -149,16 +149,23 @@ local function GetNearbyQuestIDs()
         if onMap then
             for _, info in ipairs(onMap) do
                 if info.questID then
-                    -- Identify world/bonus/task quests by multiple methods and skip them.
+                    -- Identify world/task quests and skip them (they come from C_TaskQuest APIs).
+                    -- BonusObjective (event quests): add to nearbySet when accepted so they appear in Current Event.
                     local isWQ = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(info.questID)
+                    local isBonusObjective = false
                     if not isWQ and C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification then
                         local qc = C_QuestInfoSystem.GetQuestClassification(info.questID)
-                        if qc == Enum.QuestClassification.WorldQuest or qc == Enum.QuestClassification.BonusObjective then
+                        if qc == Enum.QuestClassification.WorldQuest then
                             isWQ = true
+                        elseif qc == Enum.QuestClassification.BonusObjective then
+                            isBonusObjective = true
                         end
                     end
                     local isTask = not isWQ and C_TaskQuest and C_TaskQuest.IsActive and C_TaskQuest.IsActive(info.questID)
-                    if not isWQ and not isTask then
+                    if isBonusObjective then
+                        nearbySet[info.questID] = true
+                        taskQuestOnlySet[info.questID] = true
+                    elseif not isWQ and not isTask then
                         nearbySet[info.questID] = true
                     end
                 end

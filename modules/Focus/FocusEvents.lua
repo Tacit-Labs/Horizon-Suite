@@ -429,8 +429,9 @@ local function OnZoneChanged(event)
             if addon.focus.recentlyUntrackedWorldQuests then wipe(addon.focus.recentlyUntrackedWorldQuests) end
             addon.SetDB("sessionSuppressedQuests", nil)
         end
-        C_Timer.After(2.5, function() if addon.focus.enabled then ScheduleRefresh() end end)
     end
+    -- 2.5s delayed refresh for all zone events; catches late API updates when leaving event areas.
+    C_Timer.After(2.5, function() if addon.focus.enabled then ScheduleRefresh() end end)
     if addon.zoneTaskQuestCache then wipe(addon.zoneTaskQuestCache) end
     ScheduleRefresh()
     C_Timer.After(0.4, function()
@@ -474,23 +475,22 @@ local eventHandlers = {
     VIGNETTES_UPDATED        = function() end,
     AREA_POIS_UPDATED        = function() end,
     QUEST_POI_UPDATE         = function() end,
-    -- TASK_PROGRESS_UPDATE: fires when the player enters a WQ/task area (proximity).
-    -- Invalidate the WQ cache so the next layout picks up the newly-in-range quest.
+    -- TASK_PROGRESS_UPDATE: fires when the player enters or leaves a WQ/task area (proximity).
+    -- Invalidate the WQ cache so the next layout picks up the newly-in-range or out-of-range quest.
+    -- Deferred 0.5s refresh catches leave scenarios where the API may lag.
     TASK_PROGRESS_UPDATE     = function()
         if not addon.focus.enabled then return end
         addon.focus.nearbyQuestCacheDirty = true
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
         ScheduleRefresh()
-        if not addon.GetDB("showWorldQuests", true) then
-            C_Timer.After(0.5, function()
-                if not addon.focus.enabled then return end
-                addon.focus.nearbyQuestCacheDirty = true
-                addon.focus.nearbyQuestCache = nil
-                addon.focus.nearbyTaskQuestCache = nil
-                ScheduleRefresh()
-            end)
-        end
+        C_Timer.After(0.5, function()
+            if not addon.focus.enabled then return end
+            addon.focus.nearbyQuestCacheDirty = true
+            addon.focus.nearbyQuestCache = nil
+            addon.focus.nearbyTaskQuestCache = nil
+            ScheduleRefresh()
+        end)
     end,
     ZONE_CHANGED             = function(evt) OnZoneChanged(evt) end,
     ZONE_CHANGED_NEW_AREA    = function(evt) OnZoneChanged(evt) end,
