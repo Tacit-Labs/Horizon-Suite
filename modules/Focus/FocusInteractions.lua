@@ -289,7 +289,12 @@ local function GetQuestObjectiveCoords(questID)
     return nil, nil, nil
 end
 
-local function SetQuestWaypoint(questID)
+--- Place a waypoint for a quest (TomTom or native). When keepQuestSuperTracked is true,
+--- do not call SetSuperTrackedUserWaypoint so the quest remains the super-track target
+--- (blue highlight in Focus, yellow in Blizzard quest log).
+--- @param questID number
+--- @param keepQuestSuperTracked boolean|nil If true, do not override quest super-track with user waypoint
+local function SetQuestWaypoint(questID, keepQuestSuperTracked)
     if not questID or questID <= 0 then return end
     if not C_QuestLog then return end
     local mapID, x, y = GetQuestObjectiveCoords(questID)
@@ -310,7 +315,9 @@ local function SetQuestWaypoint(questID)
         local point = UiMapPoint.CreateFromCoordinates(mapID, x, y)
         if point then
             pcall(C_Map.SetUserWaypoint, point)
-            if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+            -- Do not override quest super-track: SetSuperTrackedUserWaypoint would replace the quest
+            -- as the active target, preventing blue highlight in Focus and yellow in quest log.
+            if not keepQuestSuperTracked and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
                 pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
             end
         end
@@ -535,12 +542,22 @@ for i = 1, addon.POOL_SIZE do
                     -- Safety: ignore plain Left-click when Ctrl is required.
                     return
                 end
-                -- Check if quest is accepted
-                local isAccepted = (C_QuestLog and C_QuestLog.IsOnQuest and C_QuestLog.IsOnQuest(self.questID)) or false
+                -- Check if quest is accepted (IsOnQuest is authoritative for campaign/available entries)
+                local isAccepted = addon.IsQuestAccepted and addon.IsQuestAccepted(self.questID) or false
                 if isAccepted then
-                    -- Quest is accepted but not tracked: add to tracker
+                    -- Quest is accepted but not tracked: add to tracker and promote to super-tracked
                     if C_QuestLog.AddQuestWatch then
                         C_QuestLog.AddQuestWatch(self.questID)
+                    end
+                    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
+                        C_SuperTrack.SetSuperTrackedQuestID(self.questID)
+                    end
+                    if addon.GetDB("tomtomQuestWaypoint", false) then
+                        SetQuestWaypoint(self.questID, true)
+                    end
+                    local wqtPanel = _G.WorldQuestTrackerScreenPanel
+                    if wqtPanel and wqtPanel:IsShown() then
+                        wqtPanel:Hide()
                     end
                 else
                     -- Quest not yet accepted: set waypoint to quest giver/start location
@@ -580,7 +597,7 @@ for i = 1, addon.POOL_SIZE do
                 end
                 C_SuperTrack.SetSuperTrackedQuestID(self.questID)
                 if addon.GetDB("tomtomQuestWaypoint", false) then
-                    SetQuestWaypoint(self.questID)
+                    SetQuestWaypoint(self.questID, true)
                 end
                 local wqtPanel = _G.WorldQuestTrackerScreenPanel
                 if wqtPanel and wqtPanel:IsShown() then

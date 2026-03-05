@@ -82,6 +82,26 @@ function addon.ApplyBlizzardFloatingQuestItemStyle(btn)
 end
 
 -- ============================================================================
+-- QUEST HELPERS
+-- ============================================================================
+
+--- True if the player has accepted this quest (in the quest log).
+--- C_QuestLog.IsOnQuest is the authoritative check for campaign/available entries
+--- that may appear in the log before being accepted.
+--- @param questID number
+--- @return boolean
+function addon.IsQuestAccepted(questID)
+    if not questID or questID <= 0 then return false end
+    if C_QuestLog and C_QuestLog.IsOnQuest then
+        return C_QuestLog.IsOnQuest(questID)
+    end
+    if C_QuestLog and C_QuestLog.GetLogIndexForQuestID then
+        return C_QuestLog.GetLogIndexForQuestID(questID) ~= nil
+    end
+    return false
+end
+
+-- ============================================================================
 -- TIME FORMATTING
 -- ============================================================================
 
