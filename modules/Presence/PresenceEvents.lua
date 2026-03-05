@@ -60,10 +60,12 @@ local questAcceptedKeywords = { "Quest Accepted", "Accepted" }
 do
     -- Blizzard global string sources (auto-localized by the WoW client):
     local globalSources = {
-        "QUEST_COMPLETE",                 -- e.g. "Quest Complete" / "Aufgabe abgeschlossen"
+        "QUEST_COMPLETE",                 -- e.g. "Quest Complete" / "Quest abgeschlossen"
         "ERR_QUEST_OBJECTIVE_COMPLETE_S", -- e.g. "%s completed" / "%s abgeschlossen"
         "QUEST_WATCH_QUEST_READY",        -- e.g. "Ready for turn-in"
         "OBJECTIVE_COMPLETE",             -- e.g. "Objective Complete"
+        "ERR_QUEST_UNKNOWN_COMPLETE",     -- German: "Aufgabe abgeschlossen."
+        "QUEST_WATCH_QUEST_COMPLETE",     -- "Quest Complete" / "Quest abgeschlossen"
     }
     for _, gName in ipairs(globalSources) do
         local gs = _G[gName]
@@ -626,10 +628,16 @@ local function OnUIInfoMessage(_, msgType, msg)
         local objComplete  = _G["OBJECTIVE_COMPLETE"] and _G["OBJECTIVE_COMPLETE"]:gsub("[%.%!%?]$","")
         local questComplete = _G["QUEST_COMPLETE"]    and _G["QUEST_COMPLETE"]:gsub("[%.%!%?]$","")
         local readyTurnIn  = _G["QUEST_WATCH_QUEST_READY"] and _G["QUEST_WATCH_QUEST_READY"]:gsub("[%.%!%?]$","")
+        local unknownComplete = _G["ERR_QUEST_UNKNOWN_COMPLETE"] and _G["ERR_QUEST_UNKNOWN_COMPLETE"]:gsub("[%.%!%?]$","")
+        local watchComplete   = _G["QUEST_WATCH_QUEST_COMPLETE"] and _G["QUEST_WATCH_QUEST_COMPLETE"]:gsub("[%.%!%?]$","")
+        local popupComplete   = _G["QUEST_WATCH_POPUP_QUEST_COMPLETE"] and _G["QUEST_WATCH_POPUP_QUEST_COMPLETE"]:gsub("[%.%!%?]$","")
 
         if (objComplete and plain == objComplete)
             or (questComplete and plain == questComplete)
-            or (readyTurnIn and plain == readyTurnIn) then
+            or (readyTurnIn and plain == readyTurnIn)
+            or (unknownComplete and plain == unknownComplete)
+            or (watchComplete and plain == watchComplete)
+            or (popupComplete and plain == popupComplete) then
             return
         end
         local stripped = StripPresenceMarkup(msg or "")
