@@ -623,10 +623,14 @@ local function FullLayout()
     -- Source of truth: use filtered grouped output so hideOtherCategoriesInDelve
     -- correctly clears stale entries when transitioning into Delve/dungeon.
     local currentIDs = {}
+    local curGroupKey = {}
     for _, grp in ipairs(grouped) do
         for _, qData in ipairs(grp.quests) do
             local key = qData.entryKey or qData.questID
-            if key then currentIDs[key] = true end
+            if key then
+                currentIDs[key] = true
+                curGroupKey[key] = grp.key
+            end
         end
     end
 
@@ -797,6 +801,39 @@ local function FullLayout()
     addon.focus.promotion.prevWorld  = curPriority.WORLD  or {}
     addon.focus.promotion.prevWeekly = curPriority.WEEKLY or {}
     addon.focus.promotion.prevDaily  = curPriority.DAILY  or {}
+
+    -- Category-change animation: when a quest moves between CURRENT and any other category, fade out then reflow and fade in.
+    if addon.GetDB("animations", true) and addon.GetDB("showCurrentQuestCategory", true) then
+        addon.focus.categoryChange.prevGroupKey = addon.focus.categoryChange.prevGroupKey or {}
+        local categoryChangeKeys = {}
+        for key in pairs(currentIDs) do
+            local entry = activeMap[key]
+            if entry and (entry.animState == "active" or entry.animState == "fadein") and entry.finalX and entry.finalY then
+                local prevKey = addon.focus.categoryChange.prevGroupKey[key]
+                local curKey = curGroupKey[key]
+                if prevKey and prevKey ~= curKey and (prevKey == "CURRENT" or curKey == "CURRENT") then
+                    categoryChangeKeys[key] = entry
+                end
+            end
+        end
+        if next(categoryChangeKeys) then
+            local categoryChangeFadeOutCount = 0
+            for _, entry in pairs(categoryChangeKeys) do
+                addon.SetEntryFadeOut(entry)
+                entry.categoryChangeFadeOut = true
+                categoryChangeFadeOutCount = categoryChangeFadeOutCount + 1
+            end
+            addon.categoryChangeFadeOutCount = categoryChangeFadeOutCount
+            addon.onCategoryChangeFadeOutCompleteCallback = function()
+                addon.onCategoryChangeFadeOutCompleteCallback = nil
+                addon.categoryChangeFadeOutCount = nil
+                if addon.FullLayout then addon.FullLayout() end
+            end
+            addon.UpdateHeaderQuestCount(#quests, addon.CountTrackedInLog(quests))
+            if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
+            return
+        end
+    end
 
     local excludeSectionHeadersForFade = nil
     if addon.focus.collapse.optionCollapseKeys and next(addon.focus.collapse.optionCollapseKeys) and addon.GetDB("animations", true) then
@@ -1079,6 +1116,15 @@ local function FullLayout()
         addon.HS:Hide()
         HideAllItemButtons()
         addon.UpdateFloatingQuestItem(nil)
+    end
+
+    -- Update prevGroupKey for category-change animation detection.
+    addon.focus.categoryChange.prevGroupKey = addon.focus.categoryChange.prevGroupKey or {}
+    for k in pairs(addon.focus.categoryChange.prevGroupKey) do
+        if not curGroupKey[k] then addon.focus.categoryChange.prevGroupKey[k] = nil end
+    end
+    for k, v in pairs(curGroupKey) do
+        addon.focus.categoryChange.prevGroupKey[k] = v
     end
 
     if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end

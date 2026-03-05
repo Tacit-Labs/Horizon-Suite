@@ -318,6 +318,17 @@ function OptionsData_SetDB(key, value)
     -- Scale keys are handled by debounced callbacks in the slider set lambdas.
     -- Do NOT call NotifyMainAddon here or FullLayout runs on every integer drag step.
     if SCALE_DEBOUNCE_KEYS[key] then return end
+    -- Current Quest expiry ticker: restart when toggle or window changes.
+    if (key == "showCurrentQuestCategory" or key == "currentQuestWindowSec") and addon.StopCurrentQuestExpiryTicker and addon.StartCurrentQuestExpiryTicker then
+        addon.StopCurrentQuestExpiryTicker()
+        if key == "showCurrentQuestCategory" then
+            if value == true and addon.focus and addon.focus.enabled then
+                addon.StartCurrentQuestExpiryTicker()
+            end
+        elseif addon.GetDB("showCurrentQuestCategory", true) and addon.focus and addon.focus.enabled then
+            addon.StartCurrentQuestExpiryTicker()
+        end
+    end
     OptionsData_NotifyMainAddon()
 end
 
@@ -1056,6 +1067,8 @@ local OptionCategories = {
             { type = "section", name = L["Filtering"] },
             { type = "toggle", name = L["Current zone only"], desc = L["Hide quests outside your current zone."], dbKey = "filterByZone", get = function() return getDB("filterByZone", false) end, set = function(v) setDB("filterByZone", v) end },
             { type = "section", name = L["Grouping"] },
+            { type = "toggle", name = L["Current Quest category"], desc = L["Show quests with recent progress at the top."], dbKey = "showCurrentQuestCategory", get = function() return getDB("showCurrentQuestCategory", true) end, set = function(v) setDB("showCurrentQuestCategory", v) end, tooltip = L["Quests you accepted or made progress on in the last minute appear in a dedicated section."], refreshIds = { "currentQuestWindowSec" } },
+            { type = "slider", name = L["Current Quest window"], desc = L["Seconds of recent progress to show in Current Quest (30–120)."], dbKey = "currentQuestWindowSec", min = 30, max = 120, get = function() return math.max(30, math.min(120, tonumber(getDB("currentQuestWindowSec", 60)) or 60)) end, set = function(v) setDB("currentQuestWindowSec", math.max(30, math.min(120, v))) end, disabled = function() return not getDB("showCurrentQuestCategory", true) end, id = "currentQuestWindowSec" },
             { type = "toggle", name = L["Current Zone group"], desc = L["Dedicated section for in-zone quests."], dbKey = "showNearbyGroup", get = function() return getDB("showNearbyGroup", true) end, set = function(v) setDB("showNearbyGroup", v) end, tooltip = L["When off, in-zone quests appear in their normal category."] },
             { type = "toggle", name = L["Ready to turn in at bottom"], desc = L["Move completed quests to the bottom of the Current Zone section."], dbKey = "nearbyCompleteToBottom", get = function() return getDB("nearbyCompleteToBottom", true) end, set = function(v) setDB("nearbyCompleteToBottom", v); OptionsData_NotifyMainAddon() end, disabled = function() return not getDB("showNearbyGroup", true) end },
             { type = "section", name = L["Sorting"] },

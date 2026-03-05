@@ -153,6 +153,7 @@ addon.ProgressBarFont = CreateFont("HorizonSuiteProgressBarFont")
 addon.ProgressBarFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
 addon.SECTION_LABELS = {
+    CURRENT   = "CURRENT QUEST",
     DUNGEON   = "DUNGEON",
     RAID      = "RAID",
     DELVES    = "DELVES",
@@ -176,6 +177,7 @@ addon.SECTION_LABELS = {
 }
 
 addon.SECTION_COLORS = {
+    CURRENT   = { 0.95, 0.55, 0.45 },  -- coral (recent progress; distinct from NEARBY)
     DUNGEON   = { 0.60, 0.40, 1.00 },
     RAID      = { 0.85, 0.25, 0.25 },  -- red: raid quests
     DELVES    = { 0.32, 0.72, 0.68 },  -- teal: Delve section
@@ -198,18 +200,18 @@ addon.SECTION_COLORS = {
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
 
-addon.GROUP_ORDER = { "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
+addon.GROUP_ORDER = { "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
 addon.GROUP_ORDER_PRESETS = {
-    ["Collection Focused"] = { "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
-    ["Quest Focused"]      = { "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["Campaign Focused"]   = { "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "DAILY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["World / Rare Focused"] = { "WORLD", "WEEKLY", "DAILY", "RARES", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Collection Focused"] = { "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
+    ["Quest Focused"]      = { "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Campaign Focused"]   = { "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "DAILY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["World / Rare Focused"] = { "CURRENT", "WORLD", "WEEKLY", "DAILY", "RARES", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
 -- Category keys (enum-style) for consistent string usage across modules.
 addon.CATEGORY_KEYS = {
-    DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
+    CURRENT = "CURRENT", DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
     IMPORTANT = "IMPORTANT", LEGENDARY = "LEGENDARY", WORLD = "WORLD", WEEKLY = "WEEKLY",
     DAILY = "DAILY", RARES = "RARES", RARE = "RARE",     ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVOR = "ENDEAVOR", ENDEAVORS = "ENDEAVORS",
@@ -269,6 +271,11 @@ function addon.GetGroupOrder()
             out[#out + 1] = k
             seen[k] = true
         end
+    end
+    -- Migration: prepend CURRENT when missing so existing users get it at top.
+    if not seen["CURRENT"] and known["CURRENT"] then
+        table.insert(out, 1, "CURRENT")
+        seen["CURRENT"] = true
     end
     for i = 1, #addon.GROUP_ORDER do
         local k = addon.GROUP_ORDER[i]
