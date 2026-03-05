@@ -521,6 +521,13 @@ local function UpdateEntryAnimations(dt, useAnim)
                 end
                 e.animState = "active"
                 e.slideUpStartY = nil
+                local cc = addon.focus.categoryChange
+                if cc and cc.slideUpRemaining and cc.slideUpRemaining > 0 then
+                    cc.slideUpRemaining = cc.slideUpRemaining - 1
+                    if cc.slideUpRemaining == 0 and cc.onSlideUpComplete then
+                        cc.onSlideUpComplete()
+                    end
+                end
             else
                 local startY = e.slideUpStartY
                 if startY and e.finalY ~= nil and e.finalX ~= nil then
@@ -534,6 +541,13 @@ local function UpdateEntryAnimations(dt, useAnim)
                         e:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", e.finalX, e.finalY)
                         e.animState = "active"
                         e.slideUpStartY = nil
+                        local cc = addon.focus.categoryChange
+                        if cc and cc.slideUpRemaining and cc.slideUpRemaining > 0 then
+                            cc.slideUpRemaining = cc.slideUpRemaining - 1
+                            if cc.slideUpRemaining == 0 and cc.onSlideUpComplete then
+                                cc.onSlideUpComplete()
+                            end
+                        end
                     end
                 else
                     e.animState = "active"
@@ -629,6 +643,13 @@ local function UpdateSectionHeaderSlideUp(dt, useAnim)
                     s:ClearAllPoints()
                     s:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", s.finalX, s.finalY)
                 end
+                local cc = addon.focus.categoryChange
+                if cc and cc.slideUpRemaining and cc.slideUpRemaining > 0 then
+                    cc.slideUpRemaining = cc.slideUpRemaining - 1
+                    if cc.slideUpRemaining == 0 and cc.onSlideUpComplete then
+                        cc.onSlideUpComplete()
+                    end
+                end
             end
         end
         return
@@ -647,6 +668,13 @@ local function UpdateSectionHeaderSlideUp(dt, useAnim)
                 s:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", s.finalX, s.finalY)
                 s.slideUpStartY = nil
                 s.slideUpAnimTime = nil
+                local cc = addon.focus.categoryChange
+                if cc and cc.slideUpRemaining and cc.slideUpRemaining > 0 then
+                    cc.slideUpRemaining = cc.slideUpRemaining - 1
+                    if cc.slideUpRemaining == 0 and cc.onSlideUpComplete then
+                        cc.onSlideUpComplete()
+                    end
+                end
             end
         end
     end

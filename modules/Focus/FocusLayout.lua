@@ -670,10 +670,8 @@ local function FullLayout()
     end
     local categoryChangeSlideUpStarts = addon.focus.categoryChange and addon.focus.categoryChange.slideUpStarts
     local categoryChangeSlideUpStartsSec = addon.focus.categoryChange and addon.focus.categoryChange.slideUpStartsSec
-    if addon.focus.categoryChange then
-        addon.focus.categoryChange.slideUpStarts = nil
-        addon.focus.categoryChange.slideUpStartsSec = nil
-    end
+    local isCategoryChangeReflow = (categoryChangeSlideUpStarts and next(categoryChangeSlideUpStarts))
+        or (categoryChangeSlideUpStartsSec and next(categoryChangeSlideUpStartsSec))
     if categoryChangeSlideUpStarts and next(categoryChangeSlideUpStarts) then
         slideUpStarts = slideUpStarts or {}
         for key, startY in pairs(categoryChangeSlideUpStarts) do
@@ -725,6 +723,31 @@ local function FullLayout()
         end
     end
 
+    -- Keys moving between CURRENT/CURRENT_EVENT and other categories: skip repopulation in first
+    -- pass so they fade out from their old position and styling; reflow pass will repopulate.
+    local categoryChangeSkipKeys = {}
+    local showCurrentForSkip = addon.GetDB("showCurrentQuestCategory", true)
+    local hasCurrentEventForSkip = false
+    for _, grp in ipairs(grouped) do
+        if grp.key == "CURRENT_EVENT" then hasCurrentEventForSkip = true break end
+    end
+    if addon.GetDB("animations", true) and (showCurrentForSkip or hasCurrentEventForSkip)
+        and not isCategoryChangeReflow and addon.focus.categoryChange then
+        local prevGroupKey = addon.focus.categoryChange.prevGroupKey or {}
+        for key in pairs(currentIDs) do
+            local entry = activeMap[key]
+            if entry and (entry.animState == "active" or entry.animState == "fadein")
+                and entry.finalX and entry.finalY then
+                local pk = prevGroupKey[key]
+                local ck = curGroupKey[key]
+                if pk and pk ~= ck
+                    and (pk == "CURRENT" or ck == "CURRENT" or pk == "CURRENT_EVENT" or ck == "CURRENT_EVENT") then
+                    categoryChangeSkipKeys[key] = true
+                end
+            end
+        end
+    end
+
     -- When panel is collapsed with individual categories expanded, determine which
     -- groups are collapsed so we can skip acquiring entries for them entirely.
     local pcegForAcquire = collapsedFallThrough and addon.focus.collapsed
@@ -748,8 +771,10 @@ local function FullLayout()
                     SafeEntryFadeIn(entry, 0)
                 end
                 if entry then
-                    entry.groupKey = grp.key
-                    addon.PopulateEntry(entry, qData, grp.key)
+                    if not categoryChangeSkipKeys[key] then
+                        entry.groupKey = grp.key
+                        addon.PopulateEntry(entry, qData, grp.key)
+                    end
                 end
             end
         end
@@ -826,7 +851,9 @@ local function FullLayout()
     for _, grp in ipairs(grouped) do
         if grp.key == "CURRENT_EVENT" then hasCurrentEvent = true break end
     end
-    if addon.GetDB("animations", true) and (showCurrent or hasCurrentEvent) then
+    local hasCategoryChangeReflow = (categoryChangeSlideUpStarts and next(categoryChangeSlideUpStarts))
+        or (categoryChangeSlideUpStartsSec and next(categoryChangeSlideUpStartsSec))
+    if addon.GetDB("animations", true) and (showCurrent or hasCurrentEvent) and not hasCategoryChangeReflow then
         addon.focus.categoryChange.prevGroupKey = addon.focus.categoryChange.prevGroupKey or {}
         local categoryChangeKeys = {}
         for key in pairs(currentIDs) do
@@ -1048,7 +1075,17 @@ local function FullLayout()
                     entryIndex = entryIndex + 1
 
                     if not entry:IsShown() and (entry.animState == "active" or entry.animState == "idle") and addon.GetDB("animations", true) then
-                        SafeEntryFadeIn(entry, entryIndex - 1)
+                        local key = qData.entryKey or qData.questID
+                        if isCategoryChangeReflow and (not categoryChangeSlideUpStarts or not categoryChangeSlideUpStarts[key]) then
+                            entry:SetAlpha(0)
+                            entry.animState = "categoryChangeFadeInPending"
+                            if not addon.focus.categoryChange.fadeInPendingEntries then
+                                addon.focus.categoryChange.fadeInPendingEntries = {}
+                            end
+                            addon.focus.categoryChange.fadeInPendingEntries[#addon.focus.categoryChange.fadeInPendingEntries + 1] = { entry = entry, staggerIndex = entryIndex - 1 }
+                        else
+                            SafeEntryFadeIn(entry, entryIndex - 1)
+                        end
                     end
                     entry:ClearAllPoints()
                     entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
@@ -1104,6 +1141,7 @@ local function FullLayout()
         end
     end
 
+    local slideUpCount = 0
     if slideUpStarts and next(slideUpStarts) and addon.GetDB("animations", true) then
         for i = 1, addon.POOL_SIZE do
             local e = pool[i]
@@ -1112,6 +1150,7 @@ local function FullLayout()
                 local prevY = slideUpStarts[key]
                 if prevY and prevY ~= e.finalY then
                     addon.SetEntrySlideUp(e, prevY)
+                    slideUpCount = slideUpCount + 1
                 end
             end
         end
@@ -1124,12 +1163,54 @@ local function FullLayout()
                 if prevY and prevY ~= s.finalY then
                     s.slideUpStartY = prevY
                     s.slideUpAnimTime = 0
+                    slideUpCount = slideUpCount + 1
+                elseif isCategoryChangeReflow and not prevY then
+                    s:SetAlpha(0)
+                    if not addon.focus.categoryChange.fadeInPendingHeaders then
+                        addon.focus.categoryChange.fadeInPendingHeaders = {}
+                    end
+                    addon.focus.categoryChange.fadeInPendingHeaders[#addon.focus.categoryChange.fadeInPendingHeaders + 1] = s
                 end
             end
         end
     end
     if useWQExpand and addon.ApplyGroupExpandSlideDown then
         addon.ApplyGroupExpandSlideDown()
+    end
+
+    if isCategoryChangeReflow and addon.GetDB("animations", true) then
+        addon.focus.categoryChange.slideUpRemaining = slideUpCount
+        addon.focus.categoryChange.onSlideUpComplete = function()
+            addon.focus.categoryChange.onSlideUpComplete = nil
+            addon.focus.categoryChange.slideUpRemaining = nil
+            local pending = addon.focus.categoryChange.fadeInPendingEntries
+            if pending then
+                for _, t in ipairs(pending) do
+                    if t.entry and addon.SetEntryFadeIn then
+                        addon.SetEntryFadeIn(t.entry, t.staggerIndex or 0)
+                    end
+                end
+                addon.focus.categoryChange.fadeInPendingEntries = nil
+            end
+            local pendingH = addon.focus.categoryChange.fadeInPendingHeaders
+            if pendingH and #pendingH > 0 then
+                addon.focus.collapse.sectionHeadersFadingIn = true
+                addon.focus.collapse.sectionHeaderFadeTime = 0
+                local stagger = addon.FOCUS_ANIM and addon.FOCUS_ANIM.stagger or 0.05
+                for i, s in ipairs(pendingH) do
+                    if s and s.active then
+                        s.staggerDelay = (i - 1) * stagger
+                    end
+                end
+                addon.focus.categoryChange.fadeInPendingHeaders = nil
+            end
+            addon.focus.categoryChange.slideUpStarts = nil
+            addon.focus.categoryChange.slideUpStartsSec = nil
+            if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
+        end
+        if slideUpCount == 0 then
+            addon.focus.categoryChange.onSlideUpComplete()
+        end
     end
 
     addon.UpdateHeaderQuestCount(#quests, addon.CountTrackedInLog(quests))
