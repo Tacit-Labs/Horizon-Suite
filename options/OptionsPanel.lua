@@ -839,6 +839,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 local m = getMatrix()
                 local v = m.overrides and m.overrides[key]
                 if key == "useCompletedOverride" and v == nil then return true end  -- Default on
+                if key == "useCurrentQuestOverride" and v == nil then return true end  -- Default on
                 return v
             end
             local function setOverride(key, v)
@@ -870,12 +871,13 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 h = h + SectionGap + RowHeights.sectionLabel     -- Grouping Overrides header
                 h = h + OptionGap + 38                           -- toggle 1
                 h = h + OptionGap + 38                           -- toggle 2
+                h = h + OptionGap + 38                           -- toggle 3 (Current Quest)
                 for i = n + 1, #allGroupFrames do
                     h = h + OptionGap + allGroupFrames[i]:GetHeight()
                 end
                 h = h + SectionGap + RowHeights.sectionLabel     -- Other colors header
                 h = h + OptionGap + 38                           -- Use distinct color for completed objectives toggle
-                h = h + 2 * (GROUP_ROW_GAP + GROUP_ROW_H)        -- Highlight + Completed objective rows
+                h = h + 4 * (GROUP_ROW_GAP + GROUP_ROW_H)        -- Highlight, Completed objective, Progress bar fill, Progress bar text
                 currentCard:SetHeight(h + CardPadding)
                 currentCard.contentHeight = h
             end
@@ -919,7 +921,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 -- Swatch preview: show the title colour as a small swatch on the header.
                 local baseTitleColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[key]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                 local baseSectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.7, 0.7, 0.7 }
-                local titleDef = (key == "NEARBY") and baseSectionColor or baseTitleColor  -- Current Zone: title matches section
+                local titleDef = (key == "NEARBY" or key == "CURRENT") and baseSectionColor or baseTitleColor  -- Current Zone / Current Quest: title matches section
 
                 -- Reset button (child of container so click does not toggle expand)
                 local resetBtn = OptionsWidgets_CreateButton(container, L["Reset"], function()
@@ -1040,7 +1042,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             if type(groupOrder) ~= "table" or #groupOrder == 0 then
                 groupOrder = addon.GROUP_ORDER or {}
             end
-            local GROUPING_OVERRIDE_KEYS = { NEARBY = true, COMPLETE = true }
+            local GROUPING_OVERRIDE_KEYS = { CURRENT = true, NEARBY = true, COMPLETE = true }
             local perCategoryOrder = {}
             local groupingOverrideOrder = {}
             for _, key in ipairs(groupOrder) do
@@ -1087,6 +1089,12 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             ovCurrentZone:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             ovCurrentZone:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = ovCurrentZone
+            currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
+
+            local ovCurrentQuest = OptionsWidgets_CreateToggleSwitch(cardContent, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v) setOverride("useCurrentQuestOverride", v) end)
+            ovCurrentQuest:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            ovCurrentQuest:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
+            currentCard.contentAnchor = ovCurrentQuest
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
 
             for _, key in ipairs(groupingOverrideOrder) do
@@ -1137,6 +1145,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                     for _, r in ipairs(otherRows) do if r.Refresh then r:Refresh() end end
                     if ovCompleted and ovCompleted.Refresh then ovCompleted:Refresh() end
                     if ovCurrentZone and ovCurrentZone.Refresh then ovCurrentZone:Refresh() end
+                    if ovCurrentQuest and ovCurrentQuest.Refresh then ovCurrentQuest:Refresh() end
                     if ovCompletedObj and ovCompletedObj.Refresh then ovCompletedObj:Refresh() end
                 end,
             })

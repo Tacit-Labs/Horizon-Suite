@@ -32,6 +32,17 @@ local function EnsureColorMatrix()
         end
     end
 
+    -- Seed CURRENT and NEARBY title to match section (coral / sky blue) when not already set
+    for _, key in ipairs({ "CURRENT", "NEARBY" }) do
+        local sec = addon.SECTION_COLORS and addon.SECTION_COLORS[key]
+        if sec and type(sec) == "table" and sec[1] and sec[2] and sec[3] then
+            if not cm.categories[key] then cm.categories[key] = {} end
+            if not cm.categories[key].title then
+                cm.categories[key].title = { sec[1], sec[2], sec[3] }
+            end
+        end
+    end
+
     addon.SetDB("colorMatrix", cm)
 end
 
@@ -60,6 +71,12 @@ local function GetEffectiveColorCategory(category, groupKey, baseCategory, isEve
     end
     if groupKey == "NEARBY" and ov.useCurrentZoneOverride then
         return "NEARBY"
+    end
+    if groupKey == "CURRENT" and (ov.useCurrentQuestOverride == nil or ov.useCurrentQuestOverride) then
+        return "CURRENT"
+    end
+    if groupKey == "CURRENT" and baseCategory then
+        return baseCategory  -- Use underlying category when override is off
     end
     -- AVAILABLE (Events in Zone): all entries use the same colour.
     if groupKey == "AVAILABLE" then

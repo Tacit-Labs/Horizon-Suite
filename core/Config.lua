@@ -99,6 +99,7 @@ addon.ZONE_COLOR      = { 0.55, 0.65, 0.75 }
 
 addon.QUEST_COLORS = {
     DEFAULT   = { 0.90, 0.90, 0.90 },
+    CURRENT   = { 0.95, 0.55, 0.45 },  -- coral, matches SECTION_COLORS.CURRENT (Current Quest)
     AVAILABLE = { 0.25, 0.88, 0.92 },  -- cyan/teal, matches SECTION_COLORS.AVAILABLE (Available in Zone)
     NEARBY    = { 0.35, 0.75, 0.98 },  -- sky blue, matches SECTION_COLORS.NEARBY (Current Zone)
     CAMPAIGN  = { 1.00, 0.82, 0.20 },
