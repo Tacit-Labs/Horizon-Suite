@@ -513,7 +513,7 @@ local function OnQuestWatchUpdate(_, questID)
     RequestQuestUpdate(questID, false, "QUEST_WATCH_UPDATE")
 end
 
--- Guess active quest ID for blind QUEST_LOG_UPDATE/UI_INFO_MESSAGE (super-tracked or nearby WQ).
+-- Guess active quest ID for blind QUEST_LOG_UPDATE/UI_INFO_MESSAGE (super-tracked, nearby WQ, or tracked).
 -- Super-tracked quest is used for any type (campaign, world, etc.) so normal quests get correct colour/name.
 local function GetWorldQuestIDForObjectiveUpdate()
     local super = (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) and C_SuperTrack.GetSuperTrackedQuestID() or 0
@@ -522,7 +522,7 @@ local function GetWorldQuestIDForObjectiveUpdate()
             return super
         end
     end
-    -- 2. Nearby Tracked
+    -- 2. Nearby Tracked (world/calling)
     if addon.ReadTrackedQuests then
         local candidates = {}
         for _, q in ipairs(addon.ReadTrackedQuests()) do
@@ -531,6 +531,63 @@ local function GetWorldQuestIDForObjectiveUpdate()
             end
         end
         if #candidates > 0 then return candidates[1] end
+    end
+    -- 3. First tracked quest (any category) — for normal quests when super-tracked and nearby WQ both nil
+    if C_QuestLog and C_QuestLog.GetNumQuestWatches and C_QuestLog.GetQuestIDForQuestWatchIndex then
+        local numWatches = C_QuestLog.GetNumQuestWatches()
+        for i = 1, numWatches do
+            local qid = C_QuestLog.GetQuestIDForQuestWatchIndex(i)
+            if qid and qid > 0 and not (C_QuestLog.IsComplete and C_QuestLog.IsComplete(qid)) then
+                return qid
+            end
+        end
+    end
+    return nil
+end
+
+-- Resolve quest ID by matching normalized objective text against quest log. Used when GetWorldQuestIDForObjectiveUpdate returns nil.
+--- @param normalizedObjectiveText string Normalized "X/Y Objective" format
+--- @return number|nil questID if a matching quest is found
+local function GetQuestIDFromObjectiveText(normalizedObjectiveText)
+    if not normalizedObjectiveText or normalizedObjectiveText == "" then return nil end
+    if not C_QuestLog or not C_QuestLog.GetQuestObjectives then return nil end
+
+    local function objectivesMatch(questID)
+        local objectives = C_QuestLog.GetQuestObjectives(questID) or {}
+        for _, o in ipairs(objectives) do
+            local text = (o and o.text) and StripPresenceMarkup(o.text) or ""
+            if text ~= "" then
+                local norm = NormalizeQuestUpdateText(text)
+                if norm == normalizedObjectiveText then return true end
+            end
+        end
+        return false
+    end
+
+    -- 1. Super-tracked first
+    local super = (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) and C_SuperTrack.GetSuperTrackedQuestID() or 0
+    if super and super > 0 and not (C_QuestLog.IsComplete and C_QuestLog.IsComplete(super)) and objectivesMatch(super) then
+        return super
+    end
+
+    -- 2. Tracked quests
+    if C_QuestLog.GetNumQuestWatches and C_QuestLog.GetQuestIDForQuestWatchIndex then
+        local numWatches = C_QuestLog.GetNumQuestWatches()
+        for i = 1, numWatches do
+            local qid = C_QuestLog.GetQuestIDForQuestWatchIndex(i)
+            if qid and qid > 0 and objectivesMatch(qid) then return qid end
+        end
+    end
+
+    -- 3. Full quest log (IsOnQuest only)
+    if C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetInfo and C_QuestLog.IsOnQuest then
+        local numEntries = select(1, C_QuestLog.GetNumQuestLogEntries()) or 0
+        for i = 1, numEntries do
+            local ok, info = pcall(C_QuestLog.GetInfo, i)
+            if ok and info and not info.isHeader and info.questID and C_QuestLog.IsOnQuest(info.questID) and objectivesMatch(info.questID) then
+                return info.questID
+            end
+        end
     end
     return nil
 end
@@ -575,14 +632,20 @@ local function OnUIInfoMessage(_, msgType, msg)
             or (readyTurnIn and plain == readyTurnIn) then
             return
         end
-        -- Try to map this message to the active WQ
+        local stripped = StripPresenceMarkup(msg or "")
+        local normalized = NormalizeQuestUpdateText(stripped)
+
+        -- Try to map this message to a quest: super-tracked, nearby WQ, tracked, or objective match
         local questID = GetWorldQuestIDForObjectiveUpdate()
-        
+        if not questID and normalized ~= "" then
+            questID = GetQuestIDFromObjectiveText(normalized)
+        end
+
         if questID then
-            -- If we have an ID, use the standard update path (it handles debounce/cache)
+            -- Use the standard update path (handles debounce/cache, shows quest name)
             RequestQuestUpdate(questID, true, "UI_INFO_MESSAGE")
         else
-            -- Fallback for non-mapped messages.
+            -- Fallback for non-mapped messages (e.g. untracked quest with no match in log).
             -- Defer by UPDATE_BUFFER_TIME so QUEST_WATCH_UPDATE (which fires slightly
             -- later) gets a chance to create a proper debounced update with the
             -- correct questID, title, and icon.  If a pending update appears in
@@ -594,9 +657,6 @@ local function OnUIInfoMessage(_, msgType, msg)
             local now = GetTime()
             if lastUIInfoMsg == msg and (now - lastUIInfoTime) < UI_MSG_THROTTLE then return end
             lastUIInfoMsg, lastUIInfoTime = msg, now
-
-            local stripped = StripPresenceMarkup(msg or "")
-            local normalized = NormalizeQuestUpdateText(stripped)
 
             -- Cancel any previous standalone timer (only one in-flight at a time)
             if pendingStandaloneTimer then
