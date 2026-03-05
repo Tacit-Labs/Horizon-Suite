@@ -30,9 +30,13 @@ local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
 local function setDB(k, v) return addon.OptionsData_SetDB(k, v) end
 local function notifyMainAddon() return addon.OptionsData_NotifyMainAddon() end
 
--- Card collapse state: default collapsed (true) when key not in table
+-- Card collapse state: default collapsed (true) when key not in table; sectionDefaultCollapsed overrides when key absent
 local cardCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsCardCollapsed) or {}
-local function GetCardCollapsed(sectionKey) return cardCollapsed[sectionKey] ~= false end
+local sectionDefaultCollapsed = {}
+local function GetCardCollapsed(sectionKey)
+    if cardCollapsed[sectionKey] ~= nil then return cardCollapsed[sectionKey] end
+    return sectionDefaultCollapsed[sectionKey] or true
+end
 local function SetCardCollapsed(sectionKey, v)
     cardCollapsed[sectionKey] = v
     local db = _G[addon.DB_NAME]
@@ -493,6 +497,9 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             if currentCard then FinalizeCard(currentCard) end
             local hasHeader = opt.name and opt.name ~= ""
             local sectionKey = hasHeader and (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_")) or nil
+            if opt.defaultCollapsed and sectionKey then
+                sectionDefaultCollapsed[sectionKey] = true
+            end
             currentCard = OptionsWidgets_CreateSectionCard(tab, anchor, sectionKey, GetCardCollapsed, SetCardCollapsed)
             if hasHeader then
                 local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name, sectionKey, GetCardCollapsed, SetCardCollapsed)
@@ -507,8 +514,20 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 currentCard.contentHeight = CardPadding
             end
             anchor = currentCard
+        elseif opt.type == "header" and currentCard then
+            local cardContent = currentCard.contentContainer or currentCard
+            local lbl = cardContent:CreateFontString(nil, "OVERLAY")
+            lbl:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.SectionSize or 11, "OUTLINE")
+            SetTextColor(lbl, Def.TextColorSection or { 0.58, 0.64, 0.74 })
+            lbl:SetText(opt.name or "")
+            lbl:SetJustifyH("LEFT")
+            lbl:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            lbl:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
+            currentCard.contentAnchor = lbl
+            currentCard.contentHeight = currentCard.contentHeight + OptionGap + 12
         elseif opt.type == "toggle" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
+            local contentAnchor = currentCard.contentAnchor
             local origSet = opt.set
             local setFn = origSet
             if opt.refreshIds and optionFrames then
@@ -521,7 +540,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 end
             end
             local w = OptionsWidgets_CreateToggleSwitch(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, setFn, opt.disabled, opt.tooltip)
-            w:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            w:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.toggle
@@ -530,6 +549,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             table.insert(refreshers, w)
         elseif opt.type == "slider" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
+            local contentAnchor = currentCard.contentAnchor
             local origSet = opt.set
             local setFn = origSet
             if opt.refreshIds and optionFrames then
@@ -542,7 +562,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 end
             end
             local w = OptionsWidgets_CreateSlider(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, setFn, opt.min, opt.max, opt.disabled, opt.step, opt.tooltip)
-            w:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            w:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.slider
@@ -551,6 +571,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             table.insert(refreshers, w)
         elseif opt.type == "dropdown" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
+            local contentAnchor = currentCard.contentAnchor
             local searchable = (opt.dbKey == "fontPath") or (opt.searchable == true)
             local origSet = opt.set
             local setFn = origSet
@@ -564,7 +585,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 end
             end
             local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, setFn, opt.displayFn, searchable, opt.disabled, opt.tooltip)
-            w:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            w:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.dropdown
@@ -609,7 +630,8 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 setKeyVal = function(v) setDB(opt.dbKey, v) end
             end
             local cardContent = currentCard.contentContainer or currentCard
-            local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, opt.name or "Color", def, getTbl, setKeyVal, notifyMainAddon, nil, hasAlpha, opt.tooltip)
+            local contentAnchor = currentCard.contentAnchor
+            local row = OptionsWidgets_CreateColorSwatchRow(cardContent, contentAnchor, opt.name or "Color", def, getTbl, setKeyVal, notifyMainAddon, nil, hasAlpha, opt.tooltip)
             currentCard.contentAnchor = row
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.colorRow
             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
@@ -617,6 +639,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             table.insert(refreshers, row)
         elseif opt.type == "button" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
+            local contentAnchor = currentCard.contentAnchor
             local btn = OptionsWidgets_CreateButton(cardContent, opt.name or L["Reset"], function()
                 if opt.onClick then opt.onClick() end
                 if opt.refreshIds and optionFrames then
@@ -627,16 +650,17 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 end
                 notifyMainAddon()
             end, { height = 22, tooltip = opt.tooltip })
-            btn:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            btn:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             btn:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = btn
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 22
         elseif opt.type == "editbox" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
+            local contentAnchor = currentCard.contentAnchor
             local EDITBOX_HEIGHT = opt.height or 60
             local wrapper = CreateFrame("Frame", nil, cardContent)
             wrapper:SetHeight(EDITBOX_HEIGHT + (opt.labelText and 16 or 0))
-            wrapper:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            wrapper:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             wrapper:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             local yOff = 0
             if opt.labelText then
@@ -1569,7 +1593,8 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local w
             if currentCard then
                 local cardContent = currentCard.contentContainer or currentCard
-                w = OptionsWidgets_CreateReorderList(cardContent, currentCard.contentAnchor, opt, scrollFrame, panel, notifyMainAddon)
+                local contentAnchor = currentCard.contentAnchor
+                w = OptionsWidgets_CreateReorderList(cardContent, contentAnchor, opt, scrollFrame, panel, notifyMainAddon)
                 currentCard.contentAnchor = w
                 currentCard.contentHeight = currentCard.contentHeight + OptionGap + (w:GetHeight() or 0)
             else
@@ -1615,11 +1640,13 @@ local COLLAPSE_ANIM_DUR = 0.18
 local easeOut = addon.easeOut or function(t) return 1 - (1-t)*(1-t) end
 
 local lastSidebarRow = nil
--- Groups always start collapsed on open; state is not persisted across sessions.
-local groupCollapsed = {}
+-- Sidebar group collapse state: persisted in optionsSidebarGroupCollapsed
+local groupCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsSidebarGroupCollapsed) or {}
 local function GetGroupCollapsed(mk) return groupCollapsed[mk] ~= false end
 local function SetGroupCollapsed(mk, v)
     groupCollapsed[mk] = v
+    local db = _G[addon.DB_NAME]
+    if db then db.optionsSidebarGroupCollapsed = groupCollapsed end
 end
 
 for _, mk in ipairs(groupOrder) do
