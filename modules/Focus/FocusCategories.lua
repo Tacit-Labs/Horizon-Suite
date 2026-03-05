@@ -36,8 +36,9 @@ local function GetQuestBaseCategory(questID)
     end
     if C_QuestLog.GetQuestTagInfo then
         local ok, tagInfo = pcall(C_QuestLog.GetQuestTagInfo, questID)
-        if ok and tagInfo and tagInfo.tagID == 62 then
-            return "RAID"
+        if ok and tagInfo then
+            if tagInfo.tagID == 62 then return "RAID" end
+            if tagInfo.tagID == 81 then return "DUNGEON" end
         end
     end
     -- Classification (single source): Normal, Important, Legendary, Campaign, Calling, Meta, Recurring, Questline.

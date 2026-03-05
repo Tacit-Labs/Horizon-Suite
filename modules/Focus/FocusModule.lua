@@ -60,6 +60,32 @@ StopScenarioTimerHeartbeat = function()
     end
 end
 
+local CURRENT_QUEST_WINDOW_DEFAULT = 60
+
+local function StartCurrentQuestExpiryTicker()
+    if addon._currentQuestExpiryTicker then
+        addon._currentQuestExpiryTicker:Cancel()
+        addon._currentQuestExpiryTicker = nil
+    end
+    local interval = tonumber(addon.GetDB("currentQuestWindowSec", CURRENT_QUEST_WINDOW_DEFAULT)) or CURRENT_QUEST_WINDOW_DEFAULT
+    interval = math.max(30, math.min(120, interval))
+    addon._currentQuestExpiryTicker = C_Timer.NewTicker(interval, function()
+        if not addon.focus.enabled then return end
+        if not addon.GetDB("showCurrentQuestCategory", true) then return end
+        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+    end)
+end
+
+local function StopCurrentQuestExpiryTicker()
+    if addon._currentQuestExpiryTicker then
+        addon._currentQuestExpiryTicker:Cancel()
+        addon._currentQuestExpiryTicker = nil
+    end
+end
+
+addon.StartCurrentQuestExpiryTicker = StartCurrentQuestExpiryTicker
+addon.StopCurrentQuestExpiryTicker = StopCurrentQuestExpiryTicker
+
 local function StartScenarioBarTicker()
     if addon._scenarioBarTicker then return end
     addon._scenarioBarTicker = C_Timer.NewTicker(1, function()
@@ -154,6 +180,9 @@ addon:RegisterModule("focus", {
         if addon.IsScenarioActive and addon.IsScenarioActive() then
             StartScenarioTimerHeartbeat()
         end
+        if addon.GetDB("showCurrentQuestCategory", true) then
+            StartCurrentQuestExpiryTicker()
+        end
         StartScenarioBarTicker()
         StartMapChangedListener()
         -- Proximity ticker removed: TASK_PROGRESS_UPDATE fires when the player enters
@@ -170,6 +199,7 @@ addon:RegisterModule("focus", {
     OnDisable = function()
         addon.focus.enabled = false
         StopScenarioTimerHeartbeat()
+        StopCurrentQuestExpiryTicker()
         StopScenarioBarTicker()
         StopMapChangedListener()
         if addon.HS then addon.HS:SetScript("OnUpdate", nil) end

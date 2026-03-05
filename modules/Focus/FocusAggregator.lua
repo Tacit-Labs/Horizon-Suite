@@ -26,9 +26,57 @@ end
 
 -- Category order for questType sort (lower = earlier)
 local CATEGORY_SORT_ORDER = {
-    COMPLETE = 1, CAMPAIGN = 2, IMPORTANT = 3, LEGENDARY = 4,
+    CURRENT = 0, COMPLETE = 1, CAMPAIGN = 2, IMPORTANT = 3, LEGENDARY = 4,
     DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, DAILY = 8, CALLING = 9, RARE = 10, DEFAULT = 11,
 }
+
+local CURRENT_QUEST_WINDOW_DEFAULT = 60
+local CURRENT_QUEST_EXPIRED_GRACE_SEC = 600
+
+--- Returns true if the quest had progress (objectives or accept) within the configured window.
+--- Lazily removes expired entries from recentlyProgressedQuests.
+--- When expiring, records questID in recentlyExpiredFromCurrent for NEARBY routing.
+--- @param questID number
+--- @return boolean
+local function IsQuestRecentlyProgressed(questID)
+    if not questID or questID <= 0 then return false end
+    local cache = addon.focus and addon.focus.recentlyProgressedQuests
+    if type(cache) ~= "table" then return false end
+
+    local window = tonumber(addon.GetDB("currentQuestWindowSec", CURRENT_QUEST_WINDOW_DEFAULT)) or CURRENT_QUEST_WINDOW_DEFAULT
+    local now = GetTime()
+
+    local ts = cache[questID]
+    if not ts then return false end
+    if now - ts >= window then
+        if not addon.focus.recentlyExpiredFromCurrent then addon.focus.recentlyExpiredFromCurrent = {} end
+        addon.focus.recentlyExpiredFromCurrent[questID] = now
+        cache[questID] = nil
+        return false
+    end
+    return true
+end
+
+--- Returns true if the quest recently expired from CURRENT and is within the grace period.
+--- Lazily removes expired entries from recentlyExpiredFromCurrent.
+--- @param questID number
+--- @return boolean
+local function IsQuestRecentlyExpiredFromCurrent(questID)
+    if not questID or questID <= 0 then return false end
+    local cache = addon.focus and addon.focus.recentlyExpiredFromCurrent
+    if type(cache) ~= "table" then return false end
+
+    local grace = CURRENT_QUEST_EXPIRED_GRACE_SEC
+    local now = GetTime()
+
+    local ts = cache[questID]
+    if not ts then return false end
+    if now - ts >= grace then
+        cache[questID] = nil
+        return false
+    end
+    return true
+end
 
 local function CompareEntriesBySortMode(a, b)
     if currentSortGroup == "NEARBY" and addon.GetDB("nearbyCompleteToBottom", true) then
@@ -87,8 +135,19 @@ local function SortAndGroupQuests(quests)
     for _, key in ipairs(order) do
         groups[key] = {}
     end
+
+    local showCurrent = addon.GetDB("showCurrentQuestCategory", true) and groups["CURRENT"]
+    local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
     for _, q in ipairs(quests) do
-        if q.isRare or q.category == "RARE" then
+        if showCurrent and q.questID and IsQuestRecentlyProgressed(q.questID) then
+            groups["CURRENT"][#groups["CURRENT"] + 1] = q
+        elseif addon.GetDB("showNearbyGroup", true) and groups["NEARBY"]
+            and q.questID and q.isAccepted
+            and IsQuestRecentlyExpiredFromCurrent(q.questID)
+            and (q.isNearby or (q.zoneName and playerZone and q.zoneName:lower() == playerZone:lower()))
+        then
+            groups["NEARBY"][#groups["NEARBY"] + 1] = q
+        elseif q.isRare or q.category == "RARE" then
             groups["RARES"][#groups["RARES"] + 1] = q
         elseif q.isDungeonQuest or q.category == "DUNGEON" then
             groups["DUNGEON"][#groups["DUNGEON"] + 1] = q

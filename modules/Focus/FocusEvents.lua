@@ -114,13 +114,20 @@ local function BuildObjectiveSignature(questID)
     return table.concat(parts, ";")
 end
 
---- Checks if a quest's objectives changed vs cache; if so, triggers flash on the matching entry.
---- Skips if objectiveProgressFlash is off or if this is the first time we see the quest (no prior cache).
+--- Records quest progress for the Current Quest category (recentlyProgressedQuests).
+--- @param questID number
+local function RecordQuestProgress(questID)
+    if not questID or questID <= 0 then return end
+    if not addon.focus.recentlyProgressedQuests then addon.focus.recentlyProgressedQuests = {} end
+    addon.focus.recentlyProgressedQuests[questID] = GetTime()
+end
+
+--- Checks if a quest's objectives changed vs cache; if so, records progress and optionally triggers flash.
+--- Records progress for Current Quest category regardless of flash setting.
 --- @param questID number
 --- @return boolean True if flash was triggered
 local function CheckQuestObjectiveChangeAndFlash(questID)
     if not questID or questID <= 0 then return false end
-    if not addon.GetDB("objectiveProgressFlash", true) then return false end
 
     local cache = addon.focus.lastQuestObjectiveSignature
     local current = BuildObjectiveSignature(questID)
@@ -129,11 +136,16 @@ local function CheckQuestObjectiveChangeAndFlash(questID)
     local prior = cache[questID]
     cache[questID] = current
 
-    -- First time seeing this quest: no "change" to flash.
+    -- First time seeing this quest: no "change" to record or flash.
     if prior == nil then return false end
     if prior == current then return false end
 
-    -- Change detected: flash only the matching pool entry.
+    -- Change detected: always record for Current Quest category.
+    RecordQuestProgress(questID)
+
+    -- Flash only when the option is on.
+    if not addon.GetDB("objectiveProgressFlash", true) then return false end
+
     for i = 1, addon.POOL_SIZE do
         local e = addon.pool[i]
         if e and e.questID == questID then
@@ -321,6 +333,8 @@ end
 local function OnQuestAccepted(questID)
     if not addon.focus.enabled then ScheduleRefresh(); return end
     if not questID or questID <= 0 then ScheduleRefresh(); return end
+
+    RecordQuestProgress(questID)
 
     local isWQ = (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID))
         or (C_QuestLog and C_QuestLog.IsWorldQuest and C_QuestLog.IsWorldQuest(questID))

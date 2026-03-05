@@ -71,6 +71,10 @@ addon.focus = {
         onFadeOutComplete = nil,
     },
 
+    categoryChange = {
+        prevGroupKey = {},  -- [key] = groupKey from last successful layout
+    },
+
     callbacks = {
         onSlideOutComplete = nil,
     },
@@ -95,6 +99,12 @@ addon.focus = {
 
     -- Objective signature cache for reliable quest-update flash (FocusEvents)
     lastQuestObjectiveSignature       = {},
+
+    -- Current Quest category: [questID] = GetTime() when progress was last detected
+    recentlyProgressedQuests          = {},
+
+    -- [questID] = GetTime() when quest expired from recentlyProgressedQuests; used to route to NEARBY
+    recentlyExpiredFromCurrent        = {},
 
     -- M+ size restore: track when we were in M+ so we can restore overworld height on zone-out
     wasInMplusDungeon                 = false,

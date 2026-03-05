@@ -426,26 +426,40 @@ local function UpdateEntryAnimations(dt, useAnim)
                     addon.promotionFadeOutCount = (addon.promotionFadeOutCount or 0) - 1
                     e.promotionFadeOut = nil
                 end
+                local wasCategoryChange = e.categoryChangeFadeOut
+                if wasCategoryChange then
+                    addon.categoryChangeFadeOutCount = (addon.categoryChangeFadeOutCount or 0) - 1
+                    e.categoryChangeFadeOut = nil
+                end
                 addon.ClearEntry(e)
                 if wasPromotion and addon.promotionFadeOutCount == 0 and addon.onPromotionFadeOutCompleteCallback then
                     addon.onPromotionFadeOutCompleteCallback()
+                elseif wasCategoryChange and addon.categoryChangeFadeOutCount == 0 and addon.onCategoryChangeFadeOutCompleteCallback then
+                    addon.onCategoryChangeFadeOutCompleteCallback()
                 end
             else
                 local p  = GetProgress(e.animTime, 0, anim.dur)
                 local ep = addon.easeIn(p)
                 e:SetAlpha(1 - ep)
-                local driftY = ep * anim.driftOutY
+                local slideX = ep * anim.slideOutX
                 e:ClearAllPoints()
-                e:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", e.finalX, e.finalY + driftY)
+                e:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", e.finalX + slideX, e.finalY)
                 if p >= 1 then
                     local wasPromotion = e.promotionFadeOut
                     if wasPromotion then
                         addon.promotionFadeOutCount = (addon.promotionFadeOutCount or 0) - 1
                         e.promotionFadeOut = nil
                     end
+                    local wasCategoryChange = e.categoryChangeFadeOut
+                    if wasCategoryChange then
+                        addon.categoryChangeFadeOutCount = (addon.categoryChangeFadeOutCount or 0) - 1
+                        e.categoryChangeFadeOut = nil
+                    end
                     addon.ClearEntry(e)
                     if wasPromotion and addon.promotionFadeOutCount == 0 and addon.onPromotionFadeOutCompleteCallback then
                         addon.onPromotionFadeOutCompleteCallback()
+                    elseif wasCategoryChange and addon.categoryChangeFadeOutCount == 0 and addon.onCategoryChangeFadeOutCompleteCallback then
+                        addon.onCategoryChangeFadeOutCompleteCallback()
                     end
                 end
             end
