@@ -875,7 +875,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 end
                 h = h + SectionGap + RowHeights.sectionLabel     -- Other colors header
                 h = h + OptionGap + 38                           -- Use distinct color for completed objectives toggle
-                h = h + 2 * (GROUP_ROW_GAP + GROUP_ROW_H)        -- Highlight + Completed objective rows
+                h = h + 4 * (GROUP_ROW_GAP + GROUP_ROW_H)        -- Highlight, Completed objective, Progress bar fill, Progress bar text
                 currentCard:SetHeight(h + CardPadding)
                 currentCard.contentHeight = h
             end
