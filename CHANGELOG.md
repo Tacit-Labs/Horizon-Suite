@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.8.3] – 2026-03-06
+
+### 🔧 Improvements
+
+- **(Focus) Abundance scenario display improvements and scenario debug option** — Abundance scenario objectives (e.g. 46/300) now show correctly via widget fallback when C_ScenarioInfo returns percent-only; progress bar shows X/Y abundance held/bag; duplicate X/Y stripped in tracker and Presence toasts; new scenario debug logging toggle for diagnosing display issues.
+
+---
+
 ## [3.8.2] – 2026-03-06
 
 ### 🔧 Improvements
