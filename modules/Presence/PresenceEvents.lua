@@ -1195,6 +1195,7 @@ end
 
 local achievementProgressCache = {}
 local achievementProgressTimer = nil
+local pendingAchievementIDs = {}
 local ACHIEVEMENT_PROGRESS_DEBOUNCE = 0.6
 local ACHIEVEMENT_PROGRESS_DEDUPE = 3
 
@@ -1268,14 +1269,24 @@ local function GetTrackedAchievementIDs()
     return ids
 end
 
-local function ExecuteAchievementProgressCheck()
+--- @param pendingIDs table|nil Optional set of achievement IDs from event payloads (CRITERIA_EARNED, TRACKED_ACHIEVEMENT_UPDATE)
+local function ExecuteAchievementProgressCheck(pendingIDs)
     achievementProgressTimer = nil
     if not IsPresenceTypeEnabled("presenceAchievementProgress", nil, false) then return end
 
-    local trackedIDs = GetTrackedAchievementIDs()
-    if #trackedIDs == 0 then return end
+    local idsToCheck = {}
+    for achID, _ in pairs(pendingIDs or {}) do
+        if type(achID) == "number" and achID > 0 then
+            idsToCheck[achID] = true
+        end
+    end
+    for _, achID in ipairs(GetTrackedAchievementIDs()) do
+        if type(achID) == "number" and achID > 0 then
+            idsToCheck[achID] = true
+        end
+    end
 
-    for _, achID in ipairs(trackedIDs) do
+    for achID, _ in pairs(idsToCheck) do
         local newState = SerializeAchievementProgress(achID)
         if newState then
             local oldState = achievementProgressCache[achID]
@@ -1298,10 +1309,20 @@ local function ExecuteAchievementProgressCheck()
     end
 end
 
-local function OnAchievementCriteriaUpdate()
+local function OnAchievementCriteriaUpdate(event, achievementID, ...)
     if not IsPresenceTypeEnabled("presenceAchievementProgress", nil, false) then return end
+    if achievementID and type(achievementID) == "number" and achievementID > 0 then
+        pendingAchievementIDs[achievementID] = true
+    end
     if achievementProgressTimer then achievementProgressTimer:Cancel() end
-    achievementProgressTimer = C_Timer.After(ACHIEVEMENT_PROGRESS_DEBOUNCE, ExecuteAchievementProgressCheck)
+    achievementProgressTimer = C_Timer.After(ACHIEVEMENT_PROGRESS_DEBOUNCE, function()
+        local pending = {}
+        for id, _ in pairs(pendingAchievementIDs) do
+            pending[id] = true
+        end
+        wipe(pendingAchievementIDs)
+        ExecuteAchievementProgressCheck(pending)
+    end)
 end
 
 addon.Presence._seedAchievementProgress = function()
