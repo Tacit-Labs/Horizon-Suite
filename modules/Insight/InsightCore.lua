@@ -486,16 +486,39 @@ local function ProcessUnitTooltip()
 
     StripHealthAndPowerText()
 
-    -- Non-player: reaction-coloured name, plain border, no accent bar
+    -- Non-player: reaction-coloured name, reaction-coloured border, level/classification/creature type
     if not isPlayer then
-        GameTooltip:SetBackdropBorderColor(PANEL_BORDER[1], PANEL_BORDER[2], PANEL_BORDER[3], PANEL_BORDER[4])
+        local reaction = UnitReaction(unit, "player")
+        local c = (reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction]) and FACTION_BAR_COLORS[reaction] or nil
+        if c then
+            GameTooltip:SetBackdropBorderColor(c.r, c.g, c.b, 0.60)
+        else
+            GameTooltip:SetBackdropBorderColor(PANEL_BORDER[1], PANEL_BORDER[2], PANEL_BORDER[3], PANEL_BORDER[4])
+        end
         if Insight.accentBar then Insight.accentBar:Hide() end
         local nameLeft = _G["GameTooltipTextLeft1"]
-        if nameLeft then
-            local reaction = UnitReaction(unit, "player")
-            if reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction] then
-                local c = FACTION_BAR_COLORS[reaction]
-                nameLeft:SetTextColor(c.r, c.g, c.b)
+        if nameLeft and c then
+            nameLeft:SetTextColor(c.r, c.g, c.b)
+        end
+        -- Option A: "Level 70 Elite Humanoid" (minimal single line); replace Blizzard's line 2 if present
+        local level = UnitLevel(unit)
+        local levelStr = (level and level >= 0) and tostring(level) or "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t"
+        local classification = UnitClassification(unit)
+        local classStr = (classification == "elite" and "Elite") or (classification == "rare" and "Rare") or (classification == "rareelite" and "Rare Elite") or (classification == "worldboss" and "World Boss") or (classification == "trivial" and "Trivial") or nil
+        local creatureType = UnitCreatureType(unit)
+        local parts = {}
+        parts[#parts + 1] = "Level " .. levelStr
+        if classStr then parts[#parts + 1] = classStr end
+        if creatureType and creatureType ~= "" then parts[#parts + 1] = creatureType end
+        local lineText = #parts > 0 and table.concat(parts, " ") or nil
+        if lineText then
+            local lineLeft = _G["GameTooltipTextLeft2"]
+            local gray = 0.75
+            if lineLeft then
+                lineLeft:SetText(lineText)
+                lineLeft:SetTextColor(gray, gray, gray)
+            else
+                GameTooltip:AddLine(lineText, gray, gray, gray)
             end
         end
         StyleFonts(GameTooltip)
