@@ -16,6 +16,7 @@ All notable changes to Horizon Suite are documented here.
 
 - **(Focus) Sub-setting to filter progress bar by X/Y or percent-only objectives** — Dropdown under the progress bar toggle lets you show bars for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
 - **(Insight) NPC tooltips: reaction-colored border, level/classification/creature type, skull icon** — NPC tooltips now show a reaction-colored border, a single line with level (or skull for unknown), classification (Elite, Rare, etc.), and creature type (Humanoid, Beast, etc.).
+- **(Focus) Rare boss tracking activated in Midnight** — Rares in Midnight zones (e.g. Zul'Aman) now appear in the tracker.
 
 ---
 
