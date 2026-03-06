@@ -334,11 +334,8 @@ local function OnQuestAccepted(questID)
     if not addon.focus.enabled then ScheduleRefresh(); return end
     if not questID or questID <= 0 then ScheduleRefresh(); return end
 
-    local category = addon.GetQuestCategory and addon.GetQuestCategory(questID) or "DEFAULT"
-    local skipCurrentOnAccept = (category == "WEEKLY" or category == "DAILY" or category == "CALLING" or category == "WORLD")
-    if not skipCurrentOnAccept then
-        RecordQuestProgress(questID)
-    end
+    -- Quests enter Current Quest only via objective updates (CheckQuestObjectiveChangeAndFlash),
+    -- not on acceptance.
 
     local isWQ = (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID))
         or (C_QuestLog and C_QuestLog.IsWorldQuest and C_QuestLog.IsWorldQuest(questID))
