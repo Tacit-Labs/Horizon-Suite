@@ -181,6 +181,8 @@ local function SortAndGroupQuests(quests)
         -- In-zone events move between Current Event and Events in Zone based on proximity.
         if q.isEventQuest and q.isAccepted and q.isNearby and groups["CURRENT_EVENT"] then
             groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
+        elseif (q.category == "WORLD" or q.category == "CALLING") and q.isInQuestArea and groups["CURRENT_EVENT"] then
+            groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
         elseif isEventInPlayerZone and groups["AVAILABLE"] then
             groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
         elseif q.isComplete and groups["COMPLETE"] then

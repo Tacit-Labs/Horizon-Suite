@@ -189,6 +189,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         if oData and oData.isOptionalReagent and optCollapsed then oData = nil end
         if oData and oData.isFinishingReagent and finCollapsed then oData = nil end
 
+        -- Auto-complete quests: always show "Quest Complete / Click to complete" block, overwriting objectives.
+        if oData and questData.isComplete and (questData.isAutoComplete and true or false) then oData = nil end
+
         obj.text:SetWidth(objTextWidth)
         obj.shadow:SetWidth(objTextWidth)
 

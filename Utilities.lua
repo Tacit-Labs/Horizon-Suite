@@ -539,7 +539,15 @@ function addon.OpenQuestDetails(questID)
     if not questID or not C_QuestLog then return end
 
     if QuestMapFrame_OpenToQuestDetails then
-        QuestMapFrame_OpenToQuestDetails(questID)
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0, function()
+                if QuestMapFrame_OpenToQuestDetails then
+                    QuestMapFrame_OpenToQuestDetails(questID)
+                end
+            end)
+        else
+            QuestMapFrame_OpenToQuestDetails(questID)
+        end
         return
     end
 
