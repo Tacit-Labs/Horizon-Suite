@@ -14,6 +14,13 @@ local function IsQuestWorldQuest(questID)
     return false
 end
 
+-- Prey: weeklies and world quests with "Prey:" in the title (Midnight hunting activity). pcall: GetTitleForQuestID can throw on invalid questID.
+local function IsPreyQuest(questID)
+    if not questID or not C_QuestLog or not C_QuestLog.GetTitleForQuestID then return false end
+    local ok, title = pcall(C_QuestLog.GetTitleForQuestID, questID)
+    return ok and title and title:find("Prey:")
+end
+
 -- Frequency from quest log (Daily/Weekly). Returns nil if quest not in log or API unavailable.
 local function GetQuestFrequency(questID)
     if not questID or not C_QuestLog or not C_QuestLog.GetLogIndexForQuestID then return nil end
@@ -32,6 +39,7 @@ end
 local function GetQuestBaseCategory(questID)
     if not questID or questID <= 0 then return "DEFAULT" end
     if IsQuestWorldQuest(questID) then
+        if IsPreyQuest(questID) then return "PREY" end
         return "WORLD"
     end
     if C_QuestLog.GetQuestTagInfo then
@@ -46,7 +54,10 @@ local function GetQuestBaseCategory(questID)
         local qc = C_QuestInfoSystem.GetQuestClassification(questID)
         if qc == Enum.QuestClassification.Calling then return "CALLING" end
         if qc == Enum.QuestClassification.Campaign then return "CAMPAIGN" end
-        if qc == Enum.QuestClassification.Recurring then return "WEEKLY" end
+        if qc == Enum.QuestClassification.Recurring then
+            if IsPreyQuest(questID) then return "PREY" end
+            return "WEEKLY"
+        end
         if qc == Enum.QuestClassification.Important then return "IMPORTANT" end
         if qc == Enum.QuestClassification.Legendary then return "LEGENDARY" end
         -- Meta, Questline, Normal: fall through to frequency then DEFAULT
@@ -55,9 +66,11 @@ local function GetQuestBaseCategory(questID)
     local freq = GetQuestFrequency(questID)
     if freq ~= nil then
         if Enum.QuestFrequency and Enum.QuestFrequency.Weekly and freq == Enum.QuestFrequency.Weekly then
+            if IsPreyQuest(questID) then return "PREY" end
             return "WEEKLY"
         end
         if freq == 2 or (LE_QUEST_FREQUENCY_WEEKLY and freq == LE_QUEST_FREQUENCY_WEEKLY) then
+            if IsPreyQuest(questID) then return "PREY" end
             return "WEEKLY"
         end
         if Enum.QuestFrequency and Enum.QuestFrequency.Daily and freq == Enum.QuestFrequency.Daily then
@@ -111,6 +124,7 @@ local function GetQuestTypeAtlas(questID, category)
     if category == "CALLING" then return "Quest-DailyCampaign-Available" end
     if category == "WORLD" then return "quest-recurring-available" end
     if category == "WEEKLY" then return "quest-recurring-available" end
+    if category == "PREY" then return "quest-recurring-available" end
     if category == "DAILY" then return "quest-recurring-available" end
     if category == "DUNGEON" then return "questlog-questtypeicon-dungeon" end
     if category == "RAID" then return "questlog-questtypeicon-raid" end

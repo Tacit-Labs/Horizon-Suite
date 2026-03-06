@@ -168,7 +168,7 @@ local function GetCompletedObjectiveColor(category)
     if c and type(c) == "table" and c[1] and c[2] and c[3] then
         return c
     end
-    return addon.OBJ_DONE_COLOR or { 0.30, 0.80, 0.30 }
+    return addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }
 end
 
 addon.GetEffectiveColorCategory   = GetEffectiveColorCategory

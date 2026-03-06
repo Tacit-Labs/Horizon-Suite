@@ -445,10 +445,10 @@ local TEXT_CASE_OPTIONS = {
     { L["Proper"], "proper" },
 }
 -- Use addon.QUEST_COLORS from Config as single source for quest type colors.
-local COLOR_KEYS_ORDER = { "DEFAULT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "WORLD", "DELVES", "SCENARIO", "RAID", "ACHIEVEMENT", "WEEKLY", "DAILY", "COMPLETE", "RARE" }
+local COLOR_KEYS_ORDER = { "DEFAULT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "WORLD", "DELVES", "SCENARIO", "RAID", "ACHIEVEMENT", "WEEKLY", "PREY", "DAILY", "COMPLETE", "RARE" }
 local ZONE_COLOR_DEFAULT = { 0.55, 0.65, 0.75 }
 local OBJ_COLOR_DEFAULT = { 0.78, 0.78, 0.78 }
-local OBJ_DONE_COLOR_DEFAULT = { 0.30, 0.80, 0.30 }
+local OBJ_DONE_COLOR_DEFAULT = { 0.20, 1.00, 0.40 }  -- matches Ready to Turn In #33FF66
 local HIGHLIGHT_COLOR_DEFAULT = { 0.4, 0.7, 1 }
 
 local VALID_HIGHLIGHT_STYLES = {
@@ -469,6 +469,7 @@ local OptionCategories = {
     {
         key = "Profiles",
         name = L["Profiles"] or "Profiles",
+        desc = L["Manage and switch between your addon configurations."] or "Manage and switch between your addon configurations.",
         moduleKey = nil,
         options = function()
             local opts = {}
@@ -847,7 +848,7 @@ local OptionCategories = {
             local dev = _G.HorizonSuiteDevOverride
             local betaSuffix = dev and (" (" .. (L["Beta"] or "Beta") .. ")") or ""
             local opts = {
-                { type = "section", name = "" },
+                { type = "section", name = L["Module Toggles"] or "Module Toggles" },
                 { type = "toggle", name = L["Focus"], desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
                 { type = "toggle", name = L["Presence"], desc = L["Zone text and notifications."], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
                 { type = "toggle", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
@@ -1008,6 +1009,7 @@ local OptionCategories = {
     {
         key = "Display",
         name = L["Display"],
+        desc = L["Customize the visual interface and layout elements."] or "Customize the visual interface and layout elements.",
         moduleKey = "focus",
         options = {
             { type = "section", name = L["Header"] },
@@ -1063,6 +1065,7 @@ local OptionCategories = {
     {
         key = "SortingFiltering",
         name = L["Sorting & Filtering"],
+        desc = L["Organize and hide tracked entries to your preference."] or "Organize and hide tracked entries to your preference.",
         moduleKey = "focus",
         options = {
             { type = "section", name = L["Filtering"] },
@@ -1080,6 +1083,7 @@ local OptionCategories = {
     {
         key = "Typography",
         name = L["Typography"],
+        desc = L["Adjust fonts, sizes, casing, and drop shadows."] or "Adjust fonts, sizes, casing, and drop shadows.",
         moduleKey = "focus",
         options = {
             { type = "section", name = L["Font"] },
@@ -1110,6 +1114,7 @@ local OptionCategories = {
     {
         key = "Interactions",
         name = L["Interactions"],
+        desc = L["Configure click behaviors, tracking rules, and TomTom integration."] or "Configure click behaviors, tracking rules, and TomTom integration.",
         moduleKey = "focus",
         options = {
             { type = "section", name = L["Click behavior"] },
@@ -1128,6 +1133,7 @@ local OptionCategories = {
     {
         key = "Animations",
         name = L["Animations"],
+        desc = L["Tune slide and fade effects, plus objective progress flashes."] or "Tune slide and fade effects, plus objective progress flashes.",
         moduleKey = "focus",
         options = {
             { type = "section", name = L["Focus animations"] },
@@ -1141,6 +1147,7 @@ local OptionCategories = {
     {
         key = "Instances",
         name = L["Instances"],
+        desc = L["Control tracker visibility within dungeons, raids, and PvP."] or "Control tracker visibility within dungeons, raids, and PvP.",
         moduleKey = "focus",
         options = {
             { type = "section", name = L["Visibility"] },
@@ -1204,6 +1211,7 @@ local OptionCategories = {
     {
         key = "ContentTypes",
         name = L["Content"],
+        desc = L["Toggle tracking for world quests, rares, achievements, and more."] or "Toggle tracking for world quests, rares, achievements, and more.",
         moduleKey = "focus",
         options = {
             { type = "section", name = L["World quests"] },
@@ -1246,6 +1254,7 @@ local OptionCategories = {
     {
         key = "Colors",
         name = L["Colors"],
+        desc = L["Personalize the color palette for tracker text elements."] or "Personalize the color palette for tracker text elements.",
         moduleKey = "focus",
         options = {
             { type = "colorMatrixFull", name = L["Colors"], dbKey = "colorMatrix" },
@@ -1254,6 +1263,7 @@ local OptionCategories = {
     {
         key = "HiddenQuests",
         name = L["Hidden Quests"] or "Hidden Quests",
+        desc = L["Review and manage quests you have manually untracked or blacklisted."] or "Review and manage quests you have manually untracked or blacklisted.",
         moduleKey = "focus",
         options = {
             { type = "blacklistGrid", name = L["Blacklisted quests"], desc = L["Quests hidden via right-click untrack."], tooltip = L["Enable 'Blacklist untracked' in Interactions to add quests here."] or "Enable 'Blacklist untracked' in Interactions to add quests here." },
@@ -1262,6 +1272,7 @@ local OptionCategories = {
     {
         key = "PresenceGeneral",
         name = L["General"] or "General",
+        desc = L["Core settings for the Presence notification framework."] or "Core settings for the Presence notification framework.",
         moduleKey = "presence",
         options = {
             { type = "section", name = L["Display"] },
@@ -1281,6 +1292,7 @@ local OptionCategories = {
     {
         key = "PresenceNotifications",
         name = L["Notifications"],
+        desc = L["Choose which events trigger on-screen alerts."] or "Choose which events trigger on-screen alerts.",
         moduleKey = "presence",
         options = {
             { type = "section", name = L["Notification types"] },
@@ -1312,6 +1324,7 @@ local OptionCategories = {
     {
         key = "PresenceTypography",
         name = L["Typography"],
+        desc = L["Fonts, sizes, and colors for Presence notifications."] or "Fonts, sizes, and colors for Presence notifications.",
         moduleKey = "presence",
         options = {
             { type = "section", name = L["Typography"] },
@@ -1333,6 +1346,7 @@ local OptionCategories = {
     {
         key = "Insight",
         name = L["Tooltips"] or "Tooltips",
+        desc = L["Enhance player and item tooltips with extra details like Mythic+ score and transmog status."] or "Enhance player and item tooltips with extra details like Mythic+ score and transmog status.",
         moduleKey = "insight",
         options = {
             { type = "section", name = L["Position"] or "Position" },
@@ -1361,6 +1375,7 @@ local OptionCategories = {
     {
         key = "VistaMinimap",
         name = L["Minimap"] or "Minimap",
+        desc = L["Configure the minimap's shape, size, position, and text overlays."] or "Configure the minimap's shape, size, position, and text overlays.",
         moduleKey = "vista",
         options = {
             { type = "section", name = L["Size & shape"] or "Size & shape" },
@@ -1487,6 +1502,7 @@ local OptionCategories = {
     {
         key = "VistaAppearance",
         name = L["Appearance"] or "Appearance",
+        desc = L["Customize borders, colors, and the positioning of specific minimap elements."] or "Customize borders, colors, and the positioning of specific minimap elements.",
         moduleKey = "vista",
         options = function()
             local GLOBAL_SENTINEL = "__global__"
@@ -1804,6 +1820,7 @@ local OptionCategories = {
     {
         key = "VistaButtons",
         name = L["Addon Buttons"] or "Addon Buttons",
+        desc = L["Manage and organize minimap icons from other addons into a tidy drawer or bar."] or "Manage and organize minimap icons from other addons into a tidy drawer or bar.",
         moduleKey = "vista",
         options = function()
             local BUTTON_MODE_OPTIONS = {
@@ -2117,6 +2134,7 @@ local OptionCategories = {
     {
         key = "YieldGeneral",
         name = L["General"],
+        desc = L["Positioning and visibility for the Yield loot toast system."] or "Positioning and visibility for the Yield loot toast system.",
         moduleKey = "yield",
         options = {
             { type = "section", name = L["Position"] },

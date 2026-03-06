@@ -99,32 +99,36 @@ addon.TIMER_URGENCY_COLORS = {
 addon.ZONE_SIZE       = 10
 addon.ZONE_COLOR      = { 0.55, 0.65, 0.75 }
 
+-- WoW color systems (for distinctness): Item quality (Poor grey, Common white, Uncommon green, Rare blue 0070dd,
+-- Epic purple a335ee, Legendary orange ff8000, Artifact gold e6cc80); quest icons (Campaign gold, Recurring cyan,
+-- Important pink); quest difficulty (green/yellow/orange/red). We align where meaningful and avoid collisions.
 addon.QUEST_COLORS = {
     DEFAULT   = { 0.90, 0.90, 0.90 },
     CURRENT   = { 0.95, 0.55, 0.45 },  -- coral, matches SECTION_COLORS.CURRENT (Current Quest)
-    AVAILABLE     = { 0.25, 0.88, 0.92 },  -- cyan/teal, matches SECTION_COLORS.AVAILABLE (Events in Zone)
-    CURRENT_EVENT = { 0.25, 0.88, 0.92 },  -- cyan (continuity with Events in Zone)
+    AVAILABLE     = { 0.28, 0.48, 0.88 },  -- deep blue (Events in Zone; distinct from WEEKLY/DAILY cyan)
+    CURRENT_EVENT = { 0.28, 0.48, 0.88 },  -- deep blue (continuity with Events in Zone)
     NEARBY    = { 0.35, 0.75, 0.98 },  -- sky blue, matches SECTION_COLORS.NEARBY (Current Zone)
     CAMPAIGN  = { 1.00, 0.82, 0.20 },
     IMPORTANT = { 1.00, 0.45, 0.80 },  -- pink to match importantavailablequesticon
     LEGENDARY = { 1.00, 0.50, 0.00 },
-    DUNGEON   = { 0.60, 0.40, 1.00 },  -- purple: party dungeon quests (Normal/Heroic/Mythic/M+)
+    DUNGEON   = { 0.64, 0.21, 0.93 },  -- WoW Epic purple (a335ee); instanced content
     RAID      = { 0.85, 0.25, 0.25 },  -- red: raid quests
     DELVES    = { 0.32, 0.72, 0.68 },  -- teal/seafoam: Delve steps (distinct from all other categories)
     SCENARIO  = { 0.38, 0.52, 0.88 },  -- deep blue: event/scenario steps (Twilight's Call etc.)
-    WORLD     = { 0.60, 0.20, 1.00 },
+    WORLD     = { 0.78, 0.42, 0.95 },  -- purple-violet (slightly more purple; distinct from DUNGEON)
     WEEKLY    = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
+    PREY      = { 0.72, 0.22, 0.22 },  -- dark crimson (Midnight Prey; distinct from RAID red)
     DAILY     = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
     CALLING   = { 0.20, 0.60, 1.00 },
     COMPLETE  = { 0.20, 1.00, 0.40 },
-    RARE      = { 1.00, 0.55, 0.25 },
+    RARE      = { 0.90, 0.55, 0.35 },  -- copper (distinct from LEGENDARY orange)
     ACHIEVEMENT = { 0.78, 0.48, 0.22 },  -- bronze, trophy feel
     ENDEAVOR   = { 0.45, 0.95, 0.75 },  -- mint green (housing/endeavor)
     ENDEAVORS  = { 0.45, 0.95, 0.75 },  -- mint green (color matrix group default)
     DECOR      = { 0.65, 0.55, 0.45 },  -- warm brown (housing decor)
     RECIPE     = { 0.55, 0.75, 0.45 },  -- sage green (profession recipes)
     RECIPES    = { 0.55, 0.75, 0.45 },  -- sage green (group default)
-    ADVENTURE  = { 0.85, 0.70, 0.30 },  -- warm gold (Adventure Guide / Traveler's Log)
+    ADVENTURE  = { 0.90, 0.80, 0.50 },  -- artifact gold (WoW e6cc80; distinct from CAMPAIGN)
 }
 
 -- Presence-only (no Focus category): boss emote alert, discovery line
@@ -170,6 +174,7 @@ addon.SECTION_LABELS = {
     LEGENDARY = "LEGENDARY",
     WORLD     = "WORLD QUESTS",
     WEEKLY    = "WEEKLY QUESTS",
+    PREY      = "PREY",
     DAILY     = "DAILY QUESTS",
     RARES     = "RARE BOSSES",
     ACHIEVEMENTS = "ACHIEVEMENTS",
@@ -183,42 +188,43 @@ addon.SECTION_LABELS = {
 
 addon.SECTION_COLORS = {
     CURRENT   = { 0.95, 0.55, 0.45 },  -- coral (recent progress; distinct from NEARBY)
-    DUNGEON   = { 0.60, 0.40, 1.00 },
+    DUNGEON   = { 0.64, 0.21, 0.93 },  -- WoW Epic purple (a335ee)
     RAID      = { 0.85, 0.25, 0.25 },  -- red: raid quests
     DELVES    = { 0.32, 0.72, 0.68 },  -- teal: Delve section
     SCENARIO  = { 0.38, 0.52, 0.88 },  -- deep blue: event/scenario steps
-    AVAILABLE    = { 0.25, 0.88, 0.92 },  -- cyan/teal (available to pick up)
-    CURRENT_EVENT = { 0.25, 0.88, 0.92 },  -- cyan (continuity with Events in Zone)
+    AVAILABLE    = { 0.28, 0.48, 0.88 },  -- deep blue (Events in Zone; distinct from WEEKLY/DAILY cyan)
+    CURRENT_EVENT = { 0.28, 0.48, 0.88 },  -- deep blue (continuity with Events in Zone)
     NEARBY    = { 0.35, 0.75, 0.98 },  -- sky blue (accepted, in zone)
     CAMPAIGN  = { 1.00, 0.82, 0.20 },
     IMPORTANT = { 1.00, 0.45, 0.80 },  -- pink to match importantavailablequesticon
     LEGENDARY = { 1.00, 0.50, 0.00 },
-    WORLD     = { 0.60, 0.20, 1.00 },
+    WORLD     = { 0.78, 0.42, 0.95 },  -- purple-violet (slightly more purple)
     WEEKLY    = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
+    PREY      = { 0.72, 0.22, 0.22 },  -- dark crimson (Midnight Prey; distinct from RAID red)
     DAILY     = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
-    RARES     = { 1.00, 0.55, 0.25 },
+    RARES     = { 0.90, 0.55, 0.35 },  -- copper (distinct from LEGENDARY orange)
     ACHIEVEMENTS = { 0.78, 0.48, 0.22 },  -- bronze
     ENDEAVORS  = { 0.45, 0.95, 0.75 },  -- mint green (housing/endeavor)
     DECOR      = { 0.65, 0.55, 0.45 },  -- warm brown (housing decor)
     RECIPES    = { 0.55, 0.75, 0.45 },  -- sage green (profession recipes)
-    ADVENTURE  = { 0.85, 0.70, 0.30 },  -- warm gold (Adventure Guide)
-    DEFAULT   = { 0.70, 0.70, 0.70 },
+    ADVENTURE  = { 0.90, 0.80, 0.50 },  -- artifact gold (WoW e6cc80; distinct from CAMPAIGN)
+    DEFAULT   = { 0.90, 0.90, 0.90 },  -- matches QUEST_COLORS.DEFAULT so section/title/objective share same default
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
 
-addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
+addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
 addon.GROUP_ORDER_PRESETS = {
-    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
-    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "DAILY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "DAILY", "RARES", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
+    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
 -- Category keys (enum-style) for consistent string usage across modules.
 addon.CATEGORY_KEYS = {
     CURRENT = "CURRENT", CURRENT_EVENT = "CURRENT_EVENT", DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
-    IMPORTANT = "IMPORTANT", LEGENDARY = "LEGENDARY", WORLD = "WORLD", WEEKLY = "WEEKLY",
+    IMPORTANT = "IMPORTANT", LEGENDARY = "LEGENDARY", WORLD = "WORLD", WEEKLY = "WEEKLY", PREY = "PREY",
     DAILY = "DAILY", RARES = "RARES", RARE = "RARE",     ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVOR = "ENDEAVOR", ENDEAVORS = "ENDEAVORS",
     DECOR = "DECOR",
@@ -246,6 +252,7 @@ addon.CATEGORY_TO_GROUP = {
     CAMPAIGN  = "CAMPAIGN",
     WORLD     = "WORLD",
     WEEKLY    = "WEEKLY",
+    PREY      = "PREY",
     DAILY     = "DAILY",
     CALLING   = "WORLD",
     ACHIEVEMENT = "ACHIEVEMENTS",

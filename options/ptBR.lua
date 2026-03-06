@@ -55,6 +55,7 @@ L["Completed objective"]                                           = "Objetivo C
 L["Reset"]                                                          = "Redefinir"
 L["Reset quest types"]                                              = "Redefinir tipos de missões"
 L["Reset overrides"]                                                = "Redefinir cores personalizadas"
+L["Reset all to defaults"]                                           = "Redefinir tudo para padrões"
 L["Reset to defaults"]                                              = "Redefinir para padrões"
 L["Reset to default"]                                               = "Redefinir para padrão"
 

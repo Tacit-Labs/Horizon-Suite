@@ -18,6 +18,7 @@
 - **Track what matters** – Achievements, Endeavors (housing), Decor, Recipes (professions), and Traveler's Log objectives appear in the tracker. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open achievement panel, housing dashboard, decor catalog, or Adventure Guide.
 - **Rare boss alerts** – Super-track nearby rares with one click and optional audio alerts.
 - **Live quest sync** – World quests, dailies, and weeklies update dynamically. Quests auto-track when you accept them. Choose a radar icon for auto-tracked in-zone entries.
+- **Prey section** – Midnight hunting activities (Prey hunts) appear in a dedicated Prey section with distinct colours, separate from weeklies.
 - **All The Things integration** – Collection data appears directly in your objectives.
 - **Profiles** – Create, switch, copy, and delete named profiles. Per-character, per-specialization, or global (account-wide) modes. Import and export profiles as shareable text strings.
 - **Combat-ready** – Show, fade, or hide in combat; show or hide in dungeons/raids/BGs; compact or super-minimal layouts.

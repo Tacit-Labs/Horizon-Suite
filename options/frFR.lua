@@ -55,6 +55,7 @@ L["Completed objective"]                                           = "Objectif t
 L["Reset"]                                                          = "Réinitialiser"
 L["Reset quest types"]                                              = "Réinitialiser les types de quêtes"
 L["Reset overrides"]                                                = "Réinitialiser les couleurs personnalisées"
+L["Reset all to defaults"]                                           = "Tout réinitialiser aux valeurs par défaut"
 L["Reset to defaults"]                                              = "Réinitialiser les valeurs par défaut"
 L["Reset to default"]                                               = "Réinitialiser la valeur par défaut"
 

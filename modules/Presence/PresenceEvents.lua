@@ -63,10 +63,11 @@ end
 -- ============================================================================
 
 --- Returns true if the quest title is a Blizzard DNT (Do Not Translate) internal quest.
+--- Matches [DNT] anywhere in the title (prefix or suffix).
 --- @param questName string|nil Quest title from C_QuestLog.GetTitleForQuestID
 --- @return boolean
 local function IsDNTQuest(questName)
-    return questName and questName:match("^%[DNT%]")
+    return questName and questName:find("%[DNT%]")
 end
 
 --- Build locale-safe keywords for quest text detection at load time.
@@ -281,6 +282,14 @@ end
 local function OnQuestAccepted(_, questID)
     if ShouldSuppressInMplus() then return end
     if ShouldSuppressInInstance() then return end
+    -- Skip hidden quests (internal tracking quests)
+    if questID and C_QuestLog and C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetInfo then
+        local logIdx = C_QuestLog.GetLogIndexForQuestID(questID)
+        if logIdx then
+            local ok, info = pcall(C_QuestLog.GetInfo, logIdx)
+            if ok and info and info.isHidden then return end
+        end
+    end
     local opts = (questID and { questID = questID }) or {}
     if C_QuestLog and C_QuestLog.GetTitleForQuestID then
         local questName = StripPresenceMarkup(C_QuestLog.GetTitleForQuestID(questID) or "New Quest")

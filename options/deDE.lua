@@ -55,6 +55,7 @@ L["Completed objective"]                                           = "Abgeschlos
 L["Reset"]                                                          = "Zurücksetzen"
 L["Reset quest types"]                                              = "Questtypen zurücksetzen"
 L["Reset overrides"]                                                = "Übersteuerungen zurücksetzen"
+L["Reset all to defaults"]                                           = "Alle auf Standard zurücksetzen"
 L["Reset to defaults"]                                              = "Auf Standard zurücksetzen"
 L["Reset to default"]                                               = "Auf Standard zurücksetzen"
 

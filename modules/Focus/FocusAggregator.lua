@@ -27,7 +27,7 @@ end
 -- Category order for questType sort (lower = earlier)
 local CATEGORY_SORT_ORDER = {
     CURRENT = 0, COMPLETE = 1, CAMPAIGN = 2, IMPORTANT = 3, LEGENDARY = 4,
-    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, DAILY = 8, CALLING = 9, RARE = 10, DEFAULT = 11,
+    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, PREY = 7, DAILY = 8, CALLING = 9, RARE = 10, DEFAULT = 11,
 }
 
 local CURRENT_QUEST_WINDOW_DEFAULT = 60
@@ -113,12 +113,18 @@ local function CompareEntriesBySortMode(a, b)
         local bc = b.isComplete and 1 or 0
         if ac ~= bc then return ac < bc end  -- non-complete (0) before complete (1)
     end
+    if currentSortGroup == "PREY" then
+        -- Weeklies (accepted quests) first, then Prey world quests (activities)
+        local wa = (a.isPreyWorldQuest and 1) or 0
+        local wb = (b.isPreyWorldQuest and 1) or 0
+        if wa ~= wb then return wa < wb end
+    end
     if a.category == "WORLD" or a.category == "CALLING" then
         -- Priority: tracked/accepted (2) > proximity/in-quest-area (1) > zone-only (0)
         local pa = ((a.isTracked or a.isAccepted) and 2) or ((a.isInQuestArea and 1) or 0)
         local pb = ((b.isTracked or b.isAccepted) and 2) or ((b.isInQuestArea and 1) or 0)
         if pa ~= pb then return pa > pb end
-    elseif a.category == "WEEKLY" or a.category == "DAILY" then
+    elseif a.category == "WEEKLY" or a.category == "DAILY" or a.category == "PREY" then
         local pa = (a.isAccepted and 1) or 0
         local pb = (b.isAccepted and 1) or 0
         if pa ~= pb then return pa > pb end
@@ -177,6 +183,8 @@ local function SortAndGroupQuests(quests)
             groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
         elseif isEventInPlayerZone and groups["AVAILABLE"] then
             groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
+        elseif q.isComplete and groups["COMPLETE"] then
+            groups["COMPLETE"][#groups["COMPLETE"] + 1] = q
         elseif not q.isEventQuest and showCurrent and q.questID and not q.isComplete and IsQuestRecentlyProgressed(q.questID) then
             groups["CURRENT"][#groups["CURRENT"] + 1] = q
         elseif not q.isEventQuest
@@ -208,6 +216,8 @@ local function SortAndGroupQuests(quests)
             groups["ADVENTURE"][#groups["ADVENTURE"] + 1] = q
         elseif q.category == "WORLD" or q.category == "CALLING" then
             groups["WORLD"][#groups["WORLD"] + 1] = q
+        elseif q.category == "PREY" then
+            groups["PREY"][#groups["PREY"] + 1] = q
         elseif q.isNearby and not q.isAccepted then
             groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
         elseif q.isNearby and q.isAccepted then
@@ -350,7 +360,7 @@ local function ReadTrackedQuests()
         local isAccepted = addon.IsQuestAccepted and addon.IsQuestAccepted(questID) or (logIndex ~= nil)
         local isExplicitlyTracked = (opts.isTracked == true) or (superTracked and questID == superTracked)
         local category = opts.forceCategory or addon.GetQuestCategory(questID)
-        if not isAccepted and not isExplicitlyTracked and (category == "WORLD" or category == "CALLING" or category == "WEEKLY" or category == "DAILY") then
+        if not isAccepted and not isExplicitlyTracked and (category == "WORLD" or category == "CALLING" or category == "WEEKLY" or category == "PREY" or category == "DAILY") then
             if not IsQuestOnPlayerZoneMap(questID) then return end
         end
 
@@ -404,6 +414,9 @@ local function ReadTrackedQuests()
         local isComplete = C_QuestLog.IsComplete(questID)
         local isSuper = (questID == superTracked)
         local zoneName = addon.GetQuestZoneName(questID)
+        if category == "PREY" and (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)) and (not zoneName or zoneName == "") then
+            zoneName = (addon.L and addon.L["Activity"]) or "Activity"
+        end
         local isNearby = (nearbySet[questID] or false) and (not filterByZone or questMapMatchesPlayer(questID))
         local isDungeonQuest = opts.isDungeonQuest or (addon.IsInPartyDungeon and addon.IsInPartyDungeon() and isNearby)
         local isRaidQuest = opts.isRaidQuest or (category == "RAID")
@@ -474,6 +487,7 @@ local function ReadTrackedQuests()
             end
         end
 
+        local isPreyWorldQuest = (category == "PREY" and addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)) or false
         local entry = {
             entryKey = questID, questID = questID, title = title, objectives = objectives,
             color = color, category = category, baseCategory = baseCategory,
@@ -485,6 +499,7 @@ local function ReadTrackedQuests()
             isInQuestArea = isInQuestArea,
             isEventQuest = isEventQuest,
             isGroupQuest = isGroupQuest,
+            isPreyWorldQuest = isPreyWorldQuest,
             timerDuration = timerDuration,
             timerStartTime = timerStartTime,
         }

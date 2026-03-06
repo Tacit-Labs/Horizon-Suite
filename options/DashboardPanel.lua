@@ -64,17 +64,26 @@ SlashCmdList["HSDASH"] = function(msg)
                 ["General"] = "INV_Misc_Question_01",
                 ["Core"] = "INV_Misc_Wrench_01",
             }
+            
+            local function GetAccentColor()
+                if addon.GetOptionsClassColor then
+                    local cc = addon.GetOptionsClassColor()
+                    if cc then return cc[1], cc[2], cc[3] end
+                end
+                return 0.2, 0.8, 0.9 -- Default sleek cyan
+            end
+            
             tinsert(UISpecialFrames, "HorizonSuiteDashboard")
             
             -- Background
             local bg = f:CreateTexture(nil, "BACKGROUND")
             bg:SetAllPoints()
-            bg:SetColorTexture(0.06, 0.06, 0.08, 0.98)
+            bg:SetColorTexture(0.05, 0.05, 0.07, 0.98)
             
             -- Header
-            local head = MakeText(f, " Horizon Suite", 26, 1, 1, 1, "LEFT")
+            local head = MakeText(f, " HORIZON SUITE", 28, 1, 1, 1, "LEFT")
             head:SetPoint("TOPLEFT", 40, -40)
-            local headSub = MakeText(f, "Select a module to configure", 14, 0.5, 0.5, 0.5, "LEFT")
+            local headSub = MakeText(f, "Select a module to configure", 15, 0.6, 0.65, 0.7, "LEFT")
             headSub:SetPoint("TOPLEFT", 42, -70)
 
             -- Search Bar
@@ -104,7 +113,8 @@ SlashCmdList["HSDASH"] = function(msg)
             sbIcon:SetVertexColor(0.5, 0.5, 0.5, 1)
 
             searchBox:SetScript("OnEditFocusGained", function(self)
-                sbBorder:SetColorTexture(0.3, 0.6, 1, 1)
+                local ar, ag, ab = GetAccentColor()
+                sbBorder:SetColorTexture(ar, ag, ab, 1)
                 sbPlaceholder:Hide()
                 sbIcon:SetVertexColor(0.8, 0.8, 0.8, 1)
             end)
@@ -192,6 +202,26 @@ SlashCmdList["HSDASH"] = function(msg)
             subCategoryView:Hide()
             f.subCategoryView = subCategoryView
 
+            local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
+            subCategoryScroll:SetPoint("TOPLEFT", 40, -110)
+            subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
+            subCategoryScroll.ScrollBar:Hide()
+            subCategoryScroll.ScrollBar:ClearAllPoints()
+
+            local subCategoryContent = CreateFrame("Frame", nil, subCategoryScroll)
+            subCategoryContent:SetSize(870, 1)
+            subCategoryScroll:SetScrollChild(subCategoryContent)
+
+            subCategoryScroll:EnableMouseWheel(true)
+            subCategoryScroll:SetScript("OnMouseWheel", function(self, delta)
+                local cur = self:GetVerticalScroll() or 0
+                local maxScroll = math.max(0, subCategoryContent:GetHeight() - self:GetHeight())
+                if maxScroll > 0 then
+                    local new = math.max(0, math.min(cur - delta * 60, maxScroll))
+                    self:SetVerticalScroll(new)
+                end
+            end)
+
             local detailTitle = MakeText(detailView, "MODULE SETTINGS", 20, 1, 1, 1, "LEFT")
             detailTitle:SetPoint("TOPLEFT", 180, -45)
             f.detailTitle = detailTitle
@@ -200,7 +230,9 @@ SlashCmdList["HSDASH"] = function(msg)
             f.ShowDashboard = function()
                 detailView:Hide()
                 subCategoryView:Hide()
+                dashboardView:SetAlpha(0)
                 dashboardView:Show()
+                UIFrameFadeIn(dashboardView, 0.2, 0, 1)
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
@@ -211,16 +243,41 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- Back Button (Persistent in Detail View)
             local backBtn = CreateFrame("Button", nil, detailView)
-            backBtn:SetSize(120, 32)
-            backBtn:SetPoint("TOPLEFT", 40, -40)
-            local backIcon = backBtn:CreateTexture(nil, "ARTWORK")
-            backIcon:SetSize(16, 16)
-            backIcon:SetPoint("LEFT", 0, 0)
-            backIcon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
-            local backTxt = MakeText(backBtn, "BACK TO MENU", 12, 0.6, 0.6, 0.6, "LEFT")
-            backTxt:SetPoint("LEFT", 20, 0)
-            backBtn:SetScript("OnEnter", function() backTxt:SetTextColor(1, 1, 1) end)
-            backBtn:SetScript("OnLeave", function() backTxt:SetTextColor(0.6, 0.6, 0.6) end)
+            backBtn:SetPoint("TOPLEFT", 35, -30)
+            
+            -- Back Button (Subcategory View)
+            local subBackBtn = CreateFrame("Button", nil, subCategoryView)
+            subBackBtn:SetPoint("TOPLEFT", 35, -30)
+            
+            local function StyleBackButton(btn, textStr)
+                btn:SetSize(160, 32)
+                
+                local icon = btn:CreateTexture(nil, "ARTWORK")
+                icon:SetSize(14, 14)
+                icon:SetPoint("LEFT", 0, 0)
+                icon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
+                icon:SetDesaturated(true)
+                icon:SetVertexColor(0.6, 0.6, 0.6)
+
+                local txt = MakeText(btn, textStr, 12, 0.6, 0.6, 0.6, "LEFT")
+                txt:SetPoint("LEFT", 20, 0)
+                
+                btn:SetScript("OnEnter", function() 
+                    local ar, ag, ab = GetAccentColor()
+                    txt:SetTextColor(1, 1, 1)
+                    icon:SetDesaturated(false)
+                    icon:SetVertexColor(ar, ag, ab)
+                end)
+                btn:SetScript("OnLeave", function() 
+                    txt:SetTextColor(0.6, 0.6, 0.6)
+                    icon:SetDesaturated(true)
+                    icon:SetVertexColor(0.6, 0.6, 0.6)
+                end)
+            end
+
+            StyleBackButton(backBtn, "BACK")
+            StyleBackButton(subBackBtn, "BACK")
+
             -- Back button in detail view now goes to Subcategory Menu
             backBtn:SetScript("OnClick", function() 
                 detailView:Hide()
@@ -231,27 +288,25 @@ SlashCmdList["HSDASH"] = function(msg)
                 end 
             end)
 
-            -- Back Button (Subcategory View)
-            local subBackBtn = CreateFrame("Button", nil, subCategoryView)
-            subBackBtn:SetSize(120, 32)
-            subBackBtn:SetPoint("TOPLEFT", 40, -40)
-            local subBackIcon = subBackBtn:CreateTexture(nil, "ARTWORK")
-            subBackIcon:SetSize(16, 16)
-            subBackIcon:SetPoint("LEFT", 0, 0)
-            subBackIcon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
-            local subBackTxt = MakeText(subBackBtn, "BACK TO DASHBOARD", 12, 0.6, 0.6, 0.6, "LEFT")
-            subBackTxt:SetPoint("LEFT", 20, 0)
-            subBackBtn:SetScript("OnEnter", function() subBackTxt:SetTextColor(1, 1, 1) end)
-            subBackBtn:SetScript("OnLeave", function() subBackTxt:SetTextColor(0.6, 0.6, 0.6) end)
             subBackBtn:SetScript("OnClick", function() f.ShowDashboard() end)
 
             -- Close Button
             local closeBtn = CreateFrame("Button", nil, f)
-            closeBtn:SetSize(32, 32)
-            closeBtn:SetPoint("TOPRIGHT", -10, -10)
-            local closeIcon = closeBtn:CreateTexture(nil, "ARTWORK")
-            closeIcon:SetAllPoints()
-            closeIcon:SetTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Up")
+            closeBtn:SetSize(30, 30)
+            closeBtn:SetPoint("TOPRIGHT", -15, -15)
+            
+            local closeTxt = closeBtn:CreateFontString(nil, "OVERLAY")
+            closeTxt:SetFont(addon.GetDefaultFontPath and addon.GetDefaultFontPath() or "Fonts\\FRIZQT__.TTF", 18, "OUTLINE")
+            closeTxt:SetPoint("CENTER", 1, 0)
+            closeTxt:SetText("X")
+            closeTxt:SetTextColor(0.6, 0.6, 0.6)
+            
+            closeBtn:SetScript("OnEnter", function()
+                closeTxt:SetTextColor(1, 0.3, 0.3)
+            end)
+            closeBtn:SetScript("OnLeave", function()
+                closeTxt:SetTextColor(0.6, 0.6, 0.6)
+            end)
             closeBtn:SetScript("OnClick", function() f:Hide() end)
 
             -- Key Handling (Escape to Close)
@@ -457,38 +512,62 @@ SlashCmdList["HSDASH"] = function(msg)
             local currentSubTiles = {}
 
             -- Helper: Create Subcategory Tile
-            local function CreateSubCategoryTile(parent, name, index, options, modName)
+            local function CreateSubCategoryTile(parent, name, index, options, modName, desc)
                 local tile = CreateFrame("Button", nil, parent)
-                tile:SetSize(180, 60)
+                tile:SetSize(400, 110)
                 
-                local row = math.floor((index-1) / 4)
-                local col = (index-1) % 4
-                tile:SetPoint("TOPLEFT", parent, "TOPLEFT", 80 + (col * 200), -120 + (row * -80))
+                local row = math.floor((index-1) / 2)
+                local col = (index-1) % 2
+                tile:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (col * 420), 0 + (row * -130))
 
                 -- Background
                 local tBg = tile:CreateTexture(nil, "BACKGROUND")
-                tBg:SetAllPoints()
-                tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
+                tBg:SetPoint("TOPLEFT", 1, -1)
+                tBg:SetPoint("BOTTOMRIGHT", -1, 1)
+                tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
+
+                -- Border
+                local border = tile:CreateTexture(nil, "BORDER")
+                border:SetAllPoints()
+                border:SetColorTexture(0.15, 0.16, 0.2, 1)
 
                 -- Accent
                 local accent = tile:CreateTexture(nil, "ARTWORK")
-                accent:SetSize(4, 30)
+                accent:SetSize(4, 60)
                 accent:SetPoint("LEFT", 0, 0)
-                accent:SetColorTexture(0.3, 0.6, 1, 1)
+                local ar, ag, ab = GetAccentColor()
+                accent:SetColorTexture(ar, ag, ab, 1)
                 accent:Hide()
 
                 -- Label
-                local lbl = MakeText(tile, name, 14, 0.8, 0.8, 0.8, "CENTER")
-                lbl:SetPoint("CENTER", 0, 0)
+                local lbl = MakeText(tile, name, 18, 0.9, 0.9, 0.95, "LEFT")
+                lbl:SetPoint("TOPLEFT", 25, -20)
+                
+                -- Collect subset of option names for description
+                local descStr = desc or ("Configure and customize settings related to " .. name:lower() .. ".")
+
+                -- Description Text
+                local descLbl = MakeText(tile, descStr, 13, 0.6, 0.65, 0.7, "LEFT")
+                descLbl:SetPoint("TOPLEFT", lbl, "BOTTOMLEFT", 0, -8)
+                descLbl:SetPoint("RIGHT", tile, "RIGHT", -20, 0)
+                descLbl:SetWordWrap(true)
+                descLbl:SetHeight(40)
+                descLbl:SetJustifyV("TOP")
 
                 tile:SetScript("OnEnter", function()
-                    tBg:SetColorTexture(0.16, 0.17, 0.20, 1)
+                    tBg:SetColorTexture(0.12, 0.13, 0.16, 1)
+                    local ar, ag, ab = GetAccentColor()
+                    border:SetColorTexture(ar, ag, ab, 0.8)
                     lbl:SetTextColor(1, 1, 1)
+                    descLbl:SetTextColor(0.8, 0.85, 0.9)
+                    accent:SetColorTexture(ar, ag, ab, 1)
                     accent:Show()
                 end)
                 tile:SetScript("OnLeave", function()
-                    tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
-                    lbl:SetTextColor(0.8, 0.8, 0.8)
+                    tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
+                    border:SetColorTexture(0.15, 0.16, 0.2, 1)
+                    lbl:SetTextColor(0.9, 0.9, 0.95)
+                    descLbl:SetTextColor(0.6, 0.65, 0.7)
                     accent:Hide()
                 end)
                 tile:SetScript("OnClick", function()
@@ -505,7 +584,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 if headSub then headSub:Hide() end
                 if searchBox then searchBox:Hide() end
 
+                detailView:SetAlpha(0)
                 detailView:Show()
+                UIFrameFadeIn(detailView, 0.2, 0, 1)
                 detailContent:Show()
                 detailScroll:SetVerticalScroll(0)
 
@@ -544,10 +625,13 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
                 end
 
-                if #cats > 1 then
+                    if #cats > 1 then
                     -- Show SubCategory View
+                    subCategoryView:SetAlpha(0)
                     subCategoryView:Show()
+                    UIFrameFadeIn(subCategoryView, 0.2, 0, 1)
                     detailView:Hide()
+                    subCategoryScroll:SetVerticalScroll(0)
 
                     -- Clear previous subtiles
                     for _, tile in ipairs(currentSubTiles) do
@@ -566,15 +650,22 @@ SlashCmdList["HSDASH"] = function(msg)
                         subTitle:SetText(modName:upper() .. " CATEGORIES")
                     end
 
+                    local tileYOffset = 0
                     for i, cat in ipairs(cats) do
                         local options = type(cat.options) == "function" and cat.options() or cat.options
-                        local tile = CreateSubCategoryTile(subCategoryView, cat.name, i, options, modName)
+                        local tile = CreateSubCategoryTile(subCategoryContent, cat.name, i, options, modName, cat.desc)
                         tinsert(currentSubTiles, tile)
+                        
+                        local row = math.floor((i-1) / 2)
+                        tileYOffset = math.max(tileYOffset, (row + 1) * 130)
                     end
+                    subCategoryContent:SetHeight(math.max(1, tileYOffset))
                 else
                     -- Only 1 category (or none), go straight to details
                     subCategoryView:Hide()
+                    detailView:SetAlpha(0)
                     detailView:Show()
+                    UIFrameFadeIn(detailView, 0.2, 0, 1)
                     detailContent:Show()
                     detailScroll:SetVerticalScroll(0)
                     
@@ -612,17 +703,18 @@ SlashCmdList["HSDASH"] = function(msg)
                 -- Background
                 local cBg = card:CreateTexture(nil, "BACKGROUND")
                 cBg:SetAllPoints()
-                cBg:SetColorTexture(0.08, 0.08, 0.09, 1)
+                cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
 
                 -- Accent
                 local accent = card:CreateTexture(nil, "ARTWORK")
                 accent:SetSize(4, 24)
                 accent:SetPoint("TOPLEFT", 20, -18)
-                accent:SetColorTexture(0.3, 0.6, 1, 1)
+                local cr, cg, cb = GetAccentColor()
+                accent:SetColorTexture(cr, cg, cb, 1)
 
                 -- Title
-                local lbl = MakeText(card, title:upper(), 14, 0.9, 0.9, 0.9, "LEFT")
-                lbl:SetPoint("TOPLEFT", 35, -23)
+                local lbl = MakeText(card, title:upper(), 15, 0.9, 0.9, 0.95, "LEFT")
+                lbl:SetPoint("TOPLEFT", 35, -22)
 
                 -- Settings Container
                 local sc = CreateFrame("Frame", nil, card)
@@ -789,29 +881,38 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 -- Background
                 local tBg = tile:CreateTexture(nil, "BACKGROUND")
-                tBg:SetAllPoints()
-                tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
+                tBg:SetPoint("TOPLEFT", 1, -1)
+                tBg:SetPoint("BOTTOMRIGHT", -1, 1)
+                tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
+
+                -- Border
+                local border = tile:CreateTexture(nil, "BORDER")
+                border:SetAllPoints()
+                border:SetColorTexture(0.15, 0.16, 0.2, 1)
 
                 -- Icon
                 local ic = tile:CreateTexture(nil, "ARTWORK")
-                ic:SetSize(64, 64)
+                ic:SetSize(60, 60)
                 ic:SetPoint("CENTER", 0, 20)
                 ic:SetTexture("Interface\\Icons\\" .. (categoryIcons[name] or "INV_Misc_Question_01"))
-                ic:SetVertexColor(1, 1, 1, 0.7)
+                ic:SetVertexColor(0.85, 0.85, 0.9, 0.85)
 
                 -- Label
-                local lbl = MakeText(tile, name, 16, 0.8, 0.8, 0.8, "CENTER")
+                local lbl = MakeText(tile, name, 16, 0.85, 0.85, 0.9, "CENTER")
                 lbl:SetPoint("BOTTOM", 0, 30)
 
                 tile:SetScript("OnEnter", function()
-                    tBg:SetColorTexture(0.16, 0.17, 0.20, 1)
+                    tBg:SetColorTexture(0.12, 0.13, 0.16, 1)
+                    local ar, ag, ab = GetAccentColor()
+                    border:SetColorTexture(ar, ag, ab, 0.8)
                     ic:SetVertexColor(1, 1, 1, 1)
                     lbl:SetTextColor(1, 1, 1)
                 end)
                 tile:SetScript("OnLeave", function()
-                    tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
-                    ic:SetVertexColor(1, 1, 1, 0.7)
-                    lbl:SetTextColor(0.8, 0.8, 0.8)
+                    tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
+                    border:SetColorTexture(0.15, 0.16, 0.2, 1)
+                    ic:SetVertexColor(0.85, 0.85, 0.9, 0.85)
+                    lbl:SetTextColor(0.85, 0.85, 0.9)
                 end)
                 tile:SetScript("OnClick", function()
                     f.OpenModule(name, moduleKey)

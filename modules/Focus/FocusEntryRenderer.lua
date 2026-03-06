@@ -1081,7 +1081,9 @@ local function PopulateEntry(entry, questData, groupKey)
     local showZoneLabels = addon.GetDB("showZoneLabels", true)
     local playerZone = addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName() or nil
     local inCurrentZone = questData.isNearby or (questData.zoneName and playerZone and questData.zoneName:lower() == playerZone:lower())
-    local shouldShowZone = showZoneLabels and questData.zoneName and not inCurrentZone
+    -- Prey activities: "Activity" is a semantic label, not a zone—always show it even when in-zone
+    local isActivityLabel = questData.zoneName and ((questData.zoneName == "Activity") or (addon.L and addon.L["Activity"] and questData.zoneName == addon.L["Activity"]))
+    local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel)
     if shouldShowZone then
         local zoneLabel = questData.zoneName
         if isOffMapWorld then
