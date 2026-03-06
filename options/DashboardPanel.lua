@@ -906,6 +906,301 @@ SlashCmdList["HSDASH"] = function(msg)
                             widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
                         elseif opt.type == "button" then
                             widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, opt.onClick, { tooltip = opt.tooltip })
+                        elseif opt.type == "colorMatrix" then
+                            -- Emulate a mini-card inside the settings container
+                            local cmContainer = CreateFrame("Frame", nil, currentCard.settingsContainer)
+                            local yOff = 0
+                            
+                            local lbl = _G.OptionsWidgets_CreateSectionHeader(cmContainer, opt.name or "Colors")
+                            lbl:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff)
+                            lbl:SetPoint("RIGHT", cmContainer, "RIGHT", 0, 0)
+                            yOff = yOff - 24
+                            
+                            local keys = opt.keys or addon.COLOR_KEYS_ORDER or {}
+                            local defaultMap = opt.defaultMap or addon.QUEST_COLORS or {}
+                            local swatches = {}
+                            
+                            local sub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["Quest types"])
+                            sub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff)
+                            yOff = yOff - 20
+                            
+                            for _, key in ipairs(keys) do
+                                local getTbl = function() local db = _G.OptionsData_GetDB(opt.dbKey, nil) return db and db[key] end
+                                local setKeyVal = function(v) 
+                                    addon.EnsureDB()
+                                    local _rdb = _G[addon.DB_NAME]
+                                    if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end
+                                    _rdb[opt.dbKey][key] = v
+                                    if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                                end
+                                local labelText = addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)]
+                                local row = _G.OptionsWidgets_CreateColorSwatchRow(cmContainer, nil, labelText, defaultMap[key], getTbl, setKeyVal, function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
+                                row:ClearAllPoints()
+                                row:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 10, yOff)
+                                row:SetPoint("RIGHT", cmContainer, "RIGHT", 0, 0)
+                                yOff = yOff - 28
+                                swatches[#swatches+1] = row
+                            end
+                            
+                            local resetBtn = _G.OptionsWidgets_CreateButton(cmContainer, L["Reset quest types"], function()
+                                _G.OptionsData_SetDB(opt.dbKey, nil)
+                                _G.OptionsData_SetDB("sectionColors", nil)
+                                for _, sw in ipairs(swatches) do if sw.Refresh then sw:Refresh() end end
+                                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                            end, { width = 120, height = 22 })
+                            resetBtn:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 10, yOff)
+                            yOff = yOff - 30
+
+                            local overridesSub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["Element overrides"])
+                            overridesSub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff - 10)
+                            yOff = yOff - 30
+                            
+                            local overrideRows = {}
+                            for _, ov in ipairs(opt.overrides or {}) do
+                                local getTbl = function() return _G.OptionsData_GetDB(ov.dbKey, nil) end
+                                local setKeyVal = function(v) _G.OptionsData_SetDB(ov.dbKey, v); if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end
+                                local row = _G.OptionsWidgets_CreateColorSwatchRow(cmContainer, nil, ov.name, ov.default, getTbl, setKeyVal, function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
+                                row:ClearAllPoints()
+                                row:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 10, yOff)
+                                row:SetPoint("RIGHT", cmContainer, "RIGHT", 0, 0)
+                                yOff = yOff - 28
+                                overrideRows[#overrideRows+1] = row
+                            end
+                            
+                            local resetOv = _G.OptionsWidgets_CreateButton(cmContainer, L["Reset overrides"], function()
+                                for _, ov in ipairs(opt.overrides or {}) do _G.OptionsData_SetDB(ov.dbKey, nil) end
+                                for _, r in ipairs(overrideRows) do if r.Refresh then r:Refresh() end end
+                                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                            end, { width = 120, height = 22 })
+                            resetOv:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 10, yOff)
+                            yOff = yOff - 28
+
+                        elseif opt.type == "colorMatrixFull" then
+                            -- Complex Focus matrix with collapsible categories
+                            local cmfContainer = CreateFrame("Frame", nil, currentCard.settingsContainer)
+                            local yOff = 0
+                            
+                            local function getMatrix()
+                                addon.EnsureDB()
+                                local m = _G.OptionsData_GetDB(opt.dbKey, nil)
+                                if type(m) ~= "table" then
+                                    m = { categories = {}, overrides = {} }
+                                    _G.OptionsData_SetDB(opt.dbKey, m)
+                                else
+                                    m.categories = m.categories or {}
+                                    m.overrides = m.overrides or {}
+                                end
+                                return m
+                            end
+
+                            local function getOverride(key)
+                                local m = getMatrix()
+                                local v = m.overrides and m.overrides[key]
+                                if key == "useCompletedOverride" and v == nil then return true end
+                                if key == "useCurrentQuestOverride" and v == nil then return true end
+                                return v
+                            end
+                            local function setOverride(key, v)
+                                local m = getMatrix()
+                                m.overrides[key] = v
+                                _G.OptionsData_SetDB(opt.dbKey, m)
+                                if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                            end
+
+                            local allGroupFrames = {}
+                            
+                            -- Build Collapsible Group logic
+                            local function BuildCollapsibleGroup(containerParent, key, startY)
+                                local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
+                                local groupY = startY
+                                
+                                local groupHeader = CreateFrame("Button", nil, cmfContainer)
+                                groupHeader:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, groupY)
+                                groupHeader:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+                                groupHeader:SetHeight(24)
+                                
+                                local hdrBg = groupHeader:CreateTexture(nil, "BACKGROUND")
+                                hdrBg:SetAllPoints(groupHeader)
+                                hdrBg:SetColorTexture(0.10, 0.10, 0.12, 0.5)
+
+                                local chevron = groupHeader:CreateFontString(nil, "OVERLAY")
+                                chevron:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
+                                chevron:SetTextColor(Def.TextColorSection and Def.TextColorSection[1] or 0.6, Def.TextColorSection and Def.TextColorSection[2] or 0.6, Def.TextColorSection and Def.TextColorSection[3] or 0.6)
+                                chevron:SetText("+")
+                                chevron:SetPoint("LEFT", groupHeader, "LEFT", 6, 0)
+
+                                local hdrLabel = groupHeader:CreateFontString(nil, "OVERLAY")
+                                hdrLabel:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
+                                hdrLabel:SetTextColor(Def.TextColorLabel and Def.TextColorLabel[1] or 0.9, Def.TextColorLabel and Def.TextColorLabel[2] or 0.9, Def.TextColorLabel and Def.TextColorLabel[3] or 0.9)
+                                hdrLabel:SetText(labelBase)
+                                hdrLabel:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
+                                hdrLabel:SetJustifyH("LEFT")
+
+                                local questColorKey = (key == "ACHIEVEMENTS" and "ACHIEVEMENT") or (key == "RARES" and "RARE") or key
+                                local baseColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[questColorKey]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                                local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                                local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor 
+
+                                local resetBtn = _G.OptionsWidgets_CreateButton(groupHeader, L["Reset"], function()
+                                    local m = getMatrix()
+                                    if m.categories and m.categories[key] then
+                                        m.categories[key] = nil
+                                        _G.OptionsData_SetDB(opt.dbKey, m)
+                                        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                                        if groupHeader.Refresh then groupHeader:Refresh() end
+                                    end
+                                end, { width = 50, height = 22 })
+                                resetBtn:SetPoint("RIGHT", groupHeader, "RIGHT", -8, 0)
+
+                                local previewSwatch = groupHeader:CreateTexture(nil, "ARTWORK")
+                                previewSwatch:SetSize(14, 14)
+                                previewSwatch:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
+                                previewSwatch:SetColorTexture(unifiedDef[1], unifiedDef[2], unifiedDef[3], 1)
+
+                                groupHeader.expanded = false
+                                groupHeader.rows = nil
+
+                                local catDefs = {
+                                    { subKey = "section",   suffix = "Section",   def = unifiedDef },
+                                    { subKey = "title",     suffix = "Title",     def = unifiedDef },
+                                    { subKey = "zone",      suffix = "Zone",      def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                                    { subKey = "objective", suffix = "Objective", def = unifiedDef },
+                                }
+
+                                local function EnsureRows()
+                                    if groupHeader.rows then return end
+                                    groupHeader.rows = {}
+                                    local rY = groupY - 24
+                                    for _, cd in ipairs(catDefs) do
+                                        local rowLabel = cd.suffix
+                                        local getTbl = function()
+                                            local m = getMatrix()
+                                            local cats = m.categories or {}
+                                            return cats[key] and cats[key][cd.subKey] or nil
+                                        end
+                                        local setKeyVal = function(v)
+                                            local m = getMatrix()
+                                            m.categories[key] = m.categories[key] or {}
+                                            m.categories[key][cd.subKey] = (type(v) == "table" and v[1] and v[2] and v[3]) and { v[1], v[2], v[3] } or v
+                                            _G.OptionsData_SetDB(opt.dbKey, m)
+                                            if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                                        end
+                                        local row = _G.OptionsWidgets_CreateColorSwatchRow(cmfContainer, nil, rowLabel, cd.def, getTbl, setKeyVal, function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
+                                        row:ClearAllPoints()
+                                        row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 20, rY)
+                                        row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+                                        groupHeader.rows[#groupHeader.rows + 1] = row
+                                        rY = rY - 28
+                                    end
+                                end
+
+                                local function SetExpanded(expand)
+                                    groupHeader.expanded = expand
+                                    if expand then
+                                        EnsureRows()
+                                        chevron:SetText("-")
+                                        for _, r in ipairs(groupHeader.rows) do r:Show() end
+                                        groupHeader.groupHeight = 24 + (4 * 28)
+                                    else
+                                        chevron:SetText("+")
+                                        if groupHeader.rows then
+                                            for _, r in ipairs(groupHeader.rows) do r:Hide() end
+                                        end
+                                        groupHeader.groupHeight = 24
+                                    end
+                                    -- Trigger full module rebuild to recalculate spacing (shortcut)
+                                    f.OpenModule(addon.currentModule)  
+                                end
+
+                                groupHeader:SetScript("OnClick", function()
+                                    SetExpanded(not groupHeader.expanded)
+                                end)
+
+                                groupHeader.groupHeight = 24
+                                table.insert(allGroupFrames, groupHeader)
+                                return groupHeader
+                            end
+                            
+                            local groupOrder = addon.GetGroupOrder and addon.GetGroupOrder() or {}
+                            if type(groupOrder) ~= "table" or #groupOrder == 0 then groupOrder = addon.GROUP_ORDER or {} end
+                            local GROUPING_OVERRIDE_KEYS = { CURRENT = true, NEARBY = true, COMPLETE = true }
+                            
+                            local perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Per category"])
+                            perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
+                            yOff = yOff - 24
+                            
+                            local resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["Reset all to defaults"], function()
+                                _G.OptionsData_SetDB(opt.dbKey, nil)
+                                _G.OptionsData_SetDB("questColors", nil)
+                                _G.OptionsData_SetDB("sectionColors", nil)
+                                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                            end, { width = 140, height = 22 })
+                            resetAllBtn:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
+                            yOff = yOff - 30
+
+                            for _, key in ipairs(groupOrder) do
+                                if not GROUPING_OVERRIDE_KEYS[key] then
+                                    local grp = BuildCollapsibleGroup(cmfContainer, key, yOff)
+                                    yOff = yOff - grp.groupHeight - 4
+                                end
+                            end
+                            
+                            yOff = yOff - 10
+                            local goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Grouping Overrides"])
+                            goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
+                            yOff = yOff - 24
+
+                            local ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v) setOverride("useCompletedOverride", v) end)
+                            ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
+                            ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                            yOff = yOff - 38
+
+                            local ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v) setOverride("useCurrentZoneOverride", v) end)
+                            ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
+                            ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                            yOff = yOff - 38
+
+                            local ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v) setOverride("useCurrentQuestOverride", v) end)
+                            ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
+                            ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                            yOff = yOff - 38
+
+                            for _, key in ipairs(groupOrder) do
+                                if GROUPING_OVERRIDE_KEYS[key] then
+                                    local grp = BuildCollapsibleGroup(cmfContainer, key, yOff)
+                                    yOff = yOff - grp.groupHeight - 4
+                                end
+                            end
+
+                            yOff = yOff - 10
+                            local otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Other colors"])
+                            otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
+                            yOff = yOff - 24
+
+                            local ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Use distinct color for completed objectives"], L["When on, completed objectives use the color below."], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v) _G.OptionsData_SetDB("useCompletedObjectiveColor", v); if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
+                            ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
+                            ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                            yOff = yOff - 38
+                            
+                            local otherDefs = {
+                                { dbKey = "highlightColor", label = L["Highlight"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
+                                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }) },
+                                { dbKey = "progressBarFillColor", label = L["Progress bar fill"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return _G.OptionsData_GetDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
+                                { dbKey = "progressBarTextColor", label = L["Progress bar text"], def = { 0.95, 0.95, 0.95 } },
+                            }
+                            
+                            for _, od in ipairs(otherDefs) do
+                                local getTbl = function() return _G.OptionsData_GetDB(od.dbKey, nil) end
+                                local setKeyVal = function(v) _G.OptionsData_SetDB(od.dbKey, v); if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end
+                                local row = _G.OptionsWidgets_CreateColorSwatchRow(cmfContainer, nil, od.label, od.def, getTbl, setKeyVal, function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end, od.disabled, od.hasAlpha)
+                                row:ClearAllPoints()
+                                row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
+                                row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+                                yOff = yOff - 28
+                            end
+
+                            cmfContainer:SetHeight(-yOff)
+                            widget = cmfContainer
                         end
 
                         if widget then
