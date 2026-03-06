@@ -88,7 +88,9 @@ addon.HEADER_COLOR    = { 1, 1, 1 }
 addon.DIVIDER_COLOR   = { 1, 1, 1, 0.5 }
 addon.OBJ_COLOR       = { 0.78, 0.78, 0.78 }
 addon.OBJ_DONE_COLOR  = { 0.30, 0.80, 0.30 }
--- Timer urgency: green (>25% left), yellow (10–25%), red (<10%)
+-- Timer urgency (absolute): green (>=12h left), yellow (<12h), red (<3h)
+addon.TIMER_URGENCY_RED_SECONDS    = 3 * 3600   -- 3 hours
+addon.TIMER_URGENCY_YELLOW_SECONDS = 12 * 3600 -- 12 hours
 addon.TIMER_URGENCY_COLORS = {
     plenty = { 0.35, 0.90, 0.45 },  -- green
     low    = { 1.00, 0.85, 0.25 },  -- yellow
