@@ -462,7 +462,8 @@ local function StripHealthAndPowerText()
                 pcall(function()
                     local ok2, rawVal = pcall(font.GetText, font)
                     local raw = tostring((ok2 and rawVal) or "")
-                    if raw ~= "" then
+                    local okCmp, notEmpty = pcall(function() return raw ~= "" end)
+                    if okCmp and notEmpty then
                         local text = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
                         if text:match("%d[%d,]*%s*/%s*%d[%d,]*") then
                             font:SetText("")
@@ -509,7 +510,12 @@ local function ProcessUnitTooltip()
         local parts = {}
         parts[#parts + 1] = "Level " .. levelStr
         if classStr then parts[#parts + 1] = classStr end
-        if creatureType and creatureType ~= "" then parts[#parts + 1] = creatureType end
+        -- pcall: creatureType can be a secret/tainted value; comparison throws.
+        pcall(function()
+            if creatureType and creatureType ~= "" then
+                parts[#parts + 1] = creatureType
+            end
+        end)
         local lineText = #parts > 0 and table.concat(parts, " ") or nil
         if lineText then
             local lineLeft = _G["GameTooltipTextLeft2"]
@@ -945,7 +951,11 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
     if event == "INSPECT_READY" then
         if not IsEnabled() then return end
         if not guid then return end
-        if UnitExists("mouseover") and UnitGUID("mouseover") == guid then
+        if not UnitExists("mouseover") then return end
+        local mouseoverGuid = UnitGUID("mouseover")
+        -- pcall: GUID comparison can throw when value is secret/tainted.
+        local okMatch, isMatch = pcall(function() return mouseoverGuid == guid end)
+        if okMatch and isMatch then
             CacheInspect(guid, "mouseover")
             -- Refresh the tooltip from scratch so Blizzard's lines are rebuilt
             -- before we append ours — prevents every AddLine running twice.
