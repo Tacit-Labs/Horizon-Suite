@@ -402,10 +402,12 @@ local function FullLayout()
             and not (collapse and collapse.headerSlidingToTop)))
 
     if useGrowUpScrollLayout then
-        -- Header at bottom; scrollFrame fills from top down to just above header (or M+ block)
+        -- Header at bottom; scrollFrame fills from top down to just above header (or M+ block).
+        -- headerArea must match ApplyGrowUpLayout: divider at pad+headerH, so content starts at pad+headerH+divH+gap.
+        -- When not minimal, headerH = pad+GetHeaderHeight(), so content starts at 2*pad+GetHeaderHeight()+divH+gap.
         local headerArea = addon.GetDB("hideObjectivesHeader", false)
             and (addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4))
-            or (addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
+            or (addon.GetScaledPadding() * 2 + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
         if blockFrame and blockPos == "top" then
             scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
             scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
@@ -523,14 +525,19 @@ local function FullLayout()
                 end
                 local totalContentH = math.max(-yOff, 1)
                 scrollChild:SetHeight(totalContentH)
-                addon.ApplyScrollOffset(0)
-                addon.focus.layout.scrollOffset = 0
+                local frameH = scrollFrame:GetHeight() or 0
+                local maxScr = math.max(totalContentH - frameH, 0)
+                local scrollOffset = (useGrowUpScrollLayout and maxScr > 0) and maxScr or 0
+                addon.focus.layout.scrollOffset = scrollOffset
+                addon.ApplyScrollOffset(scrollOffset)
                 if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
                 local headerArea
                 if addon.GetDB("hideObjectivesHeader", false) then
                     headerArea = addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4)
                 else
-                    headerArea = addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
+                    -- Grow-up header at bottom uses 2*pad (divider at pad+headerH); grow-down uses 1*pad.
+                    local pad = addon.GetScaledPadding()
+                    headerArea = (useGrowUpScrollLayout and (pad * 2) or pad) + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
                 end
                 local visibleH = math.min(totalContentH, addon.GetMaxContentHeight())
                 local blockHeight = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
@@ -583,7 +590,7 @@ local function FullLayout()
             if needHeaderAtBottom then
                 local headerArea = addon.GetDB("hideObjectivesHeader", false)
                     and (addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4))
-                    or (addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
+                    or (addon.GetScaledPadding() * 2 + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
                 if blockFrame and blockPos == "top" then
                     scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
                     scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
@@ -1221,7 +1228,11 @@ local function FullLayout()
 
     local frameH = scrollFrame:GetHeight() or 0
     local maxScr = math.max(totalContentH - frameH, 0)
-    addon.focus.layout.scrollOffset = math.min(prevScroll, maxScr)
+    if useGrowUpScrollLayout and maxScr > 0 then
+        addon.focus.layout.scrollOffset = maxScr
+    else
+        addon.focus.layout.scrollOffset = math.min(prevScroll, maxScr)
+    end
     addon.ApplyScrollOffset(addon.focus.layout.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
 
@@ -1229,7 +1240,9 @@ local function FullLayout()
     if addon.GetDB("hideObjectivesHeader", false) then
         headerArea = addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4)
     else
-        headerArea = addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
+        -- Grow-up header at bottom uses 2*pad (divider at pad+headerH); grow-down uses 1*pad.
+        local pad = addon.GetScaledPadding()
+        headerArea = (useGrowUpScrollLayout and (pad * 2) or pad) + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
     end
     local visibleH      = math.min(totalContentH, addon.GetMaxContentHeight())
     local blockHeight   = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0

@@ -634,6 +634,7 @@ L["Show notification when completing a world quest."] = true
 L["Show notification when entering a scenario or Delve."] = true
 L["Show notification when quest objectives update."] = true
 L["Show notification when scenario or Delve objectives update."] = true
+L["Show notification when achievement criteria update (tracked achievements always; others when Blizzard provides the achievement ID)."] = true
 L["Show notification when tracked achievement criteria update."] = true
 L["Show objective numbers"] = true
 L["Show objective progress bar"] = true

@@ -1,0 +1,851 @@
+--[[
+    Horizon Suite - Dashboard Options Panel
+    New standalone dashboard-style options UI.
+]]
+
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+if not addon then return end
+print("|cff00ff00Horizon Suite: DashboardPanel.lua loaded|r")
+
+local L = addon.L
+
+-- Helper: Create Text
+local function MakeText(parent, text, size, r, g, b, justify)
+    local fs = parent:CreateFontString(nil, "OVERLAY")
+    fs:SetFont("Fonts\\FRIZQT__.TTF", size, "OUTLINE")
+    fs:SetText(text)
+    fs:SetTextColor(r, g, b)
+    if justify then fs:SetJustifyH(justify) end
+    return fs
+end
+
+local f = _G.HorizonSuiteDashboard
+SLASH_HSDASH1 = "/hsd"
+SLASH_HSDASH2 = "/dash"
+SlashCmdList["HSDASH"] = function(msg)
+    print("|cff00ff00Horizon Suite: /hsd triggered|r")
+    f = f or _G.HorizonSuiteDashboard
+    if f and f:IsShown() then
+        f:Hide()
+    else
+        if not f then
+            f = CreateFrame("Frame", "HorizonSuiteDashboard", UIParent, "BackdropTemplate")
+            f:SetSize(1000, 700)
+            f:SetPoint("CENTER")
+            f:SetFrameStrata("HIGH")
+            f:SetToplevel(true)
+            f:EnableMouse(true)
+            f:Hide()
+
+            if _G.OptionsWidgets_SetDef then
+                _G.OptionsWidgets_SetDef({
+                    FontPath = "Fonts\\FRIZQT__.TTF",
+                    LabelSize = 13,
+                    SectionSize = 11,
+                })
+            end
+
+            local moduleLabels = {
+                focus = L["Focus"] or "Focus",
+                presence = L["Presence"] or "Presence",
+                vista = L["Vista"] or "Vista",
+                insight = L["Insight"] or "Insight",
+                yield = L["Yield"] or "Yield",
+            }
+
+            local categoryIcons = {
+                ["Profiles"] = "INV_Misc_GroupNeedMore",
+                ["Modules"] = "INV_Misc_Wrench_01",
+                ["Focus"] = "INV_Misc_Gear_01",
+                ["Presence"] = "INV_Misc_Bell_01",
+                ["Vista"] = "INV_Misc_Spyglass_02",
+                ["Typography"] = "INV_Misc_Book_09",
+                ["Colors"] = "INV_Misc_Gem_Diamond_01",
+                ["General"] = "INV_Misc_Question_01",
+                ["Core"] = "INV_Misc_Wrench_01",
+            }
+            tinsert(UISpecialFrames, "HorizonSuiteDashboard")
+            
+            -- Background
+            local bg = f:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            bg:SetColorTexture(0.06, 0.06, 0.08, 0.98)
+            
+            -- Header
+            local head = MakeText(f, " Horizon Suite", 26, 1, 1, 1, "LEFT")
+            head:SetPoint("TOPLEFT", 40, -40)
+            local headSub = MakeText(f, "Select a module to configure", 14, 0.5, 0.5, 0.5, "LEFT")
+            headSub:SetPoint("TOPLEFT", 42, -70)
+
+            -- Search Bar
+            local searchBox = CreateFrame("EditBox", nil, f)
+            searchBox:SetSize(280, 42)
+            searchBox:SetPoint("TOPRIGHT", -80, -40)
+            searchBox:SetFont("Fonts\\FRIZQT__.TTF", 14, "")
+            searchBox:SetTextInsets(45, 10, 0, 0)
+            searchBox:SetAutoFocus(false)
+            
+            local sbBorder = searchBox:CreateTexture(nil, "BACKGROUND")
+            sbBorder:SetPoint("TOPLEFT", -2, 2)
+            sbBorder:SetPoint("BOTTOMRIGHT", 2, -2)
+            sbBorder:SetColorTexture(0.2, 0.2, 0.25, 1)
+
+            local sbBg = searchBox:CreateTexture(nil, "BORDER")
+            sbBg:SetAllPoints()
+            sbBg:SetColorTexture(0.12, 0.13, 0.16, 1)
+            
+            local sbPlaceholder = MakeText(searchBox, "Search settings...", 14, 0.5, 0.5, 0.5, "LEFT")
+            sbPlaceholder:SetPoint("LEFT", 45, 0)
+            
+            local sbIcon = searchBox:CreateTexture(nil, "ARTWORK")
+            sbIcon:SetSize(18, 18)
+            sbIcon:SetPoint("LEFT", 15, 0)
+            sbIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_02")
+            sbIcon:SetVertexColor(0.5, 0.5, 0.5, 1)
+
+            searchBox:SetScript("OnEditFocusGained", function(self)
+                sbBorder:SetColorTexture(0.3, 0.6, 1, 1)
+                sbPlaceholder:Hide()
+                sbIcon:SetVertexColor(0.8, 0.8, 0.8, 1)
+            end)
+            searchBox:SetScript("OnEditFocusLost", function(self)
+                sbBorder:SetColorTexture(0.2, 0.2, 0.25, 1)
+                if self:GetText() == "" then
+                    sbPlaceholder:Show()
+                    sbIcon:SetVertexColor(0.5, 0.5, 0.5, 1)
+                end
+            end)
+            searchBox:SetScript("OnTextChanged", function(self)
+                if self:GetText() == "" and not self:HasFocus() then
+                     sbPlaceholder:Show()
+                else
+                     sbPlaceholder:Hide()
+                end
+                if f.OnSearchTextChanged then f.OnSearchTextChanged(self:GetText()) end
+            end)
+            searchBox:SetScript("OnEscapePressed", function(self) 
+                self:ClearFocus() 
+                self:SetText("")
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+            end)
+
+            -- Search Dropdown UI
+            local searchDropdown = CreateFrame("Frame", nil, f, "BackdropTemplate")
+            searchDropdown:SetSize(320, 200)
+            searchDropdown:SetPoint("TOPRIGHT", searchBox, "BOTTOMRIGHT", 0, -5)
+            searchDropdown:SetFrameLevel(f:GetFrameLevel() + 10)
+            searchDropdown:SetBackdrop({
+                bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                edgeSize = 12,
+                insets = { left = 3, right = 3, top = 3, bottom = 3 }
+            })
+            searchDropdown:SetBackdropColor(0.08, 0.08, 0.09, 0.98)
+            searchDropdown:SetBackdropBorderColor(0.2, 0.2, 0.25, 1)
+            searchDropdown:Hide()
+
+            local searchDropdownScroll = CreateFrame("ScrollFrame", nil, searchDropdown)
+            searchDropdownScroll:SetPoint("TOPLEFT", 6, -6)
+            searchDropdownScroll:SetPoint("BOTTOMRIGHT", -6, 6)
+            local searchDropdownContent = CreateFrame("Frame", nil, searchDropdownScroll)
+            searchDropdownContent:SetSize(308, 1)
+            searchDropdownScroll:SetScrollChild(searchDropdownContent)
+
+            searchDropdownScroll:EnableMouseWheel(true)
+            searchDropdownScroll:SetScript("OnMouseWheel", function(self, delta)
+                local childH = searchDropdownContent:GetHeight() or 0
+                local frameH = self:GetHeight() or 0
+                local maxScroll = math.max(0, childH - frameH)
+                local cur = self:GetVerticalScroll() or 0
+                local new = math.max(0, math.min(maxScroll, cur - delta * 24))
+                self:SetVerticalScroll(new)
+            end)
+
+            local searchDropdownCatch = CreateFrame("Button", nil, f)
+            searchDropdownCatch:SetAllPoints(f)
+            searchDropdownCatch:SetFrameLevel(searchDropdown:GetFrameLevel() - 1)
+            searchDropdownCatch:Hide()
+            searchDropdownCatch:SetScript("OnClick", function()
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+            end)
+
+            f.HideSearchDropdown = function()
+                searchDropdown:Hide()
+                searchDropdownCatch:Hide()
+            end
+
+            -- Views
+            local dashboardView = CreateFrame("Frame", nil, f)
+            dashboardView:SetSize(950, 680)
+            dashboardView:SetPoint("CENTER")
+            f.dashboardView = dashboardView
+
+            local detailView = CreateFrame("Frame", nil, f)
+            detailView:SetSize(950, 680)
+            detailView:SetPoint("CENTER")
+            detailView:Hide()
+            f.detailView = detailView
+
+            local subCategoryView = CreateFrame("Frame", nil, f)
+            subCategoryView:SetSize(950, 680)
+            subCategoryView:SetPoint("CENTER")
+            subCategoryView:Hide()
+            f.subCategoryView = subCategoryView
+
+            local detailTitle = MakeText(detailView, "MODULE SETTINGS", 20, 1, 1, 1, "LEFT")
+            detailTitle:SetPoint("TOPLEFT", 180, -45)
+            f.detailTitle = detailTitle
+
+            -- Transitions
+            f.ShowDashboard = function()
+                detailView:Hide()
+                subCategoryView:Hide()
+                dashboardView:Show()
+                if head then head:Show() end
+                if headSub then
+                    headSub:Show()
+                    headSub:SetText("Select a module to configure")
+                end
+                searchBox:Show()
+            end
+
+            -- Back Button (Persistent in Detail View)
+            local backBtn = CreateFrame("Button", nil, detailView)
+            backBtn:SetSize(120, 32)
+            backBtn:SetPoint("TOPLEFT", 40, -40)
+            local backIcon = backBtn:CreateTexture(nil, "ARTWORK")
+            backIcon:SetSize(16, 16)
+            backIcon:SetPoint("LEFT", 0, 0)
+            backIcon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
+            local backTxt = MakeText(backBtn, "BACK TO MENU", 12, 0.6, 0.6, 0.6, "LEFT")
+            backTxt:SetPoint("LEFT", 20, 0)
+            backBtn:SetScript("OnEnter", function() backTxt:SetTextColor(1, 1, 1) end)
+            backBtn:SetScript("OnLeave", function() backTxt:SetTextColor(0.6, 0.6, 0.6) end)
+            -- Back button in detail view now goes to Subcategory Menu
+            backBtn:SetScript("OnClick", function() 
+                detailView:Hide()
+                if f.currentModuleKey then
+                    subCategoryView:Show()
+                else
+                    f.ShowDashboard()
+                end 
+            end)
+
+            -- Back Button (Subcategory View)
+            local subBackBtn = CreateFrame("Button", nil, subCategoryView)
+            subBackBtn:SetSize(120, 32)
+            subBackBtn:SetPoint("TOPLEFT", 40, -40)
+            local subBackIcon = subBackBtn:CreateTexture(nil, "ARTWORK")
+            subBackIcon:SetSize(16, 16)
+            subBackIcon:SetPoint("LEFT", 0, 0)
+            subBackIcon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
+            local subBackTxt = MakeText(subBackBtn, "BACK TO DASHBOARD", 12, 0.6, 0.6, 0.6, "LEFT")
+            subBackTxt:SetPoint("LEFT", 20, 0)
+            subBackBtn:SetScript("OnEnter", function() subBackTxt:SetTextColor(1, 1, 1) end)
+            subBackBtn:SetScript("OnLeave", function() subBackTxt:SetTextColor(0.6, 0.6, 0.6) end)
+            subBackBtn:SetScript("OnClick", function() f.ShowDashboard() end)
+
+            -- Close Button
+            local closeBtn = CreateFrame("Button", nil, f)
+            closeBtn:SetSize(32, 32)
+            closeBtn:SetPoint("TOPRIGHT", -10, -10)
+            local closeIcon = closeBtn:CreateTexture(nil, "ARTWORK")
+            closeIcon:SetAllPoints()
+            closeIcon:SetTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Up")
+            closeBtn:SetScript("OnClick", function() f:Hide() end)
+
+            -- Key Handling (Escape to Close)
+            f:SetPropagateKeyboardInput(true)
+            f:SetScript("OnKeyDown", function(self, key)
+                if key == "ESCAPE" then
+                    self:SetPropagateKeyboardInput(false)
+                    self:Hide()
+                else
+                    self:SetPropagateKeyboardInput(true)
+                end
+            end)
+
+            -- Detail Card Container (Scrollable)
+            local detailScroll = CreateFrame("ScrollFrame", nil, detailView, "UIPanelScrollFrameTemplate")
+            detailScroll:SetPoint("TOPLEFT", 40, -110)
+            detailScroll:SetPoint("BOTTOMRIGHT", -40, 40)
+            detailScroll.ScrollBar:Hide()
+            detailScroll.ScrollBar:ClearAllPoints()
+
+            local detailContent = CreateFrame("Frame", nil, detailScroll)
+            detailContent:SetSize(870, 1)
+            detailScroll:SetScrollChild(detailContent)
+
+            detailScroll:EnableMouseWheel(true)
+            detailScroll:SetScript("OnMouseWheel", function(self, delta)
+                local cur = self:GetVerticalScroll() or 0
+                local maxScroll = math.max(0, detailContent:GetHeight() - self:GetHeight())
+                if maxScroll > 0 then
+                    local new = math.max(0, math.min(cur - delta * 60, maxScroll))
+                    self:SetVerticalScroll(new)
+                end
+            end)
+
+            local currentDetailCards = {}
+
+            -- Helper: Update Detail Layout
+            local function UpdateDetailLayout()
+                local yOffset = 0
+                for _, card in ipairs(currentDetailCards) do
+                    card:ClearAllPoints()
+                    card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -yOffset)
+                    yOffset = yOffset + card:GetHeight() + 15
+                end
+                detailContent:SetHeight(math.max(1, yOffset))
+            end
+
+            local function NavigateToOption(entry)
+                if not entry then return end
+                -- Find the target category
+                local targetCat = false
+                for _, cat in ipairs(addon.OptionCategories) do
+                    if cat.key == entry.categoryKey then
+                        targetCat = cat
+                        break
+                    end
+                end
+
+                if targetCat then
+                    -- Get the module label
+                    local modName = targetCat.moduleKey and moduleLabels[targetCat.moduleKey] or targetCat.name
+
+                    -- We first "open" the module so its subcategory tiles are created in the background
+                    -- This ensures that hitting the "BACK" button from detail view has a populated subCategoryView.
+                    f.OpenModule(modName, targetCat.moduleKey)
+
+                    -- Navigate to the Detail View for that Category
+                    local options = type(targetCat.options) == "function" and targetCat.options() or targetCat.options
+                    f.OpenCategoryDetail(modName, entry.categoryName, options)
+
+                    -- Find and expand the relevant accordion card
+                    C_Timer.After(0.1, function()
+                        for _, card in ipairs(currentDetailCards) do
+                            if card.optionIds and card.optionIds[entry.optionId] then
+                                if not card.expanded then
+                                    card.expanded = true
+                                    card.anim:Play()
+                                end
+                                
+                                -- Scroll to the card
+                                local _, _, _, _, yOffset = card:GetPoint()
+                                local frameH = detailScroll:GetHeight() or 0
+                                local maxScroll = math.max(0, detailContent:GetHeight() - frameH)
+                                local targetScroll = math.max(0, math.min(maxScroll, math.abs(yOffset or 0) - 20))
+                                detailScroll:SetVerticalScroll(targetScroll)
+                                break
+                            end
+                        end
+                    end)
+                end
+            end
+
+            local searchDropdownButtons = {}
+            local SEARCH_DROPDOWN_ROW_HEIGHT = 38
+
+            local function ShowSearchResults(matches)
+                if not matches or #matches == 0 then
+                    f.HideSearchDropdown()
+                    return
+                end
+                
+                local num = math.min(#matches, 12)
+                for i = 1, num do
+                    if not searchDropdownButtons[i] then
+                        local b = CreateFrame("Button", nil, searchDropdownContent)
+                        b:SetHeight(SEARCH_DROPDOWN_ROW_HEIGHT)
+                        b:SetPoint("LEFT", searchDropdownContent, "LEFT", 0, 0)
+                        b:SetPoint("RIGHT", searchDropdownContent, "RIGHT", 0, 0)
+                        
+                        b.subLabel = MakeText(b, "", 10, 0.58, 0.64, 0.74, "LEFT")
+                        b.subLabel:SetPoint("TOPLEFT", b, "TOPLEFT", 8, -4)
+                        
+                        b.label = MakeText(b, "", 12, 0.9, 0.9, 0.9, "LEFT")
+                        b.label:SetPoint("TOPLEFT", b.subLabel, "BOTTOMLEFT", 0, -1)
+                        
+                        local hi = b:CreateTexture(nil, "BACKGROUND")
+                        hi:SetAllPoints(b)
+                        hi:SetColorTexture(1, 1, 1, 0.08)
+                        hi:Hide()
+                        
+                        b:SetScript("OnEnter", function()
+                            hi:Show()
+                            b.label:SetTextColor(1, 1, 1)
+                        end)
+                        b:SetScript("OnLeave", function()
+                            hi:Hide()
+                            b.label:SetTextColor(0.9, 0.9, 0.9)
+                        end)
+                        searchDropdownButtons[i] = { btn = b, hi = hi }
+                    end
+                    
+                    local row = searchDropdownButtons[i]
+                    local m = matches[i]
+                    local breadcrumb
+                    if m.moduleLabel and m.moduleLabel ~= "" and m.moduleLabel ~= (m.categoryName or "") then
+                        breadcrumb = (m.moduleLabel or "") .. " > " .. (m.categoryName or "") .. " > " .. (m.sectionName or "")
+                    else
+                        breadcrumb = (m.categoryName or "") .. " > " .. (m.sectionName or "")
+                    end
+                    
+                    local rawName = m.option and (type(m.option.name) == "function" and m.option.name() or m.option.name) or nil
+                    local optionName = tostring(rawName or "")
+                    
+                    row.btn.subLabel:SetText(breadcrumb or "")
+                    row.btn.label:SetText(optionName)
+                    row.btn.entry = m
+                    row.btn:SetPoint("TOP", searchDropdownContent, "TOP", 0, -(i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT)
+                    row.btn:SetScript("OnClick", function()
+                        NavigateToOption(row.btn.entry)
+                        f.HideSearchDropdown()
+                        if searchBox then searchBox:ClearFocus() end
+                    end)
+                    row.btn:Show()
+                end
+                
+                for i = num + 1, #searchDropdownButtons do
+                    if searchDropdownButtons[i] then searchDropdownButtons[i].btn:Hide() end
+                end
+                
+                searchDropdownContent:SetHeight(num * SEARCH_DROPDOWN_ROW_HEIGHT)
+                searchDropdownScroll:SetVerticalScroll(0)
+                searchDropdown:Show()
+                searchDropdownCatch:Show()
+            end
+
+            local searchDebounceTimer
+            f.OnSearchTextChanged = function(text)
+                if searchDebounceTimer and searchDebounceTimer.Cancel then
+                    searchDebounceTimer:Cancel()
+                end
+                searchDebounceTimer = nil
+                
+                local delay = 0.2
+                if C_Timer and C_Timer.NewTimer then
+                    searchDebounceTimer = C_Timer.NewTimer(delay, function()
+                        searchDebounceTimer = nil
+                        f.FilterBySearch(text)
+                    end)
+                elseif C_Timer and C_Timer.After then
+                    C_Timer.After(delay, function() f.FilterBySearch(text) end)
+                else
+                    f.FilterBySearch(text)
+                end
+            end
+
+            f.FilterBySearch = function(query)
+                local searchQuery = query and query:trim():lower() or ""
+                if searchQuery == "" or #searchQuery < 2 then
+                    f.HideSearchDropdown()
+                    return
+                end
+                
+                local index = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
+                local matches = {}
+                for _, entry in ipairs(index) do
+                    if entry.searchText and entry.searchText:find(searchQuery, 1, true) then
+                        matches[#matches + 1] = entry
+                    end
+                end
+                ShowSearchResults(matches)
+            end
+
+            local currentSubTiles = {}
+
+            -- Helper: Create Subcategory Tile
+            local function CreateSubCategoryTile(parent, name, index, options, modName)
+                local tile = CreateFrame("Button", nil, parent)
+                tile:SetSize(180, 60)
+                
+                local row = math.floor((index-1) / 4)
+                local col = (index-1) % 4
+                tile:SetPoint("TOPLEFT", parent, "TOPLEFT", 80 + (col * 200), -120 + (row * -80))
+
+                -- Background
+                local tBg = tile:CreateTexture(nil, "BACKGROUND")
+                tBg:SetAllPoints()
+                tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
+
+                -- Accent
+                local accent = tile:CreateTexture(nil, "ARTWORK")
+                accent:SetSize(4, 30)
+                accent:SetPoint("LEFT", 0, 0)
+                accent:SetColorTexture(0.3, 0.6, 1, 1)
+                accent:Hide()
+
+                -- Label
+                local lbl = MakeText(tile, name, 14, 0.8, 0.8, 0.8, "CENTER")
+                lbl:SetPoint("CENTER", 0, 0)
+
+                tile:SetScript("OnEnter", function()
+                    tBg:SetColorTexture(0.16, 0.17, 0.20, 1)
+                    lbl:SetTextColor(1, 1, 1)
+                    accent:Show()
+                end)
+                tile:SetScript("OnLeave", function()
+                    tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
+                    lbl:SetTextColor(0.8, 0.8, 0.8)
+                    accent:Hide()
+                end)
+                tile:SetScript("OnClick", function()
+                    f.OpenCategoryDetail(modName, name, options)
+                end)
+
+                return tile
+            end
+
+            f.OpenCategoryDetail = function(modName, catName, options)
+                dashboardView:Hide()
+                subCategoryView:Hide()
+                if head then head:Hide() end
+                if headSub then headSub:Hide() end
+                if searchBox then searchBox:Hide() end
+
+                detailView:Show()
+                detailContent:Show()
+                detailScroll:SetVerticalScroll(0)
+
+                -- Clear previous detail
+                for _, card in ipairs(currentDetailCards) do
+                    card:Hide()
+                end
+                wipe(currentDetailCards)
+
+                if f.detailTitle then 
+                    f.detailTitle:SetText(modName:upper() .. "  >  " .. catName:upper())
+                end
+
+                f.BuildAccordionDetail(catName, options)
+            end
+
+            f.OpenModule = function(name, moduleKey)
+                dashboardView:Hide()
+                if head then head:Hide() end
+                if headSub then headSub:Hide() end
+                searchBox:Hide()
+
+                f.currentModuleKey = moduleKey
+
+                -- Find all matching sub-categories
+                local cats = {}
+                for _, cat in ipairs(addon.OptionCategories) do
+                    local match = false
+                    if moduleKey and cat.moduleKey == moduleKey then
+                        match = true
+                    elseif not moduleKey and cat.name == name then
+                        match = true
+                    end
+                    if match and cat.options then
+                        tinsert(cats, cat)
+                    end
+                end
+
+                if #cats > 1 then
+                    -- Show SubCategory View
+                    subCategoryView:Show()
+                    detailView:Hide()
+
+                    -- Clear previous subtiles
+                    for _, tile in ipairs(currentSubTiles) do
+                        tile:Hide()
+                    end
+                    wipe(currentSubTiles)
+
+                    local modName = moduleKey and moduleLabels[moduleKey] or name
+
+                    local subTitle = subCategoryView.title
+                    if not subTitle then
+                        subTitle = MakeText(subCategoryView, modName:upper() .. " CATEGORIES", 20, 1, 1, 1, "LEFT")
+                        subTitle:SetPoint("TOPLEFT", 180, -45)
+                        subCategoryView.title = subTitle
+                    else
+                        subTitle:SetText(modName:upper() .. " CATEGORIES")
+                    end
+
+                    for i, cat in ipairs(cats) do
+                        local options = type(cat.options) == "function" and cat.options() or cat.options
+                        local tile = CreateSubCategoryTile(subCategoryView, cat.name, i, options, modName)
+                        tinsert(currentSubTiles, tile)
+                    end
+                else
+                    -- Only 1 category (or none), go straight to details
+                    subCategoryView:Hide()
+                    detailView:Show()
+                    detailContent:Show()
+                    detailScroll:SetVerticalScroll(0)
+                    
+                    -- Clear previous detail
+                    for _, card in ipairs(currentDetailCards) do
+                        card:Hide()
+                    end
+                    wipe(currentDetailCards)
+
+                    if f.detailTitle then 
+                        local titleText = name:upper()
+                        if moduleKey and moduleLabels[moduleKey] then
+                            local modName = moduleLabels[moduleKey]
+                            if modName:upper() ~= name:upper() then
+                                titleText = modName:upper() .. "  >  " .. name:upper()
+                            end
+                        end
+                        f.detailTitle:SetText(titleText) 
+                    end
+
+                    if cats[1] then
+                        local options = type(cats[1].options) == "function" and cats[1].options() or cats[1].options
+                        f.BuildAccordionDetail(cats[1].name, options)
+                    end
+                end
+            end
+
+            local function CreateAccordionCard(parent, title)
+                local card = CreateFrame("Button", nil, parent)
+                card:SetSize(870, 60)
+                card.expanded = false
+                card.collapsedHeight = 60
+                card:SetClipsChildren(true)
+
+                -- Background
+                local cBg = card:CreateTexture(nil, "BACKGROUND")
+                cBg:SetAllPoints()
+                cBg:SetColorTexture(0.08, 0.08, 0.09, 1)
+
+                -- Accent
+                local accent = card:CreateTexture(nil, "ARTWORK")
+                accent:SetSize(4, 24)
+                accent:SetPoint("TOPLEFT", 20, -18)
+                accent:SetColorTexture(0.3, 0.6, 1, 1)
+
+                -- Title
+                local lbl = MakeText(card, title:upper(), 14, 0.9, 0.9, 0.9, "LEFT")
+                lbl:SetPoint("TOPLEFT", 35, -23)
+
+                -- Settings Container
+                local sc = CreateFrame("Frame", nil, card)
+                sc:SetPoint("TOPLEFT", 0, -60)
+                sc:SetSize(870, 1)
+                sc:SetAlpha(0)
+                card.settingsContainer = sc
+
+                -- Animation logic
+                card.anim = card:CreateAnimationGroup()
+                local sizeAnim = card.anim:CreateAnimation("Animation")
+                sizeAnim:SetDuration(0.3)
+                sizeAnim:SetSmoothing("IN_OUT")
+                
+                card.anim:SetScript("OnUpdate", function()
+                    local progress = sizeAnim:GetSmoothProgress()
+                    local startH = card.expanded and card.collapsedHeight or (card.fullHeight or 200)
+                    local endH = card.expanded and (card.fullHeight or 200) or card.collapsedHeight
+                    
+                    local curH = startH + (endH - startH) * progress
+                    card:SetHeight(curH)
+                    
+                    if card.expanded then
+                        sc:SetAlpha(progress)
+                    else
+                        sc:SetAlpha(1 - progress)
+                    end
+                    UpdateDetailLayout()
+                end)
+                
+                card.anim:SetScript("OnFinished", function()
+                    local finalH = card.expanded and (card.fullHeight or 200) or card.collapsedHeight
+                    card:SetHeight(finalH)
+                    sc:SetAlpha(card.expanded and 1 or 0)
+                    UpdateDetailLayout()
+                end)
+
+                card:SetScript("OnClick", function()
+                    if card.anim:IsPlaying() then return end
+                    card.expanded = not card.expanded
+                    card.anim:Play()
+                end)
+
+                return card
+            end
+
+            f.BuildAccordionDetail = function(moduleSubName, options)
+                local currentCard = nil
+
+                for _, opt in ipairs(options) do
+                    -- Resolve get/set fallbacks if missing
+                    local g = opt.get
+                    local s = opt.set
+                    if not g and opt.dbKey then
+                        if opt.type == "color" then
+                            g = function()
+                                local r = _G.OptionsData_GetDB(opt.dbKey .. "R")
+                                local g = _G.OptionsData_GetDB(opt.dbKey .. "G")
+                                local b = _G.OptionsData_GetDB(opt.dbKey .. "B")
+                                local a = opt.hasAlpha and _G.OptionsData_GetDB(opt.dbKey .. "A") or 1
+                                if r == nil then
+                                    if type(opt.default) == "table" then return unpack(opt.default) end
+                                    return 1, 1, 1, 1
+                                end
+                                return r, g, b, a
+                            end
+                        else
+                            g = function() return _G.OptionsData_GetDB(opt.dbKey, opt.default) end
+                        end
+                    end
+                    if not s and opt.dbKey then
+                        if opt.type == "color" then
+                            s = function(nr, ng, nb, na)
+                                _G.OptionsData_SetDB(opt.dbKey .. "R", nr)
+                                _G.OptionsData_SetDB(opt.dbKey .. "G", ng)
+                                _G.OptionsData_SetDB(opt.dbKey .. "B", nb)
+                                if opt.hasAlpha then _G.OptionsData_SetDB(opt.dbKey .. "A", na) end
+                            end
+                        else
+                            s = function(v) _G.OptionsData_SetDB(opt.dbKey, v) end
+                        end
+                    end
+
+                    if opt.type == "section" then
+                        -- Finalize previous card if any
+                        if currentCard then
+                            currentCard.fullHeight = currentCard.contentHeight + 80
+                        end
+
+                        currentCard = CreateAccordionCard(detailContent, opt.name)
+                        currentCard.contentHeight = 0
+                        currentCard.optionIds = {}
+                        tinsert(currentDetailCards, currentCard)
+                    else
+                        if not currentCard then
+                            currentCard = CreateAccordionCard(detailContent, moduleSubName)
+                            currentCard.contentHeight = 0
+                            currentCard.optionIds = {}
+                            tinsert(currentDetailCards, currentCard)
+                        end
+                        
+                        -- Store the option identifier to track its parent card
+                        local optId = opt.dbKey or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
+                        currentCard.optionIds[optId] = true
+
+                        local widget
+                        if opt.type == "binary" or opt.type == "toggle" then
+                            widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s)
+                        elseif opt.type == "slider" then
+                            widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.min or 0, opt.max or 100, nil, opt.step or 1)
+                        elseif opt.type == "dropdown" then
+                            widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s)
+                        elseif opt.type == "color" then
+                            widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha)
+                        elseif opt.type == "header" then
+                            widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
+                        elseif opt.type == "button" then
+                            widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, opt.onClick)
+                        end
+
+                        if widget then
+                            widget:SetParent(currentCard.settingsContainer)
+                            widget:Show()
+                            
+                            local isHeader = opt.type == "header"
+                            local topGap = isHeader and 20 or 10
+                            
+                            widget:SetPoint("TOPLEFT", 30, -(currentCard.contentHeight + topGap))
+                            
+                            if isHeader then
+                                widget:SetPoint("RIGHT", currentCard.settingsContainer, "RIGHT", -30, 0)
+                                if widget.SetJustifyH then widget:SetJustifyH("LEFT") end
+                                -- Make headers stand out a bit
+                                if widget.SetTextColor then
+                                    widget:SetTextColor(0.58, 0.64, 0.74, 1)
+                                end
+                            else
+                                widget:SetPoint("RIGHT", currentCard.settingsContainer, "RIGHT", -30, 0)
+                            end
+                            
+                            local widgetH = widget:GetHeight() or 40
+                            if isHeader and widgetH < 20 then widgetH = 20 end
+                            
+                            currentCard.contentHeight = currentCard.contentHeight + widgetH + topGap
+                        end
+                    end
+                end
+
+                if currentCard then
+                    currentCard.fullHeight = currentCard.contentHeight + 80
+                end
+                
+                UpdateDetailLayout()
+            end
+
+
+            local function MakeTile(parent, name, icon, index, moduleKey)
+                local tile = CreateFrame("Button", nil, parent)
+                tile:SetSize(200, 180)
+                
+                local row = math.floor((index-1) / 4)
+                local col = (index-1) % 4
+                tile:SetPoint("TOPLEFT", parent, "TOPLEFT", 40 + (col * 220), -120 + (row * -200))
+
+                -- Background
+                local tBg = tile:CreateTexture(nil, "BACKGROUND")
+                tBg:SetAllPoints()
+                tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
+
+                -- Icon
+                local ic = tile:CreateTexture(nil, "ARTWORK")
+                ic:SetSize(64, 64)
+                ic:SetPoint("CENTER", 0, 20)
+                ic:SetTexture("Interface\\Icons\\" .. (categoryIcons[name] or "INV_Misc_Question_01"))
+                ic:SetVertexColor(1, 1, 1, 0.7)
+
+                -- Label
+                local lbl = MakeText(tile, name, 16, 0.8, 0.8, 0.8, "CENTER")
+                lbl:SetPoint("BOTTOM", 0, 30)
+
+                tile:SetScript("OnEnter", function()
+                    tBg:SetColorTexture(0.16, 0.17, 0.20, 1)
+                    ic:SetVertexColor(1, 1, 1, 1)
+                    lbl:SetTextColor(1, 1, 1)
+                end)
+                tile:SetScript("OnLeave", function()
+                    tBg:SetColorTexture(0.12, 0.12, 0.14, 1)
+                    ic:SetVertexColor(1, 1, 1, 0.7)
+                    lbl:SetTextColor(0.8, 0.8, 0.8)
+                end)
+                tile:SetScript("OnClick", function()
+                    f.OpenModule(name, moduleKey)
+                end)
+
+                return tile
+            end
+
+            -- Group logic
+            local mainTiles = {}
+            local seenModules = {}
+
+            -- 1. Profiles & Modules (Core)
+            for _, cat in ipairs(addon.OptionCategories) do
+                if not cat.moduleKey then
+                    tinsert(mainTiles, { name = cat.name })
+                end
+            end
+
+            -- 2. Module Groups
+
+            for _, cat in ipairs(addon.OptionCategories) do
+                local mk = cat.moduleKey
+                if mk and not seenModules[mk] then
+                    seenModules[mk] = true
+                    tinsert(mainTiles, { name = moduleLabels[mk] or mk, moduleKey = mk })
+                end
+            end
+
+            for i, tileInfo in ipairs(mainTiles) do
+                MakeTile(dashboardView, tileInfo.name, nil, i, tileInfo.moduleKey)
+            end
+        end
+        f:Show()
+    end
+end
+

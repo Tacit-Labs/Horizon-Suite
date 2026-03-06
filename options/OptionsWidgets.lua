@@ -102,7 +102,7 @@ local TOGGLE_TRACK_W, TOGGLE_TRACK_H = 48, 22
 local TOGGLE_INSET = 2
 local TOGGLE_THUMB_SIZE = 18
 
-function OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip)
+function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip)
     local row = CreateFrame("Frame", nil, parent)
     row:SetHeight(38)
     local searchText = (labelText or "") .. " " .. (description or "")
@@ -237,7 +237,7 @@ end
 --- @param onClick function Callback on click
 --- @param opts table|nil Optional; opts.width, opts.height (default 100x22)
 --- @return table Button frame (caller sets position)
-function OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
+function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
     opts = opts or {}
     local width = opts.width or 100
     local height = opts.height or 22
@@ -280,7 +280,7 @@ end
 local SLIDER_TRACK_HEIGHT = 6
 local SLIDER_THUMB_SIZE = 14
 local SLIDER_TRACK_INSET = 2
-function OptionsWidgets_CreateSlider(parent, labelText, description, get, set, minVal, maxVal, disabledFn, step, tooltip)
+function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set, minVal, maxVal, disabledFn, step, tooltip)
     -- step: snapping increment (default 1 = integer). Use e.g. 0.1 for one decimal place.
     step = step or 1
     local decimals = 0
@@ -497,7 +497,7 @@ local SECTION_CARD_BACKDROP = {
 
 -- Custom dropdown: button + popup list (no UIDropDownMenuTemplate)
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
-function OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip)
+function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip)
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
     local row = CreateFrame("Frame", nil, parent)
@@ -969,7 +969,7 @@ end
 -- Color swatch row: label + clickable swatch (for colorMatrix/colorGroup in options panel).
 -- defaultTbl: {r,g,b} or nil (nil => {0.5,0.5,0.5}). getTbl() returns current color or nil. setKeyVal({r,g,b}), notify() on change.
 -- disabledFn: optional function() return boolean end; when true, greys out and disables the swatch.
-function OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defaultTbl, getTbl, setKeyVal, notify, disabledFn, hasAlpha, tooltip)
+function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defaultTbl, getTbl, setKeyVal, notify, disabledFn, hasAlpha, tooltip)
     local row = CreateFrame("Frame", nil, parent)
     row:SetSize(280, 24)
     row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
@@ -1103,6 +1103,98 @@ function OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defaultT
     return row
 end
 
+-- Simplified Color Swatch for Dashboard (no anchor required, uses get/set functions)
+function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetHeight(38)
+    local searchText = (labelText or "") .. " " .. (description or "")
+    row.searchText = searchText:lower()
+
+    local label = row:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
+    label:SetJustifyH("LEFT")
+    SetTextColor(label, Def.TextColorLabel)
+    label:SetText(labelText or "")
+    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+
+    local desc = row:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(desc, Def.FontPath, Def.SectionSize, "OUTLINE")
+    desc:SetJustifyH("LEFT")
+    SetTextColor(desc, Def.TextColorSection)
+    desc:SetText(description or "")
+    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
+    desc:SetPoint("RIGHT", row, "RIGHT", -45, 0)
+    desc:SetWordWrap(true)
+
+    local swatch = CreateFrame("Button", nil, row)
+    swatch:SetSize(24, 24)
+    swatch:SetPoint("RIGHT", row, "RIGHT", 0, -2)
+    local bg = swatch:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(swatch)
+    bg:SetColorTexture(Def.InputBorder[1], Def.InputBorder[2], Def.InputBorder[3], 0.6)
+    local tex = swatch:CreateTexture(nil, "OVERLAY")
+    tex:SetPoint("TOPLEFT", swatch, "TOPLEFT", 1, -1)
+    tex:SetPoint("BOTTOMRIGHT", swatch, "BOTTOMRIGHT", -1, 1)
+
+    function swatch:Refresh()
+        if type(get) ~= "function" then 
+            tex:SetColorTexture(1, 1, 1, 1)
+            return 
+        end
+        local r, g, b, a = get()
+        tex:SetColorTexture(r or 1, g or 1, b or 1, a or 1)
+    end
+
+    swatch:SetScript("OnClick", function()
+        if type(get) ~= "function" or type(set) ~= "function" then return end
+        local r, g, b, a = get()
+        local info = {
+            r = r or 1, g = g or 1, b = b or 1,
+            opacity = hasAlpha and (1 - (a or 1)) or nil,
+            hasOpacity = hasAlpha == true,
+            swatchFunc = function()
+                local nr, ng, nb = GetColorPickerEffectiveRGB()
+                local na = hasAlpha and (1 - ColorPickerFrame:GetOpacity()) or 1
+                set(nr, ng, nb, na)
+                tex:SetColorTexture(nr, ng, nb, na)
+            end,
+            cancelFunc = function()
+                local pv = ColorPickerFrame.previousValues
+                if pv then
+                    set(pv.r, pv.g, pv.b, hasAlpha and (1 - pv.opacity) or 1)
+                end
+                swatch:Refresh()
+            end,
+            finishedFunc = function()
+                local nr, ng, nb = GetColorPickerEffectiveRGB()
+                local na = hasAlpha and (1 - ColorPickerFrame:GetOpacity()) or 1
+                set(nr, ng, nb, na)
+                swatch:Refresh()
+            end,
+        }
+        if ColorPickerFrame.SetupColorPickerAndShow then
+            ColorPickerFrame:SetupColorPickerAndShow(info)
+        else
+            -- Legacy WoW support
+            ColorPickerFrame.func = info.swatchFunc
+            ColorPickerFrame.cancelFunc = info.cancelFunc
+            ColorPickerFrame.opacityFunc = info.swatchFunc
+            ColorPickerFrame.hasOpacity = info.hasOpacity
+            ColorPickerFrame.opacity = info.opacity
+            ColorPickerFrame:SetColorRGB(info.r, info.g, info.b)
+            ColorPickerFrame:Show()
+        end
+    end)
+
+    function row:Refresh()
+        swatch:Refresh()
+    end
+
+    row:Refresh()
+    ApplyOptionTooltip(row, tooltip)
+    return row
+end
+
 -- Search input: card-themed styling (SectionCardBg, SectionCardBorder), search icon, integrated clear, focus state.
 -- onTextChanged(text) called on input.
 local SEARCH_ICON_LEFT = 28
@@ -1224,7 +1316,7 @@ local CARD_EXPAND_ANIM_DUR = 0.22
 
 -- Section card: rounded corners via SetBackdrop, soft cinematic background.
 -- When sectionKey and getCollapsedFn/setCollapsedFn are provided, the card is collapsible.
-function OptionsWidgets_CreateSectionCard(parent, anchor, sectionKey, getCollapsedFn, setCollapsedFn)
+function _G.OptionsWidgets_CreateSectionCard(parent, anchor, sectionKey, getCollapsedFn, setCollapsedFn)
     local card = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     card:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -Def.SectionGap)
     card:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 0)
@@ -1275,7 +1367,7 @@ end
 
 -- Section header: uppercase label, left-aligned. When sectionKey and getCollapsedFn/setCollapsedFn are
 -- provided, returns a clickable Button with chevron for collapse; otherwise returns a FontString.
-function OptionsWidgets_CreateSectionHeader(parent, text, sectionKey, getCollapsedFn, setCollapsedFn)
+function _G.OptionsWidgets_CreateSectionHeader(parent, text, sectionKey, getCollapsedFn, setCollapsedFn)
     local sk = sectionKey or parent.sectionKey
     local getFn = getCollapsedFn or parent.getCardCollapsed
     local setFn = setCollapsedFn or parent.setCardCollapsed
