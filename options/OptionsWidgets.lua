@@ -87,13 +87,32 @@ local function ApplyOptionTooltip(frame, tooltip)
     local tt = type(tooltip) == "function" and tooltip() or tooltip
     if not tt or tt == "" then return end
     frame:EnableMouse(true)
-    frame:SetScript("OnEnter", function()
+    frame:HookScript("OnEnter", function()
         GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
         GameTooltip:SetText(tt, 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    frame:SetScript("OnLeave", function()
+    frame:HookScript("OnLeave", function()
         GameTooltip:Hide()
+    end)
+end
+
+local function ApplyRowHoverHighlight(row)
+    if not row then return end
+    local hiBg = row:CreateTexture(nil, "BACKGROUND", nil, -7) -- Behind track/thumb backgrounds
+    hiBg:SetPoint("TOPLEFT", row, "TOPLEFT", -18, 5)
+    hiBg:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 18, -5)
+    hiBg:SetColorTexture(1, 1, 1, 0.025)
+    hiBg:Hide()
+    
+    row:EnableMouse(true)
+    row:HookScript("OnEnter", function()
+        -- Fade in
+        UIFrameFadeIn(row.hoverHighlightFrame or hiBg, 0.15, 0, 1)
+        hiBg:Show()
+    end)
+    row:HookScript("OnLeave", function()
+        hiBg:Hide()
     end)
 end
 
@@ -227,6 +246,7 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     end
 
     row:Refresh()
+    ApplyRowHoverHighlight(row)
     ApplyOptionTooltip(row, tooltip)
     return row
 end
@@ -481,6 +501,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end
 
     row:Refresh()
+    ApplyRowHoverHighlight(row)
     ApplyOptionTooltip(row, tooltip)
     return row
 end
@@ -874,6 +895,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     end
 
     row:Refresh()
+    ApplyRowHoverHighlight(row)
     ApplyOptionTooltip(row, tooltip)
     return row
 end
@@ -1191,6 +1213,7 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
     end
 
     row:Refresh()
+    ApplyRowHoverHighlight(row)
     ApplyOptionTooltip(row, tooltip)
     return row
 end

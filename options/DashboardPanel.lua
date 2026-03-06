@@ -59,6 +59,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 ["Focus"] = "INV_Misc_Gear_01",
                 ["Presence"] = "INV_Misc_Bell_01",
                 ["Vista"] = "INV_Misc_Spyglass_02",
+                ["Insight"] = "INV_Misc_Map_01",
+                ["Yield"] = "INV_Misc_Coin_01",
                 ["Typography"] = "INV_Misc_Book_09",
                 ["Colors"] = "INV_Misc_Gem_Diamond_01",
                 ["General"] = "INV_Misc_Question_01",
@@ -81,17 +83,17 @@ SlashCmdList["HSDASH"] = function(msg)
             bg:SetColorTexture(0.05, 0.05, 0.07, 0.98)
             
             -- Header
-            local head = MakeText(f, " HORIZON SUITE", 28, 1, 1, 1, "LEFT")
-            head:SetPoint("TOPLEFT", 40, -40)
-            local headSub = MakeText(f, "Select a module to configure", 15, 0.6, 0.65, 0.7, "LEFT")
-            headSub:SetPoint("TOPLEFT", 42, -70)
+            local head = MakeText(f, "Horizon Suite", 36, 1, 1, 1, "CENTER")
+            head:SetPoint("TOP", 0, -60)
+            local headSub = MakeText(f, "Select a module to configure", 16, 0.5, 0.5, 0.5, "CENTER")
+            headSub:SetPoint("TOP", 0, -105)
 
             -- Search Bar
             local searchBox = CreateFrame("EditBox", nil, f)
-            searchBox:SetSize(280, 42)
-            searchBox:SetPoint("TOPRIGHT", -80, -40)
-            searchBox:SetFont("Fonts\\FRIZQT__.TTF", 14, "")
-            searchBox:SetTextInsets(45, 10, 0, 0)
+            searchBox:SetSize(600, 50)
+            searchBox:SetPoint("TOP", 0, -150)
+            searchBox:SetFont("Fonts\\FRIZQT__.TTF", 16, "")
+            searchBox:SetTextInsets(55, 15, 0, 0)
             searchBox:SetAutoFocus(false)
             
             local sbBorder = searchBox:CreateTexture(nil, "BACKGROUND")
@@ -103,12 +105,12 @@ SlashCmdList["HSDASH"] = function(msg)
             sbBg:SetAllPoints()
             sbBg:SetColorTexture(0.12, 0.13, 0.16, 1)
             
-            local sbPlaceholder = MakeText(searchBox, "Search settings...", 14, 0.5, 0.5, 0.5, "LEFT")
-            sbPlaceholder:SetPoint("LEFT", 45, 0)
+            local sbPlaceholder = MakeText(searchBox, "Search settings...", 16, 0.5, 0.5, 0.5, "LEFT")
+            sbPlaceholder:SetPoint("LEFT", 55, 0)
             
             local sbIcon = searchBox:CreateTexture(nil, "ARTWORK")
-            sbIcon:SetSize(18, 18)
-            sbIcon:SetPoint("LEFT", 15, 0)
+            sbIcon:SetSize(24, 24)
+            sbIcon:SetPoint("LEFT", 20, 0)
             sbIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_02")
             sbIcon:SetVertexColor(0.5, 0.5, 0.5, 1)
 
@@ -139,10 +141,46 @@ SlashCmdList["HSDASH"] = function(msg)
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
             end)
 
+            -- Smooth Scroll Helper
+            local function ApplySmoothScroll(scrollFrame, scrollContent, speed)
+                scrollFrame.targetScroll = nil
+                scrollFrame.scrollSpeed = speed or 60
+                
+                scrollFrame:EnableMouseWheel(true)
+                scrollFrame:SetScript("OnMouseWheel", function(self, delta)
+                    local cur = self.targetScroll or self:GetVerticalScroll() or 0
+                    local childH = scrollContent:GetHeight() or 0
+                    local frameH = self:GetHeight() or 0
+                    local maxScroll = math.max(0, childH - frameH)
+                    
+                    if maxScroll > 0 then
+                        local new = math.max(0, math.min(maxScroll, cur - delta * self.scrollSpeed))
+                        self.targetScroll = new
+                        
+                        self:SetScript("OnUpdate", function(self, elapsed)
+                            if not self.targetScroll then
+                                self:SetScript("OnUpdate", nil)
+                                return
+                            end
+                            local current = self:GetVerticalScroll() or 0
+                            local diff = self.targetScroll - current
+                            if math.abs(diff) < 0.5 then
+                                self:SetVerticalScroll(self.targetScroll)
+                                self.targetScroll = nil
+                                self:SetScript("OnUpdate", nil)
+                            else
+                                -- Lerp towards target
+                                self:SetVerticalScroll(current + diff * 15 * elapsed)
+                            end
+                        end)
+                    end
+                end)
+            end
+
             -- Search Dropdown UI
             local searchDropdown = CreateFrame("Frame", nil, f, "BackdropTemplate")
-            searchDropdown:SetSize(320, 200)
-            searchDropdown:SetPoint("TOPRIGHT", searchBox, "BOTTOMRIGHT", 0, -5)
+            searchDropdown:SetSize(600, 300)
+            searchDropdown:SetPoint("TOPLEFT", searchBox, "BOTTOMLEFT", 0, -5)
             searchDropdown:SetFrameLevel(f:GetFrameLevel() + 10)
             searchDropdown:SetBackdrop({
                 bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -158,19 +196,10 @@ SlashCmdList["HSDASH"] = function(msg)
             searchDropdownScroll:SetPoint("TOPLEFT", 6, -6)
             searchDropdownScroll:SetPoint("BOTTOMRIGHT", -6, 6)
             local searchDropdownContent = CreateFrame("Frame", nil, searchDropdownScroll)
-            searchDropdownContent:SetSize(308, 1)
+            searchDropdownContent:SetSize(570, 1)
             searchDropdownScroll:SetScrollChild(searchDropdownContent)
 
-            searchDropdownScroll:EnableMouseWheel(true)
-            searchDropdownScroll:SetScript("OnMouseWheel", function(self, delta)
-                local childH = searchDropdownContent:GetHeight() or 0
-                local frameH = self:GetHeight() or 0
-                local maxScroll = math.max(0, childH - frameH)
-                local cur = self:GetVerticalScroll() or 0
-                local new = math.max(0, math.min(maxScroll, cur - delta * 24))
-                self:SetVerticalScroll(new)
-            end)
-
+            ApplySmoothScroll(searchDropdownScroll, searchDropdownContent, 30)
             local searchDropdownCatch = CreateFrame("Button", nil, f)
             searchDropdownCatch:SetAllPoints(f)
             searchDropdownCatch:SetFrameLevel(searchDropdown:GetFrameLevel() - 1)
@@ -212,21 +241,25 @@ SlashCmdList["HSDASH"] = function(msg)
             subCategoryContent:SetSize(870, 1)
             subCategoryScroll:SetScrollChild(subCategoryContent)
 
-            subCategoryScroll:EnableMouseWheel(true)
-            subCategoryScroll:SetScript("OnMouseWheel", function(self, delta)
-                local cur = self:GetVerticalScroll() or 0
-                local maxScroll = math.max(0, subCategoryContent:GetHeight() - self:GetHeight())
-                if maxScroll > 0 then
-                    local new = math.max(0, math.min(cur - delta * 60, maxScroll))
-                    self:SetVerticalScroll(new)
-                end
-            end)
-
+            ApplySmoothScroll(subCategoryScroll, subCategoryContent, 60)
             local detailTitle = MakeText(detailView, "MODULE SETTINGS", 20, 1, 1, 1, "LEFT")
             detailTitle:SetPoint("TOPLEFT", 180, -45)
             f.detailTitle = detailTitle
 
             -- Transitions
+            local function CrossfadeTo(targetView)
+                dashboardView:Hide()
+                detailView:Hide()
+                subCategoryView:Hide()
+                if head then head:Hide() end
+                if headSub then headSub:Hide() end
+                if searchBox then searchBox:Hide() end
+
+                targetView:SetAlpha(0)
+                targetView:Show()
+                UIFrameFadeIn(targetView, 0.2, 0, 1)
+            end
+
             f.ShowDashboard = function()
                 detailView:Hide()
                 subCategoryView:Hide()
@@ -331,16 +364,7 @@ SlashCmdList["HSDASH"] = function(msg)
             detailContent:SetSize(870, 1)
             detailScroll:SetScrollChild(detailContent)
 
-            detailScroll:EnableMouseWheel(true)
-            detailScroll:SetScript("OnMouseWheel", function(self, delta)
-                local cur = self:GetVerticalScroll() or 0
-                local maxScroll = math.max(0, detailContent:GetHeight() - self:GetHeight())
-                if maxScroll > 0 then
-                    local new = math.max(0, math.min(cur - delta * 60, maxScroll))
-                    self:SetVerticalScroll(new)
-                end
-            end)
-
+            ApplySmoothScroll(detailScroll, detailContent, 60)
             local currentDetailCards = {}
 
             -- Helper: Update Detail Layout
@@ -578,15 +602,9 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             f.OpenCategoryDetail = function(modName, catName, options)
-                dashboardView:Hide()
-                subCategoryView:Hide()
-                if head then head:Hide() end
-                if headSub then headSub:Hide() end
-                if searchBox then searchBox:Hide() end
+                if searchBox then searchBox:ClearFocus() end
 
-                detailView:SetAlpha(0)
-                detailView:Show()
-                UIFrameFadeIn(detailView, 0.2, 0, 1)
+                CrossfadeTo(detailView)
                 detailContent:Show()
                 detailScroll:SetVerticalScroll(0)
 
@@ -601,13 +619,29 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
 
                 f.BuildAccordionDetail(catName, options)
+
+                -- Cascade effect
+                for i, card in ipairs(currentDetailCards) do
+                    card:SetAlpha(0)
+                    local _, _, _, xVal, yVal = card:GetPoint()
+                    if yVal then
+                        card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
+                        if C_Timer and C_Timer.After then
+                            C_Timer.After(i * 0.04, function()
+                                if card:IsShown() then
+                                    card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
+                                    UIFrameFadeIn(card, 0.2, 0, 1)
+                                end
+                            end)
+                        else
+                            card:SetAlpha(1)
+                        end
+                    end
+                end
             end
 
             f.OpenModule = function(name, moduleKey)
-                dashboardView:Hide()
-                if head then head:Hide() end
-                if headSub then headSub:Hide() end
-                searchBox:Hide()
+                if searchBox then searchBox:ClearFocus() end
 
                 f.currentModuleKey = moduleKey
 
@@ -627,10 +661,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
                     if #cats > 1 then
                     -- Show SubCategory View
-                    subCategoryView:SetAlpha(0)
-                    subCategoryView:Show()
-                    UIFrameFadeIn(subCategoryView, 0.2, 0, 1)
-                    detailView:Hide()
+                    CrossfadeTo(subCategoryView)
                     subCategoryScroll:SetVerticalScroll(0)
 
                     -- Clear previous subtiles
@@ -650,7 +681,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         subTitle:SetText(modName:upper() .. " CATEGORIES")
                     end
 
-                    local tileYOffset = 0
+                local tileYOffset = 0
                     for i, cat in ipairs(cats) do
                         local options = type(cat.options) == "function" and cat.options() or cat.options
                         local tile = CreateSubCategoryTile(subCategoryContent, cat.name, i, options, modName, cat.desc)
@@ -658,14 +689,28 @@ SlashCmdList["HSDASH"] = function(msg)
                         
                         local row = math.floor((i-1) / 2)
                         tileYOffset = math.max(tileYOffset, (row + 1) * 130)
+
+                        -- Staggered Cascade Entrance
+                        tile:SetAlpha(0)
+                        local _, _, _, xVal, yVal = tile:GetPoint()
+                        if xVal and yVal then
+                            tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", xVal, yVal - 20)
+                            if C_Timer and C_Timer.After then
+                                C_Timer.After(i * 0.04, function()
+                                    if tile:IsShown() then
+                                        tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", xVal, yVal)
+                                        UIFrameFadeIn(tile, 0.2, 0, 1)
+                                    end
+                                end)
+                            else
+                                tile:SetAlpha(1)
+                            end
+                        end
                     end
                     subCategoryContent:SetHeight(math.max(1, tileYOffset))
                 else
                     -- Only 1 category (or none), go straight to details
-                    subCategoryView:Hide()
-                    detailView:SetAlpha(0)
-                    detailView:Show()
-                    UIFrameFadeIn(detailView, 0.2, 0, 1)
+                    CrossfadeTo(detailView)
                     detailContent:Show()
                     detailScroll:SetVerticalScroll(0)
                     
@@ -689,6 +734,25 @@ SlashCmdList["HSDASH"] = function(msg)
                     if cats[1] then
                         local options = type(cats[1].options) == "function" and cats[1].options() or cats[1].options
                         f.BuildAccordionDetail(cats[1].name, options)
+
+                        -- Cascade effect
+                        for i, card in ipairs(currentDetailCards) do
+                            card:SetAlpha(0)
+                            local _, _, _, xVal, yVal = card:GetPoint()
+                            if yVal then
+                                card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
+                                if C_Timer and C_Timer.After then
+                                    C_Timer.After(i * 0.04, function()
+                                        if card:IsShown() then
+                                            card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
+                                            UIFrameFadeIn(card, 0.2, 0, 1)
+                                        end
+                                    end)
+                                else
+                                    card:SetAlpha(1)
+                                end
+                            end
+                        end
                     end
                 end
             end
@@ -704,6 +768,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 local cBg = card:CreateTexture(nil, "BACKGROUND")
                 cBg:SetAllPoints()
                 cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
+
+                card:HookScript("OnEnter", function()
+                    if not card.expanded then
+                        cBg:SetColorTexture(0.09, 0.09, 0.1, 0.95)
+                    end
+                end)
+                card:HookScript("OnLeave", function()
+                    cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
+                end)
 
                 -- Accent
                 local accent = card:CreateTexture(nil, "ARTWORK")
@@ -822,17 +895,17 @@ SlashCmdList["HSDASH"] = function(msg)
 
                         local widget
                         if opt.type == "binary" or opt.type == "toggle" then
-                            widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s)
+                            widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.disabled, opt.tooltip)
                         elseif opt.type == "slider" then
-                            widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.min or 0, opt.max or 100, nil, opt.step or 1)
+                            widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.min or 0, opt.max or 100, opt.disabled, opt.step or 1, opt.tooltip)
                         elseif opt.type == "dropdown" then
-                            widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s)
+                            widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip)
                         elseif opt.type == "color" then
-                            widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha)
+                            widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
                         elseif opt.type == "header" then
                             widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
                         elseif opt.type == "button" then
-                            widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, opt.onClick)
+                            widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, opt.onClick, { tooltip = opt.tooltip })
                         end
 
                         if widget then
@@ -871,13 +944,23 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
 
-            local function MakeTile(parent, name, icon, index, moduleKey)
+            local function MakeTile(parent, name, icon, index, totalTiles, moduleKey)
                 local tile = CreateFrame("Button", nil, parent)
                 tile:SetSize(200, 180)
                 
-                local row = math.floor((index-1) / 4)
-                local col = (index-1) % 4
-                tile:SetPoint("TOPLEFT", parent, "TOPLEFT", 40 + (col * 220), -120 + (row * -200))
+                local itemsPerRow = 4
+                local row = math.floor((index-1) / itemsPerRow)
+                local col = (index-1) % itemsPerRow
+                
+                local itemsInThisRow = itemsPerRow
+                local totalRows = math.ceil(totalTiles / itemsPerRow)
+                if row == totalRows - 1 and (totalTiles % itemsPerRow) ~= 0 then
+                    itemsInThisRow = totalTiles % itemsPerRow
+                end
+                
+                local rowWidth = (itemsInThisRow * 200) + ((itemsInThisRow - 1) * 20)
+                local startX = -rowWidth / 2 + 100
+                tile:SetPoint("TOP", parent, "TOP", startX + (col * 220), -260 + (row * -200))
 
                 -- Background
                 local tBg = tile:CreateTexture(nil, "BACKGROUND")
@@ -943,7 +1026,7 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             for i, tileInfo in ipairs(mainTiles) do
-                MakeTile(dashboardView, tileInfo.name, nil, i, tileInfo.moduleKey)
+                MakeTile(dashboardView, tileInfo.name, nil, i, #mainTiles, tileInfo.moduleKey)
             end
         end
         f:Show()
