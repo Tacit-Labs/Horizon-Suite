@@ -66,7 +66,7 @@
 - **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
 - **Scaling** – Global UI scale (50–200%) for all modules, or per-module sliders for Focus, Presence, Vista, Insight, and Yield when WoW UI scale is lowered.
 - **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
-- **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, and colours.
+- **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, and colours. Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
 - **Fluid motion** – Smooth entry/exit animations and a subtle pulse on objective completion.
 - **Scroll indicators** – Optional fade or arrow buttons when the list has more content than visible.
 
