@@ -47,7 +47,7 @@ local function GetRaresOnMap()
         if vignettes then
             for _, vignetteGUID in ipairs(vignettes) do
                 local vi = C_VignetteInfo.GetVignetteInfo(vignetteGUID)
-                if vi and vi.onWorldMap and (vi.name and vi.name ~= "") then
+                if vi and (vi.name and vi.name ~= "") then
                     if IsNpcVignetteAtlas(vi.atlasName) then
                         local creatureID = vi.npcID or vi.creatureID
                         if not creatureID and vi.objectGUID then
