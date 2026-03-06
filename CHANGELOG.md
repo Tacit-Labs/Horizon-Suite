@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.8.1] – 2026-03-06
+
+### 🔧 Improvements
+
+- **(Focus) World quest progress bar and objectives preserved when outside quest zone** — Progress bars and objective text remain visible when briefly leaving the zone (e.g. flying, hearth).
+
+### 🐛 Fixes
+
+- **(Insight) Tooltip font text comparison may error; add defensive pcall** — Prevents addon errors when processing tooltip text in edge cases.
+
+---
+
 ## [3.8.0] – 2026-03-06
 
 ### ✨ New Features
