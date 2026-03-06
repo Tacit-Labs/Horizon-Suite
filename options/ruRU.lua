@@ -55,6 +55,7 @@ L["Completed objective"]                                           = "Выпол
 L["Reset"]                                                          = "Сбросить"
 L["Reset quest types"]                                              = "Сбросить типы заданий"
 L["Reset overrides"]                                                = "Сбросить пользовательские цвета"
+L["Reset all to defaults"]                                           = "Сбросить все на значения по умолчанию"
 L["Reset to defaults"]                                              = "Сбросить на значения по умолчанию"
 L["Reset to default"]                                               = "Сбросить на значение по умолчанию"
 

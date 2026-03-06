@@ -864,6 +864,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 if not currentCard then return end
                 local h = CardPadding + RowHeights.sectionLabel  -- Colors header
                 h = h + SectionGap + RowHeights.sectionLabel     -- Per category header
+                h = h + 6 + 22                                    -- Reset all button
                 local n = numPerCategoryGroups
                 for i = 1, n do
                     h = h + OptionGap + allGroupFrames[i]:GetHeight()
@@ -878,8 +879,14 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 h = h + SectionGap + RowHeights.sectionLabel     -- Other colors header
                 h = h + OptionGap + 38                           -- Use distinct color for completed objectives toggle
                 h = h + 4 * (GROUP_ROW_GAP + GROUP_ROW_H)        -- Highlight, Completed objective, Progress bar fill, Progress bar text
-                currentCard:SetHeight(h + CardPadding)
                 currentCard.contentHeight = h
+                local fullH = h + CardBottomPadding
+                currentCard.fullHeight = fullH
+                currentCard:SetHeight(fullH)
+                if currentCard.contentContainer and currentCard.headerHeight then
+                    currentCard.contentContainer:SetHeight(math.max(1, h - currentCard.headerHeight))
+                end
+                if tab and ResizeTabFrame then ResizeTabFrame(tab) end
             end
 
             -- ---------------------------------------------------------------
@@ -918,10 +925,12 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 hdrLabel:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
                 hdrLabel:SetJustifyH("LEFT")
 
-                -- Swatch preview: show the title colour as a small swatch on the header.
-                local baseTitleColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[key]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
-                local baseSectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.7, 0.7, 0.7 }
-                local titleDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and baseSectionColor or baseTitleColor  -- Current Zone / Current Quest / Current Event: title matches section
+                -- Unified default: section, title, and objective share the same color per category.
+                -- Matrix keys (ACHIEVEMENTS, RARES) map to QUEST_COLORS keys (ACHIEVEMENT, RARE).
+                local questColorKey = (key == "ACHIEVEMENTS" and "ACHIEVEMENT") or (key == "RARES" and "RARE") or key
+                local baseColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[questColorKey]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor  -- Current Zone / Current Quest / Current Event: use section color
 
                 -- Reset button (child of container so click does not toggle expand)
                 local resetBtn = OptionsWidgets_CreateButton(container, L["Reset"], function()
@@ -938,7 +947,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 local previewSwatch = hdr:CreateTexture(nil, "ARTWORK")
                 previewSwatch:SetSize(14, 14)
                 previewSwatch:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
-                previewSwatch:SetColorTexture(titleDef[1], titleDef[2], titleDef[3], 1)
+                previewSwatch:SetColorTexture(unifiedDef[1], unifiedDef[2], unifiedDef[3], 1)
 
                 -- Highlight on hover
                 local hdrHi = hdr:CreateTexture(nil, "HIGHLIGHT")
@@ -951,10 +960,10 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 container.groupKey = key
 
                 local catDefs = {
-                    { subKey = "section",   suffix = "Section",   def = baseSectionColor },
-                    { subKey = "title",     suffix = "Title",     def = titleDef },
+                    { subKey = "section",   suffix = "Section",   def = unifiedDef },
+                    { subKey = "title",     suffix = "Title",     def = unifiedDef },
                     { subKey = "zone",      suffix = "Zone",      def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
-                    { subKey = "objective", suffix = "Objective", def = titleDef },
+                    { subKey = "objective", suffix = "Objective", def = unifiedDef },
                 }
 
                 -- Lazy-create the 4 color rows on first expand.
@@ -1012,7 +1021,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                     if tbl and type(tbl) == "table" and type(tbl[1]) == "number" and type(tbl[2]) == "number" and type(tbl[3]) == "number" then
                         previewSwatch:SetColorTexture(tbl[1], tbl[2], tbl[3], 1)
                     else
-                        previewSwatch:SetColorTexture(titleDef[1], titleDef[2], titleDef[3], 1)
+                        previewSwatch:SetColorTexture(unifiedDef[1], unifiedDef[2], unifiedDef[3], 1)
                     end
                 end
 
@@ -1059,6 +1068,25 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             catHdr:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -SectionGap)
             currentCard.contentAnchor = catHdr
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
+
+            local resetAllBtn = OptionsWidgets_CreateButton(cardContent, L["Reset all to defaults"] or L["Reset to defaults"], function()
+                setDB(opt.dbKey, nil)
+                setDB("questColors", nil)
+                setDB("sectionColors", nil)
+                for _, gf in ipairs(allGroupFrames) do
+                    if gf.Refresh then gf:Refresh() end
+                    if gf.RefreshPreview then gf:RefreshPreview() end
+                end
+                if otherRows then for _, r in ipairs(otherRows) do if r.Refresh then r:Refresh() end end end
+                if ovCompleted and ovCompleted.Refresh then ovCompleted:Refresh() end
+                if ovCurrentZone and ovCurrentZone.Refresh then ovCurrentZone:Refresh() end
+                if ovCurrentQuest and ovCurrentQuest.Refresh then ovCurrentQuest:Refresh() end
+                if ovCompletedObj and ovCompletedObj.Refresh then ovCompletedObj:Refresh() end
+                notifyMainAddon()
+            end, { width = 140, height = 22 })
+            resetAllBtn:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -6)
+            currentCard.contentAnchor = resetAllBtn
+            currentCard.contentHeight = currentCard.contentHeight + 6 + 22
 
             for _, key in ipairs(perCategoryOrder) do
                 local gf = BuildCollapsibleGroup(cardContent, currentCard.contentAnchor, key)
@@ -1123,7 +1151,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
 
             local otherDefs = {
                 { dbKey = "highlightColor", label = L["Highlight"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
-                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.30, 0.80, 0.30 }) },
+                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }) },
                 { dbKey = "progressBarFillColor", label = L["Progress bar fill"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
                 { dbKey = "progressBarTextColor", label = L["Progress bar text"], def = { 0.95, 0.95, 0.95 } },
             }

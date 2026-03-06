@@ -55,6 +55,7 @@ L["Completed objective"]                                            = "완료된
 L["Reset"]                                                         = "초기화"
 L["Reset quest types"]                                             = "퀘스트 유형 초기화"
 L["Reset overrides"]                                               = "개별 요소 초기화"
+L["Reset all to defaults"]                                            = "모든 카테고리 기본값으로 초기화"
 L["Reset to defaults"]                                             = "기본값으로 초기화"
 L["Reset to default"]                                              = "기본값으로 초기화"
 

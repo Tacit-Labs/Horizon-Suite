@@ -20,6 +20,8 @@ local function CollectDailiesWeeklies(ctx)
             local baseCategory = addon.GetQuestBaseCategory and addon.GetQuestBaseCategory(questID)
             if baseCategory == "WEEKLY" then
                 ids[#ids + 1] = { questID = questID, opts = { isTracked = false, forceCategory = "WEEKLY" } }
+            elseif baseCategory == "PREY" then
+                ids[#ids + 1] = { questID = questID, opts = { isTracked = false, forceCategory = "PREY" } }
             elseif baseCategory == "DAILY" then
                 ids[#ids + 1] = { questID = questID, opts = { isTracked = false, forceCategory = "DAILY" } }
             end

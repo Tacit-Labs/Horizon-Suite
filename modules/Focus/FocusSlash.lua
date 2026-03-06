@@ -189,91 +189,156 @@ local function HandleFocusSlash(msg)
         end
 
     elseif cmd == "test" then
-        HSPrint("Showing test data (10 entries)...")
+        HSPrint("Showing test data (all categories and groupings)...")
+
+        local QC = addon.QUEST_COLORS or {}
+        local function qc(k) return QC[k] or QC.DEFAULT or { 0.9, 0.9, 0.9 } end
+
+        -- Seed CURRENT: one quest marked as recently progressed so it appears in Current Quest.
+        if addon.focus then
+            addon.focus.recentlyProgressedQuests = addon.focus.recentlyProgressedQuests or {}
+            addon.focus.recentlyProgressedQuests[90001] = GetTime()
+        end
 
         local testQuests = {
-            { questID = 90001, title = "The Fate of the Horde",
-              color = addon.QUEST_COLORS.CAMPAIGN, category = "CAMPAIGN",
+            -- CURRENT_EVENT (event quest, accepted, nearby)
+            { entryKey = "test:current_event", questID = 90000, title = "[Test] Current Event: Zone Siege",
+              color = qc("CURRENT_EVENT"), category = "SCENARIO", isEventQuest = true,
+              questTypeAtlas = "quest-recurring-available",
+              isComplete = false, isSuperTracked = true, isNearby = true, isAccepted = true,
+              zoneName = "Valdrakken",
+              objectives = { { text = "Defend the gate: 2/3", finished = false } }},
+            -- CURRENT (recently progressed; seeded above)
+            { entryKey = "test:current", questID = 90001, title = "[Test] Current Quest: The Fate of the Horde",
+              color = qc("CURRENT"), category = "CAMPAIGN",
               questTypeAtlas = "Quest-Campaign-Available",
               isComplete = false, isSuperTracked = true, isNearby = true, isAccepted = true,
-              isGroupQuest = true,
               zoneName = "Valdrakken",
               itemLink = "item:12345:0:0:0:0:0:0:0", itemTexture = "Interface\\Icons\\INV_Misc_Rune_01",
-              objectives = {
-                  { text = "Speak with Thrall", finished = true },
-                  { text = "Harbingers defeated: 2/5", finished = false },
-              }},
-            { questID = 90002, title = "Aiding the Accord",
-              color = addon.QUEST_COLORS.DEFAULT, category = "DEFAULT",
-              isComplete = false, isSuperTracked = false, isNearby = true, isAccepted = true,
-              zoneName = "Valdrakken",
-              objectives = {
-                  { text = "Dragon Glyphs: 3/5", finished = false },
-                  { text = "World Quests: 2/3", finished = false },
-              }},
-            { questID = 90007, title = "Scales of War",
-              color = addon.QUEST_COLORS.DEFAULT, category = "DEFAULT",
-              isComplete = false, isSuperTracked = false, isNearby = true, isAccepted = true,
-              isGroupQuest = true,
-              zoneName = "Valdrakken",
-              objectives = {
-                  { text = "War Scales collected: 14/20", finished = false },
-              }},
-            { questID = 90006, title = "Threads of Fate",
-              color = addon.QUEST_COLORS.CAMPAIGN, category = "CAMPAIGN",
-              isComplete = false, isSuperTracked = false, isNearby = false, isAccepted = true,
-              zoneName = "The Waking Shores",
-              objectives = {
-                  { text = "Explore the Loom: 1/3", finished = false },
-              }},
-            { questID = 90008, title = "The Last Stitch",
-              color = addon.QUEST_COLORS.CAMPAIGN, category = "CAMPAIGN",
-              isComplete = false, isSuperTracked = false, isNearby = false, isAccepted = true,
-              zoneName = "Azure Span",
-              itemLink = "item:67890:0:0:0:0:0:0:0", itemTexture = "Interface\\Icons\\INV_Fabric_Silk_02",
-              objectives = {
-                  { text = "Mend the Veil: 0/1", finished = false },
-                  { text = "Gather Thread: 5/8", finished = false },
-              }},
-            { questID = 90003, title = "World Boss: Doomwalker",
-              color = addon.QUEST_COLORS.WORLD, category = "WORLD",
-              questTypeAtlas = "quest-recurring-available",
-              isComplete = false, isSuperTracked = false, isNearby = false, isAccepted = true,
-              isGroupQuest = true,
-              zoneName = "Thaldraszus",
-              objectives = {
-                  { text = "Slay Doomwalker", finished = false },
-              }},
-            { questID = 90009, title = "Elemental Fury",
-              color = addon.QUEST_COLORS.WORLD, category = "CALLING",
-              isComplete = false, isSuperTracked = false, isNearby = false, isAccepted = true,
-              zoneName = "The Forbidden Reach",
-              objectives = {
-                  { text = "Elemental cores: 1/3", finished = false },
-              }},
-            { questID = 90004, title = "The Legendary Cloak",
-              color = addon.QUEST_COLORS.LEGENDARY, category = "LEGENDARY",
-              questTypeAtlas = "UI-QuestPoiLegendary-QuestBang",
-              isComplete = false, isSuperTracked = false, isNearby = false, isAccepted = true,
-              zoneName = "Ohn'ahran Plains",
-              objectives = {
-                  { text = "Collect 50 Echoes: 37/50", finished = false },
-              }},
-            { questID = 90010, title = "Supply Run",
-              color = addon.QUEST_COLORS.DEFAULT, category = "DEFAULT",
-              isComplete = false, isSuperTracked = false, isNearby = false, isAccepted = true,
-              zoneName = "Stormwind City",
-              objectives = {
-                  { text = "Deliver supplies: 0/1", finished = false },
-              }},
-            { questID = 90005, title = "Boar Pelts",
-              color = addon.QUEST_COLORS.COMPLETE, category = "COMPLETE",
+              objectives = { { text = "Speak with Thrall", finished = true }, { text = "Harbingers: 2/5", finished = false } }},
+            -- DELVES
+            { entryKey = "test:delves", questID = 90002, title = "[Test] Delves: Cinderbrew Mine",
+              color = qc("DELVES"), category = "DELVES",
+              questTypeAtlas = addon.DELVE_TIER_ATLAS or "delves-scenario-flag",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Isle of Dorn",
+              objectives = { { text = "Reach the vault", finished = false } }},
+            -- SCENARIO
+            { entryKey = "test:scenario", questID = 90003, title = "[Test] Scenario: Twilight's Call",
+              color = qc("SCENARIO"), category = "SCENARIO",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "The Waking Shores",
+              objectives = { { text = "Step 1/3", finished = false } }},
+            -- ACHIEVEMENTS
+            { entryKey = "test:ach", achievementID = 90001, questID = nil, title = "[Test] Achievement: Loremaster",
+              color = qc("ACHIEVEMENT"), category = "ACHIEVEMENT", isAchievement = true,
+              achievementIcon = "Interface\\Icons\\Achievement_General",
+              isComplete = false, objectives = { { text = "Complete 50 quests: 37/50", finished = false, numFulfilled = 37, numRequired = 50 } }},
+            -- ENDEAVORS
+            { entryKey = "test:endeavor", endeavorID = 90001, questID = nil, title = "[Test] Endeavor: Gather 10 Herbs",
+              color = qc("ENDEAVOR"), category = "ENDEAVOR", isEndeavor = true,
+              isComplete = false, objectives = { { text = "Herbs: 6/10", finished = false } }},
+            -- DECOR
+            { entryKey = "test:decor", decorID = 90001, questID = nil, title = "[Test] Decor: Ancient Statue",
+              color = qc("DECOR"), category = "DECOR", isDecor = true,
+              decorIcon = "Interface\\Icons\\INV_Misc_Statue_01",
+              isComplete = false, objectives = { { text = "Collect from raid", finished = false } }},
+            -- RECIPES
+            { entryKey = "test:recipe", recipeID = 90001, questID = nil, title = "[Test] Recipe: Flasks of the Currents",
+              color = qc("RECIPE"), category = "RECIPE", isRecipe = true,
+              recipeIcon = "Interface\\Icons\\INV_Potion_01",
+              isComplete = false, objectives = { { text = "Craft 5", finished = false } }},
+            -- ADVENTURE
+            { entryKey = "test:adventure", questID = 90004, title = "[Test] Adventure Guide: Chromie Time",
+              color = qc("ADVENTURE"), category = "ADVENTURE", isAdventureGuide = true,
+              questTypeAtlas = "QuestNormal",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Stormwind",
+              objectives = { { text = "Select expansion", finished = false } }},
+            -- DUNGEON
+            { entryKey = "test:dungeon", questID = 90005, title = "[Test] Dungeon: Brackenhide Hollow",
+              color = qc("DUNGEON"), category = "DUNGEON", isDungeonQuest = true,
+              questTypeAtlas = "questlog-questtypeicon-dungeon",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Ohn'ahran Plains",
+              objectives = { { text = "Defeat Treemouth", finished = false } }},
+            -- RAID
+            { entryKey = "test:raid", questID = 90006, title = "[Test] Raid: Amirdrassil",
+              color = qc("RAID"), category = "RAID", isRaidQuest = true,
+              questTypeAtlas = "questlog-questtypeicon-raid",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Emerald Dream",
+              objectives = { { text = "Defeat Fyrakk", finished = false } }},
+            -- NEARBY (accepted, in zone)
+            { entryKey = "test:nearby", questID = 90007, title = "[Test] Nearby: Aiding the Accord",
+              color = qc("NEARBY"), category = "DEFAULT",
+              isComplete = false, isNearby = true, isAccepted = true, zoneName = "Valdrakken",
+              objectives = { { text = "Dragon Glyphs: 3/5", finished = false } }},
+            -- COMPLETE
+            { entryKey = "test:complete", questID = 90008, title = "[Test] Ready: Boar Pelts",
+              color = qc("COMPLETE"), category = "COMPLETE", baseCategory = "DEFAULT",
               questTypeAtlas = "QuestTurnin",
-              isComplete = true, isAutoComplete = true, isSuperTracked = false, isNearby = false, isAccepted = true,
+              isComplete = true, isAutoComplete = true, isNearby = false, isAccepted = true,
               zoneName = "Elwynn Forest",
-              objectives = {
-                  { text = "Boar Pelts: 10/10", finished = true },
-              }},
+              objectives = { { text = "Boar Pelts: 10/10", finished = true } }},
+            -- WORLD
+            { entryKey = "test:world", questID = 90009, title = "[Test] World Quest: Doomwalker",
+              color = qc("WORLD"), category = "WORLD",
+              questTypeAtlas = "quest-recurring-available",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Thaldraszus",
+              objectives = { { text = "Slay Doomwalker", finished = false } }},
+            -- WEEKLY
+            { entryKey = "test:weekly", questID = 90010, title = "[Test] Weekly: Dragonflight Dungeons",
+              color = qc("WEEKLY"), category = "WEEKLY",
+              questTypeAtlas = "quest-recurring-available",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Valdrakken",
+              objectives = { { text = "Complete 4 dungeons: 2/4", finished = false } }},
+            -- DAILY
+            { entryKey = "test:daily", questID = 90011, title = "[Test] Daily: Fishing Contest",
+              color = qc("DAILY"), category = "DAILY",
+              questTypeAtlas = "quest-recurring-available",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Stranglethorn",
+              objectives = { { text = "Catch 10 fish", finished = false } }},
+            -- PREY weekly (accepted quest; appears first)
+            { entryKey = "test:prey", questID = 90012, title = "[Test] Prey: Hunt the Shadowstalker",
+              color = (QC.PREY or QC.WEEKLY), category = "PREY", isPreyWorldQuest = false,
+              questTypeAtlas = "quest-recurring-available",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Quel'Thalas",
+              objectives = { { text = "Track and defeat target", finished = false } }},
+            -- PREY activity (world quest; appears second, shows "Activity" as zone)
+            { entryKey = "test:prey_wq", questID = 90018, title = "[Test] Prey: Ambush at the Crossroads",
+              color = (QC.PREY or QC.WEEKLY), category = "PREY", isPreyWorldQuest = true,
+              questTypeAtlas = "quest-recurring-available",
+              isComplete = false, isNearby = true, isAccepted = true, zoneName = "Activity",
+              objectives = { { text = "Complete hunt objectives", finished = false } }},
+            -- RARES
+            { entryKey = "test:rare", questID = nil, title = "[Test] Rare: Gorged Buzzard",
+              color = qc("RARE"), category = "RARE", isRare = true,
+              isComplete = false, isNearby = true, zoneName = "Ohn'ahran Plains",
+              objectives = {} },
+            -- AVAILABLE (Events in Zone: in zone, not accepted)
+            { entryKey = "test:available", questID = 90013, title = "[Test] Available: The Lost Artifact",
+              color = qc("AVAILABLE"), category = "DEFAULT", isEventQuest = true,
+              isComplete = false, isNearby = true, isAccepted = false, zoneName = "Valdrakken",
+              objectives = { { text = "Find the artifact", finished = false } }},
+            -- CAMPAIGN
+            { entryKey = "test:campaign", questID = 90014, title = "[Test] Campaign: Threads of Fate",
+              color = qc("CAMPAIGN"), category = "CAMPAIGN",
+              questTypeAtlas = "Quest-Campaign-Available",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "The Waking Shores",
+              objectives = { { text = "Explore the Loom: 1/3", finished = false } }},
+            -- IMPORTANT
+            { entryKey = "test:important", questID = 90015, title = "[Test] Important: The Legendary Cloak",
+              color = qc("IMPORTANT"), category = "IMPORTANT",
+              questTypeAtlas = "importantavailablequesticon",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Ohn'ahran Plains",
+              objectives = { { text = "Collect 50 Echoes: 37/50", finished = false } }},
+            -- LEGENDARY
+            { entryKey = "test:legendary", questID = 90016, title = "[Test] Legendary: Ashjra'kamas",
+              color = qc("LEGENDARY"), category = "LEGENDARY",
+              questTypeAtlas = "UI-QuestPoiLegendary-QuestBang",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Vale of Eternal Blossoms",
+              objectives = { { text = "Gather 50 coalescing visions", finished = false } }},
+            -- DEFAULT
+            { entryKey = "test:default", questID = 90017, title = "[Test] Default: Supply Run",
+              color = qc("DEFAULT"), category = "DEFAULT",
+              isComplete = false, isNearby = false, isAccepted = true, zoneName = "Stormwind City",
+              objectives = { { text = "Deliver supplies: 0/1", finished = false } }},
         }
 
         -- Inject test data into the quest pipeline and use the normal layout engine.
@@ -319,6 +384,9 @@ local function HandleFocusSlash(msg)
         -- Clear any injected test data and return to live quest data.
         addon.testQuests = nil
         addon.testQuestItem = nil
+        if addon.focus and addon.focus.recentlyProgressedQuests then
+            addon.focus.recentlyProgressedQuests[90001] = nil
+        end
         addon.ScheduleRefresh()
         HSPrint("Reset tracker to live data.")
 
