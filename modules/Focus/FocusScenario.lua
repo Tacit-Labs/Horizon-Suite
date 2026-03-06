@@ -256,6 +256,161 @@ local function GetScenarioDisplayInfo()
     return title or "Scenario", stageName or "", category
 end
 
+--- Read scenario objectives from C_UIWidgetManager (StatusBar, IconAndText widgets).
+--- Fallback when C_ScenarioInfo returns percent-only; Blizzard may show "46/300" via widgets.
+--- @param setID number Widget set ID from scenario step
+--- @return table Array of { text, numFulfilled, numRequired, percent, finished }
+local function ReadScenarioObjectivesFromWidgets(setID)
+    local out = {}
+    if not setID or setID == 0 then return out end
+    if not C_UIWidgetManager or not C_UIWidgetManager.GetAllWidgetsBySetID then return out end
+
+    local WIDGET_STATUSBAR = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.StatusBar) or 2
+    local WIDGET_ICONANDTEXT = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.IconAndText) or 0
+    local VALUE_OVER_MAX = (Enum and Enum.StatusBarValueTextType and Enum.StatusBarValueTextType.ValueOverMax) or 5
+
+    local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+    if not wOk or not widgets or type(widgets) ~= "table" then return out end
+
+    for _, wInfo in pairs(widgets) do
+        local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
+            or (type(wInfo) == "number" and wInfo > 0) and wInfo
+        if widgetID then
+        local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
+
+        if (not wType or wType == WIDGET_STATUSBAR) and C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo then
+            local sOk, info = pcall(C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo, widgetID)
+            if sOk and info and type(info) == "table" then
+                local barMin = info.barMin or 0
+                local barMax = info.barMax or 0
+                local barValue = info.barValue or 0
+                local text = (info.text and info.text ~= "") and info.text or nil
+                local overrideBarText = (info.overrideBarText and info.overrideBarText ~= "") and info.overrideBarText or nil
+                local displayText = overrideBarText or text or ""
+
+                local numFulfilled, numRequired, percent = nil, nil, nil
+                local qsCur, qsMax = displayText:match("(%d+)%s*/%s*(%d+)")
+                if qsCur and qsMax then
+                    local cur, max = tonumber(qsCur), tonumber(qsMax)
+                    if cur and max and max > 0 then
+                        numFulfilled, numRequired = cur, max
+                        percent = math.floor(100 * math.min(cur, max) / max)
+                    end
+                elseif barMax and barMax > 0 and (info.barValueTextType == VALUE_OVER_MAX or not info.barValueTextType) then
+                    numFulfilled = math.floor(barValue)
+                    numRequired = math.floor(barMax)
+                    percent = math.floor(100 * math.min(barValue, barMax) / barMax)
+                end
+
+                if (numFulfilled or percent) and (text or overrideBarText or displayText ~= "") then
+                    out[#out + 1] = {
+                        text = text or overrideBarText or ("%d/%d"):format(numFulfilled or 0, numRequired or 0),
+                        numFulfilled = numFulfilled,
+                        numRequired = numRequired,
+                        percent = percent,
+                        finished = false,
+                    }
+                    if ScenarioDebug then
+                        ScenarioDebug("widget StatusBar id=%d barValue=%s barMax=%s overrideBarText=%q -> nf=%s nr=%s",
+                            widgetID, tostring(barValue), tostring(barMax), tostring(overrideBarText or ""),
+                            tostring(numFulfilled), tostring(numRequired))
+                    end
+                end
+            end
+        elseif (not wType or wType == WIDGET_ICONANDTEXT) and C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo then
+            local iOk, info = pcall(C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo, widgetID)
+            if iOk and info and type(info) == "table" and info.text and info.text ~= "" then
+                local text = info.text
+                local qsCur, qsMax = text:match("(%d+)%s*/%s*(%d+)")
+                if qsCur and qsMax then
+                    local cur, max = tonumber(qsCur), tonumber(qsMax)
+                    if cur and max and max > 0 then
+                        out[#out + 1] = {
+                            text = text,
+                            numFulfilled = cur,
+                            numRequired = max,
+                            percent = math.floor(100 * math.min(cur, max) / max),
+                            finished = false,
+                        }
+                        if ScenarioDebug then
+                            ScenarioDebug("widget IconAndText id=%d text=%q -> nf=%s nr=%s", widgetID, text, tostring(cur), tostring(max))
+                        end
+                    end
+                end
+            end
+        end
+        end
+    end
+
+    return out
+end
+
+--- Build a normalized objective table from criteriaInfo.
+--- Handles quantityString "X/Y" parsing, isWeightedProgress, and percent vs count display.
+--- @param criteriaInfo table From C_ScenarioInfo.GetCriteriaInfo or GetCriteriaInfoByStep
+--- @param criteriaIndex number For debug logging
+--- @return table|nil Objective table or nil if invalid
+local function BuildObjectiveFromCriteria(criteriaInfo, criteriaIndex)
+    if not criteriaInfo then return nil end
+    local d, s = GetCriteriaTimerInfo(criteriaInfo)
+    local hasTimer = (d and s) and not (criteriaInfo.failed or criteriaInfo.completed or criteriaInfo.complete)
+    local text = (criteriaInfo.description and criteriaInfo.description ~= "") and criteriaInfo.description or (criteriaInfo.criteriaString or "")
+    local qty, totalQty = criteriaInfo.quantity, criteriaInfo.totalQuantity
+    local qtyStr = criteriaInfo.quantityString
+    local isWeightedProgress = criteriaInfo.isWeightedProgress == true
+
+    -- Resolve numFulfilled, numRequired, percent from quantity/totalQuantity and quantityString.
+    local numFulfilled, numRequired, percent = nil, nil, nil
+
+    -- Parse quantityString for "X/Y" or "X / Y" format (raw count, e.g. Abundance "46/300").
+    -- Match anywhere in string to handle "46/300 (33%)" or "31/300 for abundance held".
+    -- Prefer parsed X/Y over percent-only: Blizzard often returns both (e.g. "46/300 (33%)"); raw count is more useful.
+    local qsCur, qsMax = qtyStr and type(qtyStr) == "string" and qtyStr:match("(%d+)%s*/%s*(%d+)")
+    if qsCur and qsMax then
+        local parsedCur, parsedMax = tonumber(qsCur), tonumber(qsMax)
+        if parsedCur and parsedMax and parsedMax > 0 then
+            numFulfilled = parsedCur
+            numRequired = parsedMax
+            percent = math.floor(100 * math.min(parsedCur, parsedMax) / parsedMax)
+        end
+    end
+
+    -- When quantityString has "%" but we did NOT parse "X/Y", treat as percent-only (e.g. "84%" or "1.20%").
+    -- Do NOT overwrite when we already have numFulfilled/numRequired from "X/Y" (e.g. "46/300 (33%)").
+    local isPercentQty = qtyStr and type(qtyStr) == "string" and qtyStr:find("%%")
+    if isPercentQty and not numFulfilled and not numRequired then
+        local pctFromStr = qtyStr and tonumber(qtyStr:match("(%d+%.?%d*)%%"))
+        percent = (pctFromStr and pctFromStr >= 0) and math.floor(pctFromStr) or ((qty and type(qty) == "number") and qty or nil)
+    elseif not numFulfilled and not numRequired then
+        -- Fallback: use quantity/totalQuantity when not isWeightedProgress (raw count).
+        local hasQuantity = qty ~= nil and totalQty ~= nil and type(qty) == "number" and type(totalQty) == "number" and totalQty > 0
+        if hasQuantity and not isWeightedProgress then
+            numFulfilled = qty
+            numRequired = totalQty
+            percent = math.floor(100 * qty / totalQty)
+        elseif hasQuantity and isWeightedProgress then
+            -- isWeightedProgress: quantity is percentage; no raw count from API.
+            percent = math.floor(100 * qty / totalQty)
+        end
+    end
+
+    if ScenarioDebug then
+        ScenarioDebug("crit[%d] desc=%q qty=%s totalQty=%s qtyStr=%q isWeighted=%s isFormatted=%s -> nf=%s nr=%s pct=%s",
+            criteriaIndex, tostring(text or ""), tostring(qty), tostring(totalQty), tostring(qtyStr or ""),
+            tostring(isWeightedProgress), tostring(criteriaInfo.isFormatted), tostring(numFulfilled), tostring(numRequired), tostring(percent))
+    end
+
+    return {
+        text = text ~= "" and text or nil,
+        finished = criteriaInfo.complete or criteriaInfo.completed or false,
+        percent = percent,
+        numFulfilled = numFulfilled,
+        numRequired = numRequired,
+        timerDuration = hasTimer and d or nil,
+        timerStartTime = hasTimer and s or nil,
+    }
+end
+
 --- Build tracker rows from active scenario main step and bonus steps.
 -- @return table Array of normalized entry tables for the tracker
 local function ReadScenarioEntries()
@@ -294,41 +449,26 @@ local function ReadScenarioEntries()
             local objectives = {}
             local timerDuration, timerStartTime = nil, nil
 
-            -- Try 0-based and 1..numCriteria+3 to catch off-by-one and extra timer-only criteria (KT-aligned).
+            -- Blizzard ScenarioObjectiveTracker uses 1-based indexing (for criteriaIndex = 1, numCriteria).
+            -- Include +3 to catch extra timer-only criteria.
             local maxIdx = math.max((numCriteria or 0), 1) + 3
-            for criteriaIndex = 0, maxIdx do
+            for criteriaIndex = 1, maxIdx do
                 local cOk, criteriaInfo = pcall(C_ScenarioInfo.GetCriteriaInfo, criteriaIndex)
-                -- Option 5: Fallback to GetCriteriaInfoByStep(1, ci) for main step when GetCriteriaInfo returns nil.
                 if (not cOk or not criteriaInfo) and C_ScenarioInfo.GetCriteriaInfoByStep then
                     cOk, criteriaInfo = pcall(C_ScenarioInfo.GetCriteriaInfoByStep, 1, criteriaIndex)
                 end
                 if cOk and criteriaInfo then
-                    local d, s = GetCriteriaTimerInfo(criteriaInfo)
-                    local hasTimer = (d and s) and not (criteriaInfo.failed or criteriaInfo.completed or criteriaInfo.complete)
-                    local text = (criteriaInfo.description and criteriaInfo.description ~= "") and criteriaInfo.description or (criteriaInfo.criteriaString or "")
-                    local qty, totalQty = criteriaInfo.quantity, criteriaInfo.totalQuantity
-                    local hasQuantity = qty ~= nil and totalQty ~= nil and type(qty) == "number" and type(totalQty) == "number" and totalQty > 0
-                    -- Detect percentage-based criteria: Blizzard returns the percent as quantity
-                    -- (e.g. qty=84, totalQty=50) with quantityString like "84%".
-                    local qtyStr = criteriaInfo.quantityString
-                    local isPercentQty = hasQuantity and qtyStr and type(qtyStr) == "string" and qtyStr:find("%%")
-                    -- Option 4: Include timer-only criteria (no text) as standalone timer objectives.
-                    local obj = {
-                        text = text ~= "" and text or nil,
-                        finished = criteriaInfo.complete or criteriaInfo.completed or false,
-                        percent = isPercentQty and qty or (hasQuantity and math.floor(100 * qty / totalQty) or nil),
-                        numFulfilled = (hasQuantity and not isPercentQty) and qty or nil,
-                        numRequired = (hasQuantity and not isPercentQty) and totalQty or nil,
-                        timerDuration = hasTimer and d or nil,
-                        timerStartTime = hasTimer and s or nil,
-                    }
-                    objectives[#objectives + 1] = obj
-                    if hasTimer and (not timerDuration or not timerStartTime) then
-                        timerDuration, timerStartTime = d, s
-                    end
-                    if ScenarioDebug then
-                        ScenarioDebug("crit[%d] dur=%s elapsed=%s hasTimer=%s", criteriaIndex,
-                            tostring(criteriaInfo.duration), tostring(criteriaInfo.elapsed), tostring(hasTimer))
+                    local obj = BuildObjectiveFromCriteria(criteriaInfo, criteriaIndex)
+                    if obj then
+                        objectives[#objectives + 1] = obj
+                        if obj.timerDuration and obj.timerStartTime and (not timerDuration or not timerStartTime) then
+                            timerDuration, timerStartTime = obj.timerDuration, obj.timerStartTime
+                        end
+                        if ScenarioDebug then
+                            ScenarioDebug("crit[%d] dur=%s elapsed=%s hasTimer=%s", criteriaIndex,
+                                tostring(criteriaInfo.duration), tostring(criteriaInfo.elapsed),
+                                (obj.timerDuration and obj.timerStartTime) and "yes" or "no")
+                        end
                     end
                 end
             end
@@ -345,6 +485,51 @@ local function ReadScenarioEntries()
                     ScenarioDebug("Widget fallback: got timer=%s", (timerDuration and timerStartTime) and "yes" or "no")
                 end
             end
+            -- UI Widget fallback: when C_ScenarioInfo returns percent-only (e.g. 33%) but Blizzard shows "46/300"
+            -- via widgets, supplement with widget objectives. Try step widget set, ObjectiveTracker set, then fixed sets.
+            local widgetSetID = (t[12] and type(t[12]) == "number" and t[12] ~= 0) and t[12] or nil
+            if not widgetSetID and C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+                local oOk, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
+                if oOk and objSet and type(objSet) == "number" then widgetSetID = objSet end
+            end
+            local SCENARIO_TRACKER_WIDGET_SET = 252
+            local SCENARIO_TRACKER_TOP_WIDGET_SET = 514
+            local function tryWidgetFallback(setID)
+                if not setID or setID == 0 then return end
+                local hasAnyXy = false
+                for _, o in ipairs(objectives) do
+                    if o.numFulfilled and o.numRequired then hasAnyXy = true; break end
+                end
+                local seenNr = {}
+                for _, o in ipairs(objectives) do
+                    if o.numRequired then seenNr[o.numRequired] = true end
+                end
+                local setMap = {}
+                local function addSet(s) if s and s ~= 0 then setMap[s] = true end end
+                addSet(setID)
+                addSet(SCENARIO_TRACKER_WIDGET_SET)
+                addSet(SCENARIO_TRACKER_TOP_WIDGET_SET)
+                local setsToTry = {}
+                for sid in pairs(setMap) do setsToTry[#setsToTry + 1] = sid end
+                for _, sid in ipairs(setsToTry) do
+                    local widgetObjs = ReadScenarioObjectivesFromWidgets(sid)
+                    for _, wo in ipairs(widgetObjs) do
+                        if wo.numFulfilled and wo.numRequired and not seenNr[wo.numRequired] then
+                            seenNr[wo.numRequired] = true
+                            objectives[#objectives + 1] = wo
+                            if ScenarioDebug then
+                                ScenarioDebug("widget fallback set=%d: added %s (%d/%d)", sid, tostring(wo.text), wo.numFulfilled, wo.numRequired)
+                            end
+                        end
+                    end
+                end
+            end
+            if widgetSetID then
+                tryWidgetFallback(widgetSetID)
+            else
+                tryWidgetFallback(SCENARIO_TRACKER_WIDGET_SET)
+            end
+
             if ScenarioDebug then
                 ScenarioDebug("main: objs=%d timers=%s entryTimer=%s", #objectives,
                     timerDuration and "yes" or "no", (timerDuration and timerStartTime) and "yes" or "no")
@@ -403,31 +588,20 @@ local function ReadScenarioEntries()
 
                     if C_ScenarioInfo and C_ScenarioInfo.GetCriteriaInfoByStep then
                         local maxCriteria = math.max((bonusNumCriteria and bonusNumCriteria > 0) and bonusNumCriteria or 10, 1) + 3
-                        for ci = 0, maxCriteria do
+                        for ci = 1, maxCriteria do
                             local cOk, criteriaInfo = pcall(C_ScenarioInfo.GetCriteriaInfoByStep, stepIndex, ci)
                             if cOk and criteriaInfo then
-                                local d, s = GetCriteriaTimerInfo(criteriaInfo)
-                                local hasTimer = (d and s) and not (criteriaInfo.failed or criteriaInfo.completed or criteriaInfo.complete)
-                                local text = (criteriaInfo.description and criteriaInfo.description ~= "") and criteriaInfo.description or (criteriaInfo.criteriaString or "")
-                                local qty, totalQty = criteriaInfo.quantity, criteriaInfo.totalQuantity
-                                local hasQuantity = qty ~= nil and totalQty ~= nil and type(qty) == "number" and type(totalQty) == "number" and totalQty > 0
-                                local qtyStr = criteriaInfo.quantityString
-                                local isPercentQty = hasQuantity and qtyStr and type(qtyStr) == "string" and qtyStr:find("%%")
-                                objectives[#objectives + 1] = {
-                                    text = text ~= "" and text or nil,
-                                    finished = criteriaInfo.complete or criteriaInfo.completed or false,
-                                    percent = isPercentQty and qty or (hasQuantity and math.floor(100 * qty / totalQty) or nil),
-                                    numFulfilled = (hasQuantity and not isPercentQty) and qty or nil,
-                                    numRequired = (hasQuantity and not isPercentQty) and totalQty or nil,
-                                    timerDuration = hasTimer and d or nil,
-                                    timerStartTime = hasTimer and s or nil,
-                                }
-                                if hasTimer and (not timerDuration or not timerStartTime) then
-                                    timerDuration, timerStartTime = d, s
-                                end
-                                if ScenarioDebug then
-                                    ScenarioDebug("bonus[%d] crit[%d] dur=%s elapsed=%s hasTimer=%s", stepIndex, ci,
-                                        tostring(criteriaInfo.duration), tostring(criteriaInfo.elapsed), tostring(hasTimer))
+                                local obj = BuildObjectiveFromCriteria(criteriaInfo, ci)
+                                if obj then
+                                    objectives[#objectives + 1] = obj
+                                    if obj.timerDuration and obj.timerStartTime and (not timerDuration or not timerStartTime) then
+                                        timerDuration, timerStartTime = obj.timerDuration, obj.timerStartTime
+                                    end
+                                    if ScenarioDebug then
+                                        ScenarioDebug("bonus[%d] crit[%d] dur=%s elapsed=%s hasTimer=%s", stepIndex, ci,
+                                            tostring(criteriaInfo.duration), tostring(criteriaInfo.elapsed),
+                                            (obj.timerDuration and obj.timerStartTime) and "yes" or "no")
+                                    end
                                 end
                             end
                         end
