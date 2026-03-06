@@ -364,6 +364,21 @@ end
 local UPDATE_BUFFER_TIME = 0.35      -- Time to wait for data to settle (fix for 55/100 vs 71/100)
 local ZERO_PROGRESS_RETRY_TIME = 0.45 -- Re-sample when we get 0/X (meta quests like "0/8 WQs" may lag; fix for stale 0/8 after completion)
 
+--- Build display string from objective. Prefers numFulfilled/numRequired over text when available (fix for stale WQ counts).
+--- @param o table { text, finished, numFulfilled?, numRequired? }
+--- @return string
+local function BuildObjectiveDisplayText(o)
+    if not o or not o.text or o.text == "" then return o and o.text or "" end
+    local nf, nr = o.numFulfilled, o.numRequired
+    if type(nf) == "number" and type(nr) == "number" and nr > 0 then
+        local desc = o.text:gsub("^%d+/%d+%s*", ""):gsub("^%d+%s*", ""):gsub("^%s+", "")
+        if desc and desc ~= "" then
+            return ("%d/%d %s"):format(nf, nr, desc)
+        end
+    end
+    return o.text
+end
+
 -- Process debounced quest objective update; shows QUEST_UPDATE or skips if unchanged/blind.
 --- @param questID number
 --- @param isBlindUpdate boolean
@@ -394,8 +409,10 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
         local o = objectives[i]
         local text = (o and o.text) or ""
         local finished = (o and o.finished) and true or false
-        parts[i] = text .. "|" .. (finished and "1" or "0")
-        state[i] = { text = text, finished = finished }
+        local nf = (o and type(o.numFulfilled) == "number") and o.numFulfilled or nil
+        local nr = (o and type(o.numRequired) == "number") and o.numRequired or nil
+        parts[i] = text .. "|" .. (finished and "1" or "0") .. "|" .. (nf or "") .. "|" .. (nr or "")
+        state[i] = { text = text, finished = finished, numFulfilled = nf, numRequired = nr }
     end
     local objKey = table.concat(parts, ";")
     local oldState = lastQuestObjectivesState[questID]
@@ -425,9 +442,9 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
             local oldO = oldState[i]
             local newO = state[i]
             if newO then
-                local changed = (not oldO) or oldO.text ~= newO.text or oldO.finished ~= newO.finished
+                local changed = (not oldO) or oldO.text ~= newO.text or oldO.finished ~= newO.finished or oldO.numFulfilled ~= newO.numFulfilled
                 if changed and newO.text ~= "" then
-                    msg = newO.text
+                    msg = BuildObjectiveDisplayText(newO)
                     break
                 end
             end
@@ -441,7 +458,7 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
         for i = 1, #state do
             local o = state[i]
             if o and o.text ~= "" and o.finished then
-                msg = o.text
+                msg = BuildObjectiveDisplayText(o)
                 break
             end
         end
@@ -452,7 +469,7 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
         for i = 1, #state do
             local o = state[i]
             if o and o.text ~= "" and not o.finished then
-                msg = o.text
+                msg = BuildObjectiveDisplayText(o)
                 break
             end
         end
@@ -462,10 +479,10 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
     if not msg and #state > 0 then
         local o = state[1]
         if o and o.text ~= "" then
-            msg = o.text
+            msg = BuildObjectiveDisplayText(o)
         end
     end
-    
+
     if not msg or msg == "" then msg = "Objective updated" end
 
     -- 6. Normalize to "X/Y Objective"
