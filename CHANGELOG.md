@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.8.2] – 2026-03-06
+
+### 🔧 Improvements
+
+- **(Focus) World quests in Current Event, auto-complete display, and quest map open fix** — World quests and callings in the quest area appear in Current Event; auto-complete quests show the turn-in prompt; quest map opens more reliably.
+- **(Presence) Fix stale world quest count in Presence quest update toasts** — Quest update toasts now show accurate progress counts instead of outdated values.
+- **(Core) Options dashboard redesign and options panel polish** — Centered layout, smooth scroll, cascade animations, shorter descriptions with tooltips, row hover highlight.
+
+---
+
 ## [3.8.1] – 2026-03-06
 
 ### 🔧 Improvements
