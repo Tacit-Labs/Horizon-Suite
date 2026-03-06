@@ -638,9 +638,11 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
     -- Ensure the dropdown list scrolls internally and doesn't forward wheel events to the parent panel.
     scrollFrame:EnableMouseWheel(true)
-    scrollFrame:SetPropagateMouseMotion(false)
     list:EnableMouseWheel(true)
-    list:SetPropagateMouseMotion(false)
+    if not InCombatLockdown() then
+        scrollFrame:SetPropagateMouseMotion(false)
+        list:SetPropagateMouseMotion(false)
+    end
 
     local function consumeWheel() end
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
