@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.7.1] – 2026-03-05
+
+### 🐛 Fixes
+
+- **(Presence) Presence quest complete detection misses some localized strings** — Added ERR_QUEST_UNKNOWN_COMPLETE, QUEST_WATCH_QUEST_COMPLETE, and QUEST_WATCH_POPUP_QUEST_COMPLETE to the suppression check so quest complete notifications are not shown when the message matches these localized strings.
+
+### 🔧 Improvements
+
+- **(Focus) Event category transition re-sorts before fade-out completes** — Event quests moving between Current Event and Events in Zone now fade out from their current position, other rows slide, then the row fades in at its new position; no pre-animation snap to the new category order.
+
+---
+
 ## [3.7.0] – 2026-03-05
 
 ### ✨ New Features
