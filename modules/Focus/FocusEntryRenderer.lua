@@ -124,26 +124,23 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 -- Arithmetic (x/10 style)
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
                     barCount = barCount + 1
-                    if barIdx == nil then
-                        barIdx = idx
-                        barNf = o.numFulfilled
-                        barNr = o.numRequired
-                        barPct = nil
-                    end
+                    barIdx = idx
+                    barNf = o.numFulfilled
+                    barNr = o.numRequired
+                    barPct = nil
                 end
             elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
                 -- Percent-only (detected via text, type, or existing percent field)
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
                     barCount = barCount + 1
-                    if barIdx == nil then
-                        barIdx = idx
-                        barNf, barNr = nil, nil
-                        barPct = textPct or o.percent or 0
-                    end
+                    barIdx = idx
+                    barNf, barNr = nil, nil
+                    barPct = textPct or o.percent or 0
                 end
             end
         end
-        if barIdx ~= nil and (barCount == 1 or (barCount > 1 and progressBarTypeFilter == "both")) then
+        -- Only show bar when exactly one objective total and it is eligible (multi-objective quests get no bar).
+        if barCount == 1 and questData.objectives and #questData.objectives == 1 then
             progressBarObjIdx = barIdx
             progressBarNf = barNf
             progressBarNr = barNr
@@ -785,8 +782,7 @@ local function PopulateEntry(entry, questData, groupKey)
     if addon.GetDB("showObjectiveProgressBar", false) and questData.objectives then
         local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
         local barCount = 0
-        local barIdx = nil
-        for idx, o in ipairs(questData.objectives) do
+        for _, o in ipairs(questData.objectives) do
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
             local isProgressBarType = (o.type == "progressbar" or o.type == 8)
             if o.finished then
@@ -794,16 +790,15 @@ local function PopulateEntry(entry, questData, groupKey)
             elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
                     barCount = barCount + 1
-                    if barIdx == nil then barIdx = idx end
                 end
             elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
                     barCount = barCount + 1
-                    if barIdx == nil then barIdx = idx end
                 end
             end
         end
-        if barIdx ~= nil and (barCount == 1 or (barCount > 1 and progressBarTypeFilter == "both")) then
+        -- Only show bar when exactly one objective total and it is eligible (multi-objective quests get no bar).
+        if barCount == 1 and questData.objectives and #questData.objectives == 1 then
             questData._progressBarActive = true
         end
     end
