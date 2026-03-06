@@ -104,7 +104,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
     -- Progress bar: determine if the entry has exactly 1 progress-bar-eligible objective.
     -- Eligible: (a) arithmetic (numFulfilled/numRequired, numRequired > 1) or (b) percent-only (percent set, numRequired nil/0/1 or type progressbar).
+    -- progressBarTypeFilter: "both" | "xy_only" | "percent_only" controls which types get a bar.
     local showProgressBar = addon.GetDB("showObjectiveProgressBar", false)
+    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
     local progressBarObjIdx = nil
     local progressBarNf, progressBarNr = nil, nil
     local progressBarPercent = nil
@@ -120,17 +122,21 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 -- skip
             elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
                 -- Arithmetic (x/10 style)
-                barCount = barCount + 1
-                barIdx = idx
-                barNf = o.numFulfilled
-                barNr = o.numRequired
-                barPct = nil
+                if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
+                    barCount = barCount + 1
+                    barIdx = idx
+                    barNf = o.numFulfilled
+                    barNr = o.numRequired
+                    barPct = nil
+                end
             elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
                 -- Percent-only (detected via text, type, or existing percent field)
-                barCount = barCount + 1
-                barIdx = idx
-                barNf, barNr = nil, nil
-                barPct = textPct or o.percent or 0
+                if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
+                    barCount = barCount + 1
+                    barIdx = idx
+                    barNf, barNr = nil, nil
+                    barPct = textPct or o.percent or 0
+                end
             end
         end
         if barCount == 1 then
@@ -772,6 +778,7 @@ local function PopulateEntry(entry, questData, groupKey)
     -- Pre-compute progress bar eligibility so the title renderer can suppress (X/Y).
     questData._progressBarActive = false
     if addon.GetDB("showObjectiveProgressBar", false) and questData.objectives then
+        local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
         local barCount = 0
         for _, o in ipairs(questData.objectives) do
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
@@ -779,9 +786,13 @@ local function PopulateEntry(entry, questData, groupKey)
             if o.finished then
                 -- skip
             elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
-                barCount = barCount + 1
+                if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
+                    barCount = barCount + 1
+                end
             elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
-                barCount = barCount + 1
+                if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
+                    barCount = barCount + 1
+                end
             end
         end
         if barCount == 1 then questData._progressBarActive = true end
