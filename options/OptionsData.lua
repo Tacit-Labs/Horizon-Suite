@@ -1206,6 +1206,7 @@ local OptionCategories = {
             { type = "toggle", name = L["Delve affix names"], desc = L["Show affix names on first Delve entry."], dbKey = "showDelveAffixes", get = function() return getDB("showDelveAffixes", getDB("delveBlockShowAffixes", true)) end, set = function(v) setDB("showDelveAffixes", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end, tooltip = L["May not appear with full tracker replacements."] },
             { type = "section", name = L["Scenario Bar"] },
             { type = "toggle", name = L["Scenario timer bar"], desc = L["Show timer and progress bar for scenario entries."], dbKey = "cinematicScenarioBar", get = function() return getDB("cinematicScenarioBar", true) end, set = function(v) setDB("cinematicScenarioBar", v) end },
+            { type = "toggle", name = L["Scenario debug logging"], desc = L["Log scenario API data to chat. Use /h debug focus scendebug to toggle."], dbKey = "scenarioDebug", get = function() return getDB("scenarioDebug", false) end, set = function(v) setDB("scenarioDebug", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end, tooltip = L["Prints C_ScenarioInfo criteria and widget data when in a scenario. Helps diagnose display issues like Abundance 46/300."] },
         },
     },
     {

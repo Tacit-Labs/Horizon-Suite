@@ -800,6 +800,10 @@ local function formatObjectiveMsg(o)
     end
     if o.text and o.text ~= "" and o.text ~= "0" then
         if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
+            local pattern = ("%d/%d"):format(o.numFulfilled, o.numRequired)
+            if o.text:find(pattern, 1, true) then
+                return o.text
+            end
             return ("%s (%d/%d)"):format(o.text, o.numFulfilled, o.numRequired)
         end
         return o.text

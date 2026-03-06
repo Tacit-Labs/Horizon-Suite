@@ -5,6 +5,20 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
+--- True if text contains both "abundance" and "held" (case-insensitive). Used for Abundance scenario.
+local function isAbundanceHeld(text)
+    if not text or type(text) ~= "string" then return false end
+    local lower = text:lower()
+    return lower:find("abundance") and lower:find("held")
+end
+
+--- True if text contains "abundance" and "bag" (case-insensitive). Hide from inline; bar shows abundance held.
+local function isAbundanceBag(text)
+    if not text or type(text) ~= "string" then return false end
+    local lower = text:lower()
+    return lower:find("abundance") and lower:find("bag")
+end
+
 local function hideAllHighlight(entry)
     entry.trackBar:Hide()
     entry.highlightBg:Hide()
@@ -196,6 +210,12 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         obj.shadow:SetWidth(objTextWidth)
 
         if oData then
+            -- Abundance: hide objective inline text; bar shows "X/Y abundance held" instead.
+            if questData.category == "SCENARIO" and (isAbundanceHeld(oData.text) or isAbundanceBag(oData.text)) then
+                oData = nil
+            end
+        end
+        if oData then
             local objText = oData.text or ""
             local nf, nr = oData.numFulfilled, oData.numRequired
             local thisObjHasBar = (progressBarObjIdx == j)
@@ -221,6 +241,14 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                         if not objText:find(pattern, 1, true) then
                             objText = objText .. (" (%d/%d)"):format(nf, nr)
                         end
+                    end
+                end
+                -- Strip trailing (X/Y) when text already starts with X/Y (scenario/delve often duplicate)
+                if nf and nr and (questData.category == "SCENARIO" or questData.category == "DELVES" or questData.category == "DUNGEON") then
+                    local pattern = ("%d/%d"):format(nf, nr)
+                    local trailing = (" (%s)"):format(pattern)
+                    if #objText >= #trailing and objText:sub(1, #pattern + 1) == pattern .. " " and objText:sub(-#trailing) == trailing then
+                        objText = objText:sub(1, #objText - #trailing)
                     end
                 end
                 local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
@@ -547,21 +575,27 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         return totalH
     end
 
-    -- Inline mode: timer was positioned beside title in PopulateEntry; skip bar layout.
-    if timerDisplayMode == "inline" and entry._inlineTimerStr then
+    -- Inline mode: timer beside title. For non-scenarios, return early (progress bar stays optional).
+    -- For scenarios only: skip timer bar display below but still run progress bar logic (Abundance bar).
+    local skipTimerBarDisplay = (timerDisplayMode == "inline" and entry._inlineTimerStr)
+    if skipTimerBarDisplay then
         entry.wqTimerText:Hide()
-        entry.wqProgressBg:Hide()
-        entry.wqProgressFill:Hide()
-        entry.wqProgressText:Hide()
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do bar.duration = nil; bar.startTime = nil; bar:Hide() end
         end
-        return totalH
+        if not isScenario then
+            entry.wqProgressBg:Hide()
+            entry.wqProgressFill:Hide()
+            entry.wqProgressText:Hide()
+            return totalH
+        end
     end
 
-    -- Bar mode: hide any stray inline timer from a previous layout.
-    if entry.inlineTimerText then entry.inlineTimerText:Hide() end
-    entry._inlineTimerStr, entry._inlineTimerDuration, entry._inlineTimerStartTime = nil, nil, nil
+    -- Bar mode: hide any stray inline timer from a previous layout (only when not using inline).
+    if not skipTimerBarDisplay then
+        if entry.inlineTimerText then entry.inlineTimerText:Hide() end
+        entry._inlineTimerStr, entry._inlineTimerDuration, entry._inlineTimerStartTime = nil, nil, nil
+    end
 
     local S = addon.Scaled or function(v) return v end
     local objIndent = addon.GetObjIndent()
@@ -597,7 +631,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     local showBar
     -- Use cinematic timer bars (reverse progress) for scenario entries and any entry with structured timer data.
     local wantTimerBars = (isScenario and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer)
-    if wantTimerBars and entry.scenarioTimerBars then
+    if wantTimerBars and entry.scenarioTimerBars and not skipTimerBarDisplay then
         local timerSources = {}
         for _, o in ipairs(questData.objectives or {}) do
             if o.timerDuration and o.timerStartTime then
@@ -659,7 +693,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             showBar = true
         end
 
-        if showTimer and timerStr then
+        if showTimer and timerStr and not skipTimerBarDisplay then
             local timerSpacing = (isScenario or isGenericTimed) and (spacing + timedBarTopMargin) or spacing
             entry.wqTimerText:SetText(timerStr)
             entry.wqTimerText:SetWidth(barW)
@@ -685,15 +719,24 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     -- Percent progress bar: find the first unfinished objective with percent that has numRequired > 1.
     -- Skip objectives where numRequired <= 1 (single kills/loots don't need a bar).
     -- Also skip if the objective progress bar system already handles this entry (avoid duplicates).
+    -- Abundance: prefer the "abundance held" or "abundance bag" objective when present.
     local firstPercent
+    local selectedObj
     local hasObjProgressBar = questData._progressBarActive
     if not hasObjProgressBar then
         for _, o in ipairs(questData.objectives or {}) do
             if o.percent ~= nil and not o.finished then
                 local nr = o.numRequired
                 if nr ~= nil and type(nr) == "number" and nr > 1 then
-                    firstPercent = o.percent
-                    break
+                    if isAbundanceHeld(o.text) or isAbundanceBag(o.text) then
+                        selectedObj = o
+                        firstPercent = o.percent
+                        break
+                    end
+                    if not selectedObj then
+                        selectedObj = o
+                        firstPercent = o.percent
+                    end
                 end
             end
         end
@@ -726,7 +769,20 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         end
         entry.wqProgressFill:SetColorTexture(fillColor[1], fillColor[2], fillColor[3], fillColor[4] or 0.85)
         entry.wqProgressFill:Show()
-        entry.wqProgressText:SetText(firstPercent ~= nil and (tostring(firstPercent) .. "%") or "")
+        local barLabel
+        local isAbundanceHeldSel = selectedObj and isAbundanceHeld(selectedObj.text)
+        local isAbundanceBagSel = selectedObj and isAbundanceBag(selectedObj.text)
+        if selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number" then
+            local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
+            barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
+            if isAbundanceHeldSel then barLabel = barLabel .. " abundance held" end
+            if isAbundanceBagSel then barLabel = barLabel .. " abundance bag" end
+        else
+            barLabel = firstPercent ~= nil and (tostring(firstPercent) .. "%") or ""
+            if isAbundanceHeldSel then barLabel = barLabel .. " abundance held" end
+            if isAbundanceBagSel then barLabel = barLabel .. " abundance bag" end
+        end
+        entry.wqProgressText:SetText(barLabel)
         entry.wqProgressText:ClearAllPoints()
         entry.wqProgressText:SetPoint("CENTER", entry.wqProgressBg, "CENTER", 0, 0)
         local txtColor = progTextColor
