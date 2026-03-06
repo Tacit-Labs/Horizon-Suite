@@ -124,22 +124,26 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 -- Arithmetic (x/10 style)
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
                     barCount = barCount + 1
-                    barIdx = idx
-                    barNf = o.numFulfilled
-                    barNr = o.numRequired
-                    barPct = nil
+                    if barIdx == nil then
+                        barIdx = idx
+                        barNf = o.numFulfilled
+                        barNr = o.numRequired
+                        barPct = nil
+                    end
                 end
             elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
                 -- Percent-only (detected via text, type, or existing percent field)
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
                     barCount = barCount + 1
-                    barIdx = idx
-                    barNf, barNr = nil, nil
-                    barPct = textPct or o.percent or 0
+                    if barIdx == nil then
+                        barIdx = idx
+                        barNf, barNr = nil, nil
+                        barPct = textPct or o.percent or 0
+                    end
                 end
             end
         end
-        if barCount == 1 then
+        if barIdx ~= nil and (barCount == 1 or (barCount > 1 and progressBarTypeFilter == "both")) then
             progressBarObjIdx = barIdx
             progressBarNf = barNf
             progressBarNr = barNr
@@ -694,7 +698,8 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             end
         end
     end
-    if showBar and firstPercent ~= nil then
+    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
+    if showBar and firstPercent ~= nil and (progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
         local barHeight = (isScenario or isGenericTimed) and PROGRESS_BAR_HEIGHT or barH
         local percentBarSpacing = spacing + ((isScenario or isGenericTimed) and not timedFirstElementPlaced and timedBarTopMargin or 0)
         entry.wqProgressBg:SetHeight(barHeight)
@@ -780,7 +785,8 @@ local function PopulateEntry(entry, questData, groupKey)
     if addon.GetDB("showObjectiveProgressBar", false) and questData.objectives then
         local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
         local barCount = 0
-        for _, o in ipairs(questData.objectives) do
+        local barIdx = nil
+        for idx, o in ipairs(questData.objectives) do
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
             local isProgressBarType = (o.type == "progressbar" or o.type == 8)
             if o.finished then
@@ -788,14 +794,18 @@ local function PopulateEntry(entry, questData, groupKey)
             elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
                     barCount = barCount + 1
+                    if barIdx == nil then barIdx = idx end
                 end
             elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
                     barCount = barCount + 1
+                    if barIdx == nil then barIdx = idx end
                 end
             end
         end
-        if barCount == 1 then questData._progressBarActive = true end
+        if barIdx ~= nil and (barCount == 1 or (barCount > 1 and progressBarTypeFilter == "both")) then
+            questData._progressBarActive = true
+        end
     end
 
     local hasItem = (questData.itemTexture and questData.itemLink) and true or false

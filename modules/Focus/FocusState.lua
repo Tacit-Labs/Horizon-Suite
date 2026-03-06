@@ -108,5 +108,8 @@ addon.focus = {
 
     -- M+ size restore: track when we were in M+ so we can restore overworld height on zone-out
     wasInMplusDungeon                 = false,
+
+    -- [questID] = { objectives = {...} } — last known objectives when in zone (for WQ progress outside zone)
+    cachedWorldQuestObjectives        = nil,
 }
 

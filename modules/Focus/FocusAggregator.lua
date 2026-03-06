@@ -78,6 +78,35 @@ local function IsQuestRecentlyExpiredFromCurrent(questID)
     return true
 end
 
+--- Returns true if objectives has at least one objective with usable progress (percent or numFulfilled/numRequired).
+--- @param objectives table
+--- @return boolean
+local function HasUsableObjectives(objectives)
+    if not objectives or #objectives == 0 then return false end
+    for _, o in ipairs(objectives) do
+        if (o.percent ~= nil and type(o.percent) == "number") or
+           (o.numFulfilled ~= nil and o.numRequired ~= nil) then
+            return true
+        end
+    end
+    return false
+end
+
+--- Deep copy of objectives array for WQ progress cache (preserves text, percent, numFulfilled, numRequired, finished, type).
+--- @param objectives table
+--- @return table
+local function CopyObjectives(objectives)
+    if not objectives or #objectives == 0 then return {} end
+    local out = {}
+    for i, o in ipairs(objectives) do
+        if type(o) == "table" then
+            out[i] = {}
+            for k, v in pairs(o) do out[i][k] = v end
+        end
+    end
+    return out
+end
+
 local function CompareEntriesBySortMode(a, b)
     if currentSortGroup == "NEARBY" and addon.GetDB("nearbyCompleteToBottom", true) then
         local ac = a.isComplete and 1 or 0
@@ -331,6 +360,33 @@ local function ReadTrackedQuests()
         local baseCategory = (category == "COMPLETE") and addon.GetQuestBaseCategory(questID) or nil
         local title = C_QuestLog.GetTitleForQuestID(questID) or UNKNOWN_TITLE_PLACEHOLDER
         local objectives = C_QuestLog.GetQuestObjectives(questID) or {}
+
+        -- Compute isInQuestArea for WORLD/CALLING when provider did not set it.
+        local isInQuestArea = opts.isInQuestArea
+        if isInQuestArea == nil and (category == "WORLD" or category == "CALLING") and C_QuestLog and C_QuestLog.IsOnQuest then
+            isInQuestArea = C_QuestLog.IsOnQuest(questID)
+        end
+        isInQuestArea = isInQuestArea and true or false
+
+        -- Cache/fallback for zone-based world quests: Blizzard returns empty/zeroed when outside zone.
+        if category == "WORLD" or category == "CALLING" then
+            local cache = addon.focus.cachedWorldQuestObjectives
+            if not cache then addon.focus.cachedWorldQuestObjectives = {} cache = addon.focus.cachedWorldQuestObjectives end
+            local isCompleteForCache = C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID)
+
+            if isCompleteForCache then
+                cache[questID] = nil
+            elseif isInQuestArea then
+                if HasUsableObjectives(objectives) then
+                    cache[questID] = { objectives = CopyObjectives(objectives) }
+                end
+            else
+                if not HasUsableObjectives(objectives) and cache[questID] then
+                    objectives = cache[questID].objectives
+                end
+            end
+        end
+
         local objectivesDoneCount, objectivesTotalCount
         local completedObjDisplay = addon.GetDB("questCompletedObjectiveDisplay", "off")
         if completedObjDisplay == "hide" and #objectives > 0 then
@@ -353,7 +409,6 @@ local function ReadTrackedQuests()
         local isRaidQuest = opts.isRaidQuest or (category == "RAID")
         local isTracked = opts.isTracked ~= false
         local isAutoAdded = opts.isAutoAdded and true or false
-        local isInQuestArea = opts.isInQuestArea and true or false
 
         local itemLink, itemTexture
         if logIndex and GetQuestLogSpecialItemInfo then
