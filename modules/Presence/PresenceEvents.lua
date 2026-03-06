@@ -26,20 +26,36 @@ local function StripPresenceMarkup(s)
 end
 
 --- Normalize quest update text to "X/Y Objective" format.
+--- Strips leading "x/1 " for single-step objectives only.
 --- @param s string Raw text (e.g. "Burn Deepsflayer Nests: 3/6", "Objective (3/5)")
 --- @return string
 local function NormalizeQuestUpdateText(s)
     if not s or s == "" then return s or "" end
     s = strtrim(s)
+    local result
     -- Already "X/Y ..." at start
-    if s:match("^%d+/%d+%s") then return s end
+    if s:match("^%d+/%d+%s") then
+        result = s
     -- "Text: X/Y" -> "X/Y Text"
-    local text, x, y = s:match("^(.+):%s*(%d+)/(%d+)$")
-    if text and x and y then return ("%s/%s %s"):format(x, y, strtrim(text)) end
-    -- "Text (X/Y)" -> "X/Y Text"
-    local text2, x2, y2 = s:match("^(.+)%s*%((%d+)/(%d+)%)$")
-    if text2 and x2 and y2 then return ("%s/%s %s"):format(x2, y2, strtrim(text2)) end
-    return s
+    else
+        local text, x, y = s:match("^(.+):%s*(%d+)/(%d+)$")
+        if text and x and y then
+            result = ("%s/%s %s"):format(x, y, strtrim(text))
+        else
+            -- "Text (X/Y)" -> "X/Y Text"
+            local text2, x2, y2 = s:match("^(.+)%s*%((%d+)/(%d+)%)$")
+            if text2 and x2 and y2 then
+                result = ("%s/%s %s"):format(x2, y2, strtrim(text2))
+            else
+                result = s
+            end
+        end
+    end
+    -- Strip "x/1 " or "x/1: " prefix for single-step objectives only
+    if result and result:match("^%d+/1%s*:?%s*") then
+        result = result:gsub("^%d+/1%s*:?%s*", "")
+    end
+    return result
 end
 
 -- ============================================================================
