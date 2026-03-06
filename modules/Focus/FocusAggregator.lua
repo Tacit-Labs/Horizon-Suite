@@ -148,7 +148,7 @@ local function SortAndGroupQuests(quests)
             groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
         elseif isEventInPlayerZone and groups["AVAILABLE"] then
             groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
-        elseif not q.isEventQuest and showCurrent and q.questID and IsQuestRecentlyProgressed(q.questID) then
+        elseif not q.isEventQuest and showCurrent and q.questID and not q.isComplete and IsQuestRecentlyProgressed(q.questID) then
             groups["CURRENT"][#groups["CURRENT"] + 1] = q
         elseif not q.isEventQuest
             and addon.GetDB("showNearbyGroup", true) and groups["NEARBY"]
