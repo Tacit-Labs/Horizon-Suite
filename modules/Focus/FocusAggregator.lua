@@ -187,7 +187,9 @@ local function SortAndGroupQuests(quests)
             groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
         elseif q.isComplete and groups["COMPLETE"] then
             groups["COMPLETE"][#groups["COMPLETE"] + 1] = q
-        elseif not q.isEventQuest and showCurrent and q.questID and not q.isComplete and IsQuestRecentlyProgressed(q.questID) then
+        elseif not q.isEventQuest
+            and not (q.category == "WORLD" or q.category == "CALLING")
+            and showCurrent and q.questID and not q.isComplete and IsQuestRecentlyProgressed(q.questID) then
             groups["CURRENT"][#groups["CURRENT"] + 1] = q
         elseif not q.isEventQuest
             and addon.GetDB("showNearbyGroup", true) and groups["NEARBY"]
