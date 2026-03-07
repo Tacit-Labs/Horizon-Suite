@@ -90,7 +90,7 @@ local function ApplyHighlightStyle(entry, questData)
     return highlightStyle, hc, ha, barW, topPadding, bottomPadding
 end
 
-local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, c, effectiveCat)
+local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, c, effectiveCat, effectiveTitleRowH)
     local S = addon.Scaled or function(v) return v end
     local objIndent = addon.GetObjIndent()
     -- Indentation now comes from the entry's padded title anchor; keep objective indent consistent.
@@ -296,8 +296,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
             obj.text:ClearAllPoints()
             -- First objective gets inset from title; subsequent objectives align with it.
+            -- When prevAnchor is titleText, use effectiveTitleRowH so objectives sit below inline timer (world quests, etc.).
             local leftPad = (shownObjs == 0) and OBJ_EXTRA_LEFT_PAD or 0
-            obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", leftPad, -objSpacing)
+            if shownObjs == 0 and prevAnchor == entry.titleText and effectiveTitleRowH then
+                obj.text:SetPoint("TOPLEFT", prevAnchor, "TOPLEFT", leftPad, -effectiveTitleRowH - objSpacing)
+            else
+                obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", leftPad, -objSpacing)
+            end
             obj.text:Show()
             obj.shadow:Show()
 
@@ -1046,12 +1051,25 @@ local function PopulateEntry(entry, questData, groupKey)
     if entry._inlineTimerStr then
         entry._inlineTimerBaseTitle = displayTitle
         if entry.inlineTimerText then
-            entry.inlineTimerText:SetText(" (" .. entry._inlineTimerStr .. ")")
             entry.inlineTimerText:SetFontObject(addon.TitleFont)
             entry.inlineTimerText:ClearAllPoints()
+            entry.inlineTimerText:SetText(" (" .. entry._inlineTimerStr .. ")")
+            local timerStrWidth = entry.inlineTimerText:GetStringWidth() or 0
             local titlePixelWidth = entry.titleText:GetStringWidth() or 0
-            local titleAnchorX = math.min(titlePixelWidth, titleWidth or textWidth)
-            entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
+            local tw = titleWidth or textWidth
+            local titleAnchorX = math.min(titlePixelWidth, tw)
+            local remainingWidth = math.max(1, tw - titleAnchorX - 2)
+            -- When timer doesn't fit beside title, put it on its own line with full width (same as title wrap)
+            local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetObjSpacing()
+            if remainingWidth < timerStrWidth then
+                entry.inlineTimerText:SetWidth(tw)
+                entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                entry._inlineTimerOnOwnLine = true
+            else
+                entry.inlineTimerText:SetWidth(remainingWidth)
+                entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
+                entry._inlineTimerOnOwnLine = false
+            end
             local timerColorByRemaining = addon.GetDB("timerColorByRemaining", false)
             local r, g, b
             if timerColorByRemaining and entry._inlineTimerDuration and entry._inlineTimerStartTime then
@@ -1067,6 +1085,7 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     elseif entry.inlineTimerText then
         entry.inlineTimerText:Hide()
+        entry._inlineTimerOnOwnLine = nil
     end
 
     local effectiveCat = (addon.GetEffectiveColorCategory and addon.GetEffectiveColorCategory(questData.category, groupKey, questData.baseCategory, questData.isEventQuest)) or questData.category
@@ -1136,15 +1155,26 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.lfgBtn:Hide()
     end
 
+    local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetObjSpacing()
     local titleH = entry.titleText:GetStringHeight()
     if not titleH or titleH < 1 then titleH = addon.TITLE_SIZE + 4 end
-    local totalH = titleH
+    local effectiveTitleRowH = titleH
+    if entry._inlineTimerStr and entry.inlineTimerText and entry.inlineTimerText:IsShown() then
+        local timerH = entry.inlineTimerText:GetStringHeight() or 0
+        if timerH > 0 then
+            if entry._inlineTimerOnOwnLine then
+                effectiveTitleRowH = titleH + titleToContentSpacing + timerH
+            else
+                effectiveTitleRowH = math.max(effectiveTitleRowH, timerH)
+            end
+        end
+    end
+    local totalH = effectiveTitleRowH
 
     local prevAnchor = entry.titleText
     -- Cache the font-scaled "two spaces" width (measured from the title font) once per entry render.
     local twoSpacesPx = addon.focus and addon.focus.layout and addon.focus.layout.twoSpacesPx
     local titleIndentPx = addon.focus and addon.focus.layout and addon.focus.layout.titleIndentPx
-    local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetObjSpacing()
     local showZoneLabels = addon.GetDB("showZoneLabels", true)
     local playerZone = addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName() or nil
     local inCurrentZone = questData.isNearby or (questData.zoneName and playerZone and questData.zoneName:lower() == playerZone:lower())
@@ -1164,7 +1194,7 @@ local function PopulateEntry(entry, questData, groupKey)
         end
         entry.zoneText:SetTextColor(zoneColor[1], zoneColor[2], zoneColor[3], dimAlpha)
         entry.zoneText:ClearAllPoints()
-        entry.zoneText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+        entry.zoneText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
         entry.zoneText:Show()
         entry.zoneShadow:Show()
         local zoneH = entry.zoneText:GetStringHeight()
@@ -1206,7 +1236,11 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.affixText:SetText(affixStr)
         entry.affixText:SetTextColor(0.78, 0.85, 0.88, 1)
         entry.affixText:ClearAllPoints()
-        entry.affixText:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -titleToContentSpacing)
+        if prevAnchor == entry.titleText then
+            entry.affixText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
+        else
+            entry.affixText:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -titleToContentSpacing)
+        end
         entry.affixText:Show()
         if entry.affixShadow then
             entry.affixShadow:SetWidth(textWidth)
@@ -1222,7 +1256,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.affixData = nil
     end
 
-    totalH, prevAnchor = ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, c, effectiveCat)
+    totalH, prevAnchor = ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, c, effectiveCat, effectiveTitleRowH)
     totalH = ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor or entry.titleText, totalH)
 
     entry.entryHeight = totalH + topPadding + bottomPadding
