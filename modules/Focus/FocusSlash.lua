@@ -120,7 +120,8 @@ end
 
 local function ShowFocusDebugHelp()
     HSPrint("Focus debug commands (/h debug focus [cmd]):")
-    HSPrint("  wqdebug, scendebug, nearbydebug, headercountdebug, groupdebug")
+    HSPrint("  scendebug - Scenario timer debug (also: /h scenario debug)")
+    HSPrint("  wqdebug, nearbydebug, headercountdebug, groupdebug")
     HSPrint("  delvedebug, mplusaffixdebug, mplusdebug, endeavordebug, achievementdebug")
     HSPrint("  recipedebug, unaccepted, clicktodebug, profiledebug")
 end
@@ -506,6 +507,8 @@ local function HandleFocusDebugSlash(msg)
         if addon.SetDB then addon.SetDB("scenarioDebug", v) end
         HSPrint("Scenario debug logging: " .. (v and "on" or "off"))
         if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        -- One-shot timer dump for immediate feedback (run in scenario to diagnose missing timers)
+        if addon.DumpScenarioTimerInfo then addon.DumpScenarioTimerInfo() end
 
     elseif cmd == "mplusdebug" then
         addon.mplusDebugPreview = not addon.mplusDebugPreview

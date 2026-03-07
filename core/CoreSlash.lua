@@ -41,6 +41,7 @@ local function ShowCoreHelp()
     HSPrint("  /hedit, /h edit      - Open edit screen")
     HSPrint("  /hopt, /h options    - Open options")
     HSPrint("  /h focus [cmd]       - Tracker (toggle, collapse, test, ...)")
+    HSPrint("  /h scenario debug    - Scenario timer debug (diagnose missing timers)")
     HSPrint("  /h presence [cmd]    - Zone/notification tests")
     HSPrint("  /h vista [cmd]       - Minimap")
     HSPrint("  /h yield [cmd]       - Loot toasts")
@@ -100,6 +101,20 @@ local function OnSlashCommand(msg)
             HSPrint("No debug commands for that module.")
         end
         return
+    end
+
+    -- Alias: /h scenario debug -> /h debug focus scendebug (scenario timer debug)
+    if first == "scenario" then
+        local subCmd = strtrim(rest:lower())
+        if subCmd == "debug" or subCmd == "scendebug" or subCmd == "" then
+            local debugHandler = addon.slashHandlersDebug["focus"]
+            if debugHandler then
+                debugHandler(subCmd == "" and "scendebug" or "scendebug")
+            else
+                HSPrint("Focus debug not available.")
+            end
+            return
+        end
     end
 
     local handler = addon.slashHandlers[first]

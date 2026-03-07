@@ -521,7 +521,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     -- Master toggle for timer / reverse-progress bars.
     local showTimerBars = addon.GetDB("showTimerBars", false)
 
-    if questData.category == "DELVES" or not showTimerBars then
+    if not showTimerBars then
         entry.wqTimerText:Hide()
         entry.wqProgressBg:Hide()
         entry.wqProgressFill:Hide()
@@ -535,7 +535,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     end
     local timerDisplayMode = addon.GetDB("timerDisplayMode", "inline")
     local isWorld = questData.category == "WORLD" or questData.category == "CALLING"
-    local isScenario = questData.category == "SCENARIO"
+    local isScenarioOrDelve = questData.category == "SCENARIO" or questData.category == "DELVES" or questData.category == "DUNGEON"
 
     -- Determine whether this entry carries structured timer data (duration + startTime)
     -- on the entry itself or on one of its objectives.
@@ -553,9 +553,9 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     local hasAnyTimer = hasStructuredTimer or hasLegacyTimer
 
     -- Any non-scenario entry with timer data gets the timed treatment (reverse progress bar + countdown).
-    local isGenericTimed = (not isScenario) and hasAnyTimer and not questData.isRare
+    local isGenericTimed = (not isScenarioOrDelve) and hasAnyTimer and not questData.isRare
 
-    if not isWorld and not isScenario and not isGenericTimed then
+    if not isWorld and not isScenarioOrDelve and not isGenericTimed then
         entry.wqTimerText:Hide()
         entry.wqProgressBg:Hide()
         entry.wqProgressFill:Hide()
@@ -567,7 +567,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         end
         return totalH
     end
-    if (isWorld or isScenario) and questData.isRare then
+    if (isWorld or isScenarioOrDelve) and questData.isRare then
         entry.wqTimerText:Hide()
         entry.wqProgressBg:Hide()
         entry.wqProgressFill:Hide()
@@ -588,7 +588,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do bar.duration = nil; bar.startTime = nil; bar:Hide() end
         end
-        if not isScenario then
+        if not isScenarioOrDelve then
             entry.wqProgressBg:Hide()
             entry.wqProgressFill:Hide()
             entry.wqProgressText:Hide()
@@ -614,14 +614,14 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
 
     local barH = S(addon.WQ_TIMER_BAR_HEIGHT or 6)
     local spacing = addon.GetObjSpacing()
-    local timedBarTopMargin = (isScenario or isGenericTimed) and S(4) or 0
+    local timedBarTopMargin = (isScenarioOrDelve or isGenericTimed) and S(4) or 0
     local timedFirstElementPlaced = false
 
     -- Quest bar format for scenario/timed entries: same height, colors, and font as objective progress bars
     local progBarFontSz = tonumber(addon.GetDB("progressBarFontSize", 10)) or 10
     local PROGRESS_BAR_HEIGHT = S(math.max(8, progBarFontSz + 4))
     local progFillColor, progTextColor
-    if isScenario or isGenericTimed then
+    if isScenarioOrDelve or isGenericTimed then
         if addon.GetDB("progressBarUseCategoryColor", true) then
             local colorCat = questData.category or "DEFAULT"
             progFillColor = (addon.GetQuestColor and addon.GetQuestColor(colorCat)) or (addon.QUEST_COLORS and addon.QUEST_COLORS[colorCat]) or { 0.55, 0.35, 0.85 }
@@ -635,7 +635,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
 
     local showBar
     -- Use cinematic timer bars (reverse progress) for scenario entries and any entry with structured timer data.
-    local wantTimerBars = (isScenario and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer)
+    local wantTimerBars = (isScenarioOrDelve and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer)
     if wantTimerBars and entry.scenarioTimerBars and not skipTimerBarDisplay then
         local timerSources = {}
         for _, o in ipairs(questData.objectives or {}) do
@@ -686,7 +686,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         end
 
         local showTimer
-        if isScenario then
+        if isScenarioOrDelve then
             showTimer = (timerStr ~= nil)
             showBar = addon.GetDB("cinematicScenarioBar", true)
         elseif isWorld and not hasStructuredTimer then
@@ -699,12 +699,12 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         end
 
         if showTimer and timerStr and not skipTimerBarDisplay then
-            local timerSpacing = (isScenario or isGenericTimed) and (spacing + timedBarTopMargin) or spacing
+            local timerSpacing = (isScenarioOrDelve or isGenericTimed) and (spacing + timedBarTopMargin) or spacing
             entry.wqTimerText:SetText(timerStr)
             entry.wqTimerText:SetWidth(barW)
             entry.wqTimerText:ClearAllPoints()
             entry.wqTimerText:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -timerSpacing)
-            if isScenario or isGenericTimed then
+            if isScenarioOrDelve or isGenericTimed then
                 local sc = addon.GetQuestColor and addon.GetQuestColor(questData.category) or (addon.QUEST_COLORS and addon.QUEST_COLORS[questData.category]) or { 0.38, 0.52, 0.88 }
                 entry.wqTimerText:SetTextColor(sc[1], sc[2], sc[3], 1)
             else
@@ -715,7 +715,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             if not th or th < 1 then th = addon.OBJ_SIZE + 2 end
             totalH = totalH + timerSpacing + th
             prevAnchor = entry.wqTimerText
-            if isScenario or isGenericTimed then timedFirstElementPlaced = true end
+            if isScenarioOrDelve or isGenericTimed then timedFirstElementPlaced = true end
         else
             entry.wqTimerText:Hide()
         end
@@ -748,8 +748,8 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     end
     local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
     if showBar and firstPercent ~= nil and (progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
-        local barHeight = (isScenario or isGenericTimed) and PROGRESS_BAR_HEIGHT or barH
-        local percentBarSpacing = spacing + ((isScenario or isGenericTimed) and not timedFirstElementPlaced and timedBarTopMargin or 0)
+        local barHeight = (isScenarioOrDelve or isGenericTimed) and PROGRESS_BAR_HEIGHT or barH
+        local percentBarSpacing = spacing + ((isScenarioOrDelve or isGenericTimed) and not timedFirstElementPlaced and timedBarTopMargin or 0)
         entry.wqProgressBg:SetHeight(barHeight)
         entry.wqProgressBg:SetWidth(barW)
         entry.wqProgressBg:ClearAllPoints()
@@ -913,7 +913,7 @@ local function PopulateEntry(entry, questData, groupKey)
     local showTimerBars = addon.GetDB("showTimerBars", false)
     local timerDisplayMode = addon.GetDB("timerDisplayMode", "inline")
     local isWorld = questData.category == "WORLD" or questData.category == "CALLING"
-    local isScenario = questData.category == "SCENARIO"
+    local isScenarioOrDelve = questData.category == "SCENARIO" or questData.category == "DELVES" or questData.category == "DUNGEON"
     local hasStructuredTimer = (questData.timerDuration and questData.timerStartTime) and true or false
     if not hasStructuredTimer and questData.objectives then
         for _, o in ipairs(questData.objectives) do
@@ -921,10 +921,10 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     end
     local hasLegacyTimer = (questData.timeLeftSeconds and questData.timeLeftSeconds > 0) or (questData.timeLeft and questData.timeLeft > 0)
-    local isGenericTimed = (not isScenario) and (hasStructuredTimer or hasLegacyTimer) and not questData.isRare
-    local showInlineTimer = showTimerBars and (timerDisplayMode == "inline" or timerDisplayMode == "inline-below") and (isWorld or isScenario or isGenericTimed) and not questData.isRare
+    local isGenericTimed = (not isScenarioOrDelve) and (hasStructuredTimer or hasLegacyTimer) and not questData.isRare
+    local showInlineTimer = showTimerBars and (timerDisplayMode == "inline" or timerDisplayMode == "inline-below") and (isWorld or isScenarioOrDelve or isGenericTimed) and not questData.isRare
     if showInlineTimer then
-        local timerStr, duration, startTime = GetTimerDisplayInfo(questData, isWorld, isScenario, isGenericTimed)
+        local timerStr, duration, startTime = GetTimerDisplayInfo(questData, isWorld, isScenarioOrDelve, isGenericTimed)
         if timerStr then
             entry._inlineTimerStr = timerStr
             entry._inlineTimerDuration = duration

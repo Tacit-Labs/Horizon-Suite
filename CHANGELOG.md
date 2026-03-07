@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.9.1] – 2026-03-07
+
+### 🔧 Improvements
+
+- **(Focus) Allow click-to-complete for auto-complete quests when using classic click behaviour** — Classic click behaviour now supports click-to-complete for auto-complete quests.
+- **(Focus) Scope Abundance scenario widget fallback and bar styling to Abundance only** — Widget fallback and progress bar styling apply only to Abundance scenarios, not other scenario types.
+
+---
+
 ## [3.9.0] – 2026-03-07
 
 ### ✨ New Features

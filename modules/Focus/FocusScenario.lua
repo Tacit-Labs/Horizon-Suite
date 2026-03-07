@@ -65,54 +65,123 @@ end
 
 --- Probe UI widget manager for a scenario header timer (open-world events, prepatch, etc.).
 -- Walks the widget set attached to the current scenario step and looks for ScenarioHeaderTimer widgets.
+-- Also checks StatusBar widgets with hasTimer (e.g. Singularity, world scenarios).
+-- Tries step-based set first, then ObjectiveTracker set as fallback.
 -- @return duration, startTime or nil, nil
 local function GetWidgetTimerInfo()
-    if not C_UIWidgetManager or not C_UIWidgetManager.GetAllWidgetsBySetID or not C_UIWidgetManager.GetScenarioHeaderTimerWidgetVisualizationInfo then
+    if not C_UIWidgetManager or not C_UIWidgetManager.GetAllWidgetsBySetID then
         return nil, nil
     end
-    -- Determine the widget set ID from the current scenario step.
-    local setID
+    -- Build ordered list of widget set IDs to try. Step-based first, then ObjectiveTracker (may have timer when step set does not).
+    local setsToTry = {}
+    local seen = {}
+    local function addSet(s)
+        if s and type(s) == "number" and s ~= 0 and not seen[s] then
+            seen[s] = true
+            setsToTry[#setsToTry + 1] = s
+        end
+    end
     -- Prefer C_ScenarioInfo.GetScenarioStepInfo (structured table with widgetSetID).
     if C_ScenarioInfo and C_ScenarioInfo.GetScenarioStepInfo then
         local siOk, stepInfo = pcall(C_ScenarioInfo.GetScenarioStepInfo)
-        if siOk and stepInfo and type(stepInfo) == "table" and stepInfo.widgetSetID and stepInfo.widgetSetID ~= 0 then
-            setID = stepInfo.widgetSetID
+        if siOk and stepInfo and type(stepInfo) == "table" and stepInfo.widgetSetID then
+            addSet(stepInfo.widgetSetID)
         end
     end
     -- Fallback: positional extraction from C_Scenario.GetStepInfo.
-    if not setID and C_Scenario and C_Scenario.GetStepInfo then
+    if C_Scenario and C_Scenario.GetStepInfo then
         local sOk, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
         if sOk and t and type(t) == "table" and #t >= 12 then
             local ws = t[12]
-            if type(ws) == "number" and ws ~= 0 then setID = ws end
+            if type(ws) == "number" then addSet(ws) end
         end
     end
-    if not setID and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+    if C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
         local oOk, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-        if oOk and objSet and type(objSet) == "number" then setID = objSet end
+        if oOk and objSet and type(objSet) == "number" then addSet(objSet) end
     end
-    if not setID then return nil, nil end
+    if #setsToTry == 0 then return nil, nil end
 
-    local WIDGET_TIMER = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.ScenarioHeaderTimer) or 20
-    local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
-    if not wOk or not widgets or type(widgets) ~= "table" then return nil, nil end
-
-    for _, wInfo in pairs(widgets) do
-        local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
-            or (type(wInfo) == "number" and wInfo > 0) and wInfo
-        local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
-        if widgetID and (not wType or wType == WIDGET_TIMER) then
-            local tOk, timerInfo = pcall(C_UIWidgetManager.GetScenarioHeaderTimerWidgetVisualizationInfo, widgetID)
-            if tOk and timerInfo and type(timerInfo) == "table" and timerInfo.hasTimer then
-                local timerMax = timerInfo.timerMax
-                local timerValue = timerInfo.timerValue
-                if timerMax and timerValue and type(timerMax) == "number" and type(timerValue) == "number" and timerMax > 0 then
-                    -- timerValue = seconds remaining; timerMax = total duration.
-                    local remaining = math.max(0, timerValue)
-                    local elapsed = timerMax - remaining
-                    return timerMax, GetTime() - elapsed
+    -- 1. Try ScenarioHeaderTimer on every widget (some scenarios may not set widgetType correctly).
+    if C_UIWidgetManager.GetScenarioHeaderTimerWidgetVisualizationInfo then
+        for i = 1, #setsToTry do
+            local setID = setsToTry[i]
+            local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+            if wOk and widgets and type(widgets) == "table" then
+                for _, wInfo in pairs(widgets) do
+                    local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
+                        or (type(wInfo) == "number" and wInfo > 0) and wInfo
+                    if widgetID then
+                        local tOk, timerInfo = pcall(C_UIWidgetManager.GetScenarioHeaderTimerWidgetVisualizationInfo, widgetID)
+                        if tOk and timerInfo and type(timerInfo) == "table" and timerInfo.hasTimer then
+                            local timerMax = timerInfo.timerMax
+                            local timerValue = timerInfo.timerValue
+                            if timerMax and timerValue and type(timerMax) == "number" and type(timerValue) == "number" and timerMax > 0 then
+                                local remaining = math.max(0, timerValue)
+                                local elapsed = timerMax - remaining
+                                return timerMax, GetTime() - elapsed
+                            end
+                        end
+                    end
                 end
             end
+        end
+    end
+
+    -- 2. Fallback: StatusBar widgets with hasTimer (e.g. Singularity "Prevent Anchor from reaching zero", world scenarios).
+    if C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo then
+        for i = 1, #setsToTry do
+            local setID = setsToTry[i]
+            local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+            if wOk and widgets and type(widgets) == "table" then
+                for _, wInfo in pairs(widgets) do
+                    local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
+                        or (type(wInfo) == "number" and wInfo > 0) and wInfo
+                    if widgetID then
+                        local sOk, info = pcall(C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo, widgetID)
+                        if sOk and info and type(info) == "table" and info.hasTimer then
+                            local barMax = info.barMax or 0
+                            local barValue = info.barValue
+                            if barMax and barMax > 0 and barValue ~= nil and type(barMax) == "number" and type(barValue) == "number" then
+                                -- barValue = seconds remaining; barMax = total duration (StatusBar timer semantics).
+                                local remaining = math.max(0, math.min(barValue, barMax))
+                                local elapsed = barMax - remaining
+                                return barMax, GetTime() - elapsed
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- 3. Fallback: scrape timer text from Blizzard's ScenarioObjectiveTracker (widget set returns 0 when tracker hidden).
+    -- Walk frame hierarchy to find Timer.Text with "M:SS" format; use as remaining seconds.
+    if _G.ScenarioObjectiveTracker and _G.ScenarioObjectiveTracker.ContentsFrame then
+        local function findTimerText(frame, depth)
+            if not frame or depth > 15 then return nil end
+            if frame.GetText and frame.GetObjectType and frame:GetObjectType() == "FontString" then
+                local text = frame:GetText()
+                if text and type(text) == "string" then
+                    local mins, secs = text:match("^(%d+):(%d%d?)$")
+                    if mins and secs then
+                        local m, s = tonumber(mins), tonumber(secs)
+                        if m and s and m >= 0 and s >= 0 and s < 60 then
+                            return (m * 60) + s
+                        end
+                    end
+                end
+            end
+            local children = { frame:GetChildren() }
+            for _, child in ipairs(children) do
+                local found = findTimerText(child, depth + 1)
+                if found then return found end
+            end
+            return nil
+        end
+        local remaining = findTimerText(_G.ScenarioObjectiveTracker.ContentsFrame, 0)
+        if remaining and remaining > 0 then
+            return remaining, GetTime()
         end
     end
     return nil, nil
@@ -672,8 +741,123 @@ local function ReadScenarioEntries()
     return out
 end
 
-addon.ReadScenarioEntries    = ReadScenarioEntries
-addon.IsScenarioActive      = IsScenarioActive
-addon.IsAbundanceScenario   = IsAbundanceScenario
-addon.GetScenarioDisplayInfo = GetScenarioDisplayInfo
-addon.GetDelveNameFromAPIs   = GetDelveNameFromAPIs
+--- One-shot dump of scenario timer sources to chat. Run in a scenario to diagnose missing timers.
+--- @return nil
+local function DumpScenarioTimerInfo()
+    local HSPrint = addon.HSPrint or function(m) print("|cFF00CCFFHorizon Suite:|r " .. tostring(m or "")) end
+    HSPrint("|cFF00CCFF--- Scenario Timer Debug ---|r")
+    if not addon.IsScenarioActive or not addon.IsScenarioActive() then
+        HSPrint("Not in a scenario. Enter a scenario (e.g. Singularity, Delves) and run again.")
+        return
+    end
+    local stageName, numCriteria, rewardQuestID = "?", nil, nil
+    if C_Scenario and C_Scenario.GetStepInfo then
+        local t = { pcall(C_Scenario.GetStepInfo) }
+        if t[1] then
+            stageName = t[2] or "?"
+            numCriteria = t[4] or t[3] or t[5]
+            local raw = t[11] or t[10] or t[12]
+            if type(raw) == "number" and raw > 0 then rewardQuestID = raw end
+        end
+    end
+    HSPrint("Step: " .. tostring(stageName) .. " | rewardQuestID=" .. tostring(rewardQuestID) .. " | numCriteria=" .. tostring(numCriteria))
+    local durCrit, startCrit = nil, nil
+    if C_ScenarioInfo and C_ScenarioInfo.GetCriteriaInfo then
+        for ci = 1, math.max((numCriteria or 0) + 3, 1) do
+            local cOk, crit = pcall(C_ScenarioInfo.GetCriteriaInfo, ci)
+            if cOk and crit and crit.duration and crit.elapsed then
+                durCrit, startCrit = GetCriteriaTimerInfo(crit)
+                if durCrit and startCrit then
+                    HSPrint("  Criteria[" .. ci .. "]: duration=" .. durCrit .. " (source: criteria)")
+                    break
+                end
+            end
+        end
+    end
+    if not durCrit or not startCrit then
+        HSPrint("  Criteria: no timer")
+        durCrit, startCrit = GetQuestTimerInfo(rewardQuestID)
+        if durCrit and startCrit then
+            HSPrint("  Quest: duration=" .. durCrit .. " (source: reward quest)")
+        else
+            HSPrint("  Quest: no timer")
+            durCrit, startCrit = GetWidgetTimerInfo()
+            if durCrit and startCrit then
+                HSPrint("  Widget: duration=" .. durCrit .. " (source: ScenarioHeaderTimer or StatusBar hasTimer)")
+            else
+                HSPrint("  Widget: no timer (tried ScenarioHeaderTimer + StatusBar hasTimer)")
+                -- Enumerate all candidate widget sets (step + ObjectiveTracker) to diagnose
+                local setsToCheck = {}
+                if C_Scenario and C_Scenario.GetStepInfo then
+                    local st = { pcall(C_Scenario.GetStepInfo) }
+                    if st[1] and st[12] and type(st[12]) == "number" then
+                        setsToCheck[#setsToCheck + 1] = { id = st[12], label = "GetStepInfo" }
+                    end
+                end
+                if C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+                    local oOk, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
+                    if oOk and objSet and type(objSet) == "number" and objSet ~= 0 then
+                        local seen = false
+                        for _, s in ipairs(setsToCheck) do if s.id == objSet then seen = true break end end
+                        if not seen then
+                            setsToCheck[#setsToCheck + 1] = { id = objSet, label = "ObjectiveTracker" }
+                        end
+                    end
+                end
+                if C_ScenarioInfo and C_ScenarioInfo.GetScenarioStepInfo then
+                    local siOk, stepInfo = pcall(C_ScenarioInfo.GetScenarioStepInfo)
+                    if siOk and stepInfo and type(stepInfo) == "table" and stepInfo.widgetSetID and stepInfo.widgetSetID ~= 0 then
+                        local seen = false
+                        for _, s in ipairs(setsToCheck) do if s.id == stepInfo.widgetSetID then seen = true break end end
+                        if not seen then
+                            setsToCheck[#setsToCheck + 1] = { id = stepInfo.widgetSetID, label = "ScenarioStepInfo" }
+                        end
+                    end
+                end
+                for _, s in ipairs(setsToCheck) do
+                    local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, s.id)
+                    if wOk and widgets and type(widgets) == "table" then
+                        local n = 0
+                        for _ in pairs(widgets) do n = n + 1 end
+                        HSPrint("  Widget set " .. s.id .. " (" .. s.label .. "): " .. n .. " widget(s)")
+                        for k, wInfo in pairs(widgets) do
+                            local wid = (wInfo and type(wInfo) == "table" and wInfo.widgetID) or (type(wInfo) == "number" and wInfo) or nil
+                            local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
+                            if wid then
+                                local parts = {}
+                                if C_UIWidgetManager.GetScenarioHeaderTimerWidgetVisualizationInfo then
+                                    local tOk, ti = pcall(C_UIWidgetManager.GetScenarioHeaderTimerWidgetVisualizationInfo, wid)
+                                    if tOk and ti and ti.hasTimer then
+                                        parts[#parts + 1] = "ScenarioHeaderTimer hasTimer"
+                                    end
+                                end
+                                if C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo then
+                                    local sOk, si = pcall(C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo, wid)
+                                    if sOk and si and si.hasTimer then
+                                        parts[#parts + 1] = "StatusBar hasTimer barValue=" .. tostring(si.barValue) .. " barMax=" .. tostring(si.barMax)
+                                    elseif sOk and si then
+                                        parts[#parts + 1] = "StatusBar barValue=" .. tostring(si.barValue) .. " barMax=" .. tostring(si.barMax)
+                                    end
+                                end
+                                HSPrint("    id=" .. tostring(wid) .. " type=" .. tostring(wType) .. (#parts > 0 and (" " .. table.concat(parts, " ")) or ""))
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if durCrit and startCrit then
+        local remaining = durCrit - (GetTime() - startCrit)
+        HSPrint("|cFF00FF00Timer found: " .. math.floor(remaining) .. "s remaining|r")
+    else
+        HSPrint("|cFFFF0000No timer data from any source.|r")
+    end
+end
+
+addon.ReadScenarioEntries      = ReadScenarioEntries
+addon.IsScenarioActive        = IsScenarioActive
+addon.IsAbundanceScenario     = IsAbundanceScenario
+addon.GetScenarioDisplayInfo  = GetScenarioDisplayInfo
+addon.GetDelveNameFromAPIs    = GetDelveNameFromAPIs
+addon.DumpScenarioTimerInfo   = DumpScenarioTimerInfo
