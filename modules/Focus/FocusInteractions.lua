@@ -507,6 +507,13 @@ for i = 1, addon.POOL_SIZE do
 
             local useClassic = addon.GetDB("useClassicClickBehaviour", false)
             if useClassic then
+                -- Click-to-complete takes priority: auto-complete quests can be completed by left-click.
+                if not IsShiftKeyDown() then
+                    local needMod = addon.GetDB("requireModifierForClickToComplete", false)
+                    if (not needMod or IsControlKeyDown()) and self.isAutoComplete and TryCompleteQuestFromClick(self.questID) then
+                        return
+                    end
+                end
                 if addon.ToggleQuestDetails then
                     addon.ToggleQuestDetails(self.questID)
                 elseif addon.OpenQuestDetails then
