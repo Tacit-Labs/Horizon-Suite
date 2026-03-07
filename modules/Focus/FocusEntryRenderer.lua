@@ -148,9 +148,10 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         for idx, o in ipairs(questData.objectives) do
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
             local isProgressBarType = (o.type == "progressbar" or o.type == 8 or o.isWeighted)
+            local hasArithmetic = (o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numRequired) == "number" and o.numRequired > 1)
 
             if not o.finished then
-                if isProgressBarType or textPct or (o.percent ~= nil and (o.numRequired == nil or o.numRequired > 1)) then
+                if (isProgressBarType or textPct or (o.percent ~= nil and not hasArithmetic)) then
                     -- Weighted/Percent progress (highest priority)
                     if (progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
                         barCount = barCount + 1
