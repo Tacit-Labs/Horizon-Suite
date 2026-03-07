@@ -75,6 +75,10 @@ layoutDirtyFrame:SetScript("OnUpdate", function(self)
     self:Hide()
     addon.focus.refreshPending = false
     if not addon.focus.enabled then return end
+    if InCombatLockdown() then
+        addon.focus.layoutPendingAfterCombat = true
+        return
+    end
     addon.focus.layoutPendingAfterCombat = false
     if addon.FullLayout then addon.FullLayout() end
 end)
