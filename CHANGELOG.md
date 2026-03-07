@@ -10,6 +10,17 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.9.0] – 2026-03-07
+
+### ✨ New Features
+
+- **(Focus) Rare Loot section** — Show treasure and item vignettes in a separate Rare Loot list with a toggle.
+- **(Focus) TomTom waypoint when clicking rares or rare loot** — Set a TomTom waypoint when clicking a rare boss or rare loot item (requires TomTom addon; setting in options).
+- **(Focus) RARE color** — Warm orange for rares and rare loot, distinct from Current Quest coral.
+- **(Focus) Rare sound volume** — Slider to adjust rare alert volume (50–200%).
+
+---
+
 ## [3.8.4] – 2026-03-07
 
 ### 🐛 Fixes
