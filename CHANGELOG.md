@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.9.2] – 2026-03-07
+
+### 🐛 Fixes
+
+- **(Focus) Scenario tracker: suppress progress bar for boolean objectives and fix weighted progress edge case** — Boolean (yes/no) objectives no longer show incorrect progress bars; weighted progress handles edge cases correctly.
+- **(Focus) Skip progress bar for objectives with arithmetic X/Y progress** — Objectives that show X/Y counts no longer display a redundant progress bar.
+- **(Focus) Inline quest item button does not fade when scrolling past tracker bottom** — Item button now fades correctly when scrolled out of view.
+
+### 🔧 Improvements
+
+- **(Focus) Improve Abundance scenario tracker: widget parsing, progress bar labels, and bar visibility** — Better widget parsing, clearer progress bar labels, and improved bar visibility for Abundance scenarios.
+- **(Focus) Deduplicate Rare Loot entries when multiple vignettes show the same treasure** — Same treasure from multiple vignettes now appears once in the Rare Loot list.
+
+---
+
 ## [3.9.1] – 2026-03-07
 
 ### 🔧 Improvements
