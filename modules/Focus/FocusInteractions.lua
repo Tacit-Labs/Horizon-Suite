@@ -505,7 +505,11 @@ for i = 1, addon.POOL_SIZE do
 
             local useClassic = addon.GetDB("useClassicClickBehaviour", false)
             if useClassic then
-                if addon.OpenQuestDetails then addon.OpenQuestDetails(self.questID) end
+                if addon.ToggleQuestDetails then
+                    addon.ToggleQuestDetails(self.questID)
+                elseif addon.OpenQuestDetails then
+                    addon.OpenQuestDetails(self.questID)
+                end
                 return
             end
 
@@ -521,7 +525,7 @@ for i = 1, addon.POOL_SIZE do
                 end
             end
 
-            -- Shift+Left: always open quest log & map (safe, read-only). For world quests, optionally add to watch list.
+            -- Shift+Left: toggle quest log & map (open if closed, close if already showing this quest).
             if IsShiftKeyDown() then
                 if isWorldQuest and C_QuestLog.AddWorldQuestWatch then
                     -- With safety enabled, adding to watch for world quests requires Ctrl+Shift+Left.
@@ -530,7 +534,9 @@ for i = 1, addon.POOL_SIZE do
                         addon.ScheduleRefresh()
                     end
                 end
-                if addon.OpenQuestDetails then
+                if addon.ToggleQuestDetails then
+                    addon.ToggleQuestDetails(self.questID)
+                elseif addon.OpenQuestDetails then
                     addon.OpenQuestDetails(self.questID)
                 end
                 return

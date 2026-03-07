@@ -114,7 +114,7 @@ local function ShowFocusShortHelp()
     HSPrint("  Scroll with mouse wheel when content overflows.")
     HSPrint("  Drag the panel to reposition it (saved across sessions).")
     HSPrint("  Left-click a quest or rare to super-track; Left-click auto-complete quests to complete them.")
-    HSPrint("  Shift+Left-click opens quest details; Right-click a quest to untrack, recipe to untrack, rare to clear super-track.")
+    HSPrint("  Shift+Left-click opens or closes quest details; Right-click a quest to untrack, recipe to untrack, rare to clear super-track.")
 end
 
 local function ShowFocusDebugHelp()
