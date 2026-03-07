@@ -277,6 +277,10 @@ end
 
 local function FullLayout()
     if not addon.focus.enabled then return end
+    if InCombatLockdown() then
+        addon.focus.layoutPendingAfterCombat = true
+        return
+    end
     addon.focus.layoutPendingAfterCombat = false
 
     if not addon.ShouldShowInInstance() then
