@@ -700,6 +700,7 @@ L["Color timer by remaining time"] = true
 L["Green when plenty of time left, yellow when running low, red when critical."] = true
 L["Bar below"] = true
 L["Inline beside title"] = true
+L["Inline below title"] = true
 L["Show tracked achievements in the list."] = true
 L["Show tracked Endeavors (Player Housing) in the list."] = true
 L["Show tracked housing decor in the list."] = true

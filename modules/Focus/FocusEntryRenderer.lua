@@ -582,7 +582,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
 
     -- Inline mode: timer beside title. For non-scenarios, return early (progress bar stays optional).
     -- For scenarios only: skip timer bar display below but still run progress bar logic (Abundance bar).
-    local skipTimerBarDisplay = (timerDisplayMode == "inline" and entry._inlineTimerStr)
+    local skipTimerBarDisplay = ((timerDisplayMode == "inline" or timerDisplayMode == "inline-below") and entry._inlineTimerStr)
     if skipTimerBarDisplay then
         entry.wqTimerText:Hide()
         if entry.scenarioTimerBars then
@@ -922,7 +922,7 @@ local function PopulateEntry(entry, questData, groupKey)
     end
     local hasLegacyTimer = (questData.timeLeftSeconds and questData.timeLeftSeconds > 0) or (questData.timeLeft and questData.timeLeft > 0)
     local isGenericTimed = (not isScenario) and (hasStructuredTimer or hasLegacyTimer) and not questData.isRare
-    local showInlineTimer = showTimerBars and (timerDisplayMode == "inline") and (isWorld or isScenario or isGenericTimed) and not questData.isRare
+    local showInlineTimer = showTimerBars and (timerDisplayMode == "inline" or timerDisplayMode == "inline-below") and (isWorld or isScenario or isGenericTimed) and not questData.isRare
     if showInlineTimer then
         local timerStr, duration, startTime = GetTimerDisplayInfo(questData, isWorld, isScenario, isGenericTimed)
         if timerStr then
@@ -1059,9 +1059,10 @@ local function PopulateEntry(entry, questData, groupKey)
             local tw = titleWidth or textWidth
             local titleAnchorX = math.min(titlePixelWidth, tw)
             local remainingWidth = math.max(1, tw - titleAnchorX - 2)
-            -- When timer doesn't fit beside title, put it on its own line with full width (same as title wrap)
+            -- When timer doesn't fit beside title (or user chose inline-below), put it on its own line with full width
             local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetObjSpacing()
-            if remainingWidth < timerStrWidth then
+            local preferTimerBelow = (timerDisplayMode == "inline-below")
+            if preferTimerBelow or remainingWidth < timerStrWidth then
                 entry.inlineTimerText:SetWidth(tw)
                 entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
                 entry._inlineTimerOnOwnLine = true
