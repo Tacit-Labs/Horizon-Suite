@@ -45,6 +45,7 @@ local function GetRaresOnMap()
     if C_VignetteInfo and C_VignetteInfo.GetVignettes and C_VignetteInfo.GetVignetteInfo then
         local vignettes = C_VignetteInfo.GetVignettes()
         if vignettes then
+            local seen = {}
             for _, vignetteGUID in ipairs(vignettes) do
                 local vi = C_VignetteInfo.GetVignetteInfo(vignetteGUID)
                 if vi and (vi.name and vi.name ~= "") then
@@ -55,38 +56,44 @@ local function GetRaresOnMap()
                             creatureID = tonumber(id)
                         end
                         if creatureID then
-                            -- Get vignette position for waypoint support.
-                            local vX, vY, vMapID
-                            if C_VignetteInfo.GetVignettePosition then
-                                local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID)
-                                if ok and pos then
-                                    vX = pos.x or (pos.GetXY and select(1, pos:GetXY()))
-                                    vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
+                            local dedupeKey = creatureID and ("c:" .. tostring(creatureID)) or ("n:" .. (vi.name or ""))
+                            if seen[dedupeKey] then
+                                -- skip duplicate (same creature from multiple vignette GUIDs)
+                            else
+                                seen[dedupeKey] = true
+                                -- Get vignette position for waypoint support.
+                                local vX, vY, vMapID
+                                if C_VignetteInfo.GetVignettePosition then
+                                    local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID)
+                                    if ok and pos then
+                                        vX = pos.x or (pos.GetXY and select(1, pos:GetXY()))
+                                        vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
+                                    end
                                 end
+                                if not vMapID and C_Map and C_Map.GetBestMapForUnit then
+                                    vMapID = C_Map.GetBestMapForUnit("player")
+                                end
+                                out[#out + 1] = {
+                                    entryKey    = "vignette:" .. tostring(vignetteGUID),
+                                    questID     = nil,
+                                    title       = vi.name or "Unknown",
+                                    objectives  = {},
+                                    color       = rareColor,
+                                    category    = "RARE",
+                                    isComplete  = false,
+                                    isSuperTracked = false,
+                                    isNearby    = true,
+                                    zoneName    = nil,
+                                    itemLink    = nil,
+                                    itemTexture = nil,
+                                    isRare      = true,
+                                    creatureID  = creatureID,
+                                    vignetteGUID = vignetteGUID,
+                                    vignetteMapID = vMapID,
+                                    vignetteX   = vX,
+                                    vignetteY   = vY,
+                                }
                             end
-                            if not vMapID and C_Map and C_Map.GetBestMapForUnit then
-                                vMapID = C_Map.GetBestMapForUnit("player")
-                            end
-                            out[#out + 1] = {
-                                entryKey    = "vignette:" .. tostring(vignetteGUID),
-                                questID     = nil,
-                                title       = vi.name or "Unknown",
-                                objectives  = {},
-                                color       = rareColor,
-                                category    = "RARE",
-                                isComplete  = false,
-                                isSuperTracked = false,
-                                isNearby    = true,
-                                zoneName    = nil,
-                                itemLink    = nil,
-                                itemTexture = nil,
-                                isRare      = true,
-                                creatureID  = creatureID,
-                                vignetteGUID = vignetteGUID,
-                                vignetteMapID = vMapID,
-                                vignetteX   = vX,
-                                vignetteY   = vY,
-                            }
                         end
                     end
                 end
