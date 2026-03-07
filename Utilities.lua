@@ -134,7 +134,58 @@ function addon.FormatTimeRemainingFromMinutes(minutes)
     return addon.FormatTimeRemaining(minutes * 60)
 end
 
---- Timer color based on absolute time remaining. Used when timerColorByRemaining is on.
+local function normalizeTimerColor(c)
+    return (c and c[1]) or 1, (c and c[2]) or 0.35, (c and c[3]) or 0.35
+end
+
+--- Timer color based on percentage of time remaining. For scenarios (short timers).
+--- Green when >50% left, yellow when 25-50%, red when <25%.
+--- @param remaining number Seconds remaining
+--- @param duration number Total duration in seconds
+--- @return number r, number g, number b
+function addon.GetTimerColorByRemainingPct(remaining, duration)
+    if not remaining or type(remaining) ~= "number" or remaining < 0 or not duration or duration <= 0 then
+        local c = addon.TIMER_URGENCY_COLORS and addon.TIMER_URGENCY_COLORS.critical or { 1, 0.35, 0.35 }
+        return normalizeTimerColor(c)
+    end
+    local pct = remaining / duration
+    local t = addon.TIMER_URGENCY_COLORS or {}
+    local c
+    if pct < 0.25 then
+        c = t.critical or { 1.00, 0.35, 0.35 }
+    elseif pct < 0.5 then
+        c = t.low or { 1.00, 0.85, 0.25 }
+    else
+        c = t.plenty or { 0.35, 0.90, 0.45 }
+    end
+    return normalizeTimerColor(c)
+end
+
+--- Get timer text color. Central entry point for all timer displays.
+--- When useTimerColor is false, returns category color. Otherwise returns urgency color.
+--- @param remaining number Seconds remaining
+--- @param duration number|nil Total duration in seconds (for percentage mode; nil for absolute)
+--- @param category string Quest category (SCENARIO, WORLD, etc.)
+--- @param useTimerColor boolean Whether timerColorByRemaining option is on
+--- @return number r, number g, number b
+function addon.GetTimerTextColor(remaining, duration, category, useTimerColor)
+    if not useTimerColor then
+        local sc = (addon.GetQuestColor and addon.GetQuestColor(category)) or (addon.QUEST_COLORS and addon.QUEST_COLORS[category]) or { 0.38, 0.52, 0.88 }
+        return (sc[1] or 1), (sc[2] or 0.35), (sc[3] or 0.35)
+    end
+    local isScenarioType = (category == "SCENARIO" or category == "DELVES" or category == "DUNGEON")
+    local TIMER_PCT_THRESHOLD = 1800
+    local usePct = isScenarioType and duration and duration > 0 and duration < TIMER_PCT_THRESHOLD
+    local r, g, b
+    if usePct then
+        r, g, b = addon.GetTimerColorByRemainingPct(remaining, duration)
+    else
+        r, g, b = addon.GetTimerColorByRemaining(remaining, duration)
+    end
+    return (r or 1), (g or 0.35), (b or 0.35)
+end
+
+--- Timer color based on absolute time remaining. Used when timerColorByRemaining is on (world quests, etc.).
 --- Green when >=12h left, yellow when <12h, red when <3h.
 --- @param remaining number Seconds remaining
 --- @param duration number Total duration in seconds (unused; kept for API compatibility)
@@ -142,21 +193,20 @@ end
 function addon.GetTimerColorByRemaining(remaining, duration)
     if not remaining or type(remaining) ~= "number" or remaining < 0 then
         local c = addon.TIMER_URGENCY_COLORS and addon.TIMER_URGENCY_COLORS.critical or { 1, 0.35, 0.35 }
-        return c[1], c[2], c[3]
+        return normalizeTimerColor(c)
     end
     local redSec = addon.TIMER_URGENCY_RED_SECONDS or (3 * 3600)
     local yellowSec = addon.TIMER_URGENCY_YELLOW_SECONDS or (12 * 3600)
     local t = addon.TIMER_URGENCY_COLORS or {}
+    local c
     if remaining < redSec then
-        local c = t.critical or { 1.00, 0.35, 0.35 }
-        return c[1], c[2], c[3]
+        c = t.critical or { 1.00, 0.35, 0.35 }
     elseif remaining < yellowSec then
-        local c = t.low or { 1.00, 0.85, 0.25 }
-        return c[1], c[2], c[3]
+        c = t.low or { 1.00, 0.85, 0.25 }
     else
-        local c = t.plenty or { 0.35, 0.90, 0.45 }
-        return c[1], c[2], c[3]
+        c = t.plenty or { 0.35, 0.90, 0.45 }
     end
+    return normalizeTimerColor(c)
 end
 
 -- ============================================================================

@@ -206,7 +206,16 @@ local function GetDelvesAffixes()
     return (#affixes > 0) and affixes or nil, nil
 end
 
+--- Returns the name of the current Delve via C_Scenario.GetInfo.
+local function GetDelveNameFromAPIs()
+    if not IsDelveActive() then return nil end
+    local ok, name = pcall(C_Scenario.GetInfo)
+    if ok and name and name ~= "" then return name end
+    return nil
+end
+
 addon.IsDelveActive        = IsDelveActive
 addon.GetActiveDelveTier   = GetActiveDelveTier
+addon.GetDelveNameFromAPIs  = GetDelveNameFromAPIs
 addon.CollectDelveQuests   = CollectDelveQuests
 addon.GetDelvesAffixes     = GetDelvesAffixes

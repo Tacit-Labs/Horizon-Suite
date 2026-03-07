@@ -19,6 +19,19 @@ local function isAbundanceBag(text)
     return lower:find("abundance") and lower:find("bag")
 end
 
+local function IsProgressBarEnabled(questData)
+    local isScenario = questData.category == "SCENARIO"
+        or questData.category == "DELVES"
+        or questData.category == "DUNGEON"
+        or questData.isScenarioMain
+        or questData.isScenarioBonus
+    if isScenario then
+        return addon.GetDB("showProgressBarScenarios", true)
+    else
+        return addon.GetDB("showProgressBarQuests", true)
+    end
+end
+
 local function hideAllHighlight(entry)
     entry.trackBar:Hide()
     entry.highlightBg:Hide()
@@ -116,45 +129,61 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     local maxObjs = addon.MAX_OBJECTIVES
     local showEllipsis = (questData.isAchievement or questData.isEndeavor) and questData.objectives and #questData.objectives > maxObjs
 
-    -- Progress bar: determine if the entry has exactly 1 progress-bar-eligible objective.
+    -- Progress bar: determine which objectives are eligible for a per-objective bar.
     -- Eligible: (a) arithmetic (numFulfilled/numRequired, numRequired > 1) or (b) percent-only (percent set, numRequired nil/0/1 or type progressbar).
     -- progressBarTypeFilter: "both" | "xy_only" | "percent_only" controls which types get a bar.
-    local showProgressBar = addon.GetDB("showObjectiveProgressBar", false)
-    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
+    local showProgressBar = IsProgressBarEnabled(questData)
+    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "percent_only")
     local progressBarObjIdx = nil
     local progressBarNf, progressBarNr = nil, nil
     local progressBarPercent = nil
+    local progressBarSet = nil -- set of eligible objective indices for scenario/delve multi-objective entries
     if showProgressBar and questData.objectives then
         local barCount = 0
         local barIdx = nil
         local barNf, barNr = nil, nil
         local barPct = nil
+        local isScenarioEntry = questData.isScenarioMain or questData.isScenarioBonus
+        local eligibleSet = isScenarioEntry and {} or nil
         for idx, o in ipairs(questData.objectives) do
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
-            local isProgressBarType = (o.type == "progressbar" or o.type == 8)
-            if o.finished then
-                -- skip
-            elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
-                -- Arithmetic (x/10 style)
-                if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
-                    barCount = barCount + 1
-                    barIdx = idx
-                    barNf = o.numFulfilled
-                    barNr = o.numRequired
-                    barPct = nil
-                end
-            elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
-                -- Percent-only (detected via text, type, or existing percent field)
-                if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
-                    barCount = barCount + 1
-                    barIdx = idx
-                    barNf, barNr = nil, nil
-                    barPct = textPct or o.percent or 0
+            local isProgressBarType = (o.type == "progressbar" or o.type == 8 or o.isWeighted)
+
+            if not o.finished then
+                if isProgressBarType or textPct or (o.percent ~= nil and (o.numRequired == nil or o.numRequired > 1)) then
+                    -- Weighted/Percent progress (highest priority)
+                    if (progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
+                        barCount = barCount + 1
+                        if not barPct then
+                            barIdx = idx
+                            barNf, barNr = nil, nil
+                            barPct = textPct or o.percent or 0
+                        end
+                        if eligibleSet then eligibleSet[idx] = true end
+                    end
+                elseif (o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1) then
+                    -- Arithmetic (x/10 style) - lower priority than weighted
+                    if (progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only") then
+                        barCount = barCount + 1
+                        if not barPct and not barNf then
+                            barIdx = idx
+                            barNf = o.numFulfilled
+                            barNr = o.numRequired
+                        end
+                        if eligibleSet then eligibleSet[idx] = true end
+                    end
                 end
             end
         end
-        -- Only show bar when exactly one objective total and it is eligible (multi-objective quests get no bar).
-        if barCount == 1 and questData.objectives and #questData.objectives == 1 then
+        if isScenarioEntry and barCount > 0 then
+            -- Scenario/delve entries: allow per-objective bars for all eligible objectives.
+            progressBarSet = eligibleSet
+            progressBarObjIdx = barIdx
+            progressBarNf = barNf
+            progressBarNr = barNr
+            progressBarPercent = barPct
+        elseif barCount == 1 and questData.objectives and #questData.objectives == 1 then
+            -- Non-scenario: only show bar when exactly one objective total and it is eligible.
             progressBarObjIdx = barIdx
             progressBarNf = barNf
             progressBarNr = barNr
@@ -218,7 +247,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         if oData then
             local objText = oData.text or ""
             local nf, nr = oData.numFulfilled, oData.numRequired
-            local thisObjHasBar = (progressBarObjIdx == j)
+            local thisObjHasBar = (progressBarObjIdx == j) or (progressBarSet and progressBarSet[j])
             local isRecipeHeader = oData.isOptionalHeader or oData.isFinishingHeader
 
             if isRecipeHeader then
@@ -519,7 +548,7 @@ end
 
 local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor, totalH)
     -- Master toggle for timer / reverse-progress bars.
-    local showTimerBars = addon.GetDB("showTimerBars", false)
+    local showTimerBars = addon.GetDB("showTimerBars", true)
 
     if not showTimerBars then
         entry.wqTimerText:Hide()
@@ -704,12 +733,28 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             entry.wqTimerText:SetWidth(barW)
             entry.wqTimerText:ClearAllPoints()
             entry.wqTimerText:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -timerSpacing)
-            if isScenarioOrDelve or isGenericTimed then
-                local sc = addon.GetQuestColor and addon.GetQuestColor(questData.category) or (addon.QUEST_COLORS and addon.QUEST_COLORS[questData.category]) or { 0.38, 0.52, 0.88 }
-                entry.wqTimerText:SetTextColor(sc[1], sc[2], sc[3], 1)
-            else
-                entry.wqTimerText:SetTextColor(1, 1, 1, 1)
+            local remaining, duration
+            if questData.timerDuration and questData.timerStartTime then
+                remaining = math.max(0, questData.timerDuration - (GetTime() - questData.timerStartTime))
+                duration = questData.timerDuration
+            elseif questData.objectives then
+                for _, o in ipairs(questData.objectives) do
+                    if o.timerDuration and o.timerStartTime then
+                        remaining = math.max(0, o.timerDuration - (GetTime() - o.timerStartTime))
+                        duration = o.timerDuration
+                        break
+                    end
+                end
             end
+            if not remaining and (questData.timeLeftSeconds or questData.timeLeft) then
+                remaining = questData.timeLeftSeconds or (questData.timeLeft and questData.timeLeft * 60) or 0
+                duration = nil
+            end
+            remaining = remaining or 0
+            local cat = questData.category or "DEFAULT"
+            local useTimerColor = addon.GetDB("timerColorByRemaining", true)
+            local r, g, b = addon.GetTimerTextColor(remaining, duration, cat, useTimerColor)
+            entry.wqTimerText:SetTextColor(r, g, b, 1)
             entry.wqTimerText:Show()
             local th = entry.wqTimerText:GetStringHeight()
             if not th or th < 1 then th = addon.OBJ_SIZE + 2 end
@@ -728,7 +773,8 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     local firstPercent
     local selectedObj
     local hasObjProgressBar = questData._progressBarActive
-    if not hasObjProgressBar then
+    local showObjProgressBar = IsProgressBarEnabled(questData)
+    if showObjProgressBar and not hasObjProgressBar then
         for _, o in ipairs(questData.objectives or {}) do
             if o.percent ~= nil and not o.finished then
                 local nr = o.numRequired
@@ -746,7 +792,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             end
         end
     end
-    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
+    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "percent_only")
     if showBar and firstPercent ~= nil and (progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
         local barHeight = (isScenarioOrDelve or isGenericTimed) and PROGRESS_BAR_HEIGHT or barH
         local percentBarSpacing = spacing + ((isScenarioOrDelve or isGenericTimed) and not timedFirstElementPlaced and timedBarTopMargin or 0)
@@ -851,8 +897,8 @@ local function PopulateEntry(entry, questData, groupKey)
 
     -- Pre-compute progress bar eligibility so the title renderer can suppress (X/Y).
     questData._progressBarActive = false
-    if addon.GetDB("showObjectiveProgressBar", false) and questData.objectives then
-        local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "both")
+    if IsProgressBarEnabled(questData) and questData.objectives then
+        local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "percent_only")
         local barCount = 0
         for _, o in ipairs(questData.objectives) do
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
@@ -863,14 +909,16 @@ local function PopulateEntry(entry, questData, groupKey)
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
                     barCount = barCount + 1
                 end
-            elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired <= 1 or o.type == "progressbar")) then
+            elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired > 1 or o.type == "progressbar")) then
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
                     barCount = barCount + 1
                 end
             end
         end
-        -- Only show bar when exactly one objective total and it is eligible (multi-objective quests get no bar).
-        if barCount == 1 and questData.objectives and #questData.objectives == 1 then
+        local isScenarioEntry = questData.isScenarioMain or questData.isScenarioBonus
+        if isScenarioEntry and barCount > 0 then
+            questData._progressBarActive = true
+        elseif barCount == 1 and questData.objectives and #questData.objectives == 1 then
             questData._progressBarActive = true
         end
     end
@@ -910,7 +958,7 @@ local function PopulateEntry(entry, questData, groupKey)
     end
 
     local titleWidth = textWidth
-    local showTimerBars = addon.GetDB("showTimerBars", false)
+    local showTimerBars = addon.GetDB("showTimerBars", true)
     local timerDisplayMode = addon.GetDB("timerDisplayMode", "inline")
     local isWorld = questData.category == "WORLD" or questData.category == "CALLING"
     local isScenarioOrDelve = questData.category == "SCENARIO" or questData.category == "DELVES" or questData.category == "DUNGEON"
@@ -1071,15 +1119,10 @@ local function PopulateEntry(entry, questData, groupKey)
                 entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
                 entry._inlineTimerOnOwnLine = false
             end
-            local timerColorByRemaining = addon.GetDB("timerColorByRemaining", false)
-            local r, g, b
-            if timerColorByRemaining and entry._inlineTimerDuration and entry._inlineTimerStartTime then
-                local remaining = entry._inlineTimerDuration - (GetTime() - entry._inlineTimerStartTime)
-                r, g, b = addon.GetTimerColorByRemaining(math.max(0, remaining), entry._inlineTimerDuration)
-            else
-                local sc = addon.GetQuestColor and addon.GetQuestColor(questData.category) or (addon.QUEST_COLORS and addon.QUEST_COLORS[questData.category]) or { 0.38, 0.52, 0.88 }
-                r, g, b = sc[1], sc[2], sc[3]
-            end
+            local remaining = entry._inlineTimerDuration and entry._inlineTimerStartTime and math.max(0, entry._inlineTimerDuration - (GetTime() - entry._inlineTimerStartTime)) or 0
+            local cat = questData.category or groupKey or "DEFAULT"
+            local useTimerColor = addon.GetDB("timerColorByRemaining", true)
+            local r, g, b = addon.GetTimerTextColor(remaining, entry._inlineTimerDuration, cat, useTimerColor)
             local inlineDimAlpha = (addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked) and addon.GetDimAlpha() or 1
             entry.inlineTimerText:SetTextColor(r, g, b, inlineDimAlpha)
             entry.inlineTimerText:Show()

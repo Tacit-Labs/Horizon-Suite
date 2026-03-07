@@ -1104,6 +1104,11 @@ local function ApplyPresenceOptions()
     F:SetScale(getFrameScale())
 end
 
+--- Returns the typeName of the currently playing or holding cinematic.
+local function GetActiveTypeName()
+    return activeTypeName
+end
+
 addon.Presence.Init               = Init
 addon.Presence.ApplyPresenceOptions = ApplyPresenceOptions
 addon.Presence.QueueOrPlay        = QueueOrPlay
@@ -1118,4 +1123,5 @@ addon.Presence.SetDebugLive       = SetDebugLive
 addon.Presence.ToggleDebugLive    = ToggleDebugLive
 addon.Presence.ShowDebugPanel     = ShowDebugPanel
 addon.Presence.HideDebugPanel     = HideDebugPanel
+addon.Presence.GetActiveTypeName  = GetActiveTypeName
 addon.Presence.DISCOVERY_WAIT     = 0.15
