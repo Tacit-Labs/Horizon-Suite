@@ -69,7 +69,7 @@ local function CreateQuestEntry(parent, index)
     e.highlightBorderR:Hide()
 
     local btnName = "HSItemBtn" .. index
-    e.itemBtn = CreateFrame("Button", btnName, UIParent)
+    e.itemBtn = CreateFrame("Button", btnName, e)
     e.itemBtn:SetSize(_S(addon.ITEM_BTN_SIZE), _S(addon.ITEM_BTN_SIZE))
     e.itemBtn:SetPoint("TOPRIGHT", e, "TOPRIGHT", 0, 2)
     e.itemBtn:RegisterForClicks("AnyDown", "AnyUp")
