@@ -147,6 +147,26 @@ local function IsScenarioActive()
     return false
 end
 
+--- True when the current scenario is Abundance (TWW open-world scenario).
+--- Used to scope widget fallback sets 252/514 and bar styling to Abundance only.
+--- @return boolean
+local function IsAbundanceScenario()
+    if not C_Scenario or not C_Scenario.GetInfo then return false end
+    local ok, name = pcall(C_Scenario.GetInfo)
+    if ok and name and type(name) == "string" and name:lower():find("abundance") then
+        return true
+    end
+    if C_ScenarioInfo and C_ScenarioInfo.GetScenarioInfo then
+        local siOk, info = pcall(C_ScenarioInfo.GetScenarioInfo)
+        if siOk and info and type(info) == "table" then
+            local n = (info.name or ""):lower()
+            local a = (info.area or ""):lower()
+            if n:find("abundance") or a:find("abundance") then return true end
+        end
+    end
+    return false
+end
+
 -- Resolve delve name using same sources as zone-entry flow; order per Blizzard API docs.
 --- @return string|nil Delve name or nil
 local function GetDelveNameFromAPIs()
@@ -507,8 +527,10 @@ local function ReadScenarioEntries()
                 local setMap = {}
                 local function addSet(s) if s and s ~= 0 then setMap[s] = true end end
                 addSet(setID)
-                addSet(SCENARIO_TRACKER_WIDGET_SET)
-                addSet(SCENARIO_TRACKER_TOP_WIDGET_SET)
+                if IsAbundanceScenario() then
+                    addSet(SCENARIO_TRACKER_WIDGET_SET)
+                    addSet(SCENARIO_TRACKER_TOP_WIDGET_SET)
+                end
                 local setsToTry = {}
                 for sid in pairs(setMap) do setsToTry[#setsToTry + 1] = sid end
                 for _, sid in ipairs(setsToTry) do
@@ -526,7 +548,7 @@ local function ReadScenarioEntries()
             end
             if widgetSetID then
                 tryWidgetFallback(widgetSetID)
-            else
+            elseif IsAbundanceScenario() then
                 tryWidgetFallback(SCENARIO_TRACKER_WIDGET_SET)
             end
 
@@ -557,6 +579,7 @@ local function ReadScenarioEntries()
                 timerStartTime    = timerStartTime,
             }
             if delveTier then mainEntry.delveTier = delveTier end
+            mainEntry.isAbundanceScenario = IsAbundanceScenario()
             out[#out + 1] = mainEntry
         end
     end
@@ -639,6 +662,7 @@ local function ReadScenarioEntries()
                         timerStartTime    = timerStartTime,
                     }
                     if delveTier then bonusEntry.delveTier = delveTier end
+                    bonusEntry.isAbundanceScenario = IsAbundanceScenario()
                     out[#out + 1] = bonusEntry
                 end
             end
@@ -650,5 +674,6 @@ end
 
 addon.ReadScenarioEntries    = ReadScenarioEntries
 addon.IsScenarioActive      = IsScenarioActive
+addon.IsAbundanceScenario   = IsAbundanceScenario
 addon.GetScenarioDisplayInfo = GetScenarioDisplayInfo
 addon.GetDelveNameFromAPIs   = GetDelveNameFromAPIs

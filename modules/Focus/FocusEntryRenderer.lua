@@ -211,7 +211,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
         if oData then
             -- Abundance: hide objective inline text; bar shows "X/Y abundance held" instead.
-            if questData.category == "SCENARIO" and (isAbundanceHeld(oData.text) or isAbundanceBag(oData.text)) then
+            if questData.isAbundanceScenario and (isAbundanceHeld(oData.text) or isAbundanceBag(oData.text)) then
                 oData = nil
             end
         end
@@ -733,7 +733,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             if o.percent ~= nil and not o.finished then
                 local nr = o.numRequired
                 if nr ~= nil and type(nr) == "number" and nr > 1 then
-                    if isAbundanceHeld(o.text) or isAbundanceBag(o.text) then
+                    if questData.isAbundanceScenario and (isAbundanceHeld(o.text) or isAbundanceBag(o.text)) then
                         selectedObj = o
                         firstPercent = o.percent
                         break
@@ -773,7 +773,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             end
         end
         -- Abundance: turn bar green when full.
-        local isAbundanceBar = selectedObj and (isAbundanceHeld(selectedObj.text) or isAbundanceBag(selectedObj.text))
+        local isAbundanceBar = questData.isAbundanceScenario and selectedObj and (isAbundanceHeld(selectedObj.text) or isAbundanceBag(selectedObj.text))
         local isFull = (pct and pct >= 100) or (selectedObj and selectedObj.numFulfilled and selectedObj.numRequired
             and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number"
             and selectedObj.numFulfilled >= selectedObj.numRequired)
@@ -783,8 +783,8 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         entry.wqProgressFill:SetColorTexture(fillColor[1], fillColor[2], fillColor[3], fillColor[4] or 0.85)
         entry.wqProgressFill:Show()
         local barLabel
-        local isAbundanceHeldSel = selectedObj and isAbundanceHeld(selectedObj.text)
-        local isAbundanceBagSel = selectedObj and isAbundanceBag(selectedObj.text)
+        local isAbundanceHeldSel = questData.isAbundanceScenario and selectedObj and isAbundanceHeld(selectedObj.text)
+        local isAbundanceBagSel = questData.isAbundanceScenario and selectedObj and isAbundanceBag(selectedObj.text)
         if selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number" then
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
             barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
