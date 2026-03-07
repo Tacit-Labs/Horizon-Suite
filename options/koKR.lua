@@ -305,6 +305,11 @@ L["Slightly dim title, zone, objectives, and section headers that are not focuse
 -- =====================================================================
 L["Show rare bosses"]                                   = "희귀 우두머리 표시"
 L["Show rare boss vignettes in the list."]              = "목록에 희귀 우두머리를 표시합니다."
+L["Rare Loot"]                                          = "희귀 전리품"
+L["Show treasure and item vignettes in the Rare Loot list."] = "희귀 전리품 목록에 보물과 아이템을 표시합니다."
+L["Rare sound volume"] = "희귀 전리품 소리 볼륨"
+L["Volume of the rare alert sound (50–200%)."] = "희귀 전리품 알림 소리 볼륨 (50–200%)."
+L["Boost or reduce the rare alert volume. 100% = normal; 150% = louder."] = "볼륨 조절. 100% = 기본; 150% = 더 크게."
 L["Rare added sound"]                                   = "희귀 몹 등장 효과음"
 L["Play a sound when a rare is added."]                 = "희귀 몹이 추가되면 효과음을 재생합니다."
 L["Rare added sound choice"]                            = "희귀 몹 효과음 선택"
@@ -551,6 +556,9 @@ L["When on, important quests that are ready to turn in remain in the Important c
 L["TomTom quest waypoint"]                               = "TomTom 퀘스트 경유지"
 L["Set a TomTom waypoint when focusing a quest."]        = "퀘스트를 집중할 때 TomTom 경유지를 설정합니다."
 L["Requires TomTom. Points the arrow to the next quest objective."] = "TomTom이 필요합니다. 화살표가 다음 퀘스트 목표를 가리킵니다."
+L["TomTom rare waypoint"]                               = "TomTom 희귀 우두머리 경유지"
+L["Set a TomTom waypoint when clicking a rare boss."]   = "희귀 우두머리를 클릭할 때 TomTom 경유지를 설정합니다."
+L["Requires TomTom. Points the arrow to the rare's location."] = "TomTom이 필요합니다. 화살표가 희귀 우두머리 위치를 가리킵니다."
 
 -- =====================================================================
 -- OptionsData.lua Blacklist

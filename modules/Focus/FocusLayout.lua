@@ -239,12 +239,16 @@ nearbyToggleKeybindBtn:RegisterForClicks("AnyUp")
 -- respecting collapsed categories. (8) Set scroll child height, clamp scroll offset,
 -- compute target panel height and show frame.
 
---- Collect all tracked entries (quests + rares + achievements + endeavors + decor + adventure guide).
+--- Collect all tracked entries (quests + rares + rare loot + achievements + endeavors + decor + adventure guide).
 --- @param rares table Array of rare entries from GetRaresOnMap
+--- @param treasures table|nil Array of treasure entries from GetTreasuresOnMap
 --- @return table Combined entry array
-local function CollectAllEntries(rares)
+local function CollectAllEntries(rares, treasures)
     local quests = addon.ReadTrackedQuests()
     for _, r in ipairs(rares) do quests[#quests + 1] = r end
+    if treasures then
+        for _, t in ipairs(treasures) do quests[#quests + 1] = t end
+    end
     if addon.GetDB("showAchievements", true) and addon.ReadTrackedAchievements then
         for _, a in ipairs(addon.ReadTrackedAchievements()) do quests[#quests + 1] = a end
     end
@@ -430,9 +434,11 @@ local function FullLayout()
     end
 
     local rares = addon.GetDB("showRareBosses", true) and addon.GetRaresOnMap() or {}
-    if #rares > 0 then
-        local currentRareKeys = {}
-        for _, r in ipairs(rares) do currentRareKeys[r.entryKey or r.questID] = true end
+    local treasures = addon.GetDB("showRareLoot", false) and addon.GetTreasuresOnMap and addon.GetTreasuresOnMap() or {}
+    local currentRareKeys = {}
+    for _, r in ipairs(rares) do currentRareKeys[r.entryKey or r.questID] = true end
+    for _, t in ipairs(treasures) do currentRareKeys[t.entryKey or t.questID] = true end
+    if next(currentRareKeys) then
         if addon.focus.rares.trackingInit and not addon.focus.zoneJustChanged then
             for key in pairs(currentRareKeys) do
                 if not addon.focus.rares.prevKeys[key] then
@@ -457,7 +463,7 @@ local function FullLayout()
         if addon.focus.collapse.pendingWQCollapse then
             addon.focus.collapse.pendingWQCollapse = false
         end
-        local quests = CollectAllEntries(rares)
+        local quests = CollectAllEntries(rares, treasures)
         SchedulePlaceholderRefreshes(quests)
         addon.UpdateFloatingQuestItem(quests)
         addon.UpdateHeaderQuestCount(#quests, addon.CountTrackedInLog(quests))
@@ -567,7 +573,7 @@ local function FullLayout()
 
     scrollFrame:Show()
 
-    local quests = CollectAllEntries(rares)
+    local quests = CollectAllEntries(rares, treasures)
     -- Allow SchedulePlaceholderRefreshes to re-evaluate on every FullLayout call.
     -- The retry loop will have set this to false after its last attempt; clearing it here
     -- ensures an event-driven layout (e.g. INITIATIVE_TASKS_TRACKED_UPDATED) re-checks.

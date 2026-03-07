@@ -305,6 +305,11 @@ L["Slightly dim title, zone, objectives, and section headers that are not focuse
 -- =====================================================================
 L["Show rare bosses"]                                   = "Afficher les boss rares"
 L["Show rare boss vignettes in the list."]              = "Affiche les boss rares dans la liste."
+L["Rare Loot"]                                          = "Butin rare"
+L["Show treasure and item vignettes in the Rare Loot list."] = "Affiche les trésors et objets dans la liste de butin rare."
+L["Rare sound volume"] = "Volume du son de butin rare"
+L["Volume of the rare alert sound (50–200%)."] = "Volume du son d'alerte de butin rare (50–200%)."
+L["Boost or reduce the rare alert volume. 100% = normal; 150% = louder."] = "Augmente ou réduit le volume. 100% = normal ; 150% = plus fort."
 L["Rare added sound"]                                   = "Son d'ajout de rare"
 L["Play a sound when a rare is added."]                 = "Joue un son quand un rare est ajouté."
 L["Rare added sound choice"]                            = "Choix du son de rare"
@@ -551,6 +556,9 @@ L["When on, important quests that are ready to turn in remain in the Important c
 L["TomTom quest waypoint"]                               = "Point de repère TomTom"
 L["Set a TomTom waypoint when focusing a quest."]        = "Définir un point de repère TomTom en ciblant une quête."
 L["Requires TomTom. Points the arrow to the next quest objective."] = "Nécessite TomTom. Dirige la flèche vers le prochain objectif de quête."
+L["TomTom rare waypoint"]                               = "Point de repère TomTom (rare)"
+L["Set a TomTom waypoint when clicking a rare boss."]   = "Définir un point de repère TomTom en cliquant sur un boss rare."
+L["Requires TomTom. Points the arrow to the rare's location."] = "Nécessite TomTom. Dirige la flèche vers l'emplacement du boss rare."
 
 -- =====================================================================
 -- OptionsData.lua Blacklist

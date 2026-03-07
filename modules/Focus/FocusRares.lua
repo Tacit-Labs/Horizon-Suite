@@ -38,6 +38,12 @@ local function IsNpcVignetteAtlas(atlasName)
     return false
 end
 
+local function IsTreasureVignetteAtlas(atlasName)
+    if not atlasName or atlasName == "" then return false end
+    local lower = atlasName:lower()
+    return lower:find("loot") or lower:find("treasure") or lower:find("container") or lower:find("chest") or lower:find("object")
+end
+
 local function GetRaresOnMap()
     local out = {}
     local rareColor = addon.GetQuestColor("RARE")
@@ -61,17 +67,17 @@ local function GetRaresOnMap()
                                 -- skip duplicate (same creature from multiple vignette GUIDs)
                             else
                                 seen[dedupeKey] = true
-                                -- Get vignette position for waypoint support.
+                                -- Get vignette position for waypoint support. GetVignettePosition requires uiMapID.
                                 local vX, vY, vMapID
-                                if C_VignetteInfo.GetVignettePosition then
-                                    local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID)
+                                if C_Map and C_Map.GetBestMapForUnit then
+                                    vMapID = C_Map.GetBestMapForUnit("player")
+                                end
+                                if vMapID and C_VignetteInfo.GetVignettePosition then
+                                    local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID, vMapID)
                                     if ok and pos then
                                         vX = pos.x or (pos.GetXY and select(1, pos:GetXY()))
                                         vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
                                     end
-                                end
-                                if not vMapID and C_Map and C_Map.GetBestMapForUnit then
-                                    vMapID = C_Map.GetBestMapForUnit("player")
                                 end
                                 out[#out + 1] = {
                                     entryKey    = "vignette:" .. tostring(vignetteGUID),
@@ -147,7 +153,62 @@ local function GetRaresOnMap()
     return out
 end
 
+local function GetTreasuresOnMap()
+    local out = {}
+    local rareLootColor = addon.GetQuestColor and addon.GetQuestColor("RARE_LOOT") or addon.GetQuestColor("RARE")
+
+    if C_VignetteInfo and C_VignetteInfo.GetVignettes and C_VignetteInfo.GetVignetteInfo then
+        local vignettes = C_VignetteInfo.GetVignettes()
+        if vignettes then
+            for _, vignetteGUID in ipairs(vignettes) do
+                local vi = C_VignetteInfo.GetVignetteInfo(vignetteGUID)
+                if vi and (vi.name and vi.name ~= "") and IsTreasureVignetteAtlas(vi.atlasName) then
+                    local vX, vY, vMapID
+                    if C_Map and C_Map.GetBestMapForUnit then
+                        vMapID = C_Map.GetBestMapForUnit("player")
+                    end
+                    if vMapID and C_VignetteInfo.GetVignettePosition then
+                        local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID, vMapID)
+                        if ok and pos then
+                            vX = pos.x or (pos.GetXY and select(1, pos:GetXY()))
+                            vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
+                        end
+                    end
+                    local zoneName
+                    if vMapID and C_Map and C_Map.GetMapInfo then
+                        local info = C_Map.GetMapInfo(vMapID)
+                        zoneName = info and info.name or nil
+                    end
+                    out[#out + 1] = {
+                        entryKey       = "vignette:" .. tostring(vignetteGUID),
+                        questID        = nil,
+                        title          = vi.name or "Unknown",
+                        objectives     = {},
+                        color          = rareLootColor,
+                        category       = "RARE_LOOT",
+                        isComplete     = false,
+                        isSuperTracked = false,
+                        isNearby       = true,
+                        zoneName       = zoneName,
+                        itemLink       = nil,
+                        itemTexture    = nil,
+                        isRareLoot     = true,
+                        vignetteGUID   = vignetteGUID,
+                        vignetteID     = vi.vignetteID,
+                        vignetteMapID  = vMapID,
+                        vignetteX      = vX,
+                        vignetteY      = vY,
+                        questTypeAtlas = vi.atlasName,
+                    }
+                end
+            end
+        end
+    end
+    return out
+end
+
 addon.GetRaresOnMap = GetRaresOnMap
+addon.GetTreasuresOnMap = GetTreasuresOnMap
 
 -- ============================================================================
 -- RARE BOSS WAYPOINT
@@ -164,16 +225,16 @@ local function SetRareWaypoint(entry)
     local x, y = entry.vignetteX, entry.vignetteY
     local name = entry.title or "Rare"
 
-    -- If we have a vignetteGUID but no position, try to fetch it now.
-    if vignetteGUID and (not x or not y) and C_VignetteInfo and C_VignetteInfo.GetVignettePosition then
-        local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID)
+    if not mapID and C_Map and C_Map.GetBestMapForUnit then
+        mapID = C_Map.GetBestMapForUnit("player")
+    end
+    -- If we have a vignetteGUID but no position, try to fetch it now. GetVignettePosition requires uiMapID.
+    if vignetteGUID and (not x or not y) and mapID and C_VignetteInfo and C_VignetteInfo.GetVignettePosition then
+        local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID, mapID)
         if ok and pos then
             x = pos.x or (pos.GetXY and select(1, pos:GetXY()))
             y = pos.y or (pos.GetXY and select(2, pos:GetXY()))
         end
-    end
-    if not mapID and C_Map and C_Map.GetBestMapForUnit then
-        mapID = C_Map.GetBestMapForUnit("player")
     end
 
     -- Priority 1: TomTom addon
@@ -207,24 +268,55 @@ addon.SetRareWaypoint = SetRareWaypoint
 -- RARE BOSS SOUND
 -- ============================================================================
 
+local RARE_SOUND_RESTORE_DELAY = 0.5
+
+--- Apply volume multiplier by temporarily boosting Master volume, then restore.
+--- @param mult number Multiplier (e.g. 1.5 for 150%)
+--- @param playFn function Callback to play the sound
+local function PlayWithVolumeBoost(mult, playFn)
+    if not (GetCVar and SetCVar) or mult <= 0 then
+        playFn()
+        return
+    end
+    if mult >= 0.99 and mult <= 1.01 then
+        playFn()
+        return
+    end
+    local saved = GetCVar("Sound_MasterVolume")
+    if saved then
+        local cur = tonumber(saved) or 1
+        local boosted = math.min(1, cur * mult)
+        pcall(SetCVar, "Sound_MasterVolume", tostring(boosted))
+        playFn()
+        C_Timer.After(RARE_SOUND_RESTORE_DELAY, function()
+            if GetCVar and SetCVar then pcall(SetCVar, "Sound_MasterVolume", saved) end
+        end)
+    else
+        playFn()
+    end
+end
+
 --- Play the user-selected rare-added sound. Uses SharedMedia if a custom sound is chosen.
 function addon.PlayRareAddedSound()
     if not addon.GetDB("rareAddedSound", true) then return end
+    local volPct = tonumber(addon.GetDB("rareAddedSoundVolume", 100)) or 100
+    local mult = volPct / 100
     local choice = addon.GetDB("rareAddedSoundChoice", "default")
-    if choice == "default" or not choice or choice == "" then
-        if PlaySound then pcall(PlaySound, addon.RARE_ADDED_SOUND) end
-        return
-    end
-    -- Resolve via LibSharedMedia
-    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-    if LSM then
-        local path = LSM:Fetch("sound", choice)
-        if path and PlaySoundFile then
-            pcall(PlaySoundFile, path, "Master")
+    local function doPlay()
+        if choice == "default" or not choice or choice == "" then
+            if PlaySound then pcall(PlaySound, addon.RARE_ADDED_SOUND) end
             return
         end
+        local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+        if LSM then
+            local path = LSM:Fetch("sound", choice)
+            if path and PlaySoundFile then
+                pcall(PlaySoundFile, path, "Master")
+                return
+            end
+        end
+        if PlaySound then pcall(PlaySound, addon.RARE_ADDED_SOUND) end
     end
-    -- Fallback to default
-    if PlaySound then pcall(PlaySound, addon.RARE_ADDED_SOUND) end
+    PlayWithVolumeBoost(mult, doPlay)
 end
 

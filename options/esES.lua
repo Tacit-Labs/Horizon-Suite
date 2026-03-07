@@ -305,6 +305,11 @@ L["Slightly dim title, zone, objectives, and section headers that are not focuse
 -- =====================================================================
 L["Show rare bosses"]                                   = "Mostrar jefes raros"
 L["Show rare boss vignettes in the list."]              = "Muestra los jefes raros en la lista."
+L["Rare Loot"]                                          = "Botín raro"
+L["Show treasure and item vignettes in the Rare Loot list."] = "Muestra tesoros y objetos en la lista de botín raro."
+L["Rare sound volume"] = "Volumen del sonido de botín raro"
+L["Volume of the rare alert sound (50–200%)."] = "Volumen del sonido de alerta de botín raro (50–200%)."
+L["Boost or reduce the rare alert volume. 100% = normal; 150% = louder."] = "Aumenta o reduce el volumen. 100% = normal; 150% = más alto."
 L["Rare added sound"]                                   = "Sonido al añadir raro"
 L["Play a sound when a rare is added."]                 = "Reproduce un sonido cuando se añade un raro."
 L["Rare added sound choice"]                            = "Elección de sonido de raro"
@@ -551,6 +556,9 @@ L["When on, important quests that are ready to turn in remain in the Important c
 L["TomTom quest waypoint"]                               = "Punto de referencia TomTom"
 L["Set a TomTom waypoint when focusing a quest."]        = "Establecer un punto de referencia TomTom al enfocar una misión."
 L["Requires TomTom. Points the arrow to the next quest objective."] = "Requiere TomTom. Apunta la flecha al siguiente objetivo de misión."
+L["TomTom rare waypoint"]                               = "Punto de referencia TomTom (raro)"
+L["Set a TomTom waypoint when clicking a rare boss."]   = "Establecer un punto de referencia TomTom al hacer clic en un jefe raro."
+L["Requires TomTom. Points the arrow to the rare's location."] = "Requiere TomTom. Apunta la flecha a la ubicación del jefe raro."
 
 -- =====================================================================
 -- OptionsData.lua Blacklist

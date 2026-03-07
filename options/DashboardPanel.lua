@@ -153,27 +153,25 @@ SlashCmdList["HSDASH"] = function(msg)
                     local frameH = self:GetHeight() or 0
                     local maxScroll = math.max(0, childH - frameH)
                     
-                    if maxScroll > 0 then
-                        local new = math.max(0, math.min(maxScroll, cur - delta * self.scrollSpeed))
-                        self.targetScroll = new
-                        
-                        self:SetScript("OnUpdate", function(self, elapsed)
-                            if not self.targetScroll then
-                                self:SetScript("OnUpdate", nil)
-                                return
-                            end
-                            local current = self:GetVerticalScroll() or 0
-                            local diff = self.targetScroll - current
-                            if math.abs(diff) < 0.5 then
-                                self:SetVerticalScroll(self.targetScroll)
-                                self.targetScroll = nil
-                                self:SetScript("OnUpdate", nil)
-                            else
-                                -- Lerp towards target
-                                self:SetVerticalScroll(current + diff * 15 * elapsed)
-                            end
-                        end)
-                    end
+                    local new = math.max(0, math.min(maxScroll, cur - delta * self.scrollSpeed))
+                    self.targetScroll = new
+                    
+                    self:SetScript("OnUpdate", function(self, elapsed)
+                        if not self.targetScroll then
+                            self:SetScript("OnUpdate", nil)
+                            return
+                        end
+                        local current = self:GetVerticalScroll() or 0
+                        local diff = self.targetScroll - current
+                        if math.abs(diff) < 0.5 then
+                            self:SetVerticalScroll(self.targetScroll)
+                            self.targetScroll = nil
+                            self:SetScript("OnUpdate", nil)
+                        else
+                            -- Lerp towards target
+                            self:SetVerticalScroll(current + diff * 15 * elapsed)
+                        end
+                    end)
                 end)
             end
 
@@ -375,7 +373,23 @@ SlashCmdList["HSDASH"] = function(msg)
                     card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -yOffset)
                     yOffset = yOffset + card:GetHeight() + 15
                 end
-                detailContent:SetHeight(math.max(1, yOffset))
+                
+                local newHeight = math.max(1, yOffset)
+                detailContent:SetHeight(newHeight)
+                
+                if detailScroll then
+                    local frameH = detailScroll:GetHeight() or 1
+                    local maxScroll = math.max(0, newHeight - frameH)
+                    local curScroll = detailScroll.targetScroll or detailScroll:GetVerticalScroll() or 0
+                    if curScroll > maxScroll then
+                        -- Instantly adjust the content so it stays attached to bottom edge instead of popping
+                        detailScroll.targetScroll = maxScroll
+                        if not detailScroll:GetScript("OnUpdate") then
+                            detailScroll:SetVerticalScroll(maxScroll)
+                            detailScroll.targetScroll = nil
+                        end
+                    end
+                end
             end
 
             local function NavigateToOption(entry)

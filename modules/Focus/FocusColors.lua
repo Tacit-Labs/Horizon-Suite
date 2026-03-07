@@ -92,6 +92,7 @@ end
 -- Matrix rows use group keys (e.g. RARES); quest category can be RARE. Use same row for RARE.
 local function MatrixKey(category)
     if category == "RARE" then return "RARES" end
+    if category == "RARE_LOOT" then return "RARE_LOOT" end
     if category == "ACHIEVEMENT" then return "ACHIEVEMENTS" end
     if category == "ENDEAVOR" then return "ENDEAVORS" end
     if category == "DECOR" then return "DECOR" end

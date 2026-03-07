@@ -27,7 +27,7 @@ end
 -- Category order for questType sort (lower = earlier)
 local CATEGORY_SORT_ORDER = {
     CURRENT = 0, COMPLETE = 1, CAMPAIGN = 2, IMPORTANT = 3, LEGENDARY = 4,
-    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, PREY = 7, DAILY = 8, CALLING = 9, RARE = 10, DEFAULT = 11,
+    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, PREY = 7, DAILY = 8, CALLING = 9, RARE = 10, RARE_LOOT = 10, DEFAULT = 11,
 }
 
 local CURRENT_QUEST_WINDOW_DEFAULT = 60
@@ -198,6 +198,8 @@ local function SortAndGroupQuests(quests)
             groups["NEARBY"][#groups["NEARBY"] + 1] = q
         elseif q.isRare or q.category == "RARE" then
             groups["RARES"][#groups["RARES"] + 1] = q
+        elseif q.isRareLoot or q.category == "RARE_LOOT" then
+            groups["RARE_LOOT"][#groups["RARE_LOOT"] + 1] = q
         elseif q.isDungeonQuest or q.category == "DUNGEON" then
             groups["DUNGEON"][#groups["DUNGEON"] + 1] = q
         elseif q.isRaidQuest or q.category == "RAID" then

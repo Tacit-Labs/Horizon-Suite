@@ -66,6 +66,8 @@ pcall(function() eventFrame:RegisterEvent("CHALLENGE_MODE_START") end)
 -- WORLD_MAP_OPEN: fires when the world map is opened. Used to sync watch-list state.
 eventFrame:RegisterEvent("WORLD_MAP_OPEN")
 
+local VIGNETTE_DEBOUNCE = 0.5
+
 -- OnUpdate dirty flag breaks taint chain from event-driven C_QuestLog calls.
 local layoutDirtyFrame = CreateFrame("Frame")
 layoutDirtyFrame:Hide()
@@ -85,6 +87,17 @@ local function ScheduleRefresh()
 end
 
 addon.ScheduleRefresh = ScheduleRefresh
+
+local vignetteDebounceTimer
+local function OnVignettesUpdated()
+    if not addon.focus.enabled then return end
+    if not addon.GetDB("showRareBosses", true) and not addon.GetDB("showRareLoot", false) then return end
+    if vignetteDebounceTimer then vignetteDebounceTimer:Cancel() end
+    vignetteDebounceTimer = C_Timer.After(VIGNETTE_DEBOUNCE, function()
+        vignetteDebounceTimer = nil
+        if addon.focus.enabled then ScheduleRefresh() end
+    end)
+end
 
 _G.HorizonSuite_ApplyTypography  = addon.ApplyTypography
 _G.HorizonSuite_ApplyDimensions  = addon.ApplyDimensions
@@ -469,11 +482,10 @@ local eventHandlers = {
     QUEST_WATCH_UPDATE       = function(_, questID) OnQuestWatchUpdate(questID) end,
     QUEST_WATCH_LIST_CHANGED = function(_, questID, added) OnQuestWatchListChanged(questID, added) end,
     SUPER_TRACKING_CHANGED   = function() ScheduleRefresh() end,
-    -- Minimap vignette events and POI update events fire constantly in WQ zones.
-    -- The nearby WQ scan is now cache-based and only re-runs on zone change, so
-    -- these events no longer need to drive a layout refresh.
+    -- VIGNETTES_UPDATED: debounced refresh so rares/treasures appear when they spawn.
+    -- VIGNETTE_MINIMAP_UPDATED fires even more often; keep as no-op.
     VIGNETTE_MINIMAP_UPDATED = function() end,
-    VIGNETTES_UPDATED        = function() end,
+    VIGNETTES_UPDATED        = OnVignettesUpdated,
     AREA_POIS_UPDATED        = function() end,
     QUEST_POI_UPDATE         = function() end,
     -- TASK_PROGRESS_UPDATE: fires when the player enters or leaves a WQ/task area (proximity).

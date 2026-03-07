@@ -487,10 +487,12 @@ for i = 1, addon.POOL_SIZE do
                 end
                 local vignetteGUID = self.entryKey:match("^vignette:(.+)$")
                 local rareCreatureID = self.entryKey:match("^rare:(%d+)$")
-                if vignetteGUID or rareCreatureID then
-                    -- Set waypoint via TomTom or native API (no map opening).
-                    if addon.SetRareWaypoint then
-                        addon.SetRareWaypoint(self)
+                local isRareOrRareLoot = self.isRare or self.isRareLoot or self.category == "RARE" or self.category == "RARE_LOOT"
+                if (vignetteGUID or rareCreatureID) and isRareOrRareLoot then
+                    if addon.GetDB("tomtomRareWaypoint", true) then
+                        if addon.SetRareWaypoint then
+                            addon.SetRareWaypoint(self)
+                        end
                     elseif vignetteGUID and C_SuperTrack and C_SuperTrack.SetSuperTrackedVignette then
                         C_SuperTrack.SetSuperTrackedVignette(vignetteGUID)
                     end

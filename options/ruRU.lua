@@ -305,6 +305,11 @@ L["Slightly dim title, zone, objectives, and section headers that are not focuse
 -- =====================================================================
 L["Show rare bosses"]                                   = "Показывать редких боссов"
 L["Show rare boss vignettes in the list."]              = "Показывает редких боссов в списке."
+L["Rare Loot"]                                          = "Редкая добыча"
+L["Show treasure and item vignettes in the Rare Loot list."] = "Показывает сокровища и предметы в списке редкой добычи."
+L["Rare sound volume"] = "Громкость звука редкой добычи"
+L["Volume of the rare alert sound (50–200%)."] = "Громкость звука оповещения о редкой добыче (50–200%)."
+L["Boost or reduce the rare alert volume. 100% = normal; 150% = louder."] = "Увеличить или уменьшить громкость. 100% = нормально; 150% = громче."
 L["Rare added sound"]                                   = "Звук при добавлении редкого"
 L["Play a sound when a rare is added."]                 = "Воспроизводит звук при добавлении редкого."
 L["Rare added sound choice"]                            = "Выбор звука редкого"
@@ -551,6 +556,9 @@ L["When on, important quests that are ready to turn in remain in the Important c
 L["TomTom quest waypoint"]                               = "Точка маршрута TomTom"
 L["Set a TomTom waypoint when focusing a quest."]        = "Устанавливать точку маршрута TomTom при фокусировке на задании."
 L["Requires TomTom. Points the arrow to the next quest objective."] = "Требуется TomTom. Стрелка указывает на следующую цель задания."
+L["TomTom rare waypoint"]                               = "Точка маршрута TomTom (редкий)"
+L["Set a TomTom waypoint when clicking a rare boss."]   = "Устанавливать точку маршрута TomTom при клике на редкого босса."
+L["Requires TomTom. Points the arrow to the rare's location."] = "Требуется TomTom. Стрелка указывает на местоположение редкого босса."
 
 -- =====================================================================
 -- OptionsData.lua Blacklist

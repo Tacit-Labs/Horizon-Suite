@@ -121,7 +121,8 @@ addon.QUEST_COLORS = {
     DAILY     = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
     CALLING   = { 0.20, 0.60, 1.00 },
     COMPLETE  = { 0.20, 1.00, 0.40 },
-    RARE      = { 0.90, 0.55, 0.35 },  -- copper (distinct from LEGENDARY orange)
+    RARE      = { 0.96, 0.56, 0.08 },  -- warm orange (distinct from CURRENT coral, LEGENDARY)
+    RARE_LOOT = { 0.96, 0.56, 0.08 },  -- warm orange (same as Rare Bosses)
     ACHIEVEMENT = { 0.78, 0.48, 0.22 },  -- bronze, trophy feel
     ENDEAVOR   = { 0.45, 0.95, 0.75 },  -- mint green (housing/endeavor)
     ENDEAVORS  = { 0.45, 0.95, 0.75 },  -- mint green (color matrix group default)
@@ -177,6 +178,7 @@ addon.SECTION_LABELS = {
     PREY      = "PREY",
     DAILY     = "DAILY QUESTS",
     RARES     = "RARE BOSSES",
+    RARE_LOOT = "RARE LOOT",
     ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVORS  = "ENDEAVORS",
     DECOR      = "DECOR",
@@ -202,7 +204,8 @@ addon.SECTION_COLORS = {
     WEEKLY    = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
     PREY      = { 0.72, 0.22, 0.22 },  -- dark crimson (Midnight Prey; distinct from RAID red)
     DAILY     = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
-    RARES     = { 0.90, 0.55, 0.35 },  -- copper (distinct from LEGENDARY orange)
+    RARES     = { 0.96, 0.56, 0.08 },  -- warm orange (distinct from CURRENT coral, LEGENDARY)
+    RARE_LOOT = { 0.96, 0.56, 0.08 },  -- warm orange (same as Rare Bosses)
     ACHIEVEMENTS = { 0.78, 0.48, 0.22 },  -- bronze
     ENDEAVORS  = { 0.45, 0.95, 0.75 },  -- mint green (housing/endeavor)
     DECOR      = { 0.65, 0.55, 0.45 },  -- warm brown (housing decor)
@@ -212,20 +215,20 @@ addon.SECTION_COLORS = {
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
 
-addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
+addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
 addon.GROUP_ORDER_PRESETS = {
-    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
-    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
+    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
 -- Category keys (enum-style) for consistent string usage across modules.
 addon.CATEGORY_KEYS = {
     CURRENT = "CURRENT", CURRENT_EVENT = "CURRENT_EVENT", DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
     IMPORTANT = "IMPORTANT", LEGENDARY = "LEGENDARY", WORLD = "WORLD", WEEKLY = "WEEKLY", PREY = "PREY",
-    DAILY = "DAILY", RARES = "RARES", RARE = "RARE",     ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
+    DAILY = "DAILY", RARES = "RARES", RARE = "RARE", RARE_LOOT = "RARE_LOOT", ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVOR = "ENDEAVOR", ENDEAVORS = "ENDEAVORS",
     DECOR = "DECOR",
     RECIPE = "RECIPE", RECIPES = "RECIPES",
@@ -255,6 +258,7 @@ addon.CATEGORY_TO_GROUP = {
     PREY      = "PREY",
     DAILY     = "DAILY",
     CALLING   = "WORLD",
+    RARE_LOOT = "RARE_LOOT",
     ACHIEVEMENT = "ACHIEVEMENTS",
     ENDEAVOR   = "ENDEAVORS",
     DECOR      = "DECOR",

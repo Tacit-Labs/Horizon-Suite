@@ -636,6 +636,7 @@ local function ClearEntry(entry, full)
     entry.tierSpellID = nil
     entry.itemLink   = nil
     entry.vignetteGUID  = nil
+    entry.vignetteID    = nil
     entry.vignetteMapID = nil
     entry.vignetteX     = nil
     entry.vignetteY     = nil
@@ -644,6 +645,8 @@ local function ClearEntry(entry, full)
     entry.groupKey   = nil
     entry.category   = nil
     entry.baseCategory = nil
+    entry.isRare     = nil
+    entry.isRareLoot = nil
     entry.isEventQuest = nil
     entry.isComplete = nil
     entry.isSuperTracked = nil

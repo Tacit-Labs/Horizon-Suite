@@ -1291,6 +1291,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.questID    = nil
         entry.entryKey   = questData.entryKey
         entry.category   = questData.category
+        entry.isRare     = true
         entry.creatureID = questData.creatureID
         entry.achievementID = nil
         entry.endeavorID = nil
@@ -1299,6 +1300,25 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.isTracked  = nil
         entry.title      = questData.title
         entry.vignetteGUID  = questData.vignetteGUID
+        entry.vignetteMapID = questData.vignetteMapID
+        entry.vignetteX     = questData.vignetteX
+        entry.vignetteY     = questData.vignetteY
+    elseif questData.isRareLoot or questData.category == "RARE_LOOT" then
+        entry.questID       = nil
+        entry.entryKey      = questData.entryKey
+        entry.category      = questData.category
+        entry.isRareLoot    = true
+        entry.creatureID    = nil
+        entry.achievementID = nil
+        entry.endeavorID    = nil
+        entry.decorID       = nil
+        entry.itemLink      = nil
+        entry.isTracked     = nil
+        entry.title         = questData.title
+        entry.zoneName      = questData.zoneName
+        entry.questTypeAtlas = questData.questTypeAtlas
+        entry.vignetteGUID  = questData.vignetteGUID
+        entry.vignetteID    = questData.vignetteID
         entry.vignetteMapID = questData.vignetteMapID
         entry.vignetteX     = questData.vignetteX
         entry.vignetteY     = questData.vignetteY

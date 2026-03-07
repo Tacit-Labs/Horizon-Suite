@@ -305,6 +305,11 @@ L["Slightly dim title, zone, objectives, and section headers that are not focuse
 -- =====================================================================
 L["Show rare bosses"]                                   = "Mostrar chefes raros"
 L["Show rare boss vignettes in the list."]              = "Mostra chefes raros na lista."
+L["Rare Loot"]                                          = "Saque raro"
+L["Show treasure and item vignettes in the Rare Loot list."] = "Mostra tesouros e itens na lista de saque raro."
+L["Rare sound volume"] = "Volume do som de saque raro"
+L["Volume of the rare alert sound (50–200%)."] = "Volume do som de alerta de saque raro (50–200%)."
+L["Boost or reduce the rare alert volume. 100% = normal; 150% = louder."] = "Aumente ou reduza o volume. 100% = normal; 150% = mais alto."
 L["Rare added sound"]                                   = "Som ao adicionar raro"
 L["Play a sound when a rare is added."]                 = "Reproduz um som quando um raro é adicionado."
 L["Rare added sound choice"]                            = "Escolha do som de raro"
@@ -551,6 +556,9 @@ L["When on, important quests that are ready to turn in remain in the Important c
 L["TomTom quest waypoint"]                               = "Ponto de referência TomTom"
 L["Set a TomTom waypoint when focusing a quest."]        = "Definir um ponto de referência TomTom ao focar uma missão."
 L["Requires TomTom. Points the arrow to the next quest objective."] = "Requer TomTom. Aponta a seta para o próximo objetivo da missão."
+L["TomTom rare waypoint"]                               = "Ponto de referência TomTom (raro)"
+L["Set a TomTom waypoint when clicking a rare boss."]   = "Definir um ponto de referência TomTom ao clicar em um chefe raro."
+L["Requires TomTom. Points the arrow to the rare's location."] = "Requer TomTom. Aponta a seta para a localização do chefe raro."
 
 -- =====================================================================
 -- OptionsData.lua Blacklist
