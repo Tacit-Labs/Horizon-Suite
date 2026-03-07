@@ -164,7 +164,10 @@ function BaseProvider:BuildObjectiveFromCriteria(criteriaInfo)
     -- Fallback to numeric values
     if not numFulfilled then
         if criteriaInfo.isWeightedProgress then
-            percent = math.min(100, math.floor(100 * (criteriaInfo.quantity or 0) / (criteriaInfo.totalQuantity or 100)))
+            local total = criteriaInfo.totalQuantity
+            if total and total > 1 then
+                percent = math.min(100, math.floor(100 * (criteriaInfo.quantity or 0) / total))
+            end
         else
             numFulfilled = criteriaInfo.quantity
             numRequired = criteriaInfo.totalQuantity
@@ -176,13 +179,18 @@ function BaseProvider:BuildObjectiveFromCriteria(criteriaInfo)
 
     local dur, start = self:GetTimerInfo(criteriaInfo)
 
+    -- Boolean (0/1) objectives are descriptive — suppress bar data.
+    if numRequired and numRequired <= 1 then
+        percent = nil
+    end
+
     return {
         text = text ~= "" and text or nil,
         finished = criteriaInfo.completed or false,
         percent = percent,
         numFulfilled = numFulfilled,
         numRequired = numRequired,
-        isWeighted = criteriaInfo.isWeightedProgress or false,
+        isWeighted = (criteriaInfo.isWeightedProgress and percent ~= nil) or false,
         timerDuration = dur,
         timerStartTime = start,
     }
