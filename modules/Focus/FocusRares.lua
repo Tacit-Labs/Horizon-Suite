@@ -160,6 +160,7 @@ local function GetTreasuresOnMap()
     if C_VignetteInfo and C_VignetteInfo.GetVignettes and C_VignetteInfo.GetVignetteInfo then
         local vignettes = C_VignetteInfo.GetVignettes()
         if vignettes then
+            local seen = {}
             for _, vignetteGUID in ipairs(vignettes) do
                 local vi = C_VignetteInfo.GetVignetteInfo(vignetteGUID)
                 if vi and (vi.name and vi.name ~= "") and IsTreasureVignetteAtlas(vi.atlasName) then
@@ -174,6 +175,13 @@ local function GetTreasuresOnMap()
                             vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
                         end
                     end
+                    local dedupeKey = (vMapID and vX and vY)
+                        and ("p:%s:%.2f:%.2f"):format(tostring(vMapID), vX or 0, vY or 0)
+                        or (vi.vignetteID and ("v:" .. tostring(vi.vignetteID)) or ("n:" .. (vi.name or "")))
+                    if seen[dedupeKey] then
+                        -- skip duplicate (same treasure from multiple vignette GUIDs)
+                    else
+                        seen[dedupeKey] = true
                     local zoneName
                     if vMapID and C_Map and C_Map.GetMapInfo then
                         local info = C_Map.GetMapInfo(vMapID)
@@ -200,6 +208,7 @@ local function GetTreasuresOnMap()
                         vignetteY      = vY,
                         questTypeAtlas = vi.atlasName,
                     }
+                    end
                 end
             end
         end
