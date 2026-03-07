@@ -283,6 +283,8 @@ local function CreateQuestEntry(parent, index)
     e.inlineTimerText = e:CreateFontString(nil, "OVERLAY")
     e.inlineTimerText:SetFontObject(addon.TitleFont)
     e.inlineTimerText:SetJustifyH("LEFT")
+    e.inlineTimerText:SetWordWrap(true)
+    e.inlineTimerText:SetNonSpaceWrap(true)
     e.inlineTimerText:Hide()
 
     e.wqProgressBg = e:CreateTexture(nil, "BACKGROUND")

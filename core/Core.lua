@@ -1603,6 +1603,7 @@ end)
 local isResizing = false
 local startWidth, startHeight, startMouseX, startMouseY
 local lastResizeRefreshTime = 0
+local lastResizeLayoutTime = 0
 resizeHandle:RegisterForDrag("LeftButton")
 local function ResizeOnUpdate(self, elapsed)
     if not isResizing then return end
@@ -1648,6 +1649,11 @@ local function ResizeOnUpdate(self, elapsed)
     if addon.OptionsPanel_Refresh and (now - lastResizeRefreshTime) > 0.15 then
         lastResizeRefreshTime = now
         addon.OptionsPanel_Refresh()
+    end
+    -- Reflow layout during resize so text (e.g. inline timer) wraps live (throttled)
+    if addon.FullLayout and (now - lastResizeLayoutTime) > 0.15 then
+        lastResizeLayoutTime = now
+        addon.FullLayout()
     end
 end
 resizeHandle:SetScript("OnDragStart", function(self)
