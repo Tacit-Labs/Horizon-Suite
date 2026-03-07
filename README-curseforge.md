@@ -43,7 +43,7 @@
 - **Square or circular minimap** – Choose a square or circular mask. Adjust size (100–400px), lock position, or drag to relocate. Optional auto zoom-out after zooming.
 - **Zone text, coordinates, and time** – Zone name, player coordinates, and game time below the minimap. Each element has its own font, size, and colour; show or hide individually. Click the time to open the stopwatch.
 - **Instance difficulty** – Difficulty name and Mythic+ keystone level shown when in an instance.
-- **Mail and queue indicators** – New mail icon and queue status button appear automatically when relevant.
+- **Mail and queue indicators** – New mail icon and queue status button appear automatically when relevant. Unlock the mail icon in options to drag and reposition it.
 - **Built-in buttons** – Tracking, calendar, and zoom (+/−) buttons. Show always or on mouseover. Each is draggable and resizable; lock to prevent accidental movement.
 - **Addon button collector** – Minimap buttons from other addons are grouped and presented in one of three modes: mouseover bar below the minimap, right-click panel, or floating drawer button. Per-addon filter to show only selected buttons.
 - **Customizable appearance** – Border (thickness, colour, opacity), panel background and border colours for button panels, and per-element typography. SharedMedia support for fonts.

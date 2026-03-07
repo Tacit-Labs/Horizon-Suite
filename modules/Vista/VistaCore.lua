@@ -447,6 +447,7 @@ local rightClickPanel, rightClickVisible = nil, false
 local zoomInBtn, zoomOutBtn
 local defaultProxies = {}
 local queueAnchor  -- dedicated draggable anchor for QueueStatusButton
+local mailAnchor   -- dedicated draggable anchor for mail indicator
 local vistaLastKnownZone, autoZoomTimer
 
 -- ============================================================================
@@ -1014,11 +1015,84 @@ end
 -- MAIL INDICATOR
 -- ============================================================================
 
+local MAIL_ANCHOR_PAD = 8  -- padding around the mail icon for easier grab
+
+local function RefreshMailAnchor()
+    if not mailAnchor then return end
+    local locked = DB("vistaLocked_proxy_mail", true)
+    local hasMail = HasNewMail()
+
+    if hasMail then
+        mailAnchor:SetAlpha(1)
+        mailAnchor._border:Hide()
+        mailAnchor:Show()
+    elseif not locked then
+        mailAnchor:SetAlpha(1)
+        mailAnchor._border:Show()
+        mailAnchor:Show()
+    else
+        mailAnchor:SetAlpha(0)
+        mailAnchor._border:Hide()
+        mailAnchor:Hide()
+    end
+end
+
 local function CreateMailIndicator()
-    mailFrame = CreateFrame("Frame", nil, decor)
-    mailFrame:SetSize(GetMailIconSize(), GetMailIconSize())
-    mailFrame:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 4, -4)
-    mailFrame:SetFrameLevel(decor:GetFrameLevel() + 2)
+    -- Create mail anchor first (draggable position handle)
+    local mailSz = GetMailIconSize()
+    local anchorSz = mailSz + MAIL_ANCHOR_PAD * 2
+
+    mailAnchor = CreateFrame("Frame", "HorizonSuiteVistaMailAnchor", decor)
+    mailAnchor:SetSize(anchorSz, anchorSz)
+    mailAnchor:SetFrameLevel(decor:GetFrameLevel() + 2)
+    mailAnchor:SetClampedToScreen(true)
+    mailAnchor:SetMovable(true)
+    mailAnchor:EnableMouse(true)
+
+    -- Position: restore saved or default to TOPLEFT of minimap
+    local savedX = tonumber(DB("vistaEX_proxy_mail", nil))
+    local savedY = tonumber(DB("vistaEY_proxy_mail", nil))
+    if savedX and savedY then
+        mailAnchor:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+    else
+        mailAnchor:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 4, -4)
+    end
+
+    -- Visible border shown when unlocked and no mail (drag handle)
+    local border = mailAnchor:CreateTexture(nil, "OVERLAY")
+    border:SetAllPoints()
+    border:SetColorTexture(0.4, 0.6, 1, 0.5)
+    border:Hide()
+    mailAnchor._border = border
+
+    -- Drag support
+    mailAnchor:RegisterForDrag("LeftButton")
+    mailAnchor:SetScript("OnDragStart", function(self)
+        if DB("vistaLocked_proxy_mail", true) then return end
+        if InCombatLockdown() then return end
+        self:StartMoving()
+    end)
+    mailAnchor:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local mx, my = Minimap:GetCenter()
+        local bx, by = self:GetCenter()
+        if not (mx and my and bx and by) then return end
+        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
+        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
+        local bScale  = (self:GetEffectiveScale()) or uiScale
+        local ox = (bx * bScale - mx * mmScale) / uiScale
+        local oy = (by * bScale - my * mmScale) / uiScale
+        SetDB("vistaEX_proxy_mail", ox)
+        SetDB("vistaEY_proxy_mail", oy)
+        self:ClearAllPoints()
+        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+    end)
+
+    -- Mail frame as child of anchor
+    mailFrame = CreateFrame("Frame", nil, mailAnchor)
+    mailFrame:SetSize(mailSz, mailSz)
+    mailFrame:SetPoint("CENTER", mailAnchor, "CENTER")
+    mailFrame:SetFrameLevel(mailAnchor:GetFrameLevel() + 1)
     mailFrame:Hide()
 
     local icon = mailFrame:CreateTexture(nil, "ARTWORK")
@@ -1040,6 +1114,8 @@ local function CreateMailIndicator()
         local t = (math.sin(pulseTime * PULSE_SPEED * math.pi * 2) + 1) / 2
         self.icon:SetAlpha(PULSE_MIN + (PULSE_MAX - PULSE_MIN) * t)
     end)
+
+    RefreshMailAnchor()
 end
 
 local function UpdateMailIndicator()
@@ -1047,6 +1123,7 @@ local function UpdateMailIndicator()
     local hasMail = HasNewMail()
     if hasMail then mailFrame:Show(); mailPulsing = true
     else mailFrame:Hide(); mailPulsing = false end
+    RefreshMailAnchor()
 end
 
 local function SuppressBlizzardMail()
@@ -1586,6 +1663,7 @@ do
         ["HorizonSuiteVistaButtonBar"]   = true,
         ["HorizonSuiteVistaDrawerBtn"]   = true,
         ["HorizonSuiteVistaQueueAnchor"] = true,
+        ["HorizonSuiteVistaMailAnchor"]  = true,
         ["MinimapBackdrop"]              = true,
         ["MinimapCompassTexture"]        = true,
         ["MinimapBorder"]                = true,
@@ -3049,7 +3127,15 @@ local function ApplyOptions_Buttons()
             zoomInBtn:SetAlpha(1); zoomOutBtn:SetAlpha(1)
         end
     end
-    if mailFrame then mailFrame:SetSize(GetMailIconSize(), GetMailIconSize()) end
+    if mailFrame then
+        local mailSz = GetMailIconSize()
+        mailFrame:SetSize(mailSz, mailSz)
+    end
+    if mailAnchor then
+        local mailSz = GetMailIconSize()
+        mailAnchor:SetSize(mailSz + MAIL_ANCHOR_PAD * 2, mailSz + MAIL_ANCHOR_PAD * 2)
+        RefreshMailAnchor()
+    end
     if drawerButton then
         local addonSz = GetAddonBtnSize()
         drawerButton:SetSize(addonSz + 4, addonSz + 4)
@@ -3399,6 +3485,10 @@ end
 
 function Vista.RefreshQueueProxies()
     RefreshQueueAnchor()
+end
+
+function Vista.RefreshMailAnchor()
+    RefreshMailAnchor()
 end
 
 addon.Vista = Vista

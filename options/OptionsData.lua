@@ -172,6 +172,7 @@ local VISTA_KEYS = {
     ["vistaEX_proxy_tracking"] = true, ["vistaEY_proxy_tracking"] = true,
     ["vistaEX_proxy_calendar"] = true, ["vistaEY_proxy_calendar"] = true,
     ["vistaEX_proxy_queue"]    = true, ["vistaEY_proxy_queue"]    = true,
+    ["vistaEX_proxy_mail"]     = true, ["vistaEY_proxy_mail"]     = true,
     -- Lock toggles
     vistaLocked_zone = true, vistaLocked_coord = true, vistaLocked_time = true,
     vistaLocked_diff = true,
@@ -179,6 +180,7 @@ local VISTA_KEYS = {
     ["vistaLocked_proxy_tracking"] = true,
     ["vistaLocked_proxy_calendar"] = true,
     ["vistaLocked_proxy_queue"]    = true,
+    ["vistaLocked_proxy_mail"]     = true,
     ["vistaQueueHandlingDisabled"] = true,
     ["vistaCoordPrecision"] = true,
     -- Addon button layout
@@ -1645,6 +1647,16 @@ local OptionCategories = {
                   setDB("vistaLocked_proxy_queue", v)
                   if addon.Vista and addon.Vista.RefreshQueueProxies then
                       addon.Vista.RefreshQueueProxies()
+                  end
+              end },
+            { type = "toggle", name = L["Lock Mail indicator"] or "Lock Mail indicator",
+              desc = L["Prevent dragging the mail icon."] or "Prevent dragging the mail icon.",
+              dbKey = "vistaLocked_proxy_mail",
+              get = function() return getDB("vistaLocked_proxy_mail", true) end,
+              set = function(v)
+                  setDB("vistaLocked_proxy_mail", v)
+                  if addon.Vista and addon.Vista.RefreshMailAnchor then
+                      addon.Vista.RefreshMailAnchor()
                   end
               end },
             { type = "toggle", name = L["Disable queue handling"] or "Disable queue handling",
