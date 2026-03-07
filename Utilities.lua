@@ -533,6 +533,44 @@ end
 -- Newer builds expose GetQuestsForPlayerByMapID; older builds have GetQuestsOnMap.
 addon.GetTaskQuestsForMap = C_TaskQuest and (C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap) or nil
 
+--- Toggle the quest details view: close if already open and showing this quest, else open.
+--- Uses frame visibility as the primary gate so we don't mistakenly "close" when the map
+--- is already closed (GetSelectedQuest can persist briefly after HideUIPanel).
+--- @param questID number
+--- @return nil
+function addon.ToggleQuestDetails(questID)
+    if not questID or not C_QuestLog then return end
+
+    local worldMap = _G.WorldMapFrame
+    local mapShown = worldMap and worldMap.IsShown and worldMap:IsShown()
+    if mapShown then
+        local selectedQuest = (C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest()) or nil
+        if selectedQuest and selectedQuest == questID then
+            if HideUIPanel and type(HideUIPanel) == "function" then
+                pcall(HideUIPanel, worldMap)
+            else
+                pcall(function() worldMap:Hide() end)
+            end
+            return
+        end
+    end
+
+    local logFrame = _G.QuestLogFrame
+    if logFrame and logFrame.IsShown and logFrame:IsShown() then
+        local selectedQuest = (C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest()) or nil
+        if selectedQuest and selectedQuest == questID then
+            if HideUIPanel and type(HideUIPanel) == "function" then
+                pcall(HideUIPanel, logFrame)
+            else
+                pcall(function() logFrame:Hide() end)
+            end
+            return
+        end
+    end
+
+    addon.OpenQuestDetails(questID)
+end
+
 --- Open the quest details view for a quest ID, mirroring Blizzard's behavior.
 -- Used by click handlers so the logic lives in one place.
 function addon.OpenQuestDetails(questID)
