@@ -10,6 +10,22 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.8.4] – 2026-03-07
+
+### 🐛 Fixes
+
+- **(Focus) Rare vignettes sometimes appear duplicated in Focus tracker** — Same rare creature from multiple vignette GUIDs now appears once; deduplicated by creature ID.
+
+### 🔧 Improvements
+
+- **(Vista) Mail icon can be unlocked and repositioned on minimap** — Option to unlock the mail indicator so it can be dragged and repositioned like the queue, tracking, and calendar buttons.
+- **(Focus) Add Inline below title option to timer display dropdown** — Third timer display option: countdown always appears on its own line below the quest title instead of beside it.
+- **(Focus) Abundance scenario bar turns green when full** — Progress bar turns green when abundance held reaches the target.
+- **(Focus) Shift+Left-click opens or closes quest details; closes when already showing** — Toggle behaviour for quest details; closing when already open.
+- **(Focus) Inline timer wraps to own line when narrow; layout reflows during resize** — Timer text wraps when panel is narrow; layout updates live during resize drag.
+
+---
+
 ## [3.8.3] – 2026-03-06
 
 ### 🔧 Improvements
