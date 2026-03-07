@@ -767,6 +767,14 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
                 if not fillColor or type(fillColor) ~= "table" then fillColor = { 0.40, 0.65, 0.90 } end
             end
         end
+        -- Abundance: turn bar green when full.
+        local isAbundanceBar = selectedObj and (isAbundanceHeld(selectedObj.text) or isAbundanceBag(selectedObj.text))
+        local isFull = (pct and pct >= 100) or (selectedObj and selectedObj.numFulfilled and selectedObj.numRequired
+            and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number"
+            and selectedObj.numFulfilled >= selectedObj.numRequired)
+        if isAbundanceBar and isFull then
+            fillColor = addon.OBJ_DONE_COLOR or { 0.30, 0.80, 0.30 }
+        end
         entry.wqProgressFill:SetColorTexture(fillColor[1], fillColor[2], fillColor[3], fillColor[4] or 0.85)
         entry.wqProgressFill:Show()
         local barLabel
