@@ -92,6 +92,9 @@ function BaseProvider:ParseWidgetObjectives(setID)
     local objectives = {}
     if not setID or setID == 0 then return objectives end
 
+    local WIDGET_STATUSBAR = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.StatusBar) or 2
+    local WIDGET_ICONANDTEXT = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.IconAndText) or 0
+
     local ok, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
     if not ok or not widgets then return objectives end
 
@@ -99,10 +102,10 @@ function BaseProvider:ParseWidgetObjectives(setID)
         local widgetID = type(wInfo) == "table" and wInfo.widgetID or (type(wInfo) == "number" and wInfo)
         local wType = type(wInfo) == "table" and wInfo.widgetType or nil
         if widgetID then
-            -- Status Bar (widgetType 3)
-            if not wType or wType == 3 then
+            -- Status Bar
+            if not wType or wType == WIDGET_STATUSBAR then
                 local sOk, sInfo = pcall(C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo, widgetID)
-                if sOk and sInfo and sInfo.shownState == 1 and sInfo.barMax and sInfo.barMax > 0 then
+                if sOk and sInfo and sInfo.barMax and sInfo.barMax > 0 then
                     local text = sInfo.overrideBarText or sInfo.text or ""
                     local cur, max = sInfo.barValue, sInfo.barMax
                     objectives[#objectives+1] = {
@@ -116,10 +119,10 @@ function BaseProvider:ParseWidgetObjectives(setID)
                 end
             end
 
-            -- Icon and Text (widgetType 14, parsing X/Y strings)
-            if not wType or wType == 14 then
+            -- Icon and Text (parsing X/Y strings)
+            if not wType or wType == WIDGET_ICONANDTEXT then
                 local iOk, iInfo = pcall(C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo, widgetID)
-                if iOk and iInfo and iInfo.shownState == 1 and iInfo.text and iInfo.text ~= "" then
+                if iOk and iInfo and iInfo.text and iInfo.text ~= "" then
                     local curStr, maxStr = iInfo.text:match("(%d+)%s*/%s*(%d+)")
                     if curStr and maxStr then
                         local cur, max = tonumber(curStr), tonumber(maxStr)

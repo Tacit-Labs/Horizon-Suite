@@ -138,7 +138,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     local progressBarNf, progressBarNr = nil, nil
     local progressBarPercent = nil
     local progressBarSet = nil -- set of eligible objective indices for scenario/delve multi-objective entries
-    if showProgressBar and questData.objectives then
+    if showProgressBar and questData.objectives and not questData.isAbundanceScenario then
         local barCount = 0
         local barIdx = nil
         local barNf, barNr = nil, nil
@@ -240,8 +240,8 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         obj.shadow:SetWidth(objTextWidth)
 
         if oData then
-            -- Abundance: hide objective inline text; bar shows "X/Y abundance held" instead.
-            if questData.isAbundanceScenario and (isAbundanceHeld(oData.text) or isAbundanceBag(oData.text)) then
+            -- Abundance: hide widget objectives inline; the wqProgress bar displays them instead.
+            if questData.isAbundanceScenario and oData.isWeighted then
                 oData = nil
             end
         end
@@ -718,7 +718,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         local showTimer
         if isScenarioOrDelve then
             showTimer = (timerStr ~= nil)
-            showBar = addon.GetDB("cinematicScenarioBar", true)
+            showBar = addon.GetDB("cinematicScenarioBar", true) or questData.isAbundanceScenario
         elseif isWorld and not hasStructuredTimer then
             -- Legacy WORLD quest timer (no structured timer data)
             showTimer = addon.GetDB("showWorldQuestTimer", true) and (timerStr ~= nil)
@@ -775,7 +775,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     local selectedObj
     local hasObjProgressBar = questData._progressBarActive
     local showObjProgressBar = IsProgressBarEnabled(questData)
-    if showObjProgressBar and not hasObjProgressBar then
+    if (showObjProgressBar or questData.isAbundanceScenario) and not hasObjProgressBar then
         for _, o in ipairs(questData.objectives or {}) do
             if o.percent ~= nil and not o.finished then
                 local nr = o.numRequired
@@ -794,7 +794,9 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         end
     end
     local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "percent_only")
-    if showBar and firstPercent ~= nil and (progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
+    local isAbundanceBagSel = questData.isAbundanceScenario and selectedObj
+    local isAbundanceBar = questData.isAbundanceScenario and selectedObj
+    if showBar and firstPercent ~= nil and (isAbundanceBar or progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
         local barHeight = (isScenarioOrDelve or isGenericTimed) and PROGRESS_BAR_HEIGHT or barH
         local percentBarSpacing = spacing + ((isScenarioOrDelve or isGenericTimed) and not timedFirstElementPlaced and timedBarTopMargin or 0)
         entry.wqProgressBg:SetHeight(barHeight)
@@ -803,6 +805,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         entry.wqProgressBg:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -percentBarSpacing)
         entry.wqProgressBg:SetColorTexture(0.15, 0.15, 0.18, 0.7)
         entry.wqProgressBg:Show()
+        if entry.wqProgressLabel then entry.wqProgressLabel:Hide() end
         local pct = firstPercent and math.min(100, math.max(0, firstPercent)) or 0
         entry.wqProgressFill:SetHeight(barHeight)
         entry.wqProgressFill:SetWidth(math.max(2, barW * pct / 100))
@@ -820,7 +823,6 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             end
         end
         -- Abundance: turn bar green when full.
-        local isAbundanceBar = questData.isAbundanceScenario and selectedObj and (isAbundanceHeld(selectedObj.text) or isAbundanceBag(selectedObj.text))
         local isFull = (pct and pct >= 100) or (selectedObj and selectedObj.numFulfilled and selectedObj.numRequired
             and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number"
             and selectedObj.numFulfilled >= selectedObj.numRequired)
@@ -831,16 +833,15 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         entry.wqProgressFill:Show()
         local barLabel
         local isAbundanceHeldSel = questData.isAbundanceScenario and selectedObj and isAbundanceHeld(selectedObj.text)
-        local isAbundanceBagSel = questData.isAbundanceScenario and selectedObj and isAbundanceBag(selectedObj.text)
         if selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number" then
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
             barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
+            if isAbundanceBagSel then barLabel = "Abundance Bag: " .. barLabel end
             if isAbundanceHeldSel then barLabel = barLabel .. " abundance held" end
-            if isAbundanceBagSel then barLabel = barLabel .. " abundance bag" end
         else
             barLabel = firstPercent ~= nil and (tostring(firstPercent) .. "%") or ""
+            if isAbundanceBagSel then barLabel = "Abundance Bag: " .. barLabel end
             if isAbundanceHeldSel then barLabel = barLabel .. " abundance held" end
-            if isAbundanceBagSel then barLabel = barLabel .. " abundance bag" end
         end
         entry.wqProgressText:SetText(barLabel)
         entry.wqProgressText:ClearAllPoints()
@@ -858,6 +859,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         entry.wqProgressBg:Hide()
         entry.wqProgressFill:Hide()
         entry.wqProgressText:Hide()
+        if entry.wqProgressLabel then entry.wqProgressLabel:Hide() end
     end
 
     return totalH

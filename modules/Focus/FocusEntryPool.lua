@@ -303,6 +303,12 @@ local function CreateQuestEntry(parent, index)
     e.wqProgressText:SetJustifyH("CENTER")
     e.wqProgressText:Hide()
 
+    e.wqProgressLabel = e:CreateFontString(nil, "OVERLAY")
+    e.wqProgressLabel:SetFontObject(addon.ObjFont)
+    e.wqProgressLabel:SetTextColor(0.9, 0.9, 0.9, 1)
+    e.wqProgressLabel:SetJustifyH("RIGHT")
+    e.wqProgressLabel:Hide()
+
     -- Per-criteria scenario timer bars (KT-aligned; 1s tick driven). Same format as quest progress bars.
     local slots = addon.SCENARIO_TIMER_BAR_SLOTS or 5
     e.scenarioTimerBars = {}
@@ -677,6 +683,7 @@ local function ClearEntry(entry, full)
         if entry.wqProgressBg then entry.wqProgressBg:Hide() end
         if entry.wqProgressFill then entry.wqProgressFill:Hide() end
         if entry.wqProgressText then entry.wqProgressText:Hide() end
+        if entry.wqProgressLabel then entry.wqProgressLabel:Hide() end
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do
                 bar:Hide()
