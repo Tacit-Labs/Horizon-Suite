@@ -58,6 +58,7 @@ StopScenarioTimerHeartbeat = function()
         addon._scenarioTimerHeartbeat:Cancel()
         addon._scenarioTimerHeartbeat = nil
     end
+    if addon.focus then addon.focus.scenarioTimerCache = nil end
 end
 
 local CURRENT_QUEST_WINDOW_DEFAULT = 60

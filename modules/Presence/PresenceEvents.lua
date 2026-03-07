@@ -227,6 +227,8 @@ local PRESENCE_EVENTS = {
     "CRITERIA_UPDATE",
     "CRITERIA_EARNED",
     "TRACKED_ACHIEVEMENT_UPDATE",
+    "ACTIVE_DELVE_DATA_UPDATE",
+    "WALK_IN_DATA_UPDATE",
 }
 
 local function OnAddonLoaded(addonName)
@@ -1170,7 +1172,12 @@ local function ScheduleZoneNotification(isNewArea)
             if addon.IsDelveActive and addon.IsDelveActive() then
                 opts.category = "DELVES"
                 local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
-                if tier then displaySub = "Tier " .. tier end
+                if tier then 
+                    displaySub = "Tier " .. tier 
+                else
+                    -- No tier yet (lag); mark so late update can refresh it
+                    addon.Presence._pendingTierRefresh = true
+                end
             elseif addon.IsInPartyDungeon and addon.IsInPartyDungeon() then
                 opts.category = "DUNGEON"
             end
@@ -1232,6 +1239,29 @@ local function OnZoneChanged()
     local sub  = GetSubZoneText()
     if sub and sub ~= "" and sub ~= zone then
         ScheduleZoneNotification(false)
+    end
+end
+
+--- Called when Delve data updates (lagged API). If we're in a Delve and missing the Tier,
+--- refresh the current notification subtitle.
+local function OnDelveDataUpdate()
+    if not addon.Presence._pendingTierRefresh then return end
+    if not addon.IsDelveActive or not addon.IsDelveActive() then 
+        addon.Presence._pendingTierRefresh = nil
+        return 
+    end
+
+    local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
+    if tier then
+        addon.Presence._pendingTierRefresh = nil
+        -- If Presence is currently showing the Delve zone change, update it live
+        if addon.Presence.GetActiveTypeName and addon.Presence.GetActiveTypeName() == "ZONE_CHANGE" then
+            local L = addon.L or {}
+            local tierText = "Tier " .. tier
+            if addon.Presence.SoftUpdateSubtitle then
+                addon.Presence.SoftUpdateSubtitle(tierText)
+            end
+        end
     end
 end
 
@@ -1460,6 +1490,8 @@ local eventHandlers = {
     CRITERIA_UPDATE          = function() OnAchievementCriteriaUpdate() end,
     CRITERIA_EARNED          = function() OnAchievementCriteriaUpdate() end,
     TRACKED_ACHIEVEMENT_UPDATE = function() OnAchievementCriteriaUpdate() end,
+    ACTIVE_DELVE_DATA_UPDATE = function() OnDelveDataUpdate() end,
+    WALK_IN_DATA_UPDATE      = function() OnDelveDataUpdate() end,
 }
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)

@@ -518,7 +518,10 @@ local eventHandlers = {
     end,
     SCENARIO_CRITERIA_UPDATE = function() ScheduleRefresh() end,
     SCENARIO_CRITERIA_SHOW_STATE_UPDATE = function() ScheduleRefresh() end,
-    SCENARIO_COMPLETED       = function() ScheduleRefresh() end,
+    SCENARIO_COMPLETED       = function()
+        if addon.focus then addon.focus.scenarioTimerCache = nil end
+        ScheduleRefresh()
+    end,
     SCENARIO_SPELL_UPDATE    = function() ScheduleRefresh() end,
     SCENARIO_BONUS_OBJECTIVE_COMPLETE = function() ScheduleRefresh() end,
     SCENARIO_BONUS_VISIBILITY_UPDATE  = function() ScheduleRefresh() end,
@@ -544,7 +547,11 @@ local eventHandlers = {
     -- CHALLENGE_MODE_START: fires when an M+ key is activated (dungeon begins).
     -- Replaces the recursive instance-state poll for the M+ case.
     CHALLENGE_MODE_START     = function() OnInstanceEntered() end,
-    UPDATE_UI_WIDGET         = function() if addon.IsDelveActive and addon.IsDelveActive() then ScheduleRefresh() end end,
+    UPDATE_UI_WIDGET         = function()
+        if (addon.IsDelveActive and addon.IsDelveActive()) or (addon.IsScenarioActive and addon.IsScenarioActive()) then
+            ScheduleRefresh()
+        end
+    end,
     INITIATIVE_TASKS_TRACKED_UPDATED = function() ScheduleRefresh() end,
     INITIATIVE_TASKS_TRACKED_LIST_CHANGED = function() ScheduleRefresh() end,
     TRACKING_TARGET_INFO_UPDATE = function() ScheduleRefresh() end,

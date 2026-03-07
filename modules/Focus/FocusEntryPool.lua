@@ -384,14 +384,8 @@ local function UpdateScenarioBar(bar, now, category)
         progFillColor = addon.GetDB("progressBarFillColor", nil)
         if not progFillColor or type(progFillColor) ~= "table" then progFillColor = { 0.40, 0.65, 0.90 } end
     end
-    local labelR, labelG, labelB
-    if addon.GetDB("timerColorByRemaining", false) then
-        labelR, labelG, labelB = addon.GetTimerColorByRemaining(remaining, d)
-    else
-        local progTextColor = addon.GetDB("progressBarTextColor", nil)
-        if not progTextColor or type(progTextColor) ~= "table" then progTextColor = { 0.95, 0.95, 0.95 } end
-        labelR, labelG, labelB = progTextColor[1], progTextColor[2], progTextColor[3]
-    end
+    local useTimerColor = addon.GetDB("timerColorByRemaining", true)
+    local labelR, labelG, labelB = addon.GetTimerTextColor(remaining, d, colorCat, useTimerColor)
     bar.Fill:SetColorTexture(progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
     bar.Label:SetTextColor(labelR, labelG, labelB, 1)
 end
@@ -418,11 +412,11 @@ function addon.UpdateScenarioTimerBars()
                 local labelText = addon.FormatTimeRemaining(remaining)
                 if labelText then
                     entry.inlineTimerText:SetText(" (" .. labelText .. ")")
-                    if addon.GetDB("timerColorByRemaining", false) then
-                        local r, g, b = addon.GetTimerColorByRemaining(remaining, entry._inlineTimerDuration)
-                        local dimAlpha = (addon.GetDB("dimNonSuperTracked", false) and not entry.isSuperTracked) and addon.GetDimAlpha() or 1
-                        entry.inlineTimerText:SetTextColor(r, g, b, dimAlpha)
-                    end
+                    local cat = entry.category or entry.groupKey or "DEFAULT"
+                    local useTimerColor = addon.GetDB("timerColorByRemaining", true)
+                    local r, g, b = addon.GetTimerTextColor(remaining, entry._inlineTimerDuration, cat, useTimerColor)
+                    local dimAlpha = (addon.GetDB("dimNonSuperTracked", false) and not entry.isSuperTracked) and addon.GetDimAlpha() or 1
+                    entry.inlineTimerText:SetTextColor(r, g, b, dimAlpha)
                 end
             end
         end

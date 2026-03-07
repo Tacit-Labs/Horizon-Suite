@@ -111,5 +111,9 @@ addon.focus = {
 
     -- [questID] = { objectives = {...} } — last known objectives when in zone (for WQ progress outside zone)
     cachedWorldQuestObjectives        = nil,
+
+    -- Scenario widget-step timer cache; avoids countdown jump from stale API samples on refresh.
+    -- { widgetSetID, duration, startTime }; cleared on SCENARIO_COMPLETED.
+    scenarioTimerCache                = nil,
 }
 
