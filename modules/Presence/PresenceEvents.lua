@@ -315,6 +315,7 @@ end
 local lastQuestObjectivesCache = {}  -- questID -> serialized objectives
 local lastQuestObjectivesState = {}  -- questID -> { { text = string, finished = boolean }, ... }
 local bufferedUpdates = {}           -- questID -> timerObject
+local cacheMatchRetryPending = {}   -- questID -> true when a cache-match retry is scheduled
 local recentlyDisposed = {}          -- questID -> GetTime() when disposed
 local pendingNonBlind = {}           -- questID -> true when a non-blind source fired during debounce
 
@@ -326,6 +327,7 @@ local function DisposeQuestState(questID)
     lastQuestObjectivesState[questID] = nil
     recentlyDisposed[questID] = GetTime()
     pendingNonBlind[questID] = nil
+    cacheMatchRetryPending[questID] = nil
     if bufferedUpdates[questID] then
         bufferedUpdates[questID]:Cancel()
         bufferedUpdates[questID] = nil
@@ -365,6 +367,7 @@ end
 
 local UPDATE_BUFFER_TIME = 0.35      -- Time to wait for data to settle (fix for 55/100 vs 71/100)
 local ZERO_PROGRESS_RETRY_TIME = 0.45 -- Re-sample when we get 0/X (meta quests like "0/8 WQs" may lag; fix for stale 0/8 after completion)
+local CACHE_MATCH_RETRY_TIME = 0.4  -- Re-sample when cache matches from QUEST_WATCH_UPDATE (API may return stale data; fix for 0/10 vs 6/10)
 
 --- Build display string from objective. Prefers numFulfilled/numRequired over text when available (fix for stale WQ counts).
 --- @param o table { text, finished, numFulfilled?, numRequired? }
@@ -386,7 +389,8 @@ end
 --- @param isBlindUpdate boolean
 --- @param source string|nil Event name for debug (e.g. QUEST_WATCH_UPDATE, QUEST_LOG_UPDATE, UI_INFO_MESSAGE)
 --- @param isRetry boolean|nil True when this is a deferred re-sample after 0/X
-local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
+--- @param isCacheMatchRetry boolean|nil True when this is a re-sample after cache match; prevents infinite retry loop.
+local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCacheMatchRetry)
     bufferedUpdates[questID] = nil -- Clear the timer ref
 
     if not questID or questID <= 0 then return end
@@ -421,7 +425,16 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
 
     -- 3. Compare with cache
     if lastQuestObjectivesCache[questID] == objKey then
-        return 
+        DbgWQ("ExecuteQuestUpdate SKIP cache match: questID=", questID, "source=", tostring(source))
+        -- Cache-match retry: QUEST_WATCH_UPDATE fired (something changed) but API returned same data; may be stale.
+        if not isCacheMatchRetry and source == "QUEST_WATCH_UPDATE" and not cacheMatchRetryPending[questID] then
+            cacheMatchRetryPending[questID] = true
+            bufferedUpdates[questID] = C_Timer.After(CACHE_MATCH_RETRY_TIME, function()
+                cacheMatchRetryPending[questID] = nil
+                ExecuteQuestUpdate(questID, isBlindUpdate, source, nil, true)
+            end)
+        end
+        return
     end
 
     -- 4. Check for Blind Update Suppression (Fix for unrelated quests)
@@ -498,7 +511,7 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry)
         lastQuestObjectivesCache[questID] = nil -- Roll back cache so retry sees "changed"
         lastQuestObjectivesState[questID] = nil
         bufferedUpdates[questID] = C_Timer.After(ZERO_PROGRESS_RETRY_TIME, function()
-            ExecuteQuestUpdate(questID, isBlindUpdate, source, true)
+            ExecuteQuestUpdate(questID, isBlindUpdate, source, true, nil)
         end)
         return
     end
@@ -544,7 +557,7 @@ local function RequestQuestUpdate(questID, isBlindUpdate, source)
     -- Schedule new timer
     bufferedUpdates[questID] = C_Timer.After(UPDATE_BUFFER_TIME, function()
         pendingNonBlind[questID] = nil
-        ExecuteQuestUpdate(questID, effectiveBlind, source)
+        ExecuteQuestUpdate(questID, effectiveBlind, source, nil, nil)
     end)
 end
 
