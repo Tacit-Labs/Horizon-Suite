@@ -121,6 +121,7 @@ end
 local function ShowFocusDebugHelp()
     HSPrint("Focus debug commands (/h debug focus [cmd]):")
     HSPrint("  scendebug - Scenario timer debug (also: /h scenario debug)")
+    HSPrint("  devmode - Show Blizzard tracker alongside Focus for comparison")
     HSPrint("  wqdebug, nearbydebug, headercountdebug, groupdebug")
     HSPrint("  delvedebug, mplusaffixdebug, mplusdebug, endeavordebug, achievementdebug")
     HSPrint("  recipedebug, unaccepted, clicktodebug, profiledebug")
@@ -509,6 +510,18 @@ local function HandleFocusDebugSlash(msg)
         if addon.ScheduleRefresh then addon.ScheduleRefresh() end
         -- One-shot timer dump for immediate feedback (run in scenario to diagnose missing timers)
         if addon.DumpScenarioTimerInfo then addon.DumpScenarioTimerInfo() end
+
+    elseif cmd == "devmode" then
+        local v = not (addon.GetDB and addon.GetDB("focusDevMode", false))
+        if addon.SetDB then addon.SetDB("focusDevMode", v) end
+        HSPrint("Dev mode (show Blizzard tracker): " .. (v and "on" or "off"))
+        if addon.focus and addon.focus.enabled then
+            if v then
+                if addon.RestoreTracker then addon.RestoreTracker() end
+            else
+                if addon.TrySuppressTracker then addon.TrySuppressTracker() end
+            end
+        end
 
     elseif cmd == "mplusdebug" then
         addon.mplusDebugPreview = not addon.mplusDebugPreview
