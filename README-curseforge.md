@@ -121,6 +121,7 @@ Thanks to everyone who has contributed to Horizon Suite:
 - **Aishuu** — French localization (frFR)
 - **아즈샤라-두녘** — Korean localization (koKR)
 - **Linho-Gallywix** — Brazilian Portuguese localization (ptBR)
+- **allmoon** — Chinese localization (zhCN)
 
 ---
 
@@ -128,7 +129,9 @@ Thanks to everyone who has contributed to Horizon Suite:
 
 The options panel is localized for:
 
+- **Chinese (zhCN)** — `options/zhCN.lua`
 - **French (frFR)** — `options/frFR.lua`
+- **German (deDE)** — `options/deDE.lua`
 - **Korean (koKR)** — `options/koKR.lua`
 - **Brazilian Portuguese (ptBR)** — `options/ptBR.lua`
 - **Russian (ruRU)** — `options/ruRU.lua`
