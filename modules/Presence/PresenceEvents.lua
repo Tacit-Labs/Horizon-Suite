@@ -807,6 +807,7 @@ local function GetMainStepCriteria()
 end
 
 --- Build display string for an objective. Prefers Blizzard quantityString when present (completed).
+--- Omits X/Y for 1/1 objectives (single-step).
 local function formatObjectiveMsg(o)
     if not o then return nil end
     if o.quantityString and o.quantityString ~= "" and o.quantityString ~= "0"
@@ -815,6 +816,9 @@ local function formatObjectiveMsg(o)
     end
     if o.text and o.text ~= "" and o.text ~= "0" then
         if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
+            if o.numFulfilled == 1 and o.numRequired == 1 then
+                return o.text
+            end
             local pattern = ("%d/%d"):format(o.numFulfilled, o.numRequired)
             if o.text:find(pattern, 1, true) then
                 return o.text
@@ -824,6 +828,9 @@ local function formatObjectiveMsg(o)
         return o.text
     end
     if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
+        if o.numFulfilled == 1 and o.numRequired == 1 then
+            return nil
+        end
         return ("%d/%d"):format(o.numFulfilled, o.numRequired)
     end
     return nil
@@ -878,11 +885,23 @@ local function ExecuteScenarioCriteriaUpdate()
                 end
             end
         end
-        -- Removed as completed: old existed, not finished, no longer in new
+        -- Removed as completed: old existed, not finished, no longer in new.
+        -- Blizzard removes completed objectives from the list; oldO still has pre-completion state (0/1).
+        -- Show as completed; omit X/Y for 1/1 objectives.
         if not msg then
             for id, oldO in pairs(oldByID) do
                 if not oldO.finished and not newByID[id] then
-                    msg = formatObjectiveMsg(oldO)
+                    if oldO.numRequired and oldO.numRequired > 0 then
+                        if oldO.text and oldO.text ~= "" then
+                            msg = (oldO.numRequired == 1) and oldO.text or ("%s (%d/%d)"):format(oldO.text, oldO.numRequired, oldO.numRequired)
+                        elseif oldO.numRequired > 1 then
+                            msg = ("%d/%d"):format(oldO.numRequired, oldO.numRequired)
+                        end
+                        -- numRequired==1 with no text: leave msg nil so fallback uses "Objective updated"
+                    end
+                    if not msg and not (oldO.numRequired == 1 and (not oldO.text or oldO.text == "")) then
+                        msg = formatObjectiveMsg(oldO)
+                    end
                     break
                 end
             end
