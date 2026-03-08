@@ -127,6 +127,55 @@ local function CreateQuestEntry(parent, index)
     e.questTypeIcon:SetPoint("TOPRIGHT", e, "TOPLEFT", -iconRight, 0)
     e.questTypeIcon:Hide()
 
+    -- Quest icon button: overlay for Classic mode left-click super-track. Positioned in Layout.
+    -- Use OnMouseDown (not OnClick) to avoid double-handling: OnClick fires on mouse-up and would toggle again.
+    local iconSize = _S(addon.QUEST_TYPE_ICON_SIZE)
+    e.questIconBtn = CreateFrame("Button", nil, e)
+    e.questIconBtn:SetSize(iconSize, iconSize)
+    e.questIconBtn:SetPoint("TOPRIGHT", e, "TOPLEFT", -iconRight, 0)
+    e.questIconBtn:SetFrameLevel(e:GetFrameLevel() + 5)
+    e.questIconBtn:EnableMouse(true)
+    e.questIconBtn._ownerEntry = e
+    e.questIconBtn:SetScript("OnMouseDown", function(self, button)
+        if button ~= "LeftButton" then return end
+        if not addon.GetDB("useClassicClickBehaviour", false) then return end
+        local entry = self._ownerEntry
+        if not entry or not entry.questID then return end
+        local questID = entry.questID
+        if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
+            local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
+            if currentFocused and currentFocused == questID then
+                C_SuperTrack.SetSuperTrackedQuestID(0)
+                if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
+            else
+                C_SuperTrack.SetSuperTrackedQuestID(questID)
+                if addon.GetDB("tomtomQuestWaypoint", false) and addon.SetQuestWaypoint then
+                    addon.SetQuestWaypoint(questID, true)
+                end
+            end
+            local wqtPanel = _G.WorldQuestTrackerScreenPanel
+            if wqtPanel and wqtPanel:IsShown() then
+                wqtPanel:Hide()
+            end
+        end
+        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+    end)
+    e.questIconBtn:SetScript("OnEnter", function(self)
+        local entry = self._ownerEntry
+        if entry and entry.questID and addon.GetDB("useClassicClickBehaviour", false) then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(T("Focus quest") or "Focus quest", 1, 1, 1)
+            GameTooltip:AddLine(T("Click to super-track this quest.") or "Click to super-track this quest.", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end
+    end)
+    e.questIconBtn:SetScript("OnLeave", function(self)
+        if GameTooltip:GetOwner() == self then
+            GameTooltip:Hide()
+        end
+    end)
+    e.questIconBtn:Hide()
+
     -- Join Group (LFG) button: shown for group-type quests.
     -- Positioned on the RIGHT side of the entry in its own column so it never
     -- overlaps the supertrack bar or gets clipped by the scroll frame.
@@ -603,6 +652,10 @@ local function ApplyDimensions(widthOverride)
             local qs = S(addon.QUEST_TYPE_ICON_SIZE)
             e.questTypeIcon:SetSize(qs, qs)
         end
+        if e.questIconBtn then
+            local qs = S(addon.QUEST_TYPE_ICON_SIZE)
+            e.questIconBtn:SetSize(qs, qs)
+        end
         for j = 1, addon.MAX_OBJECTIVES do
             local obj = e.objectives[j]
             local objIndent = addon.GetObjIndent and addon.GetObjIndent() or S(addon.OBJ_INDENT)
@@ -675,6 +728,7 @@ local function ClearEntry(entry, full)
             entry.itemBtn:Hide()
         end
         if entry.lfgBtn then entry.lfgBtn:Hide() end
+        if entry.questIconBtn then entry.questIconBtn:Hide() end
         if entry.trackBar then entry.trackBar:Hide() end
         if entry.affixText then entry.affixText:Hide() end
         if entry.affixShadow then entry.affixShadow:Hide() end

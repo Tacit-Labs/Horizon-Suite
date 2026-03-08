@@ -1045,6 +1045,15 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.questTypeIcon:Hide()
     end
 
+    -- Quest icon button: show only for quest entries with visible icon in Classic mode.
+    if entry.questIconBtn then
+        if entry.questID and entry.questTypeIcon:IsShown() and addon.GetDB("useClassicClickBehaviour", false) then
+            entry.questIconBtn:Show()
+        else
+            entry.questIconBtn:Hide()
+        end
+    end
+
     if entry.trackedFromOtherZoneIcon then
         entry.trackedFromOtherZoneIcon:Hide()
     end
