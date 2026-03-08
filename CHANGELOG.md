@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.9.5] – 2026-03-08
+
+### 🐛 Fixes
+
+- **(Focus) Focus tracker only updates after combat ends during world scenarios** — Tracker (including world scenario objectives) now updates during combat.
+
+---
+
 ## [3.9.4] – 2026-03-08
 
 ### 🐛 Fixes
