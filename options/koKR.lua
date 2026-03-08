@@ -3,7 +3,7 @@ if GetLocale() ~= "koKR" then return end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
-local L = setmetatable({}, { __index = function(t, k) return k end })
+local L = setmetatable({}, { __index = addon.L })
 addon.L = L
 addon.StandardFont = UNIT_NAME_FONT
 
@@ -717,6 +717,9 @@ L["IMPORTANT"]         = "중요"
 L["LEGENDARY"]         = "전설"
 L["WORLD QUESTS"]      = "전역 퀘스트"
 L["WEEKLY QUESTS"]     = "주간 퀘스트"
+L["PREY"]              = "먹이"
+L["Abundance Bag"]     = "풍요의 자루"
+L["abundance held"]    = "보유한 풍요"
 L["DAILY QUESTS"]      = "일일 퀘스트"
 L["RARE BOSSES"]       = "희귀 우두머리"
 L["ACHIEVEMENTS"]      = "업적"

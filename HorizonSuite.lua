@@ -57,7 +57,7 @@ addon.DB_NAME    = DB_NAME
 
 addon.modules = {}
 
--- Localization: L[key] returns translated string or key as fallback. Locale files (e.g. options/koKR.lua) overwrite addon.L when loaded.
+-- Localization: L[key] returns translated string or key as fallback. LocaleBase loads first (enUS); locale files (frFR, etc.) override with fallback to base.
 addon.L = setmetatable({}, { __index = function(t, k) return k end })
 
 --- Register a module. Called by module files at load time.

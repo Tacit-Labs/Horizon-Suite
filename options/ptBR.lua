@@ -3,7 +3,7 @@ if GetLocale() ~= "ptBR" then return end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
-local L = setmetatable({}, { __index = function(t, k) return k end })
+local L = setmetatable({}, { __index = addon.L })
 addon.L = L
 addon.StandardFont = UNIT_NAME_FONT
 
@@ -717,6 +717,9 @@ L["IMPORTANT"]         = "IMPORTANTE"
 L["LEGENDARY"]         = "LENDÁRIA"
 L["WORLD QUESTS"]      = "MISSÕES MUNDIAIS"
 L["WEEKLY QUESTS"]     = "MISSÕES SEMANAIS"
+L["PREY"]              = "Presa"
+L["Abundance Bag"]     = "Bolsa de abundância"
+L["abundance held"]    = "abundância retida"
 L["DAILY QUESTS"]      = "MISSÕES DIÁRIAS"
 L["RARE BOSSES"]       = "CHEFES RAROS"
 L["ACHIEVEMENTS"]      = "CONQUISTAS"
