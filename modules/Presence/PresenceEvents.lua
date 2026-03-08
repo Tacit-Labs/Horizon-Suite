@@ -51,9 +51,10 @@ local function NormalizeQuestUpdateText(s)
             end
         end
     end
-    -- Strip "x/1 " or "x/1: " prefix for single-step objectives only
-    if result and result:match("^%d+/1%s*:?%s*") then
-        result = result:gsub("^%d+/1%s*:?%s*", "")
+    -- Strip "x/1 " or "x/1: " prefix for single-step objectives only.
+    -- Require space or colon after "1" so we don't match "8/1" in "8/12" (which would strip to "2 Ransacked Heirloom").
+    if result and result:match("^%d+/1[%s:]+") then
+        result = result:gsub("^%d+/1[%s:]+%s*", "")
     end
     return result
 end
