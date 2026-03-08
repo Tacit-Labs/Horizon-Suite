@@ -170,14 +170,42 @@ titleBar:SetPoint("TOPRIGHT", 0, 0)
 titleBar:SetHeight(HEADER_HEIGHT)
 titleBar:EnableMouse(true)
 titleBar:RegisterForDrag("LeftButton")
+-- Dev mode: 5 clicks on title bar toggles focusDevMode (show Blizzard tracker alongside Focus)
+-- Use OnMouseUp (not OnClick) because Frame with RegisterForDrag may not support OnClick.
+local titleClickCount = 0
+local titleClickResetAt = 0
+local titleClickWasDrag = false
+local TITLE_CLICK_RESET_SEC = 2
 titleBar:SetScript("OnDragStart", function()
     if InCombatLockdown() then return end
+    titleClickWasDrag = true
     isDraggingPanel = true
     panel:StartMoving()
     panel:SetScript("OnUpdate", DragStopOnUpdate)
 end)
 titleBar:SetScript("OnDragStop", function()
     StopPanelDrag()
+end)
+titleBar:SetScript("OnMouseUp", function(self, button)
+    if button ~= "LeftButton" then return end
+    if titleClickWasDrag then
+        titleClickWasDrag = false
+        return
+    end
+    titleClickWasDrag = false
+    local now = GetTime()
+    if now > titleClickResetAt then
+        titleClickCount = 0
+    end
+    titleClickCount = titleClickCount + 1
+    titleClickResetAt = now + TITLE_CLICK_RESET_SEC
+    if titleClickCount >= 5 then
+        titleClickCount = 0
+        local v = not (addon.GetDB and addon.GetDB("focusDevMode", false))
+        if addon.SetDB then addon.SetDB("focusDevMode", v) end
+        if addon.HSPrint then addon.HSPrint("Dev mode (show Blizzard tracker): " .. (v and "on" or "off")) end
+        ReloadUI()
+    end
 end)
 local titleBg = titleBar:CreateTexture(nil, "BACKGROUND")
 titleBg:SetAllPoints(titleBar)

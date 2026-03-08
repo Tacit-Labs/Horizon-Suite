@@ -40,7 +40,39 @@ local wqtSuppressionTicker = nil
 
 --- Suppress the default objective tracker and WQT panel when Focus is enabled.
 --- Idempotent; creates ticker to re-hide WQT if it shows again.
+--- When focusDevMode is on, skips hiding the Blizzard tracker so both can be compared.
 local function TrySuppressTracker()
+    local devMode = addon.GetDB and addon.GetDB("focusDevMode", false)
+    if devMode then
+        -- Dev mode: keep Blizzard tracker visible for comparison. Still suppress WQT.
+        if not wqtSuppressed then
+            local wqtFrame = _G.WorldQuestTrackerScreenPanel
+            if wqtFrame then
+                KillBlizzardFrame(wqtFrame)
+                wqtSuppressed = true
+            end
+        end
+        if not wqtSuppressionTicker and addon.focus.enabled then
+            local wqtLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("WorldQuestTracker"))
+                or _G.WorldQuestTrackerAddon or _G.WorldQuestTrackerScreenPanel
+            if wqtLoaded then
+                wqtSuppressionTicker = C_Timer.NewTicker(WQT_SUPPRESSION_TICK_INTERVAL, function()
+                    if not addon.focus.enabled then
+                        if wqtSuppressionTicker then
+                            wqtSuppressionTicker:Cancel()
+                            wqtSuppressionTicker = nil
+                        end
+                        return
+                    end
+                    local wqtFrame = _G.WorldQuestTrackerScreenPanel
+                    if wqtFrame and wqtFrame:IsShown() and not InCombatLockdown() then
+                        wqtFrame:Hide()
+                    end
+                end)
+            end
+        end
+        return
+    end
     if trackerSuppressed then return end
     if ObjectiveTrackerFrame then
         KillBlizzardFrame(ObjectiveTrackerFrame)
