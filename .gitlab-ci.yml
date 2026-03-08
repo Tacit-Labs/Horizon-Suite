@@ -1,11 +1,13 @@
-# GitLab CI: same as GitHub release.yml — BigWigs packager, zip, upload to CurseForge & Wago.
-# Trigger: push tag v* (e.g. v3.5.0).
-# Required CI/CD variables: CF_API_KEY, WAGO_API_TOKEN (Settings -> CI/CD -> Variables).
-# Optional: DISCORD_WEBHOOK_RELEASE for release Discord notification.
+# GitLab CI: release (tag v*) and beta (manual trigger with BETA_BUILD=1).
+# Release: push tag v* (e.g. v3.5.0). Required: CF_API_KEY, WAGO_API_TOKEN.
+# Beta: trigger pipeline with BETA_BUILD=1 and optional ref (e.g. glab ci run --ref feature/xyz -f BETA_BUILD=1).
+#   Required for beta tag push: PROJECT_ACCESS_TOKEN (or GITLAB_TOKEN) with write_repository.
+#   Optional: DISCORD_WEBHOOK_BETA for beta Discord notification.
 
 stages:
   - build
   - release
+  - beta
 
 variables:
   PACKAGER_VERSION: "v2.5.1"
@@ -64,3 +66,81 @@ release:
       release-cli create --name "Release ${CI_COMMIT_TAG}" --tag-name "${CI_COMMIT_TAG}" \
         --description "$(git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "${CI_COMMIT_TAG}" 2>/dev/null || echo "${CI_COMMIT_TAG}")" \
         --assets-link "{\"name\":\"${NAME}\",\"url\":\"${ASSET_URL}\"}"
+
+# Beta build: package addon from any branch (trigger with BETA_BUILD=1).
+# Run: glab ci run --ref <branch> -f BETA_BUILD=1 (default ref is main).
+beta-build:
+  stage: beta
+  image: ubuntu:22.04
+  rules:
+    - if: $BETA_BUILD == "1"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq bash git curl zip unzip jq
+    - cp .pkgmeta.beta .pkgmeta
+    - curl -sSL "https://raw.githubusercontent.com/BigWigsMods/packager/${PACKAGER_VERSION}/release.sh" -o /tmp/release.sh
+    - chmod +x /tmp/release.sh
+  script:
+    - export GITHUB_ACTIONS=1
+    - export GITHUB_EVENT_NAME=push
+    - export GITHUB_REF="refs/heads/${CI_COMMIT_REF_NAME}"
+    - export GITHUB_REF_NAME="${CI_COMMIT_REF_NAME}"
+    - export GITHUB_WORKSPACE="${CI_PROJECT_DIR}"
+    - export GITHUB_OUTPUT="$(mktemp)"
+    - cd "${CI_PROJECT_DIR}"
+    - bash /tmp/release.sh -d
+    - |
+      ZIP=$(ls .release/*.zip 2>/dev/null | head -1)
+      if [ -z "$ZIP" ]; then echo "No zip in .release/"; exit 1; fi
+      cp "$ZIP" .release/HorizonSuite-beta.zip
+    # Extract [Unreleased] for release notes
+    - |
+      BODY=$(python3 -c "
+      import re
+      content = open('CHANGELOG.md').read()
+      match = re.search(r'## \[Unreleased\]\s*\n\n(.*?)(?=\n---\n)', content, re.DOTALL)
+      raw = match.group(1).strip() if match else ''
+      branch = '${CI_COMMIT_REF_NAME}'
+      if not raw or 'Changelog entries are generated' in raw:
+        print('Rolling beta from **' + branch + '**. Download the zip below.')
+      else:
+        print('Rolling beta from **' + branch + '**.' + chr(10) + chr(10) + '## Recent changes' + chr(10) + chr(10) + raw)
+      ")
+      echo "$BODY" > /tmp/beta-notes.md
+    # Update beta tag to current commit (requires PROJECT_ACCESS_TOKEN or GITLAB_TOKEN)
+    - |
+      TOKEN="${PROJECT_ACCESS_TOKEN:-$GITLAB_TOKEN}"
+      if [ -n "$TOKEN" ]; then
+        git remote set-url origin "https://oauth2:${TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+        git push origin :refs/tags/beta 2>/dev/null || true
+        git tag -a beta -m "Beta from ${CI_COMMIT_REF_NAME}"
+        git push origin refs/tags/beta --force
+      else
+        echo "Warning: PROJECT_ACCESS_TOKEN or GITLAB_TOKEN not set; skipping beta tag update. Run beta-release manually or set token."
+      fi
+    - cp /tmp/beta-notes.md .release/beta-notes.md
+    - |
+      if [ -n "${DISCORD_WEBHOOK_BETA}" ]; then
+        BODY=$(cat /tmp/beta-notes.md)
+        BODY_ESC=$(printf '%s' "$BODY" | jq -Rs 'if length > 4096 then .[0:4096] else . end')
+        curl -sS -X POST -H "Content-Type: application/json" \
+          -d "{\"username\":\"Addon Beta Bot\",\"embeds\":[{\"title\":\"New Beta Build: Horizon Suite\",\"url\":\"${CI_PROJECT_URL}/-/releases/beta\",\"description\":$BODY_ESC}]}" \
+          "${DISCORD_WEBHOOK_BETA}" || true
+      fi
+  artifacts:
+    paths:
+      - .release/HorizonSuite-beta.zip
+      - .release/beta-notes.md
+
+beta-release:
+  stage: beta
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: beta-build
+  rules:
+    - if: $BETA_BUILD == "1"
+  script:
+    - |
+      ARTIFACT_URL="${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/.release/HorizonSuite-beta.zip?job=beta-build"
+      NOTES=$(cat .release/beta-notes.md)
+      release-cli create --tag-name beta --name "Beta" --description "$NOTES" \
+        --assets-link "{\"name\":\"HorizonSuite-beta.zip\",\"url\":\"${ARTIFACT_URL}\"}"

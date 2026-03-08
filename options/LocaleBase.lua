@@ -8,6 +8,9 @@ if not addon then return end
 
 local L = {}
 
+-- This file is intentionally not loaded in HorizonSuite.toc.
+
+
 L["  /h presence         - Show help + test current zone"] = "  /h presence         - Show help + test current zone"
 L["  /h presence accept   - Test Quest Accepted"] = "  /h presence accept   - Test Quest Accepted"
 L["  /h presence ach      - Test Achievement"] = "  /h presence ach      - Test Achievement"
