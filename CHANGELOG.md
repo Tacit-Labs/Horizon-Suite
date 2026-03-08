@@ -10,6 +10,20 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.9.3] – 2026-03-08
+
+### 🐛 Fixes
+
+- **(Focus) Guard layout against combat lockdown** — Tracker layout no longer errors when updated during combat.
+
+### 🔧 Improvements
+
+- **(Focus) Exclude world quests from Current Quest grouping** — World quests no longer appear in the Current Quest group.
+- **(Focus) Classic mode: quest icon click to super-track, Shift+Left to unfocus** — Click the quest icon to super-track; Shift+Left to unfocus or untrack.
+- **(Presence) Scenario notifications: omit 1/1 from single-step objectives** — Single-step objectives no longer show redundant "1/1" in scenario toasts.
+
+---
+
 ## [3.9.2] – 2026-03-07
 
 ### 🐛 Fixes
