@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.9.4] – 2026-03-08
+
+### 🐛 Fixes
+
+- **(Presence) Quest objective text shows wrong progress (e.g. 2 instead of 8/12)** — Single-step strip pattern no longer incorrectly matches "8/1" in "8/12"; quest update toasts now display correct progress.
+
+---
+
 ## [3.9.3] – 2026-03-08
 
 ### 🐛 Fixes
