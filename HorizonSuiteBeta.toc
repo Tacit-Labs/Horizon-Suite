@@ -71,10 +71,12 @@ modules/Vista/VistaModule.lua
 modules/Insight/InsightCore.lua
 modules/Insight/InsightModule.lua
 
+options/LocaleBase.lua
 options/koKR.lua
 options/frFR.lua
 options/ptBR.lua
 options/ruRU.lua
+options/zhCN.lua
 options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua

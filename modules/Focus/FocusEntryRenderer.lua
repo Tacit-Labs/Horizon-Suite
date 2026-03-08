@@ -836,12 +836,12 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         if selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number" then
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
             barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
-            if isAbundanceBagSel then barLabel = "Abundance Bag: " .. barLabel end
-            if isAbundanceHeldSel then barLabel = barLabel .. " abundance held" end
+            if isAbundanceBagSel then barLabel = (addon.L and addon.L["Abundance Bag"] or "Abundance Bag") .. ": " .. barLabel end
+            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["abundance held"] or "abundance held") end
         else
             barLabel = firstPercent ~= nil and (tostring(firstPercent) .. "%") or ""
-            if isAbundanceBagSel then barLabel = "Abundance Bag: " .. barLabel end
-            if isAbundanceHeldSel then barLabel = barLabel .. " abundance held" end
+            if isAbundanceBagSel then barLabel = (addon.L and addon.L["Abundance Bag"] or "Abundance Bag") .. ": " .. barLabel end
+            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["abundance held"] or "abundance held") end
         end
         entry.wqProgressText:SetText(barLabel)
         entry.wqProgressText:ClearAllPoints()
