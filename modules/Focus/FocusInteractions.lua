@@ -507,6 +507,65 @@ for i = 1, addon.POOL_SIZE do
 
             local useClassic = addon.GetDB("useClassicClickBehaviour", false)
             if useClassic then
+                -- Shift+Left: unfocus and/or untrack (same as right-click in Modern mode).
+                if IsShiftKeyDown() then
+                    if C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.SetSuperTrackedQuestID then
+                        local focusedQuestID = C_SuperTrack.GetSuperTrackedQuestID()
+                        if focusedQuestID and focusedQuestID == self.questID then
+                            C_SuperTrack.SetSuperTrackedQuestID(0)
+                            if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
+                            local wqtPanel = _G.WorldQuestTrackerScreenPanel
+                            if wqtPanel and wqtPanel:IsShown() then
+                                wqtPanel:Hide()
+                            end
+                            if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                            return
+                        end
+                    end
+                    local usePermanent = addon.GetDB("permanentlySuppressUntracked", false)
+                    if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(self.questID) and addon.RemoveWorldQuestWatch then
+                        addon.RemoveWorldQuestWatch(self.questID)
+                        if usePermanent then
+                            local bl = addon.GetDB("permanentQuestBlacklist", nil)
+                            if type(bl) ~= "table" then bl = {} end
+                            bl[self.questID] = true
+                            addon.SetDB("permanentQuestBlacklist", bl)
+                            if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
+                        else
+                            if not addon.focus.recentlyUntrackedWorldQuests then addon.focus.recentlyUntrackedWorldQuests = {} end
+                            addon.focus.recentlyUntrackedWorldQuests[self.questID] = true
+                            if addon.GetDB("suppressUntrackedUntilReload", false) then
+                                addon.SetDB("sessionSuppressedQuests", addon.focus.recentlyUntrackedWorldQuests)
+                            end
+                        end
+                    elseif C_QuestLog and C_QuestLog.RemoveQuestWatch then
+                        C_QuestLog.RemoveQuestWatch(self.questID)
+                    end
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                    return
+                end
+                -- If click was on the quest icon, handle super-track here (entry may receive click before child).
+                if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
+                    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
+                        local questID = self.questID
+                        local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
+                        if currentFocused and currentFocused == questID then
+                            C_SuperTrack.SetSuperTrackedQuestID(0)
+                            if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
+                        else
+                            C_SuperTrack.SetSuperTrackedQuestID(questID)
+                            if addon.GetDB("tomtomQuestWaypoint", false) and addon.SetQuestWaypoint then
+                                addon.SetQuestWaypoint(questID, true)
+                            end
+                        end
+                        local wqtPanel = _G.WorldQuestTrackerScreenPanel
+                        if wqtPanel and wqtPanel:IsShown() then
+                            wqtPanel:Hide()
+                        end
+                    end
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                    return
+                end
                 -- Click-to-complete takes priority: auto-complete quests can be completed by left-click.
                 if not IsShiftKeyDown() then
                     local needMod = addon.GetDB("requireModifierForClickToComplete", false)

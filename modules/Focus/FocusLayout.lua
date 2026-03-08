@@ -1138,6 +1138,11 @@ local function FullLayout()
                             local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
                             entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconRight, 0)
                         end
+                        -- Position questIconBtn over the icon for Classic mode super-track clicks.
+                        if entry.questIconBtn then
+                            entry.questIconBtn:ClearAllPoints()
+                            entry.questIconBtn:SetAllPoints(entry.questTypeIcon)
+                        end
                     end
 
                     entry:Show()
