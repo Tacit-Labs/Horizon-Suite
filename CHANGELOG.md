@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.9.6] – 2026-03-08
+
+### 🔧 Improvements
+
+- **(Core) Update README contributors and localizations list** — Add allmoon as Chinese (zhCN) contributor; add Chinese and German to localizations list.
+- **(Core) LocaleBase fallback and zhCN support** — Add zhCN locale fallback and Chinese localization support.
+
+---
+
 ## [3.9.5] – 2026-03-08
 
 ### 🐛 Fixes
