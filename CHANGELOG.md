@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.10.0] – 2026-03-09
+
+### ✨ New Features
+
+- **(Focus) Progress bar texture selection via SharedMedia** — Choose progress bar fill textures (Blizzard, Solid, or addon packs). New dropdown in Focus Display options with search.
+
+---
+
 ## [3.9.6] – 2026-03-08
 
 ### 🔧 Improvements
