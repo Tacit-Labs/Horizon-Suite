@@ -145,6 +145,7 @@ do
     G.ShowTime      = function() return DB("vistaShowTimeText",   true) end
     G.ShowPerf      = function() return DB("vistaShowPerfText",   false) end
     G.TimeUseLocal  = function() return DB("vistaTimeUseLocal",   true) end
+    G.TimeUse24Hour = function() return DB("vistaTime24Hour",     false) end
     G.ZoneDisplayMode = function() return DB("vistaZoneDisplayMode", "zone") end
 
     -- Vertical positions
@@ -290,7 +291,7 @@ local GetTimeFont, GetTimeSize           = G.TimeFont,  G.TimeSize
 local GetPerfFont, GetPerfSize           = G.PerfFont,  G.PerfSize
 local GetDiffFont, GetDiffSize           = G.DiffFont,  G.DiffSize
 local GetShowZone, GetShowCoord, GetShowTime, GetShowPerf = G.ShowZone, G.ShowCoord, G.ShowTime, G.ShowPerf
-local GetTimeUseLocal, GetZoneDisplayMode    = G.TimeUseLocal, G.ZoneDisplayMode
+local GetTimeUseLocal, GetTimeUse24Hour, GetZoneDisplayMode = G.TimeUseLocal, G.TimeUse24Hour, G.ZoneDisplayMode
 local GetZoneAnchors, GetCoordAnchors, GetTimeAnchors, GetPerfAnchors = G.ZoneAnchors, G.CoordAnchors, G.TimeAnchors, G.PerfAnchors
 local GetElemLocked                          = G.ElemLocked
 local GetZoneOffsetX, GetZoneOffsetY         = G.ZoneOffsetX, G.ZoneOffsetY
@@ -1047,7 +1048,7 @@ local function UpdateTimeText(_, elapsed)
         local t = date("*t")
         if not t then return end
         local hours, minutes = t.hour, t.min
-        local use24 = GetCVar and GetCVar("timeMgrUseMilitaryTime") == "1"
+        local use24 = GetTimeUse24Hour()
         if use24 then
             str = format("%02d:%02d", hours, minutes)
         else
@@ -1059,7 +1060,7 @@ local function UpdateTimeText(_, elapsed)
     else
         local hours, minutes = GetGameTime()
         if hours == nil then return end
-        local use24 = GetCVar and GetCVar("timeMgrUseMilitaryTime") == "1"
+        local use24 = GetTimeUse24Hour()
         if use24 then
             str = format("%02d:%02d", hours, minutes)
         else
