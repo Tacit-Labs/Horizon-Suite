@@ -136,6 +136,7 @@ local COLOR_LIVE_KEYS = {
     vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
     vistaCoordColorR = true, vistaCoordColorG = true, vistaCoordColorB = true,
     vistaTimeColorR = true, vistaTimeColorG = true, vistaTimeColorB = true,
+    vistaPerfColorR = true, vistaPerfColorG = true, vistaPerfColorB = true,
     vistaDiffColorR = true, vistaDiffColorG = true, vistaDiffColorB = true,
     vistaPanelBgR = true, vistaPanelBgG = true, vistaPanelBgB = true, vistaPanelBgA = true,
     vistaPanelBorderR = true, vistaPanelBorderG = true, vistaPanelBorderB = true, vistaPanelBorderA = true,
@@ -152,9 +153,11 @@ local VISTA_KEYS = {
     vistaZoneFontPath = true, vistaZoneFontSize = true,
     vistaCoordFontPath = true, vistaCoordFontSize = true,
     vistaTimeFontPath = true, vistaTimeFontSize = true,
-    vistaShowZoneText = true, vistaShowCoordText = true, vistaShowTimeText = true,
+    vistaPerfFontPath = true, vistaPerfFontSize = true,
+    vistaShowZoneText = true, vistaShowCoordText = true, vistaShowTimeText = true, vistaShowPerfText = true,
+    vistaClassColor = true,
     vistaTimeUseLocal = true, vistaZoneDisplayMode = true,
-    vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true,
+    vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true,
     vistaShowDefaultMinimapButtons = true,  -- legacy key kept for compatibility
     vistaLock = true,
     vistaPoint = true, vistaRelPoint = true, vistaX = true, vistaY = true,
@@ -167,6 +170,7 @@ local VISTA_KEYS = {
     vistaEX_zone = true, vistaEY_zone = true,
     vistaEX_coord = true, vistaEY_coord = true,
     vistaEX_time = true, vistaEY_time = true,
+    vistaEX_perf = true, vistaEY_perf = true,
     vistaEX_diff = true, vistaEY_diff = true,
     -- Proxy button positions (tracking + calendar + queue only; landing page removed)
     ["vistaEX_proxy_tracking"] = true, ["vistaEY_proxy_tracking"] = true,
@@ -174,7 +178,7 @@ local VISTA_KEYS = {
     ["vistaEX_proxy_queue"]    = true, ["vistaEY_proxy_queue"]    = true,
     ["vistaEX_proxy_mail"]     = true, ["vistaEY_proxy_mail"]     = true,
     -- Lock toggles
-    vistaLocked_zone = true, vistaLocked_coord = true, vistaLocked_time = true,
+    vistaLocked_zone = true, vistaLocked_coord = true, vistaLocked_time = true, vistaLocked_perf = true,
     vistaLocked_diff = true,
     vistaLocked_zoomIn = true, vistaLocked_zoomOut = true,
     ["vistaLocked_proxy_tracking"] = true,
@@ -219,6 +223,7 @@ local VISTA_COLOR_LIVE_KEYS = {
     vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
     vistaCoordColorR = true, vistaCoordColorG = true, vistaCoordColorB = true,
     vistaTimeColorR = true, vistaTimeColorG = true, vistaTimeColorB = true,
+    vistaPerfColorR = true, vistaPerfColorG = true, vistaPerfColorB = true,
     vistaDiffColorR = true, vistaDiffColorG = true, vistaDiffColorB = true,
     vistaDiffColor_mythic_R = true, vistaDiffColor_mythic_G = true, vistaDiffColor_mythic_B = true,
     vistaDiffColor_heroic_R = true, vistaDiffColor_heroic_G = true, vistaDiffColor_heroic_B = true,
@@ -286,6 +291,16 @@ function OptionsData_SetDB(key, value)
     end
     if INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
         addon.Insight.ApplyInsightOptions()
+    end
+    if key == "classColorGlobal" then
+        if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
+        if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
+    end
+    if key == "optionsClassColor" and addon.ApplyOptionsClassColor then
+        addon.ApplyOptionsClassColor()
+    end
+    if key == "vistaClassColor" and addon.Vista and addon.Vista.ApplyColors then
+        addon.Vista.ApplyColors()
     end
     if VISTA_KEYS[key] and addon.Vista then
         if addon._colorPickerLive and VISTA_COLOR_LIVE_KEYS[key] then
@@ -862,7 +877,8 @@ local OptionCategories = {
                 opts[#opts + 1] = { type = "toggle", name = L["Yield"] .. betaSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end }
             end
             opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
-            opts[#opts + 1] = { type = "toggle", name = L["Class colors"] or "Class colors", desc = L["Tint the options panel accent with your class color."] or "Tint the options panel accent with your class color.", dbKey = "optionsClassColor", get = function() return getDB("optionsClassColor", false) end, set = function(v) setDB("optionsClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end end }
+            opts[#opts + 1] = { type = "toggle", name = L["Use class colours everywhere"] or "Use class colours everywhere", desc = L["Enable class colours for both the options panel and Vista minimap."] or "Enable class colours for both the options panel and Vista minimap.", dbKey = "classColorGlobal", get = function() return getDB("classColorGlobal", false) end, set = function(v) setDB("classColorGlobal", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end; if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end end }
+            opts[#opts + 1] = { type = "toggle", name = L["Options panel accent"] or "Options panel accent", desc = L["Tint the options panel accent with your class colour."] or "Tint the options panel accent with your class colour.", dbKey = "optionsClassColor", get = function() return getDB("optionsClassColor", false) end, set = function(v) setDB("optionsClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end end }
             opts[#opts + 1] = { type = "section", name = L["Scaling"] }
             -- helper: refresh all modules after any scale change
             local function refreshAllScaling()
@@ -1449,6 +1465,11 @@ local OptionCategories = {
               dbKey = "vistaShowTimeText",
               get = function() return getDB("vistaShowTimeText", true) end,
               set = function(v) setDB("vistaShowTimeText", v) end },
+            { type = "toggle", name = L["Show FPS and latency"] or "Show FPS and latency",
+              desc = L["Show FPS and latency (ms) below the minimap."] or "Show FPS and latency (ms) below the minimap.",
+              dbKey = "vistaShowPerfText",
+              get = function() return getDB("vistaShowPerfText", false) end,
+              set = function(v) setDB("vistaShowPerfText", v) end },
             { type = "toggle", name = L["Use local time"] or "Use local time",
               desc = L["Show local system time."] or "Show local system time.",
               tooltip = L["When on, shows your local system time. When off, shows server time."] or "When on, shows your local system time. When off, shows server time.",
@@ -1583,6 +1604,11 @@ local OptionCategories = {
                       end)
                   end
               end },
+            { type = "toggle", name = L["Class colours"] or "Class colours",
+              desc = L["Tint Vista border and text (coords, time, FPS/MS labels) with your class colour. Numbers use the configured colour."] or "Tint Vista border and text (coords, time, FPS/MS labels) with your class colour. Numbers use the configured colour.",
+              dbKey = "vistaClassColor",
+              get = function() return getDB("vistaClassColor", false) end,
+              set = function(v) setDB("vistaClassColor", v) end },
 
             { type = "section", name = L["Text Positions"] or "Text Positions" },
             { type = "header", name = L["Drag text elements to reposition them. Lock to prevent accidental movement."] or "Drag text elements to reposition them. Lock to prevent accidental movement." },
@@ -1628,6 +1654,22 @@ local OptionCategories = {
               dbKey = "vistaLocked_time",
               get = function() return getDB("vistaLocked_time", true) end,
               set = function(v) setDB("vistaLocked_time", v) end },
+            { type = "dropdown", name = L["Performance text position"] or "Performance text position",
+              desc = L["Place the FPS/latency text above or below the minimap."] or "Place the FPS/latency text above or below the minimap.",
+              dbKey = "vistaPerfVerticalPos",
+              options = function() return { { L["Top"] or "Top", "top" }, { L["Bottom"] or "Bottom", "bottom" } } end,
+              get = function() return getDB("vistaPerfVerticalPos", "bottom") or "bottom" end,
+              set = function(v)
+                  setDB("vistaPerfVerticalPos", v)
+                  setDB("vistaEX_perf", nil); setDB("vistaEY_perf", nil)
+              end,
+              disabled = function() return not getDB("vistaShowPerfText", false) end },
+            { type = "toggle", name = L["Lock performance text position"] or "Lock performance text position",
+              desc = L["When on, the FPS/latency text cannot be dragged."] or "When on, the FPS/latency text cannot be dragged.",
+              dbKey = "vistaLocked_perf",
+              get = function() return getDB("vistaLocked_perf", true) end,
+              set = function(v) setDB("vistaLocked_perf", v) end,
+              disabled = function() return not getDB("vistaShowPerfText", false) end },
             { type = "section", name = L["Button Positions"] or "Button Positions" },
             { type = "header", name = L["Drag buttons to reposition them. Lock to prevent movement."] or "Drag buttons to reposition them. Lock to prevent movement." },
             { type = "toggle", name = L["Lock Zoom In button"] or "Lock Zoom In button",
@@ -1799,6 +1841,30 @@ local OptionCategories = {
               set = function(r, g, b)
                   setDB("vistaTimeColorR", r); setDB("vistaTimeColorG", g); setDB("vistaTimeColorB", b)
               end },
+            { type = "section", name = L["Performance Text"] or "Performance Text" },
+            { type = "dropdown", name = L["Performance font"] or "Performance font",
+              desc = L["Font for the FPS and latency text below the minimap."] or "Font for the FPS and latency text below the minimap.",
+              dbKey = "vistaPerfFontPath", searchable = true,
+              options = function() return fontOpts("vistaPerfFontPath") end,
+              get = function() return getFont("vistaPerfFontPath") end,
+              set = function(v) setDB("vistaPerfFontPath", v) end,
+              displayFn = displayFont,
+              disabled = function() return not getDB("vistaShowPerfText", false) end },
+            { type = "slider", name = L["Performance font size"] or "Performance font size",
+              dbKey = "vistaPerfFontSize", min = 7, max = 20,
+              get = function() return math.max(7, math.min(20, tonumber(getDB("vistaPerfFontSize", 10)) or 10)) end,
+              set = function(v) setDB("vistaPerfFontSize", math.max(7, math.min(20, v))) end,
+              disabled = function() return not getDB("vistaShowPerfText", false) end },
+            { type = "color", name = L["Performance text color"] or "Performance text color",
+              desc = L["Color of the FPS and latency text."] or "Color of the FPS and latency text.",
+              dbKey = "vistaPerfColor",
+              get = function()
+                  return getDB("vistaPerfColorR", 0.55), getDB("vistaPerfColorG", 0.65), getDB("vistaPerfColorB", 0.75)
+              end,
+              set = function(r, g, b)
+                  setDB("vistaPerfColorR", r); setDB("vistaPerfColorG", g); setDB("vistaPerfColorB", b)
+              end,
+              disabled = function() return not getDB("vistaShowPerfText", false) end },
             { type = "section", name = L["Difficulty Text"] or "Difficulty Text" },
             { type = "color", name = L["Difficulty text color (fallback)"] or "Difficulty text color (fallback)",
               desc = L["Default color when no per-difficulty color is set."] or "Default color when no per-difficulty color is set.",

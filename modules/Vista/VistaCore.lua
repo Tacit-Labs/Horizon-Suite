@@ -18,6 +18,7 @@ local FONT_PATH_DEFAULT = "Fonts\\FRIZQT__.TTF"
 local ZONE_SIZE_DEFAULT   = 12
 local COORD_SIZE_DEFAULT  = 10
 local TIME_SIZE_DEFAULT   = 10
+local PERF_SIZE_DEFAULT   = 10
 
 local BORDER_COLOR_DEFAULT  = { 1, 1, 1, 0.15 }
 local ZONE_COLOR_DEFAULT    = { 1, 1, 1 }
@@ -35,6 +36,7 @@ local BTN_GAP  = 4
 local FADE_DUR       = 0.20
 local COORD_THROTTLE = 0.25
 local TIME_THROTTLE  = 1.0
+local PERF_THROTTLE  = 0.5
 
 local PULSE_MIN   = 0.40
 local PULSE_MAX   = 1.00
@@ -75,10 +77,15 @@ local function GetMapSize() return tonumber(DB("vistaMapSize", MAP_SIZE_DEFAULT)
 local function GetBorderShow()  return DB("vistaBorderShow", true) end
 local function GetBorderW()     return tonumber(DB("vistaBorderWidth", 1)) or 1 end
 local function GetBorderColor()
-    return  tonumber(DB("vistaBorderColorR", BORDER_COLOR_DEFAULT[1])) or BORDER_COLOR_DEFAULT[1],
-            tonumber(DB("vistaBorderColorG", BORDER_COLOR_DEFAULT[2])) or BORDER_COLOR_DEFAULT[2],
-            tonumber(DB("vistaBorderColorB", BORDER_COLOR_DEFAULT[3])) or BORDER_COLOR_DEFAULT[3],
-            tonumber(DB("vistaBorderColorA", BORDER_COLOR_DEFAULT[4])) or BORDER_COLOR_DEFAULT[4]
+    local cc = addon.GetVistaClassColor and addon.GetVistaClassColor()
+    if cc then
+        local a = tonumber(DB("vistaBorderColorA", BORDER_COLOR_DEFAULT[4])) or BORDER_COLOR_DEFAULT[4]
+        return cc[1], cc[2], cc[3], a
+    end
+    return tonumber(DB("vistaBorderColorR", BORDER_COLOR_DEFAULT[1])) or BORDER_COLOR_DEFAULT[1],
+           tonumber(DB("vistaBorderColorG", BORDER_COLOR_DEFAULT[2])) or BORDER_COLOR_DEFAULT[2],
+           tonumber(DB("vistaBorderColorB", BORDER_COLOR_DEFAULT[3])) or BORDER_COLOR_DEFAULT[3],
+           tonumber(DB("vistaBorderColorA", BORDER_COLOR_DEFAULT[4])) or BORDER_COLOR_DEFAULT[4]
 end
 
 -- Resolve a per-element font path, falling back to global or the hard default.
@@ -127,6 +134,8 @@ do
     G.CoordSize  = function() return tonumber(DB("vistaCoordFontSize", COORD_SIZE_DEFAULT)) or COORD_SIZE_DEFAULT end
     G.TimeFont   = function() return ResolveFont("vistaTimeFontPath") end
     G.TimeSize   = function() return tonumber(DB("vistaTimeFontSize",  TIME_SIZE_DEFAULT))  or TIME_SIZE_DEFAULT end
+    G.PerfFont   = function() return ResolveFont("vistaPerfFontPath") end
+    G.PerfSize   = function() return tonumber(DB("vistaPerfFontSize",  PERF_SIZE_DEFAULT))  or PERF_SIZE_DEFAULT end
     G.DiffFont   = function() return ResolveFont("vistaDiffFontPath") end
     G.DiffSize   = function() return tonumber(DB("vistaDiffFontSize",  DIFF_SIZE)) or DIFF_SIZE end
 
@@ -134,6 +143,7 @@ do
     G.ShowZone      = function() return DB("vistaShowZoneText",   true)  end
     G.ShowCoord     = function() return DB("vistaShowCoordText",  true)  end
     G.ShowTime      = function() return DB("vistaShowTimeText",   true) end
+    G.ShowPerf      = function() return DB("vistaShowPerfText",   false) end
     G.TimeUseLocal  = function() return DB("vistaTimeUseLocal",   true) end
     G.ZoneDisplayMode = function() return DB("vistaZoneDisplayMode", "zone") end
 
@@ -142,11 +152,13 @@ do
     G.ZoneVerticalPos  = function() return vpos("vistaZoneVerticalPos")  end
     G.CoordVerticalPos = function() return vpos("vistaCoordVerticalPos") end
     G.TimeVerticalPos  = function() return vpos("vistaTimeVerticalPos")  end
+    G.PerfVerticalPos  = function() return vpos("vistaPerfVerticalPos")  end
 
     -- Anchors
     G.ZoneAnchors  = function() if G.ZoneVerticalPos()=="top"  then return "BOTTOM","TOP"         end return "TOP","BOTTOM"         end
     G.CoordAnchors = function() if G.CoordVerticalPos()=="top" then return "BOTTOMRIGHT","TOPRIGHT" end return "TOPRIGHT","BOTTOMRIGHT" end
     G.TimeAnchors  = function() if G.TimeVerticalPos()=="top"  then return "BOTTOMLEFT","TOPLEFT"  end return "TOPLEFT","BOTTOMLEFT"  end
+    G.PerfAnchors  = function() if G.PerfVerticalPos()=="top"  then return "BOTTOMRIGHT","TOPRIGHT" end return "TOPRIGHT","BOTTOMRIGHT" end
 
     -- Saved drag offsets
     local DEFAULT_Y_BOTTOM, DEFAULT_Y_TOP = -6, 6
@@ -159,6 +171,8 @@ do
     G.CoordOffsetY = function() local c=G.ElemY("coord",nil); if c~=nil then return c end return G.CoordVerticalPos()=="top" and DEFAULT_Y_TOP or DEFAULT_Y_BOTTOM end
     G.TimeOffsetX  = function() return G.ElemX("time",  0) end
     G.TimeOffsetY  = function() local c=G.ElemY("time", nil);  if c~=nil then return c end return G.TimeVerticalPos()=="top"  and DEFAULT_Y_TOP or DEFAULT_Y_BOTTOM end
+    G.PerfOffsetX  = function() return G.ElemX("perf",  0) end
+    G.PerfOffsetY  = function() local c=G.ElemY("perf", nil);  if c~=nil then return c end return G.PerfVerticalPos()=="top" and DEFAULT_Y_TOP or -22 end
 
     -- Button modes
     G.ButtonMode          = function() return DB("vistaButtonMode",         BTN_MODE_RIGHTCLICK) end
@@ -223,10 +237,17 @@ do
         else return BTN_DEFAULTS.tracking end
     end
 
-    -- Colors
+    -- Colors (use class colour when Vista class colour enabled; zone and FPS/MS numbers always use configured; FPS/MS labels use class colour)
+    local function GetVistaClassColor()
+        local cc = addon.GetVistaClassColor and addon.GetVistaClassColor()
+        if cc then return cc[1], cc[2], cc[3] end
+        return nil
+    end
     G.ZoneColor  = function() return tonumber(DB("vistaZoneColorR",  ZONE_COLOR_DEFAULT[1]))  or ZONE_COLOR_DEFAULT[1],  tonumber(DB("vistaZoneColorG",  ZONE_COLOR_DEFAULT[2]))  or ZONE_COLOR_DEFAULT[2],  tonumber(DB("vistaZoneColorB",  ZONE_COLOR_DEFAULT[3]))  or ZONE_COLOR_DEFAULT[3]  end
-    G.CoordColor = function() return tonumber(DB("vistaCoordColorR", COORD_COLOR_DEFAULT[1])) or COORD_COLOR_DEFAULT[1], tonumber(DB("vistaCoordColorG", COORD_COLOR_DEFAULT[2])) or COORD_COLOR_DEFAULT[2], tonumber(DB("vistaCoordColorB", COORD_COLOR_DEFAULT[3])) or COORD_COLOR_DEFAULT[3] end
-    G.TimeColor  = function() return tonumber(DB("vistaTimeColorR",  COORD_COLOR_DEFAULT[1])) or COORD_COLOR_DEFAULT[1], tonumber(DB("vistaTimeColorG",  COORD_COLOR_DEFAULT[2])) or COORD_COLOR_DEFAULT[2], tonumber(DB("vistaTimeColorB",  COORD_COLOR_DEFAULT[3])) or COORD_COLOR_DEFAULT[3] end
+    G.CoordColor = function() local r,g,b = GetVistaClassColor(); if r then return r,g,b end return tonumber(DB("vistaCoordColorR", COORD_COLOR_DEFAULT[1])) or COORD_COLOR_DEFAULT[1], tonumber(DB("vistaCoordColorG", COORD_COLOR_DEFAULT[2])) or COORD_COLOR_DEFAULT[2], tonumber(DB("vistaCoordColorB", COORD_COLOR_DEFAULT[3])) or COORD_COLOR_DEFAULT[3] end
+    G.TimeColor  = function() local r,g,b = GetVistaClassColor(); if r then return r,g,b end return tonumber(DB("vistaTimeColorR",  COORD_COLOR_DEFAULT[1])) or COORD_COLOR_DEFAULT[1], tonumber(DB("vistaTimeColorG",  COORD_COLOR_DEFAULT[2])) or COORD_COLOR_DEFAULT[2], tonumber(DB("vistaTimeColorB",  COORD_COLOR_DEFAULT[3])) or COORD_COLOR_DEFAULT[3] end
+    G.PerfColor   = function() return tonumber(DB("vistaPerfColorR",  COORD_COLOR_DEFAULT[1])) or COORD_COLOR_DEFAULT[1], tonumber(DB("vistaPerfColorG",  COORD_COLOR_DEFAULT[2])) or COORD_COLOR_DEFAULT[2], tonumber(DB("vistaPerfColorB",  COORD_COLOR_DEFAULT[3])) or COORD_COLOR_DEFAULT[3] end
+    G.PerfNumColor = function() local r,g,b = GetVistaClassColor(); if r then return r,g,b end return tonumber(DB("vistaPerfColorR",  COORD_COLOR_DEFAULT[1])) or COORD_COLOR_DEFAULT[1], tonumber(DB("vistaPerfColorG",  COORD_COLOR_DEFAULT[2])) or COORD_COLOR_DEFAULT[2], tonumber(DB("vistaPerfColorB",  COORD_COLOR_DEFAULT[3])) or COORD_COLOR_DEFAULT[3] end
     G.DiffColor  = function() return tonumber(DB("vistaDiffColorR",  DIFF_COLOR[1])) or DIFF_COLOR[1], tonumber(DB("vistaDiffColorG", DIFF_COLOR[2])) or DIFF_COLOR[2], tonumber(DB("vistaDiffColorB", DIFF_COLOR[3])) or DIFF_COLOR[3] end
     G.DiffLocked = function() return DB("vistaLocked_diff", false) end
 
@@ -266,21 +287,23 @@ local MASK_SQUARE, MASK_CIRCULAR = G.MaskSquare, G.MaskCircular
 local GetZoneFont, GetZoneSize           = G.ZoneFont,  G.ZoneSize
 local GetCoordFont, GetCoordSize         = G.CoordFont, G.CoordSize
 local GetTimeFont, GetTimeSize           = G.TimeFont,  G.TimeSize
+local GetPerfFont, GetPerfSize           = G.PerfFont,  G.PerfSize
 local GetDiffFont, GetDiffSize           = G.DiffFont,  G.DiffSize
-local GetShowZone, GetShowCoord, GetShowTime = G.ShowZone, G.ShowCoord, G.ShowTime
+local GetShowZone, GetShowCoord, GetShowTime, GetShowPerf = G.ShowZone, G.ShowCoord, G.ShowTime, G.ShowPerf
 local GetTimeUseLocal, GetZoneDisplayMode    = G.TimeUseLocal, G.ZoneDisplayMode
-local GetZoneAnchors, GetCoordAnchors, GetTimeAnchors = G.ZoneAnchors, G.CoordAnchors, G.TimeAnchors
+local GetZoneAnchors, GetCoordAnchors, GetTimeAnchors, GetPerfAnchors = G.ZoneAnchors, G.CoordAnchors, G.TimeAnchors, G.PerfAnchors
 local GetElemLocked                          = G.ElemLocked
 local GetZoneOffsetX, GetZoneOffsetY         = G.ZoneOffsetX, G.ZoneOffsetY
 local GetCoordOffsetX, GetCoordOffsetY       = G.CoordOffsetX, G.CoordOffsetY
 local GetTimeOffsetX, GetTimeOffsetY         = G.TimeOffsetX, G.TimeOffsetY
+local GetPerfOffsetX, GetPerfOffsetY         = G.PerfOffsetX, G.PerfOffsetY
 local GetButtonMode                          = G.ButtonMode
 local GetCircular                            = G.Circular
 local GetShowTracking, GetShowCalendar, GetShowZoomBtns       = G.ShowTracking, G.ShowCalendar, G.ShowZoomBtns
 local GetMouseoverTracking, GetMouseoverCalendar, GetMouseoverZoomBtns = G.MouseoverTracking, G.MouseoverCalendar, G.MouseoverZoomBtns
 local GetZoomBtnSize, GetMailIconSize, GetAddonBtnSize        = G.ZoomBtnSize, G.MailIconSize, G.AddonBtnSize
 local GetProxyBtnSizeForKey                  = G.ProxyBtnSizeForKey
-local GetZoneColor, GetCoordColor, GetTimeColor, GetDiffColor = G.ZoneColor, G.CoordColor, G.TimeColor, G.DiffColor
+local GetZoneColor, GetCoordColor, GetTimeColor, GetPerfColor, GetPerfNumColor, GetDiffColor = G.ZoneColor, G.CoordColor, G.TimeColor, G.PerfColor, G.PerfNumColor, G.DiffColor
 local GetPanelBgColor, GetPanelBorderColor   = G.PanelBgColor, G.PanelBorderColor
 local GetDiffColorForName                    = G.DiffColorForName
 -- Inlined on use: G.ButtonHandleButtons, G.ButtonDrawerLocked, G.ButtonWhitelist,
@@ -431,6 +454,7 @@ local decor, circularBorderFrame
 local borderTextures = {}
 local zoneText, zoneShadow, diffText, diffShadow
 local coordText, coordShadow, timeText, timeShadow
+local perf = {}  -- { num1, num1Sh, lbl1, lbl1Sh, num2, num2Sh, lbl2, lbl2Sh } (consolidated to stay under 200 locals)
 local mailFrame, mailPulsing
 local collectorBar, barAnchor
 local collectedButtons, drawerPanelButtons = {}, {}
@@ -438,7 +462,7 @@ local barAlpha, hoverTarget, hoverElapsed = 0, 0, 0
 local barCloseDelayElapsed = 0  -- tracks how long we've been "waiting to close"
 local barAnchorDragging = false -- true while the anchor is being dragged
 local barFlashTimer = nil  -- C_Timer handle for the "flash visible for positioning" effect
-local coordElapsed, timeElapsed = 0, 0
+local coordElapsed, timeElapsed, perfElapsed = 0, 0, 0
 local hookedButtons = {}
 local setParentHook, eventFrame
 local drawerButton, drawerPanel
@@ -870,18 +894,55 @@ local function CreateDecor()
     end)
     timeContainer:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- ---- Performance text (FPS / latency, in a draggable container) ----
+    -- Split into num/label so numbers use class colour and labels use configured colour
+    local perfContainer = CreateFrame("Frame", nil, decor)
+    perfContainer:SetSize(100, 16)
+    local pAp, pRp = GetPerfAnchors()
+    perfContainer:SetPoint(pAp, Minimap, pRp, GetPerfOffsetX(), GetPerfOffsetY())
+    perfContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
+    MakeDraggable(perfContainer, "perf", "perf", "perf", GetPerfAnchors, Minimap)
+
+    local function makePerfSeg(name, parent, anchorTo)
+        local sh = parent:CreateFontString(nil, "BORDER")
+        sh:SetFont(GetPerfFont(), GetPerfSize(), "OUTLINE")
+        sh:SetTextColor(0, 0, 0, SHADOW_A)
+        sh:SetJustifyH("RIGHT")
+        sh:SetPoint("RIGHT", anchorTo or parent, anchorTo and "LEFT" or "RIGHT")
+        local tx = parent:CreateFontString(nil, "OVERLAY")
+        tx:SetFont(GetPerfFont(), GetPerfSize(), "OUTLINE")
+        tx:SetJustifyH("RIGHT")
+        tx:SetPoint("RIGHT", anchorTo or parent, anchorTo and "LEFT" or "RIGHT")
+        return tx, sh
+    end
+    perf.lbl2, perf.lbl2Sh = makePerfSeg("perfLbl2", perfContainer, nil)
+    perf.num2, perf.num2Sh = makePerfSeg("perfNum2", perfContainer, perf.lbl2)
+    perf.lbl1, perf.lbl1Sh = makePerfSeg("perfLbl1", perfContainer, perf.num2)
+    perf.num1, perf.num1Sh = makePerfSeg("perfNum1", perfContainer, perf.lbl1)
+    perf.num1:SetText("0"); perf.num1Sh:SetText("0")
+    perf.lbl1:SetText(" FPS | "); perf.lbl1Sh:SetText(" FPS | ")
+    perf.num2:SetText("0"); perf.num2Sh:SetText("0")
+    perf.lbl2:SetText(" MS");    perf.lbl2Sh:SetText(" MS")
+
     -- store containers for ApplyOptions
     decor._zoneContainer  = zoneContainer
     decor._coordContainer = coordContainer
     decor._timeContainer  = timeContainer
+    decor._perfContainer  = perfContainer
 
     -- Apply initial visibility
     local showZone  = GetShowZone()
     local showCoord = GetShowCoord()
     local showTime  = GetShowTime()
+    local showPerf  = GetShowPerf()
     zoneText:SetShown(showZone);   zoneShadow:SetShown(showZone);   zoneContainer:SetShown(showZone)
     coordText:SetShown(showCoord); coordShadow:SetShown(showCoord); coordContainer:SetShown(showCoord)
     timeText:SetShown(showTime);   timeShadow:SetShown(showTime);   timeContainer:SetShown(showTime)
+    perf.num1:SetShown(showPerf); perf.num1Sh:SetShown(showPerf)
+    perf.lbl1:SetShown(showPerf); perf.lbl1Sh:SetShown(showPerf)
+    perf.num2:SetShown(showPerf); perf.num2Sh:SetShown(showPerf)
+    perf.lbl2:SetShown(showPerf); perf.lbl2Sh:SetShown(showPerf)
+    perfContainer:SetShown(showPerf)
 end
 
 -- ============================================================================
@@ -1009,6 +1070,24 @@ local function UpdateTimeText(_, elapsed)
         end
     end
     timeText:SetText(str); timeShadow:SetText(str)
+end
+
+local function UpdatePerfText(_, elapsed)
+    if not perf.num1 or not GetShowPerf() then return end
+    perfElapsed = perfElapsed + elapsed
+    if perfElapsed < PERF_THROTTLE then return end
+    perfElapsed = 0
+    local fps = 0
+    if GetFramerate then fps = math.floor(GetFramerate()) end
+    local ms = 0
+    if GetNetStats then
+        local _, _, lagHome, lagWorld = GetNetStats()
+        ms = lagWorld or lagHome or 0
+    end
+    local fpsStr = tostring(fps)
+    local msStr = tostring(ms)
+    perf.num1:SetText(fpsStr); perf.num1Sh:SetText(fpsStr)
+    perf.num2:SetText(msStr);  perf.num2Sh:SetText(msStr)
 end
 
 -- ============================================================================
@@ -2923,6 +3002,7 @@ end
 local function OnHoverUpdate(_, elapsed)
     UpdateCoords(nil, elapsed)
     UpdateTimeText(nil, elapsed)
+    UpdatePerfText(nil, elapsed)
 
     -- Only animate the collector bar in mouseover mode
     if GetButtonMode() ~= BTN_MODE_MOUSEOVER then
@@ -2987,6 +3067,10 @@ function Vista.ApplyColors()
     if zoneText  then zoneText:SetTextColor(GetZoneColor())   end
     if coordText then coordText:SetTextColor(GetCoordColor()) end
     if timeText  then timeText:SetTextColor(GetTimeColor())   end
+    if perf.num1 then perf.num1:SetTextColor(GetPerfColor())   end
+    if perf.lbl1 then perf.lbl1:SetTextColor(GetPerfNumColor()) end
+    if perf.num2 then perf.num2:SetTextColor(GetPerfColor())   end
+    if perf.lbl2 then perf.lbl2:SetTextColor(GetPerfNumColor()) end
     if diffText  then UpdateDifficultyText() end  -- per-difficulty colors applied inside
     if drawerButton then
         if drawerButton._bg     then drawerButton._bg:SetColorTexture(GetPanelBgColor())     end
@@ -3082,6 +3166,25 @@ local function ApplyOptions_Texts(sz)
         decor._timeContainer:ClearAllPoints()
         decor._timeContainer:SetPoint(ap, Minimap, rp, GetTimeOffsetX(), GetTimeOffsetY())
         decor._timeContainer:SetMovable(not GetElemLocked("time"))
+    end
+    if perf.num1 and decor._perfContainer then
+        local show = GetShowPerf()
+        local fp, fs = GetPerfFont(), GetPerfSize()
+        perf.num1:SetFont(fp, fs, "OUTLINE"); perf.num1Sh:SetFont(fp, fs, "OUTLINE")
+        perf.lbl1:SetFont(fp, fs, "OUTLINE"); perf.lbl1Sh:SetFont(fp, fs, "OUTLINE")
+        perf.num2:SetFont(fp, fs, "OUTLINE"); perf.num2Sh:SetFont(fp, fs, "OUTLINE")
+        perf.lbl2:SetFont(fp, fs, "OUTLINE"); perf.lbl2Sh:SetFont(fp, fs, "OUTLINE")
+        perf.num1:SetTextColor(GetPerfColor());   perf.lbl1:SetTextColor(GetPerfNumColor())
+        perf.num2:SetTextColor(GetPerfColor());   perf.lbl2:SetTextColor(GetPerfNumColor())
+        perf.num1:SetShown(show); perf.num1Sh:SetShown(show)
+        perf.lbl1:SetShown(show); perf.lbl1Sh:SetShown(show)
+        perf.num2:SetShown(show); perf.num2Sh:SetShown(show)
+        perf.lbl2:SetShown(show); perf.lbl2Sh:SetShown(show)
+        decor._perfContainer:SetShown(show)
+        local ap, rp = GetPerfAnchors()
+        decor._perfContainer:ClearAllPoints()
+        decor._perfContainer:SetPoint(ap, Minimap, rp, GetPerfOffsetX(), GetPerfOffsetY())
+        decor._perfContainer:SetMovable(not GetElemLocked("perf"))
     end
     if diffText and decor._diffContainer then
         local fp, fs = GetDiffFont(), GetDiffSize()

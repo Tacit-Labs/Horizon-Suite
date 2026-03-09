@@ -41,7 +41,7 @@
 ![Vista - Minimap](https://raw.githubusercontent.com/Crystilac93/Horizon-Suite/main/docs/Vista.gif)
 
 - **Square or circular minimap** – Choose a square or circular mask. Adjust size (100–400px), lock position, or drag to relocate. Optional auto zoom-out after zooming.
-- **Zone text, coordinates, and time** – Zone name, player coordinates, and game time below the minimap. Each element has its own font, size, and colour; show or hide individually. Click the time to open the stopwatch.
+- **Zone text, coordinates, time, and FPS/latency** – Zone name, player coordinates, game time, and optional FPS/latency (ms) below the minimap. Each element has its own font, size, and colour; show or hide individually. Click the time to open the stopwatch.
 - **Instance difficulty** – Difficulty name and Mythic+ keystone level shown when in an instance.
 - **Mail and queue indicators** – New mail icon and queue status button appear automatically when relevant. Unlock the mail icon in options to drag and reposition it.
 - **Built-in buttons** – Tracking, calendar, and zoom (+/−) buttons. Show always or on mouseover. Each is draggable and resizable; lock to prevent accidental movement.
@@ -88,7 +88,7 @@
 
 ## 📦 Modules & Roadmap
 
-**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colors, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, addon button collector, and full customisation. **Yield** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
+**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colors, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, time, optional FPS/latency, addon button collector, and full customisation. **Yield** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
 
 ---
 

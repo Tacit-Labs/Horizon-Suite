@@ -52,9 +52,8 @@ function _G.OptionsWidgets_SetDef(overrides)
 end
 addon.OptionsWidgetsDef = Def
 
--- Class color helper: returns {r, g, b} when optionsClassColor is enabled, nil otherwise.
-function addon.GetOptionsClassColor()
-    if not (addon.GetDB and addon.GetDB("optionsClassColor", false)) then return nil end
+-- Class color lookup: returns {r, g, b} for player class, nil if unavailable.
+local function GetClassColorRaw()
     local _, classFile = UnitClass("player")
     if not classFile then return nil end
     local cc = C_ClassColor and C_ClassColor.GetClassColor(classFile)
@@ -62,6 +61,24 @@ function addon.GetOptionsClassColor()
     local rc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
     if rc then return { rc.r, rc.g, rc.b } end
     return nil
+end
+
+-- Returns {r, g, b} when options panel should use class colour (classColorGlobal OR optionsClassColor), nil otherwise.
+function addon.GetOptionsClassColor()
+    if not (addon.GetDB and addon.GetDB("classColorGlobal", false)) and
+       not (addon.GetDB and addon.GetDB("optionsClassColor", false)) then
+        return nil
+    end
+    return GetClassColorRaw()
+end
+
+-- Returns {r, g, b} when Vista should use class colour (classColorGlobal OR vistaClassColor), nil otherwise.
+function addon.GetVistaClassColor()
+    if not (addon.GetDB and addon.GetDB("classColorGlobal", false)) and
+       not (addon.GetDB and addon.GetDB("vistaClassColor", false)) then
+        return nil
+    end
+    return GetClassColorRaw()
 end
 
 local SetTextColor = addon.SetTextColor or function(obj, color)
