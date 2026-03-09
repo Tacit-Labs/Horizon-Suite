@@ -1,6 +1,6 @@
 # 🌌 Horizon Suite
 
-![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge) ![GitHub Release Date](https://img.shields.io/github/release-date/Crystilac93/Horizon-Suite?style=for-the-badge) ![GitHub Release Date](https://img.shields.io/github/release-date-pre/Crystilac93/Horizon-Suite?style=for-the-badge&label=beta%20update&color=orange)
+![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge)
 
 ![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) ![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)
 
