@@ -528,6 +528,8 @@ local function ProcessUnitTooltip()
             end
         end
         StyleFonts(GameTooltip)
+        suppressFadeIn = true
+        GameTooltip:Show()
         return
     end
 
