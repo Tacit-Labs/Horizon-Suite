@@ -974,6 +974,208 @@ local function HandleFocusDebugSlash(msg)
             end
         end
 
+        -- Scenario objective progress debug (inspect both likely widget sets and multiple widget types).
+        HSPrint("|cFF00CCFF--- Scenario objective progress (widgets + criteria) ---|r")
+        local function ShortText(value, maxLen)
+            local s = tostring(value or "")
+            local limit = maxLen or 80
+            s = s:gsub("\n", " "):gsub("\r", " ")
+            if #s > limit then
+                return s:sub(1, limit - 3) .. "..."
+            end
+            return s
+        end
+        local function GetWidgetTypeName(widgetType)
+            if Enum and Enum.UIWidgetVisualizationType then
+                for k, v in pairs(Enum.UIWidgetVisualizationType) do
+                    if v == widgetType then return k end
+                end
+            end
+            return "type=" .. tostring(widgetType)
+        end
+        local function PrintPercentPair(prefix, minValue, maxValue, value)
+            if type(maxValue) ~= "number" or type(value) ~= "number" then return end
+            local minNum = type(minValue) == "number" and minValue or 0
+            local range = maxValue - minNum
+            local pctRaw = (maxValue > 0) and math.floor(100 * value / maxValue) or 0
+            local pctMin = (range > 0) and math.floor(100 * (value - minNum) / range) or 0
+            HSPrint(("%s raw=%s%% withMin=%s%%"):format(prefix, tostring(pctRaw), tostring(pctMin)))
+        end
+        local function DumpWidgetSet(label, setID)
+            if not setID or setID == 0 then
+                HSPrint(("  %s: no widget set"):format(label))
+                return
+            end
+            if not (C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID) then
+                HSPrint(("  %s: widget manager unavailable"):format(label))
+                return
+            end
+            local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+            if not wOk or type(widgets) ~= "table" then
+                HSPrint(("  %s: failed to read widget set %s"):format(label, tostring(setID)))
+                return
+            end
+            local count = 0
+            for _ in pairs(widgets) do count = count + 1 end
+            HSPrint(("  %s widgetSetID=%s widgets=%d"):format(label, tostring(setID), count))
+            for _, wInfo in pairs(widgets) do
+                local widgetID = type(wInfo) == "table" and wInfo.widgetID or (type(wInfo) == "number" and wInfo)
+                local widgetType = type(wInfo) == "table" and wInfo.widgetType or nil
+                if widgetID then
+                    local widgetTypeName = GetWidgetTypeName(widgetType)
+                    HSPrint(("    widget id=%s type=%s"):format(tostring(widgetID), widgetTypeName))
+
+                    if C_UIWidgetManager.GetDiscreteProgressStepsVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetDiscreteProgressStepsVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and type(info.progressMax) == "number" then
+                            HSPrint(("      DiscreteProgress: min=%s max=%s val=%s steps=%s tooltip=%q"):format(
+                                tostring(info.progressMin), tostring(info.progressMax), tostring(info.progressVal),
+                                tostring(info.numSteps), ShortText(info.tooltip, 70)))
+                            PrintPercentPair("      Discrete percent:", info.progressMin, info.progressMax, info.progressVal)
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetFillUpFramesWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetFillUpFramesWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and type(info.fillMax) == "number" then
+                            HSPrint(("      FillUpFrames: min=%s max=%s val=%s totalFrames=%s fullFrames=%s tooltip=%q"):format(
+                                tostring(info.fillMin), tostring(info.fillMax), tostring(info.fillValue),
+                                tostring(info.numTotalFrames), tostring(info.numFullFrames), ShortText(info.tooltip, 70)))
+                            PrintPercentPair("      FillUp percent:", info.fillMin, info.fillMax, info.fillValue)
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and type(info.barMax) == "number" then
+                            HSPrint(("      StatusBar: min=%s max=%s val=%s text=%q override=%q valueTextType=%s"):format(
+                                tostring(info.barMin), tostring(info.barMax), tostring(info.barValue),
+                                ShortText(info.text, 60), ShortText(info.overrideBarText, 40), tostring(info.barValueTextType)))
+                            PrintPercentPair("      StatusBar percent:", info.barMin, info.barMax, info.barValue)
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetDoubleStatusBarWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetDoubleStatusBarWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and type(info.leftBarMax) == "number" then
+                            HSPrint(("      DoubleStatus: text=%q left=%s/%s right=%s/%s"):format(
+                                ShortText(info.text, 60), tostring(info.leftBarValue), tostring(info.leftBarMax),
+                                tostring(info.rightBarValue), tostring(info.rightBarMax)))
+                            PrintPercentPair("      Double left percent:", info.leftBarMin, info.leftBarMax, info.leftBarValue)
+                            PrintPercentPair("      Double right percent:", info.rightBarMin, info.rightBarMax, info.rightBarValue)
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetUnitPowerBarWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetUnitPowerBarWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and type(info.barMax) == "number" then
+                            HSPrint(("      UnitPowerBar: min=%s max=%s val=%s override=%q valueTextType=%s"):format(
+                                tostring(info.barMin), tostring(info.barMax), tostring(info.barValue),
+                                ShortText(info.overrideBarText, 40), tostring(info.barValueTextType)))
+                            PrintPercentPair("      UnitPower percent:", info.barMin, info.barMax, info.barValue)
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and info.text and info.text ~= "" then
+                            HSPrint(("      IconAndText: text=%q tooltip=%q dynamicTooltip=%q"):format(
+                                ShortText(info.text, 60), ShortText(info.tooltip, 60), ShortText(info.dynamicTooltip, 60)))
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetDoubleIconAndTextWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetDoubleIconAndTextWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and ((info.label and info.label ~= "") or (info.leftText and info.leftText ~= "") or (info.rightText and info.rightText ~= "")) then
+                            HSPrint(("      DoubleIconAndText: label=%q left=%q right=%q"):format(
+                                ShortText(info.label, 40), ShortText(info.leftText, 40), ShortText(info.rightText, 40)))
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetTextWithStateWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetTextWithStateWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and info.text and info.text ~= "" then
+                            HSPrint(("      TextWithState: text=%q tooltip=%q"):format(
+                                ShortText(info.text, 70), ShortText(info.tooltip, 60)))
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetTextWithSubtextWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetTextWithSubtextWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and ((info.text and info.text ~= "") or (info.subText and info.subText ~= "")) then
+                            HSPrint(("      TextWithSubtext: text=%q subText=%q"):format(
+                                ShortText(info.text, 60), ShortText(info.subText, 60)))
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetTextColumnRowVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetTextColumnRowVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and type(info.entries) == "table" and #info.entries > 0 then
+                            local parts = {}
+                            for i = 1, math.min(#info.entries, 3) do
+                                parts[#parts + 1] = ShortText(info.entries[i].text, 28)
+                            end
+                            HSPrint(("      TextColumnRow: %s"):format(table.concat(parts, " | ")))
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetTextureAndTextVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetTextureAndTextVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and info.text and info.text ~= "" then
+                            HSPrint(("      TextureAndText: text=%q tooltip=%q"):format(
+                                ShortText(info.text, 70), ShortText(info.tooltip, 60)))
+                        end
+                    end
+
+                    if C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
+                        local ok, info = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
+                        if ok and info and type(info) == "table" and ((info.headerText and info.headerText ~= "") or (info.tierText and info.tierText ~= "")) then
+                            HSPrint(("      ScenarioHeaderDelves: header=%q tier=%q tooltip=%q spells=%s"):format(
+                                ShortText(info.headerText, 50), ShortText(info.tierText, 20), ShortText(info.tooltip, 60),
+                                tostring(info.spells and #info.spells or 0)))
+                        end
+                    end
+                end
+            end
+        end
+        local stepSetID, objSetID
+        if C_Scenario and C_Scenario.GetStepInfo then
+            local ok, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
+            if ok and t and type(t) == "table" and #t >= 12 then
+                local ws = t[12]
+                if type(ws) == "number" and ws ~= 0 then stepSetID = ws end
+            end
+        end
+        if C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+            local ok, s = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
+            if ok and s and type(s) == "number" then objSetID = s end
+        end
+        DumpWidgetSet("StepInfo", stepSetID)
+        if objSetID ~= stepSetID then
+            DumpWidgetSet("ObjectiveTracker", objSetID)
+        end
+        -- Criteria dump
+        if C_ScenarioInfo and (C_ScenarioInfo.GetCriteriaInfo or C_ScenarioInfo.GetCriteriaInfoByStep) then
+            local numCrit = 0
+            local ok, _, _, n = pcall(C_Scenario.GetStepInfo)
+            if ok and n and type(n) == "number" then numCrit = n + 3 end
+            if numCrit > 0 then
+                for i = 1, math.min(numCrit, 20) do
+                    local cOk, crit = pcall(C_ScenarioInfo.GetCriteriaInfo, i)
+                    if not cOk or not crit then cOk, crit = pcall(C_ScenarioInfo.GetCriteriaInfoByStep, 1, i) end
+                    if cOk and crit and (crit.description and crit.description ~= "" or crit.quantityString and crit.quantityString ~= "" or (crit.quantity and crit.totalQuantity)) then
+                        local q = crit.quantity
+                        local tq = crit.totalQuantity
+                        local qs = crit.quantityString or ""
+                        local pct = (tq and tq > 0 and q) and math.floor(100 * q / tq) or "n/a"
+                        local desc = (crit.description or crit.criteriaString or "") ~= "" and (crit.description or crit.criteriaString) or "(no desc)"
+                        HSPrint(("  Criteria #%d: desc=%q quantity=%s totalQuantity=%s quantityString=%q percent=%s isWeighted=%s"):format(
+                            i, tostring(desc):sub(1, 50), tostring(q), tostring(tq), tostring(qs):sub(1, 30), tostring(pct), tostring(crit.isWeightedProgress or false)))
+                    end
+                end
+            end
+        end
+
     else
         ShowFocusDebugHelp()
     end

@@ -164,9 +164,10 @@ function BaseProvider:BuildObjectiveFromCriteria(criteriaInfo)
     -- Fallback to numeric values
     if not numFulfilled then
         if criteriaInfo.isWeightedProgress then
-            local total = criteriaInfo.totalQuantity
-            if total and total > 1 then
-                percent = math.min(100, math.floor(100 * (criteriaInfo.quantity or 0) / total))
+            -- For weighted progress, quantity is the displayed percentage (0-100), not a fraction numerator.
+            local qty = criteriaInfo.quantity
+            if qty ~= nil and type(qty) == "number" then
+                percent = math.min(100, math.max(0, math.floor(qty)))
             end
         else
             numFulfilled = criteriaInfo.quantity
