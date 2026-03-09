@@ -295,17 +295,52 @@ local tabButtons = {}
 local selectedTab = 1
 local contentWidth = PAGE_WIDTH - PADDING * 2 - SIDEBAR_WIDTH - 12
 
--- Scroll + content
+-- Scroll + content (leave room for scrollbar on right)
+local SCROLLBAR_WIDTH = 14
 local scrollFrame = CreateFrame("ScrollFrame", nil, panel)
 scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", PADDING + SIDEBAR_WIDTH + 12, -(HEADER_HEIGHT + 6 + 40))
-scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -PADDING, PADDING)
+scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -(PADDING + SCROLLBAR_WIDTH), PADDING)
+scrollFrame:SetClipsChildren(true)
+scrollFrame:EnableMouse(true)
 scrollFrame:EnableMouseWheel(true)
 scrollFrame:SetScript("OnMouseWheel", function(_, delta)
     local cur = scrollFrame:GetVerticalScroll()
     local childH = scrollFrame:GetScrollChild() and scrollFrame:GetScrollChild():GetHeight() or 0
     local frameH = scrollFrame:GetHeight() or 0
-    scrollFrame:SetVerticalScroll(math.max(0, math.min(cur - delta * SCROLL_STEP, math.max(0, childH - frameH))))
+    local newScroll = math.max(0, math.min(cur - delta * SCROLL_STEP, math.max(0, childH - frameH)))
+    scrollFrame:SetVerticalScroll(newScroll)
+    if mainContentScrollBar then mainContentScrollBar:SetValue(newScroll) end
 end)
+
+-- Vertical scrollbar for main content
+local mainContentScrollBar = CreateFrame("Slider", nil, panel)
+mainContentScrollBar:SetOrientation("VERTICAL")
+mainContentScrollBar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING, -(HEADER_HEIGHT + 6 + 40))
+mainContentScrollBar:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -PADDING, PADDING)
+mainContentScrollBar:SetWidth(SCROLLBAR_WIDTH)
+mainContentScrollBar:SetValueStep(SCROLL_STEP)
+mainContentScrollBar:SetObeyStepOnDrag(true)
+local scrollBarBg = mainContentScrollBar:CreateTexture(nil, "BACKGROUND")
+scrollBarBg:SetAllPoints(mainContentScrollBar)
+scrollBarBg:SetColorTexture(0.1, 0.1, 0.12, 0.6)
+local scrollBarThumb = mainContentScrollBar:CreateTexture(nil, "OVERLAY")
+scrollBarThumb:SetSize(SCROLLBAR_WIDTH, 24)
+scrollBarThumb:SetColorTexture(0.35, 0.35, 0.4, 0.9)
+mainContentScrollBar:SetThumbTexture(scrollBarThumb)
+mainContentScrollBar:SetScript("OnValueChanged", function(self, value)
+    scrollFrame:SetVerticalScroll(value)
+end)
+mainContentScrollBar:Hide()
+
+local function UpdateMainContentScrollBar()
+    local child = scrollFrame:GetScrollChild()
+    local childH = child and child:GetHeight() or 0
+    local frameH = scrollFrame:GetHeight() or 0
+    local maxScroll = math.max(0, childH - frameH)
+    mainContentScrollBar:SetMinMaxValues(0, maxScroll)
+    mainContentScrollBar:SetValue(scrollFrame:GetVerticalScroll())
+    mainContentScrollBar:SetShown(maxScroll > 0)
+end
 
 local tabFrames = {}
 for i = 1, #addon.OptionCategories do
@@ -332,6 +367,7 @@ local function ResizeTabFrame(f)
         end
     end
     f:SetHeight(math.max(100, maxBottom + PADDING))
+    if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
 end
 _G.ResizeTabFrame = ResizeTabFrame
 
@@ -364,8 +400,8 @@ local function ApplyPanelDimensions()
     PAGE_WIDTH = width
     PAGE_HEIGHT = height
 
-    -- Keep tab/card content flush with current panel width.
-    local newContentWidth = width - PADDING * 2 - SIDEBAR_WIDTH - 12
+    -- Keep tab/card content flush with current panel width (minus scrollbar).
+    local newContentWidth = width - PADDING * 2 - SIDEBAR_WIDTH - 12 - SCROLLBAR_WIDTH
     for _, tabFrame in ipairs(tabFrames) do
         if tabFrame then
             tabFrame:SetWidth(newContentWidth)
@@ -391,6 +427,7 @@ local function ApplyPanelDimensions()
             card.updateScrollBars()
         end
     end
+    if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
 end
 local function ResizeOnUpdate(self, elapsed)
     if not isResizing then return end
@@ -1754,6 +1791,7 @@ for _, mk in ipairs(groupOrder) do
                 for j = 1, #tabFrames do tabFrames[j]:SetShown(j == catIdx) end
                 scrollFrame:SetScrollChild(tabFrames[catIdx])
                 scrollFrame:SetVerticalScroll(0)
+                if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
             end)
             btn:SetScript("OnEnter", function()
                 if not btn.selected then
@@ -1878,6 +1916,7 @@ for _, mk in ipairs(groupOrder) do
                     for j = 1, #tabFrames do tabFrames[j]:SetShown(j == catIdx) end
                     scrollFrame:SetScrollChild(tabFrames[catIdx])
                     scrollFrame:SetVerticalScroll(0)
+                    if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
                 end)
                 btn:SetScript("OnEnter", function()
                     if not btn.selected then
@@ -1988,6 +2027,7 @@ local function NavigateToOption(entry)
             scrollFrame:SetVerticalScroll(math.max(0, offsetFromTop - 40))
         end
     end
+    if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
     if frame and frame.SetAlpha then
         frame:SetAlpha(0.5)
         if C_Timer and C_Timer.After then
@@ -2127,6 +2167,7 @@ local function FilterBySearch(query)
         HideSearchDropdown()
         for i = 1, #tabFrames do tabFrames[i]:SetShown(i == selectedTab) end
         scrollFrame:SetScrollChild(tabFrames[selectedTab])
+        if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
         UpdateTabVisuals()
         return
     end
@@ -2240,6 +2281,7 @@ panel:SetScript("OnShow", function()
         end
     end
     ApplyPanelDimensions()
+    if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
     -- Restore saved position
     if _db and _db.optionsLeft ~= nil and _db.optionsTop ~= nil then
         panel:ClearAllPoints()
@@ -2316,6 +2358,7 @@ function _G.HorizonSuite_ShowOptions()
                 -- Reset scroll after layout; OnShow may run before content is sized
                 if scrollFrame and scrollFrame.SetVerticalScroll then scrollFrame:SetVerticalScroll(0) end
                 if sidebarScrollFrame and sidebarScrollFrame.SetVerticalScroll then sidebarScrollFrame:SetVerticalScroll(0) end
+                if UpdateMainContentScrollBar then UpdateMainContentScrollBar() end
             end)
         end
     end
@@ -2371,6 +2414,7 @@ addon.OptionsPanel_RebuildCategory = function(catKey)
     local refreshers = {}
     BuildCategory(tab, catIdx, catOpts, refreshers, optionFrames)
     for _, r in ipairs(refreshers) do allRefreshers[#allRefreshers + 1] = r end
+    C_Timer.After(0, function() ResizeTabFrame(tab) end)
 end
 
 function _G.HorizonSuite_ShowEditPanel()
