@@ -387,6 +387,29 @@ for i = 1, addon.POOL_SIZE do
 
     e:SetScript("OnMouseDown", function(self, button)
         if button == "LeftButton" then
+            -- Shift+click to link in chat (native WoW behavior). Must run before any other click handling.
+            if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
+                if self.questID and GetQuestLink then
+                    local link = GetQuestLink(self.questID)
+                    if link then ChatFrameUtil.InsertLink(link); return end
+                end
+                if self.achievementID and GetAchievementLink then
+                    local link = GetAchievementLink(self.achievementID)
+                    if link then ChatFrameUtil.InsertLink(link); return end
+                end
+                if self.endeavorID and C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetInitiativeTaskChatLink then
+                    local ok, link = pcall(C_NeighborhoodInitiative.GetInitiativeTaskChatLink, self.endeavorID)
+                    if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link); return end
+                end
+                if self.recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
+                    local ok, info = pcall(C_TradeSkillUI.GetRecipeInfo, self.recipeID)
+                    if ok and info and type(info) == "table" and info.hyperlink then ChatFrameUtil.InsertLink(info.hyperlink); return end
+                end
+                if self.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
+                    local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, self.adventureGuideID)
+                    if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link); return end
+                end
+            end
             if self.entryKey then
                 local achID = self.entryKey:match("^ach:(%d+)$")
                 if achID and self.achievementID then
@@ -415,6 +438,7 @@ for i = 1, addon.POOL_SIZE do
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
                     if requireCtrl and not IsControlKeyDown() then return end
                     if IsShiftKeyDown() then
+                        if InCombatLockdown() then return end
                         local trackTypeDecor = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Decor) or 3
                         if ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
                             pcall(ContentTrackingUtil.OpenMapToTrackable, trackTypeDecor, self.decorID)
