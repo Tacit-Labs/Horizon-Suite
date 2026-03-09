@@ -75,7 +75,7 @@ beta-build:
   rules:
     - if: $BETA_BUILD == "1"
   before_script:
-    - apt-get update -qq && apt-get install -y -qq bash git curl zip unzip jq
+    - apt-get update -qq && apt-get install -y -qq bash git curl zip unzip jq python3
     - cp .pkgmeta.beta .pkgmeta
     - curl -sSL "https://raw.githubusercontent.com/BigWigsMods/packager/${PACKAGER_VERSION}/release.sh" -o /tmp/release.sh
     - chmod +x /tmp/release.sh
