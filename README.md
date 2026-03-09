@@ -67,7 +67,7 @@
 - **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
 - **Scaling** – Global UI scale (50–200%) for all modules, or per-module sliders for Focus, Presence, Vista, Insight, and Yield when WoW UI scale is lowered.
 - **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
-- **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, and colours. Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
+- **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
 - **Timer layout** – Bar below objectives, inline beside the title, or inline on its own line below the title.
 - **Fluid motion** – Smooth entry/exit animations and a subtle pulse on objective completion.
 - **Scroll indicators** – Optional fade or arrow buttons when the list has more content than visible.
@@ -96,7 +96,7 @@
 
 **Requirements:** World of Warcraft Retail (The War Within or later).
 
-**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in the Typography options. If not installed, the font dropdown shows only Game Font and any custom path you enter.
+**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in Typography and statusbar textures for progress bars. If not installed, the font dropdown shows only Game Font and any custom path you enter; progress bars use Solid texture.
 
 1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Crystilac93/Horizon-Suite/releases) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Crystilac93/Horizon-Suite/releases/tag/beta))
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.

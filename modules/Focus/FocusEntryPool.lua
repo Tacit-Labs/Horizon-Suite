@@ -441,7 +441,7 @@ local function UpdateScenarioBar(bar, now, category)
     end
     local useTimerColor = addon.GetDB("timerColorByRemaining", true)
     local labelR, labelG, labelB = addon.GetTimerTextColor(remaining, d, colorCat, useTimerColor)
-    bar.Fill:SetColorTexture(progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
+    addon.ApplyProgressBarFillTexture(bar.Fill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
     bar.Label:SetTextColor(labelR, labelG, labelB, 1)
 end
 

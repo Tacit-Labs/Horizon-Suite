@@ -389,7 +389,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 obj.progressBarFill:SetPoint("TOPLEFT", obj.progressBarBg, "TOPLEFT", 0, 0)
                 obj.progressBarFill:SetPoint("BOTTOMLEFT", obj.progressBarBg, "BOTTOMLEFT", 0, 0)
                 obj.progressBarFill:SetWidth(fillW)
-                obj.progressBarFill:SetColorTexture(progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
+                addon.ApplyProgressBarFillTexture(obj.progressBarFill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
                 obj.progressBarFill:Show()
 
                 if obj.progressBarLabel then
@@ -420,7 +420,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 obj.progressBarFill:SetPoint("TOPLEFT", obj.progressBarBg, "TOPLEFT", 0, 0)
                 obj.progressBarFill:SetPoint("BOTTOMLEFT", obj.progressBarBg, "BOTTOMLEFT", 0, 0)
                 obj.progressBarFill:SetWidth(fillW)
-                obj.progressBarFill:SetColorTexture(progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
+                addon.ApplyProgressBarFillTexture(obj.progressBarFill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
                 obj.progressBarFill:Show()
 
                 if obj.progressBarLabel then
@@ -829,7 +829,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         if isAbundanceBar and isFull then
             fillColor = addon.OBJ_DONE_COLOR or { 0.30, 0.80, 0.30 }
         end
-        entry.wqProgressFill:SetColorTexture(fillColor[1], fillColor[2], fillColor[3], fillColor[4] or 0.85)
+        addon.ApplyProgressBarFillTexture(entry.wqProgressFill, fillColor[1], fillColor[2], fillColor[3], fillColor[4] or 0.85)
         entry.wqProgressFill:Show()
         local barLabel
         local isAbundanceHeldSel = questData.isAbundanceScenario and selectedObj and isAbundanceHeld(selectedObj.text)

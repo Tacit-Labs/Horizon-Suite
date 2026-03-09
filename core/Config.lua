@@ -450,3 +450,76 @@ function addon.GetSoundDropdownOptions()
     return list
 end
 
+-- ============================================================================
+-- STATUSBAR LIST (for progress bar texture via LibSharedMedia)
+-- ============================================================================
+
+--- Resolve a LibSharedMedia statusbar key to a texture file path.
+--- @param value string|nil LSM statusbar key (e.g. "Solid", "Blizzard")
+--- @return string Texture path; fallback to WHITE8X8 if invalid
+function addon.ResolveStatusbarPath(value)
+    if type(value) ~= "string" or value == "" then
+        return "Interface\\Buttons\\WHITE8X8"
+    end
+    local LSM = (LibStub and LibStub("LibSharedMedia-3.0", true)) or nil
+    if LSM and LSM.Fetch then
+        local ok, path = pcall(LSM.Fetch, LSM, "statusbar", value, true)
+        if ok and type(path) == "string" and path ~= "" then
+            return path
+        end
+    end
+    return "Interface\\Buttons\\WHITE8X8"
+end
+
+--- Build dropdown options for statusbar textures from LibSharedMedia.
+--- @return table Array of { displayName, value } pairs; "Solid" first
+function addon.GetStatusbarDropdownOptions()
+    local list = {}
+    local LSM = (LibStub and LibStub("LibSharedMedia-3.0", true)) or nil
+    if not (LSM and LSM.HashTable) then
+        list[1] = { "Solid", "Solid" }
+        return list
+    end
+    local hash = LSM:HashTable("statusbar")
+    if type(hash) ~= "table" then
+        list[1] = { "Solid", "Solid" }
+        return list
+    end
+    local names = {}
+    for name in pairs(hash) do
+        if type(name) == "string" and name ~= "" then
+            names[#names + 1] = name
+        end
+    end
+    table.sort(names)
+    -- Prefer "Solid" first to match default behavior
+    if names[1] ~= "Solid" then
+        local idx = nil
+        for i, n in ipairs(names) do
+            if n == "Solid" then idx = i break end
+        end
+        if idx then
+            table.remove(names, idx)
+            table.insert(names, 1, "Solid")
+        end
+    end
+    for _, name in ipairs(names) do
+        list[#list + 1] = { name, name }
+    end
+    if #list == 0 then list[1] = { "Solid", "Solid" } end
+    return list
+end
+
+--- Apply progress bar fill texture and vertex color. Uses LSM statusbar texture from DB.
+--- @param tex table Texture object (e.g. progressBarFill)
+--- @param r number Red (0-1)
+--- @param g number Green (0-1)
+--- @param b number Blue (0-1)
+--- @param a number|nil Alpha (0-1); default 0.85
+function addon.ApplyProgressBarFillTexture(tex, r, g, b, a)
+    if not tex then return end
+    local path = addon.ResolveStatusbarPath(addon.GetDB("progressBarTexture", "Solid"))
+    tex:SetTexture(path)
+    tex:SetVertexColor(r or 0.4, g or 0.65, b or 0.9, a or 0.85)
+end
+

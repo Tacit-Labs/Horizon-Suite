@@ -2028,6 +2028,9 @@ do
                     if mediaType == "font" then
                         if addon.RefreshFontList then addon.RefreshFontList() end
                         if addon.ApplyTypography then addon.ApplyTypography() end
+                    elseif mediaType == "statusbar" then
+                        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                        if addon.FullLayout and not InCombatLockdown() then addon.FullLayout() end
                     end
                 end
             end
