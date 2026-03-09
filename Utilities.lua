@@ -590,6 +590,7 @@ addon.GetTaskQuestsForMap = C_TaskQuest and (C_TaskQuest.GetQuestsForPlayerByMap
 --- @return nil
 function addon.ToggleQuestDetails(questID)
     if not questID or not C_QuestLog then return end
+    if InCombatLockdown() then return end
 
     local worldMap = _G.WorldMapFrame
     local mapShown = worldMap and worldMap.IsShown and worldMap:IsShown()
@@ -625,6 +626,7 @@ end
 -- Used by click handlers so the logic lives in one place.
 function addon.OpenQuestDetails(questID)
     if not questID or not C_QuestLog then return end
+    if InCombatLockdown() then return end
 
     if QuestMapFrame_OpenToQuestDetails then
         if C_Timer and C_Timer.After then
@@ -661,6 +663,7 @@ end
 -- Used by click handlers for tracked achievements.
 function addon.OpenAchievementToAchievement(achievementID)
     if not achievementID or type(achievementID) ~= "number" or achievementID <= 0 then return end
+    if InCombatLockdown() then return end
     if AchievementFrame_LoadUI then AchievementFrame_LoadUI() end
     if OpenAchievementFrameToAchievement then
         OpenAchievementFrameToAchievement(achievementID)
