@@ -10,6 +10,26 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.11.0] – 2026-03-10
+
+### 🐛 Fixes
+
+- **(Insight) Insight tooltip content sometimes spills out of container for NPCs**
+- **(Focus) Scenario tracker: fix weighted progress when quantity is percentage (0-100)**
+
+### ✨ New Features
+
+- **(Focus) Shift-click to link quests, achievements, endeavors, recipes, and adventure guide in chat; fix ADDON_ACTION_BLOCKED in combat**
+
+### 🔧 Improvements
+
+- **(Vista) 24-hour clock toggle for Vista time display**
+- **(Vista) Class colour tinting for Vista and options panel**
+- **(Core) Vertical scrollbar for options panel main content**
+- **(Focus) Scenario tracker improvements**
+
+---
+
 ## [3.10.0] – 2026-03-09
 
 ### ✨ New Features
