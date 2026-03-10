@@ -1,4 +1,3 @@
-```
 **Description**
 Clearly and concisely describe the scenario involved.
 
@@ -28,4 +27,3 @@ If applicable, copy/Paste any involved LUA errors.
 
 **Extra:**
 If applicable, provide any relevant information not covered by an above section.
-```
