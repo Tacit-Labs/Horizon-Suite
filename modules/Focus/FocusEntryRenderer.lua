@@ -561,7 +561,10 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do bar:Hide() end
         end
-        return totalH
+        -- Abundance progress bar is independent of the timer toggle; continue to show it.
+        if not questData.isAbundanceScenario then
+            return totalH
+        end
     end
     local timerDisplayMode = addon.GetDB("timerDisplayMode", "inline")
     local isWorld = questData.category == "WORLD" or questData.category == "CALLING"
@@ -665,7 +668,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
 
     local showBar
     -- Use cinematic timer bars (reverse progress) for scenario entries and any entry with structured timer data.
-    local wantTimerBars = (isScenarioOrDelve and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer)
+    local wantTimerBars = showTimerBars and ((isScenarioOrDelve and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer))
     if wantTimerBars and entry.scenarioTimerBars and not skipTimerBarDisplay then
         local timerSources = {}
         for _, o in ipairs(questData.objectives or {}) do
@@ -728,7 +731,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             showBar = true
         end
 
-        if showTimer and timerStr and not skipTimerBarDisplay then
+        if showTimerBars and showTimer and timerStr and not skipTimerBarDisplay then
             local timerSpacing = (isScenarioOrDelve or isGenericTimed) and (spacing + timedBarTopMargin) or spacing
             entry.wqTimerText:SetText(timerStr)
             entry.wqTimerText:SetWidth(barW)
@@ -833,7 +836,18 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         entry.wqProgressFill:Show()
         local barLabel
         local isAbundanceHeldSel = questData.isAbundanceScenario and selectedObj and isAbundanceHeld(selectedObj.text)
-        if selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number" then
+        local hasXy = selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number"
+        local useXyFormat = progressBarTypeFilter ~= "percent_only" and hasXy
+        if isAbundanceBar and hasXy then
+            -- Abundance: always show X/Y and % together.
+            local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
+            barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
+            if firstPercent ~= nil then
+                barLabel = barLabel .. " (" .. tostring(firstPercent) .. "%)"
+            end
+            if isAbundanceBagSel then barLabel = (addon.L and addon.L["Abundance Bag"] or "Abundance Bag") .. ": " .. barLabel end
+            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["abundance held"] or "abundance held") end
+        elseif useXyFormat then
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
             barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
             if isAbundanceBagSel then barLabel = (addon.L and addon.L["Abundance Bag"] or "Abundance Bag") .. ": " .. barLabel end
