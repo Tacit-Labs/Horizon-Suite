@@ -80,5 +80,4 @@ options/zhCN.lua
 options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua
-options/Mockups.lua
 options/DashboardPanel.lua

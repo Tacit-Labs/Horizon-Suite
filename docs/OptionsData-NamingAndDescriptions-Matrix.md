@@ -115,7 +115,7 @@ Drop "Enable", "Show", "Use" where the control type (toggle/dropdown) already im
 | Insight   | Tooltip anchor mode                         | Tooltip anchor             |
 | Insight   | Show status badges                          | Status badges              |
 | Insight   | Show Mythic+ score                          | Mythic+ score              |
-| Insight   | Show item level                             | Item level                 |
+| Insight   | Show item level                             | Item level                |
 | Insight   | Show mount info                             | Mount info                 |
 | Insight   | Show transmog status                        | Transmog status            |
 | Insight   | Show guild rank                             | Guild rank                 |
@@ -176,7 +176,7 @@ Short `desc` shown inline. Optional `tooltip` shown on hover for detail. "—" m
 | Content    | Item source                      | Super-tracked first, or current zone first.                                 | —                                                                                   |
 | Blacklist  | Blacklisted quests               | Quests hidden via right-click untrack.                                      | Enable "Blacklist untracked" in Behaviour to add quests here.                       |
 | Presence   | Subzone only                     | Only show subzone name within same zone.                                    | Zone name still appears when entering a new zone.                                   |
-| Presence   | Suppress in M+                   | Only boss emotes, achievements, and level-up.                               | Hides zone, quest, and scenario notifications in Mythic+.                           |
+| Presence   | Suppress in M+                   | Only boss emotes, achievements, and level-up.                                | Hides zone, quest, and scenario notifications in Mythic+.                           |
 | Vista      | Manage addon buttons             | Collect and group addon minimap buttons.                                    | Groups them by the selected layout mode below.                                      |
 | Vista      | Button mode                      | Hover bar, right-click panel, or drawer.                                    | —                                                                                   |
 | Vista      | Always show bar                  | Keep bar visible for repositioning.                                         | Disable when done.                                                                  |
@@ -219,4 +219,3 @@ Section headings within categories stay as-is unless noted below:
 - Add `OnEnter`/`OnLeave` tooltip support to toggle, slider, dropdown, color, and button widgets in `OptionsWidgets.lua`.
 - Update `OptionsData_BuildSearchIndex` to concatenate `desc` and `tooltip` for search text.
 - New or changed L[] keys need entries in frFR, koKR, ptBR, ruRU locale files (leave untranslated until translators update).
-

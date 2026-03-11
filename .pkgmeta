@@ -8,6 +8,7 @@ manual-changelog:
 # Exclude CI, config, and dev scripts from the packaged addon
 ignore:
   - HorizonSuiteBeta.toc
+  - options/Mockups.lua
   - .github
   - .gitignore
   - .pkgmeta

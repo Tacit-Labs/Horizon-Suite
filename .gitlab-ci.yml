@@ -1,10 +1,12 @@
-# GitLab CI: release (tag v*) and beta (manual trigger with BETA_BUILD=1).
+# GitLab CI: release (tag v*), beta (manual trigger with BETA_BUILD=1), issuelog (schedule or ISSUELOG_RUN=1).
 # Release: push tag v* (e.g. v3.5.0). Required: CF_API_KEY, WAGO_API_TOKEN.
 # Beta: trigger pipeline with BETA_BUILD=1 and optional ref (e.g. glab ci run --ref feature/xyz -f BETA_BUILD=1).
 #   Required for beta tag push: PROJECT_ACCESS_TOKEN (or GITLAB_TOKEN) with write_repository.
 #   Optional: DISCORD_WEBHOOK_BETA for beta Discord notification.
+# Issuelog: runs on schedule or manual (glab ci run -f ISSUELOG_RUN=1). Required: DISCORD_WEBHOOK_ISSUELOG.
 
 stages:
+  - issuelog
   - build
   - release
   - beta
@@ -12,6 +14,53 @@ stages:
 variables:
   PACKAGER_VERSION: "v2.5.1"
   GIT_DEPTH: "0"
+
+# Post open issues to Discord. Runs on schedule or manual trigger (glab ci run -f ISSUELOG_RUN=1).
+# Add schedule in CI/CD → Schedules (e.g. 0 */6 * * * for every 6 hours).
+issuelog:
+  stage: issuelog
+  image: ubuntu:22.04
+  rules:
+    - if: $ISSUELOG_RUN == "1"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  cache:
+    key: issuelog-msg-id
+    paths:
+      - .release/discord-issuelog-message-id
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl jq
+  script:
+    - mkdir -p .release
+    - bash .release/run-issuelog-gitlab.sh
+    - |
+      if [ -z "${DISCORD_WEBHOOK_ISSUELOG}" ]; then
+        echo "DISCORD_WEBHOOK_ISSUELOG not set; skipping Discord post."
+        exit 0
+      fi
+      MSG_ID_FILE=.release/discord-issuelog-message-id
+      MSG_ID=""
+      [ -f "$MSG_ID_FILE" ] && MSG_ID=$(cat "$MSG_ID_FILE" | tr -d '[:space:]')
+
+      if [ -n "$MSG_ID" ]; then
+        DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+          "${DISCORD_WEBHOOK_ISSUELOG}/messages/${MSG_ID}" || echo "000")
+        echo "DELETE returned ${DEL_HTTP}"
+      fi
+
+      RESP=$(curl -s -w "\n%{http_code}" -X POST \
+        "${DISCORD_WEBHOOK_ISSUELOG}?wait=true" \
+        -H "Content-Type: application/json" \
+        -d @.release/discord-issuelog-payload.json)
+      HTTP=$(echo "$RESP" | tail -1)
+      BODY=$(echo "$RESP" | sed '$d')
+      NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
+      if [ -n "$NEW_ID" ]; then
+        echo "$NEW_ID" > "$MSG_ID_FILE"
+        echo "Posted new Discord message ${NEW_ID}"
+      else
+        echo "Failed to post (HTTP ${HTTP}): $BODY"
+        exit 1
+      fi
 
 # Use BigWigs packager: package addon, upload to CurseForge and Wago.
 # Mirrors .github/workflows/release.yml behavior.
