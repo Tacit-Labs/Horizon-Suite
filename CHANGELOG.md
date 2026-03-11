@@ -10,6 +10,8 @@ All notable changes to Horizon Suite are documented here.
 
 - **(Presence) Complete Presence Overhaul** — Beta from feat/Complete-Presence-Overhaul branch.
 - **(Core) Update README branding and links for GitLab migration**
+- **(Focus) Scenario timer bar updates every 0.5s instead of 1s**
+- **(Core) Fix beta release job when release already exists**
 
 ---
 
