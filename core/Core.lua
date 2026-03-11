@@ -1362,6 +1362,28 @@ end)
 arrowTopFrame:SetScript("OnEnter", function() arrowTopTex:SetAlpha(1) end)
 arrowTopFrame:SetScript("OnLeave", function() arrowTopTex:SetAlpha(0.60) end)
 
+local function UpdateScrollArrowPositions()
+    local layout = addon.focus and addon.focus.layout
+    local useGrowUp
+    if layout and layout.useGrowUpScrollLayout ~= nil then
+        useGrowUp = layout.useGrowUpScrollLayout
+    else
+        useGrowUp = addon.GetDB("growUp", false)
+    end
+    arrowBottomFrame:ClearAllPoints()
+    arrowTopFrame:ClearAllPoints()
+    if useGrowUp then
+        local headerArea = addon.GetDB("hideObjectivesHeader", false)
+            and (addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4))
+            or (addon.GetScaledPadding() * 2 + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
+        arrowBottomFrame:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -4, headerArea + addon.Scaled(4))
+        arrowTopFrame:SetPoint("TOPRIGHT", HS, "TOPRIGHT", -4, -(addon.Scaled(4)))
+    else
+        arrowBottomFrame:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -4, addon.PADDING - 2)
+        arrowTopFrame:SetPoint("TOPRIGHT", HS, "TOPRIGHT", -4, -(addon.PADDING + addon.GetHeaderHeight() + addon.DIVIDER_HEIGHT + addon.GetHeaderToContentGap() - 2))
+    end
+end
+
 --- Compute fade alpha for an entry based on how close it is to being clipped
 --- at a viewport edge. Only fades toward edges where there IS more content.
 ---
@@ -1455,6 +1477,7 @@ local function ClearAllFades()
 end
 
 function addon.UpdateScrollIndicators()
+    UpdateScrollArrowPositions()
     local enabled = addon.GetDB("showScrollIndicator", false)
 
     local childH = scrollChild:GetHeight() or 0

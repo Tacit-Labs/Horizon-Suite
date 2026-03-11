@@ -403,6 +403,7 @@ local function FullLayout()
         or (headerMode == "collapse" and (effectiveCollapsed
                 or (addon.focus.layout and addon.focus.layout.allCategoriesCollapsed))
             and not (collapse and collapse.headerSlidingToTop)))
+    addon.focus.layout.useGrowUpScrollLayout = useGrowUpScrollLayout
 
     if useGrowUpScrollLayout then
         -- Header at bottom; scrollFrame fills from top down to just above header (or M+ block).
@@ -532,7 +533,8 @@ local function FullLayout()
                 scrollChild:SetHeight(totalContentH)
                 local frameH = scrollFrame:GetHeight() or 0
                 local maxScr = math.max(totalContentH - frameH, 0)
-                local scrollOffset = (useGrowUpScrollLayout and maxScr > 0) and maxScr or 0
+                local prevScroll = addon.focus.layout.scrollOffset or 0
+                local scrollOffset = math.min(prevScroll, maxScr)
                 addon.focus.layout.scrollOffset = scrollOffset
                 addon.ApplyScrollOffset(scrollOffset)
                 if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
@@ -620,6 +622,7 @@ local function FullLayout()
             end
             useGrowUpScrollLayout = needHeaderAtBottom
         end
+        addon.focus.layout.useGrowUpScrollLayout = useGrowUpScrollLayout
     end
 
     -- When a category is collapsing, skip full layout to avoid section header flicker.
@@ -1238,11 +1241,7 @@ local function FullLayout()
 
     local frameH = scrollFrame:GetHeight() or 0
     local maxScr = math.max(totalContentH - frameH, 0)
-    if useGrowUpScrollLayout and maxScr > 0 then
-        addon.focus.layout.scrollOffset = maxScr
-    else
-        addon.focus.layout.scrollOffset = math.min(prevScroll, maxScr)
-    end
+    addon.focus.layout.scrollOffset = math.min(prevScroll, maxScr)
     addon.ApplyScrollOffset(addon.focus.layout.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
 
