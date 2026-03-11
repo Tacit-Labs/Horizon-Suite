@@ -193,3 +193,13 @@ beta-release:
       NOTES=$(cat .release/beta-notes.md)
       release-cli create --tag-name beta --name "Beta" --description "$NOTES" \
         --assets-link "{\"name\":\"HorizonSuite-beta.zip\",\"url\":\"${ARTIFACT_URL}\"}"
+
+# Add this job - runs on MRs and pushes to branches, does nothing (or runs lint/tests if you add them later)
+mr-check:
+  stage: build  # or a new "validate" stage
+  image: alpine:latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_TAG == null
+  script:
+    - echo "MR/branch pipeline - no release jobs needed"
