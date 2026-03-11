@@ -182,17 +182,32 @@ beta-build:
 
 beta-release:
   stage: beta
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: ubuntu:22.04
   needs:
     - job: beta-build
   rules:
     - if: $BETA_BUILD == "1"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl jq
   script:
     - |
       ARTIFACT_URL="${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/.release/HorizonSuite-beta.zip?job=beta-build"
       NOTES=$(cat .release/beta-notes.md)
-      release-cli create --tag-name beta --name "Beta" --description "$NOTES" \
-        --assets-link "{\"name\":\"HorizonSuite-beta.zip\",\"url\":\"${ARTIFACT_URL}\"}"
+      API="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+      if [ -n "${PROJECT_ACCESS_TOKEN}" ] || [ -n "${GITLAB_TOKEN}" ]; then
+        AUTH="PRIVATE-TOKEN: ${PROJECT_ACCESS_TOKEN:-$GITLAB_TOKEN}"
+      else
+        AUTH="JOB-TOKEN: ${CI_JOB_TOKEN}"
+      fi
+      # Delete existing beta release so create succeeds (409 "Release already exists" otherwise)
+      curl -s -o /dev/null -w "%{http_code}" --request DELETE --header "$AUTH" "${API}/beta" || true
+      # Create release (tag already exists from beta-build)
+      BODY=$(printf '%s' "$NOTES" | jq -Rs --arg url "$ARTIFACT_URL" '{ name: "Beta", tag_name: "beta", description: ., assets: { links: [{ name: "HorizonSuite-beta.zip", url: $url, link_type: "other" }] } }')
+      HTTP=$(curl -s -o /tmp/resp.json -w "%{http_code}" --request POST --header "Content-Type: application/json" --header "$AUTH" --data "$BODY" "$API")
+      if [ "$HTTP" != "201" ]; then
+        echo "Release create failed (HTTP $HTTP):"; cat /tmp/resp.json
+        exit 1
+      fi
 
 # Add this job - runs on MRs and pushes to branches, does nothing (or runs lint/tests if you add them later)
 mr-check:
