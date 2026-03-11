@@ -89,7 +89,7 @@ addon.StopCurrentQuestExpiryTicker = StopCurrentQuestExpiryTicker
 
 local function StartScenarioBarTicker()
     if addon._scenarioBarTicker then return end
-    addon._scenarioBarTicker = C_Timer.NewTicker(1, function()
+    addon._scenarioBarTicker = C_Timer.NewTicker(0.5, function()
         if addon.UpdateScenarioTimerBars then addon.UpdateScenarioTimerBars() end
     end)
 end
