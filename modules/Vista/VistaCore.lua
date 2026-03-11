@@ -1645,30 +1645,62 @@ end -- end DEFAULT_BTN_DEFS do-block
 
 local QUEUE_ANCHOR_PAD = 6  -- padding around the 45px button
 
+local function AttachQueueButtonToAnchor()
+    if not queueAnchor then return end
+    local realBtn = _G["QueueStatusButton"] or _G["QueueStatusMinimapButton"] or _G["MiniMapBattlefieldFrame"]
+    if not realBtn then return end
+
+    local btnSz = G.QueueBtnSize()
+
+    pcall(function() realBtn:SetParent(queueAnchor) end)
+    pcall(function() realBtn:ClearAllPoints() end)
+    pcall(function() realBtn:SetPoint("CENTER", queueAnchor, "CENTER", 0, 0) end)
+    pcall(function() realBtn:SetSize(btnSz, btnSz) end)
+    pcall(function() realBtn:SetFrameStrata("HIGH") end)
+    pcall(function() realBtn:SetFrameLevel(queueAnchor:GetFrameLevel() + 1) end)
+    pcall(function() realBtn:SetIgnoreParentAlpha(true) end)
+
+    pcall(function()
+        for _, region in ipairs({ realBtn:GetRegions() }) do
+            if region and region:IsObjectType("Texture") then
+                local tex = region:GetTexture()
+                if tex and type(tex) == "string" then
+                    local lower = tex:lower()
+                    if lower:find("groupfinder") or lower:find("lfg") or lower:find("minimap") then
+                        if lower:find("ring") or lower:find("highlight") or lower:find("border") then
+                            region:SetAlpha(0)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
 local function RefreshQueueAnchor()
     if not queueAnchor then return end
     if DB("vistaQueueHandlingDisabled", false) then
         queueAnchor:SetAlpha(0)
         queueAnchor._border:Hide()
-        queueAnchor:Hide()
+        queueAnchor:EnableMouse(false)
+        queueAnchor:Show()
         return
     end
     local realBtn = _G["QueueStatusButton"] or _G["QueueStatusMinimapButton"] or _G["MiniMapBattlefieldFrame"]
     local locked  = DB("vistaLocked_proxy_queue", true)
     local queued  = realBtn and realBtn:IsShown()
 
-    if queued then
+    AttachQueueButtonToAnchor()
+    queueAnchor:Show()
+
+    if not locked then
         queueAnchor:SetAlpha(1)
-        queueAnchor._border:Hide()
-        queueAnchor:Show()
-    elseif not locked then
-        queueAnchor:SetAlpha(1)
-        queueAnchor._border:Show()
-        queueAnchor:Show()
+        queueAnchor:EnableMouse(true)
+        queueAnchor._border:SetShown(not queued)
     else
         queueAnchor:SetAlpha(0)
+        queueAnchor:EnableMouse(false)
         queueAnchor._border:Hide()
-        queueAnchor:Hide()
     end
 end
 
@@ -1734,6 +1766,24 @@ local function CreateQueueAnchor()
         self:ClearAllPoints()
         self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
     end)
+
+    -- Attach the real button into the anchor now
+    AttachQueueButtonToAnchor()
+
+    -- Hook SetParent so if Blizzard re-parents the button we move it back
+    if hooksecurefunc then
+        hooksecurefunc(realBtn, "SetParent", function(self, parent)
+            if parent ~= queueAnchor and queueAnchor and not DB("vistaQueueHandlingDisabled", false) then
+                C_Timer.After(0, function()
+                    if queueAnchor and not DB("vistaQueueHandlingDisabled", false) then
+                        AttachQueueButtonToAnchor()
+                    end
+                end)
+            end
+        end)
+    end
+
+    RefreshQueueAnchor()
 end
 
 local INTERNAL_BLACKLIST, BLIZZARD_DEFAULT_BUTTONS, ClusterAndOtherAddonNamePatterns, buttonOriginalState, proxyButtonCache

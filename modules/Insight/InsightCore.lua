@@ -316,10 +316,8 @@ local function HookGameTooltipAnimation()
     GameTooltip:HookScript("OnShow", function(self)
         if not IsEnabled() then return end
         if self.GetUnit and self:GetUnit() then
-            C_Timer.After(0, function()
-                local fn = addon and addon.Insight and addon.Insight.StripHealthAndPowerText
-                if fn then fn() end
-            end)
+            local fn = Insight.StripHealthAndPowerText
+            if fn then fn() end
         end
         if suppressFadeIn then
             suppressFadeIn = false
@@ -768,17 +766,9 @@ local function OnItemTooltip(tooltip, data)
     end
 end
 
-local pendingUnit = false
-
 local function OnUnitTooltip(tooltip, data)
     if tooltip ~= GameTooltip or not IsEnabled() then return end
-    if not pendingUnit then
-        pendingUnit = true
-        C_Timer.After(0, function()
-            pendingUnit = false
-            ProcessUnitTooltip()
-        end)
-    end
+    ProcessUnitTooltip()
 end
 
 -- ============================================================================
