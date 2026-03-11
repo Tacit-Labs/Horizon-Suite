@@ -54,6 +54,10 @@ modules/Focus/FocusModule.lua
 
 modules/Presence/PresenceCore.lua
 modules/Presence/PresenceBlizzard.lua
+modules/Presence/PresenceScenario.lua
+modules/Presence/PresenceQuest.lua
+modules/Presence/PresenceZone.lua
+modules/Presence/PresenceAchievement.lua
 modules/Presence/PresenceEvents.lua
 modules/Presence/PresenceErrors.lua
 modules/Presence/PresenceSlash.lua

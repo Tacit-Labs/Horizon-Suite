@@ -72,9 +72,9 @@ There is **no API to programmatically turn in quests** that require NPC interact
 
 Per `focus-coding-style.mdc`:
 
-- **Existence check**: `if C_Foo and C_Foo.Bar then` — default for APIs that may not exist in current WoW version.
+- **Existence check**: `if C_Foo and C_Foo.Bar then` — only for APIs in "Verify in-game" or expansion-specific. No legacy fallback chain.
 - **pcall**: Only when the API exists but can throw on bad input (e.g. `C_QuestLog.GetInfo` with invalid logIndex). Add a comment explaining why.
-- **Fallback values**: Use `or 2`, `or 3` etc. for Enum values when `Enum.X` may be nil (e.g. `(Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Achievement) or 2`).
+- **Enums**: Use `Enum.ContentTrackingType.Achievement` directly when documented. No `or 2` fallback (retail-only).
 
 ---
 

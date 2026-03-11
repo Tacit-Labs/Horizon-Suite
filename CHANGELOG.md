@@ -6,7 +6,9 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-<!-- Changelog entries are generated from closed GitLab Issues at release time. -->
+### 🔧 Improvements
+
+- **(Presence) Complete Presence Overhaul** — Beta from feat/Complete-Presence-Overhaul branch.
 
 ---
 

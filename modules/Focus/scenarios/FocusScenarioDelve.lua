@@ -16,7 +16,7 @@ function DelveProvider:GetDisplayInfo()
     local title = addon.GetDelveNameFromAPIs and addon.GetDelveNameFromAPIs() or "Delve"
     local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
     if tier then
-        title = string.format("%s (Tier %d)", title, tier)
+        title = string.format("%s - Tier %d", title, tier)
     end
     
     local ok, stageName = pcall(C_Scenario.GetStepInfo)
