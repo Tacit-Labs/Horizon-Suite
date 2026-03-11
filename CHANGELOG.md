@@ -9,6 +9,7 @@ All notable changes to Horizon Suite are documented here.
 ### 🔧 Improvements
 
 - **(Presence) Complete Presence Overhaul** — Beta from feat/Complete-Presence-Overhaul branch.
+- **(Core) Update README branding and links for GitLab migration**
 
 ---
 
