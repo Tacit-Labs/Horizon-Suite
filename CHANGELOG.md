@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.11.1] – 2026-03-11
+
+### 🐛 Fixes
+
+- **(Focus) Fix grow-up mode: scroll position and arrow overlay on header**
+
+### 🔧 Improvements
+
+- **(Core) Localization workflow: LocaleBase as source of truth**
+
+---
+
 ## [3.11.0] – 2026-03-10
 
 ### 🐛 Fixes
@@ -19,7 +31,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
-- **(Focus) Shift-click to link quests, achievements, endeavors, recipes, and adventure guide in chat; fix ADDON_ACTION_BLOCKED in combat**
+- **(Focus) Shift-click to link quests, achievements, endeavors, recipes, and adventure guide in chat;
 
 ### 🔧 Improvements
 
