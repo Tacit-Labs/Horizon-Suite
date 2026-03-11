@@ -19,6 +19,14 @@ local function isAbundanceBag(text)
     return lower:find("abundance") and lower:find("bag")
 end
 
+--- True if objective is intrinsically percent-based (text "X%", progressbar type, or weighted), not derived from X/Y.
+local function IsIntrinsicallyPercentBased(o)
+    if not o then return false end
+    local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
+    local isProgressBarType = (o.type == "progressbar" or o.type == 8 or o.isWeighted)
+    return (textPct ~= nil) or isProgressBarType
+end
+
 local function IsProgressBarEnabled(questData)
     local isScenario = questData.category == "SCENARIO"
         or questData.category == "DELVES"
@@ -561,7 +569,10 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do bar:Hide() end
         end
-        return totalH
+        -- Abundance progress bar is independent of the timer toggle; continue to show it.
+        if not questData.isAbundanceScenario then
+            return totalH
+        end
     end
     local timerDisplayMode = addon.GetDB("timerDisplayMode", "inline")
     local isWorld = questData.category == "WORLD" or questData.category == "CALLING"
@@ -665,7 +676,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
 
     local showBar
     -- Use cinematic timer bars (reverse progress) for scenario entries and any entry with structured timer data.
-    local wantTimerBars = (isScenarioOrDelve and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer)
+    local wantTimerBars = showTimerBars and ((isScenarioOrDelve and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer))
     if wantTimerBars and entry.scenarioTimerBars and not skipTimerBarDisplay then
         local timerSources = {}
         for _, o in ipairs(questData.objectives or {}) do
@@ -728,7 +739,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             showBar = true
         end
 
-        if showTimer and timerStr and not skipTimerBarDisplay then
+        if showTimerBars and showTimer and timerStr and not skipTimerBarDisplay then
             local timerSpacing = (isScenarioOrDelve or isGenericTimed) and (spacing + timedBarTopMargin) or spacing
             entry.wqTimerText:SetText(timerStr)
             entry.wqTimerText:SetWidth(barW)
@@ -771,6 +782,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     -- Skip objectives where numRequired <= 1 (single kills/loots don't need a bar).
     -- Also skip if the objective progress bar system already handles this entry (avoid duplicates).
     -- Abundance: prefer the "abundance held" or "abundance bag" objective when present.
+    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "percent_only")
     local firstPercent
     local selectedObj
     local hasObjProgressBar = questData._progressBarActive
@@ -780,12 +792,16 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             if o.percent ~= nil and not o.finished then
                 local nr = o.numRequired
                 if nr ~= nil and type(nr) == "number" and nr > 1 then
-                    if questData.isAbundanceScenario and (isAbundanceHeld(o.text) or isAbundanceBag(o.text)) then
+                    local isPercentOnly = (progressBarTypeFilter == "percent_only")
+                    local intrinsic = IsIntrinsicallyPercentBased(o)
+                    local hasArithmetic = (o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numRequired) == "number" and o.numRequired > 1)
+                    if isPercentOnly and hasArithmetic and not intrinsic then
+                        -- Skip: X/Y objective when percent_only
+                    elseif questData.isAbundanceScenario and (isAbundanceHeld(o.text) or isAbundanceBag(o.text)) then
                         selectedObj = o
                         firstPercent = o.percent
                         break
-                    end
-                    if not selectedObj then
+                    elseif not selectedObj then
                         selectedObj = o
                         firstPercent = o.percent
                     end
@@ -793,7 +809,6 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             end
         end
     end
-    local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "percent_only")
     local isAbundanceBagSel = questData.isAbundanceScenario and selectedObj
     local isAbundanceBar = questData.isAbundanceScenario and selectedObj
     if showBar and firstPercent ~= nil and (isAbundanceBar or progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only") then
@@ -833,7 +848,18 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         entry.wqProgressFill:Show()
         local barLabel
         local isAbundanceHeldSel = questData.isAbundanceScenario and selectedObj and isAbundanceHeld(selectedObj.text)
-        if selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number" then
+        local hasXy = selectedObj and selectedObj.numFulfilled ~= nil and selectedObj.numRequired ~= nil and type(selectedObj.numFulfilled) == "number" and type(selectedObj.numRequired) == "number"
+        local useXyFormat = progressBarTypeFilter ~= "percent_only" and hasXy
+        if isAbundanceBar and hasXy then
+            -- Abundance: always show X/Y and % together.
+            local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
+            barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
+            if firstPercent ~= nil then
+                barLabel = barLabel .. " (" .. tostring(firstPercent) .. "%)"
+            end
+            if isAbundanceBagSel then barLabel = (addon.L and addon.L["Abundance Bag"] or "Abundance Bag") .. ": " .. barLabel end
+            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["abundance held"] or "abundance held") end
+        elseif useXyFormat then
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
             barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
             if isAbundanceBagSel then barLabel = (addon.L and addon.L["Abundance Bag"] or "Abundance Bag") .. ": " .. barLabel end
@@ -905,14 +931,15 @@ local function PopulateEntry(entry, questData, groupKey)
         local barCount = 0
         for _, o in ipairs(questData.objectives) do
             local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
-            local isProgressBarType = (o.type == "progressbar" or o.type == 8)
+            local isProgressBarType = (o.type == "progressbar" or o.type == 8 or o.isWeighted)
+            local hasArithmetic = (o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numRequired) == "number" and o.numRequired > 1)
             if o.finished then
                 -- skip
-            elseif o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
+            elseif hasArithmetic then
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "xy_only" then
                     barCount = barCount + 1
                 end
-            elseif textPct or isProgressBarType or (o.percent ~= nil and (o.numRequired == nil or o.numRequired > 1 or o.type == "progressbar")) then
+            elseif IsIntrinsicallyPercentBased(o) or (o.percent ~= nil and not hasArithmetic) then
                 if progressBarTypeFilter == "both" or progressBarTypeFilter == "percent_only" then
                     barCount = barCount + 1
                 end
@@ -1089,7 +1116,7 @@ local function PopulateEntry(entry, questData, groupKey)
     end
     -- Tier in title
     if questData.category == "DELVES" and type(questData.delveTier) == "number" then
-        displayTitle = displayTitle .. (" (Tier %d)"):format(questData.delveTier)
+        displayTitle = displayTitle .. (" - Tier %d"):format(questData.delveTier)
     end
     local showInZoneSuffix = addon.GetDB("showInZoneSuffix", true)
     if showInZoneSuffix then

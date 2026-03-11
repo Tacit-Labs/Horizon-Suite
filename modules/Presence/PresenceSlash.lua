@@ -41,8 +41,8 @@ local function HandlePresenceSlash(msg)
         local L = addon.L or {}
         addon.Presence.QueueOrPlay("ACHIEVEMENT_PROGRESS", L["Exploring the Midnight Isles"], L["Dragon Glyphs: 3/5"])
     elseif cmd == "scenario" then
-        if addon.GetScenarioDisplayInfo and addon.IsScenarioActive and addon.IsScenarioActive() then
-            local title, subtitle, category = addon.GetScenarioDisplayInfo()
+        if addon.Presence.GetScenarioDisplayInfo and addon.Presence.IsScenarioActive and addon.Presence.IsScenarioActive() then
+            local title, subtitle, category = addon.Presence.GetScenarioDisplayInfo()
             addon.Presence.QueueOrPlay("SCENARIO_START", title or "Scenario", subtitle or "", { category = category })
         else
             addon.Presence.QueueOrPlay("SCENARIO_START", "Cinderbrew Meadery", "Defend the tavern from attackers", { category = "SCENARIO" })

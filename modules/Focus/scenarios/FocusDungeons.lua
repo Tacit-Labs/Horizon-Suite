@@ -5,12 +5,6 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
---- True when the player is in any party dungeon (Normal, Heroic, Mythic, or Mythic+). Guarded.
-local function IsInPartyDungeon()
-    local ok, _, instanceType = pcall(GetInstanceInfo)
-    return ok and instanceType == "party"
-end
-
 local function IsInMythicDungeon()
     local ok, name, instanceType, difficultyID = pcall(GetInstanceInfo)
     return ok and instanceType == "party" and (difficultyID == 8 or difficultyID == 23)
@@ -26,7 +20,7 @@ end
 --- filtering out hidden / deprecated / auto-tracked noise regardless of
 --- dungeon difficulty.
 local function CollectDungeonQuests(ctx)
-    if not IsInPartyDungeon() then return {} end
+    if not addon.IsInPartyDungeon() then return {} end
     -- When the M+ block is active, hide the DUNGEON category entirely
     -- (the block already shows bosses, forces, timer, etc.).
     if addon.mplusBlock and addon.mplusBlock:IsShown() then return {} end
@@ -51,7 +45,6 @@ local function CollectDungeonQuests(ctx)
     return out
 end
 
-addon.IsInPartyDungeon     = IsInPartyDungeon
 addon.IsInMythicDungeon    = IsInMythicDungeon
 addon.GetMythicDungeonName = GetMythicDungeonName
 addon.CollectDungeonQuests = CollectDungeonQuests

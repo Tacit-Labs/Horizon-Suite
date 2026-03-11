@@ -21,12 +21,8 @@ local originalAlphas = {}
 local hookedShowFrames = {}  -- frames with persistent hooksecurefunc("Show") applied
 local ZONE_TEXT_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
 
--- Option check with fallback; must match OptionsData/PresenceEvents logic.
 local function isTypeEnabled(key, fallbackKey, fallbackDefault)
-    if not addon.GetDB then return fallbackDefault end
-    local v = addon.GetDB(key, nil)
-    if v ~= nil then return v end
-    return (fallbackKey and addon.GetDB(fallbackKey, fallbackDefault)) or fallbackDefault
+    return addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
 end
 
 -- ============================================================================
@@ -142,15 +138,7 @@ local function ApplyBlizzardSuppression()
     end
 
     -- Event toasts (achievements, quest accept/complete/progress, scenario) - shared frame
-    local anyToast = isTypeEnabled("presenceAchievement", nil, true)
-        or isTypeEnabled("presenceAchievementProgress", nil, false)
-        or isTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceWorldQuestAccept", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceQuestUpdate", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceScenarioStart", "showScenarioEvents", true)
-        or isTypeEnabled("presenceScenarioUpdate", "showScenarioEvents", true)
+    local anyToast = (addon.Presence and addon.Presence.IsAnyToastEnabled and addon.Presence.IsAnyToastEnabled()) or false
     local eventToastFrame = EventToastManagerFrame or _G["EventToastManagerFrame"]
     if anyToast then
         KillBlizzardFrame(eventToastFrame)
@@ -243,15 +231,7 @@ local function DumpBlizzardSuppression(p)
     local bossOn = addon.GetDB and addon.GetDB("presenceBossEmote", true)
     p("Boss emote:    option=" .. tostring(bossOn) .. " | RaidBossEmoteFrame=" .. frameState(bossEmoteFrame))
 
-    local anyToast = isTypeEnabled("presenceAchievement", nil, true)
-        or isTypeEnabled("presenceAchievementProgress", nil, false)
-        or isTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceWorldQuestAccept", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceQuestUpdate", "presenceQuestEvents", true)
-        or isTypeEnabled("presenceScenarioStart", "showScenarioEvents", true)
-        or isTypeEnabled("presenceScenarioUpdate", "showScenarioEvents", true)
+    local anyToast = (addon.Presence and addon.Presence.IsAnyToastEnabled and addon.Presence.IsAnyToastEnabled()) or false
     local eventToastFrame = EventToastManagerFrame or _G["EventToastManagerFrame"]
     p("Event toasts:  any=" .. tostring(anyToast) .. " (ach/quest/scenario) | EventToastManagerFrame=" .. frameState(eventToastFrame))
 

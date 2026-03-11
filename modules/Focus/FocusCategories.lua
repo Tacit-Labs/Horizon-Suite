@@ -6,14 +6,6 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
--- Single source of truth: QuestUtils_IsQuestWorldQuest (Blizzard) or C_QuestLog.IsWorldQuest.
-local function IsQuestWorldQuest(questID)
-    if not questID or questID <= 0 then return false end
-    if _G.QuestUtils_IsQuestWorldQuest and _G.QuestUtils_IsQuestWorldQuest(questID) then return true end
-    if C_QuestLog and C_QuestLog.IsWorldQuest and C_QuestLog.IsWorldQuest(questID) then return true end
-    return false
-end
-
 -- Prey: weeklies and world quests with "Prey:" in the title (Midnight hunting activity). pcall: GetTitleForQuestID can throw on invalid questID.
 local function IsPreyQuest(questID)
     if not questID or not C_QuestLog or not C_QuestLog.GetTitleForQuestID then return false end
@@ -21,74 +13,12 @@ local function IsPreyQuest(questID)
     return ok and title and title:find("Prey:")
 end
 
--- Frequency from quest log (Daily/Weekly). Returns nil if quest not in log or API unavailable.
-local function GetQuestFrequency(questID)
-    if not questID or not C_QuestLog or not C_QuestLog.GetLogIndexForQuestID then return nil end
-    local logIndex = C_QuestLog.GetLogIndexForQuestID(questID)
-    if not logIndex then return nil end
-    if C_QuestLog.GetInfo then
-        local ok, info = pcall(C_QuestLog.GetInfo, logIndex)
-        if ok and info and info.frequency ~= nil then return info.frequency end
-    end
-    return nil
-end
-
--- Single source of truth: C_QuestInfoSystem.GetQuestClassification + frequency + IsQuestWorldQuest.
--- Order: COMPLETE (state) -> WORLD (WQ) -> Classification (Calling, Campaign, Recurring, Important, Legendary) -> Frequency (Weekly) -> DEFAULT.
--- Meta and Questline are ignored and fall through to frequency/DEFAULT.
-local function GetQuestBaseCategory(questID)
-    if not questID or questID <= 0 then return "DEFAULT" end
-    if IsQuestWorldQuest(questID) then
-        if IsPreyQuest(questID) then return "PREY" end
-        return "WORLD"
-    end
-    if C_QuestLog.GetQuestTagInfo then
-        local ok, tagInfo = pcall(C_QuestLog.GetQuestTagInfo, questID)
-        if ok and tagInfo then
-            if tagInfo.tagID == 62 then return "RAID" end
-            if tagInfo.tagID == 81 then return "DUNGEON" end
-        end
-    end
-    -- Classification (single source): Normal, Important, Legendary, Campaign, Calling, Meta, Recurring, Questline.
-    if C_QuestInfoSystem and C_QuestInfoSystem.GetQuestClassification then
-        local qc = C_QuestInfoSystem.GetQuestClassification(questID)
-        if qc == Enum.QuestClassification.Calling then return "CALLING" end
-        if qc == Enum.QuestClassification.Campaign then return "CAMPAIGN" end
-        if qc == Enum.QuestClassification.Recurring then
-            if IsPreyQuest(questID) then return "PREY" end
-            return "WEEKLY"
-        end
-        if qc == Enum.QuestClassification.Important then return "IMPORTANT" end
-        if qc == Enum.QuestClassification.Legendary then return "LEGENDARY" end
-        -- Meta, Questline, Normal: fall through to frequency then DEFAULT
-    end
-    -- Frequency (when in log): Weekly -> WEEKLY; Daily -> DAILY.
-    local freq = GetQuestFrequency(questID)
-    if freq ~= nil then
-        if Enum.QuestFrequency and Enum.QuestFrequency.Weekly and freq == Enum.QuestFrequency.Weekly then
-            if IsPreyQuest(questID) then return "PREY" end
-            return "WEEKLY"
-        end
-        if freq == 2 or (LE_QUEST_FREQUENCY_WEEKLY and freq == LE_QUEST_FREQUENCY_WEEKLY) then
-            if IsPreyQuest(questID) then return "PREY" end
-            return "WEEKLY"
-        end
-        if Enum.QuestFrequency and Enum.QuestFrequency.Daily and freq == Enum.QuestFrequency.Daily then
-            return "DAILY"
-        end
-        if freq == 1 or (LE_QUEST_FREQUENCY_DAILY and freq == LE_QUEST_FREQUENCY_DAILY) then
-            return "DAILY"
-        end
-    end
-    return "DEFAULT"
-end
-
 local function GetQuestCategory(questID)
     if not questID or questID <= 0 then return "DEFAULT" end
     if C_QuestLog and C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) then
         -- When the toggle is on, keep Campaign / Important quests in their
         -- original category even when they are ready to turn in.
-        local base = GetQuestBaseCategory(questID)
+        local base = addon.GetQuestBaseCategory(questID)
         if base == "CAMPAIGN" and addon.GetDB and addon.GetDB("keepCampaignInCategory", false) then
             return "CAMPAIGN"
         end
@@ -97,7 +27,7 @@ local function GetQuestCategory(questID)
         end
         return "COMPLETE"
     end
-    return GetQuestBaseCategory(questID)
+    return addon.GetQuestBaseCategory(questID)
 end
 
 local function GetQuestTypeAtlas(questID, category)
@@ -142,7 +72,7 @@ local function GetQuestTypeAtlas(questID, category)
 end
 
 local function GetQuestZoneName(questID)
-    local isWorldQuest = IsQuestWorldQuest(questID)
+    local isWorldQuest = addon.IsQuestWorldQuest(questID)
 
     -- Helper: normalize any mapID to its zone-level (mapType==3) parent for stable zone labeling.
     local function NormalizeToZoneMapName(mapID)
@@ -248,10 +178,7 @@ local function IsGroupQuest(questID)
     return false
 end
 
-addon.IsQuestWorldQuest    = IsQuestWorldQuest
-addon.GetQuestFrequency   = GetQuestFrequency
 addon.GetQuestCategory     = GetQuestCategory
-addon.GetQuestBaseCategory = GetQuestBaseCategory
 addon.GetQuestTypeAtlas    = GetQuestTypeAtlas
 addon.GetQuestZoneName     = GetQuestZoneName
 addon.IsGroupQuest         = IsGroupQuest

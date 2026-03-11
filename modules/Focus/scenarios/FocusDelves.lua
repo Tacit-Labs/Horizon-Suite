@@ -5,7 +5,6 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
-local TIER_MIN, TIER_MAX = 1, 12
 -- Scenario step widget set contains Delve header; Objective Tracker set may not when tracker is hidden.
 local WIDGET_TYPE_SCENARIO_HEADER_DELVES = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.ScenarioHeaderDelves) or 29
 
@@ -25,63 +24,9 @@ local function GetSpellNameAndIcon(spellID)
     return nil, nil
 end
 
---- True when the player is in an active Delve (guarded API).
-local function IsDelveActive()
-    if C_PartyInfo and C_PartyInfo.IsDelveInProgress then
-        local ok, inDelve = pcall(C_PartyInfo.IsDelveInProgress)
-        if ok and inDelve then return true end
-    end
-    return false
-end
-
---- Current Delve tier (1-12) or nil if unknown/not in delve. Guarded API.
---- Uses ScenarioHeaderDelvesWidget tierText (always available inside an active delve).
-local function GetActiveDelveTier()
-    if not IsDelveActive() then return nil end
-
-    if C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
-        local setID
-        if C_Scenario and C_Scenario.GetStepInfo then
-            local sOk, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
-            if sOk and t and type(t) == "table" and #t >= 12 then
-                local ws = t[12]
-                if type(ws) == "number" and ws ~= 0 then setID = ws end
-            end
-        end
-        if not setID and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
-            local oOk, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-            if oOk and objSet and type(objSet) == "number" then setID = objSet end
-        end
-        if setID then
-            local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
-            if wOk and widgets and type(widgets) == "table" then
-                for _, wInfo in pairs(widgets) do
-                    local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
-                        or (type(wInfo) == "number" and wInfo > 0) and wInfo
-                    local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
-                    if widgetID and (not wType or wType == WIDGET_TYPE_SCENARIO_HEADER_DELVES) then
-                        local dOk, widgetInfo = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
-                        if dOk and widgetInfo and type(widgetInfo) == "table" then
-                            local tierText = widgetInfo.tierText
-                            if tierText and type(tierText) == "string" and tierText ~= "" then
-                                local tier = tonumber(tierText:match("%d+"))
-                                if tier and tier >= TIER_MIN and tier <= TIER_MAX then
-                                    return tier
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return nil
-end
-
 --- Returns nearby quests on the delve map when in a Delve. Only adds quests whose map matches player map.
 local function CollectDelveQuests(ctx)
-    if not IsDelveActive() then return {} end
+    if not addon.IsDelveActive() then return {} end
     local playerMapID = (C_Map and C_Map.GetBestMapForUnit) and C_Map.GetBestMapForUnit("player") or nil
     local mapInfo = (playerMapID and C_Map and C_Map.GetMapInfo) and C_Map.GetMapInfo(playerMapID) or nil
     local mapType = mapInfo and mapInfo.mapType
@@ -114,7 +59,7 @@ end
 --- objective tracker is hidden (Horizon replaces it) as widgets may not be populated.
 --- @return table|nil Array of { name, desc, icon } or nil if not in Delve or no affixes
 local function GetDelvesAffixes()
-    if not IsDelveActive() then return nil end
+    if not addon.IsDelveActive() then return nil end
 
     local affixes = {}
 
@@ -206,16 +151,5 @@ local function GetDelvesAffixes()
     return (#affixes > 0) and affixes or nil, nil
 end
 
---- Returns the name of the current Delve via C_Scenario.GetInfo.
-local function GetDelveNameFromAPIs()
-    if not IsDelveActive() then return nil end
-    local ok, name = pcall(C_Scenario.GetInfo)
-    if ok and name and name ~= "" then return name end
-    return nil
-end
-
-addon.IsDelveActive        = IsDelveActive
-addon.GetActiveDelveTier   = GetActiveDelveTier
-addon.GetDelveNameFromAPIs  = GetDelveNameFromAPIs
 addon.CollectDelveQuests   = CollectDelveQuests
 addon.GetDelvesAffixes     = GetDelvesAffixes

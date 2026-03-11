@@ -20,6 +20,55 @@ if not addon then return end
 addon.Presence = addon.Presence or {}
 
 -- ============================================================================
+-- SCENARIO HELPERS (standalone; no Focus dependency)
+-- ============================================================================
+
+--- True when the player is in an active scenario. Uses addon.IsWorldScenario when Focus loaded, else C_Scenario.GetInfo.
+function addon.Presence.IsScenarioActive()
+    if addon.IsWorldScenario and addon.IsWorldScenario() then return true end
+    local ok, name, currentStage = pcall(C_Scenario.GetInfo)
+    return ok and ((name and name ~= "") or (currentStage and currentStage > 0))
+end
+
+--- Get display info for Presence scenario toasts. Title, subtitle, category. No Focus dependency.
+--- @return title string|nil, subtitle string|nil, category string|nil
+function addon.Presence.GetScenarioDisplayInfo()
+    if not addon.Presence.IsScenarioActive() then return nil, nil, nil end
+    local isDelve = addon.IsDelveActive and addon.IsDelveActive()
+    local inPartyDungeon = addon.IsInPartyDungeon and addon.IsInPartyDungeon()
+    local category = isDelve and "DELVES" or (inPartyDungeon and "DUNGEON") or "SCENARIO"
+
+    local scenarioName
+    local ok, name = pcall(C_Scenario.GetInfo)
+    if ok and name and name ~= "" then scenarioName = name end
+
+    local stageName
+    local sOk, sName = pcall(C_Scenario.GetStepInfo)
+    if sOk and sName and sName ~= "" then stageName = sName end
+
+    local title = scenarioName
+    if inPartyDungeon then
+        local instOk, instanceName = pcall(GetInstanceInfo)
+        title = (instOk and instanceName) or "Dungeon"
+    elseif not title or title == "" then
+        title = "Scenario"
+    end
+
+    return title, stageName or "", category
+end
+
+--- Strip WoW markup (textures, colors) from a string for display.
+--- @param s string|nil
+--- @return string
+function addon.Presence.StripMarkup(s)
+    if not s or s == "" then return s or "" end
+    s = s:gsub("|T.-|t", "")
+    s = s:gsub("|c%x%x%x%x%x%x%x%x", "")
+    s = s:gsub("|r", "")
+    return strtrim(s)
+end
+
+-- ============================================================================
 -- CONFIGURATION
 -- ============================================================================
 
@@ -62,6 +111,140 @@ local TYPES = {
     ACHIEVEMENT_PROGRESS = { pri = 1, category = "ACHIEVEMENT", subCategory = "DEFAULT", sz = 28, dur = 2.5, liveUpdate = true, replaceInQueue = true, subGap = 12 },
     RARE_DEFEATED      = { pri = 2, category = "DEFAULT",  subCategory = "DEFAULT", sz = 36, dur = 3.5 },
 }
+
+-- Type name -> { key, fallback, default } for IsTypeEnabledForType.
+-- Matches OptionsData presence toggles; used by Blizzard "any toast enabled" and domain handlers.
+local TYPE_OPTIONS = {
+    LEVEL_UP           = { key = "presenceLevelUp",           fallback = nil, default = true },
+    BOSS_EMOTE         = { key = "presenceBossEmote",         fallback = nil, default = true },
+    ACHIEVEMENT        = { key = "presenceAchievement",       fallback = nil, default = true },
+    QUEST_COMPLETE     = { key = "presenceQuestComplete",     fallback = "presenceQuestEvents", default = true },
+    WORLD_QUEST        = { key = "presenceWorldQuest",        fallback = "presenceQuestEvents", default = true },
+    ZONE_CHANGE        = { key = "presenceZoneChange",         fallback = nil, default = true },
+    QUEST_ACCEPT       = { key = "presenceQuestAccept",        fallback = "presenceQuestEvents", default = true },
+    WORLD_QUEST_ACCEPT = { key = "presenceWorldQuestAccept", fallback = "presenceQuestEvents", default = true },
+    QUEST_UPDATE       = { key = "presenceQuestUpdate",       fallback = "presenceQuestEvents", default = true },
+    SUBZONE_CHANGE     = { key = "presenceSubzoneChange",     fallback = "presenceZoneChange",  default = true },
+    SCENARIO_START     = { key = "presenceScenarioStart",    fallback = "showScenarioEvents",  default = true },
+    SCENARIO_UPDATE    = { key = "presenceScenarioUpdate",   fallback = "showScenarioEvents",  default = true },
+    SCENARIO_COMPLETE  = { key = "presenceScenarioComplete", fallback = "showScenarioEvents",  default = true },
+    ACHIEVEMENT_PROGRESS = { key = "presenceAchievementProgress", fallback = nil, default = false },
+    RARE_DEFEATED      = { key = "presenceRareDefeated",      fallback = nil, default = true },
+}
+
+local debounceTimers = {}
+
+--- Check if a Presence type is enabled, with optional fallback to a grouped option.
+--- @param key string DB key for the per-type toggle (e.g. presenceQuestAccept)
+--- @param fallbackKey string|nil DB key for fallback when key is nil (e.g. presenceQuestEvents)
+--- @param fallbackDefault boolean Default when fallbackKey is nil or not used
+--- @return boolean
+local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
+    if not addon.GetDB then return fallbackDefault end
+    local v = addon.GetDB(key, nil)
+    if v ~= nil then return v end
+    return (fallbackKey and addon.GetDB(fallbackKey, fallbackDefault)) or fallbackDefault
+end
+
+--- Check if a Presence type (e.g. QUEST_ACCEPT, SCENARIO_UPDATE) is enabled via TYPE_OPTIONS.
+--- @param typeName string One of TYPES keys (LEVEL_UP, QUEST_ACCEPT, etc.)
+--- @return boolean
+local function IsTypeEnabledForType(typeName)
+    local opts = typeName and TYPE_OPTIONS[typeName]
+    if not opts then return false end
+    return IsTypeEnabled(opts.key, opts.fallback, opts.default)
+end
+
+--- Cancel existing timer for key, schedule callback after delay. Debounce helper.
+--- @param key string Unique key (e.g. "quest:123", "scenario", "zone")
+--- @param delay number Seconds before callback runs
+--- @param callback function Called when timer fires
+--- @return nil
+local function RequestDebounced(key, delay, callback)
+    if debounceTimers[key] then
+        debounceTimers[key]:Cancel()
+        debounceTimers[key] = nil
+    end
+    if not C_Timer or not C_Timer.After then return end
+    debounceTimers[key] = C_Timer.After(delay, function()
+        debounceTimers[key] = nil
+        if callback then callback() end
+    end)
+end
+
+--- Cancel a pending debounced callback for the given key.
+--- @param key string Unique key passed to RequestDebounced
+--- @return nil
+local function CancelDebounced(key)
+    if debounceTimers[key] then
+        debounceTimers[key]:Cancel()
+        debounceTimers[key] = nil
+    end
+end
+
+--- Build display string from normalized objective.
+--- Accepts { text?, finished?, numFulfilled?, numRequired?, quantityString?, percent? }.
+--- For isWeightedProgress objectives, percent is the displayed value (0-100); quantityString is not used.
+--- @param o table Normalized objective
+--- @return string|nil
+local function FormatObjectiveForDisplay(o)
+    if not o then return nil end
+    if o.percent ~= nil and type(o.percent) == "number" then
+        if o.text and o.text ~= "" and o.text ~= "0" then
+            return ("%s (%d%%)"):format(o.text, math.min(100, math.max(0, math.floor(o.percent))))
+        end
+        return ("%d%%"):format(math.min(100, math.max(0, math.floor(o.percent))))
+    end
+    if o.quantityString and o.quantityString ~= "" and o.quantityString ~= "0"
+       and not (o.text and o.text ~= "" and o.quantityString:match("^%d+$")) then
+        return o.quantityString
+    end
+    if o.text and o.text ~= "" and o.text ~= "0" then
+        if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
+            if o.numFulfilled == 1 and o.numRequired == 1 then
+                return o.text
+            end
+            local pattern = ("%d/%d"):format(o.numFulfilled, o.numRequired)
+            if o.text:find(pattern, 1, true) then
+                return o.text
+            end
+            return ("%s (%d/%d)"):format(o.text, o.numFulfilled, o.numRequired)
+        end
+        return o.text
+    end
+    if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
+        if o.numFulfilled == 1 and o.numRequired == 1 then
+            return nil
+        end
+        return ("%d/%d"):format(o.numFulfilled, o.numRequired)
+    end
+    return nil
+end
+
+--- True if any event-toast type (achievement, quest, scenario) is enabled. Used by Blizzard suppression.
+--- @return boolean
+local function IsAnyToastEnabled()
+    local toastTypes = { "ACHIEVEMENT", "ACHIEVEMENT_PROGRESS", "QUEST_ACCEPT", "WORLD_QUEST_ACCEPT", "QUEST_COMPLETE", "WORLD_QUEST", "QUEST_UPDATE", "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE" }
+    for _, t in ipairs(toastTypes) do
+        if IsTypeEnabledForType(t) then return true end
+    end
+    return false
+end
+
+--- True when Presence should suppress non-essential notifications (M+ zone, or instance type).
+--- @return boolean
+local function ShouldSuppressType()
+    if addon.GetDB and addon.GetDB("presenceSuppressZoneInMplus", true) and addon.IsInMythicDungeon and addon.IsInMythicDungeon() then
+        return true
+    end
+    if not addon.GetDB then return false end
+    local inType = select(2, GetInstanceInfo())
+    if inType == "party" and addon.GetDB("presenceSuppressInDungeon", false) then return true end
+    if inType == "raid"  and addon.GetDB("presenceSuppressInRaid", false)    then return true end
+    if inType == "arena" and addon.GetDB("presenceSuppressInPvP", false)     then return true end
+    if inType == "pvp"   and addon.GetDB("presenceSuppressInBattleground", false) then return true end
+    return false
+end
 
 local function getFrameY()
     local v = addon.GetDB and tonumber(addon.GetDB("presenceFrameY", FRAME_Y_DEF)) or FRAME_Y_DEF
@@ -740,7 +923,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     if not cfg then return end
 
     opts = opts or {}
-    cachedCompactLayout = (typeName == "QUEST_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
+    cachedCompactLayout = (typeName == "QUEST_UPDATE" or typeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
 
 
     local originalSubtitle = subtitle
@@ -1125,3 +1308,12 @@ addon.Presence.ShowDebugPanel     = ShowDebugPanel
 addon.Presence.HideDebugPanel     = HideDebugPanel
 addon.Presence.GetActiveTypeName  = GetActiveTypeName
 addon.Presence.DISCOVERY_WAIT     = 0.15
+
+addon.Presence.IsTypeEnabled        = IsTypeEnabled
+addon.Presence.IsTypeEnabledForType  = IsTypeEnabledForType
+addon.Presence.IsAnyToastEnabled     = IsAnyToastEnabled
+addon.Presence.RequestDebounced     = RequestDebounced
+addon.Presence.CancelDebounced      = CancelDebounced
+addon.Presence.FormatObjectiveForDisplay = FormatObjectiveForDisplay
+addon.Presence.ShouldSuppressType   = ShouldSuppressType
+addon.Presence.TYPE_OPTIONS         = TYPE_OPTIONS
