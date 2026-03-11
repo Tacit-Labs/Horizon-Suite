@@ -1,10 +1,10 @@
 # 🌌 Horizon Suite
 
-![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge) ![GitHub Release Date](https://img.shields.io/github/release-date/Crystilac93/Horizon-Suite?style=for-the-badge) ![GitHub Release Date](https://img.shields.io/github/release-date-pre/Crystilac93/Horizon-Suite?style=for-the-badge&label=beta%20update&color=orange)
+![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge)
 
 ![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) ![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)
 
-[![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite)
+[![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite) 
 
 **Horizon Suite** is a core addon with pluggable modules: **Focus** (objective tracker), **Presence** (zone text & notifications), **Insight** (cinematic tooltips), **Vista** (minimap), and **Yield** (loot toasts). Designed for the Midnight era—clean, cinematic, player-in-control. It replaces static, cluttered lists with a fluid interface that grants you total agency over your goals. Additional suites will appear as modules in the same options panel.
 
@@ -12,7 +12,7 @@
 
 ## 🎯 Focus (Objective Tracker)
 
-![Focus - Objective Tracker](https://raw.githubusercontent.com/Crystilac93/Horizon-Suite/main/docs/Focus.gif)
+![Focus - Objective Tracker](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-5frvkrwhxhng1.gif?width=489&auto=webp&s=9c6da75805f3cff68cdcf545b22cc6ec082b20c5)
 
 - **Smart zone tracking** – Nearby quests float to the top; list updates as you move. Delves, scenarios, raids, and world events get their own sections with progress bars and timers. Zone event quests appear in Events in Zone before you enter; once you step in, they move to the Current Event section. World quests you're actively doing also appear in Current Event.
 - **Track what matters** – Achievements, Endeavors (housing), Decor, Recipes (professions), and Traveler's Log objectives appear in the tracker. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open achievement panel, housing dashboard, decor catalog, or Adventure Guide.
@@ -28,7 +28,7 @@
 
 ## 🎬 Presence (Zone Text & Notifications)
 
-![Presence - Zone Text & Notifications](https://raw.githubusercontent.com/Crystilac93/Horizon-Suite/main/docs/Presence.gif)
+![Presence - Zone Text & Notifications](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-mj3ii5rnxhng1.gif?width=731&auto=webp&s=e9267169ee7e52bd3276b49114e65047d412037f)
 
 - **Cinematic notifications** – Replaces Blizzard's default zone text, level-up banner, boss emote frame, and achievement alerts with styled toasts: smooth entrance and exit animations, a dividing line between title and subtitle, and an optional "Discovered!" third line on first visits.
 - **Full notification coverage** – Zone entry, subzone changes, level-up, boss emotes, achievements, quest accepted/complete/progress, world quest accepted/complete, scenario start, scenario or delve complete, and scenario or delve objective updates — 13 types in total.
@@ -38,7 +38,7 @@
 
 ## 🗺️ Vista (Minimap)
 
-![Vista - Minimap](https://raw.githubusercontent.com/Crystilac93/Horizon-Suite/main/docs/Vista.gif)
+![Vista - Minimap](https://preview.redd.it/addon-horizon-suite-3-0-0-released-vista-minimap-is-now-out-v0-adkv296wnblg1.gif?width=325&auto=webp&s=f623b0327377002da3eaa64b3ef78062dc7cfebf)
 
 - **Square or circular minimap** – Choose a square or circular mask. Adjust size (100–400px), lock position, or drag to relocate. Optional auto zoom-out after zooming.
 - **Zone text, coordinates, time, and FPS/latency** – Zone name, player coordinates, game time, and optional FPS/latency (ms) below the minimap. Each element has its own font, size, and colour; show or hide individually. Click the time to open the stopwatch.
@@ -51,12 +51,14 @@
 
 ## 💎 Yield (Loot Toasts) - BETA
 
-![Yield - Loot Toasts](https://raw.githubusercontent.com/Crystilac93/Horizon-Suite/main/docs/Yield.gif)
+![Yield - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
 
 - **Cinematic loot notifications** – Items, money, currency, and reputation gains appear as styled toasts with quality-based colours and smooth slide-in animations.
 - **Epic and legendary flair** – Extra entrance time, shine effects, and optional sounds for high-value loot.
 
 ## 🔍 Insight (Tooltips) - BETA
+
+![Insight - Tooltips](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-9luqvfjeyhng1.png?width=387&format=png&auto=webp&s=e0816c4ced5581178a50507f8d803adc9a93edde)
 
 - **Cinematic tooltips** – Dark backdrop, class-colored player names and borders, faction icons, spec/role display, and fade-in animation.
 - **Profile-backed settings** – Anchor mode (cursor or fixed) and position stored per profile.
@@ -98,7 +100,7 @@
 
 **Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in Typography and statusbar textures for progress bars. If not installed, the font dropdown shows only Game Font and any custom path you enter; progress bars use Solid texture.
 
-1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Crystilac93/Horizon-Suite/releases) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Crystilac93/Horizon-Suite/releases/tag/beta))
+1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://gitlab.com/Crystilac/horizon-suite/-/releases) and extract the `HorizonSuite` folder. ([Beta](https://gitlab.com/Crystilac/horizon-suite/-/releases/beta))
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
 4. Type `/h options` or `/hopt` to customize.
@@ -109,7 +111,7 @@
 
 ## 🤝 Contributing
 
-**Issues** — [GitHub Issues](https://github.com/Crystilac93/Horizon-Suite/issues). Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are welcome.
+**Issues** — [GitHub Issues](https://gitlab.com/Crystilac/horizon-suite/-/issues). Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are welcome.
 
 ---
 
