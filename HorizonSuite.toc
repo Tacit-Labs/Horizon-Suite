@@ -75,6 +75,10 @@ modules/Vista/VistaCore.lua
 modules/Vista/VistaSlash.lua
 modules/Vista/VistaModule.lua
 
+modules/Insight/InsightShared.lua
+modules/Insight/InsightPlayerTooltip.lua
+modules/Insight/InsightNpcTooltip.lua
+modules/Insight/InsightItemTooltip.lua
 modules/Insight/InsightCore.lua
 modules/Insight/InsightModule.lua
 
