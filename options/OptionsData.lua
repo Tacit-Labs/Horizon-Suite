@@ -1384,12 +1384,12 @@ local OptionCategories = {
         options = {
             { type = "section", name = L["Position"] or "Position" },
             { type = "dropdown", name = L["Tooltip anchor"] or "Tooltip anchor", desc = L["Where tooltips appear: follow cursor or fixed position."] or "Where tooltips appear: follow cursor or fixed position.", dbKey = "insightAnchorMode", options = { { L["Cursor"] or "Cursor", "cursor" }, { L["Fixed"] or "Fixed", "fixed" } }, get = function() return getDB("insightAnchorMode", "cursor") end, set = function(v) setDB("insightAnchorMode", v) end },
-            { type = "button", name = L["Show anchor to move"] or "Show anchor to move", desc = L["Drag to set position, right-click to confirm."] or "Drag to set position, right-click to confirm.", onClick = function()
-                if addon.Insight and addon.Insight.ShowAnchorFrame then addon.Insight.ShowAnchorFrame() end
+            { type = "button", name = L["Show anchor to move"] or "Show anchor to move", desc = L["Click to show or hide the anchor. Drag to set position, right-click to confirm."] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
+                if addon.Insight and addon.Insight.ToggleAnchorFrame then addon.Insight.ToggleAnchorFrame() end
             end },
             { type = "button", name = L["Reset tooltip position"] or "Reset tooltip position", desc = L["Reset fixed position to default."] or "Reset fixed position to default.", onClick = function()
                 setDB("insightFixedPoint", "BOTTOMRIGHT")
-                setDB("insightFixedX", -40)
+                setDB("insightFixedX", -60)
                 setDB("insightFixedY", 120)
                 if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
             end },

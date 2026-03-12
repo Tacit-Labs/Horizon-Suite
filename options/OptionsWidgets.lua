@@ -12,8 +12,8 @@ local L = addon.L
 -- Design tokens (Cinematic, Modern, Minimalistic). Panel can override FontPath/HeaderSize via SetDef.
 local Def = {
     Padding = 18,
-    OptionGap = 14,
-    SectionGap = 24,
+    OptionGap = 18,
+    SectionGap = 30,
     CardPadding = 18,
     CardBottomPadding = 26,
     BorderEdge = 1,
@@ -33,7 +33,7 @@ local Def = {
     AccentColor = { 0.48, 0.58, 0.82, 0.9 },
     DividerColor = { 0.35, 0.4, 0.5, 0.25 },
     InputBg = { 0.07, 0.07, 0.1, 0.96 },
-    InputBorder = { 0.2, 0.22, 0.28, 0.4 },
+    InputBorder = { 0.2, 0.22, 0.28, 0.3 },
     TrackOff = { 0.14, 0.14, 0.18, 0.95 },
     TrackOn = { 0.48, 0.58, 0.82, 0.85 },
     ThumbColor = { 1, 1, 1, 0.98 },
@@ -1800,6 +1800,180 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         if type(newKeys) == "function" then newKeys = newKeys() end
         if type(newKeys) == "table" then repositionRows(newKeys) end
     end
+    return container
+end
+
+-- Edit box: multi-line text input with optional read-only mode (used for profile import/export).
+function _G.OptionsWidgets_CreateEditBox(parent, labelText, get, set, opts)
+    opts = opts or {}
+    local boxH = opts.height or 60
+    local readonly = opts.readonly
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetHeight(20 + 4 + boxH)
+    row.searchText = ((labelText or "") .. " editbox"):lower()
+
+    local label = row:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
+    label:SetJustifyH("LEFT")
+    SetTextColor(label, Def.TextColorLabel)
+    label:SetText(labelText or "")
+    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+
+    local wrap = CreateFrame("Frame", nil, row)
+    wrap:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -4)
+    wrap:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    wrap:SetHeight(boxH)
+    local wBg = wrap:CreateTexture(nil, "BACKGROUND")
+    wBg:SetAllPoints(wrap)
+    wBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+    addon.CreateBorder(wrap, Def.InputBorder)
+
+    local scroll = CreateFrame("ScrollFrame", nil, wrap)
+    scroll:SetPoint("TOPLEFT", wrap, "TOPLEFT", 4, -4)
+    scroll:SetPoint("BOTTOMRIGHT", wrap, "BOTTOMRIGHT", -4, 4)
+
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetAutoFocus(false)
+    edit:SetWidth(scroll:GetWidth() or 300)
+    SetSafeFont(edit, Def.FontPath, Def.LabelSize, "OUTLINE")
+    local tc = Def.TextColorLabel
+    edit:SetTextColor(tc[1], tc[2], tc[3], tc[4] or 1)
+    edit:SetMaxLetters(2000)
+    scroll:SetScrollChild(edit)
+
+    -- Update width after layout
+    C_Timer.After(0, function()
+        local w = scroll:GetWidth()
+        if w and w > 0 then edit:SetWidth(w) end
+    end)
+
+    if readonly then
+        edit:SetScript("OnChar", function(self) self:SetText(get and get() or "") end)
+        edit:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+        edit:SetScript("OnEditFocusLost", function(self) self:HighlightText(0, 0) end)
+    else
+        edit:SetScript("OnEditFocusLost", function(self)
+            if set then set(self:GetText()) end
+        end)
+        edit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    end
+
+    if opts.storeRef and type(opts.storeRef) == "string" then
+        addon[opts.storeRef] = edit
+    end
+
+    function row:Refresh()
+        if get then edit:SetText(get() or "") end
+    end
+    row:Refresh()
+    ApplyRowHoverHighlight(row)
+    ApplyOptionTooltip(row, opts.tooltip)
+    return row
+end
+
+-- Blacklist grid: shows quests the player has hidden; each row has a name and an Unblock button.
+function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
+    opts = opts or {}
+    local container = CreateFrame("Frame", nil, parent)
+    container:SetHeight(60)
+    container.searchText = ((labelText or "") .. " blacklist hidden quests"):lower()
+
+    local label = container:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
+    label:SetJustifyH("LEFT")
+    SetTextColor(label, Def.TextColorLabel)
+    label:SetText(labelText or "")
+    label:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+
+    local desc = container:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(desc, Def.FontPath, Def.SectionSize, "OUTLINE")
+    desc:SetJustifyH("LEFT")
+    SetTextColor(desc, Def.TextColorSection)
+    desc:SetText(opts.desc or "")
+    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
+    desc:SetPoint("RIGHT", container, "RIGHT", 0, 0)
+    desc:SetWordWrap(true)
+
+    local listFrame = CreateFrame("Frame", nil, container)
+    listFrame:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -8)
+    listFrame:SetPoint("RIGHT", container, "RIGHT", 0, 0)
+    listFrame:SetHeight(1)
+
+    local rowWidgets = {}
+
+    local function Rebuild()
+        for _, rw in ipairs(rowWidgets) do rw:Hide() end
+        wipe(rowWidgets)
+
+        local blacklist = addon.GetDB and addon.GetDB("questBlacklist", nil) or nil
+        if not blacklist or type(blacklist) ~= "table" then
+            local emptyLabel = listFrame:CreateFontString(nil, "OVERLAY")
+            SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, "OUTLINE")
+            SetTextColor(emptyLabel, Def.TextColorSection)
+            emptyLabel:SetText(addon.L and addon.L["No hidden quests."] or "No hidden quests.")
+            emptyLabel:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
+            local emptyRow = CreateFrame("Frame", nil, listFrame)
+            emptyRow:SetHeight(20)
+            emptyRow:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
+            emptyRow:SetPoint("RIGHT", listFrame, "RIGHT", 0, 0)
+            rowWidgets[1] = emptyRow
+            listFrame:SetHeight(20)
+            container:SetHeight(60 + 20)
+            return
+        end
+
+        local yOff = 0
+        local count = 0
+        for questID, questName in pairs(blacklist) do
+            count = count + 1
+            local row = CreateFrame("Frame", nil, listFrame)
+            row:SetHeight(24)
+            row:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, yOff)
+            row:SetPoint("RIGHT", listFrame, "RIGHT", 0, 0)
+
+            local nameLbl = row:CreateFontString(nil, "OVERLAY")
+            SetSafeFont(nameLbl, Def.FontPath, Def.LabelSize, "OUTLINE")
+            SetTextColor(nameLbl, Def.TextColorLabel)
+            local displayName = (type(questName) == "string" and questName ~= "" and questName ~= "true") and questName or ("Quest #" .. tostring(questID))
+            nameLbl:SetText(displayName)
+            nameLbl:SetPoint("LEFT", row, "LEFT", 0, 0)
+            nameLbl:SetJustifyH("LEFT")
+
+            local unblockBtn = _G.OptionsWidgets_CreateButton(row, addon.L and addon.L["Unblock"] or "Unblock", function()
+                if addon.GetDB then
+                    local bl = addon.GetDB("questBlacklist", nil)
+                    if bl and type(bl) == "table" then
+                        bl[questID] = nil
+                        local hasAny = false
+                        for _ in pairs(bl) do hasAny = true; break end
+                        if not hasAny then bl = nil end
+                        if addon.SetDB then addon.SetDB("questBlacklist", bl) end
+                    end
+                end
+                Rebuild()
+                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            end, { width = 70, height = 20 })
+            unblockBtn:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+
+            rowWidgets[#rowWidgets + 1] = row
+            yOff = yOff - 28
+        end
+
+        if count == 0 then
+            listFrame:SetHeight(20)
+            container:SetHeight(60 + 20)
+        else
+            listFrame:SetHeight(-yOff)
+            container:SetHeight(60 + (-yOff))
+        end
+    end
+
+    function container:Refresh()
+        Rebuild()
+    end
+    Rebuild()
+    ApplyOptionTooltip(container, opts.tooltip)
     return container
 end
 

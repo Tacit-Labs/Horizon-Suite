@@ -191,6 +191,7 @@ L["Where tooltips appear: follow cursor or fixed position."]                    
 L["Cursor"]                                                                                                         = "Cursor"
 L["Fixed"]                                                                                                          = "Fixed"
 L["Show anchor to move"]                                                                                            = "Show anchor to move"
+L["Click to show or hide the anchor. Drag to set position, right-click to confirm."]                                 = "Click to show or hide the anchor. Drag to set position, right-click to confirm."
 L["Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."]                         = "Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."
 L["Reset tooltip position"]                                                                                         = "Reset tooltip position"
 L["Reset fixed position to default."]                                                                               = "Reset fixed position to default."
