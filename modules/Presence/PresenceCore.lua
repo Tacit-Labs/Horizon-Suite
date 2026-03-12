@@ -201,7 +201,7 @@ local function FormatObjectiveForDisplay(o)
     end
     if o.text and o.text ~= "" and o.text ~= "0" then
         if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
-            if o.numFulfilled == 1 and o.numRequired == 1 then
+            if o.numRequired == 1 and (o.finished or o.numFulfilled == 1) then
                 return o.text
             end
             local pattern = ("%d/%d"):format(o.numFulfilled, o.numRequired)
@@ -213,7 +213,7 @@ local function FormatObjectiveForDisplay(o)
         return o.text
     end
     if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
-        if o.numFulfilled == 1 and o.numRequired == 1 then
+        if o.numRequired == 1 and (o.finished or o.numFulfilled == 1) then
             return nil
         end
         return ("%d/%d"):format(o.numFulfilled, o.numRequired)
