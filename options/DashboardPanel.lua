@@ -81,17 +81,144 @@ SlashCmdList["HSDASH"] = function(msg)
             local bg = f:CreateTexture(nil, "BACKGROUND")
             bg:SetAllPoints()
             bg:SetColorTexture(0.05, 0.05, 0.07, 0.98)
+
+            -- ===== SIDEBAR =====
+            local SIDEBAR_WIDTH = 160
+            local CONTENT_OFFSET = SIDEBAR_WIDTH + 10
+
+            local sidebar = CreateFrame("Frame", nil, f)
+            sidebar:SetPoint("TOPLEFT", 0, 0)
+            sidebar:SetPoint("BOTTOMLEFT", 0, 0)
+            sidebar:SetWidth(SIDEBAR_WIDTH)
+            sidebar:SetFrameLevel(f:GetFrameLevel() + 2)
+
+            local sidebarBg = sidebar:CreateTexture(nil, "BACKGROUND")
+            sidebarBg:SetAllPoints()
+            sidebarBg:SetColorTexture(0.04, 0.04, 0.055, 1)
+
+            -- Sidebar divider line
+            local sidebarDivider = sidebar:CreateTexture(nil, "BORDER")
+            sidebarDivider:SetWidth(1)
+            sidebarDivider:SetPoint("TOPRIGHT", 0, 0)
+            sidebarDivider:SetPoint("BOTTOMRIGHT", 0, 0)
+            sidebarDivider:SetColorTexture(0.15, 0.15, 0.2, 1)
+
+            -- Sidebar Logo
+            local sidebarLogo = MakeText(sidebar, "HS", 20, 1, 1, 1, "CENTER")
+            sidebarLogo:SetPoint("TOP", 0, -20)
+
+            local sidebarLogoSub = MakeText(sidebar, "HORIZON SUITE", 8, 0.4, 0.4, 0.5, "CENTER")
+            sidebarLogoSub:SetPoint("TOP", sidebarLogo, "BOTTOM", 0, -4)
+
+            -- Sidebar separator under logo
+            local logoSep = sidebar:CreateTexture(nil, "ARTWORK")
+            logoSep:SetHeight(1)
+            logoSep:SetPoint("TOPLEFT", 15, -58)
+            logoSep:SetPoint("TOPRIGHT", -15, -58)
+            logoSep:SetColorTexture(0.15, 0.15, 0.2, 1)
+
+            -- Sidebar scroll area for buttons
+            local sidebarScrollFrame = CreateFrame("ScrollFrame", nil, sidebar)
+            sidebarScrollFrame:SetPoint("TOPLEFT", 0, -65)
+            sidebarScrollFrame:SetPoint("BOTTOMRIGHT", -1, 10)
+            local sidebarScrollContent = CreateFrame("Frame", nil, sidebarScrollFrame)
+            sidebarScrollContent:SetWidth(SIDEBAR_WIDTH - 1)
+            sidebarScrollContent:SetHeight(1)
+            sidebarScrollFrame:SetScrollChild(sidebarScrollContent)
+            sidebarScrollFrame:EnableMouseWheel(true)
+            sidebarScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+                local cur = self:GetVerticalScroll() or 0
+                local maxS = math.max(0, sidebarScrollContent:GetHeight() - self:GetHeight())
+                self:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * 30)))
+            end)
+
+            local sidebarButtons = {}
+            local activeSidebarBtn = nil
+
+            local function CreateSidebarButton(label, iconName, onClick)
+                local btn = CreateFrame("Button", nil, sidebarScrollContent)
+                btn:SetSize(SIDEBAR_WIDTH - 1, 36)
+
+                local btnBg = btn:CreateTexture(nil, "BACKGROUND")
+                btnBg:SetAllPoints()
+                btnBg:SetColorTexture(0, 0, 0, 0)
+                btn.btnBg = btnBg
+
+                local accentBar = btn:CreateTexture(nil, "ARTWORK")
+                accentBar:SetSize(3, 20)
+                accentBar:SetPoint("LEFT", 0, 0)
+                local ar, ag, ab = GetAccentColor()
+                accentBar:SetColorTexture(ar, ag, ab, 1)
+                accentBar:Hide()
+                btn.accentBar = accentBar
+
+                if iconName then
+                    local ic = btn:CreateTexture(nil, "ARTWORK")
+                    ic:SetSize(16, 16)
+                    ic:SetPoint("LEFT", 14, 0)
+                    ic:SetTexture("Interface\\Icons\\" .. iconName)
+                    ic:SetVertexColor(0.6, 0.6, 0.65, 1)
+                    btn.icon = ic
+                end
+
+                local lbl = MakeText(btn, label, 11, 0.65, 0.65, 0.7, "LEFT")
+                lbl:SetPoint("LEFT", iconName and 36 or 14, 0)
+                lbl:SetPoint("RIGHT", -8, 0)
+                lbl:SetWordWrap(false)
+                btn.label = lbl
+
+                btn:SetScript("OnEnter", function()
+                    if btn ~= activeSidebarBtn then
+                        btnBg:SetColorTexture(0.1, 0.1, 0.12, 1)
+                        lbl:SetTextColor(0.9, 0.9, 0.95)
+                        if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
+                    end
+                end)
+                btn:SetScript("OnLeave", function()
+                    if btn ~= activeSidebarBtn then
+                        btnBg:SetColorTexture(0, 0, 0, 0)
+                        lbl:SetTextColor(0.65, 0.65, 0.7)
+                        if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                    end
+                end)
+                btn:SetScript("OnClick", function()
+                    if onClick then onClick() end
+                end)
+
+                return btn
+            end
+
+            local function SetActiveSidebarButton(btn)
+                -- Deactivate previous
+                if activeSidebarBtn then
+                    activeSidebarBtn.btnBg:SetColorTexture(0, 0, 0, 0)
+                    activeSidebarBtn.label:SetTextColor(0.65, 0.65, 0.7)
+                    if activeSidebarBtn.icon then activeSidebarBtn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                    activeSidebarBtn.accentBar:Hide()
+                end
+                -- Activate new
+                activeSidebarBtn = btn
+                if btn then
+                    local ar, ag, ab = GetAccentColor()
+                    btn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, 1)
+                    btn.label:SetTextColor(1, 1, 1)
+                    if btn.icon then btn.icon:SetVertexColor(1, 1, 1, 1) end
+                    btn.accentBar:Show()
+                end
+            end
+
+            -- ===== END SIDEBAR =====
             
             -- Header
-            local head = MakeText(f, "Horizon Suite", 36, 1, 1, 1, "CENTER")
-            head:SetPoint("TOP", 0, -60)
-            local headSub = MakeText(f, "Select a module to configure", 16, 0.5, 0.5, 0.5, "CENTER")
-            headSub:SetPoint("TOP", 0, -105)
+            local head = MakeText(f, "Horizon Suite", 28, 1, 1, 1, "CENTER")
+            head:SetPoint("TOP", CONTENT_OFFSET / 2, -30)
+            local headSub = MakeText(f, "Select a module to configure", 14, 0.5, 0.5, 0.5, "CENTER")
+            headSub:SetPoint("TOP", CONTENT_OFFSET / 2, -62)
 
             -- Search Bar
             local searchBox = CreateFrame("EditBox", nil, f)
-            searchBox:SetSize(600, 50)
-            searchBox:SetPoint("TOP", 0, -150)
+            searchBox:SetSize(500, 42)
+            searchBox:SetPoint("TOP", CONTENT_OFFSET / 2, -95)
             searchBox:SetFont("Fonts\\FRIZQT__.TTF", 16, "")
             searchBox:SetTextInsets(55, 15, 0, 0)
             searchBox:SetAutoFocus(false)
@@ -169,7 +296,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             self:SetScript("OnUpdate", nil)
                         else
                             -- Lerp towards target
-                            self:SetVerticalScroll(current + diff * 15 * elapsed)
+                            self:SetVerticalScroll(current + diff * 25 * elapsed)
                         end
                     end)
                 end)
@@ -211,21 +338,24 @@ SlashCmdList["HSDASH"] = function(msg)
                 searchDropdownCatch:Hide()
             end
 
-            -- Views
+            -- Views (offset right to accommodate sidebar)
+            local viewWidth = 1000 - SIDEBAR_WIDTH - 10
+            local viewCenterX = CONTENT_OFFSET / 2
+
             local dashboardView = CreateFrame("Frame", nil, f)
-            dashboardView:SetSize(950, 680)
-            dashboardView:SetPoint("CENTER")
+            dashboardView:SetSize(viewWidth, 680)
+            dashboardView:SetPoint("CENTER", viewCenterX, 0)
             f.dashboardView = dashboardView
 
             local detailView = CreateFrame("Frame", nil, f)
-            detailView:SetSize(950, 680)
-            detailView:SetPoint("CENTER")
+            detailView:SetSize(viewWidth, 680)
+            detailView:SetPoint("CENTER", viewCenterX, 0)
             detailView:Hide()
             f.detailView = detailView
 
             local subCategoryView = CreateFrame("Frame", nil, f)
-            subCategoryView:SetSize(950, 680)
-            subCategoryView:SetPoint("CENTER")
+            subCategoryView:SetSize(viewWidth, 680)
+            subCategoryView:SetPoint("CENTER", viewCenterX, 0)
             subCategoryView:Hide()
             f.subCategoryView = subCategoryView
 
@@ -244,7 +374,7 @@ SlashCmdList["HSDASH"] = function(msg)
             detailTitle:SetPoint("TOPLEFT", 180, -45)
             f.detailTitle = detailTitle
 
-            -- Transitions
+            -- Transitions (faster animations per UX feedback)
             local function CrossfadeTo(targetView)
                 dashboardView:Hide()
                 detailView:Hide()
@@ -255,7 +385,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 targetView:SetAlpha(0)
                 targetView:Show()
-                UIFrameFadeIn(targetView, 0.2, 0, 1)
+                UIFrameFadeIn(targetView, 0.1, 0, 1)
             end
 
             f.ShowDashboard = function()
@@ -263,13 +393,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 subCategoryView:Hide()
                 dashboardView:SetAlpha(0)
                 dashboardView:Show()
-                UIFrameFadeIn(dashboardView, 0.2, 0, 1)
+                UIFrameFadeIn(dashboardView, 0.1, 0, 1)
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
                     headSub:SetText("Select a module to configure")
                 end
                 searchBox:Show()
+                -- Reset sidebar active state to Home
+                if sidebarButtons[1] then SetActiveSidebarButton(sidebarButtons[1]) end
             end
 
             -- Back Button (Persistent in Detail View)
@@ -634,17 +766,17 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 f.BuildAccordionDetail(catName, options)
 
-                -- Cascade effect
+                -- Cascade effect (faster per UX feedback)
                 for i, card in ipairs(currentDetailCards) do
                     card:SetAlpha(0)
                     local _, _, _, xVal, yVal = card:GetPoint()
                     if yVal then
                         card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
                         if C_Timer and C_Timer.After then
-                            C_Timer.After(i * 0.04, function()
+                            C_Timer.After(i * 0.02, function()
                                 if card:IsShown() then
                                     card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                    UIFrameFadeIn(card, 0.2, 0, 1)
+                                    UIFrameFadeIn(card, 0.1, 0, 1)
                                 end
                             end)
                         else
@@ -704,16 +836,16 @@ SlashCmdList["HSDASH"] = function(msg)
                         local row = math.floor((i-1) / 2)
                         tileYOffset = math.max(tileYOffset, (row + 1) * 130)
 
-                        -- Staggered Cascade Entrance
+                        -- Staggered Cascade Entrance (faster per UX feedback)
                         tile:SetAlpha(0)
                         local _, _, _, xVal, yVal = tile:GetPoint()
                         if xVal and yVal then
                             tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", xVal, yVal - 20)
                             if C_Timer and C_Timer.After then
-                                C_Timer.After(i * 0.04, function()
+                                C_Timer.After(i * 0.02, function()
                                     if tile:IsShown() then
                                         tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", xVal, yVal)
-                                        UIFrameFadeIn(tile, 0.2, 0, 1)
+                                        UIFrameFadeIn(tile, 0.1, 0, 1)
                                     end
                                 end)
                             else
@@ -749,17 +881,17 @@ SlashCmdList["HSDASH"] = function(msg)
                         local options = type(cats[1].options) == "function" and cats[1].options() or cats[1].options
                         f.BuildAccordionDetail(cats[1].name, options)
 
-                        -- Cascade effect
+                        -- Cascade effect (faster per UX feedback)
                         for i, card in ipairs(currentDetailCards) do
                             card:SetAlpha(0)
                             local _, _, _, xVal, yVal = card:GetPoint()
                             if yVal then
                                 card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
                                 if C_Timer and C_Timer.After then
-                                    C_Timer.After(i * 0.04, function()
+                                    C_Timer.After(i * 0.02, function()
                                         if card:IsShown() then
                                             card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                            UIFrameFadeIn(card, 0.2, 0, 1)
+                                            UIFrameFadeIn(card, 0.1, 0, 1)
                                         end
                                     end)
                                 else
@@ -813,7 +945,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 -- Animation logic
                 card.anim = card:CreateAnimationGroup()
                 local sizeAnim = card.anim:CreateAnimation("Animation")
-                sizeAnim:SetDuration(0.3)
+                sizeAnim:SetDuration(0.15)
                 sizeAnim:SetSmoothing("IN_OUT")
                 
                 card.anim:SetScript("OnUpdate", function()
@@ -1255,7 +1387,10 @@ SlashCmdList["HSDASH"] = function(msg)
 
             local function MakeTile(parent, name, icon, index, totalTiles, moduleKey)
                 local tile = CreateFrame("Button", nil, parent)
-                tile:SetSize(200, 180)
+                local TILE_W, TILE_H = 180, 155
+                local TILE_GAP = 15
+                local TILE_STRIDE = TILE_W + TILE_GAP
+                tile:SetSize(TILE_W, TILE_H)
                 
                 local itemsPerRow = 4
                 local row = math.floor((index-1) / itemsPerRow)
@@ -1267,9 +1402,9 @@ SlashCmdList["HSDASH"] = function(msg)
                     itemsInThisRow = totalTiles % itemsPerRow
                 end
                 
-                local rowWidth = (itemsInThisRow * 200) + ((itemsInThisRow - 1) * 20)
-                local startX = -rowWidth / 2 + 100
-                tile:SetPoint("TOP", parent, "TOP", startX + (col * 220), -260 + (row * -200))
+                local rowWidth = (itemsInThisRow * TILE_W) + ((itemsInThisRow - 1) * TILE_GAP)
+                local startX = -rowWidth / 2 + TILE_W / 2
+                tile:SetPoint("TOP", parent, "TOP", startX + (col * TILE_STRIDE), -170 + (row * -(TILE_H + TILE_GAP)))
 
                 -- Background
                 local tBg = tile:CreateTexture(nil, "BACKGROUND")
@@ -1284,14 +1419,14 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 -- Icon
                 local ic = tile:CreateTexture(nil, "ARTWORK")
-                ic:SetSize(60, 60)
-                ic:SetPoint("CENTER", 0, 20)
+                ic:SetSize(50, 50)
+                ic:SetPoint("CENTER", 0, 15)
                 ic:SetTexture("Interface\\Icons\\" .. (categoryIcons[name] or "INV_Misc_Question_01"))
                 ic:SetVertexColor(0.85, 0.85, 0.9, 0.85)
 
                 -- Label
-                local lbl = MakeText(tile, name, 16, 0.85, 0.85, 0.9, "CENTER")
-                lbl:SetPoint("BOTTOM", 0, 30)
+                local lbl = MakeText(tile, name, 14, 0.85, 0.85, 0.9, "CENTER")
+                lbl:SetPoint("BOTTOM", 0, 22)
 
                 tile:SetScript("OnEnter", function()
                     tBg:SetColorTexture(0.12, 0.13, 0.16, 1)
@@ -1337,6 +1472,52 @@ SlashCmdList["HSDASH"] = function(msg)
             for i, tileInfo in ipairs(mainTiles) do
                 MakeTile(dashboardView, tileInfo.name, nil, i, #mainTiles, tileInfo.moduleKey)
             end
+
+            -- ===== POPULATE SIDEBAR =====
+            local yOff = 0
+
+            -- Home button
+            local homeBtn = CreateSidebarButton("Home", "INV_Misc_Map_01", function()
+                f.ShowDashboard()
+            end)
+            homeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
+            tinsert(sidebarButtons, homeBtn)
+            yOff = yOff + 36
+
+            -- Separator
+            local sbSep = sidebarScrollContent:CreateTexture(nil, "ARTWORK")
+            sbSep:SetHeight(1)
+            sbSep:SetPoint("TOPLEFT", 15, -(yOff + 4))
+            sbSep:SetPoint("TOPRIGHT", -15, -(yOff + 4))
+            sbSep:SetColorTexture(0.15, 0.15, 0.2, 1)
+            yOff = yOff + 9
+
+            -- Module buttons
+            for _, tileInfo in ipairs(mainTiles) do
+                local tileName = tileInfo.name
+                local tileModKey = tileInfo.moduleKey
+                local iconKey = categoryIcons[tileName] or (tileModKey and categoryIcons[moduleLabels[tileModKey] or ""]) or "INV_Misc_Question_01"
+                local btn = CreateSidebarButton(tileName, iconKey, function()
+                    f.OpenModule(tileName, tileModKey)
+                    -- Find this button and highlight it
+                    for _, sb in ipairs(sidebarButtons) do
+                        if sb.sidebarModuleKey == tileModKey and sb.sidebarName == tileName then
+                            SetActiveSidebarButton(sb)
+                            break
+                        end
+                    end
+                end)
+                btn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
+                btn.sidebarModuleKey = tileModKey
+                btn.sidebarName = tileName
+                tinsert(sidebarButtons, btn)
+                yOff = yOff + 36
+            end
+
+            sidebarScrollContent:SetHeight(math.max(1, yOff))
+
+            -- Set Home as active by default
+            SetActiveSidebarButton(sidebarButtons[1])
         end
         f:Show()
     end
