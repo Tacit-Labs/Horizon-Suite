@@ -26,7 +26,7 @@ Insight.FADE_IN_DUR     = 0.15
 
 Insight.DEFAULT_ANCHOR  = "cursor"
 Insight.FIXED_POINT     = "BOTTOMRIGHT"
-Insight.FIXED_X         = -40
+Insight.FIXED_X         = -60
 Insight.FIXED_Y         = 120
 
 Insight.FACTION_ICONS = {
@@ -190,13 +190,33 @@ end
 local function StyleFonts(tooltip)
     if not tooltip then return end
     local S = Insight.Scaled
+    local metadataStartLine = nil
+    if tooltip._insightItemMetadata then
+        local name = tooltip:GetName()
+        if name then
+            for i = 1, tooltip:NumLines() do
+                local left = _G[name .. "TextLeft" .. i]
+                if left and Insight.SafeGetFontText(left) == Insight.SEPARATOR then
+                    metadataStartLine = i
+                    break
+                end
+            end
+        end
+    end
+
     Insight.ForTooltipLines(tooltip, function(i, left, right)
         if left then
-            local sz = (i == 1) and S(Insight.HEADER_SIZE) or S(Insight.BODY_SIZE)
+            local sz
+            if metadataStartLine and i >= metadataStartLine then
+                sz = S(Insight.SMALL_SIZE)
+            else
+                sz = (i == 1) and S(Insight.HEADER_SIZE) or S(Insight.BODY_SIZE)
+            end
             left:SetFont(Insight.FONT_PATH, sz, "OUTLINE")
         end
         if right then
-            right:SetFont(Insight.FONT_PATH, S(Insight.BODY_SIZE), "OUTLINE")
+            local sz = (metadataStartLine and i >= metadataStartLine) and S(Insight.SMALL_SIZE) or S(Insight.BODY_SIZE)
+            right:SetFont(Insight.FONT_PATH, sz, "OUTLINE")
         end
     end)
 end
