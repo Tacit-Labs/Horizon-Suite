@@ -513,8 +513,10 @@ local function HandleFocusDebugSlash(msg)
 
     elseif cmd == "devmode" then
         local v = not (addon.GetDB and addon.GetDB("focusDevMode", false))
-        if addon.SetDB then addon.SetDB("focusDevMode", v) end
-        HSPrint("Dev mode (show Blizzard tracker): " .. (v and "on" or "off"))
+        if addon.SetDB then
+            addon.SetDB("focusDevMode", v)
+        end
+        HSPrint("Dev mode (Blizzard tracker): " .. (v and "on" or "off"))
         if addon.focus and addon.focus.enabled then
             if v then
                 if addon.RestoreTracker then addon.RestoreTracker() end
