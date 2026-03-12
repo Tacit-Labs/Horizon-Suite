@@ -52,25 +52,8 @@ end
 local tooltipsToStyle = {}
 local hookedShow      = {}
 
-local function HookTooltipOnShow(tooltip)
-    tooltip:HookScript("OnShow", function(self)
-        if not IsEnabled() then return end
-        Insight.StripNineSlice(self)
-        Insight.ApplyBackdrop(self)
-    end)
-end
-
-local function HookTooltipShowMethod(tooltip)
-    if hookedShow[tooltip] then return end
-    hookedShow[tooltip] = true
-    hooksecurefunc(tooltip, "Show", function(self)
-        if not IsEnabled() then return end
-        Insight.StyleFonts(self)
-    end)
-end
-
 -- ============================================================================
--- SEPARATOR TEXTURES
+-- SEPARATOR TEXTURES (defined before HookTooltipShowMethod so closure can capture)
 -- ============================================================================
 
 local SEP_TEXTURE_POOL_SIZE = 4
@@ -118,15 +101,22 @@ end
 
 local function ShowAndScheduleSeparators()
     GameTooltip:Show()
-    C_Timer.After(0, function()
-        if GameTooltip and GameTooltip:IsShown() then
-            UpdateSeparatorTextures()
-        end
+end
+
+local function HookTooltipOnShow(tooltip)
+    tooltip:HookScript("OnShow", function(self)
+        if not IsEnabled() then return end
+        Insight.StripNineSlice(self)
+        Insight.ApplyBackdrop(self)
     end)
-    C_Timer.After(0.03, function()
-        if GameTooltip and GameTooltip:IsShown() then
-            UpdateSeparatorTextures()
-        end
+end
+
+local function HookTooltipShowMethod(tooltip)
+    if hookedShow[tooltip] then return end
+    hookedShow[tooltip] = true
+    hooksecurefunc(tooltip, "Show", function(self)
+        if not IsEnabled() then return end
+        Insight.StyleFonts(self)
     end)
 end
 
@@ -138,6 +128,7 @@ local fadeState      = "idle"
 local fadeElapsed    = 0
 local fadeTarget     = nil
 local suppressFadeIn = false
+local lastTooltipItemLink = nil
 
 local animFrame = CreateFrame("Frame")
 animFrame:Hide()
@@ -164,6 +155,13 @@ local function StartFadeIn(tooltip)
     animFrame:Show()
 end
 
+local function GetTooltipItemLink(tooltip)
+    if not tooltip or not tooltip.GetItem then return nil end
+    local ok, _, itemLink = pcall(tooltip.GetItem, tooltip)
+    if not ok then return nil end
+    return itemLink
+end
+
 local function HookGameTooltipAnimation()
     GameTooltip:HookScript("OnShow", function(self)
         if not IsEnabled() then return end
@@ -175,6 +173,18 @@ local function HookGameTooltipAnimation()
             suppressFadeIn = false
             return
         end
+        local itemLink = GetTooltipItemLink(self)
+        -- Auction tooltips can refresh the same item repeatedly while hovered.
+        -- Do not restart the fade until the hovered item actually changes.
+        if itemLink and lastTooltipItemLink == itemLink then
+            return
+        end
+        -- Skip re-fade when tooltip is refreshed while already visible (e.g. AH price updates)
+        if (fadeState == "fadein" or fadeState == "visible") and fadeTarget == self then
+            lastTooltipItemLink = itemLink
+            return
+        end
+        lastTooltipItemLink = itemLink
         StartFadeIn(self)
         if Insight.accentBar then Insight.accentBar:Hide() end
     end)
@@ -267,6 +277,7 @@ local function ProcessUnitTooltip(tooltip)
     if not IsEnabled() or not tooltip then return end
     if not UnitExists("mouseover") then return end
 
+    tooltip._insightItemMetadata = nil
     local unit     = "mouseover"
     local isPlayer = UnitIsPlayer(unit)
 
@@ -296,19 +307,54 @@ local function ShowTransmog()
     return addon.GetDB("insightShowTransmog", true)
 end
 
+local function GetItemQualityColor(quality)
+    if not quality or quality < 0 then return nil end
+    if ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
+        local c = ITEM_QUALITY_COLORS[quality]
+        return c.r, c.g, c.b
+    end
+    return nil
+end
+
+local function ApplyItemIdentity(tooltip, quality)
+    local r, g, b = GetItemQualityColor(quality)
+    if not r then return end
+    if tooltip.SetBackdropBorderColor then
+        tooltip:SetBackdropBorderColor(r, g, b, 0.60)
+    end
+    if tooltip == GameTooltip and Insight.accentBar then
+        Insight.accentBar:SetColorTexture(r, g, b, 0.85)
+        Insight.accentBar:Show()
+    end
+end
+
 local function OnItemTooltip(tooltip, data)
     if not IsEnabled() then return end
-
-    if not ShowTransmog() then return end
-    if not C_TransmogCollection then return end
 
     local itemID = data and data.id
     if not itemID then return end
 
-    local hasTransmog = C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID)
-    if hasTransmog == nil then return end
+    -- Item identity: quality-colored border, accent bar, and separator tint
+    local quality = (data and data.quality) or (GetItemInfo and select(3, GetItemInfo(itemID)))
+    if quality and quality >= 0 then
+        local r, g, b = GetItemQualityColor(quality)
+        if r then
+            Insight.sepR, Insight.sepG, Insight.sepB = r, g, b
+        end
+        ApplyItemIdentity(tooltip, quality)
+        -- Defer so we run after OnShow/ApplyBackdrop
+        C_Timer.After(0, function()
+            if tooltip and tooltip:IsShown() then
+                ApplyItemIdentity(tooltip, quality)
+            end
+        end)
+    else
+        Insight.sepR, Insight.sepG, Insight.sepB = nil, nil, nil
+    end
 
-    Insight.ProcessItemTooltip(tooltip, itemID)
+    tooltip._insightItemMetadata = true
+    -- Structured item blocks (transmog, etc.)
+    Insight.ProcessItemTooltip(tooltip, itemID, quality)
 end
 
 local function OnUnitTooltip(tooltip, data)
@@ -383,6 +429,16 @@ end
 
 function Insight.ShowAnchorFrame()
     ShowAnchorFrame()
+end
+
+--- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
+function Insight.ToggleAnchorFrame()
+    if anchorFrame:IsShown() then
+        HideAnchorFrame()
+        Insight.Print("Horizon Insight: Anchor hidden. Position saved.")
+    else
+        ShowAnchorFrame()
+    end
 end
 
 function Insight.ApplyInsightOptions()
