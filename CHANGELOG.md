@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.11.3] – 2026-03-13
+
+### 🔧 Improvements
+
+- **(Presence) Animate preview button for Presence toast notifications in options**
+- **(Core) Sidebar scroll height and sub-button parenting during category collapse**
+- **(Presence) Live preview of Presence toast types in options with optional detached window**
+- **(Core) Dashboard chevrons and sidebar polish**
+- **(Presence) QUEST_UPDATE notifications use quest category color**
+- **(Insight) Character title in player tooltip name line with configurable color**
+- **(Presence) Presence individual notification sizes (large, medium, small)**
+- **(Focus) Prey quest detection: relax colon requirement and improve French (Traque) localization**
+
+---
+
 ## [3.11.2] – 2026-03-13
 
 ### 🐛 Fixes
