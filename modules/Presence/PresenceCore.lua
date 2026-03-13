@@ -1112,7 +1112,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     -- Cache per-animation values; reset trackers so first frame always writes.
     cachedEntranceDur  = getEntranceDur()
     cachedExitDur      = getExitDur()
-    cachedHasDiscovery = (curLayer.discoveryText:GetText() or "") ~= ""
+    cachedHasDiscovery = (L.discoveryText:GetText() or "") ~= ""
     lastTitleOffsetY   = nil
     lastSubOffsetY     = nil
     lastDividerWidth   = nil
