@@ -12,7 +12,9 @@ local L = addon.L
 -- Helper: Create Text
 local function MakeText(parent, text, size, r, g, b, justify)
     local fs = parent:CreateFontString(nil, "OVERLAY")
-    fs:SetFont("Fonts\\FRIZQT__.TTF", size, "OUTLINE")
+    local font = size >= 14 and "Fonts\\FRIZQT__.TTF" or "Fonts\\ARIALN.TTF"
+    local flags = size >= 14 and "OUTLINE" or ""
+    fs:SetFont(font, size, flags)
     fs:SetText(text)
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
@@ -111,7 +113,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             local sidebarBg = sidebar:CreateTexture(nil, "BACKGROUND")
             sidebarBg:SetAllPoints()
-            sidebarBg:SetColorTexture(0.04, 0.04, 0.055, 1)
+            sidebarBg:SetColorTexture(0.02, 0.02, 0.02, 1)
 
             -- Sidebar divider line
             local sidebarDivider = sidebar:CreateTexture(nil, "BORDER")
@@ -124,13 +126,13 @@ SlashCmdList["HSDASH"] = function(msg)
             local sidebarLogo = MakeText(sidebar, "HS", 20, 1, 1, 1, "CENTER")
             sidebarLogo:SetPoint("TOP", 0, -18)
 
-            local sidebarLogoSub = MakeText(sidebar, "HORIZON SUITE", 8, 0.4, 0.4, 0.5, "CENTER")
+            local sidebarLogoSub = MakeText(sidebar, "HORIZON SUITE", 10, 0.4, 0.4, 0.5, "CENTER")
             sidebarLogoSub:SetPoint("TOP", sidebarLogo, "BOTTOM", 0, -3)
 
             -- Version text
             local versionStr = addon.VERSION or (GetAddOnMetadata and GetAddOnMetadata("HorizonSuite", "Version")) or ""
             if versionStr and versionStr ~= "" then
-                local sidebarVersion = MakeText(sidebar, "v" .. versionStr, 7, 0.3, 0.3, 0.4, "CENTER")
+                local sidebarVersion = MakeText(sidebar, "v" .. versionStr, 10, 0.3, 0.3, 0.4, "CENTER")
                 sidebarVersion:SetPoint("TOP", sidebarLogoSub, "BOTTOM", 0, -2)
             end
 
@@ -294,10 +296,54 @@ SlashCmdList["HSDASH"] = function(msg)
             end)
 
             -- Smooth Scroll Helper
-            local function ApplySmoothScroll(scrollFrame, scrollContent, speed)
+            local function ApplySmoothScroll(scrollFrame, scrollContent, speed, addScrollbar)
                 scrollFrame.targetScroll = nil
                 scrollFrame.scrollSpeed = speed or 60
                 
+                local updateThumb
+                if addScrollbar then
+                    local track = CreateFrame("Frame", nil, scrollFrame)
+                    track:SetWidth(4)
+                    track:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", 10, 0)
+                    track:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 10, 0)
+                    
+                    local thumb = track:CreateTexture(nil, "OVERLAY")
+                    thumb:SetWidth(4)
+                    thumb:SetColorTexture(1, 1, 1, 0.2)
+                    
+                    updateThumb = function()
+                        local frameH = scrollFrame:GetHeight() or 1
+                        if frameH == 0 then frameH = 1 end
+                        local contentH = scrollContent:GetHeight() or 1
+                        if contentH <= frameH then
+                            thumb:Hide()
+                            return
+                        end
+                        thumb:Show()
+                        local scroll = scrollFrame:GetVerticalScroll() or 0
+                        local maxScroll = math.max(1, contentH - frameH)
+                        local thumbPct = frameH / contentH
+                        local thumbH = math.max(20, frameH * thumbPct)
+                        thumb:SetHeight(thumbH)
+                        local trackH = (track:GetHeight() or frameH) - thumbH
+                        local offset = (scroll / maxScroll) * trackH
+                        thumb:ClearAllPoints()
+                        thumb:SetPoint("TOP", track, "TOP", 0, -offset)
+                    end
+                    
+                    if scrollFrame:GetScript("OnScrollRangeChanged") then
+                        scrollFrame:HookScript("OnScrollRangeChanged", updateThumb)
+                    else
+                        scrollFrame:SetScript("OnScrollRangeChanged", updateThumb)
+                    end
+                    
+                    if scrollFrame:GetScript("OnVerticalScroll") then
+                        scrollFrame:HookScript("OnVerticalScroll", updateThumb)
+                    else
+                        scrollFrame:SetScript("OnVerticalScroll", updateThumb)
+                    end
+                end
+
                 scrollFrame:EnableMouseWheel(true)
                 scrollFrame:SetScript("OnMouseWheel", function(self, delta)
                     local cur = self.targetScroll or self:GetVerticalScroll() or 0
@@ -323,6 +369,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             -- Lerp towards target
                             self:SetVerticalScroll(current + diff * 25 * elapsed)
                         end
+                        if updateThumb then updateThumb() end
                     end)
                 end)
             end
@@ -349,7 +396,7 @@ SlashCmdList["HSDASH"] = function(msg)
             searchDropdownContent:SetSize(570, 1)
             searchDropdownScroll:SetScrollChild(searchDropdownContent)
 
-            ApplySmoothScroll(searchDropdownScroll, searchDropdownContent, 30)
+            ApplySmoothScroll(searchDropdownScroll, searchDropdownContent, 30, true)
             local searchDropdownCatch = CreateFrame("Button", nil, f)
             searchDropdownCatch:SetAllPoints(f)
             searchDropdownCatch:SetFrameLevel(searchDropdown:GetFrameLevel() - 1)
@@ -395,9 +442,9 @@ SlashCmdList["HSDASH"] = function(msg)
             subCategoryContent:SetSize(contentWidth, 1)
             subCategoryScroll:SetScrollChild(subCategoryContent)
 
-            ApplySmoothScroll(subCategoryScroll, subCategoryContent, 60)
+            ApplySmoothScroll(subCategoryScroll, subCategoryContent, 60, true)
             local detailTitle = MakeText(detailView, "MODULE SETTINGS", 18, 1, 1, 1, "LEFT")
-            detailTitle:SetPoint("TOPLEFT", 180, -45)
+            detailTitle:SetPoint("TOPLEFT", 40, -45)
             f.detailTitle = detailTitle
 
             -- Accent underline below detail title
@@ -418,7 +465,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 targetView:SetAlpha(0)
                 targetView:Show()
-                UIFrameFadeIn(targetView, 0.1, 0, 1)
+                UIFrameFadeIn(targetView, 0.2, 0, 1)
             end
 
             f.ShowDashboard = function()
@@ -426,7 +473,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 subCategoryView:Hide()
                 dashboardView:SetAlpha(0)
                 dashboardView:Show()
-                UIFrameFadeIn(dashboardView, 0.1, 0, 1)
+                UIFrameFadeIn(dashboardView, 0.2, 0, 1)
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
@@ -439,11 +486,11 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- Back Button (Persistent in Detail View)
             local backBtn = CreateFrame("Button", nil, detailView)
-            backBtn:SetPoint("TOPLEFT", 35, -30)
+            backBtn:SetPoint("TOPLEFT", 40, -5)
             
             -- Back Button (Subcategory View)
             local subBackBtn = CreateFrame("Button", nil, subCategoryView)
-            subBackBtn:SetPoint("TOPLEFT", 35, -30)
+            subBackBtn:SetPoint("TOPLEFT", 40, -5)
             
             local function StyleBackButton(btn, textStr)
                 btn:SetSize(160, 32)
@@ -541,7 +588,7 @@ SlashCmdList["HSDASH"] = function(msg)
             detailContent:SetSize(contentWidth, 1)
             detailScroll:SetScrollChild(detailContent)
 
-            ApplySmoothScroll(detailScroll, detailContent, 60)
+            ApplySmoothScroll(detailScroll, detailContent, 60, true)
             local currentDetailCards = {}
 
             -- Helper: Update Detail Layout
@@ -835,10 +882,10 @@ SlashCmdList["HSDASH"] = function(msg)
                     if yVal then
                         card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
                         if C_Timer and C_Timer.After then
-                            C_Timer.After(i * 0.02, function()
+                            C_Timer.After(i * 0.05, function()
                                 if card:IsShown() then
                                     card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                    UIFrameFadeIn(card, 0.1, 0, 1)
+                                    UIFrameFadeIn(card, 0.2, 0, 1)
                                 end
                             end)
                         else
@@ -852,6 +899,13 @@ SlashCmdList["HSDASH"] = function(msg)
                 if searchBox then searchBox:ClearFocus() end
 
                 f.currentModuleKey = moduleKey
+
+                for _, sb in ipairs(sidebarButtons) do
+                    if (moduleKey and sb.sidebarModuleKey == moduleKey) or (not moduleKey and sb.sidebarName == name) then
+                        SetActiveSidebarButton(sb)
+                        break
+                    end
+                end
 
                 -- Find all matching sub-categories
                 local cats = {}
@@ -904,10 +958,10 @@ SlashCmdList["HSDASH"] = function(msg)
                         if xVal and yVal then
                             tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", xVal, yVal - 20)
                             if C_Timer and C_Timer.After then
-                                C_Timer.After(i * 0.02, function()
+                                C_Timer.After(i * 0.05, function()
                                     if tile:IsShown() then
                                         tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", xVal, yVal)
-                                        UIFrameFadeIn(tile, 0.1, 0, 1)
+                                        UIFrameFadeIn(tile, 0.2, 0, 1)
                                     end
                                 end)
                             else
@@ -950,10 +1004,10 @@ SlashCmdList["HSDASH"] = function(msg)
                             if yVal then
                                 card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
                                 if C_Timer and C_Timer.After then
-                                    C_Timer.After(i * 0.02, function()
+                                    C_Timer.After(i * 0.05, function()
                                         if card:IsShown() then
                                             card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                            UIFrameFadeIn(card, 0.1, 0, 1)
+                                            UIFrameFadeIn(card, 0.2, 0, 1)
                                         end
                                     end)
                                 else
@@ -1005,8 +1059,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 accent:SetColorTexture(cr, cg, cb, 1)
 
                 -- Chevron indicator
-                local chevron = MakeText(card, "\226\128\186", 12, 0.5, 0.5, 0.55, "RIGHT")
-                chevron:SetPoint("TOPRIGHT", -25, -24)
+                local chevron = MakeText(card, "+", 14, 0.5, 0.5, 0.55, "RIGHT")
+                chevron:SetPoint("TOPRIGHT", -25, -23)
 
                 -- Title
                 local lbl = MakeText(card, title:upper(), 15, 0.9, 0.9, 0.95, "LEFT")
@@ -1023,10 +1077,10 @@ SlashCmdList["HSDASH"] = function(msg)
                 local function updateExpandedVisuals()
                     if card.expanded then
                         cBg:SetColorTexture(0.08, 0.08, 0.09, 0.98)
-                        chevron:SetText("\226\128\185")
+                        chevron:SetText("-")
                     else
                         cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
-                        chevron:SetText("\226\128\186")
+                        chevron:SetText("+")
                     end
                 end
 
@@ -1297,7 +1351,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                 hdrBg:SetColorTexture(0.10, 0.10, 0.12, 0.5)
 
                                 local chevron = groupHeader:CreateFontString(nil, "OVERLAY")
-                                chevron:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
+                                chevron:SetFont("Fonts\\ARIALN.TTF", 14, "")
                                 chevron:SetTextColor(Def.TextColorSection and Def.TextColorSection[1] or 0.6, Def.TextColorSection and Def.TextColorSection[2] or 0.6, Def.TextColorSection and Def.TextColorSection[3] or 0.6)
                                 chevron:SetText("+")
                                 chevron:SetPoint("LEFT", groupHeader, "LEFT", 6, 0)
@@ -1643,13 +1697,6 @@ SlashCmdList["HSDASH"] = function(msg)
                 local iconKey = categoryIcons[tileName] or (tileModKey and categoryIcons[moduleLabels[tileModKey] or ""]) or "INV_Misc_Question_01"
                 local btn = CreateSidebarButton(tileName, iconKey, function()
                     f.OpenModule(tileName, tileModKey)
-                    -- Find this button and highlight it
-                    for _, sb in ipairs(sidebarButtons) do
-                        if sb.sidebarModuleKey == tileModKey and sb.sidebarName == tileName then
-                            SetActiveSidebarButton(sb)
-                            break
-                        end
-                    end
                 end)
                 btn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
                 btn.sidebarModuleKey = tileModKey
