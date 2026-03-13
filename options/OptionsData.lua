@@ -96,6 +96,7 @@ local PRESENCE_KEYS = {
     presenceSuppressInPvP = true,
     presenceSuppressInBattleground = true,
     presenceHideQuestUpdateTitle = true,
+    presencePreviewType = true,
 }
 
 local MPLUS_TYPOGRAPHY_KEYS = {
@@ -438,6 +439,20 @@ local function DisplayPerElementFont(value)
     if value == FONT_USE_GLOBAL then return L["Use global font"] end
     if addon.GetFontNameForPath then return addon.GetFontNameForPath(value) end
     return value
+end
+
+local function GetPresencePreviewDropdownOptions()
+    local Presence = addon.Presence
+    if not Presence or not Presence.PREVIEW_TYPE_ORDER or not Presence.PREVIEW_TYPE_LABELS then
+        return { { L["Level up"] or "Level up", "LEVEL_UP" } }
+    end
+    local out = {}
+    for _, typeName in ipairs(Presence.PREVIEW_TYPE_ORDER) do
+        local labelKey = Presence.PREVIEW_TYPE_LABELS[typeName]
+        local label = labelKey and (L[labelKey] or labelKey) or typeName
+        out[#out + 1] = { label, typeName }
+    end
+    return out
 end
 
 local OUTLINE_OPTIONS = {
@@ -1316,10 +1331,10 @@ local OptionCategories = {
         moduleKey = "presence",
         options = {
             { type = "section", name = L["Display"] },
-            { type = "toggle", name = L["Toast icons"], desc = L["Show quest type icon on Presence toasts (quest accept/complete, world quest, quest update)."], dbKey = "showPresenceQuestTypeIcons", get = function() return getDB("showPresenceQuestTypeIcons", true) end, set = function(v) setDB("showPresenceQuestTypeIcons", v) end },
-            { type = "slider", name = L["Toast icon size"], desc = L["Quest icon size on Presence toasts (16–36 px). Default 24."], dbKey = "presenceIconSize", min = 16, max = 36, get = function() return math.max(16, math.min(36, getDB("presenceIconSize", 24) or 24)) end, set = function(v) setDB("presenceIconSize", math.max(16, math.min(36, v))) end },
-            { type = "toggle", name = L["Hide quest update title"], desc = L["Show objective line only."], tooltip = L["Show only the objective line on quest progress toasts (e.g. 7/10 Boar Pelts), without the quest name or header."], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end },
-            { type = "toggle", name = L["Discovery line"], desc = L["Show 'Discovered' under zone/subzone when entering a new area."], dbKey = "showPresenceDiscovery", get = function() return getDB("showPresenceDiscovery", true) end, set = function(v) setDB("showPresenceDiscovery", v) end },
+            { type = "toggle", name = L["Toast icons"], desc = L["Show quest type icon on Presence toasts (quest accept/complete, world quest, quest update)."], dbKey = "showPresenceQuestTypeIcons", get = function() return getDB("showPresenceQuestTypeIcons", true) end, set = function(v) setDB("showPresenceQuestTypeIcons", v) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["Toast icon size"], desc = L["Quest icon size on Presence toasts (16–36 px). Default 24."], dbKey = "presenceIconSize", min = 16, max = 36, get = function() return math.max(16, math.min(36, getDB("presenceIconSize", 24) or 24)) end, set = function(v) setDB("presenceIconSize", math.max(16, math.min(36, v))) end, refreshIds = { "presencePreview" } },
+            { type = "toggle", name = L["Hide quest update title"], desc = L["Show objective line only."], tooltip = L["Show only the objective line on quest progress toasts (e.g. 7/10 Boar Pelts), without the quest name or header."], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end, refreshIds = { "presencePreview" } },
+            { type = "toggle", name = L["Discovery line"], desc = L["Show 'Discovered' under zone/subzone when entering a new area."], dbKey = "showPresenceDiscovery", get = function() return getDB("showPresenceDiscovery", true) end, set = function(v) setDB("showPresenceDiscovery", v) end, refreshIds = { "presencePreview" } },
             { type = "slider", name = L["Frame vertical position"], desc = L["Vertical offset of the Presence frame from center (-300 to 0)."], dbKey = "presenceFrameY", min = -300, max = 0, get = function() return math.max(-300, math.min(0, tonumber(getDB("presenceFrameY", -180)) or -180)) end, set = function(v) setDB("presenceFrameY", math.max(-300, math.min(0, v))) end },
             { type = "slider", name = L["Frame scale"], desc = L["Scale of the Presence frame (0.5–2)."], dbKey = "presenceFrameScale", min = 0.5, max = 2, step = 0.1, get = function() return math.max(0.5, math.min(2, tonumber(getDB("presenceFrameScale", 1)) or 1)) end, set = function(v) setDB("presenceFrameScale", math.max(0.5, math.min(2, v))) end },
             { type = "section", name = L["Animation"] },
@@ -1327,6 +1342,16 @@ local OptionCategories = {
             { type = "slider", name = L["Entrance duration"], desc = L["Duration of the entrance animation in seconds (0.2–1.5)."], dbKey = "presenceEntranceDur", min = 0.2, max = 1.5, step = 0.1, get = function() return math.max(0.2, math.min(1.5, tonumber(getDB("presenceEntranceDur", 0.7)) or 0.7)) end, set = function(v) setDB("presenceEntranceDur", math.max(0.2, math.min(1.5, v))) end },
             { type = "slider", name = L["Exit duration"], desc = L["Duration of the exit animation in seconds (0.2–1.5)."], dbKey = "presenceExitDur", min = 0.2, max = 1.5, step = 0.1, get = function() return math.max(0.2, math.min(1.5, tonumber(getDB("presenceExitDur", 0.8)) or 0.8)) end, set = function(v) setDB("presenceExitDur", math.max(0.2, math.min(1.5, v))) end },
             { type = "slider", name = L["Hold duration scale"], desc = L["Multiplier for how long each notification stays on screen (0.5–2)."], dbKey = "presenceHoldScale", min = 0.5, max = 2, step = 0.1, get = function() return math.max(0.5, math.min(2, tonumber(getDB("presenceHoldScale", 1)) or 1)) end, set = function(v) setDB("presenceHoldScale", math.max(0.5, math.min(2, v))) end },
+        },
+    },
+    {
+        key = "PresencePreview",
+        name = L["Preview"] or "Preview",
+        desc = L["Preview Presence toast layouts live and open a detachable sample while adjusting other settings."] or "Preview Presence toast layouts live and open a detachable sample while adjusting other settings.",
+        moduleKey = "presence",
+        options = {
+            { type = "section", name = L["Preview"] },
+            { type = "presencePreview" },
         },
     },
     {
@@ -1358,8 +1383,8 @@ local OptionCategories = {
             { type = "toggle", name = L["Objective only"], desc = L["Show only the objective line on quest progress toasts, hiding the 'Quest Update' title."], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end },
             { type = "toggle", name = L["Scenario start"], desc = L["Show notification when entering a scenario or Delve."], dbKey = "presenceScenarioStart", get = function() local v = getDB("presenceScenarioStart", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioStart", v) end },
             { type = "toggle", name = L["Scenario progress"], desc = L["Show notification when scenario or Delve objectives update."], dbKey = "presenceScenarioUpdate", get = function() local v = getDB("presenceScenarioUpdate", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioUpdate", v) end },
-            { type = "toggle", name = L["Show scenario complete"], desc = L["Show notification when a scenario or Delve is fully completed."], dbKey = "presenceScenarioComplete", get = function() local v = getDB("presenceScenarioComplete", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioComplete", v) end },
-            { type = "toggle", name = L["Show rare defeated"], desc = L["Show notification when a rare mob is defeated nearby."], dbKey = "presenceRareDefeated", get = function() return getDB("presenceRareDefeated", true) end, set = function(v) setDB("presenceRareDefeated", v) end },
+            { type = "toggle", name = L["Scenario complete"], desc = L["Show notification when a scenario or Delve is fully completed."], dbKey = "presenceScenarioComplete", get = function() local v = getDB("presenceScenarioComplete", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioComplete", v) end },
+            { type = "toggle", name = L["Rare defeated"], desc = L["Show notification when a rare mob is defeated nearby."], dbKey = "presenceRareDefeated", get = function() return getDB("presenceRareDefeated", true) end, set = function(v) setDB("presenceRareDefeated", v) end },
         },
     },
     {
@@ -1392,27 +1417,27 @@ local OptionCategories = {
                 elseif addon.OptionsPanel_Refresh then
                     addon.OptionsPanel_Refresh()
                 end
-            end, refreshIds = { "presenceTitleFontPath", "presenceSubtitleFontPath", "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary" } },
-            { type = "dropdown", name = L["Main title font"], desc = L["Font family for the main title."], dbKey = "presenceTitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end, get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceTitleFontPath", v) end, displayFn = DisplayPerElementFont },
-            { type = "dropdown", name = L["Subtitle font"], desc = L["Font family for the subtitle."], dbKey = "presenceSubtitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end, get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceSubtitleFontPath", v) end, displayFn = DisplayPerElementFont },
+            end, refreshIds = { "presencePreview", "presenceTitleFontPath", "presenceSubtitleFontPath", "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary" } },
+            { type = "dropdown", name = L["Main title font"], desc = L["Font family for the main title."], dbKey = "presenceTitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end, get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceTitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" } },
+            { type = "dropdown", name = L["Subtitle font"], desc = L["Font family for the subtitle."], dbKey = "presenceSubtitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end, get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceSubtitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" } },
             { type = "section", name = L["Large notifications"] },
-            { type = "slider", name = L["Large primary size"], desc = L["Font size for large notification titles (zone, quest complete, achievement, etc.)."], dbKey = "presencePrimaryLargeSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryLargeSz", 48)) or 48)) end, set = function(v) setDB("presencePrimaryLargeSz", math.max(12, math.min(72, v))) end },
-            { type = "slider", name = L["Large secondary size"], desc = L["Font size for large notification subtitles."], dbKey = "presenceSecondaryLargeSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryLargeSz", 24)) or 24)) end, set = function(v) setDB("presenceSecondaryLargeSz", math.max(12, math.min(40, v))) end },
+            { type = "slider", name = L["Large primary size"], desc = L["Font size for large notification titles (zone, quest complete, achievement, etc.)."], dbKey = "presencePrimaryLargeSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryLargeSz", 48)) or 48)) end, set = function(v) setDB("presencePrimaryLargeSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["Large secondary size"], desc = L["Font size for large notification subtitles."], dbKey = "presenceSecondaryLargeSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryLargeSz", 24)) or 24)) end, set = function(v) setDB("presenceSecondaryLargeSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
             { type = "section", name = L["Medium notifications"] },
-            { type = "slider", name = L["Medium primary size"], desc = L["Font size for medium notification titles (quest accept, subzone, scenario)."], dbKey = "presencePrimaryMediumSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryMediumSz", 36)) or 36)) end, set = function(v) setDB("presencePrimaryMediumSz", math.max(12, math.min(72, v))) end },
-            { type = "slider", name = L["Medium secondary size"], desc = L["Font size for medium notification subtitles."], dbKey = "presenceSecondaryMediumSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryMediumSz", 22)) or 22)) end, set = function(v) setDB("presenceSecondaryMediumSz", math.max(12, math.min(40, v))) end },
+            { type = "slider", name = L["Medium primary size"], desc = L["Font size for medium notification titles (quest accept, subzone, scenario)."], dbKey = "presencePrimaryMediumSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryMediumSz", 36)) or 36)) end, set = function(v) setDB("presencePrimaryMediumSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["Medium secondary size"], desc = L["Font size for medium notification subtitles."], dbKey = "presenceSecondaryMediumSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryMediumSz", 22)) or 22)) end, set = function(v) setDB("presenceSecondaryMediumSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
             { type = "section", name = L["Small notifications"] },
-            { type = "slider", name = L["Small primary size"], desc = L["Font size for small notification titles (quest progress, achievement progress)."], dbKey = "presencePrimarySmallSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimarySmallSz", 28)) or 28)) end, set = function(v) setDB("presencePrimarySmallSz", math.max(12, math.min(72, v))) end },
-            { type = "slider", name = L["Small secondary size"], desc = L["Font size for small notification subtitles."], dbKey = "presenceSecondarySmallSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondarySmallSz", 20)) or 20)) end, set = function(v) setDB("presenceSecondarySmallSz", math.max(12, math.min(40, v))) end },
+            { type = "slider", name = L["Small primary size"], desc = L["Font size for small notification titles (quest progress, achievement progress)."], dbKey = "presencePrimarySmallSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimarySmallSz", 28)) or 28)) end, set = function(v) setDB("presencePrimarySmallSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["Small secondary size"], desc = L["Font size for small notification subtitles."], dbKey = "presenceSecondarySmallSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondarySmallSz", 20)) or 20)) end, set = function(v) setDB("presenceSecondarySmallSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
             { type = "section", name = L["Colors"] },
-            { type = "color", name = L["Boss emote color"], desc = L["Color of raid and dungeon boss emote text."], dbKey = "presenceBossEmoteColor", default = addon.PRESENCE_BOSS_EMOTE_COLOR },
-            { type = "color", name = L["Discovery line color"], desc = L["Color of the 'Discovered' line under zone text."], dbKey = "presenceDiscoveryColor", default = addon.PRESENCE_DISCOVERY_COLOR },
+            { type = "color", name = L["Boss emote color"], desc = L["Color of raid and dungeon boss emote text."], dbKey = "presenceBossEmoteColor", default = addon.PRESENCE_BOSS_EMOTE_COLOR, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["Discovery line color"], desc = L["Color of the 'Discovered' line under zone text."], dbKey = "presenceDiscoveryColor", default = addon.PRESENCE_DISCOVERY_COLOR, refreshIds = { "presencePreview" } },
             { type = "section", name = L["Zone type coloring"] },
-            { type = "toggle", name = L["Color by zone type"], desc = L["Color zone/subzone titles by PvP zone type (friendly, hostile, contested, sanctuary). When off, uses the default category color."], dbKey = "presenceZoneTypeColoring", get = function() return getDB("presenceZoneTypeColoring", false) end, set = function(v) setDB("presenceZoneTypeColoring", v) end },
-            { type = "color", name = L["Friendly zone color"], desc = L["Color for friendly zones (green by default)."], dbKey = "presenceZoneColorFriendly", default = { 0.1, 1.0, 0.1 } },
-            { type = "color", name = L["Hostile zone color"], desc = L["Color for hostile zones (red by default)."], dbKey = "presenceZoneColorHostile", default = { 1.0, 0.1, 0.1 } },
-            { type = "color", name = L["Contested zone color"], desc = L["Color for contested zones (orange by default)."], dbKey = "presenceZoneColorContested", default = { 1.0, 0.7, 0.0 } },
-            { type = "color", name = L["Sanctuary zone color"], desc = L["Color for sanctuary zones (blue by default)."], dbKey = "presenceZoneColorSanctuary", default = { 0.41, 0.8, 0.94 } },
+            { type = "toggle", name = L["Color by zone type"], desc = L["Color zone/subzone titles by PvP zone type (friendly, hostile, contested, sanctuary). When off, uses the default category color."], dbKey = "presenceZoneTypeColoring", get = function() return getDB("presenceZoneTypeColoring", false) end, set = function(v) setDB("presenceZoneTypeColoring", v) end, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["Friendly zone color"], desc = L["Color for friendly zones (green by default)."], dbKey = "presenceZoneColorFriendly", default = { 0.1, 1.0, 0.1 }, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["Hostile zone color"], desc = L["Color for hostile zones (red by default)."], dbKey = "presenceZoneColorHostile", default = { 1.0, 0.1, 0.1 }, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["Contested zone color"], desc = L["Color for contested zones (orange by default)."], dbKey = "presenceZoneColorContested", default = { 1.0, 0.7, 0.0 }, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["Sanctuary zone color"], desc = L["Color for sanctuary zones (blue by default)."], dbKey = "presenceZoneColorSanctuary", default = { 0.41, 0.8, 0.94 }, refreshIds = { "presencePreview" } },
         },
     },
     {
@@ -2352,6 +2377,7 @@ addon.OptionsData_GetDB = OptionsData_GetDB
 addon.OptionsData_SetDB = OptionsData_SetDB
 addon.OptionsData_NotifyMainAddon = OptionsData_NotifyMainAddon
 addon.OptionsData_SetUpdateFontsRef = OptionsData_SetUpdateFontsRef
+addon.GetPresencePreviewDropdownOptions = GetPresencePreviewDropdownOptions
 addon.OptionCategories = getVisibleCategories()
 addon.OptionsData_BuildSearchIndex = OptionsData_BuildSearchIndex
 addon.COLOR_KEYS_ORDER = COLOR_KEYS_ORDER

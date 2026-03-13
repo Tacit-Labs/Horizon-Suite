@@ -604,6 +604,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                         local f = optionFrames[k]
                         if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
                     end
+                    if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
             end
             local w = OptionsWidgets_CreateToggleSwitch(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, setFn, opt.disabled, opt.tooltip)
@@ -626,6 +627,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                         local f = optionFrames[k]
                         if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
                     end
+                    if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
             end
             local w = OptionsWidgets_CreateSlider(cardContent, opt.name, opt.desc or opt.tooltip, opt.get, setFn, opt.min, opt.max, opt.disabled, opt.step, opt.tooltip)
@@ -649,6 +651,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                         local f = optionFrames[k]
                         if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
                     end
+                    if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
             end
             local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, setFn, opt.displayFn, searchable, opt.disabled, opt.tooltip)
@@ -696,6 +699,17 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 getTbl = function() return getDB(opt.dbKey, nil) end
                 setKeyVal = function(v) setDB(opt.dbKey, v) end
             end
+            if opt.refreshIds and optionFrames then
+                local origSet = setKeyVal
+                setKeyVal = function(v)
+                    origSet(v)
+                    for _, k in ipairs(opt.refreshIds) do
+                        local f = optionFrames[k]
+                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                    end
+                    if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
+                end
+            end
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
             local row = OptionsWidgets_CreateColorSwatchRow(cardContent, contentAnchor, opt.name or "Color", def, getTbl, setKeyVal, notifyMainAddon, nil, hasAlpha, opt.tooltip)
@@ -704,6 +718,26 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
             if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = row } end
             table.insert(refreshers, row)
+        elseif opt.type == "presencePreview" and currentCard then
+            local cardContent = currentCard.contentContainer or currentCard
+            local contentAnchor = currentCard.contentAnchor
+            local previewWidget = addon.Presence and addon.Presence.CreatePreviewWidget and addon.Presence.CreatePreviewWidget(cardContent, {
+                getTypeName = function() return getDB("presencePreviewType", "LEVEL_UP") end,
+                setTypeName = function(v) setDB("presencePreviewType", v) end,
+                notify = notifyMainAddon,
+                scale = 0.55,
+            })
+            local previewFrame = previewWidget and previewWidget.frame
+            if previewFrame then
+                previewFrame:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+                previewFrame:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
+                if previewWidget.Refresh then previewFrame.Refresh = previewWidget.Refresh end
+                if previewFrame.Refresh then previewFrame:Refresh() end
+                currentCard.contentAnchor = previewFrame
+                currentCard.contentHeight = currentCard.contentHeight + OptionGap + (previewFrame:GetHeight() or 210)
+                if optionFrames then optionFrames["presencePreview"] = { tabIndex = tabIndex, frame = previewFrame } end
+                table.insert(refreshers, previewFrame)
+            end
         elseif opt.type == "button" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
@@ -714,6 +748,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                         local f = optionFrames[k]
                         if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
                     end
+                    if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
                 notifyMainAddon()
             end, { height = 22, tooltip = opt.tooltip })

@@ -74,11 +74,11 @@ SlashCmdList["HSDASH"] = function(msg)
 
             local categoryIcons = {
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
-                ["Modules"] = "INV_Misc_Wrench_01",
-                ["Focus"] = "INV_Misc_Gear_01",
-                ["Presence"] = "INV_Misc_Bell_01",
-                ["Vista"] = "INV_Misc_Spyglass_02",
-                ["Insight"] = "INV_Misc_Map_01",
+                ["Modules"] = "inv_10_engineering_purchasedparts_color2",
+                ["Focus"] = "achievement_quests_completed_05",
+                ["Presence"] = "vas_guildnamechange",
+                ["Vista"] = "ability_hunter_pathfinding",
+                ["Insight"] = "ui_profession_inscription",
                 ["Yield"] = "INV_Misc_Coin_01",
                 ["Typography"] = "INV_Misc_Book_09",
                 ["Colors"] = "INV_Misc_Gem_Diamond_01",
@@ -123,29 +123,25 @@ SlashCmdList["HSDASH"] = function(msg)
             sidebarDivider:SetColorTexture(0.15, 0.15, 0.2, 1)
 
             -- Sidebar Logo
-            local sidebarLogo = MakeText(sidebar, "HS", 20, 1, 1, 1, "CENTER")
-            sidebarLogo:SetPoint("TOP", 0, -18)
+            local sidebarLogoSub = MakeText(sidebar, "HORIZON SUITE", 16, 0.7, 0.7, 0.8, "CENTER")
+            sidebarLogoSub:SetPoint("TOP", 0, -18)
 
-            local sidebarLogoSub = MakeText(sidebar, "HORIZON SUITE", 10, 0.4, 0.4, 0.5, "CENTER")
-            sidebarLogoSub:SetPoint("TOP", sidebarLogo, "BOTTOM", 0, -3)
-
-            -- Version text
-            local versionStr = addon.VERSION or (GetAddOnMetadata and GetAddOnMetadata("HorizonSuite", "Version")) or ""
-            if versionStr and versionStr ~= "" then
-                local sidebarVersion = MakeText(sidebar, "v" .. versionStr, 10, 0.3, 0.3, 0.4, "CENTER")
-                sidebarVersion:SetPoint("TOP", sidebarLogoSub, "BOTTOM", 0, -2)
-            end
+            -- Version from TOC (addon version)
+            local addonName = addon.ADDON_NAME or "HorizonSuite"
+            local versionStr = addon.VERSION or (GetAddOnMetadata and GetAddOnMetadata(addonName, "Version")) or ""
+            local sidebarVersion = MakeText(sidebar, versionStr ~= "" and ("v" .. versionStr) or "", 12, 0.55, 0.55, 0.65, "CENTER")
+            sidebarVersion:SetPoint("TOP", sidebarLogoSub, "BOTTOM", 0, -4)
 
             -- Sidebar separator under logo
             local logoSep = sidebar:CreateTexture(nil, "ARTWORK")
             logoSep:SetHeight(1)
-            logoSep:SetPoint("TOPLEFT", 15, -64)
-            logoSep:SetPoint("TOPRIGHT", -15, -64)
+            logoSep:SetPoint("TOPLEFT", 15, -58)
+            logoSep:SetPoint("TOPRIGHT", -15, -58)
             logoSep:SetColorTexture(0.15, 0.15, 0.2, 0.6)
 
             -- Sidebar scroll area for buttons
             local sidebarScrollFrame = CreateFrame("ScrollFrame", nil, sidebar)
-            sidebarScrollFrame:SetPoint("TOPLEFT", 0, -72)
+            sidebarScrollFrame:SetPoint("TOPLEFT", 0, -68)
             sidebarScrollFrame:SetPoint("BOTTOMRIGHT", -1, 10)
             local sidebarScrollContent = CreateFrame("Frame", nil, sidebarScrollFrame)
             sidebarScrollContent:SetWidth(SIDEBAR_WIDTH - 1)
@@ -161,9 +157,25 @@ SlashCmdList["HSDASH"] = function(msg)
             local sidebarButtons = {}
             local activeSidebarBtn = nil
 
-            local function CreateSidebarButton(label, iconName, onClick)
+            -- Sidebar group collapse (reuse OptionsPanel state for consistency)
+            local groupCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsSidebarGroupCollapsed) or {}
+            local function GetGroupCollapsed(mk) return groupCollapsed[mk] ~= false end
+            local function SetGroupCollapsed(mk, v)
+                groupCollapsed[mk] = v
+                local db = _G[addon.DB_NAME]
+                if db then db.optionsSidebarGroupCollapsed = groupCollapsed end
+            end
+
+            local TAB_ROW_HEIGHT = 38
+            local HEADER_ROW_HEIGHT = 28
+            local SIDEBAR_TOP_PAD = 4
+            local COLLAPSE_ANIM_DUR = 0.18
+            local easeOut = addon.easeOut or function(t) return 1 - (1-t)*(1-t) end
+
+            local function CreateSidebarButton(label, iconName, onClick, indentPx)
+                indentPx = indentPx or 0
                 local btn = CreateFrame("Button", nil, sidebarScrollContent)
-                btn:SetSize(SIDEBAR_WIDTH - 1, 38)
+                btn:SetSize(SIDEBAR_WIDTH - 1, TAB_ROW_HEIGHT)
 
                 local btnBg = btn:CreateTexture(nil, "BACKGROUND")
                 btnBg:SetAllPoints()
@@ -172,23 +184,24 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 local accentBar = btn:CreateTexture(nil, "ARTWORK")
                 accentBar:SetSize(3, 22)
-                accentBar:SetPoint("LEFT", 4, 0)
+                accentBar:SetPoint("LEFT", 4 + indentPx, 0)
                 local ar, ag, ab = GetAccentColor()
                 accentBar:SetColorTexture(ar, ag, ab, 1)
                 accentBar:Hide()
                 btn.accentBar = accentBar
 
+                local leftPad = indentPx + (iconName and 14 or 0)
                 if iconName then
                     local ic = btn:CreateTexture(nil, "ARTWORK")
                     ic:SetSize(16, 16)
-                    ic:SetPoint("LEFT", 14, 0)
+                    ic:SetPoint("LEFT", indentPx + 14, 0)
                     ic:SetTexture("Interface\\Icons\\" .. iconName)
                     ic:SetVertexColor(0.6, 0.6, 0.65, 1)
                     btn.icon = ic
                 end
 
                 local lbl = MakeText(btn, label, 11, 0.65, 0.65, 0.7, "LEFT")
-                lbl:SetPoint("LEFT", iconName and 36 or 14, 0)
+                lbl:SetPoint("LEFT", indentPx + (iconName and 36 or 14), 0)
                 lbl:SetPoint("RIGHT", -8, 0)
                 lbl:SetWordWrap(false)
                 btn.label = lbl
@@ -859,6 +872,17 @@ SlashCmdList["HSDASH"] = function(msg)
             f.OpenCategoryDetail = function(modName, catName, options)
                 if searchBox then searchBox:ClearFocus() end
 
+                -- Update sidebar active state to match this category
+                for _, sb in ipairs(sidebarButtons) do
+                    if sb.sidebarCategoryIndex then
+                        local cat = addon.OptionCategories[sb.sidebarCategoryIndex]
+                        if cat and cat.name == catName and (not f.currentModuleKey or cat.moduleKey == f.currentModuleKey) then
+                            SetActiveSidebarButton(sb)
+                            break
+                        end
+                    end
+                end
+
                 CrossfadeTo(detailView)
                 detailContent:Show()
                 detailScroll:SetVerticalScroll(0)
@@ -900,10 +924,14 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 f.currentModuleKey = moduleKey
 
+                -- Find first matching sidebar sub-button (or standalone) for this module/category
                 for _, sb in ipairs(sidebarButtons) do
-                    if (moduleKey and sb.sidebarModuleKey == moduleKey) or (not moduleKey and sb.sidebarName == name) then
-                        SetActiveSidebarButton(sb)
-                        break
+                    if sb.sidebarCategoryIndex then
+                        local cat = addon.OptionCategories[sb.sidebarCategoryIndex]
+                        if cat and ((moduleKey and cat.moduleKey == moduleKey) or (not moduleKey and cat.name == name)) then
+                            SetActiveSidebarButton(sb)
+                            break
+                        end
                     end
                 end
 
@@ -1128,6 +1156,17 @@ SlashCmdList["HSDASH"] = function(msg)
                 local currentCard = nil
                 local detailOptionFrames = {}
 
+                local function RefreshLinkedTargets(refreshIds)
+                    if not refreshIds then return end
+                    for _, k in ipairs(refreshIds) do
+                        local w = detailOptionFrames[k]
+                        if w and w.Refresh then w:Refresh() end
+                    end
+                    if addon.Presence and addon.Presence.RefreshPreviewTargets then
+                        addon.Presence.RefreshPreviewTargets()
+                    end
+                end
+
                 for _, opt in ipairs(options) do
                     -- Resolve get/set fallbacks if missing
                     local g = opt.get
@@ -1161,6 +1200,20 @@ SlashCmdList["HSDASH"] = function(msg)
                             s = function(v) _G.OptionsData_SetDB(opt.dbKey, v) end
                         end
                     end
+                    if opt.refreshIds and s then
+                        local origSet = s
+                        if opt.type == "color" then
+                            s = function(nr, ng, nb, na)
+                                origSet(nr, ng, nb, na)
+                                RefreshLinkedTargets(opt.refreshIds)
+                            end
+                        else
+                            s = function(v)
+                                origSet(v)
+                                RefreshLinkedTargets(opt.refreshIds)
+                            end
+                        end
+                    end
 
                     if opt.type == "section" then
                         -- Finalize previous card if any
@@ -1181,7 +1234,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         end
                         
                         -- Store the option identifier to track its parent card
-                        local optId = opt.dbKey or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
+                        local optId = opt.dbKey or (opt.type == "presencePreview" and "presencePreview") or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
                         currentCard.optionIds[optId] = true
 
                         local widget
@@ -1197,6 +1250,24 @@ SlashCmdList["HSDASH"] = function(msg)
                         elseif opt.type == "color" then
                             widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
                             if widget and widget.Refresh then detailOptionFrames[optId] = widget end
+                        elseif opt.type == "presencePreview" then
+                            local previewWidget = addon.Presence and addon.Presence.CreatePreviewWidget and addon.Presence.CreatePreviewWidget(currentCard.settingsContainer, {
+                                getTypeName = function()
+                                    return _G.OptionsData_GetDB("presencePreviewType", "LEVEL_UP")
+                                end,
+                                setTypeName = function(v)
+                                    _G.OptionsData_SetDB("presencePreviewType", v)
+                                end,
+                                notify = function()
+                                    if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                                end,
+                                scale = 0.55,
+                            })
+                            widget = previewWidget and previewWidget.frame or nil
+                            if widget and previewWidget.Refresh then
+                                widget.Refresh = previewWidget.Refresh
+                            end
+                            detailOptionFrames[optId] = widget
                         elseif opt.type == "header" then
                             widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
                         elseif opt.type == "button" then
@@ -1204,10 +1275,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             if opt.refreshIds and #opt.refreshIds > 0 then
                                 onClick = function()
                                     if opt.onClick then opt.onClick() end
-                                    for _, k in ipairs(opt.refreshIds) do
-                                        local w = detailOptionFrames[k]
-                                        if w and w.Refresh then w:Refresh() end
-                                    end
+                                    RefreshLinkedTargets(opt.refreshIds)
                                 end
                             end
                             widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, onClick, { tooltip = opt.tooltip })
@@ -1672,15 +1740,27 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             -- ===== POPULATE SIDEBAR =====
+            -- Group categories by moduleKey (same as OptionsPanel)
+            local MODULE_LABELS = { ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista" }
+            local groups = {}
+            for i, cat in ipairs(addon.OptionCategories) do
+                local mk = cat.moduleKey or "modules"
+                if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["Other"], categories = {} } end
+                tinsert(groups[mk].categories, i)
+            end
+            local groupOrder = { "modules", "focus", "presence", "insight", "yield", "vista" }
+
+            local lastSidebarRow = nil
             local yOff = 0
 
             -- Home button
             local homeBtn = CreateSidebarButton("Home", "INV_Misc_Map_01", function()
                 f.ShowDashboard()
             end)
-            homeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
+            homeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)
+            lastSidebarRow = homeBtn
+            yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
             tinsert(sidebarButtons, homeBtn)
-            yOff = yOff + 38
 
             -- Separator
             local sbSep = sidebarScrollContent:CreateTexture(nil, "ARTWORK")
@@ -1689,23 +1769,143 @@ SlashCmdList["HSDASH"] = function(msg)
             sbSep:SetPoint("TOPRIGHT", -15, -(yOff + 4))
             sbSep:SetColorTexture(0.15, 0.15, 0.2, 1)
             yOff = yOff + 9
+            lastSidebarRow = CreateFrame("Frame", nil, sidebarScrollContent)
+            lastSidebarRow:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
+            lastSidebarRow:SetSize(1, 1)
 
-            -- Module buttons
-            for _, tileInfo in ipairs(mainTiles) do
-                local tileName = tileInfo.name
-                local tileModKey = tileInfo.moduleKey
-                local iconKey = categoryIcons[tileName] or (tileModKey and categoryIcons[moduleLabels[tileModKey] or ""]) or "INV_Misc_Question_01"
-                local btn = CreateSidebarButton(tileName, iconKey, function()
-                    f.OpenModule(tileName, tileModKey)
-                end)
-                btn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
-                btn.sidebarModuleKey = tileModKey
-                btn.sidebarName = tileName
-                tinsert(sidebarButtons, btn)
-                yOff = yOff + 38
+            -- Per-group: standalone (single category) or header + collapsible sub-buttons
+            for _, mk in ipairs(groupOrder) do
+                local g = groups[mk]
+                if not g or #g.categories == 0 then
+                    -- skip empty groups
+                else
+                    local isStandalone = (mk == "modules" and #g.categories == 1)
+                    local modName = MODULE_LABELS[mk] or mk
+
+                    if isStandalone then
+                        local catIdx = g.categories[1]
+                        local cat = addon.OptionCategories[catIdx]
+                        local iconKey = categoryIcons[cat.name] or "INV_Misc_Question_01"
+                        local btn = CreateSidebarButton(cat.name, iconKey, function()
+                            SetActiveSidebarButton(btn)
+                            f.OpenModule(cat.name, cat.moduleKey)
+                        end)
+                        btn:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
+                        lastSidebarRow = btn
+                        yOff = yOff + TAB_ROW_HEIGHT
+                        btn.sidebarModuleKey = cat.moduleKey
+                        btn.sidebarName = cat.name
+                        btn.sidebarCategoryIndex = catIdx
+                        tinsert(sidebarButtons, btn)
+                    else
+                        -- Header row (clickable, collapsible)
+                        local header = CreateFrame("Button", nil, sidebarScrollContent)
+                        header:SetSize(SIDEBAR_WIDTH - 1, HEADER_ROW_HEIGHT)
+                        header:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
+                        lastSidebarRow = header
+                        yOff = yOff + HEADER_ROW_HEIGHT
+                        header.groupKey = mk
+                        header.hoverBg = header:CreateTexture(nil, "BACKGROUND")
+                        header.hoverBg:SetAllPoints(header)
+                        header.hoverBg:SetColorTexture(1, 1, 1, 0.03)
+                        header.hoverBg:Hide()
+                        local chevron = header:CreateFontString(nil, "OVERLAY")
+                        chevron:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
+                        chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
+                        chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                        header.chevron = chevron
+                        local headerLabel = header:CreateFontString(nil, "OVERLAY")
+                        headerLabel:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+                        headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
+                        headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
+                        headerLabel:SetText((g.label or ""):upper())
+                        header.headerLabel = headerLabel
+
+                        local tabsContainer = CreateFrame("Frame", nil, sidebarScrollContent)
+                        tabsContainer:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
+                        tabsContainer:SetWidth(SIDEBAR_WIDTH - 1)
+                        tabsContainer:SetClipsChildren(true)
+                        local fullHeight = TAB_ROW_HEIGHT * #g.categories
+                        tabsContainer:SetHeight(GetGroupCollapsed(mk) and 0 or fullHeight)
+                        g.tabsContainer = tabsContainer
+                        g.fullHeight = fullHeight
+
+                        local spacer = CreateFrame("Frame", nil, sidebarScrollContent)
+                        spacer:SetSize(2, 2)
+                        spacer:SetAlpha(0)
+                        local function UpdateSpacerPosition()
+                            spacer:ClearAllPoints()
+                            spacer:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -tabsContainer:GetHeight())
+                        end
+                        header.updateSpacer = UpdateSpacerPosition
+                        UpdateSpacerPosition()
+                        lastSidebarRow = spacer
+                        yOff = yOff + tabsContainer:GetHeight()
+
+                        header:SetScript("OnClick", function()
+                            local collapsed = not GetGroupCollapsed(mk)
+                            SetGroupCollapsed(mk, collapsed)
+                            header.chevron:SetText(collapsed and "+" or "-")
+                            local fromH = tabsContainer:GetHeight()
+                            local toH = collapsed and 0 or fullHeight
+                            if fromH ~= toH then
+                                tabsContainer.animStart = GetTime()
+                                tabsContainer.animFrom = fromH
+                                tabsContainer.animTo = toH
+                                tabsContainer:SetScript("OnUpdate", function(self)
+                                    local elapsed = GetTime() - self.animStart
+                                    local t = math.min(elapsed / COLLAPSE_ANIM_DUR, 1)
+                                    local h = self.animFrom + (self.animTo - self.animFrom) * easeOut(t)
+                                    self:SetHeight(math.max(0, h))
+                                    UpdateSpacerPosition()
+                                    if t >= 1 then self:SetScript("OnUpdate", nil) end
+                                end)
+                            end
+                        end)
+                        header:SetScript("OnEnter", function()
+                            header.hoverBg:Show()
+                            headerLabel:SetTextColor(0.8, 0.8, 0.85, 1)
+                            chevron:SetTextColor(0.8, 0.8, 0.85, 1)
+                        end)
+                        header:SetScript("OnLeave", function()
+                            header.hoverBg:Hide()
+                            headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
+                            chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                        end)
+                        chevron:SetText(GetGroupCollapsed(mk) and "+" or "-")
+
+                        local containerAnchor = tabsContainer
+                        for _, catIdx in ipairs(g.categories) do
+                            local cat = addon.OptionCategories[catIdx]
+                            local iconKey = categoryIcons[cat.name] or (cat.moduleKey and categoryIcons[moduleLabels[cat.moduleKey] or ""]) or "INV_Misc_Question_01"
+                            local modLabel = cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey) or modName
+                            local options = type(cat.options) == "function" and cat.options() or cat.options
+                            local btn = CreateSidebarButton(cat.name, iconKey, function()
+                                SetActiveSidebarButton(btn)
+                                f.currentModuleKey = cat.moduleKey
+                                f.OpenCategoryDetail(modLabel, cat.name, options)
+                            end, 12)
+                            btn:SetPoint("TOPLEFT", containerAnchor, (containerAnchor == tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
+                            containerAnchor = btn
+                            btn.sidebarModuleKey = cat.moduleKey
+                            btn.sidebarName = cat.name
+                            btn.sidebarCategoryIndex = catIdx
+                            tinsert(sidebarButtons, btn)
+                        end
+                    end
+                end
             end
 
-            sidebarScrollContent:SetHeight(math.max(1, yOff))
+            -- Size scroll content from top to last row
+            C_Timer.After(0, function()
+                if not sidebarScrollContent or not lastSidebarRow then return end
+                local top = sidebarScrollContent:GetTop()
+                local bottom = lastSidebarRow:GetBottom()
+                if top and bottom then
+                    local h = math.max(1, top - bottom + SIDEBAR_TOP_PAD)
+                    sidebarScrollContent:SetHeight(h)
+                end
+            end)
 
             -- Set Home as active by default
             SetActiveSidebarButton(sidebarButtons[1])
