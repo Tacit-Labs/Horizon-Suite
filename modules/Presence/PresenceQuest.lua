@@ -444,7 +444,7 @@ local function Quest_OnQuestTurnedIn(questID)
         if IsDNTQuest(questName) then return end
         if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)) then return end
-            addon.Presence.QueueOrPlay("WORLD_QUEST", L["WORLD QUEST"], questName, opts)
+            addon.Presence.QueueOrPlay("WORLD_QUEST", L["WORLD QUEST COMPLETE"] or "WORLD QUEST COMPLETE", questName, opts)
             DisposeQuestState(questID)
             return
         end

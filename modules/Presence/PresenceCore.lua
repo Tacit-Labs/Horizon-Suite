@@ -132,6 +132,30 @@ local TYPE_OPTIONS = {
     RARE_DEFEATED      = { key = "presenceRareDefeated",      fallback = nil, default = true },
 }
 
+-- Order and L-key mapping for preview dropdown. Used by options.
+local PREVIEW_TYPE_ORDER = {
+    "ZONE_CHANGE", "SUBZONE_CHANGE", "QUEST_ACCEPT", "WORLD_QUEST_ACCEPT", "QUEST_UPDATE",
+    "QUEST_COMPLETE", "WORLD_QUEST", "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE",
+    "ACHIEVEMENT", "ACHIEVEMENT_PROGRESS", "BOSS_EMOTE", "LEVEL_UP", "RARE_DEFEATED",
+}
+local PREVIEW_TYPE_LABELS = {
+    ZONE_CHANGE = "Zone entry",
+    SUBZONE_CHANGE = "Subzone changes",
+    QUEST_ACCEPT = "Quest accepted",
+    WORLD_QUEST_ACCEPT = "World quest accepted",
+    QUEST_UPDATE = "Quest progress",
+    QUEST_COMPLETE = "Quest complete",
+    WORLD_QUEST = "World quest complete",
+    SCENARIO_START = "Scenario start",
+    SCENARIO_UPDATE = "Scenario progress",
+    SCENARIO_COMPLETE = "Scenario complete",
+    ACHIEVEMENT = "Achievement earned",
+    ACHIEVEMENT_PROGRESS = "Achievement progress",
+    BOSS_EMOTE = "Boss emotes",
+    LEVEL_UP = "Level up",
+    RARE_DEFEATED = "Rare defeated",
+}
+
 local debounceTimers = {}
 
 --- Check if a Presence type is enabled, with optional fallback to a grouped option.
@@ -665,6 +689,111 @@ local function resetLayer(L)
     if L.questTypeIcon then L.questTypeIcon:Hide() end
 end
 
+--- Apply toast content (fonts, colors, text, icon, layout) to a layer. Shared by PlayCinematic and preview.
+--- @param layer table Layer from CreateLayer
+--- @param typeName string One of TYPES keys
+--- @param title string Heading text
+--- @param subtitle string Second line text
+--- @param opts table|nil opts.questID, opts.category, opts.showDiscovery (preview: show discovery line for zone)
+--- @param forPreview boolean When true, sets alpha 1 and uses static layout; does not consume pendingDiscovery
+--- @return nil
+local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, forPreview)
+    opts = opts or {}
+    local cfg = TYPES[typeName]
+    if not cfg then return end
+
+    local compactLayout = (typeName == "QUEST_UPDATE" or typeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
+    local c, sc = resolveColors(typeName, cfg, opts)
+    local variant = getVariant(cfg)
+    local mainSz = math.max(12, math.min(72, math.floor(getPrimarySz(variant))))
+    local subSz = compactLayout and mainSz or math.max(12, math.min(40, math.floor(getSecondarySz(variant))))
+
+    SetSafeFont(layer.titleText, getPresenceTitleFontPath(), mainSz, "OUTLINE")
+    SetSafeFont(layer.titleShadow, getPresenceTitleFontPath(), mainSz, "OUTLINE")
+    SetSafeFont(layer.subText, getPresenceSubtitleFontPath(), subSz, "OUTLINE")
+    SetSafeFont(layer.subShadow, getPresenceSubtitleFontPath(), subSz, "OUTLINE")
+
+    layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
+    layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
+    layer.divider:SetVertexColor(c[1], c[2], c[3])
+
+    if compactLayout then
+        layer.titleText:SetText("")
+        layer.titleShadow:SetText("")
+    else
+        layer.titleText:SetText(title or "")
+        layer.titleShadow:SetText(title or "")
+    end
+    layer.subText:SetText(subtitle or "")
+    layer.subShadow:SetText(subtitle or "")
+
+    resetLayer(layer)
+    layer.divider:SetSize(forPreview and DIVIDER_W or 0.01, DIVIDER_H)
+
+    if layer.questTypeIcon then
+        local showIcon = false
+        local atlas
+        local questRelated = (typeName == "QUEST_ACCEPT" or typeName == "QUEST_COMPLETE" or typeName == "QUEST_UPDATE" or typeName == "WORLD_QUEST" or typeName == "WORLD_QUEST_ACCEPT")
+        local showIcons = addon.GetDB and addon.GetDB("showPresenceQuestTypeIcons", true)
+        if questRelated and opts.questID and addon.GetQuestTypeAtlas and addon.GetDB and showIcons then
+            local catForAtlas = "DEFAULT"
+            if typeName == "QUEST_COMPLETE" then
+                catForAtlas = "COMPLETE"
+            elseif (typeName == "QUEST_ACCEPT" or typeName == "QUEST_UPDATE") and addon.GetQuestCategory then
+                catForAtlas = addon.GetQuestCategory(opts.questID) or catForAtlas
+            elseif typeName == "WORLD_QUEST" or typeName == "WORLD_QUEST_ACCEPT" then
+                catForAtlas = "WORLD"
+            end
+            atlas = addon.GetQuestTypeAtlas(opts.questID, catForAtlas)
+            if atlas then showIcon = true end
+        end
+        if showIcon and atlas then
+            layer.questTypeIcon:SetAtlas(atlas)
+            local iconMax = (addon.GetDB and addon.GetDB("presenceIconSize", 24)) or QUEST_ICON_SIZE
+            local iconSz = compactLayout and ((subSz < iconMax) and subSz or iconMax) or ((mainSz < iconMax) and mainSz or iconMax)
+            layer.questTypeIcon:SetSize(iconSz, iconSz)
+            layer.questTypeIcon:ClearAllPoints()
+            layer.questTypeIcon:SetPoint("RIGHT", compactLayout and layer.subText or layer.titleText, "LEFT", -6, 0)
+            layer.questTypeIcon:Show()
+        else
+            layer.questTypeIcon:Hide()
+        end
+    end
+
+    local subGap = (cfg.subGap) or 10
+    local subAnimDelta = forPreview and 0 or 10
+    local titleTopOffset = forPreview and -28 or 20
+    local dividerTopOffset = forPreview and -98 or -65
+    layer.divider:ClearAllPoints()
+    layer.divider:SetPoint("TOP", 0, dividerTopOffset)
+    layer.titleText:ClearAllPoints()
+    layer.titleText:SetPoint("TOP", 0, titleTopOffset)
+    layer.subText:ClearAllPoints()
+    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(subGap + subAnimDelta))
+
+    local showDiscovery = opts.showDiscovery or (not forPreview and addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
+    if showDiscovery then
+        layer.discoveryText:SetText(addon.L and addon.L["Discovered"] or "Discovered")
+        layer.discoveryShadow:SetText(addon.L and addon.L["Discovered"] or "Discovered")
+        local dc = getDiscoveryColor()
+        layer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
+        layer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
+        if not forPreview then addon.Presence.pendingDiscovery = nil end
+    end
+
+    if forPreview then
+        layer.titleText:SetAlpha(1)
+        layer.titleShadow:SetAlpha(0.8)
+        layer.divider:SetAlpha(1)
+        layer.subText:SetAlpha(1)
+        layer.subShadow:SetAlpha(0.8)
+        if showDiscovery then
+            layer.discoveryText:SetAlpha(1)
+            layer.discoveryShadow:SetAlpha(0.8)
+        end
+    end
+end
+
 -- Layout helpers: only call through when the value changes.
 local function setTitleOffset(L, offsetY)
     if lastTitleOffsetY ~= offsetY then
@@ -948,94 +1077,14 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     opts = opts or {}
     cachedCompactLayout = (typeName == "QUEST_UPDATE" or typeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
 
-
-    local originalSubtitle = subtitle
-
-    if typeName == "QUEST_UPDATE" and originalSubtitle and addon.Presence.NormalizeQuestUpdateText then
-        lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(originalSubtitle)
+    if typeName == "QUEST_UPDATE" and subtitle and addon.Presence.NormalizeQuestUpdateText then
+        lastQuestUpdateNorm = addon.Presence.NormalizeQuestUpdateText(subtitle)
         lastQuestUpdateTime = GetTime()
     end
-    local L = curLayer
-    local c, sc = resolveColors(typeName, cfg, opts)
-    local variant = getVariant(cfg)
-    local mainSz = math.max(12, math.min(72, math.floor(getPrimarySz(variant))))
-    local subSz
-    if cachedCompactLayout then
-        subSz = mainSz
-    else
-        subSz = math.max(12, math.min(40, math.floor(getSecondarySz(variant))))
-    end
 
-    SetSafeFont(L.titleText, getPresenceTitleFontPath(), mainSz, "OUTLINE")
-    SetSafeFont(L.titleShadow, getPresenceTitleFontPath(), mainSz, "OUTLINE")
-    SetSafeFont(L.subText, getPresenceSubtitleFontPath(), subSz, "OUTLINE")
-    SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), subSz, "OUTLINE")
+    ApplyToastContentToLayer(curLayer, typeName, title, subtitle, opts, false)
 
-    L.titleText:SetTextColor(c[1], c[2], c[3], 1)
-    L.subText:SetTextColor(sc[1], sc[2], sc[3], 1)
-    L.divider:SetVertexColor(c[1], c[2], c[3])
-
-    if cachedCompactLayout then
-        L.titleText:SetText("")
-        L.titleShadow:SetText("")
-    else
-        L.titleText:SetText(title or "")
-        L.titleShadow:SetText(title or "")
-    end
-    L.subText:SetText(subtitle or "")
-    L.subShadow:SetText(subtitle or "")
-
-    resetLayer(L)
-    L.divider:SetSize(0.01, DIVIDER_H)
-
-    -- Quest-type icon (same as Focus): show when quest-related, opts.questID set, and user has icons enabled (set after resetLayer)
-    if L.questTypeIcon then
-        local showIcon = false
-        local atlas
-        local questRelated = (typeName == "QUEST_ACCEPT" or typeName == "QUEST_COMPLETE" or typeName == "QUEST_UPDATE" or typeName == "WORLD_QUEST" or typeName == "WORLD_QUEST_ACCEPT")
-        local showIcons = addon.GetDB and addon.GetDB("showPresenceQuestTypeIcons", true)
-        if questRelated and opts.questID and addon.GetQuestTypeAtlas and addon.GetDB and showIcons then
-            local catForAtlas = "DEFAULT"
-            if typeName == "QUEST_COMPLETE" then
-                catForAtlas = "COMPLETE"  -- turn-in icon
-            elseif (typeName == "QUEST_ACCEPT" or typeName == "QUEST_UPDATE") and addon.GetQuestCategory then
-                catForAtlas = addon.GetQuestCategory(opts.questID) or catForAtlas
-            elseif typeName == "WORLD_QUEST" or typeName == "WORLD_QUEST_ACCEPT" then
-                catForAtlas = "WORLD"
-            end
-            atlas = addon.GetQuestTypeAtlas(opts.questID, catForAtlas)
-            if atlas then showIcon = true end
-        end
-        if showIcon and atlas then
-            L.questTypeIcon:SetAtlas(atlas)
-            local iconMax = (addon.GetDB and addon.GetDB("presenceIconSize", 24)) or QUEST_ICON_SIZE
-            local iconSz = cachedCompactLayout and ((subSz < iconMax) and subSz or iconMax) or ((mainSz < iconMax) and mainSz or iconMax)
-            L.questTypeIcon:SetSize(iconSz, iconSz)
-            L.questTypeIcon:ClearAllPoints()
-            L.questTypeIcon:SetPoint("RIGHT", cachedCompactLayout and L.subText or L.titleText, "LEFT", -6, 0)
-            L.questTypeIcon:Show()
-        else
-            L.questTypeIcon:Hide()
-        end
-    end
-
-    -- subGap: distance below divider; QUEST_UPDATE uses 12 for compact layout
     cachedSubGap = (cfg.subGap) or 10
-    local subAnimDelta = 10  -- entrance anim slides from (gap+delta) to gap
-    L.titleText:ClearAllPoints()
-    L.titleText:SetPoint("TOP", 0, 20)
-    L.subText:ClearAllPoints()
-    L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -(cachedSubGap + subAnimDelta))
-
-    if addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)) then
-        L.discoveryText:SetText(addon.L["Discovered"])
-        L.discoveryShadow:SetText(addon.L["Discovered"])
-        local dc = getDiscoveryColor()
-        L.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
-        L.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
-        addon.Presence.pendingDiscovery = nil
-    end
-
     active        = cfg
     activeTitle   = title
     activeTypeName = typeName
@@ -1321,6 +1370,381 @@ local function GetActiveTypeName()
     return activeTypeName
 end
 
+--- Build preview sample for a toast type. Uses addon.L for localized strings.
+--- @param typeName string One of TYPES keys
+--- @return table|nil { title, subtitle, opts?, withDiscovery? } or nil if unknown
+local function getPreviewSample(typeName)
+    if not TYPES[typeName] then return nil end
+    local L = addon.L or {}
+    if typeName == "ZONE_CHANGE" then
+        return { title = "The Waking Shores", subtitle = "Obsidian Citadel", withDiscovery = true }
+    end
+    if typeName == "SUBZONE_CHANGE" then
+        return { title = GetZoneText() or "Valdrakken", subtitle = GetSubZoneText() or "The Seat of Aspects" }
+    end
+    if typeName == "QUEST_ACCEPT" then
+        return { title = L["QUEST ACCEPTED"] or "QUEST ACCEPTED", subtitle = L["The Fate of the Horde"] or "The Fate of the Horde" }
+    end
+    if typeName == "WORLD_QUEST_ACCEPT" then
+        return { title = L["WORLD QUEST ACCEPTED"] or "WORLD QUEST ACCEPTED", subtitle = "Azerite Mining" }
+    end
+    if typeName == "QUEST_UPDATE" then
+        return { title = L["QUEST UPDATE"] or "QUEST UPDATE", subtitle = "Boar Pelts: 7/10" }
+    end
+    if typeName == "QUEST_COMPLETE" then
+        return { title = L["QUEST COMPLETE"] or "QUEST COMPLETE", subtitle = L["Objective Secured"] or "Objective Secured" }
+    end
+    if typeName == "WORLD_QUEST" then
+        return { title = L["WORLD QUEST COMPLETE"] or "WORLD QUEST COMPLETE", subtitle = "Azerite Mining" }
+    end
+    if typeName == "SCENARIO_START" then
+        return { title = "Cinderbrew Meadery", subtitle = "Defend the tavern from attackers", opts = { category = "SCENARIO" } }
+    end
+    if typeName == "SCENARIO_UPDATE" then
+        return { title = "Scenario", subtitle = "Dragon Glyphs: 3/5", opts = { category = "SCENARIO" } }
+    end
+    if typeName == "SCENARIO_COMPLETE" then
+        return { title = L["Scenario Complete"] or "Scenario Complete", subtitle = "Objective completed", opts = { category = "SCENARIO" } }
+    end
+    if typeName == "ACHIEVEMENT" then
+        return { title = L["ACHIEVEMENT EARNED"] or "ACHIEVEMENT EARNED", subtitle = L["Exploring Khaz Algar"] or "Exploring Khaz Algar" }
+    end
+    if typeName == "ACHIEVEMENT_PROGRESS" then
+        return { title = L["Exploring the Midnight Isles"] or "Exploring the Midnight Isles", subtitle = "Dragon Glyphs: 3/5" }
+    end
+    if typeName == "BOSS_EMOTE" then
+        return { title = "Ragnaros", subtitle = "BY FIRE BE PURGED!" }
+    end
+    if typeName == "LEVEL_UP" then
+        local fmt = L["You have reached level %s"] or "You have reached level %s"
+        return { title = L["LEVEL UP"] or "LEVEL UP", subtitle = fmt:format("80") }
+    end
+    if typeName == "RARE_DEFEATED" then
+        return { title = L["RARE DEFEATED"] or "RARE DEFEATED", subtitle = "Gorged Great-Horn" }
+    end
+    return nil
+end
+
+--- Preview a toast type with sample data. Used by options and slash commands.
+--- @param typeName string One of TYPES keys (LEVEL_UP, QUEST_COMPLETE, etc.)
+--- @return nil
+local function PreviewToast(typeName)
+    local sample = getPreviewSample(typeName)
+    if not sample then return end
+    if sample.withDiscovery and addon.Presence.SetPendingDiscovery then
+        addon.Presence.SetPendingDiscovery()
+    end
+    QueueOrPlay(typeName, sample.title, sample.subtitle, sample.opts)
+end
+
+local PREVIEW_FRAME_WIDTH   = 560
+local PREVIEW_FRAME_HEIGHT  = 180
+local PREVIEW_SCALE         = 0.55
+local PREVIEW_POPOUT_WIDTH  = 640
+local PREVIEW_POPOUT_HEIGHT = 360
+
+local previewTargets = setmetatable({}, { __mode = "k" })
+local previewPopout
+
+local function getStoredPreviewTypeName()
+    if addon.GetDB then
+        return addon.GetDB("presencePreviewType", "LEVEL_UP")
+    end
+    return "LEVEL_UP"
+end
+
+local function setStoredPreviewTypeName(typeName)
+    if addon.SetDB then
+        addon.SetDB("presencePreviewType", typeName)
+    end
+end
+
+local function RegisterPreviewTarget(owner, refreshFn)
+    if owner and refreshFn then
+        previewTargets[owner] = refreshFn
+    end
+end
+
+local function UnregisterPreviewTarget(owner)
+    if owner then
+        previewTargets[owner] = nil
+    end
+end
+
+--- Refresh every registered Presence preview surface (embedded and pop-out).
+--- @return nil
+local function RefreshPreviewTargets()
+    for owner, refreshFn in pairs(previewTargets) do
+        if owner and refreshFn then
+            refreshFn()
+        end
+    end
+end
+
+--- Create an embedded preview frame for options. Static display, no animations.
+--- @param parent table Parent frame (e.g. options card content)
+--- @param opts table|nil opts.scale (default 0.5), opts.getTypeName() returns current type for Refresh
+--- @return table|nil { frame, Refresh } or nil if Presence not ready
+local function CreatePreviewFrame(parent, opts)
+    if not parent then return nil end
+    opts = opts or {}
+    local scale = opts.scale or PREVIEW_SCALE
+    local getTypeName = opts.getTypeName or function() return "LEVEL_UP" end
+
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(PREVIEW_FRAME_WIDTH, PREVIEW_FRAME_HEIGHT)
+    frame:SetScale(scale)
+
+    local bg = frame:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(frame)
+    bg:SetColorTexture(0.09, 0.09, 0.12, 0.78)
+    if addon.CreateBorder then
+        addon.CreateBorder(frame, { 0.18, 0.18, 0.24, 0.95 })
+    end
+
+    local layer = CreateLayer(frame)
+
+    local function Refresh()
+        local typeName = getTypeName()
+        local fn = addon.Presence and addon.Presence.UpdatePreviewFrame
+        if fn then fn({ frame = frame, layer = layer }, typeName) end
+    end
+
+    return { frame = frame, layer = layer, Refresh = Refresh }
+end
+
+--- Update a preview frame with the given toast type. Static, no animation.
+--- @param previewData table { frame, layer } from CreatePreviewFrame
+--- @param typeName string One of TYPES keys
+--- @return nil
+local function UpdatePreviewFrame(previewData, typeName)
+    if not previewData or not previewData.frame or not previewData.layer then return end
+    local sample = getPreviewSample(typeName)
+    if not sample then return end
+
+    local opts = sample.opts or {}
+    if sample.withDiscovery then opts.showDiscovery = true end
+
+    ApplyToastContentToLayer(previewData.layer, typeName, sample.title, sample.subtitle, opts, true)
+    previewData.frame:Show()
+end
+
+--- Create a full preview widget used by both options UIs.
+--- Includes toast type dropdown, detached-preview button, and embedded sample.
+--- @param parent table
+--- @param opts table|nil opts.getTypeName, opts.setTypeName, opts.notify, opts.scale
+--- @return table|nil { frame, Refresh }
+local function CreatePreviewWidget(parent, opts)
+    if not parent or not _G.OptionsWidgets_CreateCustomDropdown then return nil end
+
+    opts = opts or {}
+    local L = addon.L or {}
+    local getTypeName = opts.getTypeName or getStoredPreviewTypeName
+    local setTypeName = opts.setTypeName or setStoredPreviewTypeName
+    local notify = opts.notify or function() end
+    local scale = opts.scale or PREVIEW_SCALE
+    local showPopoutButton = opts.showPopoutButton ~= false
+
+    local container = CreateFrame("Frame", nil, parent)
+    container:SetHeight(230)
+
+    local dropdownOptsFn = function()
+        if addon.GetPresencePreviewDropdownOptions then
+            return addon.GetPresencePreviewDropdownOptions()
+        end
+        return {
+            { L["Level up"] or "Level up", "LEVEL_UP" }
+        }
+    end
+
+    local previewData
+    local dd = _G.OptionsWidgets_CreateCustomDropdown(
+        container,
+        L["Preview toast type"] or "Preview toast type",
+        L["Select a toast type to preview."] or "Select a toast type to preview.",
+        dropdownOptsFn,
+        getTypeName,
+        function(v)
+            setTypeName(v)
+            RefreshPreviewTargets()
+            notify()
+        end,
+        nil,
+        false,
+        nil,
+        nil
+    )
+    dd:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+    dd:SetPoint("RIGHT", container, "RIGHT", 0, 0)
+
+    local popoutBtn
+    if showPopoutButton and _G.OptionsWidgets_CreateButton then
+        popoutBtn = _G.OptionsWidgets_CreateButton(container, L["Open detached preview"] or "Open detached preview", function()
+            if addon.Presence and addon.Presence.TogglePreviewPopout then
+                addon.Presence.TogglePreviewPopout()
+            end
+            notify()
+        end, { height = 22, width = 170, tooltip = L["Open a movable preview window that stays visible while you change other Presence settings."] or "Open a movable preview window that stays visible while you change other Presence settings." })
+        popoutBtn:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -12)
+    end
+
+    previewData = CreatePreviewFrame(container, { scale = scale, getTypeName = getTypeName })
+    if previewData and previewData.frame then
+        local previewAnchor = popoutBtn or dd
+        local previewGap = popoutBtn and 14 or 16
+        previewData.frame:SetPoint("TOPLEFT", previewAnchor, "BOTTOMLEFT", 0, -previewGap)
+        previewData.frame:SetPoint("RIGHT", container, "RIGHT", 0, 0)
+        previewData.frame.Refresh = previewData.Refresh
+        previewData.Refresh()
+    end
+
+    local function doRefresh()
+        if dd and dd.Refresh then dd:Refresh() end
+        if previewData and previewData.Refresh then previewData.Refresh() end
+    end
+
+    function container:Refresh()
+        doRefresh()
+    end
+
+    container:SetScript("OnShow", function(self)
+        RegisterPreviewTarget(self, doRefresh)
+        doRefresh()
+    end)
+    container:SetScript("OnHide", function(self)
+        UnregisterPreviewTarget(self)
+    end)
+    RegisterPreviewTarget(container, doRefresh)
+
+    return { frame = container, Refresh = doRefresh }
+end
+
+local function ensurePreviewPopout()
+    if previewPopout then
+        return previewPopout
+    end
+
+    local L = addon.L or {}
+    local frame = CreateFrame("Frame", "HorizonSuitePresencePreviewPopout", UIParent, "BackdropTemplate")
+    frame:SetSize(PREVIEW_POPOUT_WIDTH, PREVIEW_POPOUT_HEIGHT)
+    frame:SetPoint("CENTER", UIParent, "CENTER", 260, 40)
+    frame:SetFrameStrata("DIALOG")
+    frame:SetToplevel(true)
+    frame:SetMovable(true)
+    frame:SetClampedToScreen(true)
+    frame:EnableMouse(true)
+    frame:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    frame:SetBackdropColor(0.06, 0.06, 0.08, 0.97)
+    frame:SetBackdropBorderColor(0.2, 0.2, 0.26, 0.95)
+    frame:Hide()
+
+    if _G.UISpecialFrames then
+        local exists = false
+        for i = 1, #_G.UISpecialFrames do
+            if _G.UISpecialFrames[i] == "HorizonSuitePresencePreviewPopout" then
+                exists = true
+                break
+            end
+        end
+        if not exists then
+            table.insert(_G.UISpecialFrames, "HorizonSuitePresencePreviewPopout")
+        end
+    end
+
+    local header = CreateFrame("Frame", nil, frame)
+    header:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    header:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+    header:SetHeight(34)
+    header:EnableMouse(true)
+    header:RegisterForDrag("LeftButton")
+    header:SetScript("OnDragStart", function()
+        if not InCombatLockdown() then
+            frame:StartMoving()
+        end
+    end)
+    header:SetScript("OnDragStop", function()
+        frame:StopMovingOrSizing()
+    end)
+
+    local headerBg = header:CreateTexture(nil, "BACKGROUND")
+    headerBg:SetAllPoints(header)
+    headerBg:SetColorTexture(0.08, 0.08, 0.11, 1)
+
+    local title = header:CreateFontString(nil, "OVERLAY")
+    title:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+    title:SetTextColor(1, 1, 1, 1)
+    title:SetText(L["Detached preview"] or "Detached preview")
+    title:SetPoint("LEFT", header, "LEFT", 12, 0)
+
+    local subtitle = frame:CreateFontString(nil, "OVERLAY")
+    subtitle:SetFont("Fonts\\ARIALN.TTF", 11, "")
+    subtitle:SetTextColor(0.65, 0.7, 0.8, 1)
+    subtitle:SetJustifyH("LEFT")
+    subtitle:SetText(L["Keep this open while adjusting Typography or Colors."] or "Keep this open while adjusting Typography or Colors.")
+    subtitle:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -44)
+    subtitle:SetPoint("RIGHT", frame, "RIGHT", -48, 0)
+
+    local closeBtn = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -3)
+
+    local content = CreateFrame("Frame", nil, frame)
+    content:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -76)
+    content:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -24, 0)
+    content:SetPoint("BOTTOM", frame, "BOTTOM", 0, 24)
+
+    local widgetData = CreatePreviewWidget(content, {
+        getTypeName = getStoredPreviewTypeName,
+        setTypeName = function(v)
+            setStoredPreviewTypeName(v)
+        end,
+        notify = function() end,
+        scale = 0.65,
+        showPopoutButton = false,
+    })
+
+    if widgetData and widgetData.frame then
+        widgetData.frame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, 0)
+        widgetData.frame:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, 0)
+    end
+
+    function frame:Refresh()
+        if widgetData and widgetData.Refresh then
+            widgetData.Refresh()
+        end
+    end
+
+    frame:SetScript("OnShow", function(self)
+        RegisterPreviewTarget(self, function()
+            if self.Refresh then self:Refresh() end
+        end)
+        self:Refresh()
+    end)
+    frame:SetScript("OnHide", function(self)
+        UnregisterPreviewTarget(self)
+    end)
+
+    previewPopout = frame
+    return frame
+end
+
+--- Toggle the detached Presence preview window.
+--- @return nil
+local function TogglePreviewPopout()
+    local frame = ensurePreviewPopout()
+    if not frame then return end
+    if frame:IsShown() then
+        frame:Hide()
+        return
+    end
+    frame:Show()
+    frame:Raise()
+    if frame.Refresh then frame:Refresh() end
+end
+
 addon.Presence.Init               = Init
 addon.Presence.ApplyPresenceOptions = ApplyPresenceOptions
 addon.Presence.QueueOrPlay        = QueueOrPlay
@@ -1346,3 +1770,11 @@ addon.Presence.CancelDebounced      = CancelDebounced
 addon.Presence.FormatObjectiveForDisplay = FormatObjectiveForDisplay
 addon.Presence.ShouldSuppressType   = ShouldSuppressType
 addon.Presence.TYPE_OPTIONS         = TYPE_OPTIONS
+addon.Presence.PreviewToast         = PreviewToast
+addon.Presence.PREVIEW_TYPE_ORDER   = PREVIEW_TYPE_ORDER
+addon.Presence.PREVIEW_TYPE_LABELS = PREVIEW_TYPE_LABELS
+addon.Presence.CreatePreviewFrame   = CreatePreviewFrame
+addon.Presence.CreatePreviewWidget  = CreatePreviewWidget
+addon.Presence.UpdatePreviewFrame   = UpdatePreviewFrame
+addon.Presence.RefreshPreviewTargets = RefreshPreviewTargets
+addon.Presence.TogglePreviewPopout  = TogglePreviewPopout

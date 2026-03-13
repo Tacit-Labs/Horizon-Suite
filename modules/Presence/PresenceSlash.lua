@@ -15,45 +15,36 @@ local function HandlePresenceSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "level" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("LEVEL_UP", L["LEVEL UP"], L["You have reached level 80"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("LEVEL_UP") end
     elseif cmd == "boss" then
-        addon.Presence.QueueOrPlay("BOSS_EMOTE", "Ragnaros", "BY FIRE BE PURGED!")
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("BOSS_EMOTE") end
     elseif cmd == "ach" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("ACHIEVEMENT", L["ACHIEVEMENT EARNED"], L["Exploring the Midnight Isles"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("ACHIEVEMENT") end
     elseif cmd == "quest" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("QUEST_COMPLETE", L["QUEST COMPLETE"], L["Objective Secured"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("QUEST_COMPLETE") end
     elseif cmd == "wq" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("WORLD_QUEST", L["WORLD QUEST"], L["Azerite Mining"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("WORLD_QUEST") end
     elseif cmd == "wqaccept" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("WORLD_QUEST_ACCEPT", L["WORLD QUEST ACCEPTED"], L["Azerite Mining"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("WORLD_QUEST_ACCEPT") end
     elseif cmd == "accept" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("QUEST_ACCEPT", L["QUEST ACCEPTED"], L["The Fate of the Horde"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("QUEST_ACCEPT") end
     elseif cmd == "update" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("QUEST_UPDATE", L["QUEST UPDATE"], L["Boar Pelts: 7/10"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("QUEST_UPDATE") end
     elseif cmd == "achprogress" then
-        local L = addon.L or {}
-        addon.Presence.QueueOrPlay("ACHIEVEMENT_PROGRESS", L["Exploring the Midnight Isles"], L["Dragon Glyphs: 3/5"])
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("ACHIEVEMENT_PROGRESS") end
     elseif cmd == "scenario" then
         if addon.Presence.GetScenarioDisplayInfo and addon.Presence.IsScenarioActive and addon.Presence.IsScenarioActive() then
             local title, subtitle, category = addon.Presence.GetScenarioDisplayInfo()
             addon.Presence.QueueOrPlay("SCENARIO_START", title or "Scenario", subtitle or "", { category = category })
-        else
-            addon.Presence.QueueOrPlay("SCENARIO_START", "Cinderbrew Meadery", "Defend the tavern from attackers", { category = "SCENARIO" })
+        elseif addon.Presence.PreviewToast then
+            addon.Presence.PreviewToast("SCENARIO_START")
         end
     elseif cmd == "zone" then
         addon.Presence.QueueOrPlay("ZONE_CHANGE", GetZoneText() or "Unknown Zone", GetSubZoneText() or "")
     elseif cmd == "subzone" then
-        addon.Presence.QueueOrPlay("SUBZONE_CHANGE", GetZoneText() or "Unknown Zone", GetSubZoneText() or "Subzone")
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("SUBZONE_CHANGE") end
     elseif cmd == "discover" then
-        addon.Presence.SetPendingDiscovery()
-        addon.Presence.QueueOrPlay("ZONE_CHANGE", "The Waking Shores", "Obsidian Citadel")
+        if addon.Presence.PreviewToast then addon.Presence.PreviewToast("ZONE_CHANGE") end
     elseif cmd == "all" then
         local L = addon.L or {}
         HSPrint(L["Presence: Playing demo reel (all notification types)..."])
@@ -65,7 +56,7 @@ local function HandlePresenceSlash(msg)
             { "WORLD_QUEST_ACCEPT",  L["WORLD QUEST ACCEPTED"],         L["Azerite Mining"] },
             { "QUEST_UPDATE",        L["QUEST UPDATE"],                 L["Dragon Glyphs: 3/5"] },
             { "QUEST_COMPLETE",      L["QUEST COMPLETE"],               L["Aiding the Accord"] },
-            { "WORLD_QUEST",         L["WORLD QUEST"],                  L["Azerite Mining"] },
+            { "WORLD_QUEST",         L["WORLD QUEST COMPLETE"] or "WORLD QUEST COMPLETE", L["Azerite Mining"] },
             { "SCENARIO_START",      "Cinderbrew Meadery",              "Defend the tavern", { category = "SCENARIO" } },
             { "ACHIEVEMENT",         L["ACHIEVEMENT EARNED"],           L["Exploring Khaz Algar"] },
             { "ACHIEVEMENT_PROGRESS", L["Exploring the Midnight Isles"], L["Dragon Glyphs: 3/5"] },
