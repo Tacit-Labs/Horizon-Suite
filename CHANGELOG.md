@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.11.5] – 2026-03-13
+
+### 🐛 Fixes
+
+- **(Focus) Bonus objectives not showing when entering zone** — e.g. Saltheril's Soiree; cache invalidation and relaxed map check
+- **(Core) Defensive guard for OptionsWidgetsDef in Dashboard collapsible groups** — prevents nil error when opening options
+
+---
+
 ## [3.11.4] – 2026-03-13
 
 ### 🐛 Fixes
