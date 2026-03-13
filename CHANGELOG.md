@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.11.6] – 2026-03-13
+
+### 🐛 Fixes
+
+- **(Focus) Abundance scenario detection fails for localized clients** — use localized strings for scenario name and objective detection (Abondance, Überfluss, etc.)
+
+---
+
 ## [3.11.5] – 2026-03-13
 
 ### 🐛 Fixes
