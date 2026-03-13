@@ -757,6 +757,8 @@ L["Show the selected toast type."]                                              
 L["Preview Presence toast layouts live and open a detachable sample while adjusting other settings."]              = "Preview Presence toast layouts live and open a detachable sample while adjusting other settings."
 L["Open detached preview"]                                                                                          = "Open detached preview"
 L["Open a movable preview window that stays visible while you change other Presence settings."]                    = "Open a movable preview window that stays visible while you change other Presence settings."
+L["Animate preview"]                                                                                                = "Animate preview"
+L["Play the selected toast animation inside this preview window."]                                                 = "Play the selected toast animation inside this preview window."
 L["Detached preview"]                                                                                               = "Detached preview"
 L["Keep this open while adjusting Typography or Colors."]                                                           = "Keep this open while adjusting Typography or Colors."
 L["Typography"]                                                                                                     = "Typography"
