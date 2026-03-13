@@ -6,13 +6,6 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
--- Prey: weeklies and world quests with "Prey:" in the title (Midnight hunting activity). pcall: GetTitleForQuestID can throw on invalid questID.
-local function IsPreyQuest(questID)
-    if not questID or not C_QuestLog or not C_QuestLog.GetTitleForQuestID then return false end
-    local ok, title = pcall(C_QuestLog.GetTitleForQuestID, questID)
-    return ok and title and title:find("Prey:")
-end
-
 local function GetQuestCategory(questID)
     if not questID or questID <= 0 then return "DEFAULT" end
     if C_QuestLog and C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) then
