@@ -486,7 +486,15 @@ local eventHandlers = {
     -- VIGNETTE_MINIMAP_UPDATED fires even more often; keep as no-op.
     VIGNETTE_MINIMAP_UPDATED = function() end,
     VIGNETTES_UPDATED        = OnVignettesUpdated,
-    AREA_POIS_UPDATED        = function() end,
+    -- AREA_POIS_UPDATED: fires when zone events/POIs update (e.g. entering area with bonus objective).
+    -- Invalidate nearby cache so GetTasksTable/GetNearbyQuestIDs picks up newly available content.
+    AREA_POIS_UPDATED        = function()
+        if not addon.focus.enabled then return end
+        addon.focus.nearbyQuestCacheDirty = true
+        addon.focus.nearbyQuestCache = nil
+        addon.focus.nearbyTaskQuestCache = nil
+        ScheduleRefresh()
+    end,
     QUEST_POI_UPDATE         = function() end,
     -- TASK_PROGRESS_UPDATE: fires when the player enters or leaves a WQ/task area (proximity).
     -- Invalidate the WQ cache so the next layout picks up the newly-in-range or out-of-range quest.
@@ -524,7 +532,14 @@ local eventHandlers = {
     end,
     SCENARIO_SPELL_UPDATE    = function() ScheduleRefresh() end,
     SCENARIO_BONUS_OBJECTIVE_COMPLETE = function() ScheduleRefresh() end,
-    SCENARIO_BONUS_VISIBILITY_UPDATE  = function() ScheduleRefresh() end,
+    -- Bonus objective became visible (e.g. entered zone/area). Invalidate nearby cache so GetTasksTable is re-read.
+    SCENARIO_BONUS_VISIBILITY_UPDATE  = function()
+        if not addon.focus.enabled then return end
+        addon.focus.nearbyQuestCacheDirty = true
+        addon.focus.nearbyQuestCache = nil
+        addon.focus.nearbyTaskQuestCache = nil
+        ScheduleRefresh()
+    end,
     CRITERIA_COMPLETE        = function() ScheduleRefresh() end,
     TRACKED_ACHIEVEMENT_UPDATE = function() ScheduleRefresh() end,
     CRITERIA_UPDATE          = function() ScheduleRefresh() end,
