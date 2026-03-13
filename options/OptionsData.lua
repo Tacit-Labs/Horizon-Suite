@@ -73,8 +73,12 @@ local PRESENCE_KEYS = {
     presenceEntranceDur = true,
     presenceExitDur = true,
     presenceHoldScale = true,
-    presenceMainSize = true,
-    presenceSubSize = true,
+    presencePrimaryLargeSz = true,
+    presenceSecondaryLargeSz = true,
+    presencePrimaryMediumSz = true,
+    presenceSecondaryMediumSz = true,
+    presencePrimarySmallSz = true,
+    presenceSecondarySmallSz = true,
     presenceTitleFontPath = true,
     presenceSubtitleFontPath = true,
     presenceZoneTypeColoring = true,
@@ -1361,10 +1365,41 @@ local OptionCategories = {
         moduleKey = "presence",
         options = {
             { type = "section", name = L["Typography"] },
+            { type = "button", name = L["Reset typography to defaults"], desc = L["Reset all Presence typography options (fonts, sizes, colors) to defaults."], onClick = function()
+                setDB("presenceTitleFontPath", nil)
+                setDB("presenceSubtitleFontPath", nil)
+                setDB("presencePrimaryLargeSz", nil)
+                setDB("presenceSecondaryLargeSz", nil)
+                setDB("presencePrimaryMediumSz", nil)
+                setDB("presenceSecondaryMediumSz", nil)
+                setDB("presencePrimarySmallSz", nil)
+                setDB("presenceSecondarySmallSz", nil)
+                setDB("presenceBossEmoteColor", nil)
+                setDB("presenceDiscoveryColor", nil)
+                setDB("presenceZoneTypeColoring", nil)
+                setDB("presenceZoneColorFriendly", nil)
+                setDB("presenceZoneColorHostile", nil)
+                setDB("presenceZoneColorContested", nil)
+                setDB("presenceZoneColorSanctuary", nil)
+                if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                if C_Timer and C_Timer.After and addon.OptionsPanel_Refresh then
+                    C_Timer.After(0, addon.OptionsPanel_Refresh)
+                elseif addon.OptionsPanel_Refresh then
+                    addon.OptionsPanel_Refresh()
+                end
+            end, refreshIds = { "presenceTitleFontPath", "presenceSubtitleFontPath", "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary" } },
             { type = "dropdown", name = L["Main title font"], desc = L["Font family for the main title."], dbKey = "presenceTitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end, get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceTitleFontPath", v) end, displayFn = DisplayPerElementFont },
             { type = "dropdown", name = L["Subtitle font"], desc = L["Font family for the subtitle."], dbKey = "presenceSubtitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end, get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceSubtitleFontPath", v) end, displayFn = DisplayPerElementFont },
-            { type = "slider", name = L["Main title size"], desc = L["Font size for the main title (24–72 px)."], dbKey = "presenceMainSize", min = 24, max = 72, get = function() return math.max(24, math.min(72, tonumber(getDB("presenceMainSize", 48)) or 48)) end, set = function(v) setDB("presenceMainSize", math.max(24, math.min(72, v))) end },
-            { type = "slider", name = L["Subtitle size"], desc = L["Font size for the subtitle (12–40 px)."], dbKey = "presenceSubSize", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSubSize", 24)) or 24)) end, set = function(v) setDB("presenceSubSize", math.max(12, math.min(40, v))) end },
+            { type = "section", name = L["Large notifications"] },
+            { type = "slider", name = L["Large primary size"], desc = L["Font size for large notification titles (zone, quest complete, achievement, etc.)."], dbKey = "presencePrimaryLargeSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryLargeSz", 48)) or 48)) end, set = function(v) setDB("presencePrimaryLargeSz", math.max(12, math.min(72, v))) end },
+            { type = "slider", name = L["Large secondary size"], desc = L["Font size for large notification subtitles."], dbKey = "presenceSecondaryLargeSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryLargeSz", 24)) or 24)) end, set = function(v) setDB("presenceSecondaryLargeSz", math.max(12, math.min(40, v))) end },
+            { type = "section", name = L["Medium notifications"] },
+            { type = "slider", name = L["Medium primary size"], desc = L["Font size for medium notification titles (quest accept, subzone, scenario)."], dbKey = "presencePrimaryMediumSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryMediumSz", 36)) or 36)) end, set = function(v) setDB("presencePrimaryMediumSz", math.max(12, math.min(72, v))) end },
+            { type = "slider", name = L["Medium secondary size"], desc = L["Font size for medium notification subtitles."], dbKey = "presenceSecondaryMediumSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryMediumSz", 22)) or 22)) end, set = function(v) setDB("presenceSecondaryMediumSz", math.max(12, math.min(40, v))) end },
+            { type = "section", name = L["Small notifications"] },
+            { type = "slider", name = L["Small primary size"], desc = L["Font size for small notification titles (quest progress, achievement progress)."], dbKey = "presencePrimarySmallSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimarySmallSz", 28)) or 28)) end, set = function(v) setDB("presencePrimarySmallSz", math.max(12, math.min(72, v))) end },
+            { type = "slider", name = L["Small secondary size"], desc = L["Font size for small notification subtitles."], dbKey = "presenceSecondarySmallSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondarySmallSz", 20)) or 20)) end, set = function(v) setDB("presenceSecondarySmallSz", math.max(12, math.min(40, v))) end },
             { type = "section", name = L["Colors"] },
             { type = "color", name = L["Boss emote color"], desc = L["Color of raid and dungeon boss emote text."], dbKey = "presenceBossEmoteColor", default = addon.PRESENCE_BOSS_EMOTE_COLOR },
             { type = "color", name = L["Discovery line color"], desc = L["Color of the 'Discovered' line under zone text."], dbKey = "presenceDiscoveryColor", default = addon.PRESENCE_DISCOVERY_COLOR },

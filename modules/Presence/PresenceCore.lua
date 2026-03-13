@@ -303,14 +303,37 @@ local function getPresenceSubtitleFontPath()
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
-local function getMainSize()
-    local v = addon.GetDB and tonumber(addon.GetDB("presenceMainSize", MAIN_SIZE)) or MAIN_SIZE
-    return math.max(24, math.min(72, v))
+-- Variant-based sizes: large (sz 48), medium (sz 36), small (sz 28). Each has primary + secondary.
+local VARIANT_DEFAULTS = {
+    large  = { primary = 48, secondary = 24 },
+    medium = { primary = 36, secondary = 22 },
+    small  = { primary = 28, secondary = 20 },
+}
+
+local VARIANT_KEYS = {
+    large  = { "presencePrimaryLargeSz",  "presenceSecondaryLargeSz"  },
+    medium = { "presencePrimaryMediumSz", "presenceSecondaryMediumSz" },
+    small  = { "presencePrimarySmallSz",  "presenceSecondarySmallSz"  },
+}
+
+local function getVariant(cfg)
+    if cfg.sz >= 44 then return "large" end
+    if cfg.sz >= 32 then return "medium" end
+    return "small"
 end
 
-local function getSubSize()
-    local v = addon.GetDB and tonumber(addon.GetDB("presenceSubSize", SUB_SIZE)) or SUB_SIZE
-    return math.max(12, math.min(40, v))
+local function getPrimarySz(variant)
+    local def = VARIANT_DEFAULTS[variant]
+    local key = VARIANT_KEYS[variant][1]
+    local v = addon.GetDB and tonumber(addon.GetDB(key, def.primary))
+    return math.max(12, math.min(72, v or def.primary))
+end
+
+local function getSecondarySz(variant)
+    local def = VARIANT_DEFAULTS[variant]
+    local key = VARIANT_KEYS[variant][2]
+    local v = addon.GetDB and tonumber(addon.GetDB(key, def.secondary))
+    return math.max(12, math.min(40, v or def.secondary))
 end
 
 local function getCategoryColor(cat, default)
@@ -934,8 +957,14 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     end
     local L = curLayer
     local c, sc = resolveColors(typeName, cfg, opts)
-    local mainSz = math.max(12, math.min(72, math.floor(cfg.sz * (getMainSize() / MAIN_SIZE))))
-    local subSz  = math.max(12, math.min(40, math.floor(((cfg.sz >= SUB_SIZE) and SUB_SIZE or cfg.sz) * (getSubSize() / SUB_SIZE))))
+    local variant = getVariant(cfg)
+    local mainSz = math.max(12, math.min(72, math.floor(getPrimarySz(variant))))
+    local subSz
+    if cachedCompactLayout then
+        subSz = mainSz
+    else
+        subSz = math.max(12, math.min(40, math.floor(getSecondarySz(variant))))
+    end
 
     SetSafeFont(L.titleText, getPresenceTitleFontPath(), mainSz, "OUTLINE")
     SetSafeFont(L.titleShadow, getPresenceTitleFontPath(), mainSz, "OUTLINE")

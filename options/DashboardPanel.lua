@@ -34,8 +34,25 @@ SlashCmdList["HSDASH"] = function(msg)
             f:SetPoint("CENTER")
             f:SetFrameStrata("HIGH")
             f:SetToplevel(true)
+            f:SetMovable(true)
+            f:SetClampedToScreen(true)
             f:EnableMouse(true)
             f:Hide()
+
+            -- Drag region: top bar to move the window (header area only; search box remains clickable)
+            local dragBar = CreateFrame("Frame", nil, f)
+            dragBar:SetPoint("TOPLEFT", 0, 0)
+            dragBar:SetPoint("TOPRIGHT", 0, 0)
+            dragBar:SetHeight(65)
+            dragBar:SetFrameLevel(f:GetFrameLevel() + 1)
+            dragBar:EnableMouse(true)
+            dragBar:RegisterForDrag("LeftButton")
+            dragBar:SetScript("OnDragStart", function()
+                if not InCombatLockdown() then f:StartMoving() end
+            end)
+            dragBar:SetScript("OnDragStop", function()
+                f:StopMovingOrSizing()
+            end)
 
             if _G.OptionsWidgets_SetDef then
                 _G.OptionsWidgets_SetDef({
@@ -229,6 +246,7 @@ SlashCmdList["HSDASH"] = function(msg)
             searchBox:SetFont("Fonts\\FRIZQT__.TTF", 14, "")
             searchBox:SetTextInsets(48, 15, 0, 0)
             searchBox:SetAutoFocus(false)
+            searchBox:SetFrameLevel(f:GetFrameLevel() + 5)
             
             local sbBorder = searchBox:CreateTexture(nil, "BACKGROUND")
             sbBorder:SetPoint("TOPLEFT", -1, 1)
@@ -368,7 +386,7 @@ SlashCmdList["HSDASH"] = function(msg)
             f.subCategoryView = subCategoryView
 
             local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
-            subCategoryScroll:SetPoint("TOPLEFT", 40, -110)
+            subCategoryScroll:SetPoint("TOPLEFT", 40, -135)
             subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
             subCategoryScroll.ScrollBar:Hide()
             subCategoryScroll.ScrollBar:ClearAllPoints()
@@ -397,7 +415,6 @@ SlashCmdList["HSDASH"] = function(msg)
                 subCategoryView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
-                if searchBox then searchBox:Hide() end
 
                 targetView:SetAlpha(0)
                 targetView:Show()
@@ -477,10 +494,10 @@ SlashCmdList["HSDASH"] = function(msg)
 
             subBackBtn:SetScript("OnClick", function() f.ShowDashboard() end)
 
-            -- Close Button
             local closeBtn = CreateFrame("Button", nil, f)
             closeBtn:SetSize(28, 28)
             closeBtn:SetPoint("TOPRIGHT", -15, -15)
+            closeBtn:SetFrameLevel(f:GetFrameLevel() + 10)
 
             local closeBg = closeBtn:CreateTexture(nil, "BACKGROUND")
             closeBg:SetAllPoints()
@@ -515,7 +532,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- Detail Card Container (Scrollable)
             local detailScroll = CreateFrame("ScrollFrame", nil, detailView, "UIPanelScrollFrameTemplate")
-            detailScroll:SetPoint("TOPLEFT", 40, -110)
+            detailScroll:SetPoint("TOPLEFT", 40, -135)
             detailScroll:SetPoint("BOTTOMRIGHT", -40, 40)
             detailScroll.ScrollBar:Hide()
             detailScroll.ScrollBar:ClearAllPoints()
@@ -1055,6 +1072,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             f.BuildAccordionDetail = function(moduleSubName, options)
                 local currentCard = nil
+                local detailOptionFrames = {}
 
                 for _, opt in ipairs(options) do
                     -- Resolve get/set fallbacks if missing
@@ -1115,16 +1133,30 @@ SlashCmdList["HSDASH"] = function(msg)
                         local widget
                         if opt.type == "binary" or opt.type == "toggle" then
                             widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.disabled, opt.tooltip)
+                            if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                         elseif opt.type == "slider" then
                             widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.min or 0, opt.max or 100, opt.disabled, opt.step or 1, opt.tooltip)
+                            if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                         elseif opt.type == "dropdown" then
                             widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip)
+                            if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                         elseif opt.type == "color" then
                             widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
+                            if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                         elseif opt.type == "header" then
                             widget = _G.OptionsWidgets_CreateSectionHeader(currentCard.settingsContainer, opt.name)
                         elseif opt.type == "button" then
-                            widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, opt.onClick, { tooltip = opt.tooltip })
+                            local onClick = opt.onClick
+                            if opt.refreshIds and #opt.refreshIds > 0 then
+                                onClick = function()
+                                    if opt.onClick then opt.onClick() end
+                                    for _, k in ipairs(opt.refreshIds) do
+                                        local w = detailOptionFrames[k]
+                                        if w and w.Refresh then w:Refresh() end
+                                    end
+                                end
+                            end
+                            widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, onClick, { tooltip = opt.tooltip })
                         elseif opt.type == "editbox" then
                             if _G.OptionsWidgets_CreateEditBox then
                                 widget = _G.OptionsWidgets_CreateEditBox(currentCard.settingsContainer, opt.labelText or opt.name, g, s, {
