@@ -1000,7 +1000,7 @@ local function IsPreyQuest(questID)
     local ok, title = pcall(C_QuestLog.GetTitleForQuestID, questID)
     if not ok or not title then return false end
     local preyLabel = (addon.L and addon.L["PREY"]) or "Prey"
-    return title:find(preyLabel .. ":", 1, true) ~= nil
+    return title:find(preyLabel, 1, true) ~= nil
 end
 
 function addon.GetQuestFrequency(questID)
