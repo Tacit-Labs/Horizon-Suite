@@ -172,9 +172,10 @@ SlashCmdList["HSDASH"] = function(msg)
             local COLLAPSE_ANIM_DUR = 0.18
             local easeOut = addon.easeOut or function(t) return 1 - (1-t)*(1-t) end
 
-            local function CreateSidebarButton(label, iconName, onClick, indentPx)
+            local function CreateSidebarButton(parent, label, iconName, onClick, indentPx)
                 indentPx = indentPx or 0
-                local btn = CreateFrame("Button", nil, sidebarScrollContent)
+                parent = parent or sidebarScrollContent
+                local btn = CreateFrame("Button", nil, parent)
                 btn:SetSize(SIDEBAR_WIDTH - 1, TAB_ROW_HEIGHT)
 
                 local btnBg = btn:CreateTexture(nil, "BACKGROUND")
@@ -190,7 +191,6 @@ SlashCmdList["HSDASH"] = function(msg)
                 accentBar:Hide()
                 btn.accentBar = accentBar
 
-                local leftPad = indentPx + (iconName and 14 or 0)
                 if iconName then
                     local ic = btn:CreateTexture(nil, "ARTWORK")
                     ic:SetSize(16, 16)
@@ -1751,10 +1751,11 @@ SlashCmdList["HSDASH"] = function(msg)
             local groupOrder = { "modules", "focus", "presence", "insight", "yield", "vista" }
 
             local lastSidebarRow = nil
+            local RefreshSidebarLayout
             local yOff = 0
 
             -- Home button
-            local homeBtn = CreateSidebarButton("Home", "INV_Misc_Map_01", function()
+            local homeBtn = CreateSidebarButton(sidebarScrollContent, "Home", "INV_Misc_Map_01", function()
                 f.ShowDashboard()
             end)
             homeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)
@@ -1786,7 +1787,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         local catIdx = g.categories[1]
                         local cat = addon.OptionCategories[catIdx]
                         local iconKey = categoryIcons[cat.name] or "INV_Misc_Question_01"
-                        local btn = CreateSidebarButton(cat.name, iconKey, function()
+                        local btn = CreateSidebarButton(sidebarScrollContent, cat.name, iconKey, function()
                             SetActiveSidebarButton(btn)
                             f.OpenModule(cat.name, cat.moduleKey)
                         end)
@@ -1826,7 +1827,8 @@ SlashCmdList["HSDASH"] = function(msg)
                         tabsContainer:SetWidth(SIDEBAR_WIDTH - 1)
                         tabsContainer:SetClipsChildren(true)
                         local fullHeight = TAB_ROW_HEIGHT * #g.categories
-                        tabsContainer:SetHeight(GetGroupCollapsed(mk) and 0 or fullHeight)
+                        local startCollapsed = GetGroupCollapsed(mk)
+                        tabsContainer:SetHeight(startCollapsed and 0 or fullHeight)
                         g.tabsContainer = tabsContainer
                         g.fullHeight = fullHeight
 
@@ -1849,6 +1851,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             local fromH = tabsContainer:GetHeight()
                             local toH = collapsed and 0 or fullHeight
                             if fromH ~= toH then
+                                -- Reset animation if user clicked during active animation
                                 tabsContainer.animStart = GetTime()
                                 tabsContainer.animFrom = fromH
                                 tabsContainer.animTo = toH
@@ -1858,6 +1861,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                     local h = self.animFrom + (self.animTo - self.animFrom) * easeOut(t)
                                     self:SetHeight(math.max(0, h))
                                     UpdateSpacerPosition()
+                                    if RefreshSidebarLayout then RefreshSidebarLayout() end
                                     if t >= 1 then self:SetScript("OnUpdate", nil) end
                                 end)
                             end
@@ -1877,10 +1881,10 @@ SlashCmdList["HSDASH"] = function(msg)
                         local containerAnchor = tabsContainer
                         for _, catIdx in ipairs(g.categories) do
                             local cat = addon.OptionCategories[catIdx]
-                            local iconKey = categoryIcons[cat.name] or (cat.moduleKey and categoryIcons[moduleLabels[cat.moduleKey] or ""]) or "INV_Misc_Question_01"
                             local modLabel = cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey) or modName
                             local options = type(cat.options) == "function" and cat.options() or cat.options
-                            local btn = CreateSidebarButton(cat.name, iconKey, function()
+                            -- Sub-buttons: no icon (icons only on main categories)
+                            local btn = CreateSidebarButton(tabsContainer, cat.name, nil, function()
                                 SetActiveSidebarButton(btn)
                                 f.currentModuleKey = cat.moduleKey
                                 f.OpenCategoryDetail(modLabel, cat.name, options)
@@ -1896,8 +1900,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
             end
 
-            -- Size scroll content from top to last row
-            C_Timer.After(0, function()
+            RefreshSidebarLayout = function()
                 if not sidebarScrollContent or not lastSidebarRow then return end
                 local top = sidebarScrollContent:GetTop()
                 local bottom = lastSidebarRow:GetBottom()
@@ -1905,6 +1908,10 @@ SlashCmdList["HSDASH"] = function(msg)
                     local h = math.max(1, top - bottom + SIDEBAR_TOP_PAD)
                     sidebarScrollContent:SetHeight(h)
                 end
+            end
+
+            C_Timer.After(0, function()
+                if RefreshSidebarLayout then RefreshSidebarLayout() end
             end)
 
             -- Set Home as active by default
