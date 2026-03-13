@@ -10,16 +10,18 @@ local Registry = {}
 
 --- True when the current scenario is Abundance (TWW open-world scenario).
 local function IsAbundanceScenario()
+    local abundanceLabel = (addon.L and addon.L["Abundance"]) or "Abundance"
+    local lowerLabel = abundanceLabel:lower()
     local ok, name = pcall(C_Scenario.GetInfo)
-    if ok and name and type(name) == "string" and name:lower():find("abundance") then
+    if ok and name and type(name) == "string" and name:lower():find(lowerLabel, 1, true) then
         return true
     end
-    
+
     local siOk, info = pcall(C_ScenarioInfo.GetScenarioInfo)
     if siOk and info and type(info) == "table" then
         local n = (info.name or ""):lower()
         local a = (info.area or ""):lower()
-        if n:find("abundance") or a:find("abundance") then return true end
+        if n:find(lowerLabel, 1, true) or a:find(lowerLabel, 1, true) then return true end
     end
     return false
 end

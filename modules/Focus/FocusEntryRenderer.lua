@@ -5,18 +5,18 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
---- True if text contains both "abundance" and "held" (case-insensitive). Used for Abundance scenario.
+--- True if text contains the localized "abundance held" phrase (case-insensitive). Used for Abundance scenario.
 local function isAbundanceHeld(text)
     if not text or type(text) ~= "string" then return false end
-    local lower = text:lower()
-    return lower:find("abundance") and lower:find("held")
+    local phrase = (addon.L and addon.L["abundance held"]) or "abundance held"
+    return text:lower():find(phrase:lower(), 1, true) ~= nil
 end
 
---- True if text contains "abundance" and "bag" (case-insensitive). Hide from inline; bar shows abundance held.
+--- True if text contains the localized "Abundance Bag" phrase (case-insensitive). Hide from inline; bar shows abundance held.
 local function isAbundanceBag(text)
     if not text or type(text) ~= "string" then return false end
-    local lower = text:lower()
-    return lower:find("abundance") and lower:find("bag")
+    local phrase = (addon.L and addon.L["Abundance Bag"]) or "Abundance Bag"
+    return text:lower():find(phrase:lower(), 1, true) ~= nil
 end
 
 --- True if objective is intrinsically percent-based (text "X%", progressbar type, or weighted), not derived from X/Y.

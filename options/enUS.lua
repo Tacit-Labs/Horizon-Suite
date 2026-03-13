@@ -845,6 +845,7 @@ L["LEGENDARY"]                                                                  
 L["WORLD QUESTS"]                                                                                                   = "World quests"
 L["WEEKLY QUESTS"]                                                                                                  = "WEEKLY QUESTS"
 L["PREY"]                                                                                                           = "Prey"
+L["Abundance"]                                                                                                      = "Abundance"
 L["Abundance Bag"]                                                                                                  = "Abundance Bag"
 L["abundance held"]                                                                                                 = "abundance held"
 L["DAILY QUESTS"]                                                                                                   = "DAILY QUESTS"
