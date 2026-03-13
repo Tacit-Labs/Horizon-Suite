@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [3.11.4] – 2026-03-13
+
+### 🐛 Fixes
+
+- **(Presence) Zone change errors: attempt to index global 'L' (a nil value)**
+
+---
+
 ## [3.11.3] – 2026-03-13
 
 ### 🔧 Improvements
