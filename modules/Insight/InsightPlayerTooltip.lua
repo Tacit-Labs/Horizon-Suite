@@ -17,10 +17,10 @@ local function IsEnabled()
     return addon:IsModuleEnabled("insight")
 end
 
-local function ShowMount()        return addon.GetDB("insightShowMount",        true)  end
-local function ShowIlvl()         return addon.GetDB("insightShowIlvl",         true)  end
-local function ShowPvPTitle()     return addon.GetDB("insightShowPvPTitle",     true)  end
-local function ShowStatusBadges() return addon.GetDB("insightShowStatusBadges", true)  end
+local function ShowMount()            return addon.GetDB("insightShowMount",            true)  end
+local function ShowIlvl()             return addon.GetDB("insightShowIlvl",             true)  end
+local function ShowCharacterTitle()   return addon.GetDB("insightShowCharacterTitle",   true)  end
+local function ShowStatusBadges()     return addon.GetDB("insightShowStatusBadges",     true)  end
 local function ShowMythicScore()  return addon.GetDB("insightShowMythicScore",  true)  end
 local function ShowGuildRank()    return addon.GetDB("insightShowGuildRank",    true)  end
 local function ShowHonorLevel()  return addon.GetDB("insightShowHonorLevel",   true)  end
@@ -124,18 +124,17 @@ end
 -- SECTION BUILDERS (reused by ProcessPlayerTooltip and /insight test)
 -- ============================================================================
 
---- Add PvP title and honor level block to tooltip.
-function Insight.AddPvPBlock(tooltip, unit, sepR, sepG, sepB)
-    if not ShowPvPTitle() and not ShowHonorLevel() then return end
-    if ShowPvPTitle() then
-        pcall(function()
-            local pvpFullName = UnitPVPName(unit)
-            local baseName    = UnitName(unit)
-            if pvpFullName and baseName and pvpFullName ~= baseName then
-                tooltip:AddLine(pvpFullName, Insight.TITLE_COLOR[1], Insight.TITLE_COLOR[2], Insight.TITLE_COLOR[3])
-            end
-        end)
+local function PvPHasContent(unit)
+    if ShowHonorLevel() then
+        local ok, honorLevel = pcall(UnitHonorLevel, unit)
+        if ok and honorLevel and honorLevel > 0 then return true end
     end
+    return false
+end
+
+--- Add PvP block (honor level only). Character title is shown in identity section.
+function Insight.AddPvPBlock(tooltip, unit, sepR, sepG, sepB)
+    if not ShowHonorLevel() then return end
     if ShowHonorLevel() then
         pcall(function()
             local honorLevel = UnitHonorLevel(unit)
@@ -268,19 +267,45 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
     end
 
-    -- 1. Name line: faction icon + faction colour
+    -- 1. Name line: faction icon + name (with character title when ShowCharacterTitle; title in gold, name in faction/class color)
     local nameLeft = _G["GameTooltipTextLeft1"]
     if nameLeft then
         local faction = UnitFactionGroup(unit)
         local icon    = Insight.FACTION_ICONS[faction] or ""
-        local name    = GetUnitName(unit, true) or Insight.SafeGetFontText(nameLeft) or ""
-        nameLeft:SetText(icon .. name)
+        local displayText
         local fc = Insight.FACTION_COLORS[faction]
-        if fc then
-            nameLeft:SetTextColor(fc[1], fc[2], fc[3])
-        elseif classColor then
-            nameLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
+        local nameR = (fc and fc[1]) or (classColor and classColor.r) or 1
+        local nameG = (fc and fc[2]) or (classColor and classColor.g) or 1
+        local nameB = (fc and fc[3]) or (classColor and classColor.b) or 1
+        if ShowCharacterTitle() then
+            local ok, pvpName, baseName = pcall(function()
+                return UnitPVPName(unit), UnitName(unit)
+            end)
+            if ok and pvpName and baseName and pvpName ~= baseName then
+                local idx = pvpName:find(baseName, 1, true)
+                if idx and idx > 1 then
+                    local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
+                    local namePart  = GetUnitName(unit, true) or baseName
+                    local tc = addon.GetDB("insightTitleColor", nil)
+                    if not (tc and type(tc) == "table" and tc[1] and tc[2] and tc[3]) then
+                        local r = addon.GetDB("insightTitleColorR", nil)
+                        local g = addon.GetDB("insightTitleColorG", nil)
+                        local b = addon.GetDB("insightTitleColorB", nil)
+                        tc = (r and g and b) and { r, g, b } or Insight.TITLE_COLOR
+                    end
+                    local titleHex = string.format("%02x%02x%02x",
+                        math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
+                    local nameHex  = string.format("%02x%02x%02x",
+                        math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
+                    displayText = "|cff" .. titleHex .. titlePart .. "|r |cff" .. nameHex .. namePart .. "|r"
+                end
+            end
         end
+        if not displayText then
+            displayText = GetUnitName(unit, true) or Insight.SafeGetFontText(nameLeft) or ""
+            nameLeft:SetTextColor(nameR, nameG, nameB)
+        end
+        nameLeft:SetText(icon .. displayText)
     end
 
     -- 2. Border tint + left accent bar
@@ -338,14 +363,16 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
     end
 
-    -- Separator: identity block → PvP/status block
-    Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
-
-    -- 4. PvP title + honor level
-    Insight.AddPvPBlock(tooltip, unit, sepR, sepG, sepB)
-
-    -- 5. Status badges
+    -- 4. Status badges (part of identity section)
     Insight.AddStatusBadgesBlock(tooltip, unit, guid)
+
+    -- Separator: identity block → PvP block (only when PvP will add content)
+    if PvPHasContent(unit) then
+        Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
+    end
+
+    -- 5. PvP title + honor level
+    Insight.AddPvPBlock(tooltip, unit, sepR, sepG, sepB)
 
     -- 6. Stats block (M+ score, item level)
     Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
@@ -362,16 +389,18 @@ function Insight.RenderTestTooltipContent(tooltip)
     local testSepR, testSepG, testSepB = 0.77, 0.12, 0.23  -- DK class colour
     Insight.sepR, Insight.sepG, Insight.sepB = testSepR, testSepG, testSepB
 
-    tooltip:AddLine((Insight.FACTION_ICONS["Alliance"] or "") .. "Testplayer-Stormrage", 0.77, 0.12, 0.23)
+    local tc = Insight.TITLE_COLOR
+    local titleHex = string.format("%02x%02x%02x", math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
+    local nameHex  = string.format("%02x%02x%02x", math.floor(0.77 * 255), math.floor(0.12 * 255), math.floor(0.23 * 255))
+    tooltip:AddLine((Insight.FACTION_ICONS["Alliance"] or "") .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Testplayer-Stormrage|r", 0.77, 0.12, 0.23)
     tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", 0.25, 0.78, 0.92)
     tooltip:AddLine("Level 80 Human", 1, 0.82, 0)
     tooltip:AddLine(
         "|TInterface\\Icons\\spell_deathknight_bloodpresence:14:14:0:0|t Blood Death Knight  |cff4d99ffTank|r",
         0.77, 0.12, 0.23)
-    Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
-    tooltip:AddLine("Duelist Testplayer", Insight.TITLE_COLOR[1], Insight.TITLE_COLOR[2], Insight.TITLE_COLOR[3])
-    tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(247), 0.85, 0.70, 1.00)
     tooltip:AddLine("|cffff4444[Combat]|r  |cffff8c00[PvP]|r  |cff88ddff[Party]|r  |cff55ff55[Friend]|r  |cffff4466[Targeting You]|r", 1, 1, 1)
+    Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+    tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(247), 0.85, 0.70, 1.00)
     Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
     tooltip:AddLine(Insight.MYTHIC_ICON .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
     tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
