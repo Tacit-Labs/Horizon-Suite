@@ -94,6 +94,18 @@ local DELAY_DIVIDER   = 0.15
 local DELAY_SUBTITLE  = 0.30
 local DELAY_DISCOVERY = 0.45
 
+local PREVIEW_FRAME_WIDTH        = 640
+local PREVIEW_FRAME_HEIGHT       = 260
+local PREVIEW_SCALE              = 0.55
+local PREVIEW_POPOUT_WIDTH       = 640
+local PREVIEW_POPOUT_HEIGHT      = 360
+local PREVIEW_TITLE_ABOVE_DIVIDER  = 18
+local PREVIEW_DIVIDER_BELOW_CENTER = 10
+local PREVIEW_TITLE_ENTER_DELTA    = 0
+local PREVIEW_TITLE_EXIT_DELTA     = 0
+local PREVIEW_SUB_OFFSET_DELTA     = 0
+local PREVIEW_PREP_DELAY           = 1.0  -- seconds to clear static content before entrance
+
 local TYPES = {
     LEVEL_UP       = { pri = 4, category = "COMPLETE",   subCategory = "DEFAULT", sz = 48, dur = 5.0 },
     BOSS_EMOTE     = { pri = 4, specialColor = true,     subCategory = "DEFAULT", sz = 48, dur = 5.0 },
@@ -762,12 +774,18 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, 
 
     local subGap = (cfg.subGap) or 10
     local subAnimDelta = forPreview and 0 or 10
-    local titleTopOffset = forPreview and -28 or 20
-    local dividerTopOffset = forPreview and -98 or -65
-    layer.divider:ClearAllPoints()
-    layer.divider:SetPoint("TOP", 0, dividerTopOffset)
-    layer.titleText:ClearAllPoints()
-    layer.titleText:SetPoint("TOP", 0, titleTopOffset)
+    if forPreview then
+        local anchorParent = layer.titleText:GetParent()
+        layer.divider:ClearAllPoints()
+        layer.divider:SetPoint("CENTER", anchorParent, "CENTER", 0, -PREVIEW_DIVIDER_BELOW_CENTER)
+        layer.titleText:ClearAllPoints()
+        layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, PREVIEW_TITLE_ABOVE_DIVIDER)
+    else
+        layer.divider:ClearAllPoints()
+        layer.divider:SetPoint("TOP", 0, -65)
+        layer.titleText:ClearAllPoints()
+        layer.titleText:SetPoint("TOP", 0, 20)
+    end
     layer.subText:ClearAllPoints()
     layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -(subGap + subAnimDelta))
 
@@ -1437,12 +1455,6 @@ local function PreviewToast(typeName)
     QueueOrPlay(typeName, sample.title, sample.subtitle, sample.opts)
 end
 
-local PREVIEW_FRAME_WIDTH   = 560
-local PREVIEW_FRAME_HEIGHT  = 180
-local PREVIEW_SCALE         = 0.55
-local PREVIEW_POPOUT_WIDTH  = 640
-local PREVIEW_POPOUT_HEIGHT = 360
-
 local previewTargets = setmetatable({}, { __mode = "k" })
 local previewPopout
 
@@ -1479,6 +1491,214 @@ local function RefreshPreviewTargets()
             refreshFn()
         end
     end
+end
+
+local function setPreviewTitleOffset(layer, offsetY)
+    local parent = layer.titleText:GetParent()
+    layer.titleText:ClearAllPoints()
+    layer.titleText:SetPoint("BOTTOM", layer.divider, "TOP", 0, PREVIEW_TITLE_ABOVE_DIVIDER + (offsetY or 0))
+end
+
+local function setPreviewDividerOffset(layer)
+    local parent = layer.divider:GetParent()
+    layer.divider:ClearAllPoints()
+    layer.divider:SetPoint("CENTER", parent, "CENTER", 0, -PREVIEW_DIVIDER_BELOW_CENTER)
+end
+
+local function setPreviewDividerWidth(layer, width)
+    layer.divider:SetSize(math.max(width, 0.01), DIVIDER_H)
+end
+
+local function setPreviewSubOffset(layer, subGap, offsetY)
+    layer.subText:ClearAllPoints()
+    layer.subText:SetPoint("TOP", layer.divider, "BOTTOM", 0, -subGap + offsetY)
+end
+
+local function finalizePreviewEntrance(previewData)
+    local state = previewData and previewData.animState
+    local layer = previewData and previewData.layer
+    if not state or not layer then return end
+
+    if state.compactLayout then
+        layer.titleText:SetAlpha(0)
+        layer.titleShadow:SetAlpha(0)
+    else
+        layer.titleText:SetAlpha(1)
+        layer.titleShadow:SetAlpha(0.8)
+        setPreviewTitleOffset(layer, 0)
+    end
+    if layer.questTypeIcon and layer.questTypeIcon:IsShown() then
+        layer.questTypeIcon:SetAlpha(1)
+    end
+    layer.divider:SetAlpha(0.5)
+    setPreviewDividerOffset(layer)
+    setPreviewDividerWidth(layer, DIVIDER_W)
+    layer.subText:SetAlpha(1)
+    layer.subShadow:SetAlpha(0.8)
+    setPreviewSubOffset(layer, state.subGap, 0)
+    if state.hasDiscovery then
+        layer.discoveryText:SetAlpha(1)
+        layer.discoveryShadow:SetAlpha(0.8)
+    end
+end
+
+local function StopPreviewAnimation(previewData)
+    if not previewData or not previewData.frame then return end
+    previewData.frame:SetScript("OnUpdate", nil)
+    previewData.animState = nil
+end
+
+local function PlayAnimatedPreview(previewData, typeName)
+    if not previewData or not previewData.frame or not previewData.layer then return end
+
+    local sample = getPreviewSample(typeName)
+    local cfg = typeName and TYPES[typeName]
+    if not sample or not cfg then return end
+
+    StopPreviewAnimation(previewData)
+
+    local opts = sample.opts or {}
+    if sample.withDiscovery then
+        opts.showDiscovery = true
+    end
+
+    ApplyToastContentToLayer(previewData.layer, typeName, sample.title, sample.subtitle, opts, true)
+
+    local compactLayout = (typeName == "QUEST_UPDATE" or typeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
+    previewData.animState = {
+        phase = "prep",
+        elapsed = 0,
+        holdDur = cfg.dur * getHoldScale(),
+        entranceDur = getEntranceDur(),
+        exitDur = getExitDur(),
+        compactLayout = compactLayout,
+        hasDiscovery = opts.showDiscovery == true,
+        subGap = (cfg.subGap) or 10,
+        typeName = typeName,
+    }
+
+    if compactLayout then
+        previewData.layer.titleText:SetAlpha(0)
+        previewData.layer.titleShadow:SetAlpha(0)
+    else
+        previewData.layer.titleText:SetAlpha(0)
+        previewData.layer.titleShadow:SetAlpha(0)
+        setPreviewTitleOffset(previewData.layer, PREVIEW_TITLE_ENTER_DELTA)
+    end
+    if previewData.layer.questTypeIcon and previewData.layer.questTypeIcon:IsShown() then
+        previewData.layer.questTypeIcon:SetAlpha(0)
+    end
+    previewData.layer.divider:SetAlpha(0)
+    setPreviewDividerOffset(previewData.layer)
+    setPreviewDividerWidth(previewData.layer, 0.01)
+    previewData.layer.subText:SetAlpha(0)
+    previewData.layer.subShadow:SetAlpha(0)
+    setPreviewSubOffset(previewData.layer, previewData.animState.subGap, PREVIEW_SUB_OFFSET_DELTA)
+    if previewData.animState.hasDiscovery then
+        previewData.layer.discoveryText:SetAlpha(0)
+        previewData.layer.discoveryShadow:SetAlpha(0)
+    end
+
+    previewData.frame:Show()
+    previewData.frame:SetScript("OnUpdate", function(self, dt)
+        local state = previewData.animState
+        local layer = previewData.layer
+        if not state or not layer then
+            self:SetScript("OnUpdate", nil)
+            return
+        end
+
+        state.elapsed = state.elapsed + dt
+
+        if state.phase == "prep" then
+            if state.elapsed >= PREVIEW_PREP_DELAY then
+                state.phase = "entrance"
+                state.elapsed = 0
+            end
+        elseif state.phase == "entrance" then
+            if state.entranceDur > 0 then
+                local te = entEase(state.elapsed, DELAY_TITLE)
+                local de = entEase(state.elapsed, DELAY_DIVIDER)
+                local se = entEase(state.elapsed, DELAY_SUBTITLE)
+
+                if state.compactLayout then
+                    layer.titleText:SetAlpha(0)
+                    layer.titleShadow:SetAlpha(0)
+                    if layer.questTypeIcon and layer.questTypeIcon:IsShown() then
+                        layer.questTypeIcon:SetAlpha(te)
+                    end
+                else
+                    layer.titleText:SetAlpha(te)
+                    layer.titleShadow:SetAlpha(te * 0.8)
+                    if layer.questTypeIcon and layer.questTypeIcon:IsShown() then
+                        layer.questTypeIcon:SetAlpha(te)
+                    end
+                    setPreviewTitleOffset(layer, (1 - te) * PREVIEW_TITLE_ENTER_DELTA)
+                end
+
+                layer.divider:SetAlpha(de * 0.5)
+                setPreviewDividerOffset(layer)
+                setPreviewDividerWidth(layer, DIVIDER_W * de)
+                layer.subText:SetAlpha(se)
+                layer.subShadow:SetAlpha(se * 0.8)
+                setPreviewSubOffset(layer, state.subGap, (1 - se) * PREVIEW_SUB_OFFSET_DELTA)
+
+                if state.hasDiscovery then
+                    local dse = entEase(state.elapsed, DELAY_DISCOVERY)
+                    layer.discoveryText:SetAlpha(dse)
+                    layer.discoveryShadow:SetAlpha(dse * 0.8)
+                end
+            else
+                finalizePreviewEntrance(previewData)
+            end
+
+            if state.elapsed >= state.entranceDur then
+                finalizePreviewEntrance(previewData)
+                state.phase = "hold"
+                state.elapsed = 0
+            end
+        elseif state.phase == "hold" then
+            if state.elapsed >= state.holdDur then
+                state.phase = "exit"
+                state.elapsed = 0
+            end
+        elseif state.phase == "exit" then
+            local e = (state.exitDur > 0) and math.min(state.elapsed / state.exitDur, 1) or 1
+            local inv = 1 - e
+            local inv8 = inv * 0.8
+
+            if state.compactLayout then
+                layer.titleText:SetAlpha(0)
+                layer.titleShadow:SetAlpha(0)
+            else
+                layer.titleText:SetAlpha(inv)
+                layer.titleShadow:SetAlpha(inv8)
+                setPreviewTitleOffset(layer, e * PREVIEW_TITLE_EXIT_DELTA)
+            end
+
+            if layer.questTypeIcon and layer.questTypeIcon:IsShown() then
+                layer.questTypeIcon:SetAlpha(inv)
+            end
+            layer.divider:SetAlpha(0.5 * inv)
+            setPreviewDividerOffset(layer)
+            setPreviewDividerWidth(layer, DIVIDER_W * inv)
+            layer.subText:SetAlpha(inv)
+            layer.subShadow:SetAlpha(inv8)
+            setPreviewSubOffset(layer, state.subGap, e * PREVIEW_SUB_OFFSET_DELTA)
+
+            if state.hasDiscovery then
+                layer.discoveryText:SetAlpha(inv)
+                layer.discoveryShadow:SetAlpha(inv8)
+            end
+
+            if state.elapsed >= state.exitDur then
+                local doneType = state.typeName
+                StopPreviewAnimation(previewData)
+                local fn = addon.Presence and addon.Presence.UpdatePreviewFrame
+                if fn then fn(previewData, doneType) end
+            end
+        end
+    end)
 end
 
 --- Create an embedded preview frame for options. Static display, no animations.
@@ -1546,7 +1766,7 @@ local function CreatePreviewWidget(parent, opts)
     local showPopoutButton = opts.showPopoutButton ~= false
 
     local container = CreateFrame("Frame", nil, parent)
-    container:SetHeight(230)
+    container:SetHeight(260)
 
     local dropdownOptsFn = function()
         if addon.GetPresencePreviewDropdownOptions then
@@ -1577,6 +1797,19 @@ local function CreatePreviewWidget(parent, opts)
     dd:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
     dd:SetPoint("RIGHT", container, "RIGHT", 0, 0)
 
+    local actionAnchor
+    local animateBtn
+    if _G.OptionsWidgets_CreateButton then
+        animateBtn = _G.OptionsWidgets_CreateButton(container, L["Animate preview"] or "Animate preview", function()
+            if previewData then
+                PlayAnimatedPreview(previewData, getTypeName())
+            end
+            notify()
+        end, { height = 22, width = 120, tooltip = L["Play the selected toast animation inside this preview window."] or "Play the selected toast animation inside this preview window." })
+        animateBtn:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -12)
+        actionAnchor = animateBtn
+    end
+
     local popoutBtn
     if showPopoutButton and _G.OptionsWidgets_CreateButton then
         popoutBtn = _G.OptionsWidgets_CreateButton(container, L["Open detached preview"] or "Open detached preview", function()
@@ -1585,13 +1818,22 @@ local function CreatePreviewWidget(parent, opts)
             end
             notify()
         end, { height = 22, width = 170, tooltip = L["Open a movable preview window that stays visible while you change other Presence settings."] or "Open a movable preview window that stays visible while you change other Presence settings." })
-        popoutBtn:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -12)
+        if animateBtn then
+            popoutBtn:SetPoint("LEFT", animateBtn, "RIGHT", 8, 0)
+            popoutBtn:SetPoint("TOP", animateBtn, "TOP", 0, 0)
+        else
+            popoutBtn:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -12)
+        end
+        actionAnchor = animateBtn or popoutBtn
     end
 
     previewData = CreatePreviewFrame(container, { scale = scale, getTypeName = getTypeName })
     if previewData and previewData.frame then
-        local previewAnchor = popoutBtn or dd
-        local previewGap = popoutBtn and 14 or 16
+        previewData.StopAnimation = function()
+            StopPreviewAnimation(previewData)
+        end
+        local previewAnchor = actionAnchor or dd
+        local previewGap = actionAnchor and 14 or 16
         previewData.frame:SetPoint("TOPLEFT", previewAnchor, "BOTTOMLEFT", 0, -previewGap)
         previewData.frame:SetPoint("RIGHT", container, "RIGHT", 0, 0)
         previewData.frame.Refresh = previewData.Refresh
@@ -1599,6 +1841,7 @@ local function CreatePreviewWidget(parent, opts)
     end
 
     local function doRefresh()
+        if previewData and previewData.StopAnimation then previewData.StopAnimation() end
         if dd and dd.Refresh then dd:Refresh() end
         if previewData and previewData.Refresh then previewData.Refresh() end
     end
