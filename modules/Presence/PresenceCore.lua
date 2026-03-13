@@ -395,10 +395,10 @@ local function resolveColors(typeName, cfg, opts)
     if opts.category and (typeName == "SCENARIO_START" or typeName == "SCENARIO_UPDATE" or typeName == "SCENARIO_COMPLETE" or typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") then
         cat = opts.category
     elseif opts.questID then
-        if typeName == "QUEST_COMPLETE" and addon.GetQuestBaseCategory then
+        if (typeName == "QUEST_COMPLETE" or typeName == "QUEST_UPDATE") and addon.GetQuestBaseCategory then
             local ok, res = pcall(addon.GetQuestBaseCategory, opts.questID)
             cat = (ok and res) or cat
-        elseif (typeName == "QUEST_ACCEPT" or typeName == "QUEST_UPDATE") and addon.GetQuestCategory then
+        elseif typeName == "QUEST_ACCEPT" and addon.GetQuestCategory then
             local ok, res = pcall(addon.GetQuestCategory, opts.questID)
             cat = (ok and res) or cat
         end
