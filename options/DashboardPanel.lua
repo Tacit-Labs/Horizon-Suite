@@ -1406,6 +1406,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             
                             -- Build Collapsible Group logic
                             local function BuildCollapsibleGroup(containerParent, key, startY)
+                                local Def = addon.OptionsWidgetsDef or {}
                                 local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
                                 local groupY = startY
                                 
