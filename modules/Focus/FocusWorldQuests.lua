@@ -105,23 +105,21 @@ local function GetNearbyQuestIDs()
         for _, id in ipairs(mapIDsToCheck) do mapIDSet[id] = true end
     end
 
-    -- GetTasksTable: global list of all task quests. Skip world quests entirely
-    -- (GetTaskQuestsForMap below is authoritative). For non-WQ tasks (bonus objectives),
-    -- require map match + IsActive.
+    -- GetTasksTable: Blizzard's authoritative list of active tasks (bonus objectives, etc.).
+    -- Same source as BonusObjectiveTracker. Skip world quests (GetTaskQuestsForMap is authoritative for WQs).
+    -- Include non-WQ entries when IsActive. Map check is best-effort; if it fails, include anyway
+    -- (Blizzard shows it, so e.g. Saltheril's Soiree zone may not match our map hierarchy walk).
     if _G.GetTasksTable and type(_G.GetTasksTable) == "function" then
         local ok, tasks = pcall(_G.GetTasksTable)
         if ok and tasks and type(tasks) == "table" then
             for _, entry in pairs(tasks) do
                 local questID = (type(entry) == "number" and entry) or (type(entry) == "table" and entry and entry.questID)
-                if questID and type(questID) == "number" and questID > 0 then
+                if questID and type(questID) == "number" and questID > 0 and questID < 10000000 then
                     -- Skip world quests: GetTasksTable can hold stale WQ entries.
                     local isWQ = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)
                     if not isWQ and IsTaskQuestCurrentlyActive(questID) then
-                        local onMap = not mapIDsToCheck or IsTaskQuestOnPlayerMaps(questID, mapIDSet)
-                        if onMap then
-                            nearbySet[questID] = true
-                            taskQuestOnlySet[questID] = true
-                        end
+                        nearbySet[questID] = true
+                        taskQuestOnlySet[questID] = true
                     end
                 end
             end
