@@ -6,12 +6,26 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
+- Placeholder for next release.
+
+---
+
+## [3.11.2] – 2026-03-13
+
+### 🐛 Fixes
+
+- **(Insight) Player tooltip formatting not showing on first hover**
+
 ### 🔧 Improvements
 
-- **(Presence) Complete Presence Overhaul** — Beta from feat/Complete-Presence-Overhaul branch.
 - **(Core) Update README branding and links for GitLab migration**
-- **(Focus) Scenario timer bar updates every 0.5s instead of 1s**
 - **(Core) Fix beta release job when release already exists**
+- **(Core) Dashboard: add sidebar navigation and layout refinements**
+- **(Core) Dashboard and options panel polish**
+- **(Focus) Scenario timer bar updates every 0.5s instead of 1s**
+- **(Focus) Localize Prey quest detection for Midnight hunting activity**
+- **(Presence) Achievement toast shows redundant 1/1 for single-objective achievements when objective is finished**
+- **(Insight) Improve Insight item tooltips: fix AH flashing, quality identity, transmog filter**
 
 ---
 
