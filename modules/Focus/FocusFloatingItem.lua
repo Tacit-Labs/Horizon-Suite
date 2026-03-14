@@ -67,7 +67,7 @@ end
 
 dragAnchor:SetScript("OnEnter", function(self)
     anchorBg:SetColorTexture(0.35, 0.70, 1.0, 0.90)
-    if GameTooltip then
+    if addon.GetDB("focusShowTooltipOnHover", false) and GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine("Drag to move quest item button")
         GameTooltip:Show()
@@ -123,7 +123,7 @@ floatingQuestItemBtn.cooldown:SetPoint("TOPLEFT", floatingQuestItemBtn, "TOPLEFT
 floatingQuestItemBtn.cooldown:SetPoint("BOTTOMRIGHT", floatingQuestItemBtn, "BOTTOMRIGHT", -INSET, INSET)
 floatingQuestItemBtn:SetScript("OnEnter", function(self)
     self:SetAlpha(1)
-    if self._itemLink and GameTooltip then
+    if addon.GetDB("focusShowTooltipOnHover", false) and self._itemLink and GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         pcall(GameTooltip.SetHyperlink, GameTooltip, self._itemLink)
         GameTooltip:Show()

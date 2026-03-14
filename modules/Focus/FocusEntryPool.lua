@@ -89,7 +89,7 @@ local function CreateQuestEntry(parent, index)
     e.itemBtn:SetScript("OnEnter", function(self)
         self:SetAlpha(1)
         local entry = self._ownerEntry
-        if entry and entry.itemLink then
+        if addon.GetDB("focusShowTooltipOnHover", false) and entry and entry.itemLink then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             pcall(GameTooltip.SetHyperlink, GameTooltip, entry.itemLink)
             GameTooltip:Show()
@@ -162,7 +162,7 @@ local function CreateQuestEntry(parent, index)
     end)
     e.questIconBtn:SetScript("OnEnter", function(self)
         local entry = self._ownerEntry
-        if entry and entry.questID and addon.GetDB("useClassicClickBehaviour", false) then
+        if addon.GetDB("focusShowTooltipOnHover", false) and entry and entry.questID and addon.GetDB("useClassicClickBehaviour", false) then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:AddLine(T("Focus quest") or "Focus quest", 1, 1, 1)
             GameTooltip:AddLine(T("Click to super-track this quest.") or "Click to super-track this quest.", 0.7, 0.7, 0.7, true)
@@ -205,6 +205,7 @@ local function CreateQuestEntry(parent, index)
     end)
     e.lfgBtn:SetScript("OnEnter", function(self)
         self.icon:SetAlpha(1)
+        if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(T("Find a Group"), 1, 1, 1)
         GameTooltip:AddLine(T("Click to search for a group for this quest."), 0.7, 0.7, 0.7, true)
