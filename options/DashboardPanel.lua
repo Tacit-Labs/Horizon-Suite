@@ -166,6 +166,19 @@ SlashCmdList["HSDASH"] = function(msg)
                 if db then db.optionsSidebarGroupCollapsed = groupCollapsed end
             end
 
+            -- Sidebar state controller: single source of truth for view, active selection, expanded groups.
+            -- view: "dashboard" | "module" | "category"
+            -- activeModuleKey: module key when in module/category view
+            -- activeCategoryIndex: OptionCategories index when in category view
+            local sidebarState = {
+                view = "dashboard",
+                activeModuleKey = nil,
+                activeCategoryIndex = nil,
+            }
+
+            local SetSidebarState
+            local RequestGroupToggle
+
             local TAB_ROW_HEIGHT = 38
             local HEADER_ROW_HEIGHT = 28
             local SIDEBAR_TOP_PAD = 4
@@ -493,8 +506,8 @@ SlashCmdList["HSDASH"] = function(msg)
                     headSub:SetText("Select a module to configure")
                 end
                 searchBox:Show()
-                -- Reset sidebar active state to Home
-                if sidebarButtons[1] then SetActiveSidebarButton(sidebarButtons[1]) end
+                f.currentModuleKey = nil
+                SetSidebarState({ view = "dashboard" })
             end
 
             -- Back Button (Persistent in Detail View)
@@ -544,12 +557,13 @@ SlashCmdList["HSDASH"] = function(msg)
             StyleBackButton(subBackBtn, "BACK")
 
             -- Back button in detail view now goes to Subcategory Menu
-            backBtn:SetScript("OnClick", function() 
+            backBtn:SetScript("OnClick", function()
                 if f.currentModuleKey then
                     CrossfadeTo(subCategoryView)
+                    SetSidebarState({ view = "module", activeModuleKey = f.currentModuleKey, activeCategoryIndex = nil })
                 else
                     f.ShowDashboard()
-                end 
+                end
             end)
 
             subBackBtn:SetScript("OnClick", function() f.ShowDashboard() end)
@@ -872,16 +886,17 @@ SlashCmdList["HSDASH"] = function(msg)
             f.OpenCategoryDetail = function(modName, catName, options)
                 if searchBox then searchBox:ClearFocus() end
 
-                -- Update sidebar active state to match this category
-                for _, sb in ipairs(sidebarButtons) do
-                    if sb.sidebarCategoryIndex then
-                        local cat = addon.OptionCategories[sb.sidebarCategoryIndex]
-                        if cat and cat.name == catName and (not f.currentModuleKey or cat.moduleKey == f.currentModuleKey) then
-                            SetActiveSidebarButton(sb)
-                            break
-                        end
+                local matchedModuleKey = f.currentModuleKey or "modules"
+                local matchedCatIdx = nil
+                for i, cat in ipairs(addon.OptionCategories) do
+                    if cat.name == catName and (not f.currentModuleKey or cat.moduleKey == f.currentModuleKey) then
+                        matchedModuleKey = cat.moduleKey or "modules"
+                        matchedCatIdx = i
+                        break
                     end
                 end
+                f.currentModuleKey = matchedModuleKey
+                SetSidebarState({ view = "category", activeModuleKey = matchedModuleKey, activeCategoryIndex = matchedCatIdx })
 
                 CrossfadeTo(detailView)
                 detailContent:Show()
@@ -922,18 +937,9 @@ SlashCmdList["HSDASH"] = function(msg)
             f.OpenModule = function(name, moduleKey)
                 if searchBox then searchBox:ClearFocus() end
 
-                f.currentModuleKey = moduleKey
-
-                -- Find first matching sidebar sub-button (or standalone) for this module/category
-                for _, sb in ipairs(sidebarButtons) do
-                    if sb.sidebarCategoryIndex then
-                        local cat = addon.OptionCategories[sb.sidebarCategoryIndex]
-                        if cat and ((moduleKey and cat.moduleKey == moduleKey) or (not moduleKey and cat.name == name)) then
-                            SetActiveSidebarButton(sb)
-                            break
-                        end
-                    end
-                end
+                local mk = moduleKey or "modules"
+                f.currentModuleKey = mk
+                SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = nil })
 
                 -- Find all matching sub-categories
                 local cats = {}
@@ -1240,10 +1246,30 @@ SlashCmdList["HSDASH"] = function(msg)
                         local widget
                         if opt.type == "binary" or opt.type == "toggle" then
                             widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.disabled, opt.tooltip)
-                            if widget and widget.Refresh then detailOptionFrames[optId] = widget end
+                            if widget then
+                                if opt.hidden and type(opt.hidden) == "function" then
+                                    local origRefresh = widget.Refresh
+                                    widget.Refresh = function(self)
+                                        if origRefresh then origRefresh(self) end
+                                        if opt.hidden() then self:Hide() else self:Show() end
+                                    end
+                                    if opt.hidden() then widget:Hide() end
+                                end
+                                if widget.Refresh then detailOptionFrames[optId] = widget end
+                            end
                         elseif opt.type == "slider" then
                             widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.min or 0, opt.max or 100, opt.disabled, opt.step or 1, opt.tooltip)
-                            if widget and widget.Refresh then detailOptionFrames[optId] = widget end
+                            if widget then
+                                if opt.hidden and type(opt.hidden) == "function" then
+                                    local origRefresh = widget.Refresh
+                                    widget.Refresh = function(self)
+                                        if origRefresh then origRefresh(self) end
+                                        if opt.hidden() then self:Hide() else self:Show() end
+                                    end
+                                    if opt.hidden() then widget:Hide() end
+                                end
+                                if widget.Refresh then detailOptionFrames[optId] = widget end
+                            end
                         elseif opt.type == "dropdown" then
                             widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip)
                             if widget and widget.Refresh then detailOptionFrames[optId] = widget end
@@ -1406,7 +1432,6 @@ SlashCmdList["HSDASH"] = function(msg)
                             
                             -- Build Collapsible Group logic
                             local function BuildCollapsibleGroup(containerParent, key, startY)
-                                local Def = addon.OptionsWidgetsDef or {}
                                 local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
                                 local groupY = startY
                                 
@@ -1752,7 +1777,6 @@ SlashCmdList["HSDASH"] = function(msg)
             local groupOrder = { "modules", "focus", "presence", "insight", "yield", "vista" }
 
             local lastSidebarRow = nil
-            local RefreshSidebarLayout
             local yOff = 0
 
             -- Home button
@@ -1789,7 +1813,6 @@ SlashCmdList["HSDASH"] = function(msg)
                         local cat = addon.OptionCategories[catIdx]
                         local iconKey = categoryIcons[cat.name] or "INV_Misc_Question_01"
                         local btn = CreateSidebarButton(sidebarScrollContent, cat.name, iconKey, function()
-                            SetActiveSidebarButton(btn)
                             f.OpenModule(cat.name, cat.moduleKey)
                         end)
                         btn:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
@@ -1807,6 +1830,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         lastSidebarRow = header
                         yOff = yOff + HEADER_ROW_HEIGHT
                         header.groupKey = mk
+                        g.header = header
                         header.hoverBg = header:CreateTexture(nil, "BACKGROUND")
                         header.hoverBg:SetAllPoints(header)
                         header.hoverBg:SetColorTexture(1, 1, 1, 0.03)
@@ -1846,26 +1870,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         yOff = yOff + tabsContainer:GetHeight()
 
                         header:SetScript("OnClick", function()
-                            local collapsed = not GetGroupCollapsed(mk)
-                            SetGroupCollapsed(mk, collapsed)
-                            header.chevron:SetText(collapsed and "+" or "-")
-                            local fromH = tabsContainer:GetHeight()
-                            local toH = collapsed and 0 or fullHeight
-                            if fromH ~= toH then
-                                -- Reset animation if user clicked during active animation
-                                tabsContainer.animStart = GetTime()
-                                tabsContainer.animFrom = fromH
-                                tabsContainer.animTo = toH
-                                tabsContainer:SetScript("OnUpdate", function(self)
-                                    local elapsed = GetTime() - self.animStart
-                                    local t = math.min(elapsed / COLLAPSE_ANIM_DUR, 1)
-                                    local h = self.animFrom + (self.animTo - self.animFrom) * easeOut(t)
-                                    self:SetHeight(math.max(0, h))
-                                    UpdateSpacerPosition()
-                                    if RefreshSidebarLayout then RefreshSidebarLayout() end
-                                    if t >= 1 then self:SetScript("OnUpdate", nil) end
-                                end)
-                            end
+                            RequestGroupToggle(mk)
                         end)
                         header:SetScript("OnEnter", function()
                             header.hoverBg:Show()
@@ -1886,7 +1891,6 @@ SlashCmdList["HSDASH"] = function(msg)
                             local options = type(cat.options) == "function" and cat.options() or cat.options
                             -- Sub-buttons: no icon (icons only on main categories)
                             local btn = CreateSidebarButton(tabsContainer, cat.name, nil, function()
-                                SetActiveSidebarButton(btn)
                                 f.currentModuleKey = cat.moduleKey
                                 f.OpenCategoryDetail(modLabel, cat.name, options)
                             end, 12)
@@ -1901,7 +1905,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
             end
 
-            RefreshSidebarLayout = function()
+            --- Reflow sidebar scroll content height from top to last row.
+            local function LayoutSidebar()
                 if not sidebarScrollContent or not lastSidebarRow then return end
                 local top = sidebarScrollContent:GetTop()
                 local bottom = lastSidebarRow:GetBottom()
@@ -1911,12 +1916,91 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
             end
 
-            C_Timer.After(0, function()
-                if RefreshSidebarLayout then RefreshSidebarLayout() end
-            end)
+            --- Apply sidebarState to UI: active button, expanded groups, spacers.
+            local function ApplySidebarState()
+                local targetMk = sidebarState.view ~= "dashboard" and sidebarState.activeModuleKey or nil
+                for _, mk in ipairs(groupOrder) do
+                    local g = groups[mk]
+                    if g and g.tabsContainer and g.fullHeight then
+                        if targetMk and mk == targetMk then
+                            SetGroupCollapsed(mk, false)
+                            g.tabsContainer:SetScript("OnUpdate", nil)
+                            g.tabsContainer:SetHeight(g.fullHeight)
+                            if g.header and g.header.chevron then g.header.chevron:SetText("-") end
+                        elseif not GetGroupCollapsed(mk) then
+                            SetGroupCollapsed(mk, true)
+                            g.tabsContainer:SetScript("OnUpdate", nil)
+                            g.tabsContainer:SetHeight(0)
+                            if g.header and g.header.chevron then g.header.chevron:SetText("+") end
+                        end
+                        if g.header and g.header.updateSpacer then g.header.updateSpacer() end
+                    end
+                end
+                local activeBtn = sidebarButtons[1]
+                if sidebarState.view == "module" or sidebarState.view == "category" then
+                    local mk = sidebarState.activeModuleKey or "modules"
+                    local wantCatIdx = sidebarState.activeCategoryIndex
+                    for _, sb in ipairs(sidebarButtons) do
+                        if sb.sidebarCategoryIndex then
+                            local cat = addon.OptionCategories[sb.sidebarCategoryIndex]
+                            if cat and cat.moduleKey == mk then
+                                if wantCatIdx and sb.sidebarCategoryIndex == wantCatIdx then
+                                    activeBtn = sb
+                                    break
+                                elseif not wantCatIdx then
+                                    activeBtn = sb
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+                SetActiveSidebarButton(activeBtn)
+                LayoutSidebar()
+            end
 
-            -- Set Home as active by default
+            --- Update sidebar state and apply to UI. Single entry point for navigation.
+            --- @param state table { view, activeModuleKey?, activeCategoryIndex? }
+            SetSidebarState = function(state)
+                if state.view then sidebarState.view = state.view end
+                if state.activeModuleKey ~= nil then sidebarState.activeModuleKey = state.activeModuleKey end
+                if state.activeCategoryIndex ~= nil then sidebarState.activeCategoryIndex = state.activeCategoryIndex end
+                ApplySidebarState()
+            end
+
+            --- Toggle a group's collapse state (user header click). Persists and animates.
+            RequestGroupToggle = function(mk)
+                local g = groups[mk]
+                if not g or not g.tabsContainer or not g.fullHeight then return end
+                local collapsed = not GetGroupCollapsed(mk)
+                SetGroupCollapsed(mk, collapsed)
+                if g.header and g.header.chevron then g.header.chevron:SetText(collapsed and "+" or "-") end
+                local fromH = g.tabsContainer:GetHeight()
+                local toH = collapsed and 0 or g.fullHeight
+                if fromH ~= toH then
+                    g.tabsContainer.animStart = GetTime()
+                    g.tabsContainer.animFrom = fromH
+                    g.tabsContainer.animTo = toH
+                    g.tabsContainer:SetScript("OnUpdate", function(self)
+                        local elapsed = GetTime() - self.animStart
+                        local t = math.min(elapsed / COLLAPSE_ANIM_DUR, 1)
+                        local h = self.animFrom + (self.animTo - self.animFrom) * easeOut(t)
+                        self:SetHeight(math.max(0, h))
+                        if g.header and g.header.updateSpacer then g.header.updateSpacer() end
+                        LayoutSidebar()
+                        if t >= 1 then self:SetScript("OnUpdate", nil) end
+                    end)
+                else
+                    if g.header and g.header.updateSpacer then g.header.updateSpacer() end
+                    LayoutSidebar()
+                end
+            end
+
+            LayoutSidebar()
+
+            -- Set Home as active by default and collapse all groups
             SetActiveSidebarButton(sidebarButtons[1])
+            f.ShowDashboard()
         end
         f:Show()
     end
