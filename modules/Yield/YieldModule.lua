@@ -30,6 +30,7 @@ addon:RegisterModule("yield", {
             if addon.Yield.RestoreBlizzard then addon.Yield.RestoreBlizzard() end
             if addon.Yield.ClearActiveToasts then addon.Yield.ClearActiveToasts() end
             if addon.Yield.SetFrameVisible then addon.Yield.SetFrameVisible(false) end
+            if addon.Yield.HideAnchorFrame then addon.Yield.HideAnchorFrame() end
         end
         ReloadUI()
     end,
