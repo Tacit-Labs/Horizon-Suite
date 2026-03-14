@@ -38,29 +38,43 @@ issuelog:
         exit 0
       fi
       MSG_ID_FILE=.release/discord-issuelog-message-id
-      MSG_ID=""
-      [ -f "$MSG_ID_FILE" ] && MSG_ID=$(cat "$MSG_ID_FILE" | tr -d '[:space:]')
+      NEW_IDS=$(mktemp)
 
-      if [ -n "$MSG_ID" ]; then
-        DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-          "${DISCORD_WEBHOOK_ISSUELOG}/messages/${MSG_ID}" || echo "000")
-        echo "DELETE returned ${DEL_HTTP}"
+      # Delete all previously cached messages (one ID per line)
+      if [ -f "$MSG_ID_FILE" ]; then
+        while IFS= read -r id || [ -n "$id" ]; do
+          id=$(echo "$id" | tr -d '[:space:]')
+          [ -z "$id" ] && continue
+          DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            "${DISCORD_WEBHOOK_ISSUELOG}/messages/${id}" || echo "000")
+          echo "DELETE ${id} returned ${DEL_HTTP}"
+        done < "$MSG_ID_FILE"
       fi
 
-      RESP=$(curl -s -w "\n%{http_code}" -X POST \
-        "${DISCORD_WEBHOOK_ISSUELOG}?wait=true" \
-        -H "Content-Type: application/json" \
-        -d @.release/discord-issuelog-payload.json)
-      HTTP=$(echo "$RESP" | tail -1)
-      BODY=$(echo "$RESP" | sed '$d')
-      NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
-      if [ -n "$NEW_ID" ]; then
-        echo "$NEW_ID" > "$MSG_ID_FILE"
-        echo "Posted new Discord message ${NEW_ID}"
-      else
-        echo "Failed to post (HTTP ${HTTP}): $BODY"
-        exit 1
-      fi
+      # Post each payload file in order; collect new message IDs
+      for type in bugs features improvements ideas; do
+        PAYLOAD=".release/discord-issuelog-payload-${type}.json"
+        if [ -f "$PAYLOAD" ]; then
+          RESP=$(curl -s -w "\n%{http_code}" -X POST \
+            "${DISCORD_WEBHOOK_ISSUELOG}?wait=true" \
+            -H "Content-Type: application/json" \
+            -d @"$PAYLOAD")
+          HTTP=$(echo "$RESP" | tail -1)
+          BODY=$(echo "$RESP" | sed '$d')
+          NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
+          if [ -n "$NEW_ID" ]; then
+            echo "$NEW_ID" >> "$NEW_IDS"
+            echo "Posted ${type} message ${NEW_ID}"
+          else
+            echo "Failed to post ${type} (HTTP ${HTTP}): $BODY"
+            rm -f "$NEW_IDS"
+            exit 1
+          fi
+        fi
+      done
+
+      mv "$NEW_IDS" "$MSG_ID_FILE"
+      echo "Cached $(wc -l < "$MSG_ID_FILE") message ID(s)"
 
 # Use BigWigs packager: package addon, upload to CurseForge and Wago.
 # Mirrors .github/workflows/release.yml behavior.

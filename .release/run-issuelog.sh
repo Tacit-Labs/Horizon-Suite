@@ -1,5 +1,10 @@
 #!/bin/bash
 set -e
+# Fetches open GitHub issues and generates Discord embed payloads.
+# Requires gh CLI and GITHUB_TOKEN (or gh auth).
+# Output: .release/discord-issuelog-payload-{bugs,features,improvements,ideas}.json
+# One message per type; each message has its own 6000-char limit (avoids Discord total-embed limit).
+
 export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Crystilac93/Horizon-Suite}"
 
 # Fetch all open issues (number, title, labels, body, url)
@@ -73,42 +78,93 @@ COLOR_IDEAS=16776960
 REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# Build embeds array — start with header embed
-EMBEDS_JSON=$(jq -n \
+# Helper: truncate content to max chars (Discord embed description limit 4096)
+truncate_content() {
+  local content="$1"
+  local max="${2:-4096}"
+  printf '%s' "$content" | jq -Rs --argjson max "$max" 'if length > $max then .[0:$max] else . end'
+}
+
+# Helper: write a payload file with one or more embeds
+write_payload() {
+  local outfile="$1"
+  local embeds_json="$2"
+  jq -n \
+    --arg user "HorizonSuite Issue Bot" \
+    --arg avatar "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+    --argjson embeds "$embeds_json" \
+    '{username: $user, avatar_url: $avatar, embeds: $embeds}' \
+    > "$outfile"
+  echo "Generated $outfile"
+}
+
+mkdir -p .release
+
+# Remove old single-payload file if present
+rm -f .release/discord-issuelog-payload.json
+
+# Header embed (title, url, timestamp)
+HEADER_EMBED=$(jq -n \
   --arg title "HorizonSuite — Open Issues" \
   --arg url "$REPO_URL/issues" \
   --argjson color $COLOR_HEADER \
   --arg ts "$TIMESTAMP" \
-  '[{title: $title, url: $url, color: $color, timestamp: $ts}]')
+  '{title: $title, url: $url, color: $color, timestamp: $ts}')
 
-# Helper: append an embed if bucket is non-empty
-append_embed() {
-  local name="$1"
-  local content="$2"
-  local color="$3"
-  if [ -n "$content" ]; then
-    # Guard: truncate to 4096 chars (Discord embed description limit)
-    local truncated
-    truncated=$(printf '%s' "$content" | jq -Rs 'if length > 4096 then .[0:4096] else . end')
-    EMBEDS_JSON=$(echo "$EMBEDS_JSON" | jq \
-      --arg name "$name" \
-      --argjson desc "$truncated" \
-      --argjson color "$color" \
-      '. + [{title: $name, description: $desc, color: $color}]')
-  fi
-}
+# 1. Bugs: header + bugs embed (always post; header establishes context)
+if [ -n "$BUGS" ]; then
+  BUGS_DESC=$(truncate_content "$BUGS" 4096)
+  BUGS_EMBED=$(jq -n \
+    --arg name "🐛 Known Bugs" \
+    --argjson desc "$BUGS_DESC" \
+    --argjson color $COLOR_BUGS \
+    '{title: $name, description: $desc, color: $color}')
+  BUGS_EMBEDS=$(jq -n --argjson h "$HEADER_EMBED" --argjson b "$BUGS_EMBED" '[$h, $b]')
+else
+  BUGS_EMBEDS=$(jq -n --argjson h "$HEADER_EMBED" '[$h]')
+fi
+write_payload .release/discord-issuelog-payload-bugs.json "$BUGS_EMBEDS"
 
-append_embed "🐛 Known Bugs"       "$BUGS"         $COLOR_BUGS
-append_embed "✨ Feature Requests" "$FEATURES"     $COLOR_FEATURES
-append_embed "🔧 Improvements"     "$IMPROVEMENTS" $COLOR_IMPROVEMENTS
-append_embed "💡 Ideas"            "$IDEAS"         $COLOR_IDEAS
+# 2. Features: one embed (only if non-empty)
+if [ -n "$FEATURES" ]; then
+  FEATURES_DESC=$(truncate_content "$FEATURES" 4096)
+  FEATURES_EMBEDS=$(jq -n \
+    --arg name "✨ Feature Requests" \
+    --argjson desc "$FEATURES_DESC" \
+    --argjson color $COLOR_FEATURES \
+    '[{title: $name, description: $desc, color: $color}]')
+  write_payload .release/discord-issuelog-payload-features.json "$FEATURES_EMBEDS"
+else
+  rm -f .release/discord-issuelog-payload-features.json
+fi
 
-jq -n \
-  --arg user "HorizonSuite Issue Bot" \
-  --arg avatar "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
-  --argjson embeds "$EMBEDS_JSON" \
-  '{username: $user, avatar_url: $avatar, embeds: $embeds}' \
-  > .release/discord-issuelog-payload.json
+# 3. Improvements: one embed (only if non-empty)
+if [ -n "$IMPROVEMENTS" ]; then
+  IMPROVEMENTS_DESC=$(truncate_content "$IMPROVEMENTS" 4096)
+  IMPROVEMENTS_EMBEDS=$(jq -n \
+    --arg name "🔧 Improvements" \
+    --argjson desc "$IMPROVEMENTS_DESC" \
+    --argjson color $COLOR_IMPROVEMENTS \
+    '[{title: $name, description: $desc, color: $color}]')
+  write_payload .release/discord-issuelog-payload-improvements.json "$IMPROVEMENTS_EMBEDS"
+else
+  rm -f .release/discord-issuelog-payload-improvements.json
+fi
 
-echo "Generated .release/discord-issuelog-payload.json"
-cat .release/discord-issuelog-payload.json | jq .
+# 4. Ideas: one embed (only if non-empty)
+if [ -n "$IDEAS" ]; then
+  IDEAS_DESC=$(truncate_content "$IDEAS" 4096)
+  IDEAS_EMBEDS=$(jq -n \
+    --arg name "💡 Ideas" \
+    --argjson desc "$IDEAS_DESC" \
+    --argjson color $COLOR_IDEAS \
+    '[{title: $name, description: $desc, color: $color}]')
+  write_payload .release/discord-issuelog-payload-ideas.json "$IDEAS_EMBEDS"
+else
+  rm -f .release/discord-issuelog-payload-ideas.json
+fi
+
+# Show generated files
+for f in .release/discord-issuelog-payload-*.json; do
+  [ -f "$f" ] && cat "$f" | jq .
+done
