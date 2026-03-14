@@ -31,6 +31,13 @@ local TYPOGRAPHY_KEYS = {
     fontOutline = true,
 }
 
+local YIELD_KEYS = {
+    yieldPoint    = true,
+    yieldRelPoint = true,
+    yieldX       = true,
+    yieldY       = true,
+}
+
 local INSIGHT_KEYS = {
     insightAnchorMode       = true,
     insightFixedPoint       = true,
@@ -302,6 +309,9 @@ function OptionsData_SetDB(key, value)
     end
     if INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
         addon.Insight.ApplyInsightOptions()
+    end
+    if YIELD_KEYS[key] and addon.Yield and addon.Yield.ApplyYieldOptions then
+        addon.Yield.ApplyYieldOptions()
     end
     if key == "classColorGlobal" then
         if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
@@ -2306,6 +2316,9 @@ local OptionCategories = {
         moduleKey = "yield",
         options = {
             { type = "section", name = L["Position"] },
+            { type = "button", name = L["Show anchor to move"] or "Show anchor to move", desc = L["Click to show or hide the anchor. Drag to set position, right-click to confirm."] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
+                if addon.Yield and addon.Yield.ToggleAnchorFrame then addon.Yield.ToggleAnchorFrame() end
+            end },
             { type = "button", name = L["Reset position"], desc = L["Reset loot toast position to default."], onClick = function()
                 if addon.Yield and addon.Yield.ResetPosition then addon.Yield.ResetPosition() end
             end },

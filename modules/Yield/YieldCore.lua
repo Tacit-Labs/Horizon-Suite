@@ -20,12 +20,32 @@ end
 -- FRAME & POOL
 -- ============================================================================
 
+local YIELD_ANCHOR_BACKDROP = {
+    bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+    edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
+    edgeSize = 1,
+    insets   = { left = 0, right = 0, top = 0, bottom = 0 },
+}
+
+--- Apply stored anchor position to frame.
+--- @param frame table Frame to position
+function Y.ApplyStoredAnchor(frame)
+    if not frame then return end
+    local point, relPoint, x, yPos = Y.GetPosition()
+    point = point or Y.DEFAULT_ANCHOR
+    relPoint = relPoint or Y.DEFAULT_ANCHOR
+    x = tonumber(x) or Y.DEFAULT_X
+    yPos = tonumber(yPos) or Y.DEFAULT_Y
+    frame:ClearAllPoints()
+    frame:SetPoint(point, UIParent, relPoint, x, yPos)
+end
+
 local Frame = CreateFrame("Frame", nil, UIParent)
 do
     local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "yield") end
     Frame:SetSize(S(Y.TOTAL_WIDTH), S(Y.LINE_HEIGHT) * Y.POOL_SIZE)
 end
-Frame:SetPoint(Y.DEFAULT_ANCHOR, UIParent, Y.DEFAULT_ANCHOR, Y.DEFAULT_X, Y.DEFAULT_Y)
+Y.ApplyStoredAnchor(Frame)
 Frame:Hide()
 
 Frame:SetMovable(true)
@@ -34,16 +54,9 @@ Frame:RegisterForDrag("LeftButton")
 Frame:SetClampedToScreen(true)
 
 local function SaveFramePosition()
-    local bottom = Frame:GetBottom()
-    local right  = Frame:GetRight()
-    if not bottom or not right then return end
-    local uiBottom = UIParent:GetBottom() or 0
-    local uiRight  = UIParent:GetRight()  or 0
-    local x = right  - uiRight
-    local yPos = bottom - uiBottom
-    Frame:ClearAllPoints()
-    Frame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, yPos)
-    Y.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, yPos)
+    local point, _, relPoint, x, yPos = Frame:GetPoint()
+    if not point or not relPoint then return end
+    Y.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
 end
 
 Frame:SetScript("OnDragStart", function(self)
@@ -84,6 +97,86 @@ editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
 editHint:SetText("Drag to reposition  |  /h yield edit to hide")
 
 editOverlay:Hide()
+
+-- ============================================================================
+-- ANCHOR FRAME
+-- ============================================================================
+
+local anchorFrame = CreateFrame("Frame", "HorizonSuiteYieldAnchor", UIParent, "BackdropTemplate")
+anchorFrame:SetSize(160, 40)
+anchorFrame:SetPoint(Y.DEFAULT_ANCHOR, UIParent, Y.DEFAULT_ANCHOR, Y.DEFAULT_X, Y.DEFAULT_Y)
+anchorFrame:SetBackdrop(YIELD_ANCHOR_BACKDROP)
+anchorFrame:SetBackdropColor(0, 0, 0, 0.85)
+anchorFrame:SetBackdropBorderColor(0.50, 0.70, 1.0, 0.60)
+anchorFrame:SetMovable(true)
+anchorFrame:EnableMouse(true)
+anchorFrame:RegisterForDrag("LeftButton")
+anchorFrame:SetClampedToScreen(true)
+anchorFrame:SetFrameStrata("DIALOG")
+anchorFrame:Hide()
+
+local anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
+anchorLabel:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(12, "yield"), "OUTLINE")
+anchorLabel:SetPoint("CENTER")
+anchorLabel:SetTextColor(0.50, 0.70, 1.0, 1)
+anchorLabel:SetText("LOOT TOAST ANCHOR")
+
+local anchorHint = anchorFrame:CreateFontString(nil, "OVERLAY")
+anchorHint:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "yield"), "OUTLINE")
+anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
+anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
+anchorHint:SetText("Drag to move · Right-click to confirm")
+
+anchorFrame:SetScript("OnDragStart", function(self)
+    if not InCombatLockdown() then self:StartMoving() end
+end)
+anchorFrame:SetScript("OnDragStop", function(self)
+    if InCombatLockdown() then return end
+    self:StopMovingOrSizing()
+    local point, _, relPoint, x, yPos = self:GetPoint()
+    Y.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
+    Y.ApplyStoredAnchor(Frame)
+end)
+anchorFrame:SetScript("OnMouseUp", function(self, button)
+    if button == "RightButton" then
+        self:Hide()
+        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
+        HSPrint("Yield: Position saved.")
+    end
+end)
+
+local function ShowAnchorFrame()
+    if InCombatLockdown() then return end
+    Y.ApplyStoredAnchor(anchorFrame)
+    anchorFrame:Show()
+    local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
+    HSPrint("Yield: Drag the anchor, then right-click to confirm.")
+end
+
+local function HideAnchorFrame()
+    anchorFrame:Hide()
+end
+
+function Y.ToggleAnchorFrame()
+    if anchorFrame:IsShown() then
+        HideAnchorFrame()
+        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
+        HSPrint("Yield: Anchor hidden. Position saved.")
+    else
+        ShowAnchorFrame()
+    end
+end
+
+function Y.HideAnchorFrame()
+    HideAnchorFrame()
+end
+
+function Y.ApplyYieldOptions()
+    if anchorFrame:IsShown() then
+        Y.ApplyStoredAnchor(anchorFrame)
+    end
+    Y.ApplyStoredAnchor(Frame)
+end
 
 local function CreateToastEntry(parent)
     local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "yield") end
@@ -351,11 +444,7 @@ function Y.ToggleEditMode()
 end
 
 function Y.RestoreSavedPosition()
-    local point, relPoint, x, yPos = Y.GetPosition()
-    if point and relPoint and x and yPos then
-        Frame:ClearAllPoints()
-        Frame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, yPos)
-    end
+    Y.ApplyStoredAnchor(Frame)
 end
 
 function Y.ResetPosition()

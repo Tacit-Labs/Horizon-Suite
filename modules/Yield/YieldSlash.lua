@@ -139,6 +139,11 @@ function Y.HandleYieldSlash(msg)
         return true
     end
 
+    if cmd == "move" then
+        Y.ToggleAnchorFrame()
+        return true
+    end
+
     if cmd == "" or cmd == "help" then
         HSPrint("Yield commands:")
         HSPrint("  /h yield          - Show this help")
@@ -149,6 +154,7 @@ function Y.HandleYieldSlash(msg)
         HSPrint("  /h yield all      - Demo reel (all types)")
         HSPrint("  /h yield toggle   - Enable / disable Yield module")
         HSPrint("  /h yield edit     - Toggle edit mode (show bounding box)")
+        HSPrint("  /h yield move     - Show anchor to set position")
         HSPrint("  /h yield reset    - Reset position to default")
         return true
     end
