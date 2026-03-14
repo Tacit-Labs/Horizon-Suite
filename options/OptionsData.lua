@@ -58,6 +58,7 @@ local INSIGHT_KEYS = {
     insightShowGuildRank    = true,
     insightBlankSeparator   = true,
     insightShowIcons       = true,
+    insightClassIconSource = true,
 }
 
 local PRESENCE_KEYS = {
@@ -1488,6 +1489,7 @@ local OptionCategories = {
             { type = "toggle", name = L["Mount info"] or "Mount info", desc = L["Mount name, source, and collection status."], dbKey = "insightShowMount", get = function() return getDB("insightShowMount", true) end, set = function(v) setDB("insightShowMount", v) end, tooltip = L["Shown when hovering a mounted player."] },
             { type = "toggle", name = L["Blank separator"] or "Blank separator", desc = L["Use a blank line instead of dashes between tooltip sections."] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
             { type = "toggle", name = L["Show icons"] or "Show icons", desc = L["Show faction, spec, mount, and Mythic+ icons in tooltips."] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end },
+            { type = "dropdown", name = L["Class icon style"] or "Class icon style", desc = L["Use Default (Blizzard) or RondoMedia class icons on the class/spec line."] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"], dbKey = "insightClassIconSource", options = { { L["Default"] or "Default", "default" }, { "RondoMedia", "rondomedia" } }, get = function() return getDB("insightClassIconSource", "default") end, set = function(v) setDB("insightClassIconSource", v) end, disabled = function() return not getDB("insightShowIcons", true) end },
             { type = "section", name = L["Item Tooltip"] or "Item Tooltip" },
             { type = "toggle", name = L["Transmog status"] or "Transmog status", desc = L["Show whether you have collected the appearance of an item you hover over."] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
         },

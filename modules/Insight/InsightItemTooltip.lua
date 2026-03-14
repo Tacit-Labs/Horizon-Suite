@@ -30,8 +30,7 @@ end
 local function HasTransmogLine(tooltip)
     local hasLine = false
     Insight.ForTooltipLines(tooltip, function(_, left)
-        local text = Insight.SafeGetFontText(left)
-        if text == TRANSMOG_COLLECTED_TEXT or text == TRANSMOG_MISSING_TEXT then
+        if left and Insight.SafeFontTextEquals(left, TRANSMOG_COLLECTED_TEXT, TRANSMOG_MISSING_TEXT) then
             hasLine = true
         end
     end)
