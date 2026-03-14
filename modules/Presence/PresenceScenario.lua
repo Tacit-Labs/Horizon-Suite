@@ -35,6 +35,21 @@ local function FormatObjective(o)
     return (addon.Presence.FormatObjectiveForDisplay and addon.Presence.FormatObjectiveForDisplay(o)) or (o and o.text) or ""
 end
 
+--- Fix stale 0/X in objective text (Blizzard API lag on boss kill).
+--- @param text string
+--- @return string
+local function FixStaleZeroProgress(text)
+    if not text or text == "" then return text or "" end
+    if not text:match("%s%(0/%d+%)$") then return text end
+    local base, total = text:match("^(.+)%s%(0%)/(%d+)%)$")
+    if not base or not total then return text end
+    local n = tonumber(total)
+    if n == 1 then
+        return strtrim(base)
+    end
+    return ("%s (%d/%d)"):format(base, n, n)
+end
+
 local function ShouldSuppress()
     return addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType()
 end
@@ -226,6 +241,7 @@ local function ExecuteScenarioCriteriaUpdate()
         msg = FormatObjective(objectives[1])
     end
     if not msg or msg == "" or msg == "0" then msg = "Objective updated" end
+    msg = FixStaleZeroProgress(msg)
 
     local title, _, category = addon.Presence.GetScenarioDisplayInfo()
     -- Delve-specific: replace generic "Delves"/"Delve" with actual delve name (cached on enter, primary source)
@@ -309,17 +325,8 @@ local function OnScenarioCompleted()
         if not subtitle or subtitle == "" then
             subtitle = (L["Scenario Complete"] and L["Scenario Complete"] ~= "") and L["Scenario Complete"] or "Scenario Complete"
         end
-        -- Fix stale (0/X) in completion subtitle (Delves + scenarios: stale data or timing at completion)
-        if subtitle and subtitle:match("%s%(0/%d+%)$") then
-            local text, total = subtitle:match("^(.+)%s%(0%)/(%d+)%)$")
-            if text and total then
-                local n = tonumber(total)
-                if n == 1 then
-                    subtitle = strtrim(text)
-                else
-                    subtitle = ("%s (%d/%d)"):format(text, n, n)
-                end
-            end
+        if subtitle and subtitle ~= "" then
+            subtitle = FixStaleZeroProgress(subtitle)
         end
         if category == "DELVES" then
             local delveComplete = (L["Delve Complete"] and L["Delve Complete"] ~= "") and L["Delve Complete"] or "Delve Complete"
