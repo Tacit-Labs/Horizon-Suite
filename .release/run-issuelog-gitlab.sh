@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
-# Fetches open GitLab issues and generates Discord embed payload.
+# Fetches open GitLab issues and generates Discord embed payloads.
 # Uses GitLab API. Requires PROJECT_ACCESS_TOKEN, GITLAB_TOKEN, or CI_JOB_TOKEN.
 # DRY_RUN=1: use glab (uses its own auth) for local testing; no token needed.
-# Output: .release/discord-issuelog-payload.json
+# Output: .release/discord-issuelog-payload-{bugs,features,improvements,ideas}.json
+# One message per type; each message has its own 6000-char limit (avoids Discord total-embed limit).
 
 PROJECT_ID="${CI_PROJECT_ID:-}"
 PROJECT_PATH="${CI_PROJECT_PATH:-Crystilac/horizon-suite}"
@@ -121,14 +122,6 @@ COLOR_IDEAS=16776960
 REPO_URL="${CI_PROJECT_URL:-https://gitlab.com/${PROJECT_PATH}}/-/issues"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# Build embeds array — start with header embed
-EMBEDS_JSON=$(jq -n \
-  --arg title "HorizonSuite — Open Issues" \
-  --arg url "$REPO_URL" \
-  --argjson color $COLOR_HEADER \
-  --arg ts "$TIMESTAMP" \
-  '[{title: $title, url: $url, color: $color, timestamp: $ts}]')
-
 # Helper: build content from bucket associative array with module sub-sections
 build_bucket_content() {
   local -n bucket=$1
@@ -144,34 +137,97 @@ build_bucket_content() {
   echo "$out"
 }
 
-# Helper: append an embed if bucket has content
-append_embed() {
-  local name="$1"
-  local content="$2"
-  local color="$3"
-  if [ -n "$content" ]; then
-    local truncated
-    truncated=$(printf '%s' "$content" | jq -Rs 'if length > 4096 then .[0:4096] else . end')
-    EMBEDS_JSON=$(echo "$EMBEDS_JSON" | jq \
-      --arg name "$name" \
-      --argjson desc "$truncated" \
-      --argjson color "$color" \
-      '. + [{title: $name, description: $desc, color: $color}]')
-  fi
+# Helper: truncate content to max chars (Discord embed description limit 4096)
+truncate_content() {
+  local content="$1"
+  local max="${2:-4096}"
+  printf '%s' "$content" | jq -Rs --argjson max "$max" 'if length > $max then .[0:$max] else . end'
 }
 
-append_embed "🐛 Known Bugs"       "$(build_bucket_content BUGS)"         $COLOR_BUGS
-append_embed "✨ Feature Requests" "$(build_bucket_content FEATURES)"     $COLOR_FEATURES
-append_embed "🔧 Improvements"     "$(build_bucket_content IMPROVEMENTS)" $COLOR_IMPROVEMENTS
-append_embed "💡 Ideas"            "$(build_bucket_content IDEAS)"        $COLOR_IDEAS
+# Helper: write a payload file with one or more embeds
+write_payload() {
+  local outfile="$1"
+  local embeds_json="$2"
+  jq -n \
+    --arg user "HorizonSuite Issue Bot" \
+    --arg avatar "https://about.gitlab.com/images/press/logo/png/gitlab-logo-500.png" \
+    --argjson embeds "$embeds_json" \
+    '{username: $user, avatar_url: $avatar, embeds: $embeds}' \
+    > "$outfile"
+  echo "Generated $outfile"
+}
 
 mkdir -p .release
-jq -n \
-  --arg user "HorizonSuite Issue Bot" \
-  --arg avatar "https://about.gitlab.com/images/press/logo/png/gitlab-logo-500.png" \
-  --argjson embeds "$EMBEDS_JSON" \
-  '{username: $user, avatar_url: $avatar, embeds: $embeds}' \
-  > .release/discord-issuelog-payload.json
 
-echo "Generated .release/discord-issuelog-payload.json"
-cat .release/discord-issuelog-payload.json | jq .
+# Remove old single-payload file if present
+rm -f .release/discord-issuelog-payload.json
+
+# Header embed (title, url, timestamp)
+HEADER_EMBED=$(jq -n \
+  --arg title "HorizonSuite — Open Issues" \
+  --arg url "$REPO_URL" \
+  --argjson color $COLOR_HEADER \
+  --arg ts "$TIMESTAMP" \
+  '{title: $title, url: $url, color: $color, timestamp: $ts}')
+
+# 1. Bugs: header + bugs embed (always post; header establishes context)
+BUGS_CONTENT=$(build_bucket_content BUGS)
+BUGS_DESC=$(truncate_content "$BUGS_CONTENT" 4096)
+if [ -n "$BUGS_CONTENT" ]; then
+  BUGS_EMBED=$(jq -n \
+    --arg name "🐛 Known Bugs" \
+    --argjson desc "$BUGS_DESC" \
+    --argjson color $COLOR_BUGS \
+    '{title: $name, description: $desc, color: $color}')
+  BUGS_EMBEDS=$(jq -n --argjson h "$HEADER_EMBED" --argjson b "$BUGS_EMBED" '[$h, $b]')
+else
+  BUGS_EMBEDS=$(jq -n --argjson h "$HEADER_EMBED" '[$h]')
+fi
+write_payload .release/discord-issuelog-payload-bugs.json "$BUGS_EMBEDS"
+
+# 2. Features: one embed (only if non-empty)
+FEATURES_CONTENT=$(build_bucket_content FEATURES)
+if [ -n "$FEATURES_CONTENT" ]; then
+  FEATURES_DESC=$(truncate_content "$FEATURES_CONTENT" 4096)
+  FEATURES_EMBEDS=$(jq -n \
+    --arg name "✨ Feature Requests" \
+    --argjson desc "$FEATURES_DESC" \
+    --argjson color $COLOR_FEATURES \
+    '[{title: $name, description: $desc, color: $color}]')
+  write_payload .release/discord-issuelog-payload-features.json "$FEATURES_EMBEDS"
+else
+  rm -f .release/discord-issuelog-payload-features.json
+fi
+
+# 3. Improvements: one embed (only if non-empty)
+IMPROVEMENTS_CONTENT=$(build_bucket_content IMPROVEMENTS)
+if [ -n "$IMPROVEMENTS_CONTENT" ]; then
+  IMPROVEMENTS_DESC=$(truncate_content "$IMPROVEMENTS_CONTENT" 4096)
+  IMPROVEMENTS_EMBEDS=$(jq -n \
+    --arg name "🔧 Improvements" \
+    --argjson desc "$IMPROVEMENTS_DESC" \
+    --argjson color $COLOR_IMPROVEMENTS \
+    '[{title: $name, description: $desc, color: $color}]')
+  write_payload .release/discord-issuelog-payload-improvements.json "$IMPROVEMENTS_EMBEDS"
+else
+  rm -f .release/discord-issuelog-payload-improvements.json
+fi
+
+# 4. Ideas: one embed (only if non-empty)
+IDEAS_CONTENT=$(build_bucket_content IDEAS)
+if [ -n "$IDEAS_CONTENT" ]; then
+  IDEAS_DESC=$(truncate_content "$IDEAS_CONTENT" 4096)
+  IDEAS_EMBEDS=$(jq -n \
+    --arg name "💡 Ideas" \
+    --argjson desc "$IDEAS_DESC" \
+    --argjson color $COLOR_IDEAS \
+    '[{title: $name, description: $desc, color: $color}]')
+  write_payload .release/discord-issuelog-payload-ideas.json "$IDEAS_EMBEDS"
+else
+  rm -f .release/discord-issuelog-payload-ideas.json
+fi
+
+# Show generated files
+for f in .release/discord-issuelog-payload-*.json; do
+  [ -f "$f" ] && cat "$f" | jq .
+done

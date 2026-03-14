@@ -28,47 +28,62 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Restore cached message ID
+      - name: Restore cached message IDs
         uses: actions/cache/restore@v4
         with:
-          path: .release/discord-issuelog-message-id
+          path: .release
           key: issuelog-msg-id
 
-      - name: Generate issue log payload
+      - name: Generate issue log payloads
         run: bash .release/run-issuelog.sh
 
-      - name: Post or update Discord message
+      - name: Post or update Discord messages
         id: discord
         env:
           WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_ISSUELOG }}
         run: |
           MSG_ID_FILE=.release/discord-issuelog-message-id
-          MSG_ID=""
-          [ -f "$MSG_ID_FILE" ] && MSG_ID=$(cat "$MSG_ID_FILE" | tr -d '[:space:]')
+          NEW_IDS=$(mktemp)
 
-          if [ -n "$MSG_ID" ]; then
-            DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-              "${WEBHOOK_URL}/messages/${MSG_ID}" || echo "000")
-            echo "DELETE returned ${DEL_HTTP}"
+          # Delete all previously cached messages (one ID per line)
+          if [ -f "$MSG_ID_FILE" ]; then
+            while IFS= read -r id || [ -n "$id" ]; do
+              id=$(echo "$id" | tr -d '[:space:]')
+              [ -z "$id" ] && continue
+              DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+                "${WEBHOOK_URL}/messages/${id}" || echo "000")
+              echo "DELETE ${id} returned ${DEL_HTTP}"
+            done < "$MSG_ID_FILE"
           fi
 
-          RESP=$(curl -s -w "\n%{http_code}" -X POST \
-            "${WEBHOOK_URL}?wait=true" \
-            -H "Content-Type: application/json" \
-            -d @.release/discord-issuelog-payload.json)
-          HTTP=$(echo "$RESP" | tail -1)
-          BODY=$(echo "$RESP" | sed '$d')
-          NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
-          if [ -n "$NEW_ID" ]; then
-            echo "$NEW_ID" > "$MSG_ID_FILE"
-            echo "id=$NEW_ID" >> $GITHUB_OUTPUT
-            echo "Posted new Discord message ${NEW_ID}"
-          else
-            echo "Failed to post (HTTP ${HTTP}): $BODY"
-            exit 1
-          fi
+          # Post each payload file in order; collect new message IDs
+          for type in bugs features improvements ideas; do
+            PAYLOAD=".release/discord-issuelog-payload-${type}.json"
+            if [ -f "$PAYLOAD" ]; then
+              RESP=$(curl -s -w "\n%{http_code}" -X POST \
+                "${WEBHOOK_URL}?wait=true" \
+                -H "Content-Type: application/json" \
+                -d @"$PAYLOAD")
+              HTTP=$(echo "$RESP" | tail -1)
+              BODY=$(echo "$RESP" | sed '$d')
+              NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
+              if [ -n "$NEW_ID" ]; then
+                echo "$NEW_ID" >> "$NEW_IDS"
+                echo "Posted ${type} message ${NEW_ID}"
+              else
+                echo "Failed to post ${type} (HTTP ${HTTP}): $BODY"
+                rm -f "$NEW_IDS"
+                exit 1
+              fi
+            fi
+          done
 
-      - name: Save message ID to cache
+          mv "$NEW_IDS" "$MSG_ID_FILE"
+          echo "Cached $(wc -l < "$MSG_ID_FILE") message ID(s)"
+          # Output first ID for cache save condition
+          echo "id=$(head -1 "$MSG_ID_FILE" 2>/dev/null || true)" >> $GITHUB_OUTPUT
+
+      - name: Save message IDs to cache
         if: steps.discord.outputs.id != ''
         run: |
           gh cache delete issuelog-msg-id --repo "$GITHUB_REPOSITORY" || true
@@ -79,6 +94,6 @@ jobs:
         if: steps.discord.outputs.id != ''
         uses: actions/cache/save@v4
         with:
-          path: .release/discord-issuelog-message-id
+          path: .release
           key: issuelog-msg-id
 
