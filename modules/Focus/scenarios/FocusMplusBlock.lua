@@ -542,6 +542,7 @@ local TOOLTIP_ICON_SIZE = 20
 local TOOLTIP_FONT_SIZE = 13
 
 local function ShowMplusTooltip()
+    if not addon.GetDB("focusShowTooltipOnHover", false) then return end
     if not addon.GetDB("mplusShowAffixDescriptions", true) then return end
     local data = GetMplusData()
     if not data or #data.affixes == 0 then return end

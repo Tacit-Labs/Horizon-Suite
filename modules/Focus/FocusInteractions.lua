@@ -880,6 +880,7 @@ for i = 1, addon.POOL_SIZE do
         else
             self.titleText:SetTextColor(bright[1], bright[2], bright[3], 1)
         end
+        if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         if self.creatureID then
             local link = ("unit:Creature-0-0-0-0-%d-0000000000"):format(self.creatureID)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")

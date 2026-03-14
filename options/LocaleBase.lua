@@ -312,6 +312,8 @@ L["Active quest highlight"]                                                     
 L["How the focused quest is highlighted."]                                                                          = "How the focused quest is highlighted."
 L["Show quest item buttons"]                                                                                        = "Show quest item buttons"
 L["Show usable quest item button next to each quest."]                                                              = "Show usable quest item button next to each quest."
+L["Tooltips on hover"]                                                                                             = "Tooltips on hover"
+L["Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."]                           = "Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."
 L["Show objective numbers"]                                                                                         = "Show objective numbers"
 L["Objective prefix"]                                                                                               = "Objective prefix"
 L["Prefix each objective with a number or hyphen."]                                                                 = "Prefix each objective with a number or hyphen."
