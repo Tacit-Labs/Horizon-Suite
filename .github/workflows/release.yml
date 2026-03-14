@@ -33,4 +33,4 @@ jobs:
           embed-title: "New Release: ${{ github.event.repository.name }} — ${{ github.ref_name }}"
           embed-url: "https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
           embed-description: |
-            **Full release.** [Download on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) · CurseForge · Wago
+            **Full release.** [Download on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) · [CurseForge](https://www.curseforge.com/projects/1457844) · [Wago](https://addons.wago.io/addons/jK8gY56y)

@@ -92,7 +92,7 @@ build:
     - bash /tmp/release.sh
     - |
       if [ -n "${DISCORD_WEBHOOK_RELEASE}" ]; then
-        curl -sS -X POST -H "Content-Type: application/json" -d "{\"username\":\"Addon Release Bot\",\"embeds\":[{\"title\":\"New Release: Horizon Suite — ${CI_COMMIT_TAG}\",\"url\":\"${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}\",\"description\":\"**Full release.** [Download on GitLab](${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}) · CurseForge · Wago\"}]}" "${DISCORD_WEBHOOK_RELEASE}" || true
+        curl -sS -X POST -H "Content-Type: application/json" -d "{\"username\":\"Addon Release Bot\",\"embeds\":[{\"title\":\"New Release: Horizon Suite — ${CI_COMMIT_TAG}\",\"url\":\"${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}\",\"description\":\"**Full release.** [Download on GitLab](${CI_PROJECT_URL}/-/releases/${CI_COMMIT_TAG}) · [CurseForge](https://www.curseforge.com/projects/1457844) · [Wago](https://addons.wago.io/addons/jK8gY56y)\"}]}" "${DISCORD_WEBHOOK_RELEASE}" || true
       fi
   artifacts:
     paths:
