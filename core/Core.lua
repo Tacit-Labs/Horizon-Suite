@@ -855,7 +855,7 @@ local function DeserializeValue(str, pos)
     if not str or not pos or pos > #str then return nil, pos end
     local tag = str:sub(pos, pos)
     if tag == "s" then
-        local nl = str:find("\t", pos + 1) or str:find("\n", pos + 1)
+        local nl = str:find("[\t\n]", pos + 1)
         local raw
         if not nl then raw = str:sub(pos + 1); nl = #str + 1
         else raw = str:sub(pos + 1, nl - 1) end

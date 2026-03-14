@@ -175,6 +175,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 activeModuleKey = nil,
                 activeCategoryIndex = nil,
             }
+            local CLEAR = {}  -- Sentinel for explicitly clearing a state field (nil cannot be passed)
 
             local SetSidebarState
             local RequestGroupToggle
@@ -507,7 +508,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
                 searchBox:Show()
                 f.currentModuleKey = nil
-                SetSidebarState({ view = "dashboard" })
+                SetSidebarState({ view = "dashboard", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
             end
 
             -- Back Button (Persistent in Detail View)
@@ -556,11 +557,22 @@ SlashCmdList["HSDASH"] = function(msg)
             StyleBackButton(backBtn, "BACK")
             StyleBackButton(subBackBtn, "BACK")
 
-            -- Back button in detail view now goes to Subcategory Menu
+            -- Back button in detail view: reopen module groups, but keep core tiles behaving like dashboard entries.
             backBtn:SetScript("OnClick", function()
                 if f.currentModuleKey then
-                    CrossfadeTo(subCategoryView)
-                    SetSidebarState({ view = "module", activeModuleKey = f.currentModuleKey, activeCategoryIndex = nil })
+                    local mk = f.currentModuleKey
+                    local cats = {}
+                    for _, cat in ipairs(addon.OptionCategories) do
+                        if (cat.moduleKey or "modules") == mk and cat.options then
+                            tinsert(cats, cat)
+                        end
+                    end
+                    if mk ~= "modules" and #cats > 1 then
+                        local modName = moduleLabels[mk] or mk
+                        f.OpenModule(modName, mk)
+                    else
+                        f.ShowDashboard()
+                    end
                 else
                     f.ShowDashboard()
                 end
@@ -939,7 +951,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 local mk = moduleKey or "modules"
                 f.currentModuleKey = mk
-                SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = nil })
+                SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = CLEAR })
 
                 -- Find all matching sub-categories
                 local cats = {}
@@ -1429,11 +1441,26 @@ SlashCmdList["HSDASH"] = function(msg)
                             end
 
                             local allGroupFrames = {}
+                            local perCategoryGroups = {}
+                            local overrideGroups = {}
+                            local otherColorRows = {}
+                            local perCatHdr
+                            local resetAllBtn
+                            local goHdr
+                            local ovCompleted
+                            local ovCurrentZone
+                            local ovCurrentQuest
+                            local otherHdr
+                            local ovCompletedObj
                             
                             -- Build Collapsible Group logic
                             local function BuildCollapsibleGroup(containerParent, key, startY)
                                 local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
                                 local groupY = startY
+                                local widgetFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+                                local widgetLabelSize = 13
+                                local widgetLabelColor = { 0.84, 0.84, 0.88 }
+                                local widgetSectionColor = { 0.58, 0.64, 0.74 }
                                 
                                 local groupHeader = CreateFrame("Button", nil, cmfContainer)
                                 groupHeader:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, groupY)
@@ -1446,13 +1473,13 @@ SlashCmdList["HSDASH"] = function(msg)
 
                                 local chevron = groupHeader:CreateFontString(nil, "OVERLAY")
                                 chevron:SetFont("Fonts\\ARIALN.TTF", 14, "")
-                                chevron:SetTextColor(Def.TextColorSection and Def.TextColorSection[1] or 0.6, Def.TextColorSection and Def.TextColorSection[2] or 0.6, Def.TextColorSection and Def.TextColorSection[3] or 0.6)
+                                chevron:SetTextColor(widgetSectionColor[1], widgetSectionColor[2], widgetSectionColor[3])
                                 chevron:SetText("+")
                                 chevron:SetPoint("LEFT", groupHeader, "LEFT", 6, 0)
 
                                 local hdrLabel = groupHeader:CreateFontString(nil, "OVERLAY")
-                                hdrLabel:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
-                                hdrLabel:SetTextColor(Def.TextColorLabel and Def.TextColorLabel[1] or 0.9, Def.TextColorLabel and Def.TextColorLabel[2] or 0.9, Def.TextColorLabel and Def.TextColorLabel[3] or 0.9)
+                                hdrLabel:SetFont(widgetFontPath, widgetLabelSize, "OUTLINE")
+                                hdrLabel:SetTextColor(widgetLabelColor[1], widgetLabelColor[2], widgetLabelColor[3])
                                 hdrLabel:SetText(labelBase)
                                 hdrLabel:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
                                 hdrLabel:SetJustifyH("LEFT")
@@ -1487,6 +1514,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                     { subKey = "zone",      suffix = "Zone",      def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
                                     { subKey = "objective", suffix = "Objective", def = unifiedDef },
                                 }
+                                groupHeader.rowCount = #catDefs
 
                                 local function EnsureRows()
                                     if groupHeader.rows then return end
@@ -1529,8 +1557,90 @@ SlashCmdList["HSDASH"] = function(msg)
                                         end
                                         groupHeader.groupHeight = 24
                                     end
-                                    -- Trigger full module rebuild to recalculate spacing
-                                    f.OpenModule(nil, f.currentModuleKey)  
+                                    local curY = 0
+                                    perCatHdr:ClearAllPoints()
+                                    perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, curY)
+                                    curY = curY - 24
+
+                                    resetAllBtn:ClearAllPoints()
+                                    resetAllBtn:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
+                                    curY = curY - 30
+
+                                    local function LayoutGroupList(groupList)
+                                        for _, hdr in ipairs(groupList) do
+                                            hdr:ClearAllPoints()
+                                            hdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
+                                            hdr:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+
+                                            local rowY = curY - 24
+                                            if hdr.rows then
+                                                for _, row in ipairs(hdr.rows) do
+                                                    row:ClearAllPoints()
+                                                    row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 20, rowY)
+                                                    row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+                                                    if hdr.expanded then
+                                                        row:Show()
+                                                    else
+                                                        row:Hide()
+                                                    end
+                                                    rowY = rowY - 28
+                                                end
+                                            end
+
+                                            hdr.groupHeight = hdr.expanded and (24 + ((hdr.rowCount or 0) * 28)) or 24
+                                            curY = curY - hdr.groupHeight - 4
+                                        end
+                                    end
+
+                                    LayoutGroupList(perCategoryGroups)
+
+                                    curY = curY - 10
+                                    goHdr:ClearAllPoints()
+                                    goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, curY)
+                                    curY = curY - 24
+
+                                    ovCompleted:ClearAllPoints()
+                                    ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
+                                    ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                                    curY = curY - 38
+
+                                    ovCurrentZone:ClearAllPoints()
+                                    ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
+                                    ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                                    curY = curY - 38
+
+                                    ovCurrentQuest:ClearAllPoints()
+                                    ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
+                                    ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                                    curY = curY - 38
+
+                                    LayoutGroupList(overrideGroups)
+
+                                    curY = curY - 10
+                                    otherHdr:ClearAllPoints()
+                                    otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, curY)
+                                    curY = curY - 24
+
+                                    ovCompletedObj:ClearAllPoints()
+                                    ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
+                                    ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
+                                    curY = curY - 38
+
+                                    for _, row in ipairs(otherColorRows) do
+                                        row:ClearAllPoints()
+                                        row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
+                                        row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+                                        curY = curY - 28
+                                    end
+
+                                    local oldHeight = cmfContainer:GetHeight() or 0
+                                    local newHeight = math.max(1, -curY)
+                                    cmfContainer:SetHeight(newHeight)
+
+                                    local delta = newHeight - oldHeight
+                                    currentCard.contentHeight = math.max(0, (currentCard.contentHeight or 0) + delta)
+                                    currentCard.fullHeight = (currentCard.contentHeight or 0) + 80
+                                    UpdateDetailLayout()
                                 end
 
                                 groupHeader:SetScript("OnClick", function()
@@ -1546,11 +1656,11 @@ SlashCmdList["HSDASH"] = function(msg)
                             if type(groupOrder) ~= "table" or #groupOrder == 0 then groupOrder = addon.GROUP_ORDER or {} end
                             local GROUPING_OVERRIDE_KEYS = { CURRENT = true, NEARBY = true, COMPLETE = true }
                             
-                            local perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Per category"])
+                            perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Per category"])
                             perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
                             yOff = yOff - 24
                             
-                            local resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["Reset all to defaults"], function()
+                            resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["Reset all to defaults"], function()
                                 _G.OptionsData_SetDB(opt.dbKey, nil)
                                 _G.OptionsData_SetDB("questColors", nil)
                                 _G.OptionsData_SetDB("sectionColors", nil)
@@ -1562,26 +1672,27 @@ SlashCmdList["HSDASH"] = function(msg)
                             for _, key in ipairs(groupOrder) do
                                 if not GROUPING_OVERRIDE_KEYS[key] then
                                     local grp = BuildCollapsibleGroup(cmfContainer, key, yOff)
+                                    tinsert(perCategoryGroups, grp)
                                     yOff = yOff - grp.groupHeight - 4
                                 end
                             end
                             
                             yOff = yOff - 10
-                            local goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Grouping Overrides"])
+                            goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Grouping Overrides"])
                             goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
                             yOff = yOff - 24
 
-                            local ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v) setOverride("useCompletedOverride", v) end)
+                            ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v) setOverride("useCompletedOverride", v) end)
                             ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
                             ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
                             yOff = yOff - 38
 
-                            local ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v) setOverride("useCurrentZoneOverride", v) end)
+                            ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v) setOverride("useCurrentZoneOverride", v) end)
                             ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
                             ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
                             yOff = yOff - 38
 
-                            local ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v) setOverride("useCurrentQuestOverride", v) end)
+                            ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v) setOverride("useCurrentQuestOverride", v) end)
                             ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
                             ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
                             yOff = yOff - 38
@@ -1589,16 +1700,17 @@ SlashCmdList["HSDASH"] = function(msg)
                             for _, key in ipairs(groupOrder) do
                                 if GROUPING_OVERRIDE_KEYS[key] then
                                     local grp = BuildCollapsibleGroup(cmfContainer, key, yOff)
+                                    tinsert(overrideGroups, grp)
                                     yOff = yOff - grp.groupHeight - 4
                                 end
                             end
 
                             yOff = yOff - 10
-                            local otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Other colors"])
+                            otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Other colors"])
                             otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
                             yOff = yOff - 24
 
-                            local ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Use distinct color for completed objectives"], L["When on, completed objectives use the color below."], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v) _G.OptionsData_SetDB("useCompletedObjectiveColor", v); if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
+                            ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Use distinct color for completed objectives"], L["When on, completed objectives use the color below."], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v) _G.OptionsData_SetDB("useCompletedObjectiveColor", v); if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
                             ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
                             ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
                             yOff = yOff - 38
@@ -1617,6 +1729,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                 row:ClearAllPoints()
                                 row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
                                 row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+                                tinsert(otherColorRows, row)
                                 yOff = yOff - 28
                             end
 
@@ -1888,10 +2001,10 @@ SlashCmdList["HSDASH"] = function(msg)
                         for _, catIdx in ipairs(g.categories) do
                             local cat = addon.OptionCategories[catIdx]
                             local modLabel = cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey) or modName
-                            local options = type(cat.options) == "function" and cat.options() or cat.options
-                            -- Sub-buttons: no icon (icons only on main categories)
+                            -- Sub-buttons: OpenModule first (builds subcategory tiles), then OpenCategoryDetail (matches NavigateToOption)
                             local btn = CreateSidebarButton(tabsContainer, cat.name, nil, function()
-                                f.currentModuleKey = cat.moduleKey
+                                f.OpenModule(modLabel, cat.moduleKey)
+                                local options = type(cat.options) == "function" and cat.options() or cat.options
                                 f.OpenCategoryDetail(modLabel, cat.name, options)
                             end, 12)
                             btn:SetPoint("TOPLEFT", containerAnchor, (containerAnchor == tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
@@ -1943,7 +2056,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     for _, sb in ipairs(sidebarButtons) do
                         if sb.sidebarCategoryIndex then
                             local cat = addon.OptionCategories[sb.sidebarCategoryIndex]
-                            if cat and cat.moduleKey == mk then
+                            if cat and (cat.moduleKey or "modules") == mk then
                                 if wantCatIdx and sb.sidebarCategoryIndex == wantCatIdx then
                                     activeBtn = sb
                                     break
@@ -1957,14 +2070,20 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
                 SetActiveSidebarButton(activeBtn)
                 LayoutSidebar()
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, function() LayoutSidebar() end)
+                end
             end
 
             --- Update sidebar state and apply to UI. Single entry point for navigation.
-            --- @param state table { view, activeModuleKey?, activeCategoryIndex? }
+            --- @param state table { view?, activeModuleKey?, activeCategoryIndex? }
+            --- Use CLEAR to explicitly clear a field; omit keys to leave unchanged.
             SetSidebarState = function(state)
                 if state.view then sidebarState.view = state.view end
-                if state.activeModuleKey ~= nil then sidebarState.activeModuleKey = state.activeModuleKey end
-                if state.activeCategoryIndex ~= nil then sidebarState.activeCategoryIndex = state.activeCategoryIndex end
+                if state.activeModuleKey == CLEAR then sidebarState.activeModuleKey = nil
+                elseif state.activeModuleKey ~= nil then sidebarState.activeModuleKey = state.activeModuleKey end
+                if state.activeCategoryIndex == CLEAR then sidebarState.activeCategoryIndex = nil
+                elseif state.activeCategoryIndex ~= nil then sidebarState.activeCategoryIndex = state.activeCategoryIndex end
                 ApplySidebarState()
             end
 
