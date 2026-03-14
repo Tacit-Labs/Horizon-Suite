@@ -56,7 +56,6 @@ Insight.ROLE_COLORS = {
 Insight.MYTHIC_ICON = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:0:0|t "
 Insight.SEPARATOR   = string.rep("-", 22)
 Insight.SEP_COLOR   = { 0.18, 0.18, 0.18 }
-Insight.SEP_INSET   = 10
 
 Insight.CINEMATIC_BACKDROP = {
     bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -127,10 +126,14 @@ end
 --- Add a section separator line to tooltip.
 function Insight.AddSectionSeparator(tooltip, r, g, b)
     if not tooltip then return end
-    local sepR = r or Insight.SEP_COLOR[1]
-    local sepG = g or Insight.SEP_COLOR[2]
-    local sepB = b or Insight.SEP_COLOR[3]
-    tooltip:AddLine(Insight.SEPARATOR, sepR, sepG, sepB)
+    if addon.GetDB("insightBlankSeparator", false) then
+        tooltip:AddLine(" ", 1, 1, 1)
+    else
+        local sepR = r or Insight.SEP_COLOR[1]
+        local sepG = g or Insight.SEP_COLOR[2]
+        local sepB = b or Insight.SEP_COLOR[3]
+        tooltip:AddLine(Insight.SEPARATOR, sepR, sepG, sepB)
+    end
 end
 
 --- Apply stored anchor position to frame.
@@ -177,13 +180,21 @@ function Insight.RestoreNineSlice(tooltip)
     end
 end
 
+function Insight.GetBackdropColor()
+    local r, g, b = Insight.PANEL_BG[1], Insight.PANEL_BG[2], Insight.PANEL_BG[3]
+    local a = tonumber(addon.GetDB("insightBgOpacity", Insight.PANEL_BG[4])) or Insight.PANEL_BG[4]
+    if a > 1 then a = a / 100 end -- legacy: stored as 0-100
+    return r, g, b, a
+end
+
 function Insight.ApplyBackdrop(tooltip)
     if not tooltip then return end
     if not tooltip.SetBackdrop then
         Mixin(tooltip, BackdropTemplateMixin)
     end
     tooltip:SetBackdrop(Insight.CINEMATIC_BACKDROP)
-    tooltip:SetBackdropColor(Insight.PANEL_BG[1], Insight.PANEL_BG[2], Insight.PANEL_BG[3], Insight.PANEL_BG[4])
+    local r, g, b, a = Insight.GetBackdropColor()
+    tooltip:SetBackdropColor(r, g, b, a)
     tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
 end
 
@@ -196,7 +207,8 @@ local function StyleFonts(tooltip)
         if name then
             for i = 1, tooltip:NumLines() do
                 local left = _G[name .. "TextLeft" .. i]
-                if left and Insight.SafeGetFontText(left) == Insight.SEPARATOR then
+                local text = Insight.SafeGetFontText(left)
+                if text == Insight.SEPARATOR or text == " " then
                     metadataStartLine = i
                     break
                 end

@@ -24,6 +24,7 @@ local function ShowStatusBadges()     return addon.GetDB("insightShowStatusBadge
 local function ShowMythicScore()  return addon.GetDB("insightShowMythicScore",  true)  end
 local function ShowGuildRank()    return addon.GetDB("insightShowGuildRank",    true)  end
 local function ShowHonorLevel()  return addon.GetDB("insightShowHonorLevel",   true)  end
+local function ShowIcons()       return addon.GetDB("insightShowIcons",       true)  end
 
 -- ============================================================================
 -- INSPECT CACHE
@@ -185,7 +186,7 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
             local score = summary.currentSeasonScore
             local r, g, b = Insight.MythicScoreColor(score)
             EnsureStatsSep()
-            tooltip:AddLine(Insight.MYTHIC_ICON .. "M+ Score: " .. Insight.FormatNumberWithCommas(score), r, g, b)
+            tooltip:AddLine((ShowIcons() and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(score), r, g, b)
         end
     end
 
@@ -205,7 +206,7 @@ function Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
     local mountOk, mount = pcall(GetPlayerMountInfo, unit)
     if not mountOk or not mount or not mount.name then return end
 
-    local iconStr = mount.icon and ("|T" .. mount.icon .. ":14:14:0:0|t ") or ""
+    local iconStr = ShowIcons() and mount.icon and ("|T" .. mount.icon .. ":14:14:0:0|t ") or ""
     Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
     tooltip:AddLine(iconStr .. mount.name, Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
     if mount.source and mount.source ~= "" then
@@ -271,7 +272,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     local nameLeft = _G["GameTooltipTextLeft1"]
     if nameLeft then
         local faction = UnitFactionGroup(unit)
-        local icon    = Insight.FACTION_ICONS[faction] or ""
+        local icon    = ShowIcons() and (Insight.FACTION_ICONS[faction] or "") or ""
         local displayText
         local fc = Insight.FACTION_COLORS[faction]
         local nameR = (fc and fc[1]) or (classColor and classColor.r) or 1
@@ -308,13 +309,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         nameLeft:SetText(icon .. displayText)
     end
 
-    -- 2. Border tint + left accent bar
+    -- 2. Border tint
     if classColor then
         tooltip:SetBackdropBorderColor(classColor.r, classColor.g, classColor.b, 0.60)
-        if Insight.accentBar then
-            Insight.accentBar:SetColorTexture(classColor.r, classColor.g, classColor.b, 0.85)
-            Insight.accentBar:Show()
-        end
     end
 
     -- 3. Clean up Blizzard lines
@@ -343,7 +340,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 if classColor then
                     lineLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
                 end
-                local iconPrefix = (cached and cached.specIcon)
+                local iconPrefix = ShowIcons() and (cached and cached.specIcon)
                     and ("|T" .. cached.specIcon .. ":14:14:0:0|t ") or ""
                 local roleSuffix = ""
                 if cached and cached.role then
@@ -389,24 +386,30 @@ function Insight.RenderTestTooltipContent(tooltip)
     local testSepR, testSepG, testSepB = 0.77, 0.12, 0.23  -- DK class colour
     Insight.sepR, Insight.sepG, Insight.sepB = testSepR, testSepG, testSepB
 
+    local showIcons = ShowIcons()
     local tc = Insight.TITLE_COLOR
     local titleHex = string.format("%02x%02x%02x", math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
-    local nameHex  = string.format("%02x%02x%02x", math.floor(0.77 * 255), math.floor(0.12 * 255), math.floor(0.23 * 255))
-    tooltip:AddLine((Insight.FACTION_ICONS["Alliance"] or "") .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Testplayer-Stormrage|r", 0.77, 0.12, 0.23)
-    tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", 0.25, 0.78, 0.92)
+    local fc = Insight.FACTION_COLORS["Alliance"]
+    local nameHex = string.format("%02x%02x%02x", math.floor(fc[1] * 255), math.floor(fc[2] * 255), math.floor(fc[3] * 255))
+    tooltip:AddLine((showIcons and (Insight.FACTION_ICONS["Alliance"] or "") or "") .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Testplayer-Stormrage|r", 0.77, 0.12, 0.23)
+    tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", testSepR, testSepG, testSepB)
     tooltip:AddLine("Level 80 Human", 1, 0.82, 0)
+    local rc = Insight.ROLE_COLORS["TANK"]
+    local roleHex = string.format("%02x%02x%02x", math.floor(rc[1] * 255), math.floor(rc[2] * 255), math.floor(rc[3] * 255))
+    local specIconStr = showIcons and "|TInterface\\Icons\\spell_deathknight_bloodpresence:14:14:0:0|t " or ""
     tooltip:AddLine(
-        "|TInterface\\Icons\\spell_deathknight_bloodpresence:14:14:0:0|t Blood Death Knight  |cff4d99ffTank|r",
+        specIconStr .. "Blood Death Knight  |cff" .. roleHex .. "Tank|r",
         0.77, 0.12, 0.23)
     tooltip:AddLine("|cffff4444[Combat]|r  |cffff8c00[PvP]|r  |cff88ddff[Party]|r  |cff55ff55[Friend]|r  |cffff4466[Targeting You]|r", 1, 1, 1)
     Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
     tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(247), 0.85, 0.70, 1.00)
     Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
-    tooltip:AddLine(Insight.MYTHIC_ICON .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
+    tooltip:AddLine((showIcons and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
     tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
     Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+    local mountIconStr = showIcons and "|TInterface\\Icons\\ability_mount_drake_proto:14:14:0:0|t " or ""
     tooltip:AddLine(
-        "|TInterface\\Icons\\ability_mount_drake_proto:14:14:0:0|t Reins of the Thundering Cobalt Cloud Serpent",
+        mountIconStr .. "Reins of the Thundering Cobalt Cloud Serpent",
         Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
     tooltip:AddLine("Drop: Sha of Anger", Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
     tooltip:AddLine("|cffff5555You don't own this mount|r", 1, 1, 1)

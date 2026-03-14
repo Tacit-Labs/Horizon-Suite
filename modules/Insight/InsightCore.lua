@@ -17,9 +17,6 @@ local Insight = addon.Insight
 local FIXED_POINT = Insight.FIXED_POINT
 local FIXED_X     = Insight.FIXED_X
 local FIXED_Y     = Insight.FIXED_Y
-local SEPARATOR   = Insight.SEPARATOR
-local SEP_INSET   = Insight.SEP_INSET
-local SEP_COLOR   = Insight.SEP_COLOR
 
 -- ============================================================================
 -- HELPERS
@@ -51,57 +48,6 @@ end
 
 local tooltipsToStyle = {}
 local hookedShow      = {}
-
--- ============================================================================
--- SEPARATOR TEXTURES (defined before HookTooltipShowMethod so closure can capture)
--- ============================================================================
-
-local SEP_TEXTURE_POOL_SIZE = 4
-
-local function HideSeparatorTextures()
-    local textures = Insight.sepTextures
-    if textures then
-        for i = 1, #textures do
-            textures[i]:Hide()
-        end
-    end
-end
-
-local function UpdateSeparatorTextures()
-    if not GameTooltip or not GameTooltip:IsShown() then return end
-    local textures = Insight.sepTextures
-    if not textures then return end
-
-    for i = 1, #textures do
-        textures[i]:Hide()
-    end
-
-    local sepR = Insight.sepR or SEP_COLOR[1]
-    local sepG = Insight.sepG or SEP_COLOR[2]
-    local sepB = Insight.sepB or SEP_COLOR[3]
-
-    local texIdx = 0
-    Insight.ForTooltipLines(GameTooltip, function(i, left, right)
-        if left and Insight.SafeGetFontText(left) == SEPARATOR then
-            left:SetAlpha(0)
-            texIdx = texIdx + 1
-            local tex = textures[texIdx]
-            if tex then
-                tex:SetColorTexture(sepR, sepG, sepB, 1)
-                tex:ClearAllPoints()
-                tex:SetPoint("LEFT", GameTooltip, "LEFT", SEP_INSET, 0)
-                tex:SetPoint("RIGHT", GameTooltip, "RIGHT", -SEP_INSET, 0)
-                tex:SetPoint("TOP", left, "TOP", 0, 0)
-                tex:SetPoint("BOTTOM", left, "BOTTOM", 0, 0)
-                tex:Show()
-            end
-        end
-    end)
-end
-
-local function ShowAndScheduleSeparators()
-    GameTooltip:Show()
-end
 
 local function HookTooltipOnShow(tooltip)
     tooltip:HookScript("OnShow", function(self)
@@ -186,14 +132,11 @@ local function HookGameTooltipAnimation()
         end
         lastTooltipItemLink = itemLink
         StartFadeIn(self)
-        if Insight.accentBar then Insight.accentBar:Hide() end
     end)
     GameTooltip:HookScript("OnHide", function(self)
         fadeState = "idle"
         animFrame:Hide()
         self:SetAlpha(1)
-        if Insight.accentBar then Insight.accentBar:Hide() end
-        HideSeparatorTextures()
     end)
 end
 
@@ -322,10 +265,6 @@ local function ApplyItemIdentity(tooltip, quality)
     if tooltip.SetBackdropBorderColor then
         tooltip:SetBackdropBorderColor(r, g, b, 0.60)
     end
-    if tooltip == GameTooltip and Insight.accentBar then
-        Insight.accentBar:SetColorTexture(r, g, b, 0.85)
-        Insight.accentBar:Show()
-    end
 end
 
 local function OnItemTooltip(tooltip, data)
@@ -334,7 +273,7 @@ local function OnItemTooltip(tooltip, data)
     local itemID = data and data.id
     if not itemID then return end
 
-    -- Item identity: quality-colored border, accent bar, and separator tint
+    -- Item identity: quality-colored border and separator tint
     local quality = (data and data.quality) or (GetItemInfo and select(3, GetItemInfo(itemID)))
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
@@ -423,6 +362,12 @@ local function HideAnchorFrame()
     anchorFrame:Hide()
 end
 
+local function ApplyLiveBackdropColor(tooltip)
+    if not tooltip or not tooltip:IsShown() or not tooltip.SetBackdropColor then return end
+    local r, g, b, a = Insight.GetBackdropColor()
+    tooltip:SetBackdropColor(r, g, b, a)
+end
+
 -- ============================================================================
 -- INIT / DISABLE / APPLY
 -- ============================================================================
@@ -444,6 +389,10 @@ end
 function Insight.ApplyInsightOptions()
     if anchorFrame:IsShown() then
         Insight.ApplyStoredAnchor(anchorFrame)
+        ApplyLiveBackdropColor(anchorFrame)
+    end
+    for _, tt in ipairs(tooltipsToStyle) do
+        ApplyLiveBackdropColor(tt)
     end
 end
 
@@ -461,26 +410,6 @@ function Insight.Init()
             Insight.StyleTooltipFull(tt)
             HookTooltipOnShow(tt)
             HookTooltipShowMethod(tt)
-        end
-    end
-
-    if not Insight.accentBar then
-        local bar = GameTooltip:CreateTexture(nil, "BORDER")
-        bar:SetWidth(3)
-        bar:SetPoint("TOPLEFT",    GameTooltip, "TOPLEFT",    0, 0)
-        bar:SetPoint("BOTTOMLEFT", GameTooltip, "BOTTOMLEFT", 0, 0)
-        bar:SetColorTexture(0.5, 0.5, 0.5, 0.8)
-        bar:Hide()
-        Insight.accentBar = bar
-    end
-
-    if not Insight.sepTextures or #Insight.sepTextures == 0 then
-        Insight.sepTextures = {}
-        for i = 1, SEP_TEXTURE_POOL_SIZE do
-            local tex = GameTooltip:CreateTexture(nil, "ARTWORK")
-            tex:SetColorTexture(0.18, 0.18, 0.18, 1)
-            tex:Hide()
-            Insight.sepTextures[i] = tex
         end
     end
 
@@ -502,8 +431,6 @@ end
 
 function Insight.Disable()
     HideAnchorFrame()
-    if Insight.accentBar then Insight.accentBar:Hide() end
-    HideSeparatorTextures()
     for _, tt in ipairs(tooltipsToStyle) do
         if tt then
             Insight.RestoreNineSlice(tt)
@@ -577,12 +504,13 @@ local function HandleInsightSlash(msg)
         GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
         GameTooltip:ClearLines()
         Insight.RenderTestTooltipContent(GameTooltip)
-        GameTooltip:SetBackdropBorderColor(0.77, 0.12, 0.23, 0.60)
-        if Insight.accentBar then
-            Insight.accentBar:SetColorTexture(0.77, 0.12, 0.23, 0.85)
-            Insight.accentBar:Show()
-        end
-        ShowAndScheduleSeparators()
+        GameTooltip:Show()
+        -- Defer so we run after OnShow/ApplyBackdrop; otherwise backdrop overwrites border color.
+        C_Timer.After(0, function()
+            if GameTooltip:IsShown() then
+                GameTooltip:SetBackdropBorderColor(0.77, 0.12, 0.23, 0.60)
+            end
+        end)
         Insight.Print("Horizon Insight: Test tooltip shown at cursor.")
 
     else
@@ -608,7 +536,7 @@ local function HandleInsightDebugSlash(msg)
     if cmd == "" or cmd == "help" then
         Insight.PrintBlock({
             "Insight debug commands (/h debug insight [cmd]):",
-            "  status - Print config + cache count",
+            "  status  - Print config + cache count",
         })
         return
     end
