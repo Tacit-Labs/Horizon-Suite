@@ -426,6 +426,13 @@ function Insight.Init()
         end
     end
 
+    -- Defer LSM registration so IsAddOnLoaded is available (runs when API is ready)
+    if C_Timer and C_Timer.After and Insight.RegisterRondoClassIconsWithLSM then
+        C_Timer.After(0, function()
+            pcall(Insight.RegisterRondoClassIconsWithLSM)
+        end)
+    end
+
     Insight.Print("Horizon Insight loaded. Type /insight or /mtt for options.")
 end
 
@@ -537,7 +544,56 @@ local function HandleInsightDebugSlash(msg)
         Insight.PrintBlock({
             "Insight debug commands (/h debug insight [cmd]):",
             "  status  - Print config + cache count",
+            "  lsm     - Test LibSharedMedia classicon registration",
+            "  path    - Show RondoMedia path and detection",
         })
+        return
+    end
+
+    if cmd == "path" then
+        local source = addon.GetDB and addon.GetDB("insightClassIconSource", "default") or "default"
+        local isRondo = false
+        if C_AddOns and C_AddOns.IsAddOnLoaded then
+            local ok, r = pcall(C_AddOns.IsAddOnLoaded, "RondoMedia")
+            isRondo = ok and r
+        elseif type(IsAddOnLoaded) == "function" then
+            local ok, r = pcall(IsAddOnLoaded, "RondoMedia")
+            isRondo = ok and r
+        end
+        local displayName = Insight.RONDO_CLASS_NAMES and Insight.RONDO_CLASS_NAMES["WARRIOR"] or "Warrior"
+        local path = isRondo
+            and ("Interface\\AddOns\\RondoMedia\\media\\Class_icons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
+            or ("Interface\\AddOns\\HorizonSuite\\media\\RondoClassIcons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
+        Insight.PrintBlock({
+            "RondoMedia path debug",
+            "   Class icon source : " .. source,
+            "   RondoMedia loaded : " .. tostring(isRondo),
+            "   Sample path      : " .. path,
+        })
+        return
+    end
+
+    if cmd == "lsm" then
+        local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+        if not LSM then
+            Insight.Print("LibSharedMedia-3.0 not loaded.")
+            return
+        end
+        local list = LSM.List and LSM:List("classicon") or {}
+        local count = #list
+        Insight.Print("LSM classicon: " .. count .. " entries")
+        if count > 0 then
+            for i = 1, math.min(5, count) do
+                local key = list[i]
+                local path = LSM.Fetch and LSM:Fetch("classicon", key, true)
+                Insight.Print("  " .. key .. " -> " .. (path or "nil"))
+            end
+            if count > 5 then
+                Insight.Print("  ... and " .. (count - 5) .. " more")
+            end
+        else
+            Insight.Print("  (none registered; RondoMedia or Horizon Suite will register on init)")
+        end
         return
     end
 
@@ -546,11 +602,13 @@ local function HandleInsightDebugSlash(msg)
         if Insight.inspectCache then
             for _ in pairs(Insight.inspectCache) do cacheCount = cacheCount + 1 end
         end
+        local classIconSource = addon.GetDB and addon.GetDB("insightClassIconSource", "default") or "default"
         Insight.PrintBlock({
             "Horizon Insight Status",
-            "   Enabled : Yes",
-            "   Anchor  : " .. GetAnchorMode(),
-            "   Cache   : " .. cacheCount .. " inspect entries",
+            "   Enabled      : Yes",
+            "   Anchor       : " .. GetAnchorMode(),
+            "   Class icons  : " .. classIconSource,
+            "   Cache        : " .. cacheCount .. " inspect entries",
         })
     else
         Insight.Print("Unknown debug command. Use /h debug insight for help.")

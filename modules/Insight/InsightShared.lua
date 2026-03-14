@@ -57,6 +57,15 @@ Insight.MYTHIC_ICON = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:
 Insight.SEPARATOR   = string.rep("-", 22)
 Insight.SEP_COLOR   = { 0.18, 0.18, 0.18 }
 
+-- classFile (DEATHKNIGHT, etc.) → RondoMedia filename part ("Death Knight", etc.)
+-- RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia
+Insight.RONDO_CLASS_NAMES = {
+    DEATHKNIGHT = "Death Knight", DEMONHUNTER = "Demon Hunter",
+    DRUID = "Druid", EVOKER = "Evoker", HUNTER = "Hunter", MAGE = "Mage",
+    MONK = "Monk", PALADIN = "Paladin", PRIEST = "Priest", ROGUE = "Rogue",
+    SHAMAN = "Shaman", WARLOCK = "Warlock", WARRIOR = "Warrior",
+}
+
 Insight.CINEMATIC_BACKDROP = {
     bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
     edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -121,6 +130,26 @@ function Insight.SafeGetFontText(font)
     if not font then return "" end
     local ok, val = pcall(font.GetText, font)
     return (ok and val) or ""
+end
+
+--- Safely check if font string text equals any of the given values. Returns false on taint/secret string.
+--- Use instead of SafeGetFontText + == to avoid "attempt to compare secret string" errors in secure contexts.
+--- @param font table FontString
+--- @param ... string Values to compare against
+--- @return boolean
+function Insight.SafeFontTextEquals(font, ...)
+    if not font then return false end
+    local expected = {...}
+    if #expected == 0 then return false end
+    local ok, result = pcall(function()
+        local text = font:GetText()
+        if not text then return false end
+        for i = 1, #expected do
+            if text == expected[i] then return true end
+        end
+        return false
+    end)
+    return (ok and result) or false
 end
 
 --- Add a section separator line to tooltip.
@@ -207,8 +236,7 @@ local function StyleFonts(tooltip)
         if name then
             for i = 1, tooltip:NumLines() do
                 local left = _G[name .. "TextLeft" .. i]
-                local text = Insight.SafeGetFontText(left)
-                if text == Insight.SEPARATOR or text == " " then
+                if left and Insight.SafeFontTextEquals(left, Insight.SEPARATOR, " ") then
                     metadataStartLine = i
                     break
                 end
@@ -240,6 +268,88 @@ end
 function Insight.StyleTooltipFull(tooltip)
     Insight.StripNineSlice(tooltip)
     Insight.ApplyBackdrop(tooltip)
+end
+
+-- ============================================================================
+-- CLASS ICON (Default / RondoMedia via LibSharedMedia)
+-- ============================================================================
+
+local LSM_CLASSICON = "classicon"
+
+--- Returns texture string for class icon, or nil if icons disabled.
+--- Respects insightClassIconSource: "default" | "rondomedia".
+--- Prefers direct RondoMedia path when loaded; else LSM; else bundled; else Blizzard.
+--- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
+--- @param size number Display size (default 14)
+--- @return string|nil Texture markup or nil
+function Insight.GetClassIconTexture(classFile, size)
+    if not addon.GetDB("insightShowIcons", true) or not classFile then return nil end
+    size = size or 14
+    local source = addon.GetDB("insightClassIconSource", "default")
+
+    if source == "rondomedia" then
+        local displayName = Insight.RONDO_CLASS_NAMES[classFile]
+        if displayName then
+            -- Prefer direct path when RondoMedia is loaded (most reliable)
+            local isRondoLoaded = false
+            if C_AddOns and C_AddOns.IsAddOnLoaded then
+                local ok, r = pcall(C_AddOns.IsAddOnLoaded, "RondoMedia")
+                isRondoLoaded = ok and r
+            elseif type(IsAddOnLoaded) == "function" then
+                local ok, r = pcall(IsAddOnLoaded, "RondoMedia")
+                isRondoLoaded = ok and r
+            end
+            if isRondoLoaded then
+                local path = ("Interface\\AddOns\\RondoMedia\\media\\Class_icons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
+                return "|T" .. path .. ":" .. size .. ":" .. size .. ":0:0|t "
+            end
+            -- Try LSM (in case another addon registered)
+            local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+            if LSM and LSM.Fetch then
+                local ok, path = pcall(LSM.Fetch, LSM, LSM_CLASSICON, classFile, true)
+                if ok and path and path ~= "" then
+                    return "|T" .. path .. ":" .. size .. ":" .. size .. ":0:0|t "
+                end
+            end
+            -- Bundled fallback
+            local path = ("Interface\\AddOns\\HorizonSuite\\media\\RondoClassIcons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
+            return "|T" .. path .. ":" .. size .. ":" .. size .. ":0:0|t "
+        end
+    end
+
+    -- Default: Blizzard class atlas
+    if GetClassAtlas and CreateAtlasMarkup then
+        local atlas = GetClassAtlas(classFile)
+        if atlas then
+            return CreateAtlasMarkup(atlas, size, size) .. " "
+        end
+    end
+    return nil
+end
+
+--- Register RondoMedia class icons with LibSharedMedia if not already registered.
+--- Prefers RondoMedia addon path; else Horizon Suite bundled path.
+function Insight.RegisterRondoClassIconsWithLSM()
+    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+    if not LSM or not LSM.Register then return end
+
+    local border = "class_colored border"
+    local useRondo = false
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        local ok, result = pcall(C_AddOns.IsAddOnLoaded, "RondoMedia")
+        useRondo = ok and result
+    elseif type(IsAddOnLoaded) == "function" then
+        local ok, result = pcall(IsAddOnLoaded, "RondoMedia")
+        useRondo = ok and result
+    end
+    local base = useRondo
+        and "Interface\\AddOns\\RondoMedia\\media\\Class_icons\\" .. border .. "\\32x32\\"
+        or "Interface\\AddOns\\HorizonSuite\\media\\RondoClassIcons\\" .. border .. "\\32x32\\"
+
+    for classFile, displayName in pairs(Insight.RONDO_CLASS_NAMES) do
+        local path = base .. displayName .. "_32.tga"
+        LSM:Register(LSM_CLASSICON, classFile, path)
+    end
 end
 
 addon.Insight = Insight
