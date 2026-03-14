@@ -13,6 +13,10 @@ local function IsEnabled()
     return addon:IsModuleEnabled("insight")
 end
 
+local function ShowIcons()
+    return addon.GetDB("insightShowIcons", true)
+end
+
 --- Process NPC (non-player) unit tooltip. Reaction-coloured name, border, level/classification/creature type.
 --- @param unit string Unit token (e.g. "mouseover")
 --- @param tooltip table GameTooltip
@@ -28,7 +32,6 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     else
         tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
     end
-    if Insight.accentBar then Insight.accentBar:Hide() end
 
     local nameLeft = _G["GameTooltipTextLeft1"]
     if nameLeft and c then
@@ -36,7 +39,7 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     end
 
     local level = UnitLevel(unit)
-    local levelStr = (level and level >= 0) and tostring(level) or "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t"
+    local levelStr = (level and level >= 0) and tostring(level) or (ShowIcons() and "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t" or "??")
     local classification = UnitClassification(unit)
     local classStr = (classification == "elite" and "Elite") or (classification == "rare" and "Rare") or (classification == "rareelite" and "Rare Elite") or (classification == "worldboss" and "World Boss") or (classification == "trivial" and "Trivial") or nil
     local creatureType = UnitCreatureType(unit)

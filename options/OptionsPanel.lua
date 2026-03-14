@@ -686,7 +686,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                     return nil
                 end
                 setKeyVal = function(v)
-                    local t = type(v) == "table" and v[1] and v[2] and v[3] and v or nil
+                    local t = type(v) == "table" and v[1] ~= nil and v[2] ~= nil and v[3] ~= nil and v or nil
                     if t then
                         if hasAlpha then
                             opt.set(t[1], t[2], t[3], t[4])

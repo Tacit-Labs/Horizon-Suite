@@ -43,6 +43,7 @@ local INSIGHT_KEYS = {
     insightFixedPoint       = true,
     insightFixedX           = true,
     insightFixedY           = true,
+    insightBgOpacity       = true,
     insightShowMount            = true,
     insightShowIlvl             = true,
     insightShowCharacterTitle   = true,
@@ -55,6 +56,8 @@ local INSIGHT_KEYS = {
     insightShowMythicScore  = true,
     insightShowTransmog     = true,
     insightShowGuildRank    = true,
+    insightBlankSeparator   = true,
+    insightShowIcons       = true,
 }
 
 local PRESENCE_KEYS = {
@@ -349,6 +352,9 @@ function OptionsData_SetDB(key, value)
     if (key == "backdropOpacity" or key == "backdropColorR" or key == "backdropColorG" or key == "backdropColorB") and addon.ApplyBackdropOpacity then
         addon.ApplyBackdropOpacity()
     end
+    if key == "insightBgOpacity" and addon.Insight and addon.Insight.ApplyInsightOptions then
+        addon.Insight.ApplyInsightOptions()
+    end
     if addon._colorPickerLive and COLOR_LIVE_KEYS[key] then
         OptionsData_NotifyMainAddon_Live()
         return
@@ -378,6 +384,7 @@ function OptionsData_NotifyMainAddon_Live()
     if addon.ApplyBorderVisibility then addon.ApplyBorderVisibility() end
     if addon.ApplyFocusColors then addon.ApplyFocusColors() end
     if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
+    if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
 end
 
 function OptionsData_NotifyMainAddon()
@@ -1468,6 +1475,8 @@ local OptionCategories = {
                 setDB("insightFixedY", 120)
                 if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
             end },
+            { type = "section", name = L["Appearance"] or "Appearance" },
+            { type = "slider", name = L["Tooltip background opacity"] or "Tooltip background opacity", desc = L["Tooltip background opacity (0–100%)."] or "Tooltip background opacity (0–100%).", dbKey = "insightBgOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("insightBgOpacity", 0.75)) or 0.75; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("insightBgOpacity", math.max(0, math.min(100, v)) / 100) end },
             { type = "section", name = L["Player Tooltip"] or "Player Tooltip" },
             { type = "toggle", name = L["Guild rank"] or "Guild rank", desc = L["Append the player's guild rank next to their guild name."] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
             { type = "toggle", name = L["Character title"] or "Character title", desc = L["Show the player's selected title (achievement or PvP) in the name line."] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
@@ -1477,6 +1486,8 @@ local OptionCategories = {
             { type = "toggle", name = L["Mythic+ score"] or "Mythic+ score", desc = L["Show the player's current season Mythic+ score, colour-coded by tier."] or "Show the player's current season Mythic+ score, colour-coded by tier.", dbKey = "insightShowMythicScore", get = function() return getDB("insightShowMythicScore", true) end, set = function(v) setDB("insightShowMythicScore", v) end },
             { type = "toggle", name = L["Item level"] or "Item level", desc = L["Show the player's equipped item level after inspecting them."] or "Show the player's equipped item level after inspecting them.", dbKey = "insightShowIlvl", get = function() return getDB("insightShowIlvl", true) end, set = function(v) setDB("insightShowIlvl", v) end },
             { type = "toggle", name = L["Mount info"] or "Mount info", desc = L["Mount name, source, and collection status."], dbKey = "insightShowMount", get = function() return getDB("insightShowMount", true) end, set = function(v) setDB("insightShowMount", v) end, tooltip = L["Shown when hovering a mounted player."] },
+            { type = "toggle", name = L["Blank separator"] or "Blank separator", desc = L["Use a blank line instead of dashes between tooltip sections."] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
+            { type = "toggle", name = L["Show icons"] or "Show icons", desc = L["Show faction, spec, mount, and Mythic+ icons in tooltips."] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end },
             { type = "section", name = L["Item Tooltip"] or "Item Tooltip" },
             { type = "toggle", name = L["Transmog status"] or "Transmog status", desc = L["Show whether you have collected the appearance of an item you hover over."] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
         },
