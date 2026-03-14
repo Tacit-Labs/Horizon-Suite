@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon Suite — Settings Review</title>
+    <style>
+        :root { --bg: #0d0d0f; --surface: #141418; --border: #252530; --text: #e0e0e8; --muted: #8888a0; --accent: #2aa8c9; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; line-height: 1.5; }
+        h1 { font-size: 1.5rem; margin: 0 0 8px; }
+        .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+        #search { width: 100%; max-width: 400px; padding: 10px 14px; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-size: 14px; }
+        #search:focus { outline: none; border-color: var(--accent); }
+        .module { margin-bottom: 24px; }
+        .module-header { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin-bottom: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .module-header.dev-only::after { content: " (dev-only)"; font-weight: 400; color: var(--muted); font-size: 0.85rem; }
+        .category { margin: 12px 0; }
+        details { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; }
+        summary { padding: 12px 16px; cursor: pointer; font-weight: 500; }
+        summary:hover { background: rgba(255,255,255,0.03); }
+        .section-name { color: var(--muted); font-size: 0.85rem; margin: 4px 0 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        .type-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: rgba(42,168,201,0.2); color: var(--accent); }
+        .no-results { padding: 24px; color: var(--muted); text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Horizon Suite — Settings Review</h1>
+    <p class="subtitle">All settings from the Dashboard options panel. Source: OptionsData.lua</p>
+    <input type="text" id="search" placeholder="Search by name, dbKey, or description..." autocomplete="off">
+
+    <div class="module" data-module="Core">
+        <div class="module-header">Core — Profiles</div>
+        <details class="category" data-category="Profiles">
+            <summary>Profiles</summary>
+            <div class="section-name">Section: Profiles</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="global profile _profiles_useglobal all characters use the same profile."><td>Global profile</td><td><span class="type-badge">toggle</span></td><td><code>_profiles_useGlobal</code></td><td>All characters use the same profile.</td></tr>
+                <tr data-search="current profile _profiles_current select the profile currently in use."><td>Current profile</td><td><span class="type-badge">dropdown</span></td><td><code>_profiles_current</code></td><td>Select the profile currently in use.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Profiles">
+            <summary>Specialization</summary>
+            <div class="section-name">Section: Specialization</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="per-spec profiles _profiles_useperspec pick different profiles per spec."><td>Per-spec profiles</td><td><span class="type-badge">toggle</span></td><td><code>_profiles_usePerSpec</code></td><td>Pick different profiles per spec.</td></tr>
+                <tr data-search="specnamefn _profiles_spec_ "><td>specNameFn</td><td><span class="type-badge">dropdown</span></td><td><code>_profiles_spec_</code></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Profiles">
+            <summary>Create</summary>
+            <div class="section-name">Section: Create</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="new from default _profiles_create_new creates a new profile with all default settings."><td>New from Default</td><td><span class="type-badge">button</span></td><td><code>_profiles_create_new</code></td><td>Creates a new profile with all default settings.</td></tr>
+                <tr data-search="copy from profile _profiles_copyfrom source profile for copying."><td>Copy from profile</td><td><span class="type-badge">dropdown</span></td><td><code>_profiles_copyFrom</code></td><td>Source profile for copying.</td></tr>
+                <tr data-search="copy from selected _profiles_copy_selected creates a new profile copied from the selected source profile."><td>Copy from selected</td><td><span class="type-badge">button</span></td><td><code>_profiles_copy_selected</code></td><td>Creates a new profile copied from the selected source profile.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Profiles">
+            <summary>Delete</summary>
+            <div class="section-name">Section: Delete</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="delete profile _profiles_delete select a profile to delete (current and default not shown)."><td>Delete profile</td><td><span class="type-badge">dropdown</span></td><td><code>_profiles_delete</code></td><td>Select a profile to delete (current and Default not shown).</td></tr>
+                <tr data-search="delete selected profile _profiles_delete_btn deletes the selected profile."><td>Delete selected profile</td><td><span class="type-badge">button</span></td><td><code>_profiles_delete_btn</code></td><td>Deletes the selected profile.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Profiles">
+            <summary>Sharing</summary>
+            <div class="section-name">Section: Sharing</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="export profile _profiles_export_select select a profile to export."><td>Export profile</td><td><span class="type-badge">dropdown</span></td><td><code>_profiles_export_select</code></td><td>Select a profile to export.</td></tr>
+                <tr data-search="export string _profiles_export_box "><td>Export string</td><td><span class="type-badge">editbox</span></td><td><code>_profiles_export_box</code></td><td>—</td></tr>
+                <tr data-search="import string _profiles_import_box "><td>Import string</td><td><span class="type-badge">editbox</span></td><td><code>_profiles_import_box</code></td><td>—</td></tr>
+                <tr data-search="import profile _profiles_import_btn "><td>Import profile</td><td><span class="type-badge">button</span></td><td><code>_profiles_import_btn</code></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Core">
+        <div class="module-header">Core — Modules</div>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Layout</div>
+        <details class="category" data-category="Layout">
+            <summary>Position & layout</summary>
+            <div class="section-name">Section: Position & layout</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="lock position lockposition prevent dragging the tracker."><td>Lock position</td><td><span class="type-badge">toggle</span></td><td><code>lockPosition</code></td><td>Prevent dragging the tracker.</td></tr>
+                <tr data-search="grow upward growup anchor at bottom so the list grows upward."><td>Grow upward</td><td><span class="type-badge">toggle</span></td><td><code>growUp</code></td><td>Anchor at bottom so the list grows upward.</td></tr>
+                <tr data-search="grow-up header growupheadermode keep header at bottom, or top until collapsed."><td>Grow-up header</td><td><span class="type-badge">dropdown</span></td><td><code>growUpHeaderMode</code></td><td>Keep header at bottom, or top until collapsed.</td></tr>
+                <tr data-search="start collapsed collapsed start with only the header shown until you expand."><td>Start collapsed</td><td><span class="type-badge">toggle</span></td><td><code>collapsed</code></td><td>Start with only the header shown until you expand.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Layout">
+            <summary>Dimensions</summary>
+            <div class="section-name">Section: Dimensions</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="panel width panelwidth tracker width in pixels."><td>Panel width</td><td><span class="type-badge">slider</span></td><td><code>panelWidth</code></td><td>Tracker width in pixels.</td></tr>
+                <tr data-search="max content height maxcontentheight max height of the scrollable list (pixels)."><td>Max content height</td><td><span class="type-badge">slider</span></td><td><code>maxContentHeight</code></td><td>Max height of the scrollable list (pixels).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Layout">
+            <summary>Spacing</summary>
+            <div class="section-name">Section: Spacing</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="compact mode compactmode preset: sets entry and objective spacing to 4 and 1 px."><td>Compact mode</td><td><span class="type-badge">toggle</span></td><td><code>compactMode</code></td><td>Preset: sets entry and objective spacing to 4 and 1 px.</td></tr>
+                <tr data-search="entry spacing titlespacing vertical gap between quest entries."><td>Entry spacing</td><td><span class="type-badge">slider</span></td><td><code>titleSpacing</code></td><td>Vertical gap between quest entries.</td></tr>
+                <tr data-search="before section header sectionspacing gap between last entry of a group and the next category label."><td>Before section header</td><td><span class="type-badge">slider</span></td><td><code>sectionSpacing</code></td><td>Gap between last entry of a group and the next category label.</td></tr>
+                <tr data-search="after section header sectiontoentrygap gap between category label and first quest entry below it."><td>After section header</td><td><span class="type-badge">slider</span></td><td><code>sectionToEntryGap</code></td><td>Gap between category label and first quest entry below it.</td></tr>
+                <tr data-search="objective spacing objspacing vertical gap between objective lines within a quest."><td>Objective spacing</td><td><span class="type-badge">slider</span></td><td><code>objSpacing</code></td><td>Vertical gap between objective lines within a quest.</td></tr>
+                <tr data-search="below header headertocontentgap vertical gap between the objectives bar and the quest list."><td>Below header</td><td><span class="type-badge">slider</span></td><td><code>headerToContentGap</code></td><td>Vertical gap between the objectives bar and the quest list.</td></tr>
+                <tr data-search="reset spacing — "><td>Reset spacing</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Appearance</div>
+        <details class="category" data-category="Appearance">
+            <summary>Panel backdrop</summary>
+            <div class="section-name">Section: Panel backdrop</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="backdrop opacity backdropopacity panel background opacity (0–100%)."><td>Backdrop opacity</td><td><span class="type-badge">slider</span></td><td><code>backdropOpacity</code></td><td>Panel background opacity (0–100%).</td></tr>
+                <tr data-search="backdrop color backdropcolor panel background color."><td>Backdrop color</td><td><span class="type-badge">color</span></td><td><code>backdropColor</code></td><td>Panel background color.</td></tr>
+                <tr data-search="show border showborder show border around the tracker."><td>Show border</td><td><span class="type-badge">toggle</span></td><td><code>showBorder</code></td><td>Show border around the tracker.</td></tr>
+                <tr data-search="scroll indicator showscrollindicator hint when the list is scrollable."><td>Scroll indicator</td><td><span class="type-badge">toggle</span></td><td><code>showScrollIndicator</code></td><td>Hint when the list is scrollable.</td></tr>
+                <tr data-search="scroll indicator style scrollindicatorstyle choose between a fade-out gradient or a small arrow to indicate scrollable content."><td>Scroll indicator style</td><td><span class="type-badge">dropdown</span></td><td><code>scrollIndicatorStyle</code></td><td>Choose between a fade-out gradient or a small arrow to indicate scrollable content.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Appearance">
+            <summary>Visibility & fading</summary>
+            <div class="section-name">Section: Visibility & fading</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="combat visibility combatvisibility how the tracker behaves in combat: show, fade to reduced opacity, or hide."><td>Combat visibility</td><td><span class="type-badge">dropdown</span></td><td><code>combatVisibility</code></td><td>How the tracker behaves in combat: show, fade to reduced opacity, or hide.</td></tr>
+                <tr data-search="combat fade opacity combatfadeopacity how visible the tracker is when faded in combat (0 = invisible). only applies when combat visibility is fade."><td>Combat fade opacity</td><td><span class="type-badge">slider</span></td><td><code>combatFadeOpacity</code></td><td>How visible the tracker is when faded in combat (0 = invisible). Only applies when Combat visibility is Fade.</td></tr>
+                <tr data-search="mouseover only showonmouseoveronly fade out when not hovering."><td>Mouseover only</td><td><span class="type-badge">toggle</span></td><td><code>showOnMouseoverOnly</code></td><td>Fade out when not hovering.</td></tr>
+                <tr data-search="faded opacity fadeonmouseoveropacity how visible the tracker is when faded (0 = invisible)."><td>Faded opacity</td><td><span class="type-badge">slider</span></td><td><code>fadeOnMouseoverOpacity</code></td><td>How visible the tracker is when faded (0 = invisible).</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Display</div>
+        <details class="category" data-category="Display">
+            <summary>Header</summary>
+            <div class="section-name">Section: Header</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="quest count showquestcount show quest count in header."><td>Quest count</td><td><span class="type-badge">toggle</span></td><td><code>showQuestCount</code></td><td>Show quest count in header.</td></tr>
+                <tr data-search="header count format headercountmode tracked vs in-log count."><td>Header count format</td><td><span class="type-badge">dropdown</span></td><td><code>headerCountMode</code></td><td>Tracked vs in-log count.</td></tr>
+                <tr data-search="header divider showheaderdivider show the line below the header."><td>Header divider</td><td><span class="type-badge">toggle</span></td><td><code>showHeaderDivider</code></td><td>Show the line below the header.</td></tr>
+                <tr data-search="header divider color headerdividercolor color of the line below the header."><td>Header divider color</td><td><span class="type-badge">color</span></td><td><code>headerDividerColor</code></td><td>Color of the line below the header.</td></tr>
+                <tr data-search="header color headercolor color of the objectives header text."><td>Header color</td><td><span class="type-badge">color</span></td><td><code>headerColor</code></td><td>Color of the OBJECTIVES header text.</td></tr>
+                <tr data-search="header height headerheight height of the header bar in pixels (18–48)."><td>Header height</td><td><span class="type-badge">slider</span></td><td><code>headerHeight</code></td><td>Height of the header bar in pixels (18–48).</td></tr>
+                <tr data-search="minimal mode hideobjectivesheader hide header for a pure text list."><td>Minimal mode</td><td><span class="type-badge">toggle</span></td><td><code>hideObjectivesHeader</code></td><td>Hide header for a pure text list.</td></tr>
+                <tr data-search="options button hideoptionsbutton show the options button in the tracker header."><td>Options button</td><td><span class="type-badge">toggle</span></td><td><code>hideOptionsButton</code></td><td>Show the Options button in the tracker header.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Display">
+            <summary>List elements</summary>
+            <div class="section-name">Section: List elements</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="section headers showsectionheaders show category labels above each group."><td>Section headers</td><td><span class="type-badge">toggle</span></td><td><code>showSectionHeaders</code></td><td>Show category labels above each group.</td></tr>
+                <tr data-search="show section dividers showsectiondividers show a visual divider line between focus sections to make categories easier to distinguish."><td>Show section dividers</td><td><span class="type-badge">toggle</span></td><td><code>showSectionDividers</code></td><td>Show a visual divider line between Focus sections to make categories easier to distinguish.</td></tr>
+                <tr data-search="section divider color sectiondividercolor color of the divider lines between sections."><td>Section divider color</td><td><span class="type-badge">color</span></td><td><code>sectionDividerColor</code></td><td>Color of the divider lines between sections.</td></tr>
+                <tr data-search="sections when collapsed showsectionheaderswhencollapsed keep section headers visible when collapsed."><td>Sections when collapsed</td><td><span class="type-badge">toggle</span></td><td><code>showSectionHeadersWhenCollapsed</code></td><td>Keep section headers visible when collapsed.</td></tr>
+                <tr data-search="zone labels showzonelabels show zone name under each quest title."><td>Zone labels</td><td><span class="type-badge">toggle</span></td><td><code>showZoneLabels</code></td><td>Show zone name under each quest title.</td></tr>
+                <tr data-search="active quest highlight activequesthighlight how the focused quest is highlighted."><td>Active quest highlight</td><td><span class="type-badge">dropdown</span></td><td><code>activeQuestHighlight</code></td><td>How the focused quest is highlighted.</td></tr>
+                <tr data-search="quest item buttons showquestitembuttons show usable quest item button next to each quest."><td>Quest item buttons</td><td><span class="type-badge">toggle</span></td><td><code>showQuestItemButtons</code></td><td>Show usable quest item button next to each quest.</td></tr>
+                <tr data-search="tooltips on hover focusshowtooltiponhover show tooltips when hovering over tracker entries, item buttons, and scenario blocks."><td>Tooltips on hover</td><td><span class="type-badge">toggle</span></td><td><code>focusShowTooltipOnHover</code></td><td>Show tooltips when hovering over tracker entries, item buttons, and scenario blocks.</td></tr>
+                <tr data-search="objective prefix objectiveprefixstyle prefix each objective with a number or hyphen."><td>Objective prefix</td><td><span class="type-badge">dropdown</span></td><td><code>objectivePrefixStyle</code></td><td>Prefix each objective with a number or hyphen.</td></tr>
+                <tr data-search="entry numbers showcategoryentrynumbers prefix quest titles with 1., 2., 3. within each category."><td>Entry numbers</td><td><span class="type-badge">toggle</span></td><td><code>showCategoryEntryNumbers</code></td><td>Prefix quest titles with 1., 2., 3. within each category.</td></tr>
+                <tr data-search="completed count showcompletedcount show x/y progress in quest title."><td>Completed count</td><td><span class="type-badge">toggle</span></td><td><code>showCompletedCount</code></td><td>Show X/Y progress in quest title.</td></tr>
+                <tr data-search="scenario progress bar showprogressbarscenarios bar under numeric objectives (e.g. 3/250)."><td>Scenario progress bar</td><td><span class="type-badge">toggle</span></td><td><code>showProgressBarScenarios</code></td><td>Bar under numeric objectives (e.g. 3/250).</td></tr>
+                <tr data-search="quest progress bar showprogressbarquests bar under numeric objectives (e.g. 3/250)."><td>Quest progress bar</td><td><span class="type-badge">toggle</span></td><td><code>showProgressBarQuests</code></td><td>Bar under numeric objectives (e.g. 3/250).</td></tr>
+                <tr data-search="category color for bar progressbarusecategorycolor match bar to quest category color."><td>Category color for bar</td><td><span class="type-badge">toggle</span></td><td><code>progressBarUseCategoryColor</code></td><td>Match bar to quest category color.</td></tr>
+                <tr data-search="progress bar types progressbartypefilter show progress bar for x/y objectives, percent-only objectives, or both."><td>Progress bar types</td><td><span class="type-badge">dropdown</span></td><td><code>progressBarTypeFilter</code></td><td>Show progress bar for X/Y objectives, percent-only objectives, or both.</td></tr>
+                <tr data-search="progress bar texture progressbartexture texture for the progress bar fill."><td>Progress bar texture</td><td><span class="type-badge">dropdown</span></td><td><code>progressBarTexture</code></td><td>Texture for the progress bar fill.</td></tr>
+                <tr data-search="show timer showtimerbars show countdown timer on timed quests, events, and scenarios. when off, timers are hidden for all entry types."><td>Show timer</td><td><span class="type-badge">toggle</span></td><td><code>showTimerBars</code></td><td>Show countdown timer on timed quests, events, and scenarios. When off, timers are hidden for all entry types.</td></tr>
+                <tr data-search="timer display timerdisplaymode where to show the countdown."><td>Timer display</td><td><span class="type-badge">dropdown</span></td><td><code>timerDisplayMode</code></td><td>Where to show the countdown.</td></tr>
+                <tr data-search="color timer by remaining time timercolorbyremaining color by remaining time."><td>Color timer by remaining time</td><td><span class="type-badge">toggle</span></td><td><code>timerColorByRemaining</code></td><td>Color by remaining time.</td></tr>
+                <tr data-search="completed objectives questcompletedobjectivedisplay display completed objectives."><td>Completed objectives</td><td><span class="type-badge">dropdown</span></td><td><code>questCompletedObjectiveDisplay</code></td><td>Display completed objectives.</td></tr>
+                <tr data-search="checkmark for completed usetickforcompletedobjectives use checkmark for completed objectives."><td>Checkmark for completed</td><td><span class="type-badge">toggle</span></td><td><code>useTickForCompletedObjectives</code></td><td>Use checkmark for completed objectives.</td></tr>
+                <tr data-search="quest type icons showquesttypeicons show quest type icon in the focus tracker (quest accept/complete, world quest, quest update)."><td>Quest type icons</td><td><span class="type-badge">toggle</span></td><td><code>showQuestTypeIcons</code></td><td>Show quest type icon in the Focus tracker (quest accept/complete, world quest, quest update).</td></tr>
+                <tr data-search="auto-track icon showinzonesuffix icon next to auto-tracked in-zone entries."><td>Auto-track icon</td><td><span class="type-badge">toggle</span></td><td><code>showInZoneSuffix</code></td><td>Icon next to auto-tracked in-zone entries.</td></tr>
+                <tr data-search="auto-track icon autotrackicon choose which icon to display next to auto-tracked in-zone entries."><td>Auto-track icon</td><td><span class="type-badge">dropdown</span></td><td><code>autoTrackIcon</code></td><td>Choose which icon to display next to auto-tracked in-zone entries.</td></tr>
+                <tr data-search="quest level showquestlevel show quest level next to title."><td>Quest level</td><td><span class="type-badge">toggle</span></td><td><code>showQuestLevel</code></td><td>Show quest level next to title.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Display">
+            <summary>Dimming</summary>
+            <div class="section-name">Section: Dimming</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="dim unfocused entries dimnonsupertracked dim unfocused tracker entries."><td>Dim unfocused entries</td><td><span class="type-badge">toggle</span></td><td><code>dimNonSuperTracked</code></td><td>Dim unfocused tracker entries.</td></tr>
+                <tr data-search="dim strength dimstrength dimming strength (0-100%)."><td>Dim strength</td><td><span class="type-badge">slider</span></td><td><code>dimStrength</code></td><td>Dimming strength (0-100%).</td></tr>
+                <tr data-search="dim alpha dimalpha opacity of unfocused entries."><td>Dim alpha</td><td><span class="type-badge">slider</span></td><td><code>dimAlpha</code></td><td>Opacity of unfocused entries.</td></tr>
+                <tr data-search="desaturate non-focused quests dimdesaturate desaturate non-focused entries."><td>Desaturate non-focused quests</td><td><span class="type-badge">toggle</span></td><td><code>dimDesaturate</code></td><td>Desaturate non-focused entries.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Display">
+            <summary>Highlighting</summary>
+            <div class="section-name">Section: Highlighting</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="highlight alpha highlightalpha opacity of focused quest highlight (0–100%)."><td>Highlight alpha</td><td><span class="type-badge">slider</span></td><td><code>highlightAlpha</code></td><td>Opacity of focused quest highlight (0–100%).</td></tr>
+                <tr data-search="bar width highlightbarwidth width of bar-style highlights (2–6 px)."><td>Bar width</td><td><span class="type-badge">slider</span></td><td><code>highlightBarWidth</code></td><td>Width of bar-style highlights (2–6 px).</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Sorting & Filtering</div>
+        <details class="category" data-category="SortingFiltering">
+            <summary>Filtering</summary>
+            <div class="section-name">Section: Filtering</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="current zone only filterbyzone hide quests outside your current zone."><td>Current zone only</td><td><span class="type-badge">toggle</span></td><td><code>filterByZone</code></td><td>Hide quests outside your current zone.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="SortingFiltering">
+            <summary>Grouping</summary>
+            <div class="section-name">Section: Grouping</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="current quest category showcurrentquestcategory show recent progress at the top."><td>Current Quest category</td><td><span class="type-badge">toggle</span></td><td><code>showCurrentQuestCategory</code></td><td>Show recent progress at the top.</td></tr>
+                <tr data-search="current quest window currentquestwindowsec seconds of recent progress to show."><td>Current Quest window</td><td><span class="type-badge">slider</span></td><td><code>currentQuestWindowSec</code></td><td>Seconds of recent progress to show.</td></tr>
+                <tr data-search="current zone group shownearbygroup dedicated section for in-zone quests."><td>Current Zone group</td><td><span class="type-badge">toggle</span></td><td><code>showNearbyGroup</code></td><td>Dedicated section for in-zone quests.</td></tr>
+                <tr data-search="ready to turn in at bottom nearbycompletetobottom move completed quests to the bottom of the current zone section."><td>Ready to turn in at bottom</td><td><span class="type-badge">toggle</span></td><td><code>nearbyCompleteToBottom</code></td><td>Move completed quests to the bottom of the Current Zone section.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="SortingFiltering">
+            <summary>Sorting</summary>
+            <div class="section-name">Section: Sorting</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="category order — drag to reorder. delves and scenarios stay first."><td>Category order</td><td><span class="type-badge">reorderList</span></td><td><code>—</code></td><td>Drag to reorder. Delves and Scenarios stay first.</td></tr>
+                <tr data-search="sort mode entrysortmode order of entries within each category."><td>Sort mode</td><td><span class="type-badge">dropdown</span></td><td><code>entrySortMode</code></td><td>Order of entries within each category.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Typography</div>
+        <details class="category" data-category="Typography">
+            <summary>Font</summary>
+            <div class="section-name">Section: Font</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="font fontpath font family."><td>Font</td><td><span class="type-badge">dropdown</span></td><td><code>fontPath</code></td><td>Font family.</td></tr>
+                <tr data-search="title font titlefontpath font family for quest titles."><td>Title font</td><td><span class="type-badge">dropdown</span></td><td><code>titleFontPath</code></td><td>Font family for quest titles.</td></tr>
+                <tr data-search="zone font zonefontpath font family for zone labels."><td>Zone font</td><td><span class="type-badge">dropdown</span></td><td><code>zoneFontPath</code></td><td>Font family for zone labels.</td></tr>
+                <tr data-search="objective font objectivefontpath font family for objective text."><td>Objective font</td><td><span class="type-badge">dropdown</span></td><td><code>objectiveFontPath</code></td><td>Font family for objective text.</td></tr>
+                <tr data-search="section font sectionfontpath font family for section headers."><td>Section font</td><td><span class="type-badge">dropdown</span></td><td><code>sectionFontPath</code></td><td>Font family for section headers.</td></tr>
+                <tr data-search="progress bar font progressbarfontpath font family for the progress bar label."><td>Progress bar font</td><td><span class="type-badge">dropdown</span></td><td><code>progressBarFontPath</code></td><td>Font family for the progress bar label.</td></tr>
+                <tr data-search="header size headerfontsize header font size."><td>Header size</td><td><span class="type-badge">slider</span></td><td><code>headerFontSize</code></td><td>Header font size.</td></tr>
+                <tr data-search="title size titlefontsize quest title font size."><td>Title size</td><td><span class="type-badge">slider</span></td><td><code>titleFontSize</code></td><td>Quest title font size.</td></tr>
+                <tr data-search="objective size objectivefontsize objective text font size."><td>Objective size</td><td><span class="type-badge">slider</span></td><td><code>objectiveFontSize</code></td><td>Objective text font size.</td></tr>
+                <tr data-search="zone size zonefontsize zone label font size."><td>Zone size</td><td><span class="type-badge">slider</span></td><td><code>zoneFontSize</code></td><td>Zone label font size.</td></tr>
+                <tr data-search="section size sectionfontsize section header font size."><td>Section size</td><td><span class="type-badge">slider</span></td><td><code>sectionFontSize</code></td><td>Section header font size.</td></tr>
+                <tr data-search="progress bar text size progressbarfontsize font size for bar label and bar height."><td>Progress bar text size</td><td><span class="type-badge">slider</span></td><td><code>progressBarFontSize</code></td><td>Font size for bar label and bar height.</td></tr>
+                <tr data-search="outline fontoutline font outline style."><td>Outline</td><td><span class="type-badge">dropdown</span></td><td><code>fontOutline</code></td><td>Font outline style.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Typography">
+            <summary>Text case</summary>
+            <div class="section-name">Section: Text case</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="header text case headertextcase display case for header."><td>Header text case</td><td><span class="type-badge">dropdown</span></td><td><code>headerTextCase</code></td><td>Display case for header.</td></tr>
+                <tr data-search="section header case sectionheadertextcase display case for category labels."><td>Section header case</td><td><span class="type-badge">dropdown</span></td><td><code>sectionHeaderTextCase</code></td><td>Display case for category labels.</td></tr>
+                <tr data-search="quest title case questtitlecase display case for quest titles."><td>Quest title case</td><td><span class="type-badge">dropdown</span></td><td><code>questTitleCase</code></td><td>Display case for quest titles.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Typography">
+            <summary>Shadow</summary>
+            <div class="section-name">Section: Shadow</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="show text shadow showtextshadow enable drop shadow on text."><td>Show text shadow</td><td><span class="type-badge">toggle</span></td><td><code>showTextShadow</code></td><td>Enable drop shadow on text.</td></tr>
+                <tr data-search="shadow x shadowoffsetx horizontal shadow offset."><td>Shadow X</td><td><span class="type-badge">slider</span></td><td><code>shadowOffsetX</code></td><td>Horizontal shadow offset.</td></tr>
+                <tr data-search="shadow y shadowoffsety vertical shadow offset."><td>Shadow Y</td><td><span class="type-badge">slider</span></td><td><code>shadowOffsetY</code></td><td>Vertical shadow offset.</td></tr>
+                <tr data-search="shadow alpha shadowalpha shadow opacity (0–100%)."><td>Shadow alpha</td><td><span class="type-badge">slider</span></td><td><code>shadowAlpha</code></td><td>Shadow opacity (0–100%).</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Interactions</div>
+        <details class="category" data-category="Interactions">
+            <summary>Click behavior</summary>
+            <div class="section-name">Section: Click behavior</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="ctrl for focus / untrack requirectrlforquestclicks prevent accidental clicks."><td>Ctrl for focus / untrack</td><td><span class="type-badge">toggle</span></td><td><code>requireCtrlForQuestClicks</code></td><td>Prevent accidental clicks.</td></tr>
+                <tr data-search="classic clicks useclassicclickbehaviour l-click opens map, r-click opens menu."><td>Classic clicks</td><td><span class="type-badge">toggle</span></td><td><code>useClassicClickBehaviour</code></td><td>L-click opens map, R-click opens menu.</td></tr>
+                <tr data-search="ctrl to click-complete requiremodifierforclicktocomplete require ctrl to complete click-completable quests."><td>Ctrl to click-complete</td><td><span class="type-badge">toggle</span></td><td><code>requireModifierForClickToComplete</code></td><td>Require Ctrl to complete click-completable quests.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Interactions">
+            <summary>Quest tracking</summary>
+            <div class="section-name">Section: Quest tracking</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="keep campaign in category keepcampaignincategory keep in campaign when ready to turn in."><td>Keep campaign in category</td><td><span class="type-badge">toggle</span></td><td><code>keepCampaignInCategory</code></td><td>Keep in Campaign when ready to turn in.</td></tr>
+                <tr data-search="keep important in category keepimportantincategory keep in important when ready to turn in."><td>Keep important in category</td><td><span class="type-badge">toggle</span></td><td><code>keepImportantInCategory</code></td><td>Keep in Important when ready to turn in.</td></tr>
+                <tr data-search="auto-track accepted quests autotrackonaccept when you accept a quest (quest log only, not world quests), add it to the tracker automatically."><td>Auto-track accepted quests</td><td><span class="type-badge">toggle</span></td><td><code>autoTrackOnAccept</code></td><td>When you accept a quest (quest log only, not world quests), add it to the tracker automatically.</td></tr>
+                <tr data-search="suppress untracked until reload suppressuntrackeduntilreload hide untracked quests until reload."><td>Suppress untracked until reload</td><td><span class="type-badge">toggle</span></td><td><code>suppressUntrackedUntilReload</code></td><td>Hide untracked quests until reload.</td></tr>
+                <tr data-search="blacklist untracked permanentlysuppressuntracked permanently hide untracked quests."><td>Blacklist untracked</td><td><span class="type-badge">toggle</span></td><td><code>permanentlySuppressUntracked</code></td><td>Permanently hide untracked quests.</td></tr>
+                <tr data-search="tomtom quest waypoint tomtomquestwaypoint set a tomtom waypoint when focusing a quest."><td>TomTom quest waypoint</td><td><span class="type-badge">toggle</span></td><td><code>tomtomQuestWaypoint</code></td><td>Set a TomTom waypoint when focusing a quest.</td></tr>
+                <tr data-search="tomtom rare waypoint tomtomrarewaypoint set a tomtom waypoint when clicking a rare boss."><td>TomTom rare waypoint</td><td><span class="type-badge">toggle</span></td><td><code>tomtomRareWaypoint</code></td><td>Set a TomTom waypoint when clicking a rare boss.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Animations</div>
+        <details class="category" data-category="Animations">
+            <summary>Focus animations</summary>
+            <div class="section-name">Section: Focus animations</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="animations animations enable slide and fade for quests."><td>Animations</td><td><span class="type-badge">toggle</span></td><td><code>animations</code></td><td>Enable slide and fade for quests.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Animations">
+            <summary>Objective progress</summary>
+            <div class="section-name">Section: Objective progress</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="objective progress flash objectiveprogressflash show flash when an objective completes."><td>Objective progress flash</td><td><span class="type-badge">toggle</span></td><td><code>objectiveProgressFlash</code></td><td>Show flash when an objective completes.</td></tr>
+                <tr data-search="flash intensity objectiveprogressflashintensity how noticeable the objective-complete flash is."><td>Flash intensity</td><td><span class="type-badge">dropdown</span></td><td><code>objectiveProgressFlashIntensity</code></td><td>How noticeable the objective-complete flash is.</td></tr>
+                <tr data-search="flash color objectiveprogressflashcolor color of the objective-complete flash."><td>Flash color</td><td><span class="type-badge">color</span></td><td><code>objectiveProgressFlashColor</code></td><td>Color of the objective-complete flash.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Instances</div>
+        <details class="category" data-category="Instances">
+            <summary>Visibility</summary>
+            <div class="section-name">Section: Visibility</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="in dungeon showindungeon show tracker in party dungeons (master toggle for all dungeon difficulties)."><td>In dungeon</td><td><span class="type-badge">toggle</span></td><td><code>showInDungeon</code></td><td>Show tracker in party dungeons (master toggle for all dungeon difficulties).</td></tr>
+                <tr data-search="  normal dungeon showindungeonnormal show in normal dungeons."><td>  Normal dungeon</td><td><span class="type-badge">toggle</span></td><td><code>showInDungeonNormal</code></td><td>Show in Normal dungeons.</td></tr>
+                <tr data-search="  heroic dungeon showindungeonheroic show tracker in heroic dungeons. when unset, uses the master dungeon toggle."><td>  Heroic dungeon</td><td><span class="type-badge">toggle</span></td><td><code>showInDungeonHeroic</code></td><td>Show tracker in Heroic dungeons. When unset, uses the master dungeon toggle.</td></tr>
+                <tr data-search="  mythic dungeon showindungeonmythic show tracker in mythic dungeons. when unset, uses the master dungeon toggle."><td>  Mythic dungeon</td><td><span class="type-badge">toggle</span></td><td><code>showInDungeonMythic</code></td><td>Show tracker in Mythic dungeons. When unset, uses the master dungeon toggle.</td></tr>
+                <tr data-search="  mythic+ dungeon showindungeonmythicplus show tracker in mythic keystone (m+) dungeons. when unset, uses the master dungeon toggle."><td>  Mythic+ dungeon</td><td><span class="type-badge">toggle</span></td><td><code>showInDungeonMythicPlus</code></td><td>Show tracker in Mythic Keystone (M+) dungeons. When unset, uses the master dungeon toggle.</td></tr>
+                <tr data-search="in raid showinraid show tracker in raids (master toggle for all raid difficulties)."><td>In raid</td><td><span class="type-badge">toggle</span></td><td><code>showInRaid</code></td><td>Show tracker in raids (master toggle for all raid difficulties).</td></tr>
+                <tr data-search="  lfr showinraidlfr show tracker in looking for raid. when unset, uses the master raid toggle."><td>  LFR</td><td><span class="type-badge">toggle</span></td><td><code>showInRaidLFR</code></td><td>Show tracker in Looking for Raid. When unset, uses the master raid toggle.</td></tr>
+                <tr data-search="  normal raid showinraidnormal show tracker in normal raids. when unset, uses the master raid toggle."><td>  Normal raid</td><td><span class="type-badge">toggle</span></td><td><code>showInRaidNormal</code></td><td>Show tracker in Normal raids. When unset, uses the master raid toggle.</td></tr>
+                <tr data-search="  heroic raid showinraidheroic show tracker in heroic raids. when unset, uses the master raid toggle."><td>  Heroic raid</td><td><span class="type-badge">toggle</span></td><td><code>showInRaidHeroic</code></td><td>Show tracker in Heroic raids. When unset, uses the master raid toggle.</td></tr>
+                <tr data-search="  mythic raid showinraidmythic show tracker in mythic raids. when unset, uses the master raid toggle."><td>  Mythic raid</td><td><span class="type-badge">toggle</span></td><td><code>showInRaidMythic</code></td><td>Show tracker in Mythic raids. When unset, uses the master raid toggle.</td></tr>
+                <tr data-search="in battleground showinbattleground show tracker in battlegrounds."><td>In battleground</td><td><span class="type-badge">toggle</span></td><td><code>showInBattleground</code></td><td>Show tracker in battlegrounds.</td></tr>
+                <tr data-search="in arena showinarena show tracker in arenas."><td>In arena</td><td><span class="type-badge">toggle</span></td><td><code>showInArena</code></td><td>Show tracker in arenas.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Instances">
+            <summary>Mythic+ Block</summary>
+            <div class="section-name">Section: Mythic+ Block</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="enable m+ block showmythicplusblock show timer, completion %, and affixes in mythic+ dungeons."><td>Enable M+ block</td><td><span class="type-badge">toggle</span></td><td><code>showMythicPlusBlock</code></td><td>Show timer, completion %, and affixes in Mythic+ dungeons.</td></tr>
+                <tr data-search="always show mplusalwaysshow always show m+ timer."><td>Always show</td><td><span class="type-badge">toggle</span></td><td><code>mplusAlwaysShow</code></td><td>Always show M+ timer.</td></tr>
+                <tr data-search="affix icons mplusshowaffixicons show affix icons next to modifier names in the m+ block."><td>Affix icons</td><td><span class="type-badge">toggle</span></td><td><code>mplusShowAffixIcons</code></td><td>Show affix icons next to modifier names in the M+ block.</td></tr>
+                <tr data-search="affix tooltips mplusshowaffixdescriptions show affix descriptions when hovering over the m+ block."><td>Affix tooltips</td><td><span class="type-badge">toggle</span></td><td><code>mplusShowAffixDescriptions</code></td><td>Show affix descriptions when hovering over the M+ block.</td></tr>
+                <tr data-search="block position mplusblockposition position of the mythic+ block relative to the quest list."><td>Block position</td><td><span class="type-badge">dropdown</span></td><td><code>mplusBlockPosition</code></td><td>Position of the Mythic+ block relative to the quest list.</td></tr>
+                <tr data-search="completed boss style mplusbosscompleteddisplay defeated boss style."><td>Completed boss style</td><td><span class="type-badge">dropdown</span></td><td><code>mplusBossCompletedDisplay</code></td><td>Defeated boss style.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Instances">
+            <summary>Mythic+ Typography</summary>
+            <div class="section-name">Section: Mythic+ Typography</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="dungeon name size mplusdungeonsize font size for dungeon name (8–32 px)."><td>Dungeon name size</td><td><span class="type-badge">slider</span></td><td><code>mplusDungeonSize</code></td><td>Font size for dungeon name (8–32 px).</td></tr>
+                <tr data-search="timer size mplustimersize font size for timer (8–32 px)."><td>Timer size</td><td><span class="type-badge">slider</span></td><td><code>mplusTimerSize</code></td><td>Font size for timer (8–32 px).</td></tr>
+                <tr data-search="enemy forces size mplusprogresssize font size for enemy forces (8–32 px)."><td>Enemy forces size</td><td><span class="type-badge">slider</span></td><td><code>mplusProgressSize</code></td><td>Font size for enemy forces (8–32 px).</td></tr>
+                <tr data-search="affix size mplusaffixsize font size for affixes (8–32 px)."><td>Affix size</td><td><span class="type-badge">slider</span></td><td><code>mplusAffixSize</code></td><td>Font size for affixes (8–32 px).</td></tr>
+                <tr data-search="boss size mplusbosssize font size for boss names (8–32 px)."><td>Boss size</td><td><span class="type-badge">slider</span></td><td><code>mplusBossSize</code></td><td>Font size for boss names (8–32 px).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Instances">
+            <summary>Mythic+ Colors</summary>
+            <div class="section-name">Section: Mythic+ Colors</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="dungeon name color mplusdungeoncolor text color for dungeon name."><td>Dungeon name color</td><td><span class="type-badge">color</span></td><td><code>mplusDungeonColor</code></td><td>Text color for dungeon name.</td></tr>
+                <tr data-search="timer color mplustimercolor text color for timer (in time)."><td>Timer color</td><td><span class="type-badge">color</span></td><td><code>mplusTimerColor</code></td><td>Text color for timer (in time).</td></tr>
+                <tr data-search="timer overtime color mplustimerovertimecolor text color for timer when over the time limit."><td>Timer overtime color</td><td><span class="type-badge">color</span></td><td><code>mplusTimerOvertimeColor</code></td><td>Text color for timer when over the time limit.</td></tr>
+                <tr data-search="enemy forces color mplusprogresscolor text color for enemy forces."><td>Enemy forces color</td><td><span class="type-badge">color</span></td><td><code>mplusProgressColor</code></td><td>Text color for enemy forces.</td></tr>
+                <tr data-search="bar fill color mplusbarcolor progress bar fill color (in progress)."><td>Bar fill color</td><td><span class="type-badge">color</span></td><td><code>mplusBarColor</code></td><td>Progress bar fill color (in progress).</td></tr>
+                <tr data-search="bar complete color mplusbardonecolor progress bar fill color when enemy forces are at 100%."><td>Bar complete color</td><td><span class="type-badge">color</span></td><td><code>mplusBarDoneColor</code></td><td>Progress bar fill color when enemy forces are at 100%.</td></tr>
+                <tr data-search="affix color mplusaffixcolor text color for affixes."><td>Affix color</td><td><span class="type-badge">color</span></td><td><code>mplusAffixColor</code></td><td>Text color for affixes.</td></tr>
+                <tr data-search="boss color mplusbosscolor text color for boss names."><td>Boss color</td><td><span class="type-badge">color</span></td><td><code>mplusBossColor</code></td><td>Text color for boss names.</td></tr>
+                <tr data-search="reset mythic+ styling — "><td>Reset Mythic+ styling</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Instances">
+            <summary>Delves & Dungeons</summary>
+            <div class="section-name">Section: Delves & Dungeons</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="scenario events showscenarioevents track delve, dungeon, and scenario activities."><td>Scenario events</td><td><span class="type-badge">toggle</span></td><td><code>showScenarioEvents</code></td><td>Track Delve, Dungeon, and scenario activities.</td></tr>
+                <tr data-search="active instance only hideothercategoriesindelve show only the active instance section."><td>Active instance only</td><td><span class="type-badge">toggle</span></td><td><code>hideOtherCategoriesInDelve</code></td><td>Show only the active instance section.</td></tr>
+                <tr data-search="delve affix names showdelveaffixes show affix names on first delve entry."><td>Delve affix names</td><td><span class="type-badge">toggle</span></td><td><code>showDelveAffixes</code></td><td>Show affix names on first Delve entry.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Instances">
+            <summary>Scenario Bar</summary>
+            <div class="section-name">Section: Scenario Bar</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="scenario timer bar cinematicscenariobar show timer and progress bar for scenario entries."><td>Scenario timer bar</td><td><span class="type-badge">toggle</span></td><td><code>cinematicScenarioBar</code></td><td>Show timer and progress bar for scenario entries.</td></tr>
+                <tr data-search="scenario debug logging scenariodebug log scenario api data to chat. use /h debug focus scendebug to toggle."><td>Scenario debug logging</td><td><span class="type-badge">toggle</span></td><td><code>scenarioDebug</code></td><td>Log scenario API data to chat. Use /h debug focus scendebug to toggle.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Content</div>
+        <details class="category" data-category="ContentTypes">
+            <summary>World quests</summary>
+            <div class="section-name">Section: World quests</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="in-zone world quests showworldquests auto-add wqs in your current zone."><td>In-zone world quests</td><td><span class="type-badge">toggle</span></td><td><code>showWorldQuests</code></td><td>Auto-add WQs in your current zone.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="ContentTypes">
+            <summary>Rare bosses</summary>
+            <div class="section-name">Section: Rare bosses</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="rare bosses showrarebosses show rare boss vignettes in the list."><td>Rare bosses</td><td><span class="type-badge">toggle</span></td><td><code>showRareBosses</code></td><td>Show rare boss vignettes in the list.</td></tr>
+                <tr data-search="rare loot showrareloot show treasure and item vignettes in the rare loot list."><td>Rare Loot</td><td><span class="type-badge">toggle</span></td><td><code>showRareLoot</code></td><td>Show treasure and item vignettes in the Rare Loot list.</td></tr>
+                <tr data-search="rare sound alert rareaddedsound play a sound when a rare is added."><td>Rare sound alert</td><td><span class="type-badge">toggle</span></td><td><code>rareAddedSound</code></td><td>Play a sound when a rare is added.</td></tr>
+                <tr data-search="rare added sound choice rareaddedsoundchoice sound played when a rare boss appears."><td>Rare added sound choice</td><td><span class="type-badge">dropdown</span></td><td><code>rareAddedSoundChoice</code></td><td>Sound played when a rare boss appears.</td></tr>
+                <tr data-search="rare sound volume rareaddedsoundvolume volume of the rare alert sound (50–200%)."><td>Rare sound volume</td><td><span class="type-badge">slider</span></td><td><code>rareAddedSoundVolume</code></td><td>Volume of the rare alert sound (50–200%).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="ContentTypes">
+            <summary>Achievements</summary>
+            <div class="section-name">Section: Achievements</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="achievements showachievements show tracked achievements in the list."><td>Achievements</td><td><span class="type-badge">toggle</span></td><td><code>showAchievements</code></td><td>Show tracked achievements in the list.</td></tr>
+                <tr data-search="include completed showcompletedachievements show completed achievements in the list."><td>Include completed</td><td><span class="type-badge">toggle</span></td><td><code>showCompletedAchievements</code></td><td>Show completed achievements in the list.</td></tr>
+                <tr data-search="achievement icons showachievementicons icon next to achievement title."><td>Achievement icons</td><td><span class="type-badge">toggle</span></td><td><code>showAchievementIcons</code></td><td>Icon next to achievement title.</td></tr>
+                <tr data-search="missing criteria only achievementonlymissingrequirements only show incomplete criteria."><td>Missing criteria only</td><td><span class="type-badge">toggle</span></td><td><code>achievementOnlyMissingRequirements</code></td><td>Only show incomplete criteria.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="ContentTypes">
+            <summary>Endeavors</summary>
+            <div class="section-name">Section: Endeavors</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="endeavors showendeavors show tracked endeavors (player housing) in the list."><td>Endeavors</td><td><span class="type-badge">toggle</span></td><td><code>showEndeavors</code></td><td>Show tracked Endeavors (Player Housing) in the list.</td></tr>
+                <tr data-search="include completed showcompletedendeavors include completed endeavors in the tracker. when off, only in-progress tracked endeavors are shown."><td>Include completed</td><td><span class="type-badge">toggle</span></td><td><code>showCompletedEndeavors</code></td><td>Include completed Endeavors in the tracker. When off, only in-progress tracked Endeavors are shown.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="ContentTypes">
+            <summary>Decor</summary>
+            <div class="section-name">Section: Decor</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="decor showdecor show tracked housing decor in the list."><td>Decor</td><td><span class="type-badge">toggle</span></td><td><code>showDecor</code></td><td>Show tracked housing decor in the list.</td></tr>
+                <tr data-search="decor icons showdecoricons (unknown)"><td>Decor icons</td><td><span class="type-badge">toggle</span></td><td><code>showDecorIcons</code></td><td>(unknown)</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="ContentTypes">
+            <summary>Recipes</summary>
+            <div class="section-name">Section: Recipes</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="recipes showrecipes show tracked profession recipes in the list."><td>Recipes</td><td><span class="type-badge">toggle</span></td><td><code>showRecipes</code></td><td>Show tracked profession recipes in the list.</td></tr>
+                <tr data-search="reagents showrecipereagents show reagent shopping list for each recipe."><td>Reagents</td><td><span class="type-badge">toggle</span></td><td><code>showRecipeReagents</code></td><td>Show reagent shopping list for each recipe.</td></tr>
+                <tr data-search="optional reagents showoptionalreagents show optional reagent slots."><td>Optional reagents</td><td><span class="type-badge">toggle</span></td><td><code>showOptionalReagents</code></td><td>Show optional reagent slots.</td></tr>
+                <tr data-search="finishing reagents showfinishingreagents show finishing reagent slots."><td>Finishing reagents</td><td><span class="type-badge">toggle</span></td><td><code>showFinishingReagents</code></td><td>Show finishing reagent slots.</td></tr>
+                <tr data-search="choice slots showchoiceslots show collapsible choice reagent slots."><td>Choice slots</td><td><span class="type-badge">toggle</span></td><td><code>showChoiceSlots</code></td><td>Show collapsible choice reagent slots.</td></tr>
+                <tr data-search="recipe icons showrecipeicons show recipe icon next to title. requires quest type icons in display."><td>Recipe icons</td><td><span class="type-badge">toggle</span></td><td><code>showRecipeIcons</code></td><td>Show recipe icon next to title. Requires quest type icons in Display.</td></tr>
+                <tr data-search="rarity colors reciperaritycolors color recipe titles by output item rarity."><td>Rarity colors</td><td><span class="type-badge">toggle</span></td><td><code>recipeRarityColors</code></td><td>Color recipe titles by output item rarity.</td></tr>
+                <tr data-search="craftable count showcraftablecount show how many times the recipe can be crafted."><td>Craftable count</td><td><span class="type-badge">toggle</span></td><td><code>showCraftableCount</code></td><td>Show how many times the recipe can be crafted.</td></tr>
+                <tr data-search="quality info showrecipequalityinfo show quality tier pips for recipes that support qualities."><td>Quality info</td><td><span class="type-badge">toggle</span></td><td><code>showRecipeQualityInfo</code></td><td>Show quality tier pips for recipes that support qualities.</td></tr>
+                <tr data-search="requirements showreciperequirements show unmet crafting station requirements."><td>Requirements</td><td><span class="type-badge">toggle</span></td><td><code>showRecipeRequirements</code></td><td>Show unmet crafting station requirements.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="ContentTypes">
+            <summary>Adventure Guide</summary>
+            <div class="section-name">Section: Adventure Guide</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="(unknown) showadventureguide tracked objectives from adventure guide."><td>(unknown)</td><td><span class="type-badge">toggle</span></td><td><code>showAdventureGuide</code></td><td>Tracked objectives from Adventure Guide.</td></tr>
+                <tr data-search="untrack when complete autoremovecompletedadventureguide auto-untrack finished activities."><td>Untrack when complete</td><td><span class="type-badge">toggle</span></td><td><code>autoRemoveCompletedAdventureGuide</code></td><td>Auto-untrack finished activities.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="ContentTypes">
+            <summary>Floating quest item</summary>
+            <div class="section-name">Section: Floating quest item</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="floating quest item showfloatingquestitem (unknown)"><td>Floating quest item</td><td><span class="type-badge">toggle</span></td><td><code>showFloatingQuestItem</code></td><td>(unknown)</td></tr>
+                <tr data-search="lock item position lockfloatingquestitemposition prevent dragging the floating quest item button."><td>Lock item position</td><td><span class="type-badge">toggle</span></td><td><code>lockFloatingQuestItemPosition</code></td><td>Prevent dragging the floating quest item button.</td></tr>
+                <tr data-search="item source floatingquestitemmode super-tracked first, or current zone first."><td>Item source</td><td><span class="type-badge">dropdown</span></td><td><code>floatingQuestItemMode</code></td><td>Super-tracked first, or current zone first.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Colors</div>
+        <details class="category" data-category="Colors">
+            <summary>General</summary>
+            <div class="section-name">Section: (none)</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="colors colormatrix (complex color matrix)"><td>Colors</td><td><span class="type-badge">colorMatrixFull</span></td><td><code>colorMatrix</code></td><td>(complex color matrix)</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Focus">
+        <div class="module-header">Focus — Hidden Quests</div>
+        <details class="category" data-category="HiddenQuests">
+            <summary>General</summary>
+            <div class="section-name">Section: (none)</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="blacklisted quests — quests hidden via right-click untrack."><td>Blacklisted quests</td><td><span class="type-badge">blacklistGrid</span></td><td><code>—</code></td><td>Quests hidden via right-click untrack.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Presence">
+        <div class="module-header">Presence — General</div>
+        <details class="category" data-category="PresenceGeneral">
+            <summary>Display</summary>
+            <div class="section-name">Section: Display</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="toast icons showpresencequesttypeicons show quest type icon on presence toasts (quest accept/complete, world quest, quest update)."><td>Toast icons</td><td><span class="type-badge">toggle</span></td><td><code>showPresenceQuestTypeIcons</code></td><td>Show quest type icon on Presence toasts (quest accept/complete, world quest, quest update).</td></tr>
+                <tr data-search="toast icon size presenceiconsize quest icon size on presence toasts (16–36 px). default 24."><td>Toast icon size</td><td><span class="type-badge">slider</span></td><td><code>presenceIconSize</code></td><td>Quest icon size on Presence toasts (16–36 px). Default 24.</td></tr>
+                <tr data-search="hide quest update title presencehidequestupdatetitle show objective line only."><td>Hide quest update title</td><td><span class="type-badge">toggle</span></td><td><code>presenceHideQuestUpdateTitle</code></td><td>Show objective line only.</td></tr>
+                <tr data-search="discovery line showpresencediscovery (unknown)"><td>Discovery line</td><td><span class="type-badge">toggle</span></td><td><code>showPresenceDiscovery</code></td><td>(unknown)</td></tr>
+                <tr data-search="frame vertical position presenceframey vertical offset of the presence frame from center (-300 to 0)."><td>Frame vertical position</td><td><span class="type-badge">slider</span></td><td><code>presenceFrameY</code></td><td>Vertical offset of the Presence frame from center (-300 to 0).</td></tr>
+                <tr data-search="frame scale presenceframescale scale of the presence frame (0.5–2)."><td>Frame scale</td><td><span class="type-badge">slider</span></td><td><code>presenceFrameScale</code></td><td>Scale of the Presence frame (0.5–2).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="PresenceGeneral">
+            <summary>Animation</summary>
+            <div class="section-name">Section: Animation</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="animations presenceanimations enable entrance and exit animations for presence notifications."><td>Animations</td><td><span class="type-badge">toggle</span></td><td><code>presenceAnimations</code></td><td>Enable entrance and exit animations for Presence notifications.</td></tr>
+                <tr data-search="entrance duration presenceentrancedur duration of the entrance animation in seconds (0.2–1.5)."><td>Entrance duration</td><td><span class="type-badge">slider</span></td><td><code>presenceEntranceDur</code></td><td>Duration of the entrance animation in seconds (0.2–1.5).</td></tr>
+                <tr data-search="exit duration presenceexitdur duration of the exit animation in seconds (0.2–1.5)."><td>Exit duration</td><td><span class="type-badge">slider</span></td><td><code>presenceExitDur</code></td><td>Duration of the exit animation in seconds (0.2–1.5).</td></tr>
+                <tr data-search="hold duration scale presenceholdscale multiplier for how long each notification stays on screen (0.5–2)."><td>Hold duration scale</td><td><span class="type-badge">slider</span></td><td><code>presenceHoldScale</code></td><td>Multiplier for how long each notification stays on screen (0.5–2).</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Presence">
+        <div class="module-header">Presence — Preview</div>
+        <details class="category" data-category="PresencePreview">
+            <summary>Preview</summary>
+            <div class="section-name">Section: Preview</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="(no name) — (preview widget)"><td>(no name)</td><td><span class="type-badge">presencePreview</span></td><td><code>—</code></td><td>(preview widget)</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Presence">
+        <div class="module-header">Presence — Notifications</div>
+        <details class="category" data-category="PresenceNotifications">
+            <summary>Notification types</summary>
+            <div class="section-name">Section: Notification types</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="zone entry presencezonechange show zone change when entering a new area."><td>Zone entry</td><td><span class="type-badge">toggle</span></td><td><code>presenceZoneChange</code></td><td>Show zone change when entering a new area.</td></tr>
+                <tr data-search="subzone changes presencesubzonechange show subzone change when moving within the same zone."><td>Subzone changes</td><td><span class="type-badge">toggle</span></td><td><code>presenceSubzoneChange</code></td><td>Show subzone change when moving within the same zone.</td></tr>
+                <tr data-search="subzone only presencehidezoneforsubzone only show subzone name within same zone."><td>Subzone only</td><td><span class="type-badge">toggle</span></td><td><code>presenceHideZoneForSubzone</code></td><td>Only show subzone name within same zone.</td></tr>
+                <tr data-search="suppress in m+ presencesuppresszoneinmplus hide zone notifications in mythic+."><td>Suppress in M+</td><td><span class="type-badge">toggle</span></td><td><code>presenceSuppressZoneInMplus</code></td><td>Hide zone notifications in Mythic+.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="PresenceNotifications">
+            <summary>Instance suppression</summary>
+            <div class="section-name">Section: Instance suppression</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="suppress in dungeon presencesuppressindungeon suppress notifications in dungeons."><td>Suppress in dungeon</td><td><span class="type-badge">toggle</span></td><td><code>presenceSuppressInDungeon</code></td><td>Suppress notifications in dungeons.</td></tr>
+                <tr data-search="suppress in delve presencesuppressindelve suppress scenario progress notifications in delves."><td>Suppress in Delve</td><td><span class="type-badge">toggle</span></td><td><code>presenceSuppressInDelve</code></td><td>Suppress scenario progress notifications in Delves.</td></tr>
+                <tr data-search="suppress in raid presencesuppressinraid suppress all presence notifications while inside a raid."><td>Suppress in raid</td><td><span class="type-badge">toggle</span></td><td><code>presenceSuppressInRaid</code></td><td>Suppress all Presence notifications while inside a raid.</td></tr>
+                <tr data-search="suppress in pvp presencesuppressinpvp suppress all presence notifications while inside a pvp arena."><td>Suppress in PvP</td><td><span class="type-badge">toggle</span></td><td><code>presenceSuppressInPvP</code></td><td>Suppress all Presence notifications while inside a PvP arena.</td></tr>
+                <tr data-search="suppress in battleground presencesuppressinbattleground suppress all presence notifications while inside a battleground."><td>Suppress in battleground</td><td><span class="type-badge">toggle</span></td><td><code>presenceSuppressInBattleground</code></td><td>Suppress all Presence notifications while inside a battleground.</td></tr>
+                <tr data-search="level up presencelevelup show level-up notification."><td>Level up</td><td><span class="type-badge">toggle</span></td><td><code>presenceLevelUp</code></td><td>Show level-up notification.</td></tr>
+                <tr data-search="boss emotes presencebossemote show raid and dungeon boss emote notifications."><td>Boss emotes</td><td><span class="type-badge">toggle</span></td><td><code>presenceBossEmote</code></td><td>Show raid and dungeon boss emote notifications.</td></tr>
+                <tr data-search="achievements presenceachievement show achievement earned notifications."><td>Achievements</td><td><span class="type-badge">toggle</span></td><td><code>presenceAchievement</code></td><td>Show achievement earned notifications.</td></tr>
+                <tr data-search="achievement progress presenceachievementprogress notify on achievement criteria update."><td>Achievement progress</td><td><span class="type-badge">toggle</span></td><td><code>presenceAchievementProgress</code></td><td>Notify on achievement criteria update.</td></tr>
+                <tr data-search="quest accept presencequestaccept show notification when accepting a quest."><td>Quest accept</td><td><span class="type-badge">toggle</span></td><td><code>presenceQuestAccept</code></td><td>Show notification when accepting a quest.</td></tr>
+                <tr data-search="world quest accept presenceworldquestaccept show notification when accepting a world quest."><td>World quest accept</td><td><span class="type-badge">toggle</span></td><td><code>presenceWorldQuestAccept</code></td><td>Show notification when accepting a world quest.</td></tr>
+                <tr data-search="quest complete presencequestcomplete show notification when completing a quest."><td>Quest complete</td><td><span class="type-badge">toggle</span></td><td><code>presenceQuestComplete</code></td><td>Show notification when completing a quest.</td></tr>
+                <tr data-search="world quest complete presenceworldquest show notification when completing a world quest."><td>World quest complete</td><td><span class="type-badge">toggle</span></td><td><code>presenceWorldQuest</code></td><td>Show notification when completing a world quest.</td></tr>
+                <tr data-search="quest progress presencequestupdate show notification when quest objectives update."><td>Quest progress</td><td><span class="type-badge">toggle</span></td><td><code>presenceQuestUpdate</code></td><td>Show notification when quest objectives update.</td></tr>
+                <tr data-search="objective only presencehidequestupdatetitle (unknown)"><td>Objective only</td><td><span class="type-badge">toggle</span></td><td><code>presenceHideQuestUpdateTitle</code></td><td>(unknown)</td></tr>
+                <tr data-search="scenario start presencescenariostart show notification when entering a scenario or delve."><td>Scenario start</td><td><span class="type-badge">toggle</span></td><td><code>presenceScenarioStart</code></td><td>Show notification when entering a scenario or Delve.</td></tr>
+                <tr data-search="scenario progress presencescenarioupdate show notification when scenario or delve objectives update."><td>Scenario progress</td><td><span class="type-badge">toggle</span></td><td><code>presenceScenarioUpdate</code></td><td>Show notification when scenario or Delve objectives update.</td></tr>
+                <tr data-search="scenario complete presencescenariocomplete show notification when a scenario or delve is fully completed."><td>Scenario complete</td><td><span class="type-badge">toggle</span></td><td><code>presenceScenarioComplete</code></td><td>Show notification when a scenario or Delve is fully completed.</td></tr>
+                <tr data-search="rare defeated presenceraredefeated show notification when a rare mob is defeated nearby."><td>Rare defeated</td><td><span class="type-badge">toggle</span></td><td><code>presenceRareDefeated</code></td><td>Show notification when a rare mob is defeated nearby.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Presence">
+        <div class="module-header">Presence — Typography</div>
+        <details class="category" data-category="PresenceTypography">
+            <summary>Typography</summary>
+            <div class="section-name">Section: Typography</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="reset typography to defaults — reset all presence typography options (fonts, sizes, colors) to defaults."><td>Reset typography to defaults</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>Reset all Presence typography options (fonts, sizes, colors) to defaults.</td></tr>
+                <tr data-search="main title font presencetitlefontpath font family for the main title."><td>Main title font</td><td><span class="type-badge">dropdown</span></td><td><code>presenceTitleFontPath</code></td><td>Font family for the main title.</td></tr>
+                <tr data-search="subtitle font presencesubtitlefontpath font family for the subtitle."><td>Subtitle font</td><td><span class="type-badge">dropdown</span></td><td><code>presenceSubtitleFontPath</code></td><td>Font family for the subtitle.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="PresenceTypography">
+            <summary>Large notifications</summary>
+            <div class="section-name">Section: Large notifications</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="large primary size presenceprimarylargesz font size for large notification titles (zone, quest complete, achievement, etc.)."><td>Large primary size</td><td><span class="type-badge">slider</span></td><td><code>presencePrimaryLargeSz</code></td><td>Font size for large notification titles (zone, quest complete, achievement, etc.).</td></tr>
+                <tr data-search="large secondary size presencesecondarylargesz font size for large notification subtitles."><td>Large secondary size</td><td><span class="type-badge">slider</span></td><td><code>presenceSecondaryLargeSz</code></td><td>Font size for large notification subtitles.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="PresenceTypography">
+            <summary>Medium notifications</summary>
+            <div class="section-name">Section: Medium notifications</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="medium primary size presenceprimarymediumsz font size for medium notification titles (quest accept, subzone, scenario)."><td>Medium primary size</td><td><span class="type-badge">slider</span></td><td><code>presencePrimaryMediumSz</code></td><td>Font size for medium notification titles (quest accept, subzone, scenario).</td></tr>
+                <tr data-search="medium secondary size presencesecondarymediumsz font size for medium notification subtitles."><td>Medium secondary size</td><td><span class="type-badge">slider</span></td><td><code>presenceSecondaryMediumSz</code></td><td>Font size for medium notification subtitles.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="PresenceTypography">
+            <summary>Small notifications</summary>
+            <div class="section-name">Section: Small notifications</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="small primary size presenceprimarysmallsz font size for small notification titles (quest progress, achievement progress)."><td>Small primary size</td><td><span class="type-badge">slider</span></td><td><code>presencePrimarySmallSz</code></td><td>Font size for small notification titles (quest progress, achievement progress).</td></tr>
+                <tr data-search="small secondary size presencesecondarysmallsz font size for small notification subtitles."><td>Small secondary size</td><td><span class="type-badge">slider</span></td><td><code>presenceSecondarySmallSz</code></td><td>Font size for small notification subtitles.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="PresenceTypography">
+            <summary>Colors</summary>
+            <div class="section-name">Section: Colors</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="boss emote color presencebossemotecolor color of raid and dungeon boss emote text."><td>Boss emote color</td><td><span class="type-badge">color</span></td><td><code>presenceBossEmoteColor</code></td><td>Color of raid and dungeon boss emote text.</td></tr>
+                <tr data-search="discovery line color presencediscoverycolor (unknown)"><td>Discovery line color</td><td><span class="type-badge">color</span></td><td><code>presenceDiscoveryColor</code></td><td>(unknown)</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="PresenceTypography">
+            <summary>Zone type coloring</summary>
+            <div class="section-name">Section: Zone type coloring</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="color by zone type presencezonetypecoloring color zone/subzone titles by pvp zone type (friendly, hostile, contested, sanctuary). when off, uses the default category color."><td>Color by zone type</td><td><span class="type-badge">toggle</span></td><td><code>presenceZoneTypeColoring</code></td><td>Color zone/subzone titles by PvP zone type (friendly, hostile, contested, sanctuary). When off, uses the default category color.</td></tr>
+                <tr data-search="friendly zone color presencezonecolorfriendly color for friendly zones (green by default)."><td>Friendly zone color</td><td><span class="type-badge">color</span></td><td><code>presenceZoneColorFriendly</code></td><td>Color for friendly zones (green by default).</td></tr>
+                <tr data-search="hostile zone color presencezonecolorhostile color for hostile zones (red by default)."><td>Hostile zone color</td><td><span class="type-badge">color</span></td><td><code>presenceZoneColorHostile</code></td><td>Color for hostile zones (red by default).</td></tr>
+                <tr data-search="contested zone color presencezonecolorcontested color for contested zones (orange by default)."><td>Contested zone color</td><td><span class="type-badge">color</span></td><td><code>presenceZoneColorContested</code></td><td>Color for contested zones (orange by default).</td></tr>
+                <tr data-search="sanctuary zone color presencezonecolorsanctuary color for sanctuary zones (blue by default)."><td>Sanctuary zone color</td><td><span class="type-badge">color</span></td><td><code>presenceZoneColorSanctuary</code></td><td>Color for sanctuary zones (blue by default).</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Insight">
+        <div class="module-header dev-only">Insight — Tooltips</div>
+        <details class="category" data-category="Insight">
+            <summary>Position</summary>
+            <div class="section-name">Section: Position</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="tooltip anchor insightanchormode where tooltips appear: follow cursor or fixed position."><td>Tooltip anchor</td><td><span class="type-badge">dropdown</span></td><td><code>insightAnchorMode</code></td><td>Where tooltips appear: follow cursor or fixed position.</td></tr>
+                <tr data-search="show anchor to move — click to show or hide the anchor. drag to set position, right-click to confirm."><td>Show anchor to move</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>Click to show or hide the anchor. Drag to set position, right-click to confirm.</td></tr>
+                <tr data-search="reset tooltip position — reset fixed position to default."><td>Reset tooltip position</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>Reset fixed position to default.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Insight">
+            <summary>Appearance</summary>
+            <div class="section-name">Section: Appearance</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="tooltip background opacity insightbgopacity tooltip background opacity (0–100%)."><td>Tooltip background opacity</td><td><span class="type-badge">slider</span></td><td><code>insightBgOpacity</code></td><td>Tooltip background opacity (0–100%).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Insight">
+            <summary>Player Tooltip</summary>
+            <div class="section-name">Section: Player Tooltip</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="guild rank insightshowguildrank append the player"><td>Guild rank</td><td><span class="type-badge">toggle</span></td><td><code>insightShowGuildRank</code></td><td>Append the player</td></tr>
+                <tr data-search="character title insightshowcharactertitle show the player"><td>Character title</td><td><span class="type-badge">toggle</span></td><td><code>insightShowCharacterTitle</code></td><td>Show the player</td></tr>
+                <tr data-search="title color insighttitlecolor color of the character title in the player tooltip name line."><td>Title color</td><td><span class="type-badge">color</span></td><td><code>insightTitleColor</code></td><td>Color of the character title in the player tooltip name line.</td></tr>
+                <tr data-search="honor level insightshowhonorlevel show the player"><td>Honor level</td><td><span class="type-badge">toggle</span></td><td><code>insightShowHonorLevel</code></td><td>Show the player</td></tr>
+                <tr data-search="status badges insightshowstatusbadges combat, afk, dnd, pvp, party, friends, targeting."><td>Status badges</td><td><span class="type-badge">toggle</span></td><td><code>insightShowStatusBadges</code></td><td>Combat, AFK, DND, PvP, party, friends, targeting.</td></tr>
+                <tr data-search="mythic+ score insightshowmythicscore (unknown)"><td>Mythic+ score</td><td><span class="type-badge">toggle</span></td><td><code>insightShowMythicScore</code></td><td>(unknown)</td></tr>
+                <tr data-search="item level insightshowilvl show the player"><td>Item level</td><td><span class="type-badge">toggle</span></td><td><code>insightShowIlvl</code></td><td>Show the player</td></tr>
+                <tr data-search="mount info insightshowmount mount name, source, and collection status."><td>Mount info</td><td><span class="type-badge">toggle</span></td><td><code>insightShowMount</code></td><td>Mount name, source, and collection status.</td></tr>
+                <tr data-search="blank separator insightblankseparator use a blank line instead of dashes between tooltip sections."><td>Blank separator</td><td><span class="type-badge">toggle</span></td><td><code>insightBlankSeparator</code></td><td>Use a blank line instead of dashes between tooltip sections.</td></tr>
+                <tr data-search="show icons insightshowicons show faction, spec, mount, and mythic+ icons in tooltips."><td>Show icons</td><td><span class="type-badge">toggle</span></td><td><code>insightShowIcons</code></td><td>Show faction, spec, mount, and Mythic+ icons in tooltips.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="Insight">
+            <summary>Item Tooltip</summary>
+            <div class="section-name">Section: Item Tooltip</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="transmog status insightshowtransmog show whether you have collected the appearance of an item you hover over."><td>Transmog status</td><td><span class="type-badge">toggle</span></td><td><code>insightShowTransmog</code></td><td>Show whether you have collected the appearance of an item you hover over.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Vista">
+        <div class="module-header">Vista — Minimap</div>
+        <details class="category" data-category="VistaMinimap">
+            <summary>Size & shape</summary>
+            <div class="section-name">Section: Size & shape</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="minimap size vistamapsize width and height of the minimap in pixels (100–400)."><td>Minimap size</td><td><span class="type-badge">slider</span></td><td><code>vistaMapSize</code></td><td>Width and height of the minimap in pixels (100–400).</td></tr>
+                <tr data-search="circular shape vistacircular use a circular minimap instead of square."><td>Circular shape</td><td><span class="type-badge">toggle</span></td><td><code>vistaCircular</code></td><td>Use a circular minimap instead of square.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaMinimap">
+            <summary>Position</summary>
+            <div class="section-name">Section: Position</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="lock minimap vistalock prevent dragging the minimap."><td>Lock minimap</td><td><span class="type-badge">toggle</span></td><td><code>vistaLock</code></td><td>Prevent dragging the minimap.</td></tr>
+                <tr data-search="reset minimap position — reset minimap to its default position (top-right)."><td>Reset minimap position</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>Reset minimap to its default position (top-right).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaMinimap">
+            <summary>Auto Zoom</summary>
+            <div class="section-name">Section: Auto Zoom</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="auto zoom-out delay vistaautozoom seconds after zooming before auto zoom-out fires. set to 0 to disable."><td>Auto zoom-out delay</td><td><span class="type-badge">slider</span></td><td><code>vistaAutoZoom</code></td><td>Seconds after zooming before auto zoom-out fires. Set to 0 to disable.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaMinimap">
+            <summary>Text Elements</summary>
+            <div class="section-name">Section: Text Elements</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="show zone text vistashowzonetext show the zone name below the minimap."><td>Show zone text</td><td><span class="type-badge">toggle</span></td><td><code>vistaShowZoneText</code></td><td>Show the zone name below the minimap.</td></tr>
+                <tr data-search="zone text display mode vistazonedisplaymode what to show: zone only, subzone only, or both."><td>Zone text display mode</td><td><span class="type-badge">dropdown</span></td><td><code>vistaZoneDisplayMode</code></td><td>What to show: zone only, subzone only, or both.</td></tr>
+                <tr data-search="show coordinates vistashowcoordtext show player coordinates below the minimap."><td>Show coordinates</td><td><span class="type-badge">toggle</span></td><td><code>vistaShowCoordText</code></td><td>Show player coordinates below the minimap.</td></tr>
+                <tr data-search="show time vistashowtimetext show current game time below the minimap."><td>Show time</td><td><span class="type-badge">toggle</span></td><td><code>vistaShowTimeText</code></td><td>Show current game time below the minimap.</td></tr>
+                <tr data-search="show fps and latency vistashowperftext show fps and latency (ms) below the minimap."><td>Show FPS and latency</td><td><span class="type-badge">toggle</span></td><td><code>vistaShowPerfText</code></td><td>Show FPS and latency (ms) below the minimap.</td></tr>
+                <tr data-search="use local time vistatimeuselocal show local system time."><td>Use local time</td><td><span class="type-badge">toggle</span></td><td><code>vistaTimeUseLocal</code></td><td>Show local system time.</td></tr>
+                <tr data-search="24-hour clock vistatime24hour display time in 24-hour format (e.g. 14:30 instead of 2:30 pm)."><td>24-hour clock</td><td><span class="type-badge">toggle</span></td><td><code>vistaTime24Hour</code></td><td>Display time in 24-hour format (e.g. 14:30 instead of 2:30 PM).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaMinimap">
+            <summary>Minimap Buttons</summary>
+            <div class="section-name">Section: Minimap Buttons</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="queue status and mail indicator are always shown when relevant. — "><td>Queue status and mail indicator are always shown when relevant.</td><td><span class="type-badge">header</span></td><td><code>—</code></td><td>—</td></tr>
+                <tr data-search="show tracking button vistashowtracking show the minimap tracking button."><td>Show tracking button</td><td><span class="type-badge">toggle</span></td><td><code>vistaShowTracking</code></td><td>Show the minimap tracking button.</td></tr>
+                <tr data-search="tracking button on mouseover only vistamouseovertracking show only on hover."><td>Tracking button on mouseover only</td><td><span class="type-badge">toggle</span></td><td><code>vistaMouseoverTracking</code></td><td>Show only on hover.</td></tr>
+                <tr data-search="show calendar button vistashowcalendar show the minimap calendar button."><td>Show calendar button</td><td><span class="type-badge">toggle</span></td><td><code>vistaShowCalendar</code></td><td>Show the minimap calendar button.</td></tr>
+                <tr data-search="calendar button on mouseover only vistamouseovercalendar hide calendar button until you hover over the minimap."><td>Calendar button on mouseover only</td><td><span class="type-badge">toggle</span></td><td><code>vistaMouseoverCalendar</code></td><td>Hide calendar button until you hover over the minimap.</td></tr>
+                <tr data-search="show zoom buttons vistashowzoombtns show the + and - zoom buttons on the minimap."><td>Show zoom buttons</td><td><span class="type-badge">toggle</span></td><td><code>vistaShowZoomBtns</code></td><td>Show the + and - zoom buttons on the minimap.</td></tr>
+                <tr data-search="zoom buttons on mouseover only vistamouseoverzoombtns hide zoom buttons until you hover over the minimap."><td>Zoom buttons on mouseover only</td><td><span class="type-badge">toggle</span></td><td><code>vistaMouseoverZoomBtns</code></td><td>Hide zoom buttons until you hover over the minimap.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Vista">
+        <div class="module-header">Vista — Appearance</div>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Border</summary>
+            <div class="section-name">Section: Border</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="show border vistabordershow show a border around the minimap."><td>Show border</td><td><span class="type-badge">toggle</span></td><td><code>vistaBorderShow</code></td><td>Show a border around the minimap.</td></tr>
+                <tr data-search="border color vistabordercolor color (and opacity) of the minimap border."><td>Border color</td><td><span class="type-badge">color</span></td><td><code>vistaBorderColor</code></td><td>Color (and opacity) of the minimap border.</td></tr>
+                <tr data-search="border thickness vistaborderwidth thickness of the minimap border in pixels (1–8)."><td>Border thickness</td><td><span class="type-badge">slider</span></td><td><code>vistaBorderWidth</code></td><td>Thickness of the minimap border in pixels (1–8).</td></tr>
+                <tr data-search="class colours vistaclasscolor tint vista border and text (coords, time, fps/ms labels) with your class colour. numbers use the configured colour."><td>Class colours</td><td><span class="type-badge">toggle</span></td><td><code>vistaClassColor</code></td><td>Tint Vista border and text (coords, time, FPS/MS labels) with your class colour. Numbers use the configured colour.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Text Positions</summary>
+            <div class="section-name">Section: Text Positions</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="drag text elements to reposition them. lock to prevent accidental movement. — "><td>Drag text elements to reposition them. Lock to prevent accidental movement.</td><td><span class="type-badge">header</span></td><td><code>—</code></td><td>—</td></tr>
+                <tr data-search="location position vistazoneverticalpos place the zone name above or below the minimap."><td>Location position</td><td><span class="type-badge">dropdown</span></td><td><code>vistaZoneVerticalPos</code></td><td>Place the zone name above or below the minimap.</td></tr>
+                <tr data-search="lock zone text position vistalocked_zone when on, the zone text cannot be dragged."><td>Lock zone text position</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_zone</code></td><td>When on, the zone text cannot be dragged.</td></tr>
+                <tr data-search="coordinates position vistacoordverticalpos place the coordinates above or below the minimap."><td>Coordinates position</td><td><span class="type-badge">dropdown</span></td><td><code>vistaCoordVerticalPos</code></td><td>Place the coordinates above or below the minimap.</td></tr>
+                <tr data-search="lock coordinates position vistalocked_coord when on, the coordinates text cannot be dragged."><td>Lock coordinates position</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_coord</code></td><td>When on, the coordinates text cannot be dragged.</td></tr>
+                <tr data-search="clock position vistatimeverticalpos place the clock above or below the minimap."><td>Clock position</td><td><span class="type-badge">dropdown</span></td><td><code>vistaTimeVerticalPos</code></td><td>Place the clock above or below the minimap.</td></tr>
+                <tr data-search="lock time position vistalocked_time when on, the time text cannot be dragged."><td>Lock time position</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_time</code></td><td>When on, the time text cannot be dragged.</td></tr>
+                <tr data-search="performance text position vistaperfverticalpos place the fps/latency text above or below the minimap."><td>Performance text position</td><td><span class="type-badge">dropdown</span></td><td><code>vistaPerfVerticalPos</code></td><td>Place the FPS/latency text above or below the minimap.</td></tr>
+                <tr data-search="lock performance text position vistalocked_perf when on, the fps/latency text cannot be dragged."><td>Lock performance text position</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_perf</code></td><td>When on, the FPS/latency text cannot be dragged.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Button Positions</summary>
+            <div class="section-name">Section: Button Positions</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="drag buttons to reposition them. lock to prevent movement. — "><td>Drag buttons to reposition them. Lock to prevent movement.</td><td><span class="type-badge">header</span></td><td><code>—</code></td><td>—</td></tr>
+                <tr data-search="lock zoom in button vistalocked_zoomin prevent dragging the + zoom button."><td>Lock Zoom In button</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_zoomIn</code></td><td>Prevent dragging the + zoom button.</td></tr>
+                <tr data-search="lock zoom out button vistalocked_zoomout prevent dragging the - zoom button."><td>Lock Zoom Out button</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_zoomOut</code></td><td>Prevent dragging the - zoom button.</td></tr>
+                <tr data-search="lock tracking button vistalocked_proxy_tracking prevent dragging the tracking button."><td>Lock Tracking button</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_proxy_tracking</code></td><td>Prevent dragging the tracking button.</td></tr>
+                <tr data-search="lock calendar button vistalocked_proxy_calendar prevent dragging the calendar button."><td>Lock Calendar button</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_proxy_calendar</code></td><td>Prevent dragging the calendar button.</td></tr>
+                <tr data-search="lock queue button vistalocked_proxy_queue prevent dragging the queue status button."><td>Lock Queue button</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_proxy_queue</code></td><td>Prevent dragging the queue status button.</td></tr>
+                <tr data-search="lock mail indicator vistalocked_proxy_mail prevent dragging the mail icon."><td>Lock Mail indicator</td><td><span class="type-badge">toggle</span></td><td><code>vistaLocked_proxy_mail</code></td><td>Prevent dragging the mail icon.</td></tr>
+                <tr data-search="disable queue handling vistaqueuehandlingdisabled turn off all queue button anchoring (use if another addon manages it)."><td>Disable queue handling</td><td><span class="type-badge">toggle</span></td><td><code>vistaQueueHandlingDisabled</code></td><td>Turn off all queue button anchoring (use if another addon manages it).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Button Sizes</summary>
+            <div class="section-name">Section: Button Sizes</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="adjust the size of minimap overlay buttons. — "><td>Adjust the size of minimap overlay buttons.</td><td><span class="type-badge">header</span></td><td><code>—</code></td><td>—</td></tr>
+                <tr data-search="tracking button size vistatrackingbtnsize size of the tracking button (pixels)."><td>Tracking button size</td><td><span class="type-badge">slider</span></td><td><code>vistaTrackingBtnSize</code></td><td>Size of the tracking button (pixels).</td></tr>
+                <tr data-search="calendar button size vistacalendarbtnsize size of the calendar button (pixels)."><td>Calendar button size</td><td><span class="type-badge">slider</span></td><td><code>vistaCalendarBtnSize</code></td><td>Size of the calendar button (pixels).</td></tr>
+                <tr data-search="queue button size vistaqueuebtnsize size of the queue status button (pixels)."><td>Queue button size</td><td><span class="type-badge">slider</span></td><td><code>vistaQueueBtnSize</code></td><td>Size of the queue status button (pixels).</td></tr>
+                <tr data-search="zoom button size vistazoombtnsize size of the + and - zoom buttons (pixels)."><td>Zoom button size</td><td><span class="type-badge">slider</span></td><td><code>vistaZoomBtnSize</code></td><td>Size of the + and - zoom buttons (pixels).</td></tr>
+                <tr data-search="mail indicator size vistamailiconsize size of the new mail icon (pixels)."><td>Mail indicator size</td><td><span class="type-badge">slider</span></td><td><code>vistaMailIconSize</code></td><td>Size of the new mail icon (pixels).</td></tr>
+                <tr data-search="mail icon pulse vistamailblink when on, the mail icon pulses to draw attention. when off, it stays at full opacity."><td>Mail icon pulse</td><td><span class="type-badge">toggle</span></td><td><code>vistaMailBlink</code></td><td>When on, the mail icon pulses to draw attention. When off, it stays at full opacity.</td></tr>
+                <tr data-search="addon button size vistaaddonbtnsize size of collected addon minimap buttons (pixels)."><td>Addon button size</td><td><span class="type-badge">slider</span></td><td><code>vistaAddonBtnSize</code></td><td>Size of collected addon minimap buttons (pixels).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Zone Text</summary>
+            <div class="section-name">Section: Zone Text</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="zone font vistazonefontpath font for the zone name below the minimap."><td>Zone font</td><td><span class="type-badge">dropdown</span></td><td><code>vistaZoneFontPath</code></td><td>Font for the zone name below the minimap.</td></tr>
+                <tr data-search="zone font size vistazonefontsize "><td>Zone font size</td><td><span class="type-badge">slider</span></td><td><code>vistaZoneFontSize</code></td><td>—</td></tr>
+                <tr data-search="zone text color vistazonecolor color of the zone name text."><td>Zone text color</td><td><span class="type-badge">color</span></td><td><code>vistaZoneColor</code></td><td>Color of the zone name text.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Coordinates Text</summary>
+            <div class="section-name">Section: Coordinates Text</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="coordinates font vistacoordfontpath font for the coordinates text below the minimap."><td>Coordinates font</td><td><span class="type-badge">dropdown</span></td><td><code>vistaCoordFontPath</code></td><td>Font for the coordinates text below the minimap.</td></tr>
+                <tr data-search="coordinates font size vistacoordfontsize "><td>Coordinates font size</td><td><span class="type-badge">slider</span></td><td><code>vistaCoordFontSize</code></td><td>—</td></tr>
+                <tr data-search="coordinates text color vistacoordcolor color of the coordinates text."><td>Coordinates text color</td><td><span class="type-badge">color</span></td><td><code>vistaCoordColor</code></td><td>Color of the coordinates text.</td></tr>
+                <tr data-search="coordinate precision vistacoordprecision number of decimal places shown for x and y coordinates."><td>Coordinate precision</td><td><span class="type-badge">dropdown</span></td><td><code>vistaCoordPrecision</code></td><td>Number of decimal places shown for X and Y coordinates.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Time Text</summary>
+            <div class="section-name">Section: Time Text</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="time font vistatimefontpath font for the time text below the minimap."><td>Time font</td><td><span class="type-badge">dropdown</span></td><td><code>vistaTimeFontPath</code></td><td>Font for the time text below the minimap.</td></tr>
+                <tr data-search="time font size vistatimefontsize "><td>Time font size</td><td><span class="type-badge">slider</span></td><td><code>vistaTimeFontSize</code></td><td>—</td></tr>
+                <tr data-search="time text color vistatimecolor color of the time text."><td>Time text color</td><td><span class="type-badge">color</span></td><td><code>vistaTimeColor</code></td><td>Color of the time text.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Performance Text</summary>
+            <div class="section-name">Section: Performance Text</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="performance font vistaperffontpath font for the fps and latency text below the minimap."><td>Performance font</td><td><span class="type-badge">dropdown</span></td><td><code>vistaPerfFontPath</code></td><td>Font for the FPS and latency text below the minimap.</td></tr>
+                <tr data-search="performance font size vistaperffontsize "><td>Performance font size</td><td><span class="type-badge">slider</span></td><td><code>vistaPerfFontSize</code></td><td>—</td></tr>
+                <tr data-search="performance text color vistaperfcolor color of the fps and latency text."><td>Performance text color</td><td><span class="type-badge">color</span></td><td><code>vistaPerfColor</code></td><td>Color of the FPS and latency text.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Difficulty Text</summary>
+            <div class="section-name">Section: Difficulty Text</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="difficulty text color (fallback) vistadiffcolor default color when no per-difficulty color is set."><td>Difficulty text color (fallback)</td><td><span class="type-badge">color</span></td><td><code>vistaDiffColor</code></td><td>Default color when no per-difficulty color is set.</td></tr>
+                <tr data-search="difficulty font vistadifffontpath font for the instance difficulty text."><td>Difficulty font</td><td><span class="type-badge">dropdown</span></td><td><code>vistaDiffFontPath</code></td><td>Font for the instance difficulty text.</td></tr>
+                <tr data-search="difficulty font size vistadifffontsize "><td>Difficulty font size</td><td><span class="type-badge">slider</span></td><td><code>vistaDiffFontSize</code></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaAppearance">
+            <summary>Per-Difficulty Colors</summary>
+            <div class="section-name">Section: Per-Difficulty Colors</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="mythic color vistadiffcolor_mythic color for mythic difficulty text."><td>Mythic color</td><td><span class="type-badge">color</span></td><td><code>vistaDiffColor_mythic</code></td><td>Color for Mythic difficulty text.</td></tr>
+                <tr data-search="heroic color vistadiffcolor_heroic color for heroic difficulty text."><td>Heroic color</td><td><span class="type-badge">color</span></td><td><code>vistaDiffColor_heroic</code></td><td>Color for Heroic difficulty text.</td></tr>
+                <tr data-search="normal color vistadiffcolor_normal color for normal difficulty text."><td>Normal color</td><td><span class="type-badge">color</span></td><td><code>vistaDiffColor_normal</code></td><td>Color for Normal difficulty text.</td></tr>
+                <tr data-search="lfr color vistadiffcolor_lfr color for looking for raid difficulty text."><td>LFR color</td><td><span class="type-badge">color</span></td><td><code>vistaDiffColor_lfr</code></td><td>Color for Looking For Raid difficulty text.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Vista">
+        <div class="module-header">Vista — Addon Buttons</div>
+        <details class="category" data-category="VistaButtons">
+            <summary>Button Management</summary>
+            <div class="section-name">Section: Button Management</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="manage addon buttons vistahandleaddonbuttons collect and group addon minimap buttons."><td>Manage addon buttons</td><td><span class="type-badge">toggle</span></td><td><code>vistaHandleAddonButtons</code></td><td>Collect and group addon minimap buttons.</td></tr>
+                <tr data-search="button mode vistabuttonmode how addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button."><td>Button mode</td><td><span class="type-badge">dropdown</span></td><td><code>vistaButtonMode</code></td><td>How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.</td></tr>
+                <tr data-search="lock drawer button vistadrawerbuttonlocked prevent dragging the floating drawer button."><td>Lock drawer button</td><td><span class="type-badge">toggle</span></td><td><code>vistaDrawerButtonLocked</code></td><td>Prevent dragging the floating drawer button.</td></tr>
+                <tr data-search="lock mouseover bar vistamouseoverlocked prevent dragging the mouseover button bar."><td>Lock mouseover bar</td><td><span class="type-badge">toggle</span></td><td><code>vistaMouseoverLocked</code></td><td>Prevent dragging the mouseover button bar.</td></tr>
+                <tr data-search="always show bar vistamouseoverbarvisible keep bar visible for repositioning."><td>Always show bar</td><td><span class="type-badge">toggle</span></td><td><code>vistaMouseoverBarVisible</code></td><td>Keep bar visible for repositioning.</td></tr>
+                <tr data-search="lock right-click panel vistarightclicklocked prevent dragging the right-click panel."><td>Lock right-click panel</td><td><span class="type-badge">toggle</span></td><td><code>vistaRightClickLocked</code></td><td>Prevent dragging the right-click panel.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaButtons">
+            <summary>Close / Fade Timing</summary>
+            <div class="section-name">Section: Close / Fade Timing</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="mouseover close delay vistamouseoverclosedelay how long (in seconds) the bar stays visible after the cursor leaves. 0 = instant fade."><td>Mouseover close delay</td><td><span class="type-badge">slider</span></td><td><code>vistaMouseoverCloseDelay</code></td><td>How long (in seconds) the bar stays visible after the cursor leaves. 0 = instant fade.</td></tr>
+                <tr data-search="right-click close delay vistarightclickclosedelay how long (in seconds) the panel stays open after the cursor leaves. 0 = never auto-close (close by right-clicking again)."><td>Right-click close delay</td><td><span class="type-badge">slider</span></td><td><code>vistaRightClickCloseDelay</code></td><td>How long (in seconds) the panel stays open after the cursor leaves. 0 = never auto-close (close by right-clicking again).</td></tr>
+                <tr data-search="drawer close delay vistadrawerclosedelay auto-close delay (0 to disable)."><td>Drawer close delay</td><td><span class="type-badge">slider</span></td><td><code>vistaDrawerCloseDelay</code></td><td>Auto-close delay (0 to disable).</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaButtons">
+            <summary>Layout</summary>
+            <div class="section-name">Section: Layout</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="buttons per row/column vistabtnlayoutcols controls how many buttons appear before wrapping. for left/right direction this is columns; for up/down it is rows."><td>Buttons per row/column</td><td><span class="type-badge">slider</span></td><td><code>vistaBtnLayoutCols</code></td><td>Controls how many buttons appear before wrapping. For left/right direction this is columns; for up/down it is rows.</td></tr>
+                <tr data-search="expand direction vistabtnlayoutdir expand direction from anchor."><td>Expand direction</td><td><span class="type-badge">dropdown</span></td><td><code>vistaBtnLayoutDir</code></td><td>Expand direction from anchor.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaButtons">
+            <summary>Panel Appearance</summary>
+            <div class="section-name">Section: Panel Appearance</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="colors for the drawer and right-click button panels. — "><td>Colors for the drawer and right-click button panels.</td><td><span class="type-badge">header</span></td><td><code>—</code></td><td>—</td></tr>
+                <tr data-search="panel background color vistapanelbg background color of the addon button panels."><td>Panel background color</td><td><span class="type-badge">color</span></td><td><code>vistaPanelBg</code></td><td>Background color of the addon button panels.</td></tr>
+                <tr data-search="panel border color vistapanelborder border color of the addon button panels."><td>Panel border color</td><td><span class="type-badge">color</span></td><td><code>vistaPanelBorder</code></td><td>Border color of the addon button panels.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaButtons">
+            <summary>Mouseover Bar Appearance</summary>
+            <div class="section-name">Section: Mouseover Bar Appearance</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="background and border for the mouseover button bar. — "><td>Background and border for the mouseover button bar.</td><td><span class="type-badge">header</span></td><td><code>—</code></td><td>—</td></tr>
+                <tr data-search="bar background color vistabarbg background color of the mouseover button bar (use alpha to control transparency)."><td>Bar background color</td><td><span class="type-badge">color</span></td><td><code>vistaBarBg</code></td><td>Background color of the mouseover button bar (use alpha to control transparency).</td></tr>
+                <tr data-search="show bar border vistabarbordershow show a border around the mouseover button bar."><td>Show bar border</td><td><span class="type-badge">toggle</span></td><td><code>vistaBarBorderShow</code></td><td>Show a border around the mouseover button bar.</td></tr>
+                <tr data-search="bar border color vistabarborder border color of the mouseover button bar."><td>Bar border color</td><td><span class="type-badge">color</span></td><td><code>vistaBarBorder</code></td><td>Border color of the mouseover button bar.</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaButtons">
+            <summary>Managed buttons</summary>
+            <div class="section-name">Section: Managed buttons</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="(displayname ~= "" and displayname ~= localname) and displayname or localname vistabuttonmanaged_ when off, this button is completely ignored by this addon."><td>(displayName ~= "" and displayName ~= localName) and displayName or localName</td><td><span class="type-badge">toggle</span></td><td><code>vistaButtonManaged_</code></td><td>When off, this button is completely ignored by this addon.</td></tr>
+                <tr data-search="(no addon buttons detected yet) _vista_no_managed_placeholder "><td>(No addon buttons detected yet)</td><td><span class="type-badge">toggle</span></td><td><code>_vista_no_managed_placeholder</code></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </details>
+        <details class="category" data-category="VistaButtons">
+            <summary>Visible buttons (check to include)</summary>
+            <div class="section-name">Section: Visible buttons (check to include)</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="label vistabtn_ "><td>label</td><td><span class="type-badge">toggle</span></td><td><code>vistaBtn_</code></td><td>—</td></tr>
+                <tr data-search="(no addon buttons detected yet — open your minimap first) _vista_no_buttons_placeholder "><td>(No addon buttons detected yet — open your minimap first)</td><td><span class="type-badge">toggle</span></td><td><code>_vista_no_buttons_placeholder</code></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <div class="module" data-module="Yield">
+        <div class="module-header dev-only">Yield — General</div>
+        <details class="category" data-category="YieldGeneral">
+            <summary>Position</summary>
+            <div class="section-name">Section: Position</div>
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>dbKey</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr data-search="show anchor to move — click to show or hide the anchor. drag to set position, right-click to confirm."><td>Show anchor to move</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>Click to show or hide the anchor. Drag to set position, right-click to confirm.</td></tr>
+                <tr data-search="reset position — reset loot toast position to default."><td>Reset position</td><td><span class="type-badge">button</span></td><td><code>—</code></td><td>Reset loot toast position to default.</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
+
+    <script>
+        const search = document.getElementById('search');
+        search.addEventListener('input', function() {
+            const q = this.value.trim().toLowerCase();
+            document.querySelectorAll('.module').forEach(mod => {
+                if (!q) {
+                    mod.style.display = '';
+                    mod.querySelectorAll('details').forEach(d => { d.style.display = ''; });
+                    mod.querySelectorAll('tr[data-search]').forEach(r => { r.style.display = ''; });
+                    return;
+                }
+                let modHasMatch = false;
+                mod.querySelectorAll('details').forEach(d => {
+                    let sectionHasMatch = false;
+                    d.querySelectorAll('tr[data-search]').forEach(r => {
+                        const match = r.dataset.search && r.dataset.search.includes(q);
+                        r.style.display = match ? '' : 'none';
+                        if (match) sectionHasMatch = true;
+                    });
+                    d.style.display = sectionHasMatch ? '' : 'none';
+                    if (sectionHasMatch) modHasMatch = true;
+                });
+                mod.style.display = modHasMatch ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
