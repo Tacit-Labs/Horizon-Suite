@@ -8,25 +8,32 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
-- **(Focus) Remove tooltip when hovering over Horizon tracker**
+- **(Focus) Objectives can render outside the tracker window**
 
 ### 🔧 Improvements
 
 - **(Core) Release announcements include direct CurseForge and Wago links**
 - **(Core) Yield: Draggable anchor frame for repositioning loot toasts**
 - **(Core) Dashboard: Back button, sidebar state, and Focus colours refactor**
+- **(Core) Animated card relayout when options visibility changes**
+- **(Core) Options dashboard: hide dependent options when parent toggle is off**
+- **(Core) Compact options widgets and move descriptions to tooltips**
 - **(Focus) Setting to show or hide tooltips on hover in Focus tracker**
+- **(Focus) Spacing preset dropdown (Default, Compact, Spaced, Custom) and title-to-content gap**
+- **(Focus) Scenario tracker: stage line, objective deduplication, and current event suppression**
+- **(Focus) French: Dedicated Traque Section**
 - **(Insight) Insight tooltip options: background opacity, blank separator, show icons; remove accent bar**
 - **(Insight) Optional RondoMedia class icons in Insight tooltips**
-- **(Focus) Scenario tracker: stage line, objective deduplication, and current event suppression**
 
 ### 🐛 Fixes
 
 - **(Core) Dashboard sidebar stays synced across home, module, and category views**
 - **(Core) Fix Discord release announcement embed size limit**
 - **(Presence) Fix stale 0/X in delve and scenario completion text**
-- **(Focus) Quest Level: Lowercase "L"**
+- **(Focus) Focus tracker moves on /reload**
+- **(Focus) Tracker panel nudges when toggling grow-up off**
 - **(Focus) World Quest and task quest timers tick back up one second during refresh**
+- **(Focus) Quest Level: Lowercase "L"**
 - **(Focus) Typography: Improper Proper Case**
 
 ---
