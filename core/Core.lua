@@ -1720,6 +1720,7 @@ local visUpdateFrame = CreateFrame("Frame")
 visUpdateFrame:RegisterEvent("ADDON_LOADED")
 visUpdateFrame:SetScript("OnEvent", function(self, event, addonName)
     if addonName == addon.ADDON_NAME then
+        if addon.RestoreSavedPosition then addon.RestoreSavedPosition() end
         addon.UpdateResizeHandleVisibility()
         self:UnregisterEvent("ADDON_LOADED")
     end
