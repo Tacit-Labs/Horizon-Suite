@@ -1111,9 +1111,6 @@ local function PopulateEntry(entry, questData, groupKey)
         displayTitle = ("%d. %s"):format(questData.categoryIndex, displayTitle)
     end
 
-    if addon.GetDB("showQuestLevel", false) and questData.level then
-        displayTitle = ("%s [L%d]"):format(displayTitle, questData.level)
-    end
     -- Tier in title
     if questData.category == "DELVES" and type(questData.delveTier) == "number" then
         displayTitle = displayTitle .. (" - Tier %d"):format(questData.delveTier)
@@ -1133,6 +1130,9 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     end
     displayTitle = addon.ApplyTextCase(displayTitle, "questTitleCase", "proper")
+    if addon.GetDB("showQuestLevel", false) and questData.level then
+        displayTitle = ("%s [L%d]"):format(displayTitle, questData.level)
+    end
     entry.titleText:SetText(displayTitle)
     entry.titleShadow:SetText(displayTitle)
     if entry._inlineTimerStr then
