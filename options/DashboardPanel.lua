@@ -128,7 +128,8 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- Version from TOC (addon version)
             local addonName = addon.ADDON_NAME or "HorizonSuite"
-            local versionStr = addon.VERSION or (GetAddOnMetadata and GetAddOnMetadata(addonName, "Version")) or ""
+            local getMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+            local versionStr = addon.VERSION or (getMetadata and getMetadata(addonName, "Version")) or ""
             local sidebarVersion = MakeText(sidebar, versionStr ~= "" and ("v" .. versionStr) or "", 12, 0.55, 0.55, 0.65, "CENTER")
             sidebarVersion:SetPoint("TOP", sidebarLogoSub, "BOTTOM", 0, -4)
 
@@ -164,6 +165,13 @@ SlashCmdList["HSDASH"] = function(msg)
                 groupCollapsed[mk] = v
                 local db = _G[addon.DB_NAME]
                 if db then db.optionsSidebarGroupCollapsed = groupCollapsed end
+            end
+
+            local function SetGroupChildrenShown(g, shown)
+                if not g or not g.tabsContainer then return end
+                for _, child in pairs({g.tabsContainer:GetChildren()}) do
+                    child:SetShown(shown)
+                end
             end
 
             -- Sidebar state controller: single source of truth for view, active selection, expanded groups.
@@ -630,6 +638,16 @@ SlashCmdList["HSDASH"] = function(msg)
             ApplySmoothScroll(detailScroll, detailContent, 60, true)
             local currentDetailCards = {}
 
+            local function ClearDetailCards()
+                for _, card in ipairs(currentDetailCards) do
+                    if card.anim and card.anim:IsPlaying() then card.anim:Stop() end
+                    if card.relayoutAnimFrame then card.relayoutAnimFrame:SetScript("OnUpdate", nil) end
+                    card.relayoutAnim = nil
+                    card:Hide()
+                end
+                wipe(currentDetailCards)
+            end
+
             -- Helper: Update Detail Layout
             local function UpdateDetailLayout()
                 local yOffset = 0
@@ -673,11 +691,9 @@ SlashCmdList["HSDASH"] = function(msg)
                     -- Get the module label
                     local modName = targetCat.moduleKey and moduleLabels[targetCat.moduleKey] or targetCat.name
 
-                    -- We first "open" the module so its subcategory tiles are created in the background
-                    -- This ensures that hitting the "BACK" button from detail view has a populated subCategoryView.
-                    f.OpenModule(modName, targetCat.moduleKey)
+                    -- Build subcategory tiles (for back button) but skip detail card creation since OpenCategoryDetail handles it
+                    f.OpenModule(modName, targetCat.moduleKey, true)
 
-                    -- Navigate to the Detail View for that Category
                     local options = type(targetCat.options) == "function" and targetCat.options() or targetCat.options
                     f.OpenCategoryDetail(modName, entry.categoryName, options)
 
@@ -815,6 +831,13 @@ SlashCmdList["HSDASH"] = function(msg)
 
             local currentSubTiles = {}
 
+            local function ClearSubTiles()
+                for _, tile in ipairs(currentSubTiles) do
+                    tile:Hide()
+                end
+                wipe(currentSubTiles)
+            end
+
             -- Helper: Create Subcategory Tile
             local TILE_PAD = 10
             local TILE_GAP = 10
@@ -910,15 +933,10 @@ SlashCmdList["HSDASH"] = function(msg)
                 f.currentModuleKey = matchedModuleKey
                 SetSidebarState({ view = "category", activeModuleKey = matchedModuleKey, activeCategoryIndex = matchedCatIdx })
 
+                ClearDetailCards()
                 CrossfadeTo(detailView)
                 detailContent:Show()
                 detailScroll:SetVerticalScroll(0)
-
-                -- Clear previous detail
-                for _, card in ipairs(currentDetailCards) do
-                    card:Hide()
-                end
-                wipe(currentDetailCards)
 
                 if f.detailTitle then 
                     f.detailTitle:SetText(modName:upper() .. "  >  " .. catName:upper())
@@ -946,7 +964,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
             end
 
-            f.OpenModule = function(name, moduleKey)
+            f.OpenModule = function(name, moduleKey, skipDetailBuild)
                 if searchBox then searchBox:ClearFocus() end
 
                 local mk = moduleKey or "modules"
@@ -969,14 +987,9 @@ SlashCmdList["HSDASH"] = function(msg)
 
                     if #cats > 1 then
                     -- Show SubCategory View
+                    ClearSubTiles()
                     CrossfadeTo(subCategoryView)
                     subCategoryScroll:SetVerticalScroll(0)
-
-                    -- Clear previous subtiles
-                    for _, tile in ipairs(currentSubTiles) do
-                        tile:Hide()
-                    end
-                    wipe(currentSubTiles)
 
                     local modName = moduleKey and moduleLabels[moduleKey] or name
 
@@ -1016,17 +1029,12 @@ SlashCmdList["HSDASH"] = function(msg)
                         end
                     end
                     subCategoryContent:SetHeight(math.max(1, tileYOffset))
-                else
+                elseif not skipDetailBuild then
                     -- Only 1 category (or none), go straight to details
+                    ClearDetailCards()
                     CrossfadeTo(detailView)
                     detailContent:Show()
                     detailScroll:SetVerticalScroll(0)
-                    
-                    -- Clear previous detail
-                    for _, card in ipairs(currentDetailCards) do
-                        card:Hide()
-                    end
-                    wipe(currentDetailCards)
 
                     if f.detailTitle then 
                         local titleText = name:upper()
@@ -2163,9 +2171,8 @@ SlashCmdList["HSDASH"] = function(msg)
                         for _, catIdx in ipairs(g.categories) do
                             local cat = addon.OptionCategories[catIdx]
                             local modLabel = cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey) or modName
-                            -- Sub-buttons: OpenModule first (builds subcategory tiles), then OpenCategoryDetail (matches NavigateToOption)
                             local btn = CreateSidebarButton(tabsContainer, cat.name, nil, function()
-                                f.OpenModule(modLabel, cat.moduleKey)
+                                f.OpenModule(modLabel, cat.moduleKey, true)
                                 local options = type(cat.options) == "function" and cat.options() or cat.options
                                 f.OpenCategoryDetail(modLabel, cat.name, options)
                             end, 12)
@@ -2175,6 +2182,10 @@ SlashCmdList["HSDASH"] = function(msg)
                             btn.sidebarName = cat.name
                             btn.sidebarCategoryIndex = catIdx
                             tinsert(sidebarButtons, btn)
+                        end
+
+                        if startCollapsed then
+                            SetGroupChildrenShown(g, false)
                         end
                     end
                 end
@@ -2201,11 +2212,13 @@ SlashCmdList["HSDASH"] = function(msg)
                             SetGroupCollapsed(mk, false)
                             g.tabsContainer:SetScript("OnUpdate", nil)
                             g.tabsContainer:SetHeight(g.fullHeight)
+                            SetGroupChildrenShown(g, true)
                             if g.header and g.header.chevron then g.header.chevron:SetText("-") end
                         elseif not GetGroupCollapsed(mk) then
                             SetGroupCollapsed(mk, true)
                             g.tabsContainer:SetScript("OnUpdate", nil)
                             g.tabsContainer:SetHeight(0)
+                            SetGroupChildrenShown(g, false)
                             if g.header and g.header.chevron then g.header.chevron:SetText("+") end
                         end
                         if g.header and g.header.updateSpacer then g.header.updateSpacer() end
@@ -2256,6 +2269,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 local collapsed = not GetGroupCollapsed(mk)
                 SetGroupCollapsed(mk, collapsed)
                 if g.header and g.header.chevron then g.header.chevron:SetText(collapsed and "+" or "-") end
+                if not collapsed then
+                    SetGroupChildrenShown(g, true)
+                end
                 local fromH = g.tabsContainer:GetHeight()
                 local toH = collapsed and 0 or g.fullHeight
                 if fromH ~= toH then
@@ -2269,9 +2285,17 @@ SlashCmdList["HSDASH"] = function(msg)
                         self:SetHeight(math.max(0, h))
                         if g.header and g.header.updateSpacer then g.header.updateSpacer() end
                         LayoutSidebar()
-                        if t >= 1 then self:SetScript("OnUpdate", nil) end
+                        if t >= 1 then
+                            self:SetScript("OnUpdate", nil)
+                            if collapsed then
+                                SetGroupChildrenShown(g, false)
+                            end
+                        end
                     end)
                 else
+                    if collapsed then
+                        SetGroupChildrenShown(g, false)
+                    end
                     if g.header and g.header.updateSpacer then g.header.updateSpacer() end
                     LayoutSidebar()
                 end
