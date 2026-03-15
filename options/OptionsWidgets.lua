@@ -63,19 +63,17 @@ local function GetClassColorRaw()
     return nil
 end
 
--- Returns {r, g, b} when options panel should use class colour (classColorGlobal OR optionsClassColor), nil otherwise.
+-- Returns {r, g, b} when dashboard/options panel should use class colour, nil otherwise.
 function addon.GetOptionsClassColor()
-    if not (addon.GetDB and addon.GetDB("classColorGlobal", false)) and
-       not (addon.GetDB and addon.GetDB("optionsClassColor", false)) then
+    if not (addon.GetDB and addon.GetDB("dashboardClassColor", false)) then
         return nil
     end
     return GetClassColorRaw()
 end
 
--- Returns {r, g, b} when Vista should use class colour (classColorGlobal OR vistaClassColor), nil otherwise.
+-- Returns {r, g, b} when Vista should use class colour (vistaClassColor), nil otherwise.
 function addon.GetVistaClassColor()
-    if not (addon.GetDB and addon.GetDB("classColorGlobal", false)) and
-       not (addon.GetDB and addon.GetDB("vistaClassColor", false)) then
+    if not (addon.GetDB and addon.GetDB("vistaClassColor", false)) then
         return nil
     end
     return GetClassColorRaw()

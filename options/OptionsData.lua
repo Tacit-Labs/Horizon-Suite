@@ -317,12 +317,9 @@ function OptionsData_SetDB(key, value)
     if YIELD_KEYS[key] and addon.Yield and addon.Yield.ApplyYieldOptions then
         addon.Yield.ApplyYieldOptions()
     end
-    if key == "classColorGlobal" then
+    if key == "dashboardClassColor" then
         if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
-        if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
-    end
-    if key == "optionsClassColor" and addon.ApplyOptionsClassColor then
-        addon.ApplyOptionsClassColor()
+        if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
     end
     if key == "vistaClassColor" and addon.Vista and addon.Vista.ApplyColors then
         addon.Vista.ApplyColors()
@@ -920,8 +917,7 @@ local OptionCategories = {
                 opts[#opts + 1] = { type = "toggle", name = L["Yield"] .. betaSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end }
             end
             opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
-            opts[#opts + 1] = { type = "toggle", name = L["Use class colours everywhere"] or "Use class colours everywhere", desc = L["Enable class colours for both the options panel and Vista minimap."] or "Enable class colours for both the options panel and Vista minimap.", dbKey = "classColorGlobal", get = function() return getDB("classColorGlobal", false) end, set = function(v) setDB("classColorGlobal", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end; if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end end }
-            opts[#opts + 1] = { type = "toggle", name = L["Options panel accent"] or "Options panel accent", desc = L["Tint the options panel accent with your class colour."] or "Tint the options panel accent with your class colour.", dbKey = "optionsClassColor", get = function() return getDB("optionsClassColor", false) end, set = function(v) setDB("optionsClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end end }
+            opts[#opts + 1] = { type = "toggle", name = L["Class colours - Dashboard"] or "Class colours - Dashboard", desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "dashboardClassColor", get = function() return getDB("dashboardClassColor", false) end, set = function(v) setDB("dashboardClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end; if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end end }
             opts[#opts + 1] = { type = "section", name = L["Scaling"] }
             -- helper: refresh all modules after any scale change
             local function refreshAllScaling()
