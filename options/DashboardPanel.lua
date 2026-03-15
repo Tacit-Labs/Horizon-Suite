@@ -1185,6 +1185,33 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
                 end
 
+                local function RelayoutCard(card)
+                    if not card or not card.widgetList then return end
+                    local yOff = 0
+                    for _, entry in ipairs(card.widgetList) do
+                        local visible = true
+                        if entry.visibleWhen then
+                            visible = entry.visibleWhen()
+                        end
+                        entry.frame:SetShown(visible)
+                        if visible then
+                            local topGap = entry.isHeader and 18 or 6
+                            entry.frame:ClearAllPoints()
+                            entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", 30, -(yOff + topGap))
+                            entry.frame:SetPoint("RIGHT", card.settingsContainer, "RIGHT", -30, 0)
+                            local h = entry.frame:GetHeight() or 40
+                            if entry.isHeader and h < 20 then h = 20 end
+                            yOff = yOff + h + topGap
+                        end
+                    end
+                    card.contentHeight = yOff
+                    card.fullHeight = yOff + 80
+                    if card.expanded then
+                        card:SetHeight(card.fullHeight)
+                    end
+                    UpdateDetailLayout()
+                end
+
                 for _, opt in ipairs(options) do
                     -- Resolve get/set fallbacks if missing
                     local g = opt.get
@@ -1234,20 +1261,22 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
 
                     if opt.type == "section" then
-                        -- Finalize previous card if any
+                        -- Finalize previous card if any (relayout to apply visibility)
                         if currentCard then
-                            currentCard.fullHeight = currentCard.contentHeight + 80
+                            RelayoutCard(currentCard)
                         end
 
                         currentCard = CreateAccordionCard(detailContent, opt.name)
                         currentCard.contentHeight = 0
                         currentCard.optionIds = {}
+                        currentCard.widgetList = {}
                         tinsert(currentDetailCards, currentCard)
                     else
                         if not currentCard then
                             currentCard = CreateAccordionCard(detailContent, moduleSubName)
                             currentCard.contentHeight = 0
                             currentCard.optionIds = {}
+                            currentCard.widgetList = {}
                             tinsert(currentDetailCards, currentCard)
                         end
                         
@@ -1741,35 +1770,38 @@ SlashCmdList["HSDASH"] = function(msg)
                         if widget then
                             widget:SetParent(currentCard.settingsContainer)
                             widget:Show()
-                            
+                            widget._parentCard = currentCard
+
                             local isHeader = opt.type == "header"
-                            local topGap = isHeader and 18 or 6
-                            
-                            widget:SetPoint("TOPLEFT", 30, -(currentCard.contentHeight + topGap))
-                            
                             if isHeader then
-                                widget:SetPoint("RIGHT", currentCard.settingsContainer, "RIGHT", -30, 0)
                                 if widget.SetJustifyH then widget:SetJustifyH("LEFT") end
-                                -- Make headers stand out a bit
                                 if widget.SetTextColor then
                                     widget:SetTextColor(0.58, 0.64, 0.74, 1)
                                 end
-                            else
-                                widget:SetPoint("RIGHT", currentCard.settingsContainer, "RIGHT", -30, 0)
                             end
-                            
-                            local widgetH = widget:GetHeight() or 40
-                            if isHeader and widgetH < 20 then widgetH = 20 end
-                            
-                            currentCard.contentHeight = currentCard.contentHeight + widgetH + topGap
+
+                            tinsert(currentCard.widgetList, {
+                                frame = widget,
+                                isHeader = isHeader,
+                                visibleWhen = opt.visibleWhen,
+                            })
+
+                            if opt.visibleWhen and type(opt.visibleWhen) == "function" and widget.Refresh then
+                                local origRefresh = widget.Refresh
+                                local cardRef = currentCard
+                                widget.Refresh = function(self)
+                                    if origRefresh then origRefresh(self) end
+                                    RelayoutCard(cardRef)
+                                end
+                            end
                         end
                     end
                 end
 
                 if currentCard then
-                    currentCard.fullHeight = currentCard.contentHeight + 80
+                    RelayoutCard(currentCard)
                 end
-                
+
                 UpdateDetailLayout()
             end
 
