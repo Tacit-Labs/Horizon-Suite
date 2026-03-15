@@ -14,6 +14,7 @@ media/MediaRegistry.lua
 core/Config.lua
 core/Core.lua
 core/CoreSlash.lua
+core/MinimapButton.lua
 
 modules/Focus/FocusState.lua
 modules/Focus/FocusCategories.lua
@@ -93,4 +94,5 @@ options/zhCN.lua
 options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua
+options/SettingsBridge.lua
 options/DashboardPanel.lua

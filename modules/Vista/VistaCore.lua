@@ -1789,6 +1789,7 @@ end
 local INTERNAL_BLACKLIST, BLIZZARD_DEFAULT_BUTTONS, ClusterAndOtherAddonNamePatterns, buttonOriginalState, proxyButtonCache
 do
     INTERNAL_BLACKLIST = {
+        ["HorizonSuiteMinimapButton"]     = true,
         ["HorizonSuiteVistaDecor"]       = true,
         ["HorizonSuiteVistaButtonBar"]   = true,
         ["HorizonSuiteVistaDrawerBtn"]   = true,
