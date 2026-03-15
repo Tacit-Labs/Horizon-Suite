@@ -493,8 +493,46 @@ end
 local allRefreshers = {}
 local allCollapsibleCards = {}
 
+local function RelayoutCard(card)
+    if not card or not card.widgetList or not card.relayoutBaseAnchor then return end
+    local prevAnchor = card.relayoutBaseAnchor
+    local headerH = card.headerHeight or (CardPadding + 24)
+    local contentH = headerH
+    for _, entry in ipairs(card.widgetList) do
+        local visible = true
+        if entry.visibleWhen then
+            visible = entry.visibleWhen()
+        end
+        entry.frame:SetShown(visible)
+        if visible then
+            entry.frame:ClearAllPoints()
+            entry.frame:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            entry.frame:SetPoint("RIGHT", card, "RIGHT", -CardPadding, 0)
+            prevAnchor = entry.frame
+            contentH = contentH + OptionGap + (entry.rowHeight or 40)
+        end
+    end
+    card.contentHeight = contentH
+    local fullH = contentH + CardBottomPadding
+    card.fullHeight = fullH
+    if card.contentContainer and card.sectionKey then
+        card.contentContainer:SetHeight(math.max(1, contentH - headerH))
+        local collapsed = GetCardCollapsed(card.sectionKey)
+        if not collapsed then
+            card:SetHeight(fullH)
+        end
+    else
+        card:SetHeight(fullH)
+    end
+    local tab = card:GetParent()
+    if tab and ResizeTabFrame then ResizeTabFrame(tab) end
+end
+
 local function FinalizeCard(card)
     if not card or not card.contentHeight then return end
+    if card.widgetList and card.relayoutBaseAnchor then
+        RelayoutCard(card)
+    end
     local fullH = card.contentHeight + CardBottomPadding
     card.fullHeight = fullH
     if card.contentContainer and card.sectionKey then
@@ -568,6 +606,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 sectionDefaultCollapsed[sectionKey] = true
             end
             currentCard = OptionsWidgets_CreateSectionCard(tab, anchor, sectionKey, GetCardCollapsed, SetCardCollapsed)
+            currentCard.widgetList = {}
             if hasHeader then
                 local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name, sectionKey, GetCardCollapsed, SetCardCollapsed)
                 currentCard.contentAnchor = lbl
@@ -580,6 +619,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 currentCard.contentAnchor = spacer
                 currentCard.contentHeight = CardPadding
             end
+            currentCard.relayoutBaseAnchor = currentCard.contentAnchor
             anchor = currentCard
         elseif opt.type == "header" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
@@ -592,6 +632,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             lbl:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = lbl
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 12
+            tinsert(currentCard.widgetList, { frame = lbl, rowHeight = 12, visibleWhen = nil })
         elseif opt.type == "toggle" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
@@ -612,6 +653,15 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.toggle
+            tinsert(currentCard.widgetList, { frame = w, rowHeight = RowHeights.toggle, visibleWhen = opt.visibleWhen })
+            if opt.visibleWhen and w.Refresh then
+                local origRefresh = w.Refresh
+                local cardRef = currentCard
+                w.Refresh = function(self)
+                    if origRefresh then origRefresh(self) end
+                    RelayoutCard(cardRef)
+                end
+            end
             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
             if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = w } end
             table.insert(refreshers, w)
@@ -635,6 +685,15 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.slider
+            tinsert(currentCard.widgetList, { frame = w, rowHeight = RowHeights.slider, visibleWhen = opt.visibleWhen })
+            if opt.visibleWhen and w.Refresh then
+                local origRefresh = w.Refresh
+                local cardRef = currentCard
+                w.Refresh = function(self)
+                    if origRefresh then origRefresh(self) end
+                    RelayoutCard(cardRef)
+                end
+            end
             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
             if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = w } end
             table.insert(refreshers, w)
@@ -659,6 +718,15 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.dropdown
+            tinsert(currentCard.widgetList, { frame = w, rowHeight = RowHeights.dropdown, visibleWhen = opt.visibleWhen })
+            if opt.visibleWhen and w.Refresh then
+                local origRefresh = w.Refresh
+                local cardRef = currentCard
+                w.Refresh = function(self)
+                    if origRefresh then origRefresh(self) end
+                    RelayoutCard(cardRef)
+                end
+            end
             w._card = currentCard
             if type(opt.hidden) == "function" then
                 w._hiddenFn = opt.hidden
@@ -712,9 +780,18 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             end
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
-            local row = OptionsWidgets_CreateColorSwatchRow(cardContent, contentAnchor, opt.name or "Color", def, getTbl, setKeyVal, notifyMainAddon, nil, hasAlpha, opt.tooltip)
+            local row = OptionsWidgets_CreateColorSwatchRow(cardContent, contentAnchor, opt.name or "Color", def, getTbl, setKeyVal, notifyMainAddon, opt.disabled, hasAlpha, opt.tooltip)
             currentCard.contentAnchor = row
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + RowHeights.colorRow
+            tinsert(currentCard.widgetList, { frame = row, rowHeight = RowHeights.colorRow, visibleWhen = opt.visibleWhen })
+            if opt.visibleWhen and row.Refresh then
+                local origRefresh = row.Refresh
+                local cardRef = currentCard
+                row.Refresh = function(self)
+                    if origRefresh then origRefresh(self) end
+                    RelayoutCard(cardRef)
+                end
+            end
             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
             if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = row } end
             table.insert(refreshers, row)
@@ -734,7 +811,9 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 if previewWidget.Refresh then previewFrame.Refresh = previewWidget.Refresh end
                 if previewFrame.Refresh then previewFrame:Refresh() end
                 currentCard.contentAnchor = previewFrame
-                currentCard.contentHeight = currentCard.contentHeight + OptionGap + (previewFrame:GetHeight() or 210)
+                local previewH = previewFrame:GetHeight() or 210
+                currentCard.contentHeight = currentCard.contentHeight + OptionGap + previewH
+                tinsert(currentCard.widgetList, { frame = previewFrame, rowHeight = previewH, visibleWhen = nil })
                 if optionFrames then optionFrames["presencePreview"] = { tabIndex = tabIndex, frame = previewFrame } end
                 table.insert(refreshers, previewFrame)
             end
@@ -756,6 +835,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             btn:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = btn
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 22
+            tinsert(currentCard.widgetList, { frame = btn, rowHeight = 22, visibleWhen = nil })
         elseif opt.type == "editbox" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
@@ -854,7 +934,9 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 if opt.get then edit:SetText(opt.get() or "") end
             end
             currentCard.contentAnchor = wrapper
-            currentCard.contentHeight = currentCard.contentHeight + OptionGap + wrapper:GetHeight()
+            local editboxH = wrapper:GetHeight()
+            currentCard.contentHeight = currentCard.contentHeight + OptionGap + editboxH
+            tinsert(currentCard.widgetList, { frame = wrapper, rowHeight = editboxH, visibleWhen = nil })
             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_editbox_" .. (opt.labelText or ""):gsub("%s+", "_"))
             if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = wrapper } end
             table.insert(refreshers, wrapper)
