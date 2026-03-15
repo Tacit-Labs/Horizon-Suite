@@ -143,6 +143,49 @@ function BaseProvider:ParseWidgetObjectives(setID)
     return objectives
 end
 
+--- Normalize objective text for deduplication (strip color codes, trim).
+--- @param text string|nil
+--- @return string
+local function NormalizeObjectiveText(text)
+    if not text or type(text) ~= "string" then return "" end
+    return text:gsub("|c........", ""):gsub("|r", ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
+end
+
+--- Deduplicate objectives by normalized text. When duplicates exist, keep the one with higher progress.
+--- @param objectives table Array of objective tables
+--- @return table Deduplicated array (preserves order of first occurrence)
+function BaseProvider:DeduplicateObjectives(objectives)
+    if not objectives or #objectives == 0 then return objectives end
+    local function getProgress(o)
+        if o.percent ~= nil then return o.percent end
+        if o.numFulfilled and o.numRequired and o.numRequired > 0 then
+            return math.floor(100 * o.numFulfilled / o.numRequired)
+        end
+        return 0
+    end
+    local seen = {}
+    local out = {}
+    for _, obj in ipairs(objectives) do
+        local key = NormalizeObjectiveText(obj and obj.text or "")
+        if key == "" then
+            table.insert(out, obj)
+        else
+            local existingIdx = seen[key]
+            if not existingIdx then
+                seen[key] = #out + 1
+                table.insert(out, obj)
+            else
+                local curPct = getProgress(obj)
+                local existPct = getProgress(out[existingIdx])
+                if curPct > existPct then
+                    out[existingIdx] = obj
+                end
+            end
+        end
+    end
+    return out
+end
+
 --- Normalized objective builder from CriteriaInfo.
 function BaseProvider:BuildObjectiveFromCriteria(criteriaInfo)
     if not criteriaInfo then return nil end

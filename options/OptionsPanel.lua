@@ -1061,14 +1061,15 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 container.rows = nil  -- created lazily
                 container.groupKey = key
 
+                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["Stage"]) or "Stage") or ((addon.L and addon.L["Zone"]) or "Zone")
                 local catDefs = {
                     { subKey = "section",   suffix = "Section",   def = unifiedDef },
                     { subKey = "title",     suffix = "Title",     def = unifiedDef },
-                    { subKey = "zone",      suffix = "Zone",      def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                    { subKey = "zone",      suffix = zoneLabel,   def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
                     { subKey = "objective", suffix = "Objective", def = unifiedDef },
                 }
 
-                -- Lazy-create the 4 color rows on first expand.
+                -- Lazy-create the color rows on first expand.
                 local function EnsureRows()
                     if container.rows then return end
                     container.rows = {}

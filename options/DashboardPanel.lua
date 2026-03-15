@@ -1508,10 +1508,11 @@ SlashCmdList["HSDASH"] = function(msg)
                                 groupHeader.expanded = false
                                 groupHeader.rows = nil
 
+                                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["Stage"]) or "Stage") or ((addon.L and addon.L["Zone"]) or "Zone")
                                 local catDefs = {
                                     { subKey = "section",   suffix = "Section",   def = unifiedDef },
                                     { subKey = "title",     suffix = "Title",     def = unifiedDef },
-                                    { subKey = "zone",      suffix = "Zone",      def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                                    { subKey = "zone",      suffix = zoneLabel,   def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
                                     { subKey = "objective", suffix = "Objective", def = unifiedDef },
                                 }
                                 groupHeader.rowCount = #catDefs

@@ -1264,6 +1264,8 @@ local function PopulateEntry(entry, questData, groupKey)
     -- Prey activities: "Activity" is a semantic label, not a zone—always show it even when in-zone
     local isActivityLabel = questData.zoneName and ((questData.zoneName == "Activity") or (addon.L and addon.L["Activity"] and questData.zoneName == addon.L["Activity"]))
     local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel)
+    local shouldShowScenarioStage = questData.stageName and (questData.category == "SCENARIO" or questData.isScenarioMain)
+        and (questData.title ~= questData.stageName)
     if shouldShowZone then
         local zoneLabel = questData.zoneName
         if isOffMapWorld then
@@ -1283,6 +1285,27 @@ local function PopulateEntry(entry, questData, groupKey)
         local zoneH = entry.zoneText:GetStringHeight()
         if not zoneH or zoneH < 1 then zoneH = addon.ZONE_SIZE + 2 end
         totalH = totalH + titleToContentSpacing + zoneH
+        prevAnchor = entry.zoneText
+    elseif shouldShowScenarioStage then
+        local stageLabel = questData.stageName
+        if questData.stageIndex and questData.stageIndex > 0 then
+            local stageFmt = (addon.L and addon.L["Stage %d: %s"]) or "Stage %d: %s"
+            stageLabel = stageFmt:format(questData.stageIndex, questData.stageName)
+        end
+        entry.zoneText:SetText(stageLabel)
+        entry.zoneShadow:SetText(stageLabel)
+        local stageColor = (addon.GetScenarioStageColor and addon.GetScenarioStageColor()) or addon.ZONE_COLOR or { 0.55, 0.65, 0.75 }
+        if addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked then
+            stageColor = addon.ApplyDimColor(stageColor)
+        end
+        entry.zoneText:SetTextColor(stageColor[1], stageColor[2], stageColor[3], dimAlpha)
+        entry.zoneText:ClearAllPoints()
+        entry.zoneText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
+        entry.zoneText:Show()
+        entry.zoneShadow:Show()
+        local stageH = entry.zoneText:GetStringHeight()
+        if not stageH or stageH < 1 then stageH = addon.ZONE_SIZE + 2 end
+        totalH = totalH + titleToContentSpacing + stageH
         prevAnchor = entry.zoneText
     else
         entry.zoneText:Hide()

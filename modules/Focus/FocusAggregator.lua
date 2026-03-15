@@ -173,14 +173,23 @@ local function SortAndGroupQuests(quests)
 
     local showCurrent = addon.GetDB("showCurrentQuestCategory", true) and groups["CURRENT"]
     local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
+    local scenarioActive = false
+    if addon.ReadScenarioEntries then
+        local entries = addon.ReadScenarioEntries()
+        scenarioActive = entries and #entries > 0
+    end
     for _, q in ipairs(quests) do
         local isEventInPlayerZone = q.isEventQuest
             and (q.isNearby or (q.zoneName and playerZone and q.zoneName:lower() == playerZone:lower()))
 
         -- Event quests never participate in Current Quest / expired-from-Current routing.
         -- In-zone events move between Current Event and Events in Zone based on proximity.
+        -- When a scenario is active, suppress BonusObjective (event) quests from CURRENT_EVENT
+        -- so only the scenario entry is shown (matches Blizzard: quest + scenario widget).
         if q.isEventQuest and q.isAccepted and q.isNearby and groups["CURRENT_EVENT"] then
-            groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
+            if not scenarioActive then
+                groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
+            end
         elseif (q.category == "WORLD" or q.category == "CALLING") and q.isInQuestArea and groups["CURRENT_EVENT"] then
             groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
         elseif isEventInPlayerZone and groups["AVAILABLE"] then

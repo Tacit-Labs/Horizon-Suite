@@ -60,6 +60,8 @@ function WorldProvider:ReadEntries()
         for _, gObj in ipairs(gObjs) do table.insert(objectives, gObj) end
     end
 
+    objectives = self:DeduplicateObjectives(objectives)
+
     -- 4. Timer (widget:step only for Singularity-style scenarios)
     if not timerDuration then
         timerDuration, timerStartTime = self:GetWidgetStepTimer(widgetSetID)
@@ -67,12 +69,14 @@ function WorldProvider:ReadEntries()
     
     if #objectives > 0 or timerDuration then
         local scenarioName
-        local iOk, name = pcall(C_Scenario.GetInfo)
+        local stageIndex
+        local iOk, name, currentStage = pcall(C_Scenario.GetInfo)
         if iOk and name and name ~= "" then scenarioName = name end
+        if iOk and currentStage and type(currentStage) == "number" and currentStage > 0 then stageIndex = currentStage end
 
         local title
         if scenarioName and (stageName and stageName ~= "") then
-            title = scenarioName .. " — " .. stageName
+            title = scenarioName
         elseif stageName and stageName ~= "" then
             title = stageName
         elseif scenarioName then
@@ -84,6 +88,8 @@ function WorldProvider:ReadEntries()
         table.insert(out, {
             entryKey = "scenario-world",
             title = title,
+            stageName = (stageName and stageName ~= "") and stageName or nil,
+            stageIndex = stageIndex,
             category = "SCENARIO",
             color = addon.GetQuestColor and addon.GetQuestColor("SCENARIO") or { 0.38, 0.52, 0.88 },
             objectives = objectives,

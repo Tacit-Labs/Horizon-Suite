@@ -145,6 +145,17 @@ local function GetZoneColor(category)
     return addon.ZONE_COLOR
 end
 
+--- Color for scenario stage line (e.g. "Stage 1: Where is the Echoless Flame?").
+--- Reads from color matrix SCENARIO.zone (labeled "Stage" in options); defaults to ZONE_COLOR.
+--- @return table {r,g,b}
+local function GetScenarioStageColor()
+    local cm = GetColorMatrix()
+    if cm and cm.categories and cm.categories.SCENARIO and cm.categories.SCENARIO.zone then
+        return SanitizeColor(cm.categories.SCENARIO.zone, addon.ZONE_COLOR)
+    end
+    return (addon.QUEST_COLORS and addon.QUEST_COLORS.SCENARIO_STAGE) or (addon.SECTION_COLORS and addon.SECTION_COLORS.SCENARIO_STAGE) or addon.ZONE_COLOR
+end
+
 local function GetQuestColor(category)
     -- Backwards-compatible wrapper for title color.
     return GetTitleColor(category)
@@ -177,5 +188,6 @@ addon.GetCompletedObjectiveColor = GetCompletedObjectiveColor
 addon.GetTitleColor        = GetTitleColor
 addon.GetObjectiveColor    = GetObjectiveColor
 addon.GetZoneColor         = GetZoneColor
+addon.GetScenarioStageColor = GetScenarioStageColor
 addon.GetQuestColor        = GetQuestColor
 addon.GetSectionColor      = GetSectionColor
