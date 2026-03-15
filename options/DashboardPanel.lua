@@ -65,6 +65,7 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             local moduleLabels = {
+                axis = L["Axis"] or "Axis",
                 focus = L["Focus"] or "Focus",
                 presence = L["Presence"] or "Presence",
                 vista = L["Vista"] or "Vista",
@@ -73,6 +74,7 @@ SlashCmdList["HSDASH"] = function(msg)
             }
 
             local categoryIcons = {
+                ["Axis"] = "INV_Misc_Wrench_01",
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
                 ["Modules"] = "inv_10_engineering_purchasedparts_color2",
                 ["Focus"] = "achievement_quests_completed_05",
@@ -571,7 +573,13 @@ SlashCmdList["HSDASH"] = function(msg)
                     local mk = f.currentModuleKey
                     local cats = {}
                     for _, cat in ipairs(addon.OptionCategories) do
-                        if (cat.moduleKey or "modules") == mk and cat.options then
+                        local catMk
+                        if cat.key == "Profiles" or cat.key == "Modules" then
+                            catMk = "axis"
+                        else
+                            catMk = cat.moduleKey or "modules"
+                        end
+                        if catMk == mk and cat.options then
                             tinsert(cats, cat)
                         end
                     end
@@ -688,11 +696,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
 
                 if targetCat then
-                    -- Get the module label
-                    local modName = targetCat.moduleKey and moduleLabels[targetCat.moduleKey] or targetCat.name
+                    -- Get the effective moduleKey (Profiles/Modules map to "axis")
+                    local effectiveMk = targetCat.moduleKey
+                    if targetCat.key == "Profiles" or targetCat.key == "Modules" then
+                        effectiveMk = "axis"
+                    end
+                    local modName = effectiveMk and moduleLabels[effectiveMk] or targetCat.name
 
                     -- Build subcategory tiles (for back button) but skip detail card creation since OpenCategoryDetail handles it
-                    f.OpenModule(modName, targetCat.moduleKey, true)
+                    f.OpenModule(modName, effectiveMk, true)
 
                     local options = type(targetCat.options) == "function" and targetCat.options() or targetCat.options
                     f.OpenCategoryDetail(modName, entry.categoryName, options)
@@ -924,8 +936,14 @@ SlashCmdList["HSDASH"] = function(msg)
                 local matchedModuleKey = f.currentModuleKey or "modules"
                 local matchedCatIdx = nil
                 for i, cat in ipairs(addon.OptionCategories) do
-                    if cat.name == catName and (not f.currentModuleKey or cat.moduleKey == f.currentModuleKey) then
-                        matchedModuleKey = cat.moduleKey or "modules"
+                    local catMk
+                    if cat.key == "Profiles" or cat.key == "Modules" then
+                        catMk = "axis"
+                    else
+                        catMk = cat.moduleKey or "modules"
+                    end
+                    if cat.name == catName and (not f.currentModuleKey or catMk == f.currentModuleKey) then
+                        matchedModuleKey = catMk
                         matchedCatIdx = i
                         break
                     end
@@ -975,7 +993,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 local cats = {}
                 for _, cat in ipairs(addon.OptionCategories) do
                     local match = false
-                    if moduleKey and cat.moduleKey == moduleKey then
+                    if moduleKey == "axis" then
+                        match = (cat.key == "Profiles" or cat.key == "Modules")
+                    elseif moduleKey and cat.moduleKey == moduleKey then
                         match = true
                     elseif not moduleKey and cat.name == name then
                         match = true
@@ -2027,15 +2047,10 @@ SlashCmdList["HSDASH"] = function(msg)
             local mainTiles = {}
             local seenModules = {}
 
-            -- 1. Profiles & Modules (Core)
-            for _, cat in ipairs(addon.OptionCategories) do
-                if not cat.moduleKey then
-                    tinsert(mainTiles, { name = cat.name })
-                end
-            end
+            -- 1. Axis (merged Profiles + Modules)
+            tinsert(mainTiles, { name = moduleLabels.axis or "Axis", moduleKey = "axis" })
 
             -- 2. Module Groups
-
             for _, cat in ipairs(addon.OptionCategories) do
                 local mk = cat.moduleKey
                 if mk and not seenModules[mk] then
@@ -2050,14 +2065,19 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey (same as OptionsPanel)
-            local MODULE_LABELS = { ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista" }
+            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista" }
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
-                local mk = cat.moduleKey or "modules"
+                local mk
+                if cat.key == "Profiles" or cat.key == "Modules" then
+                    mk = "axis"
+                else
+                    mk = cat.moduleKey or "modules"
+                end
                 if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["Other"], categories = {} } end
                 tinsert(groups[mk].categories, i)
             end
-            local groupOrder = { "modules", "focus", "presence", "insight", "yield", "vista" }
+            local groupOrder = { "axis", "focus", "presence", "insight", "yield", "vista" }
 
             local lastSidebarRow = nil
             local yOff = 0
@@ -2170,15 +2190,16 @@ SlashCmdList["HSDASH"] = function(msg)
                         local containerAnchor = tabsContainer
                         for _, catIdx in ipairs(g.categories) do
                             local cat = addon.OptionCategories[catIdx]
-                            local modLabel = cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey) or modName
+                            local modLabel = moduleLabels[mk] or (cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey)) or modName
+                            local catMk = (mk == "axis") and "axis" or cat.moduleKey
                             local btn = CreateSidebarButton(tabsContainer, cat.name, nil, function()
-                                f.OpenModule(modLabel, cat.moduleKey, true)
+                                f.OpenModule(modLabel, catMk, true)
                                 local options = type(cat.options) == "function" and cat.options() or cat.options
                                 f.OpenCategoryDetail(modLabel, cat.name, options)
                             end, 12)
                             btn:SetPoint("TOPLEFT", containerAnchor, (containerAnchor == tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
                             containerAnchor = btn
-                            btn.sidebarModuleKey = cat.moduleKey
+                            btn.sidebarModuleKey = catMk
                             btn.sidebarName = cat.name
                             btn.sidebarCategoryIndex = catIdx
                             tinsert(sidebarButtons, btn)
@@ -2230,8 +2251,8 @@ SlashCmdList["HSDASH"] = function(msg)
                     local wantCatIdx = sidebarState.activeCategoryIndex
                     for _, sb in ipairs(sidebarButtons) do
                         if sb.sidebarCategoryIndex then
-                            local cat = addon.OptionCategories[sb.sidebarCategoryIndex]
-                            if cat and (cat.moduleKey or "modules") == mk then
+                            local sbMk = sb.sidebarModuleKey or "modules"
+                            if sbMk == mk then
                                 if wantCatIdx and sb.sidebarCategoryIndex == wantCatIdx then
                                     activeBtn = sb
                                     break

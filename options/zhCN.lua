@@ -71,6 +71,7 @@ L["Drag to resize"]                                                 = "拖动以
 -- OptionsData.lua Category names (sidebar)
 -- =====================================================================
 L["Modules"]                                            = "模块"
+L["Axis"]                                               = "Axis"
 L["Layout"]                                             = "布局"
 L["Visibility"]                                         = "可见性"
 L["Display"]                                            = "显示"

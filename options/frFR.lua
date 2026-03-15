@@ -74,6 +74,7 @@ L["Drag to resize"]                                                 = "Glisser p
 -- OptionsData.lua Category names (sidebar)
 -- =====================================================================
 L["Modules"]                                            = "Modules"
+L["Axis"]                                               = "Axis"
 L["Layout"]                                             = "Disposition"
 L["Visibility"]                                         = "Visibilité"
 L["Display"]                                            = "Affichage"

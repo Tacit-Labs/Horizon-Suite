@@ -76,6 +76,7 @@ L["Drag to resize"]                                                             
 -- =====================================================================
 L["Profiles"]                                                                                                       = "Profiles"
 L["Modules"]                                                                                                        = "Modules"
+L["Axis"]                                                                                                           = "Axis"
 L["Layout"]                                                                                                         = "Layout"
 L["Visibility"]                                                                                                     = "Visibility"
 L["Display"]                                                                                                        = "Display"
@@ -601,6 +602,7 @@ L["Reset Mythic+ typography"]                                                   
 -- =====================================================================
 -- OptionsData.lua Appearance
 -- =====================================================================
+L["Frame"]                                                                                                          = "Frame"
 L["Use class colours everywhere"]                                                                                   = "Use class colours everywhere"
 L["Class colors"]                                                                                                   = "Class colors"
 L["Enable class colours for both the options panel and Vista minimap."]                                             = "Enable class colours for both the options panel and Vista minimap."

@@ -73,6 +73,7 @@ L["Drag to resize"]                                                             
 -- =====================================================================
 L["Profiles"]                                                                                                       = "Profiles"
 L["Modules"]                                                                                                        = "Modules"
+L["Axis"]                                                                                                           = "Axis"
 L["Layout"]                                                                                                         = "Layout"
 L["Visibility"]                                                                                                     = "Visibility"
 L["Display"]                                                                                                        = "Display"
