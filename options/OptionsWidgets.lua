@@ -140,7 +140,7 @@ local TOGGLE_THUMB_SIZE = 18
 
 function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip)
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(38)
+    row:SetHeight(32)
     local searchText = (labelText or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
@@ -148,7 +148,7 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     local thumbSize = TOGGLE_THUMB_SIZE
     local track = CreateFrame("Frame", nil, row)
     track:SetSize(trackW, trackH)
-    track:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, -10)
+    track:SetPoint("RIGHT", row, "RIGHT", 0, 0)
     local trackBg = track:CreateTexture(nil, "BACKGROUND")
     trackBg:SetPoint("TOPLEFT", track, "TOPLEFT", TOGGLE_INSET, -TOGGLE_INSET)
     trackBg:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -TOGGLE_INSET, TOGGLE_INSET)
@@ -166,24 +166,26 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
     label:SetJustifyH("LEFT")
+    label:SetJustifyV("MIDDLE")
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(labelText or "")
     label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    label:SetPoint("RIGHT", track, "LEFT", -12, 0)
+    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -(trackW + 12), 0)
     label:SetWordWrap(true)
 
     local desc = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(desc, Def.FontPath, Def.SectionSize, "OUTLINE")
     desc:SetJustifyH("LEFT")
     SetTextColor(desc, Def.TextColorSection)
-    desc:SetText(description or "")
+    desc:SetText("")
+    desc:Hide()
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
     desc:SetPoint("RIGHT", track, "LEFT", -12, 0)
     desc:SetWordWrap(true)
 
-    -- Measure actual description height and adjust row to prevent overlap
+    -- Measure actual description height and adjust row to prevent overlap (desc hidden; in tooltip)
     row._desc = desc
-    row._baseHeight = 38
+    row._baseHeight = 32
     local function updateRowHeight()
         local descH = desc:GetStringHeight() or 0
         local labelH = label:GetStringHeight() or 0
@@ -264,7 +266,8 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    ApplyOptionTooltip(row, tooltip)
+    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
 
@@ -338,21 +341,24 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         return tostring((v >= 0) and math.floor(v + 0.5) or -math.floor(-v + 0.5))
     end
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(40)
+    row:SetHeight(34)
     local searchText = (labelText or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
     label:SetJustifyH("LEFT")
+    label:SetJustifyV("MIDDLE")
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(labelText or "")
     label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -60, 0)
     local desc = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(desc, Def.FontPath, Def.SectionSize, "OUTLINE")
     desc:SetJustifyH("LEFT")
     SetTextColor(desc, Def.TextColorSection)
-    desc:SetText(description or "")
+    desc:SetText("")
+    desc:Hide()
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
     desc:SetPoint("RIGHT", row, "RIGHT", -60, 0)
     desc:SetWordWrap(true)
@@ -360,7 +366,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     local trackWidth = 180
     local track = CreateFrame("Frame", nil, row)
     track:SetSize(trackWidth, SLIDER_TRACK_HEIGHT)
-    track:SetPoint("TOPRIGHT", row, "TOPRIGHT", -52, -8)
+    track:SetPoint("RIGHT", row, "RIGHT", -52, 0)
     local trackBg = track:CreateTexture(nil, "BACKGROUND")
     trackBg:SetPoint("TOPLEFT", track, "TOPLEFT", SLIDER_TRACK_INSET, -SLIDER_TRACK_INSET)
     trackBg:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -SLIDER_TRACK_INSET, SLIDER_TRACK_INSET)
@@ -519,7 +525,8 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    ApplyOptionTooltip(row, tooltip)
+    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
 
@@ -539,49 +546,39 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(52)
+    row:SetHeight(34)
     local searchText = (resolvedLabel or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
+
+    local DROPDOWN_BTN_WIDTH = 180
+    local btn = CreateFrame("Button", nil, row)
+    btn:SetHeight(26)
+    btn:SetWidth(DROPDOWN_BTN_WIDTH)
+    btn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    btn:SetPoint("TOP", row, "CENTER", 0, 13)
+    btn:SetPoint("BOTTOM", row, "CENTER", 0, -13)
 
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
     label:SetJustifyH("LEFT")
+    label:SetJustifyV("MIDDLE")
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(resolvedLabel or "")
     label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -(DROPDOWN_BTN_WIDTH + 12), 0)
+    label:SetWordWrap(true)
 
     local desc = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(desc, Def.FontPath, Def.SectionSize, "OUTLINE")
     desc:SetJustifyH("LEFT")
     SetTextColor(desc, Def.TextColorSection)
-    desc:SetText(description or "")
+    desc:SetText("")
+    desc:Hide()
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
     desc:SetPoint("RIGHT", row, "RIGHT", 0, 0)
     desc:SetWordWrap(true)
 
-    local btn = CreateFrame("Button", nil, row)
-    btn:SetHeight(26)
-    btn:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -4)
-    btn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
-
-    -- Measure description height and adjust row dynamically to prevent overlap
     row._desc = desc
-    row._baseHeight = 52
-    local function updateDropdownRowHeight()
-        local labelH = label:GetStringHeight() or 0
-        local descH = desc:GetStringHeight() or 0
-        local neededH = labelH + 2 + descH + 4 + 26 + 2
-        local h = math.max(row._baseHeight, neededH)
-        local oldH = row._measuredHeight or row._baseHeight
-        row:SetHeight(h)
-        row._measuredHeight = h
-        if h ~= oldH and row._card then
-            local card = row._card
-            card.contentHeight = (card.contentHeight or 0) + (h - oldH)
-            card.fullHeight = card.contentHeight + Def.CardBottomPadding
-        end
-    end
-    C_Timer.After(0, updateDropdownRowHeight)
 
     local btnBg = btn:CreateTexture(nil, "BACKGROUND")
     btnBg:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
@@ -915,7 +912,8 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    ApplyOptionTooltip(row, tooltip)
+    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
 
@@ -1147,29 +1145,32 @@ end
 -- Simplified Color Swatch for Dashboard (no anchor required, uses get/set functions)
 function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip)
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(38)
+    row:SetHeight(32)
     local searchText = (labelText or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
     label:SetJustifyH("LEFT")
+    label:SetJustifyV("MIDDLE")
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(labelText or "")
     label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -45, 0)
 
     local desc = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(desc, Def.FontPath, Def.SectionSize, "OUTLINE")
     desc:SetJustifyH("LEFT")
     SetTextColor(desc, Def.TextColorSection)
-    desc:SetText(description or "")
+    desc:SetText("")
+    desc:Hide()
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
     desc:SetPoint("RIGHT", row, "RIGHT", -45, 0)
     desc:SetWordWrap(true)
 
     local swatch = CreateFrame("Button", nil, row)
     swatch:SetSize(24, 24)
-    swatch:SetPoint("RIGHT", row, "RIGHT", 0, -2)
+    swatch:SetPoint("RIGHT", row, "RIGHT", 0, 0)
     local bg = swatch:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints(swatch)
     bg:SetColorTexture(Def.InputBorder[1], Def.InputBorder[2], Def.InputBorder[3], 0.6)
@@ -1233,7 +1234,8 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    ApplyOptionTooltip(row, tooltip)
+    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
 
@@ -1877,8 +1879,9 @@ end
 function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
     opts = opts or {}
     local container = CreateFrame("Frame", nil, parent)
-    container:SetHeight(60)
-    container.searchText = ((labelText or "") .. " blacklist hidden quests"):lower()
+    local BLACKLIST_HEADER_H = 34  -- label + gap (desc in tooltip)
+    container:SetHeight(BLACKLIST_HEADER_H + 20)
+    container.searchText = ((labelText or "") .. " " .. (opts.desc or "") .. " blacklist hidden quests"):lower()
 
     local label = container:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
@@ -1891,13 +1894,14 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
     SetSafeFont(desc, Def.FontPath, Def.SectionSize, "OUTLINE")
     desc:SetJustifyH("LEFT")
     SetTextColor(desc, Def.TextColorSection)
-    desc:SetText(opts.desc or "")
+    desc:SetText("")
+    desc:Hide()
     desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
     desc:SetPoint("RIGHT", container, "RIGHT", 0, 0)
     desc:SetWordWrap(true)
 
     local listFrame = CreateFrame("Frame", nil, container)
-    listFrame:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -8)
+    listFrame:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -10)
     listFrame:SetPoint("RIGHT", container, "RIGHT", 0, 0)
     listFrame:SetHeight(1)
 
@@ -1920,7 +1924,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             emptyRow:SetPoint("RIGHT", listFrame, "RIGHT", 0, 0)
             rowWidgets[1] = emptyRow
             listFrame:SetHeight(20)
-            container:SetHeight(60 + 20)
+            container:SetHeight(BLACKLIST_HEADER_H + 20)
             return
         end
 
@@ -1963,10 +1967,10 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
 
         if count == 0 then
             listFrame:SetHeight(20)
-            container:SetHeight(60 + 20)
+            container:SetHeight(BLACKLIST_HEADER_H + 20)
         else
             listFrame:SetHeight(-yOff)
-            container:SetHeight(60 + (-yOff))
+            container:SetHeight(BLACKLIST_HEADER_H + (-yOff))
         end
     end
 
@@ -1974,7 +1978,8 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
         Rebuild()
     end
     Rebuild()
-    ApplyOptionTooltip(container, opts.tooltip)
+    local effectiveTooltip = (opts.desc or "") .. (opts.desc and opts.tooltip and "\n\n" or "") .. (opts.tooltip or "")
+    ApplyOptionTooltip(container, effectiveTooltip)
     return container
 end
 

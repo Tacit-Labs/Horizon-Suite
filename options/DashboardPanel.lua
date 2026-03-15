@@ -1743,7 +1743,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             widget:Show()
                             
                             local isHeader = opt.type == "header"
-                            local topGap = isHeader and 20 or 10
+                            local topGap = isHeader and 18 or 6
                             
                             widget:SetPoint("TOPLEFT", 30, -(currentCard.contentHeight + topGap))
                             
