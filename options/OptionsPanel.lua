@@ -493,7 +493,11 @@ end
 local allRefreshers = {}
 local allCollapsibleCards = {}
 
-local function RelayoutCard(card)
+local DEPENDENT_FADE_DUR = 0.12
+local DEPENDENT_HEIGHT_DUR = 0.15
+local easeOutDependent = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
+
+local function DoInstantRelayout(card, skipHeightApply)
     if not card or not card.widgetList or not card.relayoutBaseAnchor then return end
     local prevAnchor = card.relayoutBaseAnchor
     local headerH = card.headerHeight or (CardPadding + 24)
@@ -505,6 +509,7 @@ local function RelayoutCard(card)
         end
         entry.frame:SetShown(visible)
         if visible then
+            entry.frame:SetAlpha(1)
             entry.frame:ClearAllPoints()
             entry.frame:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -OptionGap)
             entry.frame:SetPoint("RIGHT", card, "RIGHT", -CardPadding, 0)
@@ -515,17 +520,160 @@ local function RelayoutCard(card)
     card.contentHeight = contentH
     local fullH = contentH + CardBottomPadding
     card.fullHeight = fullH
-    if card.contentContainer and card.sectionKey then
-        card.contentContainer:SetHeight(math.max(1, contentH - headerH))
-        local collapsed = GetCardCollapsed(card.sectionKey)
-        if not collapsed then
+    if not skipHeightApply then
+        if card.contentContainer and card.sectionKey then
+            card.contentContainer:SetHeight(math.max(1, contentH - headerH))
+            local collapsed = GetCardCollapsed(card.sectionKey)
+            if not collapsed then
+                card:SetHeight(fullH)
+            end
+        else
             card:SetHeight(fullH)
         end
-    else
-        card:SetHeight(fullH)
+        local tab = card:GetParent()
+        if tab and ResizeTabFrame then ResizeTabFrame(tab) end
     end
-    local tab = card:GetParent()
-    if tab and ResizeTabFrame then ResizeTabFrame(tab) end
+end
+
+local function RelayoutCard(card)
+    if not card or not card.widgetList or not card.relayoutBaseAnchor then return end
+    local headerH = card.headerHeight or (CardPadding + 24)
+
+    -- Cancel any in-flight animation
+    if card.relayoutAnim then
+        card.relayoutAnim = nil
+        if card.relayoutAnimFrame then
+            card.relayoutAnimFrame:SetScript("OnUpdate", nil)
+        end
+    end
+
+    -- Build target visibility and detect changes
+    local toHide, toShow = {}, {}
+    for _, entry in ipairs(card.widgetList) do
+        if entry.visibleWhen then
+            local wasVisible = entry.frame:IsShown()
+            local targetVisible = entry.visibleWhen()
+            if wasVisible and not targetVisible then
+                toHide[#toHide + 1] = entry
+            elseif not wasVisible and targetVisible then
+                toShow[#toShow + 1] = entry
+            end
+        end
+    end
+
+    local collapsed = card.contentContainer and card.sectionKey and GetCardCollapsed(card.sectionKey)
+    local skipAnim = (#toHide == 0 and #toShow == 0) or collapsed
+
+    if skipAnim then
+        DoInstantRelayout(card, false)
+        return
+    end
+
+    local oldHeight = card:GetHeight()
+    local animFrame = card.relayoutAnimFrame or CreateFrame("Frame", nil, card)
+    animFrame:ClearAllPoints()
+    animFrame:SetAllPoints(card)
+    card.relayoutAnimFrame = animFrame
+
+    if #toHide > 0 then
+        -- Phase 1: Fade out, then Phase 2: hide + relayout + animate height
+        card.relayoutAnim = { phase = "fadeOut", elapsed = 0, toHide = toHide, oldHeight = oldHeight }
+        animFrame:SetScript("OnUpdate", function(self, dt)
+            local a = card.relayoutAnim
+            if not a then self:SetScript("OnUpdate", nil) return end
+            a.elapsed = a.elapsed + dt
+            if a.phase == "fadeOut" then
+                local t = math.min(1, a.elapsed / DEPENDENT_FADE_DUR)
+                local ep = easeOutDependent(t)
+                for _, entry in ipairs(a.toHide) do
+                    entry.frame:SetAlpha(1 - ep)
+                end
+                if t >= 1 then
+                    for _, entry in ipairs(a.toHide) do
+                        entry.frame:Hide()
+                        entry.frame:SetAlpha(1)
+                    end
+                    DoInstantRelayout(card, true)
+                    a.phase = "heightShrink"
+                    a.elapsed = 0
+                    a.targetFullH = card.fullHeight
+                end
+            else
+                local t = math.min(1, a.elapsed / DEPENDENT_HEIGHT_DUR)
+                local ep = easeOutDependent(t)
+                local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * ep
+                card:SetHeight(curH)
+                if card.contentContainer and card.sectionKey and not GetCardCollapsed(card.sectionKey) then
+                    local headerH = card.headerHeight or (CardPadding + 24)
+                    local oldCC = math.max(1, a.oldHeight - CardBottomPadding - headerH)
+                    local targetCC = math.max(1, card.contentHeight - headerH)
+                    local curCC = oldCC + (targetCC - oldCC) * ep
+                    card.contentContainer:SetHeight(curCC)
+                end
+                local tab = card:GetParent()
+                if tab and ResizeTabFrame then ResizeTabFrame(tab) end
+                if t >= 1 then
+                    DoInstantRelayout(card, false)
+                    card.relayoutAnim = nil
+                    self:SetScript("OnUpdate", nil)
+                end
+            end
+        end)
+    elseif #toShow > 0 then
+        -- Phase 1: Instant relayout to position new widgets, then fade in + height
+        DoInstantRelayout(card, true)
+        for _, entry in ipairs(toShow) do
+            entry.frame:SetAlpha(0)
+        end
+        card:SetHeight(oldHeight)
+        if card.contentContainer and card.sectionKey and not collapsed then
+            local oldCC = math.max(1, oldHeight - CardBottomPadding - headerH)
+            card.contentContainer:SetHeight(oldCC)
+        end
+
+        card.relayoutAnim = {
+            phase = "fadeIn",
+            elapsed = 0,
+            toShow = toShow,
+            oldHeight = oldHeight,
+            targetFullH = card.fullHeight,
+        }
+        animFrame:SetScript("OnUpdate", function(self, dt)
+            local a = card.relayoutAnim
+            if not a then self:SetScript("OnUpdate", nil) return end
+            a.elapsed = a.elapsed + dt
+            local fadeT = math.min(1, a.elapsed / DEPENDENT_FADE_DUR)
+            local heightT = math.min(1, a.elapsed / DEPENDENT_HEIGHT_DUR)
+            local fadeEp = easeOutDependent(fadeT)
+            local heightEp = easeOutDependent(heightT)
+            for _, entry in ipairs(a.toShow) do
+                entry.frame:SetAlpha(fadeEp)
+            end
+            local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * heightEp
+            card:SetHeight(curH)
+            if card.contentContainer and card.sectionKey and not GetCardCollapsed(card.sectionKey) then
+                local headerH = card.headerHeight or (CardPadding + 24)
+                local oldCC = math.max(1, a.oldHeight - CardBottomPadding - headerH)
+                local targetCC = math.max(1, card.contentHeight - headerH)
+                local curCC = oldCC + (targetCC - oldCC) * heightEp
+                card.contentContainer:SetHeight(curCC)
+            end
+            local tab = card:GetParent()
+            if tab and ResizeTabFrame then ResizeTabFrame(tab) end
+            if fadeT >= 1 and heightT >= 1 then
+                for _, entry in ipairs(a.toShow) do
+                    entry.frame:SetAlpha(1)
+                end
+                card:SetHeight(a.targetFullH)
+                if card.contentContainer and card.sectionKey and not GetCardCollapsed(card.sectionKey) then
+                    card.contentContainer:SetHeight(math.max(1, card.contentHeight - headerH))
+                end
+                card.relayoutAnim = nil
+                self:SetScript("OnUpdate", nil)
+                if tab and ResizeTabFrame then ResizeTabFrame(tab) end
+            end
+        end)
+    end
 end
 
 local function FinalizeCard(card)
