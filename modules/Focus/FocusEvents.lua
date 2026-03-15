@@ -323,6 +323,7 @@ end
 
 local function OnQuestTurnedIn(questID)
     if not addon.focus.enabled then ScheduleRefresh(); return end
+    if questID and addon.focus.questTimerCache then addon.focus.questTimerCache[questID] = nil end
     for i = 1, addon.POOL_SIZE do
         if addon.pool[i].questID == questID and addon.pool[i].animState ~= "fadeout" then
             local e = addon.pool[i]
@@ -436,6 +437,8 @@ local function OnZoneChanged(event)
     addon.focus.nearbyQuestCacheDirty = true
     addon.focus.nearbyQuestCache = nil
     addon.focus.nearbyTaskQuestCache = nil
+    -- Clear quest timer cache so zone-specific WQ timers get fresh anchors in the new zone.
+    if addon.focus.questTimerCache then wipe(addon.focus.questTimerCache) end
     RunMplusHeightTransitionCheck()
     -- Only clear right-click suppression on major area change (return to main zone), not on subzone change—unless option is "suppress until reload".
     if event == "ZONE_CHANGED_NEW_AREA" then
@@ -467,6 +470,7 @@ local eventHandlers = {
     QUEST_REMOVED            = function(_, questID)
         if not addon.focus.enabled then ScheduleRefresh(); return end
         if questID then
+            if addon.focus.questTimerCache then addon.focus.questTimerCache[questID] = nil end
             local isWQ = (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID))
                 or (C_QuestLog and C_QuestLog.IsWorldQuest and C_QuestLog.IsWorldQuest(questID))
             if isWQ then

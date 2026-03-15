@@ -200,6 +200,7 @@ addon:RegisterModule("focus", {
     OnDisable = function()
         addon.focus.enabled = false
         StopScenarioTimerHeartbeat()
+        if addon.focus.questTimerCache then wipe(addon.focus.questTimerCache) end
         StopCurrentQuestExpiryTicker()
         StopScenarioBarTicker()
         StopMapChangedListener()
