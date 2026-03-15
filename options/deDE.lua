@@ -74,6 +74,7 @@ L["Drag to resize"]                                                 = "Ziehen zu
 -- OptionsData.lua Category names (sidebar)
 -- =====================================================================
 L["Modules"]                                                        = "Module"
+L["Axis"]                                                           = "Axis"
 L["Layout"]                                                         = "Layout"
 L["Visibility"]                                                     = "Sichtbarkeit"
 L["Display"]                                                        = "Anzeige"

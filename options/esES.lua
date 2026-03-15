@@ -74,6 +74,7 @@ L["Drag to resize"]                                                 = "Arrastra 
 -- OptionsData.lua Category names (sidebar)
 -- =====================================================================
 L["Modules"]                                            = "Módulos"
+L["Axis"]                                               = "Axis"
 L["Layout"]                                             = "Diseño"
 L["Visibility"]                                         = "Visibilidad"
 L["Display"]                                            = "Visualización"

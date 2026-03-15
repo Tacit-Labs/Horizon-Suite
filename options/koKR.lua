@@ -74,6 +74,7 @@ L["Drag to resize"]                                                = "드래그�
 -- OptionsData.lua Category names (sidebar)
 -- =====================================================================
 L["Modules"]                                            = "기능"
+L["Axis"]                                               = "Axis"
 L["Layout"]                                             = "레이아웃"
 L["Visibility"]                                         = "표시 조건"
 L["Display"]                                            = "표시"
