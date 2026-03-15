@@ -1185,7 +1185,11 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
                 end
 
-                local function RelayoutCard(card)
+                local DEPENDENT_FADE_DUR = 0.12
+                local DEPENDENT_HEIGHT_DUR = 0.15
+                local easeOutDep = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
+
+                local function DoInstantRelayout(card, skipHeightApply)
                     if not card or not card.widgetList then return end
                     local yOff = 0
                     for _, entry in ipairs(card.widgetList) do
@@ -1195,6 +1199,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         end
                         entry.frame:SetShown(visible)
                         if visible then
+                            entry.frame:SetAlpha(1)
                             local topGap = entry.isHeader and 18 or 6
                             entry.frame:ClearAllPoints()
                             entry.frame:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", 30, -(yOff + topGap))
@@ -1206,10 +1211,122 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
                     card.contentHeight = yOff
                     card.fullHeight = yOff + 80
-                    if card.expanded then
+                    if not skipHeightApply and card.expanded then
                         card:SetHeight(card.fullHeight)
                     end
                     UpdateDetailLayout()
+                end
+
+                local function RelayoutCard(card)
+                    if not card or not card.widgetList then return end
+
+                    if card.relayoutAnim then
+                        card.relayoutAnim = nil
+                        if card.relayoutAnimFrame then
+                            card.relayoutAnimFrame:SetScript("OnUpdate", nil)
+                        end
+                    end
+
+                    local toHide, toShow = {}, {}
+                    for _, entry in ipairs(card.widgetList) do
+                        if entry.visibleWhen then
+                            local wasVisible = entry.frame:IsShown()
+                            local targetVisible = entry.visibleWhen()
+                            if wasVisible and not targetVisible then
+                                toHide[#toHide + 1] = entry
+                            elseif not wasVisible and targetVisible then
+                                toShow[#toShow + 1] = entry
+                            end
+                        end
+                    end
+
+                    local skipAnim = (#toHide == 0 and #toShow == 0) or not card.expanded
+
+                    if skipAnim then
+                        DoInstantRelayout(card, false)
+                        return
+                    end
+
+                    local oldHeight = card:GetHeight()
+                    local animFrame = card.relayoutAnimFrame or CreateFrame("Frame", nil, card)
+                    animFrame:ClearAllPoints()
+                    animFrame:SetAllPoints(card)
+                    card.relayoutAnimFrame = animFrame
+
+                    if #toHide > 0 then
+                        card.relayoutAnim = { phase = "fadeOut", elapsed = 0, toHide = toHide, oldHeight = oldHeight }
+                        animFrame:SetScript("OnUpdate", function(self, dt)
+                            local a = card.relayoutAnim
+                            if not a then self:SetScript("OnUpdate", nil) return end
+                            a.elapsed = a.elapsed + dt
+                            if a.phase == "fadeOut" then
+                                local t = math.min(1, a.elapsed / DEPENDENT_FADE_DUR)
+                                local ep = easeOutDep(t)
+                                for _, entry in ipairs(a.toHide) do
+                                    entry.frame:SetAlpha(1 - ep)
+                                end
+                                if t >= 1 then
+                                    for _, entry in ipairs(a.toHide) do
+                                        entry.frame:Hide()
+                                        entry.frame:SetAlpha(1)
+                                    end
+                                    DoInstantRelayout(card, true)
+                                    a.phase = "heightShrink"
+                                    a.elapsed = 0
+                                    a.targetFullH = card.fullHeight
+                                end
+                            else
+                                local t = math.min(1, a.elapsed / DEPENDENT_HEIGHT_DUR)
+                                local ep = easeOutDep(t)
+                                local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * ep
+                                card:SetHeight(curH)
+                                UpdateDetailLayout()
+                                if t >= 1 then
+                                    DoInstantRelayout(card, false)
+                                    card.relayoutAnim = nil
+                                    self:SetScript("OnUpdate", nil)
+                                end
+                            end
+                        end)
+                    elseif #toShow > 0 then
+                        DoInstantRelayout(card, true)
+                        for _, entry in ipairs(toShow) do
+                            entry.frame:SetAlpha(0)
+                        end
+                        card:SetHeight(oldHeight)
+
+                        card.relayoutAnim = {
+                            phase = "fadeIn",
+                            elapsed = 0,
+                            toShow = toShow,
+                            oldHeight = oldHeight,
+                            targetFullH = card.fullHeight,
+                        }
+                        animFrame:SetScript("OnUpdate", function(self, dt)
+                            local a = card.relayoutAnim
+                            if not a then self:SetScript("OnUpdate", nil) return end
+                            a.elapsed = a.elapsed + dt
+                            local fadeT = math.min(1, a.elapsed / DEPENDENT_FADE_DUR)
+                            local heightT = math.min(1, a.elapsed / DEPENDENT_HEIGHT_DUR)
+                            local fadeEp = easeOutDep(fadeT)
+                            local heightEp = easeOutDep(heightT)
+                            for _, entry in ipairs(a.toShow) do
+                                entry.frame:SetAlpha(fadeEp)
+                            end
+                            local curH = a.oldHeight + (a.targetFullH - a.oldHeight) * heightEp
+                            card:SetHeight(curH)
+                            UpdateDetailLayout()
+                            if fadeT >= 1 and heightT >= 1 then
+                                for _, entry in ipairs(a.toShow) do
+                                    entry.frame:SetAlpha(1)
+                                end
+                                card:SetHeight(a.targetFullH)
+                                card.relayoutAnim = nil
+                                self:SetScript("OnUpdate", nil)
+                                UpdateDetailLayout()
+                            end
+                        end)
+                    end
                 end
 
                 for _, opt in ipairs(options) do
