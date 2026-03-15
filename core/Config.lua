@@ -33,6 +33,36 @@ addon.OBJ_INDENT      = 8
 addon.COMPACT_TITLE_SPACING = 4
 addon.COMPACT_OBJ_SPACING   = 1
 addon.COMPACT_OBJ_INDENT    = 8
+addon.SPACED_TITLE_SPACING  = 12
+addon.SPACED_OBJ_SPACING    = 3
+
+-- Single source of truth for spacing presets. All spacing getters resolve from here when not in Custom mode.
+addon.SPACING_PRESETS = {
+    default = {
+        titleSpacing = 8,
+        objSpacing = 2,
+        titleToContentSpacing = 2,
+        sectionSpacing = 10,
+        sectionToEntryGap = 6,
+        headerToContentGap = 6,
+    },
+    compact = {
+        titleSpacing = 4,
+        objSpacing = 1,
+        titleToContentSpacing = 1,
+        sectionSpacing = 8,
+        sectionToEntryGap = 4,
+        headerToContentGap = 6,
+    },
+    spaced = {
+        titleSpacing = 12,
+        objSpacing = 3,
+        titleToContentSpacing = 3,
+        sectionSpacing = 12,
+        sectionToEntryGap = 8,
+        headerToContentGap = 8,
+    },
+}
 -- Delve-specific spacing (slightly more room between entries and objectives).
 addon.DELVE_ENTRY_SPACING   = 12
 addon.DELVE_OBJ_SPACING     = 4

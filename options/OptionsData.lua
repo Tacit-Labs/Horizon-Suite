@@ -1033,20 +1033,106 @@ local OptionCategories = {
             { type = "slider", name = L["Panel width"], desc = L["Tracker width in pixels."], dbKey = "panelWidth", min = 180, max = 800, get = function() return getDB("panelWidth", 260) end, set = function(v) setDB("panelWidth", math.max(180, math.min(800, v))) end },
             { type = "slider", name = L["Max content height"], desc = L["Max height of the scrollable list (pixels)."], dbKey = "maxContentHeight", min = 200, max = 1500, get = function() return getDB("maxContentHeight", 480) end, set = function(v) setDB("maxContentHeight", math.max(200, math.min(1500, v))) end },
             { type = "section", name = L["Spacing"] },
-            { type = "toggle", name = L["Compact mode"], desc = L["Preset: sets entry and objective spacing to 4 and 1 px."], dbKey = "compactMode", get = function() return getDB("compactMode", false) end, set = function(v) setDB("compactMode", v); if v then setDB("titleSpacing", 4); setDB("objSpacing", 1) else setDB("titleSpacing", 8); setDB("objSpacing", 2) end end },
-            { type = "slider", name = L["Entry spacing"], desc = L["Vertical gap between quest entries."], dbKey = "titleSpacing", min = 2, max = 20, get = function() return math.max(2, math.min(20, tonumber(getDB("titleSpacing", 8)) or 8)) end, set = function(v) setDB("titleSpacing", math.max(2, math.min(20, v))) end },
-            { type = "slider", name = L["Before section header"], desc = L["Gap between last entry of a group and the next category label."], dbKey = "sectionSpacing", min = 0, max = 24, get = function() return math.max(0, math.min(24, tonumber(getDB("sectionSpacing", 10)) or 10)) end, set = function(v) setDB("sectionSpacing", math.max(0, math.min(24, v))) end },
-            { type = "slider", name = L["After section header"], desc = L["Gap between category label and first quest entry below it."], dbKey = "sectionToEntryGap", min = 0, max = 16, get = function() return math.max(0, math.min(16, tonumber(getDB("sectionToEntryGap", 6)) or 6)) end, set = function(v) setDB("sectionToEntryGap", math.max(0, math.min(16, v))) end },
-            { type = "slider", name = L["Objective spacing"], desc = L["Vertical gap between objective lines within a quest."], dbKey = "objSpacing", min = 0, max = 8, get = function() return math.max(0, math.min(8, tonumber(getDB("objSpacing", 2)) or 2)) end, set = function(v) setDB("objSpacing", math.max(0, math.min(8, v))) end },
-            { type = "slider", name = L["Below header"], desc = L["Vertical gap between the objectives bar and the quest list."], dbKey = "headerToContentGap", min = 0, max = 24, get = function() return math.max(0, math.min(24, tonumber(getDB("headerToContentGap", 6)) or 6)) end, set = function(v) setDB("headerToContentGap", math.max(0, math.min(24, v))) end },
-            { type = "button", name = L["Reset spacing"], onClick = function()
-                setDB("compactMode", false)
-                setDB("titleSpacing", 8)
-                setDB("sectionSpacing", 10)
-                setDB("sectionToEntryGap", 6)
-                setDB("objSpacing", 2)
-                setDB("headerToContentGap", 6)
-            end, refreshIds = { "compactMode", "titleSpacing", "sectionSpacing", "sectionToEntryGap", "objSpacing", "headerToContentGap" } },
+            { type = "dropdown", name = L["Spacing preset"], dbKey = "compactMode",
+                options = {
+                    { L["Default"], "default" },
+                    { L["Compact version"], "compact" },
+                    { L["Spaced version"], "spaced" },
+                    { L["Custom"], "custom" },
+                },
+                get = function()
+                    local v = getDB("compactMode", "default")
+                    if v == true then return "compact" end
+                    if v == false then return "default" end
+                    return v or "default"
+                end,
+                set = function(v)
+                    setDB("compactMode", v)
+                    if addon.FullLayout then addon.FullLayout() end
+                end,
+                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+            },
+            { type = "slider", name = L["Entry spacing"], desc = L["Vertical gap between quest entries."], dbKey = "titleSpacing", min = 2, max = 20,
+                get = function()
+                    local mode = addon.GetSpacingMode()
+                    if mode == "custom" then
+                        return math.max(2, math.min(20, tonumber(getDB("customTitleSpacing", 8)) or 8))
+                    end
+                    local p = addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode]
+                    return p and p.titleSpacing or 8
+                end,
+                set = function(v)
+                    setDB("customTitleSpacing", math.max(2, math.min(20, v)))
+                    if addon.FullLayout then addon.FullLayout() end
+                end,
+                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+            },
+            { type = "slider", name = L["Title to content"], desc = L["Vertical gap between quest title and objectives or zone below it."], dbKey = "titleToContentSpacing", min = 0, max = 12,
+                get = function()
+                    local mode = addon.GetSpacingMode()
+                    if mode == "custom" then
+                        return math.max(0, math.min(12, tonumber(getDB("customTitleToContentSpacing", 2)) or 2))
+                    end
+                    local p = addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode]
+                    return p and p.titleToContentSpacing or 2
+                end,
+                set = function(v) setDB("customTitleToContentSpacing", math.max(0, math.min(12, v))); if addon.FullLayout then addon.FullLayout() end end,
+                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+            },
+            { type = "slider", name = L["Before section header"], desc = L["Gap between last entry of a group and the next category label."], dbKey = "sectionSpacing", min = 0, max = 24,
+                get = function()
+                    local mode = addon.GetSpacingMode()
+                    if mode == "custom" then
+                        return math.max(0, math.min(24, tonumber(getDB("customSectionSpacing", 10)) or 10))
+                    end
+                    local p = addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode]
+                    return p and p.sectionSpacing or 10
+                end,
+                set = function(v) setDB("customSectionSpacing", math.max(0, math.min(24, v))); if addon.FullLayout then addon.FullLayout() end end,
+                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+            },
+            { type = "slider", name = L["After section header"], desc = L["Gap between category label and first quest entry below it."], dbKey = "sectionToEntryGap", min = 0, max = 16,
+                get = function()
+                    local mode = addon.GetSpacingMode()
+                    if mode == "custom" then
+                        return math.max(0, math.min(16, tonumber(getDB("customSectionToEntryGap", 6)) or 6))
+                    end
+                    local p = addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode]
+                    return p and p.sectionToEntryGap or 6
+                end,
+                set = function(v) setDB("customSectionToEntryGap", math.max(0, math.min(16, v))); if addon.FullLayout then addon.FullLayout() end end,
+                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+            },
+            { type = "slider", name = L["Objective spacing"], desc = L["Vertical gap between objective lines within a quest."], dbKey = "objSpacing", min = 0, max = 8,
+                get = function()
+                    local mode = addon.GetSpacingMode()
+                    if mode == "custom" then
+                        return math.max(0, math.min(8, tonumber(getDB("customObjSpacing", 2)) or 2))
+                    end
+                    local p = addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode]
+                    return p and p.objSpacing or 2
+                end,
+                set = function(v) setDB("customObjSpacing", math.max(0, math.min(8, v))); if addon.FullLayout then addon.FullLayout() end end,
+                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+            },
+            { type = "slider", name = L["Below header"], desc = L["Vertical gap between the objectives bar and the quest list."], dbKey = "headerToContentGap", min = 0, max = 24,
+                get = function()
+                    local mode = addon.GetSpacingMode()
+                    if mode == "custom" then
+                        return math.max(0, math.min(24, tonumber(getDB("customHeaderToContentGap", 6)) or 6))
+                    end
+                    local p = addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode]
+                    return p and p.headerToContentGap or 6
+                end,
+                set = function(v) setDB("customHeaderToContentGap", math.max(0, math.min(24, v))); if addon.FullLayout then addon.FullLayout() end end,
+                disabled = function() return addon.GetSpacingMode() ~= "custom" end,
+                refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
+            },
         },
     },
     {

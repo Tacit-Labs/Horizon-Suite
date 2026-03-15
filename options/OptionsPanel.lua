@@ -861,7 +861,23 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                     if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
             end
-            local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, setFn, opt.displayFn, searchable, opt.disabled, opt.tooltip)
+            local resetBtn = opt.resetButton
+            if resetBtn and resetBtn.onClick and opt.refreshIds and optionFrames then
+                local origOnClick = resetBtn.onClick
+                resetBtn = {
+                    onClick = function()
+                        origOnClick()
+                        for _, k in ipairs(opt.refreshIds) do
+                            local f = optionFrames[k]
+                            if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        end
+                        if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
+                        notifyMainAddon()
+                    end,
+                    tooltip = resetBtn.tooltip,
+                }
+            end
+            local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, setFn, opt.displayFn, searchable, opt.disabled, opt.tooltip, resetBtn)
             w:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w

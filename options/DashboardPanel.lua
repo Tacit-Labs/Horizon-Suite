@@ -1429,7 +1429,19 @@ SlashCmdList["HSDASH"] = function(msg)
                                 if widget.Refresh then detailOptionFrames[optId] = widget end
                             end
                         elseif opt.type == "dropdown" then
-                            widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip)
+                            local resetBtn = opt.resetButton
+                            if resetBtn and resetBtn.onClick and opt.refreshIds then
+                                local origOnClick = resetBtn.onClick
+                                resetBtn = {
+                                    onClick = function()
+                                        origOnClick()
+                                        RefreshLinkedTargets(opt.refreshIds)
+                                        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                                    end,
+                                    tooltip = resetBtn.tooltip,
+                                }
+                            end
+                            widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn)
                             if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                         elseif opt.type == "color" then
                             widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
