@@ -603,11 +603,9 @@ L["Reset Mythic+ typography"]                                                   
 -- OptionsData.lua Appearance
 -- =====================================================================
 L["Frame"]                                                                                                          = "Frame"
-L["Use class colours everywhere"]                                                                                   = "Use class colours everywhere"
+L["Class colours - Dashboard"]                                                                                     = "Class colours - Dashboard"
 L["Class colors"]                                                                                                   = "Class colors"
-L["Enable class colours for both the options panel and Vista minimap."]                                             = "Enable class colours for both the options panel and Vista minimap."
-L["Options panel accent"]                                                                                           = "Options panel accent"
-L["Tint the options panel accent with your class colour."]                                                          = "Tint the options panel accent with your class colour."
+L["Tint dashboard accents, dividers, and highlights with your class colour."]                                       = "Tint dashboard accents, dividers, and highlights with your class colour."
 L["Backdrop opacity"]                                                                                               = "Backdrop opacity"
 L["Panel background opacity (0–1)."]                                                                                = "Panel background opacity (0–1)."
 L["Show border"]                                                                                                    = "Show border"

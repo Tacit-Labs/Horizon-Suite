@@ -95,7 +95,55 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
                 return 0.2, 0.8, 0.9 -- Default sleek cyan
             end
-            
+
+            -- Track static accent elements for live class-colour refresh
+            local dashAccentRefs = {
+                sidebarBars = {},
+                subcatAccents = {},
+                cardAccents = {},
+                cardDividers = {},
+                underline = nil,
+                sidebarDivider = nil,
+                logoSep = nil,
+                logoText = nil,
+                searchDropBorder = nil,
+            }
+
+            addon.ApplyDashboardClassColor = function()
+                local ar, ag, ab = GetAccentColor()
+                for _, bar in ipairs(dashAccentRefs.sidebarBars) do
+                    if bar.SetColorTexture then bar:SetColorTexture(ar, ag, ab, 1) end
+                end
+                if dashAccentRefs.underline then
+                    dashAccentRefs.underline:SetColorTexture(ar, ag, ab, 0.35)
+                end
+                for _, acc in ipairs(dashAccentRefs.subcatAccents) do
+                    if acc.SetColorTexture then acc:SetColorTexture(ar, ag, ab, 1) end
+                end
+                for _, acc in ipairs(dashAccentRefs.cardAccents) do
+                    if acc.SetColorTexture then acc:SetColorTexture(ar, ag, ab, 1) end
+                end
+                for _, div in ipairs(dashAccentRefs.cardDividers) do
+                    if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
+                end
+                if activeSidebarBtn then
+                    activeSidebarBtn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, 1)
+                    activeSidebarBtn.accentBar:SetColorTexture(ar, ag, ab, 1)
+                end
+                if dashAccentRefs.sidebarDivider then
+                    dashAccentRefs.sidebarDivider:SetColorTexture(ar, ag, ab, 0.4)
+                end
+                if dashAccentRefs.logoSep then
+                    dashAccentRefs.logoSep:SetColorTexture(ar, ag, ab, 0.3)
+                end
+                if dashAccentRefs.logoText then
+                    dashAccentRefs.logoText:SetTextColor(ar, ag, ab)
+                end
+                if dashAccentRefs.searchDropBorder and dashAccentRefs.searchDropBorder.SetBackdropBorderColor then
+                    dashAccentRefs.searchDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
+                end
+            end
+
             tinsert(UISpecialFrames, "HorizonSuiteDashboard")
             
             -- Background
@@ -122,11 +170,14 @@ SlashCmdList["HSDASH"] = function(msg)
             sidebarDivider:SetWidth(1)
             sidebarDivider:SetPoint("TOPRIGHT", 0, 0)
             sidebarDivider:SetPoint("BOTTOMRIGHT", 0, 0)
-            sidebarDivider:SetColorTexture(0.15, 0.15, 0.2, 1)
+            local ar, ag, ab = GetAccentColor()
+            sidebarDivider:SetColorTexture(ar, ag, ab, 0.4)
+            dashAccentRefs.sidebarDivider = sidebarDivider
 
             -- Sidebar Logo
-            local sidebarLogoSub = MakeText(sidebar, "HORIZON SUITE", 16, 0.7, 0.7, 0.8, "CENTER")
+            local sidebarLogoSub = MakeText(sidebar, "HORIZON SUITE", 16, ar, ag, ab, "CENTER")
             sidebarLogoSub:SetPoint("TOP", 0, -18)
+            dashAccentRefs.logoText = sidebarLogoSub
 
             -- Version from TOC (addon version)
             local addonName = addon.ADDON_NAME or "HorizonSuite"
@@ -140,7 +191,8 @@ SlashCmdList["HSDASH"] = function(msg)
             logoSep:SetHeight(1)
             logoSep:SetPoint("TOPLEFT", 15, -58)
             logoSep:SetPoint("TOPRIGHT", -15, -58)
-            logoSep:SetColorTexture(0.15, 0.15, 0.2, 0.6)
+            logoSep:SetColorTexture(ar, ag, ab, 0.3)
+            dashAccentRefs.logoSep = logoSep
 
             -- Sidebar scroll area for buttons
             local sidebarScrollFrame = CreateFrame("ScrollFrame", nil, sidebar)
@@ -214,6 +266,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 accentBar:SetColorTexture(ar, ag, ab, 1)
                 accentBar:Hide()
                 btn.accentBar = accentBar
+                tinsert(dashAccentRefs.sidebarBars, accentBar)
 
                 if iconName then
                     local ic = btn:CreateTexture(nil, "ARTWORK")
@@ -234,7 +287,8 @@ SlashCmdList["HSDASH"] = function(msg)
                     if btn ~= activeSidebarBtn then
                         btnBg:SetColorTexture(0.1, 0.1, 0.12, 1)
                         lbl:SetTextColor(0.9, 0.9, 0.95)
-                        if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
+                        local har, hag, hab = GetAccentColor()
+                        if btn.icon then btn.icon:SetVertexColor(har, hag, hab, 1) end
                     end
                 end)
                 btn:SetScript("OnLeave", function()
@@ -423,7 +477,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 insets = { left = 3, right = 3, top = 3, bottom = 3 }
             })
             searchDropdown:SetBackdropColor(0.08, 0.08, 0.09, 0.98)
-            searchDropdown:SetBackdropBorderColor(0.2, 0.2, 0.25, 1)
+            local sdar, sdag, sdab = GetAccentColor()
+            searchDropdown:SetBackdropBorderColor(sdar, sdag, sdab, 0.5)
+            dashAccentRefs.searchDropBorder = searchDropdown
             searchDropdown:Hide()
 
             local searchDropdownScroll = CreateFrame("ScrollFrame", nil, searchDropdown)
@@ -491,6 +547,7 @@ SlashCmdList["HSDASH"] = function(msg)
             detailTitleUnderline:SetPoint("RIGHT", detailView, "RIGHT", -40, 0)
             local ar, ag, ab = GetAccentColor()
             detailTitleUnderline:SetColorTexture(ar, ag, ab, 0.35)
+            dashAccentRefs.underline = detailTitleUnderline
 
             -- Transitions (faster animations per UX feedback)
             local function CrossfadeTo(targetView)
@@ -519,6 +576,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 searchBox:Show()
                 f.currentModuleKey = nil
                 SetSidebarState({ view = "dashboard", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             end
 
             -- Back Button (Persistent in Detail View)
@@ -654,6 +712,8 @@ SlashCmdList["HSDASH"] = function(msg)
                     card:Hide()
                 end
                 wipe(currentDetailCards)
+                wipe(dashAccentRefs.cardAccents)
+                wipe(dashAccentRefs.cardDividers)
             end
 
             -- Helper: Update Detail Layout
@@ -758,8 +818,10 @@ SlashCmdList["HSDASH"] = function(msg)
                         hi:SetAllPoints(b)
                         hi:SetColorTexture(1, 1, 1, 0.08)
                         hi:Hide()
-                        
+
                         b:SetScript("OnEnter", function()
+                            local har, hag, hab = GetAccentColor()
+                            hi:SetColorTexture(har, hag, hab, 0.08)
                             hi:Show()
                             b.label:SetTextColor(1, 1, 1)
                         end)
@@ -848,6 +910,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     tile:Hide()
                 end
                 wipe(currentSubTiles)
+                wipe(dashAccentRefs.subcatAccents)
             end
 
             -- Helper: Create Subcategory Tile
@@ -889,6 +952,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 local ar, ag, ab = GetAccentColor()
                 accent:SetColorTexture(ar, ag, ab, 1)
                 accent:Hide()
+                tinsert(dashAccentRefs.subcatAccents, accent)
 
                 -- Label
                 local lbl = MakeText(tile, name, 18, 0.9, 0.9, 0.95, "LEFT")
@@ -1112,7 +1176,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 divider:SetHeight(1)
                 divider:SetPoint("BOTTOMLEFT", 20, 0)
                 divider:SetPoint("BOTTOMRIGHT", -20, 0)
-                divider:SetColorTexture(0.15, 0.17, 0.22, 0.35)
+                local cdr, cdg, cdb = GetAccentColor()
+                divider:SetColorTexture(cdr, cdg, cdb, 0.2)
+                tinsert(dashAccentRefs.cardDividers, divider)
 
                 card:HookScript("OnEnter", function()
                     if not card.expanded then
@@ -1131,6 +1197,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 accent:SetPoint("TOPLEFT", 20, -18)
                 local cr, cg, cb = GetAccentColor()
                 accent:SetColorTexture(cr, cg, cb, 1)
+                tinsert(dashAccentRefs.cardAccents, accent)
 
                 -- Chevron indicator
                 local chevron = MakeText(card, "+", 14, 0.5, 0.5, 0.55, "RIGHT")
@@ -2328,6 +2395,7 @@ SlashCmdList["HSDASH"] = function(msg)
             SetActiveSidebarButton(sidebarButtons[1])
             f.ShowDashboard()
         end
+        if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
         f:Show()
     end
 end
