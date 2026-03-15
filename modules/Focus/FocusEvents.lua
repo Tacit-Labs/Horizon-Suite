@@ -492,12 +492,15 @@ local eventHandlers = {
     VIGNETTES_UPDATED        = OnVignettesUpdated,
     -- AREA_POIS_UPDATED: fires when zone events/POIs update (e.g. entering area with bonus objective).
     -- Invalidate nearby cache so GetTasksTable/GetNearbyQuestIDs picks up newly available content.
+    -- Defer ScheduleRefresh to avoid taint chain with Blizzard map pin acquisition (SetPropagateMouseClicks).
     AREA_POIS_UPDATED        = function()
         if not addon.focus.enabled then return end
         addon.focus.nearbyQuestCacheDirty = true
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
-        ScheduleRefresh()
+        C_Timer.After(0, function()
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
     end,
     QUEST_POI_UPDATE         = function() end,
     -- TASK_PROGRESS_UPDATE: fires when the player enters or leaves a WQ/task area (proximity).
@@ -599,10 +602,14 @@ local eventHandlers = {
         end
         ScheduleRefresh()
     end,
-    -- WORLD_MAP_OPEN: fires when the world map opens. Sync watch-list state immediately
-    -- rather than waiting for the 0.5s map ticker to detect the visibility change.
+    -- WORLD_MAP_OPEN: fires when the world map opens. Sync watch-list state.
+    -- Defer to avoid taint chain with Blizzard map pin acquisition (SetPropagateMouseClicks).
     WORLD_MAP_OPEN           = function()
-        if addon.focus.enabled then ScheduleRefresh() end
+        if addon.focus.enabled then
+            C_Timer.After(0, function()
+                if addon.focus.enabled then ScheduleRefresh() end
+            end)
+        end
     end,
 }
 

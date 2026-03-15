@@ -112,8 +112,10 @@ local function StartMapChangedListener()
         if not addon.focus.enabled then return end
         -- Delegate to RunMapCheck which handles zone cache invalidation.
         if addon.RunMapCheck then addon.RunMapCheck() end
-        -- Also check world map visibility on map change.
-        RunWorldMapVisibilityCheck()
+        -- Defer visibility check to avoid taint chain with Blizzard map pin acquisition (SetPropagateMouseClicks).
+        C_Timer.After(0, function()
+            if addon.focus.enabled then RunWorldMapVisibilityCheck() end
+        end)
     end)
 end
 
