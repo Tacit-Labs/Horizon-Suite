@@ -51,6 +51,10 @@ function DefaultProvider:ReadEntries()
 
     -- 1. Main Step
     local ok, stageName, _, numCriteria, _, _, _, _, _, _, rewardQuestID, widgetSetID = pcall(C_Scenario.GetStepInfo)
+    local scenarioName, stageIndex
+    local gOk, gName, currentStage = pcall(C_Scenario.GetInfo)
+    if gOk and gName and gName ~= "" then scenarioName = gName end
+    if gOk and currentStage and type(currentStage) == "number" and currentStage > 0 then stageIndex = currentStage end
     if ok and stageName and stageName ~= "" then
         local objectives = {}
         local timerDuration, timerStartTime = nil, nil
@@ -90,9 +94,14 @@ function DefaultProvider:ReadEntries()
             end
         end
 
+        objectives = self:DeduplicateObjectives(objectives)
+
+        local title = (scenarioName and scenarioName ~= "") and scenarioName or stageName
         table.insert(out, {
             entryKey = "scenario-main",
-            title = stageName,
+            title = title,
+            stageName = (stageName and stageName ~= "") and stageName or nil,
+            stageIndex = stageIndex,
             category = category,
             color = color,
             objectives = objectives,
@@ -128,6 +137,8 @@ function DefaultProvider:ReadEntries()
                 if not bTimeDur then
                     bTimeDur, bTimeStart = self:GetTimerInfo(nil, bonusRewardID, bWidgetID)
                 end
+
+                bObjectives = self:DeduplicateObjectives(bObjectives)
 
                 table.insert(out, {
                     entryKey = "scenario-bonus-" .. stepID,

@@ -33,6 +33,7 @@ function AbundanceProvider:ReadEntries()
             for _, wo in ipairs(topWidgetObjs) do
                 table.insert(entry.objectives, wo)
             end
+            entry.objectives = self:DeduplicateObjectives(entry.objectives)
         end
     end
     

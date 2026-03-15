@@ -865,6 +865,8 @@ L["DUNGEON"]                                                                    
 L["RAID"]                                                                                                           = "RAID"
 L["DELVES"]                                                                                                         = "Delves"
 L["SCENARIO EVENTS"]                                                                                                = "SCENARIO EVENTS"
+L["Stage"]                                                                                                          = "Stage"
+L["Stage %d: %s"]                                                                                                   = "Stage %d: %s"
 L["AVAILABLE IN ZONE"]                                                                                              = "AVAILABLE IN ZONE"
 L["EVENTS IN ZONE"]                                                                                                 = "Events in Zone"
 L["CURRENT EVENT"]                                                                                                  = "Current Event"
