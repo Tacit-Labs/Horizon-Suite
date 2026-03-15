@@ -6,7 +6,28 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-- Placeholder for next release.
+### ✨ New Features
+
+- **(Focus) Remove tooltip when hovering over Horizon tracker**
+
+### 🔧 Improvements
+
+- **(Core) Release announcements include direct CurseForge and Wago links**
+- **(Core) Yield: Draggable anchor frame for repositioning loot toasts**
+- **(Core) Dashboard: Back button, sidebar state, and Focus colours refactor**
+- **(Focus) Setting to show or hide tooltips on hover in Focus tracker**
+- **(Insight) Insight tooltip options: background opacity, blank separator, show icons; remove accent bar**
+- **(Insight) Optional RondoMedia class icons in Insight tooltips**
+- **(Focus) Scenario tracker: stage line, objective deduplication, and current event suppression**
+
+### 🐛 Fixes
+
+- **(Core) Dashboard sidebar stays synced across home, module, and category views**
+- **(Core) Fix Discord release announcement embed size limit**
+- **(Presence) Fix stale 0/X in delve and scenario completion text**
+- **(Focus) Quest Level: Lowercase "L"**
+- **(Focus) World Quest and task quest timers tick back up one second during refresh**
+- **(Focus) Typography: Improper Proper Case**
 
 ---
 
