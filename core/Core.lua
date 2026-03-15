@@ -91,22 +91,49 @@ function addon.GetScaledBarLeftOffset() return addon.Scaled(addon.BAR_LEFT_OFFSE
 function addon.GetScaledScrollStep()    return addon.Scaled(addon.SCROLL_STEP) end
 
 
+--- Returns the active spacing mode: "default"|"compact"|"spaced"|"custom". Handles legacy bool values.
+--- @return string
+function addon.GetSpacingMode()
+    local mode = addon.GetDB("compactMode", "default")
+    if mode == true then return "compact" end
+    if mode == false then return "default" end
+    return mode or "default"
+end
+
 function addon.GetTitleSpacing()
-    if addon.GetDB("compactMode", false) then
-        return addon.Scaled(addon.COMPACT_TITLE_SPACING)
+    local mode = addon.GetSpacingMode()
+    if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then
+        return addon.Scaled(addon.SPACING_PRESETS[mode].titleSpacing)
     end
-    local v = tonumber(addon.GetDB("titleSpacing", addon.TITLE_SPACING)) or addon.TITLE_SPACING
+    local v = tonumber(addon.GetDB("customTitleSpacing", nil)) or tonumber(addon.GetDB("titleSpacing", 8)) or 8
     return addon.Scaled(math.max(2, math.min(20, v)))
 end
 function addon.GetObjSpacing()
-    if addon.GetDB("compactMode", false) then
-        return addon.Scaled(addon.COMPACT_OBJ_SPACING)
+    local mode = addon.GetSpacingMode()
+    if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then
+        return addon.Scaled(addon.SPACING_PRESETS[mode].objSpacing)
     end
-    local v = tonumber(addon.GetDB("objSpacing", addon.OBJ_SPACING)) or addon.OBJ_SPACING
+    local v = tonumber(addon.GetDB("customObjSpacing", nil)) or tonumber(addon.GetDB("objSpacing", 2)) or 2
     return addon.Scaled(math.max(0, math.min(8, v)))
 end
+
+--- Returns the vertical gap between quest title and the content below (zone, objectives, etc.).
+--- @return number Scaled pixels
+function addon.GetTitleToContentSpacing()
+    local mode = addon.GetSpacingMode()
+    if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then
+        return addon.Scaled(addon.SPACING_PRESETS[mode].titleToContentSpacing)
+    end
+    local v = tonumber(addon.GetDB("customTitleToContentSpacing", nil)) or tonumber(addon.GetDB("titleToContentSpacing", 2)) or 2
+    return addon.Scaled(math.max(0, math.min(12, v)))
+end
+
 function addon.GetSectionSpacing()
-    local v = tonumber(addon.GetDB("sectionSpacing", addon.SECTION_SPACING)) or addon.SECTION_SPACING
+    local mode = addon.GetSpacingMode()
+    if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then
+        return addon.Scaled(addon.SPACING_PRESETS[mode].sectionSpacing)
+    end
+    local v = tonumber(addon.GetDB("customSectionSpacing", nil)) or tonumber(addon.GetDB("sectionSpacing", 10)) or 10
     return addon.Scaled(math.max(0, math.min(24, v)))
 end
 
@@ -139,7 +166,11 @@ function addon.ApplyDimColor(color)
     return { r, g, b }
 end
 function addon.GetSectionToEntryGap()
-    local v = tonumber(addon.GetDB("sectionToEntryGap", 6)) or 6
+    local mode = addon.GetSpacingMode()
+    if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then
+        return addon.Scaled(addon.SPACING_PRESETS[mode].sectionToEntryGap)
+    end
+    local v = tonumber(addon.GetDB("customSectionToEntryGap", nil)) or tonumber(addon.GetDB("sectionToEntryGap", 6)) or 6
     return addon.Scaled(math.max(0, math.min(16, v)))
 end
 
@@ -151,7 +182,9 @@ function addon.GetSectionHeaderHeight()
 end
 
 function addon.GetObjIndent()
-    local v = addon.GetDB("compactMode", false) and addon.COMPACT_OBJ_INDENT or addon.OBJ_INDENT
+    local mode = addon.GetSpacingMode()
+    -- compact uses COMPACT_OBJ_INDENT; default, spaced, custom use OBJ_INDENT
+    local v = (mode == "compact") and addon.COMPACT_OBJ_INDENT or addon.OBJ_INDENT
     return addon.Scaled(v)
 end
 
@@ -1254,7 +1287,12 @@ do
 end
 
 function addon.GetHeaderToContentGap()
-    return addon.Scaled(math.max(0, math.min(24, tonumber(addon.GetDB("headerToContentGap", 6)) or 6)))
+    local mode = addon.GetSpacingMode()
+    if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then
+        return addon.Scaled(addon.SPACING_PRESETS[mode].headerToContentGap)
+    end
+    local v = tonumber(addon.GetDB("customHeaderToContentGap", nil)) or tonumber(addon.GetDB("headerToContentGap", 6)) or 6
+    return addon.Scaled(math.max(0, math.min(24, v)))
 end
 
 function addon.GetContentTop()

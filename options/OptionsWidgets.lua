@@ -542,7 +542,8 @@ local SECTION_CARD_BACKDROP = {
 
 -- Custom dropdown: button + popup list (no UIDropDownMenuTemplate)
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
-function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip)
+-- resetButton: optional table { onClick, tooltip } — adds a small reset-arrow icon button to the left of the dropdown.
+function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton)
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
     local row = CreateFrame("Frame", nil, parent)
@@ -551,12 +552,48 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     row.searchText = searchText:lower()
 
     local DROPDOWN_BTN_WIDTH = 180
+    local RESET_BTN_SIZE = 24
+    local RESET_GAP = 6
+    local rightInset = DROPDOWN_BTN_WIDTH + 12
+    if resetButton and resetButton.onClick then
+        rightInset = rightInset + RESET_BTN_SIZE + RESET_GAP
+    end
+
     local btn = CreateFrame("Button", nil, row)
     btn:SetHeight(26)
     btn:SetWidth(DROPDOWN_BTN_WIDTH)
     btn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
     btn:SetPoint("TOP", row, "CENTER", 0, 13)
     btn:SetPoint("BOTTOM", row, "CENTER", 0, -13)
+
+    if resetButton and resetButton.onClick then
+        local resetBtn = CreateFrame("Button", nil, row)
+        resetBtn:SetSize(RESET_BTN_SIZE, RESET_BTN_SIZE)
+        resetBtn:SetPoint("RIGHT", btn, "LEFT", -RESET_GAP, 0)
+        resetBtn:SetFrameLevel(row:GetFrameLevel() + 10)
+        resetBtn:EnableMouse(true)
+        resetBtn:SetScript("OnClick", function()
+            resetButton.onClick()
+        end)
+        local resetIcon = resetBtn:CreateTexture(nil, "OVERLAY")
+        resetIcon:SetAllPoints(resetBtn)
+        resetIcon:SetTexture("Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
+        resetIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        local resetBg = resetBtn:CreateTexture(nil, "BACKGROUND")
+        resetBg:SetAllPoints(resetBtn)
+        resetBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+        if addon.CreateBorder then addon.CreateBorder(resetBtn, Def.InputBorder) end
+        local resetHi = resetBtn:CreateTexture(nil, "HIGHLIGHT")
+        resetHi:SetAllPoints(resetBtn)
+        resetHi:SetColorTexture(1, 1, 1, 0.15)
+        local resetTt = (resetButton.tooltip or (L and L["Reset spacing"])) or "Reset spacing"
+        resetBtn:SetScript("OnEnter", function()
+            GameTooltip:SetOwner(resetBtn, "ANCHOR_RIGHT")
+            GameTooltip:SetText(resetTt, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        resetBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
 
     local label = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(label, Def.FontPath, Def.LabelSize, "OUTLINE")
@@ -565,7 +602,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(resolvedLabel or "")
     label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -(DROPDOWN_BTN_WIDTH + 12), 0)
+    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -rightInset, 0)
     label:SetWordWrap(true)
 
     local desc = row:CreateFontString(nil, "OVERLAY")
