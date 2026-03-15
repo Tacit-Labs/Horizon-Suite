@@ -21,10 +21,18 @@ end
 local TRANSMOG_COLLECTED_TEXT = "Appearance: Collected"
 local TRANSMOG_MISSING_TEXT   = "Appearance: Not collected"
 
+local NON_TRANSMOG_EQUIP = {
+    INVTYPE_TRINKET = true,
+    INVTYPE_FINGER  = true,
+    INVTYPE_NECK    = true,
+}
+
 local function IsTransmoggableItem(itemID)
     if not GetItemInfo then return false end
-    local _, _, _, _, _, itemType = GetItemInfo(itemID)
-    return itemType == "Armor" or itemType == "Weapon"
+    local _, _, _, _, _, itemType, _, _, itemEquipLoc = GetItemInfo(itemID)
+    if itemType ~= "Armor" and itemType ~= "Weapon" then return false end
+    if itemEquipLoc and NON_TRANSMOG_EQUIP[itemEquipLoc] then return false end
+    return true
 end
 
 local function HasTransmogLine(tooltip)
