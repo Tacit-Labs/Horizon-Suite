@@ -900,6 +900,10 @@ L["READY TO TURN IN"]                                                           
 -- =====================================================================
 L["OBJECTIVES"]                                                                                                     = "OBJECTIVES"
 L["Options"]                                                                                                        = "Options"
+L["Open Horizon Suite"]                                                                                              = "Open Horizon Suite"
+L["Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."]              = "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."
+L["Show minimap icon"]                                                                                             = "Show minimap icon"
+L["Show a clickable icon on the minimap that opens the options panel."]                                             = "Show a clickable icon on the minimap that opens the options panel."
 L["Discovered"]                                                                                                     = "Discovered"
 L["Refresh"]                                                                                                        = "Refresh"
 L["Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."] = "Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."

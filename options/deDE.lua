@@ -199,6 +199,10 @@ L["Max height of the scrollable list (pixels)."]                    = "Maximale 
 -- =====================================================================
 L["OBJECTIVES"]                                                     = "ZIELE"
 L["Options"]                                                        = "Optionen"
+L["Open Horizon Suite"]                                             = "Horizon Suite öffnen"
+L["Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."] = "Öffnet das vollständige Horizon Suite-Optionsfenster zur Konfiguration von Focus, Presence, Vista und anderen Modulen."
+L["Show minimap icon"]                                              = "Minimap-Symbol anzeigen"
+L["Show a clickable icon on the minimap that opens the options panel."] = "Zeigt ein klickbares Symbol auf der Minimap, das das Optionsfenster öffnet."
 L["Discovered"]                                                     = "Entdeckt"
 L["Refresh"]                                                        = "Aktualisieren"
 L["Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."] = "Nur bestmöglich. Manche nicht angenommenen Quests werden erst nach NPC-Interaktion oder Phasenbedingungen angezeigt."
