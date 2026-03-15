@@ -548,7 +548,10 @@ local function FullLayout()
                 end
                 local visibleH = math.min(totalContentH, addon.GetMaxContentHeight())
                 local blockHeight = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
-                local desiredH = math.max(addon.GetScaledMinHeight(), headerArea + visibleH + addon.GetScaledPadding() + blockHeight)
+                -- Grow-up already reserves the full footer/header stack in headerArea; adding
+                -- another trailing pad makes the panel nudge when toggling growUp off.
+                local trailingPad = useGrowUpScrollLayout and 0 or addon.GetScaledPadding()
+                local desiredH = math.max(addon.GetScaledMinHeight(), headerArea + visibleH + trailingPad + blockHeight)
                 addon.focus.layout.targetHeight = math.min(desiredH, GetMaxPanelHeight())
             else
                 scrollFrame:Hide()
@@ -1255,7 +1258,10 @@ local function FullLayout()
     end
     local visibleH      = math.min(totalContentH, addon.GetMaxContentHeight())
     local blockHeight   = (hasMplus and addon.GetMplusBlockHeight and (addon.GetMplusBlockHeight() + gap * 2)) or 0
-    local desiredH      = math.max(addon.GetScaledMinHeight(), headerArea + visibleH + addon.GetScaledPadding() + blockHeight)
+    -- Grow-up already reserves the full footer/header stack in headerArea; adding
+    -- another trailing pad makes the panel nudge when toggling growUp off.
+    local trailingPad   = useGrowUpScrollLayout and 0 or addon.GetScaledPadding()
+    local desiredH      = math.max(addon.GetScaledMinHeight(), headerArea + visibleH + trailingPad + blockHeight)
     addon.focus.layout.targetHeight  = math.min(desiredH, GetMaxPanelHeight())
 
     -- Header slide up: use expanded targetHeight for headerSlideEndY (set in ToggleCollapse before FullLayout had the new height)
