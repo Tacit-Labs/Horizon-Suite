@@ -115,5 +115,9 @@ addon.focus = {
     -- Scenario widget-step timer cache; avoids countdown jump from stale API samples on refresh.
     -- { widgetSetID, duration, startTime }; cleared on SCENARIO_COMPLETED.
     scenarioTimerCache                = nil,
+
+    -- Quest-based timer cache for WQ/task/calling; avoids countdown jump from C_TaskQuest fallback on refresh.
+    -- [questID] = { duration, startTime }; cleared when quest expires, completes, or leaves tracker.
+    questTimerCache                   = {},
 }
 

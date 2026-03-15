@@ -487,17 +487,33 @@ local function ReadTrackedQuests()
             end
         end
         if not timerDuration and C_TaskQuest then
-            if C_TaskQuest.GetQuestTimeLeftSeconds then
-                local tokS, secs = pcall(C_TaskQuest.GetQuestTimeLeftSeconds, questID)
-                if tokS and secs and secs > 0 then
-                    timerDuration = secs
-                    timerStartTime = GetTime()
-                end
-            elseif C_TaskQuest.GetQuestTimeLeftMinutes then
-                local tokM, mins = pcall(C_TaskQuest.GetQuestTimeLeftMinutes, questID)
-                if tokM and mins and mins > 0 then
-                    timerDuration = mins * 60
-                    timerStartTime = GetTime()
+            local now = GetTime()
+            local cache = addon.focus and addon.focus.questTimerCache
+            local cached = cache and cache[questID]
+            local useCache = cached and (now - cached.startTime) < cached.duration
+
+            if useCache then
+                timerDuration = cached.duration
+                timerStartTime = cached.startTime
+            else
+                if C_TaskQuest.GetQuestTimeLeftSeconds then
+                    local tokS, secs = pcall(C_TaskQuest.GetQuestTimeLeftSeconds, questID)
+                    if tokS and secs and secs > 0 then
+                        timerDuration = secs
+                        timerStartTime = now
+                        if cache then cache[questID] = { duration = secs, startTime = now } end
+                    elseif cache and cache[questID] then
+                        cache[questID] = nil
+                    end
+                elseif C_TaskQuest.GetQuestTimeLeftMinutes then
+                    local tokM, mins = pcall(C_TaskQuest.GetQuestTimeLeftMinutes, questID)
+                    if tokM and mins and mins > 0 then
+                        timerDuration = mins * 60
+                        timerStartTime = now
+                        if cache then cache[questID] = { duration = mins * 60, startTime = now } end
+                    elseif cache and cache[questID] then
+                        cache[questID] = nil
+                    end
                 end
             end
         end
