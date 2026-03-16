@@ -540,11 +540,12 @@ end
 local function UpdateFontObjectsFromDB()
     local fontPath   = addon.ResolveFontPath and addon.ResolveFontPath(addon.GetDB("fontPath", addon.GetDefaultFontPath())) or addon.GetDB("fontPath", addon.GetDefaultFontPath())
     local outline    = addon.GetDB("fontOutline", "OUTLINE")
-    local headerSz   = tonumber(addon.GetDB("headerFontSize", 16)) or 16
-    local titleSz    = tonumber(addon.GetDB("titleFontSize", 13)) or 13
-    local objSz      = tonumber(addon.GetDB("objectiveFontSize", 11)) or 11
-    local zoneSz     = tonumber(addon.GetDB("zoneFontSize", 10)) or 10
-    local sectionSz  = tonumber(addon.GetDB("sectionFontSize", 10)) or 10
+    local fontOffset  = tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0
+    local headerSz   = math.max(8, (tonumber(addon.GetDB("headerFontSize", 16)) or 16) + fontOffset)
+    local titleSz    = math.max(8, (tonumber(addon.GetDB("titleFontSize", 13)) or 13) + fontOffset)
+    local objSz      = math.max(8, (tonumber(addon.GetDB("objectiveFontSize", 11)) or 11) + fontOffset)
+    local zoneSz     = math.max(8, (tonumber(addon.GetDB("zoneFontSize", 10)) or 10) + fontOffset)
+    local sectionSz  = math.max(8, (tonumber(addon.GetDB("sectionFontSize", 10)) or 10) + fontOffset)
 
     local GLOBAL_SENTINEL = "__global__"
     local titleFontRaw   = addon.GetDB("titleFontPath", GLOBAL_SENTINEL)
@@ -558,7 +559,7 @@ local function UpdateFontObjectsFromDB()
     local objFont     = (objFontRaw and objFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(objFontRaw) or objFontRaw) or fontPath
     local sectionFont = (sectionFontRaw and sectionFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(sectionFontRaw) or sectionFontRaw) or fontPath
     local progBarFont = (progBarFontRaw and progBarFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(progBarFontRaw) or progBarFontRaw) or fontPath
-    local progBarSz   = tonumber(addon.GetDB("progressBarFontSize", 10)) or 10
+    local progBarSz   = math.max(7, (tonumber(addon.GetDB("progressBarFontSize", 10)) or 10) + fontOffset)
 
     addon.FONT_PATH = fontPath
     local S = addon.Scaled or function(v) return v end
