@@ -83,14 +83,14 @@ modules/Insight/InsightItemTooltip.lua
 modules/Insight/InsightCore.lua
 modules/Insight/InsightModule.lua
 
-options/LocaleBase.lua
-options/deDE.lua
-options/koKR.lua
-options/frFR.lua
-options/ptBR.lua
-options/ruRU.lua
-options/esES.lua
-options/zhCN.lua
+locales/LocaleBase.lua
+locales/deDE.lua
+locales/koKR.lua
+locales/frFR.lua
+locales/ptBR.lua
+locales/ruRU.lua
+locales/esES.lua
+locales/zhCN.lua
 options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua

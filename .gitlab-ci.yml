@@ -1,9 +1,11 @@
-# GitLab CI: release (tag v*), beta (manual trigger with BETA_BUILD=1), issuelog (schedule or ISSUELOG_RUN=1).
+# GitLab CI: release (tag v*), beta (manual trigger with BETA_BUILD=1), issuelog (schedule or ISSUELOG_RUN=1),
+#   locale-audit (schedule or LOCALE_AUDIT_RUN=1).
 # Release: push tag v* (e.g. v3.5.0). Required: CF_API_KEY, WAGO_API_TOKEN.
 # Beta: trigger pipeline with BETA_BUILD=1 and optional ref (e.g. glab ci run --ref feature/xyz -f BETA_BUILD=1).
 #   Required for beta tag push: PROJECT_ACCESS_TOKEN (or GITLAB_TOKEN) with write_repository.
 #   Optional: DISCORD_WEBHOOK_BETA for beta Discord notification.
 # Issuelog: runs on schedule or manual (glab ci run -f ISSUELOG_RUN=1). Required: DISCORD_WEBHOOK_ISSUELOG.
+# Locale audit: runs on schedule or manual (glab ci run -f LOCALE_AUDIT_RUN=1). Required: DISCORD_WEBHOOK_LOCALE.
 
 stages:
   - issuelog
@@ -75,6 +77,57 @@ issuelog:
 
       mv "$NEW_IDS" "$MSG_ID_FILE"
       echo "Cached $(wc -l < "$MSG_ID_FILE") message ID(s)"
+
+# Post locale translation coverage to Discord. Runs on schedule or manual (glab ci run -f LOCALE_AUDIT_RUN=1).
+# Required: DISCORD_WEBHOOK_LOCALE (CI/CD variable pointing to #translations webhook).
+locale-audit:
+  stage: issuelog
+  image: node:20-slim
+  rules:
+    - if: $LOCALE_AUDIT_RUN == "1"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  cache:
+    key: locale-audit-msg-id
+    paths:
+      - .release/discord-locale-audit-message-id
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl jq
+  script:
+    - mkdir -p .release
+    - node tools/locale_audit_discord.js > .release/discord-locale-payload.json
+    - cat .release/discord-locale-payload.json
+    - |
+      if [ -z "${DISCORD_WEBHOOK_LOCALE}" ]; then
+        echo "DISCORD_WEBHOOK_LOCALE not set; skipping Discord post."
+        exit 0
+      fi
+      MSG_ID_FILE=.release/discord-locale-audit-message-id
+
+      # Delete previous message if cached
+      if [ -f "$MSG_ID_FILE" ]; then
+        OLD_ID=$(cat "$MSG_ID_FILE" | tr -d '[:space:]')
+        if [ -n "$OLD_ID" ]; then
+          DEL_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            "${DISCORD_WEBHOOK_LOCALE}/messages/${OLD_ID}" || echo "000")
+          echo "DELETE ${OLD_ID} returned ${DEL_HTTP}"
+        fi
+      fi
+
+      # Post new message
+      RESP=$(curl -s -w "\n%{http_code}" -X POST \
+        "${DISCORD_WEBHOOK_LOCALE}?wait=true" \
+        -H "Content-Type: application/json" \
+        -d @.release/discord-locale-payload.json)
+      HTTP=$(echo "$RESP" | tail -1)
+      BODY=$(echo "$RESP" | sed '$d')
+      NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
+      if [ -n "$NEW_ID" ]; then
+        echo "$NEW_ID" > "$MSG_ID_FILE"
+        echo "Posted locale audit message ${NEW_ID}"
+      else
+        echo "Failed to post (HTTP ${HTTP}): $BODY"
+        exit 1
+      fi
 
 # Use BigWigs packager: package addon, upload to CurseForge and Wago.
 # Mirrors .github/workflows/release.yml behavior.

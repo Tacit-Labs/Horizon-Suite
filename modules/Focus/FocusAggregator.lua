@@ -171,6 +171,9 @@ local function SortAndGroupQuests(quests)
         groups[key] = {}
     end
 
+    local showComplete = addon.GetDB("showCompleteGroup", true) and groups["COMPLETE"]
+    local keepCampaignInCat = addon.GetDB("keepCampaignInCategory", false)
+    local keepImportantInCat = addon.GetDB("keepImportantInCategory", false)
     local showCurrent = addon.GetDB("showCurrentQuestCategory", true) and groups["CURRENT"]
     local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
     local scenarioActive = false
@@ -194,7 +197,9 @@ local function SortAndGroupQuests(quests)
             groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
         elseif isEventInPlayerZone and groups["AVAILABLE"] then
             groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
-        elseif q.isComplete and groups["COMPLETE"] then
+        elseif q.isComplete and showComplete
+            and not (q.category == "CAMPAIGN" and keepCampaignInCat)
+            and not (q.category == "IMPORTANT" and keepImportantInCat) then
             groups["COMPLETE"][#groups["COMPLETE"] + 1] = q
         elseif not q.isEventQuest
             and not (q.category == "WORLD" or q.category == "CALLING")
