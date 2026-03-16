@@ -541,6 +541,15 @@ local function RelayoutCard(card)
 
     -- Cancel any in-flight animation
     if card.relayoutAnim then
+        if card.relayoutAnim.toShow then
+            for _, entry in ipairs(card.relayoutAnim.toShow) do
+                entry.frame:Hide()
+                entry.frame:SetAlpha(1)
+            end
+        end
+        if card.relayoutAnim.oldHeight then
+            card:SetHeight(card.relayoutAnim.oldHeight)
+        end
         card.relayoutAnim = nil
         if card.relayoutAnimFrame then
             card.relayoutAnimFrame:SetScript("OnUpdate", nil)
