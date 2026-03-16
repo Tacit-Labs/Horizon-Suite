@@ -1206,36 +1206,40 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 if not addon._colorPickerLive then notifyMainAddon() end
             end
 
-            -- All collapsible group widgets, tracked for card-height recalc.
+            -- All compact color card widgets, tracked for card-height recalc.
             local allGroupFrames = {}
-            local categoryRows = {}
-            local GROUP_HEADER_H = 24
+            local COMPACT_CARD_H = 40
             local GROUP_ROW_H = 24
             local GROUP_ROW_GAP = 4
-            local GROUP_ROWS_PER_KEY = 4  -- title, objective, zone, section
+            local otherRows = {}  -- forward-declared for RecalcCardHeight
 
-            -- Recalculate card height after a group expand / collapse.
-            -- Layout: Colors | Per category (header + groups) | Grouping Overrides (header + 2 toggles + groups) | Other
+            -- Recalculate card height after visibility changes.
             local numPerCategoryGroups = 0  -- set when we have perCategoryOrder
             local function RecalcCardHeight()
                 if not currentCard then return end
                 local h = CardPadding + RowHeights.sectionLabel  -- Colors header
                 h = h + SectionGap + RowHeights.sectionLabel     -- Per category header
                 h = h + 6 + 22                                    -- Reset all button
-                local n = numPerCategoryGroups
-                for i = 1, n do
-                    h = h + OptionGap + allGroupFrames[i]:GetHeight()
-                end
+                -- Per-category grid height
+                local numPerCatRows = math.ceil(numPerCategoryGroups / 3)
+                h = h + OptionGap + numPerCatRows * COMPACT_CARD_H + math.max(0, numPerCatRows - 1) * 8
                 h = h + SectionGap + RowHeights.sectionLabel     -- Grouping Overrides header
                 h = h + OptionGap + 38                           -- toggle 1
                 h = h + OptionGap + 38                           -- toggle 2
                 h = h + OptionGap + 38                           -- toggle 3 (Current Quest)
-                for i = n + 1, #allGroupFrames do
-                    h = h + OptionGap + allGroupFrames[i]:GetHeight()
+                -- Override grid: single row if any visible, else minimal
+                local anyOverrideVisible = false
+                for _, gf in ipairs(allGroupFrames) do
+                    if gf:IsShown() then anyOverrideVisible = true; break end
                 end
+                h = h + OptionGap + (anyOverrideVisible and COMPACT_CARD_H or 1)
                 h = h + SectionGap + RowHeights.sectionLabel     -- Other colors header
                 h = h + OptionGap + 38                           -- Use distinct color for completed objectives toggle
-                h = h + 4 * (GROUP_ROW_GAP + GROUP_ROW_H)        -- Highlight, Completed objective, Progress bar fill, Progress bar text
+                for _, r in ipairs(otherRows) do
+                    if r:IsShown() then
+                        h = h + GROUP_ROW_GAP + GROUP_ROW_H
+                    end
+                end
                 currentCard.contentHeight = h
                 local fullH = h + CardBottomPadding
                 currentCard.fullHeight = fullH
@@ -1247,49 +1251,30 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             end
 
             -- ---------------------------------------------------------------
-            -- Build a collapsible group for one category key.
-            -- Returns a container frame that is either collapsed (just the
-            -- header) or expanded (header + 4 colour-swatch rows).
-            -- Rows are created lazily on first expand.
+            -- Build a compact color card for one category key.
+            -- Shows category name + 4 inline swatches (Sec, Title, Zone, Obj)
+            -- + a Reset button. Fixed height, no expand/collapse.
             -- ---------------------------------------------------------------
-            local function BuildCollapsibleGroup(parentCard, anchorFrame, key)
+            local function BuildCompactColorCard(parentFrame, key)
                 local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
-                local container = CreateFrame("Frame", nil, parentCard)
-                container:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", 0, -OptionGap)
-                container:SetPoint("RIGHT", parentCard, "RIGHT", -CardPadding, 0)
-                container:SetHeight(GROUP_HEADER_H)
+                local container = CreateFrame("Frame", nil, parentFrame)
+                container:SetHeight(COMPACT_CARD_H)
+                container.groupKey = key
 
-                -- Clickable header
-                local hdr = CreateFrame("Button", nil, container)
-                hdr:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-                hdr:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
-                hdr:SetHeight(GROUP_HEADER_H)
+                -- Background
+                local bg = container:CreateTexture(nil, "BACKGROUND")
+                bg:SetAllPoints(container)
+                bg:SetColorTexture(0.10, 0.10, 0.12, 0.5)
 
-                local hdrBg = hdr:CreateTexture(nil, "BACKGROUND")
-                hdrBg:SetAllPoints(hdr)
-                hdrBg:SetColorTexture(0.10, 0.10, 0.12, 0.5)
+                -- Category name label (top-left)
+                local nameLabel = container:CreateFontString(nil, "OVERLAY")
+                nameLabel:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
+                SetTextColor(nameLabel, Def.TextColorLabel)
+                nameLabel:SetText(labelBase)
+                nameLabel:SetPoint("TOPLEFT", container, "TOPLEFT", 6, -2)
+                nameLabel:SetJustifyH("LEFT")
 
-                local chevron = hdr:CreateFontString(nil, "OVERLAY")
-                chevron:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
-                SetTextColor(chevron, Def.TextColorSection)
-                chevron:SetText("+")
-                chevron:SetPoint("LEFT", hdr, "LEFT", 6, 0)
-
-                local hdrLabel = hdr:CreateFontString(nil, "OVERLAY")
-                hdrLabel:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
-                SetTextColor(hdrLabel, Def.TextColorLabel)
-                hdrLabel:SetText(labelBase)
-                hdrLabel:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
-                hdrLabel:SetJustifyH("LEFT")
-
-                -- Unified default: section, title, and objective share the same color per category.
-                -- Matrix keys (ACHIEVEMENTS, RARES) map to QUEST_COLORS keys (ACHIEVEMENT, RARE).
-                local questColorKey = (key == "ACHIEVEMENTS" and "ACHIEVEMENT") or (key == "RARES" and "RARE") or key
-                local baseColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[questColorKey]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
-                local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
-                local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor  -- Current Zone / Current Quest / Current Event: use section color
-
-                -- Reset button (child of container so click does not toggle expand)
+                -- Reset button (top-right)
                 local resetBtn = OptionsWidgets_CreateButton(container, L["Reset"], function()
                     local m = getMatrix()
                     if m.categories and m.categories[key] then
@@ -1298,96 +1283,52 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                         notifyMainAddon()
                         container:Refresh()
                     end
-                end, { width = 50, height = 22 })
-                resetBtn:SetPoint("RIGHT", container, "RIGHT", -8, 0)
+                end, { width = 50, height = 18 })
+                resetBtn:SetPoint("TOPRIGHT", container, "TOPRIGHT", -4, -2)
 
-                local previewSwatch = hdr:CreateTexture(nil, "ARTWORK")
-                previewSwatch:SetSize(14, 14)
-                previewSwatch:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
-                previewSwatch:SetColorTexture(unifiedDef[1], unifiedDef[2], unifiedDef[3], 1)
-
-                -- Highlight on hover
-                local hdrHi = hdr:CreateTexture(nil, "HIGHLIGHT")
-                hdrHi:SetAllPoints(hdr)
-                hdrHi:SetColorTexture(1, 1, 1, 0.03)
-
-                -- State
-                container.expanded = false
-                container.rows = nil  -- created lazily
-                container.groupKey = key
+                -- Unified default colours
+                local questColorKey = (key == "ACHIEVEMENTS" and "ACHIEVEMENT") or (key == "RARES" and "RARE") or key
+                local baseColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[questColorKey]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
                 local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["Stage"]) or "Stage") or ((addon.L and addon.L["Zone"]) or "Zone")
                 local catDefs = {
-                    { subKey = "section",   suffix = "Section",   def = unifiedDef },
-                    { subKey = "title",     suffix = "Title",     def = unifiedDef },
-                    { subKey = "zone",      suffix = zoneLabel,   def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
-                    { subKey = "objective", suffix = "Objective", def = unifiedDef },
+                    { subKey = "section",   abbr = "Sec",   full = "Section",   def = unifiedDef },
+                    { subKey = "title",     abbr = "Title", full = "Title",     def = unifiedDef },
+                    { subKey = "zone",      abbr = (key == "SCENARIO") and "Stg" or "Zone", full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                    { subKey = "objective", abbr = "Obj",   full = "Objective", def = unifiedDef },
                 }
 
-                -- Lazy-create the color rows on first expand.
-                local function EnsureRows()
-                    if container.rows then return end
-                    container.rows = {}
-                    local prevAnchor = hdr
-                    for _, cd in ipairs(catDefs) do
-                        local rowLabel = cd.suffix
-                        local getTbl = function()
-                            local m = getMatrix()
-                            local cats = m.categories or {}
-                            return cats[key] and cats[key][cd.subKey] or nil
-                        end
-                        local setKeyVal = function(v)
-                            local m = getMatrix()
-                            m.categories[key] = m.categories[key] or {}
-                            m.categories[key][cd.subKey] = (type(v) == "table" and v[1] and v[2] and v[3]) and { v[1], v[2], v[3] } or v
-                            setDB(opt.dbKey, m)
-                            if not addon._colorPickerLive then notifyMainAddon() end
-                        end
-                        local row = OptionsWidgets_CreateColorSwatchRow(container, prevAnchor, rowLabel, cd.def, getTbl, setKeyVal, notifyMainAddon)
-                        prevAnchor = row
-                        container.rows[#container.rows + 1] = row
-                        categoryRows[#categoryRows + 1] = row
+                -- Build 4 inline mini swatches
+                container.swatches = {}
+                local prevSwatch = nil
+                for i, cd in ipairs(catDefs) do
+                    local getTbl = function()
+                        local m = getMatrix()
+                        local cats = m.categories or {}
+                        return cats[key] and cats[key][cd.subKey] or nil
                     end
-                end
-
-                local function SetExpanded(expand)
-                    container.expanded = expand
-                    if expand then
-                        EnsureRows()
-                        chevron:SetText("-")  -- hyphen-minus for locale compatibility (En Dash fails on koKR)
-                        for _, r in ipairs(container.rows) do r:Show() end
-                        container:SetHeight(GROUP_HEADER_H + GROUP_ROWS_PER_KEY * (GROUP_ROW_GAP + GROUP_ROW_H))
+                    local setKeyVal = function(v)
+                        local m = getMatrix()
+                        m.categories[key] = m.categories[key] or {}
+                        m.categories[key][cd.subKey] = (type(v) == "table" and v[1] and v[2] and v[3]) and { v[1], v[2], v[3] } or v
+                        setDB(opt.dbKey, m)
+                        if not addon._colorPickerLive then notifyMainAddon() end
+                    end
+                    local sw = OptionsWidgets_CreateMiniSwatch(container, cd.abbr, cd.def, getTbl, setKeyVal, notifyMainAddon, cd.full)
+                    if i == 1 then
+                        sw:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT", 6, 2)
                     else
-                        chevron:SetText("+")
-                        if container.rows then
-                            for _, r in ipairs(container.rows) do r:Hide() end
-                        end
-                        container:SetHeight(GROUP_HEADER_H)
+                        sw:SetPoint("LEFT", prevSwatch, "RIGHT", 8, 0)
                     end
-                    RecalcCardHeight()
+                    container.swatches[#container.swatches + 1] = sw
+                    prevSwatch = sw
                 end
 
-                hdr:SetScript("OnClick", function()
-                    SetExpanded(not container.expanded)
-                end)
-
-                -- Update preview swatch colour from current DB.
-                function container:RefreshPreview()
-                    local m = getMatrix()
-                    local cats = m.categories or {}
-                    local tbl = cats[key] and cats[key].title
-                    if tbl and type(tbl) == "table" and type(tbl[1]) == "number" and type(tbl[2]) == "number" and type(tbl[3]) == "number" then
-                        previewSwatch:SetColorTexture(tbl[1], tbl[2], tbl[3], 1)
-                    else
-                        previewSwatch:SetColorTexture(unifiedDef[1], unifiedDef[2], unifiedDef[3], 1)
-                    end
-                end
-
+                function container:RefreshPreview() end  -- no-op, swatches are always visible
                 function container:Refresh()
-                    self:RefreshPreview()
-                    if self.rows then
-                        for _, r in ipairs(self.rows) do if r.Refresh then r:Refresh() end end
-                    end
+                    for _, sw in ipairs(self.swatches) do if sw.Refresh then sw:Refresh() end end
                 end
 
                 allGroupFrames[#allGroupFrames + 1] = container
@@ -1446,11 +1387,37 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentAnchor = resetAllBtn
             currentCard.contentHeight = currentCard.contentHeight + 6 + 22
 
+            -- Per-category compact cards in a 3-column grid
+            local GRID_COLS = 3
+            local GRID_GAP = 8
+            local perCatGrid = CreateFrame("Frame", nil, cardContent)
+            perCatGrid:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            perCatGrid:SetPoint("RIGHT", cardContent, "RIGHT", -CardPadding, 0)
+            local numPerCatRows = math.ceil(#perCategoryOrder / GRID_COLS)
+            local perCatGridH = numPerCatRows * COMPACT_CARD_H + math.max(0, numPerCatRows - 1) * GRID_GAP
+            perCatGrid:SetHeight(perCatGridH)
+
+            local perCategoryCards = {}
             for _, key in ipairs(perCategoryOrder) do
-                local gf = BuildCollapsibleGroup(cardContent, currentCard.contentAnchor, key)
-                currentCard.contentAnchor = gf
-                currentCard.contentHeight = currentCard.contentHeight + OptionGap + GROUP_HEADER_H
+                local gf = BuildCompactColorCard(perCatGrid, key)
+                perCategoryCards[#perCategoryCards + 1] = gf
             end
+
+            -- OnSizeChanged: position cards when grid width is known
+            perCatGrid:SetScript("OnSizeChanged", function(self, width)
+                if width < 10 then return end
+                local cardW = math.floor((width - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS)
+                for idx, gf in ipairs(perCategoryCards) do
+                    local col = (idx - 1) % GRID_COLS
+                    local row = math.floor((idx - 1) / GRID_COLS)
+                    gf:ClearAllPoints()
+                    gf:SetPoint("TOPLEFT", self, "TOPLEFT", col * (cardW + GRID_GAP), -row * (COMPACT_CARD_H + GRID_GAP))
+                    gf:SetSize(cardW, COMPACT_CARD_H)
+                end
+            end)
+
+            currentCard.contentAnchor = perCatGrid
+            currentCard.contentHeight = currentCard.contentHeight + OptionGap + perCatGridH
 
             local div1 = cardContent:CreateTexture(nil, "ARTWORK")
             div1:SetHeight(1)
@@ -1465,28 +1432,95 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentAnchor = goHdr
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
 
-            local ovCompleted = OptionsWidgets_CreateToggleSwitch(cardContent, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v) setOverride("useCompletedOverride", v) end)
+            -- Map override keys to their group keys for parent-child wiring
+            local OVERRIDE_TO_GROUP = {
+                useCompletedOverride = "COMPLETE",
+                useCurrentZoneOverride = "NEARBY",
+                useCurrentQuestOverride = "CURRENT",
+            }
+            local overrideGroupMap = {}  -- populated after building groups
+            local LayoutOverrideGrid  -- forward declaration for toggle callbacks
+
+            local ovCompleted = OptionsWidgets_CreateToggleSwitch(cardContent, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v)
+                setOverride("useCompletedOverride", v)
+                local gf = overrideGroupMap["COMPLETE"]
+                if gf then gf:SetShown(v and true or false); LayoutOverrideGrid(); RecalcCardHeight() end
+            end)
             ovCompleted:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             ovCompleted:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = ovCompleted
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
 
-            local ovCurrentZone = OptionsWidgets_CreateToggleSwitch(cardContent, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v) setOverride("useCurrentZoneOverride", v) end)
+            local ovCurrentZone = OptionsWidgets_CreateToggleSwitch(cardContent, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v)
+                setOverride("useCurrentZoneOverride", v)
+                local gf = overrideGroupMap["NEARBY"]
+                if gf then gf:SetShown(v and true or false); LayoutOverrideGrid(); RecalcCardHeight() end
+            end)
             ovCurrentZone:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             ovCurrentZone:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = ovCurrentZone
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
 
-            local ovCurrentQuest = OptionsWidgets_CreateToggleSwitch(cardContent, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v) setOverride("useCurrentQuestOverride", v) end)
+            local ovCurrentQuest = OptionsWidgets_CreateToggleSwitch(cardContent, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v)
+                setOverride("useCurrentQuestOverride", v)
+                local gf = overrideGroupMap["CURRENT"]
+                if gf then gf:SetShown(v and true or false); LayoutOverrideGrid(); RecalcCardHeight() end
+            end)
             ovCurrentQuest:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             ovCurrentQuest:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = ovCurrentQuest
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
 
+            -- Override color cards in a single-row grid (up to 3)
+            local overrideGrid = CreateFrame("Frame", nil, cardContent)
+            overrideGrid:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
+            overrideGrid:SetPoint("RIGHT", cardContent, "RIGHT", -CardPadding, 0)
+            overrideGrid:SetHeight(COMPACT_CARD_H)
+
+            local overrideCards = {}
             for _, key in ipairs(groupingOverrideOrder) do
-                local gf = BuildCollapsibleGroup(cardContent, currentCard.contentAnchor, key)
-                currentCard.contentAnchor = gf
-                currentCard.contentHeight = currentCard.contentHeight + OptionGap + GROUP_HEADER_H
+                local gf = BuildCompactColorCard(overrideGrid, key)
+                overrideCards[#overrideCards + 1] = gf
+                overrideGroupMap[key] = gf
+            end
+
+            LayoutOverrideGrid = function()
+                local visible = {}
+                for _, gf in ipairs(overrideCards) do
+                    if gf:IsShown() then visible[#visible + 1] = gf end
+                end
+                if #visible == 0 then
+                    overrideGrid:SetHeight(1)
+                    return
+                end
+                overrideGrid:SetHeight(COMPACT_CARD_H)
+                local gridW = overrideGrid:GetWidth()
+                if gridW < 10 then gridW = 300 end
+                local cardW = math.floor((gridW - (#visible - 1) * GRID_GAP) / #visible)
+                for idx, gf in ipairs(visible) do
+                    gf:ClearAllPoints()
+                    gf:SetPoint("TOPLEFT", overrideGrid, "TOPLEFT", (idx - 1) * (cardW + GRID_GAP), 0)
+                    gf:SetSize(cardW, COMPACT_CARD_H)
+                end
+            end
+
+            local lastOverrideGridW = 0
+            overrideGrid:SetScript("OnSizeChanged", function(self, w)
+                if math.abs(w - lastOverrideGridW) > 0.5 then
+                    lastOverrideGridW = w
+                    LayoutOverrideGrid()
+                end
+            end)
+
+            currentCard.contentAnchor = overrideGrid
+            currentCard.contentHeight = currentCard.contentHeight + OptionGap + COMPACT_CARD_H
+
+            -- Hide override groups whose toggle is OFF
+            for ovKey, groupKey in pairs(OVERRIDE_TO_GROUP) do
+                local gf = overrideGroupMap[groupKey]
+                if gf and not getOverride(ovKey) then
+                    gf:Hide()
+                end
             end
 
             local div2 = cardContent:CreateTexture(nil, "ARTWORK")
@@ -1501,7 +1535,12 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentAnchor = otherHdr
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
 
-            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["Use distinct color for completed objectives"], L["When on, completed objectives (e.g. 1/1) use the color below; when off, they use the same color as incomplete objectives."], function() return getDB("useCompletedObjectiveColor", true) end, function(v) setDB("useCompletedObjectiveColor", v) notifyMainAddon() end)
+            local completedObjRow  -- forward reference for parent-child wiring
+            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["Use distinct color for completed objectives"], L["When on, completed objectives (e.g. 1/1) use the color below; when off, they use the same color as incomplete objectives."], function() return getDB("useCompletedObjectiveColor", true) end, function(v)
+                setDB("useCompletedObjectiveColor", v)
+                notifyMainAddon()
+                if completedObjRow then completedObjRow:SetShown(v and true or false); RecalcCardHeight() end
+            end)
             ovCompletedObj:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             ovCompletedObj:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = ovCompletedObj
@@ -1509,11 +1548,10 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
 
             local otherDefs = {
                 { dbKey = "highlightColor", label = L["Highlight"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
-                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }) },
+                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
                 { dbKey = "progressBarFillColor", label = L["Progress bar fill"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
                 { dbKey = "progressBarTextColor", label = L["Progress bar text"], def = { 0.95, 0.95, 0.95 } },
             }
-            local otherRows = {}
             for _, od in ipairs(otherDefs) do
                 local getTbl = function() return getDB(od.dbKey, nil) end
                 local setKeyVal = function(v) setDB(od.dbKey, v) if not addon._colorPickerLive then notifyMainAddon() end end
@@ -1521,6 +1559,12 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 currentCard.contentAnchor = row
                 currentCard.contentHeight = currentCard.contentHeight + GROUP_ROW_GAP + GROUP_ROW_H
                 otherRows[#otherRows + 1] = row
+                if od.isCompletedObj then completedObjRow = row end
+            end
+
+            -- Hide completed objective swatch if toggle is OFF
+            if completedObjRow and not getDB("useCompletedObjectiveColor", true) then
+                completedObjRow:Hide()
             end
 
             local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))

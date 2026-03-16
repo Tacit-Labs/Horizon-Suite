@@ -27,6 +27,7 @@ L["Quest types"]                                                                
 L["Element overrides"]                                                                                              = "Element overrides"
 L["Per category"]                                                                                                   = "Per category"
 L["Grouping Overrides"]                                                                                             = "Grouping Overrides"
+L["Section Overrides"]                                                                                              = "Section Overrides"
 L["Other colors"]                                                                                                   = "Other colors"
 
 -- =====================================================================

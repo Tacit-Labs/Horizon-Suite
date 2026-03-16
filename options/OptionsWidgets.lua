@@ -1177,6 +1177,90 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
     return row
 end
 
+-- Compact inline swatch for color matrix cards: swatch on left, label on right (cleaner layout).
+-- getTbl() returns {r,g,b} or nil; setKeyVal({r,g,b}) writes to DB.
+function _G.OptionsWidgets_CreateMiniSwatch(parent, labelText, defaultTbl, getTbl, setKeyVal, notify, tooltip)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(90, 24)
+
+    local swatch = CreateFrame("Button", nil, frame)
+    swatch:SetSize(20, 20)
+    swatch:SetPoint("LEFT", frame, "LEFT", 0, 0)
+    local lab = frame:CreateFontString(nil, "OVERLAY")
+    SetSafeFont(lab, Def.FontPath, 10, "")
+    lab:SetJustifyH("LEFT")
+    lab:SetTextColor(0.88, 0.88, 0.92, 1)
+    lab:SetText(labelText or "")
+    lab:SetPoint("LEFT", swatch, "RIGHT", 8, 0)
+    lab:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+    local tex = swatch:CreateTexture(nil, "BACKGROUND")
+    tex:SetPoint("TOPLEFT", swatch, "TOPLEFT", 1, -1)
+    tex:SetPoint("BOTTOMRIGHT", swatch, "BOTTOMRIGHT", -1, 1)
+    local addon = _G.HorizonSuite
+    if addon and addon.CreateBorder then
+        addon.CreateBorder(swatch, Def.SectionCardBorder)
+    end
+    swatch.tex = tex
+
+    local def = defaultTbl and #defaultTbl >= 3 and defaultTbl or { 0.5, 0.5, 0.5 }
+
+    function swatch:Refresh()
+        local r, g, b = def[1], def[2], def[3]
+        if getTbl then
+            local result = getTbl()
+            if type(result) == "table" and result[1] then
+                r, g, b = result[1], result[2], result[3]
+            end
+        end
+        tex:SetColorTexture(r, g, b, 1)
+    end
+
+    swatch:SetScript("OnClick", function()
+        if not ColorPickerFrame or not ColorPickerFrame.SetupColorPickerAndShow then return end
+        local r, g, b = def[1], def[2], def[3]
+        if getTbl then
+            local result = getTbl()
+            if type(result) == "table" and result[1] then
+                r, g, b = result[1], result[2], result[3]
+            end
+        end
+        addon._colorPickerLive = true
+        _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
+        ColorPickerFrame:SetupColorPickerAndShow({
+            r = r, g = g, b = b,
+            swatchFunc = function()
+                local nr, ng, nb = GetColorPickerEffectiveRGB()
+                setKeyVal({ nr, ng, nb })
+                tex:SetColorTexture(nr, ng, nb, 1)
+            end,
+            cancelFunc = function()
+                addon._colorPickerLive = nil
+                _activeColorPickerCallbacks = nil
+                local p = ColorPickerFrame.previousValues
+                if p and type(p.r) == "number" then
+                    setKeyVal({ p.r, p.g, p.b })
+                end
+                swatch:Refresh()
+                if notify then notify() end
+            end,
+            finishedFunc = function()
+                addon._colorPickerLive = nil
+                _activeColorPickerCallbacks = nil
+                local nr, ng, nb = GetColorPickerEffectiveRGB()
+                setKeyVal({ nr, ng, nb })
+                tex:SetColorTexture(nr, ng, nb, 1)
+                if notify then notify() end
+            end,
+        })
+        EnsureHexBoxHooked()
+    end)
+
+    frame.Refresh = function() swatch:Refresh() end
+    frame:Refresh()
+    if tooltip then ApplyOptionTooltip(swatch, tooltip) end
+    return frame
+end
+
 -- Simplified Color Swatch for Dashboard (no anchor required, uses get/set functions)
 function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip)
     local row = CreateFrame("Frame", nil, parent)
