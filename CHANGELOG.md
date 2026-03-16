@@ -9,9 +9,19 @@ All notable changes to Horizon Suite are documented here.
 ### ✨ New Features
 
 - **(Focus) Objectives can render outside the tracker window**
+- **(Focus) Focus tracker header options: quest count, divider, color, height, options button**
+- **(Focus) Groupings toggle on or off**
+- **(Core) Minimap icon and WoW settings panel integration**
 
 ### 🔧 Improvements
 
+- **(Core) Global font size offset and options panel visibility improvements**
+- **(Vista) Minimap button fades in on hover**
+- **(Focus) Defer map event handlers to avoid taint; show delve affix tooltip on hover**
+- **(Core) Dashboard class colours: separate toggle and live refresh**
+- **(Insight) Insight tooltip shows transmog status for trinkets, rings, necks**
+- **(Core) Merge Profiles and Modules into single Axis group in options dashboard**
+- **(Core) Dashboard: version API fallback, clean card/tile teardown, and sidebar collapse hides child tabs**
 - **(Core) Release announcements include direct CurseForge and Wago links**
 - **(Core) Yield: Draggable anchor frame for repositioning loot toasts**
 - **(Core) Dashboard: Back button, sidebar state, and Focus colours refactor**

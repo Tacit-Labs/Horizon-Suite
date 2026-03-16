@@ -2,7 +2,7 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules. Focus (objective tracker) is the first module.
 ## Author: Crystilac
-## Version: 3.11.6
+## Version: 4.0.0-BETA
 ## SavedVariables: HorizonDB
 ## IconTexture: Interface\AddOns\HorizonSuite\icon
 ## X-Curse-Project-ID: 1457844
