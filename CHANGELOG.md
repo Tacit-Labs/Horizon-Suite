@@ -15,6 +15,9 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🔧 Improvements
 
+- **(Core) Dashboard live refresh when modules are toggled**
+- **(Core) Refactor color matrix to compact cards and add Section Overrides**
+- **(Core) Restructure locale system, add locale debug and CI audit, improve options panel and Focus grouping**
 - **(Core) Global font size offset and options panel visibility improvements**
 - **(Vista) Minimap button fades in on hover**
 - **(Focus) Defer map event handlers to avoid taint; show delve affix tooltip on hover**
@@ -37,6 +40,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🐛 Fixes
 
+- **(Focus) Delve name shows wrong or disappears during reward stage**
 - **(Core) Relayout animation cancellation leaves card in inconsistent state**
 - **(Core) Dashboard sidebar stays synced across home, module, and category views**
 - **(Core) Fix Discord release announcement embed size limit**
