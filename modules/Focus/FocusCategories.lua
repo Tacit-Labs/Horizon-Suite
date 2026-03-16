@@ -9,6 +9,10 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 local function GetQuestCategory(questID)
     if not questID or questID <= 0 then return "DEFAULT" end
     if C_QuestLog and C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) then
+        -- Master toggle: when off, ALL completed quests stay in their base category.
+        if addon.GetDB and not addon.GetDB("showCompleteGroup", true) then
+            return addon.GetQuestBaseCategory(questID)
+        end
         -- When the toggle is on, keep Campaign / Important quests in their
         -- original category even when they are ready to turn in.
         local base = addon.GetQuestBaseCategory(questID)
@@ -97,13 +101,19 @@ local function GetQuestZoneName(questID)
      end
 
      -- For non-world quests: prefer quest log header (waypoint often = current zone).
+     -- Skip non-geographic headers (e.g. "Prey") so the waypoint fallback below
+     -- can resolve the actual zone name.
+     local preyLabel = (addon.L and addon.L["PREY"]) or "Prey"
      if C_QuestLog.GetLogIndexForQuestID then
          local logIndex = C_QuestLog.GetLogIndexForQuestID(questID)
          if logIndex then
              for i = logIndex - 1, 1, -1 do
                  local info = C_QuestLog.GetInfo(i)
                  if info and info.isHeader then
-                     return info.title
+                     if not (info.title and info.title:find(preyLabel, 1, true)) then
+                         return info.title
+                     end
+                     break
                  end
              end
          end

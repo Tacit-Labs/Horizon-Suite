@@ -333,6 +333,10 @@ local function ReadTrackedQuests()
             if not info or not info.parentMapID or info.parentMapID == 0 then break end
             checkID = info.parentMapID
         end
+        -- Fallback: name-based zone check for quests with non-geographic zone IDs (e.g. Prey).
+        local zn = addon.GetQuestZoneName and addon.GetQuestZoneName(questID)
+        if zn and playerZone and zn:lower() == playerZone:lower() then return true end
+        if nearbySet[questID] then return true end
         return false
     end
 
@@ -359,6 +363,10 @@ local function ReadTrackedQuests()
             if not info or not info.parentMapID or info.parentMapID == 0 then break end
             checkID = info.parentMapID
         end
+        -- Fallback: name-based zone check for quests with non-geographic zone IDs (e.g. Prey).
+        local zn = addon.GetQuestZoneName and addon.GetQuestZoneName(questID)
+        if zn and playerZone and zn:lower() == playerZone:lower() then return true end
+        if nearbySet[questID] then return true end
         return false
     end
 
