@@ -1671,10 +1671,10 @@ SlashCmdList["HSDASH"] = function(msg)
                             yOff = yOff - 28
 
                         elseif opt.type == "colorMatrixFull" then
-                            -- Complex Focus matrix with collapsible categories
+                            -- Compact color cards in 3-column grid
                             local cmfContainer = CreateFrame("Frame", nil, currentCard.settingsContainer)
-                            local yOff = 0
-                            
+                            local notifyFn = function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end
+
                             local function getMatrix()
                                 addon.EnsureDB()
                                 local m = _G.OptionsData_GetDB(opt.dbKey, nil)
@@ -1699,304 +1699,368 @@ SlashCmdList["HSDASH"] = function(msg)
                                 local m = getMatrix()
                                 m.overrides[key] = v
                                 _G.OptionsData_SetDB(opt.dbKey, m)
-                                if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                                if not addon._colorPickerLive then notifyFn() end
                             end
 
-                            local allGroupFrames = {}
-                            local perCategoryGroups = {}
-                            local overrideGroups = {}
+                            -- Grid constants
+                            local COLS = 3
+                            local CARD_GAP = 12
+                            local CARD_H = 108
+                            local CARD_PAD = 14
+                            local widgetFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+                            local widgetLabelColor = { 0.88, 0.88, 0.92 }
+
+                            local allCards = {}
+                            local overrideGroupMap = {}
                             local otherColorRows = {}
-                            local perCatHdr
-                            local resetAllBtn
-                            local goHdr
-                            local ovCompleted
-                            local ovCurrentZone
-                            local ovCurrentQuest
-                            local otherHdr
-                            local ovCompletedObj
-                            
-                            -- Build Collapsible Group logic
-                            local function BuildCollapsibleGroup(containerParent, key, startY)
+                            local completedObjRow
+
+                            -- Build a compact color card for a category
+                            local function BuildCompactCard(parentFrame, key)
                                 local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
-                                local groupY = startY
-                                local widgetFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
-                                local widgetLabelSize = 13
-                                local widgetLabelColor = { 0.84, 0.84, 0.88 }
-                                local widgetSectionColor = { 0.58, 0.64, 0.74 }
-                                
-                                local groupHeader = CreateFrame("Button", nil, cmfContainer)
-                                groupHeader:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, groupY)
-                                groupHeader:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
-                                groupHeader:SetHeight(24)
-                                
-                                local hdrBg = groupHeader:CreateTexture(nil, "BACKGROUND")
-                                hdrBg:SetAllPoints(groupHeader)
-                                hdrBg:SetColorTexture(0.10, 0.10, 0.12, 0.5)
+                                local card = CreateFrame("Frame", nil, parentFrame)
+                                card:SetHeight(CARD_H)
+                                card.groupKey = key
 
-                                local chevron = groupHeader:CreateFontString(nil, "OVERLAY")
-                                chevron:SetFont("Fonts\\ARIALN.TTF", 14, "")
-                                chevron:SetTextColor(widgetSectionColor[1], widgetSectionColor[2], widgetSectionColor[3])
-                                chevron:SetText("+")
-                                chevron:SetPoint("LEFT", groupHeader, "LEFT", 6, 0)
+                                -- Card background
+                                local bg = card:CreateTexture(nil, "BACKGROUND")
+                                bg:SetAllPoints(card)
+                                bg:SetColorTexture(0.08, 0.08, 0.10, 0.88)
 
-                                local hdrLabel = groupHeader:CreateFontString(nil, "OVERLAY")
-                                hdrLabel:SetFont(widgetFontPath, widgetLabelSize, "OUTLINE")
-                                hdrLabel:SetTextColor(widgetLabelColor[1], widgetLabelColor[2], widgetLabelColor[3])
-                                hdrLabel:SetText(labelBase)
-                                hdrLabel:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
-                                hdrLabel:SetJustifyH("LEFT")
+                                -- Subtle border
+                                if addon.CreateBorder then
+                                    addon.CreateBorder(card, { 0.30, 0.32, 0.40, 0.85 })
+                                end
 
-                                local questColorKey = (key == "ACHIEVEMENTS" and "ACHIEVEMENT") or (key == "RARES" and "RARE") or key
-                                local baseColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[questColorKey]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
-                                local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
-                                local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor 
+                                -- 2px accent bar at top using category base color
+                                local accentBar = card:CreateTexture(nil, "OVERLAY")
+                                accentBar:SetHeight(2)
+                                accentBar:SetPoint("TOPLEFT", card, "TOPLEFT", 0, 0)
+                                accentBar:SetPoint("TOPRIGHT", card, "TOPRIGHT", 0, 0)
+                                card.accentBar = accentBar
 
-                                local resetBtn = _G.OptionsWidgets_CreateButton(groupHeader, L["Reset"], function()
+                                local nameLabel = card:CreateFontString(nil, "OVERLAY")
+                                nameLabel:SetFont(widgetFontPath, 13, "OUTLINE")
+                                nameLabel:SetTextColor(widgetLabelColor[1], widgetLabelColor[2], widgetLabelColor[3])
+                                nameLabel:SetText((labelBase and labelBase ~= "") and (string.gsub(labelBase, "(%a)([%w_']*)", function(a, b) return string.upper(a) .. string.lower(b) end)) or labelBase)
+                                nameLabel:SetPoint("TOPLEFT", card, "TOPLEFT", 10, -8)
+                                nameLabel:SetJustifyH("LEFT")
+
+                                local resetBtn = _G.OptionsWidgets_CreateButton(card, L["Reset"], function()
                                     local m = getMatrix()
                                     if m.categories and m.categories[key] then
                                         m.categories[key] = nil
                                         _G.OptionsData_SetDB(opt.dbKey, m)
-                                        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
-                                        if groupHeader.Refresh then groupHeader:Refresh() end
+                                        notifyFn()
+                                        card:Refresh()
                                     end
-                                end, { width = 50, height = 22 })
-                                resetBtn:SetPoint("RIGHT", groupHeader, "RIGHT", -8, 0)
+                                end, { width = 52, height = 20 })
+                                resetBtn:SetPoint("TOPRIGHT", card, "TOPRIGHT", -8, -7)
 
-                                local previewSwatch = groupHeader:CreateTexture(nil, "ARTWORK")
-                                previewSwatch:SetSize(14, 14)
-                                previewSwatch:SetPoint("RIGHT", resetBtn, "LEFT", -8, 0)
-                                previewSwatch:SetColorTexture(unifiedDef[1], unifiedDef[2], unifiedDef[3], 1)
-
-                                groupHeader.expanded = false
-                                groupHeader.rows = nil
+                                local questColorKey = (key == "ACHIEVEMENTS" and "ACHIEVEMENT") or (key == "RARES" and "RARE") or key
+                                local baseColor = (addon.QUEST_COLORS and addon.QUEST_COLORS[questColorKey]) or (addon.QUEST_COLORS and addon.QUEST_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                                local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
+                                local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
                                 local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["Stage"]) or "Stage") or ((addon.L and addon.L["Zone"]) or "Zone")
                                 local catDefs = {
-                                    { subKey = "section",   suffix = "Section",   def = unifiedDef },
-                                    { subKey = "title",     suffix = "Title",     def = unifiedDef },
-                                    { subKey = "zone",      suffix = zoneLabel,   def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
-                                    { subKey = "objective", suffix = "Objective", def = unifiedDef },
+                                    { subKey = "section",   abbr = L["Section"] or "Section",   full = "Section",   def = unifiedDef },
+                                    { subKey = "title",     abbr = L["Title"] or "Title",     full = "Title",     def = unifiedDef },
+                                    { subKey = "zone",      abbr = (key == "SCENARIO") and (L["Stage"] or "Stage") or (L["Zone"] or "Zone"), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                                    { subKey = "objective", abbr = L["Objective"] or "Objective", full = "Objective", def = unifiedDef },
                                 }
-                                groupHeader.rowCount = #catDefs
 
-                                local function EnsureRows()
-                                    if groupHeader.rows then return end
-                                    groupHeader.rows = {}
-                                    local rY = groupY - 24
-                                    for _, cd in ipairs(catDefs) do
-                                        local rowLabel = cd.suffix
-                                        local getTbl = function()
-                                            local m = getMatrix()
-                                            local cats = m.categories or {}
-                                            return cats[key] and cats[key][cd.subKey] or nil
-                                        end
-                                        local setKeyVal = function(v)
-                                            local m = getMatrix()
-                                            m.categories[key] = m.categories[key] or {}
-                                            m.categories[key][cd.subKey] = (type(v) == "table" and v[1] and v[2] and v[3]) and { v[1], v[2], v[3] } or v
-                                            _G.OptionsData_SetDB(opt.dbKey, m)
-                                            if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
-                                        end
-                                        local row = _G.OptionsWidgets_CreateColorSwatchRow(cmfContainer, nil, rowLabel, cd.def, getTbl, setKeyVal, function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
-                                        row:ClearAllPoints()
-                                        row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 20, rY)
-                                        row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
-                                        groupHeader.rows[#groupHeader.rows + 1] = row
-                                        rY = rY - 28
+                                card.swatches = {}
+                                -- 2×2 grid: swatch-left layout, more breathing room
+                                local SWATCH_ROW_H = 32
+                                local SWATCH_GAP_X = 14
+                                local SWATCH_W = 90
+                                for i, cd in ipairs(catDefs) do
+                                    local getTbl = function()
+                                        local m = getMatrix()
+                                        local cats = m.categories or {}
+                                        return cats[key] and cats[key][cd.subKey] or nil
                                     end
+                                    local setKeyVal = function(v)
+                                        local m = getMatrix()
+                                        m.categories[key] = m.categories[key] or {}
+                                        m.categories[key][cd.subKey] = (type(v) == "table" and v[1] and v[2] and v[3]) and { v[1], v[2], v[3] } or v
+                                        _G.OptionsData_SetDB(opt.dbKey, m)
+                                        if not addon._colorPickerLive then notifyFn() end
+                                    end
+                                    local sw = _G.OptionsWidgets_CreateMiniSwatch(card, cd.abbr, cd.def, getTbl, setKeyVal, notifyFn, cd.full)
+                                    local col = (i - 1) % 2
+                                    local row = math.floor((i - 1) / 2)
+                                    local xOfs = 10 + col * (SWATCH_W + SWATCH_GAP_X)
+                                    local yOfs = -(8 + nameLabel:GetStringHeight() + 6 + row * SWATCH_ROW_H)
+                                    sw:ClearAllPoints()
+                                    sw:SetPoint("TOPLEFT", card, "TOPLEFT", xOfs, yOfs)
+                                    card.swatches[#card.swatches + 1] = sw
                                 end
 
-                                local function SetExpanded(expand)
-                                    groupHeader.expanded = expand
-                                    if expand then
-                                        EnsureRows()
-                                        chevron:SetText("-")
-                                        for _, r in ipairs(groupHeader.rows) do r:Show() end
-                                        groupHeader.groupHeight = 24 + (4 * 28)
-                                    else
-                                        chevron:SetText("+")
-                                        if groupHeader.rows then
-                                            for _, r in ipairs(groupHeader.rows) do r:Hide() end
-                                        end
-                                        groupHeader.groupHeight = 24
-                                    end
-                                    local curY = 0
-                                    perCatHdr:ClearAllPoints()
-                                    perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, curY)
-                                    curY = curY - 24
-
-                                    resetAllBtn:ClearAllPoints()
-                                    resetAllBtn:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
-                                    curY = curY - 30
-
-                                    local function LayoutGroupList(groupList)
-                                        for _, hdr in ipairs(groupList) do
-                                            hdr:ClearAllPoints()
-                                            hdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
-                                            hdr:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
-
-                                            local rowY = curY - 24
-                                            if hdr.rows then
-                                                for _, row in ipairs(hdr.rows) do
-                                                    row:ClearAllPoints()
-                                                    row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 20, rowY)
-                                                    row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
-                                                    if hdr.expanded then
-                                                        row:Show()
-                                                    else
-                                                        row:Hide()
-                                                    end
-                                                    rowY = rowY - 28
-                                                end
-                                            end
-
-                                            hdr.groupHeight = hdr.expanded and (24 + ((hdr.rowCount or 0) * 28)) or 24
-                                            curY = curY - hdr.groupHeight - 4
-                                        end
-                                    end
-
-                                    LayoutGroupList(perCategoryGroups)
-
-                                    curY = curY - 10
-                                    goHdr:ClearAllPoints()
-                                    goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, curY)
-                                    curY = curY - 24
-
-                                    ovCompleted:ClearAllPoints()
-                                    ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
-                                    ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                                    curY = curY - 38
-
-                                    ovCurrentZone:ClearAllPoints()
-                                    ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
-                                    ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                                    curY = curY - 38
-
-                                    ovCurrentQuest:ClearAllPoints()
-                                    ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
-                                    ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                                    curY = curY - 38
-
-                                    LayoutGroupList(overrideGroups)
-
-                                    curY = curY - 10
-                                    otherHdr:ClearAllPoints()
-                                    otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, curY)
-                                    curY = curY - 24
-
-                                    ovCompletedObj:ClearAllPoints()
-                                    ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
-                                    ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                                    curY = curY - 38
-
-                                    for _, row in ipairs(otherColorRows) do
-                                        row:ClearAllPoints()
-                                        row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, curY)
-                                        row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
-                                        curY = curY - 28
-                                    end
-
-                                    local oldHeight = cmfContainer:GetHeight() or 0
-                                    local newHeight = math.max(1, -curY)
-                                    cmfContainer:SetHeight(newHeight)
-
-                                    local delta = newHeight - oldHeight
-                                    currentCard.contentHeight = math.max(0, (currentCard.contentHeight or 0) + delta)
-                                    currentCard.fullHeight = (currentCard.contentHeight or 0) + 80
-                                    UpdateDetailLayout()
+                                function card:Refresh()
+                                    for _, sw in ipairs(self.swatches) do if sw.Refresh then sw:Refresh() end end
+                                    -- Update accent bar from live section color
+                                    local m = getMatrix()
+                                    local cats = m.categories or {}
+                                    local catData = cats[self.groupKey]
+                                    local secColor = (catData and catData.section) or unifiedDef
+                                    local r, g, b = secColor[1], secColor[2], secColor[3]
+                                    self.accentBar:SetColorTexture(r, g, b, 1)
                                 end
 
-                                groupHeader:SetScript("OnClick", function()
-                                    SetExpanded(not groupHeader.expanded)
-                                end)
-
-                                groupHeader.groupHeight = 24
-                                table.insert(allGroupFrames, groupHeader)
-                                return groupHeader
+                                allCards[#allCards + 1] = card
+                                card:Refresh()
+                                return card
                             end
-                            
+
+                            -- Position cards in a grid within a container
+                            local function PositionGrid(gridFrame, cards, cols, cardH, gap)
+                                local gridW = gridFrame:GetWidth()
+                                if gridW < 10 then gridW = 600 end
+                                local cardW = math.floor((gridW - (cols - 1) * gap) / cols)
+                                for idx, c in ipairs(cards) do
+                                    local col = (idx - 1) % cols
+                                    local row = math.floor((idx - 1) / cols)
+                                    c:ClearAllPoints()
+                                    c:SetPoint("TOPLEFT", gridFrame, "TOPLEFT", col * (cardW + gap), -row * (cardH + gap))
+                                    c:SetSize(cardW, cardH)
+                                end
+                            end
+
+                            -- LayoutAll repositions everything and resizes the container
+                            local perCatCards = {}
+                            local overrideCards = {}
+                            local perCatGrid, overrideGrid
+                            local perCatHdr, resetAllBtn, goHdr, otherHdr
+                            local ovCompleted, ovCurrentZone, ovCurrentQuest, ovCompletedObj
+
+                            local function LayoutAll()
+                                local yOff = 0
+
+                                perCatHdr:ClearAllPoints()
+                                perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
+                                resetAllBtn:ClearAllPoints()
+                                resetAllBtn:SetPoint("TOPRIGHT", cmfContainer, "TOPRIGHT", 0, yOff)
+                                yOff = yOff - 28
+
+                                -- Per-category grid
+                                local numRows = math.ceil(#perCatCards / COLS)
+                                local gridH = numRows * CARD_H + math.max(0, numRows - 1) * CARD_GAP
+                                perCatGrid:ClearAllPoints()
+                                perCatGrid:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                perCatGrid:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                                perCatGrid:SetHeight(gridH)
+                                PositionGrid(perCatGrid, perCatCards, COLS, CARD_H, CARD_GAP)
+                                yOff = yOff - gridH
+
+                                yOff = yOff - 16
+                                goHdr:ClearAllPoints()
+                                goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
+                                yOff = yOff - 28
+
+                                ovCompleted:ClearAllPoints()
+                                ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                                yOff = yOff - 40
+
+                                ovCurrentZone:ClearAllPoints()
+                                ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                                yOff = yOff - 40
+
+                                ovCurrentQuest:ClearAllPoints()
+                                ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                                yOff = yOff - 40
+
+                                -- Override grid: show only visible cards in a single row
+                                local visibleOv = {}
+                                for _, c in ipairs(overrideCards) do
+                                    if c:IsShown() then visibleOv[#visibleOv + 1] = c end
+                                end
+                                if #visibleOv > 0 then
+                                    overrideGrid:ClearAllPoints()
+                                    overrideGrid:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                    overrideGrid:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                                    overrideGrid:SetHeight(CARD_H)
+                                    overrideGrid:Show()
+                                    PositionGrid(overrideGrid, visibleOv, #visibleOv, CARD_H, CARD_GAP)
+                                    yOff = yOff - CARD_H
+                                else
+                                    overrideGrid:Hide()
+                                end
+
+                                yOff = yOff - 16
+                                otherHdr:ClearAllPoints()
+                                otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
+                                yOff = yOff - 28
+
+                                ovCompletedObj:ClearAllPoints()
+                                ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                                yOff = yOff - 40
+
+                                for _, row in ipairs(otherColorRows) do
+                                    if row:IsShown() then
+                                        row:ClearAllPoints()
+                                        row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                        row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
+                                        yOff = yOff - 30
+                                    end
+                                end
+
+                                local newHeight = math.max(1, -yOff)
+                                cmfContainer:SetHeight(newHeight)
+                                currentCard.contentHeight = newHeight
+                                currentCard.fullHeight = newHeight + 80
+                                UpdateDetailLayout()
+                            end
+
+                            -- Build the layout
                             local groupOrder = addon.GetGroupOrder and addon.GetGroupOrder() or {}
                             if type(groupOrder) ~= "table" or #groupOrder == 0 then groupOrder = addon.GROUP_ORDER or {} end
                             local GROUPING_OVERRIDE_KEYS = { CURRENT = true, NEARBY = true, COMPLETE = true }
-                            
+                            local yOff = 0
+
                             perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Per category"])
                             perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
-                            yOff = yOff - 24
-                            
                             resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["Reset all to defaults"], function()
                                 _G.OptionsData_SetDB(opt.dbKey, nil)
                                 _G.OptionsData_SetDB("questColors", nil)
                                 _G.OptionsData_SetDB("sectionColors", nil)
-                                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+                                for _, c in ipairs(allCards) do if c.Refresh then c:Refresh() end end
+                                for _, r in ipairs(otherColorRows) do if r.Refresh then r:Refresh() end end
+                                notifyFn()
                             end, { width = 140, height = 22 })
-                            resetAllBtn:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
-                            yOff = yOff - 30
+                            resetAllBtn:SetPoint("TOPRIGHT", cmfContainer, "TOPRIGHT", 0, yOff)
+                            yOff = yOff - 28
 
+                            -- Per-category grid
+                            perCatGrid = CreateFrame("Frame", nil, cmfContainer)
+                            local perCatKeys = {}
                             for _, key in ipairs(groupOrder) do
                                 if not GROUPING_OVERRIDE_KEYS[key] then
-                                    local grp = BuildCollapsibleGroup(cmfContainer, key, yOff)
-                                    tinsert(perCategoryGroups, grp)
-                                    yOff = yOff - grp.groupHeight - 4
+                                    tinsert(perCatKeys, key)
                                 end
                             end
-                            
-                            yOff = yOff - 10
-                            goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Grouping Overrides"])
+                            for _, key in ipairs(perCatKeys) do
+                                local card = BuildCompactCard(perCatGrid, key)
+                                tinsert(perCatCards, card)
+                            end
+                            local numRows = math.ceil(#perCatCards / COLS)
+                            local gridH = numRows * CARD_H + math.max(0, numRows - 1) * CARD_GAP
+                            perCatGrid:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                            perCatGrid:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                            perCatGrid:SetHeight(gridH)
+                            yOff = yOff - gridH
+
+                            yOff = yOff - 16
+                            goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Section Overrides"])
                             goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
-                            yOff = yOff - 24
+                            yOff = yOff - 28
 
-                            ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v) setOverride("useCompletedOverride", v) end)
-                            ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
-                            ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                            yOff = yOff - 38
+                            ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v)
+                                setOverride("useCompletedOverride", v)
+                                local gf = overrideGroupMap["COMPLETE"]
+                                if gf then gf:SetShown(v and true or false); LayoutAll() end
+                            end)
+                            ovCompleted:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                            ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                            yOff = yOff - 40
 
-                            ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v) setOverride("useCurrentZoneOverride", v) end)
-                            ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
-                            ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                            yOff = yOff - 38
+                            ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v)
+                                setOverride("useCurrentZoneOverride", v)
+                                local gf = overrideGroupMap["NEARBY"]
+                                if gf then gf:SetShown(v and true or false); LayoutAll() end
+                            end)
+                            ovCurrentZone:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                            ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                            yOff = yOff - 40
 
-                            ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v) setOverride("useCurrentQuestOverride", v) end)
-                            ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
-                            ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                            yOff = yOff - 38
+                            ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v)
+                                setOverride("useCurrentQuestOverride", v)
+                                local gf = overrideGroupMap["CURRENT"]
+                                if gf then gf:SetShown(v and true or false); LayoutAll() end
+                            end)
+                            ovCurrentQuest:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                            ovCurrentQuest:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                            yOff = yOff - 40
 
+                            -- Override color cards in a single-row grid
+                            overrideGrid = CreateFrame("Frame", nil, cmfContainer)
                             for _, key in ipairs(groupOrder) do
                                 if GROUPING_OVERRIDE_KEYS[key] then
-                                    local grp = BuildCollapsibleGroup(cmfContainer, key, yOff)
-                                    tinsert(overrideGroups, grp)
-                                    yOff = yOff - grp.groupHeight - 4
+                                    local card = BuildCompactCard(overrideGrid, key)
+                                    tinsert(overrideCards, card)
+                                    overrideGroupMap[key] = card
                                 end
                             end
+                            -- Hide override cards whose toggle is OFF
+                            if not getOverride("useCompletedOverride") and overrideGroupMap["COMPLETE"] then overrideGroupMap["COMPLETE"]:Hide() end
+                            if not getOverride("useCurrentZoneOverride") and overrideGroupMap["NEARBY"] then overrideGroupMap["NEARBY"]:Hide() end
+                            if not getOverride("useCurrentQuestOverride") and overrideGroupMap["CURRENT"] then overrideGroupMap["CURRENT"]:Hide() end
 
-                            yOff = yOff - 10
+                            local visibleOv = {}
+                            for _, c in ipairs(overrideCards) do if c:IsShown() then visibleOv[#visibleOv + 1] = c end end
+                            if #visibleOv > 0 then
+                                overrideGrid:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                overrideGrid:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                                overrideGrid:SetHeight(CARD_H)
+                                PositionGrid(overrideGrid, visibleOv, #visibleOv, CARD_H, CARD_GAP)
+                                yOff = yOff - CARD_H
+                            else
+                                overrideGrid:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                                overrideGrid:SetHeight(1)
+                            end
+
+                            yOff = yOff - 16
                             otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Other colors"])
                             otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
-                            yOff = yOff - 24
+                            yOff = yOff - 28
 
-                            ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Use distinct color for completed objectives"], L["When on, completed objectives use the color below."], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v) _G.OptionsData_SetDB("useCompletedObjectiveColor", v); if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
-                            ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
-                            ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -10, 0)
-                            yOff = yOff - 38
-                            
+                            ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Use distinct color for completed objectives"], L["When on, completed objectives use the color below."], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v)
+                                _G.OptionsData_SetDB("useCompletedObjectiveColor", v)
+                                notifyFn()
+                                if completedObjRow then completedObjRow:SetShown(v and true or false); LayoutAll() end
+                            end)
+                            ovCompletedObj:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
+                            ovCompletedObj:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
+                            yOff = yOff - 40
+
                             local otherDefs = {
                                 { dbKey = "highlightColor", label = L["Highlight"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
-                                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }) },
+                                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
                                 { dbKey = "progressBarFillColor", label = L["Progress bar fill"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return _G.OptionsData_GetDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
                                 { dbKey = "progressBarTextColor", label = L["Progress bar text"], def = { 0.95, 0.95, 0.95 } },
                             }
-                            
+
                             for _, od in ipairs(otherDefs) do
                                 local getTbl = function() return _G.OptionsData_GetDB(od.dbKey, nil) end
-                                local setKeyVal = function(v) _G.OptionsData_SetDB(od.dbKey, v); if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end
-                                local row = _G.OptionsWidgets_CreateColorSwatchRow(cmfContainer, nil, od.label, od.def, getTbl, setKeyVal, function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end, od.disabled, od.hasAlpha)
+                                local setKeyVal = function(v) _G.OptionsData_SetDB(od.dbKey, v); if not addon._colorPickerLive then notifyFn() end end
+                                local row = _G.OptionsWidgets_CreateColorSwatchRow(cmfContainer, nil, od.label, od.def, getTbl, setKeyVal, notifyFn, od.disabled, od.hasAlpha)
                                 row:ClearAllPoints()
-                                row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 10, yOff)
+                                row:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", CARD_PAD, yOff)
                                 row:SetPoint("RIGHT", cmfContainer, "RIGHT", 0, 0)
                                 tinsert(otherColorRows, row)
-                                yOff = yOff - 28
+                                if od.isCompletedObj then completedObjRow = row end
+                                yOff = yOff - 30
+                            end
+
+                            -- Hide completed objective swatch if toggle is OFF
+                            if completedObjRow and not _G.OptionsData_GetDB("useCompletedObjectiveColor", true) then
+                                completedObjRow:Hide()
                             end
 
                             cmfContainer:SetHeight(-yOff)
+                            -- OnSizeChanged: reposition grid cards when width changes (guard against height-only changes)
+                            local lastCmfWidth = 0
+                            cmfContainer:SetScript("OnSizeChanged", function(self, w)
+                                if math.abs(w - lastCmfWidth) > 0.5 then
+                                    lastCmfWidth = w
+                                    LayoutAll()
+                                end
+                            end)
                             widget = cmfContainer
                         end
 
