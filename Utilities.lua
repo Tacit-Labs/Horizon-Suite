@@ -967,18 +967,44 @@ function addon.GetActiveDelveTier()
     return nil
 end
 
---- Returns the name of the current Delve. Uses zone/subzone first (same as zone notification), then C_Scenario.GetInfo, then GetInstanceInfo.
+-- Vista-style last-known-good delve name. Updated whenever a valid name is found;
+-- never cleared on IsDelveActive() false because the reward stage may return false
+-- while the player is still physically inside the delve instance.
+local cachedDelveName = nil
+
+--- Returns the name of the current Delve. Uses C_Map.GetMapInfo first, then zone/subzone, C_Scenario.GetInfo, GetInstanceInfo.
+--- Returns the last cached valid name when all APIs return "Delves" or empty (e.g. on the reward stage).
 function addon.GetDelveNameFromAPIs()
-    if not addon.IsDelveActive() then return nil end
+    -- Try all sources without the IsDelveActive() guard so the reward stage still resolves.
+    -- Primary: map API
+    if C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo then
+        local mapID = C_Map.GetBestMapForUnit("player")
+        if mapID then
+            local ok, info = pcall(C_Map.GetMapInfo, mapID)
+            if ok and info and info.name and info.name ~= "" and info.name ~= "Delves" then
+                cachedDelveName = info.name
+                return info.name
+            end
+        end
+    end
+    -- Fallbacks: zone, subzone, C_Scenario.GetInfo, GetInstanceInfo
     local zone = (GetZoneText and GetZoneText()) or ""
     local sub = (GetSubZoneText and GetSubZoneText()) or ""
-    if zone ~= "" and zone ~= "Delves" then return zone end
-    if sub ~= "" and sub ~= "Delves" then return sub end
+    if zone ~= "" and zone ~= "Delves" then cachedDelveName = zone; return zone end
+    if sub  ~= "" and sub  ~= "Delves" then cachedDelveName = sub;  return sub  end
     local ok, name = pcall(C_Scenario.GetInfo)
-    if ok and name and name ~= "" and name ~= "Delves" then return name end
+    if ok and name and name ~= "" and name ~= "Delves" then cachedDelveName = name; return name end
     local instOk, instanceName = pcall(GetInstanceInfo)
-    if instOk and instanceName and instanceName ~= "" then return instanceName end
-    return nil
+    if instOk and instanceName and instanceName ~= "" and instanceName ~= "Delves" then
+        cachedDelveName = instanceName; return instanceName
+    end
+    -- All APIs returned "Delves" or empty (completion stage) — return last known good name.
+    return cachedDelveName
+end
+
+--- Clears the delve name cache. Call when leaving a delve entirely.
+function addon.ClearDelveNameCache()
+    cachedDelveName = nil
 end
 
 -- ============================================================================

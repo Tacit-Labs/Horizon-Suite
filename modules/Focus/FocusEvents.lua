@@ -446,6 +446,8 @@ local function OnZoneChanged(event)
             if addon.focus.recentlyUntrackedWorldQuests then wipe(addon.focus.recentlyUntrackedWorldQuests) end
             addon.SetDB("sessionSuppressedQuests", nil)
         end
+        -- Clear the cached delve name so the next delve doesn't inherit a stale name.
+        if addon.ClearDelveNameCache then addon.ClearDelveNameCache() end
     end
     -- 2.5s delayed refresh for all zone events; catches late API updates when leaving event areas.
     C_Timer.After(2.5, function() if addon.focus.enabled then ScheduleRefresh() end end)
