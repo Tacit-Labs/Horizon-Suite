@@ -37,6 +37,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🐛 Fixes
 
+- **(Core) Relayout animation cancellation leaves card in inconsistent state**
 - **(Core) Dashboard sidebar stays synced across home, module, and category views**
 - **(Core) Fix Discord release announcement embed size limit**
 - **(Presence) Fix stale 0/X in delve and scenario completion text**
