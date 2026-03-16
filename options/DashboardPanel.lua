@@ -73,6 +73,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 yield = L["Yield"] or "Yield",
             }
 
+            -- Mirror OptionsPanel: beta modules only when beta addon shows them; all modules only when enabled.
+            local function ShouldShowModuleOnDashboard(mk)
+                if mk == "axis" then return true end
+                local dev = _G.HorizonSuiteDevOverride
+                if mk == "insight" and not (dev and dev.showInsightToggle) then return false end
+                if mk == "yield" and not (dev and dev.showYieldToggle) then return false end
+                return addon.IsModuleEnabled and addon:IsModuleEnabled(mk)
+            end
+
             local categoryIcons = {
                 ["Axis"] = "INV_Misc_Wrench_01",
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
@@ -2153,6 +2162,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 -- Label
                 local lbl = MakeText(tile, name, 13, 0.80, 0.80, 0.85, "CENTER")
                 lbl:SetPoint("BOTTOM", 0, 22)
+                tile.label = lbl
 
                 -- Bottom accent glow (hidden by default, shown on hover)
                 local bottomGlow = tile:CreateTexture(nil, "ARTWORK")
@@ -2183,28 +2193,59 @@ SlashCmdList["HSDASH"] = function(msg)
                 return tile
             end
 
-            -- Group logic
-            local mainTiles = {}
-            local seenModules = {}
+            -- Group logic (tiles and sidebar; refreshable for live module toggle updates)
+            local dashboardTilePool = {}
+            local function BuildMainTilesList()
+                local out = {}
+                local seen = {}
+                tinsert(out, { name = moduleLabels.axis or "Axis", moduleKey = "axis" })
+                for _, cat in ipairs(addon.OptionCategories) do
+                    local mk = cat.moduleKey
+                    if mk and not seen[mk] and ShouldShowModuleOnDashboard(mk) then
+                        seen[mk] = true
+                        tinsert(out, { name = moduleLabels[mk] or mk, moduleKey = mk })
+                    end
+                end
+                return out
+            end
 
-            -- 1. Axis (merged Profiles + Modules)
-            tinsert(mainTiles, { name = moduleLabels.axis or "Axis", moduleKey = "axis" })
-
-            -- 2. Module Groups
-            for _, cat in ipairs(addon.OptionCategories) do
-                local mk = cat.moduleKey
-                if mk and not seenModules[mk] then
-                    seenModules[mk] = true
-                    tinsert(mainTiles, { name = moduleLabels[mk] or mk, moduleKey = mk })
+            local function RefreshDashboardTiles()
+                local mainTiles = BuildMainTilesList()
+                local TILE_W, TILE_H, TILE_GAP = 190, 160, 15
+                local TILE_STRIDE = TILE_W + TILE_GAP
+                local itemsPerRow = 4
+                for i, tileInfo in ipairs(mainTiles) do
+                    local tile = dashboardTilePool[tileInfo.moduleKey]
+                    if not tile then
+                        tile = MakeTile(dashboardView, tileInfo.name, nil, i, #mainTiles, tileInfo.moduleKey)
+                        tile.moduleKey = tileInfo.moduleKey
+                        dashboardTilePool[tileInfo.moduleKey] = tile
+                    end
+                    if tile.label then tile.label:SetText(tileInfo.name) end
+                    local row = math.floor((i - 1) / itemsPerRow)
+                    local col = (i - 1) % itemsPerRow
+                    local totalRows = math.ceil(#mainTiles / itemsPerRow)
+                    local itemsInThisRow = itemsPerRow
+                    if row == totalRows - 1 and (#mainTiles % itemsPerRow) ~= 0 then
+                        itemsInThisRow = #mainTiles % itemsPerRow
+                    end
+                    local rowWidth = (itemsInThisRow * TILE_W) + ((itemsInThisRow - 1) * TILE_GAP)
+                    local startX = -rowWidth / 2 + TILE_W / 2
+                    tile:ClearAllPoints()
+                    tile:SetPoint("TOP", dashboardView, "TOP", startX + (col * TILE_STRIDE), -170 + (row * -(TILE_H + TILE_GAP)))
+                    tile:Show()
+                end
+                for mk, tile in pairs(dashboardTilePool) do
+                    local inList = false
+                    for _, t in ipairs(mainTiles) do if t.moduleKey == mk then inList = true break end end
+                    if not inList then tile:Hide() end
                 end
             end
 
-            for i, tileInfo in ipairs(mainTiles) do
-                MakeTile(dashboardView, tileInfo.name, nil, i, #mainTiles, tileInfo.moduleKey)
-            end
+            RefreshDashboardTiles()
 
             -- ===== POPULATE SIDEBAR =====
-            -- Group categories by moduleKey (same as OptionsPanel)
+            -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
             local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista" }
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
@@ -2218,6 +2259,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 tinsert(groups[mk].categories, i)
             end
             local groupOrder = { "axis", "focus", "presence", "insight", "yield", "vista" }
+            local sidebarRows = {}
 
             local lastSidebarRow = nil
             local yOff = 0
@@ -2230,6 +2272,7 @@ SlashCmdList["HSDASH"] = function(msg)
             lastSidebarRow = homeBtn
             yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
             tinsert(sidebarButtons, homeBtn)
+            tinsert(sidebarRows, { type = "home", frame = homeBtn, bottom = homeBtn, offsetFromPrev = -SIDEBAR_TOP_PAD })
 
             -- Separator
             local sbSep = sidebarScrollContent:CreateTexture(nil, "ARTWORK")
@@ -2241,6 +2284,7 @@ SlashCmdList["HSDASH"] = function(msg)
             lastSidebarRow = CreateFrame("Frame", nil, sidebarScrollContent)
             lastSidebarRow:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
             lastSidebarRow:SetSize(1, 1)
+            tinsert(sidebarRows, { type = "sep", frame = lastSidebarRow, bottom = lastSidebarRow, offsetFromPrev = -9 })
 
             -- Per-group: standalone (single category) or header + collapsible sub-buttons
             for _, mk in ipairs(groupOrder) do
@@ -2264,6 +2308,9 @@ SlashCmdList["HSDASH"] = function(msg)
                         btn.sidebarModuleKey = cat.moduleKey
                         btn.sidebarName = cat.name
                         btn.sidebarCategoryIndex = catIdx
+                        btn:SetShown(ShouldShowModuleOnDashboard(mk))
+                        g.row = { type = "group", mk = mk, frame = btn, bottom = btn, offsetFromPrev = 0 }
+                        tinsert(sidebarRows, g.row)
                         tinsert(sidebarButtons, btn)
                     else
                         -- Header row (clickable, collapsible)
@@ -2311,6 +2358,13 @@ SlashCmdList["HSDASH"] = function(msg)
                         UpdateSpacerPosition()
                         lastSidebarRow = spacer
                         yOff = yOff + tabsContainer:GetHeight()
+
+                        local show = ShouldShowModuleOnDashboard(mk)
+                        header:SetShown(show)
+                        tabsContainer:SetShown(show)
+                        spacer:SetShown(show)
+                        g.row = { type = "group", mk = mk, header = header, tabsContainer = tabsContainer, spacer = spacer, bottom = spacer, offsetFromPrev = 0 }
+                        tinsert(sidebarRows, g.row)
 
                         header:SetScript("OnClick", function()
                             RequestGroupToggle(mk)
@@ -2421,6 +2475,59 @@ SlashCmdList["HSDASH"] = function(msg)
                 if state.activeCategoryIndex == CLEAR then sidebarState.activeCategoryIndex = nil
                 elseif state.activeCategoryIndex ~= nil then sidebarState.activeCategoryIndex = state.activeCategoryIndex end
                 ApplySidebarState()
+            end
+
+            --- Refresh sidebar visibility and reflow when modules are toggled.
+            local function RefreshSidebar()
+                for _, row in ipairs(sidebarRows) do
+                    if row.type == "group" and row.mk then
+                        local show = ShouldShowModuleOnDashboard(row.mk)
+                        if row.frame then
+                            row.frame:SetShown(show)
+                        elseif row.header then
+                            row.header:SetShown(show)
+                            row.tabsContainer:SetShown(show)
+                            row.spacer:SetShown(show)
+                        end
+                        row._visible = show
+                    else
+                        row._visible = true
+                    end
+                end
+                local prev = sidebarScrollContent
+                for _, row in ipairs(sidebarRows) do
+                    if not row._visible then
+                        -- skip hidden rows
+                    else
+                        local topFrame = row.frame or row.header
+                        local bottomFrame = row.bottom
+                        local off = row.offsetFromPrev or 0
+                        if topFrame and bottomFrame then
+                            topFrame:ClearAllPoints()
+                            if prev == sidebarScrollContent then
+                                topFrame:SetPoint("TOPLEFT", prev, "TOPLEFT", 0, off)
+                            else
+                                topFrame:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, off)
+                            end
+                            prev = bottomFrame
+                        end
+                    end
+                end
+                lastSidebarRow = prev
+                LayoutSidebar()
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, function() LayoutSidebar() end)
+                end
+            end
+
+            --- Live refresh when modules are toggled (called from SetModuleEnabled).
+            addon.Dashboard_Refresh = function()
+                if not f or not f:IsShown() then return end
+                RefreshDashboardTiles()
+                RefreshSidebar()
+                if sidebarState.view == "dashboard" and sidebarState.activeModuleKey and not ShouldShowModuleOnDashboard(sidebarState.activeModuleKey) then
+                    f.ShowDashboard()
+                end
             end
 
             --- Toggle a group's collapse state (user header click). Persists and animates.

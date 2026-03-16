@@ -147,6 +147,7 @@ end
 --- Set module enabled state (convenience for toggles).
 function addon:SetModuleEnabled(key, enabled)
     if enabled then self:EnableModule(key) else self:DisableModule(key) end
+    if self.Dashboard_Refresh then self.Dashboard_Refresh() end
 end
 
 --- Ensure modules table exists and migrate legacy installs (no modules table = all defaults).
