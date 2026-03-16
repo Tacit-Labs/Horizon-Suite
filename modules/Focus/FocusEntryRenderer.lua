@@ -207,7 +207,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
     local PROGRESS_BAR_SPACING = S(3)
     -- Bar height is dynamic: font size + padding so the label fits inside.
-    local progBarFontSz = tonumber(addon.GetDB("progressBarFontSize", 10)) or 10
+    local progBarFontSz = math.max(7, (tonumber(addon.GetDB("progressBarFontSize", 10)) or 10) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
     local PROGRESS_BAR_HEIGHT = S(math.max(8, progBarFontSz + 4))
 
     -- Progress bar fill color: category color when option on, else custom from DB
@@ -301,7 +301,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj.text:SetText(objText)
             obj.shadow:SetText(objText)
 
-            local tickSize = math.max(10, tonumber(addon.GetDB("objectiveFontSize", 11)) or 11)
+            local tickSize = math.max(10, (tonumber(addon.GetDB("objectiveFontSize", 11)) or 11) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
             if useTick and obj.tick then
                 obj.tick:SetSize(tickSize, tickSize)
                 obj.tick:ClearAllPoints()
@@ -663,7 +663,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
     local timedFirstElementPlaced = false
 
     -- Quest bar format for scenario/timed entries: same height, colors, and font as objective progress bars
-    local progBarFontSz = tonumber(addon.GetDB("progressBarFontSize", 10)) or 10
+    local progBarFontSz = math.max(7, (tonumber(addon.GetDB("progressBarFontSize", 10)) or 10) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
     local PROGRESS_BAR_HEIGHT = S(math.max(8, progBarFontSz + 4))
     local progFillColor, progTextColor
     if isScenarioOrDelve or isGenericTimed then

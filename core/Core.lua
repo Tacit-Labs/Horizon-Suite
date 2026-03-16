@@ -177,7 +177,7 @@ end
 --- Returns section header frame height from section font size so text is not clipped.
 --- @return number
 function addon.GetSectionHeaderHeight()
-    local sz = tonumber(addon.GetDB("sectionFontSize", 10)) or 10
+    local sz = math.max(8, (tonumber(addon.GetDB("sectionFontSize", 10)) or 10) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
     return addon.Scaled(math.max(addon.SECTION_SIZE + 4, sz + 6))
 end
 
@@ -223,7 +223,9 @@ end
 --- @return number
 function addon.GetHeaderHeight()
     local v = tonumber(addon.GetDB("headerHeight", addon.HEADER_HEIGHT)) or addon.HEADER_HEIGHT
-    return addon.Scaled(math.max(18, math.min(48, v)))
+    local fontSz = math.max(8, (tonumber(addon.GetDB("headerFontSize", 16)) or 16) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
+    local minForFont = fontSz + 12
+    return addon.Scaled(math.max(18, minForFont, math.min(48, v)))
 end
 
 --- Returns boss emote colour from DB or default (Presence module).
