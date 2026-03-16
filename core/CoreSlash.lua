@@ -91,7 +91,13 @@ local function OnSlashCommand(msg)
         moduleKey = (moduleKey or ""):lower()
         subMsg = strtrim(subMsg or "")
         if moduleKey == "" then
-            HSPrint("Usage: /h debug <focus|presence|vista|yield|insight> [cmd]")
+            HSPrint("Usage: /h debug <focus|presence|vista|yield|insight|locale> [cmd]")
+            return
+        end
+        -- Core debug: locale
+        if moduleKey == "locale" then
+            addon.debugLocale = not addon.debugLocale
+            HSPrint("Locale debug " .. (addon.debugLocale and "|cff00ff00ON|r — missing keys will print to chat." or "|cffff0000OFF|r"))
             return
         end
         local debugHandler = addon.slashHandlersDebug[moduleKey]

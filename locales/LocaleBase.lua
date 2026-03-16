@@ -1,8 +1,11 @@
 --[[
-    Horizon Suite - enUS (Reference)
-    Derived from LocaleBase.lua (source of truth).
-    This file is intentionally not loaded in HorizonSuite.toc.
+    Horizon Suite - Locale Base (enUS)
+    Source of truth for structure and English strings.
+    Loaded for all clients. Locale-specific files override with fallback to this.
 ]]
+
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+if not addon then return end
 
 local L = {}
 -- =====================================================================
@@ -93,6 +96,10 @@ L["Instances"]                                                                  
 L["Combat"]                                                                                                         = "Combat"
 L["Filtering"]                                                                                                      = "Filtering"
 L["Header"]                                                                                                         = "Header"
+L["Sections & structure"]                                                                                           = "Sections & structure"
+L["Entry details"]                                                                                                  = "Entry details"
+L["Progress & timers"]                                                                                              = "Progress & timers"
+L["Focus emphasis"]                                                                                                 = "Focus emphasis"
 L["List"]                                                                                                           = "List"
 L["Spacing"]                                                                                                        = "Spacing"
 L["Rare bosses"]                                                                                                    = "Rare bosses"
@@ -104,6 +111,10 @@ L["Endeavors"]                                                                  
 L["Decor"]                                                                                                          = "Decor"
 L["Scenario & Delve"]                                                                                               = "Scenario & Delve"
 L["Font"]                                                                                                           = "Font"
+L["Font families"]                                                                                                  = "Font families"
+L["Global font size"]                                                                                               = "Global font size"
+L["Font sizes"]                                                                                                     = "Font sizes"
+L["Per-element fonts"]                                                                                              = "Per-element fonts"
 L["Text case"]                                                                                                      = "Text case"
 L["Shadow"]                                                                                                         = "Shadow"
 L["Panel"]                                                                                                          = "Panel"
@@ -196,9 +207,9 @@ L["Click to show or hide the anchor. Drag to set position, right-click to confir
 L["Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."]                         = "Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."
 L["Reset tooltip position"]                                                                                         = "Reset tooltip position"
 L["Reset fixed position to default."]                                                                               = "Reset fixed position to default."
-L["Tooltip background color"]                                                                                        = "Tooltip background color"
+L["Tooltip background color"]                                                                                       = "Tooltip background color"
 L["Color of the tooltip background."]                                                                              = "Color of the tooltip background."
-L["Tooltip background opacity"]                                                                                     = "Tooltip background opacity"
+L["Tooltip background opacity"]                                                                                    = "Tooltip background opacity"
 L["Tooltip background opacity (0–100%)."]                                                                          = "Tooltip background opacity (0–100%)."
 L["Tooltips"]                                                                                                       = "Tooltips"
 L["Item Tooltip"]                                                                                                   = "Item Tooltip"
@@ -223,6 +234,14 @@ L["Show status badges"]                                                         
 L["Show inline badges for combat, AFK, DND, PvP flag, party/raid membership, friends, and whether the player is targeting you."] = "Show inline badges for combat, AFK, DND, PvP flag, party/raid membership, friends, and whether the player is targeting you."
 L["Show mount info"]                                                                                                = "Show mount info"
 L["When hovering a mounted player, show their mount name, source, and whether you own it."]                         = "When hovering a mounted player, show their mount name, source, and whether you own it."
+L["Blank separator"]                                                                                                = "Blank separator"
+L["Use a blank line instead of dashes between tooltip sections."]                                                    = "Use a blank line instead of dashes between tooltip sections."
+L["Show icons"]                                                                                                     = "Show icons"
+L["Class icon style"]                                                                                               = "Class icon style"
+L["Use Default (Blizzard) or RondoMedia class icons on the class/spec line."]                                       = "Use Default (Blizzard) or RondoMedia class icons on the class/spec line."
+L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"]                       = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
+L["Default"]                                                                                                        = "Default"
+L["Show faction, spec, mount, and Mythic+ icons in tooltips."]                                                      = "Show faction, spec, mount, and Mythic+ icons in tooltips."
 L["Yield"]                                                                                                          = "Yield"
 L["General"]                                                                                                        = "General"
 L["Position"]                                                                                                       = "Position"
@@ -314,6 +333,8 @@ L["Active quest highlight"]                                                     
 L["How the focused quest is highlighted."]                                                                          = "How the focused quest is highlighted."
 L["Show quest item buttons"]                                                                                        = "Show quest item buttons"
 L["Show usable quest item button next to each quest."]                                                              = "Show usable quest item button next to each quest."
+L["Tooltips on hover"]                                                                                             = "Tooltips on hover"
+L["Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."]                           = "Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."
 L["Show objective numbers"]                                                                                         = "Show objective numbers"
 L["Objective prefix"]                                                                                               = "Objective prefix"
 L["Prefix each objective with a number or hyphen."]                                                                 = "Prefix each objective with a number or hyphen."
@@ -360,7 +381,7 @@ L["Compact mode"]                                                               
 L["Preset: sets entry and objective spacing to 4 and 1 px."]                                                        = "Preset: sets entry and objective spacing to 4 and 1 px."
 L["Spacing preset"]                                                                                                 = "Spacing preset"
 L["Preset for entry and objective spacing: Default (8/2 px), Compact (4/1 px), Spaced (12/3 px), or Custom (use sliders)."] = "Preset for entry and objective spacing: Default (8/2 px), Compact (4/1 px), Spaced (12/3 px), or Custom (use sliders)."
-L["Compact version"]                                                                                                = "Compact version"
+L["Compact version"]                                                                                               = "Compact version"
 L["Spaced version"]                                                                                                 = "Spaced version"
 L["Spacing between quest entries (px)"]                                                                             = "Spacing between quest entries (px)"
 L["Vertical gap between quest entries."]                                                                            = "Vertical gap between quest entries."
@@ -589,6 +610,7 @@ L["Reset Mythic+ typography"]                                                   
 -- =====================================================================
 -- OptionsData.lua Appearance
 -- =====================================================================
+L["Frame"]                                                                                                          = "Frame"
 L["Class colours - Dashboard"]                                                                                     = "Class colours - Dashboard"
 L["Class colors"]                                                                                                   = "Class colors"
 L["Tint dashboard accents, dividers, and highlights with your class colour."]                                       = "Tint dashboard accents, dividers, and highlights with your class colour."
@@ -713,6 +735,9 @@ L["Show subzone changes"]                                                       
 L["Show subzone change when moving within the same zone."]                                                          = "Show subzone change when moving within the same zone."
 L["Hide zone name for subzone changes"]                                                                             = "Hide zone name for subzone changes"
 L["When moving between subzones within the same zone, only show the subzone name. The zone name still appears when entering a new zone."] = "When moving between subzones within the same zone, only show the subzone name. The zone name still appears when entering a new zone."
+L["Suppress in Delve"]                                                                                               = "Suppress in Delve"
+L["Suppress scenario progress notifications in Delves."]                                                              = "Suppress scenario progress notifications in Delves."
+L["When on, hides objective update popups while in a Delve. Zone entry and completion toasts still show."]             = "When on, hides objective update popups while in a Delve. Zone entry and completion toasts still show."
 L["Suppress zone changes in Mythic+"]                                                                               = "Suppress zone changes in Mythic+"
 L["In Mythic+, only show boss emotes, achievements, and level-up. Hide zone, quest, and scenario notifications."]   = "In Mythic+, only show boss emotes, achievements, and level-up. Hide zone, quest, and scenario notifications."
 L["Show level up"]                                                                                                  = "Show level up"
@@ -724,9 +749,9 @@ L["Show achievement earned notifications."]                                     
 L["Achievement progress"]                                                                                           = "Achievement progress"
 L["Achievement earned"]                                                                                             = "Achievement earned"
 L["Quest accepted"]                                                                                                 = "Quest accepted"
-L["World quest accepted"]                                                                                            = "World quest accepted"
-L["Scenario complete"]                                                                                              = "Scenario complete"
-L["Rare defeated"]                                                                                                 = "Rare defeated"
+L["World quest accepted"]                                                                                           = "World quest accepted"
+L["Scenario complete"]                                                                                             = "Scenario complete"
+L["Rare defeated"]                                                                                                = "Rare defeated"
 L["Show notification when tracked achievement criteria update."]                                                    = "Show notification when tracked achievement criteria update."
 L["Show quest accept"]                                                                                              = "Show quest accept"
 L["Show notification when accepting a quest."]                                                                      = "Show notification when accepting a quest."
@@ -753,6 +778,17 @@ L["Exit duration"]                                                              
 L["Duration of the exit animation in seconds (0.2–1.5)."]                                                           = "Duration of the exit animation in seconds (0.2–1.5)."
 L["Hold duration scale"]                                                                                            = "Hold duration scale"
 L["Multiplier for how long each notification stays on screen (0.5–2)."]                                             = "Multiplier for how long each notification stays on screen (0.5–2)."
+L["Preview"]                                                                                                        = "Preview"
+L["Preview toast type"]                                                                                             = "Preview toast type"
+L["Select a toast type to preview."]                                                                                 = "Select a toast type to preview."
+L["Show the selected toast type."]                                                                                  = "Show the selected toast type."
+L["Preview Presence toast layouts live and open a detachable sample while adjusting other settings."]              = "Preview Presence toast layouts live and open a detachable sample while adjusting other settings."
+L["Open detached preview"]                                                                                          = "Open detached preview"
+L["Open a movable preview window that stays visible while you change other Presence settings."]                    = "Open a movable preview window that stays visible while you change other Presence settings."
+L["Animate preview"]                                                                                                = "Animate preview"
+L["Play the selected toast animation inside this preview window."]                                                 = "Play the selected toast animation inside this preview window."
+L["Detached preview"]                                                                                               = "Detached preview"
+L["Keep this open while adjusting Typography or Colors."]                                                           = "Keep this open while adjusting Typography or Colors."
 L["Typography"]                                                                                                     = "Typography"
 L["Main title font"]                                                                                                = "Main title font"
 L["Font family for the main title."]                                                                                = "Font family for the main title."
@@ -843,6 +879,8 @@ L["DUNGEON"]                                                                    
 L["RAID"]                                                                                                           = "RAID"
 L["DELVES"]                                                                                                         = "Delves"
 L["SCENARIO EVENTS"]                                                                                                = "SCENARIO EVENTS"
+L["Stage"]                                                                                                          = "Stage"
+L["Stage %d: %s"]                                                                                                   = "Stage %d: %s"
 L["AVAILABLE IN ZONE"]                                                                                              = "AVAILABLE IN ZONE"
 L["EVENTS IN ZONE"]                                                                                                 = "Events in Zone"
 L["CURRENT EVENT"]                                                                                                  = "Current Event"
@@ -870,6 +908,10 @@ L["READY TO TURN IN"]                                                           
 -- =====================================================================
 L["OBJECTIVES"]                                                                                                     = "OBJECTIVES"
 L["Options"]                                                                                                        = "Options"
+L["Open Horizon Suite"]                                                                                              = "Open Horizon Suite"
+L["Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."]              = "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."
+L["Show minimap icon"]                                                                                             = "Show minimap icon"
+L["Show a clickable icon on the minimap that opens the options panel."]                                             = "Show a clickable icon on the minimap that opens the options panel."
 L["Discovered"]                                                                                                     = "Discovered"
 L["Refresh"]                                                                                                        = "Refresh"
 L["Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."] = "Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."
@@ -1137,3 +1179,11 @@ L["When off, this button is completely ignored by this addon."]                 
 L["(No addon buttons detected yet)"]                                                                                = "(No addon buttons detected yet)"
 L["Visible buttons (check to include)"]                                                                             = "Visible buttons (check to include)"
 L["(No addon buttons detected yet — open your minimap first)"]                                                      = "(No addon buttons detected yet — open your minimap first)"
+
+
+addon.L = setmetatable(L, { __index = function(t, k)
+    if addon.debugLocale then
+        print("|cffff6666[HS Locale]|r Missing key: " .. tostring(k))
+    end
+    return k
+end })
