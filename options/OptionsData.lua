@@ -902,20 +902,15 @@ local OptionCategories = {
         name = L["Modules"],
         moduleKey = nil,
         options = (function()
-            local dev = _G.HorizonSuiteDevOverride
-            local betaSuffix = dev and (" (" .. (L["Beta"] or "Beta") .. ")") or ""
+            local previewSuffix = " |cff228b22(" .. (L["Preview"] or "Preview") .. ")|r"
             local opts = {
                 { type = "section", name = L["Module Toggles"] or "Module Toggles" },
                 { type = "toggle", name = L["Focus"], desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
                 { type = "toggle", name = L["Presence"], desc = L["Zone text and notifications."], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
                 { type = "toggle", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
+                { type = "toggle", name = L["Insight"] .. previewSuffix, desc = L["Tooltips with class colors, spec, and faction icons."], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
+                { type = "toggle", name = L["Yield"] .. previewSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end },
             }
-            if dev and dev.showInsightToggle then
-                opts[#opts + 1] = { type = "toggle", name = L["Insight"] .. betaSuffix, desc = L["Tooltips with class colors, spec, and faction icons."], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end }
-            end
-            if dev and dev.showYieldToggle then
-                opts[#opts + 1] = { type = "toggle", name = L["Yield"] .. betaSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end }
-            end
             opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
             opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
             opts[#opts + 1] = { type = "toggle", name = L["Class colours - Dashboard"] or "Class colours - Dashboard", desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "dashboardClassColor", get = function() return getDB("dashboardClassColor", false) end, set = function(v) setDB("dashboardClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end; if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end end }
@@ -991,28 +986,24 @@ local OptionCategories = {
                         if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
                     end)
                 end }
-            if dev and dev.showInsightToggle then
-                opts[#opts + 1] = { type = "slider", name = L["Insight scale"], desc = L["Scale for the Insight tooltip module (50–200%)."], dbKey = "insightUIScale_pct", min = 50, max = 200,
-                    disabled = isNotPerModule,
-                    get = function()
-                        return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
-                    end, set = function(v)
-                        setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
-                        -- Insight has no heavy apply; no debounce needed.
-                    end }
-            end
-            if dev and dev.showYieldToggle then
-                opts[#opts + 1] = { type = "slider", name = L["Yield scale"], desc = L["Scale for the Yield loot toast module (50–200%)."], dbKey = "yieldUIScale_pct", min = 50, max = 200,
-                    disabled = isNotPerModule,
-                    get = function()
-                        return math.floor((tonumber(getDB("yieldUIScale", 1)) or 1) * 100 + 0.5)
-                    end, set = function(v)
-                        setDB("yieldUIScale", math.max(50, math.min(200, v)) / 100)
-                        debouncedRefresh("yield", function()
-                            if addon.Yield and addon.Yield.ApplyScale then addon.Yield.ApplyScale() end
-                        end)
-                    end }
-            end
+            opts[#opts + 1] = { type = "slider", name = L["Insight scale"], desc = L["Scale for the Insight tooltip module (50–200%)."], dbKey = "insightUIScale_pct", min = 50, max = 200,
+                disabled = isNotPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
+                    -- Insight has no heavy apply; no debounce needed.
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["Yield scale"], desc = L["Scale for the Yield loot toast module (50–200%)."], dbKey = "yieldUIScale_pct", min = 50, max = 200,
+                disabled = isNotPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("yieldUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("yieldUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("yield", function()
+                        if addon.Yield and addon.Yield.ApplyScale then addon.Yield.ApplyScale() end
+                    end)
+                end }
             return opts
         end)(),
     },
@@ -2468,21 +2459,10 @@ function OptionsData_BuildSearchIndex()
     return index
 end
 
--- Filter out Insight/Yield categories when dev addon does not show their toggles.
 local function getVisibleCategories()
-    local dev = _G.HorizonSuiteDevOverride
-    local showInsight = dev and dev.showInsightToggle
-    local showYield = dev and dev.showYieldToggle
     local out = {}
     for _, cat in ipairs(OptionCategories) do
-        local mk = cat.moduleKey
-        if mk == "insight" and not showInsight then
-            -- skip
-        elseif mk == "yield" and not showYield then
-            -- skip
-        else
-            out[#out + 1] = cat
-        end
+        out[#out + 1] = cat
     end
     return out
 end

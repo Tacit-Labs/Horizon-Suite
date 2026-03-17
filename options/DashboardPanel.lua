@@ -49,11 +49,32 @@ SlashCmdList["HSDASH"] = function(msg)
             dragBar:SetFrameLevel(f:GetFrameLevel() + 1)
             dragBar:EnableMouse(true)
             dragBar:RegisterForDrag("LeftButton")
+            local dashClickCount = 0
+            local dashClickResetAt = 0
+            local dashClickWasDrag = false
+            local DASH_CLICK_RESET_SEC = 2
             dragBar:SetScript("OnDragStart", function()
+                dashClickWasDrag = true
                 if not InCombatLockdown() then f:StartMoving() end
             end)
             dragBar:SetScript("OnDragStop", function()
                 f:StopMovingOrSizing()
+            end)
+            dragBar:SetScript("OnMouseUp", function(self, button)
+                if button ~= "LeftButton" then return end
+                if dashClickWasDrag then dashClickWasDrag = false return end
+                dashClickWasDrag = false
+                local now = GetTime()
+                if now > dashClickResetAt then dashClickCount = 0 end
+                dashClickCount = dashClickCount + 1
+                dashClickResetAt = now + DASH_CLICK_RESET_SEC
+                if dashClickCount >= 5 then
+                    dashClickCount = 0
+                    local v = not (addon.GetDB and addon.GetDB("focusDevMode", false))
+                    if addon.SetDB then addon.SetDB("focusDevMode", v) end
+                    if addon.HSPrint then addon.HSPrint("Dev mode (Blizzard tracker): " .. (v and "on" or "off")) end
+                    ReloadUI()
+                end
             end)
 
             if _G.OptionsWidgets_SetDef then
@@ -73,12 +94,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 yield = L["Yield"] or "Yield",
             }
 
-            -- Mirror OptionsPanel: beta modules only when beta addon shows them; all modules only when enabled.
             local function ShouldShowModuleOnDashboard(mk)
                 if mk == "axis" then return true end
-                local dev = _G.HorizonSuiteDevOverride
-                if mk == "insight" and not (dev and dev.showInsightToggle) then return false end
-                if mk == "yield" and not (dev and dev.showYieldToggle) then return false end
                 return addon.IsModuleEnabled and addon:IsModuleEnabled(mk)
             end
 
@@ -195,17 +212,26 @@ SlashCmdList["HSDASH"] = function(msg)
             local sidebarVersion = MakeText(sidebar, versionStr ~= "" and ("v" .. versionStr) or "", 12, 0.55, 0.55, 0.65, "CENTER")
             sidebarVersion:SetPoint("TOP", sidebarLogoSub, "BOTTOM", 0, -4)
 
+            -- Dev Mode indicator badge
+            local isDevMode = addon.GetDB and addon.GetDB("focusDevMode", false)
+            if isDevMode then
+                local devBadge = MakeText(sidebar, "[ DEV MODE ]", 10, 1, 0.65, 0.1, "CENTER")
+                devBadge:SetPoint("TOP", sidebarVersion, "BOTTOM", 0, -2)
+            end
+            local logoSepYOffset = isDevMode and -74 or -58
+            local scrollFrameYOffset = isDevMode and -84 or -68
+
             -- Sidebar separator under logo
             local logoSep = sidebar:CreateTexture(nil, "ARTWORK")
             logoSep:SetHeight(1)
-            logoSep:SetPoint("TOPLEFT", 15, -58)
-            logoSep:SetPoint("TOPRIGHT", -15, -58)
+            logoSep:SetPoint("TOPLEFT", 15, logoSepYOffset)
+            logoSep:SetPoint("TOPRIGHT", -15, logoSepYOffset)
             logoSep:SetColorTexture(ar, ag, ab, 0.3)
             dashAccentRefs.logoSep = logoSep
 
             -- Sidebar scroll area for buttons
             local sidebarScrollFrame = CreateFrame("ScrollFrame", nil, sidebar)
-            sidebarScrollFrame:SetPoint("TOPLEFT", 0, -68)
+            sidebarScrollFrame:SetPoint("TOPLEFT", 0, scrollFrameYOffset)
             sidebarScrollFrame:SetPoint("BOTTOMRIGHT", -1, 10)
             local sidebarScrollContent = CreateFrame("Frame", nil, sidebarScrollFrame)
             sidebarScrollContent:SetWidth(SIDEBAR_WIDTH - 1)
@@ -2164,6 +2190,13 @@ SlashCmdList["HSDASH"] = function(msg)
                 lbl:SetPoint("BOTTOM", 0, 22)
                 tile.label = lbl
 
+                -- Preview badge for early-access modules
+                if moduleKey == "insight" or moduleKey == "yield" then
+                    local prevBadge = MakeText(tile, "(Preview)", 9, 34/255, 139/255, 34/255, "CENTER")
+                    prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
+                    tile.previewBadge = prevBadge
+                end
+
                 -- Bottom accent glow (hidden by default, shown on hover)
                 local bottomGlow = tile:CreateTexture(nil, "ARTWORK")
                 bottomGlow:SetHeight(2)
@@ -2334,7 +2367,11 @@ SlashCmdList["HSDASH"] = function(msg)
                         headerLabel:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
-                        headerLabel:SetText((g.label or ""):upper())
+                        local headerLabelText = (g.label or ""):upper()
+                        if mk == "insight" or mk == "yield" then
+                            headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
+                        end
+                        headerLabel:SetText(headerLabelText)
                         header.headerLabel = headerLabel
 
                         local tabsContainer = CreateFrame("Frame", nil, sidebarScrollContent)

@@ -40,6 +40,7 @@ local function ShowCoreHelp()
     HSPrint("  /h, /horizon         - This help")
     HSPrint("  /hedit, /h edit      - Open edit screen")
     HSPrint("  /hopt, /h options    - Open options")
+    HSPrint("  /h devmode           - Toggle Dev Mode (show Blizzard tracker alongside Focus)")
     HSPrint("  /h focus [cmd]       - Tracker (toggle, collapse, test, ...)")
     HSPrint("  /h scenario debug    - Scenario timer debug (diagnose missing timers)")
     HSPrint("  /h presence [cmd]    - Zone/notification tests")
@@ -83,6 +84,14 @@ local function OnSlashCommand(msg)
         else
             HSPrint("Edit panel not loaded.")
         end
+        return
+    end
+
+    if lower == "devmode" then
+        local v = not (addon.GetDB and addon.GetDB("focusDevMode", false))
+        if addon.SetDB then addon.SetDB("focusDevMode", v) end
+        HSPrint("Dev mode (Blizzard tracker): " .. (v and "on" or "off"))
+        ReloadUI()
         return
     end
 
