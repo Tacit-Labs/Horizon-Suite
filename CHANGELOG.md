@@ -8,6 +8,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
+- **(Focus) Dev mode: show Blizzard tracker alongside Focus for comparison**
 - **(Focus) Objectives can render outside the tracker window**
 - **(Focus) Focus tracker header options: quest count, divider, color, height, options button**
 - **(Focus) Groupings toggle on or off**
@@ -15,6 +16,8 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🔧 Improvements
 
+- **(Core) Beta release zip no longer returns 404 when job artifacts expire**
+- **(Core) Discord issuelog: rename Improvements to Improvement Requests**
 - **(Core) Dashboard live refresh when modules are toggled**
 - **(Core) Refactor color matrix to compact cards and add Section Overrides**
 - **(Core) Restructure locale system, add locale debug and CI audit, improve options panel and Focus grouping**
