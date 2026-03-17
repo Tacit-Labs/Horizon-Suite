@@ -204,7 +204,7 @@ IMPROVEMENTS_CONTENT=$(build_bucket_content IMPROVEMENTS)
 if [ -n "$IMPROVEMENTS_CONTENT" ]; then
   IMPROVEMENTS_DESC=$(truncate_content "$IMPROVEMENTS_CONTENT" 4096)
   IMPROVEMENTS_EMBEDS=$(jq -n \
-    --arg name "🔧 Improvements" \
+    --arg name "🔧 Improvement Requests" \
     --argjson desc "$IMPROVEMENTS_DESC" \
     --argjson color $COLOR_IMPROVEMENTS \
     '[{title: $name, description: $desc, color: $color}]')
