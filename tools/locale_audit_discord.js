@@ -74,9 +74,9 @@ const description = [
     lines.join('\n'),
     '',
     '**Want to help translate?**',
-    '1. Grab `locale_template.lua` from `locales/` in the repo',
+    '1. Download the template: [locale_template.lua](https://gitlab.com/Crystilac/horizon-suite/-/blob/main/locales/locale_template.lua)',
     '2. Copy, rename to your locale (e.g. `itIT.lua`), translate values',
-    '3. Post your file in this channel for review!',
+    '3. Post your file in <#localisation-submission> for review!',
 ].join('\n');
 
 const payload = {
