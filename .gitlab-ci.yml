@@ -1,11 +1,11 @@
-# GitLab CI: release (tag v*), beta (manual trigger with BETA_BUILD=1), issuelog (schedule or ISSUELOG_RUN=1),
-#   locale-audit (schedule or LOCALE_AUDIT_RUN=1).
+# GitLab CI: release (tag v*), beta (manual trigger with BETA_BUILD=1), issuelog (ISSUELOG_RUN=1),
+#   locale-audit (LOCALE_AUDIT_RUN=1).
 # Release: push tag v* (e.g. v3.5.0). Required: CF_API_KEY, WAGO_API_TOKEN.
 # Beta: trigger pipeline with BETA_BUILD=1 and optional ref (e.g. glab ci run --ref feature/xyz -f BETA_BUILD=1).
 #   Required for beta tag push: PROJECT_ACCESS_TOKEN (or GITLAB_TOKEN) with write_repository.
 #   Optional: DISCORD_WEBHOOK_BETA for beta Discord notification.
-# Issuelog: runs on schedule or manual (glab ci run -f ISSUELOG_RUN=1). Required: DISCORD_WEBHOOK_ISSUELOG.
-# Locale audit: runs on schedule or manual (glab ci run -f LOCALE_AUDIT_RUN=1). Required: DISCORD_WEBHOOK_LOCALE.
+# Issuelog: manual (glab ci run -f ISSUELOG_RUN=1) or schedule with variable ISSUELOG_RUN=1. Required: DISCORD_WEBHOOK_ISSUELOG.
+# Locale audit: manual (glab ci run -f LOCALE_AUDIT_RUN=1) or schedule with variable LOCALE_AUDIT_RUN=1. Required: DISCORD_WEBHOOK_LOCALE.
 
 stages:
   - issuelog
@@ -24,7 +24,6 @@ issuelog:
   image: ubuntu:22.04
   rules:
     - if: $ISSUELOG_RUN == "1"
-    - if: $CI_PIPELINE_SOURCE == "schedule"
   cache:
     key: issuelog-msg-id
     paths:
@@ -85,7 +84,6 @@ locale-audit:
   image: node:20-slim
   rules:
     - if: $LOCALE_AUDIT_RUN == "1"
-    - if: $CI_PIPELINE_SOURCE == "schedule"
   cache:
     key: locale-audit-msg-id
     paths:
