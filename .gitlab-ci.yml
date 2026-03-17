@@ -270,7 +270,7 @@ beta-release:
         echo "Package upload failed (HTTP $UPLOAD_HTTP)"
         exit 1
       fi
-      ARTIFACT_URL="${CI_PROJECT_URL}/-/packages/generic/horizon-suite/beta/HorizonSuite-beta.zip"
+      ARTIFACT_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/horizon-suite/beta/HorizonSuite-beta.zip"
       # Delete existing beta release so create succeeds (409 "Release already exists" otherwise)
       curl -s -o /dev/null -w "%{http_code}" --request DELETE --header "$AUTH" "${API}/beta" || true
       # Create release (tag already exists from beta-build)
