@@ -10,6 +10,17 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local pool = addon.pool
 
+--- Append a WoWhead link line to GameTooltip when option is on and entry has a known URL.
+--- @param entry table Pool entry (self) with questID, achievementID, and/or creatureID
+local function AppendWoWheadLineToTooltip(entry)
+    if not addon.GetDB("focusShowWoWheadLink", true) then return end
+    local url = addon.GetWoWheadURL(entry)
+    if not url then return end
+    local text = (addon.L and addon.L["View on WoWhead"]) or "View on WoWhead"
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(("|cff00b4ff|Hurl:%s|h[%s]|h|r"):format(url, text), 0.4, 0.7, 1)
+end
+
 --- Try to complete an auto-complete quest via ShowQuestComplete (Blizzard behavior).
 --- Returns true if completion was triggered; false otherwise.
 --- @param questID number
@@ -408,6 +419,14 @@ for i = 1, addon.POOL_SIZE do
                 if self.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
                     local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, self.adventureGuideID)
                     if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link); return end
+                end
+            end
+            -- Alt+LeftClick: show WoWhead URL in the copy box so the user can Ctrl+C and paste in a browser.
+            if IsAltKeyDown() then
+                local url = addon.GetWoWheadURL(self)
+                if url and type(url) == "string" and url ~= "" then
+                    if addon.ShowURLCopyBox then addon.ShowURLCopyBox(url) end
+                    return
                 end
             end
             if self.entryKey then
@@ -895,6 +914,7 @@ for i = 1, addon.POOL_SIZE do
                     pcall(attach, GameTooltip, searchFn, "npcID", self.creatureID)
                 end
             end
+            AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.endeavorID then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -994,11 +1014,13 @@ for i = 1, addon.POOL_SIZE do
             if not GameTooltip:NumLines() or GameTooltip:NumLines() == 0 then
                 GameTooltip:SetText(self.titleText:GetText() or ("Endeavor #" .. tostring(self.endeavorID)))
             end
+            AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.decorID then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText(self.titleText:GetText() or "")
             GameTooltip:AddLine(("Decor #%d"):format(self.decorID), 0.7, 0.7, 0.7)
+            AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.achievementID and GetAchievementLink then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -1008,6 +1030,7 @@ for i = 1, addon.POOL_SIZE do
             else
                 GameTooltip:SetText(self.titleText:GetText() or "")
             end
+            AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.questID then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -1015,11 +1038,13 @@ for i = 1, addon.POOL_SIZE do
             addon.AddQuestRewardsToTooltip(GameTooltip, self.questID)
             addon.AddQuestPartyProgressToTooltip(GameTooltip, self.questID)
             AppendDelveTooltipData(self, GameTooltip)
+            AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.entryKey then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText(self.titleText:GetText() or "")
             AppendDelveTooltipData(self, GameTooltip)
+            AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         end
     end)

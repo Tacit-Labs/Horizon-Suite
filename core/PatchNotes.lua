@@ -24,6 +24,8 @@ local BULLET_X   = 16
 local LINE_GAP   = 5
 local FADE_DUR   = 0.25
 
+local CHANGELOG_URL = "https://gitlab.com/Crystilac/horizon-suite/-/blob/main/CHANGELOG.md"
+
 local BG_COL    = { 0.06, 0.06, 0.08, 0.97 }
 local EDGE_COL  = { 0.2,  0.2,  0.26, 0.95 }
 local RULE_COL  = { 0.13, 0.13, 0.17, 1    }
@@ -189,6 +191,45 @@ local function BuildPanel()
     footRule:SetPoint("BOTTOMRIGHT", -PAD, FOOTER_H - 1)
     footRule:SetColorTexture(unpack(RULE_COL))
 
+    -- Full changelog (text link, bottom-left)
+    local changelogBtn = CreateFrame("Button", nil, panel)
+    changelogBtn:SetSize(100, FOOTER_H)
+    changelogBtn:SetPoint("BOTTOMLEFT", PAD, 0)
+
+    local changelogTxt = changelogBtn:CreateFontString(nil, "OVERLAY")
+    changelogTxt:SetFont(F_BODY, 12, "")
+    changelogTxt:SetPoint("LEFT", 0, 0)
+    changelogTxt:SetText("Full changelog")
+    changelogTxt:SetTextColor(unpack(MUTED_COL))
+
+    local changelogLine = changelogBtn:CreateTexture(nil, "ARTWORK")
+    changelogLine:SetHeight(1)
+    changelogLine:SetPoint("BOTTOMLEFT",  changelogTxt, "BOTTOMLEFT",  0, -2)
+    changelogLine:SetPoint("BOTTOMRIGHT", changelogTxt, "BOTTOMRIGHT", 0, -2)
+    changelogLine:SetColorTexture(1, 1, 1, 0)
+
+    changelogBtn:SetScript("OnEnter", function()
+        local ar, ag, ab = GetAccentRGB()
+        changelogTxt:SetTextColor(ar, ag, ab)
+        changelogLine:SetColorTexture(ar, ag, ab, 0.45)
+        if GameTooltip then
+            GameTooltip:SetOwner(changelogBtn, "ANCHOR_TOP")
+            GameTooltip:SetText(CHANGELOG_URL, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end
+    end)
+    changelogBtn:SetScript("OnLeave", function()
+        changelogTxt:SetTextColor(unpack(MUTED_COL))
+        changelogLine:SetColorTexture(1, 1, 1, 0)
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+    changelogBtn:SetScript("OnClick", function()
+        if GameTooltip then GameTooltip:Hide() end
+        if addon.ShowURLCopyBox then addon.ShowURLCopyBox(CHANGELOG_URL) end
+    end)
+
     -- Dismiss (text link, bottom-right)
     local dismissBtn = CreateFrame("Button", nil, panel)
     dismissBtn:SetSize(90, FOOTER_H)
@@ -228,6 +269,9 @@ local function BuildContent(version)
         panel.scrollContent:SetParent(nil)
     end
 
+    panel.accentLabels = {}
+    panel.accentBullets = {}
+
     local c = CreateFrame("Frame", nil, panel.scrollFrame)
     local cW = W - PAD * 2 - 2
     c:SetWidth(cW)
@@ -253,13 +297,14 @@ local function BuildContent(version)
                 tinsert(items, { type = "gap", h = SECTION_GAP })
             end
 
-            -- Section label — uppercase, accent colour
+            -- Section label — uppercase, accent colour (stored for refresh on show)
             local lbl = c:CreateFontString(nil, "OVERLAY")
             lbl:SetFont(F_HEAD, 10, "OUTLINE")
             lbl:SetWidth(cW)
             lbl:SetJustifyH("LEFT")
             lbl:SetText(sec.section)
             lbl:SetTextColor(GetAccentRGB())
+            tinsert(panel.accentLabels, lbl)
             tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 5 })
 
             -- Thin rule below label
@@ -268,7 +313,7 @@ local function BuildContent(version)
             rule:SetColorTexture(unpack(RULE_COL))
             tinsert(items, { type = "tex", tex = rule, gap = 8 })
 
-            -- Bullets — accent dash prefix inline
+            -- Bullets — accent dash prefix inline (stored for refresh on show)
             for _, bullet in ipairs(sec.bullets) do
                 local txt = c:CreateFontString(nil, "OVERLAY")
                 txt:SetFont(F_BODY, 12, "")
@@ -277,6 +322,7 @@ local function BuildContent(version)
                 txt:SetWordWrap(true)
                 txt:SetText("|cFF" .. hex .. "\226\128\148|r  " .. bullet)  -- — dash
                 txt:SetTextColor(unpack(BODY_COL))
+                tinsert(panel.accentBullets, { fs = txt, bullet = bullet })
                 tinsert(items, { type = "fs", fs = txt, x = BULLET_X, gap = LINE_GAP })
             end
         end
@@ -338,6 +384,17 @@ addon.ShowPatchNotes = function()
         local notes = addon.PATCH_NOTES
         BuildContent(ver ~= "" and ver or (notes and next(notes) or ""))
         panel.builtVersion = ver
+    else
+        -- Refresh accent-coloured content so it matches current class colour setting
+        for _, lbl in ipairs(panel.accentLabels or {}) do
+            if lbl and lbl.SetTextColor then lbl:SetTextColor(ar, ag, ab) end
+        end
+        local hex = AccentHex()
+        for _, entry in ipairs(panel.accentBullets or {}) do
+            if entry and entry.fs and entry.bullet then
+                entry.fs:SetText("|cFF" .. hex .. "\226\128\148|r  " .. entry.bullet)
+            end
+        end
     end
 
     FadeIn()
@@ -345,6 +402,24 @@ end
 
 addon.HidePatchNotes = function()
     if panel then panel:Hide() end
+end
+
+--- Refresh accent colours on the Patch Notes panel if it is visible (e.g. when "Class colours - Dashboard" is toggled).
+--- Call from options when dashboardClassColor changes so the panel updates live.
+function addon.ApplyPatchNotesAccent()
+    if not panel or not panel:IsShown() then return end
+    local ar, ag, ab = GetAccentRGB()
+    panel.accentStrip:SetColorTexture(ar, ag, ab, 1)
+    panel.titleLbl:SetTextColor(ar, ag, ab)
+    for _, lbl in ipairs(panel.accentLabels or {}) do
+        if lbl and lbl.SetTextColor then lbl:SetTextColor(ar, ag, ab) end
+    end
+    local hex = AccentHex()
+    for _, entry in ipairs(panel.accentBullets or {}) do
+        if entry and entry.fs and entry.bullet then
+            entry.fs:SetText("|cFF" .. hex .. "\226\128\148|r  " .. entry.bullet)
+        end
+    end
 end
 
 -- ============================================================================

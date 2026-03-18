@@ -337,6 +337,7 @@ function OptionsData_SetDB(key, value)
     if key == "dashboardClassColor" then
         if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+        if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end
     end
     if key == "vistaClassColor" and addon.Vista and addon.Vista.ApplyColors then
         addon.Vista.ApplyColors()
@@ -931,7 +932,7 @@ local OptionCategories = {
             }
             opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
             opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
-            opts[#opts + 1] = { type = "toggle", name = L["Class colours - Dashboard"] or "Class colours - Dashboard", desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "dashboardClassColor", get = function() return getDB("dashboardClassColor", false) end, set = function(v) setDB("dashboardClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end; if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end end }
+            opts[#opts + 1] = { type = "toggle", name = L["Class colours - Dashboard"] or "Class colours - Dashboard", desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "dashboardClassColor", get = function() return getDB("dashboardClassColor", false) end, set = function(v) setDB("dashboardClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end; if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end; if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end end }
             opts[#opts + 1] = { type = "section", name = L["Scaling"] }
             -- helper: refresh all modules after any scale change
             local function refreshAllScaling()
@@ -1193,6 +1194,7 @@ local OptionCategories = {
             { type = "dropdown", name = L["Active quest highlight"], desc = L["How the focused quest is highlighted."], dbKey = "activeQuestHighlight", options = HIGHLIGHT_OPTIONS, get = getActiveQuestHighlight, set = function(v) setDB("activeQuestHighlight", v) end },
             { type = "toggle", name = L["Quest item buttons"], desc = L["Show usable quest item button next to each quest."], dbKey = "showQuestItemButtons", get = function() return getDB("showQuestItemButtons", false) end, set = function(v) setDB("showQuestItemButtons", v) end },
             { type = "toggle", name = L["Tooltips on hover"], desc = L["Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."], dbKey = "focusShowTooltipOnHover", get = function() return getDB("focusShowTooltipOnHover", false) end, set = function(v) setDB("focusShowTooltipOnHover", v) end },
+            { type = "toggle", name = L["Show WoWhead link in tooltips"], desc = L["When a tooltip is shown, add a link to open the quest, achievement, or NPC on WoWhead."], dbKey = "focusShowWoWheadLink", get = function() return getDB("focusShowWoWheadLink", true) end, set = function(v) setDB("focusShowWoWheadLink", v) end },
             { type = "section", name = L["Progress & timers"] },
             { type = "toggle", name = L["Scenario progress bar"], desc = L["Bar under numeric objectives (e.g. 3/250)."], dbKey = "showProgressBarScenarios", tooltip = L["Only for entries with a single numeric objective where required > 1."], get = function() return getDB("showProgressBarScenarios", true) end, set = function(v)
                 setDB("showProgressBarScenarios", v)
