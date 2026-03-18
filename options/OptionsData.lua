@@ -59,6 +59,20 @@ local INSIGHT_KEYS = {
     insightBlankSeparator   = true,
     insightShowIcons       = true,
     insightClassIconSource = true,
+    insightFontPath        = true,
+}
+
+local PERSONA_KEYS = {
+    personaX             = true,
+    personaY             = true,
+    personaPoint         = true,
+    personaScale         = true,
+    personaShowModel     = true,
+    personaLockPosition  = true,
+    personaStatCap       = true,
+    personaShowIlvlBadge = true,
+    personaShowTitle     = true,
+    personaShowStatBars  = true,
 }
 
 local PRESENCE_KEYS = {
@@ -298,7 +312,7 @@ function OptionsData_SetDB(key, value)
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
     end
-    if (key == "fontPath" or key == "titleFontPath" or key == "zoneFontPath" or key == "objectiveFontPath" or key == "sectionFontPath" or key == "progressBarFontPath" or key == "presenceTitleFontPath" or key == "presenceSubtitleFontPath") and updateOptionsPanelFontsRef then
+    if (key == "fontPath" or key == "titleFontPath" or key == "zoneFontPath" or key == "objectiveFontPath" or key == "sectionFontPath" or key == "progressBarFontPath" or key == "presenceTitleFontPath" or key == "presenceSubtitleFontPath" or key == "insightFontPath") and updateOptionsPanelFontsRef then
         updateOptionsPanelFontsRef()
     end
     if TYPOGRAPHY_KEYS[key] and addon.UpdateFontObjectsFromDB then
@@ -313,6 +327,9 @@ function OptionsData_SetDB(key, value)
     end
     if INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
         addon.Insight.ApplyInsightOptions()
+    end
+    if PERSONA_KEYS[key] and addon.Persona and addon.Persona.ApplyPersonaOptions then
+        addon.Persona.ApplyPersonaOptions()
     end
     if YIELD_KEYS[key] and addon.Yield and addon.Yield.ApplyYieldOptions then
         addon.Yield.ApplyYieldOptions()
@@ -910,6 +927,7 @@ local OptionCategories = {
                 { type = "toggle", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
                 { type = "toggle", name = L["Insight"], desc = L["Tooltips with class colors, spec, and faction icons."], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
                 { type = "toggle", name = L["Yield"] .. previewSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end },
+                { type = "toggle", name = "Persona" .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_persona", get = function() return addon:IsModuleEnabled("persona") end, set = function(v) addon:SetModuleEnabled("persona", v) end },
             }
             opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
             opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
@@ -1558,6 +1576,7 @@ local OptionCategories = {
             end },
             { type = "section", name = L["Appearance"] or "Appearance" },
             { type = "slider", name = L["Tooltip background opacity"] or "Tooltip background opacity", desc = L["Tooltip background opacity (0–100%)."] or "Tooltip background opacity (0–100%).", dbKey = "insightBgOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("insightBgOpacity", 0.75)) or 0.75; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("insightBgOpacity", math.max(0, math.min(100, v)) / 100) end },
+            { type = "dropdown", name = L["Tooltip font"] or "Tooltip font", desc = L["Font family used for all tooltip text."] or "Font family used for all tooltip text.", dbKey = "insightFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("insightFontPath") end, get = function() return getDB("insightFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("insightFontPath", v) end, displayFn = DisplayPerElementFont },
             { type = "section", name = L["Player Tooltip"] or "Player Tooltip" },
             { type = "toggle", name = L["Guild rank"] or "Guild rank", desc = L["Append the player's guild rank next to their guild name."] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
             { type = "toggle", name = L["Character title"] or "Character title", desc = L["Show the player's selected title (achievement or PvP) in the name line."] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
@@ -1572,6 +1591,25 @@ local OptionCategories = {
             { type = "dropdown", name = L["Class icon style"] or "Class icon style", desc = L["Use Default (Blizzard) or RondoMedia class icons on the class/spec line."] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"], dbKey = "insightClassIconSource", options = { { L["Default"] or "Default", "default" }, { "RondoMedia", "rondomedia" } }, get = function() return getDB("insightClassIconSource", "default") end, set = function(v) setDB("insightClassIconSource", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
             { type = "section", name = L["Item Tooltip"] or "Item Tooltip" },
             { type = "toggle", name = L["Transmog status"] or "Transmog status", desc = L["Show whether you have collected the appearance of an item you hover over."] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
+        },
+    },
+    {
+        key       = "Persona",
+        name      = "Character Sheet",
+        desc      = "Custom character panel with 3D model, item level, secondary stats, and gear slots.",
+        moduleKey = "persona",
+        options   = {
+            { type = "section", name = "Position" },
+            { type = "toggle", name = "Lock position", desc = "Prevent dragging the panel.", dbKey = "personaLockPosition", get = function() return getDB("personaLockPosition", false) end, set = function(v) setDB("personaLockPosition", v) end },
+            { type = "button", name = "Reset position", desc = "Snap the panel back to screen centre.", onClick = function()
+                setDB("personaPoint", "CENTER"); setDB("personaX", 0); setDB("personaY", 0)
+                if addon.Persona and addon.Persona.ApplyPosition then addon.Persona.ApplyPosition(true) end
+            end },
+            { type = "section", name = "Appearance" },
+            { type = "toggle", name = "PvP title", desc = "Show the character's PvP title above the identity line.", dbKey = "personaShowTitle", get = function() return getDB("personaShowTitle", true) end, set = function(v) setDB("personaShowTitle", v) end },
+            { type = "toggle", name = "Secondary stat bars", desc = "Show Crit, Haste, Mastery, and Versatility bars.", dbKey = "personaShowStatBars", get = function() return getDB("personaShowStatBars", true) end, set = function(v) setDB("personaShowStatBars", v) end },
+            { type = "toggle", name = "Item level badge on gear slots", desc = "Show the item level on each equipped gear slot.", dbKey = "personaShowIlvlBadge", get = function() return getDB("personaShowIlvlBadge", true) end, set = function(v) setDB("personaShowIlvlBadge", v) end },
+            { type = "slider", name = "Stat bar cap (%)", desc = "The percentage shown as a full bar. Lower = more detail at common stat values.", dbKey = "personaStatCap", min = 20, max = 100, step = 5, get = function() return tonumber(getDB("personaStatCap", 50)) or 50 end, set = function(v) setDB("personaStatCap", math.max(20, math.min(100, v))) end },
         },
     },
     {

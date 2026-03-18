@@ -177,6 +177,10 @@ function addon:EnsureModulesDB()
     if not db.modules.insight then
         db.modules.insight = { enabled = true }
     end
+    -- Ensure persona exists for existing installs; disabled by default (beta)
+    if not db.modules.persona then
+        db.modules.persona = { enabled = false }
+    end
 end
 
 -- Binding display names for Key Bindings UI (must match Binding name in Bindings.xml exactly)
