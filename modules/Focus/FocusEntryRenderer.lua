@@ -5,6 +5,23 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
+--- Returns true when Auctionator's v1 MultiSearch API is available.
+-- Result is cached after the first positive hit so we don't re-walk globals every render pass.
+local _auctionatorAvailable = nil
+local function IsAuctionatorAvailable()
+    if _auctionatorAvailable then return true end
+    local ok = Auctionator and Auctionator.API and Auctionator.API.v1
+        and type(Auctionator.API.v1.MultiSearch) == "function"
+    if ok then _auctionatorAvailable = true end
+    return ok and true or false
+end
+
+--- Returns true when the Auction House frame is currently open.
+local function IsAHOpen()
+    return (AuctionHouseFrame and AuctionHouseFrame:IsShown())
+        or (AuctionFrame and AuctionFrame:IsShown())
+end
+
 --- True if text contains the localized "abundance held" phrase (case-insensitive). Used for Abundance scenario.
 local function isAbundanceHeld(text)
     if not text or type(text) ~= "string" then return false end
@@ -971,6 +988,33 @@ local function PopulateEntry(entry, questData, groupKey)
     local textWidth = addon.GetPanelWidth() - S(addon.PADDING) - leftOffset - S(addon.CONTENT_RIGHT_PADDING or 0)
     local titleLeftOffset = 0
 
+    -- Collect item names for Auctionator AH search (recipe entries only).
+    -- Includes the crafted item itself followed by each required reagent.
+    if questData.isRecipe and entry.ahBtn then
+        local terms, seen = {}, {}
+        -- Crafted item first (recipe title == output item name in WoW).
+        if type(questData.title) == "string" and questData.title ~= "" then
+            seen[questData.title] = true
+            terms[#terms + 1] = questData.title
+        end
+        if questData.objectives then
+            for _, obj in ipairs(questData.objectives) do
+                if not obj.isSectionHeader and not obj.isChoiceHeader
+                   and not obj.isChoiceVariant and not obj.isCraftableCount
+                   and not obj.isQualityInfo and not obj.isRequirement
+                   and not obj.currencyID
+                   and type(obj.text) == "string" and obj.text ~= ""
+                   and (obj.numRequired or 0) > 0 then
+                    if not seen[obj.text] then
+                        seen[obj.text] = true
+                        terms[#terms + 1] = obj.text
+                    end
+                end
+            end
+        end
+        entry._ahSearchTerms = terms
+    end
+
     -- Right-side gutter: auto-adjusting column that holds the LFG group button
     -- and/or the quest item button.  The gutter width adapts to whichever
     -- combination is needed so everything is right-aligned.
@@ -979,6 +1023,10 @@ local function PopulateEntry(entry, questData, groupKey)
     local lfgBtnSize  = S(addon.LFG_BTN_SIZE or 26)
     local itemBtnSize = S(addon.ITEM_BTN_SIZE or 26)
     local gutterGap   = S(addon.LFG_BTN_GAP or 4)  -- gap between text and gutter, and between buttons
+    local showAhBtn   = questData.isRecipe and entry.ahBtn
+                        and addon.GetDB("showAHSearchButton", true)
+                        and IsAuctionatorAvailable() and IsAHOpen() and true or false
+    local ahBtnSize   = S(addon.AH_BTN_SIZE or 22)
     local gutterW     = 0
     if showItemBtn and showLfgBtn then
         gutterW = itemBtnSize + gutterGap + lfgBtnSize + gutterGap
@@ -986,6 +1034,9 @@ local function PopulateEntry(entry, questData, groupKey)
         gutterW = itemBtnSize + gutterGap
     elseif showLfgBtn then
         gutterW = lfgBtnSize + gutterGap
+    end
+    if showAhBtn then
+        gutterW = ahBtnSize + gutterGap
     end
     if gutterW > 0 then
         textWidth = textWidth - gutterW
@@ -1240,6 +1291,15 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.lfgBtn:Show()
     elseif entry.lfgBtn then
         entry.lfgBtn:Hide()
+    end
+
+    if showAhBtn then
+        entry.ahBtn:ClearAllPoints()
+        entry.ahBtn:SetSize(ahBtnSize, ahBtnSize)
+        entry.ahBtn:SetPoint("TOPRIGHT", entry, "TOPRIGHT", 0, 2)
+        entry.ahBtn:Show()
+    elseif entry.ahBtn then
+        entry.ahBtn:Hide()
     end
 
     local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetTitleToContentSpacing()

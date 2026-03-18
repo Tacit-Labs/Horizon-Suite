@@ -22,6 +22,7 @@ docs/plans/
 .release/discord-issuelog-message-id
 
 # Local dev tools
+.luacheckrc
 tools/pipeline-viewer.html
 tools/serve-pipeline.ps1
 /wowapi/
