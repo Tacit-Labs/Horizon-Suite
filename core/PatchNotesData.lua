@@ -9,6 +9,23 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.1.0"] = {
+        {
+            section = "New Features",
+            bullets = {
+                "Persona module (Preview): custom character sheet with 3D model, item level, stats, gear grid",
+                "Auctionator search button on recipe entries in Focus tracker",
+            },
+        },
+        {
+            section = "IMPROVEMENTS",
+            bullets = {
+                "Auctionator recipe search uses CreateShoppingList and named lists",
+                "Insight tooltip fixes: item identity reapply, GetItem fallback, mouseover hide",
+            },
+        },
+    },
+
     ["4.0.0"] = {
         {
             section = "NEW",
