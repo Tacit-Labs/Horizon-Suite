@@ -14,8 +14,6 @@ media/MediaRegistry.lua
 core/Config.lua
 core/Core.lua
 core/CoreSlash.lua
-core/PatchNotesData.lua
-core/PatchNotes.lua
 core/MinimapButton.lua
 
 modules/Focus/FocusState.lua
