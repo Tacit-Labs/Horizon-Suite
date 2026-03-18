@@ -1,0 +1,44 @@
+--[[
+    Horizon Suite - Patch Notes Data
+    Update this file each release. Key must exactly match ## Version in HorizonSuite.toc.
+    In-game notes should be player-facing summaries — not every internal/CI entry.
+]]
+
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then return end
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+
+addon.PATCH_NOTES = {
+
+    ["4.0.0"] = {
+        {
+            section = "NEW",
+            bullets = {
+                "Minimap icon and WoW settings panel integration",
+                "Focus tracker header: toggle quest count, divider, color, and options button",
+                "Objectives can render outside the tracker window",
+                "Category groupings can be individually toggled on or off",
+            },
+        },
+        {
+            section = "IMPROVEMENTS",
+            bullets = {
+                "Dashboard refreshes live when modules are toggled",
+                "Class color tinting for the Dashboard (separate toggle)",
+                "Insight now shows transmog status for trinkets, rings, and necks",
+                "Optional tooltip on hover in the Focus tracker",
+                "Delve affix tooltips in the Focus tracker",
+                "Global font size offset added to options",
+            },
+        },
+        {
+            section = "FIXES",
+            bullets = {
+                "Delve name no longer shows incorrectly during reward stage",
+                "Focus tracker no longer shifts position on /reload",
+                "World quest timers no longer tick back up one second during refresh",
+                "Text case handles umlauts and accented characters correctly",
+            },
+        },
+    },
+
+}
