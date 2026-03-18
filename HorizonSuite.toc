@@ -86,6 +86,10 @@ modules/Insight/InsightItemTooltip.lua
 modules/Insight/InsightCore.lua
 modules/Insight/InsightModule.lua
 
+modules/Persona/PersonaCore.lua
+modules/Persona/PersonaSlash.lua
+modules/Persona/PersonaModule.lua
+
 locales/LocaleBase.lua
 locales/deDE.lua
 locales/koKR.lua

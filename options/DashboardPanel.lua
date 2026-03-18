@@ -97,6 +97,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 vista = L["Vista"] or "Vista",
                 insight = L["Insight"] or "Insight",
                 yield = L["Yield"] or "Yield",
+                persona = "Persona",
             }
 
             local function ShouldShowModuleOnDashboard(mk)
@@ -113,6 +114,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 ["Vista"] = "ability_hunter_pathfinding",
                 ["Insight"] = "ui_profession_inscription",
                 ["Yield"] = "INV_Misc_Coin_01",
+                ["Persona"] = "achievement_character_human_male",
                 ["Typography"] = "INV_Misc_Book_09",
                 ["Colors"] = "INV_Misc_Gem_Diamond_01",
                 ["General"] = "INV_Misc_Question_01",
@@ -288,7 +290,7 @@ SlashCmdList["HSDASH"] = function(msg)
             local COLLAPSE_ANIM_DUR = 0.18
             local easeOut = addon.easeOut or function(t) return 1 - (1-t)*(1-t) end
 
-            local function CreateSidebarButton(parent, label, iconName, onClick, indentPx)
+            local function CreateSidebarButton(parent, label, iconName, onClick, indentPx, noHover)
                 indentPx = indentPx or 0
                 parent = parent or sidebarScrollContent
                 local btn = CreateFrame("Button", nil, parent)
@@ -323,21 +325,23 @@ SlashCmdList["HSDASH"] = function(msg)
                 lbl:SetWordWrap(false)
                 btn.label = lbl
 
-                btn:SetScript("OnEnter", function()
-                    if btn ~= activeSidebarBtn then
-                        btnBg:SetColorTexture(0.1, 0.1, 0.12, 1)
-                        lbl:SetTextColor(0.9, 0.9, 0.95)
-                        local har, hag, hab = GetAccentColor()
-                        if btn.icon then btn.icon:SetVertexColor(har, hag, hab, 1) end
-                    end
-                end)
-                btn:SetScript("OnLeave", function()
-                    if btn ~= activeSidebarBtn then
-                        btnBg:SetColorTexture(0, 0, 0, 0)
-                        lbl:SetTextColor(0.65, 0.65, 0.7)
-                        if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
-                    end
-                end)
+                if not noHover then
+                    btn:SetScript("OnEnter", function()
+                        if btn ~= activeSidebarBtn then
+                            btnBg:SetColorTexture(0.1, 0.1, 0.12, 1)
+                            lbl:SetTextColor(0.9, 0.9, 0.95)
+                            local har, hag, hab = GetAccentColor()
+                            if btn.icon then btn.icon:SetVertexColor(har, hag, hab, 1) end
+                        end
+                    end)
+                    btn:SetScript("OnLeave", function()
+                        if btn ~= activeSidebarBtn then
+                            btnBg:SetColorTexture(0, 0, 0, 0)
+                            lbl:SetTextColor(0.65, 0.65, 0.7)
+                            if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                        end
+                    end)
+                end
                 btn:SetScript("OnClick", function()
                     if onClick then onClick() end
                 end)
@@ -2196,7 +2200,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 tile.label = lbl
 
                 -- Preview badge for early-access modules
-                if moduleKey == "yield" then
+                if moduleKey == "yield" or moduleKey == "persona" then
                     local prevBadge = MakeText(tile, "(Preview)", 9, 34/255, 139/255, 34/255, "CENTER")
                     prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
                     tile.previewBadge = prevBadge
@@ -2285,7 +2289,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista" }
+            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista", ["persona"] = "Persona" }
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
                 local mk
@@ -2297,7 +2301,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["Other"], categories = {} } end
                 tinsert(groups[mk].categories, i)
             end
-            local groupOrder = { "axis", "focus", "insight", "presence", "vista", "yield" }
+            local groupOrder = { "axis", "focus", "insight", "persona", "presence", "vista", "yield" }
             local sidebarRows = {}
 
             local lastSidebarRow = nil
@@ -2375,7 +2379,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
                         local headerLabelText = (g.label or ""):upper()
-                        if mk == "yield" then
+                        if mk == "yield" or mk == "persona" then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
                         headerLabel:SetText(headerLabelText)

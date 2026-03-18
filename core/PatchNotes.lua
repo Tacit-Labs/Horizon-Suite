@@ -13,10 +13,10 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 -- LAYOUT
 -- ============================================================================
 
-local W          = 380
-local H          = 440
-local PAD        = 14
-local TITLE_H    = 44   -- slightly taller to fit the two-line identity header
+local W          = 440
+local H          = 460
+local PAD        = 16
+local TITLE_H    = 54
 local FOOTER_H   = 36
 local ACCENT_H   = 3
 local SECTION_GAP = 16
@@ -117,30 +117,30 @@ local function BuildPanel()
     end)
     dragZone:SetScript("OnDragStop", function() panel:StopMovingOrSizing() end)
 
-    -- "Horizon Suite" — addon identity (top line, muted)
+    -- "HORIZON SUITE" — addon identity (top line, larger)
     local suiteLbl = dragZone:CreateFontString(nil, "OVERLAY")
-    suiteLbl:SetFont(F_BODY, 10, "")
-    suiteLbl:SetPoint("BOTTOMLEFT", dragZone, "LEFT", PAD, 7)
-    suiteLbl:SetText("Horizon Suite")
-    suiteLbl:SetTextColor(unpack(MUTED_COL))
+    suiteLbl:SetFont(F_HEAD, 13, "OUTLINE")
+    suiteLbl:SetPoint("TOPLEFT", dragZone, "TOPLEFT", PAD, -(ACCENT_H + 10))
+    suiteLbl:SetText("HORIZON SUITE")
+    suiteLbl:SetTextColor(0.88, 0.88, 0.92)   -- near-white, distinct from accent
 
-    -- "WHAT'S NEW" — action label (bottom line, accent)
+    -- "WHAT'S NEW" — subtitle (second line, accent)
     local titleLbl = dragZone:CreateFontString(nil, "OVERLAY")
-    titleLbl:SetFont(F_HEAD, 13, "OUTLINE")
-    titleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -2)
+    titleLbl:SetFont(F_BODY, 10, "")
+    titleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -3)
     panel.titleLbl = titleLbl   -- coloured at show-time
 
-    -- Version badge (right side, vertically centred in title zone)
+    -- Version badge (top-right, aligned with the HORIZON SUITE text line)
     local verLbl = dragZone:CreateFontString(nil, "OVERLAY")
     verLbl:SetFont(F_BODY, 10, "")
-    verLbl:SetPoint("RIGHT", -34, -(ACCENT_H / 2))
+    verLbl:SetPoint("TOPRIGHT", dragZone, "TOPRIGHT", -38, -(ACCENT_H + 12))
     verLbl:SetTextColor(unpack(MUTED_COL))
     panel.vBadge = verLbl
 
     -- Close  ×
     local closeBtn = CreateFrame("Button", nil, dragZone)
-    closeBtn:SetSize(26, 26)
-    closeBtn:SetPoint("RIGHT", -6, -(ACCENT_H / 2))
+    closeBtn:SetSize(28, 28)
+    closeBtn:SetPoint("TOPRIGHT", dragZone, "TOPRIGHT", -4, -(ACCENT_H + 8))
 
     local closeBg = closeBtn:CreateTexture(nil, "BACKGROUND")
     closeBg:SetAllPoints()

@@ -212,6 +212,8 @@ L["Tooltip background color"]                                                   
 L["Color of the tooltip background."]                                                                              = "Color of the tooltip background."
 L["Tooltip background opacity"]                                                                                    = "Tooltip background opacity"
 L["Tooltip background opacity (0–100%)."]                                                                          = "Tooltip background opacity (0–100%)."
+L["Tooltip font"]                                                                                                  = "Tooltip font"
+L["Font family used for all tooltip text."]                                                                        = "Font family used for all tooltip text."
 L["Tooltips"]                                                                                                       = "Tooltips"
 L["Item Tooltip"]                                                                                                   = "Item Tooltip"
 L["Show transmog status"]                                                                                           = "Show transmog status"

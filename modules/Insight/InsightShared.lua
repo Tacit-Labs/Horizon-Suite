@@ -15,6 +15,16 @@ local Insight = addon.Insight
 -- ============================================================================
 
 Insight.FONT_PATH       = "Fonts\\FRIZQT__.TTF"
+
+local INSIGHT_FONT_USE_GLOBAL = "__global__"
+
+local function GetInsightFontPath()
+    local raw = addon.GetDB and addon.GetDB("insightFontPath", INSIGHT_FONT_USE_GLOBAL) or INSIGHT_FONT_USE_GLOBAL
+    if raw == INSIGHT_FONT_USE_GLOBAL or not raw or raw == "" then
+        return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+    end
+    return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
+end
 Insight.HEADER_SIZE     = 14
 Insight.BODY_SIZE       = 12
 Insight.SMALL_SIZE      = 10
@@ -252,11 +262,11 @@ local function StyleFonts(tooltip)
             else
                 sz = (i == 1) and S(Insight.HEADER_SIZE) or S(Insight.BODY_SIZE)
             end
-            left:SetFont(Insight.FONT_PATH, sz, "OUTLINE")
+            left:SetFont(GetInsightFontPath(), sz, "OUTLINE")
         end
         if right then
             local sz = (metadataStartLine and i >= metadataStartLine) and S(Insight.SMALL_SIZE) or S(Insight.BODY_SIZE)
-            right:SetFont(Insight.FONT_PATH, sz, "OUTLINE")
+            right:SetFont(GetInsightFontPath(), sz, "OUTLINE")
         end
     end)
 end
