@@ -166,7 +166,7 @@ local function StripHealthAndPowerText(tt)
                     local okCmp, notEmpty = pcall(function() return raw ~= "" end)
                     if okCmp and notEmpty then
                         local text = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-                        if text:match("%d[%d,]*%s*/%s*%d[%d,]*") then
+                        if text:match("^%s*%d[%d,]*%s*/%s*%d[%d,]*%s*$") then
                             font:SetText("")
                         end
                     end
