@@ -40,7 +40,6 @@ local function ShowCoreHelp()
     HSPrint("  /h, /horizon         - This help")
     HSPrint("  /hedit, /h edit      - Open edit screen")
     HSPrint("  /hopt, /h options    - Open options")
-    HSPrint("  /h notes             - Show latest patch notes")
     HSPrint("  /h devmode           - Toggle Dev Mode (show Blizzard tracker alongside Focus)")
     HSPrint("  /h focus [cmd]       - Tracker (toggle, collapse, test, ...)")
     HSPrint("  /h scenario debug    - Scenario timer debug (diagnose missing timers)")
@@ -84,15 +83,6 @@ local function OnSlashCommand(msg)
             _G.HorizonSuite_ShowEditPanel()
         else
             HSPrint("Edit panel not loaded.")
-        end
-        return
-    end
-
-    if lower == "notes" or lower == "whatsnew" then
-        if addon.ShowPatchNotes then
-            addon.ShowPatchNotes()
-        else
-            HSPrint("Patch notes not loaded.")
         end
         return
     end
