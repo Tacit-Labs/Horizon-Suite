@@ -220,6 +220,42 @@ local function CreateQuestEntry(parent, index)
     e.lfgBtn.icon:SetAlpha(0.8)
     e.lfgBtn:Hide()
 
+    -- Auctionator AH search button: shown on recipe entries when Auctionator is loaded.
+    local ahBtnSize = _S(addon.AH_BTN_SIZE or 22)
+    e.ahBtn = CreateFrame("Button", nil, e)
+    e.ahBtn:SetSize(ahBtnSize, ahBtnSize)
+    e.ahBtn:SetPoint("TOPRIGHT", e, "TOPRIGHT", 0, 2)
+    e.ahBtn:RegisterForClicks("AnyDown")
+    e.ahBtn._ownerEntry = e
+
+    e.ahBtn.icon = e.ahBtn:CreateTexture(nil, "ARTWORK")
+    e.ahBtn.icon:SetAllPoints()
+    e.ahBtn.icon:SetAtlas("common-search-magnifyingglass")
+    e.ahBtn.icon:SetAlpha(0.8)
+
+    e.ahBtn:SetScript("OnEnter", function(self)
+        self.icon:SetAlpha(1)
+        if not addon.GetDB("focusShowTooltipOnHover", false) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Search Auction House", 1, 1, 1)
+        GameTooltip:AddLine("Click to search for required reagents in the Auction House.\nThe Auction House must be open.", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+    e.ahBtn:SetScript("OnLeave", function(self)
+        self.icon:SetAlpha(0.8)
+        if GameTooltip:GetOwner() == self then GameTooltip:Hide() end
+    end)
+    e.ahBtn:SetScript("OnClick", function(self)
+        local entry = self._ownerEntry
+        local terms = entry and entry._ahSearchTerms
+        if not terms or #terms == 0 then return end
+        if not (Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.MultiSearch) then return end
+        -- Button is only shown when AH is open, but guard here too as a safety net.
+        if not ((AuctionHouseFrame and AuctionHouseFrame:IsShown()) or (AuctionFrame and AuctionFrame:IsShown())) then return end
+        pcall(Auctionator.API.v1.MultiSearch, "HorizonSuite", terms)
+    end)
+    e.ahBtn:Hide()
+
     -- Small icon for "tracked from other zone" (world quest on watch list but not on current map).
     local iconSz = addon.TRACKED_OTHER_ZONE_ICON_SIZE or 12
     e.trackedFromOtherZoneIcon = e:CreateTexture(nil, "ARTWORK")

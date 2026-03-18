@@ -65,6 +65,9 @@ pcall(function() eventFrame:RegisterEvent("BAG_UPDATE_DELAYED") end)
 pcall(function() eventFrame:RegisterEvent("CHALLENGE_MODE_START") end)
 -- WORLD_MAP_OPEN: fires when the world map is opened. Used to sync watch-list state.
 eventFrame:RegisterEvent("WORLD_MAP_OPEN")
+-- AUCTION_HOUSE_SHOW/CLOSED: show/hide the AH search button on recipe entries.
+pcall(function() eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW") end)
+pcall(function() eventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED") end)
 
 local VIGNETTE_DEBOUNCE = 0.5
 
@@ -593,6 +596,9 @@ local eventHandlers = {
             end)
         end
     end,
+    -- AH open/close: refresh so recipe entries show or hide the AH search button.
+    AUCTION_HOUSE_SHOW   = function() if addon.focus.enabled then ScheduleRefresh() end end,
+    AUCTION_HOUSE_CLOSED = function() if addon.focus.enabled then ScheduleRefresh() end end,
 }
 
 --- OnEvent: table-dispatch to eventHandlers[event]; falls back to ScheduleRefresh for unhandled events.

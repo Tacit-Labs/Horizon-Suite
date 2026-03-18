@@ -43,6 +43,27 @@ local function GetFixedY()
 end
 
 -- ============================================================================
+-- ITEM IDENTITY (moved above tooltip hooks so OnShow closure can reference)
+-- ============================================================================
+
+local function GetItemQualityColor(quality)
+    if not quality or quality < 0 then return nil end
+    if ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
+        local c = ITEM_QUALITY_COLORS[quality]
+        return c.r, c.g, c.b
+    end
+    return nil
+end
+
+local function ApplyItemIdentity(tooltip, quality)
+    local r, g, b = GetItemQualityColor(quality)
+    if not r then return end
+    if tooltip.SetBackdropBorderColor then
+        tooltip:SetBackdropBorderColor(r, g, b, 0.60)
+    end
+end
+
+-- ============================================================================
 -- TOOLTIP STYLING (hooks into Shared)
 -- ============================================================================
 
@@ -54,6 +75,9 @@ local function HookTooltipOnShow(tooltip)
         if not IsEnabled() then return end
         Insight.StripNineSlice(self)
         Insight.ApplyBackdrop(self)
+        if self._insightItemQuality then
+            ApplyItemIdentity(self, self._insightItemQuality)
+        end
     end)
 end
 
@@ -102,10 +126,13 @@ local function StartFadeIn(tooltip)
 end
 
 local function GetTooltipItemLink(tooltip)
-    if not tooltip or not tooltip.GetItem then return nil end
-    local ok, _, itemLink = pcall(tooltip.GetItem, tooltip)
-    if not ok then return nil end
-    return itemLink
+    if not tooltip then return nil end
+    if tooltip.GetItem then
+        local ok, _, itemLink = pcall(tooltip.GetItem, tooltip)
+        if ok and itemLink then return itemLink end
+    end
+    -- Fallback: itemID set by OnItemTooltip for tooltips where GetItem() returns nil
+    return tooltip._insightLastItemID
 end
 
 local function HookGameTooltipAnimation()
@@ -137,6 +164,7 @@ local function HookGameTooltipAnimation()
         fadeState = "idle"
         animFrame:Hide()
         self:SetAlpha(1)
+        self._insightItemQuality = nil
     end)
 end
 
@@ -250,23 +278,6 @@ local function ShowTransmog()
     return addon.GetDB("insightShowTransmog", true)
 end
 
-local function GetItemQualityColor(quality)
-    if not quality or quality < 0 then return nil end
-    if ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
-        local c = ITEM_QUALITY_COLORS[quality]
-        return c.r, c.g, c.b
-    end
-    return nil
-end
-
-local function ApplyItemIdentity(tooltip, quality)
-    local r, g, b = GetItemQualityColor(quality)
-    if not r then return end
-    if tooltip.SetBackdropBorderColor then
-        tooltip:SetBackdropBorderColor(r, g, b, 0.60)
-    end
-end
-
 local function OnItemTooltip(tooltip, data)
     if not IsEnabled() then return end
 
@@ -280,18 +291,15 @@ local function OnItemTooltip(tooltip, data)
         if r then
             Insight.sepR, Insight.sepG, Insight.sepB = r, g, b
         end
+        tooltip._insightItemQuality = quality
         ApplyItemIdentity(tooltip, quality)
-        -- Defer so we run after OnShow/ApplyBackdrop
-        C_Timer.After(0, function()
-            if tooltip and tooltip:IsShown() then
-                ApplyItemIdentity(tooltip, quality)
-            end
-        end)
     else
         Insight.sepR, Insight.sepG, Insight.sepB = nil, nil, nil
+        tooltip._insightItemQuality = nil
     end
 
     tooltip._insightItemMetadata = true
+    tooltip._insightLastItemID   = itemID
     -- Structured item blocks (transmog, etc.)
     Insight.ProcessItemTooltip(tooltip, itemID, quality)
 end
@@ -452,7 +460,15 @@ end
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("INSPECT_READY")
+eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 eventFrame:SetScript("OnEvent", function(self, event, guid)
+    if event == "UPDATE_MOUSEOVER_UNIT" then
+        if not IsEnabled() then return end
+        if not UnitExists("mouseover") and GameTooltip:IsShown() and GameTooltip:GetUnit() then
+            GameTooltip:Hide()
+        end
+        return
+    end
     if event == "INSPECT_READY" then
         if not IsEnabled() then return end
         if not guid then return end
