@@ -6,6 +6,12 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
+<!-- Add new entries here -->
+
+---
+
+## [4.0.0] – 2026-03-18
+
 ### ✨ New Features
 
 - **(Focus) Dev mode: show Blizzard tracker alongside Focus for comparison**
