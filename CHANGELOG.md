@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.1.1] – 2026-03-18
+
+### 🔧 Improvements
+
+- **(Focus) WoWhead link in Focus tracker tooltips and copy-link box**
+
+---
+
 ## [4.1.0] – 2026-03-18
 
 ### ✨ New Features
