@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.1.0] – 2026-03-18
+
+### ✨ New Features
+
+- **(Profile) Add Persona module (Preview): custom character sheet with 3D model, item level, stats, gear grid**
+- **(Focus) Auctionator search button on recipe entries in Focus tracker**
+
+### 🔧 Improvements
+
+- **(Focus) Auctionator recipe search: use CreateShoppingList and named lists**
+- **(Insight) Insight tooltip fixes: item identity reapply, GetItem fallback, mouseover hide**
+- **(Core) Promote Insight to stable**
+
+---
+
 ## [4.0.0] – 2026-03-18
 
 ### ✨ New Features
