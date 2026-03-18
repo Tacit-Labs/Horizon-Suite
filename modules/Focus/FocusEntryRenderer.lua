@@ -5,13 +5,13 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
---- Returns true when Auctionator's v1 MultiSearch API is available.
+--- Returns true when Auctionator's v1 CreateShoppingList API is available.
 -- Result is cached after the first positive hit so we don't re-walk globals every render pass.
 local _auctionatorAvailable = nil
 local function IsAuctionatorAvailable()
     if _auctionatorAvailable then return true end
     local ok = Auctionator and Auctionator.API and Auctionator.API.v1
-        and type(Auctionator.API.v1.MultiSearch) == "function"
+        and type(Auctionator.API.v1.CreateShoppingList) == "function"
     if ok then _auctionatorAvailable = true end
     return ok and true or false
 end
@@ -1013,6 +1013,7 @@ local function PopulateEntry(entry, questData, groupKey)
             end
         end
         entry._ahSearchTerms = terms
+        entry._ahRecipeName  = questData.title
     end
 
     -- Right-side gutter: auto-adjusting column that holds the LFG group button

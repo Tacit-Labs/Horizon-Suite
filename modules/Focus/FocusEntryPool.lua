@@ -249,10 +249,25 @@ local function CreateQuestEntry(parent, index)
         local entry = self._ownerEntry
         local terms = entry and entry._ahSearchTerms
         if not terms or #terms == 0 then return end
-        if not (Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.MultiSearch) then return end
+        if not (Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.CreateShoppingList) then return end
         -- Button is only shown when AH is open, but guard here too as a safety net.
         if not ((AuctionHouseFrame and AuctionHouseFrame:IsShown()) or (AuctionFrame and AuctionFrame:IsShown())) then return end
-        pcall(Auctionator.API.v1.MultiSearch, "HorizonSuite", terms)
+        local recipeName = "Horizon - " .. (entry._ahRecipeName or "Recipe")
+        pcall(function()
+            -- Create/update the permanent named shopping list.
+            Auctionator.API.v1.CreateShoppingList("HorizonSuite", recipeName, terms)
+            -- Switch to the Shopping tab.
+            if AuctionatorTabs_Shopping then AuctionatorTabs_Shopping:Click() end
+            -- Fire ListSearchRequested on the permanent list to trigger the actual search.
+            local list = Auctionator.Shopping.ListManager:GetByName(recipeName)
+            if list and Auctionator.EventBus and Auctionator.Shopping.Tab and Auctionator.Shopping.Tab.Events then
+                local src = {}
+                Auctionator.EventBus
+                    :RegisterSource(src, "HorizonSuite AH search")
+                    :Fire(src, Auctionator.Shopping.Tab.Events.ListSearchRequested, list)
+                    :UnregisterSource(src)
+            end
+        end)
     end)
     e.ahBtn:Hide()
 
