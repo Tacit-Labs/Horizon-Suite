@@ -29,8 +29,27 @@ local function ShowOptions()
     end
 end
 
+local DEFAULT_ANCHOR = "BOTTOMLEFT"
+local DEFAULT_X, DEFAULT_Y = 2, 2
+
 local function IsMinimapButtonHidden()
     return addon.GetDB and addon.GetDB("hideMinimapButton", false) or false
+end
+
+local function IsMinimapButtonLocked()
+    return addon.GetDB and addon.GetDB("minimapButtonLocked", false) or false
+end
+
+local function ApplyPosition()
+    if not btn or not Minimap then return end
+    local savedX = addon.GetDB and tonumber(addon.GetDB("minimapButtonX", nil))
+    local savedY = addon.GetDB and tonumber(addon.GetDB("minimapButtonY", nil))
+    btn:ClearAllPoints()
+    if savedX and savedY then
+        btn:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+    else
+        btn:SetPoint(DEFAULT_ANCHOR, Minimap, DEFAULT_ANCHOR, DEFAULT_X, DEFAULT_Y)
+    end
 end
 
 local function FadeButton(targetAlpha)
@@ -78,10 +97,11 @@ local function CreateButton()
     btn:SetSize(BUTTON_SIZE, BUTTON_SIZE)
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(Minimap:GetFrameLevel() + 5)
-    btn:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", 2, 2)
     btn:SetClampedToScreen(true)
+    btn:SetMovable(true)
     btn:EnableMouse(false)
     btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    btn:RegisterForDrag("LeftButton")
     btn:SetAlpha(0)
 
     local icon = btn:CreateTexture(nil, "ARTWORK")
@@ -96,11 +116,30 @@ local function CreateButton()
     btn:SetScript("OnClick", function(self, mouseButton)
         ShowOptions()
     end)
+    btn:SetScript("OnDragStart", function(self)
+        if IsMinimapButtonLocked() or InCombatLockdown() then return end
+        self:StartMoving()
+    end)
+    btn:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local mx, my = Minimap:GetCenter()
+        local px, py = self:GetCenter()
+        local ox, oy = px - mx, py - my
+        if addon.SetDB then
+            addon.SetDB("minimapButtonX", ox)
+            addon.SetDB("minimapButtonY", oy)
+        end
+        self:ClearAllPoints()
+        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+    end)
     btn:SetScript("OnEnter", function(self)
         FadeButton(1)
         if GameTooltip then
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")
             GameTooltip:SetText(L["Options"] or "Options", nil, nil, nil, nil, true)
+            local locked = IsMinimapButtonLocked()
+            local hint = locked and (L["Locked"] or "Locked") or (L["Drag to move (when unlocked)."] or "Drag to move (when unlocked).")
+            GameTooltip:AddLine(hint, 0.6, 0.6, 0.6, true)
             GameTooltip:Show()
         end
     end)
@@ -110,6 +149,15 @@ local function CreateButton()
         if hoverZone and hoverZone:IsMouseOver() then return end
         FadeButton(0)
     end)
+
+    ApplyPosition()
+
+    -- Re-apply position when minimap is resized (e.g. by Vista)
+    if Minimap.SetSize then
+        hooksecurefunc(Minimap, "SetSize", function()
+            if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end
+        end)
+    end
 
     -- Hover zone: invisible frame covering the minimap to detect mouse enter/leave
     hoverZone = CreateFrame("Frame", nil, Minimap)
@@ -146,3 +194,4 @@ initFrame:SetScript("OnEvent", function(self, event)
 end)
 
 addon.MinimapButton_UpdateVisibility = UpdateVisibility
+addon.MinimapButton_ApplyPosition = ApplyPosition
