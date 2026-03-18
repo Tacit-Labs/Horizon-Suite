@@ -10,11 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
-## [4.1.1] – 2026-03-18
+## [4.1.2] – 2026-03-18
 
 ### 🔧 Improvements
 
 - **(Focus) WoWhead link in Focus tracker tooltips and copy-link box**
+- **(Axis) Draggable minimap button with lock and reset options**
+
+### 🐛 Fixes
+
+- **(Axis) Fix release pipeline YAML parse error in debug lines**
 
 ---
 

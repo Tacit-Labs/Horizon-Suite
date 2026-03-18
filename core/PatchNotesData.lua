@@ -9,6 +9,16 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.1.2"] = {
+        {
+            section = "IMPROVEMENTS",
+            bullets = {
+                "WoWhead link in Focus tracker tooltips and copy-link box",
+                "Draggable minimap button with lock and reset options",
+            },
+        },
+    },
+
     ["4.1.0"] = {
         {
             section = "New Features",
