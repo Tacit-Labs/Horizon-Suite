@@ -154,6 +154,9 @@ build:
     - export WAGO_API_TOKEN="${WAGO_API_TOKEN}"
     # No GitHub upload from GitLab; leave GITHUB_OAUTH unset so packager skips GitHub
     - cd "${CI_PROJECT_DIR}"
+    # Debug: confirm WAGO_API_TOKEN is set and Wago API is reachable
+    - echo "WAGO token length=${#WAGO_API_TOKEN}"
+    - curl -sS -o /dev/null -w "Wago API status: %{http_code}\n" https://addons.wago.io/api/data/game
     - bash /tmp/release.sh
     - |
       if [ -n "${DISCORD_WEBHOOK_RELEASE}" ]; then

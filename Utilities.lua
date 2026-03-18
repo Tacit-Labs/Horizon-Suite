@@ -82,6 +82,31 @@ function addon.ApplyBlizzardFloatingQuestItemStyle(btn)
 end
 
 -- ============================================================================
+-- WOWHEAD URL
+-- ============================================================================
+
+--- Return WoWhead URL for a Focus tracker entry, or nil if not supported.
+--- Supports quest, achievement, and NPC/creature IDs.
+--- @param entry table Focus entry with questID, achievementID, and/or creatureID
+--- @return string|nil Full WoWhead URL or nil
+function addon.GetWoWheadURL(entry)
+    if not entry or type(entry) ~= "table" then return nil end
+    local id = entry.questID
+    if id and type(id) == "number" and id > 0 then
+        return ("https://www.wowhead.com/quest=%d"):format(id)
+    end
+    id = entry.achievementID
+    if id and type(id) == "number" and id > 0 then
+        return ("https://www.wowhead.com/achievement=%d"):format(id)
+    end
+    id = entry.creatureID
+    if id and type(id) == "number" and id > 0 then
+        return ("https://www.wowhead.com/npc=%d"):format(id)
+    end
+    return nil
+end
+
+-- ============================================================================
 -- QUEST HELPERS
 -- ============================================================================
 
