@@ -157,10 +157,10 @@ function addon:EnsureModulesDB()
     if not db then db = {}; _G[self.DB_NAME] = db end
     if not db.modules then
         db.modules = {}
-        -- Legacy install: focus, Presence, Vista enabled; Insight, Yield off by default (beta modules)
+        -- Legacy install: focus, Presence, Vista, Insight enabled; Yield off by default (beta module)
         db.modules.focus = { enabled = true }
         db.modules.presence = { enabled = true }
-        db.modules.insight = { enabled = false }
+        db.modules.insight = { enabled = true }
         db.modules.yield = { enabled = false }
         db.modules.vista = { enabled = true }
     end
@@ -173,9 +173,9 @@ function addon:EnsureModulesDB()
     if not db.modules.vista then
         db.modules.vista = { enabled = true }
     end
-    -- Ensure insight exists for existing installs (default disabled, beta module)
+    -- Ensure insight exists for existing installs; now enabled by default
     if not db.modules.insight then
-        db.modules.insight = { enabled = false }
+        db.modules.insight = { enabled = true }
     end
 end
 

@@ -2196,7 +2196,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 tile.label = lbl
 
                 -- Preview badge for early-access modules
-                if moduleKey == "insight" or moduleKey == "yield" then
+                if moduleKey == "yield" then
                     local prevBadge = MakeText(tile, "(Preview)", 9, 34/255, 139/255, 34/255, "CENTER")
                     prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
                     tile.previewBadge = prevBadge
@@ -2375,7 +2375,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
                         local headerLabelText = (g.label or ""):upper()
-                        if mk == "insight" or mk == "yield" then
+                        if mk == "yield" then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
                         headerLabel:SetText(headerLabelText)
