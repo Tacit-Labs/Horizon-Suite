@@ -13,10 +13,10 @@ local ADDON_NAME = "Horizon Suite"
 local PANEL_NAME = "HorizonSuiteSettingsPanel"
 
 local function ShowOptions()
-    if addon.ShowOptions then
-        addon.ShowOptions()
-    elseif _G.HorizonSuite_ShowOptions then
-        _G.HorizonSuite_ShowOptions()
+    if addon.ShowDashboard then
+        addon.ShowDashboard()
+    elseif _G.HorizonSuite_ShowDashboard then
+        _G.HorizonSuite_ShowDashboard()
     end
 end
 

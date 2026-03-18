@@ -1249,10 +1249,10 @@ optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
 -- Delayed tooltip hide: cancels if mouse re-enters within 0.15s (stops flicker when cursor briefly leaves)
 local optionsTooltipHideRequested = false
 optionsBtn:SetScript("OnClick", function()
-    if addon.ShowOptions then
-        addon.ShowOptions()
-    elseif _G.HorizonSuite_ShowOptions then
-        _G.HorizonSuite_ShowOptions()
+    if addon.ShowDashboard then
+        addon.ShowDashboard()
+    elseif _G.HorizonSuite_ShowDashboard then
+        _G.HorizonSuite_ShowDashboard()
     end
 end)
 optionsBtn:SetScript("OnEnter", function(self)

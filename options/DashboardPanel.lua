@@ -22,6 +22,11 @@ local function MakeText(parent, text, size, r, g, b, justify)
 end
 
 local f = _G.HorizonSuiteDashboard
+addon.ShowDashboard = function()
+    if SlashCmdList["HSDASH"] then SlashCmdList["HSDASH"]("") end
+end
+_G.HorizonSuite_ShowDashboard = addon.ShowDashboard
+
 SLASH_HSDASH1 = "/hsd"
 SLASH_HSDASH2 = "/dash"
 SlashCmdList["HSDASH"] = function(msg)
@@ -2239,6 +2244,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         tinsert(out, { name = moduleLabels[mk] or mk, moduleKey = mk })
                     end
                 end
+                table.sort(out, function(a, b) return a.name:lower() < b.name:lower() end)
                 return out
             end
 
@@ -2291,7 +2297,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["Other"], categories = {} } end
                 tinsert(groups[mk].categories, i)
             end
-            local groupOrder = { "axis", "focus", "presence", "insight", "yield", "vista" }
+            local groupOrder = { "axis", "focus", "insight", "presence", "vista", "yield" }
             local sidebarRows = {}
 
             local lastSidebarRow = nil
@@ -2347,6 +2353,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         tinsert(sidebarButtons, btn)
                     else
                         -- Header row (clickable, collapsible)
+                        local prevLastRow = lastSidebarRow
                         local header = CreateFrame("Button", nil, sidebarScrollContent)
                         header:SetSize(SIDEBAR_WIDTH - 1, HEADER_ROW_HEIGHT)
                         header:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
@@ -2400,6 +2407,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         header:SetShown(show)
                         tabsContainer:SetShown(show)
                         spacer:SetShown(show)
+                        if not show then lastSidebarRow = prevLastRow end
                         g.row = { type = "group", mk = mk, header = header, tabsContainer = tabsContainer, spacer = spacer, bottom = spacer, offsetFromPrev = 0 }
                         tinsert(sidebarRows, g.row)
 
