@@ -2451,6 +2451,17 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
             end
 
+            -- What's New button (always visible at the bottom of the sidebar)
+            do
+                local wnBtn = CreateSidebarButton(sidebarScrollContent, "What's New", "INV_Scroll_05", function()
+                    if addon.ShowPatchNotes then addon.ShowPatchNotes() end
+                end)
+                wnBtn:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
+                lastSidebarRow = wnBtn
+                tinsert(sidebarRows, { type = "whatsnew", frame = wnBtn, bottom = wnBtn, offsetFromPrev = 0 })
+                tinsert(sidebarButtons, wnBtn)
+            end
+
             --- Reflow sidebar scroll content height from top to last row.
             local function LayoutSidebar()
                 if not sidebarScrollContent or not lastSidebarRow then return end
