@@ -157,12 +157,13 @@ function addon:EnsureModulesDB()
     if not db then db = {}; _G[self.DB_NAME] = db end
     if not db.modules then
         db.modules = {}
-        -- Legacy install: focus, Presence, Vista, Insight enabled; Yield off by default (beta module)
-        db.modules.focus = { enabled = true }
-        db.modules.presence = { enabled = true }
-        db.modules.insight = { enabled = true }
+        -- First-time install: all modules off until the user enables them in options.
+        db.modules.focus = { enabled = false }
+        db.modules.presence = { enabled = false }
+        db.modules.insight = { enabled = false }
         db.modules.yield = { enabled = false }
-        db.modules.vista = { enabled = true }
+        db.modules.vista = { enabled = false }
+        db.modules.persona = { enabled = false }
     end
     -- Migrate old Vista (Presence) module key to Presence; repurpose vista for minimap
     if db.modules.vista and not db.modules.presence then
@@ -173,7 +174,7 @@ function addon:EnsureModulesDB()
     if not db.modules.vista then
         db.modules.vista = { enabled = true }
     end
-    -- Ensure insight exists for existing installs; now enabled by default
+    -- Ensure insight exists for upgrades from builds before Insight (legacy default on)
     if not db.modules.insight then
         db.modules.insight = { enabled = true }
     end
