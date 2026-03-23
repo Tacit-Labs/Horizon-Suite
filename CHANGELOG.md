@@ -10,6 +10,24 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.2.0] – 2026-03-23
+
+### ✨ New Features
+
+- **(Axis)** New installs start with Horizon modules off until you enable them
+- **(Axis)** Dashboard welcome tab and first-run onboarding — Welcome sidebar above Home; first options open can show Welcome once per profile, then Home by default
+
+### 🔧 Improvements
+
+- **(Focus)** Remaining delve lives on the Focus tracker scenario line — at-a-glance during a run without extra panels
+
+### 🐛 Fixes
+
+- **(Axis)** Options colour pickers for Focus and Vista no longer freeze the client or fail to apply colours
+- **(Axis)** Dashboard accordion cards expand and collapse only from the header row, not when clicking settings inside the card
+
+---
+
 ## [4.1.2] – 2026-03-18
 
 ### 🔧 Improvements
