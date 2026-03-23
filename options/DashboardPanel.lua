@@ -1484,15 +1484,12 @@ SlashCmdList["HSDASH"] = function(msg)
                     if not g and opt.dbKey then
                         if opt.type == "color" then
                             g = function()
-                                local r = _G.OptionsData_GetDB(opt.dbKey .. "R")
-                                local g = _G.OptionsData_GetDB(opt.dbKey .. "G")
-                                local b = _G.OptionsData_GetDB(opt.dbKey .. "B")
-                                local a = opt.hasAlpha and _G.OptionsData_GetDB(opt.dbKey .. "A") or 1
-                                if r == nil then
-                                    if type(opt.default) == "table" then return unpack(opt.default) end
-                                    return 1, 1, 1, 1
+                                local t = _G.OptionsData_GetDB(opt.dbKey, nil)
+                                if type(t) == "table" and t[1] then
+                                    return t[1], t[2], t[3], t[4] or 1
                                 end
-                                return r, g, b, a
+                                if type(opt.default) == "table" then return unpack(opt.default) end
+                                return 1, 1, 1, 1
                             end
                         else
                             g = function() return _G.OptionsData_GetDB(opt.dbKey, opt.default) end
@@ -1501,10 +1498,9 @@ SlashCmdList["HSDASH"] = function(msg)
                     if not s and opt.dbKey then
                         if opt.type == "color" then
                             s = function(nr, ng, nb, na)
-                                _G.OptionsData_SetDB(opt.dbKey .. "R", nr)
-                                _G.OptionsData_SetDB(opt.dbKey .. "G", ng)
-                                _G.OptionsData_SetDB(opt.dbKey .. "B", nb)
-                                if opt.hasAlpha then _G.OptionsData_SetDB(opt.dbKey .. "A", na) end
+                                local t = { nr, ng, nb }
+                                if opt.hasAlpha then t[4] = na end
+                                _G.OptionsData_SetDB(opt.dbKey, t)
                             end
                         else
                             s = function(v) _G.OptionsData_SetDB(opt.dbKey, v) end

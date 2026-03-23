@@ -1421,6 +1421,19 @@ function addon.ApplyFocusColors()
             end
         end
     end
+    -- Update section divider colors (live-drag path skips FullLayout, so update here too)
+    local sectionDividers = addon.focus.layout and addon.focus.layout.sectionDividers
+    if sectionDividers then
+        local divColor = addon.GetDB("sectionDividerColor", nil)
+        if not divColor or type(divColor) ~= "table" or not divColor[1] then
+            divColor = { 0.3, 0.3, 0.35, 0.4 }
+        end
+        for _, div in ipairs(sectionDividers) do
+            if div and div.IsShown and div:IsShown() then
+                div:SetColorTexture(divColor[1], divColor[2], divColor[3], divColor[4] or 0.4)
+            end
+        end
+    end
 end
 
 addon.GetPlayerCurrentZoneName = GetPlayerCurrentZoneName
