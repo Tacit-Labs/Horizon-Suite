@@ -13,16 +13,13 @@ addon:RegisterModule("insight", {
     order       = 26,
 
     OnInit = function()
-        -- Ensure module DB and defaults
+        -- Module on/off and db.modules.insight shape: addon:EnsureModulesDB() in HorizonSuite.lua.
+        -- Here: one-time migration from standalone ModernTooltip into the active profile.
+        addon.EnsureDB()
         local db = _G[addon.DB_NAME]
-        if not db then db = {}; _G[addon.DB_NAME] = db end
-        if not db.modules then db.modules = {} end
-        if not db.modules.insight then db.modules.insight = {} end
+        local modDb = db and db.modules and db.modules.insight
+        if not modDb then return end
 
-        local modDb = db.modules.insight
-        if modDb.enabled == nil then modDb.enabled = true end
-
-        -- Migrate from standalone ModernTooltipDB into active profile (once per character)
         if modDb.migratedFromModernTooltip then return end
 
         local src = _G.ModernTooltipDB
@@ -31,7 +28,6 @@ addon:RegisterModule("insight", {
             return
         end
 
-        addon.EnsureDB()
         local profile = addon.GetActiveProfile()
         if not profile then
             modDb.migratedFromModernTooltip = true
