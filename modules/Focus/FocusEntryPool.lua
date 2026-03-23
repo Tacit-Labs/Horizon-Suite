@@ -388,6 +388,20 @@ local function CreateQuestEntry(parent, index)
     e.inlineTimerText:SetNonSpaceWrap(true)
     e.inlineTimerText:Hide()
 
+    -- Delve lives (hearts) on the title row; anchored from titleText in FocusEntryRenderer.
+    e.delveLivesShadow = e:CreateFontString(nil, "BORDER")
+    e.delveLivesShadow:SetFontObject(addon.TitleFont)
+    e.delveLivesShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
+    e.delveLivesShadow:SetJustifyH("LEFT")
+    e.delveLivesShadow:SetNonSpaceWrap(true)
+    e.delveLivesText = e:CreateFontString(nil, "OVERLAY")
+    e.delveLivesText:SetFontObject(addon.TitleFont)
+    e.delveLivesText:SetJustifyH("LEFT")
+    e.delveLivesText:SetNonSpaceWrap(true)
+    e.delveLivesShadow:SetPoint("CENTER", e.delveLivesText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+    e.delveLivesText:Hide()
+    e.delveLivesShadow:Hide()
+
     e.wqProgressBg = e:CreateTexture(nil, "BACKGROUND")
     e.wqProgressBg:SetHeight(addon.WQ_TIMER_BAR_HEIGHT or 6)
     e.wqProgressBg:SetColorTexture(0.2, 0.2, 0.25, 0.8)
@@ -653,6 +667,9 @@ local function ApplyTypography()
         e.zoneShadow:SetPoint("CENTER", e.zoneText, "CENTER", shadowOx, shadowOy)
         e.affixShadow:SetTextColor(0, 0, 0, shadowA)
         e.affixShadow:SetPoint("CENTER", e.affixText, "CENTER", shadowOx, shadowOy)
+        if e.delveLivesShadow and e.delveLivesText then
+            e.delveLivesShadow:SetPoint("CENTER", e.delveLivesText, "CENTER", shadowOx, shadowOy)
+        end
         for j = 1, addon.MAX_OBJECTIVES do
             local obj = e.objectives[j]
             obj.shadow:SetTextColor(0, 0, 0, shadowA)
@@ -787,6 +804,8 @@ local function ClearEntry(entry, full)
         if entry.affixShadow then entry.affixShadow:Hide() end
         if entry.wqTimerText then entry.wqTimerText:Hide() end
         if entry.inlineTimerText then entry.inlineTimerText:Hide() end
+        if entry.delveLivesText then entry.delveLivesText:Hide() end
+        if entry.delveLivesShadow then entry.delveLivesShadow:Hide() end
         if entry.wqProgressBg then entry.wqProgressBg:Hide() end
         if entry.wqProgressFill then entry.wqProgressFill:Hide() end
         if entry.wqProgressText then entry.wqProgressText:Hide() end

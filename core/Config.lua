@@ -85,6 +85,7 @@ addon.LFG_BTN_SIZE        = 26   -- Join Group button size (right-side column fo
 addon.LFG_BTN_GAP         = 4    -- gap between text content and LFG button column
 addon.AH_BTN_SIZE         = 18   -- Auctionator search button (right-side gutter, recipe entries)
 addon.DELVE_TIER_ATLAS = "delves-scenario-flag"  -- Blizzard atlas for Delve tier/flag (TierFrame.Flag)
+addon.DELVE_LIFE_EMBED_SIZE = 13                 -- |T icon :H:W|t size for delve lives strip in tracker title row
 
 addon.SHADOW_OX       = 2
 addon.SHADOW_OY       = -2

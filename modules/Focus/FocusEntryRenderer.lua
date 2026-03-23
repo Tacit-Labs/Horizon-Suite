@@ -919,6 +919,7 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
         entry.titleShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
         entry.zoneShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
         if entry.affixShadow then entry.affixShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
+        if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
         for j = 1, addon.MAX_OBJECTIVES do
             entry.objectives[j].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
         end
@@ -926,6 +927,7 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
         entry.titleShadow:SetTextColor(0, 0, 0, shadowA)
         entry.zoneShadow:SetTextColor(0, 0, 0, shadowA)
         if entry.affixShadow then entry.affixShadow:SetTextColor(0, 0, 0, shadowA) end
+        if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(0, 0, 0, shadowA) end
         for j = 1, addon.MAX_OBJECTIVES do
             entry.objectives[j].shadow:SetTextColor(0, 0, 0, shadowA)
         end
@@ -1141,8 +1143,29 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.trackedFromOtherZoneIcon:Hide()
     end
 
-    entry.titleText:SetWidth(titleWidth)
-    entry.titleShadow:SetWidth(titleWidth)
+    -- Delve main row: reserve right strip for lives (hearts) on the same line as name + tier.
+    local delveLivesActive = false
+    local delveLivesStr = ""
+    local delveLivesReserve = 0
+    local titleLineWidth = titleWidth
+    if entry.delveLivesText and addon.FormatDelveLivesHeartsForTitle
+        and questData.category == "DELVES" and questData.isScenarioMain
+        and type(questData.delveLivesRemaining) == "number" and questData.delveLivesRemaining > 0 then
+        delveLivesActive = true
+        delveLivesStr = addon.FormatDelveLivesHeartsForTitle(questData.delveLivesRemaining, questData.delveLivesIconFileID)
+        entry.delveLivesText:SetFontObject(addon.TitleFont)
+        entry.delveLivesText:SetText(delveLivesStr)
+        delveLivesReserve = (entry.delveLivesText:GetStringWidth() or 0) + S(6)
+        titleLineWidth = math.max(1, titleWidth - delveLivesReserve)
+    else
+        if entry.delveLivesText then
+            entry.delveLivesText:Hide()
+            if entry.delveLivesShadow then entry.delveLivesShadow:Hide() end
+        end
+    end
+
+    entry.titleText:SetWidth(titleLineWidth)
+    entry.titleShadow:SetWidth(titleLineWidth)
 
     local displayTitle = questData.title
     if not questData._progressBarActive and (addon.GetDB("showCompletedCount", false) or questData.isAchievement or questData.isEndeavor) then
@@ -1191,6 +1214,20 @@ local function PopulateEntry(entry, questData, groupKey)
     end
     entry.titleText:SetText(displayTitle)
     entry.titleShadow:SetText(displayTitle)
+
+    if delveLivesActive and entry.delveLivesText then
+        entry.delveLivesText:SetText(delveLivesStr)
+        if entry.delveLivesShadow then entry.delveLivesShadow:SetText(delveLivesStr) end
+        entry.delveLivesText:ClearAllPoints()
+        entry.delveLivesText:SetPoint("TOPLEFT", entry.titleText, "TOPRIGHT", S(4), 0)
+        entry.delveLivesText:Show()
+        if entry.delveLivesShadow then
+            entry.delveLivesShadow:ClearAllPoints()
+            entry.delveLivesShadow:SetPoint("CENTER", entry.delveLivesText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+            entry.delveLivesShadow:Show()
+        end
+    end
+
     if entry._inlineTimerStr then
         entry._inlineTimerBaseTitle = displayTitle
         if entry.inlineTimerText then
@@ -1198,21 +1235,36 @@ local function PopulateEntry(entry, questData, groupKey)
             entry.inlineTimerText:ClearAllPoints()
             entry.inlineTimerText:SetText(" (" .. entry._inlineTimerStr .. ")")
             local timerStrWidth = entry.inlineTimerText:GetStringWidth() or 0
-            local titlePixelWidth = entry.titleText:GetStringWidth() or 0
             local tw = titleWidth or textWidth
-            local titleAnchorX = math.min(titlePixelWidth, tw)
-            local remainingWidth = math.max(1, tw - titleAnchorX - 2)
             -- When timer doesn't fit beside title (or user chose inline-below), put it on its own line with full width
             local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetTitleToContentSpacing()
             local preferTimerBelow = (timerDisplayMode == "inline-below")
-            if preferTimerBelow or remainingWidth < timerStrWidth then
-                entry.inlineTimerText:SetWidth(tw)
-                entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
-                entry._inlineTimerOnOwnLine = true
+            if delveLivesActive and entry.delveLivesText then
+                local hw = entry.delveLivesText:GetStringWidth() or 0
+                local sameLineStartX = titleLineWidth + S(4) + hw + S(2)
+                local remainingWidth = math.max(1, tw - sameLineStartX)
+                if preferTimerBelow or remainingWidth < timerStrWidth then
+                    entry.inlineTimerText:SetWidth(tw)
+                    entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                    entry._inlineTimerOnOwnLine = true
+                else
+                    entry.inlineTimerText:SetWidth(remainingWidth)
+                    entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", sameLineStartX, 0)
+                    entry._inlineTimerOnOwnLine = false
+                end
             else
-                entry.inlineTimerText:SetWidth(remainingWidth)
-                entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
-                entry._inlineTimerOnOwnLine = false
+                local titlePixelWidth = entry.titleText:GetStringWidth() or 0
+                local titleAnchorX = math.min(titlePixelWidth, titleLineWidth)
+                local remainingWidth = math.max(1, tw - titleAnchorX - 2)
+                if preferTimerBelow or remainingWidth < timerStrWidth then
+                    entry.inlineTimerText:SetWidth(tw)
+                    entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                    entry._inlineTimerOnOwnLine = true
+                else
+                    entry.inlineTimerText:SetWidth(remainingWidth)
+                    entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
+                    entry._inlineTimerOnOwnLine = false
+                end
             end
             local remaining = entry._inlineTimerDuration and entry._inlineTimerStartTime and math.max(0, entry._inlineTimerDuration - (GetTime() - entry._inlineTimerStartTime)) or 0
             local cat = questData.category or groupKey or "DEFAULT"
@@ -1247,6 +1299,9 @@ local function PopulateEntry(entry, questData, groupKey)
     entry._baseTitleColor = baseColor
     if not entry.hoverAnimState then
         entry.titleText:SetTextColor(c[1], c[2], c[3], dimAlpha)
+        if delveLivesActive and entry.delveLivesText and entry.delveLivesText:IsShown() then
+            entry.delveLivesText:SetTextColor(c[1], c[2], c[3], dimAlpha)
+        end
         entry._savedColor = nil
         if entry:IsMouseOver() then
             entry._savedColor = { c[1], c[2], c[3] }
@@ -1254,6 +1309,12 @@ local function PopulateEntry(entry, questData, groupKey)
                 math.min(c[1] * 1.25, 1),
                 math.min(c[2] * 1.25, 1),
                 math.min(c[3] * 1.25, 1), 1)
+            if delveLivesActive and entry.delveLivesText and entry.delveLivesText:IsShown() then
+                entry.delveLivesText:SetTextColor(
+                    math.min(c[1] * 1.25, 1),
+                    math.min(c[2] * 1.25, 1),
+                    math.min(c[3] * 1.25, 1), 1)
+            end
         end
     end
 
@@ -1307,6 +1368,10 @@ local function PopulateEntry(entry, questData, groupKey)
     local titleH = entry.titleText:GetStringHeight()
     if not titleH or titleH < 1 then titleH = addon.TITLE_SIZE + 4 end
     local effectiveTitleRowH = titleH
+    if delveLivesActive and entry.delveLivesText and entry.delveLivesText:IsShown() then
+        local dh = entry.delveLivesText:GetStringHeight() or 0
+        if dh > 0 then effectiveTitleRowH = math.max(effectiveTitleRowH, dh) end
+    end
     if entry._inlineTimerStr and entry.inlineTimerText and entry.inlineTimerText:IsShown() then
         local timerH = entry.inlineTimerText:GetStringHeight() or 0
         if timerH > 0 then
