@@ -77,7 +77,26 @@ L["Drag to resize"]                                                             
 -- =====================================================================
 L["Profiles"]                                                                                                       = "Profiles"
 L["Modules"]                                                                                                        = "Modules"
+L["Module Toggles"]                                                                                                 = "Module Toggles"
 L["Axis"]                                                                                                           = "Axis"
+
+-- =====================================================================
+-- DashboardPanel.lua — First-run welcome
+-- =====================================================================
+L["Dashboard welcome tab"]                                                                                          = "Welcome"
+L["Dashboard welcome title"]                                                                                        = "Welcome to Horizon Suite"
+L["Dashboard welcome head sub"]                                                                                     = "What each module does and where to turn them on"
+L["Dashboard welcome intro"]                                                                                        = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Use Open Module Toggles below, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
+L["Dashboard welcome path"]                                                                                         = "%s → %s → %s"
+L["Dashboard welcome modules heading"]                                                                              = "Modules"
+L["Dashboard welcome continue"]                                                                                     = "Go to Home"
+L["Dashboard welcome open toggles"]                                                                                 = "Open Module Toggles"
+L["Objective tracker for quests, world quests, rares, achievements, scenarios."]                                   = "Objective tracker for quests, world quests, rares, achievements, scenarios."
+L["Zone text and notifications."]                                                                                   = "Zone text and notifications."
+L["Minimap with zone text, coords, time, and button collector."]                                                    = "Minimap with zone text, coords, time, and button collector."
+L["Tooltips with class colors, spec, and faction icons."]                                                           = "Tooltips with class colors, spec, and faction icons."
+L["Loot toasts for items, money, currency, reputation."]                                                            = "Loot toasts for items, money, currency, reputation."
+L["Persona module short description"]                                                                               = "Custom character sheet with 3D model, item level, stats, and gear grid."
 L["Layout"]                                                                                                         = "Layout"
 L["Visibility"]                                                                                                     = "Visibility"
 L["Display"]                                                                                                        = "Display"

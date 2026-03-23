@@ -100,6 +100,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 persona = "Persona",
             }
 
+            -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
+            local PREVIEW_MODULE_KEYS = { yield = true, persona = true }
+
             local function ShouldShowModuleOnDashboard(mk)
                 if mk == "axis" then return true end
                 return addon.IsModuleEnabled and addon:IsModuleEnabled(mk)
@@ -140,6 +143,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 logoSep = nil,
                 logoText = nil,
                 searchDropBorder = nil,
+                welcomeAccentStrip = nil,
             }
 
             addon.ApplyDashboardClassColor = function()
@@ -174,6 +178,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
                 if dashAccentRefs.searchDropBorder and dashAccentRefs.searchDropBorder.SetBackdropBorderColor then
                     dashAccentRefs.searchDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
+                end
+                if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
+                    dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
                 end
             end
 
@@ -271,7 +278,7 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             -- Sidebar state controller: single source of truth for view, active selection, expanded groups.
-            -- view: "dashboard" | "module" | "category"
+            -- view: "dashboard" | "welcome" | "module" | "category"
             -- activeModuleKey: module key when in module/category view
             -- activeCategoryIndex: OptionCategories index when in category view
             local sidebarState = {
@@ -569,6 +576,12 @@ SlashCmdList["HSDASH"] = function(msg)
             subCategoryView:Hide()
             f.subCategoryView = subCategoryView
 
+            local welcomeView = CreateFrame("Frame", nil, f)
+            welcomeView:SetSize(viewWidth, 680)
+            welcomeView:SetPoint("CENTER", viewCenterX, 0)
+            welcomeView:Hide()
+            f.welcomeView = welcomeView
+
             local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
             subCategoryScroll:SetPoint("TOPLEFT", 40, -135)
             subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
@@ -598,6 +611,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 dashboardView:Hide()
                 detailView:Hide()
                 subCategoryView:Hide()
+                welcomeView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
 
@@ -609,6 +623,7 @@ SlashCmdList["HSDASH"] = function(msg)
             f.ShowDashboard = function()
                 detailView:Hide()
                 subCategoryView:Hide()
+                welcomeView:Hide()
                 dashboardView:SetAlpha(0)
                 dashboardView:Show()
                 UIFrameFadeIn(dashboardView, 0.2, 0, 1)
@@ -2201,7 +2216,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 tile.label = lbl
 
                 -- Preview badge for early-access modules
-                if moduleKey == "yield" or moduleKey == "persona" then
+                if moduleKey and PREVIEW_MODULE_KEYS[moduleKey] then
                     local prevBadge = MakeText(tile, "(Preview)", 9, 34/255, 139/255, 34/255, "CENTER")
                     prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
                     tile.previewBadge = prevBadge
@@ -2288,6 +2303,167 @@ SlashCmdList["HSDASH"] = function(msg)
 
             RefreshDashboardTiles()
 
+            -- Welcome tab (always in sidebar, above Home; dedicated view)
+            do
+                local welcomeBg = welcomeView:CreateTexture(nil, "BACKGROUND")
+                welcomeBg:SetPoint("TOPLEFT", 28, -88)
+                welcomeBg:SetPoint("BOTTOMRIGHT", welcomeView, "BOTTOMRIGHT", -28, 48)
+                welcomeBg:SetColorTexture(0.07, 0.075, 0.09, 0.65)
+
+                local welcomeAccent = welcomeView:CreateTexture(nil, "BORDER")
+                welcomeAccent:SetWidth(3)
+                welcomeAccent:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", 0, 0)
+                welcomeAccent:SetPoint("BOTTOMLEFT", welcomeBg, "BOTTOMLEFT", 0, 0)
+                local war, wag, wab = GetAccentColor()
+                welcomeAccent:SetColorTexture(war, wag, wab, 0.5)
+                dashAccentRefs.welcomeAccentStrip = welcomeAccent
+
+                -- No scroll bar: single column layout inside the card (parent must be a Frame, not welcomeBg texture)
+                local content = CreateFrame("Frame", nil, welcomeView)
+                content:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", 20, -14)
+
+                local titleFs = MakeText(content, L["Dashboard welcome title"] or "Welcome to Horizon Suite", 22, 1, 1, 1, "LEFT")
+
+                local introFs = MakeText(content, L["Dashboard welcome intro"] or "", 13, 0.72, 0.74, 0.78, "LEFT")
+                introFs:SetWordWrap(true)
+                introFs:SetSpacing(4)
+
+                local modulesHdr = MakeText(content, (L["Dashboard welcome modules heading"] or "Modules"), 16, 0.88, 0.90, 0.94, "LEFT")
+
+                local listRule = content:CreateTexture(nil, "ARTWORK")
+                listRule:SetHeight(1)
+                listRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
+
+                local modRows = {
+                    { key = "focus", name = L["Focus"] or "Focus", desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."] or "" },
+                    { key = "presence", name = L["Presence"] or "Presence", desc = L["Zone text and notifications."] or "" },
+                    { key = "vista", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector." },
+                    { key = "insight", name = L["Insight"] or "Insight", desc = L["Tooltips with class colors, spec, and faction icons."] or "" },
+                    { key = "yield", name = L["Yield"] or "Yield", desc = L["Loot toasts for items, money, currency, reputation."] or "" },
+                    { key = "persona", name = "Persona", desc = L["Persona module short description"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
+                }
+                local moduleLineWidgets = {}
+                for _, row in ipairs(modRows) do
+                    local nm = row.name
+                    if PREVIEW_MODULE_KEYS[row.key] then
+                        nm = nm .. " |cff228b22(" .. (L["Preview"] or "Preview") .. ")|r"
+                    end
+                    local nameFs = MakeText(content, nm, 14, 0.96, 0.97, 1, "LEFT")
+                    nameFs:SetWordWrap(true)
+                    local descFs = MakeText(content, row.desc, 12, 0.52, 0.56, 0.62, "LEFT")
+                    descFs:SetWordWrap(true)
+                    descFs:SetSpacing(3)
+                    tinsert(moduleLineWidgets, { nameFs = nameFs, descFs = descFs })
+                end
+
+                local function LayoutWelcomeContent()
+                    local rawW = welcomeBg:GetWidth() or 0
+                    local w = math.max(280, rawW - 38)
+                    content:SetWidth(w)
+                    local y = 0
+                    titleFs:SetWidth(w)
+                    titleFs:ClearAllPoints()
+                    titleFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + titleFs:GetHeight() + 12
+                    introFs:SetWidth(w)
+                    introFs:ClearAllPoints()
+                    introFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + introFs:GetHeight() + 20
+                    modulesHdr:SetWidth(w)
+                    modulesHdr:ClearAllPoints()
+                    modulesHdr:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + modulesHdr:GetHeight() + 8
+                    listRule:ClearAllPoints()
+                    listRule:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    listRule:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
+                    y = y + 10
+                    for _, pair in ipairs(moduleLineWidgets) do
+                        local nameFs, descFs = pair.nameFs, pair.descFs
+                        nameFs:SetWidth(w - 4)
+                        nameFs:ClearAllPoints()
+                        nameFs:SetPoint("TOPLEFT", content, "TOPLEFT", 4, -y)
+                        y = y + nameFs:GetHeight() + 6
+                        descFs:SetWidth(w - 16)
+                        descFs:ClearAllPoints()
+                        descFs:SetPoint("TOPLEFT", content, "TOPLEFT", 12, -y)
+                        y = y + descFs:GetHeight() + 16
+                    end
+                    content:SetHeight(math.max(y + 8, 1))
+                end
+
+                welcomeView:SetScript("OnShow", function()
+                    LayoutWelcomeContent()
+                    if C_Timer and C_Timer.After then
+                        C_Timer.After(0, LayoutWelcomeContent)
+                    end
+                end)
+                welcomeView:SetScript("OnSizeChanged", function()
+                    if welcomeView:IsShown() then LayoutWelcomeContent() end
+                end)
+
+                local function DismissWelcomeAndMaybeOpenToggles(openToggles)
+                    -- Remember default landing (Home) after first completion; Welcome tab stays in sidebar.
+                    if addon.SetDB then addon.SetDB("dashboardWelcomeSeen", true) end
+                    if openToggles then
+                        -- Same path as search: open Modules detail and expand the Module Toggles accordion card.
+                        local togglesSection = L["Module Toggles"] or "Module Toggles"
+                        local modulesName = L["Modules"] or "Modules"
+                        local entryFound
+                        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
+                        for _, e in ipairs(idx) do
+                            if e.categoryKey == "Modules" and e.sectionName == togglesSection then
+                                entryFound = e
+                                break
+                            end
+                        end
+                        if not entryFound then
+                            entryFound = {
+                                categoryKey = "Modules",
+                                categoryName = modulesName,
+                                optionId = "_module_focus",
+                            }
+                        end
+                        NavigateToOption(entryFound)
+                    else
+                        f.ShowDashboard()
+                    end
+                end
+
+                local btnContinue = CreateFrame("Button", nil, welcomeView, "UIPanelButtonTemplate")
+                btnContinue:SetSize(168, 28)
+                btnContinue:SetPoint("BOTTOMLEFT", welcomeView, "BOTTOMLEFT", 48, 22)
+                btnContinue:SetText(L["Dashboard welcome continue"] or "Go to Home")
+                btnContinue:SetScript("OnClick", function()
+                    DismissWelcomeAndMaybeOpenToggles(false)
+                end)
+
+                local btnToggles = CreateFrame("Button", nil, welcomeView, "UIPanelButtonTemplate")
+                btnToggles:SetSize(200, 28)
+                btnToggles:SetPoint("LEFT", btnContinue, "RIGHT", 12, 0)
+                btnToggles:SetText(L["Dashboard welcome open toggles"] or "Open Module Toggles")
+                btnToggles:SetScript("OnClick", function()
+                    DismissWelcomeAndMaybeOpenToggles(true)
+                end)
+
+                f.ShowWelcome = function()
+                    detailView:Hide()
+                    subCategoryView:Hide()
+                    dashboardView:Hide()
+                    welcomeView:SetAlpha(0)
+                    welcomeView:Show()
+                    UIFrameFadeIn(welcomeView, 0.2, 0, 1)
+                    if head then head:Show() end
+                    if headSub then
+                        headSub:Show()
+                        headSub:SetText(L["Dashboard welcome head sub"] or "What each module does and where to turn them on")
+                    end
+                    if searchBox then searchBox:Hide() end
+                    f.currentModuleKey = nil
+                    SetSidebarState({ view = "welcome", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                    if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+                end
+            end
+
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
             local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista", ["persona"] = "Persona" }
@@ -2308,26 +2484,38 @@ SlashCmdList["HSDASH"] = function(msg)
             local lastSidebarRow = nil
             local yOff = 0
 
-            -- Home button
+            -- Welcome (first row — overview for new and returning users)
+            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["Dashboard welcome tab"] or "Welcome", "INV_Misc_Book_09", function()
+                if f.ShowWelcome then f.ShowWelcome() end
+            end)
+            welcomeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)
+            f.welcomeSidebarBtn = welcomeBtn
+            tinsert(sidebarButtons, welcomeBtn)
+            tinsert(sidebarRows, { type = "welcome", frame = welcomeBtn, bottom = welcomeBtn, offsetFromPrev = -SIDEBAR_TOP_PAD })
+            lastSidebarRow = welcomeBtn
+            yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
+
+            -- Home
             local homeBtn = CreateSidebarButton(sidebarScrollContent, "Home", "INV_Misc_Map_01", function()
                 f.ShowDashboard()
             end)
-            homeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)
-            lastSidebarRow = homeBtn
-            yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
+            homeBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
+            f.homeSidebarBtn = homeBtn
             tinsert(sidebarButtons, homeBtn)
-            tinsert(sidebarRows, { type = "home", frame = homeBtn, bottom = homeBtn, offsetFromPrev = -SIDEBAR_TOP_PAD })
+            tinsert(sidebarRows, { type = "home", frame = homeBtn, bottom = homeBtn, offsetFromPrev = 0 })
+            lastSidebarRow = homeBtn
+            yOff = yOff + TAB_ROW_HEIGHT
 
-            -- Separator
-            local sbSep = sidebarScrollContent:CreateTexture(nil, "ARTWORK")
-            sbSep:SetHeight(1)
-            sbSep:SetPoint("TOPLEFT", 15, -(yOff + 4))
-            sbSep:SetPoint("TOPRIGHT", -15, -(yOff + 4))
-            sbSep:SetColorTexture(0.15, 0.15, 0.2, 1)
+            -- Separator (anchored to sep row; reflows with RefreshSidebar)
             yOff = yOff + 9
             lastSidebarRow = CreateFrame("Frame", nil, sidebarScrollContent)
             lastSidebarRow:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -yOff)
             lastSidebarRow:SetSize(1, 1)
+            local sbSep = sidebarScrollContent:CreateTexture(nil, "ARTWORK")
+            sbSep:SetHeight(1)
+            sbSep:SetPoint("BOTTOMLEFT", lastSidebarRow, "TOPLEFT", 15, 8)
+            sbSep:SetPoint("BOTTOMRIGHT", lastSidebarRow, "TOPRIGHT", -15, 8)
+            sbSep:SetColorTexture(0.15, 0.15, 0.2, 1)
             tinsert(sidebarRows, { type = "sep", frame = lastSidebarRow, bottom = lastSidebarRow, offsetFromPrev = -9 })
 
             -- Per-group: standalone (single category) or header + collapsible sub-buttons
@@ -2380,7 +2568,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
                         local headerLabelText = (g.label or ""):upper()
-                        if mk == "yield" or mk == "persona" then
+                        if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
                         headerLabel:SetText(headerLabelText)
@@ -2500,8 +2688,10 @@ SlashCmdList["HSDASH"] = function(msg)
                         if g.header and g.header.updateSpacer then g.header.updateSpacer() end
                     end
                 end
-                local activeBtn = sidebarButtons[1]
-                if sidebarState.view == "module" or sidebarState.view == "category" then
+                local activeBtn = f.homeSidebarBtn or sidebarButtons[1]
+                if sidebarState.view == "welcome" and f.welcomeSidebarBtn then
+                    activeBtn = f.welcomeSidebarBtn
+                elseif sidebarState.view == "module" or sidebarState.view == "category" then
                     local mk = sidebarState.activeModuleKey or "modules"
                     local wantCatIdx = sidebarState.activeCategoryIndex
                     for _, sb in ipairs(sidebarButtons) do
@@ -2631,9 +2821,15 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             LayoutSidebar()
-
-            -- Set Home as active by default and collapse all groups
-            SetActiveSidebarButton(sidebarButtons[1])
+            RefreshSidebar()
+        end
+        if f and f.ShowDashboard and f.ShowWelcome then
+            if addon.GetDB and not addon.GetDB("dashboardWelcomeSeen", false) then
+                f.ShowWelcome()
+            else
+                f.ShowDashboard()
+            end
+        elseif f and f.ShowDashboard then
             f.ShowDashboard()
         end
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
