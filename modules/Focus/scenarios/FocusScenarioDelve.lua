@@ -38,6 +38,21 @@ function DelveProvider:ReadEntries()
             entry.delveTier = tier
         end
     end
+    -- Lives + life icon from ScenarioHeaderDelves widget (same pass as affixes); main row only.
+    if addon.GetDelveScenarioHeaderMetadata then
+        local meta = addon.GetDelveScenarioHeaderMetadata()
+        if meta and meta.livesRemaining ~= nil then
+            for _, entry in ipairs(entries) do
+                if entry.isScenarioMain and entry.category == "DELVES" then
+                    entry.delveLivesRemaining = meta.livesRemaining
+                    if type(meta.livesIconFileID) == "number" and meta.livesIconFileID > 0 then
+                        entry.delveLivesIconFileID = meta.livesIconFileID
+                    end
+                    break
+                end
+            end
+        end
+    end
     -- Override scenario-main title with the actual delve name.
     -- Read zone/subzone text directly like Vista does — no IsDelveActive() guard,
     -- so this persists on the reward stage when IsDelveActive() may return false.

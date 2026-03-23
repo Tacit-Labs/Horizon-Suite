@@ -1,6 +1,7 @@
 --[[
     Horizon Suite - Focus - Delve Provider
-    ScenarioHeaderDelvesWidget (tierText), C_PartyInfo.IsDelveInProgress.
+    ScenarioHeaderDelvesWidget (tierText, currencies, spells), C_PartyInfo.IsDelveInProgress.
+    Lives remaining: parsed from widget currencies (per-slot textEnabledState or numeric text).
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -22,6 +23,166 @@ local function GetSpellNameAndIcon(spellID)
         end
     end
     return nil, nil
+end
+
+--- Find first visible ScenarioHeaderDelves widget info from scenario or objective-tracker set.
+--- @return table|nil widgetInfo
+local function GetDelveHeaderWidgetInfo()
+    if not (C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo) then
+        return nil
+    end
+    local setID
+    if C_Scenario and C_Scenario.GetStepInfo then
+        local ok, t = pcall(function()
+            return { C_Scenario.GetStepInfo() }
+        end)
+        if ok and t and type(t) == "table" and #t >= 12 then
+            local ws = t[12]
+            if type(ws) == "number" and ws ~= 0 then setID = ws end
+        end
+    end
+    if not setID and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+        local ok, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
+        if ok and objSet and type(objSet) == "number" then setID = objSet end
+    end
+    if not setID then return nil end
+    local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+    if not wOk or type(widgets) ~= "table" then return nil end
+    local WidgetShownState = Enum and Enum.WidgetShownState
+    for _, wInfo in pairs(widgets) do
+        local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
+            or (type(wInfo) == "number" and wInfo > 0) and wInfo
+        local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
+        if widgetID and (not wType or wType == WIDGET_TYPE_SCENARIO_HEADER_DELVES) then
+            local dOk, widgetInfo = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
+            if dOk and widgetInfo and type(widgetInfo) == "table" then
+                local hidden = WidgetShownState and (widgetInfo.shownState == WidgetShownState.Hidden)
+                if not hidden then
+                    return widgetInfo
+                end
+            end
+        end
+    end
+    return nil
+end
+
+--- Remaining lives from ScenarioHeaderDelves currencies: Blizzard uses one row per life with textEnabledState, or a single numeric text.
+--- @param widgetInfo table
+--- @return number|nil
+local function ParseDelveLivesRemaining(widgetInfo)
+    if not widgetInfo or type(widgetInfo.currencies) ~= "table" then return nil end
+    local cur = widgetInfo.currencies
+    local n = #cur
+    if n == 0 then return nil end
+
+    -- Single aggregate: plain number or "current/max"
+    if n == 1 then
+        local c = cur[1]
+        local t = (c and type(c.text) == "string") and c.text or ""
+        local trimmed = t:match("^%s*(.-)%s*$") or ""
+        local num = tonumber(trimmed)
+        if num ~= nil and num >= 0 and num <= 30 then return num end
+        local curLives = trimmed:match("^(%d+)/%d+$")
+        if curLives then
+            local v = tonumber(curLives)
+            if v ~= nil and v >= 0 and v <= 30 then return v end
+        end
+    end
+
+    -- Multiple slots (typical heart row): count entries whose textEnabledState is not Disabled.
+    local Disabled = Enum and Enum.WidgetEnabledState and Enum.WidgetEnabledState.Disabled
+    if Disabled ~= nil then
+        local sawState = false
+        local remaining = 0
+        for _, c in ipairs(cur) do
+            if type(c) == "table" and c.textEnabledState ~= nil then
+                sawState = true
+                if c.textEnabledState ~= Disabled then
+                    remaining = remaining + 1
+                end
+            end
+        end
+        if sawState then return remaining end
+    end
+
+    return nil
+end
+
+--- Prefer a consistent icon across currency slots for |T embeds in the tracker.
+--- @param widgetInfo table
+--- @return number|nil fileID
+local function GetDelveLivesIconFileID(widgetInfo)
+    if not widgetInfo or type(widgetInfo.currencies) ~= "table" then return nil end
+    local first
+    for _, c in ipairs(widgetInfo.currencies) do
+        if type(c) == "table" and type(c.iconFileID) == "number" and c.iconFileID > 0 then
+            if not first then
+                first = c.iconFileID
+            elseif first ~= c.iconFileID then
+                return first
+            end
+        end
+    end
+    return first
+end
+
+--- Build affix list and tier tooltip spell from delve header widget.
+--- @param widgetInfo table
+--- @return table affixes array (may be empty)
+--- @return number|nil tierSpellID
+local function BuildAffixesFromWidgetInfo(widgetInfo)
+    local affixes = {}
+    if not widgetInfo then return affixes, nil end
+    local tierSpellID = widgetInfo.tierTooltipSpellID
+    if widgetInfo.spells and #widgetInfo.spells > 0 then
+        for _, spellInfo in ipairs(widgetInfo.spells) do
+            if spellInfo and type(spellInfo.spellID) == "number" and spellInfo.spellID > 0 then
+                local name = (spellInfo.text and spellInfo.text ~= "") and spellInfo.text or nil
+                local icon
+                if not name then
+                    name, icon = GetSpellNameAndIcon(spellInfo.spellID)
+                else
+                    _, icon = GetSpellNameAndIcon(spellInfo.spellID)
+                end
+                local desc = (spellInfo.tooltip and spellInfo.tooltip ~= "") and spellInfo.tooltip or nil
+                if not desc and C_Spell and C_Spell.GetSpellDescription then
+                    local spellDescOk, d = pcall(C_Spell.GetSpellDescription, spellInfo.spellID)
+                    if spellDescOk and d and type(d) == "string" and d ~= "" then desc = d end
+                end
+                affixes[#affixes + 1] = {
+                    name  = name or ("Spell " .. spellInfo.spellID),
+                    desc  = desc or "",
+                    icon  = icon,
+                }
+            end
+        end
+    end
+    return affixes, tierSpellID
+end
+
+--- Season affix fallback when the header widget has no spell list.
+--- @return table affixes (may be empty)
+local function BuildAffixesFromSeasonFallback()
+    local affixes = {}
+    if not (C_DelvesUI and C_DelvesUI.GetDelvesAffixSpellsForSeason) then return affixes end
+    local ok, spellIDs = pcall(C_DelvesUI.GetDelvesAffixSpellsForSeason)
+    if not ok or not spellIDs or type(spellIDs) ~= "table" then return affixes end
+    for _, spellID in pairs(spellIDs) do
+        if type(spellID) == "number" and spellID > 0 then
+            local name, spellIcon = GetSpellNameAndIcon(spellID)
+            local desc = nil
+            if C_Spell and C_Spell.GetSpellDescription then
+                local dOk, d = pcall(C_Spell.GetSpellDescription, spellID)
+                if dOk and d and type(d) == "string" then desc = d end
+            end
+            affixes[#affixes + 1] = {
+                name  = (name and name ~= "") and name or ("Spell " .. spellID),
+                desc  = desc or "",
+                icon  = spellIcon,
+            }
+        end
+    end
+    return affixes
 end
 
 --- Returns nearby quests on the delve map when in a Delve. Only adds quests whose map matches player map.
@@ -53,103 +214,66 @@ local function CollectDelveQuests(ctx)
     return out
 end
 
+--- Single read of delve header widget: affixes, tier spell, lives, life icon. Safe when not in a delve.
+--- @return table|nil { affixes, tierSpellID, livesRemaining, livesIconFileID } — affixes may be nil if empty
+function addon.GetDelveScenarioHeaderMetadata()
+    local result = {
+        affixes           = nil,
+        tierSpellID       = nil,
+        livesRemaining    = nil,
+        livesIconFileID   = nil,
+    }
+    if not addon.IsDelveActive() then return result end
+
+    local widgetInfo = GetDelveHeaderWidgetInfo()
+    if widgetInfo then
+        result.livesRemaining = ParseDelveLivesRemaining(widgetInfo)
+        result.livesIconFileID = GetDelveLivesIconFileID(widgetInfo)
+        local affixes, tierSpellID = BuildAffixesFromWidgetInfo(widgetInfo)
+        result.tierSpellID = tierSpellID
+        if #affixes > 0 then
+            result.affixes = affixes
+        end
+    end
+
+    if not result.affixes then
+        local fallback = BuildAffixesFromSeasonFallback()
+        if #fallback > 0 then
+            result.affixes = fallback
+        end
+    end
+
+    return result
+end
+
 --- Returns season affixes for the current Delve when in an active Delve, or nil.
 --- Used by the quest block to show affixes inline. Tries UI Widget (Blizzard's source) first,
 --- then C_DelvesUI.GetDelvesAffixSpellsForSeason. May return nil/empty when Blizzard's
 --- objective tracker is hidden (Horizon replaces it) as widgets may not be populated.
 --- @return table|nil Array of { name, desc, icon } or nil if not in Delve or no affixes
+--- @return number|nil tierTooltipSpellID
 local function GetDelvesAffixes()
-    if not addon.IsDelveActive() then return nil end
-
-    local affixes = {}
-
-    -- Primary: UI Widget. Use scenario step widget set (C_Scenario.GetStepInfo) first —
-    -- it contains the Delve header with affixes. Objective Tracker set may not when tracker is hidden.
-    local WidgetShownState = Enum and Enum.WidgetShownState
-    if C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
-        local setID
-        if C_Scenario and C_Scenario.GetStepInfo then
-            local ok, t = pcall(function()
-                return { C_Scenario.GetStepInfo() }
-            end)
-            if ok and t and type(t) == "table" and #t >= 12 then
-                local ws = t[12]
-                if type(ws) == "number" and ws ~= 0 then setID = ws end
-            end
-        end
-        if not setID and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
-            local ok, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-            if ok and objSet and type(objSet) == "number" then setID = objSet end
-        end
-        if setID then
-            local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
-            if wOk and widgets and type(widgets) == "table" then
-                for _, wInfo in pairs(widgets) do
-                    local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
-                        or (type(wInfo) == "number" and wInfo > 0) and wInfo
-                    local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
-                    if widgetID and (not wType or wType == WIDGET_TYPE_SCENARIO_HEADER_DELVES) then
-                        local dOk, widgetInfo = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
-                        if dOk and widgetInfo and type(widgetInfo) == "table" then
-                            local hidden = WidgetShownState and (widgetInfo.shownState == WidgetShownState.Hidden)
-                            if not hidden then
-                                local tierSpellID = widgetInfo.tierTooltipSpellID
-                                if widgetInfo.spells and #widgetInfo.spells > 0 then
-                                    for _, spellInfo in ipairs(widgetInfo.spells) do
-                                        if spellInfo and type(spellInfo.spellID) == "number" and spellInfo.spellID > 0 then
-                                            local name = (spellInfo.text and spellInfo.text ~= "") and spellInfo.text or nil
-                                            local icon
-                                            if not name then
-                                                name, icon = GetSpellNameAndIcon(spellInfo.spellID)
-                                            else
-                                                _, icon = GetSpellNameAndIcon(spellInfo.spellID)
-                                            end
-                                            local desc = (spellInfo.tooltip and spellInfo.tooltip ~= "") and spellInfo.tooltip or nil
-                                            if not desc and C_Spell and C_Spell.GetSpellDescription then
-                                                local spellDescOk, d = pcall(C_Spell.GetSpellDescription, spellInfo.spellID)
-                                                if spellDescOk and d and type(d) == "string" and d ~= "" then desc = d end
-                                            end
-                                            affixes[#affixes + 1] = {
-                                                name  = name or ("Spell " .. spellInfo.spellID),
-                                                desc  = desc or "",
-                                                icon  = icon,
-                                            }
-                                        end
-                                    end
-                                end
-                                return affixes, tierSpellID
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    -- Fallback: C_DelvesUI.GetDelvesAffixSpellsForSeason
-    if C_DelvesUI and C_DelvesUI.GetDelvesAffixSpellsForSeason then
-        local ok, spellIDs = pcall(C_DelvesUI.GetDelvesAffixSpellsForSeason)
-        if ok and spellIDs and type(spellIDs) == "table" then
-            for _, spellID in pairs(spellIDs) do
-                if type(spellID) == "number" and spellID > 0 then
-                    local name, spellIcon = GetSpellNameAndIcon(spellID)
-                    local desc = nil
-                    if C_Spell and C_Spell.GetSpellDescription then
-                        local dOk, d = pcall(C_Spell.GetSpellDescription, spellID)
-                        if dOk and d and type(d) == "string" then desc = d end
-                    end
-                    affixes[#affixes + 1] = {
-                        name  = (name and name ~= "") and name or ("Spell " .. spellID),
-                        desc  = desc or "",
-                        icon  = spellIcon,
-                    }
-                end
-            end
-        end
-    end
-
-    return (#affixes > 0) and affixes or nil, nil
+    local meta = addon.GetDelveScenarioHeaderMetadata()
+    if not meta then return nil, nil end
+    return meta.affixes, meta.tierSpellID
 end
 
-addon.CollectDelveQuests   = CollectDelveQuests
-addon.GetDelvesAffixes     = GetDelvesAffixes
+--- Single life icon + numeric count for the tracker title row (FontString SetText).
+--- @param count number Lives remaining (> 0)
+--- @param iconFileID number|nil From widget currency; fallback to red ♥ glyph
+--- @return string
+function addon.FormatDelveLivesHeartsForTitle(count, iconFileID)
+    if type(count) ~= "number" or count < 1 then return "" end
+    local sz = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
+    local iconSeg
+    if type(iconFileID) == "number" and iconFileID > 0 then
+        iconSeg = ("|T%d:%d:%d:0:-1|t"):format(iconFileID, sz, sz)
+    else
+        -- UTF-8 BLACK HEART SUIT (U+2665), tinted red — works on default title fonts.
+        iconSeg = "|cffff5555\226\153\165|r"
+    end
+    return iconSeg .. " " .. tostring(math.floor(count))
+end
+
+addon.CollectDelveQuests = CollectDelveQuests
+addon.GetDelvesAffixes   = GetDelvesAffixes
