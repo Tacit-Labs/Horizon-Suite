@@ -1106,7 +1106,8 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
         _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
         ColorPickerFrame:SetupColorPickerAndShow({
             r = r, g = g, b = b,
-            opacity = hasAlpha and (1 - a) or nil,  -- WoW opacity field: 0=opaque, 1=transparent
+            a = hasAlpha and a or nil,
+            opacity = hasAlpha and a or nil,
             hasOpacity = hasAlpha == true,
             swatchFunc = function()
                 local nr, ng, nb = GetColorPickerEffectiveRGB()
@@ -1338,8 +1339,8 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
         }
         local info = {
             r = r or 1, g = g or 1, b = b or 1,
-            a = hasAlpha and (a or 1) or nil,              -- direct alpha (WoW 11.0+)
-            opacity = hasAlpha and (1 - (a or 1)) or nil,  -- inverted (WoW 10.x)
+            a = hasAlpha and (a or 1) or nil,
+            opacity = hasAlpha and (a or 1) or nil,
             hasOpacity = hasAlpha == true,
             swatchFunc = function()
                 if not pickerReady then return end
