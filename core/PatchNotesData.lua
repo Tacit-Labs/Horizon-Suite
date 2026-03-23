@@ -9,6 +9,29 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.2.0"] = {
+        {
+            section = "New Features",
+            bullets = {
+                "New installs start with Horizon modules off until you enable them",
+                "Dashboard welcome tab and first-run onboarding",
+            },
+        },
+        {
+            section = "IMPROVEMENTS",
+            bullets = {
+                "Remaining delve lives on the Focus tracker scenario line",
+            },
+        },
+        {
+            section = "FIXES",
+            bullets = {
+                "Options colour pickers for Focus and Vista no longer freeze the client or fail to apply colours",
+                "Dashboard accordion cards only toggle from the header row",
+            },
+        },
+    },
+
     ["4.1.2"] = {
         {
             section = "IMPROVEMENTS",
