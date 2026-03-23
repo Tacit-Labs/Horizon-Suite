@@ -1202,7 +1202,7 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             local function CreateAccordionCard(parent, title)
-                local card = CreateFrame("Button", nil, parent)
+                local card = CreateFrame("Frame", nil, parent)
                 card:SetHeight(60)
                 card:SetPoint("LEFT", parent, "LEFT", 0, 0)
                 card:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
@@ -1224,17 +1224,6 @@ SlashCmdList["HSDASH"] = function(msg)
                 divider:SetColorTexture(cdr, cdg, cdb, 0.2)
                 tinsert(dashAccentRefs.cardDividers, divider)
 
-                card:HookScript("OnEnter", function()
-                    if not card.expanded then
-                        cBg:SetColorTexture(0.09, 0.09, 0.1, 0.95)
-                    end
-                end)
-                card:HookScript("OnLeave", function()
-                    if not card.expanded then
-                        cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
-                    end
-                end)
-
                 -- Accent
                 local accent = card:CreateTexture(nil, "ARTWORK")
                 accent:SetSize(3, 24)
@@ -1250,6 +1239,22 @@ SlashCmdList["HSDASH"] = function(msg)
                 -- Title
                 local lbl = MakeText(card, title:upper(), 15, 0.9, 0.9, 0.95, "LEFT")
                 lbl:SetPoint("TOPLEFT", 35, -22)
+
+                local headerBtn = CreateFrame("Button", nil, card)
+                headerBtn:SetPoint("TOPLEFT", 0, 0)
+                headerBtn:SetPoint("TOPRIGHT", 0, 0)
+                headerBtn:SetHeight(60)
+                headerBtn:SetFrameLevel(card:GetFrameLevel() + 5)
+                headerBtn:SetScript("OnEnter", function()
+                    if not card.expanded then
+                        cBg:SetColorTexture(0.09, 0.09, 0.1, 0.95)
+                    end
+                end)
+                headerBtn:SetScript("OnLeave", function()
+                    if not card.expanded then
+                        cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
+                    end
+                end)
 
                 -- Settings Container
                 local sc = CreateFrame("Frame", nil, card)
@@ -1299,7 +1304,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     UpdateDetailLayout()
                 end)
 
-                card:SetScript("OnClick", function()
+                headerBtn:SetScript("OnClick", function()
                     if card.anim:IsPlaying() then return end
                     card.expanded = not card.expanded
                     updateExpandedVisuals()
