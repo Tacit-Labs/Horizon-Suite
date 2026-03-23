@@ -237,7 +237,7 @@ local function FormatObjectiveForDisplay(o)
     end
     if o.text and o.text ~= "" and o.text ~= "0" then
         if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
-            if o.numRequired == 1 and (o.finished or o.numFulfilled == 1) then
+            if o.numRequired == 1 then
                 return o.text
             end
             local pattern = ("%d/%d"):format(o.numFulfilled, o.numRequired)
@@ -249,7 +249,7 @@ local function FormatObjectiveForDisplay(o)
         return o.text
     end
     if o.numFulfilled ~= nil and o.numRequired ~= nil and o.numRequired > 0 then
-        if o.numRequired == 1 and (o.finished or o.numFulfilled == 1) then
+        if o.numRequired == 1 then
             return nil
         end
         return ("%d/%d"):format(o.numFulfilled, o.numRequired)
@@ -1307,6 +1307,20 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
     end
 end
 
+--- Remove any queued QUEST_UPDATE entries for the given questID.
+--- Called when a quest is disposed (turned in / removed) so stale progress toasts don't play after completion.
+--- @param questID number
+local function PurgeQueuedQuestUpdates(questID)
+    if not questID or not queue or #queue == 0 then return end
+    local kept = {}
+    for _, entry in ipairs(queue) do
+        if not (entry[1] == "QUEST_UPDATE" and entry[4] and entry[4].questID == questID) then
+            kept[#kept + 1] = entry
+        end
+    end
+    queue = kept
+end
+
 --- Hide frame, clear queue, reset animation state.
 --- @return nil
 local function HideAndClear()
@@ -2011,6 +2025,7 @@ addon.Presence.IsAnyToastEnabled     = IsAnyToastEnabled
 addon.Presence.RequestDebounced     = RequestDebounced
 addon.Presence.CancelDebounced      = CancelDebounced
 addon.Presence.FormatObjectiveForDisplay = FormatObjectiveForDisplay
+addon.Presence.PurgeQueuedQuestUpdates   = PurgeQueuedQuestUpdates
 addon.Presence.ShouldSuppressType   = ShouldSuppressType
 addon.Presence.TYPE_OPTIONS         = TYPE_OPTIONS
 addon.Presence.PreviewToast         = PreviewToast

@@ -148,8 +148,15 @@ local function DisposeQuestState(questID)
     pendingNonBlind[questID] = nil
     pendingQuestUpdateIDs[questID] = nil
     cacheMatchRetryPending[questID] = nil
+    if pendingStandaloneTimer then
+        pendingStandaloneTimer:Cancel()
+        pendingStandaloneTimer = nil
+    end
     if addon.Presence and addon.Presence.CancelDebounced then
         addon.Presence.CancelDebounced("quest:" .. questID)
+    end
+    if addon.Presence and addon.Presence.PurgeQueuedQuestUpdates then
+        addon.Presence.PurgeQueuedQuestUpdates(questID)
     end
 end
 
