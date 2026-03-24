@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.2.2] – 2026-03-24
+
+### 🐛 Fixes
+
+- **(Axis)** In-game What's New includes the 4.2.1 Focus and Presence fixes — patch notes data was missing from the 4.2.1 build, and the panel only shows entries for the current version
+
+---
+
 ## [4.2.1] – 2026-03-24
 
 ### 🐛 Fixes
