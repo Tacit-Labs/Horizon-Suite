@@ -96,20 +96,24 @@ function DefaultProvider:ReadEntries()
 
         objectives = self:DeduplicateObjectives(objectives)
 
-        local title = (scenarioName and scenarioName ~= "") and scenarioName or stageName
-        table.insert(out, {
-            entryKey = "scenario-main",
-            title = title,
-            stageName = (stageName and stageName ~= "") and stageName or nil,
-            stageIndex = stageIndex,
-            category = category,
-            color = color,
-            objectives = objectives,
-            timerDuration = timerDuration,
-            timerStartTime = timerStartTime,
-            isScenarioMain = true,
-            rewardQuestID = rewardQuestID,
-        })
+        -- Only create entry when it has real content; prevents empty entries from
+        -- prematurely suppressing bonus objective quests (Abundance race condition).
+        if #objectives > 0 or timerDuration then
+            local title = (scenarioName and scenarioName ~= "") and scenarioName or stageName
+            table.insert(out, {
+                entryKey = "scenario-main",
+                title = title,
+                stageName = (stageName and stageName ~= "") and stageName or nil,
+                stageIndex = stageIndex,
+                category = category,
+                color = color,
+                objectives = objectives,
+                timerDuration = timerDuration,
+                timerStartTime = timerStartTime,
+                isScenarioMain = true,
+                rewardQuestID = rewardQuestID,
+            })
+        end
     end
 
     -- 2. Bonus Steps
