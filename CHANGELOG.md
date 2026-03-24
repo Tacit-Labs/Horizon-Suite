@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.2.1] – 2026-03-24
+
+### 🐛 Fixes
+
+- **(Focus)** Bonus objectives stay visible when scenario row has no real content
+- **(Presence)** Quest update toast shows wrong objective on multi-objective quests
+
+---
+
 ## [4.2.0] – 2026-03-23
 
 ### ✨ New Features
