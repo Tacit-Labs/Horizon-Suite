@@ -561,6 +561,117 @@ local function PresenceDebugLog_Internal(msg)
 end
 local PresenceDebugLog = PresenceDebugLog_Internal
 
+--- Build the live debug log as plain text (oldest line first), matching ring-buffer order.
+--- @return string
+local function GetPresenceDebugLogText()
+    if debugLogCount == 0 then return "" end
+    local start = (debugLogCount < DEBUG_LOG_MAX) and 1 or debugLogHead
+    local lines = {}
+    for i = 0, debugLogCount - 1 do
+        local idx = ((start - 1 + i) % DEBUG_LOG_MAX) + 1
+        local line = debugLogBuffer[idx]
+        if line then lines[#lines + 1] = line end
+    end
+    return table.concat(lines, "\n")
+end
+
+local copyFallbackFrame
+
+--- When C_CopyToClipboard is unavailable, show scrollable text so the user can Ctrl+C manually.
+--- @param text string
+--- @return nil
+local function ShowPresenceDebugCopyFallback(text)
+    if not text or text == "" then return end
+    if not copyFallbackFrame then
+        copyFallbackFrame = CreateFrame("Frame", "HorizonSuitePresenceDebugCopyFrame", UIParent)
+        copyFallbackFrame:SetSize(520, 380)
+        copyFallbackFrame:SetPoint("CENTER")
+        copyFallbackFrame:SetFrameStrata("FULLSCREEN_DIALOG")
+        copyFallbackFrame:SetClampedToScreen(true)
+        local bg = copyFallbackFrame:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(copyFallbackFrame)
+        bg:SetColorTexture(0.05, 0.05, 0.08, 0.98)
+        local hdr = copyFallbackFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        hdr:SetPoint("TOP", 0, -16)
+        hdr:SetText("Copy log — Ctrl+C, then Close")
+        local closeBtn = CreateFrame("Button", nil, copyFallbackFrame, "UIPanelButtonTemplate")
+        closeBtn:SetSize(100, 22)
+        closeBtn:SetPoint("BOTTOM", 0, 14)
+        closeBtn:SetText("Close")
+        closeBtn:SetScript("OnClick", function()
+            copyFallbackFrame:Hide()
+        end)
+        local scroll = CreateFrame("ScrollFrame", nil, copyFallbackFrame, "UIPanelScrollFrameTemplate")
+        scroll:SetPoint("TOPLEFT", 14, -42)
+        scroll:SetPoint("BOTTOMRIGHT", -28, 46)
+        local edit = CreateFrame("EditBox", nil, scroll)
+        edit:SetMultiLine(true)
+        edit:SetAutoFocus(true)
+        edit:SetFontObject(GameFontNormalSmall)
+        edit:SetWidth(440)
+        edit:SetTextInsets(6, 6, 6, 6)
+        edit:SetMaxLetters(999999)
+        edit:SetScript("OnEscapePressed", function()
+            copyFallbackFrame:Hide()
+        end)
+        scroll:SetScrollChild(edit)
+        copyFallbackFrame.scroll = scroll
+        copyFallbackFrame.edit = edit
+        -- EditBox has no GetStringHeight; measure wrapped height with a matching FontString.
+        local measureFS = copyFallbackFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        measureFS:SetWordWrap(true)
+        measureFS:SetAlpha(0)
+        measureFS:SetPoint("TOPLEFT", copyFallbackFrame, "TOPLEFT", 0, 0)
+        copyFallbackFrame.measureFS = measureFS
+    end
+    local edit = copyFallbackFrame.edit
+    local scroll = copyFallbackFrame.scroll
+    local scrollW = scroll and scroll:GetWidth() or 440
+    local editWidth = math.max(200, scrollW - 24)
+    edit:SetWidth(editWidth)
+    edit:SetText(text)
+    local innerW = math.max(50, editWidth - 12)
+    local measureFS = copyFallbackFrame.measureFS
+    local h = 0
+    if measureFS then
+        measureFS:SetWidth(innerW)
+        measureFS:SetText(text)
+        h = measureFS:GetStringHeight() or 0
+    end
+    if h > 0 then
+        edit:SetHeight(math.min(12000, math.max(120, h + 24)))
+    else
+        edit:SetHeight(280)
+    end
+    if scroll.UpdateScrollChildRect then
+        scroll:UpdateScrollChildRect()
+    end
+    scroll:SetVerticalScroll(0)
+    copyFallbackFrame:Show()
+    edit:SetFocus()
+    edit:HighlightText()
+end
+
+--- Copy live debug log to the system clipboard, or open a selectable buffer as fallback.
+--- @return nil
+local function CopyPresenceDebugLog()
+    local text = GetPresenceDebugLogText()
+    local p = addon.HSPrint or function(m) print("|cFF00CCFFHorizon Suite:|r " .. tostring(m or "")) end
+    if text == "" then
+        p("Presence debug log is empty.")
+        return
+    end
+    if C_CopyToClipboard then
+        local ok, err = pcall(C_CopyToClipboard, text)
+        if ok then
+            p("Presence debug log copied to clipboard.")
+            return
+        end
+        p("Clipboard copy failed: " .. tostring(err) .. " — opening copy window.")
+    end
+    ShowPresenceDebugCopyFallback(text)
+end
+
 local function CreateDebugPanel()
     if debugLogFrame then return end
 
@@ -599,24 +710,20 @@ local function CreateDebugPanel()
     closeTex:SetAllPoints(closeBtn)
     closeTex:SetColorTexture(0.5, 0.2, 0.2, 0.8)
 
-    local clearBtn = CreateFrame("Button", nil, panel)
-    clearBtn:SetSize(60, 22)
-    clearBtn:SetPoint("TOPRIGHT", -40, -10)
-    clearBtn:SetScript("OnClick", function()
-        debugLogBuffer = {}
-        debugLogHead   = 1
-        debugLogCount  = 0
-        if debugLogFrame and debugLogFrame.msg then
-            debugLogFrame.msg:SetMaxLines(DEBUG_LOG_MAX)
-        end
+    local copyBtn = CreateFrame("Button", nil, panel)
+    copyBtn:SetSize(60, 22)
+    copyBtn:SetPoint("TOPRIGHT", -105, -10)
+    copyBtn:SetScript("OnClick", function()
+        CopyPresenceDebugLog()
     end)
-    local clearTex = clearBtn:CreateTexture(nil, "BACKGROUND")
-    clearTex:SetAllPoints(clearBtn)
-    clearTex:SetColorTexture(0.2, 0.2, 0.25, 0.9)
-    local clearLabel = clearBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    clearLabel:SetPoint("CENTER", 0, 0)
-    clearLabel:SetText("Clear")
+    local copyTex = copyBtn:CreateTexture(nil, "BACKGROUND")
+    copyTex:SetAllPoints(copyBtn)
+    copyTex:SetColorTexture(0.15, 0.25, 0.35, 0.9)
+    local copyLabel = copyBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    copyLabel:SetPoint("CENTER", 0, 0)
+    copyLabel:SetText("Copy")
 
+    -- Create msg before Clear's handler so the closure captures this local (not global msg).
     local msg = CreateFrame("ScrollingMessageFrame", nil, panel)
     msg:SetPoint("TOPLEFT", 8, -36)
     msg:SetPoint("BOTTOMRIGHT", -8, 8)
@@ -628,6 +735,23 @@ local function CreateDebugPanel()
         local scroll = msg:GetScrollOffset()
         msg:SetScrollOffset(scroll - delta)
     end)
+
+    local clearBtn = CreateFrame("Button", nil, panel)
+    clearBtn:SetSize(60, 22)
+    clearBtn:SetPoint("TOPRIGHT", -40, -10)
+    clearBtn:SetScript("OnClick", function()
+        debugLogBuffer = {}
+        debugLogHead   = 1
+        debugLogCount  = 0
+        msg:Clear()
+        msg:SetMaxLines(DEBUG_LOG_MAX)
+    end)
+    local clearTex = clearBtn:CreateTexture(nil, "BACKGROUND")
+    clearTex:SetAllPoints(clearBtn)
+    clearTex:SetColorTexture(0.2, 0.2, 0.25, 0.9)
+    local clearLabel = clearBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    clearLabel:SetPoint("CENTER", 0, 0)
+    clearLabel:SetText("Clear")
 
     panel:SetScript("OnDragStart", function()
         if InCombatLockdown() then return end
@@ -1381,6 +1505,10 @@ local function DumpDebug()
         addon.Presence.DumpBlizzardSuppression(p)
     end
 
+    if addon.Presence.DumpQuestObjectiveCaches then
+        addon.Presence.DumpQuestObjectiveCaches(p)
+    end
+
     p("|cFF00CCFF--- End Presence debug ---|r")
 end
 
@@ -2011,6 +2139,10 @@ addon.Presence.ShowDiscoveryLine  = ShowDiscoveryLine
 addon.Presence.SetPendingDiscovery = SetPendingDiscovery
 addon.Presence.HideAndClear       = HideAndClear
 addon.Presence.DumpDebug          = DumpDebug
+--- Append a line to the Presence live debug ring buffer when `presenceDebugLive` is on.
+--- @param msg string
+--- @return nil
+addon.Presence.DebugLog           = PresenceDebugLog
 addon.Presence.IsDebugLive        = IsDebugLive
 addon.Presence.SetDebugLive       = SetDebugLive
 addon.Presence.ToggleDebugLive    = ToggleDebugLive

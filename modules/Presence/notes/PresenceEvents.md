@@ -14,8 +14,8 @@
 3. Build serialized state string; compare with `lastQuestObjectivesCache[questID]`. Skip if unchanged.
 4. Blind update suppression: if `isBlindUpdate` and `isNew` (no cache entry), skip (avoids popup on unrelated QUEST_LOG_UPDATE).
 5. Update cache with new state.
-6. Pick display text: first unfinished objective, or fallback to first objective, or "Objective updated".
-7. Call `QueueOrPlay("QUEST_UPDATE", ...)` with `{ questID = questID }`.
+6. Pick display text (in order): if `pendingQuestObjectiveHint[questID]` was set from **UI_INFO_MESSAGE** (normalized chat line), consume it and use the first objective row whose `NormalizeQuestUpdateText(Strip(text))` equals that hint (`ui_hint_match`); else **first objective row** (by index) where `oldState` and `newState` differ on `text`, `finished`, `numFulfilled`, or `numRequired` and `newO.text` is non-empty; else if this is the **first** cached run for the quest (`isNew`): first **finished** objective with text; else first **unfinished** objective with text — unless there is **no** `oldState` and **multiple** objectives, in which case use the neutral `"Objective updated"` (`ambiguous_no_baseline`) to avoid showing the wrong row; else first row with text; else the literal `"Objective updated"`.
+7. Call `QueueOrPlay("QUEST_UPDATE", ...)` with `{ questID = questID, source = source }`.
 
 ## GetWorldQuestIDForObjectiveUpdate
 
