@@ -9,6 +9,26 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.2.2"] = {
+        {
+            section = "FIXES",
+            bullets = {
+                "Bonus objectives stay visible when scenario row has no real content",
+                "Quest update toast shows wrong objective on multi-objective quests",
+            },
+        },
+    },
+
+    ["4.2.1"] = {
+        {
+            section = "FIXES",
+            bullets = {
+                "Bonus objectives stay visible when scenario row has no real content",
+                "Quest update toast shows wrong objective on multi-objective quests",
+            },
+        },
+    },
+
     ["4.2.0"] = {
         {
             section = "New Features",
