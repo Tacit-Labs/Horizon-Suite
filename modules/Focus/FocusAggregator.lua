@@ -179,7 +179,14 @@ local function SortAndGroupQuests(quests)
     local scenarioActive = false
     if addon.ReadScenarioEntries then
         local entries = addon.ReadScenarioEntries()
-        scenarioActive = entries and #entries > 0
+        if entries then
+            for _, e in ipairs(entries) do
+                if e.objectives and #e.objectives > 0 then
+                    scenarioActive = true
+                    break
+                end
+            end
+        end
     end
     for _, q in ipairs(quests) do
         local isEventInPlayerZone = q.isEventQuest
