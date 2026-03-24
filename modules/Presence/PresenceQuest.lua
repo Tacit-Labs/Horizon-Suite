@@ -7,7 +7,19 @@
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon or not addon.Presence then return end
 
-local DbgWQ = function() end
+-- Live-debug trace (no-op unless presence debug live is on — avoids string work when off).
+local function DbgWQ(...)
+    if not (addon.Presence.IsDebugLive and addon.Presence.IsDebugLive()) then return end
+    local log = addon.Presence.DebugLog
+    if not log then return end
+    local n = select("#", ...)
+    if n == 0 then return end
+    local parts = {}
+    for i = 1, n do
+        parts[i] = tostring(select(i, ...))
+    end
+    log(table.concat(parts, " "))
+end
 
 -- ============================================================================
 -- Constants
@@ -134,6 +146,8 @@ local pendingQuestUpdateIDs = {}
 local cacheMatchRetryPending = {}
 local recentlyDisposed = {}
 local pendingNonBlind = {}
+--- Normalized UI_INFO_MESSAGE text keyed by questID; consumed in ExecuteQuestUpdate (wrong-line fix for multi-objective).
+local pendingQuestObjectiveHint = {}
 
 local lastUIInfoMsg, lastUIInfoTime = nil, 0
 local pendingStandaloneTimer = nil
@@ -148,6 +162,7 @@ local function DisposeQuestState(questID)
     pendingNonBlind[questID] = nil
     pendingQuestUpdateIDs[questID] = nil
     cacheMatchRetryPending[questID] = nil
+    pendingQuestObjectiveHint[questID] = nil
     if pendingStandaloneTimer then
         pendingStandaloneTimer:Cancel()
         pendingStandaloneTimer = nil
@@ -205,9 +220,10 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
     local oldState = lastQuestObjectivesState[questID]
 
     if lastQuestObjectivesCache[questID] == objKey then
-        DbgWQ("ExecuteQuestUpdate SKIP cache match: questID=", questID, "source=", tostring(source))
+        DbgWQ("ExecuteQuestUpdate SKIP cache match questID=", questID, "source=", tostring(source), "objKey=", objKey, "isCacheMatchRetry=", tostring(isCacheMatchRetry))
         if not isCacheMatchRetry and source == "QUEST_WATCH_UPDATE" and not cacheMatchRetryPending[questID] then
             cacheMatchRetryPending[questID] = true
+            DbgWQ("ExecuteQuestUpdate scheduling CACHE_MATCH_RETRY in", CACHE_MATCH_RETRY_TIME, "s questID=", questID)
             local function retryFn()
                 cacheMatchRetryPending[questID] = nil
                 ExecuteQuestUpdate(questID, isBlindUpdate, source, nil, true)
@@ -216,6 +232,7 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
                 addon.Presence.RequestDebounced("quest:" .. questID, CACHE_MATCH_RETRY_TIME, retryFn)
             end
         end
+        pendingQuestObjectiveHint[questID] = nil
         return
     end
 
@@ -224,20 +241,49 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
     lastQuestObjectivesState[questID] = state
 
     if isBlindUpdate and isNew then
+        DbgWQ("ExecuteQuestUpdate SKIP blind new quest (no prior cache) questID=", questID, "source=", tostring(source), "objKey=", objKey)
         return
     end
 
     local msg = nil
+    local pickReason = "none"
+    local pickIdx = nil
 
-    if oldState and type(oldState) == "table" then
+    local hint = pendingQuestObjectiveHint[questID]
+    pendingQuestObjectiveHint[questID] = nil
+    local hadHint = hint and hint ~= ""
+    if hadHint then
+        DbgWQ("ExecuteQuestUpdate objective hint questID=", questID, "hint=", tostring(hint))
+        for i = 1, #state do
+            local newO = state[i]
+            if newO and newO.text ~= "" then
+                local rowNorm = NormalizeQuestUpdateText(Strip(newO.text))
+                if rowNorm == hint then
+                    msg = FormatObjective(newO)
+                    pickReason = "ui_hint_match"
+                    pickIdx = i
+                    DbgWQ("ExecuteQuestUpdate objective hint matched idx=", i)
+                    break
+                end
+            end
+        end
+        if hadHint and not msg then
+            DbgWQ("ExecuteQuestUpdate objective hint no row match")
+        end
+    end
+
+    if not msg and oldState and type(oldState) == "table" then
         local maxCount = math.max(#oldState, #state)
         for i = 1, maxCount do
             local oldO = oldState[i]
             local newO = state[i]
             if newO then
-                local changed = (not oldO) or oldO.text ~= newO.text or oldO.finished ~= newO.finished or oldO.numFulfilled ~= newO.numFulfilled
+                local changed = (not oldO) or oldO.text ~= newO.text or oldO.finished ~= newO.finished
+                    or oldO.numFulfilled ~= newO.numFulfilled or oldO.numRequired ~= newO.numRequired
                 if changed and newO.text ~= "" then
                     msg = FormatObjective(newO)
+                    pickReason = "first_changed_row"
+                    pickIdx = i
                     break
                 end
             end
@@ -249,6 +295,8 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
             local o = state[i]
             if o and o.text ~= "" and o.finished then
                 msg = FormatObjective(o)
+                pickReason = "isNew_first_finished"
+                pickIdx = i
                 break
             end
         end
@@ -259,6 +307,8 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
             local o = state[i]
             if o and o.text ~= "" and not o.finished then
                 msg = FormatObjective(o)
+                pickReason = "first_unfinished"
+                pickIdx = i
                 break
             end
         end
@@ -268,15 +318,47 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
         local o = state[1]
         if o and o.text ~= "" then
             msg = FormatObjective(o)
+            pickReason = "fallback_first_row"
+            pickIdx = 1
         end
     end
 
+    if pickReason == "first_unfinished" and not oldState and #state > 1 then
+        msg = "Objective updated"
+        pickReason = "ambiguous_no_baseline"
+        pickIdx = nil
+        DbgWQ("ExecuteQuestUpdate ambiguous_no_baseline multi_objective no oldState")
+    end
+
     if not msg or msg == "" then msg = "Objective updated" end
+    if pickReason == "none" then pickReason = "default_literal" end
 
     local stripped = Strip(msg)
     local normalized = NormalizeQuestUpdateText(stripped)
 
+    DbgWQ("ExecuteQuestUpdate trace questID=", questID, "source=", tostring(source), "isRetry=", tostring(isRetry), "isCacheMatchRetry=", tostring(isCacheMatchRetry), "isBlind=", tostring(isBlindUpdate), "isNew=", tostring(isNew))
+    DbgWQ("ExecuteQuestUpdate objKey=", objKey)
+    if oldState and type(oldState) == "table" then
+        local maxCount = math.max(#oldState, #state)
+        for i = 1, maxCount do
+            local oldO = oldState[i]
+            local newO = state[i]
+            local os = oldO and ("text=" .. tostring(oldO.text) .. " fin=" .. tostring(oldO.finished) .. " nf=" .. tostring(oldO.numFulfilled) .. " nr=" .. tostring(oldO.numRequired)) or "(nil)"
+            local ns = newO and ("text=" .. tostring(newO.text) .. " fin=" .. tostring(newO.finished) .. " nf=" .. tostring(newO.numFulfilled) .. " nr=" .. tostring(newO.numRequired)) or "(nil)"
+            DbgWQ(" ExecuteQuestUpdate obj", i, "old", os, "new", ns)
+        end
+    else
+        for i = 1, #state do
+            local newO = state[i]
+            if newO then
+                DbgWQ(" ExecuteQuestUpdate obj", i, "old", "(none)", "new", "text=" .. tostring(newO.text) .. " fin=" .. tostring(newO.finished) .. " nf=" .. tostring(newO.numFulfilled) .. " nr=" .. tostring(newO.numRequired))
+            end
+        end
+    end
+    DbgWQ("ExecuteQuestUpdate pickReason=", pickReason, "pickIdx=", tostring(pickIdx), "rawMsg=", msg, "stripped=", stripped, "normalized=", normalized)
+
     if not isRetry and not isNew and source == "QUEST_WATCH_UPDATE" and normalized and normalized:match("^0/%d+") then
+        DbgWQ("ExecuteQuestUpdate ZERO_PROGRESS_RETRY in", ZERO_PROGRESS_RETRY_TIME, "s questID=", questID)
         lastQuestObjectivesCache[questID] = nil
         lastQuestObjectivesState[questID] = nil
         local function retryFn()
@@ -294,7 +376,7 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
     local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID) and Strip(C_QuestLog.GetTitleForQuestID(questID) or "") or ""
     if IsDNTQuest(questName) then return end
     local title = (questName ~= "" and questName) or L["QUEST UPDATE"]
-    DbgWQ("ExecuteQuestUpdate: QueueOrPlay", questID, "title=", title, "sub=", normalized, "source=", source, "isNew=", isNew, "isBlind=", isBlindUpdate)
+    DbgWQ("ExecuteQuestUpdate QueueOrPlay questID=", questID, "title=", title, "sub=", normalized, "source=", source, "isNew=", isNew, "isBlind=", isBlindUpdate)
 
     lastUIInfoMsg = msg
     lastUIInfoTime = GetTime()
@@ -313,6 +395,8 @@ local function RequestQuestUpdate(questID, isBlindUpdate, source)
         pendingNonBlind[questID] = true
     end
     local effectiveBlind = isBlindUpdate and not pendingNonBlind[questID]
+
+    DbgWQ("RequestQuestUpdate questID=", questID, "source=", tostring(source), "isBlindIn=", tostring(isBlindUpdate), "effectiveBlind=", tostring(effectiveBlind), "debounceSec=", UPDATE_BUFFER_TIME)
 
     local function fireQuestUpdate()
         pendingQuestUpdateIDs[questID] = nil
@@ -334,6 +418,7 @@ local function GetWorldQuestIDForObjectiveUpdate()
     local super = (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) and C_SuperTrack.GetSuperTrackedQuestID() or 0
     if super and super > 0 then
         if not (C_QuestLog and C_QuestLog.IsComplete and C_QuestLog.IsComplete(super)) then
+            DbgWQ("BlindResolve branch=super_track questID=", super)
             return super
         end
     end
@@ -344,17 +429,22 @@ local function GetWorldQuestIDForObjectiveUpdate()
                 candidates[#candidates + 1] = q.questID
             end
         end
-        if #candidates > 0 then return candidates[1] end
+        if #candidates > 0 then
+            DbgWQ("BlindResolve branch=nearby_wq questID=", candidates[1], "candidates=", #candidates)
+            return candidates[1]
+        end
     end
     if C_QuestLog and C_QuestLog.GetNumQuestWatches and C_QuestLog.GetQuestIDForQuestWatchIndex then
         local numWatches = C_QuestLog.GetNumQuestWatches()
         for i = 1, numWatches do
             local qid = C_QuestLog.GetQuestIDForQuestWatchIndex(i)
             if qid and qid > 0 and not (C_QuestLog.IsComplete and C_QuestLog.IsComplete(qid)) then
+                DbgWQ("BlindResolve branch=quest_watch index=", i, "questID=", qid, "numWatches=", numWatches)
                 return qid
             end
         end
     end
+    DbgWQ("BlindResolve branch=none questID=nil")
     return nil
 end
 
@@ -526,6 +616,7 @@ local function Quest_OnUIInfoMessage(msgType, msg)
     end
 
     if questID then
+        pendingQuestObjectiveHint[questID] = normalized
         RequestQuestUpdate(questID, true, "UI_INFO_MESSAGE")
     else
         if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestUpdate", "presenceQuestEvents", true)) then return end
@@ -563,6 +654,36 @@ local function Quest_GetPendingQuestUpdateIDs()
     return pendingQuestUpdateIDs
 end
 
+--- Print quest objective cache keys and pending flags to chat (Presence live debug companion).
+--- @param printFn function|nil Same signature as DumpDebug's `p` (optional prefix handler)
+--- @return nil
+local function DumpQuestObjectiveCaches(printFn)
+    local p = printFn or (addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end)
+    p("|cFF00CCFF--- Quest objective cache (PresenceQuest) ---|r")
+    local nCache = 0
+    for qid, key in pairs(lastQuestObjectivesCache) do
+        nCache = nCache + 1
+        p("  lastQuestObjectivesCache[" .. tostring(qid) .. "] = " .. tostring(key))
+    end
+    if nCache == 0 then p("  (empty)") end
+    local nState = 0
+    for qid, _ in pairs(lastQuestObjectivesState) do
+        nState = nState + 1
+    end
+    p("  lastQuestObjectivesState entries: " .. tostring(nState))
+    local pend = {}
+    for qid in pairs(pendingQuestUpdateIDs) do
+        pend[#pend + 1] = tostring(qid)
+    end
+    p("  pendingQuestUpdateIDs: " .. (#pend > 0 and table.concat(pend, ", ") or "(none)"))
+    local retry = {}
+    for qid in pairs(cacheMatchRetryPending) do
+        retry[#retry + 1] = tostring(qid)
+    end
+    p("  cacheMatchRetryPending: " .. (#retry > 0 and table.concat(retry, ", ") or "(none)"))
+    p("|cFF00CCFF--- End quest objective cache ---|r")
+end
+
 -- ============================================================================
 -- Exports
 -- ============================================================================
@@ -574,5 +695,6 @@ addon.Presence.Quest_OnQuestWatchUpdate = Quest_OnQuestWatchUpdate
 addon.Presence.Quest_OnQuestLogUpdate   = Quest_OnQuestLogUpdate
 addon.Presence.Quest_OnUIInfoMessage    = Quest_OnUIInfoMessage
 addon.Presence.Quest_GetPendingQuestUpdateIDs = Quest_GetPendingQuestUpdateIDs
+addon.Presence.DumpQuestObjectiveCaches = DumpQuestObjectiveCaches
 addon.Presence.IsQuestText              = IsQuestText
 addon.Presence.NormalizeQuestUpdateText = NormalizeQuestUpdateText
