@@ -100,6 +100,12 @@ local fadeTarget     = nil
 local suppressFadeIn = false
 local lastTooltipItemLink = nil
 
+-- Throttle stale unit-tooltip check (player moved away; mouseover not yet cleared).
+local STALE_CHECK_INTERVAL = 0.1
+local staleCheckElapsed    = 0
+
+local fadeOutStartAlpha = 1
+
 local animFrame = CreateFrame("Frame")
 animFrame:Hide()
 
@@ -110,6 +116,21 @@ animFrame:SetScript("OnUpdate", function(self, elapsed)
         fadeTarget:SetAlpha(Insight.easeOut(progress))
         if progress >= 1 then
             fadeState = "visible"
+            self:Hide()
+        end
+    elseif fadeState == "fadeout" and fadeTarget then
+        fadeElapsed = fadeElapsed + elapsed
+        local progress = math.min(fadeElapsed / Insight.FADE_IN_DUR, 1)
+        -- Mirror fade-in: same duration and easeOut curve, alpha → 0.
+        local alpha = fadeOutStartAlpha * (1 - Insight.easeOut(progress))
+        fadeTarget:SetAlpha(alpha)
+        if progress >= 1 then
+            fadeState = "idle"
+            local tt = fadeTarget
+            fadeTarget = nil
+            if tt and tt:IsShown() then
+                tt:Hide()
+            end
             self:Hide()
         end
     else
@@ -125,6 +146,41 @@ local function StartFadeIn(tooltip)
     animFrame:Show()
 end
 
+local function StartFadeOutStale(tooltip)
+    if not tooltip then return end
+    fadeTarget = tooltip
+    fadeElapsed = 0
+    fadeState = "fadeout"
+    fadeOutStartAlpha = tooltip:GetAlpha()
+    if not fadeOutStartAlpha or fadeOutStartAlpha <= 0 then
+        fadeOutStartAlpha = 1
+    end
+    animFrame:Show()
+end
+
+-- Staggered checks after inspect refresh; catches delayed mouseover clearing when user moves off quickly.
+local postInspectSafetyGen = 0
+local POST_INSPECT_SAFETY_DELAYS = { 0, 0.1, 0.25, 0.5 }
+
+local function SchedulePostInspectTooltipSafetyNet()
+    if not (C_Timer and C_Timer.After) then return end
+    postInspectSafetyGen = postInspectSafetyGen + 1
+    local waveGen = postInspectSafetyGen
+    for _, delay in ipairs(POST_INSPECT_SAFETY_DELAYS) do
+        C_Timer.After(delay, function()
+            if waveGen ~= postInspectSafetyGen then return end
+            if not IsEnabled() then return end
+            local tt = GameTooltip
+            if not tt or not tt:IsShown() then return end
+            if not tt._insightUnitTooltip and not (tt.GetUnit and tt:GetUnit()) then return end
+            if UnitExists("mouseover") then return end
+            if fadeState ~= "fadeout" or fadeTarget ~= tt then
+                StartFadeOutStale(tt)
+            end
+        end)
+    end
+end
+
 local function GetTooltipItemLink(tooltip)
     if not tooltip then return nil end
     if tooltip.GetItem then
@@ -138,6 +194,13 @@ end
 local function HookGameTooltipAnimation()
     GameTooltip:HookScript("OnShow", function(self)
         if not IsEnabled() then return end
+        -- New show cancels a stale fade-out (e.g. user hovered something else mid-fade).
+        if fadeState == "fadeout" and fadeTarget == self then
+            fadeState = "idle"
+            fadeTarget = nil
+            animFrame:Hide()
+            self:SetAlpha(1)
+        end
         if self.GetUnit and self:GetUnit() then
             local fn = Insight.StripHealthAndPowerText
             if fn then fn() end
@@ -163,8 +226,21 @@ local function HookGameTooltipAnimation()
     GameTooltip:HookScript("OnHide", function(self)
         fadeState = "idle"
         animFrame:Hide()
+        staleCheckElapsed = 0
         self:SetAlpha(1)
         self._insightItemQuality = nil
+        self._insightUnitTooltip = nil
+    end)
+    GameTooltip:HookScript("OnUpdate", function(self, elapsed)
+        if not IsEnabled() then return end
+        staleCheckElapsed = staleCheckElapsed + elapsed
+        if staleCheckElapsed < STALE_CHECK_INTERVAL then return end
+        staleCheckElapsed = 0
+        if (self._insightUnitTooltip or (self.GetUnit and self:GetUnit())) and not UnitExists("mouseover") then
+            if fadeState ~= "fadeout" or fadeTarget ~= self then
+                StartFadeOutStale(self)
+            end
+        end
     end)
 end
 
@@ -260,6 +336,7 @@ local function ProcessUnitTooltip(tooltip)
     if not UnitExists("mouseover") then return end
 
     tooltip._insightItemMetadata = nil
+    tooltip._insightUnitTooltip  = true
     local unit     = "mouseover"
     local isPlayer = UnitIsPlayer(unit)
 
@@ -473,7 +550,8 @@ eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 eventFrame:SetScript("OnEvent", function(self, event, guid)
     if event == "UPDATE_MOUSEOVER_UNIT" then
         if not IsEnabled() then return end
-        if not UnitExists("mouseover") and GameTooltip:IsShown() and GameTooltip:GetUnit() then
+        if not UnitExists("mouseover") and GameTooltip:IsShown()
+            and (GameTooltip._insightUnitTooltip or (GameTooltip.GetUnit and GameTooltip:GetUnit())) then
             GameTooltip:Hide()
         end
         return
@@ -486,9 +564,11 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         local okMatch, isMatch = pcall(function() return mouseoverGuid == guid end)
         if okMatch and isMatch then
             Insight.CacheInspect(guid, "mouseover")
-            if GameTooltip:IsShown() then
+            if GameTooltip:IsShown()
+                and (GameTooltip._insightUnitTooltip or (GameTooltip.GetUnit and GameTooltip:GetUnit())) then
                 suppressFadeIn = true
                 GameTooltip:SetUnit("mouseover")
+                SchedulePostInspectTooltipSafetyNet()
             end
         end
         if Insight.PruneInspectCache then Insight.PruneInspectCache() end
