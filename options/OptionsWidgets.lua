@@ -213,6 +213,10 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     local fillW = trackW - 2 * TOGGLE_INSET
     local thumbTravel = fillW - thumbSize
     local function updateVisuals(t)
+        -- Keep fill colour in sync with Def.TrackOn every paint. ApplyOptionsClassColor() may run
+        -- inside set() (e.g. batch class colours) before the slide animation; skipping Refresh() on
+        -- the clicked row avoids snapping the thumb but must still pick up the new "on" tint here.
+        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4] or 0.85)
         thumb:ClearAllPoints()
         thumb:SetPoint("CENTER", track, "LEFT", TOGGLE_INSET + thumbSize/2 + t * thumbTravel, 0)
         trackFill:SetWidth(t * fillW)

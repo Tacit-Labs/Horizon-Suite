@@ -64,7 +64,11 @@ L["Other"]                                                              = "Autre
  L["Global profile"]                                                     = "Profil global"   
  L["Per-spec profiles"]                                                  = "Profils par spécialisation"   
 
--- ── Axis > Modules  (enable/disable toggles + scaling) ─────────────────────────────
+-- ── Axis > Global Toggles  (class colours + global / per-module UI scale) ───────────
+L["Global Toggles"]                                                   = "Réglages globaux"
+L["Suite-wide class colour tinting and UI scale (global or per module)."] = "Teintes de couleur de classe et échelle d'interface pour toute la suite (globale ou par module)."
+
+-- ── Axis > Modules  (activation, apparence) ─────────────────────────────────────────
 L["Enable Focus module"]                                                = "Activer le module Focus"
 L["Show the objective tracker for quests, world quests, rares, achievements, and scenarios."]= "Affiche le suivi des objectifs pour les quêtes, expéditions, boss rares, hauts faits et scénarios."
 L["Enable Presence module"]                                             = "Activer le module Presence"

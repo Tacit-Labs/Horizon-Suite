@@ -68,8 +68,7 @@
 
 - **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
 - **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
-- **Class colours (Axis)** – In **Modules → Class Colours**, enable class tint for each module or all at once (dashboard accents, Focus header title, category section headers, main and between-section dividers, super-track highlights, Presence toast title and divider, Vista minimap, bar, and panel borders and labels, Insight player tooltips, Yield loot glow and edit chrome, Persona name).
-- **Scaling** – Global UI scale (50–200%) for all modules, or per-module sliders for Focus, Presence, Vista, Insight, and Yield when WoW UI scale is lowered.
+- **Global Toggles (Axis)** – Under **Axis → Global Toggles**, enable class tint per module or all at once (dashboard, Focus, Presence, Vista, Insight, Yield, Persona), and set global UI scale (50–200%) or per-module scale sliders for Focus, Presence, Vista, Insight, and Yield.
 - **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
 - **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
 - **Timer layout** – Bar below objectives, inline beside the title, or inline on its own line below the title.
@@ -106,7 +105,7 @@
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
 4. Type `/h options` or `/hopt` to customize.
-5. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker). **Welcome** is the first sidebar item (above **Home**) with a short overview of each module (Preview items are labelled) and **Axis → Modules → Module Toggles**. After your first visit, the dashboard opens on **Home** by default; **Welcome** stays available in the sidebar.
+5. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker). **Welcome** is the first sidebar item (above **Home**) with a short overview of each module (Preview items are labelled); under **Axis** use **Global Toggles** (class colours and UI scale) or **Modules** (module on/off and minimap button). After your first visit, the dashboard opens on **Home** by default; **Welcome** stays available in the sidebar.
 
 [ko-fi](https://ko-fi.com/T6T71TX1Y1) **[Patreon](https://patreon.com/HorizonSuite?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)** | **[Discord](https://discord.gg/RkkYJgB3PA)** — Bug reports, feature requests, and community.
 

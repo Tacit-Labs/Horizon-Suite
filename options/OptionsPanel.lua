@@ -796,11 +796,14 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local origSet = opt.set
             local setFn = origSet
             if opt.refreshIds and optionFrames then
+                local skipKey = opt.dbKey
                 setFn = function(v)
                     origSet(v)
                     for _, k in ipairs(opt.refreshIds) do
-                        local f = optionFrames[k]
-                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        if k ~= skipKey then
+                            local f = optionFrames[k]
+                            if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        end
                     end
                     if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
@@ -828,11 +831,14 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local origSet = opt.set
             local setFn = origSet
             if opt.refreshIds and optionFrames then
+                local skipKey = opt.dbKey
                 setFn = function(v)
                     origSet(v)
                     for _, k in ipairs(opt.refreshIds) do
-                        local f = optionFrames[k]
-                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        if k ~= skipKey then
+                            local f = optionFrames[k]
+                            if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        end
                     end
                     if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
@@ -861,11 +867,14 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local origSet = opt.set
             local setFn = origSet
             if opt.refreshIds and optionFrames then
+                local skipKey = opt.dbKey
                 setFn = function(v)
                     origSet(v)
                     for _, k in ipairs(opt.refreshIds) do
-                        local f = optionFrames[k]
-                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        if k ~= skipKey then
+                            local f = optionFrames[k]
+                            if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        end
                     end
                     if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
@@ -873,12 +882,15 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local resetBtn = opt.resetButton
             if resetBtn and resetBtn.onClick and opt.refreshIds and optionFrames then
                 local origOnClick = resetBtn.onClick
+                local skipKeyDrop = opt.dbKey
                 resetBtn = {
                     onClick = function()
                         origOnClick()
                         for _, k in ipairs(opt.refreshIds) do
-                            local f = optionFrames[k]
-                            if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                            if k ~= skipKeyDrop then
+                                local f = optionFrames[k]
+                                if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                            end
                         end
                         if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                         notifyMainAddon()
@@ -942,11 +954,14 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             end
             if opt.refreshIds and optionFrames then
                 local origSet = setKeyVal
+                local skipKeyColor = opt.dbKey
                 setKeyVal = function(v)
                     origSet(v)
                     for _, k in ipairs(opt.refreshIds) do
-                        local f = optionFrames[k]
-                        if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        if k ~= skipKeyColor then
+                            local f = optionFrames[k]
+                            if f and f.frame and f.frame.Refresh then f.frame:Refresh() end
+                        end
                     end
                     if addon.Presence and addon.Presence.RefreshPreviewTargets then addon.Presence.RefreshPreviewTargets() end
                 end
@@ -2052,7 +2067,7 @@ end
 
 -- Build sidebar grouped by moduleKey (Modules, Focus, Presence)
 -- Use "modules" as sentinel for nil (WoW Lua disallows nil as table index)
-local MODULE_LABELS = { ["modules"] = L["Modules"], ["focus"] = L["Focus"], ["presence"] = L["Presence"], ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"], ["vista"] = L["Vista"] or "Vista" }
+local MODULE_LABELS = { ["modules"] = L["Axis"] or "Axis", ["focus"] = L["Focus"], ["presence"] = L["Presence"], ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"], ["vista"] = L["Vista"] or "Vista" }
 local groups = {}
 for i, cat in ipairs(addon.OptionCategories) do
     local mk = cat.moduleKey or "modules"
