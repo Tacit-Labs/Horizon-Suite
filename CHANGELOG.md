@@ -10,6 +10,24 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.3.0] – 2026-03-25
+
+### ✨ New Features
+
+- **(Axis)** Unified class colours — batch toggle and per-module tinting
+- **(Focus)** Colour choices for global accents, headers, and objectives
+- **(Axis)** Dashboard class icon using shared class icon media
+- **(Axis)** Global toggles for class colours and scale; module options grouped for on/off and minimap
+- **(Axis)** Dashboard background can use your current specialization’s talent art
+- **(Axis)** Welcome screen and dashboard refresh
+
+### 🔧 Improvements
+
+- **(Insight)** Defer tooltip width clamping for more reliable tooltip layout
+- **(Insight)** Fade out stale unit tooltips when mouseover clears
+
+---
+
 ## [4.2.2] – 2026-03-24
 
 ### 🐛 Fixes

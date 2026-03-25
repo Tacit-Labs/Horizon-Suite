@@ -9,6 +9,27 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.3.0"] = {
+        {
+            section = "New Features",
+            bullets = {
+                "Unified class colours: batch toggle and per-module tinting",
+                "Focus: colour choices for global, headers, and objectives",
+                "Dashboard class icon with shared class media",
+                "Global toggles for class colours and scale; module options grouped for on/off and minimap",
+                "Dashboard background option uses current specialization talent art",
+                "Welcome screen and dashboard refresh",
+            },
+        },
+        {
+            section = "IMPROVEMENTS",
+            bullets = {
+                "Insight: defer tooltip width clamping for more reliable layout",
+                "Insight: fade out stale unit tooltips when mouseover clears",
+            },
+        },
+    },
+
     ["4.2.2"] = {
         {
             section = "FIXES",
