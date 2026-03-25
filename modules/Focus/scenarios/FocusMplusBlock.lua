@@ -575,8 +575,18 @@ local function HideMplusTooltip()
     end
 end
 
-mplusBlock:SetScript("OnEnter", ShowMplusTooltip)
-mplusBlock:SetScript("OnLeave", HideMplusTooltip)
+mplusBlock:SetScript("OnEnter", function(self)
+    ShowMplusTooltip(self)
+    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+        addon.EnsureFocusUpdateRunning()
+    end
+end)
+mplusBlock:SetScript("OnLeave", function(self)
+    HideMplusTooltip(self)
+    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+        addon.EnsureFocusUpdateRunning()
+    end
+end)
 
 -- OnUpdate for timer refresh (updates every second)
 local timeSinceLastUpdate = 0
