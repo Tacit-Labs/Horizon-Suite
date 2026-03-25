@@ -148,7 +148,39 @@ SlashCmdList["HSDASH"] = function(msg)
                 logoText = nil,
                 searchDropBorder = nil,
                 welcomeAccentStrip = nil,
+                dashboardClassIcon = nil,
             }
+
+            -- Set after sidebar header built; repositions logo separator + scroll under version/dev/class icon.
+            local LayoutDashboardSidebarUnderHeader
+
+            local function RefreshDashboardClassIcon()
+                local tex = dashAccentRefs.dashboardClassIcon
+                if not tex then return end
+                if not (addon.GetOptionsClassColor and addon.GetOptionsClassColor()) then
+                    tex:Hide()
+                    return
+                end
+                local _, classFile = UnitClass("player")
+                local src = (addon.GetDB and addon.GetDB("dashboardClassIconSource", "default")) or "default"
+                local disp = addon.ResolveClassIconDisplay and addon.ResolveClassIconDisplay(classFile, src)
+                if not disp then
+                    tex:Hide()
+                    return
+                end
+                tex:SetVertexColor(1, 1, 1, 1)
+                if disp.kind == "atlas" then
+                    tex:SetTexture(nil)
+                    tex:SetAtlas(disp.atlas)
+                elseif disp.kind == "file" then
+                    tex:SetAtlas(nil)
+                    tex:SetTexture(disp.path)
+                else
+                    tex:Hide()
+                    return
+                end
+                tex:Show()
+            end
 
             addon.ApplyDashboardClassColor = function()
                 local ar, ag, ab = GetAccentColor()
@@ -185,6 +217,10 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
                 if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
                     dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
+                end
+                RefreshDashboardClassIcon()
+                if LayoutDashboardSidebarUnderHeader then
+                    LayoutDashboardSidebarUnderHeader()
                 end
             end
 
@@ -231,26 +267,28 @@ SlashCmdList["HSDASH"] = function(msg)
             sidebarVersion:SetPoint("TOP", sidebarLogoSub, "BOTTOM", 0, -4)
 
             -- Dev Mode indicator badge
+            local devBadge = nil
             local isDevMode = addon.GetDB and addon.GetDB("focusDevMode", false)
             if isDevMode then
-                local devBadge = MakeText(sidebar, "[ DEV MODE ]", 10, 1, 0.65, 0.1, "CENTER")
+                devBadge = MakeText(sidebar, "[ DEV MODE ]", 10, 1, 0.65, 0.1, "CENTER")
                 devBadge:SetPoint("TOP", sidebarVersion, "BOTTOM", 0, -2)
             end
-            local logoSepYOffset = isDevMode and -74 or -58
-            local scrollFrameYOffset = isDevMode and -84 or -68
+            local lastSidebarHeader = devBadge or sidebarVersion
 
-            -- Sidebar separator under logo
+            local dashboardClassIcon = sidebar:CreateTexture(nil, "ARTWORK")
+            dashboardClassIcon:SetSize(28, 28)
+            dashboardClassIcon:SetPoint("TOP", lastSidebarHeader, "BOTTOM", 0, -6)
+            dashboardClassIcon:Hide()
+            dashAccentRefs.dashboardClassIcon = dashboardClassIcon
+
+            -- Sidebar separator under logo / class icon (position from LayoutDashboardSidebarUnderHeader)
             local logoSep = sidebar:CreateTexture(nil, "ARTWORK")
             logoSep:SetHeight(1)
-            logoSep:SetPoint("TOPLEFT", 15, logoSepYOffset)
-            logoSep:SetPoint("TOPRIGHT", -15, logoSepYOffset)
             logoSep:SetColorTexture(ar, ag, ab, 0.3)
             dashAccentRefs.logoSep = logoSep
 
             -- Sidebar scroll area for buttons
             local sidebarScrollFrame = CreateFrame("ScrollFrame", nil, sidebar)
-            sidebarScrollFrame:SetPoint("TOPLEFT", 0, scrollFrameYOffset)
-            sidebarScrollFrame:SetPoint("BOTTOMRIGHT", -1, 10)
             local sidebarScrollContent = CreateFrame("Frame", nil, sidebarScrollFrame)
             sidebarScrollContent:SetWidth(SIDEBAR_WIDTH - 1)
             sidebarScrollContent:SetHeight(1)
@@ -261,6 +299,21 @@ SlashCmdList["HSDASH"] = function(msg)
                 local maxS = math.max(0, sidebarScrollContent:GetHeight() - self:GetHeight())
                 self:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * 30)))
             end)
+
+            LayoutDashboardSidebarUnderHeader = function()
+                logoSep:ClearAllPoints()
+                local icon = dashAccentRefs.dashboardClassIcon
+                local anchorBelow = (icon and icon:IsShown()) and icon or lastSidebarHeader
+                logoSep:SetPoint("TOP", anchorBelow, "BOTTOM", 0, -8)
+                logoSep:SetPoint("LEFT", sidebar, "LEFT", 15, 0)
+                logoSep:SetPoint("RIGHT", sidebar, "RIGHT", -15, 0)
+                sidebarScrollFrame:ClearAllPoints()
+                sidebarScrollFrame:SetPoint("TOPLEFT", logoSep, "BOTTOMLEFT", 0, -10)
+                sidebarScrollFrame:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, 10)
+            end
+
+            RefreshDashboardClassIcon()
+            LayoutDashboardSidebarUnderHeader()
 
             local sidebarButtons = {}
             local activeSidebarBtn = nil
@@ -341,8 +394,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         if btn ~= activeSidebarBtn then
                             btnBg:SetColorTexture(0.1, 0.1, 0.12, 1)
                             lbl:SetTextColor(0.9, 0.9, 0.95)
-                            local har, hag, hab = GetAccentColor()
-                            if btn.icon then btn.icon:SetVertexColor(har, hag, hab, 1) end
+                            if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
                         end
                     end)
                     btn:SetScript("OnLeave", function()

@@ -11,6 +11,7 @@
 
 HorizonSuite.lua
 Utilities.lua
+core/ClassIconMedia.lua
 media/MediaRegistry.lua
 core/Config.lua
 core/Core.lua

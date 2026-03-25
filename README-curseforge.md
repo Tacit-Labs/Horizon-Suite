@@ -99,7 +99,7 @@
 
 **Requirements:** World of Warcraft Retail (The War Within or later).
 
-**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in Typography and statusbar textures for progress bars. If not installed, the font dropdown shows only Game Font and any custom path you enter; progress bars use Solid texture. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips.
+**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in Typography and statusbar textures for progress bars. If not installed, the font dropdown shows only Game Font and any custom path you enter; progress bars use Solid texture. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips and, when Dashboard class colours are on, for the Dashboard header class icon (Axis → Class Colours → Dashboard class icon style—separate from Insight).
 
 1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://gitlab.com/Crystilac/horizon-suite/-/releases) and extract the `HorizonSuite` folder. ([Beta](https://gitlab.com/Crystilac/horizon-suite/-/releases/beta))
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
@@ -122,7 +122,7 @@
 Thanks to everyone who has contributed to Horizon Suite:
 
 - **feanor21#2847 — Panoramuxa (Tarren Mill -EU)** — Development
-- **RondoFerrari** — [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) — Class icons in Insight tooltips (optional)
+- **RondoFerrari** — [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) — Class icons in Insight tooltips and optional Dashboard header icon when class colours are on (optional)
 - **Aishuu** — French localization (frFR)
 - **아즈샤라-두녘** — Korean localization (koKR)
 - **Linho-Gallywix** — Brazilian Portuguese localization (ptBR)
