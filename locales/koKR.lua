@@ -26,6 +26,7 @@ L["Quest types"]                                                        = "퀘�
 L["Element overrides"]                                                  = "개별 요소 색상"
 L["Per category"]                                                       = "유형별 색상"
 L["Grouping Overrides"]                                                 = "그룹 우선 색상"
+-- L["Section Overrides"]                                                  = "Section Overrides"  -- NEEDS TRANSLATION
 L["Other colors"]                                                       = "기타 색상"
 
 -- =====================================================================
@@ -75,7 +76,26 @@ L["Drag to resize"]                                                     = "드�
 -- =====================================================================
 -- L["Profiles"]                                                           = "Profiles"  -- NEEDS TRANSLATION
 L["Modules"]                                                            = "기능"
+-- L["Module Toggles"]                                                     = "Module Toggles"  -- NEEDS TRANSLATION
 L["Axis"]                                                               = "Axis"
+
+-- =====================================================================
+-- DashboardPanel.lua — First-run welcome
+-- =====================================================================
+-- L["Dashboard welcome tab"]                                              = "Welcome"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome title"]                                            = "Welcome to Horizon Suite"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome head sub"]                                         = "What each module does and where to turn them on"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome intro"]                                            = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Use Open Module Toggles below, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."  -- NEEDS TRANSLATION
+-- L["Dashboard welcome path"]                                             = "%s → %s → %s"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome modules heading"]                                  = "Modules"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome continue"]                                         = "Go to Home"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome open toggles"]                                     = "Open Module Toggles"  -- NEEDS TRANSLATION
+-- L["Objective tracker for quests, world quests, rares, achievements, scenarios."]= "Objective tracker for quests, world quests, rares, achievements, scenarios."  -- NEEDS TRANSLATION
+-- L["Zone text and notifications."]                                       = "Zone text and notifications."  -- NEEDS TRANSLATION
+-- L["Minimap with zone text, coords, time, and button collector."]        = "Minimap with zone text, coords, time, and button collector."  -- NEEDS TRANSLATION
+-- L["Tooltips with class colors, spec, and faction icons."]               = "Tooltips with class colors, spec, and faction icons."  -- NEEDS TRANSLATION
+-- L["Loot toasts for items, money, currency, reputation."]                = "Loot toasts for items, money, currency, reputation."  -- NEEDS TRANSLATION
+-- L["Persona module short description"]                                   = "Custom character sheet with 3D model, item level, stats, and gear grid."  -- NEEDS TRANSLATION
 L["Layout"]                                                             = "레이아웃"
 L["Visibility"]                                                         = "표시 조건"
 L["Display"]                                                            = "표시"
@@ -177,6 +197,8 @@ L["Cinematic square minimap with zone text, coordinates, and button collector."]
 -- L["Cinematic square minimap with zone text, coordinates, time, and button collector."]= "Cinematic square minimap with zone text, coordinates, time, and button collector."  -- NEEDS TRANSLATION
 L["Beta"]                                                               = "Beta"
 L["Scaling"]                                                            = "크기 조정"
+-- L["Global Toggles"]                                                     = "Global Toggles"  -- NEEDS TRANSLATION
+-- L["Suite-wide class colour tinting and UI scale (global or per module)."]= "Dashboard background theme, class colour tinting, and UI scale (global or per module)."  -- NEEDS TRANSLATION
 L["Global UI scale"]                                                    = "전체 UI 크기 조정"
 L["Scale all sizes, spacings, and fonts by this factor (50–200%). Does not change your configured values."]= "모든 크기, 간격, 글꼴을 이 비율로 조정합니다 (50–200%). 설정값은 변경되지 않습니다."
 L["Per-module scaling"]                                                 = "기능별 크기 조정 활성화"
@@ -336,6 +358,11 @@ L["Show quest item buttons"]                                            = "퀘�
 L["Show usable quest item button next to each quest."]                  = "각 퀘스트 옆에 사용 가능한 아이템 버튼을 표시합니다."
 -- L["Tooltips on hover"]                                                  = "Tooltips on hover"  -- NEEDS TRANSLATION
 -- L["Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."]= "Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."  -- NEEDS TRANSLATION
+-- L["Show WoWhead link in tooltips"]                                      = "Show WoWhead link in tooltips"  -- NEEDS TRANSLATION
+-- L["When a tooltip is shown, add a link to open the quest, achievement, or NPC on WoWhead."]= "When a tooltip is shown, add a link to open the quest, achievement, or NPC on WoWhead."  -- NEEDS TRANSLATION
+-- L["View on WoWhead"]                                                    = "View on WoWhead"  -- NEEDS TRANSLATION
+-- L["Copy link"]                                                          = "Copy link"  -- NEEDS TRANSLATION
+-- L["Copy the URL below (Ctrl+C) and paste in your browser."]             = "Copy the URL below (Ctrl+C) and paste in your browser."  -- NEEDS TRANSLATION
 L["Show objective numbers"]                                             = "목표 번호 표시"
 -- L["Objective prefix"]                                                   = "Objective prefix"  -- NEEDS TRANSLATION
 -- L["Prefix each objective with a number or hyphen."]                     = "Prefix each objective with a number or hyphen."  -- NEEDS TRANSLATION
@@ -613,8 +640,22 @@ L["Reset Mythic+ typography"]                                           = "쐐�
 -- =====================================================================
 -- L["Frame"]                                                              = "Frame"  -- NEEDS TRANSLATION
 -- L["Class colours - Dashboard"]                                          = "Class colours - Dashboard"  -- NEEDS TRANSLATION
+-- L["Class Colours"]                                                      = "Class Colours"  -- NEEDS TRANSLATION
+-- L["Enable all class colours"]                                           = "Enable all class colours"  -- NEEDS TRANSLATION
+-- L["Toggle class colours on or off for all modules at once."]            = "Toggle class colours on or off for all modules at once."  -- NEEDS TRANSLATION
+-- L["Dashboard"]                                                          = "Dashboard"  -- NEEDS TRANSLATION
+-- L["Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour."]= "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour."  -- NEEDS TRANSLATION
+-- L["Tint Presence toast title and divider with your class colour."]      = "Tint Presence toast title and divider with your class colour."  -- NEEDS TRANSLATION
+-- L["Tint Vista minimap, addon-bar, and panel borders and text with your class colour."]= "Tint Vista minimap, addon-bar, and panel borders and text with your class colour."  -- NEEDS TRANSLATION
+-- L["Use class colour for player tooltip name, class line, and border."]  = "Use class colour for player tooltip name, class line, and border."  -- NEEDS TRANSLATION
+-- L["Tint Yield loot icon glow and edit/anchor borders with your class colour."]= "Tint Yield loot icon glow and edit/anchor borders with your class colour."  -- NEEDS TRANSLATION
+-- L["Tint the character name on the Persona sheet with your class colour."]= "Tint the character name on the Persona sheet with your class colour."  -- NEEDS TRANSLATION
 -- L["Class colors"]                                                       = "Class colors"  -- NEEDS TRANSLATION
 -- L["Tint dashboard accents, dividers, and highlights with your class colour."]= "Tint dashboard accents, dividers, and highlights with your class colour."  -- NEEDS TRANSLATION
+-- L["Theme"]                                                              = "Theme"  -- NEEDS TRANSLATION
+-- L["Dashboard background"]                                               = "Dashboard background"  -- NEEDS TRANSLATION
+-- L["Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base."]= "Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base."  -- NEEDS TRANSLATION
+-- L["Dashboard background Midnight"]                                      = "Midnight"  -- NEEDS TRANSLATION
 L["Backdrop opacity"]                                                   = "배경 투명도"
 L["Panel background opacity (0–1)."]                                    = "패널 배경 투명도 (0–1)."
 L["Show border"]                                                        = "테두리 표시"
@@ -913,6 +954,12 @@ L["Open Horizon Suite"]                                                 = "Horiz
 L["Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."]= "Focus, Presence, Vista 및 기타 모듈을 구성하는 전체 Horizon Suite 옵션 패널을 엽니다."
 L["Show minimap icon"]                                                  = "미니맵 아이콘 표시"
 L["Show a clickable icon on the minimap that opens the options panel."] = "옵션 패널을 여는 미니맵의 클릭 가능한 아이콘을 표시합니다."
+-- L["Lock minimap button position"]                                       = "Lock minimap button position"  -- NEEDS TRANSLATION
+-- L["Prevent dragging the Horizon minimap button."]                       = "Prevent dragging the Horizon minimap button."  -- NEEDS TRANSLATION
+-- L["Reset minimap button position"]                                      = "Reset minimap button position"  -- NEEDS TRANSLATION
+-- L["Reset the minimap button to the default position (bottom-left)."]    = "Reset the minimap button to the default position (bottom-left)."  -- NEEDS TRANSLATION
+-- L["Drag to move (when unlocked)."]                                      = "Drag to move (when unlocked)."  -- NEEDS TRANSLATION
+-- L["Locked"]                                                             = "Locked"  -- NEEDS TRANSLATION
 L["Discovered"]                                                         = "발견됨"
 L["Refresh"]                                                            = "새로고침"
 L["Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."]= "최선을 다해 검색합니다. 일부 미수락 퀘스트는 NPC와 상호작용하거나 페이징 조건을 만족해야 노출됩니다."
