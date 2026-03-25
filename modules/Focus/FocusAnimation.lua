@@ -1129,7 +1129,6 @@ function addon.EnsureFocusUpdateRunning()
             or addon.focus.collapse.headerSlidingToTop
             or (addon.focus.combat and addon.focus.combat.fadeState ~= nil)
             or hoverFadeNeedsUpdate
-            or (mouseoverOnly and HS:IsShown() and not addon.focus.combat.fadeState)  -- Keep polling for hover when show-on-mouseover is on
             or (addon.focus.collapse.groups and next(addon.focus.collapse.groups) ~= nil)
             or next(groupReflowed) ~= nil
             or (addon.focus.collapse.optionCollapseKeys and next(addon.focus.collapse.optionCollapseKeys) ~= nil)
