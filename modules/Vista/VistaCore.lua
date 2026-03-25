@@ -76,16 +76,18 @@ end
 local function GetMapSize() return tonumber(DB("vistaMapSize", MAP_SIZE_DEFAULT)) or MAP_SIZE_DEFAULT end
 local function GetBorderShow()  return DB("vistaBorderShow", true) end
 local function GetBorderW()     return tonumber(DB("vistaBorderWidth", 1)) or 1 end
+-- Minimap border: DB stores full RGBA. With class colour on, use class RGB scaled by picker RGB (white = full class)
+-- and picker alpha so Vista → Border color opacity always applies.
 local function GetBorderColor()
+    local br = tonumber(DB("vistaBorderColorR", BORDER_COLOR_DEFAULT[1])) or BORDER_COLOR_DEFAULT[1]
+    local bg = tonumber(DB("vistaBorderColorG", BORDER_COLOR_DEFAULT[2])) or BORDER_COLOR_DEFAULT[2]
+    local bb = tonumber(DB("vistaBorderColorB", BORDER_COLOR_DEFAULT[3])) or BORDER_COLOR_DEFAULT[3]
+    local ba = tonumber(DB("vistaBorderColorA", BORDER_COLOR_DEFAULT[4])) or BORDER_COLOR_DEFAULT[4]
     local cc = addon.GetVistaClassColor and addon.GetVistaClassColor()
     if cc then
-        local a = tonumber(DB("vistaBorderColorA", BORDER_COLOR_DEFAULT[4])) or BORDER_COLOR_DEFAULT[4]
-        return cc[1], cc[2], cc[3], a
+        return cc[1] * br, cc[2] * bg, cc[3] * bb, ba
     end
-    return tonumber(DB("vistaBorderColorR", BORDER_COLOR_DEFAULT[1])) or BORDER_COLOR_DEFAULT[1],
-           tonumber(DB("vistaBorderColorG", BORDER_COLOR_DEFAULT[2])) or BORDER_COLOR_DEFAULT[2],
-           tonumber(DB("vistaBorderColorB", BORDER_COLOR_DEFAULT[3])) or BORDER_COLOR_DEFAULT[3],
-           tonumber(DB("vistaBorderColorA", BORDER_COLOR_DEFAULT[4])) or BORDER_COLOR_DEFAULT[4]
+    return br, bg, bb, ba
 end
 
 -- Resolve a per-element font path, falling back to global or the hard default.
@@ -202,10 +204,15 @@ do
     G.BarBorderShow         = function() return DB("vistaBarBorderShow", false) end
     G.BarBorderColor        = function()
         local BAR_BORDER_DEFAULT = { 0.3, 0.4, 0.6, 0.7 }
-        return tonumber(DB("vistaBarBorderR", BAR_BORDER_DEFAULT[1])) or BAR_BORDER_DEFAULT[1],
-               tonumber(DB("vistaBarBorderG", BAR_BORDER_DEFAULT[2])) or BAR_BORDER_DEFAULT[2],
-               tonumber(DB("vistaBarBorderB", BAR_BORDER_DEFAULT[3])) or BAR_BORDER_DEFAULT[3],
-               tonumber(DB("vistaBarBorderA", BAR_BORDER_DEFAULT[4])) or BAR_BORDER_DEFAULT[4]
+        local bbr = tonumber(DB("vistaBarBorderR", BAR_BORDER_DEFAULT[1])) or BAR_BORDER_DEFAULT[1]
+        local bbg = tonumber(DB("vistaBarBorderG", BAR_BORDER_DEFAULT[2])) or BAR_BORDER_DEFAULT[2]
+        local bbb = tonumber(DB("vistaBarBorderB", BAR_BORDER_DEFAULT[3])) or BAR_BORDER_DEFAULT[3]
+        local a = tonumber(DB("vistaBarBorderA", BAR_BORDER_DEFAULT[4])) or BAR_BORDER_DEFAULT[4]
+        local cc = addon.GetVistaClassColor and addon.GetVistaClassColor()
+        if cc then
+            return cc[1] * bbr, cc[2] * bbg, cc[3] * bbb, a
+        end
+        return bbr, bbg, bbb, a
     end
     G.RightClickLocked      = function() return DB("vistaRightClickLocked", true) end
     G.RightClickPanelX      = function() return tonumber(DB("vistaRightClickPanelX", nil)) end
@@ -238,7 +245,7 @@ do
         else return BTN_DEFAULTS.tracking end
     end
 
-    -- Colors (use class colour when Vista class colour enabled; zone and FPS/MS numbers always use configured; FPS/MS labels use class colour)
+    -- Colors (class colour when enabled: coord/time/perf labels; minimap border via GetBorderColor; bar + panel borders via BarBorderColor/PanelBorderColor. Zone name and FPS/MS numbers stay configured.)
     local function GetVistaClassColor()
         local cc = addon.GetVistaClassColor and addon.GetVistaClassColor()
         if cc then return cc[1], cc[2], cc[3] end
@@ -259,10 +266,15 @@ do
                tonumber(DB("vistaPanelBgA",PANEL_BG_DEFAULT[4])) or PANEL_BG_DEFAULT[4]
     end
     G.PanelBorderColor = function()
-        return tonumber(DB("vistaPanelBorderR",PANEL_BORDER_DEFAULT[1])) or PANEL_BORDER_DEFAULT[1],
-               tonumber(DB("vistaPanelBorderG",PANEL_BORDER_DEFAULT[2])) or PANEL_BORDER_DEFAULT[2],
-               tonumber(DB("vistaPanelBorderB",PANEL_BORDER_DEFAULT[3])) or PANEL_BORDER_DEFAULT[3],
-               tonumber(DB("vistaPanelBorderA",PANEL_BORDER_DEFAULT[4])) or PANEL_BORDER_DEFAULT[4]
+        local pr = tonumber(DB("vistaPanelBorderR", PANEL_BORDER_DEFAULT[1])) or PANEL_BORDER_DEFAULT[1]
+        local pg = tonumber(DB("vistaPanelBorderG", PANEL_BORDER_DEFAULT[2])) or PANEL_BORDER_DEFAULT[2]
+        local pb = tonumber(DB("vistaPanelBorderB", PANEL_BORDER_DEFAULT[3])) or PANEL_BORDER_DEFAULT[3]
+        local a = tonumber(DB("vistaPanelBorderA", PANEL_BORDER_DEFAULT[4])) or PANEL_BORDER_DEFAULT[4]
+        local cc = addon.GetVistaClassColor and addon.GetVistaClassColor()
+        if cc then
+            return cc[1] * pr, cc[2] * pg, cc[3] * pb, a
+        end
+        return pr, pg, pb, a
     end
 
     -- Per-difficulty color lookup

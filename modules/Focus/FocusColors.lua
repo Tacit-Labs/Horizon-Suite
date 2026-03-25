@@ -169,6 +169,26 @@ local function GetSectionColor(groupKey)
     return addon.SECTION_COLORS[groupKey] or addon.SECTION_COLORS.DEFAULT
 end
 
+--- Colour for section/category row headers (CURRENT, NEARBY, …): per-group section colour, or player class when Focus class colour is on.
+--- Applies dim when dimNonSuperTracked and this group is not the super-tracked group.
+--- @param groupKey string
+--- @param focusedGroupKey string|nil Group key that contains the super-tracked quest, if any
+--- @return table {r,g,b}
+local function GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
+    local color = GetSectionColor(groupKey)
+    local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if cc then
+        color = { cc[1], cc[2], cc[3] }
+    end
+    if not color or type(color) ~= "table" or not color[1] or not color[2] or not color[3] then
+        color = addon.SECTION_COLORS.DEFAULT
+    end
+    if addon.GetDB("dimNonSuperTracked", false) and focusedGroupKey and groupKey ~= focusedGroupKey then
+        color = addon.ApplyDimColor(color)
+    end
+    return color
+end
+
 --- Returns the color for completed objectives when the override is on; nil when off (caller uses same as incomplete).
 --- @param category string Optional category (unused when override is on)
 --- @return table|nil {r,g,b} or nil
@@ -190,4 +210,5 @@ addon.GetObjectiveColor    = GetObjectiveColor
 addon.GetZoneColor         = GetZoneColor
 addon.GetScenarioStageColor = GetScenarioStageColor
 addon.GetQuestColor        = GetQuestColor
-addon.GetSectionColor      = GetSectionColor
+addon.GetSectionColor              = GetSectionColor
+addon.GetSectionHeaderDisplayColor = GetSectionHeaderDisplayColor

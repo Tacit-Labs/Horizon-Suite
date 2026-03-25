@@ -5,7 +5,6 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
-print("|cff00ff00Horizon Suite: DashboardPanel.lua loaded|r")
 
 local L = addon.L
 
@@ -30,7 +29,6 @@ _G.HorizonSuite_ShowDashboard = addon.ShowDashboard
 SLASH_HSDASH1 = "/hsd"
 SLASH_HSDASH2 = "/dash"
 SlashCmdList["HSDASH"] = function(msg)
-    print("|cff00ff00Horizon Suite: /hsd triggered|r")
     f = f or _G.HorizonSuiteDashboard
     if f and f:IsShown() then
         f:Hide()

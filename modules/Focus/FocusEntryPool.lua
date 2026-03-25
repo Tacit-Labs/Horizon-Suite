@@ -651,6 +651,10 @@ local function ApplyTypography()
     local headerC = addon.GetHeaderColor()
     addon.headerText:SetTextColor(headerC[1], headerC[2], headerC[3], 1)
 
+    if addon.ApplyHeaderChromeColors then
+        addon.ApplyHeaderChromeColors()
+    end
+
     if addon.divider and addon.GetHeaderDividerColor then
         local dc = addon.GetHeaderDividerColor()
         addon.divider:SetColorTexture(dc[1], dc[2], dc[3], dc[4])
@@ -737,6 +741,10 @@ local function ApplyDimensions(widthOverride)
         sectionPool[i]:SetSize(w - S(addon.PADDING) - leftOffset - S(addon.CONTENT_RIGHT_PADDING or 0), addon.GetSectionHeaderHeight())
     end
     if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+    if addon.divider and addon.divider.SetColorTexture and addon.GetHeaderDividerColor then
+        local dc = addon.GetHeaderDividerColor()
+        addon.divider:SetColorTexture(dc[1], dc[2], dc[3], dc[4])
+    end
 end
 
 --- Return an entry to the pool; clears data and hides frame. Hide() is guarded during combat and deferred to PLAYER_REGEN_ENABLED.

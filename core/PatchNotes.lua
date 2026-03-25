@@ -405,7 +405,7 @@ addon.HidePatchNotes = function()
 end
 
 --- Refresh accent colours on the Patch Notes panel if it is visible (e.g. when "Class colours - Dashboard" is toggled).
---- Call from options when dashboardClassColor changes so the panel updates live.
+--- Call from options when classColorDashboard (Axis → Class Colours) changes so the panel updates live.
 function addon.ApplyPatchNotesAccent()
     if not panel or not panel:IsShown() then return end
     local ar, ag, ab = GetAccentRGB()

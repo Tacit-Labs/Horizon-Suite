@@ -68,6 +68,7 @@
 
 - **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
 - **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
+- **Class colours (Axis)** – In **Modules → Class Colours**, enable class tint for each module or all at once (dashboard accents, Focus header title, category section headers, main and between-section dividers, super-track highlights, Presence toast title and divider, Vista minimap, bar, and panel borders and labels, Insight player tooltips, Yield loot glow and edit chrome, Persona name).
 - **Scaling** – Global UI scale (50–200%) for all modules, or per-module sliders for Focus, Presence, Vista, Insight, and Yield when WoW UI scale is lowered.
 - **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
 - **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.

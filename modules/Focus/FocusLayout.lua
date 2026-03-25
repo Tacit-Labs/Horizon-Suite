@@ -1027,10 +1027,8 @@ local function FullLayout()
                         div = scrollChild:CreateTexture(nil, "ARTWORK")
                         sectionDividers[sectionDividerIdx] = div
                     end
-                    local divColor = addon.GetDB("sectionDividerColor", nil)
-                    if not divColor or type(divColor) ~= "table" or not divColor[1] then
-                        divColor = { 0.3, 0.3, 0.35, 0.4 }
-                    end
+                    local divColor = (addon.GetSectionDividerColor and addon.GetSectionDividerColor())
+                        or { 0.3, 0.3, 0.35, 0.4 }
                     div:SetColorTexture(divColor[1], divColor[2], divColor[3], divColor[4] or 0.4)
                     local divX = addon.GetScaledPadding()
                     local divW = addon.GetPanelWidth() - divX * 2
@@ -1295,8 +1293,8 @@ local function FullLayout()
     if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
 end
 
---- Lightweight color refresh: updates section headers and entry title colors without FullLayout.
---- Used during live color picker drag for responsive feedback.
+--- Lightweight color refresh: updates main header title, section headers, entry colors, and dividers without FullLayout.
+--- Used during live color picker drag and when class-colour toggles change.
 function addon.ApplyFocusColors()
     if not addon.focus or not addon.focus.enabled then return end
     local function ApplyTextureColorKeepAlpha(tex, color)
@@ -1308,11 +1306,8 @@ function addon.ApplyFocusColors()
     for i = 1, addon.SECTION_POOL_SIZE do
         local s = sectionPool[i]
         if s and s.groupKey and s:IsShown() then
-            local color = addon.GetSectionColor and addon.GetSectionColor(s.groupKey)
+            local color = addon.GetSectionHeaderDisplayColor and addon.GetSectionHeaderDisplayColor(s.groupKey, focusedGroupKey)
             if color and type(color) == "table" and color[1] and color[2] and color[3] then
-                if addon.GetDB("dimNonSuperTracked", false) and focusedGroupKey and s.groupKey ~= focusedGroupKey then
-                    color = addon.ApplyDimColor(color)
-                end
                 s.text:SetTextColor(color[1], color[2], color[3], addon.SECTION_COLOR_A or 1)
             end
         end
@@ -1411,6 +1406,10 @@ function addon.ApplyFocusColors()
                 if type(highlightColor) ~= "table" or not highlightColor[1] or not highlightColor[2] or not highlightColor[3] then
                     highlightColor = { 0.40, 0.70, 1.00 }
                 end
+                local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+                if fcc then
+                    highlightColor = { fcc[1], fcc[2], fcc[3] }
+                end
                 ApplyTextureColorKeepAlpha(entry.trackBar, highlightColor)
                 ApplyTextureColorKeepAlpha(entry.highlightBg, highlightColor)
                 ApplyTextureColorKeepAlpha(entry.highlightTop, highlightColor)
@@ -1424,15 +1423,27 @@ function addon.ApplyFocusColors()
     -- Update section divider colors (live-drag path skips FullLayout, so update here too)
     local sectionDividers = addon.focus.layout and addon.focus.layout.sectionDividers
     if sectionDividers then
-        local divColor = addon.GetDB("sectionDividerColor", nil)
-        if not divColor or type(divColor) ~= "table" or not divColor[1] then
-            divColor = { 0.3, 0.3, 0.35, 0.4 }
-        end
+        local divColor = (addon.GetSectionDividerColor and addon.GetSectionDividerColor())
+            or { 0.3, 0.3, 0.35, 0.4 }
         for _, div in ipairs(sectionDividers) do
             if div and div.IsShown and div:IsShown() then
                 div:SetColorTexture(divColor[1], divColor[2], divColor[3], divColor[4] or 0.4)
             end
         end
+    end
+    if addon.divider and addon.divider.SetColorTexture and addon.GetHeaderDividerColor then
+        local dc = addon.GetHeaderDividerColor()
+        addon.divider:SetColorTexture(dc[1], dc[2], dc[3], dc[4])
+    end
+    -- Main "Objectives" header uses GetHeaderColor; typography path does not run on class-colour toggle alone.
+    if addon.headerText and addon.headerText.SetTextColor and addon.GetHeaderColor then
+        local hc = addon.GetHeaderColor()
+        if hc and type(hc) == "table" and hc[1] and hc[2] and hc[3] then
+            addon.headerText:SetTextColor(hc[1], hc[2], hc[3], 1)
+        end
+    end
+    if addon.ApplyHeaderChromeColors then
+        addon.ApplyHeaderChromeColors()
     end
 end
 

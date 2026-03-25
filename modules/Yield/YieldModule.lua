@@ -21,6 +21,7 @@ addon:RegisterModule("yield", {
             if addon.Yield.SuppressBlizzard then addon.Yield.SuppressBlizzard() end
             if addon.Yield.SetFrameVisible then addon.Yield.SetFrameVisible(true) end
             if addon.Yield.RestoreSavedPosition then addon.Yield.RestoreSavedPosition() end
+            if addon.Yield.ApplyYieldClassChrome then addon.Yield.ApplyYieldClassChrome() end
         end
     end,
 
