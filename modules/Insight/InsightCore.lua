@@ -435,9 +435,9 @@ function Insight.Init()
     end
 
     -- Defer LSM registration so IsAddOnLoaded is available (runs when API is ready)
-    if C_Timer and C_Timer.After and Insight.RegisterRondoClassIconsWithLSM then
+    if C_Timer and C_Timer.After and addon.RegisterRondoClassIconsWithLSM then
         C_Timer.After(0, function()
-            pcall(Insight.RegisterRondoClassIconsWithLSM)
+            pcall(addon.RegisterRondoClassIconsWithLSM)
         end)
     end
 
@@ -576,10 +576,12 @@ local function HandleInsightDebugSlash(msg)
             local ok, r = pcall(IsAddOnLoaded, "RondoMedia")
             isRondo = ok and r
         end
-        local displayName = Insight.RONDO_CLASS_NAMES and Insight.RONDO_CLASS_NAMES["WARRIOR"] or "Warrior"
+        local rondo = addon.CLASS_ICON_RONDO_NAMES
+        local displayName = rondo and rondo["WARRIOR"] or "Warrior"
+        local folder = addon.ADDON_NAME or "HorizonSuite"
         local path = isRondo
             and ("Interface\\AddOns\\RondoMedia\\media\\Class_icons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
-            or ("Interface\\AddOns\\HorizonSuite\\media\\RondoClassIcons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
+            or ("Interface\\AddOns\\%s\\media\\RondoClassIcons\\class_colored border\\32x32\\%s_32.tga"):format(folder, displayName)
         Insight.PrintBlock({
             "RondoMedia path debug",
             "   Class icon source : " .. source,

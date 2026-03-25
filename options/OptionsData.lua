@@ -296,6 +296,10 @@ local CLASS_COLOR_KEYS = {
     classColorYield = true,
 }
 
+local DASHBOARD_CLASS_ICON_KEYS = {
+    dashboardClassIconSource = true,
+}
+
 function OptionsData_GetDB(key, default)
     return addon.GetDB(key, default)
 end
@@ -342,6 +346,9 @@ function OptionsData_SetDB(key, value)
     end
     if YIELD_KEYS[key] and addon.Yield and addon.Yield.ApplyYieldOptions then
         addon.Yield.ApplyYieldOptions()
+    end
+    if DASHBOARD_CLASS_ICON_KEYS[key] then
+        if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
     end
     if CLASS_COLOR_KEYS[key] then
         if key == "classColorDashboard" then
@@ -958,6 +965,7 @@ local OptionCategories = {
             for _, k in ipairs(classColorKeys) do
                 classColorAllRefreshIds[#classColorAllRefreshIds + 1] = k
             end
+            classColorAllRefreshIds[#classColorAllRefreshIds + 1] = "dashboardClassIconSource"
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["Enable all class colours"] or "Enable all class colours",
@@ -978,7 +986,19 @@ local OptionCategories = {
                     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
                 end,
             }
-            opts[#opts + 1] = { type = "toggle", name = L["Dashboard"], desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["Dashboard"], desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll", "dashboardClassIconSource" } }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["Dashboard class icon style"] or "Dashboard class icon style",
+                desc = L["Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons."] or "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons.",
+                tooltip = L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"],
+                dbKey = "dashboardClassIconSource",
+                options = { { L["Default"] or "Default", "default" }, { "RondoMedia", "rondomedia" } },
+                get = function() return getDB("dashboardClassIconSource", "default") end,
+                set = function(v) setDB("dashboardClassIconSource", v) end,
+                visibleWhen = function() return getDB("classColorDashboard", false) end,
+                refreshIds = { "_classColorAll" },
+            }
             opts[#opts + 1] = { type = "toggle", name = L["Focus"], desc = L["Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour."] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = L["Presence"], desc = L["Tint Presence toast title and divider with your class colour."] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = L["Vista"] or "Vista", desc = L["Tint Vista minimap, addon-bar, and panel borders and text with your class colour."] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
