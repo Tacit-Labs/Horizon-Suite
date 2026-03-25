@@ -198,6 +198,8 @@ L["Cinematic square minimap with zone text, coordinates, and button collector."]
 L["Cinematic square minimap with zone text, coordinates, time, and button collector."]                              = "Cinematic square minimap with zone text, coordinates, time, and button collector."
 L["Beta"]                                                                                                           = "Beta"
 L["Scaling"]                                                                                                        = "Scaling"
+L["Global Toggles"]                                                                                                 = "Global Toggles"
+L["Suite-wide class colour tinting and UI scale (global or per module)."]                                           = "Suite-wide class colour tinting and UI scale (global or per module)."
 L["Global UI scale"]                                                                                                = "Global UI scale"
 L["Scale all sizes, spacings, and fonts by this factor (50–200%). Does not change your configured values."]         = "Scale all sizes, spacings, and fonts by this factor (50–200%). Does not change your configured values."
 L["Per-module scaling"]                                                                                             = "Per-module scaling"

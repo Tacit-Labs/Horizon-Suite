@@ -8,6 +8,11 @@ if not addon then return end
 
 local L = addon.L
 
+-- Categories shown under the Axis hub (dashboard + search); keep in sync with OptionCategories keys.
+local function OptionCategoryKeyIsAxis(catKey)
+    return catKey == "Profiles" or catKey == "Modules" or catKey == "GlobalToggles"
+end
+
 -- Helper: Create Text
 local function MakeText(parent, text, size, r, g, b, justify)
     local fs = parent:CreateFontString(nil, "OVERLAY")
@@ -110,6 +115,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 ["Axis"] = "INV_Misc_Wrench_01",
                 ["Profiles"] = "INV_Misc_GroupNeedMore",
                 ["Modules"] = "inv_10_engineering_purchasedparts_color2",
+                ["GlobalToggles"] = "Trade_Engineering",
                 ["Focus"] = "achievement_quests_completed_05",
                 ["Presence"] = "vas_guildnamechange",
                 ["Vista"] = "ability_hunter_pathfinding",
@@ -689,7 +695,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     local cats = {}
                     for _, cat in ipairs(addon.OptionCategories) do
                         local catMk
-                        if cat.key == "Profiles" or cat.key == "Modules" then
+                        if OptionCategoryKeyIsAxis(cat.key) then
                             catMk = "axis"
                         else
                             catMk = cat.moduleKey or "modules"
@@ -815,7 +821,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 if targetCat then
                     -- Get the effective moduleKey (Profiles/Modules map to "axis")
                     local effectiveMk = targetCat.moduleKey
-                    if targetCat.key == "Profiles" or targetCat.key == "Modules" then
+                    if OptionCategoryKeyIsAxis(targetCat.key) then
                         effectiveMk = "axis"
                     end
                     local modName = effectiveMk and moduleLabels[effectiveMk] or targetCat.name
@@ -1058,7 +1064,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 local matchedCatIdx = nil
                 for i, cat in ipairs(addon.OptionCategories) do
                     local catMk
-                    if cat.key == "Profiles" or cat.key == "Modules" then
+                    if OptionCategoryKeyIsAxis(cat.key) then
                         catMk = "axis"
                     else
                         catMk = cat.moduleKey or "modules"
@@ -1115,7 +1121,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 for _, cat in ipairs(addon.OptionCategories) do
                     local match = false
                     if moduleKey == "axis" then
-                        match = (cat.key == "Profiles" or cat.key == "Modules")
+                        match = OptionCategoryKeyIsAxis(cat.key)
                     elseif moduleKey and cat.moduleKey == moduleKey then
                         match = true
                     elseif not moduleKey and cat.name == name then
@@ -1331,11 +1337,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 local currentCard = nil
                 local detailOptionFrames = {}
 
-                local function RefreshLinkedTargets(refreshIds)
+                -- skipDbKey: do not Refresh the control that initiated the change — Refresh() snaps the
+                -- pill thumb and cancels CreateToggleSwitch's slide animation (feels broken vs other toggles).
+                local function RefreshLinkedTargets(refreshIds, skipDbKey)
                     if not refreshIds then return end
                     for _, k in ipairs(refreshIds) do
-                        local w = detailOptionFrames[k]
-                        if w and w.Refresh then w:Refresh() end
+                        if k ~= skipDbKey then
+                            local w = detailOptionFrames[k]
+                            if w and w.Refresh then w:Refresh() end
+                        end
                     end
                     if addon.Presence and addon.Presence.RefreshPreviewTargets then
                         addon.Presence.RefreshPreviewTargets()
@@ -1526,15 +1536,16 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
                     if opt.refreshIds and s then
                         local origSet = s
+                        local skipKey = opt.dbKey
                         if opt.type == "color" then
                             s = function(nr, ng, nb, na)
                                 origSet(nr, ng, nb, na)
-                                RefreshLinkedTargets(opt.refreshIds)
+                                RefreshLinkedTargets(opt.refreshIds, skipKey)
                             end
                         else
                             s = function(v)
                                 origSet(v)
-                                RefreshLinkedTargets(opt.refreshIds)
+                                RefreshLinkedTargets(opt.refreshIds, skipKey)
                             end
                         end
                     end
@@ -2468,7 +2479,7 @@ SlashCmdList["HSDASH"] = function(msg)
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
                 local mk
-                if cat.key == "Profiles" or cat.key == "Modules" then
+                if OptionCategoryKeyIsAxis(cat.key) then
                     mk = "axis"
                 else
                     mk = cat.moduleKey or "modules"
@@ -2528,7 +2539,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     if isStandalone then
                         local catIdx = g.categories[1]
                         local cat = addon.OptionCategories[catIdx]
-                        local iconKey = categoryIcons[cat.name] or "INV_Misc_Question_01"
+                        local iconKey = categoryIcons[cat.key] or "INV_Misc_Question_01"
                         local btn = CreateSidebarButton(sidebarScrollContent, cat.name, iconKey, function()
                             f.OpenModule(cat.name, cat.moduleKey)
                         end)

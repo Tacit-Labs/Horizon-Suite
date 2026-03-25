@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Focus - Options Data
-    OptionCategories (Profiles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence General/Notifications/Typography, Insight, Vista Minimap/Appearance/Addon Buttons, Yield), getDB/setDB/notifyMainAddon, search index.
+    OptionCategories (Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence General/Notifications/Typography, Insight, Vista Minimap/Appearance/Addon Buttons, Yield), getDB/setDB/notifyMainAddon, search index.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -563,7 +563,7 @@ local function getActiveQuestHighlight()
 end
 
 -- ---------------------------------------------------------------------------
--- OptionCategories: Profiles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence (General, Notifications, Typography), Insight, Vista (Minimap, Appearance, Addon Buttons), Yield
+-- OptionCategories: Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence (General, Notifications, Typography), Insight, Vista (Minimap, Appearance, Addon Buttons), Yield
 -- ---------------------------------------------------------------------------
 
 local OptionCategories = {
@@ -942,24 +942,12 @@ local OptionCategories = {
         end,
     },
     {
-        key = "Modules",
-        name = L["Modules"],
+        key = "GlobalToggles",
+        name = L["Global Toggles"] or "Global Toggles",
+        desc = L["Suite-wide class colour tinting and UI scale (global or per module)."] or "Suite-wide class colour tinting and UI scale (global or per module).",
         moduleKey = nil,
-        options = (function()
-            local previewSuffix = " |cff228b22(" .. (L["Preview"] or "Preview") .. ")|r"
-            local opts = {
-                { type = "section", name = L["Module Toggles"] or "Module Toggles" },
-                { type = "toggle", name = L["Focus"], desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
-                { type = "toggle", name = L["Presence"], desc = L["Zone text and notifications."], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
-                { type = "toggle", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
-                { type = "toggle", name = L["Insight"], desc = L["Tooltips with class colors, spec, and faction icons."], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
-                { type = "toggle", name = L["Yield"] .. previewSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end },
-                { type = "toggle", name = "Persona" .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_persona", get = function() return addon:IsModuleEnabled("persona") end, set = function(v) addon:SetModuleEnabled("persona", v) end },
-            }
-            opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
-            opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
-            opts[#opts + 1] = { type = "toggle", name = L["Lock minimap button position"] or "Lock minimap button position", desc = L["Prevent dragging the Horizon minimap button."] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v) setDB("minimapButtonLocked", v) end }
-            opts[#opts + 1] = { type = "button", name = L["Reset minimap button position"] or "Reset minimap button position", desc = L["Reset the minimap button to the default position (bottom-left)."] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
+        options = function()
+            local opts = {}
             opts[#opts + 1] = { type = "section", name = L["Class Colours"] or "Class Colours" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorPersona",
@@ -998,7 +986,6 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "toggle", name = L["Yield"], desc = L["Tint Yield loot icon glow and edit/anchor borders with your class colour."] or "Tint Yield loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorYield", get = function() return getDB("classColorYield", false) end, set = function(v) setDB("classColorYield", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = "Persona", desc = L["Tint the character name on the Persona sheet with your class colour."] or "Tint the character name on the Persona sheet with your class colour.", dbKey = "classColorPersona", get = function() return getDB("classColorPersona", false) end, set = function(v) setDB("classColorPersona", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["Scaling"] }
-            -- helper: refresh all modules after any scale change
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
                 if addon.ApplyDimensions then addon.ApplyDimensions() end
@@ -1009,11 +996,8 @@ local OptionCategories = {
                 local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
                 if fullLayout and not InCombatLockdown() then fullLayout() end
             end
-            -- Debounce: write DB immediately on every slider step, but delay the heavy
-            -- apply call (typography, dimensions, FullLayout) until the user pauses.
-            -- Each call cancels any in-flight timer and schedules a fresh one.
             local scalingDebounceTimers = {}
-            local SCALE_DEBOUNCE = 0.15  -- seconds to wait after last change
+            local SCALE_DEBOUNCE = 0.15
             local function debouncedRefresh(key, applyFn)
                 if scalingDebounceTimers[key] then
                     scalingDebounceTimers[key]:Cancel()
@@ -1040,7 +1024,6 @@ local OptionCategories = {
                 refreshAllScaling()
                 if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
             end }
-            -- Per-module sliders (visible always, but only active when per-module scaling is on)
             opts[#opts + 1] = { type = "slider", name = L["Focus scale"], desc = L["Scale for the Focus objective tracker (50–200%)."], dbKey = "focusUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
                 get = function()
@@ -1075,7 +1058,6 @@ local OptionCategories = {
                     return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
-                    -- Insight has no heavy apply; no debounce needed.
                 end }
             opts[#opts + 1] = { type = "slider", name = L["Yield scale"], desc = L["Scale for the Yield loot toast module (50–200%)."], dbKey = "yieldUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
@@ -1087,6 +1069,28 @@ local OptionCategories = {
                         if addon.Yield and addon.Yield.ApplyScale then addon.Yield.ApplyScale() end
                     end)
                 end }
+            return opts
+        end,
+    },
+    {
+        key = "Modules",
+        name = L["Modules"],
+        moduleKey = nil,
+        options = (function()
+            local previewSuffix = " |cff228b22(" .. (L["Preview"] or "Preview") .. ")|r"
+            local opts = {
+                { type = "section", name = L["Module Toggles"] or "Module Toggles" },
+                { type = "toggle", name = L["Focus"], desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
+                { type = "toggle", name = L["Presence"], desc = L["Zone text and notifications."], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
+                { type = "toggle", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
+                { type = "toggle", name = L["Insight"], desc = L["Tooltips with class colors, spec, and faction icons."], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
+                { type = "toggle", name = L["Yield"] .. previewSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end },
+                { type = "toggle", name = "Persona" .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_persona", get = function() return addon:IsModuleEnabled("persona") end, set = function(v) addon:SetModuleEnabled("persona", v) end },
+            }
+            opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
+            opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
+            opts[#opts + 1] = { type = "toggle", name = L["Lock minimap button position"] or "Lock minimap button position", desc = L["Prevent dragging the Horizon minimap button."] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v) setDB("minimapButtonLocked", v) end }
+            opts[#opts + 1] = { type = "button", name = L["Reset minimap button position"] or "Reset minimap button position", desc = L["Reset the minimap button to the default position (bottom-left)."] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             return opts
         end)(),
     },
@@ -2529,7 +2533,12 @@ function OptionsData_BuildSearchIndex()
     for catIdx, cat in ipairs(cats) do
         local currentSection = ""
         local moduleKey = cat.moduleKey
-        local moduleLabel = (moduleKey == "focus" and L["Focus"]) or (moduleKey == "presence" and L["Presence"]) or (moduleKey == "insight" and (L["Insight"] or "Insight")) or (moduleKey == "yield" and L["Yield"]) or (moduleKey == "vista" and (L["Vista"] or "Vista")) or L["Modules"]
+        local moduleLabel
+        if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
+            moduleLabel = L["Axis"] or "Axis"
+        else
+            moduleLabel = (moduleKey == "focus" and L["Focus"]) or (moduleKey == "presence" and L["Presence"]) or (moduleKey == "insight" and (L["Insight"] or "Insight")) or (moduleKey == "yield" and L["Yield"]) or (moduleKey == "vista" and (L["Vista"] or "Vista")) or L["Modules"]
+        end
         local catOpts = type(cat.options) == "function" and cat.options() or cat.options
         for _, opt in ipairs(catOpts) do
             if opt.type == "section" then

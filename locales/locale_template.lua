@@ -80,17 +80,9 @@ L["Deletes the selected profile."]                                      = "Delet
 L["Global profile"]                                                     = "Global profile"
 L["Per-spec profiles"]                                                  = "Per-spec profiles"
 
--- ── Axis > Modules  (enable/disable toggles + scaling) ─────────────────────────────
-L["Enable Focus module"]                                                = "Enable Focus module"
-L["Show the objective tracker for quests, world quests, rares, achievements, and scenarios."]= "Show the objective tracker for quests, world quests, rares, achievements, and scenarios."
-L["Enable Presence module"]                                             = "Enable Presence module"
-L["Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."]= "Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."
-L["Enable Yield module"]                                                = "Enable Yield module"
-L["Cinematic loot notifications (items, money, currency, reputation)."] = "Cinematic loot notifications (items, money, currency, reputation)."
-L["Enable Vista module"]                                                = "Enable Vista module"
-L["Cinematic square minimap with zone text, coordinates, and button collector."]= "Cinematic square minimap with zone text, coordinates, and button collector."
-L["Cinematic square minimap with zone text, coordinates, time, and button collector."]= "Cinematic square minimap with zone text, coordinates, time, and button collector."
-L["Beta"]                                                               = "Beta"
+-- ── Axis > Global Toggles  (class colours + global / per-module UI scale) ───────────
+L["Global Toggles"]                                                     = "Global Toggles"
+L["Suite-wide class colour tinting and UI scale (global or per module)."] = "Suite-wide class colour tinting and UI scale (global or per module)."
 L["Scaling"]                                                            = "Scaling"
 L["Global UI scale"]                                                    = "Global UI scale"
 L["Scale all sizes, spacings, and fonts by this factor (50–200%). Does not change your configured values."]= "Scale all sizes, spacings, and fonts by this factor (50–200%). Does not change your configured values."
@@ -108,6 +100,18 @@ L["Insight scale"]                                                      = "Insig
 L["Scale for the Insight tooltip module (50–200%)."]                    = "Scale for the Insight tooltip module (50–200%)."
 L["Yield scale"]                                                        = "Yield scale"
 L["Scale for the Yield loot toast module (50–200%)."]                   = "Scale for the Yield loot toast module (50–200%)."
+
+-- ── Axis > Modules  (enable/disable, appearance) ───────────────────────────────────
+L["Enable Focus module"]                                                = "Enable Focus module"
+L["Show the objective tracker for quests, world quests, rares, achievements, and scenarios."]= "Show the objective tracker for quests, world quests, rares, achievements, and scenarios."
+L["Enable Presence module"]                                             = "Enable Presence module"
+L["Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."]= "Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."
+L["Enable Yield module"]                                                = "Enable Yield module"
+L["Cinematic loot notifications (items, money, currency, reputation)."] = "Cinematic loot notifications (items, money, currency, reputation)."
+L["Enable Vista module"]                                                = "Enable Vista module"
+L["Cinematic square minimap with zone text, coordinates, and button collector."]= "Cinematic square minimap with zone text, coordinates, and button collector."
+L["Cinematic square minimap with zone text, coordinates, time, and button collector."]= "Cinematic square minimap with zone text, coordinates, time, and button collector."
+L["Beta"]                                                               = "Beta"
 
 
 
