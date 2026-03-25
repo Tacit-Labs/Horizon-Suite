@@ -451,8 +451,6 @@ function Insight.Init()
             pcall(addon.RegisterRondoClassIconsWithLSM)
         end)
     end
-
-    Insight.Print("Horizon Insight loaded. Type /insight or /mtt for options.")
 end
 
 function Insight.Disable()

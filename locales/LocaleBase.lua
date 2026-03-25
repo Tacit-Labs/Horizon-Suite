@@ -86,17 +86,49 @@ L["Axis"]                                                                       
 L["Dashboard welcome tab"]                                                                                          = "Welcome"
 L["Dashboard welcome title"]                                                                                        = "Welcome to Horizon Suite"
 L["Dashboard welcome head sub"]                                                                                     = "What each module does and where to turn them on"
-L["Dashboard welcome intro"]                                                                                        = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Use Open Module Toggles below, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
+L["Dashboard welcome intro"]                                                                                        = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
 L["Dashboard welcome path"]                                                                                         = "%s → %s → %s"
 L["Dashboard welcome modules heading"]                                                                              = "Modules"
-L["Dashboard welcome continue"]                                                                                     = "Go to Home"
-L["Dashboard welcome open toggles"]                                                                                 = "Open Module Toggles"
+L["Dashboard welcome contributors heading"]                                                                         = "Contributors"
+L["Dashboard welcome contributors body"]                                                                            = [=[Thanks to everyone who has contributed to Horizon Suite:
+
+• feanor21#2847 — Panoramuxa (Tarren Mill - EU) — Development
+• Marthix — Development
+• Swift — Coordinator
+• Boofuls — Moderator
+• RondoFerrari — RondoMedia (CurseForge addon) — Class icons in Insight tooltips and optional Dashboard header icon when class colors are on (optional)
+• Aishuu — French localisation (frFR)
+• 아즈샤라-두녘 — Korean localisation (koKR)
+• Linho-Gallywix — Brazilian Portuguese localisation (ptBR)
+• allmoon — Chinese localisation (zhCN)]=]
+L["Dashboard welcome localisations heading"]                                                                        = "Localisations"
+L["Dashboard welcome localisations body"]                                                                           = [=[The options panel is localised for:
+
+• Chinese (zhCN) — locales/zhCN.lua
+• French (frFR) — locales/frFR.lua
+• German (deDE) — locales/deDE.lua
+• Korean (koKR) — locales/koKR.lua
+• Brazilian Portuguese (ptBR) — locales/ptBR.lua
+• Russian (ruRU) — locales/ruRU.lua
+• Spanish (esES) — locales/esES.lua
+
+Contributions for additional locales are welcome via Discord.]=]
+L["Dashboard welcome open module toggles link"]                                                                     = "Open module toggles"
+L["Axis module short description"]                                                                                   = "Core settings hub: profiles, modules, and global toggles."
 L["Objective tracker for quests, world quests, rares, achievements, scenarios."]                                   = "Objective tracker for quests, world quests, rares, achievements, scenarios."
 L["Zone text and notifications."]                                                                                   = "Zone text and notifications."
 L["Minimap with zone text, coords, time, and button collector."]                                                    = "Minimap with zone text, coords, time, and button collector."
 L["Tooltips with class colors, spec, and faction icons."]                                                           = "Tooltips with class colors, spec, and faction icons."
 L["Loot toasts for items, money, currency, reputation."]                                                            = "Loot toasts for items, money, currency, reputation."
 L["Persona module short description"]                                                                               = "Custom character sheet with 3D model, item level, stats, and gear grid."
+L["Dashboard welcome community heading"]                                                                             = "Community & Support"
+L["Discord"]                                                                                                         = "Discord"
+L["Ko-fi"]                                                                                                           = "Ko-fi"
+L["Patreon"]                                                                                                         = "Patreon"
+L["GitLab"]                                                                                                          = "GitLab"
+L["CurseForge"]                                                                                                      = "CurseForge"
+L["Wago"]                                                                                                            = "Wago"
+L["Copy link — %s"]                                                                                                  = "Copy link — %s"
 L["Layout"]                                                                                                         = "Layout"
 L["Visibility"]                                                                                                     = "Visibility"
 L["Display"]                                                                                                        = "Display"
@@ -658,6 +690,8 @@ L["Dashboard background"]                                                       
 L["Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."] = "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."
 L["Dashboard background Midnight"]                                                                                  = "Midnight"
 L["Dashboard background Class talents"]                                                                             = "Specialisation (auto)"
+L["Dashboard background opacity"]                                                                                  = "Dashboard background opacity"
+L["Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."] = "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."
 L["Backdrop opacity"]                                                                                               = "Backdrop opacity"
 L["Panel background opacity (0–1)."]                                                                                = "Panel background opacity (0–1)."
 L["Show border"]                                                                                                    = "Show border"
