@@ -80,7 +80,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
-- **(Profile) Add Persona module (Preview): custom character sheet with 3D model, item level, stats, gear grid**
+- **(Profile) Add Essence module (Preview): custom character sheet with 3D model, item level, stats, gear grid**
 - **(Focus) Auctionator search button on recipe entries in Focus tracker**
 
 ### 🔧 Improvements
@@ -116,7 +116,7 @@ All notable changes to Horizon Suite are documented here.
 - **(Core) Merge Profiles and Modules into single Axis group in options dashboard**
 - **(Core) Dashboard: version API fallback, clean card/tile teardown, and sidebar collapse hides child tabs**
 - **(Core) Release announcements include direct CurseForge and Wago links**
-- **(Core) Yield: Draggable anchor frame for repositioning loot toasts**
+- **(Core) Cache: Draggable anchor frame for repositioning loot toasts**
 - **(Core) Dashboard: Back button, sidebar state, and Focus colours refactor**
 - **(Core) Animated card relayout when options visibility changes**
 - **(Core) Options dashboard: hide dependent options when parent toggle is off**
@@ -771,7 +771,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🔧 Improvements
 
-- **(Presence)** Suppress zone changes in Mythic+ and combat lockdown guards — New option under Presence → Notification types. When enabled, zone, quest, and scenario notifications are hidden during M+ runs. Frame Hide/Show and drag handlers are guarded during combat across Focus, Yield, and Options.
+- **(Presence)** Suppress zone changes in Mythic+ and combat lockdown guards — New option under Presence → Notification types. When enabled, zone, quest, and scenario notifications are hidden during M+ runs. Frame Hide/Show and drag handlers are guarded during combat across Focus, Cache, and Options.
 
 ### 🐛 Fixes
 
@@ -848,7 +848,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
-- **(Yield) Cinematic loot notifications module** — Items, money, currency, and reputation gains appear as styled toasts with quality-based colours and smooth animations. Epic and legendary loot get extra flair. Enable in options; use `/horizon yield` for test commands.
+- **(Cache) Cinematic loot notifications module** — Items, money, currency, and reputation gains appear as styled toasts with quality-based colours and smooth animations. Epic and legendary loot get extra flair. Enable in options; use `/horizon cache` for test commands.
 
 ### 🐛 Fixes
 

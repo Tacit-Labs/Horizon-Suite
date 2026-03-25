@@ -21,7 +21,7 @@ Drop "Enable", "Show", "Use" where the control type (toggle/dropdown) already im
 | Modules   | Enable Presence module                      | Presence                   |
 | Modules   | Enable Vista module                         | Vista                      |
 | Modules   | Enable Horizon Insight module               | Insight                    |
-| Modules   | Enable Yield module                         | Yield                      |
+| Modules   | Enable Cache module                         | Cache                      |
 | Panel     | Show scroll indicator                       | Scroll indicator           |
 | Panel     | Show in dungeon                             | In dungeon                 |
 | Panel     | Show in raid                                | In raid                    |
@@ -136,7 +136,7 @@ Short `desc` shown inline. Optional `tooltip` shown on hover for detail. "—" m
 | Modules    | Presence                         | Zone text and notifications.                                                | —                                                                                   |
 | Modules    | Vista                            | Minimap with zone text, coords, time, and button collector.                 | —                                                                                   |
 | Modules    | Insight                          | Tooltips with class colors, spec, and faction icons.                        | —                                                                                   |
-| Modules    | Yield                            | Loot toasts for items, money, currency, reputation.                         | —                                                                                   |
+| Modules    | Cache                            | Loot toasts for items, money, currency, reputation.                         | —                                                                                   |
 | Global Toggles | (section) Class Colours      | —                                                                           | —                                                                                   |
 | Global Toggles | Enable all class colours     | Toggle class colours on or off for all modules at once.                   | —                                                                                   |
 | Global Toggles | (section) Scaling            | —                                                                           | —                                                                                   |

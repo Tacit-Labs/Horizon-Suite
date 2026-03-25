@@ -475,12 +475,12 @@ SlashCmdList["HSDASH"] = function(msg)
                 presence = L["Presence"] or "Presence",
                 vista = L["Vista"] or "Vista",
                 insight = L["Insight"] or "Insight",
-                yield = L["Yield"] or "Yield",
-                persona = "Persona",
+                cache = L["Cache"] or "Cache",
+                essence = "Essence",
             }
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
-            local PREVIEW_MODULE_KEYS = { yield = true, persona = true }
+            local PREVIEW_MODULE_KEYS = { cache = true, essence = true }
 
             local function ShouldShowModuleOnDashboard(mk)
                 if mk == "axis" then return true end
@@ -496,8 +496,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 ["Presence"] = "vas_guildnamechange",
                 ["Vista"] = "ability_hunter_pathfinding",
                 ["Insight"] = "ui_profession_inscription",
-                ["Yield"] = "INV_Misc_Coin_01",
-                ["Persona"] = "achievement_character_human_male",
+                ["Cache"] = "INV_Misc_Coin_01",
+                ["Essence"] = "achievement_character_human_male",
                 ["Typography"] = "INV_Misc_Book_09",
                 ["Colors"] = "INV_Misc_Gem_Diamond_01",
                 ["General"] = "INV_Misc_Question_01",
@@ -519,12 +519,16 @@ SlashCmdList["HSDASH"] = function(msg)
                 cardAccents = {},
                 cardDividers = {},
                 dashboardAxisRails = {},
+                patchNotesSectionLabels = {},
+                patchNotesBullets = {},
+                patchNotesRules = {},
                 underline = nil,
                 sidebarDivider = nil,
                 logoSep = nil,
                 logoText = nil,
                 searchDropBorder = nil,
                 welcomeAccentStrip = nil,
+                pnFooterRule = nil,
                 dashboardClassIcon = nil,
             }
 
@@ -594,6 +598,22 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
                 if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
                     dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
+                end
+                for _, lbl in ipairs(dashAccentRefs.patchNotesSectionLabels) do
+                    if lbl and lbl.SetTextColor then lbl:SetTextColor(ar, ag, ab) end
+                end
+                for _, rule in ipairs(dashAccentRefs.patchNotesRules) do
+                    if rule and rule.SetColorTexture then rule:SetColorTexture(ar, ag, ab, 0.35) end
+                end
+                if dashAccentRefs.pnFooterRule and dashAccentRefs.pnFooterRule.SetColorTexture then
+                    dashAccentRefs.pnFooterRule:SetColorTexture(ar, ag, ab, 0.3)
+                end
+                local pnHex = string.format("%02X%02X%02X",
+                    math.floor(ar*255+0.5), math.floor(ag*255+0.5), math.floor(ab*255+0.5))
+                for _, entry in ipairs(dashAccentRefs.patchNotesBullets) do
+                    if entry and entry.fs and entry.bullet then
+                        entry.fs:SetText("|cFF"..pnHex.."\226\128\148|r  "..(entry.coloredBullet or entry.bullet))
+                    end
                 end
                 for _, rail in ipairs(dashAccentRefs.dashboardAxisRails) do
                     if rail and rail.SetColorTexture then
@@ -1071,6 +1091,230 @@ SlashCmdList["HSDASH"] = function(msg)
             welcomeView:Hide()
             f.welcomeView = welcomeView
 
+            local patchNotesView = CreateFrame("Frame", nil, f)
+            patchNotesView:SetSize(viewWidth, DASHBOARD_VIEW_H)
+            patchNotesView:SetPoint("CENTER", viewCenterX, 0)
+            patchNotesView:Hide()
+            f.patchNotesView = patchNotesView
+
+            local PN_FOOTER_H    = 44
+            local PN_BODY_COL  = { 0.72, 0.72, 0.76, 1 }
+            local PN_MUTED_COL = { 0.52, 0.56, 0.62, 1 }
+            local PN_SECTION_GAP = 16
+            local PN_BULLET_X    = 16
+            local PN_LINE_GAP    = 5
+            local PN_CHANGELOG_URL = "https://gitlab.com/Crystilac/horizon-suite/-/blob/main/CHANGELOG.md"
+
+            local PN_MODULE_COLORS = {
+                ["Essence"]  = "DC143C",
+                ["Focus"]    = "FFD133",
+                ["Cache"]    = "33CC66",
+                ["Presence"] = "33FFDF",
+                ["Flow"]     = "3399FF",
+                ["Vista"]    = "B366FF",
+                ["Insight"]  = "FF66B3",
+                ["Axis"]     = "E0E0E0",
+            }
+
+            local function ColorModuleNames(text)
+                for name, hex in pairs(PN_MODULE_COLORS) do
+                    text = text:gsub("%f[%a](" .. name .. ")%f[%A]", "|cFF" .. hex .. "%1|r")
+                end
+                return text
+            end
+
+            -- Footer (fixed, outside scroll — mirrors welcome screen footer style)
+            local pnFooter = CreateFrame("Frame", nil, patchNotesView)
+            pnFooter:SetPoint("BOTTOMLEFT",  patchNotesView, "BOTTOMLEFT",   40, 0)
+            pnFooter:SetPoint("BOTTOMRIGHT", patchNotesView, "BOTTOMRIGHT", -40, 0)
+            pnFooter:SetHeight(PN_FOOTER_H)
+            pnFooter:SetFrameLevel(patchNotesView:GetFrameLevel() + 10)
+
+            local pnFooterTopRule = pnFooter:CreateTexture(nil, "ARTWORK")
+            pnFooterTopRule:SetHeight(1)
+            pnFooterTopRule:SetPoint("TOPLEFT",  pnFooter, "TOPLEFT",  0, 0)
+            pnFooterTopRule:SetPoint("TOPRIGHT", pnFooter, "TOPRIGHT", 0, 0)
+            local pnFar, pnFag, pnFab = GetAccentColor()
+            pnFooterTopRule:SetColorTexture(pnFar, pnFag, pnFab, 0.3)
+            dashAccentRefs.pnFooterRule = pnFooterTopRule
+
+            local pnClBtn = CreateFrame("Button", nil, pnFooter)
+            pnClBtn:SetPoint("BOTTOM", pnFooter, "BOTTOM", 0, 10)
+            pnClBtn:SetSize(120, 20)
+
+            local pnClTxt = pnClBtn:CreateFontString(nil, "OVERLAY")
+            pnClTxt:SetFont("Fonts\\ARIALN.TTF", 12, "")
+            pnClTxt:SetPoint("CENTER", pnClBtn, "CENTER", 0, 0)
+            pnClTxt:SetText("Full changelog")
+            pnClTxt:SetTextColor(unpack(PN_MUTED_COL))
+
+            local pnClUnderline = pnClBtn:CreateTexture(nil, "OVERLAY")
+            pnClUnderline:SetHeight(1)
+            pnClUnderline:SetPoint("BOTTOM", pnClBtn, "BOTTOM", 0,  0)
+            pnClUnderline:SetPoint("LEFT",   pnClBtn, "LEFT",   0,  0)
+            pnClUnderline:SetPoint("RIGHT",  pnClBtn, "RIGHT",  0,  0)
+            pnClUnderline:Hide()
+
+            pnClBtn:SetScript("OnEnter", function()
+                pnClTxt:SetTextColor(0.88, 0.90, 0.94)
+                local r, g, b = GetAccentColor()
+                pnClUnderline:SetColorTexture(r, g, b, 0.6)
+                pnClUnderline:Show()
+                if GameTooltip then
+                    GameTooltip:SetOwner(pnClBtn, "ANCHOR_TOP")
+                    GameTooltip:SetText(PN_CHANGELOG_URL, 1, 1, 1, 1, true)
+                    GameTooltip:Show()
+                end
+            end)
+            pnClBtn:SetScript("OnLeave", function()
+                pnClTxt:SetTextColor(unpack(PN_MUTED_COL))
+                pnClUnderline:Hide()
+                if GameTooltip then GameTooltip:Hide() end
+            end)
+            pnClBtn:SetScript("OnClick", function()
+                if GameTooltip then GameTooltip:Hide() end
+                if addon.ShowURLCopyBox then addon.ShowURLCopyBox(PN_CHANGELOG_URL) end
+            end)
+
+            local pnScroll = CreateFrame("ScrollFrame", nil, patchNotesView, "UIPanelScrollFrameTemplate")
+            pnScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
+            pnScroll:SetPoint("BOTTOMRIGHT", -40, PN_FOOTER_H)
+            pnScroll.ScrollBar:Hide()
+            pnScroll.ScrollBar:ClearAllPoints()
+
+            local pnContent = CreateFrame("Frame", nil, pnScroll)
+            pnContent:SetSize(contentWidth, 1)
+            pnScroll:SetScrollChild(pnContent)
+            ApplySmoothScroll(pnScroll, pnContent, 60, true)
+
+            local pnBuiltVersion = nil
+
+            local function BuildPatchNotesContent(currentVersion)
+                -- Orphan previous inner container so its regions don't render
+                if pnContent._inner then pnContent._inner:SetParent(nil) end
+                wipe(dashAccentRefs.patchNotesSectionLabels)
+                wipe(dashAccentRefs.patchNotesBullets)
+                wipe(dashAccentRefs.patchNotesRules)
+
+                -- Inner container parented to pnContent (scroll child stays fixed)
+                local cW = contentWidth
+                local inner = CreateFrame("Frame", nil, pnContent)
+                inner:SetWidth(cW)
+                inner:SetHeight(1)
+                inner:SetPoint("TOPLEFT", pnContent, "TOPLEFT", 0, 0)
+                pnContent._inner = inner
+
+                local items = {}
+                local ar, ag, ab = GetAccentColor()
+                local hex = string.format("%02X%02X%02X",
+                    math.floor(ar*255+0.5), math.floor(ag*255+0.5), math.floor(ab*255+0.5))
+
+                -- Collect all versions in the current major (e.g. 4.x.x) and sort descending
+                local curMajor = tonumber(currentVersion:match("^(%d+)")) or 0
+                local versions = {}
+                if addon.PATCH_NOTES then
+                    for v in pairs(addon.PATCH_NOTES) do
+                        if (tonumber(v:match("^(%d+)")) or 0) == curMajor then
+                            tinsert(versions, v)
+                        end
+                    end
+                end
+                table.sort(versions, function(a, b)
+                    local a1,a2,a3 = a:match("^(%d+)%.(%d+)%.(%d+)$")
+                    local b1,b2,b3 = b:match("^(%d+)%.(%d+)%.(%d+)$")
+                    a1,a2,a3 = tonumber(a1) or 0, tonumber(a2) or 0, tonumber(a3) or 0
+                    b1,b2,b3 = tonumber(b1) or 0, tonumber(b2) or 0, tonumber(b3) or 0
+                    if a1 ~= b1 then return a1 > b1 end
+                    if a2 ~= b2 then return a2 > b2 end
+                    return a3 > b3
+                end)
+
+                if #versions == 0 then
+                    local lbl = inner:CreateFontString(nil, "OVERLAY")
+                    lbl:SetFont("Fonts\\ARIALN.TTF", 12, "")
+                    lbl:SetWidth(cW)
+                    lbl:SetJustifyH("CENTER")
+                    lbl:SetText("No notes available.")
+                    lbl:SetTextColor(unpack(PN_MUTED_COL))
+                    tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 0 })
+                else
+                    for vi, ver in ipairs(versions) do
+                        local notes = addon.PATCH_NOTES[ver]
+                        if notes then
+                            -- Subtle rule between versions
+                            if vi > 1 then
+                                tinsert(items, { type = "gap", h = 24 })
+                                local sep = inner:CreateTexture(nil, "ARTWORK")
+                                sep:SetSize(cW, 1)
+                                sep:SetColorTexture(ar, ag, ab, 0.15)
+                                tinsert(dashAccentRefs.patchNotesRules, sep)
+                                tinsert(items, { type = "tex", tex = sep, gap = 18 })
+                            end
+
+                            -- Version header
+                            local vHdr = inner:CreateFontString(nil, "OVERLAY")
+                            vHdr:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+                            vHdr:SetJustifyH("LEFT")
+                            vHdr:SetText("v" .. ver)
+                            vHdr:SetTextColor(ar, ag, ab)
+                            tinsert(dashAccentRefs.patchNotesSectionLabels, vHdr)
+                            tinsert(items, { type = "fs", fs = vHdr, x = 0, gap = 14 })
+
+                            -- Sections (no ruled divider — label + spacing carry the hierarchy)
+                            for si, sec in ipairs(notes) do
+                                if si > 1 then tinsert(items, { type = "gap", h = PN_SECTION_GAP }) end
+
+                                local lbl = inner:CreateFontString(nil, "OVERLAY")
+                                lbl:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
+                                lbl:SetWidth(cW)
+                                lbl:SetJustifyH("LEFT")
+                                lbl:SetText(sec.section:upper())
+                                lbl:SetTextColor(ar, ag, ab)
+                                tinsert(dashAccentRefs.patchNotesSectionLabels, lbl)
+                                tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 9 })
+
+                                for _, bullet in ipairs(sec.bullets) do
+                                    local txt = inner:CreateFontString(nil, "OVERLAY")
+                                    txt:SetFont("Fonts\\ARIALN.TTF", 12, "")
+                                    txt:SetWidth(cW - PN_BULLET_X)
+                                    txt:SetJustifyH("LEFT")
+                                    txt:SetWordWrap(true)
+                                    local coloredBullet = ColorModuleNames(bullet)
+                                    txt:SetText("|cFF"..hex.."\226\128\148|r  "..coloredBullet)
+                                    txt:SetTextColor(unpack(PN_BODY_COL))
+                                    tinsert(dashAccentRefs.patchNotesBullets, { fs = txt, bullet = bullet, coloredBullet = coloredBullet })
+                                    tinsert(items, { type = "fs", fs = txt, x = PN_BULLET_X, gap = PN_LINE_GAP })
+                                end
+                            end
+                        end
+                    end
+                end
+
+                C_Timer.After(0, function()
+                    if not (patchNotesView and patchNotesView:IsShown()) then return end
+                    local y = 0
+                    for _, item in ipairs(items) do
+                        if item.type == "fs" then
+                            item.fs:ClearAllPoints()
+                            item.fs:SetPoint("TOPLEFT", inner, "TOPLEFT", item.x, y)
+                            y = y - math.max(item.fs:GetStringHeight(), 13) - item.gap
+                        elseif item.type == "tex" then
+                            item.tex:ClearAllPoints()
+                            item.tex:SetPoint("TOPLEFT", inner, "TOPLEFT", 0, y)
+                            y = y - 1 - item.gap
+                        elseif item.type == "gap" then
+                            y = y - item.h
+                        end
+                    end
+                    local totalH = math.max(1, -y)
+                    inner:SetHeight(totalH)
+                    pnContent:SetHeight(totalH)
+                    pnScroll:SetVerticalScroll(0)
+                end)
+
+                pnBuiltVersion = currentVersion
+            end
+
             local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
             subCategoryScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
             subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
@@ -1160,6 +1404,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 detailView:Hide()
                 subCategoryView:Hide()
                 welcomeView:Hide()
+                patchNotesView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
                 HideContextHeader()
@@ -1174,6 +1419,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 detailView:Hide()
                 subCategoryView:Hide()
                 welcomeView:Hide()
+                patchNotesView:Hide()
                 dashboardView:SetAlpha(0)
                 dashboardView:Show()
                 UIFrameFadeIn(dashboardView, 0.2, 0, 1)
@@ -2709,8 +2955,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 presence = "vas_guildnamechange",
                 vista = "ability_hunter_pathfinding",
                 insight = "ui_profession_inscription",
-                yield = "INV_Misc_Coin_01",
-                persona = "achievement_character_human_male",
+                cache = "INV_Misc_Coin_01",
+                essence = "achievement_character_human_male",
             }
 
             local function DashboardAxisBentoHeight()
@@ -3262,8 +3508,8 @@ SlashCmdList["HSDASH"] = function(msg)
                     { key = "presence", name = L["Presence"] or "Presence", desc = L["Zone text and notifications."] or "" },
                     { key = "vista", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector." },
                     { key = "insight", name = L["Insight"] or "Insight", desc = L["Tooltips with class colors, spec, and faction icons."] or "" },
-                    { key = "yield", name = L["Yield"] or "Yield", desc = L["Loot toasts for items, money, currency, reputation."] or "" },
-                    { key = "persona", name = "Persona", desc = L["Persona module short description"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
+                    { key = "cache", name = L["Cache"] or "Cache", desc = L["Loot toasts for items, money, currency, reputation."] or "" },
+                    { key = "essence", name = "Essence", desc = L["Essence module short description"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
                 }
                 local moduleLineWidgets = {}
                 for _, row in ipairs(modRows) do
@@ -3467,6 +3713,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     detailView:Hide()
                     subCategoryView:Hide()
                     dashboardView:Hide()
+                    patchNotesView:Hide()
                     welcomeView:SetAlpha(0)
                     welcomeView:Show()
                     UIFrameFadeIn(welcomeView, 0.2, 0, 1)
@@ -3482,9 +3729,42 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
             end
 
+            f.ShowPatchNotes = function()
+                HideContextHeader()
+                detailView:Hide()
+                subCategoryView:Hide()
+                dashboardView:Hide()
+                welcomeView:Hide()
+                patchNotesView:SetAlpha(0)
+                patchNotesView:Show()
+                UIFrameFadeIn(patchNotesView, 0.2, 0, 1)
+                if head then head:Show() end
+                if headSub then
+                    headSub:Show()
+                    headSub:SetText("Release history and recent changes")
+                end
+                if searchBox then searchBox:Hide() end
+
+                local gm = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+                local ver = (gm and gm(addon.ADDON_NAME or "HorizonSuite", "Version")) or ""
+                local notes = addon.PATCH_NOTES
+                local targetVer = ver ~= "" and ver or (notes and next(notes) or "")
+                if pnBuiltVersion ~= targetVer then
+                    BuildPatchNotesContent(targetVer)
+                end
+
+                detailTitle:SetText("WHAT'S NEW" .. (ver ~= "" and ("  |cFF888899v"..ver.."|r") or ""))
+                detailTitle:Show()
+                detailTitleUnderline:Show()
+
+                f.currentModuleKey = nil
+                SetSidebarState({ view = "whatsnew", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+            end
+
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["yield"] = L["Yield"] or "Yield", ["vista"] = L["Vista"] or "Vista", ["persona"] = "Persona" }
+            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["cache"] = L["Cache"] or "Cache", ["vista"] = L["Vista"] or "Vista", ["essence"] = "Essence" }
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
                 local mk
@@ -3496,7 +3776,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["Other"], categories = {} } end
                 tinsert(groups[mk].categories, i)
             end
-            local groupOrder = { "axis", "focus", "insight", "persona", "presence", "vista", "yield" }
+            local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
             local sidebarRows = {}
 
             local lastSidebarRow = nil
@@ -3665,11 +3945,12 @@ SlashCmdList["HSDASH"] = function(msg)
             -- What's New: pinned to sidebar bottom (outside scroll; see SIDEBAR_WHATSNEW_RESERVE)
             do
                 local wnBtn = CreateSidebarButton(sidebar, "What's New", "INV_Scroll_05", function()
-                    if addon.ShowPatchNotes then addon.ShowPatchNotes() end
+                    if f.ShowPatchNotes then f.ShowPatchNotes() end
                 end)
                 wnBtn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, 10)
                 wnBtn:SetFrameLevel(sidebarScrollFrame:GetFrameLevel() + 1)
                 tinsert(sidebarButtons, wnBtn)
+                f.whatsnewSidebarBtn = wnBtn
             end
 
             --- Reflow sidebar scroll content height from top to last row.
@@ -3708,6 +3989,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 local activeBtn = f.homeSidebarBtn or sidebarButtons[1]
                 if sidebarState.view == "welcome" and f.welcomeSidebarBtn then
                     activeBtn = f.welcomeSidebarBtn
+                elseif sidebarState.view == "whatsnew" and f.whatsnewSidebarBtn then
+                    activeBtn = f.whatsnewSidebarBtn
                 elseif sidebarState.view == "module" or sidebarState.view == "category" then
                     local mk = sidebarState.activeModuleKey or "modules"
                     local wantCatIdx = sidebarState.activeCategoryIndex

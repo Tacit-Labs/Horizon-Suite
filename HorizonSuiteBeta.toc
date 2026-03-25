@@ -63,13 +63,13 @@ modules/Presence/PresenceErrors.lua
 modules/Presence/PresenceSlash.lua
 modules/Presence/PresenceModule.lua
 
-modules/Yield/YieldState.lua
-modules/Yield/YieldParsing.lua
-modules/Yield/YieldBlizzard.lua
-modules/Yield/YieldCore.lua
-modules/Yield/YieldEvents.lua
-modules/Yield/YieldSlash.lua
-modules/Yield/YieldModule.lua
+modules/Cache/CacheState.lua
+modules/Cache/CacheParsing.lua
+modules/Cache/CacheBlizzard.lua
+modules/Cache/CacheCore.lua
+modules/Cache/CacheEvents.lua
+modules/Cache/CacheSlash.lua
+modules/Cache/CacheModule.lua
 
 modules/Vista/VistaCore.lua
 modules/Vista/VistaSlash.lua

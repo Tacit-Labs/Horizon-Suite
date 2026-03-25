@@ -105,6 +105,8 @@ local STALE_CHECK_INTERVAL = 0.1
 local staleCheckElapsed    = 0
 
 local fadeOutStartAlpha = 1
+-- Midnight: GameTooltip:GetAlpha() is a secret value — track alpha we apply ourselves.
+local fadeLastAppliedAlpha = 1
 
 local animFrame = CreateFrame("Frame")
 animFrame:Hide()
@@ -113,7 +115,9 @@ animFrame:SetScript("OnUpdate", function(self, elapsed)
     if fadeState == "fadein" and fadeTarget then
         fadeElapsed = fadeElapsed + elapsed
         local progress = math.min(fadeElapsed / Insight.FADE_IN_DUR, 1)
-        fadeTarget:SetAlpha(Insight.easeOut(progress))
+        local alpha = Insight.easeOut(progress)
+        fadeTarget:SetAlpha(alpha)
+        fadeLastAppliedAlpha = alpha
         if progress >= 1 then
             fadeState = "visible"
             self:Hide()
@@ -124,6 +128,7 @@ animFrame:SetScript("OnUpdate", function(self, elapsed)
         -- Mirror fade-in: same duration and easeOut curve, alpha → 0.
         local alpha = fadeOutStartAlpha * (1 - Insight.easeOut(progress))
         fadeTarget:SetAlpha(alpha)
+        fadeLastAppliedAlpha = alpha
         if progress >= 1 then
             fadeState = "idle"
             local tt = fadeTarget
@@ -143,6 +148,7 @@ local function StartFadeIn(tooltip)
     fadeElapsed = 0
     fadeState   = "fadein"
     tooltip:SetAlpha(0)
+    fadeLastAppliedAlpha = 0
     animFrame:Show()
 end
 
@@ -151,7 +157,7 @@ local function StartFadeOutStale(tooltip)
     fadeTarget = tooltip
     fadeElapsed = 0
     fadeState = "fadeout"
-    fadeOutStartAlpha = tooltip:GetAlpha()
+    fadeOutStartAlpha = fadeLastAppliedAlpha
     if not fadeOutStartAlpha or fadeOutStartAlpha <= 0 then
         fadeOutStartAlpha = 1
     end
@@ -200,6 +206,7 @@ local function HookGameTooltipAnimation()
             fadeTarget = nil
             animFrame:Hide()
             self:SetAlpha(1)
+            fadeLastAppliedAlpha = 1
         end
         if self.GetUnit and self:GetUnit() then
             local fn = Insight.StripHealthAndPowerText
@@ -207,6 +214,7 @@ local function HookGameTooltipAnimation()
         end
         if suppressFadeIn then
             suppressFadeIn = false
+            fadeLastAppliedAlpha = 1
             return
         end
         local itemLink = GetTooltipItemLink(self)
@@ -228,6 +236,7 @@ local function HookGameTooltipAnimation()
         animFrame:Hide()
         staleCheckElapsed = 0
         self:SetAlpha(1)
+        fadeLastAppliedAlpha = 1
         self._insightItemQuality = nil
         self._insightUnitTooltip = nil
     end)

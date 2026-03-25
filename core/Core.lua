@@ -44,7 +44,7 @@ end
 
 --- Returns the scale factor for a specific module.
 --- When per-module scaling is on, reads the module-specific key; otherwise returns global scale.
---- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"yield"
+--- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"cache"
 --- @return number
 function addon.GetModuleScale(moduleName)
     if addon.IsPerModuleScaling() then
@@ -65,7 +65,7 @@ end
 
 --- Scale a value by a specific module's scale factor.
 --- @param value number
---- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"yield"
+--- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"cache"
 --- @return number
 function addon.ScaledForModule(value, moduleName)
     if not value then return 0 end
@@ -303,12 +303,12 @@ function addon.ApplyAllClassColorConsumers()
     if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end
     if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
     if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
-    if addon.Persona and addon.Persona.ApplyPersonaOptions then addon.Persona.ApplyPersonaOptions() end
+    if addon.Essence and addon.Essence.ApplyEssenceOptions then addon.Essence.ApplyEssenceOptions() end
     if addon.ApplyFocusColors then addon.ApplyFocusColors() end
     local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
     if fullLayout and not InCombatLockdown() then fullLayout() end
     if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
-    if addon.Yield and addon.Yield.ApplyYieldOptions then addon.Yield.ApplyYieldOptions() end
+    if addon.Cache and addon.Cache.ApplyCacheOptions then addon.Cache.ApplyCacheOptions() end
 end
 
 --- Returns the header bar height from DB or default, clamped to 18–48 px.

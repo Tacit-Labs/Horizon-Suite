@@ -18,7 +18,7 @@ jobs:
             const toDelete = [
               'source:reddit', 'source:discord', 'source:curseforge', 'source:github',
               'module:Focus', 'module:Presence', 'module:Core',
-              'module:Vista', 'module:Yield', 'module:Pulse',
+              'module:Vista', 'module:Cache', 'module:Pulse',
               'module:Essence', 'module:Insight', 'module:Verse',
               'priority:P0', 'priority:P1', 'priority:P2',
             ];
@@ -45,7 +45,7 @@ jobs:
               { name: 'Presence', description: 'Presence notification module', color: '1d76db' },
               { name: 'Core', description: 'Core addon / options / general', color: '1d76db' },
               { name: 'Vista', description: 'Vista / minimap module', color: '1d76db' },
-              { name: 'Yield', description: 'Yield / loot module', color: '1d76db' },
+              { name: 'Cache', description: 'Cache / loot module', color: '1d76db' },
               { name: 'Pulse', description: 'Pulse / combat module', color: '1d76db' },
               { name: 'Essence', description: 'Essence / unit frames module', color: '1d76db' },
               { name: 'Insight', description: 'Insight / tooltips module', color: '1d76db' },

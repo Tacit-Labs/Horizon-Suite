@@ -198,7 +198,7 @@ The defaults follow a clear, consistent philosophy:
 
 1. **Content ON, visual extras OFF** — All content types (world quests, rares, achievements, endeavors, decor, scenarios) are tracked by default. Visual enhancements (progress bars, timers, quest icons, dim effects) are opt-in.
 2. **Structure ON, decoration OFF** — Headers, section headers, zone labels, entry numbers, dividers are ON. Borders, section dividers, completed counts are OFF.
-3. **Module-level gating** — Insight and Yield are disabled modules. All their individual features default ON, which is correct: opting into the module gives you everything; you opt out of specific features.
+3. **Module-level gating** — Insight and Cache are disabled modules. All their individual features default ON, which is correct: opting into the module gives you everything; you opt out of specific features.
 4. **Instance content is opt-in** — Tracker hides in dungeons/raids/PvP by default. M+ block was OFF; now ON (M+ is core endgame).
 5. **Notifications are generous** — Almost all Presence notification types are ON. This is good: the notification system is ambient and non-intrusive, so "show me everything" is the right default.
 

@@ -28,7 +28,7 @@ while IFS= read -r line; do
   [[ "$labels" =~ Presence ]] && module="[Presence] "
   [[ "$labels" =~ Core ]]     && module="[Core] "
   [[ "$labels" =~ Vista ]]    && module="[Vista] "
-  [[ "$labels" =~ Yield ]]    && module="[Yield] "
+  [[ "$labels" =~ Cache ]]    && module="[Cache] "
   [[ "$labels" =~ Pulse ]]    && module="[Pulse] "
   [[ "$labels" =~ Insight ]]  && module="[Insight] "
   [[ "$labels" =~ Verse ]]    && module="[Verse] "
