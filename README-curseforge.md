@@ -6,7 +6,7 @@
 
 [![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite) 
 
-**Horizon Suite** is a core addon with pluggable modules: **Focus** (objective tracker), **Presence** (zone text & notifications), **Insight** (cinematic tooltips), **Vista** (minimap), and **Yield** (loot toasts). Designed for the Midnight era—clean, cinematic, player-in-control. It replaces static, cluttered lists with a fluid interface that grants you total agency over your goals. Additional suites will appear as modules in the same options panel.
+**Horizon Suite** is a core addon with pluggable modules: **Focus** (objective tracker), **Presence** (zone text & notifications), **Insight** (cinematic tooltips), **Vista** (minimap), and **Cache** (loot toasts). Designed for the Midnight era—clean, cinematic, player-in-control. It replaces static, cluttered lists with a fluid interface that grants you total agency over your goals. Additional suites will appear as modules in the same options panel.
 
 ---
 
@@ -50,9 +50,9 @@
 - **Customizable appearance** – Border (thickness, colour, opacity), panel background and border colours for button panels, and per-element typography. SharedMedia support for fonts.
 - **Mouse wheel zoom** – Scroll over the minimap to zoom in and out.
 
-## 💎 Yield (Loot Toasts) - BETA
+## 💎 Cache (Loot Toasts) - BETA
 
-![Yield - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
+![Cache - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
 
 - **Cinematic loot notifications** – Items, money, currency, and reputation gains appear as styled toasts with quality-based colours and smooth slide-in animations.
 - **Epic and legendary flair** – Extra entrance time, shine effects, and optional sounds for high-value loot.
@@ -68,7 +68,7 @@
 
 - **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
 - **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
-- **Global Toggles (Axis)** – Under **Axis → Global Toggles**, enable class tint per module or all at once (dashboard, Focus, Presence, Vista, Insight, Yield, Persona), pick a **dashboard background** preset (flat Default, Midnight artwork, or **Specialisation (auto)** using Blizzard’s talent UI art for your current spec—with a short crossfade when you change preset or spec), and set global UI scale (50–200%) or per-module scale sliders for Focus, Presence, Vista, Insight, and Yield.
+- **Global Toggles (Axis)** – Under **Axis → Global Toggles**, enable class tint per module or all at once (dashboard, Focus, Presence, Vista, Insight, Cache, Essence), pick a **dashboard background** preset (flat Default, Midnight artwork, or **Specialisation (auto)** using Blizzard’s talent UI art for your current spec—with a short crossfade when you change preset or spec), and set global UI scale (50–200%) or per-module scale sliders for Focus, Presence, Vista, Insight, and Cache.
 - **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
 - **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
 - **Timer layout** – Bar below objectives, inline beside the title, or inline on its own line below the title.
@@ -84,14 +84,14 @@
 | **/h**, **/hopt**, **/hedit** | Core — help, options, edit screen |
 | **/h focus** toggle, collapse, nearby, resetpos | Tracker — enable/disable, collapse, toggle Nearby group, reset position |
 | **/h vista** reset, toggle, lock, scale | Minimap — reset position, show/hide, lock, set scale |
-| **/h yield** edit, reset, toggle | Loot toasts — reposition, reset position, enable/disable |
+| **/h cache** edit, reset, toggle | Loot toasts — reposition, reset position, enable/disable |
 | **/h insight** anchor, move, resetpos | Tooltips — anchor mode, reposition, reset position |
 
 ---
 
 ## 📦 Modules & Roadmap
 
-**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colors, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, time, optional FPS/latency, addon button collector, and full customisation. **Yield** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
+**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colors, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, time, optional FPS/latency, addon button collector, and full customisation. **Cache** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
 
 ---
 

@@ -1,20 +1,20 @@
 --[[
-    Horizon Suite - Yield - Slash Commands
-    /h yield [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
+    Horizon Suite - Cache - Slash Commands
+    /h cache [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Yield or not addon.RegisterSlashHandler then return end
+if not addon or not addon.Cache or not addon.RegisterSlashHandler then return end
 
-local Y = addon.Yield
-local y = addon.yield
+local Y = addon.Cache
+local y = addon.cache
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
---- Handle /horizon yield [cmd] subcommands. Returns true if handled.
+--- Handle /horizon cache [cmd] subcommands. Returns true if handled.
 --- @param msg string Subcommand (item, gold, currency, rep, all, toggle, edit, reset, debug, help)
 --- @return boolean
-function Y.HandleYieldSlash(msg)
+function Y.HandleCacheSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "item" then
@@ -57,7 +57,7 @@ function Y.HandleYieldSlash(msg)
     end
 
     if cmd == "all" then
-        HSPrint("Yield: Demo reel...")
+        HSPrint("Cache: Demo reel...")
         local demos = {
             function()
                 Y.ShowToast({
@@ -120,17 +120,17 @@ function Y.HandleYieldSlash(msg)
 
     if cmd == "toggle" then
         if InCombatLockdown() then
-            HSPrint("Cannot toggle Yield during combat.")
+            HSPrint("Cannot toggle Cache during combat.")
             return true
         end
-        addon:SetModuleEnabled("yield", not addon:IsModuleEnabled("yield"))
-        HSPrint("Yield " .. (addon:IsModuleEnabled("yield") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
+        addon:SetModuleEnabled("cache", not addon:IsModuleEnabled("cache"))
+        HSPrint("Cache " .. (addon:IsModuleEnabled("cache") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         return true
     end
 
     if cmd == "reset" then
         Y.ResetPosition()
-        HSPrint("Yield position reset to default.")
+        HSPrint("Cache position reset to default.")
         return true
     end
 
@@ -145,28 +145,28 @@ function Y.HandleYieldSlash(msg)
     end
 
     if cmd == "" or cmd == "help" then
-        HSPrint("Yield commands:")
-        HSPrint("  /h yield          - Show this help")
-        HSPrint("  /h yield item     - Test item toast")
-        HSPrint("  /h yield gold     - Test money toast")
-        HSPrint("  /h yield currency - Test currency toast")
-        HSPrint("  /h yield rep      - Test reputation toast")
-        HSPrint("  /h yield all      - Demo reel (all types)")
-        HSPrint("  /h yield toggle   - Enable / disable Yield module")
-        HSPrint("  /h yield edit     - Toggle edit mode (show bounding box)")
-        HSPrint("  /h yield move     - Show anchor to set position")
-        HSPrint("  /h yield reset    - Reset position to default")
+        HSPrint("Cache commands:")
+        HSPrint("  /h cache          - Show this help")
+        HSPrint("  /h cache item     - Test item toast")
+        HSPrint("  /h cache gold     - Test money toast")
+        HSPrint("  /h cache currency - Test currency toast")
+        HSPrint("  /h cache rep      - Test reputation toast")
+        HSPrint("  /h cache all      - Demo reel (all types)")
+        HSPrint("  /h cache toggle   - Enable / disable Cache module")
+        HSPrint("  /h cache edit     - Toggle edit mode (show bounding box)")
+        HSPrint("  /h cache move     - Show anchor to set position")
+        HSPrint("  /h cache reset    - Reset position to default")
         return true
     end
 
     return false
 end
 
-local function HandleYieldDebugSlash(msg)
+local function HandleCacheDebugSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "" or cmd == "help" then
-        HSPrint("Yield debug commands (/h debug yield [cmd]):")
+        HSPrint("Cache debug commands (/h debug cache [cmd]):")
         HSPrint("  debug - Toggle loot-event logging")
         return
     end
@@ -174,19 +174,19 @@ local function HandleYieldDebugSlash(msg)
     if cmd == "debug" then
         y.debugMode = not y.debugMode
         if y.debugMode then
-            HSPrint("Yield debug |cFF00FF00ON|r - loot events will print to chat.")
+            HSPrint("Cache debug |cFF00FF00ON|r - loot events will print to chat.")
             HSPrint("  playerGUID = " .. tostring(y.playerGUID))
             HSPrint("  patternsOK = " .. tostring(y.patternsOK))
             HSPrint("  selfLootPats = " .. tostring(y.selfLootPatCount or 0))
         else
-            HSPrint("Yield debug |cFFFF0000OFF|r")
+            HSPrint("Cache debug |cFFFF0000OFF|r")
         end
     else
-        HSPrint("Unknown debug command. Use /h debug yield for help.")
+        HSPrint("Unknown debug command. Use /h debug cache for help.")
     end
 end
 
-addon.RegisterSlashHandler("yield", Y.HandleYieldSlash)
+addon.RegisterSlashHandler("cache", Y.HandleCacheSlash)
 if addon.RegisterSlashHandlerDebug then
-    addon.RegisterSlashHandlerDebug("yield", HandleYieldDebugSlash)
+    addon.RegisterSlashHandlerDebug("cache", HandleCacheDebugSlash)
 end

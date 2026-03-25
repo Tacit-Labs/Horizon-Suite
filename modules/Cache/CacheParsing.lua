@@ -1,13 +1,13 @@
 --[[
-    Horizon Suite - Yield - Parsing
+    Horizon Suite - Cache - Parsing
     Parse CHAT_MSG_LOOT, CHAT_MSG_MONEY, CHAT_MSG_CURRENCY, CHAT_MSG_COMBAT_FACTION_CHANGE.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Yield then return end
+if not addon or not addon.Cache then return end
 
-local Y = addon.Yield
-local y = addon.yield
+local Y = addon.Cache
+local y = addon.cache
 
 -- Pattern tables (filled by InitPatterns)
 local selfLootPats = {}
@@ -114,7 +114,7 @@ function Y.ParseItemLoot(msg)
     local itemLink = ExtractItemLink(msg)
 
     if y.debugMode then
-        print("|cFF00CCFFYield debug PARSE:|r link=" .. tostring(itemLink ~= nil)
+        print("|cFF00CCFFCache debug PARSE:|r link=" .. tostring(itemLink ~= nil)
             .. " raw=" .. tostring(msg):sub(1, 120))
     end
 

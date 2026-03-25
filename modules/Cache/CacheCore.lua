@@ -1,13 +1,13 @@
 --[[
-    Horizon Suite - Yield - Core
+    Horizon Suite - Cache - Core
     Frame, pool, animation engine, ShowToast. Blizzard: CreateFrame, C_Timer.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Yield then return end
+if not addon or not addon.Cache then return end
 
-local Y = addon.Yield
-local y = addon.yield
+local Y = addon.Cache
+local y = addon.cache
 
 local function easeOut(t)  return 1 - (1 - t) * (1 - t) end
 local function easeIn(t)   return t * t end
@@ -20,7 +20,7 @@ end
 -- FRAME & POOL
 -- ============================================================================
 
-local YIELD_ANCHOR_BACKDROP = {
+local CACHE_ANCHOR_BACKDROP = {
     bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
     edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
     edgeSize = 1,
@@ -42,7 +42,7 @@ end
 
 local Frame = CreateFrame("Frame", nil, UIParent)
 do
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "yield") end
+    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
     Frame:SetSize(S(Y.TOTAL_WIDTH), S(Y.LINE_HEIGHT) * Y.POOL_SIZE)
 end
 Y.ApplyStoredAnchor(Frame)
@@ -85,16 +85,16 @@ editOverlay:SetFrameLevel(Frame:GetFrameLevel() + 10)
 editOverlay:EnableMouse(false)
 
 local editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
-editTitle:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(14, "yield"), "OUTLINE")
+editTitle:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(14, "cache"), "OUTLINE")
 editTitle:SetTextColor(0.4, 0.8, 1.0, 1)
 editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
 editTitle:SetText("LOOT TOAST AREA")
 
 local editHint = editOverlay:CreateFontString(nil, "OVERLAY")
-editHint:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "yield"), "OUTLINE")
+editHint:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
 editHint:SetTextColor(0.7, 0.7, 0.7, 1)
 editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
-editHint:SetText("Drag to reposition  |  /h yield edit to hide")
+editHint:SetText("Drag to reposition  |  /h cache edit to hide")
 
 editOverlay:Hide()
 
@@ -102,10 +102,10 @@ editOverlay:Hide()
 -- ANCHOR FRAME
 -- ============================================================================
 
-local anchorFrame = CreateFrame("Frame", "HorizonSuiteYieldAnchor", UIParent, "BackdropTemplate")
+local anchorFrame = CreateFrame("Frame", "HorizonSuiteCacheAnchor", UIParent, "BackdropTemplate")
 anchorFrame:SetSize(160, 40)
 anchorFrame:SetPoint(Y.DEFAULT_ANCHOR, UIParent, Y.DEFAULT_ANCHOR, Y.DEFAULT_X, Y.DEFAULT_Y)
-anchorFrame:SetBackdrop(YIELD_ANCHOR_BACKDROP)
+anchorFrame:SetBackdrop(CACHE_ANCHOR_BACKDROP)
 anchorFrame:SetBackdropColor(0, 0, 0, 0.85)
 anchorFrame:SetBackdropBorderColor(0.50, 0.70, 1.0, 0.60)
 anchorFrame:SetMovable(true)
@@ -116,19 +116,19 @@ anchorFrame:SetFrameStrata("DIALOG")
 anchorFrame:Hide()
 
 local anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
-anchorLabel:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(12, "yield"), "OUTLINE")
+anchorLabel:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(12, "cache"), "OUTLINE")
 anchorLabel:SetPoint("CENTER")
 anchorLabel:SetTextColor(0.50, 0.70, 1.0, 1)
 anchorLabel:SetText("LOOT TOAST ANCHOR")
 
 local anchorHint = anchorFrame:CreateFontString(nil, "OVERLAY")
-anchorHint:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "yield"), "OUTLINE")
+anchorHint:SetFont(Y.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
 anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
 anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
 anchorHint:SetText("Drag to move · Right-click to confirm")
 
-local function ApplyYieldClassChrome()
-    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("yield")
+local function ApplyCacheClassChrome()
+    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
     local br, bg, bb, ba = 0.50, 0.70, 1.0, 0.60
     local er, eg, eb, ea = 0.4, 0.8, 1.0, 0.8
     if ycc then
@@ -141,7 +141,7 @@ local function ApplyYieldClassChrome()
     editTitle:SetTextColor(er, eg, eb, 1)
 end
 
-Y.ApplyYieldClassChrome = ApplyYieldClassChrome
+Y.ApplyCacheClassChrome = ApplyCacheClassChrome
 
 anchorFrame:SetScript("OnDragStart", function(self)
     if not InCombatLockdown() then self:StartMoving() end
@@ -157,7 +157,7 @@ anchorFrame:SetScript("OnMouseUp", function(self, button)
     if button == "RightButton" then
         self:Hide()
         local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
-        HSPrint("Yield: Position saved.")
+        HSPrint("Cache: Position saved.")
     end
 end)
 
@@ -166,7 +166,7 @@ local function ShowAnchorFrame()
     Y.ApplyStoredAnchor(anchorFrame)
     anchorFrame:Show()
     local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
-    HSPrint("Yield: Drag the anchor, then right-click to confirm.")
+    HSPrint("Cache: Drag the anchor, then right-click to confirm.")
 end
 
 local function HideAnchorFrame()
@@ -177,7 +177,7 @@ function Y.ToggleAnchorFrame()
     if anchorFrame:IsShown() then
         HideAnchorFrame()
         local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
-        HSPrint("Yield: Anchor hidden. Position saved.")
+        HSPrint("Cache: Anchor hidden. Position saved.")
     else
         ShowAnchorFrame()
     end
@@ -187,8 +187,8 @@ function Y.HideAnchorFrame()
     HideAnchorFrame()
 end
 
-function Y.ApplyYieldOptions()
-    ApplyYieldClassChrome()
+function Y.ApplyCacheOptions()
+    ApplyCacheClassChrome()
     if anchorFrame:IsShown() then
         Y.ApplyStoredAnchor(anchorFrame)
     end
@@ -196,7 +196,7 @@ function Y.ApplyYieldOptions()
 end
 
 local function CreateToastEntry(parent)
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "yield") end
+    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(S(Y.TOTAL_WIDTH), S(Y.ENTRY_HEIGHT))
 
@@ -344,8 +344,8 @@ local function UpdateEntry(entry, dt)
         return
     end
 
-    local yieldCC = addon.GetModuleClassColor and addon.GetModuleClassColor("yield")
-    if entry.shine and (entry.quality == 5 or (entry.quality == 4 and yieldCC)) then
+    local cacheCC = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
+    if entry.shine and (entry.quality == 5 or (entry.quality == 4 and cacheCC)) then
         if t < Y.FLASH_DUR then
             entry.shine:Show()
             entry.shine:SetAlpha(1 - easeOut(t / Y.FLASH_DUR))
@@ -394,11 +394,11 @@ end)
 -- ============================================================================
 
 function Y.ShowToast(data)
-    if not addon:IsModuleEnabled("yield") or not data then return end
+    if not addon:IsModuleEnabled("cache") or not data then return end
 
     local entry = AcquireEntry()
 
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "yield") end
+    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
     for i = 1, Y.POOL_SIZE do
         if y.pool[i].active then
             y.pool[i].stackY = y.pool[i].stackY + S(Y.LINE_HEIGHT)
@@ -424,7 +424,7 @@ function Y.ShowToast(data)
     entry.frame:SetScale(1)
     entry.shine:SetAlpha(0)
     entry.shine:Hide()
-    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("yield")
+    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
     if ycc then
         entry.shine:SetVertexColor(ycc[1], ycc[2], ycc[3])
     else
@@ -455,7 +455,7 @@ function Y.ToggleEditMode()
     y.editMode = not y.editMode
     if y.editMode then
         editOverlay:Show()
-        print("|cFF00CCFFHorizon Suite - Yield:|r Edit mode |cFF00FF00ON|r - drag the box to reposition.")
+        print("|cFF00CCFFHorizon Suite - Cache:|r Edit mode |cFF00FF00ON|r - drag the box to reposition.")
         Y.ShowToast({
             icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
             r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0,
@@ -463,7 +463,7 @@ function Y.ToggleEditMode()
         })
     else
         editOverlay:Hide()
-        print("|cFF00CCFFHorizon Suite - Yield:|r Edit mode |cFFFF0000OFF|r")
+        print("|cFF00CCFFHorizon Suite - Cache:|r Edit mode |cFFFF0000OFF|r")
     end
 end
 
@@ -498,7 +498,7 @@ end
 
 --- Re-apply scale to frame and pool entries (call when global UI scale changes).
 function Y.ApplyScale()
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "yield") end
+    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
     Frame:SetSize(S(Y.TOTAL_WIDTH), S(Y.LINE_HEIGHT) * Y.POOL_SIZE)
     for i = 1, Y.POOL_SIZE do
         local entry = y.pool[i]

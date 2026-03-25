@@ -40,7 +40,7 @@ fi
 # Buckets: BUGS, FEATURES, IMPROVEMENTS, IDEAS
 # Sub-buckets by module: _Focus, _Presence, _Core, _Vista, _Yield, _Pulse, _Insight, _Verse, _Cache, _Profile, _Flow, _Other
 declare -A BUGS FEATURES IMPROVEMENTS IDEAS
-MODULE_ORDER="Focus Presence Core Vista Yield Pulse Insight Verse Cache Profile Flow Other"
+MODULE_ORDER="Focus Presence Core Vista Cache Pulse Insight Verse Cache Profile Flow Other"
 
 while IFS= read -r line; do
   title=$(echo "$line" | jq -r '.title')
@@ -70,8 +70,8 @@ while IFS= read -r line; do
     module_key="Flow"; module_tag="[Flow] "
   elif [[ "$labels_lower" =~ core ]] || [[ "$labels_lower" =~ axis ]] || [[ "$labels_lower" =~ system ]]; then
     module_key="Core"; module_tag="[Core] "
-  elif [[ "$labels_lower" =~ yield ]]; then
-    module_key="Yield"; module_tag="[Yield] "
+  elif [[ "$labels_lower" =~ cache ]]; then
+    module_key="Cache"; module_tag="[Cache] "
   elif [[ "$labels_lower" =~ pulse ]]; then
     module_key="Pulse"; module_tag="[Pulse] "
   elif [[ "$labels_lower" =~ verse ]]; then

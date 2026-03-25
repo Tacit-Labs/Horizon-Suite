@@ -1,13 +1,13 @@
 --[[
-    Horizon Suite - Yield - Events
+    Horizon Suite - Cache - Events
     Event registration and dispatch for loot, money, currency, reputation.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Yield then return end
+if not addon or not addon.Cache then return end
 
-local Y = addon.Yield
-local y = addon.yield
+local Y = addon.Cache
+local y = addon.cache
 
 local eventFrame
 local eventsRegistered = false
@@ -19,7 +19,7 @@ local function OnEvent(self, event, msg, ...)
             Y.RestoreSavedPosition()
         end
         if loaded == "Blizzard_AlertFrames" or loaded == "Blizzard_LootFrame" then
-            if addon:IsModuleEnabled("yield") and Y.SuppressBlizzard then
+            if addon:IsModuleEnabled("cache") and Y.SuppressBlizzard then
                 Y.SuppressBlizzard()
             end
         end
@@ -29,7 +29,7 @@ local function OnEvent(self, event, msg, ...)
         if not y.patternsOK and Y.InitPatterns then
             Y.InitPatterns()
         end
-        if addon:IsModuleEnabled("yield") and Y.SuppressBlizzard then
+        if addon:IsModuleEnabled("cache") and Y.SuppressBlizzard then
             Y.SuppressBlizzard()
         end
 
@@ -43,7 +43,7 @@ local function OnEvent(self, event, msg, ...)
             return
         end
         if y.debugMode then
-            print("|cFF00CCFFYield debug LOOT:|r guid=" .. tostring(guid)
+            print("|cFF00CCFFCache debug LOOT:|r guid=" .. tostring(guid)
                 .. " match=" .. tostring(guid == y.playerGUID)
                 .. " msg=" .. tostring(msg):sub(1, 120))
         end

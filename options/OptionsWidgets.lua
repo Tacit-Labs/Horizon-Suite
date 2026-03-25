@@ -64,7 +64,7 @@ local function GetClassColorRaw()
 end
 
 --- Returns player class RGB when the module's class-colour DB toggle is enabled, else nil.
---- @param moduleKey string Lowercase module id: dashboard, vista, insight, persona, focus, presence, yield
+--- @param moduleKey string Lowercase module id: dashboard, vista, insight, essence, focus, presence, cache
 --- @return table|nil { r, g, b } with components in 0–1
 function addon.GetModuleClassColor(moduleKey)
     if type(moduleKey) ~= "string" or moduleKey == "" then return nil end

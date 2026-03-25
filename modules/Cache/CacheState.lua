@@ -1,16 +1,16 @@
 --[[
-    Horizon Suite - Yield - State
+    Horizon Suite - Cache - State
     Runtime state and DB accessors for loot toasts. Blizzard: CHAT_MSG_LOOT, C_CurrencyInfo.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
-addon.Yield = addon.Yield or {}
-addon.yield = addon.yield or {}
+addon.Cache = addon.Cache or {}
+addon.cache = addon.cache or {}
 
-local Y = addon.Yield
-local y = addon.yield
+local Y = addon.Cache
+local y = addon.cache
 
 -- ============================================================================
 -- CONSTANTS
@@ -80,7 +80,7 @@ Y.REP_ICON        = "Interface\\Icons\\Achievement_Reputation_01"
 Y.UNKNOWN_ICON    = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 -- ============================================================================
--- RUNTIME STATE (addon.yield)
+-- RUNTIME STATE (addon.cache)
 -- ============================================================================
 
 y.pool        = y.pool or {}
@@ -100,10 +100,10 @@ function Y.GetPosition()
     if not addon.GetDB then
         return nil, nil, Y.DEFAULT_X, Y.DEFAULT_Y
     end
-    local pt = addon.GetDB("yieldPoint", nil)
-    local rp = addon.GetDB("yieldRelPoint", nil)
-    local px = addon.GetDB("yieldX", Y.DEFAULT_X)
-    local py = addon.GetDB("yieldY", Y.DEFAULT_Y)
+    local pt = addon.GetDB("cachePoint", nil)
+    local rp = addon.GetDB("cacheRelPoint", nil)
+    local px = addon.GetDB("cacheX", Y.DEFAULT_X)
+    local py = addon.GetDB("cacheY", Y.DEFAULT_Y)
     return pt, rp, px, py
 end
 
@@ -115,18 +115,18 @@ end
 --- @return nil
 function Y.SavePosition(point, relPoint, x, y)
     if not addon.SetDB then return end
-    addon.SetDB("yieldPoint", point)
-    addon.SetDB("yieldRelPoint", relPoint)
-    addon.SetDB("yieldX", x)
-    addon.SetDB("yieldY", y)
+    addon.SetDB("cachePoint", point)
+    addon.SetDB("cacheRelPoint", relPoint)
+    addon.SetDB("cacheX", x)
+    addon.SetDB("cacheY", y)
 end
 
 --- Clear saved position.
 --- @return nil
 function Y.ClearPosition()
     if not addon.SetDB then return end
-    addon.SetDB("yieldPoint", nil)
-    addon.SetDB("yieldRelPoint", nil)
-    addon.SetDB("yieldX", nil)
-    addon.SetDB("yieldY", nil)
+    addon.SetDB("cachePoint", nil)
+    addon.SetDB("cacheRelPoint", nil)
+    addon.SetDB("cacheX", nil)
+    addon.SetDB("cacheY", nil)
 end

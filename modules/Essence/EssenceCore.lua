@@ -1,5 +1,5 @@
 --[[
-    Horizon Suite - Horizon Persona (Core)
+    Horizon Suite - Horizon Essence (Core)
     Custom character sheet: 3D model, identity, item level, stat bars, gear grid.
     Replaces the default character frame (C key) when the module is enabled.
 ]]
@@ -7,8 +7,8 @@
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
-addon.Persona = addon.Persona or {}
-local Persona = addon.Persona
+addon.Essence = addon.Essence or {}
+local Essence = addon.Essence
 
 -- ============================================================================
 -- LAYOUT CONSTANTS (unscaled pixels)
@@ -74,7 +74,7 @@ local SECONDARY_STATS = {
 -- ============================================================================
 
 local function IsEnabled()
-    return addon:IsModuleEnabled("persona")
+    return addon:IsModuleEnabled("essence")
 end
 
 local function S(n)
@@ -200,7 +200,7 @@ end
 
 local function BuildFrame()
     -- ── Main panel ────────────────────────────────────────────────────────────
-    frame = CreateFrame("Frame", "HorizonSuitePersonaFrame", UIParent, "BackdropTemplate")
+    frame = CreateFrame("Frame", "HorizonSuiteEssenceFrame", UIParent, "BackdropTemplate")
     frame:SetSize(S(PANEL_W), S(PANEL_H))
     frame:SetFrameStrata("HIGH")
     frame:SetFrameLevel(100)
@@ -233,7 +233,7 @@ local function BuildFrame()
     local headerLabel = frame:CreateFontString(nil, "OVERLAY")
     headerLabel:SetFont(GetFontPath(), S(10), "OUTLINE")
     headerLabel:SetTextColor(0.50, 0.55, 0.72, 1)
-    headerLabel:SetText("HORIZON PERSONA")
+    headerLabel:SetText("HORIZON ESSENCE")
     headerLabel:SetPoint("LEFT", frame, "TOPLEFT", S(PAD), -S(HEADER_H / 2))
 
     -- Close button
@@ -248,10 +248,10 @@ local function BuildFrame()
     closeTex:SetJustifyH("CENTER")
     closeBtn:SetScript("OnClick", function()
         if InCombatLockdown() then return end
-        Persona._suppressCharHook = true
-        Persona.Hide()
+        Essence._suppressCharHook = true
+        Essence.Hide()
         CharacterFrame:Show()
-        C_Timer.After(0, function() Persona._suppressCharHook = nil end)
+        C_Timer.After(0, function() Essence._suppressCharHook = nil end)
     end)
     closeBtn:SetScript("OnEnter", function() closeTex:SetTextColor(1.0, 0.35, 0.35, 1) end)
     closeBtn:SetScript("OnLeave", function() closeTex:SetTextColor(0.50, 0.50, 0.62, 1) end)
@@ -260,20 +260,20 @@ local function BuildFrame()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", function(self)
         if InCombatLockdown() then return end
-        if GetDB("personaLockPosition", false) then return end
+        if GetDB("essenceLockPosition", false) then return end
         self:StartMoving()
     end)
     frame:SetScript("OnDragStop", function(self)
         if InCombatLockdown() then return end
         self:StopMovingOrSizing()
         local point, _, _, x, y = self:GetPoint()
-        SetDB("personaPoint", point)
-        SetDB("personaX", math.floor(x + 0.5))
-        SetDB("personaY", math.floor(y + 0.5))
+        SetDB("essencePoint", point)
+        SetDB("essenceX", math.floor(x + 0.5))
+        SetDB("essenceY", math.floor(y + 0.5))
     end)
 
     -- ── PlayerModel ───────────────────────────────────────────────────────────
-    model = CreateFrame("PlayerModel", "HSPersonaModel", frame)
+    model = CreateFrame("PlayerModel", "HSEssenceModel", frame)
     model:SetSize(S(MODEL_W), S(MODEL_H))
     model:SetPoint("TOPLEFT", frame, "TOPLEFT", S(PAD), -S(HEADER_H + PAD))
     model:SetFrameLevel(frame:GetFrameLevel() + 1)
@@ -402,7 +402,7 @@ local function GetSlotIlvl(slotID)
     return ok and ilvl and ilvl > 0 and ilvl or nil
 end
 
-function Persona.Refresh()
+function Essence.Refresh()
     if not frame or not frame:IsShown() then return end
 
     local fp = GetFontPath()
@@ -411,7 +411,7 @@ function Persona.Refresh()
     local name = UnitName("player") or "Unknown"
     local _, classFile = UnitClass("player")
     local classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
-    if classColor and addon.GetModuleClassColor and addon.GetModuleClassColor("persona") then
+    if classColor and addon.GetModuleClassColor and addon.GetModuleClassColor("essence") then
         nameText:SetTextColor(classColor.r, classColor.g, classColor.b, 1)
     else
         nameText:SetTextColor(1, 1, 1, 1)
@@ -420,7 +420,7 @@ function Persona.Refresh()
     nameShadow:SetText(name)
 
     -- ── PvP Title ─────────────────────────────────────────────────────────────
-    if GetDB("personaShowTitle", true) then
+    if GetDB("essenceShowTitle", true) then
         local pvpName = UnitPVPName and UnitPVPName("player")
         if pvpName and pvpName ~= name then
             -- pvpName is "Title CharacterName" — strip the trailing character name
@@ -489,8 +489,8 @@ function Persona.Refresh()
     end
 
     -- ── Secondary Stats ───────────────────────────────────────────────────────
-    local showStats = GetDB("personaShowStatBars", true)
-    local statCap   = tonumber(GetDB("personaStatCap", 50)) or 50
+    local showStats = GetDB("essenceShowStatBars", true)
+    local statCap   = tonumber(GetDB("essenceStatCap", 50)) or 50
 
     for i, bar in ipairs(statBars) do
         if showStats then
@@ -508,7 +508,7 @@ function Persona.Refresh()
     end
 
     -- ── Gear Slots ────────────────────────────────────────────────────────────
-    local showBadge = GetDB("personaShowIlvlBadge", true)
+    local showBadge = GetDB("essenceShowIlvlBadge", true)
 
     for i, slot in ipairs(gearSlots) do
         local slotID  = GEAR_SLOT_IDS[i]
@@ -549,39 +549,39 @@ end
 -- SHOW / HIDE / TOGGLE
 -- ============================================================================
 
-function Persona.Show()
+function Essence.Show()
     if not frame then return end
     frame:Show()
     if model and UnitExists("player") then
         pcall(model.SetUnit, model, "player")
     end
-    Persona.Refresh()
+    Essence.Refresh()
 end
 
-function Persona.Hide()
+function Essence.Hide()
     if frame then frame:Hide() end
 end
 
-function Persona.Toggle()
+function Essence.Toggle()
     if not frame then return end
-    if frame:IsShown() then Persona.Hide() else Persona.Show() end
+    if frame:IsShown() then Essence.Hide() else Essence.Show() end
 end
 
 -- ============================================================================
 -- POSITION
 -- ============================================================================
 
-function Persona.ApplyPosition(reset)
+function Essence.ApplyPosition(reset)
     if not frame then return end
     frame:ClearAllPoints()
     if reset then
-        SetDB("personaPoint", "CENTER")
-        SetDB("personaX", 0)
-        SetDB("personaY", 0)
+        SetDB("essencePoint", "CENTER")
+        SetDB("essenceX", 0)
+        SetDB("essenceY", 0)
     end
-    local point = GetDB("personaPoint", "CENTER")
-    local x = tonumber(GetDB("personaX", 0)) or 0
-    local y = tonumber(GetDB("personaY", 0)) or 0
+    local point = GetDB("essencePoint", "CENTER")
+    local x = tonumber(GetDB("essenceX", 0)) or 0
+    local y = tonumber(GetDB("essenceY", 0)) or 0
     frame:SetPoint(point, UIParent, point, x, y)
 end
 
@@ -589,11 +589,11 @@ end
 -- APPLY OPTIONS
 -- ============================================================================
 
-function Persona.ApplyPersonaOptions()
+function Essence.ApplyEssenceOptions()
     if not frame then return end
-    local sc = tonumber(GetDB("personaScale", 1.0)) or 1.0
+    local sc = tonumber(GetDB("essenceScale", 1.0)) or 1.0
     frame:SetScale(sc)
-    if frame:IsShown() then Persona.Refresh() end
+    if frame:IsShown() then Essence.Refresh() end
 end
 
 -- ============================================================================
@@ -601,14 +601,14 @@ end
 -- ============================================================================
 
 local function InstallCharFrameHook()
-    if Persona._charFrameHooked then return end
-    Persona._charFrameHooked = true
+    if Essence._charFrameHooked then return end
+    Essence._charFrameHooked = true
     CharacterFrame:HookScript("OnShow", function()
         if not IsEnabled() then return end
         if InCombatLockdown() then return end
-        if Persona._suppressCharHook then return end
+        if Essence._suppressCharHook then return end
         CharacterFrame:Hide()
-        Persona.Show()
+        Essence.Show()
     end)
 end
 
@@ -618,7 +618,7 @@ end
 
 local eventFrame = CreateFrame("Frame")
 
-local function RegisterPersonaEvents()
+local function RegisterEssenceEvents()
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
     eventFrame:RegisterEvent("PLAYER_LEVEL_UP")
@@ -632,13 +632,13 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         if select(1, ...) ~= "player" then return end
     end
     if event == "PLAYER_ENTERING_WORLD" then
-        Persona.ApplyPosition()
+        Essence.ApplyPosition()
         if frame and frame:IsShown() and model and UnitExists("player") then
             pcall(model.SetUnit, model, "player")
         end
     end
     if frame and frame:IsShown() then
-        Persona.Refresh()
+        Essence.Refresh()
     end
 end)
 
@@ -646,25 +646,25 @@ end)
 -- INIT / DISABLE
 -- ============================================================================
 
-function Persona.Init()
-    if Persona._initialized then
+function Essence.Init()
+    if Essence._initialized then
         -- Re-enable after disable: re-register events and re-apply position
-        RegisterPersonaEvents()
+        RegisterEssenceEvents()
         InstallCharFrameHook()
-        Persona.ApplyPosition()
+        Essence.ApplyPosition()
         return
     end
-    Persona._initialized = true
+    Essence._initialized = true
 
     BuildFrame()
-    RegisterPersonaEvents()
+    RegisterEssenceEvents()
     InstallCharFrameHook()
-    Persona.ApplyPosition()
+    Essence.ApplyPosition()
 end
 
-function Persona.Disable()
+function Essence.Disable()
     if frame then frame:Hide() end
     eventFrame:UnregisterAllEvents()
 end
 
-addon.Persona = Persona
+addon.Essence = Essence

@@ -16,7 +16,7 @@ addon.slashHandlers = addon.slashHandlers or {}
 addon.slashHandlersDebug = addon.slashHandlersDebug or {}
 
 --- Register a module's slash handler. Called by each module at load.
---- @param moduleKey string  "focus"|"presence"|"vista"|"yield"|"insight"
+--- @param moduleKey string  "focus"|"presence"|"vista"|"cache"|"insight"
 --- @param handler function(msg)  Receives remainder after module name (e.g. "toggle" for /h focus toggle)
 function addon.RegisterSlashHandler(moduleKey, handler)
     if not moduleKey or type(handler) ~= "function" then return end
@@ -24,7 +24,7 @@ function addon.RegisterSlashHandler(moduleKey, handler)
 end
 
 --- Register a module's debug slash handler. Called for /h debug <module> [cmd].
---- @param moduleKey string  "focus"|"presence"|"vista"|"yield"|"insight"
+--- @param moduleKey string  "focus"|"presence"|"vista"|"cache"|"insight"
 --- @param handler function(msg)  Receives remainder after module name (e.g. "wqdebug" for /h debug focus wqdebug)
 function addon.RegisterSlashHandlerDebug(moduleKey, handler)
     if not moduleKey or type(handler) ~= "function" then return end
@@ -46,7 +46,7 @@ local function ShowCoreHelp()
     HSPrint("  /h scenario debug    - Scenario timer debug (diagnose missing timers)")
     HSPrint("  /h presence [cmd]    - Zone/notification tests")
     HSPrint("  /h vista [cmd]       - Minimap")
-    HSPrint("  /h yield [cmd]       - Loot toasts")
+    HSPrint("  /h cache [cmd]       - Loot toasts")
     HSPrint("  /h insight [cmd]     - Tooltips (or /insight)")
 end
 
@@ -110,7 +110,7 @@ local function OnSlashCommand(msg)
         moduleKey = (moduleKey or ""):lower()
         subMsg = strtrim(subMsg or "")
         if moduleKey == "" then
-            HSPrint("Usage: /h debug <focus|presence|vista|yield|insight|locale> [cmd]")
+            HSPrint("Usage: /h debug <focus|presence|vista|cache|insight|locale> [cmd]")
             return
         end
         -- Core debug: locale

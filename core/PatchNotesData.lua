@@ -13,39 +13,39 @@ addon.PATCH_NOTES = {
         {
             section = "New Features",
             bullets = {
-                "Unified class colours: batch toggle and per-module tinting",
-                "Focus: colour choices for global, headers, and objectives",
-                "Dashboard class icon with shared class media",
-                "Global toggles for class colours and scale; module options grouped for on/off and minimap",
-                "Dashboard background option uses current specialization talent art",
-                "Welcome screen and dashboard refresh",
+                "Axis: Unified class colours — batch toggle and per-module tinting",
+                "Focus: Colour choices for global, headers, and objectives",
+                "Axis: Dashboard class icon with shared class media",
+                "Axis: Global toggles for class colours and scale; module options grouped for on/off and minimap",
+                "Axis: Dashboard background option uses current specialisation talent art",
+                "Axis: Welcome screen and dashboard refresh",
             },
         },
         {
-            section = "IMPROVEMENTS",
+            section = "Improvements",
             bullets = {
-                "Insight: defer tooltip width clamping for more reliable layout",
-                "Insight: fade out stale unit tooltips when mouseover clears",
+                "Insight: Defer tooltip width clamping for more reliable layout",
+                "Insight: Fade out stale unit tooltips when mouseover clears",
             },
         },
     },
 
     ["4.2.2"] = {
         {
-            section = "FIXES",
+            section = "Fixes",
             bullets = {
-                "Bonus objectives stay visible when scenario row has no real content",
-                "Quest update toast shows wrong objective on multi-objective quests",
+                "Focus: Bonus objectives stay visible when scenario row has no real content",
+                "Focus: Quest update toast shows wrong objective on multi-objective quests",
             },
         },
     },
 
     ["4.2.1"] = {
         {
-            section = "FIXES",
+            section = "Fixes",
             bullets = {
-                "Bonus objectives stay visible when scenario row has no real content",
-                "Quest update toast shows wrong objective on multi-objective quests",
+                "Focus: Bonus objectives stay visible when scenario row has no real content",
+                "Focus: Quest update toast shows wrong objective on multi-objective quests",
             },
         },
     },
@@ -54,31 +54,31 @@ addon.PATCH_NOTES = {
         {
             section = "New Features",
             bullets = {
-                "New installs start with Horizon modules off until you enable them",
-                "Dashboard welcome tab and first-run onboarding",
+                "Axis: New installs start with Horizon modules off until you enable them",
+                "Axis: Dashboard welcome tab and first-run onboarding",
             },
         },
         {
-            section = "IMPROVEMENTS",
+            section = "Improvements",
             bullets = {
-                "Remaining delve lives on the Focus tracker scenario line",
+                "Focus: Remaining delve lives on the scenario line",
             },
         },
         {
-            section = "FIXES",
+            section = "Fixes",
             bullets = {
-                "Options colour pickers for Focus and Vista no longer freeze the client or fail to apply colours",
-                "Dashboard accordion cards only toggle from the header row",
+                "Axis: Colour pickers for Focus and Vista no longer freeze the client or fail to apply colours",
+                "Axis: Dashboard accordion cards only toggle from the header row",
             },
         },
     },
 
     ["4.1.2"] = {
         {
-            section = "IMPROVEMENTS",
+            section = "Improvements",
             bullets = {
-                "WoWhead link in Focus tracker tooltips and copy-link box",
-                "Draggable minimap button with lock and reset options",
+                "Focus: WoWhead link in tracker tooltips and copy-link box",
+                "Axis: Draggable minimap button with lock and reset options",
             },
         },
     },
@@ -87,47 +87,47 @@ addon.PATCH_NOTES = {
         {
             section = "New Features",
             bullets = {
-                "Persona module (Preview): custom character sheet with 3D model, item level, stats, gear grid",
-                "Auctionator search button on recipe entries in Focus tracker",
+                "Essence: Module preview — custom character sheet with 3D model, item level, stats, and gear grid",
+                "Focus: Auctionator search button on recipe entries in the tracker",
             },
         },
         {
-            section = "IMPROVEMENTS",
+            section = "Improvements",
             bullets = {
-                "Auctionator recipe search uses CreateShoppingList and named lists",
-                "Insight tooltip fixes: item identity reapply, GetItem fallback, mouseover hide",
+                "Focus: Auctionator recipe search uses named shopping lists",
+                "Insight: Tooltip fixes — item identity reapply, item data fallback, and mouseover hide",
             },
         },
     },
 
     ["4.0.0"] = {
         {
-            section = "NEW",
+            section = "New Features",
             bullets = {
-                "Minimap icon and WoW settings panel integration",
-                "Focus tracker header: toggle quest count, divider, color, and options button",
-                "Objectives can render outside the tracker window",
-                "Category groupings can be individually toggled on or off",
+                "Axis: Minimap icon and settings panel integration",
+                "Focus: Tracker header — toggle quest count, divider, colour, and options button",
+                "Focus: Objectives can render outside the tracker window",
+                "Focus: Category groupings can be individually toggled on or off",
             },
         },
         {
-            section = "IMPROVEMENTS",
+            section = "Improvements",
             bullets = {
-                "Dashboard refreshes live when modules are toggled",
-                "Class color tinting for the Dashboard (separate toggle)",
-                "Insight now shows transmog status for trinkets, rings, and necks",
-                "Optional tooltip on hover in the Focus tracker",
-                "Delve affix tooltips in the Focus tracker",
-                "Global font size offset added to options",
+                "Axis: Dashboard refreshes live when modules are toggled",
+                "Axis: Class colour tinting for the dashboard (separate toggle)",
+                "Insight: Now shows transmog status for trinkets, rings, and necks",
+                "Focus: Optional tooltip on hover in the tracker",
+                "Focus: Delve affix tooltips in the tracker",
+                "Axis: Global font size offset added to options",
             },
         },
         {
-            section = "FIXES",
+            section = "Fixes",
             bullets = {
-                "Delve name no longer shows incorrectly during reward stage",
-                "Focus tracker no longer shifts position on /reload",
-                "World quest timers no longer tick back up one second during refresh",
-                "Text case handles umlauts and accented characters correctly",
+                "Focus: Delve name no longer shows incorrectly during the reward stage",
+                "Focus: Tracker no longer shifts position on /reload",
+                "Focus: World quest timers no longer tick back one second during refresh",
+                "Focus: Text case handles umlauts and accented characters correctly",
             },
         },
     },

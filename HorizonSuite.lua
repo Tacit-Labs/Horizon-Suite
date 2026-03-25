@@ -161,9 +161,9 @@ function addon:EnsureModulesDB()
         db.modules.focus = { enabled = false }
         db.modules.presence = { enabled = false }
         db.modules.insight = { enabled = false }
-        db.modules.yield = { enabled = false }
+        db.modules.cache = { enabled = false }
         db.modules.vista = { enabled = false }
-        db.modules.persona = { enabled = false }
+        db.modules.essence = { enabled = false }
     end
     -- Migrate old Vista (Presence) module key to Presence; repurpose vista for minimap
     if db.modules.vista and not db.modules.presence then
@@ -178,9 +178,9 @@ function addon:EnsureModulesDB()
     if not db.modules.insight then
         db.modules.insight = { enabled = true }
     end
-    -- Ensure persona exists for existing installs; disabled by default (beta)
-    if not db.modules.persona then
-        db.modules.persona = { enabled = false }
+    -- Ensure essence exists for existing installs; disabled by default (beta)
+    if not db.modules.essence then
+        db.modules.essence = { enabled = false }
     end
 end
 

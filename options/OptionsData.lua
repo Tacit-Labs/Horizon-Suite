@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Focus - Options Data
-    OptionCategories (Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence General/Notifications/Typography, Insight, Vista Minimap/Appearance/Addon Buttons, Yield), getDB/setDB/notifyMainAddon, search index.
+    OptionCategories (Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence General/Notifications/Typography, Insight, Vista Minimap/Appearance/Addon Buttons, Cache), getDB/setDB/notifyMainAddon, search index.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -31,11 +31,11 @@ local TYPOGRAPHY_KEYS = {
     fontOutline = true,
 }
 
-local YIELD_KEYS = {
-    yieldPoint    = true,
-    yieldRelPoint = true,
-    yieldX       = true,
-    yieldY       = true,
+local CACHE_KEYS = {
+    cachePoint    = true,
+    cacheRelPoint = true,
+    cacheX       = true,
+    cacheY       = true,
 }
 
 local INSIGHT_KEYS = {
@@ -62,17 +62,17 @@ local INSIGHT_KEYS = {
     insightFontPath        = true,
 }
 
-local PERSONA_KEYS = {
-    personaX             = true,
-    personaY             = true,
-    personaPoint         = true,
-    personaScale         = true,
-    personaShowModel     = true,
-    personaLockPosition  = true,
-    personaStatCap       = true,
-    personaShowIlvlBadge = true,
-    personaShowTitle     = true,
-    personaShowStatBars  = true,
+local ESSENCE_KEYS = {
+    essenceX             = true,
+    essenceY             = true,
+    essencePoint         = true,
+    essenceScale         = true,
+    essenceShowModel     = true,
+    essenceLockPosition  = true,
+    essenceStatCap       = true,
+    essenceShowIlvlBadge = true,
+    essenceShowTitle     = true,
+    essenceShowStatBars  = true,
 }
 
 local PRESENCE_KEYS = {
@@ -280,7 +280,7 @@ local SCALE_DEBOUNCE_KEYS = {
     presenceUIScale = true,
     vistaUIScale    = true,
     insightUIScale  = true,
-    yieldUIScale    = true,
+    cacheUIScale    = true,
     vistaBorderWidth = true,
     vistaAddonBtnSize = true,
     vistaBtnLayoutCols = true,
@@ -290,10 +290,10 @@ local CLASS_COLOR_KEYS = {
     classColorDashboard = true,
     classColorVista = true,
     classColorInsight = true,
-    classColorPersona = true,
+    classColorEssence = true,
     classColorFocus = true,
     classColorPresence = true,
-    classColorYield = true,
+    classColorCache = true,
 }
 
 local DASHBOARD_CLASS_ICON_KEYS = {
@@ -346,11 +346,11 @@ function OptionsData_SetDB(key, value)
     if INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
         addon.Insight.ApplyInsightOptions()
     end
-    if PERSONA_KEYS[key] and addon.Persona and addon.Persona.ApplyPersonaOptions then
-        addon.Persona.ApplyPersonaOptions()
+    if ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
+        addon.Essence.ApplyEssenceOptions()
     end
-    if YIELD_KEYS[key] and addon.Yield and addon.Yield.ApplyYieldOptions then
-        addon.Yield.ApplyYieldOptions()
+    if CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
+        addon.Cache.ApplyCacheOptions()
     end
     if DASHBOARD_CLASS_ICON_KEYS[key] then
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
@@ -371,8 +371,8 @@ function OptionsData_SetDB(key, value)
         if key == "classColorInsight" and addon.Insight and addon.Insight.ApplyInsightOptions then
             addon.Insight.ApplyInsightOptions()
         end
-        if key == "classColorPersona" and addon.Persona and addon.Persona.ApplyPersonaOptions then
-            addon.Persona.ApplyPersonaOptions()
+        if key == "classColorEssence" and addon.Essence and addon.Essence.ApplyEssenceOptions then
+            addon.Essence.ApplyEssenceOptions()
         end
         if key == "classColorFocus" and addon.ApplyFocusColors then
             addon.ApplyFocusColors()
@@ -380,8 +380,8 @@ function OptionsData_SetDB(key, value)
         if key == "classColorPresence" and addon.Presence and addon.Presence.ApplyPresenceOptions then
             addon.Presence.ApplyPresenceOptions()
         end
-        if key == "classColorYield" and addon.Yield and addon.Yield.ApplyYieldOptions then
-            addon.Yield.ApplyYieldOptions()
+        if key == "classColorCache" and addon.Cache and addon.Cache.ApplyCacheOptions then
+            addon.Cache.ApplyCacheOptions()
         end
     end
     if VISTA_KEYS[key] and addon.Vista then
@@ -579,7 +579,7 @@ local function getActiveQuestHighlight()
 end
 
 -- ---------------------------------------------------------------------------
--- OptionCategories: Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence (General, Notifications, Typography), Insight, Vista (Minimap, Appearance, Addon Buttons), Yield
+-- OptionCategories: Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence (General, Notifications, Typography), Insight, Vista (Minimap, Appearance, Addon Buttons), Cache
 -- ---------------------------------------------------------------------------
 
 local OptionCategories = {
@@ -1020,8 +1020,8 @@ local OptionCategories = {
             }
             opts[#opts + 1] = { type = "section", name = L["Class Colours"] or "Class Colours" }
             local classColorKeys = {
-                "classColorDashboard", "classColorVista", "classColorInsight", "classColorPersona",
-                "classColorFocus", "classColorPresence", "classColorYield",
+                "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
+                "classColorFocus", "classColorPresence", "classColorCache",
             }
             -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
             local classColorAllRefreshIds = { "_classColorAll" }
@@ -1066,8 +1066,8 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "toggle", name = L["Presence"], desc = L["Tint Presence toast title and divider with your class colour."] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = L["Vista"] or "Vista", desc = L["Tint Vista minimap, addon-bar, and panel borders and text with your class colour."] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = L["Insight"], desc = L["Use class colour for player tooltip name, class line, and border."] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["Yield"], desc = L["Tint Yield loot icon glow and edit/anchor borders with your class colour."] or "Tint Yield loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorYield", get = function() return getDB("classColorYield", false) end, set = function(v) setDB("classColorYield", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = "Persona", desc = L["Tint the character name on the Persona sheet with your class colour."] or "Tint the character name on the Persona sheet with your class colour.", dbKey = "classColorPersona", get = function() return getDB("classColorPersona", false) end, set = function(v) setDB("classColorPersona", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["Cache"], desc = L["Tint Cache loot icon glow and edit/anchor borders with your class colour."] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = "Essence", desc = L["Tint the character name on the Essence sheet with your class colour."] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["Scaling"] }
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
@@ -1075,7 +1075,7 @@ local OptionCategories = {
                 if addon.ApplyMplusTypography then addon.ApplyMplusTypography() end
                 if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
                 if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
-                if addon.Yield and addon.Yield.ApplyScale then addon.Yield.ApplyScale() end
+                if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
                 local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
                 if fullLayout and not InCombatLockdown() then fullLayout() end
             end
@@ -1142,14 +1142,14 @@ local OptionCategories = {
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["Yield scale"], desc = L["Scale for the Yield loot toast module (50–200%)."], dbKey = "yieldUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["Cache scale"], desc = L["Scale for the Cache loot toast module (50–200%)."], dbKey = "cacheUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("yieldUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
-                    setDB("yieldUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("yield", function()
-                        if addon.Yield and addon.Yield.ApplyScale then addon.Yield.ApplyScale() end
+                    setDB("cacheUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("cache", function()
+                        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
                     end)
                 end }
             return opts
@@ -1167,8 +1167,8 @@ local OptionCategories = {
                 { type = "toggle", name = L["Presence"], desc = L["Zone text and notifications."], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
                 { type = "toggle", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
                 { type = "toggle", name = L["Insight"], desc = L["Tooltips with class colors, spec, and faction icons."], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
-                { type = "toggle", name = L["Yield"] .. previewSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_yield", get = function() return addon:IsModuleEnabled("yield") end, set = function(v) addon:SetModuleEnabled("yield", v) end },
-                { type = "toggle", name = "Persona" .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_persona", get = function() return addon:IsModuleEnabled("persona") end, set = function(v) addon:SetModuleEnabled("persona", v) end },
+                { type = "toggle", name = L["Cache"] .. previewSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) addon:SetModuleEnabled("cache", v) end },
+                { type = "toggle", name = "Essence" .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) addon:SetModuleEnabled("essence", v) end },
             }
             opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
             opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
@@ -1747,22 +1747,22 @@ local OptionCategories = {
         },
     },
     {
-        key       = "Persona",
+        key       = "Essence",
         name      = "Character Sheet",
         desc      = "Custom character panel with 3D model, item level, secondary stats, and gear slots.",
-        moduleKey = "persona",
+        moduleKey = "essence",
         options   = {
             { type = "section", name = "Position" },
-            { type = "toggle", name = "Lock position", desc = "Prevent dragging the panel.", dbKey = "personaLockPosition", get = function() return getDB("personaLockPosition", false) end, set = function(v) setDB("personaLockPosition", v) end },
+            { type = "toggle", name = "Lock position", desc = "Prevent dragging the panel.", dbKey = "essenceLockPosition", get = function() return getDB("essenceLockPosition", false) end, set = function(v) setDB("essenceLockPosition", v) end },
             { type = "button", name = "Reset position", desc = "Snap the panel back to screen centre.", onClick = function()
-                setDB("personaPoint", "CENTER"); setDB("personaX", 0); setDB("personaY", 0)
-                if addon.Persona and addon.Persona.ApplyPosition then addon.Persona.ApplyPosition(true) end
+                setDB("essencePoint", "CENTER"); setDB("essenceX", 0); setDB("essenceY", 0)
+                if addon.Essence and addon.Essence.ApplyPosition then addon.Essence.ApplyPosition(true) end
             end },
             { type = "section", name = "Appearance" },
-            { type = "toggle", name = "PvP title", desc = "Show the character's PvP title above the identity line.", dbKey = "personaShowTitle", get = function() return getDB("personaShowTitle", true) end, set = function(v) setDB("personaShowTitle", v) end },
-            { type = "toggle", name = "Secondary stat bars", desc = "Show Crit, Haste, Mastery, and Versatility bars.", dbKey = "personaShowStatBars", get = function() return getDB("personaShowStatBars", true) end, set = function(v) setDB("personaShowStatBars", v) end },
-            { type = "toggle", name = "Item level badge on gear slots", desc = "Show the item level on each equipped gear slot.", dbKey = "personaShowIlvlBadge", get = function() return getDB("personaShowIlvlBadge", true) end, set = function(v) setDB("personaShowIlvlBadge", v) end },
-            { type = "slider", name = "Stat bar cap (%)", desc = "The percentage shown as a full bar. Lower = more detail at common stat values.", dbKey = "personaStatCap", min = 20, max = 100, step = 5, get = function() return tonumber(getDB("personaStatCap", 50)) or 50 end, set = function(v) setDB("personaStatCap", math.max(20, math.min(100, v))) end },
+            { type = "toggle", name = "PvP title", desc = "Show the character's PvP title above the identity line.", dbKey = "essenceShowTitle", get = function() return getDB("essenceShowTitle", true) end, set = function(v) setDB("essenceShowTitle", v) end },
+            { type = "toggle", name = "Secondary stat bars", desc = "Show Crit, Haste, Mastery, and Versatility bars.", dbKey = "essenceShowStatBars", get = function() return getDB("essenceShowStatBars", true) end, set = function(v) setDB("essenceShowStatBars", v) end },
+            { type = "toggle", name = "Item level badge on gear slots", desc = "Show the item level on each equipped gear slot.", dbKey = "essenceShowIlvlBadge", get = function() return getDB("essenceShowIlvlBadge", true) end, set = function(v) setDB("essenceShowIlvlBadge", v) end },
+            { type = "slider", name = "Stat bar cap (%)", desc = "The percentage shown as a full bar. Lower = more detail at common stat values.", dbKey = "essenceStatCap", min = 20, max = 100, step = 5, get = function() return tonumber(getDB("essenceStatCap", 50)) or 50 end, set = function(v) setDB("essenceStatCap", math.max(20, math.min(100, v))) end },
         },
     },
     {
@@ -2589,17 +2589,17 @@ local OptionCategories = {
         end,
     },
     {
-        key = "YieldGeneral",
+        key = "CacheGeneral",
         name = L["General"],
-        desc = L["Positioning and visibility for the Yield loot toast system."] or "Positioning and visibility for the Yield loot toast system.",
-        moduleKey = "yield",
+        desc = L["Positioning and visibility for the Cache loot toast system."] or "Positioning and visibility for the Cache loot toast system.",
+        moduleKey = "cache",
         options = {
             { type = "section", name = L["Position"] },
             { type = "button", name = L["Show anchor to move"] or "Show anchor to move", desc = L["Click to show or hide the anchor. Drag to set position, right-click to confirm."] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
-                if addon.Yield and addon.Yield.ToggleAnchorFrame then addon.Yield.ToggleAnchorFrame() end
+                if addon.Cache and addon.Cache.ToggleAnchorFrame then addon.Cache.ToggleAnchorFrame() end
             end },
             { type = "button", name = L["Reset position"], desc = L["Reset loot toast position to default."], onClick = function()
-                if addon.Yield and addon.Yield.ResetPosition then addon.Yield.ResetPosition() end
+                if addon.Cache and addon.Cache.ResetPosition then addon.Cache.ResetPosition() end
             end },
         },
     },
@@ -2620,7 +2620,7 @@ function OptionsData_BuildSearchIndex()
         if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
             moduleLabel = L["Axis"] or "Axis"
         else
-            moduleLabel = (moduleKey == "focus" and L["Focus"]) or (moduleKey == "presence" and L["Presence"]) or (moduleKey == "insight" and (L["Insight"] or "Insight")) or (moduleKey == "yield" and L["Yield"]) or (moduleKey == "vista" and (L["Vista"] or "Vista")) or L["Modules"]
+            moduleLabel = (moduleKey == "focus" and L["Focus"]) or (moduleKey == "presence" and L["Presence"]) or (moduleKey == "insight" and (L["Insight"] or "Insight")) or (moduleKey == "cache" and L["Cache"]) or (moduleKey == "vista" and (L["Vista"] or "Vista")) or L["Modules"]
         end
         local catOpts = type(cat.options) == "function" and cat.options() or cat.options
         for _, opt in ipairs(catOpts) do

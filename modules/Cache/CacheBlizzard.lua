@@ -1,14 +1,14 @@
 --[[
-    Horizon Suite - Yield - Blizzard Suppression
+    Horizon Suite - Cache - Blizzard Suppression
     Suppress Blizzard loot/money/currency toasts and epic/legendary popups.
     Scope: loot and money only; does not affect Presence (zone text, achievements, etc).
     Idempotent: safe to call SuppressBlizzard/RestoreBlizzard multiple times.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Yield then return end
+if not addon or not addon.Cache then return end
 
-local Y = addon.Yield
+local Y = addon.Cache
 
 local hiddenParent = CreateFrame("Frame")
 hiddenParent:Hide()
