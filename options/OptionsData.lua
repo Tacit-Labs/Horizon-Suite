@@ -300,6 +300,10 @@ local DASHBOARD_CLASS_ICON_KEYS = {
     dashboardClassIconSource = true,
 }
 
+local DASHBOARD_BACKGROUND_KEYS = {
+    dashboardBackgroundTheme = true,
+}
+
 function OptionsData_GetDB(key, default)
     return addon.GetDB(key, default)
 end
@@ -349,6 +353,9 @@ function OptionsData_SetDB(key, value)
     end
     if DASHBOARD_CLASS_ICON_KEYS[key] then
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+    end
+    if DASHBOARD_BACKGROUND_KEYS[key] then
+        if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
     end
     if CLASS_COLOR_KEYS[key] then
         if key == "classColorDashboard" then
@@ -955,6 +962,46 @@ local OptionCategories = {
         moduleKey = nil,
         options = function()
             local opts = {}
+            opts[#opts + 1] = { type = "section", name = L["Theme"] or "Theme" }
+            local function dashboardBackgroundDropdownOptions()
+                local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight" }
+                local out = {}
+                for _, id in ipairs(order) do
+                    local label
+                    if id == "horizon" then
+                        label = L["Default"] or "Default"
+                    elseif id == "midnight" then
+                        label = L["Dashboard background Midnight"] or "Midnight"
+                    else
+                        label = id
+                    end
+                    out[#out + 1] = { label, id }
+                end
+                return out
+            end
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["Dashboard background"] or "Dashboard background",
+                desc = L["Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base."] or "Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base.",
+                dbKey = "dashboardBackgroundTheme",
+                searchable = true,
+                options = dashboardBackgroundDropdownOptions,
+                get = function()
+                    local v = getDB("dashboardBackgroundTheme", "horizon")
+                    if v == "solid" then
+                        v = "horizon"
+                    end
+                    local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight" }
+                    for _, id in ipairs(order) do
+                        if v == id then
+                            return v
+                        end
+                    end
+                    return "horizon"
+                end,
+                set = function(v) setDB("dashboardBackgroundTheme", v) end,
+                refreshIds = { "dashboardBackgroundTheme" },
+            }
             opts[#opts + 1] = { type = "section", name = L["Class Colours"] or "Class Colours" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorPersona",

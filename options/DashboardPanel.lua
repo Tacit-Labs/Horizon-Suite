@@ -8,6 +8,57 @@ if not addon then return end
 
 local L = addon.L
 
+-- Dashboard background: Default = solid ColorTexture only. Midnight = optional PNG over the same solid (see DASHBOARD_BG_FILES).
+local DASHBOARD_BG_MEDIA_PATH = "Interface\\AddOns\\HorizonSuite\\media\\dashboard\\"
+local DASHBOARD_BG_BASE_ALPHA = 0.98
+local DASHBOARD_BG_FILES = {
+    midnight = "backgrounds\\Wow-Midnight.png",
+}
+local DASHBOARD_BG_ORDER = { "horizon", "midnight" }
+addon.DashboardBackgroundThemeOrder = DASHBOARD_BG_ORDER
+
+local function NormalizeDashboardThemeId(themeId)
+    if themeId == "midnight" then
+        return "midnight"
+    end
+    return "horizon"
+end
+
+-- Dashboard window (16:9). Author full-bleed PNG backgrounds at this size (or 2×, e.g. 2560×1440).
+local DASHBOARD_FRAME_W = 1280
+local DASHBOARD_FRAME_H = 720
+local DASHBOARD_VIEW_H = DASHBOARD_FRAME_H - 20 -- main views sit inside frame below header band
+
+--- Apply saved dashboard background theme to the dashboard frame (if it exists).
+--- @return nil
+function addon.ApplyDashboardBackground()
+    local dash = _G.HorizonSuiteDashboard
+    local art = dash and dash._dashboardBgArt
+    if not art then
+        return
+    end
+    local raw = (addon.GetDB and addon.GetDB("dashboardBackgroundTheme", "horizon")) or "horizon"
+    local themeId = NormalizeDashboardThemeId(raw)
+    local solid = dash._dashboardBgSolid
+    if solid then
+        solid:Show()
+    end
+    local rel = DASHBOARD_BG_FILES[themeId]
+    if not rel then
+        art:Hide()
+        if art.SetTexture then
+            art:SetTexture(nil)
+        end
+        art:SetVertexColor(1, 1, 1, 1)
+        return
+    end
+    local path = DASHBOARD_BG_MEDIA_PATH .. rel
+    art:SetTexture(path)
+    art:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
+    art:SetAlpha(1)
+    art:Show()
+end
+
 -- Categories shown under the Axis hub (dashboard + search); keep in sync with OptionCategories keys.
 local function OptionCategoryKeyIsAxis(catKey)
     return catKey == "Profiles" or catKey == "Modules" or catKey == "GlobalToggles"
@@ -40,7 +91,7 @@ SlashCmdList["HSDASH"] = function(msg)
     else
         if not f then
             f = CreateFrame("Frame", "HorizonSuiteDashboard", UIParent, "BackdropTemplate")
-            f:SetSize(1000, 700)
+            f:SetSize(DASHBOARD_FRAME_W, DASHBOARD_FRAME_H)
             f:SetPoint("CENTER")
             f:SetFrameStrata("HIGH")
             f:SetToplevel(true)
@@ -225,11 +276,19 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             tinsert(UISpecialFrames, "HorizonSuiteDashboard")
-            
-            -- Background
-            local bg = f:CreateTexture(nil, "BACKGROUND")
-            bg:SetAllPoints()
-            bg:SetColorTexture(0.05, 0.05, 0.07, 0.98)
+
+            -- Background: solid base (always) + optional PNG theme on top
+            local bgSolid = f:CreateTexture(nil, "BACKGROUND", nil, -1)
+            bgSolid:SetAllPoints()
+            bgSolid:SetColorTexture(0.05, 0.05, 0.07, DASHBOARD_BG_BASE_ALPHA)
+            local bgArt = f:CreateTexture(nil, "BACKGROUND", nil, 0)
+            bgArt:SetAllPoints()
+            bgArt:Hide()
+            f._dashboardBgSolid = bgSolid
+            f._dashboardBgArt = bgArt
+            if addon.ApplyDashboardBackground then
+                addon.ApplyDashboardBackground()
+            end
 
             -- ===== SIDEBAR =====
             local SIDEBAR_WIDTH = 160
@@ -300,6 +359,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 self:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * 30)))
             end)
 
+            local TAB_ROW_HEIGHT = 38
+            local SIDEBAR_WHATSNEW_RESERVE = TAB_ROW_HEIGHT + 8
+
             LayoutDashboardSidebarUnderHeader = function()
                 logoSep:ClearAllPoints()
                 local icon = dashAccentRefs.dashboardClassIcon
@@ -309,7 +371,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 logoSep:SetPoint("RIGHT", sidebar, "RIGHT", -15, 0)
                 sidebarScrollFrame:ClearAllPoints()
                 sidebarScrollFrame:SetPoint("TOPLEFT", logoSep, "BOTTOMLEFT", 0, -10)
-                sidebarScrollFrame:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, 10)
+                sidebarScrollFrame:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, 10 + SIDEBAR_WHATSNEW_RESERVE)
             end
 
             RefreshDashboardClassIcon()
@@ -348,7 +410,6 @@ SlashCmdList["HSDASH"] = function(msg)
             local SetSidebarState
             local RequestGroupToggle
 
-            local TAB_ROW_HEIGHT = 38
             local HEADER_ROW_HEIGHT = 28
             local SIDEBAR_TOP_PAD = 4
             local COLLAPSE_ANIM_DUR = 0.18
@@ -611,29 +672,29 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             -- Views (offset right to accommodate sidebar)
-            local viewWidth = 1000 - SIDEBAR_WIDTH - 10
+            local viewWidth = DASHBOARD_FRAME_W - SIDEBAR_WIDTH - 10
             local viewCenterX = CONTENT_OFFSET / 2
             local contentWidth = viewWidth - 80  -- scroll frame uses 40px inset on each side
 
             local dashboardView = CreateFrame("Frame", nil, f)
-            dashboardView:SetSize(viewWidth, 680)
+            dashboardView:SetSize(viewWidth, DASHBOARD_VIEW_H)
             dashboardView:SetPoint("CENTER", viewCenterX, 0)
             f.dashboardView = dashboardView
 
             local detailView = CreateFrame("Frame", nil, f)
-            detailView:SetSize(viewWidth, 680)
+            detailView:SetSize(viewWidth, DASHBOARD_VIEW_H)
             detailView:SetPoint("CENTER", viewCenterX, 0)
             detailView:Hide()
             f.detailView = detailView
 
             local subCategoryView = CreateFrame("Frame", nil, f)
-            subCategoryView:SetSize(viewWidth, 680)
+            subCategoryView:SetSize(viewWidth, DASHBOARD_VIEW_H)
             subCategoryView:SetPoint("CENTER", viewCenterX, 0)
             subCategoryView:Hide()
             f.subCategoryView = subCategoryView
 
             local welcomeView = CreateFrame("Frame", nil, f)
-            welcomeView:SetSize(viewWidth, 680)
+            welcomeView:SetSize(viewWidth, DASHBOARD_VIEW_H)
             welcomeView:SetPoint("CENTER", viewCenterX, 0)
             welcomeView:Hide()
             f.welcomeView = welcomeView
@@ -691,6 +752,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 searchBox:Show()
                 f.currentModuleKey = nil
                 SetSidebarState({ view = "dashboard", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             end
 
@@ -2705,14 +2767,13 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
             end
 
-            -- What's New button (always visible at the bottom of the sidebar)
+            -- What's New: pinned to sidebar bottom (outside scroll; see SIDEBAR_WHATSNEW_RESERVE)
             do
-                local wnBtn = CreateSidebarButton(sidebarScrollContent, "What's New", "INV_Scroll_05", function()
+                local wnBtn = CreateSidebarButton(sidebar, "What's New", "INV_Scroll_05", function()
                     if addon.ShowPatchNotes then addon.ShowPatchNotes() end
                 end)
-                wnBtn:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
-                lastSidebarRow = wnBtn
-                tinsert(sidebarRows, { type = "whatsnew", frame = wnBtn, bottom = wnBtn, offsetFromPrev = 0 })
+                wnBtn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, 10)
+                wnBtn:SetFrameLevel(sidebarScrollFrame:GetFrameLevel() + 1)
                 tinsert(sidebarButtons, wnBtn)
             end
 

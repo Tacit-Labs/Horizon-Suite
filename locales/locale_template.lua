@@ -1,5 +1,5 @@
 --[[
-    Horizon Suite -- Translation Template
+    Horizon Suite — Translation Template
 
     HOW TO TRANSLATE:
     1. Copy this file and rename it to your locale code (e.g., itIT.lua)
@@ -7,7 +7,7 @@
        Valid codes: deDE, frFR, esES, esMX, ptBR, ruRU, koKR, zhCN, zhTW, itIT
     3. Translate each value (the text on the RIGHT side of the = sign)
        DO NOT change the keys (the text inside L["..."] on the left side)
-    4. Comment out or delete any lines you cannot translate --
+    4. Comment out or delete any lines you cannot translate —
        English will show automatically for missing translations.
     5. Submit the completed file to the Horizon Suite Discord for review.
 
@@ -23,33 +23,152 @@ local L = setmetatable({}, { __index = addon.L })
 addon.L = L
 addon.StandardFont = UNIT_NAME_FONT  -- Change only if your locale needs a different font
 
--- ══════════════════════════════════════════════════════════════════════════
--- ║  DASHBOARD UI                                                          ║
--- ║  Strings on the settings panel chrome itself                           ║
--- ══════════════════════════════════════════════════════════════════════════
-
--- ── Dashboard > Panel title ────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsPanel.lua — Title
+-- =====================================================================
 L["HORIZON SUITE"]                                                      = "HORIZON SUITE"
 
--- ── Dashboard > Search bar ─────────────────────────────────────────────────────────
-L["Search settings..."]                                                 = "Search settings..."
-L["Search fonts..."]                                                    = "Search fonts..."
-
--- ── Dashboard > Tracker panel tooltip ──────────────────────────────────────────────
-L["Drag to resize"]                                                     = "Drag to resize"
-
--- ── Dashboard > Sidebar module labels ──────────────────────────────────────────────
+-- =====================================================================
+-- OptionsPanel.lua — Sidebar module group labels
+-- =====================================================================
 L["Focus"]                                                              = "Focus"
 L["Presence"]                                                           = "Presence"
 L["Other"]                                                              = "Other"
 
+-- =====================================================================
+-- OptionsPanel.lua — Section headers
+-- =====================================================================
+L["Quest types"]                                                        = "Quest types"
+L["Element overrides"]                                                  = "Element overrides"
+L["Per category"]                                                       = "Per category"
+L["Grouping Overrides"]                                                 = "Grouping Overrides"
+L["Section Overrides"]                                                  = "Section Overrides"
+L["Other colors"]                                                       = "Other colors"
 
+-- =====================================================================
+-- OptionsPanel.lua — Color row labels (collapsible group sub-rows)
+-- =====================================================================
+L["Section"]                                                            = "Section"
+L["Title"]                                                              = "Title"
+L["Zone"]                                                               = "Zone"
+L["Objective"]                                                          = "Objective"
 
--- ══════════════════════════════════════════════════════════════════════════
--- ║  AXIS                                                                  ║
--- ══════════════════════════════════════════════════════════════════════════
+-- =====================================================================
+-- OptionsPanel.lua — Toggle switch labels & tooltips
+-- =====================================================================
+L["Ready to Turn In overrides base colours"]                            = "Ready to Turn In overrides base colours"
+L["Ready to Turn In uses its colours for quests in that section."]      = "Ready to Turn In uses its colours for quests in that section."
+L["Current Zone overrides base colours"]                                = "Current Zone overrides base colours"
+L["Current Zone uses its colours for quests in that section."]          = "Current Zone uses its colours for quests in that section."
+L["Current Quest overrides base colours"]                               = "Current Quest overrides base colours"
+L["Current Quest uses its colours for quests in that section."]         = "Current Quest uses its colours for quests in that section."
+L["Use distinct color for completed objectives"]                        = "Use distinct color for completed objectives"
+L["When on, completed objectives (e.g. 1/1) use the color below; when off, they use the same color as incomplete objectives."]= "When on, completed objectives (e.g. 1/1) use the color below; when off, they use the same color as incomplete objectives."
+L["Completed objective"]                                                = "Completed objective"
 
--- ── Axis > Profiles ────────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsPanel.lua — Button labels
+-- =====================================================================
+L["Reset"]                                                              = "Reset"
+L["Reset quest types"]                                                  = "Reset quest types"
+L["Reset overrides"]                                                    = "Reset overrides"
+L["Reset all to defaults"]                                              = "Reset all to defaults"
+L["Reset to defaults"]                                                  = "Reset to defaults"
+L["Reset to default"]                                                   = "Reset to default"
+
+-- =====================================================================
+-- OptionsPanel.lua — Search bar placeholder
+-- =====================================================================
+L["Search settings..."]                                                 = "Search settings..."
+L["Search fonts..."]                                                    = "Search fonts..."
+
+-- =====================================================================
+-- OptionsPanel.lua — Resize handle tooltip
+-- =====================================================================
+L["Drag to resize"]                                                     = "Drag to resize"
+
+-- =====================================================================
+-- OptionsData.lua Category names (sidebar)
+-- =====================================================================
+L["Profiles"]                                                           = "Profiles"
+L["Modules"]                                                            = "Modules"
+L["Module Toggles"]                                                     = "Module Toggles"
+L["Axis"]                                                               = "Axis"
+
+-- =====================================================================
+-- DashboardPanel.lua — First-run welcome
+-- =====================================================================
+L["Dashboard welcome tab"]                                              = "Welcome"
+L["Dashboard welcome title"]                                            = "Welcome to Horizon Suite"
+L["Dashboard welcome head sub"]                                         = "What each module does and where to turn them on"
+L["Dashboard welcome intro"]                                            = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Use Open Module Toggles below, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
+L["Dashboard welcome path"]                                             = "%s → %s → %s"
+L["Dashboard welcome modules heading"]                                  = "Modules"
+L["Dashboard welcome continue"]                                         = "Go to Home"
+L["Dashboard welcome open toggles"]                                     = "Open Module Toggles"
+L["Objective tracker for quests, world quests, rares, achievements, scenarios."]= "Objective tracker for quests, world quests, rares, achievements, scenarios."
+L["Zone text and notifications."]                                       = "Zone text and notifications."
+L["Minimap with zone text, coords, time, and button collector."]        = "Minimap with zone text, coords, time, and button collector."
+L["Tooltips with class colors, spec, and faction icons."]               = "Tooltips with class colors, spec, and faction icons."
+L["Loot toasts for items, money, currency, reputation."]                = "Loot toasts for items, money, currency, reputation."
+L["Persona module short description"]                                   = "Custom character sheet with 3D model, item level, stats, and gear grid."
+L["Layout"]                                                             = "Layout"
+L["Visibility"]                                                         = "Visibility"
+L["Display"]                                                            = "Display"
+L["Features"]                                                           = "Features"
+L["Typography"]                                                         = "Typography"
+L["Appearance"]                                                         = "Appearance"
+L["Colors"]                                                             = "Colors"
+L["Organization"]                                                       = "Organization"
+
+-- =====================================================================
+-- OptionsData.lua Section headers
+-- =====================================================================
+L["Panel behaviour"]                                                    = "Panel behaviour"
+L["Dimensions"]                                                         = "Dimensions"
+L["Instance"]                                                           = "Instance"
+L["Instances"]                                                          = "Instances"
+L["Combat"]                                                             = "Combat"
+L["Filtering"]                                                          = "Filtering"
+L["Header"]                                                             = "Header"
+L["Sections & structure"]                                               = "Sections & structure"
+L["Entry details"]                                                      = "Entry details"
+L["Progress & timers"]                                                  = "Progress & timers"
+L["Focus emphasis"]                                                     = "Focus emphasis"
+L["List"]                                                               = "List"
+L["Spacing"]                                                            = "Spacing"
+L["Rare bosses"]                                                        = "Rare bosses"
+L["World quests"]                                                       = "World quests"
+L["Floating quest item"]                                                = "Floating quest item"
+L["Mythic+"]                                                            = "Mythic+"
+L["Achievements"]                                                       = "ACHIEVEMENTS"
+L["Endeavors"]                                                          = "ENDEAVORS"
+L["Decor"]                                                              = "Decor"
+L["Scenario & Delve"]                                                   = "Scenario & Delve"
+L["Font"]                                                               = "Font"
+L["Font families"]                                                      = "Font families"
+L["Global font size"]                                                   = "Global font size"
+L["Font sizes"]                                                         = "Font sizes"
+L["Per-element fonts"]                                                  = "Per-element fonts"
+L["Text case"]                                                          = "Text case"
+L["Shadow"]                                                             = "Shadow"
+L["Panel"]                                                              = "Panel"
+L["Highlight"]                                                          = "Highlight"
+L["Color matrix"]                                                       = "Color matrix"
+L["Focus order"]                                                        = "Focus order"
+L["Sort"]                                                               = "Sort"
+L["Behaviour"]                                                          = "Behaviour"
+L["Content Types"]                                                      = "Content Types"
+L["Delves"]                                                             = "Delves"
+L["Delves & Dungeons"]                                                  = "Delves & Dungeons"
+L["Delve Complete"]                                                     = "Delve Complete"
+L["Interactions"]                                                       = "Interactions"
+L["Tracking"]                                                           = "Tracking"
+L["Scenario Bar"]                                                       = "Scenario Bar"
+
+-- =====================================================================
+-- OptionsData.lua Profiles
+-- =====================================================================
 L["Vista"]                                                              = "Vista"
 L["Current profile"]                                                    = "Current profile"
 L["Select the profile currently in use."]                               = "Select the profile currently in use."
@@ -80,10 +199,22 @@ L["Deletes the selected profile."]                                      = "Delet
 L["Global profile"]                                                     = "Global profile"
 L["Per-spec profiles"]                                                  = "Per-spec profiles"
 
--- ── Axis > Global Toggles  (class colours + global / per-module UI scale) ───────────
-L["Global Toggles"]                                                     = "Global Toggles"
-L["Suite-wide class colour tinting and UI scale (global or per module)."] = "Suite-wide class colour tinting and UI scale (global or per module)."
+-- =====================================================================
+-- OptionsData.lua Modules
+-- =====================================================================
+L["Enable Focus module"]                                                = "Enable Focus module"
+L["Show the objective tracker for quests, world quests, rares, achievements, and scenarios."]= "Show the objective tracker for quests, world quests, rares, achievements, and scenarios."
+L["Enable Presence module"]                                             = "Enable Presence module"
+L["Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."]= "Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."
+L["Enable Yield module"]                                                = "Enable Yield module"
+L["Cinematic loot notifications (items, money, currency, reputation)."] = "Cinematic loot notifications (items, money, currency, reputation)."
+L["Enable Vista module"]                                                = "Enable Vista module"
+L["Cinematic square minimap with zone text, coordinates, and button collector."]= "Cinematic square minimap with zone text, coordinates, and button collector."
+L["Cinematic square minimap with zone text, coordinates, time, and button collector."]= "Cinematic square minimap with zone text, coordinates, time, and button collector."
+L["Beta"]                                                               = "Beta"
 L["Scaling"]                                                            = "Scaling"
+L["Global Toggles"]                                                     = "Global Toggles"
+L["Suite-wide class colour tinting and UI scale (global or per module)."]= "Dashboard background theme, class colour tinting, and UI scale (global or per module)."
 L["Global UI scale"]                                                    = "Global UI scale"
 L["Scale all sizes, spacings, and fonts by this factor (50–200%). Does not change your configured values."]= "Scale all sizes, spacings, and fonts by this factor (50–200%). Does not change your configured values."
 L["Per-module scaling"]                                                 = "Per-module scaling"
@@ -100,26 +231,65 @@ L["Insight scale"]                                                      = "Insig
 L["Scale for the Insight tooltip module (50–200%)."]                    = "Scale for the Insight tooltip module (50–200%)."
 L["Yield scale"]                                                        = "Yield scale"
 L["Scale for the Yield loot toast module (50–200%)."]                   = "Scale for the Yield loot toast module (50–200%)."
+L["Enable Horizon Insight module"]                                      = "Enable Horizon Insight module"
+L["Cinematic tooltips with class colors, spec display, and faction icons."]= "Cinematic tooltips with class colors, spec display, and faction icons."
+L["Horizon Insight"]                                                    = "Horizon Insight"
+L["Insight"]                                                            = "Insight"
+L["Tooltip anchor mode"]                                                = "Tooltip anchor mode"
+L["Where tooltips appear: follow cursor or fixed position."]            = "Where tooltips appear: follow cursor or fixed position."
+L["Cursor"]                                                             = "Cursor"
+L["Fixed"]                                                              = "Fixed"
+L["Show anchor to move"]                                                = "Show anchor to move"
+L["Click to show or hide the anchor. Drag to set position, right-click to confirm."]= "Click to show or hide the anchor. Drag to set position, right-click to confirm."
+L["Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."]= "Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."
+L["Reset tooltip position"]                                             = "Reset tooltip position"
+L["Reset fixed position to default."]                                   = "Reset fixed position to default."
+L["Tooltip background color"]                                           = "Tooltip background color"
+L["Color of the tooltip background."]                                   = "Color of the tooltip background."
+L["Tooltip background opacity"]                                         = "Tooltip background opacity"
+L["Tooltip background opacity (0–100%)."]                               = "Tooltip background opacity (0–100%)."
+L["Tooltip font"]                                                       = "Tooltip font"
+L["Font family used for all tooltip text."]                             = "Font family used for all tooltip text."
+L["Tooltips"]                                                           = "Tooltips"
+L["Item Tooltip"]                                                       = "Item Tooltip"
+L["Show transmog status"]                                               = "Show transmog status"
+L["Show whether you have collected the appearance of an item you hover over."]= "Show whether you have collected the appearance of an item you hover over."
+L["Player Tooltip"]                                                     = "Player Tooltip"
+L["Show guild rank"]                                                    = "Show guild rank"
+L["Append the player's guild rank next to their guild name."]           = "Append the player's guild rank next to their guild name."
+L["Show Mythic+ score"]                                                 = "Show Mythic+ score"
+L["Show the player's current season Mythic+ score, colour-coded by tier."]= "Show the player's current season Mythic+ score, colour-coded by tier."
+L["Show item level"]                                                    = "Show item level"
+L["Show the player's equipped item level after inspecting them."]       = "Show the player's equipped item level after inspecting them."
+L["Show honor level"]                                                   = "Show honor level"
+L["Show the player's PvP honor level in the tooltip."]                  = "Show the player's PvP honor level in the tooltip."
+L["Show PvP title"]                                                     = "Show PvP title"
+L["Show the player's PvP title (e.g. Gladiator) in the tooltip."]       = "Show the player's PvP title (e.g. Gladiator) in the tooltip."
+L["Character title"]                                                    = "Character title"
+L["Show the player's selected title (achievement or PvP) in the name line."]= "Show the player's selected title (achievement or PvP) in the name line."
+L["Title color"]                                                        = "Title color"
+L["Color of the character title in the player tooltip name line."]      = "Color of the character title in the player tooltip name line."
+L["Show status badges"]                                                 = "Show status badges"
+L["Show inline badges for combat, AFK, DND, PvP flag, party/raid membership, friends, and whether the player is targeting you."]= "Show inline badges for combat, AFK, DND, PvP flag, party/raid membership, friends, and whether the player is targeting you."
+L["Show mount info"]                                                    = "Show mount info"
+L["When hovering a mounted player, show their mount name, source, and whether you own it."]= "When hovering a mounted player, show their mount name, source, and whether you own it."
+L["Blank separator"]                                                    = "Blank separator"
+L["Use a blank line instead of dashes between tooltip sections."]       = "Use a blank line instead of dashes between tooltip sections."
+L["Show icons"]                                                         = "Show icons"
+L["Class icon style"]                                                   = "Class icon style"
+L["Use Default (Blizzard) or RondoMedia class icons on the class/spec line."]= "Use Default (Blizzard) or RondoMedia class icons on the class/spec line."
+L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"]= "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
+L["Default"]                                                            = "Default"
+L["Show faction, spec, mount, and Mythic+ icons in tooltips."]          = "Show faction, spec, mount, and Mythic+ icons in tooltips."
+L["Yield"]                                                              = "Yield"
+L["General"]                                                            = "General"
+L["Position"]                                                           = "Position"
+L["Reset position"]                                                     = "Reset position"
+L["Reset loot toast position to default."]                              = "Reset loot toast position to default."
 
--- ── Axis > Modules  (enable/disable, appearance) ───────────────────────────────────
-L["Enable Focus module"]                                                = "Enable Focus module"
-L["Show the objective tracker for quests, world quests, rares, achievements, and scenarios."]= "Show the objective tracker for quests, world quests, rares, achievements, and scenarios."
-L["Enable Presence module"]                                             = "Enable Presence module"
-L["Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."]= "Cinematic zone text and notifications (zone changes, level up, boss emotes, achievements, quest updates)."
-L["Enable Yield module"]                                                = "Enable Yield module"
-L["Cinematic loot notifications (items, money, currency, reputation)."] = "Cinematic loot notifications (items, money, currency, reputation)."
-L["Enable Vista module"]                                                = "Enable Vista module"
-L["Cinematic square minimap with zone text, coordinates, and button collector."]= "Cinematic square minimap with zone text, coordinates, and button collector."
-L["Cinematic square minimap with zone text, coordinates, time, and button collector."]= "Cinematic square minimap with zone text, coordinates, time, and button collector."
-L["Beta"]                                                               = "Beta"
-
-
-
--- ══════════════════════════════════════════════════════════════════════════
--- ║  FOCUS                                                                 ║
--- ══════════════════════════════════════════════════════════════════════════
-
--- ── Focus > Layout ─────────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Layout
+-- =====================================================================
 L["Lock position"]                                                      = "Lock position"
 L["Prevent dragging the tracker."]                                      = "Prevent dragging the tracker."
 L["Grow upward"]                                                        = "Grow upward"
@@ -137,7 +307,9 @@ L["Tracker width in pixels."]                                           = "Track
 L["Max content height"]                                                 = "Max content height"
 L["Max height of the scrollable list (pixels)."]                        = "Max height of the scrollable list (pixels)."
 
--- ── Focus > Visibility ─────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Visibility
+-- =====================================================================
 L["Always show M+ block"]                                               = "Always show M+ block"
 L["Show the M+ block whenever an active keystone is running"]           = "Show the M+ block whenever an active keystone is running"
 L["Show in dungeon"]                                                    = "Show in dungeon"
@@ -165,7 +337,9 @@ L["How visible the tracker is when faded (0 = invisible)."]             = "How v
 L["Only show quests in current zone"]                                   = "Only show quests in current zone"
 L["Hide quests outside your current zone."]                             = "Hide quests outside your current zone."
 
--- ── Focus > Display > Header ───────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Display — Header
+-- =====================================================================
 L["Show quest count"]                                                   = "Show quest count"
 L["Show quest count in header."]                                        = "Show quest count in header."
 L["Header count format"]                                                = "Header count format"
@@ -183,7 +357,9 @@ L["Color of the OBJECTIVES header text."]                               = "Color
 L["Header height"]                                                      = "Header height"
 L["Height of the header bar in pixels (18–48)."]                        = "Height of the header bar in pixels (18–48)."
 
--- ── Focus > Display > List ─────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Display — List
+-- =====================================================================
 L["Show section headers"]                                               = "Show section headers"
 L["Show category labels above each group."]                             = "Show category labels above each group."
 L["Show category headers when collapsed"]                               = "Show category headers when collapsed"
@@ -201,7 +377,7 @@ L["Show tooltips when hovering over tracker entries, item buttons, and scenario 
 L["Show WoWhead link in tooltips"]                                      = "Show WoWhead link in tooltips"
 L["When a tooltip is shown, add a link to open the quest, achievement, or NPC on WoWhead."]= "When a tooltip is shown, add a link to open the quest, achievement, or NPC on WoWhead."
 L["View on WoWhead"]                                                    = "View on WoWhead"
-L["Copy link"]                                                                         = "Copy link"
+L["Copy link"]                                                          = "Copy link"
 L["Copy the URL below (Ctrl+C) and paste in your browser."]             = "Copy the URL below (Ctrl+C) and paste in your browser."
 L["Show objective numbers"]                                             = "Show objective numbers"
 L["Objective prefix"]                                                   = "Objective prefix"
@@ -242,7 +418,9 @@ L["Auto-track icon"]                                                    = "Auto-
 L["Choose which icon to display next to auto-tracked in-zone entries."] = "Choose which icon to display next to auto-tracked in-zone entries."
 L["Append ** to world quests and weeklies/dailies that are not yet in your quest log (in-zone only)."]= "Append ** to world quests and weeklies/dailies that are not yet in your quest log (in-zone only)."
 
--- ── Focus > Display > Spacing ──────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Display — Spacing
+-- =====================================================================
 L["Compact mode"]                                                       = "Compact mode"
 L["Preset: sets entry and objective spacing to 4 and 1 px."]            = "Preset: sets entry and objective spacing to 4 and 1 px."
 L["Spacing preset"]                                                     = "Spacing preset"
@@ -263,7 +441,9 @@ L["Spacing below header (px)"]                                          = "Spaci
 L["Vertical gap between the objectives bar and the quest list."]        = "Vertical gap between the objectives bar and the quest list."
 L["Reset spacing"]                                                      = "Reset spacing"
 
--- ── Focus > Display > Other ────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Display — Other
+-- =====================================================================
 L["Show quest level"]                                                   = "Show quest level"
 L["Show quest level next to title."]                                    = "Show quest level next to title."
 L["Dim non-focused quests"]                                             = "Dim non-focused quests"
@@ -271,7 +451,9 @@ L["Slightly dim title, zone, objectives, and section headers that are not focuse
 L["Dim unfocused entries"]                                              = "Dim unfocused entries"
 L["Click a section header to expand that category."]                    = "Click a section header to expand that category."
 
--- ── Focus > Features > Rare Bosses ─────────────────────────────────────────────────
+-- =====================================================================
+-- Features — Rare bosses
+-- =====================================================================
 L["Show rare bosses"]                                                   = "Show rare bosses"
 L["Show rare boss vignettes in the list."]                              = "Show rare boss vignettes in the list."
 L["Rare Loot"]                                                          = "Rare Loot"
@@ -282,11 +464,15 @@ L["Boost or reduce the rare alert volume. 100% = normal; 150% = louder."]= "Boos
 L["Rare added sound"]                                                   = "Rare added sound"
 L["Play a sound when a rare is added."]                                 = "Play a sound when a rare is added."
 
--- ── Focus > Features > World Quests ────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — World quests
+-- =====================================================================
 L["Show in-zone world quests"]                                          = "Show in-zone world quests"
 L["Auto-add world quests in your current zone. When off, only quests you've tracked or world quests you're in close proximity to appear (Blizzard default)."]= "Auto-add world quests in your current zone. When off, only quests you've tracked or world quests you're in close proximity to appear (Blizzard default)."
 
--- ── Focus > Features > Floating Quest Item ─────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — Floating quest item
+-- =====================================================================
 L["Show floating quest item"]                                           = "Show floating quest item"
 L["Show quick-use button for the focused quest's usable item."]         = "Show quick-use button for the focused quest's usable item."
 L["Lock floating quest item position"]                                  = "Lock floating quest item position"
@@ -296,7 +482,9 @@ L["Which quest's item to show: super-tracked first, or current zone first."]= "W
 L["Super-tracked, then first"]                                          = "Super-tracked, then first"
 L["Current zone first"]                                                 = "Current zone first"
 
--- ── Focus > Features > Mythic+ ─────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — Mythic+
+-- =====================================================================
 L["Show Mythic+ block"]                                                 = "Show Mythic+ block"
 L["Show timer, completion %, and affixes in Mythic+ dungeons."]         = "Show timer, completion %, and affixes in Mythic+ dungeons."
 L["M+ block position"]                                                  = "M+ block position"
@@ -310,7 +498,9 @@ L["How to show defeated bosses: checkmark icon or green color."]        = "How t
 L["Checkmark"]                                                          = "Checkmark"
 L["Green color"]                                                        = "Green color"
 
--- ── Focus > Features > Achievements ────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — Achievements
+-- =====================================================================
 L["Show achievements"]                                                  = "Show achievements"
 L["Show tracked achievements in the list."]                             = "Show tracked achievements in the list."
 L["Show completed achievements"]                                        = "Show completed achievements"
@@ -320,26 +510,34 @@ L["Show each achievement's icon next to the title. Requires 'Show quest type ico
 L["Only show missing requirements"]                                     = "Only show missing requirements"
 L["Show only criteria you haven't completed for each tracked achievement. When off, all criteria are shown."]= "Show only criteria you haven't completed for each tracked achievement. When off, all criteria are shown."
 
--- ── Focus > Features > Endeavors ───────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — Endeavors
+-- =====================================================================
 L["Show endeavors"]                                                     = "Show endeavors"
 L["Show tracked Endeavors (Player Housing) in the list."]               = "Show tracked Endeavors (Player Housing) in the list."
 L["Show completed endeavors"]                                           = "Show completed endeavors"
 L["Include completed Endeavors in the tracker. When off, only in-progress tracked Endeavors are shown."]= "Include completed Endeavors in the tracker. When off, only in-progress tracked Endeavors are shown."
 
--- ── Focus > Features > Decor ───────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — Decor
+-- =====================================================================
 L["Show decor"]                                                         = "Show decor"
 L["Show tracked housing decor in the list."]                            = "Show tracked housing decor in the list."
 L["Show decor icons"]                                                   = "Show decor icons"
 L["Show each decor item's icon next to the title. Requires 'Show quest type icons' in Display."]= "Show each decor item's icon next to the title. Requires 'Show quest type icons' in Display."
 
--- ── Focus > Features > Adventure Guide ─────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — Adventure Guide
+-- =====================================================================
 L["Adventure Guide"]                                                    = "Adventure Guide"
 L["Show Traveler's Log"]                                                = "Show Traveler's Log"
 L["Show tracked Traveler's Log objectives (Shift+click in Adventure Guide) in the list."]= "Show tracked Traveler's Log objectives (Shift+click in Adventure Guide) in the list."
 L["Auto-remove completed activities"]                                   = "Auto-remove completed activities"
 L["Automatically stop tracking Traveler's Log activities once they have been completed."]= "Automatically stop tracking Traveler's Log activities once they have been completed."
 
--- ── Focus > Features > Scenario & Delve ────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Features — Scenario & Delve
+-- =====================================================================
 L["Show scenario events"]                                               = "Show scenario events"
 L["Show active scenario and Delve activities. Delves appear in DELVES; other scenarios in SCENARIO EVENTS."]= "Show active scenario and Delve activities. Delves appear in DELVES; other scenarios in SCENARIO EVENTS."
 L["Track Delve, Dungeon, and scenario activities."]                     = "Track Delve, Dungeon, and scenario activities."
@@ -367,7 +565,9 @@ L["Where to show the countdown: bar below objectives or text beside the quest na
 L["Bar below"]                                                          = "Bar below"
 L["Inline beside title"]                                                = "Inline beside title"
 
--- ── Focus > Typography > Font ──────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Typography — Font
+-- =====================================================================
 L["Font family."]                                                       = "Font family."
 L["Title font"]                                                         = "Title font"
 L["Zone font"]                                                          = "Zone font"
@@ -397,7 +597,9 @@ L["Progress bar text"]                                                  = "Progr
 L["Outline"]                                                            = "Outline"
 L["Font outline style."]                                                = "Font outline style."
 
--- ── Focus > Typography > Text Case ─────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Typography — Text case
+-- =====================================================================
 L["Header text case"]                                                   = "Header text case"
 L["Display case for header."]                                           = "Display case for header."
 L["Section header case"]                                                = "Section header case"
@@ -405,7 +607,9 @@ L["Display case for category labels."]                                  = "Displ
 L["Quest title case"]                                                   = "Quest title case"
 L["Display case for quest titles."]                                     = "Display case for quest titles."
 
--- ── Focus > Typography > Shadow ────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Typography — Shadow
+-- =====================================================================
 L["Show text shadow"]                                                   = "Show text shadow"
 L["Enable drop shadow on text."]                                        = "Enable drop shadow on text."
 L["Shadow X"]                                                           = "Shadow X"
@@ -415,7 +619,9 @@ L["Vertical shadow offset."]                                            = "Verti
 L["Shadow alpha"]                                                       = "Shadow alpha"
 L["Shadow opacity (0–1)."]                                              = "Shadow opacity (0–1)."
 
--- ── Focus > Typography > Mythic+ Block ─────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Typography — Mythic+ Typography
+-- =====================================================================
 L["Mythic+ Typography"]                                                 = "Mythic+ Typography"
 L["Dungeon name size"]                                                  = "Dungeon name size"
 L["Font size for dungeon name (8–32 px)."]                              = "Font size for dungeon name (8–32 px)."
@@ -445,11 +651,27 @@ L["Boss color"]                                                         = "Boss 
 L["Text color for boss names."]                                         = "Text color for boss names."
 L["Reset Mythic+ typography"]                                           = "Reset Mythic+ typography"
 
--- ── Focus > Appearance ─────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Appearance
+-- =====================================================================
 L["Frame"]                                                              = "Frame"
 L["Class colours - Dashboard"]                                          = "Class colours - Dashboard"
+L["Class Colours"]                                                      = "Class Colours"
+L["Enable all class colours"]                                           = "Enable all class colours"
+L["Toggle class colours on or off for all modules at once."]            = "Toggle class colours on or off for all modules at once."
+L["Dashboard"]                                                          = "Dashboard"
+L["Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour."]= "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour."
+L["Tint Presence toast title and divider with your class colour."]      = "Tint Presence toast title and divider with your class colour."
+L["Tint Vista minimap, addon-bar, and panel borders and text with your class colour."]= "Tint Vista minimap, addon-bar, and panel borders and text with your class colour."
+L["Use class colour for player tooltip name, class line, and border."]  = "Use class colour for player tooltip name, class line, and border."
+L["Tint Yield loot icon glow and edit/anchor borders with your class colour."]= "Tint Yield loot icon glow and edit/anchor borders with your class colour."
+L["Tint the character name on the Persona sheet with your class colour."]= "Tint the character name on the Persona sheet with your class colour."
 L["Class colors"]                                                       = "Class colors"
 L["Tint dashboard accents, dividers, and highlights with your class colour."]= "Tint dashboard accents, dividers, and highlights with your class colour."
+L["Theme"]                                                              = "Theme"
+L["Dashboard background"]                                               = "Dashboard background"
+L["Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base."]= "Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base."
+L["Dashboard background Midnight"]                                      = "Midnight"
 L["Backdrop opacity"]                                                   = "Backdrop opacity"
 L["Panel background opacity (0–1)."]                                    = "Panel background opacity (0–1)."
 L["Show border"]                                                        = "Show border"
@@ -464,34 +686,9 @@ L["Opacity of focused quest highlight (0–1)."]                          = "Opa
 L["Bar width"]                                                          = "Bar width"
 L["Width of bar-style highlights (2–6 px)."]                            = "Width of bar-style highlights (2–6 px)."
 
--- ── Focus > Colors  (section headers, sub-labels, toggles, reset buttons) ──────────
-L["Quest types"]                                                        = "Quest types"
-L["Element overrides"]                                                  = "Element overrides"
-L["Per category"]                                                       = "Per category"
-L["Grouping Overrides"]                                                 = "Grouping Overrides"
-L["Section Overrides"]                                                  = "Section Overrides"
-L["Other colors"]                                                       = "Other colors"
-L["Section"]                                                            = "Section"
-L["Title"]                                                              = "Title"
-L["Zone"]                                                               = "Zone"
-L["Objective"]                                                          = "Objective"
-L["Ready to Turn In overrides base colours"]                            = "Ready to Turn In overrides base colours"
-L["Ready to Turn In uses its colours for quests in that section."]      = "Ready to Turn In uses its colours for quests in that section."
-L["Current Zone overrides base colours"]                                = "Current Zone overrides base colours"
-L["Current Zone uses its colours for quests in that section."]          = "Current Zone uses its colours for quests in that section."
-L["Current Quest overrides base colours"]                               = "Current Quest overrides base colours"
-L["Current Quest uses its colours for quests in that section."]         = "Current Quest uses its colours for quests in that section."
-L["Use distinct color for completed objectives"]                        = "Use distinct color for completed objectives"
-L["When on, completed objectives (e.g. 1/1) use the color below; when off, they use the same color as incomplete objectives."]= "When on, completed objectives (e.g. 1/1) use the color below; when off, they use the same color as incomplete objectives."
-L["Completed objective"]                                                = "Completed objective"
-L["Reset"]                                                              = "Reset"
-L["Reset quest types"]                                                  = "Reset quest types"
-L["Reset overrides"]                                                    = "Reset overrides"
-L["Reset all to defaults"]                                              = "Reset all to defaults"
-L["Reset to defaults"]                                                  = "Reset to defaults"
-L["Reset to default"]                                                   = "Reset to default"
-
--- ── Focus > Organization ───────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Organization
+-- =====================================================================
 L["Activity"]                                                           = "Activity"
 L["Content"]                                                            = "Content"
 L["Sorting"]                                                            = "Sorting"
@@ -553,7 +750,9 @@ L["Requires TomTom. Points the arrow to the rare's location."]          = "Requi
 L["Find a Group"]                                                       = "Find a Group"
 L["Click to search for a group for this quest."]                        = "Click to search for a group for this quest."
 
--- ── Focus > Organization > Blacklist ───────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Blacklist
+-- =====================================================================
 L["Blacklist"]                                                          = "Blacklist"
 L["Blacklist untracked"]                                                = "Blacklist untracked"
 L["Enable 'Blacklist untracked' in Behaviour to add quests here."]      = "Enable 'Blacklist untracked' in Behaviour to add quests here."
@@ -563,13 +762,9 @@ L["Blacklisted quests"]                                                 = "Black
 L["Permanently suppressed quests"]                                      = "Permanently suppressed quests"
 L["Right-click untrack quests with 'Permanently suppress untracked quests' enabled to add them here."]= "Right-click untrack quests with 'Permanently suppress untracked quests' enabled to add them here."
 
-
-
--- ══════════════════════════════════════════════════════════════════════════
--- ║  PRESENCE                                                              ║
--- ══════════════════════════════════════════════════════════════════════════
-
--- ── Presence ───────────────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Presence
+-- =====================================================================
 L["Show quest type icons"]                                              = "Show quest type icons"
 L["Show quest type icon in the Focus tracker (quest accept/complete, world quest, quest update)."]= "Show quest type icon in the Focus tracker (quest accept/complete, world quest, quest update)."
 L["Show quest type icons on toasts"]                                    = "Show quest type icons on toasts"
@@ -675,13 +870,160 @@ L["Font size for small notification titles (quest progress, achievement progress
 L["Small secondary size"]                                               = "Small secondary size"
 L["Font size for small notification subtitles."]                        = "Font size for small notification subtitles."
 
+-- =====================================================================
+-- OptionsData.lua Dropdown options — Outline
+-- =====================================================================
+L["None"]                                                               = "None"
+L["Thick Outline"]                                                      = "Thick Outline"
 
+-- =====================================================================
+-- OptionsData.lua Dropdown options — Highlight style
+-- =====================================================================
+L["Bar (left edge)"]                                                    = "Bar (left edge)"
+L["Bar (right edge)"]                                                   = "Bar (right edge)"
+L["Bar (top edge)"]                                                     = "Bar (top edge)"
+L["Bar (bottom edge)"]                                                  = "Bar (bottom edge)"
+L["Outline only"]                                                       = "Outline only"
+L["Soft glow"]                                                          = "Soft glow"
+L["Dual edge bars"]                                                     = "Dual edge bars"
+L["Pill left accent"]                                                   = "Pill left accent"
 
--- ══════════════════════════════════════════════════════════════════════════
--- ║  VISTA                                                                 ║
--- ══════════════════════════════════════════════════════════════════════════
+-- =====================================================================
+-- OptionsData.lua Dropdown options — M+ position
+-- =====================================================================
+L["Top"]                                                                = "Top"
+L["Bottom"]                                                             = "Bottom"
 
--- ── Vista > General  (minimap size, shape, position, auto-zoom) ────────────────────
+-- =====================================================================
+-- OptionsData.lua Vista — Text element positions
+-- =====================================================================
+L["Location position"]                                                  = "Location position"
+L["Place the zone name above or below the minimap."]                    = "Place the zone name above or below the minimap."
+L["Coordinates position"]                                               = "Coordinates position"
+L["Place the coordinates above or below the minimap."]                  = "Place the coordinates above or below the minimap."
+L["Clock position"]                                                     = "Clock position"
+L["Place the clock above or below the minimap."]                        = "Place the clock above or below the minimap."
+
+-- =====================================================================
+-- OptionsData.lua Dropdown options — Text case
+-- =====================================================================
+L["Lower Case"]                                                         = "Lower Case"
+L["Upper Case"]                                                         = "Upper Case"
+L["Proper"]                                                             = "Proper"
+
+-- =====================================================================
+-- OptionsData.lua Dropdown options — Header count format
+-- =====================================================================
+L["Tracked / in log"]                                                   = "Tracked / in log"
+L["In log / max slots"]                                                 = "In log / max slots"
+
+-- =====================================================================
+-- OptionsData.lua Dropdown options — Sort mode
+-- =====================================================================
+L["Alphabetical"]                                                       = "Alphabetical"
+L["Quest Type"]                                                         = "Quest Type"
+L["Quest Level"]                                                        = "Quest Level"
+
+-- =====================================================================
+-- OptionsData.lua Misc
+-- =====================================================================
+L["Custom"]                                                             = "Custom"
+L["Order"]                                                              = "Order"
+
+-- =====================================================================
+-- Tracker section labels (SECTION_LABELS)
+-- =====================================================================
+L["DUNGEON"]                                                            = "DUNGEON"
+L["RAID"]                                                               = "RAID"
+L["DELVES"]                                                             = "Delves"
+L["SCENARIO EVENTS"]                                                    = "SCENARIO EVENTS"
+L["Stage"]                                                              = "Stage"
+L["Stage %d: %s"]                                                       = "Stage %d: %s"
+L["AVAILABLE IN ZONE"]                                                  = "AVAILABLE IN ZONE"
+L["EVENTS IN ZONE"]                                                     = "Events in Zone"
+L["CURRENT EVENT"]                                                      = "Current Event"
+L["CURRENT QUEST"]                                                      = "CURRENT QUEST"
+L["CURRENT ZONE"]                                                       = "CURRENT ZONE"
+L["CAMPAIGN"]                                                           = "CAMPAIGN"
+L["IMPORTANT"]                                                          = "IMPORTANT"
+L["LEGENDARY"]                                                          = "LEGENDARY"
+L["WORLD QUESTS"]                                                       = "World quests"
+L["WEEKLY QUESTS"]                                                      = "WEEKLY QUESTS"
+L["PREY"]                                                               = "Prey"
+L["Abundance"]                                                          = "Abundance"
+L["Abundance Bag"]                                                      = "Abundance Bag"
+L["abundance held"]                                                     = "abundance held"
+L["DAILY QUESTS"]                                                       = "DAILY QUESTS"
+L["RARE BOSSES"]                                                        = "Rare bosses"
+L["ACHIEVEMENTS"]                                                       = "ACHIEVEMENTS"
+L["ENDEAVORS"]                                                          = "ENDEAVORS"
+L["DECOR"]                                                              = "Decor"
+L["QUESTS"]                                                             = "QUESTS"
+L["READY TO TURN IN"]                                                   = "READY TO TURN IN"
+
+-- =====================================================================
+-- Core.lua, FocusLayout.lua, PresenceCore.lua, FocusUnacceptedPopup.lua
+-- =====================================================================
+L["OBJECTIVES"]                                                         = "OBJECTIVES"
+L["Options"]                                                            = "Options"
+L["Open Horizon Suite"]                                                 = "Open Horizon Suite"
+L["Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."]= "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."
+L["Show minimap icon"]                                                  = "Show minimap icon"
+L["Show a clickable icon on the minimap that opens the options panel."] = "Show a clickable icon on the minimap that opens the options panel."
+L["Lock minimap button position"]                                       = "Lock minimap button position"
+L["Prevent dragging the Horizon minimap button."]                       = "Prevent dragging the Horizon minimap button."
+L["Reset minimap button position"]                                      = "Reset minimap button position"
+L["Reset the minimap button to the default position (bottom-left)."]    = "Reset the minimap button to the default position (bottom-left)."
+L["Drag to move (when unlocked)."]                                      = "Drag to move (when unlocked)."
+L["Locked"]                                                             = "Locked"
+L["Discovered"]                                                         = "Discovered"
+L["Refresh"]                                                            = "Refresh"
+L["Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."]= "Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."
+L["Unaccepted Quests - %s (map %s) - %d match(es)"]                     = "Unaccepted Quests - %s (map %s) - %d match(es)"
+
+L["LEVEL UP"]                                                           = "LEVEL UP"
+L["You have reached level 80"]                                          = "You have reached level 80"
+L["You have reached level %s"]                                          = "You have reached level %s"
+L["ACHIEVEMENT EARNED"]                                                 = "ACHIEVEMENT EARNED"
+L["Exploring the Midnight Isles"]                                       = "Exploring the Midnight Isles"
+L["Exploring Khaz Algar"]                                               = "Exploring Khaz Algar"
+L["QUEST COMPLETE"]                                                     = "QUEST COMPLETE"
+L["Objective Secured"]                                                  = "Objective Secured"
+L["Aiding the Accord"]                                                  = "Aiding the Accord"
+L["WORLD QUEST"]                                                        = "WORLD QUEST"
+L["WORLD QUEST COMPLETE"]                                               = "WORLD QUEST COMPLETE"
+L["Azerite Mining"]                                                     = "Azerite Mining"
+L["WORLD QUEST ACCEPTED"]                                               = "WORLD QUEST ACCEPTED"
+L["QUEST ACCEPTED"]                                                     = "QUEST ACCEPTED"
+L["The Fate of the Horde"]                                              = "The Fate of the Horde"
+L["New Quest"]                                                          = "New Quest"
+L["QUEST UPDATE"]                                                       = "QUEST UPDATE"
+L["Boar Pelts: 7/10"]                                                   = "Boar Pelts: 7/10"
+L["Dragon Glyphs: 3/5"]                                                 = "Dragon Glyphs: 3/5"
+
+L["Presence test commands:"]                                            = "Presence test commands:"
+L["  /h presence debugtypes - Dump notification toggles and Blizzard suppression state"]= "  /h presence debugtypes - Dump notification toggles and Blizzard suppression state"
+L["Presence: Playing demo reel (all notification types)..."]            = "Presence: Playing demo reel (all notification types)..."
+L["  /h presence         - Show help + test current zone"]              = "  /h presence         - Show help + test current zone"
+L["  /h presence zone     - Test Zone Change"]                          = "  /h presence zone     - Test Zone Change"
+L["  /h presence subzone  - Test Subzone Change"]                       = "  /h presence subzone  - Test Subzone Change"
+L["  /h presence discover - Test Zone Discovery"]                       = "  /h presence discover - Test Zone Discovery"
+L["  /h presence level    - Test Level Up"]                             = "  /h presence level    - Test Level Up"
+L["  /h presence boss     - Test Boss Emote"]                           = "  /h presence boss     - Test Boss Emote"
+L["  /h presence ach      - Test Achievement"]                          = "  /h presence ach      - Test Achievement"
+L["  /h presence accept   - Test Quest Accepted"]                       = "  /h presence accept   - Test Quest Accepted"
+L["  /h presence wqaccept - Test World Quest Accepted"]                 = "  /h presence wqaccept - Test World Quest Accepted"
+L["  /h presence scenario - Test Scenario Start"]                       = "  /h presence scenario - Test Scenario Start"
+L["  /h presence quest    - Test Quest Complete"]                       = "  /h presence quest    - Test Quest Complete"
+L["  /h presence wq       - Test World Quest"]                          = "  /h presence wq       - Test World Quest"
+L["  /h presence update   - Test Quest Update"]                         = "  /h presence update   - Test Quest Update"
+L["  /h presence achprogress - Test Achievement Progress"]              = "  /h presence achprogress - Test Achievement Progress"
+L["  /h presence all      - Demo reel (all types)"]                     = "  /h presence all      - Demo reel (all types)"
+L["  /h presence debug    - Dump state to chat"]                        = "  /h presence debug    - Dump state to chat"
+L["  /h presence debuglive - Toggle live debug panel (log as events happen)"]= "  /h presence debuglive - Toggle live debug panel (log as events happen)"
+
+-- =====================================================================
+-- OptionsData.lua Vista — General
 L["Position & layout"]                                                  = "Position & layout"
 -- =====================================================================
 L["Minimap"]                                                            = "Minimap"
@@ -698,7 +1040,9 @@ L["Auto Zoom"]                                                          = "Auto 
 L["Auto zoom-out delay"]                                                = "Auto zoom-out delay"
 L["Seconds after zooming before auto zoom-out fires. Set to 0 to disable."]= "Seconds after zooming before auto zoom-out fires. Set to 0 to disable."
 
--- ── Vista > Typography ─────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Vista — Typography
+-- =====================================================================
 L["Zone Text"]                                                          = "Zone Text"
 L["Zone font"]                                                          = "Zone font"
 L["Font for the zone name below the minimap."]                          = "Font for the zone name below the minimap."
@@ -744,7 +1088,9 @@ L["Color for Normal difficulty text."]                                  = "Color
 L["LFR color"]                                                          = "LFR color"
 L["Color for Looking For Raid difficulty text."]                        = "Color for Looking For Raid difficulty text."
 
--- ── Vista > Visibility ─────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Vista — Visibility
+-- =====================================================================
 L["Text Elements"]                                                      = "Text Elements"
 L["Show zone text"]                                                     = "Show zone text"
 L["Show the zone name below the minimap."]                              = "Show the zone name below the minimap."
@@ -778,11 +1124,13 @@ L["Show the + and - zoom buttons on the minimap."]                      = "Show 
 L["Zoom buttons on mouseover only"]                                     = "Zoom buttons on mouseover only"
 L["Hide zoom buttons until you hover over the minimap."]                = "Hide zoom buttons until you hover over the minimap."
 
--- ── Vista > Display ────────────────────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Vista — Display (Border / Text Positions / Buttons)
+-- =====================================================================
 L["Border"]                                                             = "Border"
 L["Show a border around the minimap."]                                  = "Show a border around the minimap."
 L["Border color"]                                                       = "Border color"
-L["Color (and opacity) of the minimap border."]                         = "Color (and opacity) of the minimap border."
+L["Color (and opacity) of the minimap border."]                         = "Color and opacity of the minimap border. With class colours for Vista on, RGB scales your class tint (white = full strength); opacity always applies."
 L["Border thickness"]                                                   = "Border thickness"
 L["Thickness of the minimap border in pixels (1–8)."]                   = "Thickness of the minimap border in pixels (1–8)."
 L["Class colours"]                                                      = "Class colours"
@@ -833,7 +1181,9 @@ L["Size of the new mail icon (pixels)."]                                = "Size 
 L["Addon button size"]                                                  = "Addon button size"
 L["Size of collected addon minimap buttons (pixels)."]                  = "Size of collected addon minimap buttons (pixels)."
 
--- ── Vista > Minimap Addon Buttons ──────────────────────────────────────────────────
+-- =====================================================================
+-- OptionsData.lua Vista — Minimap Addon Buttons
+-- =====================================================================
 L["Addon Buttons"]                                                      = "Addon Buttons"
 L["Minimap Addon Buttons"]                                              = "Minimap Addon Buttons"
 L["Button Management"]                                                  = "Button Management"
@@ -896,254 +1246,3 @@ L["(No addon buttons detected yet — open your minimap first)"]          = "(No
 
 
 
--- ══════════════════════════════════════════════════════════════════════════
--- ║  INSIGHT                                                               ║
--- ══════════════════════════════════════════════════════════════════════════
-
--- ── Insight ────────────────────────────────────────────────────────────────────────
-L["Enable Horizon Insight module"]                                      = "Enable Horizon Insight module"
-L["Cinematic tooltips with class colors, spec display, and faction icons."]= "Cinematic tooltips with class colors, spec display, and faction icons."
-L["Horizon Insight"]                                                    = "Horizon Insight"
-L["Insight"]                                                            = "Insight"
-L["Tooltip anchor mode"]                                                = "Tooltip anchor mode"
-L["Where tooltips appear: follow cursor or fixed position."]            = "Where tooltips appear: follow cursor or fixed position."
-L["Cursor"]                                                             = "Cursor"
-L["Fixed"]                                                              = "Fixed"
-L["Show anchor to move"]                                                = "Show anchor to move"
-L["Click to show or hide the anchor. Drag to set position, right-click to confirm."]= "Click to show or hide the anchor. Drag to set position, right-click to confirm."
-L["Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."]= "Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."
-L["Reset tooltip position"]                                             = "Reset tooltip position"
-L["Reset fixed position to default."]                                   = "Reset fixed position to default."
-L["Tooltip background color"]                                           = "Tooltip background color"
-L["Color of the tooltip background."]                                   = "Color of the tooltip background."
-L["Tooltip background opacity"]                                         = "Tooltip background opacity"
-L["Tooltip background opacity (0–100%)."]                               = "Tooltip background opacity (0–100%)."
-L["Tooltip font"]                                                       = "Tooltip font"
-L["Font family used for all tooltip text."]                             = "Font family used for all tooltip text."
-L["Tooltips"]                                                           = "Tooltips"
-L["Item Tooltip"]                                                       = "Item Tooltip"
-L["Show transmog status"]                                               = "Show transmog status"
-L["Show whether you have collected the appearance of an item you hover over."]= "Show whether you have collected the appearance of an item you hover over."
-L["Player Tooltip"]                                                     = "Player Tooltip"
-L["Show guild rank"]                                                    = "Show guild rank"
-L["Append the player's guild rank next to their guild name."]           = "Append the player's guild rank next to their guild name."
-L["Show Mythic+ score"]                                                 = "Show Mythic+ score"
-L["Show the player's current season Mythic+ score, colour-coded by tier."]= "Show the player's current season Mythic+ score, colour-coded by tier."
-L["Show item level"]                                                    = "Show item level"
-L["Show the player's equipped item level after inspecting them."]       = "Show the player's equipped item level after inspecting them."
-L["Show honor level"]                                                   = "Show honor level"
-L["Show the player's PvP honor level in the tooltip."]                  = "Show the player's PvP honor level in the tooltip."
-L["Show PvP title"]                                                     = "Show PvP title"
-L["Show the player's PvP title (e.g. Gladiator) in the tooltip."]       = "Show the player's PvP title (e.g. Gladiator) in the tooltip."
-L["Character title"]                                                    = "Character title"
-L["Show the player's selected title (achievement or PvP) in the name line."]= "Show the player's selected title (achievement or PvP) in the name line."
-L["Title color"]                                                        = "Title color"
-L["Color of the character title in the player tooltip name line."]      = "Color of the character title in the player tooltip name line."
-L["Show status badges"]                                                 = "Show status badges"
-L["Show inline badges for combat, AFK, DND, PvP flag, party/raid membership, friends, and whether the player is targeting you."]= "Show inline badges for combat, AFK, DND, PvP flag, party/raid membership, friends, and whether the player is targeting you."
-L["Show mount info"]                                                    = "Show mount info"
-L["When hovering a mounted player, show their mount name, source, and whether you own it."]= "When hovering a mounted player, show their mount name, source, and whether you own it."
-L["Blank separator"]                                                    = "Blank separator"
-L["Use a blank line instead of dashes between tooltip sections."]       = "Use a blank line instead of dashes between tooltip sections."
-L["Show icons"]                                                         = "Show icons"
-L["Class icon style"]                                                   = "Class icon style"
-L["Use Default (Blizzard) or RondoMedia class icons on the class/spec line."]= "Use Default (Blizzard) or RondoMedia class icons on the class/spec line."
-L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"]= "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
-L["Default"]                                                            = "Default"
-L["Show faction, spec, mount, and Mythic+ icons in tooltips."]          = "Show faction, spec, mount, and Mythic+ icons in tooltips."
-
-
-
--- ══════════════════════════════════════════════════════════════════════════
--- ║  YIELD                                                                 ║
--- ══════════════════════════════════════════════════════════════════════════
-
--- ── Yield ──────────────────────────────────────────────────────────────────────────
-L["Yield"]                                                              = "Yield"
-L["General"]                                                            = "General"
-L["Position"]                                                           = "Position"
-L["Reset position"]                                                     = "Reset position"
-L["Reset loot toast position to default."]                              = "Reset loot toast position to default."
-
-
-
--- ══════════════════════════════════════════════════════════════════════════
--- ║  SHARED                                                                ║
--- ║  Strings used across multiple modules                                  ║
--- ══════════════════════════════════════════════════════════════════════════
-
--- ── Shared > Category names  (sidebar sub-page labels) ─────────────────────────────
-L["Profiles"]                                                           = "Profiles"
-L["Modules"]                                                            = "Modules"
-L["Axis"]                                                               = "Axis"
-L["Layout"]                                                             = "Layout"
-L["Visibility"]                                                         = "Visibility"
-L["Display"]                                                            = "Display"
-L["Features"]                                                           = "Features"
-L["Typography"]                                                         = "Typography"
-L["Appearance"]                                                         = "Appearance"
-L["Colors"]                                                             = "Colors"
-L["Organization"]                                                       = "Organization"
-
--- ── Shared > Section headers  (accordion card titles) ──────────────────────────────
-L["Panel behaviour"]                                                    = "Panel behaviour"
-L["Dimensions"]                                                         = "Dimensions"
-L["Instance"]                                                           = "Instance"
-L["Instances"]                                                          = "Instances"
-L["Combat"]                                                             = "Combat"
-L["Filtering"]                                                          = "Filtering"
-L["Header"]                                                             = "Header"
-L["Sections & structure"]                                               = "Sections & structure"
-L["Entry details"]                                                      = "Entry details"
-L["Progress & timers"]                                                  = "Progress & timers"
-L["Focus emphasis"]                                                     = "Focus emphasis"
-L["List"]                                                               = "List"
-L["Spacing"]                                                            = "Spacing"
-L["Rare bosses"]                                                        = "Rare bosses"
-L["World quests"]                                                       = "World quests"
-L["Floating quest item"]                                                = "Floating quest item"
-L["Mythic+"]                                                            = "Mythic+"
-L["Achievements"]                                                       = "ACHIEVEMENTS"
-L["Endeavors"]                                                          = "ENDEAVORS"
-L["Decor"]                                                              = "Decor"
-L["Scenario & Delve"]                                                   = "Scenario & Delve"
-L["Font"]                                                               = "Font"
-L["Font families"]                                                      = "Font families"
-L["Global font size"]                                                   = "Global font size"
-L["Font sizes"]                                                         = "Font sizes"
-L["Per-element fonts"]                                                  = "Per-element fonts"
-L["Text case"]                                                          = "Text case"
-L["Shadow"]                                                             = "Shadow"
-L["Panel"]                                                              = "Panel"
-L["Highlight"]                                                          = "Highlight"
-L["Color matrix"]                                                       = "Color matrix"
-L["Focus order"]                                                        = "Focus order"
-L["Sort"]                                                               = "Sort"
-L["Behaviour"]                                                          = "Behaviour"
-L["Content Types"]                                                      = "Content Types"
-L["Delves"]                                                             = "Delves"
-L["Delves & Dungeons"]                                                  = "Delves & Dungeons"
-L["Delve Complete"]                                                     = "Delve Complete"
-L["Interactions"]                                                       = "Interactions"
-L["Tracking"]                                                           = "Tracking"
-L["Scenario Bar"]                                                       = "Scenario Bar"
-
--- ── Shared > Dropdown values ───────────────────────────────────────────────────────
-L["None"]                                                               = "None"
-L["Thick Outline"]                                                      = "Thick Outline"
-L["Bar (left edge)"]                                                    = "Bar (left edge)"
-L["Bar (right edge)"]                                                   = "Bar (right edge)"
-L["Bar (top edge)"]                                                     = "Bar (top edge)"
-L["Bar (bottom edge)"]                                                  = "Bar (bottom edge)"
-L["Outline only"]                                                       = "Outline only"
-L["Soft glow"]                                                          = "Soft glow"
-L["Dual edge bars"]                                                     = "Dual edge bars"
-L["Pill left accent"]                                                   = "Pill left accent"
-L["Top"]                                                                = "Top"
-L["Bottom"]                                                             = "Bottom"
-L["Location position"]                                                  = "Location position"
-L["Place the zone name above or below the minimap."]                    = "Place the zone name above or below the minimap."
-L["Coordinates position"]                                               = "Coordinates position"
-L["Place the coordinates above or below the minimap."]                  = "Place the coordinates above or below the minimap."
-L["Clock position"]                                                     = "Clock position"
-L["Place the clock above or below the minimap."]                        = "Place the clock above or below the minimap."
-L["Lower Case"]                                                         = "Lower Case"
-L["Upper Case"]                                                         = "Upper Case"
-L["Proper"]                                                             = "Proper"
-L["Tracked / in log"]                                                   = "Tracked / in log"
-L["In log / max slots"]                                                 = "In log / max slots"
-L["Alphabetical"]                                                       = "Alphabetical"
-L["Quest Type"]                                                         = "Quest Type"
-L["Quest Level"]                                                        = "Quest Level"
-
--- ── Shared > Miscellaneous ─────────────────────────────────────────────────────────
-L["Custom"]                                                             = "Custom"
-L["Order"]                                                              = "Order"
-
--- ── Shared > Tracker section labels ────────────────────────────────────────────────
-L["DUNGEON"]                                                            = "DUNGEON"
-L["RAID"]                                                               = "RAID"
-L["DELVES"]                                                             = "Delves"
-L["SCENARIO EVENTS"]                                                    = "SCENARIO EVENTS"
-L["Stage"]                                                              = "Stage"
-L["Stage %d: %s"]                                                       = "Stage %d: %s"
-L["AVAILABLE IN ZONE"]                                                  = "AVAILABLE IN ZONE"
-L["EVENTS IN ZONE"]                                                     = "Events in Zone"
-L["CURRENT EVENT"]                                                      = "Current Event"
-L["CURRENT QUEST"]                                                      = "CURRENT QUEST"
-L["CURRENT ZONE"]                                                       = "CURRENT ZONE"
-L["CAMPAIGN"]                                                           = "CAMPAIGN"
-L["IMPORTANT"]                                                          = "IMPORTANT"
-L["LEGENDARY"]                                                          = "LEGENDARY"
-L["WORLD QUESTS"]                                                       = "World quests"
-L["WEEKLY QUESTS"]                                                      = "WEEKLY QUESTS"
-L["PREY"]                                                               = "Prey"
-L["Abundance"]                                                          = "Abundance"
-L["Abundance Bag"]                                                      = "Abundance Bag"
-L["abundance held"]                                                     = "abundance held"
-L["DAILY QUESTS"]                                                       = "DAILY QUESTS"
-L["RARE BOSSES"]                                                        = "Rare bosses"
-L["ACHIEVEMENTS"]                                                       = "ACHIEVEMENTS"
-L["ENDEAVORS"]                                                          = "ENDEAVORS"
-L["DECOR"]                                                              = "Decor"
-L["QUESTS"]                                                             = "QUESTS"
-L["READY TO TURN IN"]                                                   = "READY TO TURN IN"
-
--- ── Shared > Runtime strings  (notifications, popups, slash output) ────────────────
-L["OBJECTIVES"]                                                         = "OBJECTIVES"
-L["Options"]                                                            = "Options"
-L["Open Horizon Suite"]                                                 = "Open Horizon Suite"
-L["Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."]= "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."
-L["Show minimap icon"]                                                  = "Show minimap icon"
-L["Show a clickable icon on the minimap that opens the options panel."] = "Show a clickable icon on the minimap that opens the options panel."
-L["Lock minimap button position"]                                       = "Lock minimap button position"
-L["Prevent dragging the Horizon minimap button."]                      = "Prevent dragging the Horizon minimap button."
-L["Reset minimap button position"]                                      = "Reset minimap button position"
-L["Reset the minimap button to the default position (bottom-left)."]   = "Reset the minimap button to the default position (bottom-left)."
-L["Drag to move (when unlocked)."]                                     = "Drag to move (when unlocked)."
-L["Locked"]                                                             = "Locked"
-L["Discovered"]                                                         = "Discovered"
-L["Refresh"]                                                            = "Refresh"
-L["Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."]= "Best-effort only. Some unaccepted quests are not exposed until you interact with NPCs or meet phasing conditions."
-L["Unaccepted Quests - %s (map %s) - %d match(es)"]                     = "Unaccepted Quests - %s (map %s) - %d match(es)"
-
-L["LEVEL UP"]                                                           = "LEVEL UP"
-L["You have reached level 80"]                                          = "You have reached level 80"
-L["You have reached level %s"]                                          = "You have reached level %s"
-L["ACHIEVEMENT EARNED"]                                                 = "ACHIEVEMENT EARNED"
-L["Exploring the Midnight Isles"]                                       = "Exploring the Midnight Isles"
-L["Exploring Khaz Algar"]                                               = "Exploring Khaz Algar"
-L["QUEST COMPLETE"]                                                     = "QUEST COMPLETE"
-L["Objective Secured"]                                                  = "Objective Secured"
-L["Aiding the Accord"]                                                  = "Aiding the Accord"
-L["WORLD QUEST"]                                                        = "WORLD QUEST"
-L["WORLD QUEST COMPLETE"]                                               = "WORLD QUEST COMPLETE"
-L["Azerite Mining"]                                                     = "Azerite Mining"
-L["WORLD QUEST ACCEPTED"]                                               = "WORLD QUEST ACCEPTED"
-L["QUEST ACCEPTED"]                                                     = "QUEST ACCEPTED"
-L["The Fate of the Horde"]                                              = "The Fate of the Horde"
-L["New Quest"]                                                          = "New Quest"
-L["QUEST UPDATE"]                                                       = "QUEST UPDATE"
-L["Boar Pelts: 7/10"]                                                   = "Boar Pelts: 7/10"
-L["Dragon Glyphs: 3/5"]                                                 = "Dragon Glyphs: 3/5"
-
-L["Presence test commands:"]                                            = "Presence test commands:"
-L["  /h presence debugtypes - Dump notification toggles and Blizzard suppression state"]= "  /h presence debugtypes - Dump notification toggles and Blizzard suppression state"
-L["Presence: Playing demo reel (all notification types)..."]            = "Presence: Playing demo reel (all notification types)..."
-L["  /h presence         - Show help + test current zone"]              = "  /h presence         - Show help + test current zone"
-L["  /h presence zone     - Test Zone Change"]                          = "  /h presence zone     - Test Zone Change"
-L["  /h presence subzone  - Test Subzone Change"]                       = "  /h presence subzone  - Test Subzone Change"
-L["  /h presence discover - Test Zone Discovery"]                       = "  /h presence discover - Test Zone Discovery"
-L["  /h presence level    - Test Level Up"]                             = "  /h presence level    - Test Level Up"
-L["  /h presence boss     - Test Boss Emote"]                           = "  /h presence boss     - Test Boss Emote"
-L["  /h presence ach      - Test Achievement"]                          = "  /h presence ach      - Test Achievement"
-L["  /h presence accept   - Test Quest Accepted"]                       = "  /h presence accept   - Test Quest Accepted"
-L["  /h presence wqaccept - Test World Quest Accepted"]                 = "  /h presence wqaccept - Test World Quest Accepted"
-L["  /h presence scenario - Test Scenario Start"]                       = "  /h presence scenario - Test Scenario Start"
-L["  /h presence quest    - Test Quest Complete"]                       = "  /h presence quest    - Test Quest Complete"
-L["  /h presence wq       - Test World Quest"]                          = "  /h presence wq       - Test World Quest"
-L["  /h presence update   - Test Quest Update"]                         = "  /h presence update   - Test Quest Update"
-L["  /h presence achprogress - Test Achievement Progress"]              = "  /h presence achprogress - Test Achievement Progress"
-L["  /h presence all      - Demo reel (all types)"]                     = "  /h presence all      - Demo reel (all types)"
-L["  /h presence debug    - Dump state to chat"]                        = "  /h presence debug    - Dump state to chat"
-L["  /h presence debuglive - Toggle live debug panel (log as events happen)"]= "  /h presence debuglive - Toggle live debug panel (log as events happen)"
