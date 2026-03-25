@@ -243,6 +243,10 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
         guildName, guildRankName = GetGuildInfo(unit)
     end)
+    if classColor then
+        local modcc = addon.GetModuleClassColor and addon.GetModuleClassColor("insight")
+        if not modcc then classColor = nil end
+    end
     local sepR = (classColor and classColor.r) or Insight.SEP_COLOR[1]
     local sepG = (classColor and classColor.g) or Insight.SEP_COLOR[2]
     local sepB = (classColor and classColor.b) or Insight.SEP_COLOR[3]

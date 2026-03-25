@@ -189,8 +189,7 @@ local VISTA_KEYS = {
     vistaCoordFontPath = true, vistaCoordFontSize = true,
     vistaTimeFontPath = true, vistaTimeFontSize = true,
     vistaPerfFontPath = true, vistaPerfFontSize = true,
-    vistaShowZoneText = true, vistaShowCoordText = true, vistaShowTimeText = true, vistaShowPerfText = true,
-    vistaClassColor = true,
+    vistaShowZoneText = true, vistaShowCoordText = true, vistaShowTimeText = true,     vistaShowPerfText = true,
     vistaTimeUseLocal = true, vistaTime24Hour = true,
     vistaZoneDisplayMode = true,
     vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true,
@@ -287,6 +286,16 @@ local SCALE_DEBOUNCE_KEYS = {
     vistaBtnLayoutCols = true,
 }
 
+local CLASS_COLOR_KEYS = {
+    classColorDashboard = true,
+    classColorVista = true,
+    classColorInsight = true,
+    classColorPersona = true,
+    classColorFocus = true,
+    classColorPresence = true,
+    classColorYield = true,
+}
+
 function OptionsData_GetDB(key, default)
     return addon.GetDB(key, default)
 end
@@ -334,13 +343,30 @@ function OptionsData_SetDB(key, value)
     if YIELD_KEYS[key] and addon.Yield and addon.Yield.ApplyYieldOptions then
         addon.Yield.ApplyYieldOptions()
     end
-    if key == "dashboardClassColor" then
-        if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
-        if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
-        if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end
-    end
-    if key == "vistaClassColor" and addon.Vista and addon.Vista.ApplyColors then
-        addon.Vista.ApplyColors()
+    if CLASS_COLOR_KEYS[key] then
+        if key == "classColorDashboard" then
+            if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
+            if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+            if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end
+        end
+        if key == "classColorVista" and addon.Vista and addon.Vista.ApplyColors then
+            addon.Vista.ApplyColors()
+        end
+        if key == "classColorInsight" and addon.Insight and addon.Insight.ApplyInsightOptions then
+            addon.Insight.ApplyInsightOptions()
+        end
+        if key == "classColorPersona" and addon.Persona and addon.Persona.ApplyPersonaOptions then
+            addon.Persona.ApplyPersonaOptions()
+        end
+        if key == "classColorFocus" and addon.ApplyFocusColors then
+            addon.ApplyFocusColors()
+        end
+        if key == "classColorPresence" and addon.Presence and addon.Presence.ApplyPresenceOptions then
+            addon.Presence.ApplyPresenceOptions()
+        end
+        if key == "classColorYield" and addon.Yield and addon.Yield.ApplyYieldOptions then
+            addon.Yield.ApplyYieldOptions()
+        end
     end
     if VISTA_KEYS[key] and addon.Vista then
         if addon._colorPickerLive and VISTA_COLOR_LIVE_KEYS[key] then
@@ -934,7 +960,43 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
             opts[#opts + 1] = { type = "toggle", name = L["Lock minimap button position"] or "Lock minimap button position", desc = L["Prevent dragging the Horizon minimap button."] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v) setDB("minimapButtonLocked", v) end }
             opts[#opts + 1] = { type = "button", name = L["Reset minimap button position"] or "Reset minimap button position", desc = L["Reset the minimap button to the default position (bottom-left)."] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
-            opts[#opts + 1] = { type = "toggle", name = L["Class colours - Dashboard"] or "Class colours - Dashboard", desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "dashboardClassColor", get = function() return getDB("dashboardClassColor", false) end, set = function(v) setDB("dashboardClassColor", v); if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end; if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end; if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end end }
+            opts[#opts + 1] = { type = "section", name = L["Class Colours"] or "Class Colours" }
+            local classColorKeys = {
+                "classColorDashboard", "classColorVista", "classColorInsight", "classColorPersona",
+                "classColorFocus", "classColorPresence", "classColorYield",
+            }
+            -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
+            local classColorAllRefreshIds = { "_classColorAll" }
+            for _, k in ipairs(classColorKeys) do
+                classColorAllRefreshIds[#classColorAllRefreshIds + 1] = k
+            end
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["Enable all class colours"] or "Enable all class colours",
+                desc = L["Toggle class colours on or off for all modules at once."] or "Toggle class colours on or off for all modules at once.",
+                dbKey = "_classColorAll",
+                refreshIds = classColorAllRefreshIds,
+                get = function()
+                    for _, k in ipairs(classColorKeys) do
+                        if not getDB(k, false) then return false end
+                    end
+                    return true
+                end,
+                set = function(v)
+                    for _, k in ipairs(classColorKeys) do
+                        addon.SetDB(k, v)
+                    end
+                    if addon.ApplyAllClassColorConsumers then addon.ApplyAllClassColorConsumers() end
+                    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                end,
+            }
+            opts[#opts + 1] = { type = "toggle", name = L["Dashboard"], desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["Focus"], desc = L["Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour."] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["Presence"], desc = L["Tint Presence toast title and divider with your class colour."] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["Vista"] or "Vista", desc = L["Tint Vista minimap, addon-bar, and panel borders and text with your class colour."] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["Insight"], desc = L["Use class colour for player tooltip name, class line, and border."] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["Yield"], desc = L["Tint Yield loot icon glow and edit/anchor borders with your class colour."] or "Tint Yield loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorYield", get = function() return getDB("classColorYield", false) end, set = function(v) setDB("classColorYield", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = "Persona", desc = L["Tint the character name on the Persona sheet with your class colour."] or "Tint the character name on the Persona sheet with your class colour.", dbKey = "classColorPersona", get = function() return getDB("classColorPersona", false) end, set = function(v) setDB("classColorPersona", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["Scaling"] }
             -- helper: refresh all modules after any scale change
             local function refreshAllScaling()
@@ -1807,7 +1869,7 @@ local OptionCategories = {
               set = function(r, g, b, a)
                   setDB("vistaBorderColorR", r); setDB("vistaBorderColorG", g)
                   setDB("vistaBorderColorB", b)
-                  if a then setDB("vistaBorderColorA", a) end
+                  if a ~= nil then setDB("vistaBorderColorA", a) end
               end,
               hasAlpha = true },
             { type = "slider", name = L["Border thickness"] or "Border thickness",
@@ -1824,12 +1886,6 @@ local OptionCategories = {
                       end)
                   end
               end },
-            { type = "toggle", name = L["Class colours"] or "Class colours",
-              desc = L["Tint Vista border and text (coords, time, FPS/MS labels) with your class colour. Numbers use the configured colour."] or "Tint Vista border and text (coords, time, FPS/MS labels) with your class colour. Numbers use the configured colour.",
-              dbKey = "vistaClassColor",
-              get = function() return getDB("vistaClassColor", false) end,
-              set = function(v) setDB("vistaClassColor", v) end },
-
             { type = "section", name = L["Text Positions"] or "Text Positions" },
             { type = "header", name = L["Drag text elements to reposition them. Lock to prevent accidental movement."] or "Drag text elements to reposition them. Lock to prevent accidental movement." },
             { type = "dropdown", name = L["Location position"] or "Location position",
@@ -2282,7 +2338,7 @@ local OptionCategories = {
                 set = function(r, g, b, a)
                     setDB("vistaPanelBgR", r); setDB("vistaPanelBgG", g)
                     setDB("vistaPanelBgB", b)
-                    if a then setDB("vistaPanelBgA", a) end
+                    if a ~= nil then setDB("vistaPanelBgA", a) end
                 end,
                 hasAlpha = true,
             }
@@ -2297,7 +2353,7 @@ local OptionCategories = {
                 set = function(r, g, b, a)
                     setDB("vistaPanelBorderR", r); setDB("vistaPanelBorderG", g)
                     setDB("vistaPanelBorderB", b)
-                    if a then setDB("vistaPanelBorderA", a) end
+                    if a ~= nil then setDB("vistaPanelBorderA", a) end
                 end,
                 hasAlpha = true,
             }
@@ -2315,7 +2371,7 @@ local OptionCategories = {
                 set = function(r, g, b, a)
                     setDB("vistaBarBgR", r); setDB("vistaBarBgG", g)
                     setDB("vistaBarBgB", b)
-                    if a then setDB("vistaBarBgA", a) end
+                    if a ~= nil then setDB("vistaBarBgA", a) end
                 end,
                 hasAlpha = true,
                 disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
@@ -2339,7 +2395,7 @@ local OptionCategories = {
                 set = function(r, g, b, a)
                     setDB("vistaBarBorderR", r); setDB("vistaBarBorderG", g)
                     setDB("vistaBarBorderB", b)
-                    if a then setDB("vistaBarBorderA", a) end
+                    if a ~= nil then setDB("vistaBarBorderA", a) end
                 end,
                 hasAlpha = true,
                 disabled = function() return not getDB("vistaHandleAddonButtons", true) or not getDB("vistaBarBorderShow", false) end,

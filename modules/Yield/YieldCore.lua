@@ -127,6 +127,22 @@ anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
 anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
 anchorHint:SetText("Drag to move · Right-click to confirm")
 
+local function ApplyYieldClassChrome()
+    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("yield")
+    local br, bg, bb, ba = 0.50, 0.70, 1.0, 0.60
+    local er, eg, eb, ea = 0.4, 0.8, 1.0, 0.8
+    if ycc then
+        br, bg, bb = ycc[1], ycc[2], ycc[3]
+        er, eg, eb = ycc[1], ycc[2], ycc[3]
+    end
+    anchorFrame:SetBackdropBorderColor(br, bg, bb, ba)
+    anchorLabel:SetTextColor(br, bg, bb, 1)
+    editOverlay:SetBackdropBorderColor(er, eg, eb, ea)
+    editTitle:SetTextColor(er, eg, eb, 1)
+end
+
+Y.ApplyYieldClassChrome = ApplyYieldClassChrome
+
 anchorFrame:SetScript("OnDragStart", function(self)
     if not InCombatLockdown() then self:StartMoving() end
 end)
@@ -172,6 +188,7 @@ function Y.HideAnchorFrame()
 end
 
 function Y.ApplyYieldOptions()
+    ApplyYieldClassChrome()
     if anchorFrame:IsShown() then
         Y.ApplyStoredAnchor(anchorFrame)
     end
@@ -327,7 +344,8 @@ local function UpdateEntry(entry, dt)
         return
     end
 
-    if entry.quality == 5 and entry.shine then
+    local yieldCC = addon.GetModuleClassColor and addon.GetModuleClassColor("yield")
+    if entry.shine and (entry.quality == 5 or (entry.quality == 4 and yieldCC)) then
         if t < Y.FLASH_DUR then
             entry.shine:Show()
             entry.shine:SetAlpha(1 - easeOut(t / Y.FLASH_DUR))
@@ -406,6 +424,12 @@ function Y.ShowToast(data)
     entry.frame:SetScale(1)
     entry.shine:SetAlpha(0)
     entry.shine:Hide()
+    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("yield")
+    if ycc then
+        entry.shine:SetVertexColor(ycc[1], ycc[2], ycc[3])
+    else
+        entry.shine:SetVertexColor(1, 1, 1)
+    end
     entry.frame:ClearAllPoints()
     entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT", Y.SLIDE_DIST, 0)
     entry.frame:Show()

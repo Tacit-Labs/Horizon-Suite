@@ -840,6 +840,10 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, 
 
     local compactLayout = (typeName == "QUEST_UPDATE" or typeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
     local c, sc = resolveColors(typeName, cfg, opts)
+    local pcc = addon.GetModuleClassColor and addon.GetModuleClassColor("presence")
+    if pcc then
+        c = { pcc[1], pcc[2], pcc[3] }
+    end
     local variant = getVariant(cfg)
     local mainSz = math.max(12, math.min(72, math.floor(getPrimarySz(variant))))
     local subSz = compactLayout and mainSz or math.max(12, math.min(40, math.floor(getSecondarySz(variant))))

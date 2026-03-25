@@ -199,24 +199,116 @@ function addon.GetMaxContentHeight()
 end
 
 --- Returns the header text color from DB or default.
+--- When Focus class colour is enabled, RGB uses the player class colour.
 --- @return table {r,g,b}
 function addon.GetHeaderColor()
     local c = addon.GetDB("headerColor", nil)
+    local r, g, b
     if c and type(c) == "table" and c[1] and c[2] and c[3] then
-        return c
+        r, g, b = c[1], c[2], c[3]
+    else
+        r, g, b = addon.HEADER_COLOR[1], addon.HEADER_COLOR[2], addon.HEADER_COLOR[3]
     end
-    return addon.HEADER_COLOR
+    local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if cc then
+        r, g, b = cc[1], cc[2], cc[3]
+    end
+    return { r, g, b }
+end
+
+--- Returns section divider colour between Focus groups; alpha follows DB/default.
+--- When Focus class colour is enabled, RGB uses the player class colour.
+--- @return table {r,g,b,a}
+function addon.GetSectionDividerColor()
+    local c = addon.GetDB("sectionDividerColor", nil)
+    local r, g, b, a
+    if c and type(c) == "table" and c[1] and c[2] and c[3] then
+        r, g, b = c[1], c[2], c[3]
+        a = (c[4] and type(c[4]) == "number") and c[4] or 0.4
+    else
+        r, g, b, a = 0.3, 0.3, 0.35, 0.4
+    end
+    local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if cc then
+        r, g, b = cc[1], cc[2], cc[3]
+    end
+    return { r, g, b, a }
 end
 
 --- Returns the header divider color from DB or default.
+--- When Focus class colour is enabled, RGB is tinted to the player class colour; alpha follows DB/default.
 --- @return table {r,g,b,a}
 function addon.GetHeaderDividerColor()
     local c = addon.GetDB("headerDividerColor", nil)
+    local r, g, b, a
     if c and type(c) == "table" and c[1] and c[2] and c[3] then
-        local a = (c[4] and type(c[4]) == "number") and c[4] or 0.5
-        return { c[1], c[2], c[3], a }
+        r, g, b = c[1], c[2], c[3]
+        a = (c[4] and type(c[4]) == "number") and c[4] or 0.5
+    else
+        local d = addon.DIVIDER_COLOR
+        r, g, b, a = d[1], d[2], d[3], (d[4] or 0.5)
     end
-    return addon.DIVIDER_COLOR
+    local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if cc then
+        r, g, b = cc[1], cc[2], cc[3]
+    end
+    return { r, g, b, a }
+end
+
+local HEADER_CHROME_DEFAULT = { 0.60, 0.65, 0.75 }
+local HEADER_CHROME_HOVER_BUMP = 0.25
+
+--- RGB for Focus header chrome: quest count, chevron, and options label. Uses class colour when Focus tint is on.
+--- @return table {r,g,b}
+function addon.GetHeaderChromeColor()
+    local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if cc then
+        return { cc[1], cc[2], cc[3] }
+    end
+    return { HEADER_CHROME_DEFAULT[1], HEADER_CHROME_DEFAULT[2], HEADER_CHROME_DEFAULT[3] }
+end
+
+--- Brighter chrome for the options button while hovered.
+--- @return table {r,g,b}
+function addon.GetHeaderChromeHoverColor()
+    local c = addon.GetHeaderChromeColor()
+    return {
+        math.min(1, c[1] + HEADER_CHROME_HOVER_BUMP),
+        math.min(1, c[2] + HEADER_CHROME_HOVER_BUMP),
+        math.min(1, c[3] + HEADER_CHROME_HOVER_BUMP),
+    }
+end
+
+--- Apply base (non-hover) colours to quest count, chevron, and options label.
+--- @return nil
+function addon.ApplyHeaderChromeColors()
+    if not addon.GetHeaderChromeColor then return end
+    local c = addon.GetHeaderChromeColor()
+    if addon.countText and addon.countText.SetTextColor then
+        addon.countText:SetTextColor(c[1], c[2], c[3], 1)
+    end
+    if addon.chevron and addon.chevron.SetTextColor then
+        addon.chevron:SetTextColor(c[1], c[2], c[3], 1)
+    end
+    if addon.optionsLabel and addon.optionsLabel.SetTextColor then
+        addon.optionsLabel:SetTextColor(c[1], c[2], c[3], 1)
+    end
+end
+
+--- Refresh all UI that depends on per-module class colour toggles (batch Axis toggle).
+--- @return nil
+function addon.ApplyAllClassColorConsumers()
+    if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
+    if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+    if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end
+    if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
+    if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
+    if addon.Persona and addon.Persona.ApplyPersonaOptions then addon.Persona.ApplyPersonaOptions() end
+    if addon.ApplyFocusColors then addon.ApplyFocusColors() end
+    local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
+    if fullLayout and not InCombatLockdown() then fullLayout() end
+    if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+    if addon.Yield and addon.Yield.ApplyYieldOptions then addon.Yield.ApplyYieldOptions() end
 end
 
 --- Returns the header bar height from DB or default, clamped to 18–48 px.
@@ -434,6 +526,19 @@ EnsureProfilesAndMigrateLegacy = function()
     if db._profilesValidated then return end
 
     db.profiles = db.profiles or {}
+    -- Axis class colour keys (migrate legacy dashboardClassColor / vistaClassColor once per profile)
+    for _, prof in pairs(db.profiles) do
+        if type(prof) == "table" then
+            if prof.dashboardClassColor ~= nil then
+                if prof.classColorDashboard == nil then prof.classColorDashboard = prof.dashboardClassColor end
+                prof.dashboardClassColor = nil
+            end
+            if prof.vistaClassColor ~= nil then
+                if prof.classColorVista == nil then prof.classColorVista = prof.vistaClassColor end
+                prof.vistaClassColor = nil
+            end
+        end
+    end
     db.charProfileKeys = db.charProfileKeys or {}
     db.charPerSpecKeys = db.charPerSpecKeys or {}
 
@@ -1395,7 +1500,10 @@ headerShadow:SetPoint("CENTER", headerText, "CENTER", addon.SHADOW_OX, addon.SHA
 
 local countText = HS:CreateFontString(nil, "OVERLAY")
 countText:SetFontObject(addon.ObjFont)
-countText:SetTextColor(0.60, 0.65, 0.75, 1)
+do
+    local ch = addon.GetHeaderChromeColor()
+    countText:SetTextColor(ch[1], ch[2], ch[3], 1)
+end
 countText:SetJustifyH("RIGHT")
 countText:SetPoint("TOPRIGHT", HS, "TOPRIGHT", -addon.PADDING, -addon.PADDING - 3)
 
@@ -1407,7 +1515,10 @@ countShadow:SetPoint("CENTER", countText, "CENTER", addon.SHADOW_OX, addon.SHADO
 
 local chevron = HS:CreateFontString(nil, "OVERLAY")
 chevron:SetFontObject(addon.ObjFont)
-chevron:SetTextColor(0.60, 0.65, 0.75, 1)
+do
+    local ch = addon.GetHeaderChromeColor()
+    chevron:SetTextColor(ch[1], ch[2], ch[3], 1)
+end
 chevron:SetJustifyH("RIGHT")
 chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
 chevron:SetText("-")
@@ -1415,7 +1526,10 @@ chevron:SetText("-")
 local optionsBtn = CreateFrame("Button", nil, HS)
 local optionsLabel = optionsBtn:CreateFontString(nil, "OVERLAY")
 optionsLabel:SetFontObject(addon.ObjFont)
-optionsLabel:SetTextColor(0.60, 0.65, 0.75, 1)
+do
+    local ch = addon.GetHeaderChromeColor()
+    optionsLabel:SetTextColor(ch[1], ch[2], ch[3], 1)
+end
 optionsLabel:SetJustifyH("RIGHT")
 optionsLabel:SetText(addon.L["Options"])
 optionsBtn:SetSize(math.max(optionsLabel:GetStringWidth() + 4, 44), 20)
@@ -1432,7 +1546,8 @@ optionsBtn:SetScript("OnClick", function()
 end)
 optionsBtn:SetScript("OnEnter", function(self)
     optionsTooltipHideRequested = false
-    optionsLabel:SetTextColor(0.85, 0.85, 0.90, 1)
+    local hi = addon.GetHeaderChromeHoverColor and addon.GetHeaderChromeHoverColor() or { 0.85, 0.85, 0.90 }
+    optionsLabel:SetTextColor(hi[1], hi[2], hi[3], 1)
     -- Super-minimal: keep chevron and options visible when hovering options (header OnLeave fires when we move here)
     if addon.GetDB("hideObjectivesHeader", false) and not addon.GetDB("hideOptionsButton", false) then
         addon.chevron:SetAlpha(1)
@@ -1445,7 +1560,11 @@ optionsBtn:SetScript("OnEnter", function(self)
     end
 end)
 optionsBtn:SetScript("OnLeave", function()
-    optionsLabel:SetTextColor(0.60, 0.65, 0.75, 1)
+    if addon.ApplyHeaderChromeColors then
+        addon.ApplyHeaderChromeColors()
+    else
+        optionsLabel:SetTextColor(0.60, 0.65, 0.75, 1)
+    end
     optionsTooltipHideRequested = true
     C_Timer.After(0.15, function()
         if optionsTooltipHideRequested and GameTooltip then

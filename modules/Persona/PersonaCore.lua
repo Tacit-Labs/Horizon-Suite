@@ -411,7 +411,7 @@ function Persona.Refresh()
     local name = UnitName("player") or "Unknown"
     local _, classFile = UnitClass("player")
     local classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
-    if classColor then
+    if classColor and addon.GetModuleClassColor and addon.GetModuleClassColor("persona") then
         nameText:SetTextColor(classColor.r, classColor.g, classColor.b, 1)
     else
         nameText:SetTextColor(1, 1, 1, 1)

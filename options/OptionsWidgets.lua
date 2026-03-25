@@ -63,20 +63,27 @@ local function GetClassColorRaw()
     return nil
 end
 
--- Returns {r, g, b} when dashboard/options panel should use class colour, nil otherwise.
-function addon.GetOptionsClassColor()
-    if not (addon.GetDB and addon.GetDB("dashboardClassColor", false)) then
+--- Returns player class RGB when the module's class-colour DB toggle is enabled, else nil.
+--- @param moduleKey string Lowercase module id: dashboard, vista, insight, persona, focus, presence, yield
+--- @return table|nil { r, g, b } with components in 0–1
+function addon.GetModuleClassColor(moduleKey)
+    if type(moduleKey) ~= "string" or moduleKey == "" then return nil end
+    local cap = moduleKey:sub(1, 1):upper() .. moduleKey:sub(2)
+    local dbKey = "classColor" .. cap
+    if not (addon.GetDB and addon.GetDB(dbKey, false)) then
         return nil
     end
     return GetClassColorRaw()
 end
 
--- Returns {r, g, b} when Vista should use class colour (vistaClassColor), nil otherwise.
+-- Returns {r, g, b} when dashboard/options panel should use class colour, nil otherwise.
+function addon.GetOptionsClassColor()
+    return addon.GetModuleClassColor("dashboard")
+end
+
+-- Returns {r, g, b} when Vista should use class colour, nil otherwise.
 function addon.GetVistaClassColor()
-    if not (addon.GetDB and addon.GetDB("vistaClassColor", false)) then
-        return nil
-    end
-    return GetClassColorRaw()
+    return addon.GetModuleClassColor("vista")
 end
 
 local SetTextColor = addon.SetTextColor or function(obj, color)

@@ -71,6 +71,10 @@ local function ApplyHighlightStyle(entry, questData)
     local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
     local hc = addon.GetDB("highlightColor", nil)
     if not hc or #hc < 3 then hc = { 0.40, 0.70, 1.00 } end
+    local fcc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
+    if fcc then
+        hc = { fcc[1], fcc[2], fcc[3] }
+    end
     local ha = tonumber(addon.GetDB("highlightAlpha", 0.25)) or 0.25
     local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
     local topPadding = (questData.isSuperTracked and highlightStyle == "bar-top") and barW or 0
