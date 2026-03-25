@@ -8,20 +8,213 @@ if not addon then return end
 
 local L = addon.L
 
--- Dashboard background: Default = solid ColorTexture only. Midnight = optional PNG over the same solid (see DASHBOARD_BG_FILES).
+-- Dashboard background: Default = solid only. Midnight = addon PNG. Talents = Blizzard class-talent atlas for current spec.
 local DASHBOARD_BG_MEDIA_PATH = "Interface\\AddOns\\HorizonSuite\\media\\dashboard\\"
 local DASHBOARD_BG_BASE_ALPHA = 0.98
+local DASHBOARD_BG_CROSSFADE_SEC = 0.4
 local DASHBOARD_BG_FILES = {
     midnight = "backgrounds\\Wow-Midnight.png",
 }
-local DASHBOARD_BG_ORDER = { "horizon", "midnight" }
+local DASHBOARD_BG_ORDER = { "horizon", "midnight", "talents" }
 addon.DashboardBackgroundThemeOrder = DASHBOARD_BG_ORDER
 
 local function NormalizeDashboardThemeId(themeId)
     if themeId == "midnight" then
         return "midnight"
     end
+    if themeId == "talents" then
+        return "talents"
+    end
     return "horizon"
+end
+
+-- Spec ID -> talent UI background atlas (mirrors Blizzard_PlayerSpells ClassTalents/Blizzard_ClassTalentUtil.lua SpecializationVisuals.background).
+-- Update when Blizzard adds a new specialization.
+local DASHBOARD_SPEC_TALENT_BACKGROUND_ATLAS = {
+    [250] = "talents-background-deathknight-blood",
+    [251] = "talents-background-deathknight-frost",
+    [252] = "talents-background-deathknight-unholy",
+    [577] = "talents-background-demonhunter-havoc",
+    [581] = "talents-background-demonhunter-vengeance",
+    [1480] = "talents-background-demonhunter-devourer",
+    [102] = "talents-background-druid-balance",
+    [103] = "talents-background-druid-feral",
+    [104] = "talents-background-druid-guardian",
+    [105] = "talents-background-druid-restoration",
+    [1467] = "talents-background-evoker-devastation",
+    [1468] = "talents-background-evoker-preservation",
+    [1473] = "talents-background-evoker-augmentation",
+    [253] = "talents-background-hunter-beastmastery",
+    [254] = "talents-background-hunter-marksmanship",
+    [255] = "talents-background-hunter-survival",
+    [62] = "talents-background-mage-arcane",
+    [63] = "talents-background-mage-fire",
+    [64] = "talents-background-mage-frost",
+    [268] = "talents-background-monk-brewmaster",
+    [269] = "talents-background-monk-windwalker",
+    [270] = "talents-background-monk-mistweaver",
+    [65] = "talents-background-paladin-holy",
+    [66] = "talents-background-paladin-protection",
+    [70] = "talents-background-paladin-retribution",
+    [256] = "talents-background-priest-discipline",
+    [257] = "talents-background-priest-holy",
+    [258] = "talents-background-priest-shadow",
+    [259] = "talents-background-rogue-assassination",
+    [260] = "talents-background-rogue-outlaw",
+    [261] = "talents-background-rogue-subtlety",
+    [262] = "talents-background-shaman-elemental",
+    [263] = "talents-background-shaman-enhancement",
+    [264] = "talents-background-shaman-restoration",
+    [265] = "talents-background-warlock-affliction",
+    [266] = "talents-background-warlock-demonology",
+    [267] = "talents-background-warlock-destruction",
+    [71] = "talents-background-warrior-arms",
+    [72] = "talents-background-warrior-fury",
+    [73] = "talents-background-warrior-protection",
+}
+
+-- Atlas name for Player Spells / talent UI spec background (local copy of Blizzard SpecializationVisuals; no ClassTalentUtil load required).
+local function GetDashboardTalentBackgroundAtlas()
+    if not GetSpecialization or not GetSpecializationInfo then
+        return nil
+    end
+    local specIndex = GetSpecialization()
+    if type(specIndex) ~= "number" or specIndex < 1 then
+        return nil
+    end
+    local specID = select(1, GetSpecializationInfo(specIndex))
+    if type(specID) ~= "number" or specID < 1 then
+        return nil
+    end
+    local atlas = DASHBOARD_SPEC_TALENT_BACKGROUND_ATLAS[specID]
+    if type(atlas) ~= "string" or atlas == "" then
+        return nil
+    end
+    if C_Texture and C_Texture.GetAtlasInfo and not C_Texture.GetAtlasInfo(atlas) then
+        return nil
+    end
+    return atlas
+end
+
+local function ClearDashboardBgLayer(tex)
+    tex:Hide()
+    if tex.SetTexture then
+        tex:SetTexture(nil)
+    end
+    if tex.SetAtlas then
+        tex:SetAtlas(nil)
+    end
+    tex:SetVertexColor(1, 1, 1, 1)
+    tex:SetAlpha(1)
+end
+
+-- Normalized theme id -> target descriptor for background layers.
+local function ResolveDashboardBackgroundTarget(themeId)
+    if themeId == "horizon" then
+        return { kind = "clear", signature = "horizon" }
+    end
+    if themeId == "midnight" then
+        local rel = DASHBOARD_BG_FILES.midnight
+        if not rel then
+            return { kind = "clear", signature = "horizon" }
+        end
+        local path = DASHBOARD_BG_MEDIA_PATH .. rel
+        return { kind = "texture", path = path, signature = "midnight:" .. path }
+    end
+    if themeId == "talents" then
+        local atlas = GetDashboardTalentBackgroundAtlas()
+        if not atlas then
+            return { kind = "clear", signature = "horizon" }
+        end
+        return { kind = "atlas", atlas = atlas, signature = "talents:" .. atlas }
+    end
+    return { kind = "clear", signature = "horizon" }
+end
+
+local function ApplyDashboardBgToTexture(tex, target)
+    if target.kind == "clear" then
+        return true
+    end
+    if target.kind == "texture" then
+        if tex.SetAtlas then
+            tex:SetAtlas(nil)
+        end
+        tex:SetTexture(target.path)
+        return true
+    end
+    if target.kind == "atlas" then
+        if tex.SetTexture then
+            tex:SetTexture(nil)
+        end
+        local ok = pcall(function()
+            tex:SetAtlas(target.atlas, true)
+        end)
+        return ok
+    end
+    return false
+end
+
+local function SettleDashboardBackgroundSnap(dash, target)
+    local L1, L2 = dash._dashboardBgArt1, dash._dashboardBgArt2
+    local driver = dash._dashboardBgFadeDriver
+    if driver then
+        driver:SetScript("OnUpdate", nil)
+    end
+    dash._dashboardBgFading = false
+    ClearDashboardBgLayer(L1)
+    ClearDashboardBgLayer(L2)
+    if target.kind == "clear" then
+        dash._dashboardBgLastSig = "horizon"
+        dash._dashboardBgActiveLayer = 1
+        return
+    end
+    if not ApplyDashboardBgToTexture(L1, target) then
+        dash._dashboardBgLastSig = "horizon"
+        dash._dashboardBgActiveLayer = 1
+        return
+    end
+    L1:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
+    L1:SetAlpha(1)
+    L1:Show()
+    dash._dashboardBgLastSig = target.signature
+    dash._dashboardBgActiveLayer = 1
+end
+
+local function StartDashboardBgFade(dash, mode, fromTex, toTex, target, newActiveLayer)
+    local driver = dash._dashboardBgFadeDriver
+    local elapsedAcc = 0
+    dash._dashboardBgFading = true
+    driver:SetScript("OnUpdate", function(_, dt)
+        elapsedAcc = elapsedAcc + dt
+        local t = math.min(1, elapsedAcc / DASHBOARD_BG_CROSSFADE_SEC)
+        local s = t * t * (3 - 2 * t)
+        if mode == "in" then
+            toTex:SetAlpha(s)
+        elseif mode == "out" then
+            fromTex:SetAlpha(1 - s)
+        else
+            fromTex:SetAlpha(1 - s)
+            toTex:SetAlpha(s)
+        end
+        if t >= 1 then
+            driver:SetScript("OnUpdate", nil)
+            dash._dashboardBgFading = false
+            if mode == "in" then
+                toTex:SetAlpha(1)
+                dash._dashboardBgLastSig = target.signature
+                dash._dashboardBgActiveLayer = newActiveLayer
+            elseif mode == "out" then
+                ClearDashboardBgLayer(fromTex)
+                dash._dashboardBgLastSig = "horizon"
+                dash._dashboardBgActiveLayer = 1
+            else
+                ClearDashboardBgLayer(fromTex)
+                toTex:SetAlpha(1)
+                dash._dashboardBgLastSig = target.signature
+                dash._dashboardBgActiveLayer = newActiveLayer
+            end
+        end
+    end)
 end
 
 -- Dashboard window (16:9). Author full-bleed PNG backgrounds at this size (or 2×, e.g. 2560×1440).
@@ -30,11 +223,12 @@ local DASHBOARD_FRAME_H = 720
 local DASHBOARD_VIEW_H = DASHBOARD_FRAME_H - 20 -- main views sit inside frame below header band
 
 --- Apply saved dashboard background theme to the dashboard frame (if it exists).
+--- Crossfades between image themes when the dashboard is visible; snaps when hidden or on first apply.
 --- @return nil
 function addon.ApplyDashboardBackground()
     local dash = _G.HorizonSuiteDashboard
-    local art = dash and dash._dashboardBgArt
-    if not art then
+    local L1, L2 = dash and dash._dashboardBgArt1, dash and dash._dashboardBgArt2
+    if not dash or not L1 or not L2 then
         return
     end
     local raw = (addon.GetDB and addon.GetDB("dashboardBackgroundTheme", "horizon")) or "horizon"
@@ -43,20 +237,64 @@ function addon.ApplyDashboardBackground()
     if solid then
         solid:Show()
     end
-    local rel = DASHBOARD_BG_FILES[themeId]
-    if not rel then
-        art:Hide()
-        if art.SetTexture then
-            art:SetTexture(nil)
-        end
-        art:SetVertexColor(1, 1, 1, 1)
+
+    local target = ResolveDashboardBackgroundTarget(themeId)
+
+    if dash._dashboardBgFading and dash._dashboardBgFadeDriver then
+        dash._dashboardBgFadeDriver:SetScript("OnUpdate", nil)
+        dash._dashboardBgFading = false
+        SettleDashboardBackgroundSnap(dash, target)
         return
     end
-    local path = DASHBOARD_BG_MEDIA_PATH .. rel
-    art:SetTexture(path)
-    art:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
-    art:SetAlpha(1)
-    art:Show()
+
+    if target.signature == dash._dashboardBgLastSig then
+        return
+    end
+
+    if dash._dashboardBgLastSig == nil or not dash:IsShown() then
+        SettleDashboardBackgroundSnap(dash, target)
+        return
+    end
+
+    local lastSig = dash._dashboardBgLastSig
+    local hasFrom = lastSig ~= nil and lastSig ~= "horizon"
+    local hasTo = target.kind ~= "clear"
+
+    if not hasFrom and not hasTo then
+        return
+    end
+
+    local activeIdx = dash._dashboardBgActiveLayer or 1
+    local fromTex = (activeIdx == 1) and L1 or L2
+    local toTex = (activeIdx == 1) and L2 or L1
+    local newLayerIdx = (activeIdx == 1) and 2 or 1
+
+    if not hasFrom and hasTo then
+        if not ApplyDashboardBgToTexture(toTex, target) then
+            SettleDashboardBackgroundSnap(dash, { kind = "clear", signature = "horizon" })
+            return
+        end
+        toTex:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
+        toTex:SetAlpha(0)
+        toTex:Show()
+        StartDashboardBgFade(dash, "in", nil, toTex, target, newLayerIdx)
+        return
+    end
+
+    if hasFrom and not hasTo then
+        StartDashboardBgFade(dash, "out", fromTex, nil, { kind = "clear", signature = "horizon" }, 1)
+        return
+    end
+
+    if not ApplyDashboardBgToTexture(toTex, target) then
+        SettleDashboardBackgroundSnap(dash, { kind = "clear", signature = "horizon" })
+        return
+    end
+    toTex:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
+    toTex:SetAlpha(0)
+    toTex:Show()
+    fromTex:SetAlpha(1)
+    StartDashboardBgFade(dash, "cross", fromTex, toTex, target, newLayerIdx)
 end
 
 -- Categories shown under the Axis hub (dashboard + search); keep in sync with OptionCategories keys.
@@ -277,18 +515,39 @@ SlashCmdList["HSDASH"] = function(msg)
 
             tinsert(UISpecialFrames, "HorizonSuiteDashboard")
 
-            -- Background: solid base (always) + optional PNG theme on top
+            -- Background: solid base (always) + optional art layer(s) with crossfade between themes
             local bgSolid = f:CreateTexture(nil, "BACKGROUND", nil, -1)
             bgSolid:SetAllPoints()
             bgSolid:SetColorTexture(0.05, 0.05, 0.07, DASHBOARD_BG_BASE_ALPHA)
-            local bgArt = f:CreateTexture(nil, "BACKGROUND", nil, 0)
-            bgArt:SetAllPoints()
-            bgArt:Hide()
+            local bgArt1 = f:CreateTexture(nil, "BACKGROUND", nil, 0)
+            local bgArt2 = f:CreateTexture(nil, "BACKGROUND", nil, 0)
+            bgArt1:SetAllPoints()
+            bgArt2:SetAllPoints()
+            bgArt1:Hide()
+            bgArt2:Hide()
+            local bgFadeDriver = CreateFrame("Frame", nil, f)
+            bgFadeDriver:SetSize(1, 1)
+            bgFadeDriver:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
             f._dashboardBgSolid = bgSolid
-            f._dashboardBgArt = bgArt
+            f._dashboardBgArt1 = bgArt1
+            f._dashboardBgArt2 = bgArt2
+            f._dashboardBgFadeDriver = bgFadeDriver
+            f._dashboardBgActiveLayer = 1
+            f._dashboardBgLastSig = nil
+            f._dashboardBgFading = false
             if addon.ApplyDashboardBackground then
                 addon.ApplyDashboardBackground()
             end
+
+            f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+            f:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+            f:SetScript("OnEvent", function(self, event)
+                if event == "PLAYER_SPECIALIZATION_CHANGED" or event == "ACTIVE_TALENT_GROUP_CHANGED" then
+                    if self:IsShown() and addon.ApplyDashboardBackground then
+                        addon.ApplyDashboardBackground()
+                    end
+                end
+            end)
 
             -- ===== SIDEBAR =====
             local SIDEBAR_WIDTH = 160
@@ -2910,9 +3169,6 @@ SlashCmdList["HSDASH"] = function(msg)
                 local collapsed = not GetGroupCollapsed(mk)
                 SetGroupCollapsed(mk, collapsed)
                 if g.header and g.header.chevron then g.header.chevron:SetText(collapsed and "+" or "-") end
-                if not collapsed then
-                    SetGroupChildrenShown(g, true)
-                end
                 local fromH = g.tabsContainer:GetHeight()
                 local toH = collapsed and 0 or g.fullHeight
                 if fromH ~= toH then
@@ -2930,12 +3186,16 @@ SlashCmdList["HSDASH"] = function(msg)
                             self:SetScript("OnUpdate", nil)
                             if collapsed then
                                 SetGroupChildrenShown(g, false)
+                            else
+                                SetGroupChildrenShown(g, true)
                             end
                         end
                     end)
                 else
                     if collapsed then
                         SetGroupChildrenShown(g, false)
+                    else
+                        SetGroupChildrenShown(g, true)
                     end
                     if g.header and g.header.updateSpacer then g.header.updateSpacer() end
                     LayoutSidebar()

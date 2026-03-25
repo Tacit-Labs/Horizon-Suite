@@ -964,7 +964,7 @@ local OptionCategories = {
             local opts = {}
             opts[#opts + 1] = { type = "section", name = L["Theme"] or "Theme" }
             local function dashboardBackgroundDropdownOptions()
-                local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight" }
+                local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
                 local out = {}
                 for _, id in ipairs(order) do
                     local label
@@ -972,6 +972,8 @@ local OptionCategories = {
                         label = L["Default"] or "Default"
                     elseif id == "midnight" then
                         label = L["Dashboard background Midnight"] or "Midnight"
+                    elseif id == "talents" then
+                        label = L["Dashboard background Class talents"] or "Specialisation (auto)"
                     else
                         label = id
                     end
@@ -982,7 +984,7 @@ local OptionCategories = {
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["Dashboard background"] or "Dashboard background",
-                desc = L["Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base."] or "Background style for the module dashboard window (Axis). Default is the standard flat dashboard background; Midnight adds soft artwork on top of the same base.",
+                desc = L["Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."] or "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization.",
                 dbKey = "dashboardBackgroundTheme",
                 searchable = true,
                 options = dashboardBackgroundDropdownOptions,
@@ -991,7 +993,7 @@ local OptionCategories = {
                     if v == "solid" then
                         v = "horizon"
                     end
-                    local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight" }
+                    local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
                     for _, id in ipairs(order) do
                         if v == id then
                             return v

@@ -219,6 +219,17 @@ local function ClampTooltipToScreen()
     GameTooltip:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left / uiScale, 2 / uiScale)
 end
 
+-- Defer past TooltipDataProcessor secure path so GetBottom/GetLeft are not tainted secret values.
+local function ScheduleClampTooltipToScreen()
+    if not (C_Timer and C_Timer.After) then return end
+    C_Timer.After(0, function()
+        if not IsEnabled() then return end
+        if GetAnchorMode() ~= "cursor" then return end
+        if not GameTooltip or not GameTooltip:IsShown() then return end
+        ClampTooltipToScreen()
+    end)
+end
+
 local function HookPositioning()
     hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
         if not IsEnabled() then return end
@@ -266,7 +277,7 @@ local function ProcessUnitTooltip(tooltip)
         suppressFadeIn = true
         tooltip:Show()
         StripHealthAndPowerText(tooltip)
-        ClampTooltipToScreen()
+        ScheduleClampTooltipToScreen()
     end
 end
 
