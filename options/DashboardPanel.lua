@@ -10,7 +10,33 @@ local L = addon.L
 
 -- Dashboard background: Default = solid only. Midnight = addon PNG. Talents = Blizzard class-talent atlas for current spec.
 local DASHBOARD_BG_MEDIA_PATH = "Interface\\AddOns\\HorizonSuite\\media\\dashboard\\"
-local DASHBOARD_BG_BASE_ALPHA = 0.98
+-- Full-bleed background: solid + art stack. Solid alpha adjusts dynamically so default/horizon (solid-only)
+-- stays dark and readable, while Midnight/Specialisation (solid + art) lets the world peek through.
+-- Art alpha is user-configurable via dashboardBackgroundOpacity (50–100%, stored as integer, default 90).
+local DASHBOARD_BG_SOLID_ALPHA_BARE = 0.88      -- used when NO art layer is showing (default/horizon)
+local DASHBOARD_BG_SOLID_ALPHA_WITH_ART = 0.25  -- under themed art; kept low so art+solid don't compound to fully opaque
+local DASHBOARD_BG_ART_ALPHA_DEFAULT = 0.90     -- fallback before DB is available
+
+local function GetDashboardBgArtAlpha()
+    if addon.GetDB then
+        local pct = tonumber(addon.GetDB("dashboardBackgroundOpacity", 90)) or 90
+        return math.max(0.50, math.min(1.0, pct / 100))
+    end
+    return DASHBOARD_BG_ART_ALPHA_DEFAULT
+end
+-- Interior fills: lower so tiles/sidebar do not read as opaque slabs over the softened backdrop.
+local DASHBOARD_CHILD_PANEL_ALPHA = 0.72
+local DASHBOARD_CONTENT_CARD_ALPHA_MULT = 0.78
+-- Home module tiles: polish + bento Axis (same width as others; height = two stacked tiles + gap).
+local DASH_HOME_TILE_W = 190
+local DASH_HOME_TILE_H = 160
+local DASH_HOME_TILE_GAP = 15
+local DASH_HOME_TILE_COLS = 4
+local DASH_HOME_TILE_BG_ALPHA_MULT = 0.82
+local DASH_HOME_TILE_BORDER_ALPHA_MULT = 0.88
+-- Disabled modules on Home (any moduleKey): dimmer fill/border than live tiles.
+local DASH_HOME_SKELETON_BG_ALPHA_MULT = 0.58
+local DASH_HOME_SKELETON_BORDER_ALPHA_MULT = 0.62
 local DASHBOARD_BG_CROSSFADE_SEC = 0.4
 local DASHBOARD_BG_FILES = {
     midnight = "backgrounds\\Wow-Midnight.png",
@@ -154,6 +180,21 @@ local function ApplyDashboardBgToTexture(tex, target)
     return false
 end
 
+local function GetDashboardBgSolidAlpha(hasArt)
+    local userAlpha = GetDashboardBgArtAlpha()
+    if hasArt then
+        return DASHBOARD_BG_SOLID_ALPHA_WITH_ART
+    end
+    return userAlpha
+end
+
+local function SetSolidAlphaForTarget(dash, target)
+    local solid = dash._dashboardBgSolid
+    if not solid then return end
+    local a = GetDashboardBgSolidAlpha(target.kind ~= "clear")
+    solid:SetColorTexture(0.05, 0.05, 0.07, a)
+end
+
 local function SettleDashboardBackgroundSnap(dash, target)
     local L1, L2 = dash._dashboardBgArt1, dash._dashboardBgArt2
     local driver = dash._dashboardBgFadeDriver
@@ -163,6 +204,7 @@ local function SettleDashboardBackgroundSnap(dash, target)
     dash._dashboardBgFading = false
     ClearDashboardBgLayer(L1)
     ClearDashboardBgLayer(L2)
+    SetSolidAlphaForTarget(dash, target)
     if target.kind == "clear" then
         dash._dashboardBgLastSig = "horizon"
         dash._dashboardBgActiveLayer = 1
@@ -171,10 +213,11 @@ local function SettleDashboardBackgroundSnap(dash, target)
     if not ApplyDashboardBgToTexture(L1, target) then
         dash._dashboardBgLastSig = "horizon"
         dash._dashboardBgActiveLayer = 1
+        SetSolidAlphaForTarget(dash, { kind = "clear" })
         return
     end
-    L1:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
-    L1:SetAlpha(1)
+    L1:SetVertexColor(1, 1, 1, 1)
+    L1:SetAlpha(GetDashboardBgArtAlpha())
     L1:Show()
     dash._dashboardBgLastSig = target.signature
     dash._dashboardBgActiveLayer = 1
@@ -184,23 +227,39 @@ local function StartDashboardBgFade(dash, mode, fromTex, toTex, target, newActiv
     local driver = dash._dashboardBgFadeDriver
     local elapsedAcc = 0
     dash._dashboardBgFading = true
+    local solid = dash._dashboardBgSolid
+    local solidBare = GetDashboardBgSolidAlpha(false)
+    local solidArt  = GetDashboardBgSolidAlpha(true)
+    local solidFrom = (mode == "out") and solidArt or
+                      (mode == "in")  and solidBare or
+                      solidArt
+    local solidTo   = (mode == "out") and solidBare or
+                      (mode == "in")  and solidArt or
+                      solidArt
+    local artA = GetDashboardBgArtAlpha()
     driver:SetScript("OnUpdate", function(_, dt)
         elapsedAcc = elapsedAcc + dt
         local t = math.min(1, elapsedAcc / DASHBOARD_BG_CROSSFADE_SEC)
         local s = t * t * (3 - 2 * t)
+        if solid then
+            solid:SetColorTexture(0.05, 0.05, 0.07, solidFrom + (solidTo - solidFrom) * s)
+        end
         if mode == "in" then
-            toTex:SetAlpha(s)
+            toTex:SetAlpha(s * artA)
         elseif mode == "out" then
-            fromTex:SetAlpha(1 - s)
+            fromTex:SetAlpha((1 - s) * artA)
         else
-            fromTex:SetAlpha(1 - s)
-            toTex:SetAlpha(s)
+            fromTex:SetAlpha((1 - s) * artA)
+            toTex:SetAlpha(s * artA)
         end
         if t >= 1 then
             driver:SetScript("OnUpdate", nil)
             dash._dashboardBgFading = false
+            if solid then
+                solid:SetColorTexture(0.05, 0.05, 0.07, solidTo)
+            end
             if mode == "in" then
-                toTex:SetAlpha(1)
+                toTex:SetAlpha(artA)
                 dash._dashboardBgLastSig = target.signature
                 dash._dashboardBgActiveLayer = newActiveLayer
             elseif mode == "out" then
@@ -209,7 +268,7 @@ local function StartDashboardBgFade(dash, mode, fromTex, toTex, target, newActiv
                 dash._dashboardBgActiveLayer = 1
             else
                 ClearDashboardBgLayer(fromTex)
-                toTex:SetAlpha(1)
+                toTex:SetAlpha(artA)
                 dash._dashboardBgLastSig = target.signature
                 dash._dashboardBgActiveLayer = newActiveLayer
             end
@@ -221,6 +280,12 @@ end
 local DASHBOARD_FRAME_W = 1280
 local DASHBOARD_FRAME_H = 720
 local DASHBOARD_VIEW_H = DASHBOARD_FRAME_H - 20 -- main views sit inside frame below header band
+
+-- Main content header band (anchors to dashboard frame TOP). Subcategory/detail reuse these Y values with head/headSub so titles do not shift between Home, Welcome, and deeper views.
+local DASH_HEAD_TITLE_Y = -30
+local DASH_HEAD_SUBTITLE_Y = -58
+local DASH_SEARCH_Y = -88
+local DASH_SEARCH_BOX_H = 36
 
 --- Apply saved dashboard background theme to the dashboard frame (if it exists).
 --- Crossfades between image themes when the dashboard is visible; snaps when hidden or on first apply.
@@ -248,6 +313,13 @@ function addon.ApplyDashboardBackground()
     end
 
     if target.signature == dash._dashboardBgLastSig then
+        -- Theme unchanged but opacity may have changed; refresh alpha on visible layers + solid.
+        SetSolidAlphaForTarget(dash, target)
+        local activeIdx = dash._dashboardBgActiveLayer or 1
+        local activeTex = (activeIdx == 1) and L1 or L2
+        if target.kind ~= "clear" and activeTex:IsShown() then
+            activeTex:SetAlpha(GetDashboardBgArtAlpha())
+        end
         return
     end
 
@@ -274,7 +346,7 @@ function addon.ApplyDashboardBackground()
             SettleDashboardBackgroundSnap(dash, { kind = "clear", signature = "horizon" })
             return
         end
-        toTex:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
+        toTex:SetVertexColor(1, 1, 1, 1)
         toTex:SetAlpha(0)
         toTex:Show()
         StartDashboardBgFade(dash, "in", nil, toTex, target, newLayerIdx)
@@ -290,10 +362,10 @@ function addon.ApplyDashboardBackground()
         SettleDashboardBackgroundSnap(dash, { kind = "clear", signature = "horizon" })
         return
     end
-    toTex:SetVertexColor(1, 1, 1, DASHBOARD_BG_BASE_ALPHA)
+    toTex:SetVertexColor(1, 1, 1, 1)
     toTex:SetAlpha(0)
     toTex:Show()
-    fromTex:SetAlpha(1)
+    fromTex:SetAlpha(GetDashboardBgArtAlpha())
     StartDashboardBgFade(dash, "cross", fromTex, toTex, target, newLayerIdx)
 end
 
@@ -308,6 +380,21 @@ local function MakeText(parent, text, size, r, g, b, justify)
     local font = size >= 14 and "Fonts\\FRIZQT__.TTF" or "Fonts\\ARIALN.TTF"
     local flags = size >= 14 and "OUTLINE" or ""
     fs:SetFont(font, size, flags)
+    fs:SetText(text)
+    fs:SetTextColor(r, g, b)
+    if justify then fs:SetJustifyH(justify) end
+    return fs
+end
+
+-- Welcome contributor / localization bodies may include Hangul or CJK; ARIALN and FRIZQT omit those glyphs on many enUS installs (tofu squares). 2002 is Blizzard's broad-coverage UI font.
+local function MakeDashboardWelcomeMixedScriptText(parent, text, size, r, g, b, justify)
+    local fs = parent:CreateFontString(nil, "OVERLAY")
+    local ok = pcall(function()
+        fs:SetFont("Fonts\\2002.TTF", size, "")
+    end)
+    if not ok then
+        fs:SetFont("Fonts\\ARIALN.TTF", size, "")
+    end
     fs:SetText(text)
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
@@ -431,6 +518,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 subcatAccents = {},
                 cardAccents = {},
                 cardDividers = {},
+                dashboardAxisRails = {},
                 underline = nil,
                 sidebarDivider = nil,
                 logoSep = nil,
@@ -489,7 +577,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
                 end
                 if activeSidebarBtn then
-                    activeSidebarBtn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, 1)
+                    activeSidebarBtn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, DASHBOARD_CHILD_PANEL_ALPHA)
                     activeSidebarBtn.accentBar:SetColorTexture(ar, ag, ab, 1)
                 end
                 if dashAccentRefs.sidebarDivider then
@@ -507,6 +595,13 @@ SlashCmdList["HSDASH"] = function(msg)
                 if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
                     dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
                 end
+                for _, rail in ipairs(dashAccentRefs.dashboardAxisRails) do
+                    if rail and rail.SetColorTexture then
+                        local parent = rail:GetParent()
+                        local hover = parent and parent.IsMouseOver and parent:IsMouseOver()
+                        rail:SetColorTexture(ar, ag, ab, hover and 0.55 or 0.35)
+                    end
+                end
                 RefreshDashboardClassIcon()
                 if LayoutDashboardSidebarUnderHeader then
                     LayoutDashboardSidebarUnderHeader()
@@ -518,7 +613,7 @@ SlashCmdList["HSDASH"] = function(msg)
             -- Background: solid base (always) + optional art layer(s) with crossfade between themes
             local bgSolid = f:CreateTexture(nil, "BACKGROUND", nil, -1)
             bgSolid:SetAllPoints()
-            bgSolid:SetColorTexture(0.05, 0.05, 0.07, DASHBOARD_BG_BASE_ALPHA)
+            bgSolid:SetColorTexture(0.05, 0.05, 0.07, GetDashboardBgSolidAlpha(false))
             local bgArt1 = f:CreateTexture(nil, "BACKGROUND", nil, 0)
             local bgArt2 = f:CreateTexture(nil, "BACKGROUND", nil, 0)
             bgArt1:SetAllPoints()
@@ -561,7 +656,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             local sidebarBg = sidebar:CreateTexture(nil, "BACKGROUND")
             sidebarBg:SetAllPoints()
-            sidebarBg:SetColorTexture(0.02, 0.02, 0.02, 1)
+            sidebarBg:SetColorTexture(0.02, 0.02, 0.02, DASHBOARD_CHILD_PANEL_ALPHA)
 
             -- Sidebar divider line
             local sidebarDivider = sidebar:CreateTexture(nil, "BORDER")
@@ -712,7 +807,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 if not noHover then
                     btn:SetScript("OnEnter", function()
                         if btn ~= activeSidebarBtn then
-                            btnBg:SetColorTexture(0.1, 0.1, 0.12, 1)
+                            btnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
                             lbl:SetTextColor(0.9, 0.9, 0.95)
                             if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
                         end
@@ -744,7 +839,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 activeSidebarBtn = btn
                 if btn then
                     local ar, ag, ab = GetAccentColor()
-                    btn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, 1)
+                    btn.btnBg:SetColorTexture(ar * 0.15, ag * 0.15, ab * 0.15, DASHBOARD_CHILD_PANEL_ALPHA)
                     btn.label:SetTextColor(1, 1, 1)
                     if btn.icon then btn.icon:SetVertexColor(1, 1, 1, 1) end
                     btn.accentBar:Show()
@@ -755,14 +850,14 @@ SlashCmdList["HSDASH"] = function(msg)
             
             -- Header
             local head = MakeText(f, "Horizon Suite", 24, 1, 1, 1, "CENTER")
-            head:SetPoint("TOP", CONTENT_OFFSET / 2, -30)
+            head:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_HEAD_TITLE_Y)
             local headSub = MakeText(f, "Select a module to configure", 13, 0.5, 0.5, 0.5, "CENTER")
-            headSub:SetPoint("TOP", CONTENT_OFFSET / 2, -58)
+            headSub:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_HEAD_SUBTITLE_Y)
 
             -- Search Bar
             local searchBox = CreateFrame("EditBox", nil, f)
-            searchBox:SetSize(500, 36)
-            searchBox:SetPoint("TOP", CONTENT_OFFSET / 2, -88)
+            searchBox:SetSize(500, DASH_SEARCH_BOX_H)
+            searchBox:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_SEARCH_Y)
             searchBox:SetFont("Fonts\\FRIZQT__.TTF", 14, "")
             searchBox:SetTextInsets(48, 15, 0, 0)
             searchBox:SetAutoFocus(false)
@@ -775,7 +870,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             local sbBg = searchBox:CreateTexture(nil, "BORDER")
             sbBg:SetAllPoints()
-            sbBg:SetColorTexture(0.10, 0.10, 0.13, 1)
+            sbBg:SetColorTexture(0.10, 0.10, 0.13, DASHBOARD_CHILD_PANEL_ALPHA)
             
             local sbPlaceholder = MakeText(searchBox, "Search settings...", 14, 0.45, 0.45, 0.5, "LEFT")
             sbPlaceholder:SetPoint("LEFT", 48, 0)
@@ -903,7 +998,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 edgeSize = 12,
                 insets = { left = 3, right = 3, top = 3, bottom = 3 }
             })
-            searchDropdown:SetBackdropColor(0.08, 0.08, 0.09, 0.98)
+            searchDropdown:SetBackdropColor(0.08, 0.08, 0.09, DASHBOARD_CHILD_PANEL_ALPHA)
             local sdar, sdag, sdab = GetAccentColor()
             searchDropdown:SetBackdropBorderColor(sdar, sdag, sdab, 0.5)
             dashAccentRefs.searchDropBorder = searchDropdown
@@ -934,6 +1029,24 @@ SlashCmdList["HSDASH"] = function(msg)
             local viewWidth = DASHBOARD_FRAME_W - SIDEBAR_WIDTH - 10
             local viewCenterX = CONTENT_OFFSET / 2
             local contentWidth = viewWidth - 80  -- scroll frame uses 40px inset on each side
+            local viewTopInset = (DASHBOARD_FRAME_H - DASHBOARD_VIEW_H) / 2
+            -- Scroll tops sit just below the search box (same visual band as Home), in each view's local coords.
+            local dashScrollTopOffset = -(math.abs(DASH_SEARCH_Y) + DASH_SEARCH_BOX_H + 8 - viewTopInset)
+            local dashTitleX = CONTENT_OFFSET + 40
+
+            local detailTitle = MakeText(f, "MODULE SETTINGS", 18, 1, 1, 1, "LEFT")
+            detailTitle:SetPoint("TOPLEFT", f, "TOPLEFT", dashTitleX, DASH_HEAD_TITLE_Y)
+            detailTitle:Hide()
+            f.detailTitle = detailTitle
+
+            local detailTitleUnderline = f:CreateTexture(nil, "ARTWORK")
+            detailTitleUnderline:SetHeight(1)
+            detailTitleUnderline:SetPoint("TOPLEFT", detailTitle, "BOTTOMLEFT", 0, -6)
+            detailTitleUnderline:SetWidth(math.max(1, viewWidth - 80))
+            local arU, agU, abU = GetAccentColor()
+            detailTitleUnderline:SetColorTexture(arU, agU, abU, 0.35)
+            detailTitleUnderline:Hide()
+            dashAccentRefs.underline = detailTitleUnderline
 
             local dashboardView = CreateFrame("Frame", nil, f)
             dashboardView:SetSize(viewWidth, DASHBOARD_VIEW_H)
@@ -959,7 +1072,7 @@ SlashCmdList["HSDASH"] = function(msg)
             f.welcomeView = welcomeView
 
             local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
-            subCategoryScroll:SetPoint("TOPLEFT", 40, -135)
+            subCategoryScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
             subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
             subCategoryScroll.ScrollBar:Hide()
             subCategoryScroll.ScrollBar:ClearAllPoints()
@@ -969,59 +1082,18 @@ SlashCmdList["HSDASH"] = function(msg)
             subCategoryScroll:SetScrollChild(subCategoryContent)
 
             ApplySmoothScroll(subCategoryScroll, subCategoryContent, 60, true)
-            local detailTitle = MakeText(detailView, "MODULE SETTINGS", 18, 1, 1, 1, "LEFT")
-            detailTitle:SetPoint("TOPLEFT", 40, -45)
-            f.detailTitle = detailTitle
 
-            -- Accent underline below detail title
-            local detailTitleUnderline = detailView:CreateTexture(nil, "ARTWORK")
-            detailTitleUnderline:SetHeight(1)
-            detailTitleUnderline:SetPoint("TOPLEFT", detailTitle, "BOTTOMLEFT", 0, -6)
-            detailTitleUnderline:SetPoint("RIGHT", detailView, "RIGHT", -40, 0)
-            local ar, ag, ab = GetAccentColor()
-            detailTitleUnderline:SetColorTexture(ar, ag, ab, 0.35)
-            dashAccentRefs.underline = detailTitleUnderline
+            -- Back Button (Persistent in Detail View) — parent is main frame so Y matches headSub row across views
+            local backBtn = CreateFrame("Button", nil, f)
+            backBtn:SetPoint("TOPLEFT", f, "TOPLEFT", dashTitleX, DASH_HEAD_SUBTITLE_Y)
+            backBtn:SetFrameLevel(f:GetFrameLevel() + 6)
+            backBtn:Hide()
 
-            -- Transitions (faster animations per UX feedback)
-            local function CrossfadeTo(targetView)
-                dashboardView:Hide()
-                detailView:Hide()
-                subCategoryView:Hide()
-                welcomeView:Hide()
-                if head then head:Hide() end
-                if headSub then headSub:Hide() end
-
-                targetView:SetAlpha(0)
-                targetView:Show()
-                UIFrameFadeIn(targetView, 0.2, 0, 1)
-            end
-
-            f.ShowDashboard = function()
-                detailView:Hide()
-                subCategoryView:Hide()
-                welcomeView:Hide()
-                dashboardView:SetAlpha(0)
-                dashboardView:Show()
-                UIFrameFadeIn(dashboardView, 0.2, 0, 1)
-                if head then head:Show() end
-                if headSub then
-                    headSub:Show()
-                    headSub:SetText("Select a module to configure")
-                end
-                searchBox:Show()
-                f.currentModuleKey = nil
-                SetSidebarState({ view = "dashboard", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
-                if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
-                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
-            end
-
-            -- Back Button (Persistent in Detail View)
-            local backBtn = CreateFrame("Button", nil, detailView)
-            backBtn:SetPoint("TOPLEFT", 40, -5)
-            
             -- Back Button (Subcategory View)
-            local subBackBtn = CreateFrame("Button", nil, subCategoryView)
-            subBackBtn:SetPoint("TOPLEFT", 40, -5)
+            local subBackBtn = CreateFrame("Button", nil, f)
+            subBackBtn:SetPoint("TOPLEFT", f, "TOPLEFT", dashTitleX, DASH_HEAD_SUBTITLE_Y)
+            subBackBtn:SetFrameLevel(f:GetFrameLevel() + 6)
+            subBackBtn:Hide()
             
             local function StyleBackButton(btn, textStr)
                 btn:SetSize(160, 32)
@@ -1060,6 +1132,62 @@ SlashCmdList["HSDASH"] = function(msg)
 
             StyleBackButton(backBtn, "BACK")
             StyleBackButton(subBackBtn, "BACK")
+
+            local function HideContextHeader()
+                backBtn:Hide()
+                subBackBtn:Hide()
+                detailTitle:Hide()
+                detailTitleUnderline:Hide()
+            end
+
+            local function ShowDetailHeader()
+                backBtn:Show()
+                subBackBtn:Hide()
+                detailTitle:Show()
+                detailTitleUnderline:Show()
+            end
+
+            local function ShowSubcategoryHeader()
+                subBackBtn:Show()
+                backBtn:Hide()
+                detailTitle:Show()
+                detailTitleUnderline:Show()
+            end
+
+            -- Transitions (faster animations per UX feedback)
+            local function CrossfadeTo(targetView)
+                dashboardView:Hide()
+                detailView:Hide()
+                subCategoryView:Hide()
+                welcomeView:Hide()
+                if head then head:Hide() end
+                if headSub then headSub:Hide() end
+                HideContextHeader()
+
+                targetView:SetAlpha(0)
+                targetView:Show()
+                UIFrameFadeIn(targetView, 0.2, 0, 1)
+            end
+
+            f.ShowDashboard = function()
+                HideContextHeader()
+                detailView:Hide()
+                subCategoryView:Hide()
+                welcomeView:Hide()
+                dashboardView:SetAlpha(0)
+                dashboardView:Show()
+                UIFrameFadeIn(dashboardView, 0.2, 0, 1)
+                if head then head:Show() end
+                if headSub then
+                    headSub:Show()
+                    headSub:SetText("Select a module to configure")
+                end
+                searchBox:Show()
+                f.currentModuleKey = nil
+                SetSidebarState({ view = "dashboard", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
+                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+            end
 
             -- Back button in detail view: reopen module groups, but keep core tiles behaving like dashboard entries.
             backBtn:SetScript("OnClick", function()
@@ -1128,7 +1256,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- Detail Card Container (Scrollable)
             local detailScroll = CreateFrame("ScrollFrame", nil, detailView, "UIPanelScrollFrameTemplate")
-            detailScroll:SetPoint("TOPLEFT", 40, -135)
+            detailScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
             detailScroll:SetPoint("BOTTOMRIGHT", -40, 40)
             detailScroll.ScrollBar:Hide()
             detailScroll.ScrollBar:ClearAllPoints()
@@ -1225,6 +1353,29 @@ SlashCmdList["HSDASH"] = function(msg)
                         end
                     end)
                 end
+            end
+
+            --- Open Axis → Modules detail with the Module Toggles accordion expanded (same as Welcome “Open module toggles” link).
+            --- @return nil
+            local function NavigateToModuleToggles()
+                local togglesSection = L["Module Toggles"] or "Module Toggles"
+                local modulesName = L["Modules"] or "Modules"
+                local entryFound
+                local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
+                for _, e in ipairs(idx) do
+                    if e.categoryKey == "Modules" and e.sectionName == togglesSection then
+                        entryFound = e
+                        break
+                    end
+                end
+                if not entryFound then
+                    entryFound = {
+                        categoryKey = "Modules",
+                        categoryName = modulesName,
+                        optionId = "_module_focus",
+                    }
+                end
+                NavigateToOption(entryFound)
             end
 
             local searchDropdownButtons = {}
@@ -1349,6 +1500,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 wipe(dashAccentRefs.subcatAccents)
             end
 
+            -- Match options section-card transparency (OptionsWidgets SectionCardBg / SectionCardBorder)
+            local WDef = addon.OptionsWidgetsDef
+            local SBg = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
+            local SBd = (WDef and WDef.SectionCardBorder) or { 0.18, 0.2, 0.24, 0.35 }
+            local SBgA = SBg[4] * DASHBOARD_CONTENT_CARD_ALPHA_MULT
+            -- Hover / expanded fills: shared by module tiles, subcategory tiles, and detail accordions
+            local SBgHoverR, SBgHoverG, SBgHoverB = 0.11, 0.11, 0.13
+            local SBgExpandedR, SBgExpandedG, SBgExpandedB = 0.10, 0.10, 0.12
+
             -- Helper: Create Subcategory Tile
             local TILE_PAD = 10
             local TILE_GAP = 10
@@ -1367,12 +1527,12 @@ SlashCmdList["HSDASH"] = function(msg)
                 local tBg = tile:CreateTexture(nil, "BACKGROUND")
                 tBg:SetPoint("TOPLEFT", 1, -1)
                 tBg:SetPoint("BOTTOMRIGHT", -1, 1)
-                tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
+                tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
 
                 -- Border
                 local border = tile:CreateTexture(nil, "BORDER")
                 border:SetAllPoints()
-                border:SetColorTexture(0.13, 0.14, 0.18, 0.8)
+                border:SetColorTexture(SBd[1], SBd[2], SBd[3], SBd[4])
 
                 -- Top accent highlight (hidden by default)
                 local topAccent = tile:CreateTexture(nil, "ARTWORK")
@@ -1406,7 +1566,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 descLbl:SetJustifyV("TOP")
 
                 tile:SetScript("OnEnter", function()
-                    tBg:SetColorTexture(0.11, 0.12, 0.15, 1)
+                    -- Keep fill = collapsed accordion idle (no header-hover tint)
                     local ar, ag, ab = GetAccentColor()
                     border:SetColorTexture(ar, ag, ab, 0.6)
                     lbl:SetTextColor(1, 1, 1)
@@ -1416,8 +1576,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     topAccent:SetColorTexture(ar, ag, ab, 0.3)
                 end)
                 tile:SetScript("OnLeave", function()
-                    tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
-                    border:SetColorTexture(0.13, 0.14, 0.18, 0.8)
+                    border:SetColorTexture(SBd[1], SBd[2], SBd[3], SBd[4])
                     lbl:SetTextColor(0.9, 0.9, 0.95)
                     descLbl:SetTextColor(0.55, 0.6, 0.65)
                     accent:Hide()
@@ -1453,6 +1612,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 ClearDetailCards()
                 CrossfadeTo(detailView)
+                ShowDetailHeader()
                 detailContent:Show()
                 detailScroll:SetVerticalScroll(0)
 
@@ -1509,17 +1669,13 @@ SlashCmdList["HSDASH"] = function(msg)
                     -- Show SubCategory View
                     ClearSubTiles()
                     CrossfadeTo(subCategoryView)
+                    ShowSubcategoryHeader()
                     subCategoryScroll:SetVerticalScroll(0)
 
                     local modName = moduleKey and moduleLabels[moduleKey] or name
 
-                    local subTitle = subCategoryView.title
-                    if not subTitle then
-                        subTitle = MakeText(subCategoryView, modName:upper() .. " CATEGORIES", 20, 1, 1, 1, "LEFT")
-                        subTitle:SetPoint("TOPLEFT", 180, -45)
-                        subCategoryView.title = subTitle
-                    else
-                        subTitle:SetText(modName:upper() .. " CATEGORIES")
+                    if f.detailTitle then
+                        f.detailTitle:SetText(modName:upper() .. " CATEGORIES")
                     end
 
                 local tileYOffset = 0
@@ -1553,6 +1709,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     -- Only 1 category (or none), go straight to details
                     ClearDetailCards()
                     CrossfadeTo(detailView)
+                    ShowDetailHeader()
                     detailContent:Show()
                     detailScroll:SetVerticalScroll(0)
 
@@ -1602,10 +1759,10 @@ SlashCmdList["HSDASH"] = function(msg)
                 card.collapsedHeight = 60
                 card:SetClipsChildren(true)
 
-                -- Background
+                -- Background (same alpha as options section cards)
                 local cBg = card:CreateTexture(nil, "BACKGROUND")
                 cBg:SetAllPoints()
-                cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
+                cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
 
                 -- Bottom divider
                 local divider = card:CreateTexture(nil, "ARTWORK")
@@ -1639,12 +1796,12 @@ SlashCmdList["HSDASH"] = function(msg)
                 headerBtn:SetFrameLevel(card:GetFrameLevel() + 5)
                 headerBtn:SetScript("OnEnter", function()
                     if not card.expanded then
-                        cBg:SetColorTexture(0.09, 0.09, 0.1, 0.95)
+                        cBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, SBgA)
                     end
                 end)
                 headerBtn:SetScript("OnLeave", function()
                     if not card.expanded then
-                        cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
+                        cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
                     end
                 end)
 
@@ -1658,10 +1815,10 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 local function updateExpandedVisuals()
                     if card.expanded then
-                        cBg:SetColorTexture(0.08, 0.08, 0.09, 0.98)
+                        cBg:SetColorTexture(SBgExpandedR, SBgExpandedG, SBgExpandedB, SBgA)
                         chevron:SetText("-")
                     else
-                        cBg:SetColorTexture(0.06, 0.06, 0.07, 0.95)
+                        cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
                         chevron:SetText("+")
                     end
                 end
@@ -2164,14 +2321,14 @@ SlashCmdList["HSDASH"] = function(msg)
                                 card:SetHeight(CARD_H)
                                 card.groupKey = key
 
-                                -- Card background
+                                -- Card background (match options section-card transparency)
                                 local bg = card:CreateTexture(nil, "BACKGROUND")
                                 bg:SetAllPoints(card)
-                                bg:SetColorTexture(0.08, 0.08, 0.10, 0.88)
+                                bg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
 
                                 -- Subtle border
                                 if addon.CreateBorder then
-                                    addon.CreateBorder(card, { 0.30, 0.32, 0.40, 0.85 })
+                                    addon.CreateBorder(card, SBd)
                                 end
 
                                 -- 2px accent bar at top using category base color
@@ -2545,89 +2702,230 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
 
-            local function MakeTile(parent, name, icon, index, totalTiles, moduleKey)
-                local tile = CreateFrame("Button", nil, parent)
-                local TILE_W, TILE_H = 190, 160
-                local TILE_GAP = 15
-                local TILE_STRIDE = TILE_W + TILE_GAP
-                tile:SetSize(TILE_W, TILE_H)
-                
-                local itemsPerRow = 4
-                local row = math.floor((index-1) / itemsPerRow)
-                local col = (index-1) % itemsPerRow
-                
-                local itemsInThisRow = itemsPerRow
-                local totalRows = math.ceil(totalTiles / itemsPerRow)
-                if row == totalRows - 1 and (totalTiles % itemsPerRow) ~= 0 then
-                    itemsInThisRow = totalTiles % itemsPerRow
+            -- Icons by moduleKey so localized tile titles still resolve art.
+            local dashboardTileIconByKey = {
+                axis = "INV_Misc_Wrench_01",
+                focus = "achievement_quests_completed_05",
+                presence = "vas_guildnamechange",
+                vista = "ability_hunter_pathfinding",
+                insight = "ui_profession_inscription",
+                yield = "INV_Misc_Coin_01",
+                persona = "achievement_character_human_male",
+            }
+
+            local function DashboardAxisBentoHeight()
+                return DASH_HOME_TILE_H * 2 + DASH_HOME_TILE_GAP
+            end
+
+            local function DashboardTileSizeForKey(mk)
+                if mk == "axis" then
+                    return DASH_HOME_TILE_W, DashboardAxisBentoHeight()
                 end
-                
-                local rowWidth = (itemsInThisRow * TILE_W) + ((itemsInThisRow - 1) * TILE_GAP)
-                local startX = -rowWidth / 2 + TILE_W / 2
-                tile:SetPoint("TOP", parent, "TOP", startX + (col * TILE_STRIDE), -170 + (row * -(TILE_H + TILE_GAP)))
+                return DASH_HOME_TILE_W, DASH_HOME_TILE_H
+            end
 
-                -- Background
-                local tBg = tile:CreateTexture(nil, "BACKGROUND")
-                tBg:SetPoint("TOPLEFT", 1, -1)
-                tBg:SetPoint("BOTTOMRIGHT", -1, 1)
-                tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
+            local function MakeTile(parent, name, icon, moduleKey)
+                local tile = CreateFrame("Button", nil, parent)
+                tile.moduleKey = moduleKey
+                local tw, th = DashboardTileSizeForKey(moduleKey)
+                local isAxis = moduleKey == "axis"
+                tile:SetSize(tw, th)
 
-                -- Border
+                local tileH = th
+                local fillA = SBgA * DASH_HOME_TILE_BG_ALPHA_MULT
+                local borderA = SBd[4] * DASH_HOME_TILE_BORDER_ALPHA_MULT
+
+                -- Background (softer than section cards)
+                local tBg = tile:CreateTexture(nil, "BACKGROUND", nil, -8)
+                tBg:SetPoint("TOPLEFT", 2, -2)
+                tBg:SetPoint("BOTTOMRIGHT", -2, 2)
+                tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillA)
+
+                -- Top sheen (gradient when supported)
+                local sheen = tile:CreateTexture(nil, "BACKGROUND", nil, -7)
+                sheen:SetPoint("TOPLEFT", tBg, "TOPLEFT", 0, 0)
+                sheen:SetPoint("TOPRIGHT", tBg, "TOPRIGHT", 0, 0)
+                sheen:SetHeight(math.min(56, math.floor(tileH * 0.38)))
+                if sheen.SetGradient and CreateColor then
+                    sheen:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.09), CreateColor(0.04, 0.05, 0.08, 0))
+                else
+                    sheen:SetColorTexture(1, 1, 1, 0.04)
+                end
+
+                -- Outer border
                 local border = tile:CreateTexture(nil, "BORDER")
                 border:SetAllPoints()
-                border:SetColorTexture(0.13, 0.14, 0.18, 0.8)
+                border:SetColorTexture(SBd[1], SBd[2], SBd[3], borderA)
 
-                -- Icon
+                -- Inner hairline (top edge — lifts card off flat fill)
+                local innerTop = tile:CreateTexture(nil, "ARTWORK", nil, -8)
+                innerTop:SetHeight(1)
+                innerTop:SetPoint("TOPLEFT", tBg, "TOPLEFT", 1, -1)
+                innerTop:SetPoint("TOPRIGHT", tBg, "TOPRIGHT", -1, -1)
+                innerTop:SetColorTexture(1, 1, 1, 0.11)
+
+                -- Axis: subtle class-accent rail (idle)
+                local axisRail = nil
+                if isAxis then
+                    axisRail = tile:CreateTexture(nil, "ARTWORK", nil, -7)
+                    axisRail:SetWidth(3)
+                    axisRail:SetPoint("TOPLEFT", tBg, "TOPLEFT", 0, 0)
+                    axisRail:SetPoint("BOTTOMLEFT", tBg, "BOTTOMLEFT", 0, 0)
+                    local rr, rg, rb = GetAccentColor()
+                    axisRail:SetColorTexture(rr, rg, rb, 0.35)
+                    tile.axisRail = axisRail
+                    tinsert(dashAccentRefs.dashboardAxisRails, axisRail)
+                end
+
+                local iconPath = dashboardTileIconByKey[moduleKey] or categoryIcons[name] or "INV_Misc_Question_01"
                 local ic = tile:CreateTexture(nil, "ARTWORK")
-                ic:SetSize(54, 54)
-                ic:SetPoint("CENTER", 0, 16)
-                ic:SetTexture("Interface\\Icons\\" .. (categoryIcons[name] or "INV_Misc_Question_01"))
-                ic:SetVertexColor(0.80, 0.80, 0.85, 0.8)
+                ic:SetTexture("Interface\\Icons\\" .. iconPath)
+                ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
 
-                -- Soft divider between icon and label
                 local tileDivider = tile:CreateTexture(nil, "ARTWORK")
                 tileDivider:SetHeight(1)
-                tileDivider:SetPoint("LEFT", 20, 0)
-                tileDivider:SetPoint("RIGHT", -20, 0)
-                tileDivider:SetPoint("BOTTOM", 0, 42)
-                tileDivider:SetColorTexture(0.18, 0.18, 0.22, 0.3)
+                tileDivider:SetColorTexture(0.20, 0.21, 0.26, 0.28)
 
-                -- Label
                 local lbl = MakeText(tile, name, 13, 0.80, 0.80, 0.85, "CENTER")
-                lbl:SetPoint("BOTTOM", 0, 22)
                 tile.label = lbl
 
-                -- Preview badge for early-access modules
                 if moduleKey and PREVIEW_MODULE_KEYS[moduleKey] then
-                    local prevBadge = MakeText(tile, "(Preview)", 9, 34/255, 139/255, 34/255, "CENTER")
+                    local prevLabel = "(" .. (L["Preview"] or "Preview") .. ")"
+                    local prevBadge = MakeText(tile, prevLabel, 9, 34/255, 139/255, 34/255, "CENTER")
                     prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
                     tile.previewBadge = prevBadge
                 end
 
-                -- Bottom accent glow (hidden by default, shown on hover)
                 local bottomGlow = tile:CreateTexture(nil, "ARTWORK")
                 bottomGlow:SetHeight(2)
                 bottomGlow:SetPoint("BOTTOMLEFT", 1, 1)
                 bottomGlow:SetPoint("BOTTOMRIGHT", -1, 1)
                 bottomGlow:SetColorTexture(1, 1, 1, 0)
 
+                local fillANormal = SBgA * DASH_HOME_TILE_BG_ALPHA_MULT
+                local borderANormal = SBd[4] * DASH_HOME_TILE_BORDER_ALPHA_MULT
+                tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB = SBd[1], SBd[2], SBd[3]
+                tile._dashBorderIdleA = borderANormal
+                tile._isSkeleton = false
+
+                --- Apply disabled-module (skeleton) or normal idle chrome for this Home tile.
+                --- @param skeleton boolean
+                --- @return nil
+                tile.SetDashboardSkeletonMode = function(_, skeleton)
+                    tile._isSkeleton = skeleton and true or false
+                    if tile._isSkeleton then
+                        tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal * DASH_HOME_SKELETON_BG_ALPHA_MULT)
+                        border:SetColorTexture(SBd[1], SBd[2], SBd[3], borderANormal * DASH_HOME_SKELETON_BORDER_ALPHA_MULT)
+                        tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB = SBd[1], SBd[2], SBd[3]
+                        tile._dashBorderIdleA = borderANormal * DASH_HOME_SKELETON_BORDER_ALPHA_MULT
+                        if ic.SetDesaturated then ic:SetDesaturated(true) end
+                        ic:SetVertexColor(0.5, 0.52, 0.56, 0.68)
+                        lbl:SetTextColor(0.44, 0.46, 0.49)
+                        if tile.previewBadge then
+                            tile.previewBadge:SetTextColor(0.32, 0.58, 0.34, 0.8)
+                        end
+                        tileDivider:SetColorTexture(0.14, 0.15, 0.17, 0.22)
+                        innerTop:SetColorTexture(1, 1, 1, 0.04)
+                        if sheen.SetGradient and CreateColor then
+                            sheen:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.03), CreateColor(0.04, 0.05, 0.08, 0))
+                        else
+                            sheen:SetColorTexture(1, 1, 1, 0.015)
+                        end
+                        bottomGlow:SetColorTexture(1, 1, 1, 0)
+                        if tile.axisRail then
+                            local rr, rg, rb = GetAccentColor()
+                            tile.axisRail:SetColorTexture(rr, rg, rb, 0.22)
+                        end
+                    else
+                        tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal)
+                        border:SetColorTexture(SBd[1], SBd[2], SBd[3], borderANormal)
+                        tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB = SBd[1], SBd[2], SBd[3]
+                        tile._dashBorderIdleA = borderANormal
+                        if ic.SetDesaturated then ic:SetDesaturated(false) end
+                        ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
+                        lbl:SetTextColor(0.80, 0.80, 0.85)
+                        if tile.previewBadge then
+                            tile.previewBadge:SetTextColor(34/255, 139/255, 34/255, 1)
+                        end
+                        tileDivider:SetColorTexture(0.20, 0.21, 0.26, 0.28)
+                        innerTop:SetColorTexture(1, 1, 1, 0.11)
+                        if sheen.SetGradient and CreateColor then
+                            sheen:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.09), CreateColor(0.04, 0.05, 0.08, 0))
+                        else
+                            sheen:SetColorTexture(1, 1, 1, 0.04)
+                        end
+                        bottomGlow:SetColorTexture(1, 1, 1, 0)
+                        if tile.axisRail then
+                            local rr, rg, rb = GetAccentColor()
+                            tile.axisRail:SetColorTexture(rr, rg, rb, 0.35)
+                        end
+                    end
+                end
+
+                tile.ApplyDashboardTileLayout = function(_, h)
+                    h = h or tile:GetHeight() or DASH_HOME_TILE_H
+                    local axis = tile.moduleKey == "axis"
+                    local icSize = axis and 72 or 54
+                    ic:SetSize(icSize, icSize)
+                    if axis then
+                        -- Bento block: icon upper-middle, label band at bottom (same stack height as two small tiles).
+                        ic:SetPoint("CENTER", tile, "CENTER", -4, 28)
+                        tileDivider:ClearAllPoints()
+                        tileDivider:SetPoint("LEFT", tile, "LEFT", 28, 0)
+                        tileDivider:SetPoint("RIGHT", tile, "RIGHT", -28, 0)
+                        tileDivider:SetPoint("BOTTOM", tile, "BOTTOM", 0, 46)
+                        lbl:ClearAllPoints()
+                        lbl:SetPoint("BOTTOM", tile, "BOTTOM", -6, 22)
+                    else
+                        ic:SetPoint("CENTER", tile, "CENTER", 0, 12)
+                        tileDivider:ClearAllPoints()
+                        tileDivider:SetPoint("LEFT", tile, "LEFT", 20, 0)
+                        tileDivider:SetPoint("RIGHT", tile, "RIGHT", -22, 0)
+                        tileDivider:SetPoint("BOTTOM", tile, "BOTTOM", 0, 42)
+                        lbl:ClearAllPoints()
+                        lbl:SetPoint("BOTTOM", tile, "BOTTOM", 0, 19)
+                    end
+                    sheen:SetHeight(math.min(axis and 100 or 56, math.floor(h * (axis and 0.32 or 0.38))))
+                end
+                tile.ApplyDashboardTileLayout(tile, tileH)
+
                 tile:SetScript("OnEnter", function()
-                    tBg:SetColorTexture(0.11, 0.12, 0.15, 1)
-                    local ar, ag, ab = GetAccentColor()
-                    border:SetColorTexture(ar, ag, ab, 0.6)
-                    ic:SetVertexColor(1, 1, 1, 1)
-                    lbl:SetTextColor(1, 1, 1)
-                    bottomGlow:SetColorTexture(ar, ag, ab, 0.5)
+                    if tile._isSkeleton then
+                        border:SetColorTexture(tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB, math.min(1, tile._dashBorderIdleA * 1.2))
+                        ic:SetVertexColor(0.58, 0.60, 0.64, 0.82)
+                        lbl:SetTextColor(0.55, 0.57, 0.60)
+                        bottomGlow:SetColorTexture(tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB, 0.22)
+                        innerTop:SetColorTexture(1, 1, 1, 0.07)
+                        if tile.previewBadge then
+                            tile.previewBadge:SetTextColor(0.38, 0.65, 0.40, 0.9)
+                        end
+                        if tile.axisRail then
+                            local ar, ag, ab = GetAccentColor()
+                            tile.axisRail:SetColorTexture(ar, ag, ab, 0.35)
+                        end
+                    else
+                        local ar, ag, ab = GetAccentColor()
+                        border:SetColorTexture(ar, ag, ab, 0.55)
+                        ic:SetVertexColor(1, 1, 1, 1)
+                        lbl:SetTextColor(1, 1, 1)
+                        bottomGlow:SetColorTexture(ar, ag, ab, 0.48)
+                        innerTop:SetColorTexture(1, 1, 1, 0.16)
+                        if tile.axisRail then
+                            tile.axisRail:SetColorTexture(ar, ag, ab, 0.55)
+                        end
+                    end
                 end)
                 tile:SetScript("OnLeave", function()
-                    tBg:SetColorTexture(0.08, 0.08, 0.1, 1)
-                    border:SetColorTexture(0.13, 0.14, 0.18, 0.8)
-                    ic:SetVertexColor(0.80, 0.80, 0.85, 0.8)
-                    lbl:SetTextColor(0.80, 0.80, 0.85)
-                    bottomGlow:SetColorTexture(1, 1, 1, 0)
+                    if tile.SetDashboardSkeletonMode then
+                        tile:SetDashboardSkeletonMode(tile._isSkeleton)
+                    end
                 end)
                 tile:SetScript("OnClick", function()
-                    f.OpenModule(name, moduleKey)
+                    if tile._isSkeleton then
+                        NavigateToModuleToggles()
+                    else
+                        f.OpenModule(name, moduleKey)
+                    end
                 end)
 
                 return tile
@@ -2638,58 +2936,131 @@ SlashCmdList["HSDASH"] = function(msg)
             local function BuildMainTilesList()
                 local out = {}
                 local seen = {}
-                tinsert(out, { name = moduleLabels.axis or "Axis", moduleKey = "axis" })
+                tinsert(out, { name = moduleLabels.axis or "Axis", moduleKey = "axis", isSkeleton = false })
                 for _, cat in ipairs(addon.OptionCategories) do
                     local mk = cat.moduleKey
-                    if mk and not seen[mk] and ShouldShowModuleOnDashboard(mk) then
+                    if mk and not seen[mk] then
                         seen[mk] = true
-                        tinsert(out, { name = moduleLabels[mk] or mk, moduleKey = mk })
+                        local enabled = ShouldShowModuleOnDashboard(mk)
+                        tinsert(out, {
+                            name = moduleLabels[mk] or mk,
+                            moduleKey = mk,
+                            -- Disabled modules: same desaturated skeleton chrome + Module Toggles on click as preview modules.
+                            isSkeleton = not enabled,
+                        })
                     end
                 end
                 table.sort(out, function(a, b) return a.name:lower() < b.name:lower() end)
                 return out
             end
 
+            -- Bento: Axis occupies column 0 rows 0–1 (same width as other tiles, two rows tall); others fill remaining cells in row-major order.
             local function RefreshDashboardTiles()
                 local mainTiles = BuildMainTilesList()
-                local TILE_W, TILE_H, TILE_GAP = 190, 160, 15
-                local TILE_STRIDE = TILE_W + TILE_GAP
-                local itemsPerRow = 4
-                for i, tileInfo in ipairs(mainTiles) do
+                local TILE_W, TILE_H, TILE_GAP = DASH_HOME_TILE_W, DASH_HOME_TILE_H, DASH_HOME_TILE_GAP
+                local STRIDE = TILE_W + TILE_GAP
+                local COLS = DASH_HOME_TILE_COLS
+                local TOP_Y = -170
+
+                local gridOuterW = COLS * TILE_W + (COLS - 1) * TILE_GAP
+                local gridHalfW = gridOuterW / 2
+
+                local function CellCenterX(col)
+                    return -gridHalfW + TILE_W / 2 + col * STRIDE
+                end
+
+                local function CellReservedForAxis(row, col)
+                    return col == 0 and row <= 1
+                end
+
+                local axisInfo = nil
+                local others = {}
+                for _, info in ipairs(mainTiles) do
+                    if info.moduleKey == "axis" then
+                        axisInfo = info
+                    else
+                        others[#others + 1] = info
+                    end
+                end
+
+                local slots = {}
+                local maxScanRows = math.max(12, math.ceil((#others + 2) / 3) + 6)
+                for row = 0, maxScanRows do
+                    for col = 0, COLS - 1 do
+                        if not CellReservedForAxis(row, col) then
+                            slots[#slots + 1] = { r = row, c = col }
+                            if #slots >= #others then
+                                break
+                            end
+                        end
+                    end
+                    if #slots >= #others then
+                        break
+                    end
+                end
+
+                local function PlaceTile(tileInfo, centerX, topY)
                     local tile = dashboardTilePool[tileInfo.moduleKey]
                     if not tile then
-                        tile = MakeTile(dashboardView, tileInfo.name, nil, i, #mainTiles, tileInfo.moduleKey)
-                        tile.moduleKey = tileInfo.moduleKey
+                        tile = MakeTile(dashboardView, tileInfo.name, nil, tileInfo.moduleKey)
                         dashboardTilePool[tileInfo.moduleKey] = tile
                     end
                     if tile.label then tile.label:SetText(tileInfo.name) end
-                    local row = math.floor((i - 1) / itemsPerRow)
-                    local col = (i - 1) % itemsPerRow
-                    local totalRows = math.ceil(#mainTiles / itemsPerRow)
-                    local itemsInThisRow = itemsPerRow
-                    if row == totalRows - 1 and (#mainTiles % itemsPerRow) ~= 0 then
-                        itemsInThisRow = #mainTiles % itemsPerRow
+                    local tw, th = DashboardTileSizeForKey(tileInfo.moduleKey)
+                    tile:SetSize(tw, th)
+                    if tile.ApplyDashboardTileLayout then
+                        tile.ApplyDashboardTileLayout(tile, th)
                     end
-                    local rowWidth = (itemsInThisRow * TILE_W) + ((itemsInThisRow - 1) * TILE_GAP)
-                    local startX = -rowWidth / 2 + TILE_W / 2
                     tile:ClearAllPoints()
-                    tile:SetPoint("TOP", dashboardView, "TOP", startX + (col * TILE_STRIDE), -170 + (row * -(TILE_H + TILE_GAP)))
+                    tile:SetPoint("TOP", dashboardView, "TOP", centerX, topY)
+                    if tile.SetDashboardSkeletonMode then
+                        tile:SetDashboardSkeletonMode(tileInfo.isSkeleton and true or false)
+                    end
                     tile:Show()
                 end
+
+                if axisInfo then
+                    PlaceTile(axisInfo, CellCenterX(0), TOP_Y)
+                end
+
+                for i = 1, #others do
+                    local slot = slots[i]
+                    if slot then
+                        local topY = TOP_Y - slot.r * (TILE_H + TILE_GAP)
+                        PlaceTile(others[i], CellCenterX(slot.c), topY)
+                    end
+                end
+
+                local inKeys = {}
+                if axisInfo then inKeys.axis = true end
+                for _, info in ipairs(others) do
+                    inKeys[info.moduleKey] = true
+                end
                 for mk, tile in pairs(dashboardTilePool) do
-                    local inList = false
-                    for _, t in ipairs(mainTiles) do if t.moduleKey == mk then inList = true break end end
-                    if not inList then tile:Hide() end
+                    if not inKeys[mk] then tile:Hide() end
                 end
             end
 
             RefreshDashboardTiles()
 
+            -- Copy-to-clipboard: same custom dialog as Patch Notes "Full changelog" (addon.ShowURLCopyBox in core/Core.lua)
+            local function ShowCopyURL(label, url)
+                if addon.ShowURLCopyBox then
+                    addon.ShowURLCopyBox(url, (L["Copy link — %s"] or "Copy link — %s"):format(label))
+                end
+            end
+
             -- Welcome tab (always in sidebar, above Home; dedicated view)
             do
+                -- Search is hidden on Welcome; nudge card up to reclaim vertical space below the header band.
+                local WELCOME_BG_TOP_NUDGE = 50
+                local WELCOME_CONTENT_TOP_PAD = 6
+                local WELCOME_ACC_HEAD_H = 48
+
                 local welcomeBg = welcomeView:CreateTexture(nil, "BACKGROUND")
-                welcomeBg:SetPoint("TOPLEFT", 28, -88)
-                welcomeBg:SetPoint("BOTTOMRIGHT", welcomeView, "BOTTOMRIGHT", -28, 48)
+                welcomeBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + WELCOME_BG_TOP_NUDGE)
+                -- Room for footer links only (bottom buttons removed)
+                welcomeBg:SetPoint("BOTTOMRIGHT", welcomeView, "BOTTOMRIGHT", -28, 20)
                 welcomeBg:SetColorTexture(0.07, 0.075, 0.09, 0.65)
 
                 local welcomeAccent = welcomeView:CreateTexture(nil, "BORDER")
@@ -2700,9 +3071,171 @@ SlashCmdList["HSDASH"] = function(msg)
                 welcomeAccent:SetColorTexture(war, wag, wab, 0.5)
                 dashAccentRefs.welcomeAccentStrip = welcomeAccent
 
-                -- No scroll bar: single column layout inside the card (parent must be a Frame, not welcomeBg texture)
-                local content = CreateFrame("Frame", nil, welcomeView)
-                content:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", 20, -14)
+                -- Scrollable body (title → modules); footer stays fixed so expanded accordions do not cover Community & Support.
+                local footerPanel = CreateFrame("Frame", nil, welcomeView)
+                footerPanel:SetFrameLevel((welcomeView:GetFrameLevel() or 0) + 10)
+
+                local welcomeScroll = CreateFrame("ScrollFrame", nil, welcomeView, "UIPanelScrollFrameTemplate")
+                welcomeScroll:SetFrameLevel((welcomeView:GetFrameLevel() or 0) + 2)
+                welcomeScroll.ScrollBar:Hide()
+                welcomeScroll.ScrollBar:ClearAllPoints()
+
+                local content = CreateFrame("Frame", nil, welcomeScroll)
+                content:SetSize(400, 1)
+                welcomeScroll:SetScrollChild(content)
+                ApplySmoothScroll(welcomeScroll, content, 60, true)
+
+                -- Accordion aligned with detail-view section cards; calls onLayout during resize animation.
+                local function CreateWelcomeAccordionCard(parent, titleText, onLayout)
+                    local card = CreateFrame("Frame", nil, parent)
+                    card:SetHeight(WELCOME_ACC_HEAD_H)
+                    card.expanded = false
+                    card.collapsedHeight = WELCOME_ACC_HEAD_H
+                    card.fullHeight = WELCOME_ACC_HEAD_H
+                    card:SetClipsChildren(true)
+
+                    local cBg = card:CreateTexture(nil, "BACKGROUND")
+                    cBg:SetAllPoints()
+                    cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+
+                    local divider = card:CreateTexture(nil, "ARTWORK")
+                    divider:SetHeight(1)
+                    divider:SetPoint("BOTTOMLEFT", 14, 0)
+                    divider:SetPoint("BOTTOMRIGHT", -14, 0)
+                    local cdr, cdg, cdb = GetAccentColor()
+                    divider:SetColorTexture(cdr, cdg, cdb, 0.2)
+
+                    local accent = card:CreateTexture(nil, "ARTWORK")
+                    accent:SetSize(3, 20)
+                    accent:SetPoint("TOPLEFT", 14, -14)
+                    local cr, cg, cb = GetAccentColor()
+                    accent:SetColorTexture(cr, cg, cb, 1)
+
+                    local chevron = MakeText(card, "+", 14, 0.5, 0.5, 0.55, "RIGHT")
+                    chevron:SetPoint("TOPRIGHT", -18, -17)
+
+                    local lbl = MakeText(card, (titleText or ""):upper(), 13, 0.9, 0.9, 0.95, "LEFT")
+                    lbl:SetPoint("TOPLEFT", 28, -16)
+
+                    local headerBtn = CreateFrame("Button", nil, card)
+                    headerBtn:SetPoint("TOPLEFT", 0, 0)
+                    headerBtn:SetPoint("TOPRIGHT", 0, 0)
+                    headerBtn:SetHeight(WELCOME_ACC_HEAD_H)
+                    headerBtn:SetFrameLevel(card:GetFrameLevel() + 5)
+
+                    local sc = CreateFrame("Frame", nil, card)
+                    sc:SetPoint("TOPLEFT", 0, -WELCOME_ACC_HEAD_H)
+                    sc:SetPoint("RIGHT", card, "RIGHT", 0, 0)
+                    sc:SetHeight(1)
+                    sc:SetAlpha(0)
+                    card.settingsContainer = sc
+
+                    local function updateExpandedVisuals()
+                        if card.expanded then
+                            cBg:SetColorTexture(SBgExpandedR, SBgExpandedG, SBgExpandedB, SBgA)
+                            chevron:SetText("-")
+                        else
+                            cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+                            chevron:SetText("+")
+                        end
+                    end
+
+                    headerBtn:SetScript("OnEnter", function()
+                        if not card.expanded then
+                            cBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, SBgA)
+                        end
+                    end)
+                    headerBtn:SetScript("OnLeave", function()
+                        if not card.expanded then
+                            cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+                        end
+                    end)
+
+                    card.anim = card:CreateAnimationGroup()
+                    local sizeAnim = card.anim:CreateAnimation("Animation")
+                    sizeAnim:SetDuration(0.15)
+                    sizeAnim:SetSmoothing("IN_OUT")
+
+                    card.anim:SetScript("OnUpdate", function()
+                        local progress = sizeAnim:GetSmoothProgress()
+                        local startH = card.expanded and card.collapsedHeight or (card.fullHeight or WELCOME_ACC_HEAD_H)
+                        local endH = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
+                        local curH = startH + (endH - startH) * progress
+                        card:SetHeight(curH)
+                        if card.expanded then
+                            sc:SetAlpha(progress)
+                        else
+                            sc:SetAlpha(1 - progress)
+                        end
+                        if onLayout then onLayout() end
+                    end)
+
+                    card.anim:SetScript("OnFinished", function()
+                        local finalH = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
+                        card:SetHeight(finalH)
+                        sc:SetAlpha(card.expanded and 1 or 0)
+                        updateExpandedVisuals()
+                        if onLayout then onLayout() end
+                    end)
+
+                    headerBtn:SetScript("OnClick", function()
+                        if card.anim:IsPlaying() then return end
+                        card.expanded = not card.expanded
+                        updateExpandedVisuals()
+                        card.anim:Play()
+                    end)
+
+                    return card
+                end
+
+                local function CreateWelcomeTextLink(parent, label, onClick, justify)
+                    justify = justify or "CENTER"
+                    local btn = CreateFrame("Button", nil, parent)
+                    btn:SetSize(100, 20)
+                    local lbl = MakeText(btn, label, 12, 0.52, 0.56, 0.62, justify)
+                    lbl:ClearAllPoints()
+                    if justify == "LEFT" then
+                        lbl:SetPoint("LEFT", btn, "LEFT", 0, 0)
+                        lbl:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+                    else
+                        lbl:SetAllPoints()
+                    end
+                    btn.label = lbl
+                    local underline = btn:CreateTexture(nil, "OVERLAY")
+                    underline:SetHeight(1)
+                    underline:SetPoint("BOTTOM", btn, "BOTTOM", 0, 0)
+                    underline:SetPoint("LEFT", btn, "LEFT", 0, 0)
+                    underline:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+                    underline:Hide()
+                    btn.underline = underline
+                    btn:SetScript("OnEnter", function()
+                        lbl:SetTextColor(0.88, 0.90, 0.94)
+                        local ar, ag, ab = GetAccentColor()
+                        underline:SetColorTexture(ar, ag, ab, 0.6)
+                        underline:Show()
+                    end)
+                    btn:SetScript("OnLeave", function()
+                        lbl:SetTextColor(0.52, 0.56, 0.62)
+                        underline:Hide()
+                    end)
+                    btn:SetScript("OnClick", onClick)
+                    return btn
+                end
+
+                local LayoutWelcomeContent
+                local contributorsCard = CreateWelcomeAccordionCard(content, L["Dashboard welcome contributors heading"] or "Contributors", function()
+                    LayoutWelcomeContent()
+                end)
+                local contributorsBodyFs = MakeDashboardWelcomeMixedScriptText(contributorsCard.settingsContainer, L["Dashboard welcome contributors body"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+                contributorsBodyFs:SetWordWrap(true)
+                contributorsBodyFs:SetSpacing(4)
+
+                local localisationsCard = CreateWelcomeAccordionCard(content, L["Dashboard welcome localisations heading"] or "Localisations", function()
+                    LayoutWelcomeContent()
+                end)
+                local localisationsBodyFs = MakeDashboardWelcomeMixedScriptText(localisationsCard.settingsContainer, L["Dashboard welcome localisations body"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+                localisationsBodyFs:SetWordWrap(true)
+                localisationsBodyFs:SetSpacing(4)
 
                 local titleFs = MakeText(content, L["Dashboard welcome title"] or "Welcome to Horizon Suite", 22, 1, 1, 1, "LEFT")
 
@@ -2716,7 +3249,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 listRule:SetHeight(1)
                 listRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
 
+                local function DismissWelcomeAndOpenModuleToggles()
+                    if addon.SetDB then addon.SetDB("dashboardWelcomeSeen", true) end
+                    NavigateToModuleToggles()
+                end
+
+                local btnOpenModuleToggles = CreateWelcomeTextLink(content, L["Dashboard welcome open module toggles link"] or "Open module toggles", DismissWelcomeAndOpenModuleToggles, "LEFT")
+
                 local modRows = {
+                    { key = "axis", name = L["Axis"] or "Axis", desc = L["Axis module short description"] or "Core settings hub: profiles, modules, and global toggles." },
                     { key = "focus", name = L["Focus"] or "Focus", desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."] or "" },
                     { key = "presence", name = L["Presence"] or "Presence", desc = L["Zone text and notifications."] or "" },
                     { key = "vista", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector." },
@@ -2738,9 +3279,73 @@ SlashCmdList["HSDASH"] = function(msg)
                     tinsert(moduleLineWidgets, { nameFs = nameFs, descFs = descFs })
                 end
 
-                local function LayoutWelcomeContent()
+                -- Footer: Community & Support + external links (copy URL)
+                local footerTopRule = footerPanel:CreateTexture(nil, "ARTWORK")
+                footerTopRule:SetHeight(1)
+                footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
+
+                local communityHdr = MakeText(footerPanel, L["Dashboard welcome community heading"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
+
+                local linkData = {
+                    { label = L["Discord"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj" },
+                    { label = L["Ko-fi"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite" },
+                    { label = L["Patreon"] or "Patreon", url = "https://patreon.com/HorizonSuite" },
+                    { label = L["GitLab"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite" },
+                    { label = L["CurseForge"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844" },
+                    { label = L["Wago"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y" },
+                }
+
+                local linkButtons = {}
+                for _, link in ipairs(linkData) do
+                    local btn = CreateWelcomeTextLink(footerPanel, link.label, function()
+                        ShowCopyURL(link.label, link.url)
+                    end)
+                    tinsert(linkButtons, btn)
+                end
+
+                LayoutWelcomeContent = function()
                     local rawW = welcomeBg:GetWidth() or 0
-                    local w = math.max(280, rawW - 38)
+                    local w = math.max(280, rawW - 40)
+                    local innerPad = 28
+
+                    -- --- Footer (bottom of card) ---
+                    local fy = 0
+                    footerTopRule:ClearAllPoints()
+                    footerTopRule:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
+                    footerTopRule:SetPoint("TOPRIGHT", footerPanel, "TOPRIGHT", 0, -fy)
+                    fy = fy + 1 + 12
+
+                    communityHdr:SetWidth(w)
+                    communityHdr:ClearAllPoints()
+                    communityHdr:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
+                    fy = fy + communityHdr:GetHeight() + 8
+
+                    local linkBtnW = 82
+                    local linkGap = 10
+                    local totalLinkWidth = (#linkButtons * linkBtnW) + ((#linkButtons - 1) * linkGap)
+                    local linkRowX = math.max(0, (w - totalLinkWidth) / 2)
+
+                    for i, btn in ipairs(linkButtons) do
+                        btn:SetWidth(linkBtnW)
+                        btn:ClearAllPoints()
+                        btn:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", linkRowX + (i - 1) * (linkBtnW + linkGap), -fy)
+                    end
+                    fy = fy + 20
+
+                    footerPanel:SetWidth(w)
+                    footerPanel:SetHeight(math.max(fy + 4, 1))
+                    footerPanel:ClearAllPoints()
+                    footerPanel:SetPoint("BOTTOMLEFT", welcomeBg, "BOTTOMLEFT", 20, 14)
+                    footerPanel:SetPoint("BOTTOMRIGHT", welcomeBg, "BOTTOMRIGHT", -20, 14)
+
+                    local WELCOME_SCROLL_ABOVE_FOOTER_GAP = 10
+                    welcomeScroll:ClearAllPoints()
+                    welcomeScroll:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", 20, -WELCOME_CONTENT_TOP_PAD)
+                    welcomeScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
+                    welcomeScroll:SetPoint("TOPRIGHT", welcomeBg, "TOPRIGHT", -20, -WELCOME_CONTENT_TOP_PAD)
+                    welcomeScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
+
+                    -- --- Body (scroll child; height may exceed viewport) ---
                     content:SetWidth(w)
                     local y = 0
                     titleFs:SetWidth(w)
@@ -2750,7 +3355,42 @@ SlashCmdList["HSDASH"] = function(msg)
                     introFs:SetWidth(w)
                     introFs:ClearAllPoints()
                     introFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-                    y = y + introFs:GetHeight() + 20
+                    y = y + introFs:GetHeight() + 12
+
+                    contributorsBodyFs:ClearAllPoints()
+                    contributorsBodyFs:SetPoint("TOPLEFT", contributorsCard.settingsContainer, "TOPLEFT", innerPad, -10)
+                    contributorsBodyFs:SetPoint("TOPRIGHT", contributorsCard.settingsContainer, "TOPRIGHT", -innerPad, -10)
+                    local contribBodyH = contributorsBodyFs:GetHeight()
+                    contributorsCard.fullHeight = WELCOME_ACC_HEAD_H + 10 + contribBodyH + 14
+                    if not contributorsCard.anim:IsPlaying() then
+                        if contributorsCard.expanded then
+                            contributorsCard:SetHeight(contributorsCard.fullHeight)
+                        else
+                            contributorsCard:SetHeight(contributorsCard.collapsedHeight)
+                        end
+                    end
+                    contributorsCard:SetWidth(w)
+                    contributorsCard:ClearAllPoints()
+                    contributorsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + contributorsCard:GetHeight() + 8
+
+                    localisationsBodyFs:ClearAllPoints()
+                    localisationsBodyFs:SetPoint("TOPLEFT", localisationsCard.settingsContainer, "TOPLEFT", innerPad, -10)
+                    localisationsBodyFs:SetPoint("TOPRIGHT", localisationsCard.settingsContainer, "TOPRIGHT", -innerPad, -10)
+                    local locBodyH = localisationsBodyFs:GetHeight()
+                    localisationsCard.fullHeight = WELCOME_ACC_HEAD_H + 10 + locBodyH + 14
+                    if not localisationsCard.anim:IsPlaying() then
+                        if localisationsCard.expanded then
+                            localisationsCard:SetHeight(localisationsCard.fullHeight)
+                        else
+                            localisationsCard:SetHeight(localisationsCard.collapsedHeight)
+                        end
+                    end
+                    localisationsCard:SetWidth(w)
+                    localisationsCard:ClearAllPoints()
+                    localisationsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + localisationsCard:GetHeight() + 16
+
                     modulesHdr:SetWidth(w)
                     modulesHdr:ClearAllPoints()
                     modulesHdr:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
@@ -2759,18 +3399,57 @@ SlashCmdList["HSDASH"] = function(msg)
                     listRule:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
                     listRule:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
                     y = y + 10
-                    for _, pair in ipairs(moduleLineWidgets) do
+
+                    local togglesLabel = L["Dashboard welcome open module toggles link"] or "Open module toggles"
+                    btnOpenModuleToggles.label:SetText(togglesLabel)
+                    local tw = btnOpenModuleToggles.label:GetStringWidth() or 120
+                    btnOpenModuleToggles:SetSize(math.min(w, math.floor(tw) + 12), 20)
+                    btnOpenModuleToggles:ClearAllPoints()
+                    btnOpenModuleToggles:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + btnOpenModuleToggles:GetHeight() + 12
+
+                    local colGap = 32
+                    local colW = math.floor((w - colGap) / 2)
+                    local leftX, rightX = 4, colW + colGap + 4
+                    local leftY, rightY = y, y
+
+                    for i, pair in ipairs(moduleLineWidgets) do
                         local nameFs, descFs = pair.nameFs, pair.descFs
-                        nameFs:SetWidth(w - 4)
+                        local isRight = i > 4
+                        local colX = isRight and rightX or leftX
+                        local colRef = isRight and rightY or leftY
+
+                        nameFs:SetWidth(colW - 4)
                         nameFs:ClearAllPoints()
-                        nameFs:SetPoint("TOPLEFT", content, "TOPLEFT", 4, -y)
-                        y = y + nameFs:GetHeight() + 6
-                        descFs:SetWidth(w - 16)
+                        nameFs:SetPoint("TOPLEFT", content, "TOPLEFT", colX, -colRef)
+                        local nameH = nameFs:GetHeight()
+
+                        descFs:SetWidth(colW - 16)
                         descFs:ClearAllPoints()
-                        descFs:SetPoint("TOPLEFT", content, "TOPLEFT", 12, -y)
-                        y = y + descFs:GetHeight() + 16
+                        descFs:SetPoint("TOPLEFT", content, "TOPLEFT", colX + 8, -(colRef + nameH + 4))
+                        local descH = descFs:GetHeight()
+
+                        if isRight then
+                            rightY = rightY + nameH + 4 + descH + 14
+                        else
+                            leftY = leftY + nameH + 4 + descH + 14
+                        end
                     end
+
+                    y = math.max(leftY, rightY)
                     content:SetHeight(math.max(y + 8, 1))
+
+                    if welcomeScroll.UpdateScrollChildRect then
+                        welcomeScroll:UpdateScrollChildRect()
+                    end
+                    local viewH = welcomeScroll:GetHeight() or 0
+                    local contentH = content:GetHeight() or 0
+                    local maxScroll = math.max(0, contentH - viewH)
+                    local curScroll = welcomeScroll:GetVerticalScroll() or 0
+                    if curScroll > maxScroll then
+                        welcomeScroll:SetVerticalScroll(maxScroll)
+                        welcomeScroll.targetScroll = nil
+                    end
                 end
 
                 welcomeView:SetScript("OnShow", function()
@@ -2783,51 +3462,8 @@ SlashCmdList["HSDASH"] = function(msg)
                     if welcomeView:IsShown() then LayoutWelcomeContent() end
                 end)
 
-                local function DismissWelcomeAndMaybeOpenToggles(openToggles)
-                    -- Remember default landing (Home) after first completion; Welcome tab stays in sidebar.
-                    if addon.SetDB then addon.SetDB("dashboardWelcomeSeen", true) end
-                    if openToggles then
-                        -- Same path as search: open Modules detail and expand the Module Toggles accordion card.
-                        local togglesSection = L["Module Toggles"] or "Module Toggles"
-                        local modulesName = L["Modules"] or "Modules"
-                        local entryFound
-                        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
-                        for _, e in ipairs(idx) do
-                            if e.categoryKey == "Modules" and e.sectionName == togglesSection then
-                                entryFound = e
-                                break
-                            end
-                        end
-                        if not entryFound then
-                            entryFound = {
-                                categoryKey = "Modules",
-                                categoryName = modulesName,
-                                optionId = "_module_focus",
-                            }
-                        end
-                        NavigateToOption(entryFound)
-                    else
-                        f.ShowDashboard()
-                    end
-                end
-
-                local btnContinue = CreateFrame("Button", nil, welcomeView, "UIPanelButtonTemplate")
-                btnContinue:SetSize(168, 28)
-                btnContinue:SetPoint("BOTTOMLEFT", welcomeView, "BOTTOMLEFT", 48, 22)
-                btnContinue:SetText(L["Dashboard welcome continue"] or "Go to Home")
-                btnContinue:SetScript("OnClick", function()
-                    DismissWelcomeAndMaybeOpenToggles(false)
-                end)
-
-                local btnToggles = CreateFrame("Button", nil, welcomeView, "UIPanelButtonTemplate")
-                btnToggles:SetSize(200, 28)
-                btnToggles:SetPoint("LEFT", btnContinue, "RIGHT", 12, 0)
-                btnToggles:SetText(L["Dashboard welcome open toggles"] or "Open Module Toggles")
-                btnToggles:SetScript("OnClick", function()
-                    DismissWelcomeAndMaybeOpenToggles(true)
-                end)
-
                 f.ShowWelcome = function()
+                    HideContextHeader()
                     detailView:Hide()
                     subCategoryView:Hide()
                     dashboardView:Hide()

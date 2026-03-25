@@ -934,13 +934,19 @@ end
 -- ==========================================================================
 
 local urlCopyFrame
-local URL_COPY_W = 380
-local URL_COPY_PAD = 10
-local URL_COPY_ACCENT_H = 2
-local URL_COPY_TITLE_H = 26
+-- Match core/PatchNotes.lua chrome (What's New) for a consistent dialog.
+local URL_COPY_W = 440
+local URL_COPY_PAD = 16
+local URL_COPY_ACCENT_H = 3
+local URL_COPY_TITLE_H = 54
+local URL_COPY_RULE_COL = { 0.13, 0.13, 0.17, 1 }
+local URL_COPY_BG_COL = { 0.06, 0.06, 0.08, 0.97 }
+local URL_COPY_EDGE_COL = { 0.2, 0.2, 0.26, 0.95 }
 local URL_COPY_HINT_H = 14
 local URL_COPY_EDIT_H = 28
 local URL_COPY_BTN_H = 24
+local URL_COPY_F_HEAD = "Fonts\\FRIZQT__.TTF"
+local URL_COPY_F_BODY = "Fonts\\ARIALN.TTF"
 
 local function GetURLCopyAccentRGB()
     local cc = addon.GetOptionsClassColor and addon.GetOptionsClassColor()
@@ -951,14 +957,15 @@ end
 local function BuildURLCopyFrame()
     if urlCopyFrame then return urlCopyFrame end
     local Design = addon.Design
-    local bgCol = Design and Design.BACKDROP_COLOR or { 0.08, 0.08, 0.12, 0.95 }
-    local edgeCol = Design and Design.BORDER_COLOR or { 0.35, 0.38, 0.45, 0.45 }
     local ebBg = Design and Design.QUEST_ITEM_BG or { 0.12, 0.12, 0.15, 0.95 }
     local ebBorder = Design and Design.QUEST_ITEM_BORDER or { 0.30, 0.32, 0.38, 0.6 }
 
+    local bodyTop = URL_COPY_TITLE_H + URL_COPY_PAD
+    local fH = bodyTop + URL_COPY_HINT_H + 4 + URL_COPY_EDIT_H + URL_COPY_PAD + URL_COPY_BTN_H + URL_COPY_PAD
+
     local f = CreateFrame("Frame", "HorizonSuiteURLCopyBox", UIParent, "BackdropTemplate")
-    f:SetSize(URL_COPY_W, URL_COPY_ACCENT_H + URL_COPY_TITLE_H + 4 + URL_COPY_HINT_H + 4 + URL_COPY_EDIT_H + URL_COPY_PAD + URL_COPY_BTN_H + URL_COPY_PAD)
-    f:SetPoint("CENTER", 0, 120)
+    f:SetSize(URL_COPY_W, fH)
+    f:SetPoint("CENTER", 0, 30)
     f:SetFrameStrata("DIALOG")
     f:SetToplevel(true)
     f:SetMovable(true)
@@ -971,8 +978,8 @@ local function BuildURLCopyFrame()
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         edgeSize = 1,
     })
-    f:SetBackdropColor(bgCol[1], bgCol[2], bgCol[3], bgCol[4] or 1)
-    f:SetBackdropBorderColor(edgeCol[1], edgeCol[2], edgeCol[3], edgeCol[4] or 1)
+    f:SetBackdropColor(unpack(URL_COPY_BG_COL))
+    f:SetBackdropBorderColor(unpack(URL_COPY_EDGE_COL))
 
     tinsert(UISpecialFrames, "HorizonSuiteURLCopyBox")
 
@@ -981,11 +988,12 @@ local function BuildURLCopyFrame()
     accentStrip:SetHeight(URL_COPY_ACCENT_H)
     accentStrip:SetPoint("TOPLEFT", 1, -1)
     accentStrip:SetPoint("TOPRIGHT", -1, -1)
-    accentStrip:SetColorTexture(ar, ag, ab, 0.9)
+    accentStrip:SetColorTexture(ar, ag, ab, 1)
+    f.accentStrip = accentStrip
 
     local dragZone = CreateFrame("Frame", nil, f)
-    dragZone:SetPoint("TOPLEFT", 0, -URL_COPY_ACCENT_H)
-    dragZone:SetPoint("TOPRIGHT", 0, 0)
+    dragZone:SetPoint("TOPLEFT")
+    dragZone:SetPoint("TOPRIGHT")
     dragZone:SetHeight(URL_COPY_TITLE_H)
     dragZone:EnableMouse(true)
     dragZone:RegisterForDrag("LeftButton")
@@ -994,34 +1002,54 @@ local function BuildURLCopyFrame()
     end)
     dragZone:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
 
-    local titleLbl = dragZone:CreateFontString(nil, "OVERLAY")
-    titleLbl:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
-    titleLbl:SetPoint("LEFT", dragZone, "LEFT", URL_COPY_PAD, 0)
-    titleLbl:SetText(addon.L and addon.L["Copy link"] or "Copy link")
-    titleLbl:SetTextColor(0.88, 0.88, 0.92)
+    local suiteLbl = dragZone:CreateFontString(nil, "OVERLAY")
+    suiteLbl:SetFont(URL_COPY_F_HEAD, 13, "OUTLINE")
+    suiteLbl:SetPoint("TOPLEFT", dragZone, "TOPLEFT", URL_COPY_PAD, -(URL_COPY_ACCENT_H + 10))
+    suiteLbl:SetText("HORIZON SUITE")
+    suiteLbl:SetTextColor(0.88, 0.88, 0.92)
+
+    local subtitleLbl = dragZone:CreateFontString(nil, "OVERLAY")
+    subtitleLbl:SetFont(URL_COPY_F_BODY, 10, "")
+    subtitleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -3)
+    subtitleLbl:SetText((addon.L and addon.L["Copy link"]) or "Copy link")
+    subtitleLbl:SetTextColor(ar, ag, ab)
+    f.subtitleLbl = subtitleLbl
 
     local closeBtn = CreateFrame("Button", nil, dragZone)
-    closeBtn:SetSize(20, 20)
-    closeBtn:SetPoint("RIGHT", dragZone, "RIGHT", -URL_COPY_PAD, 0)
-    local closeHighlight = closeBtn:CreateTexture(nil, "BACKGROUND")
-    closeHighlight:SetAllPoints()
-    closeHighlight:SetColorTexture(ar * 0.35, ag * 0.35, ab * 0.35, 0.25)
-    closeBtn:SetHighlightTexture(closeHighlight)
+    closeBtn:SetSize(28, 28)
+    closeBtn:SetPoint("TOPRIGHT", dragZone, "TOPRIGHT", -4, -(URL_COPY_ACCENT_H + 8))
+    local closeBg = closeBtn:CreateTexture(nil, "BACKGROUND")
+    closeBg:SetAllPoints()
+    closeBg:SetColorTexture(1, 0.3, 0.3, 0)
     local closeX = closeBtn:CreateFontString(nil, "OVERLAY")
-    closeX:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
+    closeX:SetFont(URL_COPY_F_HEAD, 13, "OUTLINE")
     closeX:SetPoint("CENTER")
     closeX:SetText("\195\151")
-    closeX:SetTextColor(0.75, 0.75, 0.78)
+    closeX:SetTextColor(0.36, 0.36, 0.42)
+    closeBtn:SetScript("OnEnter", function()
+        closeX:SetTextColor(1, 1, 1)
+        closeBg:SetColorTexture(1, 0.3, 0.3, 0.2)
+    end)
+    closeBtn:SetScript("OnLeave", function()
+        closeX:SetTextColor(0.36, 0.36, 0.42)
+        closeBg:SetColorTexture(1, 0.3, 0.3, 0)
+    end)
     closeBtn:SetScript("OnClick", function() f:Hide() end)
 
+    local topRule = f:CreateTexture(nil, "ARTWORK")
+    topRule:SetHeight(1)
+    topRule:SetPoint("TOPLEFT", URL_COPY_PAD, -URL_COPY_TITLE_H)
+    topRule:SetPoint("TOPRIGHT", -URL_COPY_PAD, -URL_COPY_TITLE_H)
+    topRule:SetColorTexture(unpack(URL_COPY_RULE_COL))
+
     local hintLbl = f:CreateFontString(nil, "OVERLAY")
-    hintLbl:SetFont("Fonts\\ARIALN.TTF", 10, "")
-    hintLbl:SetPoint("TOPLEFT", f, "TOPLEFT", URL_COPY_PAD, -(URL_COPY_ACCENT_H + URL_COPY_TITLE_H + 4))
+    hintLbl:SetFont(URL_COPY_F_BODY, 10, "")
+    hintLbl:SetPoint("TOPLEFT", f, "TOPLEFT", URL_COPY_PAD, -bodyTop)
     hintLbl:SetPoint("RIGHT", f, "RIGHT", -URL_COPY_PAD, 0)
     hintLbl:SetWordWrap(true)
     hintLbl:SetNonSpaceWrap(false)
     hintLbl:SetText((addon.L and addon.L["Copy the URL below (Ctrl+C) and paste in your browser."]) or "Copy the URL below (Ctrl+C) and paste in your browser.")
-    hintLbl:SetTextColor(0.55, 0.58, 0.64)
+    hintLbl:SetTextColor(0.42, 0.42, 0.50)
 
     local eb = CreateFrame("EditBox", nil, f)
     eb:SetSize(URL_COPY_W - URL_COPY_PAD * 2, URL_COPY_EDIT_H)
@@ -1062,10 +1090,10 @@ local function BuildURLCopyFrame()
     btn:SetPoint("BOTTOM", f, "BOTTOM", 0, URL_COPY_PAD)
     local btnBg = btn:CreateTexture(nil, "BACKGROUND")
     btnBg:SetAllPoints()
-    btnBg:SetColorTexture(edgeCol[1], edgeCol[2], edgeCol[3], 0.6)
+    btnBg:SetColorTexture(URL_COPY_EDGE_COL[1], URL_COPY_EDGE_COL[2], URL_COPY_EDGE_COL[3], 0.6)
     btn:SetNormalTexture(btnBg)
     local btnLabel = btn:CreateFontString(nil, "OVERLAY")
-    btnLabel:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+    btnLabel:SetFont(URL_COPY_F_HEAD, 10, "")
     btnLabel:SetPoint("CENTER")
     btnLabel:SetText(_G.OKAY or "Close")
     btnLabel:SetTextColor(0.9, 0.9, 0.92)
@@ -1074,19 +1102,28 @@ local function BuildURLCopyFrame()
         btnBg:SetColorTexture(ar * 0.5, ag * 0.5, ab * 0.5, 0.5)
     end)
     btn:SetScript("OnLeave", function()
-        btnBg:SetColorTexture(edgeCol[1], edgeCol[2], edgeCol[3], 0.6)
+        btnBg:SetColorTexture(URL_COPY_EDGE_COL[1], URL_COPY_EDGE_COL[2], URL_COPY_EDGE_COL[3], 0.6)
     end)
 
     urlCopyFrame = f
     return f
 end
 
---- Show the URL copy box (e.g. for WoWhead links). Horizon-themed; user can Ctrl+C from the edit box and paste in a browser.
+--- Show the URL copy box (same chrome as What's New / Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
 --- @param url string Full URL to display and copy
-function addon.ShowURLCopyBox(url)
+--- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["Copy link"]
+function addon.ShowURLCopyBox(url, accentSubtitle)
     if not url or type(url) ~= "string" or url == "" then return end
     local f = BuildURLCopyFrame()
     if not f or not f.editBox then return end
+    local ar, ag, ab = GetURLCopyAccentRGB()
+    if f.accentStrip then
+        f.accentStrip:SetColorTexture(ar, ag, ab, 1)
+    end
+    if f.subtitleLbl then
+        f.subtitleLbl:SetText(accentSubtitle or ((addon.L and addon.L["Copy link"]) or "Copy link"))
+        f.subtitleLbl:SetTextColor(ar, ag, ab)
+    end
     f.editBox:SetText(url)
     f:Show()
     -- Defer focus and highlight so the edit box is ready and Ctrl+C works immediately (WoW quirk).
@@ -1100,6 +1137,19 @@ function addon.ShowURLCopyBox(url)
     else
         f.editBox:SetFocus()
         f.editBox:HighlightText()
+    end
+end
+
+--- Refresh URL copy dialog accent if visible (e.g. when Dashboard class colour option changes).
+--- @return nil
+function addon.ApplyURLCopyBoxAccent()
+    if not urlCopyFrame or not urlCopyFrame:IsShown() then return end
+    local ar, ag, ab = GetURLCopyAccentRGB()
+    if urlCopyFrame.accentStrip then
+        urlCopyFrame.accentStrip:SetColorTexture(ar, ag, ab, 1)
+    end
+    if urlCopyFrame.subtitleLbl then
+        urlCopyFrame.subtitleLbl:SetTextColor(ar, ag, ab)
     end
 end
 

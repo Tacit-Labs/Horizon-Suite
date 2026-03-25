@@ -302,6 +302,7 @@ local DASHBOARD_CLASS_ICON_KEYS = {
 
 local DASHBOARD_BACKGROUND_KEYS = {
     dashboardBackgroundTheme = true,
+    dashboardBackgroundOpacity = true,
 }
 
 function OptionsData_GetDB(key, default)
@@ -362,6 +363,7 @@ function OptionsData_SetDB(key, value)
             if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
             if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end
+            if addon.ApplyURLCopyBoxAccent then addon.ApplyURLCopyBoxAccent() end
         end
         if key == "classColorVista" and addon.Vista and addon.Vista.ApplyColors then
             addon.Vista.ApplyColors()
@@ -1003,6 +1005,18 @@ local OptionCategories = {
                 end,
                 set = function(v) setDB("dashboardBackgroundTheme", v) end,
                 refreshIds = { "dashboardBackgroundTheme" },
+            }
+            opts[#opts + 1] = {
+                type = "slider", name = L["Dashboard background opacity"] or "Dashboard background opacity",
+                desc = L["Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."] or "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through.",
+                dbKey = "dashboardBackgroundOpacity", min = 50, max = 100, step = 1,
+                get = function()
+                    return math.floor((tonumber(getDB("dashboardBackgroundOpacity", 90)) or 90) + 0.5)
+                end,
+                set = function(v)
+                    setDB("dashboardBackgroundOpacity", math.max(50, math.min(100, v)))
+                end,
+                refreshIds = { "dashboardBackgroundOpacity" },
             }
             opts[#opts + 1] = { type = "section", name = L["Class Colours"] or "Class Colours" }
             local classColorKeys = {

@@ -85,17 +85,32 @@ L["Axis"]                                                               = "Axis"
 -- L["Dashboard welcome tab"]                                              = "Welcome"  -- NEEDS TRANSLATION
 -- L["Dashboard welcome title"]                                            = "Welcome to Horizon Suite"  -- NEEDS TRANSLATION
 -- L["Dashboard welcome head sub"]                                         = "What each module does and where to turn them on"  -- NEEDS TRANSLATION
--- L["Dashboard welcome intro"]                                            = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Use Open Module Toggles below, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."  -- NEEDS TRANSLATION
+-- L["Dashboard welcome intro"]                                            = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."  -- NEEDS TRANSLATION
 -- L["Dashboard welcome path"]                                             = "%s → %s → %s"  -- NEEDS TRANSLATION
 -- L["Dashboard welcome modules heading"]                                  = "Modules"  -- NEEDS TRANSLATION
--- L["Dashboard welcome continue"]                                         = "Go to Home"  -- NEEDS TRANSLATION
--- L["Dashboard welcome open toggles"]                                     = "Open Module Toggles"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome contributors heading"]                             = "Contributors"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome contributors body"]                                = [=[Thanks to everyone who has contributed to Horizon Suite:  -- NEEDS TRANSLATION
+
+-- L["Dashboard welcome localisations heading"]                            = "Localisations"  -- NEEDS TRANSLATION
+-- L["Dashboard welcome localisations body"]                               = [=[The options panel is localised for:  -- NEEDS TRANSLATION
+
+
+-- L["Dashboard welcome open module toggles link"]                         = "Open module toggles"  -- NEEDS TRANSLATION
+-- L["Axis module short description"]                                      = "Core settings hub: profiles, modules, and global toggles."  -- NEEDS TRANSLATION
 -- L["Objective tracker for quests, world quests, rares, achievements, scenarios."]= "Objective tracker for quests, world quests, rares, achievements, scenarios."  -- NEEDS TRANSLATION
 -- L["Zone text and notifications."]                                       = "Zone text and notifications."  -- NEEDS TRANSLATION
 -- L["Minimap with zone text, coords, time, and button collector."]        = "Minimap with zone text, coords, time, and button collector."  -- NEEDS TRANSLATION
 -- L["Tooltips with class colors, spec, and faction icons."]               = "Tooltips with class colors, spec, and faction icons."  -- NEEDS TRANSLATION
 -- L["Loot toasts for items, money, currency, reputation."]                = "Loot toasts for items, money, currency, reputation."  -- NEEDS TRANSLATION
 -- L["Persona module short description"]                                   = "Custom character sheet with 3D model, item level, stats, and gear grid."  -- NEEDS TRANSLATION
+-- L["Dashboard welcome community heading"]                                = "Community & Support"  -- NEEDS TRANSLATION
+-- L["Discord"]                                                            = "Discord"  -- NEEDS TRANSLATION
+-- L["Ko-fi"]                                                              = "Ko-fi"  -- NEEDS TRANSLATION
+-- L["Patreon"]                                                            = "Patreon"  -- NEEDS TRANSLATION
+-- L["GitLab"]                                                             = "GitLab"  -- NEEDS TRANSLATION
+-- L["CurseForge"]                                                         = "CurseForge"  -- NEEDS TRANSLATION
+-- L["Wago"]                                                               = "Wago"  -- NEEDS TRANSLATION
+-- L["Copy link — %s"]                                                     = "Copy link — %s"  -- NEEDS TRANSLATION
 L["Layout"]                                                             = "Layout"
 L["Visibility"]                                                         = "Visibilidade"
 L["Display"]                                                            = "Exibição"
@@ -654,9 +669,11 @@ L["Reset Mythic+ typography"]                                           = "Redef
 -- L["Tint dashboard accents, dividers, and highlights with your class colour."]= "Tint dashboard accents, dividers, and highlights with your class colour."  -- NEEDS TRANSLATION
 -- L["Theme"]                                                              = "Theme"  -- NEEDS TRANSLATION
 -- L["Dashboard background"]                                               = "Dashboard background"  -- NEEDS TRANSLATION
--- L["Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Class talents uses the in-game talent UI background for your current specialization."]= "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Class talents uses the in-game talent UI background for your current specialization."  -- NEEDS TRANSLATION
+-- L["Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."]= "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."  -- NEEDS TRANSLATION
 -- L["Dashboard background Midnight"]                                      = "Midnight"  -- NEEDS TRANSLATION
--- L["Dashboard background Class talents"]                                 = "Class talents (Blizzard)"  -- NEEDS TRANSLATION
+-- L["Dashboard background Class talents"]                                 = "Specialisation (auto)"  -- NEEDS TRANSLATION
+-- L["Dashboard background opacity"]                                       = "Dashboard background opacity"  -- NEEDS TRANSLATION
+-- L["Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."]= "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."  -- NEEDS TRANSLATION
 L["Backdrop opacity"]                                                   = "Opacidade do fundo"
 L["Panel background opacity (0–1)."]                                    = "Opacidade do fundo do painel (0–1)."
 L["Show border"]                                                        = "Mostrar borda"
