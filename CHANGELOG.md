@@ -10,6 +10,20 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.3.1] – 2026-03-26
+
+### 🔧 Improvements
+
+- **(Axis)** Rename Yield and Persona modules to Cache and Essence
+- **(Axis)** What's New — inline patch notes in the Dashboard
+- **(Axis)** Dashboard — Meridian coming-soon tile, locales, and welcome layout
+
+### 🐛 Fixes
+
+- **(Insight)** Tooltip enhancements work more cleanly with the default UI, without error popups
+
+---
+
 ## [4.3.0] – 2026-03-25
 
 ### ✨ New Features
