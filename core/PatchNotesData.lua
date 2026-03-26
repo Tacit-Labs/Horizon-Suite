@@ -9,6 +9,23 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.3.1"] = {
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: Rename Yield and Persona modules to Cache and Essence",
+                "Axis: What's New — inline patch notes in the Dashboard",
+                "Axis: Dashboard — Meridian coming-soon tile, locales, and welcome layout",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: Tooltip enhancements work more cleanly with the default UI, without error popups",
+            },
+        },
+    },
+
     ["4.3.0"] = {
         {
             section = "New Features",
