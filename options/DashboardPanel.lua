@@ -477,10 +477,25 @@ SlashCmdList["HSDASH"] = function(msg)
                 insight = L["Insight"] or "Insight",
                 cache = L["Cache"] or "Cache",
                 essence = "Essence",
+                meridian = "Meridian",
             }
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
             local PREVIEW_MODULE_KEYS = { cache = true, essence = true }
+            -- Coming-soon modules: planned but with no in-game content yet.
+            local COMING_SOON_MODULE_KEYS = { meridian = true }
+
+            -- Per-module label colours for Home tiles, matching PN_MODULE_COLORS hex values.
+            -- Meridian omitted: no colour assigned yet, falls back to neutral gray.
+            local TILE_MODULE_LABEL_COLORS = {
+                axis     = { 224/255, 224/255, 224/255 },  -- E0E0E0
+                focus    = { 255/255, 209/255,  51/255 },  -- FFD133
+                presence = {  51/255, 255/255, 223/255 },  -- 33FFDF
+                vista    = { 179/255, 102/255, 255/255 },  -- B366FF
+                insight  = { 255/255, 102/255, 179/255 },  -- FF66B3
+                cache    = {  51/255, 204/255, 102/255 },  -- 33CC66
+                essence  = { 220/255,  20/255,  60/255 },  -- DC143C
+            }
 
             local function ShouldShowModuleOnDashboard(mk)
                 if mk == "axis" then return true end
@@ -498,6 +513,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 ["Insight"] = "ui_profession_inscription",
                 ["Cache"] = "INV_Misc_Coin_01",
                 ["Essence"] = "achievement_character_human_male",
+                ["Meridian"] = "ability_tracking",
                 ["Typography"] = "INV_Misc_Book_09",
                 ["Colors"] = "INV_Misc_Gem_Diamond_01",
                 ["General"] = "INV_Misc_Question_01",
@@ -2957,10 +2973,11 @@ SlashCmdList["HSDASH"] = function(msg)
                 insight = "ui_profession_inscription",
                 cache = "INV_Misc_Coin_01",
                 essence = "achievement_character_human_male",
+                meridian = "ability_tracking",
             }
 
             local function DashboardAxisBentoHeight()
-                return DASH_HOME_TILE_H * 2 + DASH_HOME_TILE_GAP
+                return DASH_HOME_TILE_H * 3 + DASH_HOME_TILE_GAP * 2
             end
 
             local function DashboardTileSizeForKey(mk)
@@ -2968,6 +2985,13 @@ SlashCmdList["HSDASH"] = function(msg)
                     return DASH_HOME_TILE_W, DashboardAxisBentoHeight()
                 end
                 return DASH_HOME_TILE_W, DASH_HOME_TILE_H
+            end
+
+            -- Copy-to-clipboard: same custom dialog as Patch Notes "Full changelog" (addon.ShowURLCopyBox in core/Core.lua)
+            local function ShowCopyURL(label, url)
+                if addon.ShowURLCopyBox then
+                    addon.ShowURLCopyBox(url, (L["Copy link — %s"] or "Copy link — %s"):format(label))
+                end
             end
 
             local function MakeTile(parent, name, icon, moduleKey)
@@ -3034,12 +3058,22 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 local lbl = MakeText(tile, name, 13, 0.80, 0.80, 0.85, "CENTER")
                 tile.label = lbl
+                local mc = TILE_MODULE_LABEL_COLORS[moduleKey]
+                tile._moduleLabelR = mc and mc[1] or 0.80
+                tile._moduleLabelG = mc and mc[2] or 0.80
+                tile._moduleLabelB = mc and mc[3] or 0.85
+                lbl:SetTextColor(tile._moduleLabelR, tile._moduleLabelG, tile._moduleLabelB)
 
                 if moduleKey and PREVIEW_MODULE_KEYS[moduleKey] then
                     local prevLabel = "(" .. (L["Preview"] or "Preview") .. ")"
                     local prevBadge = MakeText(tile, prevLabel, 9, 34/255, 139/255, 34/255, "CENTER")
                     prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
                     tile.previewBadge = prevBadge
+                elseif moduleKey and COMING_SOON_MODULE_KEYS[moduleKey] then
+                    local csLabel = "(" .. (L["Coming Soon"] or "Coming Soon") .. ")"
+                    local csBadge = MakeText(tile, csLabel, 9, 0.55, 0.70, 0.90, "CENTER")
+                    csBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
+                    tile.previewBadge = csBadge
                 end
 
                 local bottomGlow = tile:CreateTexture(nil, "ARTWORK")
@@ -3089,7 +3123,7 @@ SlashCmdList["HSDASH"] = function(msg)
                         tile._dashBorderIdleA = borderANormal
                         if ic.SetDesaturated then ic:SetDesaturated(false) end
                         ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
-                        lbl:SetTextColor(0.80, 0.80, 0.85)
+                        lbl:SetTextColor(tile._moduleLabelR, tile._moduleLabelG, tile._moduleLabelB)
                         if tile.previewBadge then
                             tile.previewBadge:SetTextColor(34/255, 139/255, 34/255, 1)
                         end
@@ -3167,7 +3201,9 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
                 end)
                 tile:SetScript("OnClick", function()
-                    if tile._isSkeleton then
+                    if tile._isComingSoon then
+                        ShowCopyURL(L["Discord"] or "Discord", "https://discord.com/invite/e7nW2f4VQj")
+                    elseif tile._isSkeleton then
                         NavigateToModuleToggles()
                     else
                         f.OpenModule(name, moduleKey)
@@ -3183,6 +3219,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 local out = {}
                 local seen = {}
                 tinsert(out, { name = moduleLabels.axis or "Axis", moduleKey = "axis", isSkeleton = false })
+                tinsert(out, { name = moduleLabels.meridian or "Meridian", moduleKey = "meridian", isSkeleton = true, isComingSoon = true })
                 for _, cat in ipairs(addon.OptionCategories) do
                     local mk = cat.moduleKey
                     if mk and not seen[mk] then
@@ -3206,7 +3243,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 local TILE_W, TILE_H, TILE_GAP = DASH_HOME_TILE_W, DASH_HOME_TILE_H, DASH_HOME_TILE_GAP
                 local STRIDE = TILE_W + TILE_GAP
                 local COLS = DASH_HOME_TILE_COLS
-                local TOP_Y = -170
+                local TOP_Y = -152
 
                 local gridOuterW = COLS * TILE_W + (COLS - 1) * TILE_GAP
                 local gridHalfW = gridOuterW / 2
@@ -3216,7 +3253,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
 
                 local function CellReservedForAxis(row, col)
-                    return col == 0 and row <= 1
+                    return col == 0 and row <= 2
                 end
 
                 local axisInfo = nil
@@ -3259,6 +3296,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     end
                     tile:ClearAllPoints()
                     tile:SetPoint("TOP", dashboardView, "TOP", centerX, topY)
+                    tile._isComingSoon = tileInfo.isComingSoon and true or false
                     if tile.SetDashboardSkeletonMode then
                         tile:SetDashboardSkeletonMode(tileInfo.isSkeleton and true or false)
                     end
@@ -3289,13 +3327,6 @@ SlashCmdList["HSDASH"] = function(msg)
 
             RefreshDashboardTiles()
 
-            -- Copy-to-clipboard: same custom dialog as Patch Notes "Full changelog" (addon.ShowURLCopyBox in core/Core.lua)
-            local function ShowCopyURL(label, url)
-                if addon.ShowURLCopyBox then
-                    addon.ShowURLCopyBox(url, (L["Copy link — %s"] or "Copy link — %s"):format(label))
-                end
-            end
-
             -- Welcome tab (always in sidebar, above Home; dedicated view)
             do
                 -- Search is hidden on Welcome; nudge card up to reclaim vertical space below the header band.
@@ -3307,15 +3338,6 @@ SlashCmdList["HSDASH"] = function(msg)
                 welcomeBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + WELCOME_BG_TOP_NUDGE)
                 -- Room for footer links only (bottom buttons removed)
                 welcomeBg:SetPoint("BOTTOMRIGHT", welcomeView, "BOTTOMRIGHT", -28, 20)
-                welcomeBg:SetColorTexture(0.07, 0.075, 0.09, 0.65)
-
-                local welcomeAccent = welcomeView:CreateTexture(nil, "BORDER")
-                welcomeAccent:SetWidth(3)
-                welcomeAccent:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", 0, 0)
-                welcomeAccent:SetPoint("BOTTOMLEFT", welcomeBg, "BOTTOMLEFT", 0, 0)
-                local war, wag, wab = GetAccentColor()
-                welcomeAccent:SetColorTexture(war, wag, wab, 0.5)
-                dashAccentRefs.welcomeAccentStrip = welcomeAccent
 
                 -- Scrollable body (title → modules); footer stays fixed so expanded accordions do not cover Community & Support.
                 local footerPanel = CreateFrame("Frame", nil, welcomeView)
@@ -3510,12 +3532,15 @@ SlashCmdList["HSDASH"] = function(msg)
                     { key = "insight", name = L["Insight"] or "Insight", desc = L["Tooltips with class colors, spec, and faction icons."] or "" },
                     { key = "cache", name = L["Cache"] or "Cache", desc = L["Loot toasts for items, money, currency, reputation."] or "" },
                     { key = "essence", name = "Essence", desc = L["Essence module short description"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
+                    { key = "meridian", name = "Meridian", desc = L["Meridian module short description"] or "Join the Discord and have a guess!" },
                 }
                 local moduleLineWidgets = {}
                 for _, row in ipairs(modRows) do
                     local nm = row.name
                     if PREVIEW_MODULE_KEYS[row.key] then
                         nm = nm .. " |cff228b22(" .. (L["Preview"] or "Preview") .. ")|r"
+                    elseif COMING_SOON_MODULE_KEYS[row.key] then
+                        nm = nm .. " |cff8cb2e6(" .. (L["Coming Soon"] or "Coming Soon") .. ")|r"
                     end
                     local nameFs = MakeText(content, nm, 14, 0.96, 0.97, 1, "LEFT")
                     nameFs:SetWordWrap(true)
@@ -3764,7 +3789,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["cache"] = L["Cache"] or "Cache", ["vista"] = L["Vista"] or "Vista", ["essence"] = "Essence" }
+            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["cache"] = L["Cache"] or "Cache", ["vista"] = L["Vista"] or "Vista", ["essence"] = "Essence", ["meridian"] = "Meridian" }
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
                 local mk
