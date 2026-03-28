@@ -58,11 +58,13 @@ function Insight.AddAppearanceBlock(tooltip, itemID)
     local hasTransmog = C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID)
     if hasTransmog == nil then return false end
 
-    if hasTransmog then
-        tooltip:AddLine(TRANSMOG_COLLECTED_TEXT, Insight.TRANSMOG_HAVE[1], Insight.TRANSMOG_HAVE[2], Insight.TRANSMOG_HAVE[3])
-    else
-        tooltip:AddLine(TRANSMOG_MISSING_TEXT, Insight.TRANSMOG_MISS[1], Insight.TRANSMOG_MISS[2], Insight.TRANSMOG_MISS[3])
-    end
+    Insight.TagLines(tooltip, "transmog", function()
+        if hasTransmog then
+            tooltip:AddLine(TRANSMOG_COLLECTED_TEXT, Insight.TRANSMOG_HAVE[1], Insight.TRANSMOG_HAVE[2], Insight.TRANSMOG_HAVE[3])
+        else
+            tooltip:AddLine(TRANSMOG_MISSING_TEXT, Insight.TRANSMOG_MISS[1], Insight.TRANSMOG_MISS[2], Insight.TRANSMOG_MISS[3])
+        end
+    end)
     return true
 end
 

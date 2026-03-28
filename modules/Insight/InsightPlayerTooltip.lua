@@ -143,7 +143,9 @@ end
 function Insight.AddPvPBlock(tooltip, unit, _sepR, _sepG, _sepB)
     local honorLevel = GetHonorLevelIfShown(unit)
     if honorLevel then
-        tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(honorLevel), 0.85, 0.70, 1.00)
+        Insight.TagLines(tooltip, "stats", function()
+            tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(honorLevel), 0.85, 0.70, 1.00)
+        end)
     end
 end
 
@@ -167,7 +169,9 @@ function Insight.AddStatusBadgesBlock(tooltip, unit, guid)
         end
     end)
     if #badges > 0 then
-        tooltip:AddLine(table.concat(badges, "  "), 1, 1, 1)
+        Insight.TagLines(tooltip, "badges", function()
+            tooltip:AddLine(table.concat(badges, "  "), 1, 1, 1)
+        end)
     end
 end
 
@@ -187,14 +191,18 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
             local score = summary.currentSeasonScore
             local r, g, b = Insight.MythicScoreColor(score)
             EnsureStatsSep()
-            tooltip:AddLine((ShowIcons() and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(score), r, g, b)
+            Insight.TagLines(tooltip, "stats", function()
+                tooltip:AddLine((ShowIcons() and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(score), r, g, b)
+            end)
         end
     end
 
     if cached then
         if ShowIlvl() and cached.ilvl then
             EnsureStatsSep()
-            tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(cached.ilvl), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+            Insight.TagLines(tooltip, "stats", function()
+                tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(cached.ilvl), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+            end)
         end
     elseif not UnitIsUnit(unit, "player") then
         RequestInspect(unit)
@@ -209,15 +217,17 @@ function Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
 
     local iconStr = ShowIcons() and mount.icon and ("|T" .. mount.icon .. ":14:14:0:0|t ") or ""
     Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
-    tooltip:AddLine(iconStr .. mount.name, Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
-    if mount.source and mount.source ~= "" then
-        tooltip:AddLine(Insight.FormatNumbersInString(mount.source), Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
-    end
-    if mount.isCollected == true then
-        tooltip:AddLine("|cff55ff55You own this mount|r", 1, 1, 1)
-    elseif mount.isCollected == false then
-        tooltip:AddLine("|cffff5555You don't own this mount|r", 1, 1, 1)
-    end
+    Insight.TagLines(tooltip, "mount", function()
+        tooltip:AddLine(iconStr .. mount.name, Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
+        if mount.source and mount.source ~= "" then
+            tooltip:AddLine(Insight.FormatNumbersInString(mount.source), Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
+        end
+        if mount.isCollected == true then
+            tooltip:AddLine("|cff55ff55You own this mount|r", 1, 1, 1)
+        elseif mount.isCollected == false then
+            tooltip:AddLine("|cffff5555You don't own this mount|r", 1, 1, 1)
+        end
+    end)
 end
 
 --- Cache inspect for unit; used by INSPECT_READY handler.

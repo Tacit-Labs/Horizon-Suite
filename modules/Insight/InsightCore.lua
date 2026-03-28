@@ -360,6 +360,7 @@ local function ProcessUnitTooltip(tooltip)
 
     tooltip._insightItemMetadata = nil
     tooltip._insightUnitTooltip  = true
+    if tooltip._insightLineTags then wipe(tooltip._insightLineTags) end
     local unit     = "mouseover"
     local isPlayer = UnitIsPlayer(unit)
 
@@ -414,6 +415,7 @@ local function OnItemTooltip(tooltip, data)
 
     tooltip._insightItemMetadata = true
     tooltip._insightLastItemID   = itemID
+    if tooltip._insightLineTags then wipe(tooltip._insightLineTags) end
     -- Structured item blocks (transmog, etc.)
     Insight.ProcessItemTooltip(tooltip, itemID, quality)
 end
