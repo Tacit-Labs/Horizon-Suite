@@ -8,6 +8,12 @@ if not addon then return end
 
 local L = addon.L
 
+local function BrandModule(moduleKey)
+    local t = addon.BrandDisplay and addon.BrandDisplay.module
+    if not moduleKey or not t then return nil end
+    return t[moduleKey]
+end
+
 -- Dashboard background: Default = solid only. Midnight = addon PNG. Talents = Blizzard class-talent atlas for current spec.
 local DASHBOARD_BG_MEDIA_PATH = "Interface\\AddOns\\HorizonSuite\\media\\dashboard\\"
 -- Full-bleed background: solid + art stack. Solid alpha adjusts dynamically so default/horizon (solid-only)
@@ -470,14 +476,14 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             local moduleLabels = {
-                axis = L["OPTIONS_AXIS_GROUP"] or "Axis",
-                focus = L["OPTIONS_FOCUS_GROUP"] or "Focus",
-                presence = L["OPTIONS_FOCUS_PRESENCE"] or "Presence",
-                vista = L["OPTIONS_AXIS_VISTA"] or "Vista",
-                insight = L["OPTIONS_AXIS_INSIGHT"] or "Insight",
-                cache = L["OPTIONS_AXIS_CACHE"] or "Cache",
-                essence = "Essence",
-                meridian = "Meridian",
+                axis = BrandModule("axis") or "Axis",
+                focus = BrandModule("focus"),
+                presence = BrandModule("presence"),
+                vista = BrandModule("vista"),
+                insight = BrandModule("insight"),
+                cache = BrandModule("cache"),
+                essence = BrandModule("essence"),
+                meridian = BrandModule("meridian"),
             }
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
@@ -3525,14 +3531,14 @@ SlashCmdList["HSDASH"] = function(msg)
                 local btnOpenModuleToggles = CreateWelcomeTextLink(content, L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles", DismissWelcomeAndOpenModuleToggles, "LEFT")
 
                 local modRows = {
-                    { key = "axis", name = L["OPTIONS_AXIS_GROUP"] or "Axis", desc = L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"] or "Core settings hub: profiles, modules, and global toggles." },
-                    { key = "focus", name = L["OPTIONS_FOCUS_GROUP"] or "Focus", desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"] or "" },
-                    { key = "presence", name = L["OPTIONS_FOCUS_PRESENCE"] or "Presence", desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"] or "" },
-                    { key = "vista", name = L["OPTIONS_AXIS_VISTA"] or "Vista", desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector." },
-                    { key = "insight", name = L["OPTIONS_AXIS_INSIGHT"] or "Insight", desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"] or "" },
-                    { key = "cache", name = L["OPTIONS_AXIS_CACHE"] or "Cache", desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"] or "" },
-                    { key = "essence", name = "Essence", desc = L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
-                    { key = "meridian", name = "Meridian", desc = L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"] or "Join the Discord and have a guess!" },
+                    { key = "axis", name = BrandModule("axis") or "Axis", desc = L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"] or "Core settings hub: profiles, modules, and global toggles." },
+                    { key = "focus", name = BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"] or "" },
+                    { key = "presence", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"] or "" },
+                    { key = "vista", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector." },
+                    { key = "insight", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"] or "" },
+                    { key = "cache", name = BrandModule("cache"), desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"] or "" },
+                    { key = "essence", name = BrandModule("essence"), desc = L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
+                    { key = "meridian", name = BrandModule("meridian"), desc = L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"] or "Join the Discord and have a guess!" },
                 }
                 local moduleLineWidgets = {}
                 for _, row in ipairs(modRows) do
@@ -3789,7 +3795,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = L["OPTIONS_AXIS_GROUP"] or "Axis", ["modules"] = L["OPTIONS_AXIS_MODULES"] or "Modules", ["focus"] = L["OPTIONS_FOCUS_GROUP"] or "Focus", ["presence"] = L["OPTIONS_FOCUS_PRESENCE"] or "Presence", ["insight"] = L["OPTIONS_AXIS_INSIGHT"] or "Insight", ["cache"] = L["OPTIONS_AXIS_CACHE"] or "Cache", ["vista"] = L["OPTIONS_AXIS_VISTA"] or "Vista", ["essence"] = "Essence", ["meridian"] = "Meridian" }
+            local MODULE_LABELS = { ["axis"] = BrandModule("axis") or "Axis", ["modules"] = L["OPTIONS_AXIS_MODULES"] or "Modules", ["focus"] = BrandModule("focus"), ["presence"] = BrandModule("presence"), ["insight"] = BrandModule("insight"), ["cache"] = BrandModule("cache"), ["vista"] = BrandModule("vista"), ["essence"] = BrandModule("essence"), ["meridian"] = BrandModule("meridian") }
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
                 local mk

@@ -8,15 +8,9 @@ addon.L = L
 addon.StandardFont = UNIT_NAME_FONT
 
 -- =====================================================================
--- OptionsPanel.lua — Title
+-- OptionsPanel.lua (deprecated) — remaining strings for that UI
+-- Panel title + module short names: addon.BrandDisplay (core/BrandDisplay.lua).
 -- =====================================================================
--- L["OPTIONS_FOCUS_HORIZON_SUITE"]                                   = "HORIZON SUITE"  -- NEEDS TRANSLATION
-
--- =====================================================================
--- OptionsPanel.lua — Sidebar module group labels
--- =====================================================================
-L["OPTIONS_FOCUS_GROUP"]                                              = "追踪"
-L["OPTIONS_FOCUS_PRESENCE"]                                           = "情境"
 L["OPTIONS_FOCUS_OTHER"]                                              = "其他"
 
 -- =====================================================================
@@ -77,7 +71,6 @@ L["OPTIONS_FOCUS_DRAG_RESIZE"]                                        = "拖动�
 L["OPTIONS_AXIS_PROFILES"]                                            = "配置文件"
 L["OPTIONS_AXIS_MODULES"]                                             = "模块"
 -- L["OPTIONS_AXIS_MODULE_TOGGLES"]                                   = "Module Toggles"  -- NEEDS TRANSLATION
--- L["OPTIONS_AXIS_GROUP"]                                            = "Axis"  -- NEEDS TRANSLATION
 
 -- =====================================================================
 -- DashboardPanel.lua — First-run welcome
@@ -186,7 +179,6 @@ L["OPTIONS_FOCUS_SCENARIO_BAR"]                                       = "场景�
 -- =====================================================================
 -- OptionsData.lua Profiles
 -- =====================================================================
--- L["OPTIONS_AXIS_VISTA"]                                            = "Vista"  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_CURRENT_PROFILE"]                                     = "当前配置文件"
 L["OPTIONS_AXIS_SELECT_PROFILE_CURRENTLY"]                            = "选择当前使用的配置文件"
 L["OPTIONS_AXIS_GLOBAL_PROFILE_ACCOUNT_WIDE"]                         = "使用全局配置文件(账号范围)"
@@ -250,8 +242,6 @@ L["OPTIONS_CACHE_SCALE"]                                              = "Cache�
 L["OPTIONS_AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"]                       = "Cache战利品提示模块缩放(50-200%)"
 L["OPTIONS_AXIS_ENABLE_HORIZON_INSIGHT_MODULE"]                       = "启用Horizon洞察模块"
 L["OPTIONS_AXIS_CINEMATIC_TOOLTIPS_CLASS_COLORS_SPEC_DISPLAY"]        = "电影级提示框, 带有职业颜色, 专精显示和阵营图标."
-L["OPTIONS_AXIS_HORIZON_INSIGHT"]                                     = "Horizon洞察"
-L["OPTIONS_AXIS_INSIGHT"]                                             = "洞察"
 L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "提示锚定模式"
 L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "提示显示位置：跟随光标或固定位置"
 L["OPTIONS_AXIS_CURSOR"]                                              = "光标"
@@ -308,7 +298,6 @@ L["OPTIONS_AXIS_HOVERING_A_MOUNTED_PLAYER_THEIR_MOUNT"]               = "悬停�
 -- L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]    = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_DEFAULT"]                                          = "Default"  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]         = "Show faction, spec, mount, and Mythic+ icons in tooltips."  -- NEEDS TRANSLATION
--- L["OPTIONS_AXIS_CACHE"]                                            = "Cache"  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_GENERAL"]                                             = "常规"
 L["OPTIONS_AXIS_POSITION"]                                            = "位置"
 L["OPTIONS_AXIS_RESET_POSITION"]                                      = "重置位置"
@@ -1555,6 +1544,8 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
 
 
 
