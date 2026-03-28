@@ -13,10 +13,6 @@ local INSPECT_THROTTLE = 1.5
 local CACHE_TTL        = 300
 local CACHE_MAX        = 100
 
-local function IsEnabled()
-    return addon:IsModuleEnabled("insight")
-end
-
 local function ShowMount()            return addon.GetDB("insightShowMount",            true)  end
 local function ShowIlvl()             return addon.GetDB("insightShowIlvl",             true)  end
 local function ShowCharacterTitle()   return addon.GetDB("insightShowCharacterTitle",   true)  end
@@ -125,24 +121,29 @@ end
 -- SECTION BUILDERS (reused by ProcessPlayerTooltip and /insight test)
 -- ============================================================================
 
+-- Honor level for separator + line; single pcall path shared with AddPvPBlock.
+local function GetHonorLevelIfShown(unit)
+    if not ShowHonorLevel() then return nil end
+    local ok, honorLevel = pcall(UnitHonorLevel, unit)
+    if ok and honorLevel and honorLevel > 0 then return honorLevel end
+    return nil
+end
+
 local function PvPHasContent(unit)
-    if ShowHonorLevel() then
-        local ok, honorLevel = pcall(UnitHonorLevel, unit)
-        if ok and honorLevel and honorLevel > 0 then return true end
-    end
-    return false
+    return GetHonorLevelIfShown(unit) ~= nil
 end
 
 --- Add PvP block (honor level only). Character title is shown in identity section.
-function Insight.AddPvPBlock(tooltip, unit, sepR, sepG, sepB)
-    if not ShowHonorLevel() then return end
-    if ShowHonorLevel() then
-        pcall(function()
-            local honorLevel = UnitHonorLevel(unit)
-            if honorLevel and honorLevel > 0 then
-                tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(honorLevel), 0.85, 0.70, 1.00)
-            end
-        end)
+--- @param tooltip table GameTooltip
+--- @param unit string Unit token
+--- @param _sepR number|nil Unused; kept for API stability with other block builders
+--- @param _sepG number|nil Unused
+--- @param _sepB number|nil Unused
+--- @return nil
+function Insight.AddPvPBlock(tooltip, unit, _sepR, _sepG, _sepB)
+    local honorLevel = GetHonorLevelIfShown(unit)
+    if honorLevel then
+        tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(honorLevel), 0.85, 0.70, 1.00)
     end
 end
 
@@ -233,7 +234,7 @@ end
 --- @param tooltip table GameTooltip
 --- @return boolean true if processed
 function Insight.ProcessPlayerTooltip(unit, tooltip)
-    if not IsEnabled() or not tooltip then return false end
+    if not Insight.IsInsightEnabled() or not tooltip then return false end
     if not UnitIsPlayer(unit) then return false end
 
     local guid     = UnitGUID(unit)
@@ -273,7 +274,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end
 
     -- 1. Name line: faction icon + name (with character title when ShowCharacterTitle; title in gold, name in faction/class color)
-    local nameLeft = _G["GameTooltipTextLeft1"]
+    local ttName = tooltip:GetName()
+    local nameLeft = ttName and _G[ttName .. "TextLeft1"]
     if nameLeft then
         local faction = UnitFactionGroup(unit)
         local icon    = ShowIcons() and (Insight.FACTION_ICONS[faction] or "") or ""
@@ -318,62 +320,59 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         tooltip:SetBackdropBorderColor(classColor.r, classColor.g, classColor.b, 0.60)
     end
 
-    -- 3. Clean up Blizzard lines
-    local numLines = tooltip:NumLines()
+    -- 3. Clean up Blizzard lines (skip line 1; name already styled)
     local classLineStyled = false
-    for j = 2, numLines do
-        local lineLeft = _G["GameTooltipTextLeft" .. j]
-        if lineLeft then
-            local ok = pcall(function()
-                local text = lineLeft:GetText()
-                if not text then return end
+    Insight.ForTooltipLines(tooltip, function(j, lineLeft, _lineRight)
+        if j < 2 or not lineLeft then return end
+        pcall(function()
+            local text = lineLeft:GetText()
+            if not text then return end
 
-                if text:find(" %(Player%)") then
-                    text = text:gsub(" %(Player%)", "")
-                    lineLeft:SetText(text)
-                end
+            if text:find(" %(Player%)") then
+                text = text:gsub(" %(Player%)", "")
+                lineLeft:SetText(text)
+            end
 
-                if text == "Horde" or text == "Alliance" then
-                    lineLeft:SetText("")
-                elseif className and text ~= "" and text:find(className, 1, true) and classLineStyled then
-                    lineLeft:SetText("")
-                elseif guildName and text == "<" .. guildName .. ">" then
-                    if ShowGuildRank() and guildRankName and guildRankName ~= "" then
-                        lineLeft:SetText(text .. "  |cffaaaaaa" .. guildRankName .. "|r")
-                    end
-                elseif className and text ~= "" and text:find(className, 1, true) then
-                    classLineStyled = true
-                    if classColor then
-                        lineLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
-                    end
-                    local iconPrefix = ""
-                    if ShowIcons() then
-                        local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile, 14)
-                        if classIcon then
-                            iconPrefix = classIcon
-                        elseif cached and cached.specIcon then
-                            iconPrefix = "|T" .. cached.specIcon .. ":14:14:0:0|t "
-                        end
-                    end
-                    local roleSuffix = ""
-                    if cached and cached.role then
-                        local rc = Insight.ROLE_COLORS[cached.role]
-                        if rc then
-                            local hex = string.format("%02x%02x%02x",
-                                math.floor(rc[1] * 255),
-                                math.floor(rc[2] * 255),
-                                math.floor(rc[3] * 255))
-                            local label = cached.role == "TANK" and "Tank"
-                                or cached.role == "HEALER" and "Healer" or "DPS"
-                            roleSuffix = "  |cff" .. hex .. label .. "|r"
-                        end
-                    end
-                    lineLeft:SetText(iconPrefix .. text .. roleSuffix)
+            if text == "Horde" or text == "Alliance" then
+                lineLeft:SetText("")
+            elseif className and text ~= "" and text:find(className, 1, true) and classLineStyled then
+                lineLeft:SetText("")
+            elseif guildName and text == "<" .. guildName .. ">" then
+                if ShowGuildRank() and guildRankName and guildRankName ~= "" then
+                    lineLeft:SetText(text .. "  |cffaaaaaa" .. guildRankName .. "|r")
                 end
-            end)
-            -- On taint/secret string, pcall catches; skip styling for this line
-        end
-    end
+            elseif className and text ~= "" and text:find(className, 1, true) then
+                classLineStyled = true
+                if classColor then
+                    lineLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
+                end
+                local iconPrefix = ""
+                if ShowIcons() then
+                    local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile, 14)
+                    if classIcon then
+                        iconPrefix = classIcon
+                    elseif cached and cached.specIcon then
+                        iconPrefix = "|T" .. cached.specIcon .. ":14:14:0:0|t "
+                    end
+                end
+                local roleSuffix = ""
+                if cached and cached.role then
+                    local rc = Insight.ROLE_COLORS[cached.role]
+                    if rc then
+                        local hex = string.format("%02x%02x%02x",
+                            math.floor(rc[1] * 255),
+                            math.floor(rc[2] * 255),
+                            math.floor(rc[3] * 255))
+                        local label = cached.role == "TANK" and "Tank"
+                            or cached.role == "HEALER" and "Healer" or "DPS"
+                        roleSuffix = "  |cff" .. hex .. label .. "|r"
+                    end
+                end
+                lineLeft:SetText(iconPrefix .. text .. roleSuffix)
+            end
+        end)
+        -- On taint/secret string, pcall catches; skip styling for this line
+    end)
 
     -- 4. Status badges (part of identity section)
     Insight.AddStatusBadgesBlock(tooltip, unit, guid)

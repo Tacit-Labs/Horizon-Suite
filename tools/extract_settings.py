@@ -9,11 +9,11 @@ import os
 import json
 from pathlib import Path
 
-# Paths relative to script location
+# Paths relative to script location (tools/ at addon root)
 SCRIPT_DIR = Path(__file__).resolve().parent
-ADDON_ROOT = SCRIPT_DIR.parent.parent
+ADDON_ROOT = SCRIPT_DIR.parent
 OPTIONS_DATA = ADDON_ROOT / "options" / "OptionsData.lua"
-OUTPUT_HTML = ADDON_ROOT / "options" / "SettingsReview.html"
+OUTPUT_HTML = ADDON_ROOT / "docs" / "SettingsReview.html"
 
 MODULE_LABELS = {
     None: "Core",

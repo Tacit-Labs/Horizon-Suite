@@ -10,10 +10,6 @@ if not addon then return end
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
-local function IsEnabled()
-    return addon:IsModuleEnabled("insight")
-end
-
 local function ShowTransmog()
     return addon.GetDB("insightShowTransmog", true)
 end
@@ -54,7 +50,7 @@ end
 --- @param itemID number Item ID
 --- @return boolean true if block was added
 function Insight.AddAppearanceBlock(tooltip, itemID)
-    if not IsEnabled() or not ShowTransmog() then return false end
+    if not Insight.IsInsightEnabled() or not ShowTransmog() then return false end
     if not C_TransmogCollection or not itemID then return false end
     if not IsTransmoggableItem(itemID) then return false end
     if HasTransmogLine(tooltip) then return false end
@@ -77,7 +73,7 @@ end
 --- @param quality number|nil Item quality for separator tint
 --- @return boolean true if any block was added
 function Insight.ProcessItemTooltip(tooltip, itemID, quality)
-    if not IsEnabled() or not itemID then return false end
+    if not Insight.IsInsightEnabled() or not itemID then return false end
 
     local hasAppearance = ShowTransmog() and C_TransmogCollection
         and IsTransmoggableItem(itemID)

@@ -9,10 +9,6 @@ if not addon then return end
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
-local function IsEnabled()
-    return addon:IsModuleEnabled("insight")
-end
-
 local function ShowIcons()
     return addon.GetDB("insightShowIcons", true)
 end
@@ -22,7 +18,7 @@ end
 --- @param tooltip table GameTooltip
 --- @return boolean true if processed (caller should finalize)
 function Insight.ProcessNpcTooltip(unit, tooltip)
-    if not IsEnabled() or not tooltip or not tooltip:IsShown() then return false end
+    if not Insight.IsInsightEnabled() or not tooltip or not tooltip:IsShown() then return false end
     if UnitIsPlayer(unit) then return false end
 
     local reaction = UnitReaction(unit, "player")
@@ -33,7 +29,8 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
         tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
     end
 
-    local nameLeft = _G["GameTooltipTextLeft1"]
+    local ttName = tooltip:GetName()
+    local nameLeft = ttName and _G[ttName .. "TextLeft1"]
     if nameLeft and c then
         nameLeft:SetTextColor(c.r, c.g, c.b)
     end
@@ -53,7 +50,7 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     end)
     local lineText = #parts > 0 and table.concat(parts, " ") or nil
     if lineText then
-        local lineLeft = _G["GameTooltipTextLeft2"]
+        local lineLeft = ttName and _G[ttName .. "TextLeft2"]
         local gray = 0.75
         if lineLeft then
             lineLeft:SetText(lineText)

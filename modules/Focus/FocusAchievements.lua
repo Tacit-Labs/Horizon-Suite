@@ -2,7 +2,7 @@
     Horizon Suite - Focus - Achievement Tracking
     Direct provider: C_ContentTracking.GetTrackedIDs(Achievement) / GetTrackedAchievements + GetAchievementInfo.
     Returns normalized entry tables for the tracker.
-    Step-by-step flow notes: notes/FocusAchievements.md
+    Step-by-step flow notes: modules/Focus/notes/FocusAchievements.md
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
