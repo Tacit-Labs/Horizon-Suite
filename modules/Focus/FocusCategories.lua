@@ -103,7 +103,7 @@ local function GetQuestZoneName(questID)
      -- For non-world quests: prefer quest log header (waypoint often = current zone).
      -- Skip non-geographic headers (e.g. "Prey") so the waypoint fallback below
      -- can resolve the actual zone name.
-     local preyLabel = (addon.L and addon.L["PREY"]) or "Prey"
+     local preyLabel = (addon.L and addon.L["UI_PREY"]) or "Prey"
      if C_QuestLog.GetLogIndexForQuestID then
          local logIndex = C_QuestLog.GetLogIndexForQuestID(questID)
          if logIndex then

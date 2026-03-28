@@ -119,7 +119,7 @@ local function OnPlayerLevelUp(_, level)
     if not IsPresenceTypeEnabled("presenceLevelUp", nil, true) then return end
     if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
     local L = addon.L or {}
-    addon.Presence.QueueOrPlay("LEVEL_UP", L["LEVEL UP"], L["You have reached level %s"]:format(level or "??"))
+    addon.Presence.QueueOrPlay("LEVEL_UP", L["PRESENCE_LEVEL_UP"], L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"]:format(level or "??"))
 end
 
 local function OnRaidBossEmote(_, msg, unitName)
@@ -245,7 +245,7 @@ local function ExecuteRareDefeatedCheck()
             if (rareDefeatedCooldowns[cooldownKey] or 0) + RARE_COOLDOWN <= now then
                 rareDefeatedCooldowns[cooldownKey] = now
                 local L = addon.L or {}
-                addon.Presence.QueueOrPlay("RARE_DEFEATED", L["RARE DEFEATED"] or "RARE DEFEATED", name, { source = "VIGNETTES_UPDATED" })
+                addon.Presence.QueueOrPlay("RARE_DEFEATED", L["PRESENCE_RARE_DEFEATED"] or "RARE DEFEATED", name, { source = "VIGNETTES_UPDATED" })
             end
         end
     end

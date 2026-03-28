@@ -106,7 +106,7 @@ function addon.Presence.Achievement_OnAchievementEarned(achID)
     if not IsTypeEnabled("presenceAchievement", nil, true) then return end
     local _, name = GetAchievementInfo(achID)
     local L = addon.L or {}
-    addon.Presence.QueueOrPlay("ACHIEVEMENT", L["ACHIEVEMENT EARNED"], Strip(name or ""))
+    addon.Presence.QueueOrPlay("ACHIEVEMENT", L["PRESENCE_ACHIEVEMENT_EARNED"], Strip(name or ""))
 end
 
 local function ExecuteAchievementProgressCheck(pendingIDs)

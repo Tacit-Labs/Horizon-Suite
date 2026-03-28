@@ -91,14 +91,15 @@ modules/Essence/EssenceCore.lua
 modules/Essence/EssenceSlash.lua
 modules/Essence/EssenceModule.lua
 
-locales/LocaleBase.lua
-locales/deDE.lua
-locales/koKR.lua
-locales/frFR.lua
-locales/ptBR.lua
-locales/ruRU.lua
-locales/esES.lua
-locales/zhCN.lua
+Localisation/LocaleCore.lua
+Localisation/enUS.lua
+Localisation/deDE.lua
+Localisation/koKR.lua
+Localisation/frFR.lua
+Localisation/ptBR.lua
+Localisation/ruRU.lua
+Localisation/esES.lua
+Localisation/zhCN.lua
 options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua

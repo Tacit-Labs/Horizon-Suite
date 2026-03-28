@@ -450,7 +450,7 @@ local function ReadTrackedQuests()
         local isSuper = (questID == superTracked)
         local zoneName = addon.GetQuestZoneName(questID)
         if category == "PREY" and (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)) and (not zoneName or zoneName == "") then
-            zoneName = (addon.L and addon.L["Activity"]) or "Activity"
+            zoneName = (addon.L and addon.L["OPTIONS_FOCUS_ACTIVITY"]) or "Activity"
         end
         local isNearby = (nearbySet[questID] or false) and (not filterByZone or questMapMatchesPlayer(questID))
         local isDungeonQuest = opts.isDungeonQuest or (addon.IsInPartyDungeon and addon.IsInPartyDungeon() and isNearby)

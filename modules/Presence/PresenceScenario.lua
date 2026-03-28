@@ -323,15 +323,15 @@ local function OnScenarioCompleted()
             end
         end
         if not subtitle or subtitle == "" then
-            subtitle = (L["Scenario Complete"] and L["Scenario Complete"] ~= "") and L["Scenario Complete"] or "Scenario Complete"
+            subtitle = (L["PRESENCE_SCENARIO_COMPLETE"] and L["PRESENCE_SCENARIO_COMPLETE"] ~= "") and L["PRESENCE_SCENARIO_COMPLETE"] or "Scenario Complete"
         end
         if subtitle and subtitle ~= "" then
             subtitle = FixStaleZeroProgress(subtitle)
         end
         if category == "DELVES" then
-            local delveComplete = (L["Delve Complete"] and L["Delve Complete"] ~= "") and L["Delve Complete"] or "Delve Complete"
+            local delveComplete = (L["OPTIONS_FOCUS_DELVE_COMPLETE"] and L["OPTIONS_FOCUS_DELVE_COMPLETE"] ~= "") and L["OPTIONS_FOCUS_DELVE_COMPLETE"] or "Delve Complete"
             title = delveComplete
-            if not subtitle or subtitle == "" or subtitle == (L["Scenario Complete"] or "Scenario Complete") then
+            if not subtitle or subtitle == "" or subtitle == (L["PRESENCE_SCENARIO_COMPLETE"] or "Scenario Complete") then
                 local origTitle = lastScenarioTitle
                 if not origTitle or origTitle == "Delves" or origTitle:match("^Delves - Tier ") then
                     local resolvedName = GetOrResolveDelveName()

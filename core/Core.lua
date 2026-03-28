@@ -1011,7 +1011,7 @@ local function BuildURLCopyFrame()
     local subtitleLbl = dragZone:CreateFontString(nil, "OVERLAY")
     subtitleLbl:SetFont(URL_COPY_F_BODY, 10, "")
     subtitleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -3)
-    subtitleLbl:SetText((addon.L and addon.L["Copy link"]) or "Copy link")
+    subtitleLbl:SetText((addon.L and addon.L["OPTIONS_FOCUS_COPY_LINK"]) or "Copy link")
     subtitleLbl:SetTextColor(ar, ag, ab)
     f.subtitleLbl = subtitleLbl
 
@@ -1048,7 +1048,7 @@ local function BuildURLCopyFrame()
     hintLbl:SetPoint("RIGHT", f, "RIGHT", -URL_COPY_PAD, 0)
     hintLbl:SetWordWrap(true)
     hintLbl:SetNonSpaceWrap(false)
-    hintLbl:SetText((addon.L and addon.L["Copy the URL below (Ctrl+C) and paste in your browser."]) or "Copy the URL below (Ctrl+C) and paste in your browser.")
+    hintLbl:SetText((addon.L and addon.L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]) or "Copy the URL below (Ctrl+C) and paste in your browser.")
     hintLbl:SetTextColor(0.42, 0.42, 0.50)
 
     local eb = CreateFrame("EditBox", nil, f)
@@ -1111,7 +1111,7 @@ end
 
 --- Show the URL copy box (same chrome as What's New / Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
 --- @param url string Full URL to display and copy
---- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["Copy link"]
+--- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["OPTIONS_FOCUS_COPY_LINK"]
 function addon.ShowURLCopyBox(url, accentSubtitle)
     if not url or type(url) ~= "string" or url == "" then return end
     local f = BuildURLCopyFrame()
@@ -1121,7 +1121,7 @@ function addon.ShowURLCopyBox(url, accentSubtitle)
         f.accentStrip:SetColorTexture(ar, ag, ab, 1)
     end
     if f.subtitleLbl then
-        f.subtitleLbl:SetText(accentSubtitle or ((addon.L and addon.L["Copy link"]) or "Copy link"))
+        f.subtitleLbl:SetText(accentSubtitle or ((addon.L and addon.L["OPTIONS_FOCUS_COPY_LINK"]) or "Copy link"))
         f.subtitleLbl:SetTextColor(ar, ag, ab)
     end
     f.editBox:SetText(url)
@@ -1535,7 +1535,7 @@ local headerShadow = HS:CreateFontString(nil, "BORDER")
 headerShadow:SetFontObject(addon.HeaderFont)
 headerShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
 headerShadow:SetJustifyH("LEFT")
-headerShadow:SetText(addon.L["OBJECTIVES"])
+headerShadow:SetText(addon.L["PRESENCE_OBJECTIVES"])
 
 local headerText = HS:CreateFontString(nil, "OVERLAY")
 headerText:SetFontObject(addon.HeaderFont)
@@ -1545,7 +1545,7 @@ do
 end
 headerText:SetJustifyH("LEFT")
 headerText:SetPoint("TOPLEFT", HS, "TOPLEFT", addon.PADDING, -addon.PADDING)
-headerText:SetText(addon.L["OBJECTIVES"])
+headerText:SetText(addon.L["PRESENCE_OBJECTIVES"])
 headerShadow:SetPoint("CENTER", headerText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
 local countText = HS:CreateFontString(nil, "OVERLAY")
@@ -1581,7 +1581,7 @@ do
     optionsLabel:SetTextColor(ch[1], ch[2], ch[3], 1)
 end
 optionsLabel:SetJustifyH("RIGHT")
-optionsLabel:SetText(addon.L["Options"])
+optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
 optionsBtn:SetSize(math.max(optionsLabel:GetStringWidth() + 4, 44), 20)
 optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
 optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
@@ -1605,7 +1605,7 @@ optionsBtn:SetScript("OnEnter", function(self)
     end
     if GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:SetText(addon.L["Options"], nil, nil, nil, nil, true)
+        GameTooltip:SetText(addon.L["PRESENCE_OPTIONS"], nil, nil, nil, nil, true)
         GameTooltip:Show()
     end
 end)
@@ -2000,7 +2000,7 @@ resizeHandle:EnableMouse(true)
 resizeHandle:SetScript("OnEnter", function(self)
     if GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-        GameTooltip:SetText(addon.L["Drag to resize"], nil, nil, nil, nil, true)
+        GameTooltip:SetText(addon.L["OPTIONS_FOCUS_DRAG_RESIZE"], nil, nil, nil, nil, true)
         GameTooltip:Show()
     end
 end)

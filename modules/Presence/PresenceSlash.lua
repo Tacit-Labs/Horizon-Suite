@@ -47,21 +47,21 @@ local function HandlePresenceSlash(msg)
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("ZONE_CHANGE") end
     elseif cmd == "all" then
         local L = addon.L or {}
-        HSPrint(L["Presence: Playing demo reel (all notification types)..."])
+        HSPrint(L["PRESENCE_PRESENCE_PLAYING_DEMO_REEL_NOTIFICATION"])
         local demos = {
             { "ZONE_CHANGE",         GetZoneText() or "Valdrakken",     GetSubZoneText() or "Thaldraszus" },
             { "SUBZONE_CHANGE",      GetZoneText() or "Valdrakken",     GetSubZoneText() or "The Seat of Aspects" },
             { "ZONE_CHANGE",         "The Waking Shores",               "Obsidian Citadel",  true   },
-            { "QUEST_ACCEPT",        L["QUEST ACCEPTED"],               L["The Fate of the Horde"] },
-            { "WORLD_QUEST_ACCEPT",  L["WORLD QUEST ACCEPTED"],         L["Azerite Mining"] },
-            { "QUEST_UPDATE",        L["QUEST UPDATE"],                 L["Dragon Glyphs: 3/5"] },
-            { "QUEST_COMPLETE",      L["QUEST COMPLETE"],               L["Aiding the Accord"] },
-            { "WORLD_QUEST",         L["WORLD QUEST COMPLETE"] or "WORLD QUEST COMPLETE", L["Azerite Mining"] },
+            { "QUEST_ACCEPT",        L["PRESENCE_QUEST_ACCEPTED"],               L["PRESENCE_THE_FATE_OF_THE_HORDE"] },
+            { "WORLD_QUEST_ACCEPT",  L["PRESENCE_WORLD_QUEST_ACCEPTED"],         L["PRESENCE_AZERITE_MINING"] },
+            { "QUEST_UPDATE",        L["PRESENCE_QUEST_UPDATE"],                 L["PRESENCE_DRAGON_GLYPHS_3_5"] },
+            { "QUEST_COMPLETE",      L["PRESENCE_QUEST_COMPLETE"],               L["PRESENCE_AIDING_THE_ACCORD"] },
+            { "WORLD_QUEST",         L["PRESENCE_WORLD_QUEST_COMPLETE"] or "WORLD QUEST COMPLETE", L["PRESENCE_AZERITE_MINING"] },
             { "SCENARIO_START",      "Cinderbrew Meadery",              "Defend the tavern", { category = "SCENARIO" } },
-            { "ACHIEVEMENT",         L["ACHIEVEMENT EARNED"],           L["Exploring Khaz Algar"] },
-            { "ACHIEVEMENT_PROGRESS", L["Exploring the Midnight Isles"], L["Dragon Glyphs: 3/5"] },
+            { "ACHIEVEMENT",         L["PRESENCE_ACHIEVEMENT_EARNED"],           L["PRESENCE_EXPLORING_KHAZ_ALGAR"] },
+            { "ACHIEVEMENT_PROGRESS", L["PRESENCE_EXPLORING_THE_MIDNIGHT_ISLES"], L["PRESENCE_DRAGON_GLYPHS_3_5"] },
             { "BOSS_EMOTE",          "Ragnaros",                        "BY FIRE BE PURGED!" },
-            { "LEVEL_UP",            L["LEVEL UP"],                     L["You have reached level 80"] },
+            { "LEVEL_UP",            L["PRESENCE_LEVEL_UP"],                     L["PRESENCE_YOU_HAVE_REACHED_LEVEL_80"] },
         }
         for i, d in ipairs(demos) do
             C_Timer.After((i - 1) * 3, function()
@@ -71,22 +71,22 @@ local function HandlePresenceSlash(msg)
         end
     elseif cmd == "" or cmd == "help" then
         local L = addon.L or {}
-        HSPrint(L["Presence test commands:"])
-        HSPrint(L["  /h presence         - Show help + test current zone"])
-        HSPrint(L["  /h presence zone     - Test Zone Change"])
-        HSPrint(L["  /h presence subzone  - Test Subzone Change"])
-        HSPrint(L["  /h presence discover - Test Zone Discovery"])
-        HSPrint(L["  /h presence level    - Test Level Up"])
-        HSPrint(L["  /h presence boss     - Test Boss Emote"])
-        HSPrint(L["  /h presence ach      - Test Achievement"])
-        HSPrint(L["  /h presence accept   - Test Quest Accepted"])
-        HSPrint(L["  /h presence wqaccept - Test World Quest Accepted"])
-        HSPrint(L["  /h presence scenario - Test Scenario Start"])
-        HSPrint(L["  /h presence quest    - Test Quest Complete"])
-        HSPrint(L["  /h presence wq       - Test World Quest"])
-        HSPrint(L["  /h presence update   - Test Quest Update"])
-        HSPrint(L["  /h presence achprogress - Test Achievement Progress"])
-        HSPrint(L["  /h presence all      - Demo reel (all types)"])
+        HSPrint(L["PRESENCE_PRESENCE_TEST_COMMANDS"])
+        HSPrint(L["PRESENCE_H_PRESENCE_HELP_TEST_CURRENT"])
+        HSPrint(L["PRESENCE_H_PRESENCE_ZONE_TEST_ZONE"])
+        HSPrint(L["PRESENCE_H_PRESENCE_SUBZONE_TEST_SUBZONE"])
+        HSPrint(L["PRESENCE_H_PRESENCE_DISCOVER_TEST_ZONE"])
+        HSPrint(L["PRESENCE_H_PRESENCE_LEVEL_TEST_LEVEL"])
+        HSPrint(L["PRESENCE_H_PRESENCE_BOSS_TEST_BOSS"])
+        HSPrint(L["PRESENCE_H_PRESENCE_ACH_TEST_ACHIEVEMENT"])
+        HSPrint(L["PRESENCE_H_PRESENCE_ACCEPT_TEST_QUEST"])
+        HSPrint(L["PRESENCE_H_PRESENCE_WQACCEPT_TEST_WORLD"])
+        HSPrint(L["PRESENCE_H_PRESENCE_SCENARIO_TEST_SCENARIO"])
+        HSPrint(L["PRESENCE_H_PRESENCE_QUEST_TEST_QUEST"])
+        HSPrint(L["PRESENCE_H_PRESENCE_WQ_TEST_WORLD"])
+        HSPrint(L["PRESENCE_H_PRESENCE_UPDATE_TEST_QUEST"])
+        HSPrint(L["PRESENCE_H_PRESENCE_ACHPROGRESS_TEST_ACHIEVEMENT"])
+        HSPrint(L["PRESENCE_H_PRESENCE_DEMO_REEL_TYPES"])
         addon.Presence.QueueOrPlay("ZONE_CHANGE", GetZoneText() or "Unknown Zone", GetSubZoneText() or "")
     else
         return false
