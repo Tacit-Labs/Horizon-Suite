@@ -9,15 +9,9 @@ if not addon then return end
 local L = addon.L
 
 -- =====================================================================
--- OptionsPanel.lua — Title
+-- OptionsPanel.lua (deprecated) — remaining strings for that UI
+-- Panel title + module short names: addon.BrandDisplay (core/BrandDisplay.lua).
 -- =====================================================================
-L["OPTIONS_FOCUS_HORIZON_SUITE"]                                      = "HORIZON SUITE"
-
--- =====================================================================
--- OptionsPanel.lua — Sidebar module group labels
--- =====================================================================
-L["OPTIONS_FOCUS_GROUP"]                                              = "Focus"
-L["OPTIONS_FOCUS_PRESENCE"]                                           = "Presence"
 L["OPTIONS_FOCUS_OTHER"]                                              = "Other"
 
 -- =====================================================================
@@ -78,7 +72,6 @@ L["OPTIONS_FOCUS_DRAG_RESIZE"]                                        = "Drag to
 L["OPTIONS_AXIS_PROFILES"]                                            = "Profiles"
 L["OPTIONS_AXIS_MODULES"]                                             = "Modules"
 L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Module Toggles"
-L["OPTIONS_AXIS_GROUP"]                                               = "Axis"
 
 -- =====================================================================
 -- DashboardPanel.lua — First-run welcome
@@ -187,7 +180,6 @@ L["OPTIONS_FOCUS_SCENARIO_BAR"]                                       = "Scenari
 -- =====================================================================
 -- OptionsData.lua Profiles
 -- =====================================================================
-L["OPTIONS_AXIS_VISTA"]                                               = "Vista"
 L["OPTIONS_AXIS_CURRENT_PROFILE"]                                     = "Current profile"
 L["OPTIONS_AXIS_SELECT_PROFILE_CURRENTLY"]                            = "Select the profile currently in use."
 L["OPTIONS_AXIS_GLOBAL_PROFILE_ACCOUNT_WIDE"]                         = "Use global profile (account-wide)"
@@ -251,8 +243,6 @@ L["OPTIONS_CACHE_SCALE"]                                              = "Cache s
 L["OPTIONS_AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"]                       = "Scale for the Cache loot toast module (50–200%)."
 L["OPTIONS_AXIS_ENABLE_HORIZON_INSIGHT_MODULE"]                       = "Enable Horizon Insight module"
 L["OPTIONS_AXIS_CINEMATIC_TOOLTIPS_CLASS_COLORS_SPEC_DISPLAY"]        = "Cinematic tooltips with class colors, spec display, and faction icons."
-L["OPTIONS_AXIS_HORIZON_INSIGHT"]                                     = "Horizon Insight"
-L["OPTIONS_AXIS_INSIGHT"]                                             = "Insight"
 L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Tooltip anchor mode"
 L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "Where tooltips appear: follow cursor or fixed position."
 L["OPTIONS_AXIS_CURSOR"]                                              = "Cursor"
@@ -309,7 +299,6 @@ L["OPTIONS_AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"]          = "Use Def
 L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]       = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
 L["OPTIONS_AXIS_DEFAULT"]                                             = "Default"
 L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]            = "Show faction, spec, mount, and Mythic+ icons in tooltips."
-L["OPTIONS_AXIS_CACHE"]                                               = "Cache"
 L["OPTIONS_AXIS_GENERAL"]                                             = "General"
 L["OPTIONS_AXIS_POSITION"]                                            = "Position"
 L["OPTIONS_AXIS_RESET_POSITION"]                                      = "Reset position"
@@ -1556,6 +1545,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

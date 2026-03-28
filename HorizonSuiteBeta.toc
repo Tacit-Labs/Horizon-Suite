@@ -11,6 +11,7 @@ Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua
 core/Config.lua
+core/BrandDisplay.lua
 core/Core.lua
 core/CoreSlash.lua
 core/MinimapButton.lua

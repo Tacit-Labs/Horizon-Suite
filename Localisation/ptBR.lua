@@ -8,15 +8,9 @@ addon.L = L
 addon.StandardFont = UNIT_NAME_FONT
 
 -- =====================================================================
--- OptionsPanel.lua — Title
+-- OptionsPanel.lua (deprecated) — remaining strings for that UI
+-- Panel title + module short names: addon.BrandDisplay (core/BrandDisplay.lua).
 -- =====================================================================
--- L["OPTIONS_FOCUS_HORIZON_SUITE"]                                   = "HORIZON SUITE"  -- NEEDS TRANSLATION
-
--- =====================================================================
--- OptionsPanel.lua — Sidebar module group labels
--- =====================================================================
-L["OPTIONS_FOCUS_GROUP"]                                              = "Configurar Foco"
-L["OPTIONS_FOCUS_PRESENCE"]                                           = "Configurar Notificações"
 L["OPTIONS_FOCUS_OTHER"]                                              = "Outro"
 
 -- =====================================================================
@@ -77,7 +71,6 @@ L["OPTIONS_FOCUS_DRAG_RESIZE"]                                        = "Arrasta
 L["OPTIONS_AXIS_PROFILES"]                                            = "Perfis"
 L["OPTIONS_AXIS_MODULES"]                                             = "Módulos"
 -- L["OPTIONS_AXIS_MODULE_TOGGLES"]                                   = "Module Toggles"  -- NEEDS TRANSLATION
--- L["OPTIONS_AXIS_GROUP"]                                            = "Axis"  -- NEEDS TRANSLATION
 
 -- =====================================================================
 -- DashboardPanel.lua — First-run welcome
@@ -186,7 +179,6 @@ L["OPTIONS_FOCUS_SCENARIO_BAR"]                                       = "Barra d
 -- =====================================================================
 -- OptionsData.lua Profiles
 -- =====================================================================
--- L["OPTIONS_AXIS_VISTA"]                                            = "Vista"  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_CURRENT_PROFILE"]                                     = "Perfil atual"
 L["OPTIONS_AXIS_SELECT_PROFILE_CURRENTLY"]                            = "Selecione o perfil em uso no momento."
 L["OPTIONS_AXIS_GLOBAL_PROFILE_ACCOUNT_WIDE"]                         = "Usar perfil global (conta inteira)"
@@ -250,8 +242,6 @@ L["OPTIONS_CACHE_SCALE"]                                              = "Escala 
 L["OPTIONS_AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"]                       = "Escala do módulo de notificação de saque Cache (50–200%)."
 L["OPTIONS_AXIS_ENABLE_HORIZON_INSIGHT_MODULE"]                       = "Ativar Módulo Horizon Insight"
 L["OPTIONS_AXIS_CINEMATIC_TOOLTIPS_CLASS_COLORS_SPEC_DISPLAY"]        = "Tooltips cinematográficos com cores de classe, exibição de especialização e ícones de facção."
--- L["OPTIONS_AXIS_HORIZON_INSIGHT"]                                  = "Horizon Insight"  -- NEEDS TRANSLATION
--- L["OPTIONS_AXIS_INSIGHT"]                                          = "Insight"  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Modo de âncora do tooltip"
 L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "Onde os tooltips aparecem: seguir o cursor ou posição fixa."
 -- L["OPTIONS_AXIS_CURSOR"]                                           = "Cursor"  -- NEEDS TRANSLATION
@@ -308,7 +298,6 @@ L["OPTIONS_AXIS_HOVERING_A_MOUNTED_PLAYER_THEIR_MOUNT"]               = "Ao pass
 -- L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]    = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_DEFAULT"]                                          = "Default"  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]         = "Show faction, spec, mount, and Mythic+ icons in tooltips."  -- NEEDS TRANSLATION
-L["OPTIONS_AXIS_CACHE"]                                               = "Rendimento"
 L["OPTIONS_AXIS_GENERAL"]                                             = "Geral"
 L["OPTIONS_AXIS_POSITION"]                                            = "Posição"
 L["OPTIONS_AXIS_RESET_POSITION"]                                      = "Redefinir Posição"
@@ -1555,6 +1544,8 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
 
 
 

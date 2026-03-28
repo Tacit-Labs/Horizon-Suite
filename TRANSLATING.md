@@ -2,6 +2,8 @@
 
 Horizon Suite uses **symbolic keys** in `Localisation/*.lua` (e.g. `L["OPTIONS_FOCUS"] = "…"`). English is the source file `Localisation/enUS.lua`. Other languages override only the keys they translate; missing keys show **English** in-game automatically.
 
+**Product and module names** (e.g. *Horizon Suite*, *Focus*, *Presence*, *Vista*, *Insight*, *Cache*, *Axis*) are **not** locale keys — they are fixed in `addon.BrandDisplay` in code. In full sentences you translate, **keep those proper nouns in English** so they match the UI.
+
 ## Finding work
 
 1. Clone the repo and open `Localisation/<yourLocale>.lua` (e.g. `frFR.lua`).

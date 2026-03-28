@@ -8,7 +8,12 @@ if not addon then return end
 if not _G[addon.DB_NAME] then _G[addon.DB_NAME] = {} end
 
 local L = addon.L
-
+local function BrandModule(moduleKey)
+    local bd = addon.BrandDisplay
+    local t = bd and bd.module
+    if not moduleKey or not t then return nil end
+    return t[moduleKey]
+end
 -- ---------------------------------------------------------------------------
 -- DB helpers
 -- ---------------------------------------------------------------------------
@@ -1068,12 +1073,12 @@ local OptionCategories = {
                 visibleWhen = function() return getDB("classColorDashboard", false) end,
                 refreshIds = { "_classColorAll" },
             }
-            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_FOCUS_GROUP"], desc = L["OPTIONS_FOCUS_TINT_FOCUS_HEADER_TITLE_CATEGORY_SECTION"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_FOCUS_PRESENCE"], desc = L["OPTIONS_FOCUS_TINT_PRESENCE_TOAST_TITLE_DIVIDER_YOUR"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_VISTA"] or "Vista", desc = L["OPTIONS_FOCUS_TINT_VISTA_MINIMAP_ADDON_BAR_PANEL"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_INSIGHT"], desc = L["OPTIONS_FOCUS_CLASS_COLOUR_PLAYER_TOOLTIP_NAME_CLASS"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_CACHE"], desc = L["OPTIONS_FOCUS_TINT_CACHE_LOOT_ICON_GLOW_EDIT"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = "Essence", desc = L["OPTIONS_FOCUS_TINT_CHARACTER_NAME_ESSENCE_SHEET_YO"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["OPTIONS_FOCUS_TINT_FOCUS_HEADER_TITLE_CATEGORY_SECTION"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["OPTIONS_FOCUS_TINT_PRESENCE_TOAST_TITLE_DIVIDER_YOUR"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("vista"), desc = L["OPTIONS_FOCUS_TINT_VISTA_MINIMAP_ADDON_BAR_PANEL"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["OPTIONS_FOCUS_CLASS_COLOUR_PLAYER_TOOLTIP_NAME_CLASS"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["OPTIONS_FOCUS_TINT_CACHE_LOOT_ICON_GLOW_EDIT"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["OPTIONS_FOCUS_TINT_CHARACTER_NAME_ESSENCE_SHEET_YO"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_SCALING"] }
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
@@ -1169,12 +1174,12 @@ local OptionCategories = {
             local previewSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
             local opts = {
                 { type = "section", name = L["OPTIONS_AXIS_MODULE_TOGGLES"] or "Module Toggles" },
-                { type = "toggle", name = L["OPTIONS_FOCUS_GROUP"], desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
-                { type = "toggle", name = L["OPTIONS_FOCUS_PRESENCE"], desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
-                { type = "toggle", name = L["OPTIONS_AXIS_VISTA"] or "Vista", desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
-                { type = "toggle", name = L["OPTIONS_AXIS_INSIGHT"], desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
-                { type = "toggle", name = L["OPTIONS_AXIS_CACHE"] .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) addon:SetModuleEnabled("cache", v) end },
-                { type = "toggle", name = "Essence" .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) addon:SetModuleEnabled("essence", v) end },
+                { type = "toggle", name = BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
+                { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
+                { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
+                { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
+                { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) addon:SetModuleEnabled("cache", v) end },
+                { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) addon:SetModuleEnabled("essence", v) end },
             }
             opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
             opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
@@ -2631,9 +2636,9 @@ function OptionsData_BuildSearchIndex()
         local moduleKey = cat.moduleKey
         local moduleLabel
         if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
-            moduleLabel = L["OPTIONS_AXIS_GROUP"] or "Axis"
+            moduleLabel = BrandModule("axis") or "Axis"
         else
-            moduleLabel = (moduleKey == "focus" and L["OPTIONS_FOCUS_GROUP"]) or (moduleKey == "presence" and L["OPTIONS_FOCUS_PRESENCE"]) or (moduleKey == "insight" and (L["OPTIONS_AXIS_INSIGHT"] or "Insight")) or (moduleKey == "cache" and L["OPTIONS_AXIS_CACHE"]) or (moduleKey == "vista" and (L["OPTIONS_AXIS_VISTA"] or "Vista")) or L["OPTIONS_AXIS_MODULES"]
+            moduleLabel = BrandModule(moduleKey) or L["OPTIONS_AXIS_MODULES"]
         end
         local catOpts = type(cat.options) == "function" and cat.options() or cat.options
         for _, opt in ipairs(catOpts) do

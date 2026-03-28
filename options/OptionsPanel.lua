@@ -1,5 +1,6 @@
 --[[
-    Horizon Suite - Focus - Options Panel
+    Horizon Suite — Options Panel (deprecated)
+    Legacy card-based settings UI; retained for compatibility. Primary UI is DashboardPanel.lua.
     Main panel frame, title bar, search bar, sidebar, content scroll, BuildCategory, FilterBySearch, animations.
 ]]
 
@@ -216,7 +217,7 @@ local titleText = titleBar:CreateFontString(nil, "OVERLAY")
 titleText:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.HeaderSize or 16, "OUTLINE")
 SetTextColor(titleText, Def.TextColorTitleBar or Def.TextColorNormal)
 titleText:SetPoint("TOPLEFT", titleBar, "TOPLEFT", PADDING, -PADDING)
-titleText:SetText(L["OPTIONS_FOCUS_HORIZON_SUITE"])
+titleText:SetText((addon.BrandDisplay and addon.BrandDisplay.optionsTitle) or "HORIZON SUITE")
 local closeBtn = CreateFrame("Button", nil, panel)
 closeBtn:SetSize(28, 28)
 closeBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -10, -10)
@@ -2067,7 +2068,11 @@ end
 
 -- Build sidebar grouped by moduleKey (Modules, Focus, Presence)
 -- Use "modules" as sentinel for nil (WoW Lua disallows nil as table index)
-local MODULE_LABELS = { ["modules"] = L["OPTIONS_AXIS_GROUP"] or "Axis", ["focus"] = L["OPTIONS_FOCUS_GROUP"], ["presence"] = L["OPTIONS_FOCUS_PRESENCE"], ["insight"] = L["OPTIONS_AXIS_INSIGHT"] or "Insight", ["cache"] = L["OPTIONS_AXIS_CACHE"], ["vista"] = L["OPTIONS_AXIS_VISTA"] or "Vista" }
+local function BrandModule(k)
+    local t = addon.BrandDisplay and addon.BrandDisplay.module
+    return t and t[k] or nil
+end
+local MODULE_LABELS = { ["modules"] = BrandModule("axis") or "Axis", ["focus"] = BrandModule("focus"), ["presence"] = BrandModule("presence"), ["insight"] = BrandModule("insight"), ["cache"] = BrandModule("cache"), ["vista"] = BrandModule("vista") }
 local groups = {}
 for i, cat in ipairs(addon.OptionCategories) do
     local mk = cat.moduleKey or "modules"
