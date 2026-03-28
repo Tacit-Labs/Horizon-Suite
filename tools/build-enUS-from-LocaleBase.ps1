@@ -1,11 +1,12 @@
 # Build enUS.lua (reference) from LocaleBase.lua (source of truth).
 # enUS is not loaded in-game; use as a reference copy.
-# Run from options/ directory.
+# Run from repo root or any cwd; paths resolve from this script (tools/).
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$localeBasePath = Join-Path $scriptDir "LocaleBase.lua"
-$enUSPath = Join-Path $scriptDir "enUS.lua"
+$addonRoot = Split-Path $scriptDir -Parent
+$localeBasePath = Join-Path $addonRoot "options\LocaleBase.lua"
+$enUSPath = Join-Path $addonRoot "options\enUS.lua"
 
 if (-not (Test-Path $localeBasePath)) { Write-Error "LocaleBase.lua not found" }
 

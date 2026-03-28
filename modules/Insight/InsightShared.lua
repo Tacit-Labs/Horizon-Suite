@@ -32,7 +32,7 @@ Insight.SMALL_SIZE      = 10
 Insight.PANEL_BG        = { 0, 0, 0, 0.75 }
 Insight.PANEL_BORDER    = { 0.25, 0.25, 0.25, 0.30 }
 
-Insight.FADE_IN_DUR     = 0.15
+Insight.FADE_IN_DUR     = 0.4
 
 Insight.DEFAULT_ANCHOR  = "cursor"
 Insight.FIXED_POINT     = "BOTTOMRIGHT"
@@ -80,6 +80,12 @@ Insight.CINEMATIC_BACKDROP = {
 -- ============================================================================
 -- SHARED HELPERS
 -- ============================================================================
+
+--- True when Horizon Suite has the Insight module enabled in options.
+--- @return boolean
+function Insight.IsInsightEnabled()
+    return addon:IsModuleEnabled("insight")
+end
 
 local floor = math.floor
 
