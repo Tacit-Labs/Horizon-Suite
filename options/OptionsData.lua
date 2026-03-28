@@ -60,6 +60,12 @@ local INSIGHT_KEYS = {
     insightShowIcons       = true,
     insightClassIconSource = true,
     insightFontPath        = true,
+    insightHeaderSize      = true,
+    insightBodySize        = true,
+    insightBadgesSize      = true,
+    insightStatsSize       = true,
+    insightMountSize       = true,
+    insightTransmogSize    = true,
 }
 
 local ESSENCE_KEYS = {
@@ -1730,6 +1736,13 @@ local OptionCategories = {
             { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" },
             { type = "slider", name = L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"] or "Tooltip background opacity", desc = L["OPTIONS_AXIS_TOOLTIP_BG_OPACITY_PCT_DESC"] or "Tooltip background opacity (0–100%).", dbKey = "insightBgOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("insightBgOpacity", 0.75)) or 0.75; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("insightBgOpacity", math.max(0, math.min(100, v)) / 100) end },
             { type = "dropdown", name = L["OPTIONS_AXIS_TOOLTIP_FONT"] or "Tooltip font", desc = L["OPTIONS_AXIS_FONT_FAMILY_TOOLTIP_TEXT"] or "Font family used for all tooltip text.", dbKey = "insightFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("insightFontPath") end, get = function() return getDB("insightFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("insightFontPath", v) end, displayFn = DisplayPerElementFont },
+            { type = "section", name = L["OPTIONS_FOCUS_FONT_SIZES"] or "Font sizes" },
+            { type = "slider", name = L["OPTIONS_FOCUS_HEADER_SIZE"] or "Header size",       desc = L["OPTIONS_FOCUS_HEADER_FONT_SIZE"] or "Header font size.",                              dbKey = "insightHeaderSize",  min = 8, max = 24, get = function() return getDB("insightHeaderSize",  14) end, set = function(v) setDB("insightHeaderSize",  v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_BODY_SIZE"] or "Body size",         desc = L["OPTIONS_INSIGHT_BODY_FONT_SIZE"] or "Body font size.",                                dbKey = "insightBodySize",    min = 8, max = 20, get = function() return getDB("insightBodySize",    12) end, set = function(v) setDB("insightBodySize",    v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_BADGES_SIZE"] or "Badges size",     desc = L["OPTIONS_INSIGHT_BADGES_FONT_SIZE"] or "Status badges font size.",                     dbKey = "insightBadgesSize",  min = 6, max = 20, get = function() return getDB("insightBadgesSize",  12) end, set = function(v) setDB("insightBadgesSize",  v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_STATS_SIZE"] or "Stats size",       desc = L["OPTIONS_INSIGHT_STATS_FONT_SIZE"] or "M+ score, item level, and honor level font size.", dbKey = "insightStatsSize", min = 6, max = 20, get = function() return getDB("insightStatsSize",   11) end, set = function(v) setDB("insightStatsSize",   v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_MOUNT_SIZE"] or "Mount size",       desc = L["OPTIONS_INSIGHT_MOUNT_FONT_SIZE"] or "Mount name, source, and ownership font size.",  dbKey = "insightMountSize",   min = 6, max = 20, get = function() return getDB("insightMountSize",   11) end, set = function(v) setDB("insightMountSize",   v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_TRANSMOG_SIZE"] or "Transmog size", desc = L["OPTIONS_INSIGHT_TRANSMOG_FONT_SIZE"] or "Item appearance status font size.",          dbKey = "insightTransmogSize", min = 6, max = 20, get = function() return getDB("insightTransmogSize", 11) end, set = function(v) setDB("insightTransmogSize", v) end },
             { type = "section", name = L["OPTIONS_AXIS_PLAYER_TOOLTIP"] or "Player Tooltip" },
             { type = "toggle", name = L["OPTIONS_CORE_GUILD_RANK"] or "Guild rank", desc = L["OPTIONS_AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
             { type = "toggle", name = L["OPTIONS_AXIS_CHARACTER_TITLE"] or "Character title", desc = L["OPTIONS_AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },

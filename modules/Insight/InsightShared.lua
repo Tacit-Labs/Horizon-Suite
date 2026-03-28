@@ -25,6 +25,38 @@ local function GetInsightFontPath()
     end
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
+
+local function GetInsightHeaderSize()
+    return math.max(8, tonumber(addon.GetDB and addon.GetDB("insightHeaderSize", Insight.HEADER_SIZE)) or Insight.HEADER_SIZE)
+end
+local function GetInsightBodySize()
+    return math.max(8, tonumber(addon.GetDB and addon.GetDB("insightBodySize", Insight.BODY_SIZE)) or Insight.BODY_SIZE)
+end
+local function GetInsightBadgesSize()
+    return math.max(6, tonumber(addon.GetDB and addon.GetDB("insightBadgesSize", 12)) or 12)
+end
+local function GetInsightStatsSize()
+    return math.max(6, tonumber(addon.GetDB and addon.GetDB("insightStatsSize", 11)) or 11)
+end
+local function GetInsightMountSize()
+    return math.max(6, tonumber(addon.GetDB and addon.GetDB("insightMountSize", 11)) or 11)
+end
+local function GetInsightTransmogSize()
+    return math.max(6, tonumber(addon.GetDB and addon.GetDB("insightTransmogSize", 11)) or 11)
+end
+
+function Insight.TagLines(tooltip, tag, fn)
+    local before = tooltip:NumLines()
+    fn()
+    local after = tooltip:NumLines()
+    if after > before then
+        tooltip._insightLineTags = tooltip._insightLineTags or {}
+        for i = before + 1, after do
+            tooltip._insightLineTags[i] = tag
+        end
+    end
+end
+
 Insight.HEADER_SIZE     = 14
 Insight.BODY_SIZE       = 12
 Insight.SMALL_SIZE      = 10
@@ -239,35 +271,23 @@ end
 
 local function StyleFonts(tooltip)
     if not tooltip then return end
-    local S = Insight.Scaled
-    local metadataStartLine = nil
-    if tooltip._insightItemMetadata then
-        local name = tooltip:GetName()
-        if name then
-            for i = 1, tooltip:NumLines() do
-                local left = _G[name .. "TextLeft" .. i]
-                if left and Insight.SafeFontTextEquals(left, Insight.SEPARATOR, " ") then
-                    metadataStartLine = i
-                    break
-                end
-            end
-        end
-    end
+    local S        = Insight.Scaled
+    local tags     = tooltip._insightLineTags
+    local headerSz = GetInsightHeaderSize()
+    local bodySz   = GetInsightBodySize()
+    local sizeForTag = {
+        badges   = GetInsightBadgesSize(),
+        stats    = GetInsightStatsSize(),
+        mount    = GetInsightMountSize(),
+        transmog = GetInsightTransmogSize(),
+    }
 
     Insight.ForTooltipLines(tooltip, function(i, left, right)
-        if left then
-            local sz
-            if metadataStartLine and i >= metadataStartLine then
-                sz = S(Insight.SMALL_SIZE)
-            else
-                sz = (i == 1) and S(Insight.HEADER_SIZE) or S(Insight.BODY_SIZE)
-            end
-            left:SetFont(GetInsightFontPath(), sz, "OUTLINE")
-        end
-        if right then
-            local sz = (metadataStartLine and i >= metadataStartLine) and S(Insight.SMALL_SIZE) or S(Insight.BODY_SIZE)
-            right:SetFont(GetInsightFontPath(), sz, "OUTLINE")
-        end
+        local tag    = tags and tags[i]
+        local sz     = tag and sizeForTag[tag] or ((i == 1) and headerSz or bodySz)
+        local rightSz = tag and sizeForTag[tag] or bodySz
+        if left  then left:SetFont(GetInsightFontPath(),  S(sz),      "OUTLINE") end
+        if right then right:SetFont(GetInsightFontPath(), S(rightSz), "OUTLINE") end
     end)
 end
 
