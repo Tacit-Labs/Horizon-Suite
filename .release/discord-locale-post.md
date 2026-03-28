@@ -21,7 +21,7 @@ Spanish    (esES)     ████████░░░  79%
 ```
 
 ### Want to help?
-1. Grab `locale_template.lua` from the `locales/` folder in the repo
+1. Grab `locale_template.lua` from the `Localisation/` folder in the repo
 2. Copy it and rename to your locale code (e.g. `itIT.lua`)
 3. Replace `LOCALE_CODE` on line 17 with your locale code
 4. Translate the values (right side of `=`) — skip any you're unsure about, English shows automatically

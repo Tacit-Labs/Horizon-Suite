@@ -80,14 +80,14 @@ do
     end
 
     local L = addon.L or {}
-    if L["QUEST COMPLETE"] and type(L["QUEST COMPLETE"]) == "string" then
-        local clean = strtrim(L["QUEST COMPLETE"])
+    if L["PRESENCE_QUEST_COMPLETE"] and type(L["PRESENCE_QUEST_COMPLETE"]) == "string" then
+        local clean = strtrim(L["PRESENCE_QUEST_COMPLETE"])
         if clean ~= "" and #clean > 2 then
             questTextKeywords[#questTextKeywords + 1] = clean
         end
     end
-    if L["QUEST ACCEPTED"] and type(L["QUEST ACCEPTED"]) == "string" then
-        local clean = strtrim(L["QUEST ACCEPTED"])
+    if L["PRESENCE_QUEST_ACCEPTED"] and type(L["PRESENCE_QUEST_ACCEPTED"]) == "string" then
+        local clean = strtrim(L["PRESENCE_QUEST_ACCEPTED"])
         if clean ~= "" and #clean > 2 then
             questTextKeywords[#questTextKeywords + 1] = clean
             questAcceptedKeywords[#questAcceptedKeywords + 1] = clean
@@ -375,7 +375,7 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
     local L = addon.L or {}
     local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID) and Strip(C_QuestLog.GetTitleForQuestID(questID) or "") or ""
     if IsDNTQuest(questName) then return end
-    local title = (questName ~= "" and questName) or L["QUEST UPDATE"]
+    local title = (questName ~= "" and questName) or L["PRESENCE_QUEST_UPDATE"]
     DbgWQ("ExecuteQuestUpdate QueueOrPlay questID=", questID, "title=", title, "sub=", normalized, "source=", source, "isNew=", isNew, "isBlind=", isBlindUpdate)
 
     lastUIInfoMsg = msg
@@ -514,16 +514,16 @@ local function Quest_OnQuestAccepted(questID)
         if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceWorldQuestAccept", "presenceQuestEvents", true)) then return end
             local L = addon.L or {}
-            addon.Presence.QueueOrPlay("WORLD_QUEST_ACCEPT", L["WORLD QUEST ACCEPTED"], questName, opts)
+            addon.Presence.QueueOrPlay("WORLD_QUEST_ACCEPT", L["PRESENCE_WORLD_QUEST_ACCEPTED"], questName, opts)
         else
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)) then return end
             local L = addon.L or {}
-            addon.Presence.QueueOrPlay("QUEST_ACCEPT", L["QUEST ACCEPTED"], questName, opts)
+            addon.Presence.QueueOrPlay("QUEST_ACCEPT", L["PRESENCE_QUEST_ACCEPTED"], questName, opts)
         end
     else
         if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)) then return end
         local L = addon.L or {}
-        addon.Presence.QueueOrPlay("QUEST_ACCEPT", L["QUEST ACCEPTED"], L["New Quest"], opts)
+        addon.Presence.QueueOrPlay("QUEST_ACCEPT", L["PRESENCE_QUEST_ACCEPTED"], L["PRESENCE_NEW_QUEST"], opts)
     end
 end
 
@@ -541,13 +541,13 @@ local function Quest_OnQuestTurnedIn(questID)
         if IsDNTQuest(questName) then return end
         if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)) then return end
-            addon.Presence.QueueOrPlay("WORLD_QUEST", L["WORLD QUEST COMPLETE"] or "WORLD QUEST COMPLETE", questName, opts)
+            addon.Presence.QueueOrPlay("WORLD_QUEST", L["PRESENCE_WORLD_QUEST_COMPLETE"] or "WORLD QUEST COMPLETE", questName, opts)
             DisposeQuestState(questID)
             return
         end
     end
     if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestComplete", "presenceQuestEvents", true)) then return end
-    addon.Presence.QueueOrPlay("QUEST_COMPLETE", L["QUEST COMPLETE"] or "QUEST COMPLETE", questName, opts)
+    addon.Presence.QueueOrPlay("QUEST_COMPLETE", L["PRESENCE_QUEST_COMPLETE"] or "QUEST COMPLETE", questName, opts)
     DisposeQuestState(questID)
 end
 
@@ -643,7 +643,7 @@ local function Quest_OnUIInfoMessage(msgType, msg)
             end
             DbgWQ("UI_INFO_MESSAGE standalone popup:", "sub=", normalized)
             local L = addon.L or {}
-            addon.Presence.QueueOrPlay("QUEST_UPDATE", L["QUEST UPDATE"], normalized, { source = "UI_INFO_MESSAGE" })
+            addon.Presence.QueueOrPlay("QUEST_UPDATE", L["PRESENCE_QUEST_UPDATE"], normalized, { source = "UI_INFO_MESSAGE" })
         end)
     end
 end

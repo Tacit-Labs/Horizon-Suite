@@ -136,9 +136,9 @@ local function CreateButton()
         FadeButton(1)
         if GameTooltip then
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-            GameTooltip:SetText(L["Options"] or "Options", nil, nil, nil, nil, true)
+            GameTooltip:SetText(L["PRESENCE_OPTIONS"] or "Options", nil, nil, nil, nil, true)
             local locked = IsMinimapButtonLocked()
-            local hint = locked and (L["Locked"] or "Locked") or (L["Drag to move (when unlocked)."] or "Drag to move (when unlocked).")
+            local hint = locked and (L["PRESENCE_LOCKED"] or "Locked") or (L["PRESENCE_DRAG_TO_MOVE_WHEN_UNLOCKED"] or "Drag to move (when unlocked).")
             GameTooltip:AddLine(hint, 0.6, 0.6, 0.6, true)
             GameTooltip:Show()
         end

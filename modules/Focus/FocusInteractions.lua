@@ -16,7 +16,7 @@ local function AppendWoWheadLineToTooltip(entry)
     if not addon.GetDB("focusShowWoWheadLink", true) then return end
     local url = addon.GetWoWheadURL(entry)
     if not url then return end
-    local text = (addon.L and addon.L["View on WoWhead"]) or "View on WoWhead"
+    local text = (addon.L and addon.L["OPTIONS_FOCUS_VIEW_WOWHEAD"]) or "View on WoWhead"
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine(("|cff00b4ff|Hurl:%s|h[%s]|h|r"):format(url, text), 0.4, 0.7, 1)
 end
@@ -87,7 +87,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         local inGroup = (GetNumGroupMembers and GetNumGroupMembers() > 1) or (UnitInParty and UnitInParty("player"))
         if inGroup then
             menuList[#menuList + 1] = {
-                text = _G.SHARE_QUEST or L["Share with party"] or "Share with party",
+                text = _G.SHARE_QUEST or L["OPTIONS_FOCUS_SHARE_PARTY"] or "Share with party",
                 notCheckable = true,
                 func = function()
                     if C_QuestLog and C_QuestLog.SetSelectedQuest then C_QuestLog.SetSelectedQuest(questID) end
@@ -98,7 +98,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
     end
     if C_QuestLog and C_QuestLog.CanAbandonQuest and C_QuestLog.CanAbandonQuest(questID) then
         menuList[#menuList + 1] = {
-            text = _G.ABANDON_QUEST or L["Abandon quest"] or "Abandon quest",
+            text = _G.ABANDON_QUEST or L["OPTIONS_FOCUS_ABANDON_QUEST"] or "Abandon quest",
             notCheckable = true,
             func = function()
                 StaticPopup_Show("HORIZONSUITE_ABANDON_QUEST", questName or "this quest", nil, { questID = questID })
@@ -107,7 +107,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
     end
     if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
         menuList[#menuList + 1] = {
-            text = L["Stop tracking"] or "Stop tracking",
+            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function()
                 if addon.RemoveWorldQuestWatch then addon.RemoveWorldQuestWatch(questID) end
@@ -116,7 +116,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         }
     else
         menuList[#menuList + 1] = {
-            text = L["Stop tracking"] or "Stop tracking",
+            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function()
                 if C_QuestLog and C_QuestLog.RemoveQuestWatch then C_QuestLog.RemoveQuestWatch(questID) end
@@ -826,10 +826,10 @@ for i = 1, addon.POOL_SIZE do
                             C_QuestLog.SetSelectedQuest(self.questID)
                             QuestLogPushQuest()
                         else
-                            printFn("|cffffcc00" .. (L["You must be in a party to share this quest."] or "You must be in a party to share this quest.") .. "|r")
+                            printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"] or "You must be in a party to share this quest.") .. "|r")
                         end
                     else
-                        printFn("|cffffcc00" .. (L["This quest cannot be shared."] or "This quest cannot be shared.") .. "|r")
+                        printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"] or "This quest cannot be shared.") .. "|r")
                     end
                     return
                 end

@@ -127,6 +127,19 @@ locale-audit:
         exit 1
       fi
 
+# Fail if any locale is missing keys vs Localisation/enUS.lua (merge requests & branch pipelines).
+locale-check:
+  stage: build
+  image: node:20-slim
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[\d.]+$/
+      when: never
+    - if: $BETA_BUILD == "1"
+      when: never
+    - when: on_success
+  script:
+    - node tools/locale_audit.js --strict
+
 # Use BigWigs packager: package addon, upload to CurseForge and Wago.
 # Mirrors .github/workflows/release.yml behavior.
 build:

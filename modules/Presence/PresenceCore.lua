@@ -919,8 +919,8 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, 
 
     local showDiscovery = opts.showDiscovery or (not forPreview and addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
     if showDiscovery then
-        layer.discoveryText:SetText(addon.L and addon.L["Discovered"] or "Discovered")
-        layer.discoveryShadow:SetText(addon.L and addon.L["Discovered"] or "Discovered")
+        layer.discoveryText:SetText(addon.L and addon.L["PRESENCE_DISCOVERED"] or "Discovered")
+        layer.discoveryShadow:SetText(addon.L and addon.L["PRESENCE_DISCOVERED"] or "Discovered")
         local dc = getDiscoveryColor()
         layer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
         layer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
@@ -1284,8 +1284,8 @@ end
 local function ShowDiscoveryLine()
     if not curLayer then return end
     if addon.GetDB and not addon.GetDB("showPresenceDiscovery", true) then return end
-    curLayer.discoveryText:SetText(addon.L["Discovered"])
-    curLayer.discoveryShadow:SetText(addon.L["Discovered"])
+    curLayer.discoveryText:SetText(addon.L["PRESENCE_DISCOVERED"])
+    curLayer.discoveryShadow:SetText(addon.L["PRESENCE_DISCOVERED"])
     local dc = getDiscoveryColor()
     curLayer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
     curLayer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
@@ -1547,19 +1547,19 @@ local function getPreviewSample(typeName)
         return { title = GetZoneText() or "Valdrakken", subtitle = GetSubZoneText() or "The Seat of Aspects" }
     end
     if typeName == "QUEST_ACCEPT" then
-        return { title = L["QUEST ACCEPTED"] or "QUEST ACCEPTED", subtitle = L["The Fate of the Horde"] or "The Fate of the Horde" }
+        return { title = L["PRESENCE_QUEST_ACCEPTED"] or "QUEST ACCEPTED", subtitle = L["PRESENCE_THE_FATE_OF_THE_HORDE"] or "The Fate of the Horde" }
     end
     if typeName == "WORLD_QUEST_ACCEPT" then
-        return { title = L["WORLD QUEST ACCEPTED"] or "WORLD QUEST ACCEPTED", subtitle = "Azerite Mining" }
+        return { title = L["PRESENCE_WORLD_QUEST_ACCEPTED"] or "WORLD QUEST ACCEPTED", subtitle = "Azerite Mining" }
     end
     if typeName == "QUEST_UPDATE" then
-        return { title = L["QUEST UPDATE"] or "QUEST UPDATE", subtitle = "Boar Pelts: 7/10" }
+        return { title = L["PRESENCE_QUEST_UPDATE"] or "QUEST UPDATE", subtitle = "Boar Pelts: 7/10" }
     end
     if typeName == "QUEST_COMPLETE" then
-        return { title = L["QUEST COMPLETE"] or "QUEST COMPLETE", subtitle = L["Objective Secured"] or "Objective Secured" }
+        return { title = L["PRESENCE_QUEST_COMPLETE"] or "QUEST COMPLETE", subtitle = L["PRESENCE_OBJECTIVE_SECURED"] or "Objective Secured" }
     end
     if typeName == "WORLD_QUEST" then
-        return { title = L["WORLD QUEST COMPLETE"] or "WORLD QUEST COMPLETE", subtitle = "Azerite Mining" }
+        return { title = L["PRESENCE_WORLD_QUEST_COMPLETE"] or "WORLD QUEST COMPLETE", subtitle = "Azerite Mining" }
     end
     if typeName == "SCENARIO_START" then
         return { title = "Cinderbrew Meadery", subtitle = "Defend the tavern from attackers", opts = { category = "SCENARIO" } }
@@ -1568,23 +1568,23 @@ local function getPreviewSample(typeName)
         return { title = "Scenario", subtitle = "Dragon Glyphs: 3/5", opts = { category = "SCENARIO" } }
     end
     if typeName == "SCENARIO_COMPLETE" then
-        return { title = L["Scenario Complete"] or "Scenario Complete", subtitle = "Objective completed", opts = { category = "SCENARIO" } }
+        return { title = L["PRESENCE_SCENARIO_COMPLETE"] or "Scenario Complete", subtitle = "Objective completed", opts = { category = "SCENARIO" } }
     end
     if typeName == "ACHIEVEMENT" then
-        return { title = L["ACHIEVEMENT EARNED"] or "ACHIEVEMENT EARNED", subtitle = L["Exploring Khaz Algar"] or "Exploring Khaz Algar" }
+        return { title = L["PRESENCE_ACHIEVEMENT_EARNED"] or "ACHIEVEMENT EARNED", subtitle = L["PRESENCE_EXPLORING_KHAZ_ALGAR"] or "Exploring Khaz Algar" }
     end
     if typeName == "ACHIEVEMENT_PROGRESS" then
-        return { title = L["Exploring the Midnight Isles"] or "Exploring the Midnight Isles", subtitle = "Dragon Glyphs: 3/5" }
+        return { title = L["PRESENCE_EXPLORING_THE_MIDNIGHT_ISLES"] or "Exploring the Midnight Isles", subtitle = "Dragon Glyphs: 3/5" }
     end
     if typeName == "BOSS_EMOTE" then
         return { title = "Ragnaros", subtitle = "BY FIRE BE PURGED!" }
     end
     if typeName == "LEVEL_UP" then
-        local fmt = L["You have reached level %s"] or "You have reached level %s"
-        return { title = L["LEVEL UP"] or "LEVEL UP", subtitle = fmt:format("80") }
+        local fmt = L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"] or "You have reached level %s"
+        return { title = L["PRESENCE_LEVEL_UP"] or "LEVEL UP", subtitle = fmt:format("80") }
     end
     if typeName == "RARE_DEFEATED" then
-        return { title = L["RARE DEFEATED"] or "RARE DEFEATED", subtitle = "Gorged Great-Horn" }
+        return { title = L["PRESENCE_RARE_DEFEATED"] or "RARE DEFEATED", subtitle = "Gorged Great-Horn" }
     end
     return nil
 end
@@ -1919,15 +1919,15 @@ local function CreatePreviewWidget(parent, opts)
             return addon.GetPresencePreviewDropdownOptions()
         end
         return {
-            { L["Level up"] or "Level up", "LEVEL_UP" }
+            { L["PRESENCE_LEVEL_UP_TOGGLE"] or "Level up", "LEVEL_UP" }
         }
     end
 
     local previewData
     local dd = _G.OptionsWidgets_CreateCustomDropdown(
         container,
-        L["Preview toast type"] or "Preview toast type",
-        L["Select a toast type to preview."] or "Select a toast type to preview.",
+        L["OPTIONS_PRESENCE_PREVIEW_TOAST_TYPE"] or "Preview toast type",
+        L["OPTIONS_PRESENCE_SELECT_A_TOAST_TYPE_PREVIEW"] or "Select a toast type to preview.",
         dropdownOptsFn,
         getTypeName,
         function(v)
@@ -1946,24 +1946,24 @@ local function CreatePreviewWidget(parent, opts)
     local actionAnchor
     local animateBtn
     if _G.OptionsWidgets_CreateButton then
-        animateBtn = _G.OptionsWidgets_CreateButton(container, L["Animate preview"] or "Animate preview", function()
+        animateBtn = _G.OptionsWidgets_CreateButton(container, L["OPTIONS_PRESENCE_ANIMATE_PREVIEW"] or "Animate preview", function()
             if previewData then
                 PlayAnimatedPreview(previewData, getTypeName())
             end
             notify()
-        end, { height = 22, width = 120, tooltip = L["Play the selected toast animation inside this preview window."] or "Play the selected toast animation inside this preview window." })
+        end, { height = 22, width = 120, tooltip = L["OPTIONS_PRESENCE_PLAY_SELECTED_TOAST_ANIMATION_INSIDE_PREVIE"] or "Play the selected toast animation inside this preview window." })
         animateBtn:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -12)
         actionAnchor = animateBtn
     end
 
     local popoutBtn
     if showPopoutButton and _G.OptionsWidgets_CreateButton then
-        popoutBtn = _G.OptionsWidgets_CreateButton(container, L["Open detached preview"] or "Open detached preview", function()
+        popoutBtn = _G.OptionsWidgets_CreateButton(container, L["OPTIONS_PRESENCE_OPEN_DETACHED_PREVIEW"] or "Open detached preview", function()
             if addon.Presence and addon.Presence.TogglePreviewPopout then
                 addon.Presence.TogglePreviewPopout()
             end
             notify()
-        end, { height = 22, width = 170, tooltip = L["Open a movable preview window that stays visible while you change other Presence settings."] or "Open a movable preview window that stays visible while you change other Presence settings." })
+        end, { height = 22, width = 170, tooltip = L["OPTIONS_PRESENCE_OPEN_A_MOVABLE_PREVIEW_WINDOW_STAYS"] or "Open a movable preview window that stays visible while you change other Presence settings." })
         if animateBtn then
             popoutBtn:SetPoint("LEFT", animateBtn, "RIGHT", 8, 0)
             popoutBtn:SetPoint("TOP", animateBtn, "TOP", 0, 0)
@@ -2066,14 +2066,14 @@ local function ensurePreviewPopout()
     local title = header:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
     title:SetTextColor(1, 1, 1, 1)
-    title:SetText(L["Detached preview"] or "Detached preview")
+    title:SetText(L["OPTIONS_PRESENCE_DETACHED_PREVIEW"] or "Detached preview")
     title:SetPoint("LEFT", header, "LEFT", 12, 0)
 
     local subtitle = frame:CreateFontString(nil, "OVERLAY")
     subtitle:SetFont("Fonts\\ARIALN.TTF", 11, "")
     subtitle:SetTextColor(0.65, 0.7, 0.8, 1)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText(L["Keep this open while adjusting Typography or Colors."] or "Keep this open while adjusting Typography or Colors.")
+    subtitle:SetText(L["OPTIONS_PRESENCE_KEEP_OPEN_WHILE_ADJUSTING_TYPOGRAPHY_COLORS"] or "Keep this open while adjusting Typography or Colors.")
     subtitle:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -44)
     subtitle:SetPoint("RIGHT", frame, "RIGHT", -48, 0)
 

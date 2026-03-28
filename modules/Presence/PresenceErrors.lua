@@ -14,7 +14,7 @@ if not addon or not addon.Presence then return end
 local uiErrorsHooked = false
 
 local function OnUIErrorsAddMessage(self, msg)
-    local discoveredStr = (addon.L and addon.L["Discovered"]) or "Discovered"
+    local discoveredStr = (addon.L and addon.L["PRESENCE_DISCOVERED"]) or "Discovered"
     if msg and msg:find(discoveredStr, 1, true) then
         addon.Presence.SetPendingDiscovery()
         local phase = addon.Presence.animPhase and addon.Presence.animPhase()

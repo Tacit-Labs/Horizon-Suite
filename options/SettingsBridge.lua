@@ -28,14 +28,14 @@ local function CreateSettingsPanel()
     local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     btn:SetSize(200, 22)
     btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 20, -20)
-    btn:SetText(L["Open Horizon Suite"] or "Open Horizon Suite")
+    btn:SetText(L["PRESENCE_OPEN_HORIZON_SUITE"] or "Open Horizon Suite")
     btn:SetScript("OnClick", ShowOptions)
 
     local label = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     label:SetPoint("TOPLEFT", btn, "BOTTOMLEFT", 0, -12)
     label:SetPoint("RIGHT", panel, "RIGHT", -20, 0)
     label:SetNonSpaceWrap(true)
-    label:SetText(L["Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."] or "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules.")
+    label:SetText(L["PRESENCE_OPEN_FULL_HORIZON_SUITE_OPTIONS"] or "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules.")
 
     return panel
 end

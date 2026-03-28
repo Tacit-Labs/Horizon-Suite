@@ -137,17 +137,17 @@ Thanks to everyone who has contributed to Horizon Suite:
 
 ## 🌐 Localizations
 
-The options panel is localized for:
+The addon UI is localized for:
 
-- **Chinese (zhCN)** — `options/zhCN.lua`
-- **French (frFR)** — `options/frFR.lua`
-- **German (deDE)** — `options/deDE.lua`
-- **Korean (koKR)** — `options/koKR.lua`
-- **Brazilian Portuguese (ptBR)** — `options/ptBR.lua`
-- **Russian (ruRU)** — `options/ruRU.lua`
-- **Spanish (esES)** — `options/esES.lua`
+- **Chinese (zhCN)** — `Localisation/zhCN.lua`
+- **French (frFR)** — `Localisation/frFR.lua`
+- **German (deDE)** — `Localisation/deDE.lua`
+- **Korean (koKR)** — `Localisation/koKR.lua`
+- **Brazilian Portuguese (ptBR)** — `Localisation/ptBR.lua`
+- **Russian (ruRU)** — `Localisation/ruRU.lua`
+- **Spanish (esES)** — `Localisation/esES.lua`
 
-Contributions for additional locales are welcome via discord request.
+Contributions for additional locales are welcome — see **[TRANSLATING.md](TRANSLATING.md)** and Discord.
 
 ---
 

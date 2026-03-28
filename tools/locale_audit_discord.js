@@ -1,93 +1,108 @@
 #!/usr/bin/env node
 /**
- * Locale audit → Discord embed payload.
- *
- * Parses LocaleBase.lua and each locale file, generates a Discord webhook
- * JSON payload with an embed showing translation coverage.
- *
- * Outputs JSON to stdout. Used by CI (.gitlab-ci.yml locale-audit job).
+ * Locale audit → Discord embed payload (Localisation/).
  *
  * Usage: node tools/locale_audit_discord.js
  */
 
 const fs = require('fs');
 const path = require('path');
+const { parseEnUS, parseLocaleTranslations } = require('./lib/parseLocalisationEnUS.js');
+const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOCALES_DIR = path.join(ROOT, 'locales');
+const LOC = path.join(ROOT, 'Localisation');
+const META = path.join(ROOT, 'tools', 'locale-meta');
 
 const LOCALES = [
     { code: 'deDE', flag: '\uD83C\uDDE9\uD83C\uDDEA', name: 'German' },
-    { code: 'zhCN', flag: '\uD83C\uDDE8\uD83C\uDDF3', name: 'Chinese' },
+    { code: 'zhCN', flag: '\uD83C\uDDE8\uD83C\uDDF3', name: 'Chinese (CN)' },
     { code: 'ptBR', flag: '\uD83C\uDDE7\uD83C\uDDF7', name: 'Portuguese' },
     { code: 'frFR', flag: '\uD83C\uDDEB\uD83C\uDDF7', name: 'French' },
     { code: 'koKR', flag: '\uD83C\uDDF0\uD83C\uDDF7', name: 'Korean' },
     { code: 'ruRU', flag: '\uD83C\uDDF7\uD83C\uDDFA', name: 'Russian' },
-    { code: 'esES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: 'Spanish' },
+    { code: 'esES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: 'Spanish (ES)' },
 ];
 
-// ── Parse keys ────────────────────────────────────────────────────────
-
-function parseKeys(filePath) {
-    const src = fs.readFileSync(filePath, 'utf8');
-    const keys = new Set();
-    for (const line of src.split(/\r?\n/)) {
-        const m = line.match(/^L\["(.+?)"\]\s*=/);
-        if (m) keys.add(m[1]);
+function loadMeta(locale) {
+    const p = path.join(META, `${locale}.json`);
+    if (!fs.existsSync(p)) return {};
+    try {
+        return JSON.parse(fs.readFileSync(p, 'utf8'));
+    } catch {
+        return {};
     }
-    return keys;
 }
 
-// ── Progress bar ──────────────────────────────────────────────────────
-
 function progressBar(pct, len) {
-    const filled = Math.round(pct / 100 * len);
+    const filled = Math.round((pct / 100) * len);
     return '\u2588'.repeat(filled) + '\u2591'.repeat(len - filled);
 }
 
-// ── Main ──────────────────────────────────────────────────────────────
-
-const baseKeys = parseKeys(path.join(LOCALES_DIR, 'LocaleBase.lua'));
-const total = baseKeys.size;
+const { entries, keys } = parseEnUS(path.join(LOC, 'enUS.lua'));
+const enByKey = {};
+for (const e of entries) {
+    if (e.type === 'key') enByKey[e.symKey] = e.valueRaw;
+}
+const total = keys.length;
 
 const lines = [];
 lines.push('```');
-lines.push(`${'Language'.padEnd(22)} Coverage`);
-lines.push('-'.repeat(38));
+lines.push(`${'Language'.padEnd(24)} Real tr.   meta v/u/r`);
+lines.push('-'.repeat(48));
 
 for (const locale of LOCALES) {
-    const filePath = path.join(LOCALES_DIR, `${locale.code}.lua`);
-    let translated = 0;
-    if (fs.existsSync(filePath)) {
-        const localeKeys = parseKeys(filePath);
-        translated = [...baseKeys].filter(k => localeKeys.has(k)).length;
+    const filePath = path.join(LOC, `${locale.code}.lua`);
+    const translatedMap = parseLocaleTranslations(filePath);
+    const translated = keys.filter((k) => {
+        const rhs = translatedMap[k];
+        if (rhs === undefined) return false;
+        const enRhs = enByKey[k];
+        if (!enRhs) return true;
+        return decodedStringFromLuaRhs(rhs) !== decodedStringFromLuaRhs(enRhs);
+    }).length;
+    const pct = total ? Math.round((translated / total) * 100) : 0;
+    const bar = progressBar(pct, 10);
+    const meta = loadMeta(locale.code);
+    let v = 0,
+        u = 0,
+        r = 0;
+    for (const k of keys) {
+        const m = meta[k];
+        if (!m || !m.status) continue;
+        if (m.status === 'validated') v++;
+        else if (m.status === 'unvalidated') u++;
+        else if (m.status === 'needs_review') r++;
     }
-    const pct = Math.round(translated / total * 100);
-    const bar = progressBar(pct, 11);
-    lines.push(`${(locale.name + ' (' + locale.code + ')').padEnd(22)} ${bar}  ${pct}%`);
+    const label = `${locale.flag} ${locale.name} (${locale.code})`;
+    lines.push(`${label.padEnd(24)} ${bar} ${String(pct).padStart(3)}%  ${v}/${u}/${r}`);
 }
 
 lines.push('```');
 
 const description = [
-    `Translation coverage across **${total} strings**:\n`,
+    `Non-English strings vs **${total}** keys (enUS fallback does not count):\n`,
     lines.join('\n'),
     '',
+    '_meta v/u/r = validated / unvalidated / needs_review (tools/locale-meta/)_',
+    '',
     '**Want to help translate?**',
-    '1. Download the template: [locale_template.lua](https://gitlab.com/Crystilac/horizon-suite/-/blob/main/locales/locale_template.lua)',
-    '2. Copy, rename to your locale (e.g. `itIT.lua`), translate values',
+    '1. See [TRANSLATING.md](https://gitlab.com/Crystilac/horizon-suite/-/blob/main/TRANSLATING.md)',
+    '2. Use [locale_template.lua](https://gitlab.com/Crystilac/horizon-suite/-/blob/main/Localisation/locale_template.lua)',
     '3. Post your file in <#localisation-submission> for review!',
 ].join('\n');
 
 const payload = {
     username: 'Locale Audit',
-    embeds: [{
-        title: 'Horizon Suite \u2014 Translation Coverage',
-        description: description,
-        color: 0x00CCFF,
-        footer: { text: 'Auto-generated by CI \u2022 Updates on schedule' },
-        timestamp: new Date().toISOString(),
-    }],
+    embeds: [
+        {
+            title: 'Horizon Suite \u2014 Translation Coverage',
+            description: description,
+            color: 0x00ccff,
+            footer: { text: 'Auto-generated by CI \u2022 Updates on schedule' },
+            timestamp: new Date().toISOString(),
+        },
+    ],
 };
 
 process.stdout.write(JSON.stringify(payload, null, 2) + '\n');

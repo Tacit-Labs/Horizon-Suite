@@ -595,7 +595,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local resetHi = resetBtn:CreateTexture(nil, "HIGHLIGHT")
         resetHi:SetAllPoints(resetBtn)
         resetHi:SetColorTexture(1, 1, 1, 0.15)
-        local resetTt = (resetButton.tooltip or (L and L["Reset spacing"])) or "Reset spacing"
+        local resetTt = (resetButton.tooltip or (L and L["OPTIONS_FOCUS_RESET_SPACING"])) or "Reset spacing"
         resetBtn:SetScript("OnEnter", function()
             GameTooltip:SetOwner(resetBtn, "ANCHOR_RIGHT")
             GameTooltip:SetText(resetTt, 1, 1, 1, 1, true)
@@ -675,7 +675,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local ph = searchEdit:CreateFontString(nil, "OVERLAY")
         SetSafeFont(ph, Def.FontPath, Def.LabelSize, "OUTLINE")
         SetTextColor(ph, Def.TextColorSection)
-        ph:SetText(L["Search fonts..."] or "Search fonts...")
+        ph:SetText(L["OPTIONS_FOCUS_SEARCH_FONTS"] or "Search fonts...")
         ph:SetPoint("LEFT", searchEdit, "LEFT", 8, 0)
         ph:SetJustifyH("LEFT")
         searchEdit.placeholder = ph
@@ -1722,7 +1722,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
     local container = CreateFrame("Frame", nil, parent)
     container:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -Def.SectionGap)
     container:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 0)
-    local sectionLabel = OptionsWidgets_CreateSectionHeader(container, opt.name or L["Order"])
+    local sectionLabel = OptionsWidgets_CreateSectionHeader(container, opt.name or L["OPTIONS_FOCUS_ORDER"])
     sectionLabel:SetPoint("TOPLEFT", container, "TOPLEFT", Def.CardPadding, -Def.CardPadding)
 
     local rows = {}
@@ -1970,7 +1970,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
     end
     state.rows = rows
 
-    local resetBtn = OptionsWidgets_CreateButton(container, L["Reset to default"], function()
+    local resetBtn = OptionsWidgets_CreateButton(container, L["OPTIONS_FOCUS_RESET_DEFAULT"], function()
         if opt.set then opt.set(nil) end
         if addon.SetDB then addon.SetDB("groupOrder", nil) end
         local newKeys = opt.get and opt.get() or {}
@@ -2103,7 +2103,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             local emptyLabel = listFrame:CreateFontString(nil, "OVERLAY")
             SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, "OUTLINE")
             SetTextColor(emptyLabel, Def.TextColorSection)
-            emptyLabel:SetText(addon.L and addon.L["No hidden quests."] or "No hidden quests.")
+            emptyLabel:SetText(addon.L and addon.L["OPTIONS_CORE_HIDDEN_QUESTS"] or "No hidden quests.")
             emptyLabel:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
             local emptyRow = CreateFrame("Frame", nil, listFrame)
             emptyRow:SetHeight(20)
@@ -2132,7 +2132,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             nameLbl:SetPoint("LEFT", row, "LEFT", 0, 0)
             nameLbl:SetJustifyH("LEFT")
 
-            local unblockBtn = _G.OptionsWidgets_CreateButton(row, addon.L and addon.L["Unblock"] or "Unblock", function()
+            local unblockBtn = _G.OptionsWidgets_CreateButton(row, addon.L and addon.L["OPTIONS_CORE_UNBLOCK"] or "Unblock", function()
                 if addon.GetDB then
                     local bl = addon.GetDB("questBlacklist", nil)
                     if bl and type(bl) == "table" then

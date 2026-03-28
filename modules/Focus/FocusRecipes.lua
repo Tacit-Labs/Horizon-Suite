@@ -323,8 +323,8 @@ local function BuildRecipeObjectives(recipeID, isRecraft)
         return objectives
     end
 
-    local optionalHeader = (addon.L and addon.L["Optional reagents"]) or "Optional reagents"
-    local finishingHeader = (addon.L and addon.L["Finishing reagents"]) or "Finishing reagents"
+    local optionalHeader = (addon.L and addon.L["FOCUS_OPTIONAL_REAGENTS"]) or "Optional reagents"
+    local finishingHeader = (addon.L and addon.L["FOCUS_FINISHING_REAGENTS"]) or "Finishing reagents"
     local showOptional = addon.GetDB("showOptionalReagents", true)
     local showFinishing = addon.GetDB("showFinishingReagents", true)
     local showChoiceSlots = addon.GetDB("showChoiceSlots", true)

@@ -470,12 +470,12 @@ SlashCmdList["HSDASH"] = function(msg)
             end
 
             local moduleLabels = {
-                axis = L["Axis"] or "Axis",
-                focus = L["Focus"] or "Focus",
-                presence = L["Presence"] or "Presence",
-                vista = L["Vista"] or "Vista",
-                insight = L["Insight"] or "Insight",
-                cache = L["Cache"] or "Cache",
+                axis = L["OPTIONS_AXIS_GROUP"] or "Axis",
+                focus = L["OPTIONS_FOCUS_GROUP"] or "Focus",
+                presence = L["OPTIONS_FOCUS_PRESENCE"] or "Presence",
+                vista = L["OPTIONS_AXIS_VISTA"] or "Vista",
+                insight = L["OPTIONS_AXIS_INSIGHT"] or "Insight",
+                cache = L["OPTIONS_AXIS_CACHE"] or "Cache",
                 essence = "Essence",
                 meridian = "Meridian",
             }
@@ -1620,8 +1620,8 @@ SlashCmdList["HSDASH"] = function(msg)
             --- Open Axis → Modules detail with the Module Toggles accordion expanded (same as Welcome “Open module toggles” link).
             --- @return nil
             local function NavigateToModuleToggles()
-                local togglesSection = L["Module Toggles"] or "Module Toggles"
-                local modulesName = L["Modules"] or "Modules"
+                local togglesSection = L["OPTIONS_AXIS_MODULE_TOGGLES"] or "Module Toggles"
+                local modulesName = L["OPTIONS_AXIS_MODULES"] or "Modules"
                 local entryFound
                 local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
                 for _, e in ipairs(idx) do
@@ -2476,7 +2476,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             local defaultMap = opt.defaultMap or addon.QUEST_COLORS or {}
                             local swatches = {}
                             
-                            local sub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["Quest types"])
+                            local sub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["OPTIONS_FOCUS_QUEST_TYPES"])
                             sub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff)
                             yOff = yOff - 20
                             
@@ -2498,7 +2498,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                 swatches[#swatches+1] = row
                             end
                             
-                            local resetBtn = _G.OptionsWidgets_CreateButton(cmContainer, L["Reset quest types"], function()
+                            local resetBtn = _G.OptionsWidgets_CreateButton(cmContainer, L["OPTIONS_FOCUS_RESET_QUEST_TYPES"], function()
                                 _G.OptionsData_SetDB(opt.dbKey, nil)
                                 _G.OptionsData_SetDB("sectionColors", nil)
                                 for _, sw in ipairs(swatches) do if sw.Refresh then sw:Refresh() end end
@@ -2507,7 +2507,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             resetBtn:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 10, yOff)
                             yOff = yOff - 30
 
-                            local overridesSub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["Element overrides"])
+                            local overridesSub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["OPTIONS_FOCUS_ELEMENT_OVERRIDES"])
                             overridesSub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff - 10)
                             yOff = yOff - 30
                             
@@ -2523,7 +2523,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                 overrideRows[#overrideRows+1] = row
                             end
                             
-                            local resetOv = _G.OptionsWidgets_CreateButton(cmContainer, L["Reset overrides"], function()
+                            local resetOv = _G.OptionsWidgets_CreateButton(cmContainer, L["OPTIONS_FOCUS_RESET_OVERRIDES"], function()
                                 for _, ov in ipairs(opt.overrides or {}) do _G.OptionsData_SetDB(ov.dbKey, nil) end
                                 for _, r in ipairs(overrideRows) do if r.Refresh then r:Refresh() end end
                                 if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
@@ -2607,7 +2607,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                 nameLabel:SetPoint("TOPLEFT", card, "TOPLEFT", 10, -8)
                                 nameLabel:SetJustifyH("LEFT")
 
-                                local resetBtn = _G.OptionsWidgets_CreateButton(card, L["Reset"], function()
+                                local resetBtn = _G.OptionsWidgets_CreateButton(card, L["OPTIONS_FOCUS_RESET"], function()
                                     local m = getMatrix()
                                     if m.categories and m.categories[key] then
                                         m.categories[key] = nil
@@ -2623,12 +2623,12 @@ SlashCmdList["HSDASH"] = function(msg)
                                 local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                                 local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["Stage"]) or "Stage") or ((addon.L and addon.L["Zone"]) or "Zone")
+                                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"]) or "Stage") or ((addon.L and addon.L["OPTIONS_FOCUS_ZONE"]) or "Zone")
                                 local catDefs = {
-                                    { subKey = "section",   abbr = L["Section"] or "Section",   full = "Section",   def = unifiedDef },
-                                    { subKey = "title",     abbr = L["Title"] or "Title",     full = "Title",     def = unifiedDef },
-                                    { subKey = "zone",      abbr = (key == "SCENARIO") and (L["Stage"] or "Stage") or (L["Zone"] or "Zone"), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
-                                    { subKey = "objective", abbr = L["Objective"] or "Objective", full = "Objective", def = unifiedDef },
+                                    { subKey = "section",   abbr = L["OPTIONS_FOCUS_SECTION"] or "Section",   full = "Section",   def = unifiedDef },
+                                    { subKey = "title",     abbr = L["OPTIONS_FOCUS_TITLE"] or "Title",     full = "Title",     def = unifiedDef },
+                                    { subKey = "zone",      abbr = (key == "SCENARIO") and (L["UI_STAGE"] or "Stage") or (L["OPTIONS_FOCUS_ZONE"] or "Zone"), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                                    { subKey = "objective", abbr = L["OPTIONS_FOCUS_OBJECTIVE"] or "Objective", full = "Objective", def = unifiedDef },
                                 }
 
                                 card.swatches = {}
@@ -2784,9 +2784,9 @@ SlashCmdList["HSDASH"] = function(msg)
                             local GROUPING_OVERRIDE_KEYS = { CURRENT = true, NEARBY = true, COMPLETE = true }
                             local yOff = 0
 
-                            perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Per category"])
+                            perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["OPTIONS_FOCUS_PER_CATEGORY"])
                             perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
-                            resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["Reset all to defaults"], function()
+                            resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["OPTIONS_FOCUS_RESET_DEFAULTS"], function()
                                 _G.OptionsData_SetDB(opt.dbKey, nil)
                                 _G.OptionsData_SetDB("questColors", nil)
                                 _G.OptionsData_SetDB("sectionColors", nil)
@@ -2817,11 +2817,11 @@ SlashCmdList["HSDASH"] = function(msg)
                             yOff = yOff - gridH
 
                             yOff = yOff - 16
-                            goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Section Overrides"])
+                            goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["OPTIONS_FOCUS_SECTION_OVERRIDES"])
                             goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
                             yOff = yOff - 28
 
-                            ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Ready to Turn In overrides base colours"], L["Ready to Turn In uses its colours for quests in that section."], function() return getOverride("useCompletedOverride") end, function(v)
+                            ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_READY_TURN_COLOURS_QUESTS"], function() return getOverride("useCompletedOverride") end, function(v)
                                 setOverride("useCompletedOverride", v)
                                 local gf = overrideGroupMap["COMPLETE"]
                                 if gf then gf:SetShown(v and true or false); LayoutAll() end
@@ -2830,7 +2830,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
                             yOff = yOff - 40
 
-                            ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Zone overrides base colours"], L["Current Zone uses its colours for quests in that section."], function() return getOverride("useCurrentZoneOverride") end, function(v)
+                            ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_CURRENT_ZONE_COLOURS_QUESTS_SEC"], function() return getOverride("useCurrentZoneOverride") end, function(v)
                                 setOverride("useCurrentZoneOverride", v)
                                 local gf = overrideGroupMap["NEARBY"]
                                 if gf then gf:SetShown(v and true or false); LayoutAll() end
@@ -2839,7 +2839,7 @@ SlashCmdList["HSDASH"] = function(msg)
                             ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
                             yOff = yOff - 40
 
-                            ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Current Quest overrides base colours"], L["Current Quest uses its colours for quests in that section."], function() return getOverride("useCurrentQuestOverride") end, function(v)
+                            ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_CURRENT_QUEST_COLOURS_QUESTS_SE"], function() return getOverride("useCurrentQuestOverride") end, function(v)
                                 setOverride("useCurrentQuestOverride", v)
                                 local gf = overrideGroupMap["CURRENT"]
                                 if gf then gf:SetShown(v and true or false); LayoutAll() end
@@ -2876,11 +2876,11 @@ SlashCmdList["HSDASH"] = function(msg)
                             end
 
                             yOff = yOff - 16
-                            otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["Other colors"])
+                            otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["OPTIONS_FOCUS_COLORS"])
                             otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
                             yOff = yOff - 28
 
-                            ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["Use distinct color for completed objectives"], L["When on, completed objectives use the color below."], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v)
+                            ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_DISTINCT_COLOR_COMPLETED_OBJECTIVES"], L["OPTIONS_CORE_COMPLETED_OBJECTIVES_COLOR_BELOW"], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v)
                                 _G.OptionsData_SetDB("useCompletedObjectiveColor", v)
                                 notifyFn()
                                 if completedObjRow then completedObjRow:SetShown(v and true or false); LayoutAll() end
@@ -2890,10 +2890,10 @@ SlashCmdList["HSDASH"] = function(msg)
                             yOff = yOff - 40
 
                             local otherDefs = {
-                                { dbKey = "highlightColor", label = L["Highlight"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
-                                { dbKey = "completedObjectiveColor", label = L["Completed objective"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
-                                { dbKey = "progressBarFillColor", label = L["Progress bar fill"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return _G.OptionsData_GetDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
-                                { dbKey = "progressBarTextColor", label = L["Progress bar text"], def = { 0.95, 0.95, 0.95 } },
+                                { dbKey = "highlightColor", label = L["OPTIONS_FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
+                                { dbKey = "completedObjectiveColor", label = L["OPTIONS_FOCUS_COMPLETED_OBJECTIVE"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
+                                { dbKey = "progressBarFillColor", label = L["OPTIONS_FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return _G.OptionsData_GetDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
+                                { dbKey = "progressBarTextColor", label = L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT"], def = { 0.95, 0.95, 0.95 } },
                             }
 
                             for _, od in ipairs(otherDefs) do
@@ -2990,7 +2990,7 @@ SlashCmdList["HSDASH"] = function(msg)
             -- Copy-to-clipboard: same custom dialog as Patch Notes "Full changelog" (addon.ShowURLCopyBox in core/Core.lua)
             local function ShowCopyURL(label, url)
                 if addon.ShowURLCopyBox then
-                    addon.ShowURLCopyBox(url, (L["Copy link — %s"] or "Copy link — %s"):format(label))
+                    addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
                 end
             end
 
@@ -3065,12 +3065,12 @@ SlashCmdList["HSDASH"] = function(msg)
                 lbl:SetTextColor(tile._moduleLabelR, tile._moduleLabelG, tile._moduleLabelB)
 
                 if moduleKey and PREVIEW_MODULE_KEYS[moduleKey] then
-                    local prevLabel = "(" .. (L["Preview"] or "Preview") .. ")"
+                    local prevLabel = "(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")"
                     local prevBadge = MakeText(tile, prevLabel, 9, 34/255, 139/255, 34/255, "CENTER")
                     prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
                     tile.previewBadge = prevBadge
                 elseif moduleKey and COMING_SOON_MODULE_KEYS[moduleKey] then
-                    local csLabel = "(" .. (L["Coming Soon"] or "Coming Soon") .. ")"
+                    local csLabel = "(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")"
                     local csBadge = MakeText(tile, csLabel, 9, 0.55, 0.70, 0.90, "CENTER")
                     csBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
                     tile.previewBadge = csBadge
@@ -3202,7 +3202,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 end)
                 tile:SetScript("OnClick", function()
                     if tile._isComingSoon then
-                        ShowCopyURL(L["Discord"] or "Discord", "https://discord.com/invite/e7nW2f4VQj")
+                        ShowCopyURL(L["DASH_DISCORD"] or "Discord", "https://discord.com/invite/e7nW2f4VQj")
                     elseif tile._isSkeleton then
                         NavigateToModuleToggles()
                     else
@@ -3491,27 +3491,27 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
 
                 local LayoutWelcomeContent
-                local contributorsCard = CreateWelcomeAccordionCard(content, L["Dashboard welcome contributors heading"] or "Contributors", function()
+                local contributorsCard = CreateWelcomeAccordionCard(content, L["DASH_WELCOME_CONTRIBUTORS_HEADING"] or "Contributors", function()
                     LayoutWelcomeContent()
                 end)
-                local contributorsBodyFs = MakeDashboardWelcomeMixedScriptText(contributorsCard.settingsContainer, L["Dashboard welcome contributors body"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+                local contributorsBodyFs = MakeDashboardWelcomeMixedScriptText(contributorsCard.settingsContainer, L["DASH_WELCOME_CONTRIBUTORS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
                 contributorsBodyFs:SetWordWrap(true)
                 contributorsBodyFs:SetSpacing(4)
 
-                local localisationsCard = CreateWelcomeAccordionCard(content, L["Dashboard welcome localisations heading"] or "Localisations", function()
+                local localisationsCard = CreateWelcomeAccordionCard(content, L["DASH_WELCOME_LOCALISATIONS_HEADING"] or "Localisations", function()
                     LayoutWelcomeContent()
                 end)
-                local localisationsBodyFs = MakeDashboardWelcomeMixedScriptText(localisationsCard.settingsContainer, L["Dashboard welcome localisations body"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+                local localisationsBodyFs = MakeDashboardWelcomeMixedScriptText(localisationsCard.settingsContainer, L["DASH_WELCOME_LOCALISATIONS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
                 localisationsBodyFs:SetWordWrap(true)
                 localisationsBodyFs:SetSpacing(4)
 
-                local titleFs = MakeText(content, L["Dashboard welcome title"] or "Welcome to Horizon Suite", 22, 1, 1, 1, "LEFT")
+                local titleFs = MakeText(content, L["DASH_WELCOME_TITLE"] or "Welcome to Horizon Suite", 22, 1, 1, 1, "LEFT")
 
-                local introFs = MakeText(content, L["Dashboard welcome intro"] or "", 13, 0.72, 0.74, 0.78, "LEFT")
+                local introFs = MakeText(content, L["DASH_WELCOME_INTRO"] or "", 13, 0.72, 0.74, 0.78, "LEFT")
                 introFs:SetWordWrap(true)
                 introFs:SetSpacing(4)
 
-                local modulesHdr = MakeText(content, (L["Dashboard welcome modules heading"] or "Modules"), 16, 0.88, 0.90, 0.94, "LEFT")
+                local modulesHdr = MakeText(content, (L["DASH_WELCOME_MODULES_HEADING"] or "Modules"), 16, 0.88, 0.90, 0.94, "LEFT")
 
                 local listRule = content:CreateTexture(nil, "ARTWORK")
                 listRule:SetHeight(1)
@@ -3522,25 +3522,25 @@ SlashCmdList["HSDASH"] = function(msg)
                     NavigateToModuleToggles()
                 end
 
-                local btnOpenModuleToggles = CreateWelcomeTextLink(content, L["Dashboard welcome open module toggles link"] or "Open module toggles", DismissWelcomeAndOpenModuleToggles, "LEFT")
+                local btnOpenModuleToggles = CreateWelcomeTextLink(content, L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles", DismissWelcomeAndOpenModuleToggles, "LEFT")
 
                 local modRows = {
-                    { key = "axis", name = L["Axis"] or "Axis", desc = L["Axis module short description"] or "Core settings hub: profiles, modules, and global toggles." },
-                    { key = "focus", name = L["Focus"] or "Focus", desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."] or "" },
-                    { key = "presence", name = L["Presence"] or "Presence", desc = L["Zone text and notifications."] or "" },
-                    { key = "vista", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector." },
-                    { key = "insight", name = L["Insight"] or "Insight", desc = L["Tooltips with class colors, spec, and faction icons."] or "" },
-                    { key = "cache", name = L["Cache"] or "Cache", desc = L["Loot toasts for items, money, currency, reputation."] or "" },
-                    { key = "essence", name = "Essence", desc = L["Essence module short description"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
-                    { key = "meridian", name = "Meridian", desc = L["Meridian module short description"] or "Join the Discord and have a guess!" },
+                    { key = "axis", name = L["OPTIONS_AXIS_GROUP"] or "Axis", desc = L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"] or "Core settings hub: profiles, modules, and global toggles." },
+                    { key = "focus", name = L["OPTIONS_FOCUS_GROUP"] or "Focus", desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"] or "" },
+                    { key = "presence", name = L["OPTIONS_FOCUS_PRESENCE"] or "Presence", desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"] or "" },
+                    { key = "vista", name = L["OPTIONS_AXIS_VISTA"] or "Vista", desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector." },
+                    { key = "insight", name = L["OPTIONS_AXIS_INSIGHT"] or "Insight", desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"] or "" },
+                    { key = "cache", name = L["OPTIONS_AXIS_CACHE"] or "Cache", desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"] or "" },
+                    { key = "essence", name = "Essence", desc = L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
+                    { key = "meridian", name = "Meridian", desc = L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"] or "Join the Discord and have a guess!" },
                 }
                 local moduleLineWidgets = {}
                 for _, row in ipairs(modRows) do
                     local nm = row.name
                     if PREVIEW_MODULE_KEYS[row.key] then
-                        nm = nm .. " |cff228b22(" .. (L["Preview"] or "Preview") .. ")|r"
+                        nm = nm .. " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
                     elseif COMING_SOON_MODULE_KEYS[row.key] then
-                        nm = nm .. " |cff8cb2e6(" .. (L["Coming Soon"] or "Coming Soon") .. ")|r"
+                        nm = nm .. " |cff8cb2e6(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")|r"
                     end
                     local nameFs = MakeText(content, nm, 14, 0.96, 0.97, 1, "LEFT")
                     nameFs:SetWordWrap(true)
@@ -3555,15 +3555,15 @@ SlashCmdList["HSDASH"] = function(msg)
                 footerTopRule:SetHeight(1)
                 footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
 
-                local communityHdr = MakeText(footerPanel, L["Dashboard welcome community heading"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
+                local communityHdr = MakeText(footerPanel, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
 
                 local linkData = {
-                    { label = L["Discord"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj" },
-                    { label = L["Ko-fi"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite" },
-                    { label = L["Patreon"] or "Patreon", url = "https://patreon.com/HorizonSuite" },
-                    { label = L["GitLab"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite" },
-                    { label = L["CurseForge"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844" },
-                    { label = L["Wago"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y" },
+                    { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj" },
+                    { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite" },
+                    { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite" },
+                    { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite" },
+                    { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844" },
+                    { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y" },
                 }
 
                 local linkButtons = {}
@@ -3671,7 +3671,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     listRule:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
                     y = y + 10
 
-                    local togglesLabel = L["Dashboard welcome open module toggles link"] or "Open module toggles"
+                    local togglesLabel = L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles"
                     btnOpenModuleToggles.label:SetText(togglesLabel)
                     local tw = btnOpenModuleToggles.label:GetStringWidth() or 120
                     btnOpenModuleToggles:SetSize(math.min(w, math.floor(tw) + 12), 20)
@@ -3745,7 +3745,7 @@ SlashCmdList["HSDASH"] = function(msg)
                     if head then head:Show() end
                     if headSub then
                         headSub:Show()
-                        headSub:SetText(L["Dashboard welcome head sub"] or "What each module does and where to turn them on")
+                        headSub:SetText(L["DASH_WELCOME_HEAD_SUB"] or "What each module does and where to turn them on")
                     end
                     if searchBox then searchBox:Hide() end
                     f.currentModuleKey = nil
@@ -3789,7 +3789,7 @@ SlashCmdList["HSDASH"] = function(msg)
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = L["Axis"] or "Axis", ["modules"] = L["Modules"] or "Modules", ["focus"] = L["Focus"] or "Focus", ["presence"] = L["Presence"] or "Presence", ["insight"] = L["Insight"] or "Insight", ["cache"] = L["Cache"] or "Cache", ["vista"] = L["Vista"] or "Vista", ["essence"] = "Essence", ["meridian"] = "Meridian" }
+            local MODULE_LABELS = { ["axis"] = L["OPTIONS_AXIS_GROUP"] or "Axis", ["modules"] = L["OPTIONS_AXIS_MODULES"] or "Modules", ["focus"] = L["OPTIONS_FOCUS_GROUP"] or "Focus", ["presence"] = L["OPTIONS_FOCUS_PRESENCE"] or "Presence", ["insight"] = L["OPTIONS_AXIS_INSIGHT"] or "Insight", ["cache"] = L["OPTIONS_AXIS_CACHE"] or "Cache", ["vista"] = L["OPTIONS_AXIS_VISTA"] or "Vista", ["essence"] = "Essence", ["meridian"] = "Meridian" }
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
                 local mk
@@ -3798,7 +3798,7 @@ SlashCmdList["HSDASH"] = function(msg)
                 else
                     mk = cat.moduleKey or "modules"
                 end
-                if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["Other"], categories = {} } end
+                if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OPTIONS_FOCUS_OTHER"], categories = {} } end
                 tinsert(groups[mk].categories, i)
             end
             local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
@@ -3808,7 +3808,7 @@ SlashCmdList["HSDASH"] = function(msg)
             local yOff = 0
 
             -- Welcome (first row — overview for new and returning users)
-            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["Dashboard welcome tab"] or "Welcome", "INV_Misc_Book_09", function()
+            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"] or "Welcome", "INV_Misc_Book_09", function()
                 if f.ShowWelcome then f.ShowWelcome() end
             end)
             welcomeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)

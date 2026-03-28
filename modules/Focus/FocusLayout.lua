@@ -338,7 +338,7 @@ local function FullLayout()
         if hideOptBtn then
             addon.optionsBtn:Hide()
         else
-            addon.optionsLabel:SetText(addon.L["Options"])
+            addon.optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
             addon.optionsBtn:Show()
             -- Visible on hover only: use alpha so frames stay in layout and remain clickable
@@ -353,7 +353,7 @@ local function FullLayout()
         addon.chevron:SetAlpha(1)
         addon.headerText:Show()
         addon.headerShadow:Show()
-        local headerStr = addon.ApplyTextCase(addon.L["OBJECTIVES"], "headerTextCase", "upper")
+        local headerStr = addon.ApplyTextCase(addon.L["PRESENCE_OBJECTIVES"], "headerTextCase", "upper")
         addon.headerText:SetText(headerStr)
         addon.headerShadow:SetText(headerStr)
         if addon.GetDB("showQuestCount", true) then addon.countText:Show(); addon.countShadow:Show() else addon.countText:Hide(); addon.countShadow:Hide() end
@@ -363,7 +363,7 @@ local function FullLayout()
         else
             addon.optionsBtn:SetAlpha(1)
             addon.optionsBtn:Show()
-            addon.optionsLabel:SetText(addon.L["Options"])
+            addon.optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
         end
         local showDiv = addon.GetDB("showHeaderDivider", true)

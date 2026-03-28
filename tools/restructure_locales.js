@@ -1,108 +1,42 @@
 #!/usr/bin/env node
 /**
- * Restructure locale files for Horizon Suite.
- *
- * Parses LocaleBase.lua to extract all keys + section structure,
- * then for each locale file: outputs all keys in order, with
- * untranslated keys commented out and marked "NEEDS TRANSLATION".
- *
- * Also generates locale_template.lua for new translators.
+ * Sync Localisation/{locale}.lua to match Localisation/enUS.lua key order and sections.
+ * Normalizes enUS first (removes per-key `-- Context:` lines; drops blank lines between keys;
+ * aligns `=` and values in a fixed column from max `L["KEY"]` width).
+ * Untranslated keys become commented lines with NEEDS TRANSLATION.
+ * Assignments whose string equals enUS are treated as untranslated (comment only) so
+ * locales fall back via __index to enUS — no duplicate English to maintain.
+ * Regenerates Localisation/locale_template.lua for new translators.
  *
  * Usage: node tools/restructure_locales.js
- * Run from the HorizonSuite root directory.
  */
 
 const fs = require('fs');
 const path = require('path');
+const {
+    parseEnUS,
+    parseLocaleTranslations,
+    rewriteEnUSNormalized,
+    computeMaxLhsLen,
+    formatLocaleAssignment,
+} = require('./lib/parseLocalisationEnUS.js');
+const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const OPTIONS = path.join(ROOT, 'locales');
+const LOC = path.join(ROOT, 'Localisation');
+const enUSPath = path.join(LOC, 'enUS.lua');
 
-// ── Parse LocaleBase.lua ──────────────────────────────────────────────
+const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'ruRU', 'esES', 'zhCN'];
 
-function parseLocaleBase() {
-    const src = fs.readFileSync(path.join(OPTIONS, 'LocaleBase.lua'), 'utf8');
-    const lines = src.split(/\r?\n/);
-
-    // We extract two things: the ordered list of entries (sections + keys),
-    // and a set of all keys.
-    const entries = [];  // { type: 'section'|'key'|'blank', ... }
-    const allKeys = new Set();
-
-    for (const line of lines) {
-        // Section comment block
-        const sectionMatch = line.match(/^-- =+$/);
-        if (sectionMatch) {
-            entries.push({ type: 'separator', raw: line });
-            continue;
-        }
-
-        const sectionHeader = line.match(/^-- (.+)$/);
-        if (sectionHeader && !line.startsWith('-- L[')) {
-            entries.push({ type: 'comment', raw: line });
-            continue;
-        }
-
-        // Key-value line: L["key"] = "value"
-        // Match the key and the full right-hand side
-        const kvMatch = line.match(/^L\["(.+?)"\]\s*=\s*(.+)$/);
-        if (kvMatch) {
-            const key = kvMatch[1];
-            const value = kvMatch[2].replace(/\s*$/, '');
-            allKeys.add(key);
-            entries.push({ type: 'key', key, value, raw: line });
-            continue;
-        }
-
-        // Blank line
-        if (line.trim() === '') {
-            entries.push({ type: 'blank' });
-            continue;
-        }
-
-        // Other lines (header comment block, addon reference, etc) - skip for structure
-    }
-
-    // Strip leading blank entries
-    while (entries.length > 0 && entries[0].type === 'blank') {
-        entries.shift();
-    }
-
-    return { entries, allKeys };
+function readStandardFont(localePath) {
+    if (!fs.existsSync(localePath)) return 'UNIT_NAME_FONT';
+    const head = fs.readFileSync(localePath, 'utf8').split(/\r?\n/).slice(0, 15).join('\n');
+    const m = head.match(/addon\.StandardFont\s*=\s*(\S+)/);
+    return m ? m[1].trim() : 'UNIT_NAME_FONT';
 }
 
-// ── Parse a locale file to extract its translated keys ────────────────
-
-function parseLocaleFile(filePath) {
-    const src = fs.readFileSync(filePath, 'utf8');
-    const lines = src.split(/\r?\n/);
-    const translated = {};
-
-    // Also capture the StandardFont line if present
-    let standardFont = null;
-
-    for (const line of lines) {
-        // Active key-value: L["key"] = "translated value"
-        const kvMatch = line.match(/^L\["(.+?)"\]\s*=\s*(.+)$/);
-        if (kvMatch) {
-            translated[kvMatch[1]] = kvMatch[2].replace(/\s*$/, '');
-            continue;
-        }
-
-        const fontMatch = line.match(/^addon\.StandardFont\s*=\s*(.+)$/);
-        if (fontMatch) {
-            standardFont = fontMatch[1].trim();
-        }
-    }
-
-    return { translated, standardFont };
-}
-
-// ── Generate restructured locale file ─────────────────────────────────
-
-function generateLocaleFile(localeCode, entries, translated, standardFont) {
+function generateLocaleFile(localeCode, entries, translated, standardFont, maxLhsLen) {
     const lines = [];
-
     lines.push(`if GetLocale() ~= "${localeCode}" then return end`);
     lines.push('');
     lines.push('local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite');
@@ -110,56 +44,68 @@ function generateLocaleFile(localeCode, entries, translated, standardFont) {
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');
     lines.push('addon.L = L');
-    lines.push(`addon.StandardFont = ${standardFont || 'UNIT_NAME_FONT'}`);
+    lines.push(`addon.StandardFont = ${standardFont}`);
     lines.push('');
 
-    for (const entry of entries) {
-        if (entry.type === 'separator' || entry.type === 'comment') {
-            lines.push(entry.raw);
+    for (const e of entries) {
+        if (e.type === 'raw') {
             continue;
         }
-        if (entry.type === 'blank') {
+        if (e.type === 'separator' || e.type === 'comment') {
+            lines.push(e.raw);
+            continue;
+        }
+        if (e.type === 'blank') {
             lines.push('');
             continue;
         }
-        if (entry.type === 'key') {
-            const key = entry.key;
-            if (translated[key] !== undefined) {
-                // Translated — output active line
-                // Pad key to align = signs (matching LocaleBase style)
-                const padded = `L["${key}"]`.padEnd(72);
-                lines.push(`${padded}= ${translated[key]}`);
+        if (e.type === 'key') {
+            const rhs = translated[e.symKey];
+            const enStr = decodedStringFromLuaRhs(e.valueRaw);
+            if (rhs !== undefined) {
+                const locStr = decodedStringFromLuaRhs(rhs);
+                if (locStr === enStr) {
+                    lines.push(
+                        formatLocaleAssignment({
+                            symKey: e.symKey,
+                            rhsRaw: e.valueRaw,
+                            commented: true,
+                            maxLhsLen,
+                            needsTranslation: true,
+                        }),
+                    );
+                } else {
+                    lines.push(
+                        formatLocaleAssignment({
+                            symKey: e.symKey,
+                            rhsRaw: rhs,
+                            commented: false,
+                            maxLhsLen,
+                        }),
+                    );
+                }
             } else {
-                // Untranslated — comment out with NEEDS TRANSLATION marker
-                const padded = `L["${key}"]`.padEnd(72);
-                lines.push(`-- ${padded}= ${entry.value}  -- NEEDS TRANSLATION`);
+                lines.push(
+                    formatLocaleAssignment({
+                        symKey: e.symKey,
+                        rhsRaw: e.valueRaw,
+                        commented: true,
+                        maxLhsLen,
+                        needsTranslation: true,
+                    }),
+                );
             }
         }
     }
 
-    // Ensure file ends with newline
     return lines.join('\n') + '\n';
 }
 
-// ── Generate template file ────────────────────────────────────────────
-
-function generateTemplate(entries) {
+function generateTemplate(entries, maxLhsLen) {
     const lines = [];
-
     lines.push('--[[');
-    lines.push('    Horizon Suite — Translation Template');
-    lines.push('');
-    lines.push('    HOW TO TRANSLATE:');
-    lines.push('    1. Copy this file and rename it to your locale code (e.g., itIT.lua)');
-    lines.push('    2. Replace "LOCALE_CODE" on line 17 with your locale code');
-    lines.push('       Valid codes: deDE, frFR, esES, esMX, ptBR, ruRU, koKR, zhCN, zhTW, itIT');
-    lines.push('    3. Translate each value (the text on the RIGHT side of the = sign)');
-    lines.push('       DO NOT change the keys (the text inside L["..."] on the left side)');
-    lines.push('    4. Comment out or delete any lines you cannot translate —');
-    lines.push('       English will show automatically for missing translations.');
-    lines.push('    5. Submit the completed file to the Horizon Suite Discord for review.');
-    lines.push('');
-    lines.push('    This file is NOT loaded by the addon. It is a reference for translators.');
+    lines.push('    Horizon Suite — Translation template (not loaded by the addon).');
+    lines.push('    Copy to Localisation/<yourLocale>.lua, set GetLocale() guard, translate values.');
     lines.push(']]');
     lines.push('');
     lines.push('if GetLocale() ~= "LOCALE_CODE" then return end');
@@ -169,56 +115,53 @@ function generateTemplate(entries) {
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');
     lines.push('addon.L = L');
-    lines.push('addon.StandardFont = UNIT_NAME_FONT  -- Change only if your locale needs a different font');
+    lines.push('addon.StandardFont = UNIT_NAME_FONT');
     lines.push('');
 
-    for (const entry of entries) {
-        if (entry.type === 'separator' || entry.type === 'comment') {
-            lines.push(entry.raw);
+    for (const e of entries) {
+        if (e.type === 'raw') {
             continue;
         }
-        if (entry.type === 'blank') {
+        if (e.type === 'separator' || e.type === 'comment') {
+            lines.push(e.raw);
+            continue;
+        }
+        if (e.type === 'blank') {
             lines.push('');
             continue;
         }
-        if (entry.type === 'key') {
-            const padded = `L["${entry.key}"]`.padEnd(72);
-            lines.push(`${padded}= ${entry.value}`);
+        if (e.type === 'key') {
+            lines.push(
+                formatLocaleAssignment({
+                    symKey: e.symKey,
+                    rhsRaw: e.valueRaw,
+                    commented: false,
+                    maxLhsLen,
+                }),
+            );
         }
     }
 
     return lines.join('\n') + '\n';
 }
 
-// ── Main ──────────────────────────────────────────────────────────────
-
-const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'ruRU', 'esES', 'zhCN'];
-
-console.log('Parsing LocaleBase.lua...');
-const { entries, allKeys } = parseLocaleBase();
-console.log(`  Found ${allKeys.size} keys`);
+console.log('Normalizing Localisation/enUS.lua (section headers only; no per-key Context)...');
+rewriteEnUSNormalized(enUSPath);
+console.log('Parsing Localisation/enUS.lua...');
+const { entries, keys } = parseEnUS(enUSPath);
+const maxLhsLen = computeMaxLhsLen(entries);
+console.log(`  Keys: ${keys.length}`);
 
 for (const locale of LOCALES) {
-    const filePath = path.join(OPTIONS, `${locale}.lua`);
-    if (!fs.existsSync(filePath)) {
-        console.log(`  Skipping ${locale} (file not found)`);
-        continue;
-    }
-
-    console.log(`Processing ${locale}...`);
-    const { translated, standardFont } = parseLocaleFile(filePath);
-    const translatedCount = Object.keys(translated).length;
-    console.log(`  ${translatedCount}/${allKeys.size} keys translated (${Math.round(translatedCount / allKeys.size * 100)}%)`);
-
-    const output = generateLocaleFile(locale, entries, translated, standardFont);
-    fs.writeFileSync(filePath, output, 'utf8');
-    console.log(`  Written: ${filePath}`);
+    const filePath = path.join(LOC, `${locale}.lua`);
+    const standardFont = readStandardFont(filePath);
+    const translated = parseLocaleTranslations(filePath);
+    const out = generateLocaleFile(locale, entries, translated, standardFont, maxLhsLen);
+    fs.writeFileSync(filePath, out, 'utf8');
+    console.log(`  Written ${filePath}`);
 }
 
-// Generate template
-console.log('Generating locale_template.lua...');
-const template = generateTemplate(entries);
-fs.writeFileSync(path.join(OPTIONS, 'locale_template.lua'), template, 'utf8');
-console.log(`  Written: ${path.join(OPTIONS, 'locale_template.lua')}`);
-
-console.log('Done!');
+const templatePath = path.join(LOC, 'locale_template.lua');
+fs.writeFileSync(templatePath, generateTemplate(entries, maxLhsLen), 'utf8');
+console.log(`  Written ${templatePath}`);
+console.log('Done.');

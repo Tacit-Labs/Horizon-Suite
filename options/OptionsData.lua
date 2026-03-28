@@ -490,7 +490,7 @@ local function GetFontDropdownOptions()
     local out = {}
     for i = 1, #list do out[i] = list[i] end
     -- If it's not one of our known choices, keep it selectable as "Custom".
-    out[#out + 1] = { L["Custom"], saved }
+    out[#out + 1] = { L["OPTIONS_FOCUS_CUSTOM"], saved }
     return out
 end
 
@@ -499,19 +499,19 @@ local FONT_USE_GLOBAL = "__global__"
 local function GetPerElementFontDropdownOptions(dbKey)
     if addon.RefreshFontList then addon.RefreshFontList() end
     local list = (addon.GetFontList and addon.GetFontList()) or {}
-    local out = { { L["Use global font"], FONT_USE_GLOBAL } }
+    local out = { { L["OPTIONS_FOCUS_GLOBAL_FONT"], FONT_USE_GLOBAL } }
     for i = 1, #list do out[#out + 1] = list[i] end
     local saved = getDB(dbKey, FONT_USE_GLOBAL)
     if saved == FONT_USE_GLOBAL then return out end
     for _, o in ipairs(out) do
         if o[2] == saved then return out end
     end
-    out[#out + 1] = { L["Custom"], saved }
+    out[#out + 1] = { L["OPTIONS_FOCUS_CUSTOM"], saved }
     return out
 end
 
 local function DisplayPerElementFont(value)
-    if value == FONT_USE_GLOBAL then return L["Use global font"] end
+    if value == FONT_USE_GLOBAL then return L["OPTIONS_FOCUS_GLOBAL_FONT"] end
     if addon.GetFontNameForPath then return addon.GetFontNameForPath(value) end
     return value
 end
@@ -519,7 +519,7 @@ end
 local function GetPresencePreviewDropdownOptions()
     local Presence = addon.Presence
     if not Presence or not Presence.PREVIEW_TYPE_ORDER or not Presence.PREVIEW_TYPE_LABELS then
-        return { { L["Level up"] or "Level up", "LEVEL_UP" } }
+        return { { L["PRESENCE_LEVEL_UP_TOGGLE"] or "Level up", "LEVEL_UP" } }
     end
     local out = {}
     for _, typeName in ipairs(Presence.PREVIEW_TYPE_ORDER) do
@@ -531,24 +531,24 @@ local function GetPresencePreviewDropdownOptions()
 end
 
 local OUTLINE_OPTIONS = {
-    { L["None"], "" },
-    { L["Outline"], "OUTLINE" },
-    { L["Thick Outline"], "THICKOUTLINE" },
+    { L["OPTIONS_FOCUS_NONE"], "" },
+    { L["OPTIONS_FOCUS_OUTLINE"], "OUTLINE" },
+    { L["OPTIONS_FOCUS_THICK_OUTLINE"], "THICKOUTLINE" },
 }
 local HIGHLIGHT_OPTIONS = {
-    { L["Bar (left edge)"], "bar-left" },
-    { L["Bar (right edge)"], "bar-right" },
-    { L["Bar (top edge)"], "bar-top" },
-    { L["Bar (bottom edge)"], "bar-bottom" },
-    { L["Outline only"], "outline" },
-    { L["Soft glow"], "glow" },
-    { L["Dual edge bars"], "bar-both" },
-    { L["Pill left accent"], "pill-left" },
-    { L["Highlight"], "highlight" },
+    { L["OPTIONS_FOCUS_BAR_LEFT_EDGE"], "bar-left" },
+    { L["OPTIONS_FOCUS_BAR_RIGHT_EDGE"], "bar-right" },
+    { L["OPTIONS_FOCUS_BAR_TOP_EDGE"], "bar-top" },
+    { L["OPTIONS_FOCUS_BAR_BOTTOM_EDGE"], "bar-bottom" },
+    { L["OPTIONS_FOCUS_OUTLINE_ONLY_STYLE"], "outline" },
+    { L["OPTIONS_FOCUS_SOFT_GLOW"], "glow" },
+    { L["OPTIONS_FOCUS_DUAL_EDGE_BARS"], "bar-both" },
+    { L["OPTIONS_FOCUS_PILL_LEFT_ACCENT"], "pill-left" },
+    { L["OPTIONS_FOCUS_HIGHLIGHT"], "highlight" },
 }
 local MPLUS_POSITION_OPTIONS = {
-    { L["Top"], "top" },
-    { L["Bottom"], "bottom" },
+    { L["OPTIONS_FOCUS_TOP"], "top" },
+    { L["OPTIONS_FOCUS_BOTTOM"], "bottom" },
 }
 local MPLUS_FONT_OPTIONS = {
     { "Title Font", "TitleFont" },
@@ -557,9 +557,9 @@ local MPLUS_FONT_OPTIONS = {
     { "Detail Font", "DetailFont" },
 }
 local TEXT_CASE_OPTIONS = {
-    { L["Lower Case"], "lower" },
-    { L["Upper Case"], "upper" },
-    { L["Proper"], "proper" },
+    { L["OPTIONS_FOCUS_LOWER_CASE"], "lower" },
+    { L["OPTIONS_FOCUS_UPPER_CASE"], "upper" },
+    { L["OPTIONS_FOCUS_PROPER"], "proper" },
 }
 -- Use addon.QUEST_COLORS from Config as single source for quest type colors.
 local COLOR_KEYS_ORDER = { "DEFAULT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "WORLD", "DELVES", "SCENARIO", "RAID", "ACHIEVEMENT", "WEEKLY", "PREY", "DAILY", "COMPLETE", "RARE" }
@@ -585,8 +585,8 @@ end
 local OptionCategories = {
     {
         key = "Profiles",
-        name = L["Profiles"] or "Profiles",
-        desc = L["Manage and switch between your addon configurations."] or "Manage and switch between your addon configurations.",
+        name = L["OPTIONS_AXIS_PROFILES"] or "Profiles",
+        desc = L["OPTIONS_CORE_MANAGE_SWITCH_BETWEEN_YOUR_ADDON_CONFIGURATIONS"] or "Manage and switch between your addon configurations.",
         moduleKey = nil,
         options = function()
             local opts = {}
@@ -603,12 +603,12 @@ local OptionCategories = {
             end
 
             -- Section A: Global switch + current profile
-            opts[#opts + 1] = { type = "section", name = L["Profiles"] or "Profiles" }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PROFILES"] or "Profiles" }
 
             opts[#opts + 1] = {
                 type = "toggle",
-                name = L["Global profile"] or "Global profile",
-                desc = L["All characters use the same profile."] or "All characters use the same profile.",
+                name = L["OPTIONS_AXIS_GLOBAL_PROFILE"] or "Global profile",
+                desc = L["OPTIONS_AXIS_CHARACTERS_SAME_PROFILE"] or "All characters use the same profile.",
                 dbKey = "_profiles_useGlobal",
                 get = function()
                     local useGlobal = addon.GetProfileModeState and select(1, addon.GetProfileModeState())
@@ -627,8 +627,8 @@ local OptionCategories = {
 
                 opts[#opts + 1] = {
                     type = "dropdown",
-                    name = L["Current profile"] or "Current profile",
-                    desc = L["Select the profile currently in use."] or "Select the profile currently in use.",
+                    name = L["OPTIONS_AXIS_CURRENT_PROFILE"] or "Current profile",
+                    desc = L["OPTIONS_AXIS_SELECT_PROFILE_CURRENTLY"] or "Select the profile currently in use.",
                     dbKey = "_profiles_current",
                     options = profileDropdownOptions,
                     disabled = function()
@@ -646,12 +646,12 @@ local OptionCategories = {
                 }
 
                 -- Section B: Per-spec switch + spec dropdowns
-                opts[#opts + 1] = { type = "section", name = L["Specialization"] or "Specialization" }
+                opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_SPECIALIZATION"] or "Specialization" }
 
                 opts[#opts + 1] = {
                     type = "toggle",
-                    name = L["Per-spec profiles"] or "Per-spec profiles",
-                    desc = L["Pick different profiles per spec."] or "Pick different profiles per spec.",
+                    name = L["OPTIONS_AXIS_PER_SPEC_PROFILES"] or "Per-spec profiles",
+                    desc = L["OPTIONS_AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"] or "Pick different profiles per spec.",
                     dbKey = "_profiles_usePerSpec",
                     disabled = function()
                         local useGlobal = addon.GetProfileModeState and select(1, addon.GetProfileModeState())
@@ -745,12 +745,12 @@ local OptionCategories = {
                 end
 
                 -- Section C: Create / Copy profile
-                opts[#opts + 1] = { type = "section", name = L["Create"] or "Create" }
+                opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_CREATE"] or "Create" }
 
                 opts[#opts + 1] = {
                     type = "button",
-                    name = L["New from Default"] or "New from Default",
-                    desc = L["Creates a new profile with all default settings."] or "Creates a new profile with all default settings.",
+                    name = L["OPTIONS_CORE_DEFAULT"] or "New from Default",
+                    desc = L["OPTIONS_AXIS_CREATES_A_PROFILE_DEFAULT_SETTINGS"] or "Creates a new profile with all default settings.",
                     dbKey = "_profiles_create_new",
                     onClick = function()
                         if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup("Default") end
@@ -759,8 +759,8 @@ local OptionCategories = {
 
                 opts[#opts + 1] = {
                     type = "dropdown",
-                    name = L["Copy from profile"] or "Copy from profile",
-                    desc = L["Source profile for copying."] or "Source profile for copying.",
+                    name = L["OPTIONS_AXIS_COPY_PROFILE"] or "Copy from profile",
+                    desc = L["OPTIONS_AXIS_SOURCE_PROFILE_COPYING"] or "Source profile for copying.",
                     dbKey = "_profiles_copyFrom",
                     options = profileDropdownOptions,
                     get = function()
@@ -779,8 +779,8 @@ local OptionCategories = {
 
                 opts[#opts + 1] = {
                     type = "button",
-                    name = L["Copy from selected"] or "Copy from selected",
-                    desc = L["Creates a new profile copied from the selected source profile."] or "Creates a new profile copied from the selected source profile.",
+                    name = L["OPTIONS_AXIS_COPY_SELECTED"] or "Copy from selected",
+                    desc = L["OPTIONS_AXIS_CREATES_A_PROFILE_COPIED_SELECTED_SOURC"] or "Creates a new profile copied from the selected source profile.",
                     dbKey = "_profiles_copy_selected",
                     onClick = function()
                         local src = addon._profileCopyFrom or (addon.GetActiveProfileKey and addon.GetActiveProfileKey())
@@ -789,12 +789,12 @@ local OptionCategories = {
                 }
 
                 -- Section D: Delete profile
-                opts[#opts + 1] = { type = "section", name = L["Delete"] or "Delete" }
+                opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_DELETE"] or "Delete" }
 
                 opts[#opts + 1] = {
                     type = "dropdown",
-                    name = L["Delete profile"] or "Delete profile",
-                    desc = L["Select a profile to delete (current and Default not shown)."] or "Select a profile to delete (current and Default not shown).",
+                    name = L["OPTIONS_AXIS_DELETE_PROFILE"] or "Delete profile",
+                    desc = L["OPTIONS_AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"] or "Select a profile to delete (current and Default not shown).",
                     dbKey = "_profiles_delete",
                     options = function()
                         local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
@@ -830,8 +830,8 @@ local OptionCategories = {
 
                 opts[#opts + 1] = {
                     type = "button",
-                    name = L["Delete selected profile"] or "Delete selected profile",
-                    desc = L["Deletes the selected profile."] or "Deletes the selected profile.",
+                    name = L["OPTIONS_AXIS_DELETE_SELECTED_PROFILE"] or "Delete selected profile",
+                    desc = L["OPTIONS_AXIS_DELETES_SELECTED_PROFILE"] or "Deletes the selected profile.",
                     dbKey = "_profiles_delete_btn",
                     onClick = function()
                         local k = addon._profileDeleteKey
@@ -855,12 +855,12 @@ local OptionCategories = {
                     end,
                 }
 
-                opts[#opts + 1] = { type = "section", name = L["Sharing"] or "Sharing" }
+                opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_SHARING"] or "Sharing" }
 
                 opts[#opts + 1] = {
                     type = "dropdown",
-                    name = L["Export profile"] or "Export profile",
-                    desc = L["Select a profile to export."] or "Select a profile to export.",
+                    name = L["OPTIONS_AXIS_EXPORT_PROFILE"] or "Export profile",
+                    desc = L["OPTIONS_AXIS_SELECT_A_PROFILE_EXPORT"] or "Select a profile to export.",
                     dbKey = "_profiles_export_select",
                     options = function()
                         local list = addon.ListProfiles and addon.ListProfiles() or {}
@@ -895,7 +895,7 @@ local OptionCategories = {
 
                 opts[#opts + 1] = {
                     type = "editbox",
-                    labelText = L["Export string"] or "Export string",
+                    labelText = L["OPTIONS_AXIS_EXPORT_STRING"] or "Export string",
                     dbKey = "_profiles_export_box",
                     height = 60,
                     readonly = true,
@@ -921,7 +921,7 @@ local OptionCategories = {
 
                 opts[#opts + 1] = {
                     type = "editbox",
-                    labelText = L["Import string"] or "Import string",
+                    labelText = L["OPTIONS_AXIS_IMPORT_STRING"] or "Import string",
                     dbKey = "_profiles_import_box",
                     height = 60,
                     readonly = false,
@@ -935,7 +935,7 @@ local OptionCategories = {
 
                 opts[#opts + 1] = {
                     type = "button",
-                    name = L["Import profile"] or "Import profile",
+                    name = L["OPTIONS_AXIS_IMPORT_PROFILE"] or "Import profile",
                     dbKey = "_profiles_import_btn",
                     onClick = function()
                         local str = addon._profileImportString
@@ -959,23 +959,23 @@ local OptionCategories = {
     },
     {
         key = "GlobalToggles",
-        name = L["Global Toggles"] or "Global Toggles",
-        desc = L["Suite-wide class colour tinting and UI scale (global or per module)."] or "Suite-wide class colour tinting and UI scale (global or per module).",
+        name = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Toggles",
+        desc = L["OPTIONS_AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] or "Suite-wide class colour tinting and UI scale (global or per module).",
         moduleKey = nil,
         options = function()
             local opts = {}
-            opts[#opts + 1] = { type = "section", name = L["Theme"] or "Theme" }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_THEME"] or "Theme" }
             local function dashboardBackgroundDropdownOptions()
                 local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
                 local out = {}
                 for _, id in ipairs(order) do
                     local label
                     if id == "horizon" then
-                        label = L["Default"] or "Default"
+                        label = L["OPTIONS_AXIS_DEFAULT"] or "Default"
                     elseif id == "midnight" then
-                        label = L["Dashboard background Midnight"] or "Midnight"
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"] or "Midnight"
                     elseif id == "talents" then
-                        label = L["Dashboard background Class talents"] or "Specialisation (auto)"
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"] or "Specialisation (auto)"
                     else
                         label = id
                     end
@@ -985,8 +985,8 @@ local OptionCategories = {
             end
             opts[#opts + 1] = {
                 type = "dropdown",
-                name = L["Dashboard background"] or "Dashboard background",
-                desc = L["Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."] or "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization.",
+                name = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND"] or "Dashboard background",
+                desc = L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"] or "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization.",
                 dbKey = "dashboardBackgroundTheme",
                 searchable = true,
                 options = dashboardBackgroundDropdownOptions,
@@ -1007,8 +1007,8 @@ local OptionCategories = {
                 refreshIds = { "dashboardBackgroundTheme" },
             }
             opts[#opts + 1] = {
-                type = "slider", name = L["Dashboard background opacity"] or "Dashboard background opacity",
-                desc = L["Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."] or "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through.",
+                type = "slider", name = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"] or "Dashboard background opacity",
+                desc = L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"] or "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through.",
                 dbKey = "dashboardBackgroundOpacity", min = 50, max = 100, step = 1,
                 get = function()
                     return math.floor((tonumber(getDB("dashboardBackgroundOpacity", 90)) or 90) + 0.5)
@@ -1018,7 +1018,7 @@ local OptionCategories = {
                 end,
                 refreshIds = { "dashboardBackgroundOpacity" },
             }
-            opts[#opts + 1] = { type = "section", name = L["Class Colours"] or "Class Colours" }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_CLASS_COLOURS"] or "Class Colours" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
                 "classColorFocus", "classColorPresence", "classColorCache",
@@ -1031,8 +1031,8 @@ local OptionCategories = {
             classColorAllRefreshIds[#classColorAllRefreshIds + 1] = "dashboardClassIconSource"
             opts[#opts + 1] = {
                 type = "toggle",
-                name = L["Enable all class colours"] or "Enable all class colours",
-                desc = L["Toggle class colours on or off for all modules at once."] or "Toggle class colours on or off for all modules at once.",
+                name = L["OPTIONS_FOCUS_ENABLE_CLASS_COLOURS"] or "Enable all class colours",
+                desc = L["OPTIONS_FOCUS_TOGGLE_CLASS_COLOURS_MODULES"] or "Toggle class colours on or off for all modules at once.",
                 dbKey = "_classColorAll",
                 refreshIds = classColorAllRefreshIds,
                 get = function()
@@ -1049,26 +1049,26 @@ local OptionCategories = {
                     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
                 end,
             }
-            opts[#opts + 1] = { type = "toggle", name = L["Dashboard"], desc = L["Tint dashboard accents, dividers, and highlights with your class colour."] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll", "dashboardClassIconSource" } }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_FOCUS_DASHBOARD"], desc = L["OPTIONS_FOCUS_TINT_DASHBOARD_ACCENTS_DIVIDERS_HIGHLIGHTS"] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll", "dashboardClassIconSource" } }
             opts[#opts + 1] = {
                 type = "dropdown",
-                name = L["Dashboard class icon style"] or "Dashboard class icon style",
-                desc = L["Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons."] or "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons.",
-                tooltip = L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"],
+                name = L["OPTIONS_CORE_DASHBOARD_CLASS_ICON_STYLE"] or "Dashboard class icon style",
+                desc = L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"] or "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons.",
+                tooltip = L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"],
                 dbKey = "dashboardClassIconSource",
-                options = { { L["Default"] or "Default", "default" }, { "RondoMedia", "rondomedia" } },
+                options = { { L["OPTIONS_AXIS_DEFAULT"] or "Default", "default" }, { "RondoMedia", "rondomedia" } },
                 get = function() return getDB("dashboardClassIconSource", "default") end,
                 set = function(v) setDB("dashboardClassIconSource", v) end,
                 visibleWhen = function() return getDB("classColorDashboard", false) end,
                 refreshIds = { "_classColorAll" },
             }
-            opts[#opts + 1] = { type = "toggle", name = L["Focus"], desc = L["Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour."] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["Presence"], desc = L["Tint Presence toast title and divider with your class colour."] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["Vista"] or "Vista", desc = L["Tint Vista minimap, addon-bar, and panel borders and text with your class colour."] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["Insight"], desc = L["Use class colour for player tooltip name, class line, and border."] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = L["Cache"], desc = L["Tint Cache loot icon glow and edit/anchor borders with your class colour."] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = "Essence", desc = L["Tint the character name on the Essence sheet with your class colour."] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "section", name = L["Scaling"] }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_FOCUS_GROUP"], desc = L["OPTIONS_FOCUS_TINT_FOCUS_HEADER_TITLE_CATEGORY_SECTION"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_FOCUS_PRESENCE"], desc = L["OPTIONS_FOCUS_TINT_PRESENCE_TOAST_TITLE_DIVIDER_YOUR"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_VISTA"] or "Vista", desc = L["OPTIONS_FOCUS_TINT_VISTA_MINIMAP_ADDON_BAR_PANEL"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_INSIGHT"], desc = L["OPTIONS_FOCUS_CLASS_COLOUR_PLAYER_TOOLTIP_NAME_CLASS"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_CACHE"], desc = L["OPTIONS_FOCUS_TINT_CACHE_LOOT_ICON_GLOW_EDIT"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = "Essence", desc = L["OPTIONS_FOCUS_TINT_CHARACTER_NAME_ESSENCE_SHEET_YO"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_SCALING"] }
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
                 if addon.ApplyDimensions then addon.ApplyDimensions() end
@@ -1093,7 +1093,7 @@ local OptionCategories = {
             end
             local function isPerModule() return getDB("perModuleScaling", false) end
             local function isNotPerModule() return not isPerModule() end
-            opts[#opts + 1] = { type = "slider", name = L["Global UI scale"], desc = L["Scale all UI elements (50–200%)."], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["Doesn't change your configured values, only the effective display scale."],
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_AXIS_GLOBAL_UI_SCALE"], desc = L["OPTIONS_CORE_SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["OPTIONS_AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
                 disabled = isPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("globalUIScale", 1)) or 1) * 100 + 0.5)
@@ -1102,12 +1102,12 @@ local OptionCategories = {
                     setDB("globalUIScale", scale)
                     debouncedRefresh("global", refreshAllScaling)
                 end }
-            opts[#opts + 1] = { type = "toggle", name = L["Per-module scaling"], desc = L["Separate scale slider per module."], dbKey = "perModuleScaling", tooltip = L["Overrides the global scale with individual sliders for Focus, Presence, Vista, etc."], get = function() return isPerModule() end, set = function(v)
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_PER_MODULE_SCALING"], desc = L["OPTIONS_CORE_SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["OPTIONS_AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
                 setDB("perModuleScaling", v)
                 refreshAllScaling()
                 if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
             end }
-            opts[#opts + 1] = { type = "slider", name = L["Focus scale"], desc = L["Scale for the Focus objective tracker (50–200%)."], dbKey = "focusUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_FOCUS_SCALE"], desc = L["OPTIONS_AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
@@ -1115,7 +1115,7 @@ local OptionCategories = {
                     setDB("focusUIScale", math.max(50, math.min(200, v)) / 100)
                     debouncedRefresh("focus", refreshAllScaling)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["Presence scale"], desc = L["Scale for the Presence cinematic text (50–200%)."], dbKey = "presenceUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_PRESENCE_SCALE"], desc = L["OPTIONS_AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
@@ -1125,7 +1125,7 @@ local OptionCategories = {
                         if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
                     end)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["Vista scale"], desc = L["Scale for the Vista minimap module (50–200%)."], dbKey = "vistaUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_VISTA_SCALE"], desc = L["OPTIONS_AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
@@ -1135,14 +1135,14 @@ local OptionCategories = {
                         if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
                     end)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["Insight scale"], desc = L["Scale for the Insight tooltip module (50–200%)."], dbKey = "insightUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_INSIGHT_SCALE"], desc = L["OPTIONS_AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["Cache scale"], desc = L["Scale for the Cache loot toast module (50–200%)."], dbKey = "cacheUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_CACHE_SCALE"], desc = L["OPTIONS_AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
                 disabled = isNotPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
@@ -1157,46 +1157,46 @@ local OptionCategories = {
     },
     {
         key = "Modules",
-        name = L["Modules"],
+        name = L["OPTIONS_AXIS_MODULES"],
         moduleKey = nil,
         options = (function()
-            local previewSuffix = " |cff228b22(" .. (L["Preview"] or "Preview") .. ")|r"
+            local previewSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
             local opts = {
-                { type = "section", name = L["Module Toggles"] or "Module Toggles" },
-                { type = "toggle", name = L["Focus"], desc = L["Objective tracker for quests, world quests, rares, achievements, scenarios."], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
-                { type = "toggle", name = L["Presence"], desc = L["Zone text and notifications."], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
-                { type = "toggle", name = L["Vista"] or "Vista", desc = L["Minimap with zone text, coords, time, and button collector."] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
-                { type = "toggle", name = L["Insight"], desc = L["Tooltips with class colors, spec, and faction icons."], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
-                { type = "toggle", name = L["Cache"] .. previewSuffix, desc = L["Loot toasts for items, money, currency, reputation."], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) addon:SetModuleEnabled("cache", v) end },
+                { type = "section", name = L["OPTIONS_AXIS_MODULE_TOGGLES"] or "Module Toggles" },
+                { type = "toggle", name = L["OPTIONS_FOCUS_GROUP"], desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
+                { type = "toggle", name = L["OPTIONS_FOCUS_PRESENCE"], desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
+                { type = "toggle", name = L["OPTIONS_AXIS_VISTA"] or "Vista", desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
+                { type = "toggle", name = L["OPTIONS_AXIS_INSIGHT"], desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
+                { type = "toggle", name = L["OPTIONS_AXIS_CACHE"] .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) addon:SetModuleEnabled("cache", v) end },
                 { type = "toggle", name = "Essence" .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) addon:SetModuleEnabled("essence", v) end },
             }
-            opts[#opts + 1] = { type = "section", name = L["Appearance"] or "Appearance" }
-            opts[#opts + 1] = { type = "toggle", name = L["Show minimap icon"] or "Show minimap icon", desc = L["Show a clickable icon on the minimap that opens the options panel."] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
-            opts[#opts + 1] = { type = "toggle", name = L["Lock minimap button position"] or "Lock minimap button position", desc = L["Prevent dragging the Horizon minimap button."] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v) setDB("minimapButtonLocked", v) end }
-            opts[#opts + 1] = { type = "button", name = L["Reset minimap button position"] or "Reset minimap button position", desc = L["Reset the minimap button to the default position (bottom-left)."] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
+            opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v) setDB("minimapButtonLocked", v) end }
+            opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             return opts
         end)(),
     },
     {
         key = "Layout",
-        name = L["Layout"],
+        name = L["DASH_LAYOUT"],
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Position & layout"] },
-            { type = "toggle", name = L["Lock position"], desc = L["Prevent dragging the tracker."], dbKey = "lockPosition", get = function() return getDB("lockPosition", false) end, set = function(v) setDB("lockPosition", v) end },
-            { type = "toggle", name = L["Grow upward"], desc = L["Anchor at bottom so the list grows upward."], dbKey = "growUp", get = function() return getDB("growUp", false) end, set = function(v) setDB("growUp", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "growUpHeaderMode" } },
-            { type = "dropdown", name = L["Grow-up header"], desc = L["Keep header at bottom, or top until collapsed."], tooltip = L["When growing upward: keep header at bottom, or at top until collapsed."], dbKey = "growUpHeaderMode", options = { { L["Header at bottom"], "always" }, { L["Header slides on collapse"], "collapse" } }, get = function() return getDB("growUpHeaderMode", "always") end, set = function(v) setDB("growUpHeaderMode", v); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return getDB("growUp", false) end },
-            { type = "toggle", name = L["Start collapsed"], desc = L["Start with only the header shown until you expand."], dbKey = "collapsed", get = function() return getDB("collapsed", false) end, set = function(v) setDB("collapsed", v) end },
-            { type = "section", name = L["Dimensions"] },
-            { type = "slider", name = L["Panel width"], desc = L["Tracker width in pixels."], dbKey = "panelWidth", min = 180, max = 800, get = function() return getDB("panelWidth", 260) end, set = function(v) setDB("panelWidth", math.max(180, math.min(800, v))) end },
-            { type = "slider", name = L["Max content height"], desc = L["Max height of the scrollable list (pixels)."], dbKey = "maxContentHeight", min = 200, max = 1500, get = function() return getDB("maxContentHeight", 480) end, set = function(v) setDB("maxContentHeight", math.max(200, math.min(1500, v))) end },
-            { type = "section", name = L["Spacing"] },
-            { type = "dropdown", name = L["Spacing preset"], dbKey = "compactMode",
+            { type = "section", name = L["OPTIONS_VISTA_POSITION_LAYOUT"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_LOCK_POSITION"], desc = L["OPTIONS_FOCUS_PREVENT_DRAGGING_TRACKER"], dbKey = "lockPosition", get = function() return getDB("lockPosition", false) end, set = function(v) setDB("lockPosition", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_GROW_UPWARD"], desc = L["OPTIONS_FOCUS_ANCHOR_BOTTOM_LIST_GROWS_UPWARD"], dbKey = "growUp", get = function() return getDB("growUp", false) end, set = function(v) setDB("growUp", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "growUpHeaderMode" } },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_GROW_HEADER"], desc = L["OPTIONS_CORE_KEEP_HEADER_BOTTOM_TOP_UNTIL_COLLAPSED"], tooltip = L["OPTIONS_FOCUS_GROWING_UPWARD_KEEP_HEADER_BOTTOM_TOP"], dbKey = "growUpHeaderMode", options = { { L["OPTIONS_FOCUS_HEADER_BOTTOM"], "always" }, { L["OPTIONS_FOCUS_HEADER_SLIDES_COLLAPSE"], "collapse" } }, get = function() return getDB("growUpHeaderMode", "always") end, set = function(v) setDB("growUpHeaderMode", v); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return getDB("growUp", false) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_START_COLLAPSED"], desc = L["OPTIONS_FOCUS_START_HEADER_SHOWN_UNTIL_YOU_EXPAND"], dbKey = "collapsed", get = function() return getDB("collapsed", false) end, set = function(v) setDB("collapsed", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_DIMENSIONS"] },
+            { type = "slider", name = L["OPTIONS_FOCUS_PANEL_WIDTH"], desc = L["OPTIONS_FOCUS_TRACKER_WIDTH_PIXELS"], dbKey = "panelWidth", min = 180, max = 800, get = function() return getDB("panelWidth", 260) end, set = function(v) setDB("panelWidth", math.max(180, math.min(800, v))) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_MAX_CONTENT_HEIGHT"], desc = L["OPTIONS_FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"], dbKey = "maxContentHeight", min = 200, max = 1500, get = function() return getDB("maxContentHeight", 480) end, set = function(v) setDB("maxContentHeight", math.max(200, math.min(1500, v))) end },
+            { type = "section", name = L["OPTIONS_FOCUS_SPACING"] },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_SPACING_PRESET"], dbKey = "compactMode",
                 options = {
-                    { L["Default"], "default" },
-                    { L["Compact version"], "compact" },
-                    { L["Spaced version"], "spaced" },
-                    { L["Custom"], "custom" },
+                    { L["OPTIONS_AXIS_DEFAULT"], "default" },
+                    { L["OPTIONS_FOCUS_COMPACT_VERSION"], "compact" },
+                    { L["OPTIONS_FOCUS_SPACED_VERSION"], "spaced" },
+                    { L["OPTIONS_FOCUS_CUSTOM"], "custom" },
                 },
                 get = function()
                     local v = getDB("compactMode", "default")
@@ -1210,7 +1210,7 @@ local OptionCategories = {
                 end,
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
-            { type = "slider", name = L["Entry spacing"], desc = L["Vertical gap between quest entries."], dbKey = "titleSpacing", min = 2, max = 20,
+            { type = "slider", name = L["OPTIONS_CORE_ENTRY_SPACING"], desc = L["OPTIONS_FOCUS_VERTICAL_GAP_BETWEEN_QUEST_ENTRIES"], dbKey = "titleSpacing", min = 2, max = 20,
                 get = function()
                     local mode = addon.GetSpacingMode()
                     if mode == "custom" then
@@ -1226,7 +1226,7 @@ local OptionCategories = {
                 disabled = function() return addon.GetSpacingMode() ~= "custom" end,
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
-            { type = "slider", name = L["Title to content"], desc = L["Vertical gap between quest title and objectives or zone below it."], dbKey = "titleToContentSpacing", min = 0, max = 12,
+            { type = "slider", name = L["OPTIONS_FOCUS_TITLE_CONTENT"], desc = L["OPTIONS_FOCUS_VERTICAL_GAP_BETWEEN_QUEST_TITLE_OBJECTIVES"], dbKey = "titleToContentSpacing", min = 0, max = 12,
                 get = function()
                     local mode = addon.GetSpacingMode()
                     if mode == "custom" then
@@ -1239,7 +1239,7 @@ local OptionCategories = {
                 disabled = function() return addon.GetSpacingMode() ~= "custom" end,
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
-            { type = "slider", name = L["Before section header"], desc = L["Gap between last entry of a group and the next category label."], dbKey = "sectionSpacing", min = 0, max = 24,
+            { type = "slider", name = L["OPTIONS_FOCUS_BEFORE_SECTION_HEADER"], desc = L["OPTIONS_FOCUS_GAP_BETWEEN_LAST_ENTRY_OF_A"], dbKey = "sectionSpacing", min = 0, max = 24,
                 get = function()
                     local mode = addon.GetSpacingMode()
                     if mode == "custom" then
@@ -1252,7 +1252,7 @@ local OptionCategories = {
                 disabled = function() return addon.GetSpacingMode() ~= "custom" end,
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
-            { type = "slider", name = L["After section header"], desc = L["Gap between category label and first quest entry below it."], dbKey = "sectionToEntryGap", min = 0, max = 16,
+            { type = "slider", name = L["OPTIONS_FOCUS_AFTER_SECTION_HEADER"], desc = L["OPTIONS_FOCUS_GAP_BETWEEN_CATEGORY_LABEL_FIRST_QUEST"], dbKey = "sectionToEntryGap", min = 0, max = 16,
                 get = function()
                     local mode = addon.GetSpacingMode()
                     if mode == "custom" then
@@ -1265,7 +1265,7 @@ local OptionCategories = {
                 disabled = function() return addon.GetSpacingMode() ~= "custom" end,
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
-            { type = "slider", name = L["Objective spacing"], desc = L["Vertical gap between objective lines within a quest."], dbKey = "objSpacing", min = 0, max = 8,
+            { type = "slider", name = L["OPTIONS_CORE_OBJECTIVE_SPACING"], desc = L["OPTIONS_FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVE_LINES_WITHIN"], dbKey = "objSpacing", min = 0, max = 8,
                 get = function()
                     local mode = addon.GetSpacingMode()
                     if mode == "custom" then
@@ -1278,7 +1278,7 @@ local OptionCategories = {
                 disabled = function() return addon.GetSpacingMode() ~= "custom" end,
                 refreshIds = { "compactMode", "titleSpacing", "objSpacing", "titleToContentSpacing", "sectionSpacing", "sectionToEntryGap", "headerToContentGap" }
             },
-            { type = "slider", name = L["Below header"], desc = L["Vertical gap between the objectives bar and the quest list."], dbKey = "headerToContentGap", min = 0, max = 24,
+            { type = "slider", name = L["OPTIONS_FOCUS_BELOW_HEADER"], desc = L["OPTIONS_FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVES_BAR_QUES"], dbKey = "headerToContentGap", min = 0, max = 24,
                 get = function()
                     local mode = addon.GetSpacingMode()
                     if mode == "custom" then
@@ -1295,59 +1295,59 @@ local OptionCategories = {
     },
     {
         key = "Appearance",
-        name = L["Appearance"],
+        name = L["DASH_APPEARANCE"],
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Frame"] },
-            { type = "slider", name = L["Backdrop opacity"], desc = L["Panel background opacity (0–100%)."], dbKey = "backdropOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("backdropOpacity", 0)) or 0; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("backdropOpacity", math.max(0, math.min(100, v)) / 100) end },
-            { type = "color", name = L["Backdrop color"], desc = L["Panel background color."], dbKey = "backdropColor", get = function() return getDB("backdropColorR", 0.08), getDB("backdropColorG", 0.08), getDB("backdropColorB", 0.12) end, set = function(r, g, b) setDB("backdropColorR", r); setDB("backdropColorG", g); setDB("backdropColorB", b) end },
-            { type = "toggle", name = L["Show border"], desc = L["Show border around the tracker."], dbKey = "showBorder", get = function() return getDB("showBorder", false) end, set = function(v) setDB("showBorder", v) end },
-            { type = "toggle", name = L["Scroll indicator"], desc = L["Hint when the list is scrollable."], dbKey = "showScrollIndicator", get = function() return getDB("showScrollIndicator", false) end, set = function(v) setDB("showScrollIndicator", v) end, refreshIds = { "scrollIndicatorStyle" } },
-            { type = "dropdown", name = L["Scroll indicator style"], desc = L["Choose between a fade-out gradient or a small arrow to indicate scrollable content."], dbKey = "scrollIndicatorStyle", options = { { L["Fade"], "fade" }, { L["Arrow"], "arrow" } }, get = function() return getDB("scrollIndicatorStyle", "fade") end, set = function(v) setDB("scrollIndicatorStyle", v) end, visibleWhen = function() return getDB("showScrollIndicator", false) end },
-            { type = "section", name = L["Visibility & fading"] },
-            { type = "dropdown", name = L["Combat visibility"], desc = L["How the tracker behaves in combat: show, fade to reduced opacity, or hide."], dbKey = "combatVisibility", options = { { L["Show"], "show" }, { L["Fade"], "fade" }, { L["Hide"], "hide" } }, get = function() return addon.GetCombatVisibility() end, set = function(v) setDB("combatVisibility", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "combatFadeOpacity" } },
-            { type = "slider", name = L["Combat fade opacity"], desc = L["How visible the tracker is when faded in combat (0 = invisible). Only applies when Combat visibility is Fade."], dbKey = "combatFadeOpacity", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("combatFadeOpacity", 30)) or 30)) end, set = function(v) setDB("combatFadeOpacity", math.max(0, math.min(100, v))); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return addon.GetCombatVisibility() == "fade" end },
-            { type = "toggle", name = L["Mouseover only"], desc = L["Fade out when not hovering."], dbKey = "showOnMouseoverOnly", get = function() return getDB("showOnMouseoverOnly", false) end, set = function(v) setDB("showOnMouseoverOnly", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "fadeOnMouseoverOpacity" } },
-            { type = "slider", name = L["Faded opacity"], desc = L["How visible the tracker is when faded (0 = invisible)."], dbKey = "fadeOnMouseoverOpacity", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("fadeOnMouseoverOpacity", 10)) or 10)) end, set = function(v) setDB("fadeOnMouseoverOpacity", math.max(0, math.min(100, v))); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return getDB("showOnMouseoverOnly", false) end },
+            { type = "section", name = L["OPTIONS_FOCUS_FRAME"] },
+            { type = "slider", name = L["OPTIONS_FOCUS_BACKDROP_OPACITY"], desc = L["OPTIONS_CORE_PANEL_BACKGROUND_OPACITY"], dbKey = "backdropOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("backdropOpacity", 0)) or 0; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("backdropOpacity", math.max(0, math.min(100, v)) / 100) end },
+            { type = "color", name = L["OPTIONS_VISTA_BACKDROP_COLOR"], desc = L["OPTIONS_VISTA_PANEL_BACKGROUND_COLOR"], dbKey = "backdropColor", get = function() return getDB("backdropColorR", 0.08), getDB("backdropColorG", 0.08), getDB("backdropColorB", 0.12) end, set = function(r, g, b) setDB("backdropColorR", r); setDB("backdropColorG", g); setDB("backdropColorB", b) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_BORDER"], desc = L["OPTIONS_FOCUS_BORDER_AROUND_TRACKER"], dbKey = "showBorder", get = function() return getDB("showBorder", false) end, set = function(v) setDB("showBorder", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SCROLL_INDICATOR"], desc = L["OPTIONS_CORE_HINT_LIST_SCROLLABLE"], dbKey = "showScrollIndicator", get = function() return getDB("showScrollIndicator", false) end, set = function(v) setDB("showScrollIndicator", v) end, refreshIds = { "scrollIndicatorStyle" } },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_SCROLL_INDICATOR_STYLE"], desc = L["OPTIONS_FOCUS_CHOOSE_BETWEEN_A_FADE_GRADIENT_A"], dbKey = "scrollIndicatorStyle", options = { { L["OPTIONS_FOCUS_FADE"], "fade" }, { L["OPTIONS_FOCUS_ARROW"], "arrow" } }, get = function() return getDB("scrollIndicatorStyle", "fade") end, set = function(v) setDB("scrollIndicatorStyle", v) end, visibleWhen = function() return getDB("showScrollIndicator", false) end },
+            { type = "section", name = L["OPTIONS_CORE_VISIBILITY_FADING"] },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_COMBAT_VISIBILITY"], desc = L["OPTIONS_FOCUS_TRACKER_BEHAVES_COMBAT_FADE_REDUC"], dbKey = "combatVisibility", options = { { L["OPTIONS_FOCUS_SHOW"], "show" }, { L["OPTIONS_FOCUS_FADE"], "fade" }, { L["OPTIONS_FOCUS_HIDE"], "hide" } }, get = function() return addon.GetCombatVisibility() end, set = function(v) setDB("combatVisibility", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "combatFadeOpacity" } },
+            { type = "slider", name = L["OPTIONS_FOCUS_COMBAT_FADE_OPACITY"], desc = L["OPTIONS_FOCUS_VISIBLE_TRACKER_FADED_COMBAT"], dbKey = "combatFadeOpacity", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("combatFadeOpacity", 30)) or 30)) end, set = function(v) setDB("combatFadeOpacity", math.max(0, math.min(100, v))); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return addon.GetCombatVisibility() == "fade" end },
+            { type = "toggle", name = L["OPTIONS_CORE_MOUSEOVER"], desc = L["OPTIONS_CORE_FADE_HOVERING"], dbKey = "showOnMouseoverOnly", get = function() return getDB("showOnMouseoverOnly", false) end, set = function(v) setDB("showOnMouseoverOnly", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "fadeOnMouseoverOpacity" } },
+            { type = "slider", name = L["OPTIONS_FOCUS_FADED_OPACITY"], desc = L["OPTIONS_FOCUS_VISIBLE_TRACKER_FADED_INVISIBLE"], dbKey = "fadeOnMouseoverOpacity", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("fadeOnMouseoverOpacity", 10)) or 10)) end, set = function(v) setDB("fadeOnMouseoverOpacity", math.max(0, math.min(100, v))); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return getDB("showOnMouseoverOnly", false) end },
         },
     },
     {
         key = "Display",
-        name = L["Display"],
-        desc = L["Customize the visual interface and layout elements."] or "Customize the visual interface and layout elements.",
+        name = L["DASH_DISPLAY"],
+        desc = L["OPTIONS_CORE_CUSTOMIZE_VISUAL_INTERFACE_LAYOUT_ELEMENTS"] or "Customize the visual interface and layout elements.",
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Header"] },
-            { type = "toggle", name = L["Minimal mode"], desc = L["Hide header for a pure text list."], dbKey = "hideObjectivesHeader", get = function() return getDB("hideObjectivesHeader", false) end, set = function(v) setDB("hideObjectivesHeader", v) end, refreshIds = { "showQuestCount", "headerCountMode", "showHeaderDivider", "headerDividerColor", "headerColor", "headerHeight", "hideOptionsButton" } },
-            { type = "toggle", name = L["Quest count"], desc = L["Show quest count in header."], dbKey = "showQuestCount", get = function() return getDB("showQuestCount", true) end, set = function(v) setDB("showQuestCount", v) end, refreshIds = { "headerCountMode" }, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
-            { type = "dropdown", name = L["Header count format"], desc = L["Tracked vs in-log count."], dbKey = "headerCountMode", options = { { L["Tracked / in log"], "trackedLog" }, { L["In log / max slots"], "logMax" } }, get = function() return getDB("headerCountMode", "trackedLog") end, set = function(v) setDB("headerCountMode", v) end, tooltip = L["Tracked/in-log or in-log/max. Tracked excludes world and in-zone quests."], visibleWhen = function() return not getDB("hideObjectivesHeader", false) and getDB("showQuestCount", true) end },
-            { type = "toggle", name = L["Header divider"], desc = L["Show the line below the header."], dbKey = "showHeaderDivider", get = function() return getDB("showHeaderDivider", true) end, set = function(v) setDB("showHeaderDivider", v) end, refreshIds = { "headerDividerColor" }, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
-            { type = "color", name = L["Header divider color"], desc = L["Color of the line below the header."], dbKey = "headerDividerColor", default = addon.DIVIDER_COLOR, hasAlpha = true, visibleWhen = function() return not getDB("hideObjectivesHeader", false) and getDB("showHeaderDivider", true) end },
-            { type = "color", name = L["Header color"], desc = L["Color of the OBJECTIVES header text."], dbKey = "headerColor", default = addon.HEADER_COLOR, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
-            { type = "slider", name = L["Header height"], desc = L["Height of the header bar in pixels (18–48)."], dbKey = "headerHeight", min = 18, max = 48, get = function() return math.max(18, math.min(48, tonumber(getDB("headerHeight", addon.HEADER_HEIGHT)) or addon.HEADER_HEIGHT)) end, set = function(v) setDB("headerHeight", math.max(18, math.min(48, v))) end, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
-            { type = "toggle", name = L["Options button"], desc = L["Show the Options button in the tracker header."], dbKey = "hideOptionsButton", get = function() return not getDB("hideOptionsButton", false) end, set = function(v) setDB("hideOptionsButton", not v) end, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
-            { type = "section", name = L["Sections & structure"] },
-            { type = "toggle", name = L["Section headers"], desc = L["Show category labels above each group."], dbKey = "showSectionHeaders", get = function() return getDB("showSectionHeaders", true) end, set = function(v) setDB("showSectionHeaders", v) end },
-            { type = "toggle", name = L["Show section dividers"], desc = L["Show a visual divider line between Focus sections to make categories easier to distinguish."], dbKey = "showSectionDividers", get = function() return getDB("showSectionDividers", false) end, set = function(v) setDB("showSectionDividers", v) end, refreshIds = { "sectionDividerColor" } },
-            { type = "color", name = L["Section divider color"], desc = L["Color of the divider lines between sections."], dbKey = "sectionDividerColor", default = { 0.3, 0.3, 0.35, 0.4 }, hasAlpha = true, visibleWhen = function() return getDB("showSectionDividers", false) end },
-            { type = "toggle", name = L["Sections when collapsed"], desc = L["Keep section headers visible when collapsed."], dbKey = "showSectionHeadersWhenCollapsed", get = function() return getDB("showSectionHeadersWhenCollapsed", false) end, set = function(v) setDB("showSectionHeadersWhenCollapsed", v) end, tooltip = L["Click a section header to expand that category."] },
-            { type = "toggle", name = L["Zone labels"], desc = L["Show zone name under each quest title."], dbKey = "showZoneLabels", get = function() return getDB("showZoneLabels", true) end, set = function(v) setDB("showZoneLabels", v) end },
-            { type = "section", name = L["Entry details"] },
-            { type = "toggle", name = L["Entry numbers"], desc = L["Prefix quest titles with 1., 2., 3. within each category."], dbKey = "showCategoryEntryNumbers", get = function() return getDB("showCategoryEntryNumbers", true) end, set = function(v) setDB("showCategoryEntryNumbers", v) end },
-            { type = "dropdown", name = L["Objective prefix"], desc = L["Prefix each objective with a number or hyphen."], dbKey = "objectivePrefixStyle", options = { { L["None"], "none" }, { L["Numbers (1. 2. 3.)"], "numbers" }, { L["Hyphens (-)"], "hyphens" } }, get = function() return getDB("objectivePrefixStyle", "none") end, set = function(v) setDB("objectivePrefixStyle", v) end },
-            { type = "toggle", name = L["Completed count"], desc = L["Show X/Y progress in quest title."], dbKey = "showCompletedCount", get = function() return getDB("showCompletedCount", false) end, set = function(v) setDB("showCompletedCount", v) end },
-            { type = "dropdown", name = L["Completed objectives"], desc = L["Display completed objectives."], tooltip = L["For multi-objective quests, how to display objectives you've completed (e.g. 1/1)."], dbKey = "questCompletedObjectiveDisplay", options = { { L["Show all"], "off" }, { L["Fade completed"], "fade" }, { L["Hide completed"], "hide" } }, get = function() return getDB("questCompletedObjectiveDisplay", "off") end, set = function(v) setDB("questCompletedObjectiveDisplay", v) end },
-            { type = "toggle", name = L["Checkmark for completed"], desc = L["Use checkmark for completed objectives."], tooltip = L["|TInterface\\Buttons\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."], dbKey = "useTickForCompletedObjectives", get = function() return getDB("useTickForCompletedObjectives", false) end, set = function(v) setDB("useTickForCompletedObjectives", v) end },
-            { type = "toggle", name = L["Quest level"], desc = L["Show quest level next to title."], dbKey = "showQuestLevel", get = function() return getDB("showQuestLevel", false) end, set = function(v) setDB("showQuestLevel", v) end },
-            { type = "toggle", name = L["Quest type icons"], desc = L["Show quest type icon in the Focus tracker (quest accept/complete, world quest, quest update)."], dbKey = "showQuestTypeIcons", get = function() return getDB("showQuestTypeIcons", false) end, set = function(v) setDB("showQuestTypeIcons", v) end },
-            { type = "toggle", name = L["Auto-track icon"], desc = L["Icon next to auto-tracked in-zone entries."], dbKey = "showInZoneSuffix", get = function() return getDB("showInZoneSuffix", true) end, set = function(v) setDB("showInZoneSuffix", v) end, tooltip = L["For world quests and weeklies not in your quest log."], refreshIds = { "autoTrackIcon" } },
-            { type = "dropdown", name = L["Auto-track icon"], desc = L["Choose which icon to display next to auto-tracked in-zone entries."], dbKey = "autoTrackIcon", options = addon.GetRadarIconOptions and addon.GetRadarIconOptions() or {}, get = function() return getDB("autoTrackIcon", "radar1") end, set = function(v) setDB("autoTrackIcon", v) end, visibleWhen = function() return getDB("showInZoneSuffix", true) end },
-            { type = "dropdown", name = L["Active quest highlight"], desc = L["How the focused quest is highlighted."], dbKey = "activeQuestHighlight", options = HIGHLIGHT_OPTIONS, get = getActiveQuestHighlight, set = function(v) setDB("activeQuestHighlight", v) end },
-            { type = "toggle", name = L["Quest item buttons"], desc = L["Show usable quest item button next to each quest."], dbKey = "showQuestItemButtons", get = function() return getDB("showQuestItemButtons", false) end, set = function(v) setDB("showQuestItemButtons", v) end },
-            { type = "toggle", name = L["Tooltips on hover"], desc = L["Show tooltips when hovering over tracker entries, item buttons, and scenario blocks."], dbKey = "focusShowTooltipOnHover", get = function() return getDB("focusShowTooltipOnHover", false) end, set = function(v) setDB("focusShowTooltipOnHover", v) end },
-            { type = "toggle", name = L["Show WoWhead link in tooltips"], desc = L["When a tooltip is shown, add a link to open the quest, achievement, or NPC on WoWhead."], dbKey = "focusShowWoWheadLink", get = function() return getDB("focusShowWoWheadLink", true) end, set = function(v) setDB("focusShowWoWheadLink", v) end },
-            { type = "section", name = L["Progress & timers"] },
-            { type = "toggle", name = L["Scenario progress bar"], desc = L["Bar under numeric objectives (e.g. 3/250)."], dbKey = "showProgressBarScenarios", tooltip = L["Only for entries with a single numeric objective where required > 1."], get = function() return getDB("showProgressBarScenarios", true) end, set = function(v)
+            { type = "section", name = L["OPTIONS_FOCUS_HEADER"] },
+            { type = "toggle", name = L["OPTIONS_CORE_MINIMAL_MODE"], desc = L["OPTIONS_FOCUS_HIDE_HEADER_A_PURE_TEXT_LIST"], dbKey = "hideObjectivesHeader", get = function() return getDB("hideObjectivesHeader", false) end, set = function(v) setDB("hideObjectivesHeader", v) end, refreshIds = { "showQuestCount", "headerCountMode", "showHeaderDivider", "headerDividerColor", "headerColor", "headerHeight", "hideOptionsButton" } },
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_COUNT"], desc = L["OPTIONS_FOCUS_QUEST_COUNT_HEADER"], dbKey = "showQuestCount", get = function() return getDB("showQuestCount", true) end, set = function(v) setDB("showQuestCount", v) end, refreshIds = { "headerCountMode" }, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_HEADER_COUNT_FORMAT"], desc = L["OPTIONS_CORE_TRACKED_VS_LOG_COUNT"], dbKey = "headerCountMode", options = { { L["OPTIONS_FOCUS_TRACKED_LOG"], "trackedLog" }, { L["OPTIONS_FOCUS_LOG_MAX_SLOTS"], "logMax" } }, get = function() return getDB("headerCountMode", "trackedLog") end, set = function(v) setDB("headerCountMode", v) end, tooltip = L["OPTIONS_CORE_TRACKED_LOG_LOG_MAX_TRACKED_EXCLUDES"], visibleWhen = function() return not getDB("hideObjectivesHeader", false) and getDB("showQuestCount", true) end },
+            { type = "toggle", name = L["OPTIONS_CORE_HEADER_DIVIDER"], desc = L["OPTIONS_FOCUS_LINE_BELOW_HEADER"], dbKey = "showHeaderDivider", get = function() return getDB("showHeaderDivider", true) end, set = function(v) setDB("showHeaderDivider", v) end, refreshIds = { "headerDividerColor" }, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
+            { type = "color", name = L["OPTIONS_FOCUS_HEADER_DIVIDER_COLOR"], desc = L["OPTIONS_FOCUS_COLOR_OF_LINE_BELOW_HEADER"], dbKey = "headerDividerColor", default = addon.DIVIDER_COLOR, hasAlpha = true, visibleWhen = function() return not getDB("hideObjectivesHeader", false) and getDB("showHeaderDivider", true) end },
+            { type = "color", name = L["OPTIONS_FOCUS_HEADER_COLOR"], desc = L["OPTIONS_FOCUS_COLOR_OF_OBJECTIVES_HEADER_TEXT"], dbKey = "headerColor", default = addon.HEADER_COLOR, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_HEADER_HEIGHT"], desc = L["OPTIONS_FOCUS_HEIGHT_OF_HEADER_BAR_PIXELS"], dbKey = "headerHeight", min = 18, max = 48, get = function() return math.max(18, math.min(48, tonumber(getDB("headerHeight", addon.HEADER_HEIGHT)) or addon.HEADER_HEIGHT)) end, set = function(v) setDB("headerHeight", math.max(18, math.min(48, v))) end, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
+            { type = "toggle", name = L["OPTIONS_CORE_OPTIONS_BUTTON"], desc = L["OPTIONS_FOCUS_OPTIONS_BUTTON_TRACKER_HEADER"], dbKey = "hideOptionsButton", get = function() return not getDB("hideOptionsButton", false) end, set = function(v) setDB("hideOptionsButton", not v) end, visibleWhen = function() return not getDB("hideObjectivesHeader", false) end },
+            { type = "section", name = L["OPTIONS_FOCUS_SECTIONS_STRUCTURE"] },
+            { type = "toggle", name = L["OPTIONS_CORE_SECTION_HEADERS"], desc = L["OPTIONS_FOCUS_CATEGORY_LABELS_ABOVE_GROUP"], dbKey = "showSectionHeaders", get = function() return getDB("showSectionHeaders", true) end, set = function(v) setDB("showSectionHeaders", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SECTION_DIVIDERS"], desc = L["OPTIONS_CORE_A_VISUAL_DIVIDER_LINE_BETWEEN_FOCUS"], dbKey = "showSectionDividers", get = function() return getDB("showSectionDividers", false) end, set = function(v) setDB("showSectionDividers", v) end, refreshIds = { "sectionDividerColor" } },
+            { type = "color", name = L["OPTIONS_CORE_SECTION_DIVIDER_COLOR"], desc = L["OPTIONS_CORE_COLOR_OF_DIVIDER_LINES_BETWEEN_SECTIONS"], dbKey = "sectionDividerColor", default = { 0.3, 0.3, 0.35, 0.4 }, hasAlpha = true, visibleWhen = function() return getDB("showSectionDividers", false) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SECTIONS_COLLAPSED"], desc = L["OPTIONS_CORE_KEEP_SECTION_HEADERS_VISIBLE_COLLAPSED"], dbKey = "showSectionHeadersWhenCollapsed", get = function() return getDB("showSectionHeadersWhenCollapsed", false) end, set = function(v) setDB("showSectionHeadersWhenCollapsed", v) end, tooltip = L["OPTIONS_FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"] },
+            { type = "toggle", name = L["OPTIONS_CORE_ZONE_LABELS"], desc = L["OPTIONS_FOCUS_ZONE_NAME_UNDER_QUEST_TITLE"], dbKey = "showZoneLabels", get = function() return getDB("showZoneLabels", true) end, set = function(v) setDB("showZoneLabels", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_ENTRY_DETAILS"] },
+            { type = "toggle", name = L["OPTIONS_CORE_ENTRY_NUMBERS"], desc = L["OPTIONS_FOCUS_PREFIX_QUEST_TITLES_WITHIN_CATEGORY"], dbKey = "showCategoryEntryNumbers", get = function() return getDB("showCategoryEntryNumbers", true) end, set = function(v) setDB("showCategoryEntryNumbers", v) end },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_OBJECTIVE_PREFIX"], desc = L["OPTIONS_FOCUS_PREFIX_OBJECTIVE_A_NUMBER_HYPHEN"], dbKey = "objectivePrefixStyle", options = { { L["OPTIONS_FOCUS_NONE"], "none" }, { L["OPTIONS_FOCUS_NUMBERS"], "numbers" }, { L["OPTIONS_FOCUS_HYPHENS"], "hyphens" } }, get = function() return getDB("objectivePrefixStyle", "none") end, set = function(v) setDB("objectivePrefixStyle", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_COMPLETED_COUNT"], desc = L["OPTIONS_FOCUS_X_Y_PROGRESS_QUEST_TITLE"], dbKey = "showCompletedCount", get = function() return getDB("showCompletedCount", false) end, set = function(v) setDB("showCompletedCount", v) end },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_COMPLETED_OBJECTIVES"], desc = L["OPTIONS_CORE_DISPLAY_COMPLETED_OBJECTIVES"], tooltip = L["OPTIONS_FOCUS_MULTI_OBJECTIVE_QUESTS_DISPLAY_OBJECTIVES"], dbKey = "questCompletedObjectiveDisplay", options = { { L["OPTIONS_FOCUS_ALL"], "off" }, { L["OPTIONS_FOCUS_FADE_COMPLETED"], "fade" }, { L["OPTIONS_FOCUS_HIDE_COMPLETED"], "hide" } }, get = function() return getDB("questCompletedObjectiveDisplay", "off") end, set = function(v) setDB("questCompletedObjectiveDisplay", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CHECKMARK_COMPLETED"], desc = L["OPTIONS_CORE_CHECKMARK_COMPLETED_OBJECTIVES"], tooltip = L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"], dbKey = "useTickForCompletedObjectives", get = function() return getDB("useTickForCompletedObjectives", false) end, set = function(v) setDB("useTickForCompletedObjectives", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_LEVEL"], desc = L["OPTIONS_FOCUS_QUEST_LEVEL_NEXT_TITLE"], dbKey = "showQuestLevel", get = function() return getDB("showQuestLevel", false) end, set = function(v) setDB("showQuestLevel", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_TYPE_ICONS"], desc = L["OPTIONS_PRESENCE_QUEST_TYPE_ICON_FOCUS_TRACKER_QUEST"], dbKey = "showQuestTypeIcons", get = function() return getDB("showQuestTypeIcons", false) end, set = function(v) setDB("showQuestTypeIcons", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_AUTO_TRACK_ICON"], desc = L["OPTIONS_CORE_ICON_NEXT_AUTO_TRACKED_ZONE_ENTRIES"], dbKey = "showInZoneSuffix", get = function() return getDB("showInZoneSuffix", true) end, set = function(v) setDB("showInZoneSuffix", v) end, tooltip = L["OPTIONS_CORE_WORLD_QUESTS_WEEKLIES_YOUR_QUEST_LOG"], refreshIds = { "autoTrackIcon" } },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_AUTO_TRACK_ICON"], desc = L["OPTIONS_FOCUS_CHOOSE_WHICH_ICON_DISPLAY_NEXT_AUTO"], dbKey = "autoTrackIcon", options = addon.GetRadarIconOptions and addon.GetRadarIconOptions() or {}, get = function() return getDB("autoTrackIcon", "radar1") end, set = function(v) setDB("autoTrackIcon", v) end, visibleWhen = function() return getDB("showInZoneSuffix", true) end },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_ACTIVE_QUEST_HIGHLIGHT"], desc = L["OPTIONS_FOCUS_FOCUSED_QUEST_HIGHLIGHTED"], dbKey = "activeQuestHighlight", options = HIGHLIGHT_OPTIONS, get = getActiveQuestHighlight, set = function(v) setDB("activeQuestHighlight", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_ITEM_BUTTONS"], desc = L["OPTIONS_FOCUS_USABLE_QUEST_ITEM_BUTTON_NEXT_QUEST"], dbKey = "showQuestItemButtons", get = function() return getDB("showQuestItemButtons", false) end, set = function(v) setDB("showQuestItemButtons", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_TOOLTIPS_HOVER"], desc = L["OPTIONS_FOCUS_TOOLTIPS_HOVERING_TRACKER_ENTRIES_ITE"], dbKey = "focusShowTooltipOnHover", get = function() return getDB("focusShowTooltipOnHover", false) end, set = function(v) setDB("focusShowTooltipOnHover", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_WOWHEAD_LINK_TOOLTIPS"], desc = L["OPTIONS_FOCUS_A_TOOLTIP_SHOWN_ADD_A_LINK"], dbKey = "focusShowWoWheadLink", get = function() return getDB("focusShowWoWheadLink", true) end, set = function(v) setDB("focusShowWoWheadLink", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_PROGRESS_TIMERS"] },
+            { type = "toggle", name = L["OPTIONS_CORE_SCENARIO_PROGRESS_BAR"], desc = L["OPTIONS_CORE_BAR_UNDER_NUMERIC_OBJECTIVES_E_G"], dbKey = "showProgressBarScenarios", tooltip = L["OPTIONS_CORE_ENTRIES_A_SINGLE_NUMERIC_OBJECTIVE_WHERE"], get = function() return getDB("showProgressBarScenarios", true) end, set = function(v)
                 setDB("showProgressBarScenarios", v)
                 if C_Timer and C_Timer.After and addon.OptionsPanel_Refresh then
                     C_Timer.After(0.2, addon.OptionsPanel_Refresh)
@@ -1355,7 +1355,7 @@ local OptionCategories = {
                     addon.OptionsPanel_Refresh()
                 end
             end, refreshIds = { "progressBarUseCategoryColor", "progressBarTypeFilter", "progressBarTexture" } },
-            { type = "toggle", name = L["Quest progress bar"], desc = L["Bar under numeric objectives (e.g. 3/250)."], dbKey = "showProgressBarQuests", tooltip = L["Only for entries with a single numeric objective where required > 1."], get = function() return getDB("showProgressBarQuests", true) end, set = function(v)
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_PROGRESS_BAR"], desc = L["OPTIONS_CORE_BAR_UNDER_NUMERIC_OBJECTIVES_E_G"], dbKey = "showProgressBarQuests", tooltip = L["OPTIONS_CORE_ENTRIES_A_SINGLE_NUMERIC_OBJECTIVE_WHERE"], get = function() return getDB("showProgressBarQuests", true) end, set = function(v)
                 setDB("showProgressBarQuests", v)
                 if C_Timer and C_Timer.After and addon.OptionsPanel_Refresh then
                     C_Timer.After(0.2, addon.OptionsPanel_Refresh)
@@ -1363,151 +1363,151 @@ local OptionCategories = {
                     addon.OptionsPanel_Refresh()
                 end
             end, refreshIds = { "progressBarUseCategoryColor", "progressBarTypeFilter", "progressBarTexture" } },
-            { type = "toggle", name = L["Category color for bar"], desc = L["Match bar to quest category color."], dbKey = "progressBarUseCategoryColor", get = function() return getDB("progressBarUseCategoryColor", true) end, set = function(v) setDB("progressBarUseCategoryColor", v) end, visibleWhen = function() return getDB("showProgressBarScenarios", true) or getDB("showProgressBarQuests", true) end, tooltip = L["When off, uses the custom fill color below."] },
-            { type = "dropdown", name = L["Progress bar types"], desc = L["Show progress bar for X/Y objectives, percent-only objectives, or both."], dbKey = "progressBarTypeFilter", options = { { L["Both"], "both" }, { L["X/Y only"], "xy_only" }, { L["Percent only"], "percent_only" } }, get = function() return getDB("progressBarTypeFilter", "percent_only") end, set = function(v) setDB("progressBarTypeFilter", v) end, visibleWhen = function() return getDB("showProgressBarScenarios", true) or getDB("showProgressBarQuests", true) end, tooltip = L["X/Y: objectives like 3/10. Percent: objectives like 45%%."] },
-            { type = "dropdown", name = L["Progress bar texture"], desc = L["Texture for the progress bar fill."], dbKey = "progressBarTexture", searchable = true, options = function() return addon.GetStatusbarDropdownOptions and addon.GetStatusbarDropdownOptions() or { { "Solid", "Solid" } } end, get = function() return getDB("progressBarTexture", "Solid") end, set = function(v) setDB("progressBarTexture", v); OptionsData_NotifyMainAddon() end, visibleWhen = function() return getDB("showProgressBarScenarios", true) or getDB("showProgressBarQuests", true) end, tooltip = L["Texture for the progress bar fill. Solid uses your chosen colors. SharedMedia addons add more options."] },
-            { type = "toggle", name = L["Show timer"], desc = L["Show countdown timer on timed quests, events, and scenarios. When off, timers are hidden for all entry types."], dbKey = "showTimerBars", get = function() return getDB("showTimerBars", true) end, set = function(v) setDB("showTimerBars", v) end, refreshIds = { "timerDisplayMode", "timerColorByRemaining" } },
-            { type = "dropdown", name = L["Timer display"], desc = L["Where to show the countdown."], dbKey = "timerDisplayMode", options = { { L["Bar below"], "bar" }, { L["Inline beside title"], "inline" }, { L["Inline below title"], "inline-below" } }, get = function() return getDB("timerDisplayMode", "inline") end, set = function(v) setDB("timerDisplayMode", v) end, visibleWhen = function() return getDB("showTimerBars", false) end },
-            { type = "toggle", name = L["Color timer by remaining time"], desc = L["Color by remaining time."], tooltip = L["Green when plenty of time left, yellow when running low, red when critical."], dbKey = "timerColorByRemaining", get = function() return getDB("timerColorByRemaining", true) end, set = function(v) setDB("timerColorByRemaining", v) end, visibleWhen = function() return getDB("showTimerBars", false) end },
-            { type = "section", name = L["Focus emphasis"] },
-            { type = "toggle", name = L["Dim unfocused entries"], desc = L["Dim unfocused tracker entries."], tooltip = L["Slightly dim title, zone, objectives, and section headers that are not focused."], dbKey = "dimNonSuperTracked", get = function() return getDB("dimNonSuperTracked", false) end, set = function(v) setDB("dimNonSuperTracked", v) end, refreshIds = { "dimStrength", "dimAlpha", "dimDesaturate" } },
-            { type = "slider", name = L["Dim strength"], desc = L["Dimming strength (0-100%)."], tooltip = L["How much to dim non-focused entries (0 = no dimming, 100 = fully darkened). Default 40%."], dbKey = "dimStrength", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("dimStrength", 40)) or 40)) end, set = function(v) setDB("dimStrength", math.max(0, math.min(100, v))) end, visibleWhen = function() return getDB("dimNonSuperTracked", false) end },
-            { type = "slider", name = L["Dim alpha"], desc = L["Opacity of unfocused entries."], tooltip = L["Reduce opacity of non-focused entries (0 = invisible, 100 = fully opaque). Default 100% (no alpha change)."], dbKey = "dimAlpha", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("dimAlpha", 100)) or 100)) end, set = function(v) setDB("dimAlpha", math.max(0, math.min(100, v))) end, visibleWhen = function() return getDB("dimNonSuperTracked", false) end },
-            { type = "toggle", name = L["Desaturate non-focused quests"], desc = L["Desaturate non-focused entries."], tooltip = L["Make non-focused entries greyscale/partially desaturated in addition to dimming."], dbKey = "dimDesaturate", get = function() return getDB("dimDesaturate", false) end, set = function(v) setDB("dimDesaturate", v) end, visibleWhen = function() return getDB("dimNonSuperTracked", false) end },
-            { type = "slider", name = L["Highlight alpha"], desc = L["Opacity of focused quest highlight (0–100%)."], dbKey = "highlightAlpha", min = 0, max = 100, get = function() local v = tonumber(getDB("highlightAlpha", 0.25)) or 0.25; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("highlightAlpha", math.max(0, math.min(100, v)) / 100) end },
-            { type = "slider", name = L["Bar width"], desc = L["Width of bar-style highlights (2–6 px)."], dbKey = "highlightBarWidth", min = 2, max = 6, get = function() return math.max(2, math.min(6, tonumber(getDB("highlightBarWidth", 2)) or 2)) end, set = function(v) setDB("highlightBarWidth", math.max(2, math.min(6, v))) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CATEGORY_COLOR_BAR"], desc = L["OPTIONS_CORE_MATCH_BAR_QUEST_CATEGORY_COLOR"], dbKey = "progressBarUseCategoryColor", get = function() return getDB("progressBarUseCategoryColor", true) end, set = function(v) setDB("progressBarUseCategoryColor", v) end, visibleWhen = function() return getDB("showProgressBarScenarios", true) or getDB("showProgressBarQuests", true) end, tooltip = L["OPTIONS_CORE_CUSTOM_FILL_COLOR_BELOW"] },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_PROGRESS_BAR_TYPES"], desc = L["OPTIONS_FOCUS_PROGRESS_BAR_X_Y_OBJECTIVES_PERCENT"], dbKey = "progressBarTypeFilter", options = { { L["OPTIONS_VISTA_BOTH"], "both" }, { L["OPTIONS_FOCUS_X_Y"], "xy_only" }, { L["OPTIONS_FOCUS_PERCENT"], "percent_only" } }, get = function() return getDB("progressBarTypeFilter", "percent_only") end, set = function(v) setDB("progressBarTypeFilter", v) end, visibleWhen = function() return getDB("showProgressBarScenarios", true) or getDB("showProgressBarQuests", true) end, tooltip = L["OPTIONS_CORE_X_Y_OBJECTIVES_LIKE_PERCENT_OBJECTIVES"] },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_PROGRESS_BAR_TEXTURE"], desc = L["OPTIONS_FOCUS_TEXTURE_PROGRESS_BAR_FILL"], dbKey = "progressBarTexture", searchable = true, options = function() return addon.GetStatusbarDropdownOptions and addon.GetStatusbarDropdownOptions() or { { "Solid", "Solid" } } end, get = function() return getDB("progressBarTexture", "Solid") end, set = function(v) setDB("progressBarTexture", v); OptionsData_NotifyMainAddon() end, visibleWhen = function() return getDB("showProgressBarScenarios", true) or getDB("showProgressBarQuests", true) end, tooltip = L["OPTIONS_FOCUS_TEXTURE_PROGRESS_BAR_FILL_SOLID_YOUR"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_TIMER"], desc = L["OPTIONS_FOCUS_COUNTDOWN_TIMER_TIMED_QUESTS_EVENTS_SCEN"], dbKey = "showTimerBars", get = function() return getDB("showTimerBars", true) end, set = function(v) setDB("showTimerBars", v) end, refreshIds = { "timerDisplayMode", "timerColorByRemaining" } },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_TIMER_DISPLAY"], desc = L["OPTIONS_CORE_WHERE_COUNTDOWN"], dbKey = "timerDisplayMode", options = { { L["OPTIONS_FOCUS_BAR_BELOW"], "bar" }, { L["OPTIONS_FOCUS_INLINE_BESIDE_TITLE"], "inline" }, { L["OPTIONS_FOCUS_INLINE_BELOW_TITLE"], "inline-below" } }, get = function() return getDB("timerDisplayMode", "inline") end, set = function(v) setDB("timerDisplayMode", v) end, visibleWhen = function() return getDB("showTimerBars", false) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_COLOR_TIMER_REMAINING"], desc = L["OPTIONS_CORE_COLOR_REMAINING"], tooltip = L["OPTIONS_FOCUS_GREEN_PLENTY_OF_LEFT_YELLOW_RUNNING"], dbKey = "timerColorByRemaining", get = function() return getDB("timerColorByRemaining", true) end, set = function(v) setDB("timerColorByRemaining", v) end, visibleWhen = function() return getDB("showTimerBars", false) end },
+            { type = "section", name = L["OPTIONS_FOCUS_EMPHASIS"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_DIM_UNFOCUSED_ENTRIES"], desc = L["OPTIONS_CORE_DIM_UNFOCUSED_TRACKER_ENTRIES"], tooltip = L["OPTIONS_FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"], dbKey = "dimNonSuperTracked", get = function() return getDB("dimNonSuperTracked", false) end, set = function(v) setDB("dimNonSuperTracked", v) end, refreshIds = { "dimStrength", "dimAlpha", "dimDesaturate" } },
+            { type = "slider", name = L["OPTIONS_CORE_DIM_STRENGTH"], desc = L["OPTIONS_CORE_DIMMING_STRENGTH"], tooltip = L["OPTIONS_CORE_MUCH_DIM_FOCUSED_ENTRIES_DIMMING_FU"], dbKey = "dimStrength", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("dimStrength", 40)) or 40)) end, set = function(v) setDB("dimStrength", math.max(0, math.min(100, v))) end, visibleWhen = function() return getDB("dimNonSuperTracked", false) end },
+            { type = "slider", name = L["OPTIONS_CORE_DIM_ALPHA"], desc = L["OPTIONS_CORE_OPACITY_OF_UNFOCUSED_ENTRIES"], tooltip = L["OPTIONS_CORE_REDUCE_OPACITY_OF_FOCUSED_ENTRIES_INVISIBLE"], dbKey = "dimAlpha", min = 0, max = 100, get = function() return math.max(0, math.min(100, tonumber(getDB("dimAlpha", 100)) or 100)) end, set = function(v) setDB("dimAlpha", math.max(0, math.min(100, v))) end, visibleWhen = function() return getDB("dimNonSuperTracked", false) end },
+            { type = "toggle", name = L["OPTIONS_CORE_DESATURATE_FOCUSED_QUESTS"], desc = L["OPTIONS_CORE_DESATURATE_FOCUSED_ENTRIES"], tooltip = L["OPTIONS_CORE_MAKE_FOCUSED_ENTRIES_GREYSCALE_PARTIALLY_DESATURATE"], dbKey = "dimDesaturate", get = function() return getDB("dimDesaturate", false) end, set = function(v) setDB("dimDesaturate", v) end, visibleWhen = function() return getDB("dimNonSuperTracked", false) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_HIGHLIGHT_ALPHA"], desc = L["OPTIONS_CORE_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"], dbKey = "highlightAlpha", min = 0, max = 100, get = function() local v = tonumber(getDB("highlightAlpha", 0.25)) or 0.25; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("highlightAlpha", math.max(0, math.min(100, v)) / 100) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_BAR_WIDTH"], desc = L["OPTIONS_FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"], dbKey = "highlightBarWidth", min = 2, max = 6, get = function() return math.max(2, math.min(6, tonumber(getDB("highlightBarWidth", 2)) or 2)) end, set = function(v) setDB("highlightBarWidth", math.max(2, math.min(6, v))) end },
         },
     },
     {
         key = "SortingFiltering",
-        name = L["Sorting & Filtering"],
-        desc = L["Organize and hide tracked entries to your preference."] or "Organize and hide tracked entries to your preference.",
+        name = L["OPTIONS_CORE_SORTING_FILTERING"],
+        desc = L["OPTIONS_CORE_ORGANIZE_HIDE_TRACKED_ENTRIES_YOUR_PREFERENCE"] or "Organize and hide tracked entries to your preference.",
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Filtering"] },
-            { type = "toggle", name = L["Current zone only"], desc = L["Hide quests outside your current zone."], dbKey = "filterByZone", get = function() return getDB("filterByZone", false) end, set = function(v) setDB("filterByZone", v) end },
-            { type = "section", name = L["Grouping"] },
-            { type = "toggle", name = L["Current Quest category"], desc = L["Show recent progress at the top."], tooltip = L["Quests you made progress on in the last minute appear in a dedicated section."], dbKey = "showCurrentQuestCategory", get = function() return getDB("showCurrentQuestCategory", true) end, set = function(v) setDB("showCurrentQuestCategory", v) end, refreshIds = { "currentQuestWindowSec" } },
-            { type = "slider", name = L["Current Quest window"], desc = L["Seconds of recent progress to show."], dbKey = "currentQuestWindowSec", min = 30, max = 120, get = function() return math.max(30, math.min(120, tonumber(getDB("currentQuestWindowSec", 60)) or 60)) end, set = function(v) setDB("currentQuestWindowSec", math.max(30, math.min(120, v))) end, visibleWhen = function() return getDB("showCurrentQuestCategory", true) end, id = "currentQuestWindowSec" },
-            { type = "toggle", name = L["Current Zone group"], desc = L["Dedicated section for in-zone quests."], dbKey = "showNearbyGroup", get = function() return getDB("showNearbyGroup", true) end, set = function(v) setDB("showNearbyGroup", v) end, tooltip = L["When off, in-zone quests appear in their normal category."], refreshIds = { "nearbyCompleteToBottom" } },
-            { type = "toggle", name = L["Ready to turn in at bottom"], desc = L["Move completed quests to the bottom of the Current Zone section."], dbKey = "nearbyCompleteToBottom", get = function() return getDB("nearbyCompleteToBottom", true) end, set = function(v) setDB("nearbyCompleteToBottom", v); OptionsData_NotifyMainAddon() end, visibleWhen = function() return getDB("showNearbyGroup", true) end },
-            { type = "toggle", name = L["Ready to Turn In group"], desc = L["Dedicated section for completed quests."], dbKey = "showCompleteGroup", get = function() return getDB("showCompleteGroup", true) end, set = function(v) setDB("showCompleteGroup", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["When off, completed quests stay in their original category."], refreshIds = { "keepCampaignInCategory", "keepImportantInCategory" } },
-            { type = "toggle", name = L["Keep campaign in category"], desc = L["Keep in Campaign when ready to turn in."], dbKey = "keepCampaignInCategory", get = function() return getDB("keepCampaignInCategory", false) end, set = function(v) setDB("keepCampaignInCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["When off, they move to the Complete section."], visibleWhen = function() return getDB("showCompleteGroup", true) end, id = "keepCampaignInCategory" },
-            { type = "toggle", name = L["Keep important in category"], desc = L["Keep in Important when ready to turn in."], dbKey = "keepImportantInCategory", get = function() return getDB("keepImportantInCategory", false) end, set = function(v) setDB("keepImportantInCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["When off, they move to the Complete section."], visibleWhen = function() return getDB("showCompleteGroup", true) end, id = "keepImportantInCategory" },
-            { type = "section", name = L["Sorting"] },
-            { type = "reorderList", name = L["Category order"], labelMap = addon.SECTION_LABELS, presets = addon.GROUP_ORDER_PRESETS, get = function() return addon.GetGroupOrder() end, set = function(order) addon.SetGroupOrder(order) end, desc = L["Drag to reorder. Delves and Scenarios stay first."] },
-            { type = "dropdown", name = L["Sort mode"], desc = L["Order of entries within each category."], dbKey = "entrySortMode", options = { { L["Alphabetical"], "alpha" }, { L["Quest Type"], "questType" }, { L["Zone"], "zone" }, { L["Quest Level"], "level" } }, get = function() return getDB("entrySortMode", "questType") end, set = function(v) setDB("entrySortMode", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_FILTERING"] },
+            { type = "toggle", name = L["OPTIONS_CORE_CURRENT_ZONE"], desc = L["OPTIONS_FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"], dbKey = "filterByZone", get = function() return getDB("filterByZone", false) end, set = function(v) setDB("filterByZone", v) end },
+            { type = "section", name = L["OPTIONS_CORE_GROUPING"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CURRENT_QUEST_CATEGORY"], desc = L["OPTIONS_CORE_RECENT_PROGRESS_TOP"], tooltip = L["OPTIONS_FOCUS_QUESTS_YOU_MADE_PROGRESS_LAST_MINUTE"], dbKey = "showCurrentQuestCategory", get = function() return getDB("showCurrentQuestCategory", true) end, set = function(v) setDB("showCurrentQuestCategory", v) end, refreshIds = { "currentQuestWindowSec" } },
+            { type = "slider", name = L["OPTIONS_FOCUS_CURRENT_QUEST_WINDOW"], desc = L["OPTIONS_CORE_SECONDS_OF_RECENT_PROGRESS"], dbKey = "currentQuestWindowSec", min = 30, max = 120, get = function() return math.max(30, math.min(120, tonumber(getDB("currentQuestWindowSec", 60)) or 60)) end, set = function(v) setDB("currentQuestWindowSec", math.max(30, math.min(120, v))) end, visibleWhen = function() return getDB("showCurrentQuestCategory", true) end, id = "currentQuestWindowSec" },
+            { type = "toggle", name = L["OPTIONS_CORE_CURRENT_ZONE_GROUP"], desc = L["OPTIONS_CORE_DEDICATED_SECTION_ZONE_QUESTS"], dbKey = "showNearbyGroup", get = function() return getDB("showNearbyGroup", true) end, set = function(v) setDB("showNearbyGroup", v) end, tooltip = L["OPTIONS_CORE_ZONE_QUESTS_APPEAR_THEIR_NORMAL_CATEGORY"], refreshIds = { "nearbyCompleteToBottom" } },
+            { type = "toggle", name = L["OPTIONS_CORE_READY_TURN_BOTTOM"], desc = L["OPTIONS_CORE_MOVE_COMPLETED_QUESTS_BOTTOM_OF_CURRENT"], dbKey = "nearbyCompleteToBottom", get = function() return getDB("nearbyCompleteToBottom", true) end, set = function(v) setDB("nearbyCompleteToBottom", v); OptionsData_NotifyMainAddon() end, visibleWhen = function() return getDB("showNearbyGroup", true) end },
+            { type = "toggle", name = L["OPTIONS_CORE_READY_TURN_GROUP"], desc = L["OPTIONS_CORE_DEDICATED_SECTION_COMPLETED_QUESTS"], dbKey = "showCompleteGroup", get = function() return getDB("showCompleteGroup", true) end, set = function(v) setDB("showCompleteGroup", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["OPTIONS_CORE_COMPLETED_QUESTS_STAY_THEIR_ORIGINAL_CATEGO"], refreshIds = { "keepCampaignInCategory", "keepImportantInCategory" } },
+            { type = "toggle", name = L["OPTIONS_CORE_KEEP_CAMPAIGN_CATEGORY"], desc = L["OPTIONS_CORE_KEEP_CAMPAIGN_READY_TURN"], dbKey = "keepCampaignInCategory", get = function() return getDB("keepCampaignInCategory", false) end, set = function(v) setDB("keepCampaignInCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["OPTIONS_CORE_THEY_MOVE_COMPLETE_SECTION"], visibleWhen = function() return getDB("showCompleteGroup", true) end, id = "keepCampaignInCategory" },
+            { type = "toggle", name = L["OPTIONS_CORE_KEEP_IMPORTANT_CATEGORY"], desc = L["OPTIONS_CORE_KEEP_IMPORTANT_READY_TURN"], dbKey = "keepImportantInCategory", get = function() return getDB("keepImportantInCategory", false) end, set = function(v) setDB("keepImportantInCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["OPTIONS_CORE_THEY_MOVE_COMPLETE_SECTION"], visibleWhen = function() return getDB("showCompleteGroup", true) end, id = "keepImportantInCategory" },
+            { type = "section", name = L["OPTIONS_FOCUS_SORTING"] },
+            { type = "reorderList", name = L["OPTIONS_FOCUS_CATEGORY_ORDER"], labelMap = addon.SECTION_LABELS, presets = addon.GROUP_ORDER_PRESETS, get = function() return addon.GetGroupOrder() end, set = function(order) addon.SetGroupOrder(order) end, desc = L["OPTIONS_FOCUS_DRAG_REORDER_DELVES_SCENARIOS_STAY_FIRST"] },
+            { type = "dropdown", name = L["OPTIONS_CORE_SORT_MODE"], desc = L["OPTIONS_FOCUS_ORDER_OF_ENTRIES_WITHIN_CATEGORY"], dbKey = "entrySortMode", options = { { L["OPTIONS_FOCUS_ALPHABETICAL"], "alpha" }, { L["OPTIONS_FOCUS_QUEST_TYPE"], "questType" }, { L["OPTIONS_FOCUS_ZONE"], "zone" }, { L["OPTIONS_FOCUS_QUEST_LEVEL"], "level" } }, get = function() return getDB("entrySortMode", "questType") end, set = function(v) setDB("entrySortMode", v) end },
         },
     },
     {
         key = "Typography",
-        name = L["Typography"],
-        desc = L["Adjust fonts, sizes, casing, and drop shadows."] or "Adjust fonts, sizes, casing, and drop shadows.",
+        name = L["DASH_TYPOGRAPHY"],
+        desc = L["OPTIONS_CORE_ADJUST_FONTS_SIZES_CASING_DROP_SHADOWS"] or "Adjust fonts, sizes, casing, and drop shadows.",
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Font families"] },
-            { type = "dropdown", name = L["Font"], desc = L["Font family."], dbKey = "fontPath", searchable = true, options = GetFontDropdownOptions, get = function() return getDB("fontPath", defaultFontPath) end, set = function(v) setDB("fontPath", v) end, displayFn = addon.GetFontNameForPath },
-            { type = "toggle", name = L["Per-element fonts"], desc = L["Override font per element."], dbKey = "usePerElementFonts", get = function() return getDB("usePerElementFonts", false) end, set = function(v) setDB("usePerElementFonts", v) end, refreshIds = { "titleFontPath", "zoneFontPath", "objectiveFontPath", "sectionFontPath", "progressBarFontPath" } },
-            { type = "dropdown", name = L["Title font"], desc = L["Font family for quest titles."], dbKey = "titleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("titleFontPath") end, get = function() return getDB("titleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("titleFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "titleFontPath" },
-            { type = "dropdown", name = L["Zone font"], desc = L["Font family for zone labels."], dbKey = "zoneFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("zoneFontPath") end, get = function() return getDB("zoneFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("zoneFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "zoneFontPath" },
-            { type = "dropdown", name = L["Objective font"], desc = L["Font family for objective text."], dbKey = "objectiveFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("objectiveFontPath") end, get = function() return getDB("objectiveFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("objectiveFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "objectiveFontPath" },
-            { type = "dropdown", name = L["Section font"], desc = L["Font family for section headers."], dbKey = "sectionFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("sectionFontPath") end, get = function() return getDB("sectionFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("sectionFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "sectionFontPath" },
-            { type = "dropdown", name = L["Progress bar font"], desc = L["Font family for the progress bar label."], dbKey = "progressBarFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("progressBarFontPath") end, get = function() return getDB("progressBarFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("progressBarFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "progressBarFontPath" },
-            { type = "section", name = L["Font sizes"] },
-            { type = "slider", name = L["Global font size"], desc = L["Adjust all font sizes by this amount."], dbKey = "globalFontSizeOffset", min = -4, max = 4, get = function() return getDB("globalFontSizeOffset", 0) end, set = function(v) setDB("globalFontSizeOffset", v) end },
-            { type = "slider", name = L["Header size"], desc = L["Header font size."], dbKey = "headerFontSize", min = 8, max = 32, get = function() return getDB("headerFontSize", 16) end, set = function(v) setDB("headerFontSize", v) end },
-            { type = "slider", name = L["Title size"], desc = L["Quest title font size."], dbKey = "titleFontSize", min = 8, max = 24, get = function() return getDB("titleFontSize", 13) end, set = function(v) setDB("titleFontSize", v) end },
-            { type = "slider", name = L["Objective size"], desc = L["Objective text font size."], dbKey = "objectiveFontSize", min = 8, max = 20, get = function() return getDB("objectiveFontSize", 11) end, set = function(v) setDB("objectiveFontSize", v) end },
-            { type = "slider", name = L["Zone size"], desc = L["Zone label font size."], dbKey = "zoneFontSize", min = 8, max = 18, get = function() return getDB("zoneFontSize", 10) end, set = function(v) setDB("zoneFontSize", v) end },
-            { type = "slider", name = L["Section size"], desc = L["Section header font size."], dbKey = "sectionFontSize", min = 8, max = 18, get = function() return getDB("sectionFontSize", 10) end, set = function(v) setDB("sectionFontSize", v) end },
-            { type = "slider", name = L["Progress bar text size"], desc = L["Font size for bar label and bar height."], dbKey = "progressBarFontSize", min = 7, max = 18, get = function() return getDB("progressBarFontSize", 10) end, set = function(v) setDB("progressBarFontSize", v) end, tooltip = L["Also affects scenario progress and timer bars."] },
-            { type = "dropdown", name = L["Outline"], desc = L["Font outline style."], dbKey = "fontOutline", options = OUTLINE_OPTIONS, get = function() return getDB("fontOutline", "OUTLINE") end, set = function(v) setDB("fontOutline", v) end },
-            { type = "section", name = L["Text case"] },
-            { type = "dropdown", name = L["Header text case"], desc = L["Display case for header."], dbKey = "headerTextCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("headerTextCase", "proper"); return (v == "default") and "proper" or v end, set = function(v) setDB("headerTextCase", v) end },
-            { type = "dropdown", name = L["Section header case"], desc = L["Display case for category labels."], dbKey = "sectionHeaderTextCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("sectionHeaderTextCase", "proper"); return (v == "default") and "proper" or v end, set = function(v) setDB("sectionHeaderTextCase", v) end },
-            { type = "dropdown", name = L["Quest title case"], desc = L["Display case for quest titles."], dbKey = "questTitleCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("questTitleCase", "proper"); return (v == "default") and "proper" or v end, set = function(v) setDB("questTitleCase", v) end },
-            { type = "section", name = L["Shadow"] },
-            { type = "toggle", name = L["Show text shadow"], desc = L["Enable drop shadow on text."], dbKey = "showTextShadow", get = function() return getDB("showTextShadow", true) end, set = function(v) setDB("showTextShadow", v) end, refreshIds = { "shadowOffsetX", "shadowOffsetY", "shadowAlpha" } },
-            { type = "slider", name = L["Shadow X"], desc = L["Horizontal shadow offset."], dbKey = "shadowOffsetX", min = -10, max = 10, get = function() return getDB("shadowOffsetX", 2) end, set = function(v) setDB("shadowOffsetX", v) end, visibleWhen = function() return getDB("showTextShadow", true) end, id = "shadowOffsetX" },
-            { type = "slider", name = L["Shadow Y"], desc = L["Vertical shadow offset."], dbKey = "shadowOffsetY", min = -10, max = 10, get = function() return getDB("shadowOffsetY", -2) end, set = function(v) setDB("shadowOffsetY", v) end, visibleWhen = function() return getDB("showTextShadow", true) end, id = "shadowOffsetY" },
-            { type = "slider", name = L["Shadow alpha"], desc = L["Shadow opacity (0–100%)."], dbKey = "shadowAlpha", min = 0, max = 100, get = function() local v = tonumber(getDB("shadowAlpha", 0.8)) or 0.8; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("shadowAlpha", math.max(0, math.min(100, v)) / 100) end, visibleWhen = function() return getDB("showTextShadow", true) end, id = "shadowAlpha" },
+            { type = "section", name = L["OPTIONS_FOCUS_FONT_FAMILIES"] },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_FONT"], desc = L["OPTIONS_FOCUS_FONT_FAMILY"], dbKey = "fontPath", searchable = true, options = GetFontDropdownOptions, get = function() return getDB("fontPath", defaultFontPath) end, set = function(v) setDB("fontPath", v) end, displayFn = addon.GetFontNameForPath },
+            { type = "toggle", name = L["OPTIONS_FOCUS_PER_ELEMENT_FONTS"], desc = L["OPTIONS_CORE_OVERRIDE_FONT_PER_ELEMENT"], dbKey = "usePerElementFonts", get = function() return getDB("usePerElementFonts", false) end, set = function(v) setDB("usePerElementFonts", v) end, refreshIds = { "titleFontPath", "zoneFontPath", "objectiveFontPath", "sectionFontPath", "progressBarFontPath" } },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_TITLE_FONT"], desc = L["OPTIONS_FOCUS_FONT_FAMILY_QUEST_TITLES"], dbKey = "titleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("titleFontPath") end, get = function() return getDB("titleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("titleFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "titleFontPath" },
+            { type = "dropdown", name = L["OPTIONS_VISTA_ZONE_FONT"], desc = L["OPTIONS_FOCUS_FONT_FAMILY_ZONE_LABELS"], dbKey = "zoneFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("zoneFontPath") end, get = function() return getDB("zoneFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("zoneFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "zoneFontPath" },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_OBJECTIVE_FONT"], desc = L["OPTIONS_FOCUS_FONT_FAMILY_OBJECTIVE_TEXT"], dbKey = "objectiveFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("objectiveFontPath") end, get = function() return getDB("objectiveFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("objectiveFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "objectiveFontPath" },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_SECTION_FONT"], desc = L["OPTIONS_FOCUS_FONT_FAMILY_SECTION_HEADERS"], dbKey = "sectionFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("sectionFontPath") end, get = function() return getDB("sectionFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("sectionFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "sectionFontPath" },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_PROGRESS_BAR_FONT"], desc = L["OPTIONS_FOCUS_FONT_FAMILY_PROGRESS_BAR_LABEL"], dbKey = "progressBarFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("progressBarFontPath") end, get = function() return getDB("progressBarFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("progressBarFontPath", v) end, displayFn = DisplayPerElementFont, visibleWhen = function() return getDB("usePerElementFonts", false) end, id = "progressBarFontPath" },
+            { type = "section", name = L["OPTIONS_FOCUS_FONT_SIZES"] },
+            { type = "slider", name = L["OPTIONS_FOCUS_GLOBAL_FONT_SIZE"], desc = L["OPTIONS_CORE_ADJUST_FONT_SIZES_AMOUNT"], dbKey = "globalFontSizeOffset", min = -4, max = 4, get = function() return getDB("globalFontSizeOffset", 0) end, set = function(v) setDB("globalFontSizeOffset", v) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_HEADER_SIZE"], desc = L["OPTIONS_FOCUS_HEADER_FONT_SIZE"], dbKey = "headerFontSize", min = 8, max = 32, get = function() return getDB("headerFontSize", 16) end, set = function(v) setDB("headerFontSize", v) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_TITLE_SIZE"], desc = L["OPTIONS_FOCUS_QUEST_TITLE_FONT_SIZE"], dbKey = "titleFontSize", min = 8, max = 24, get = function() return getDB("titleFontSize", 13) end, set = function(v) setDB("titleFontSize", v) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_OBJECTIVE_SIZE"], desc = L["OPTIONS_FOCUS_OBJECTIVE_TEXT_FONT_SIZE"], dbKey = "objectiveFontSize", min = 8, max = 20, get = function() return getDB("objectiveFontSize", 11) end, set = function(v) setDB("objectiveFontSize", v) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_ZONE_SIZE"], desc = L["OPTIONS_FOCUS_ZONE_LABEL_FONT_SIZE"], dbKey = "zoneFontSize", min = 8, max = 18, get = function() return getDB("zoneFontSize", 10) end, set = function(v) setDB("zoneFontSize", v) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_SECTION_SIZE"], desc = L["OPTIONS_FOCUS_SECTION_HEADER_FONT_SIZE"], dbKey = "sectionFontSize", min = 8, max = 18, get = function() return getDB("sectionFontSize", 10) end, set = function(v) setDB("sectionFontSize", v) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT_SIZE"], desc = L["OPTIONS_CORE_FONT_SIZE_BAR_LABEL_BAR_HEIGHT"], dbKey = "progressBarFontSize", min = 7, max = 18, get = function() return getDB("progressBarFontSize", 10) end, set = function(v) setDB("progressBarFontSize", v) end, tooltip = L["OPTIONS_CORE_AFFECTS_SCENARIO_PROGRESS_TIMER_BARS"] },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_OUTLINE"], desc = L["OPTIONS_FOCUS_FONT_OUTLINE_STYLE"], dbKey = "fontOutline", options = OUTLINE_OPTIONS, get = function() return getDB("fontOutline", "OUTLINE") end, set = function(v) setDB("fontOutline", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_TEXT_CASE"] },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_HEADER_TEXT_CASE"], desc = L["OPTIONS_FOCUS_DISPLAY_CASE_HEADER"], dbKey = "headerTextCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("headerTextCase", "proper"); return (v == "default") and "proper" or v end, set = function(v) setDB("headerTextCase", v) end },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_SECTION_HEADER_CASE"], desc = L["OPTIONS_FOCUS_DISPLAY_CASE_CATEGORY_LABELS"], dbKey = "sectionHeaderTextCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("sectionHeaderTextCase", "proper"); return (v == "default") and "proper" or v end, set = function(v) setDB("sectionHeaderTextCase", v) end },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_QUEST_TITLE_CASE"], desc = L["OPTIONS_FOCUS_DISPLAY_CASE_QUEST_TITLES"], dbKey = "questTitleCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("questTitleCase", "proper"); return (v == "default") and "proper" or v end, set = function(v) setDB("questTitleCase", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_SHADOW"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_TEXT_SHADOW"], desc = L["OPTIONS_FOCUS_ENABLE_DROP_SHADOW_TEXT"], dbKey = "showTextShadow", get = function() return getDB("showTextShadow", true) end, set = function(v) setDB("showTextShadow", v) end, refreshIds = { "shadowOffsetX", "shadowOffsetY", "shadowAlpha" } },
+            { type = "slider", name = L["OPTIONS_FOCUS_SHADOW_X"], desc = L["OPTIONS_FOCUS_HORIZONTAL_SHADOW_OFFSET"], dbKey = "shadowOffsetX", min = -10, max = 10, get = function() return getDB("shadowOffsetX", 2) end, set = function(v) setDB("shadowOffsetX", v) end, visibleWhen = function() return getDB("showTextShadow", true) end, id = "shadowOffsetX" },
+            { type = "slider", name = L["OPTIONS_FOCUS_SHADOW_Y"], desc = L["OPTIONS_FOCUS_VERTICAL_SHADOW_OFFSET"], dbKey = "shadowOffsetY", min = -10, max = 10, get = function() return getDB("shadowOffsetY", -2) end, set = function(v) setDB("shadowOffsetY", v) end, visibleWhen = function() return getDB("showTextShadow", true) end, id = "shadowOffsetY" },
+            { type = "slider", name = L["OPTIONS_FOCUS_SHADOW_ALPHA"], desc = L["OPTIONS_CORE_SHADOW_OPACITY"], dbKey = "shadowAlpha", min = 0, max = 100, get = function() local v = tonumber(getDB("shadowAlpha", 0.8)) or 0.8; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("shadowAlpha", math.max(0, math.min(100, v)) / 100) end, visibleWhen = function() return getDB("showTextShadow", true) end, id = "shadowAlpha" },
         },
     },
     {
         key = "Interactions",
-        name = L["Interactions"],
-        desc = L["Configure click behaviors, tracking rules, and TomTom integration."] or "Configure click behaviors, tracking rules, and TomTom integration.",
+        name = L["OPTIONS_FOCUS_INTERACTIONS"],
+        desc = L["OPTIONS_CORE_CONFIGURE_CLICK_BEHAVIORS_TRACKING_RULES_TOMTOM"] or "Configure click behaviors, tracking rules, and TomTom integration.",
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Click behavior"] },
-            { type = "toggle", name = L["Ctrl for focus / untrack"], desc = L["Prevent accidental clicks."], dbKey = "requireCtrlForQuestClicks", get = function() return getDB("requireCtrlForQuestClicks", false) end, set = function(v) setDB("requireCtrlForQuestClicks", v) end, tooltip = L["Ctrl+Left = focus/add, Ctrl+Right = unfocus/untrack."] },
-            { type = "toggle", name = L["Classic clicks"], desc = L["L-click opens map, R-click opens menu."], dbKey = "useClassicClickBehaviour", get = function() return getDB("useClassicClickBehaviour", false) end, set = function(v) setDB("useClassicClickBehaviour", v) end, tooltip = L["Off: L-click focuses, R-click untracks. Ctrl+Right shares."] },
-            { type = "toggle", name = L["Ctrl to click-complete"], desc = L["Require Ctrl to complete click-completable quests."], dbKey = "requireModifierForClickToComplete", get = function() return getDB("requireModifierForClickToComplete", false) end, set = function(v) setDB("requireModifierForClickToComplete", v) end, tooltip = L["Only for quests that don't need NPC turn-in. Off = Blizzard default."] },
-            { type = "section", name = L["Quest tracking"] },
-            { type = "toggle", name = L["Auto-track accepted quests"], desc = L["When you accept a quest (quest log only, not world quests), add it to the tracker automatically."], dbKey = "autoTrackOnAccept", get = function() return getDB("autoTrackOnAccept", true) end, set = function(v) setDB("autoTrackOnAccept", v) end },
-            { type = "toggle", name = L["Suppress untracked until reload"], desc = L["Hide untracked quests until reload."], tooltip = L["When on, right-click untrack on world quests and in-zone weeklies/dailies hides them until you reload or start a new session. When off, they reappear when you return to the zone."], dbKey = "suppressUntrackedUntilReload", get = function() return getDB("suppressUntrackedUntilReload", false) end, set = function(v) setDB("suppressUntrackedUntilReload", v) end },
-            { type = "toggle", name = L["Blacklist untracked"], desc = L["Permanently hide untracked quests."], dbKey = "permanentlySuppressUntracked", get = function() return getDB("permanentlySuppressUntracked", false) end, set = function(v) setDB("permanentlySuppressUntracked", v) end, tooltip = L["Takes priority over suppress-until-reload. Accepting removes from blacklist."] },
-            { type = "section", name = L["TomTom"] },
-            { type = "toggle", name = L["TomTom quest waypoint"], desc = L["Set a TomTom waypoint when focusing a quest."], dbKey = "tomtomQuestWaypoint", get = function() return getDB("tomtomQuestWaypoint", false) end, set = function(v) setDB("tomtomQuestWaypoint", v) end, tooltip = L["Requires TomTom. Points the arrow to the next quest objective."] },
-            { type = "toggle", name = L["TomTom rare waypoint"], desc = L["Set a TomTom waypoint when clicking a rare boss."], dbKey = "tomtomRareWaypoint", get = function() return getDB("tomtomRareWaypoint", true) end, set = function(v) setDB("tomtomRareWaypoint", v) end, tooltip = L["Requires TomTom. Points the arrow to the rare's location."] },
+            { type = "section", name = L["OPTIONS_CORE_CLICK_BEHAVIOR"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CTRL_FOCUS_UNTRACK"], desc = L["OPTIONS_CORE_PREVENT_ACCIDENTAL_CLICKS"], dbKey = "requireCtrlForQuestClicks", get = function() return getDB("requireCtrlForQuestClicks", false) end, set = function(v) setDB("requireCtrlForQuestClicks", v) end, tooltip = L["OPTIONS_CORE_CTRL_LEFT_FOCUS_ADD_CTRL_RIGHT"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CLASSIC_CLICKS"], desc = L["OPTIONS_CORE_L_CLICK_OPENS_MAP_R_CLICK"], dbKey = "useClassicClickBehaviour", get = function() return getDB("useClassicClickBehaviour", false) end, set = function(v) setDB("useClassicClickBehaviour", v) end, tooltip = L["OPTIONS_CORE_L_CLICK_FOCUSES_R_CLICK_UNTRACKS"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CTRL_CLICK_COMPLETE"], desc = L["OPTIONS_CORE_REQUIRE_CTRL_COMPLETE_CLICK_COMPLETABLE_QUESTS"], dbKey = "requireModifierForClickToComplete", get = function() return getDB("requireModifierForClickToComplete", false) end, set = function(v) setDB("requireModifierForClickToComplete", v) end, tooltip = L["OPTIONS_CORE_QUESTS_DON_T_NEED_NPC_TURN"] },
+            { type = "section", name = L["OPTIONS_CORE_QUEST_TRACKING"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_AUTO_TRACK_ACCEPTED_QUESTS"], desc = L["OPTIONS_FOCUS_YOU_ACCEPT_A_QUEST_QUEST_LOG"], dbKey = "autoTrackOnAccept", get = function() return getDB("autoTrackOnAccept", true) end, set = function(v) setDB("autoTrackOnAccept", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_SUPPRESS_UNTRACKED_UNTIL_RELOAD"], desc = L["OPTIONS_CORE_HIDE_UNTRACKED_QUESTS_UNTIL_RELOAD"], tooltip = L["OPTIONS_FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS_Z"], dbKey = "suppressUntrackedUntilReload", get = function() return getDB("suppressUntrackedUntilReload", false) end, set = function(v) setDB("suppressUntrackedUntilReload", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_BLACKLIST_UNTRACKED"], desc = L["OPTIONS_CORE_PERMANENTLY_HIDE_UNTRACKED_QUESTS"], dbKey = "permanentlySuppressUntracked", get = function() return getDB("permanentlySuppressUntracked", false) end, set = function(v) setDB("permanentlySuppressUntracked", v) end, tooltip = L["OPTIONS_CORE_TAKES_PRIORITY_SUPPRESS_UNTIL_RELOAD_ACCEPTING"] },
+            { type = "section", name = L["OPTIONS_CORE_TOMTOM"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_TOMTOM_QUEST_WAYPOINT"], desc = L["OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_FOCUSING_A_QUEST"], dbKey = "tomtomQuestWaypoint", get = function() return getDB("tomtomQuestWaypoint", false) end, set = function(v) setDB("tomtomQuestWaypoint", v) end, tooltip = L["OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_NEXT_QUEST"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_TOMTOM_RARE_WAYPOINT"], desc = L["OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_CLICKING_A_RARE"], dbKey = "tomtomRareWaypoint", get = function() return getDB("tomtomRareWaypoint", true) end, set = function(v) setDB("tomtomRareWaypoint", v) end, tooltip = L["OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE_S"] },
         },
     },
     {
         key = "Animations",
-        name = L["Animations"],
-        desc = L["Tune slide and fade effects, plus objective progress flashes."] or "Tune slide and fade effects, plus objective progress flashes.",
+        name = L["OPTIONS_FOCUS_ANIMATIONS"],
+        desc = L["OPTIONS_CORE_TUNE_SLIDE_FADE_EFFECTS_PLUS_OBJECTIVE"] or "Tune slide and fade effects, plus objective progress flashes.",
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Focus animations"] },
-            { type = "toggle", name = L["Animations"], desc = L["Enable slide and fade for quests."], dbKey = "animations", get = function() return getDB("animations", true) end, set = function(v) setDB("animations", v) end },
-            { type = "section", name = L["Objective progress"] },
-            { type = "toggle", name = L["Objective progress flash"], desc = L["Show flash when an objective completes."], dbKey = "objectiveProgressFlash", get = function() return getDB("objectiveProgressFlash", true) end, set = function(v) setDB("objectiveProgressFlash", v) end, refreshIds = { "objectiveProgressFlashIntensity", "objectiveProgressFlashColor" } },
-            { type = "dropdown", name = L["Flash intensity"], desc = L["How noticeable the objective-complete flash is."], dbKey = "objectiveProgressFlashIntensity", id = "objectiveProgressFlashIntensity", visibleWhen = function() return getDB("objectiveProgressFlash", true) end, options = { { L["Subtle"], "subtle" }, { L["Medium"], "medium" }, { L["Strong"], "strong" } }, get = function() return getDB("objectiveProgressFlashIntensity", "subtle") end, set = function(v) setDB("objectiveProgressFlashIntensity", v) end },
-            { type = "color", name = L["Flash color"], desc = L["Color of the objective-complete flash."], dbKey = "objectiveProgressFlashColor", id = "objectiveProgressFlashColor", visibleWhen = function() return getDB("objectiveProgressFlash", true) end, default = { 1, 1, 1 } },
+            { type = "section", name = L["OPTIONS_FOCUS_ANIMATIONS"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_ANIMATIONS"], desc = L["OPTIONS_FOCUS_ENABLE_SLIDE_FADE_QUESTS"], dbKey = "animations", get = function() return getDB("animations", true) end, set = function(v) setDB("animations", v) end },
+            { type = "section", name = L["OPTIONS_CORE_OBJECTIVE_PROGRESS"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_FLASH"], desc = L["OPTIONS_FOCUS_FLASH_AN_OBJECTIVE_COMPLETES"], dbKey = "objectiveProgressFlash", get = function() return getDB("objectiveProgressFlash", true) end, set = function(v) setDB("objectiveProgressFlash", v) end, refreshIds = { "objectiveProgressFlashIntensity", "objectiveProgressFlashColor" } },
+            { type = "dropdown", name = L["OPTIONS_FOCUS_FLASH_INTENSITY"], desc = L["OPTIONS_FOCUS_NOTICEABLE_OBJECTIVE_COMPLETE_FLASH"], dbKey = "objectiveProgressFlashIntensity", id = "objectiveProgressFlashIntensity", visibleWhen = function() return getDB("objectiveProgressFlash", true) end, options = { { L["OPTIONS_FOCUS_SUBTLE"], "subtle" }, { L["OPTIONS_FOCUS_MEDIUM"], "medium" }, { L["OPTIONS_FOCUS_STRONG"], "strong" } }, get = function() return getDB("objectiveProgressFlashIntensity", "subtle") end, set = function(v) setDB("objectiveProgressFlashIntensity", v) end },
+            { type = "color", name = L["OPTIONS_FOCUS_FLASH_COLOR"], desc = L["OPTIONS_FOCUS_COLOR_OF_OBJECTIVE_COMPLETE_FLASH"], dbKey = "objectiveProgressFlashColor", id = "objectiveProgressFlashColor", visibleWhen = function() return getDB("objectiveProgressFlash", true) end, default = { 1, 1, 1 } },
         },
     },
     {
         key = "Instances",
-        name = L["Instances"],
-        desc = L["Control tracker visibility within dungeons, raids, and PvP."] or "Control tracker visibility within dungeons, raids, and PvP.",
+        name = L["OPTIONS_FOCUS_INSTANCES"],
+        desc = L["OPTIONS_CORE_CONTROL_TRACKER_VISIBILITY_WITHIN_DUNGEONS_RAIDS"] or "Control tracker visibility within dungeons, raids, and PvP.",
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["Visibility"] },
-            { type = "toggle", name = L["In dungeon"], desc = L["Show tracker in party dungeons (master toggle for all dungeon difficulties)."], dbKey = "showInDungeon", get = function() return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeon", v) end, refreshIds = { "showInDungeonNormal", "showInDungeonHeroic", "showInDungeonMythic", "showInDungeonMythicPlus" } },
-            { type = "toggle", name = L["  Normal dungeon"], desc = L["Show in Normal dungeons."], tooltip = L["Show tracker in Normal dungeons. When unset, uses the master dungeon toggle."], dbKey = "showInDungeonNormal", id = "showInDungeonNormal", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonNormal", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonNormal", v) end },
-            { type = "toggle", name = L["  Heroic dungeon"], desc = L["Show tracker in Heroic dungeons. When unset, uses the master dungeon toggle."], dbKey = "showInDungeonHeroic", id = "showInDungeonHeroic", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonHeroic", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonHeroic", v) end },
-            { type = "toggle", name = L["  Mythic dungeon"], desc = L["Show tracker in Mythic dungeons. When unset, uses the master dungeon toggle."], dbKey = "showInDungeonMythic", id = "showInDungeonMythic", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonMythic", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonMythic", v) end },
-            { type = "toggle", name = L["  Mythic+ dungeon"], desc = L["Show tracker in Mythic Keystone (M+) dungeons. When unset, uses the master dungeon toggle."], dbKey = "showInDungeonMythicPlus", id = "showInDungeonMythicPlus", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonMythicPlus", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonMythicPlus", v) end },
-            { type = "toggle", name = L["In raid"], desc = L["Show tracker in raids (master toggle for all raid difficulties)."], dbKey = "showInRaid", get = function() return getDB("showInRaid", false) end, set = function(v) setDB("showInRaid", v) end, refreshIds = { "showInRaidLFR", "showInRaidNormal", "showInRaidHeroic", "showInRaidMythic" } },
-            { type = "toggle", name = L["  LFR"], desc = L["Show tracker in Looking for Raid. When unset, uses the master raid toggle."], dbKey = "showInRaidLFR", id = "showInRaidLFR", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidLFR", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidLFR", v) end },
-            { type = "toggle", name = L["  Normal raid"], desc = L["Show tracker in Normal raids. When unset, uses the master raid toggle."], dbKey = "showInRaidNormal", id = "showInRaidNormal", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidNormal", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidNormal", v) end },
-            { type = "toggle", name = L["  Heroic raid"], desc = L["Show tracker in Heroic raids. When unset, uses the master raid toggle."], dbKey = "showInRaidHeroic", id = "showInRaidHeroic", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidHeroic", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidHeroic", v) end },
-            { type = "toggle", name = L["  Mythic raid"], desc = L["Show tracker in Mythic raids. When unset, uses the master raid toggle."], dbKey = "showInRaidMythic", id = "showInRaidMythic", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidMythic", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidMythic", v) end },
-            { type = "toggle", name = L["In battleground"], desc = L["Show tracker in battlegrounds."], dbKey = "showInBattleground", get = function() return getDB("showInBattleground", false) end, set = function(v) setDB("showInBattleground", v) end },
-            { type = "toggle", name = L["In arena"], desc = L["Show tracker in arenas."], dbKey = "showInArena", get = function() return getDB("showInArena", false) end, set = function(v) setDB("showInArena", v) end },
-            { type = "section", name = L["Mythic+ Block"] },
-            { type = "toggle", name = L["Enable M+ block"], desc = L["Show timer, completion %, and affixes in Mythic+ dungeons."], dbKey = "showMythicPlusBlock", get = function() return getDB("showMythicPlusBlock", true) end, set = function(v) setDB("showMythicPlusBlock", v) end, refreshIds = { "mplusAlwaysShow", "mplusShowAffixIcons", "mplusShowAffixDescriptions", "mplusBlockPosition", "mplusBossCompletedDisplay" } },
-            { type = "toggle", name = L["Always show"], desc = L["Always show M+ timer."], tooltip = L["Show the M+ block whenever an active keystone is running."], dbKey = "mplusAlwaysShow", id = "mplusAlwaysShow", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusAlwaysShow", false) end, set = function(v) setDB("mplusAlwaysShow", v); if addon.FullLayout then addon.FullLayout() end end },
-            { type = "toggle", name = L["Affix icons"], desc = L["Show affix icons next to modifier names in the M+ block."], dbKey = "mplusShowAffixIcons", id = "mplusShowAffixIcons", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusShowAffixIcons", true) end, set = function(v) setDB("mplusShowAffixIcons", v) end },
-            { type = "toggle", name = L["Affix tooltips"], desc = L["Show affix descriptions when hovering over the M+ block."], dbKey = "mplusShowAffixDescriptions", id = "mplusShowAffixDescriptions", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusShowAffixDescriptions", true) end, set = function(v) setDB("mplusShowAffixDescriptions", v) end },
-            { type = "dropdown", name = L["Block position"], desc = L["Position of the Mythic+ block relative to the quest list."], dbKey = "mplusBlockPosition", id = "mplusBlockPosition", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, options = MPLUS_POSITION_OPTIONS, get = function() return getDB("mplusBlockPosition", "top") end, set = function(v) setDB("mplusBlockPosition", v) end },
-            { type = "dropdown", name = L["Completed boss style"], desc = L["Defeated boss style."], tooltip = L["How to show defeated bosses: checkmark icon or green color."], dbKey = "mplusBossCompletedDisplay", id = "mplusBossCompletedDisplay", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, options = { { L["Checkmark"], "tick" }, { L["Green color"], "green" } }, get = function() return getDB("mplusBossCompletedDisplay", "tick") end, set = function(v) setDB("mplusBossCompletedDisplay", v); if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end end },
-            { type = "section", name = L["Mythic+ Typography"], defaultCollapsed = true },
-            { type = "slider", name = L["Dungeon name size"], desc = L["Font size for dungeon name (8–32 px)."], dbKey = "mplusDungeonSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusDungeonSize", 14)) or 14)) end, set = function(v) setDB("mplusDungeonSize", math.max(8, math.min(32, v))) end },
-            { type = "slider", name = L["Timer size"], desc = L["Font size for timer (8–32 px)."], dbKey = "mplusTimerSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusTimerSize", 13)) or 13)) end, set = function(v) setDB("mplusTimerSize", math.max(8, math.min(32, v))) end },
-            { type = "slider", name = L["Enemy forces size"], desc = L["Font size for enemy forces (8–32 px)."], dbKey = "mplusProgressSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusProgressSize", 12)) or 12)) end, set = function(v) setDB("mplusProgressSize", math.max(8, math.min(32, v))) end },
-            { type = "slider", name = L["Affix size"], desc = L["Font size for affixes (8–32 px)."], dbKey = "mplusAffixSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusAffixSize", 12)) or 12)) end, set = function(v) setDB("mplusAffixSize", math.max(8, math.min(32, v))) end },
-            { type = "slider", name = L["Boss size"], desc = L["Font size for boss names (8–32 px)."], dbKey = "mplusBossSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusBossSize", 12)) or 12)) end, set = function(v) setDB("mplusBossSize", math.max(8, math.min(32, v))) end },
-            { type = "section", name = L["Mythic+ Colors"], defaultCollapsed = true },
-            { type = "color", name = L["Dungeon name color"], desc = L["Text color for dungeon name."], dbKey = "mplusDungeonColor", get = function() return getDB("mplusDungeonColorR", 0.96), getDB("mplusDungeonColorG", 0.96), getDB("mplusDungeonColorB", 1.0) end, set = function(r, g, b) setDB("mplusDungeonColorR", r); setDB("mplusDungeonColorG", g); setDB("mplusDungeonColorB", b) end },
-            { type = "color", name = L["Timer color"], desc = L["Text color for timer (in time)."], dbKey = "mplusTimerColor", get = function() return getDB("mplusTimerColorR", 0.6), getDB("mplusTimerColorG", 0.88), getDB("mplusTimerColorB", 1.0) end, set = function(r, g, b) setDB("mplusTimerColorR", r); setDB("mplusTimerColorG", g); setDB("mplusTimerColorB", b) end },
-            { type = "color", name = L["Timer overtime color"], desc = L["Text color for timer when over the time limit."], dbKey = "mplusTimerOvertimeColor", get = function() return getDB("mplusTimerOvertimeColorR", 0.9), getDB("mplusTimerOvertimeColorG", 0.25), getDB("mplusTimerOvertimeColorB", 0.2) end, set = function(r, g, b) setDB("mplusTimerOvertimeColorR", r); setDB("mplusTimerOvertimeColorG", g); setDB("mplusTimerOvertimeColorB", b) end },
-            { type = "color", name = L["Enemy forces color"], desc = L["Text color for enemy forces."], dbKey = "mplusProgressColor", get = function() return getDB("mplusProgressColorR", 0.72), getDB("mplusProgressColorG", 0.76), getDB("mplusProgressColorB", 0.88) end, set = function(r, g, b) setDB("mplusProgressColorR", r); setDB("mplusProgressColorG", g); setDB("mplusProgressColorB", b) end },
-            { type = "color", name = L["Bar fill color"], desc = L["Progress bar fill color (in progress)."], dbKey = "mplusBarColor", get = function() return getDB("mplusBarColorR", 0.20), getDB("mplusBarColorG", 0.45), getDB("mplusBarColorB", 0.60), getDB("mplusBarColorA", 0.90) end, set = function(r, g, b, a) setDB("mplusBarColorR", r); setDB("mplusBarColorG", g); setDB("mplusBarColorB", b); if a then setDB("mplusBarColorA", a) end end, hasAlpha = true },
-            { type = "color", name = L["Bar complete color"], desc = L["Progress bar fill color when enemy forces are at 100%."], dbKey = "mplusBarDoneColor", get = function() return getDB("mplusBarDoneColorR", 0.15), getDB("mplusBarDoneColorG", 0.65), getDB("mplusBarDoneColorB", 0.25), getDB("mplusBarDoneColorA", 0.90) end, set = function(r, g, b, a) setDB("mplusBarDoneColorR", r); setDB("mplusBarDoneColorG", g); setDB("mplusBarDoneColorB", b); if a then setDB("mplusBarDoneColorA", a) end end, hasAlpha = true },
-            { type = "color", name = L["Affix color"], desc = L["Text color for affixes."], dbKey = "mplusAffixColor", get = function() return getDB("mplusAffixColorR", 0.85), getDB("mplusAffixColorG", 0.85), getDB("mplusAffixColorB", 0.95) end, set = function(r, g, b) setDB("mplusAffixColorR", r); setDB("mplusAffixColorG", g); setDB("mplusAffixColorB", b) end },
-            { type = "color", name = L["Boss color"], desc = L["Text color for boss names."], dbKey = "mplusBossColor", get = function() return getDB("mplusBossColorR", 0.78), getDB("mplusBossColorG", 0.82), getDB("mplusBossColorB", 0.92) end, set = function(r, g, b) setDB("mplusBossColorR", r); setDB("mplusBossColorG", g); setDB("mplusBossColorB", b) end },
-            { type = "button", name = L["Reset Mythic+ styling"], onClick = function()
+            { type = "section", name = L["DASH_VISIBILITY"] },
+            { type = "toggle", name = L["OPTIONS_CORE_DUNGEON"], desc = L["OPTIONS_CORE_TRACKER_PARTY_DUNGEONS_MASTER_TOGGLE_DU"], dbKey = "showInDungeon", get = function() return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeon", v) end, refreshIds = { "showInDungeonNormal", "showInDungeonHeroic", "showInDungeonMythic", "showInDungeonMythicPlus" } },
+            { type = "toggle", name = L["OPTIONS_CORE_NORMAL_DUNGEON"], desc = L["OPTIONS_CORE_NORMAL_DUNGEONS"], tooltip = L["OPTIONS_CORE_TRACKER_NORMAL_DUNGEONS_UNSET_MAS"], dbKey = "showInDungeonNormal", id = "showInDungeonNormal", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonNormal", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonNormal", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_HEROIC_DUNGEON"], desc = L["OPTIONS_CORE_TRACKER_HEROIC_DUNGEONS_UNSET_MAS"], dbKey = "showInDungeonHeroic", id = "showInDungeonHeroic", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonHeroic", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonHeroic", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_MYTHIC_DUNGEON"], desc = L["OPTIONS_CORE_TRACKER_MYTHIC_DUNGEONS_UNSET_MAS"], dbKey = "showInDungeonMythic", id = "showInDungeonMythic", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonMythic", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonMythic", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_MYTHIC_PLUS_DUNGEON"], desc = L["OPTIONS_CORE_TRACKER_MYTHIC_KEYSTONE_M_DUNGEONS_UNSET"], dbKey = "showInDungeonMythicPlus", id = "showInDungeonMythicPlus", visibleWhen = function() return getDB("showInDungeon", true) end, get = function() local v = getDB("showInDungeonMythicPlus", nil); if v ~= nil then return v end; return getDB("showInDungeon", true) end, set = function(v) setDB("showInDungeonMythicPlus", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_RAID"], desc = L["OPTIONS_CORE_TRACKER_RAIDS_MASTER_TOGGLE_RAID_DIFFIC"], dbKey = "showInRaid", get = function() return getDB("showInRaid", false) end, set = function(v) setDB("showInRaid", v) end, refreshIds = { "showInRaidLFR", "showInRaidNormal", "showInRaidHeroic", "showInRaidMythic" } },
+            { type = "toggle", name = L["OPTIONS_CORE_LFR"], desc = L["OPTIONS_CORE_TRACKER_LOOKING_RAID_UNSET_MA"], dbKey = "showInRaidLFR", id = "showInRaidLFR", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidLFR", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidLFR", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_NORMAL_RAID"], desc = L["OPTIONS_CORE_TRACKER_NORMAL_RAIDS_UNSET_MASTER"], dbKey = "showInRaidNormal", id = "showInRaidNormal", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidNormal", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidNormal", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_HEROIC_RAID"], desc = L["OPTIONS_CORE_TRACKER_HEROIC_RAIDS_UNSET_MASTER"], dbKey = "showInRaidHeroic", id = "showInRaidHeroic", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidHeroic", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidHeroic", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_MYTHIC_RAID"], desc = L["OPTIONS_CORE_TRACKER_MYTHIC_RAIDS_UNSET_MASTER"], dbKey = "showInRaidMythic", id = "showInRaidMythic", visibleWhen = function() return getDB("showInRaid", false) end, get = function() local v = getDB("showInRaidMythic", nil); if v ~= nil then return v end; return getDB("showInRaid", false) end, set = function(v) setDB("showInRaidMythic", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_BATTLEGROUND"], desc = L["OPTIONS_FOCUS_TRACKER_BATTLEGROUNDS"], dbKey = "showInBattleground", get = function() return getDB("showInBattleground", false) end, set = function(v) setDB("showInBattleground", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_ARENA"], desc = L["OPTIONS_FOCUS_TRACKER_ARENAS"], dbKey = "showInArena", get = function() return getDB("showInArena", false) end, set = function(v) setDB("showInArena", v) end },
+            { type = "section", name = L["OPTIONS_CORE_MYTHIC_BLOCK"] },
+            { type = "toggle", name = L["OPTIONS_CORE_ENABLE_M_BLOCK"], desc = L["OPTIONS_FOCUS_TIMER_COMPLETION_AFFIXES_MYTHIC_DUNGEONS"], dbKey = "showMythicPlusBlock", get = function() return getDB("showMythicPlusBlock", true) end, set = function(v) setDB("showMythicPlusBlock", v) end, refreshIds = { "mplusAlwaysShow", "mplusShowAffixIcons", "mplusShowAffixDescriptions", "mplusBlockPosition", "mplusBossCompletedDisplay" } },
+            { type = "toggle", name = L["OPTIONS_CORE_ALWAYS"], desc = L["OPTIONS_CORE_ALWAYS_M_TIMER"], tooltip = L["OPTIONS_CORE_M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"], dbKey = "mplusAlwaysShow", id = "mplusAlwaysShow", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusAlwaysShow", false) end, set = function(v) setDB("mplusAlwaysShow", v); if addon.FullLayout then addon.FullLayout() end end },
+            { type = "toggle", name = L["OPTIONS_CORE_AFFIX_ICONS"], desc = L["OPTIONS_FOCUS_AFFIX_ICONS_NEXT_MODIFIER_NAMES_M"], dbKey = "mplusShowAffixIcons", id = "mplusShowAffixIcons", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusShowAffixIcons", true) end, set = function(v) setDB("mplusShowAffixIcons", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_AFFIX_TOOLTIPS"], desc = L["OPTIONS_FOCUS_AFFIX_DESCRIPTIONS_HOVERING_M_BLO"], dbKey = "mplusShowAffixDescriptions", id = "mplusShowAffixDescriptions", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusShowAffixDescriptions", true) end, set = function(v) setDB("mplusShowAffixDescriptions", v) end },
+            { type = "dropdown", name = L["OPTIONS_CORE_BLOCK_POSITION"], desc = L["OPTIONS_FOCUS_POSITION_OF_MYTHIC_BLOCK_RELATIVE_QUEST"], dbKey = "mplusBlockPosition", id = "mplusBlockPosition", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, options = MPLUS_POSITION_OPTIONS, get = function() return getDB("mplusBlockPosition", "top") end, set = function(v) setDB("mplusBlockPosition", v) end },
+            { type = "dropdown", name = L["OPTIONS_CORE_COMPLETED_BOSS_STYLE"], desc = L["OPTIONS_CORE_DEFEATED_BOSS_STYLE"], tooltip = L["OPTIONS_FOCUS_DEFEATED_BOSSES_CHECKMARK_ICON_GREEN"], dbKey = "mplusBossCompletedDisplay", id = "mplusBossCompletedDisplay", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, options = { { L["OPTIONS_FOCUS_CHECKMARK"], "tick" }, { L["OPTIONS_FOCUS_GREEN_COLOR"], "green" } }, get = function() return getDB("mplusBossCompletedDisplay", "tick") end, set = function(v) setDB("mplusBossCompletedDisplay", v); if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end end },
+            { type = "section", name = L["OPTIONS_FOCUS_MYTHIC_TYPOGRAPHY"], defaultCollapsed = true },
+            { type = "slider", name = L["OPTIONS_FOCUS_DUNGEON_NAME_SIZE"], desc = L["OPTIONS_FOCUS_FONT_SIZE_DUNGEON_NAME_PX"], dbKey = "mplusDungeonSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusDungeonSize", 14)) or 14)) end, set = function(v) setDB("mplusDungeonSize", math.max(8, math.min(32, v))) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_TIMER_SIZE"], desc = L["OPTIONS_FOCUS_FONT_SIZE_TIMER_PX"], dbKey = "mplusTimerSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusTimerSize", 13)) or 13)) end, set = function(v) setDB("mplusTimerSize", math.max(8, math.min(32, v))) end },
+            { type = "slider", name = L["OPTIONS_CORE_ENEMY_FORCES_SIZE"], desc = L["OPTIONS_FOCUS_FONT_SIZE_ENEMY_FORCES_PX"], dbKey = "mplusProgressSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusProgressSize", 12)) or 12)) end, set = function(v) setDB("mplusProgressSize", math.max(8, math.min(32, v))) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_AFFIX_SIZE"], desc = L["OPTIONS_FOCUS_FONT_SIZE_AFFIXES_PX"], dbKey = "mplusAffixSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusAffixSize", 12)) or 12)) end, set = function(v) setDB("mplusAffixSize", math.max(8, math.min(32, v))) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_BOSS_SIZE"], desc = L["OPTIONS_FOCUS_FONT_SIZE_BOSS_NAMES_PX"], dbKey = "mplusBossSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusBossSize", 12)) or 12)) end, set = function(v) setDB("mplusBossSize", math.max(8, math.min(32, v))) end },
+            { type = "section", name = L["OPTIONS_CORE_MYTHIC_COLORS"], defaultCollapsed = true },
+            { type = "color", name = L["OPTIONS_FOCUS_DUNGEON_NAME_COLOR"], desc = L["OPTIONS_FOCUS_TEXT_COLOR_DUNGEON_NAME"], dbKey = "mplusDungeonColor", get = function() return getDB("mplusDungeonColorR", 0.96), getDB("mplusDungeonColorG", 0.96), getDB("mplusDungeonColorB", 1.0) end, set = function(r, g, b) setDB("mplusDungeonColorR", r); setDB("mplusDungeonColorG", g); setDB("mplusDungeonColorB", b) end },
+            { type = "color", name = L["OPTIONS_FOCUS_TIMER_COLOR"], desc = L["OPTIONS_FOCUS_TEXT_COLOR_TIMER"], dbKey = "mplusTimerColor", get = function() return getDB("mplusTimerColorR", 0.6), getDB("mplusTimerColorG", 0.88), getDB("mplusTimerColorB", 1.0) end, set = function(r, g, b) setDB("mplusTimerColorR", r); setDB("mplusTimerColorG", g); setDB("mplusTimerColorB", b) end },
+            { type = "color", name = L["OPTIONS_FOCUS_TIMER_OVERTIME_COLOR"], desc = L["OPTIONS_FOCUS_TEXT_COLOR_TIMER_LIMIT"], dbKey = "mplusTimerOvertimeColor", get = function() return getDB("mplusTimerOvertimeColorR", 0.9), getDB("mplusTimerOvertimeColorG", 0.25), getDB("mplusTimerOvertimeColorB", 0.2) end, set = function(r, g, b) setDB("mplusTimerOvertimeColorR", r); setDB("mplusTimerOvertimeColorG", g); setDB("mplusTimerOvertimeColorB", b) end },
+            { type = "color", name = L["OPTIONS_CORE_ENEMY_FORCES_COLOR"], desc = L["OPTIONS_FOCUS_TEXT_COLOR_ENEMY_FORCES"], dbKey = "mplusProgressColor", get = function() return getDB("mplusProgressColorR", 0.72), getDB("mplusProgressColorG", 0.76), getDB("mplusProgressColorB", 0.88) end, set = function(r, g, b) setDB("mplusProgressColorR", r); setDB("mplusProgressColorG", g); setDB("mplusProgressColorB", b) end },
+            { type = "color", name = L["OPTIONS_FOCUS_BAR_FILL_COLOR"], desc = L["OPTIONS_FOCUS_PROGRESS_BAR_FILL_COLOR_PROGRESS"], dbKey = "mplusBarColor", get = function() return getDB("mplusBarColorR", 0.20), getDB("mplusBarColorG", 0.45), getDB("mplusBarColorB", 0.60), getDB("mplusBarColorA", 0.90) end, set = function(r, g, b, a) setDB("mplusBarColorR", r); setDB("mplusBarColorG", g); setDB("mplusBarColorB", b); if a then setDB("mplusBarColorA", a) end end, hasAlpha = true },
+            { type = "color", name = L["OPTIONS_FOCUS_BAR_COMPLETE_COLOR"], desc = L["OPTIONS_FOCUS_PROGRESS_BAR_FILL_COLOR_ENEMY_FORCES"], dbKey = "mplusBarDoneColor", get = function() return getDB("mplusBarDoneColorR", 0.15), getDB("mplusBarDoneColorG", 0.65), getDB("mplusBarDoneColorB", 0.25), getDB("mplusBarDoneColorA", 0.90) end, set = function(r, g, b, a) setDB("mplusBarDoneColorR", r); setDB("mplusBarDoneColorG", g); setDB("mplusBarDoneColorB", b); if a then setDB("mplusBarDoneColorA", a) end end, hasAlpha = true },
+            { type = "color", name = L["OPTIONS_FOCUS_AFFIX_COLOR"], desc = L["OPTIONS_FOCUS_TEXT_COLOR_AFFIXES"], dbKey = "mplusAffixColor", get = function() return getDB("mplusAffixColorR", 0.85), getDB("mplusAffixColorG", 0.85), getDB("mplusAffixColorB", 0.95) end, set = function(r, g, b) setDB("mplusAffixColorR", r); setDB("mplusAffixColorG", g); setDB("mplusAffixColorB", b) end },
+            { type = "color", name = L["OPTIONS_FOCUS_BOSS_COLOR"], desc = L["OPTIONS_FOCUS_TEXT_COLOR_BOSS_NAMES"], dbKey = "mplusBossColor", get = function() return getDB("mplusBossColorR", 0.78), getDB("mplusBossColorG", 0.82), getDB("mplusBossColorB", 0.92) end, set = function(r, g, b) setDB("mplusBossColorR", r); setDB("mplusBossColorG", g); setDB("mplusBossColorB", b) end },
+            { type = "button", name = L["OPTIONS_CORE_RESET_MYTHIC_STYLING"], onClick = function()
                 setDB("mplusDungeonSize", 14)
                 setDB("mplusDungeonColorR", 0.96); setDB("mplusDungeonColorG", 0.96); setDB("mplusDungeonColorB", 1.0)
                 setDB("mplusTimerSize", 13)
@@ -1522,149 +1522,149 @@ local OptionCategories = {
                 setDB("mplusBossSize", 12)
                 setDB("mplusBossColorR", 0.78); setDB("mplusBossColorG", 0.82); setDB("mplusBossColorB", 0.92)
             end, refreshIds = { "mplusDungeonSize", "mplusDungeonColor", "mplusTimerSize", "mplusTimerColor", "mplusTimerOvertimeColor", "mplusProgressSize", "mplusProgressColor", "mplusBarColor", "mplusBarDoneColor", "mplusAffixSize", "mplusAffixColor", "mplusBossSize", "mplusBossColor" } },
-            { type = "section", name = L["Delves & Dungeons"] },
-            { type = "toggle", name = L["Scenario events"], desc = L["Track Delve, Dungeon, and scenario activities."], dbKey = "showScenarioEvents", get = function() return getDB("showScenarioEvents", true) end, set = function(v) setDB("showScenarioEvents", v) end, tooltip = L["Delves appear in Delves section; dungeons in Dungeon; other scenarios in Scenario Events."] },
-            { type = "toggle", name = L["Active instance only"], desc = L["Show only the active instance section."], dbKey = "hideOtherCategoriesInDelve", get = function() return getDB("hideOtherCategoriesInDelve", false) end, set = function(v) setDB("hideOtherCategoriesInDelve", v) end, tooltip = L["Hides other categories while in a Delve or party dungeon."] },
-            { type = "toggle", name = L["Delve affix names"], desc = L["Show affix names on first Delve entry."], dbKey = "showDelveAffixes", get = function() return getDB("showDelveAffixes", getDB("delveBlockShowAffixes", true)) end, set = function(v) setDB("showDelveAffixes", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end, tooltip = L["May not appear with full tracker replacements."] },
-            { type = "section", name = L["Scenario Bar"] },
-            { type = "toggle", name = L["Scenario timer bar"], desc = L["Show timer and progress bar for scenario entries."], dbKey = "cinematicScenarioBar", get = function() return getDB("cinematicScenarioBar", true) end, set = function(v) setDB("cinematicScenarioBar", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_DELVES_DUNGEONS"] },
+            { type = "toggle", name = L["OPTIONS_CORE_SCENARIO_EVENTS"], desc = L["OPTIONS_FOCUS_TRACK_DELVE_DUNGEON_SCENARIO_ACTIVITIES"], dbKey = "showScenarioEvents", get = function() return getDB("showScenarioEvents", true) end, set = function(v) setDB("showScenarioEvents", v) end, tooltip = L["OPTIONS_FOCUS_DELVES_APPEAR_DELVES_SECTION_DUNGEONS_DUNGEON"] },
+            { type = "toggle", name = L["OPTIONS_CORE_ACTIVE_INSTANCE"], desc = L["OPTIONS_CORE_ACTIVE_INSTANCE_SECTION"], dbKey = "hideOtherCategoriesInDelve", get = function() return getDB("hideOtherCategoriesInDelve", false) end, set = function(v) setDB("hideOtherCategoriesInDelve", v) end, tooltip = L["OPTIONS_CORE_HIDES_CATEGORIES_WHILE_A_DELVE_PARTY"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_DELVE_AFFIX_NAMES"], desc = L["OPTIONS_CORE_AFFIX_NAMES_FIRST_DELVE_ENTRY"], dbKey = "showDelveAffixes", get = function() return getDB("showDelveAffixes", getDB("delveBlockShowAffixes", true)) end, set = function(v) setDB("showDelveAffixes", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end, tooltip = L["OPTIONS_CORE_APPEAR_FULL_TRACKER_REPLACEMENTS"] },
+            { type = "section", name = L["OPTIONS_FOCUS_SCENARIO_BAR"] },
+            { type = "toggle", name = L["OPTIONS_CORE_SCENARIO_TIMER_BAR"], desc = L["OPTIONS_FOCUS_TIMER_PROGRESS_BAR_SCENARIO_ENTRIES"], dbKey = "cinematicScenarioBar", get = function() return getDB("cinematicScenarioBar", true) end, set = function(v) setDB("cinematicScenarioBar", v) end },
         },
     },
     {
         key = "ContentTypes",
-        name = L["Content"],
-        desc = L["Toggle tracking for world quests, rares, achievements, and more."] or "Toggle tracking for world quests, rares, achievements, and more.",
+        name = L["OPTIONS_FOCUS_CONTENT"],
+        desc = L["OPTIONS_CORE_TOGGLE_TRACKING_WORLD_QUESTS_RARES_ACHIEVEMENTS"] or "Toggle tracking for world quests, rares, achievements, and more.",
         moduleKey = "focus",
         options = {
-            { type = "section", name = L["World quests"] },
-            { type = "toggle", name = L["In-zone world quests"], desc = L["Auto-add WQs in your current zone."], dbKey = "showWorldQuests", get = function() return getDB("showWorldQuests", true) end, set = function(v) setDB("showWorldQuests", v) end, tooltip = L["Off: only tracked or nearby WQs appear (Blizzard default)."] },
-            { type = "section", name = L["Rare bosses"] },
-            { type = "toggle", name = L["Rare bosses"], desc = L["Show rare boss vignettes in the list."], dbKey = "showRareBosses", get = function() return getDB("showRareBosses", true) end, set = function(v) setDB("showRareBosses", v) end },
-            { type = "toggle", name = L["Rare Loot"], desc = L["Show treasure and item vignettes in the Rare Loot list."], dbKey = "showRareLoot", get = function() return getDB("showRareLoot", false) end, set = function(v) setDB("showRareLoot", v) end },
-            { type = "toggle", name = L["Rare sound alert"], desc = L["Play a sound when a rare is added."], dbKey = "rareAddedSound", get = function() return getDB("rareAddedSound", true) end, set = function(v) setDB("rareAddedSound", v) end, refreshIds = { "rareAddedSoundChoice", "rareAddedSoundVolume" } },
-            { type = "dropdown", name = L["Rare added sound choice"] or "Rare added sound choice", desc = L["Sound played when a rare boss appears."], tooltip = L["Choose which sound to play when a rare boss appears. Requires LibSharedMedia sounds to be installed for extra options."], dbKey = "rareAddedSoundChoice", options = function() return addon.GetSoundDropdownOptions and addon.GetSoundDropdownOptions() or { { "Default", "default" } } end, get = function() return getDB("rareAddedSoundChoice", "default") end, set = function(v) setDB("rareAddedSoundChoice", v); if addon.PlayRareAddedSound then addon.PlayRareAddedSound() end end, visibleWhen = function() return getDB("rareAddedSound", true) end },
-            { type = "slider", name = L["Rare sound volume"] or "Rare sound volume", desc = L["Volume of the rare alert sound (50–200%)."], tooltip = L["Boost or reduce the rare alert volume. 100% = normal; 150% = louder."], dbKey = "rareAddedSoundVolume", min = 50, max = 200, get = function() return math.max(50, math.min(200, tonumber(getDB("rareAddedSoundVolume", 100)) or 100)) end, set = function(v) setDB("rareAddedSoundVolume", math.max(50, math.min(200, v))) end, visibleWhen = function() return getDB("rareAddedSound", true) end, id = "rareAddedSoundVolume" },
-            { type = "section", name = L["Achievements"] },
-            { type = "toggle", name = L["Achievements"], desc = L["Show tracked achievements in the list."], dbKey = "showAchievements", get = function() return getDB("showAchievements", true) end, set = function(v) setDB("showAchievements", v) end, refreshIds = { "showCompletedAchievements", "showAchievementIcons", "achievementOnlyMissingRequirements" } },
-            { type = "toggle", name = L["Include completed"], desc = L["Show completed achievements in the list."], dbKey = "showCompletedAchievements", id = "showCompletedAchievements", visibleWhen = function() return getDB("showAchievements", true) end, get = function() return getDB("showCompletedAchievements", false) end, set = function(v) setDB("showCompletedAchievements", v) end, tooltip = L["Off: only in-progress tracked achievements shown."] },
-            { type = "toggle", name = L["Achievement icons"], desc = L["Icon next to achievement title."], dbKey = "showAchievementIcons", id = "showAchievementIcons", visibleWhen = function() return getDB("showAchievements", true) end, get = function() return getDB("showAchievementIcons", true) end, set = function(v) setDB("showAchievementIcons", v) end, tooltip = L["Requires quest type icons to be enabled in Display."] },
-            { type = "toggle", name = L["Missing criteria only"], desc = L["Only show incomplete criteria."], tooltip = L["Show only criteria you haven't completed for each tracked achievement. When off, all criteria are shown."], dbKey = "achievementOnlyMissingRequirements", id = "achievementOnlyMissingRequirements", visibleWhen = function() return getDB("showAchievements", true) end, get = function() return getDB("achievementOnlyMissingRequirements", false) end, set = function(v) setDB("achievementOnlyMissingRequirements", v) end },
-            { type = "section", name = L["Endeavors"] },
-            { type = "toggle", name = L["Endeavors"], desc = L["Show tracked Endeavors (Player Housing) in the list."], dbKey = "showEndeavors", get = function() return getDB("showEndeavors", true) end, set = function(v) setDB("showEndeavors", v) end, refreshIds = { "showCompletedEndeavors" } },
-            { type = "toggle", name = L["Include completed"], desc = L["Include completed Endeavors in the tracker. When off, only in-progress tracked Endeavors are shown."], dbKey = "showCompletedEndeavors", id = "showCompletedEndeavors", visibleWhen = function() return getDB("showEndeavors", true) end, get = function() return getDB("showCompletedEndeavors", false) end, set = function(v) setDB("showCompletedEndeavors", v) end },
-            { type = "section", name = L["Decor"] },
-            { type = "toggle", name = L["Decor"], desc = L["Show tracked housing decor in the list."], dbKey = "showDecor", get = function() return getDB("showDecor", true) end, set = function(v) setDB("showDecor", v) end, refreshIds = { "showDecorIcons" } },
-            { type = "toggle", name = L["Decor icons"], desc = L["Show each decor item's icon next to the title. Requires 'Show quest type icons' in Display."], dbKey = "showDecorIcons", id = "showDecorIcons", visibleWhen = function() return getDB("showDecor", true) end, get = function() return getDB("showDecorIcons", true) end, set = function(v) setDB("showDecorIcons", v) end },
-            { type = "section", name = L["Recipes"] or "Recipes" },
-            { type = "toggle", name = L["Recipes"] or "Recipes", desc = (L and L["Show tracked profession recipes in the list."]) or "Show tracked profession recipes in the list.", dbKey = "showRecipes", get = function() return getDB("showRecipes", true) end, set = function(v) setDB("showRecipes", v) end, refreshIds = { "showRecipeReagents", "showOptionalReagents", "showFinishingReagents", "showChoiceSlots", "showRecipeIcons", "recipeRarityColors", "showCraftableCount", "showRecipeQualityInfo", "showRecipeRequirements" } },
-            { type = "toggle", name = L["Reagents"] or "Reagents", desc = (L and L["Show reagent shopping list for each recipe."]) or "Show reagent shopping list for each recipe.", dbKey = "showRecipeReagents", id = "showRecipeReagents", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeReagents", true) end, set = function(v) setDB("showRecipeReagents", v) end },
-            { type = "toggle", name = L["Optional reagents"] or "Optional reagents", desc = (L and L["Show optional reagent slots."]) or "Show optional reagent slots.", dbKey = "showOptionalReagents", id = "showOptionalReagents", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showOptionalReagents", true) end, set = function(v) setDB("showOptionalReagents", v) end },
-            { type = "toggle", name = L["Finishing reagents"] or "Finishing reagents", desc = (L and L["Show finishing reagent slots."]) or "Show finishing reagent slots.", dbKey = "showFinishingReagents", id = "showFinishingReagents", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showFinishingReagents", true) end, set = function(v) setDB("showFinishingReagents", v) end },
-            { type = "toggle", name = L["Choice slots"] or "Choice slots", desc = (L and L["Show collapsible choice reagent slots."]) or "Show collapsible choice reagent slots.", dbKey = "showChoiceSlots", id = "showChoiceSlots", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showChoiceSlots", true) end, set = function(v) setDB("showChoiceSlots", v) end },
-            { type = "toggle", name = L["Recipe icons"] or "Recipe icons", desc = (L and L["Show recipe icon next to title. Requires quest type icons in Display."]) or "Show recipe icon next to title. Requires quest type icons in Display.", dbKey = "showRecipeIcons", id = "showRecipeIcons", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeIcons", true) end, set = function(v) setDB("showRecipeIcons", v) end },
-            { type = "toggle", name = L["Rarity colors"] or "Rarity colors", desc = (L and L["Color recipe titles by output item rarity."]) or "Color recipe titles by output item rarity.", dbKey = "recipeRarityColors", id = "recipeRarityColors", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("recipeRarityColors", false) end, set = function(v) setDB("recipeRarityColors", v) end },
-            { type = "toggle", name = L["Craftable count"] or "Craftable count", desc = (L and L["Show how many times the recipe can be crafted."]) or "Show how many times the recipe can be crafted.", dbKey = "showCraftableCount", id = "showCraftableCount", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showCraftableCount", false) end, set = function(v) setDB("showCraftableCount", v) end },
-            { type = "toggle", name = L["Quality info"] or "Quality info", desc = (L and L["Show quality tier pips for recipes that support qualities."]) or "Show quality tier pips for recipes that support qualities.", dbKey = "showRecipeQualityInfo", id = "showRecipeQualityInfo", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeQualityInfo", false) end, set = function(v) setDB("showRecipeQualityInfo", v) end },
-            { type = "toggle", name = L["Requirements"] or "Requirements", desc = (L and L["Show unmet crafting station requirements."]) or "Show unmet crafting station requirements.", dbKey = "showRecipeRequirements", id = "showRecipeRequirements", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeRequirements", false) end, set = function(v) setDB("showRecipeRequirements", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_WORLD_QUESTS"] },
+            { type = "toggle", name = L["OPTIONS_CORE_ZONE_WORLD_QUESTS"], desc = L["OPTIONS_CORE_AUTO_ADD_WQS_YOUR_CURRENT_ZONE"], dbKey = "showWorldQuests", get = function() return getDB("showWorldQuests", true) end, set = function(v) setDB("showWorldQuests", v) end, tooltip = L["OPTIONS_CORE_TRACKED_NEARBY_WQS_APPEAR_BLIZZARD_DEFAULT"] },
+            { type = "section", name = L["OPTIONS_FOCUS_RARE_BOSSES"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_RARE_BOSSES"], desc = L["UI_RARE_BOSS_VIGNETTES_LIST"], dbKey = "showRareBosses", get = function() return getDB("showRareBosses", true) end, set = function(v) setDB("showRareBosses", v) end },
+            { type = "toggle", name = L["UI_RARE_LOOT"], desc = L["UI_TREASURE_ITEM_VIGNETTES_RARE_LOOT"], dbKey = "showRareLoot", get = function() return getDB("showRareLoot", false) end, set = function(v) setDB("showRareLoot", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_RARE_SOUND_ALERT"], desc = L["UI_PLAY_A_SOUND_A_RARE"], dbKey = "rareAddedSound", get = function() return getDB("rareAddedSound", true) end, set = function(v) setDB("rareAddedSound", v) end, refreshIds = { "rareAddedSoundChoice", "rareAddedSoundVolume" } },
+            { type = "dropdown", name = L["OPTIONS_CORE_RARE_ADDED_SOUND_CHOICE"] or "Rare added sound choice", desc = L["OPTIONS_CORE_SOUND_PLAYED_A_RARE_BOSS_APPEARS"], tooltip = L["OPTIONS_CORE_CHOOSE_WHICH_SOUND_PLAY_A_RARE"], dbKey = "rareAddedSoundChoice", options = function() return addon.GetSoundDropdownOptions and addon.GetSoundDropdownOptions() or { { "Default", "default" } } end, get = function() return getDB("rareAddedSoundChoice", "default") end, set = function(v) setDB("rareAddedSoundChoice", v); if addon.PlayRareAddedSound then addon.PlayRareAddedSound() end end, visibleWhen = function() return getDB("rareAddedSound", true) end },
+            { type = "slider", name = L["UI_RARE_SOUND_VOLUME"] or "Rare sound volume", desc = L["UI_VOLUME_OF_RARE_ALERT_SOUND"], tooltip = L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"], dbKey = "rareAddedSoundVolume", min = 50, max = 200, get = function() return math.max(50, math.min(200, tonumber(getDB("rareAddedSoundVolume", 100)) or 100)) end, set = function(v) setDB("rareAddedSoundVolume", math.max(50, math.min(200, v))) end, visibleWhen = function() return getDB("rareAddedSound", true) end, id = "rareAddedSoundVolume" },
+            { type = "section", name = L["OPTIONS_FOCUS_ACHIEVEMENTS"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_ACHIEVEMENTS"], desc = L["OPTIONS_FOCUS_TRACKED_ACHIEVEMENTS_LIST"], dbKey = "showAchievements", get = function() return getDB("showAchievements", true) end, set = function(v) setDB("showAchievements", v) end, refreshIds = { "showCompletedAchievements", "showAchievementIcons", "achievementOnlyMissingRequirements" } },
+            { type = "toggle", name = L["OPTIONS_CORE_INCLUDE_COMPLETED"], desc = L["OPTIONS_CORE_COMPLETED_ACHIEVEMENTS_LIST"], dbKey = "showCompletedAchievements", id = "showCompletedAchievements", visibleWhen = function() return getDB("showAchievements", true) end, get = function() return getDB("showCompletedAchievements", false) end, set = function(v) setDB("showCompletedAchievements", v) end, tooltip = L["OPTIONS_CORE_PROGRESS_TRACKED_ACHIEVEMENTS_SHOWN"] },
+            { type = "toggle", name = L["OPTIONS_CORE_ACHIEVEMENT_ICONS"], desc = L["OPTIONS_CORE_ICON_NEXT_ACHIEVEMENT_TITLE"], dbKey = "showAchievementIcons", id = "showAchievementIcons", visibleWhen = function() return getDB("showAchievements", true) end, get = function() return getDB("showAchievementIcons", true) end, set = function(v) setDB("showAchievementIcons", v) end, tooltip = L["OPTIONS_CORE_REQUIRES_QUEST_TYPE_ICONS_ENABLED_DISPLAY"] },
+            { type = "toggle", name = L["OPTIONS_CORE_MISSING_CRITERIA"], desc = L["OPTIONS_CORE_INCOMPLETE_CRITERIA"], tooltip = L["OPTIONS_FOCUS_CRITERIA_YOU_HAVEN_T_COMPLETED_TR"], dbKey = "achievementOnlyMissingRequirements", id = "achievementOnlyMissingRequirements", visibleWhen = function() return getDB("showAchievements", true) end, get = function() return getDB("achievementOnlyMissingRequirements", false) end, set = function(v) setDB("achievementOnlyMissingRequirements", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_ENDEAVORS"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_SHOW_ENDEAVORS"], desc = L["OPTIONS_FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"], dbKey = "showEndeavors", get = function() return getDB("showEndeavors", true) end, set = function(v) setDB("showEndeavors", v) end, refreshIds = { "showCompletedEndeavors" } },
+            { type = "toggle", name = L["OPTIONS_CORE_INCLUDE_COMPLETED"], desc = L["OPTIONS_FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"], dbKey = "showCompletedEndeavors", id = "showCompletedEndeavors", visibleWhen = function() return getDB("showEndeavors", true) end, get = function() return getDB("showCompletedEndeavors", false) end, set = function(v) setDB("showCompletedEndeavors", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_DECOR"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_SHOW_DECOR"], desc = L["OPTIONS_FOCUS_TRACKED_HOUSING_DECOR_LIST"], dbKey = "showDecor", get = function() return getDB("showDecor", true) end, set = function(v) setDB("showDecor", v) end, refreshIds = { "showDecorIcons" } },
+            { type = "toggle", name = L["OPTIONS_CORE_DECOR_ICONS"], desc = L["OPTIONS_FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"], dbKey = "showDecorIcons", id = "showDecorIcons", visibleWhen = function() return getDB("showDecor", true) end, get = function() return getDB("showDecorIcons", true) end, set = function(v) setDB("showDecorIcons", v) end },
+            { type = "section", name = L["OPTIONS_CORE_RECIPES"] or "Recipes" },
+            { type = "toggle", name = L["OPTIONS_CORE_RECIPES"] or "Recipes", desc = (L and L["OPTIONS_CORE_TRACKED_PROFESSION_RECIPES_LIST"]) or "Show tracked profession recipes in the list.", dbKey = "showRecipes", get = function() return getDB("showRecipes", true) end, set = function(v) setDB("showRecipes", v) end, refreshIds = { "showRecipeReagents", "showOptionalReagents", "showFinishingReagents", "showChoiceSlots", "showRecipeIcons", "recipeRarityColors", "showCraftableCount", "showRecipeQualityInfo", "showRecipeRequirements" } },
+            { type = "toggle", name = L["OPTIONS_CORE_REAGENTS"] or "Reagents", desc = (L and L["OPTIONS_CORE_REAGENT_SHOPPING_LIST_RECIPE"]) or "Show reagent shopping list for each recipe.", dbKey = "showRecipeReagents", id = "showRecipeReagents", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeReagents", true) end, set = function(v) setDB("showRecipeReagents", v) end },
+            { type = "toggle", name = L["FOCUS_OPTIONAL_REAGENTS"] or "Optional reagents", desc = (L and L["OPTIONS_CORE_OPTIONAL_REAGENT_SLOTS"]) or "Show optional reagent slots.", dbKey = "showOptionalReagents", id = "showOptionalReagents", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showOptionalReagents", true) end, set = function(v) setDB("showOptionalReagents", v) end },
+            { type = "toggle", name = L["FOCUS_FINISHING_REAGENTS"] or "Finishing reagents", desc = (L and L["OPTIONS_CORE_FINISHING_REAGENT_SLOTS"]) or "Show finishing reagent slots.", dbKey = "showFinishingReagents", id = "showFinishingReagents", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showFinishingReagents", true) end, set = function(v) setDB("showFinishingReagents", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_CHOICE_SLOTS"] or "Choice slots", desc = (L and L["OPTIONS_CORE_COLLAPSIBLE_CHOICE_REAGENT_SLOTS"]) or "Show collapsible choice reagent slots.", dbKey = "showChoiceSlots", id = "showChoiceSlots", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showChoiceSlots", true) end, set = function(v) setDB("showChoiceSlots", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_RECIPE_ICONS"] or "Recipe icons", desc = (L and L["OPTIONS_CORE_RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]) or "Show recipe icon next to title. Requires quest type icons in Display.", dbKey = "showRecipeIcons", id = "showRecipeIcons", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeIcons", true) end, set = function(v) setDB("showRecipeIcons", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_RARITY_COLORS"] or "Rarity colors", desc = (L and L["OPTIONS_CORE_COLOR_RECIPE_TITLES_OUTPUT_ITEM_RARITY"]) or "Color recipe titles by output item rarity.", dbKey = "recipeRarityColors", id = "recipeRarityColors", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("recipeRarityColors", false) end, set = function(v) setDB("recipeRarityColors", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_CRAFTABLE_COUNT"] or "Craftable count", desc = (L and L["OPTIONS_CORE_MANY_TIMES_RECIPE_CRAFTED"]) or "Show how many times the recipe can be crafted.", dbKey = "showCraftableCount", id = "showCraftableCount", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showCraftableCount", false) end, set = function(v) setDB("showCraftableCount", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_QUALITY_INFO"] or "Quality info", desc = (L and L["OPTIONS_CORE_QUALITY_TIER_PIPS_RECIPES_SUPPORT_QUALITI"]) or "Show quality tier pips for recipes that support qualities.", dbKey = "showRecipeQualityInfo", id = "showRecipeQualityInfo", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeQualityInfo", false) end, set = function(v) setDB("showRecipeQualityInfo", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_REQUIREMENTS"] or "Requirements", desc = (L and L["OPTIONS_CORE_UNMET_CRAFTING_STATION_REQUIREMENTS"]) or "Show unmet crafting station requirements.", dbKey = "showRecipeRequirements", id = "showRecipeRequirements", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showRecipeRequirements", false) end, set = function(v) setDB("showRecipeRequirements", v) end },
             { type = "toggle", name = "Auctionator search button", desc = "Show a button on recipe entries to search for required reagents in the Auction House (requires Auctionator).", dbKey = "showAHSearchButton", id = "showAHSearchButton", visibleWhen = function() return getDB("showRecipes", true) end, get = function() return getDB("showAHSearchButton", true) end, set = function(v) setDB("showAHSearchButton", v) end },
-            { type = "section", name = L["Adventure Guide"] },
-            { type = "toggle", name = L["Traveler's Log"], desc = L["Tracked objectives from Adventure Guide."], dbKey = "showAdventureGuide", get = function() return getDB("showAdventureGuide", true) end, set = function(v) setDB("showAdventureGuide", v) end, refreshIds = { "autoRemoveCompletedAdventureGuide" } },
-            { type = "toggle", name = L["Untrack when complete"], desc = L["Auto-untrack finished activities."], dbKey = "autoRemoveCompletedAdventureGuide", id = "autoRemoveCompletedAdventureGuide", visibleWhen = function() return getDB("showAdventureGuide", true) end, get = function() return getDB("autoRemoveCompletedAdventureGuide", true) end, set = function(v) setDB("autoRemoveCompletedAdventureGuide", v) end },
-            { type = "section", name = L["Floating quest item"] },
-            { type = "toggle", name = L["Floating quest item"], desc = L["Show quick-use button for the focused quest's usable item."], dbKey = "showFloatingQuestItem", get = function() return getDB("showFloatingQuestItem", false) end, set = function(v) setDB("showFloatingQuestItem", v) end, refreshIds = { "lockFloatingQuestItemPosition", "floatingQuestItemMode" } },
-            { type = "toggle", name = L["Lock item position"], desc = L["Prevent dragging the floating quest item button."], dbKey = "lockFloatingQuestItemPosition", id = "lockFloatingQuestItemPosition", visibleWhen = function() return getDB("showFloatingQuestItem", false) end, get = function() return getDB("lockFloatingQuestItemPosition", false) end, set = function(v) setDB("lockFloatingQuestItemPosition", v); if addon._UpdateFloatingItemDragAnchor then addon._UpdateFloatingItemDragAnchor() end end },
-            { type = "dropdown", name = L["Item source"], desc = L["Super-tracked first, or current zone first."], dbKey = "floatingQuestItemMode", id = "floatingQuestItemMode", visibleWhen = function() return getDB("showFloatingQuestItem", false) end, options = { { L["Super-tracked, then first"], "superTracked" }, { L["Current zone first"], "currentZone" } }, get = function() return getDB("floatingQuestItemMode", "superTracked") end, set = function(v) setDB("floatingQuestItemMode", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_ADVENTURE_GUIDE"] },
+            { type = "toggle", name = L["OPTIONS_CORE_TRAVELER_S_LOG"], desc = L["OPTIONS_CORE_TRACKED_OBJECTIVES_ADVENTURE_GUIDE"], dbKey = "showAdventureGuide", get = function() return getDB("showAdventureGuide", true) end, set = function(v) setDB("showAdventureGuide", v) end, refreshIds = { "autoRemoveCompletedAdventureGuide" } },
+            { type = "toggle", name = L["OPTIONS_CORE_UNTRACK_COMPLETE"], desc = L["OPTIONS_CORE_AUTO_UNTRACK_FINISHED_ACTIVITIES"], dbKey = "autoRemoveCompletedAdventureGuide", id = "autoRemoveCompletedAdventureGuide", visibleWhen = function() return getDB("showAdventureGuide", true) end, get = function() return getDB("autoRemoveCompletedAdventureGuide", true) end, set = function(v) setDB("autoRemoveCompletedAdventureGuide", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_FLOATING_QUEST_ITEM"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_SHOW_FLOATING_QUEST_ITEM"], desc = L["OPTIONS_FOCUS_QUICK_BUTTON_FOCUSED_QUEST_S_USABLE"], dbKey = "showFloatingQuestItem", get = function() return getDB("showFloatingQuestItem", false) end, set = function(v) setDB("showFloatingQuestItem", v) end, refreshIds = { "lockFloatingQuestItemPosition", "floatingQuestItemMode" } },
+            { type = "toggle", name = L["OPTIONS_CORE_LOCK_ITEM_POSITION"], desc = L["OPTIONS_FOCUS_PREVENT_DRAGGING_FLOATING_QUEST_ITEM_BUTTON"], dbKey = "lockFloatingQuestItemPosition", id = "lockFloatingQuestItemPosition", visibleWhen = function() return getDB("showFloatingQuestItem", false) end, get = function() return getDB("lockFloatingQuestItemPosition", false) end, set = function(v) setDB("lockFloatingQuestItemPosition", v); if addon._UpdateFloatingItemDragAnchor then addon._UpdateFloatingItemDragAnchor() end end },
+            { type = "dropdown", name = L["OPTIONS_CORE_ITEM_SOURCE"], desc = L["OPTIONS_CORE_SUPER_TRACKED_FIRST_CURRENT_ZONE_FIRST"], dbKey = "floatingQuestItemMode", id = "floatingQuestItemMode", visibleWhen = function() return getDB("showFloatingQuestItem", false) end, options = { { L["OPTIONS_FOCUS_SUPER_TRACKED_FIRST"], "superTracked" }, { L["OPTIONS_FOCUS_CURRENT_ZONE_FIRST"], "currentZone" } }, get = function() return getDB("floatingQuestItemMode", "superTracked") end, set = function(v) setDB("floatingQuestItemMode", v) end },
         },
     },
     {
         key = "Colors",
-        name = L["Colors"],
-        desc = L["Personalize the color palette for tracker text elements."] or "Personalize the color palette for tracker text elements.",
+        name = L["DASH_COLORS"],
+        desc = L["OPTIONS_CORE_PERSONALIZE_COLOR_PALETTE_TRACKER_TEXT_ELEMENTS"] or "Personalize the color palette for tracker text elements.",
         moduleKey = "focus",
         options = {
-            { type = "colorMatrixFull", name = L["Colors"], dbKey = "colorMatrix" },
+            { type = "colorMatrixFull", name = L["DASH_COLORS"], dbKey = "colorMatrix" },
         },
     },
     {
         key = "HiddenQuests",
-        name = L["Hidden Quests"] or "Hidden Quests",
-        desc = L["Review and manage quests you have manually untracked or blacklisted."] or "Review and manage quests you have manually untracked or blacklisted.",
+        name = L["OPTIONS_FOCUS_HIDDEN_QUESTS"] or "Hidden Quests",
+        desc = L["OPTIONS_CORE_REVIEW_MANAGE_QUESTS_YOU_MANUALLY_UNTRACKED"] or "Review and manage quests you have manually untracked or blacklisted.",
         moduleKey = "focus",
         options = {
-            { type = "blacklistGrid", name = L["Blacklisted quests"], desc = L["Quests hidden via right-click untrack."], tooltip = L["Enable 'Blacklist untracked' in Interactions to add quests here."] or "Enable 'Blacklist untracked' in Interactions to add quests here." },
+            { type = "blacklistGrid", name = L["OPTIONS_FOCUS_BLACKLISTED_QUESTS"], desc = L["OPTIONS_FOCUS_QUESTS_HIDDEN_RIGHT_CLICK_UNTRACK"], tooltip = L["OPTIONS_CORE_ENABLE_BLACKLIST_UNTRACKED_INTERACTIONS_ADD_QUEST"] or "Enable 'Blacklist untracked' in Interactions to add quests here." },
         },
     },
     {
         key = "PresenceGeneral",
-        name = L["General"] or "General",
-        desc = L["Core settings for the Presence notification framework."] or "Core settings for the Presence notification framework.",
+        name = L["OPTIONS_AXIS_GENERAL"] or "General",
+        desc = L["OPTIONS_CORE_SETTINGS_PRESENCE_NOTIFICATION_FRAMEWORK"] or "Core settings for the Presence notification framework.",
         moduleKey = "presence",
         options = {
-            { type = "section", name = L["Display"] },
-            { type = "toggle", name = L["Toast icons"], desc = L["Show quest type icon on Presence toasts (quest accept/complete, world quest, quest update)."], dbKey = "showPresenceQuestTypeIcons", get = function() return getDB("showPresenceQuestTypeIcons", true) end, set = function(v) setDB("showPresenceQuestTypeIcons", v) end, refreshIds = { "presencePreview" } },
-            { type = "slider", name = L["Toast icon size"], desc = L["Quest icon size on Presence toasts (16–36 px). Default 24."], dbKey = "presenceIconSize", min = 16, max = 36, get = function() return math.max(16, math.min(36, getDB("presenceIconSize", 24) or 24)) end, set = function(v) setDB("presenceIconSize", math.max(16, math.min(36, v))) end, refreshIds = { "presencePreview" } },
-            { type = "toggle", name = L["Hide quest update title"], desc = L["Show objective line only."], tooltip = L["Show only the objective line on quest progress toasts (e.g. 7/10 Boar Pelts), without the quest name or header."], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end, refreshIds = { "presencePreview" } },
-            { type = "toggle", name = L["Discovery line"], desc = L["Show 'Discovered' under zone/subzone when entering a new area."], dbKey = "showPresenceDiscovery", get = function() return getDB("showPresenceDiscovery", true) end, set = function(v) setDB("showPresenceDiscovery", v) end, refreshIds = { "presencePreview" } },
-            { type = "slider", name = L["Frame vertical position"], desc = L["Vertical offset of the Presence frame from center (-300 to 0)."], dbKey = "presenceFrameY", min = -300, max = 0, get = function() return math.max(-300, math.min(0, tonumber(getDB("presenceFrameY", -180)) or -180)) end, set = function(v) setDB("presenceFrameY", math.max(-300, math.min(0, v))) end },
-            { type = "slider", name = L["Frame scale"], desc = L["Scale of the Presence frame (0.5–2)."], dbKey = "presenceFrameScale", min = 0.5, max = 2, step = 0.1, get = function() return math.max(0.5, math.min(2, tonumber(getDB("presenceFrameScale", 1)) or 1)) end, set = function(v) setDB("presenceFrameScale", math.max(0.5, math.min(2, v))) end },
-            { type = "section", name = L["Animation"] },
-            { type = "toggle", name = L["Animations"], desc = L["Enable entrance and exit animations for Presence notifications."], dbKey = "presenceAnimations", get = function() return getDB("presenceAnimations", true) end, set = function(v) setDB("presenceAnimations", v) end },
-            { type = "slider", name = L["Entrance duration"], desc = L["Duration of the entrance animation in seconds (0.2–1.5)."], dbKey = "presenceEntranceDur", min = 0.2, max = 1.5, step = 0.1, get = function() return math.max(0.2, math.min(1.5, tonumber(getDB("presenceEntranceDur", 0.7)) or 0.7)) end, set = function(v) setDB("presenceEntranceDur", math.max(0.2, math.min(1.5, v))) end },
-            { type = "slider", name = L["Exit duration"], desc = L["Duration of the exit animation in seconds (0.2–1.5)."], dbKey = "presenceExitDur", min = 0.2, max = 1.5, step = 0.1, get = function() return math.max(0.2, math.min(1.5, tonumber(getDB("presenceExitDur", 0.8)) or 0.8)) end, set = function(v) setDB("presenceExitDur", math.max(0.2, math.min(1.5, v))) end },
-            { type = "slider", name = L["Hold duration scale"], desc = L["Multiplier for how long each notification stays on screen (0.5–2)."], dbKey = "presenceHoldScale", min = 0.5, max = 2, step = 0.1, get = function() return math.max(0.5, math.min(2, tonumber(getDB("presenceHoldScale", 1)) or 1)) end, set = function(v) setDB("presenceHoldScale", math.max(0.5, math.min(2, v))) end },
+            { type = "section", name = L["DASH_DISPLAY"] },
+            { type = "toggle", name = L["OPTIONS_CORE_TOAST_ICONS"], desc = L["OPTIONS_PRESENCE_QUEST_TYPE_ICON_PRESENCE_TOASTS_QUEST"], dbKey = "showPresenceQuestTypeIcons", get = function() return getDB("showPresenceQuestTypeIcons", true) end, set = function(v) setDB("showPresenceQuestTypeIcons", v) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["OPTIONS_PRESENCE_TOAST_ICON_SIZE"], desc = L["OPTIONS_PRESENCE_QUEST_ICON_SIZE_PRESENCE_TOASTS_PX"], dbKey = "presenceIconSize", min = 16, max = 36, get = function() return math.max(16, math.min(36, getDB("presenceIconSize", 24) or 24)) end, set = function(v) setDB("presenceIconSize", math.max(16, math.min(36, v))) end, refreshIds = { "presencePreview" } },
+            { type = "toggle", name = L["OPTIONS_PRESENCE_HIDE_QUEST_UPDATE_TITLE"], desc = L["OPTIONS_CORE_OBJECTIVE_LINE"], tooltip = L["OPTIONS_PRESENCE_OBJECTIVE_LINE_QUEST_PROGRESS_TOAST"], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end, refreshIds = { "presencePreview" } },
+            { type = "toggle", name = L["OPTIONS_PRESENCE_DISCOVERY_LINE"], desc = L["OPTIONS_PRESENCE_DISCOVERED_UNDER_ZONE_SUBZONE_ENTERING_A"], dbKey = "showPresenceDiscovery", get = function() return getDB("showPresenceDiscovery", true) end, set = function(v) setDB("showPresenceDiscovery", v) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["OPTIONS_PRESENCE_FRAME_VERTICAL_POSITION"], desc = L["OPTIONS_PRESENCE_VERTICAL_OFFSET_OF_PRESENCE_FRAME_CENTER"], dbKey = "presenceFrameY", min = -300, max = 0, get = function() return math.max(-300, math.min(0, tonumber(getDB("presenceFrameY", -180)) or -180)) end, set = function(v) setDB("presenceFrameY", math.max(-300, math.min(0, v))) end },
+            { type = "slider", name = L["OPTIONS_PRESENCE_FRAME_SCALE"], desc = L["OPTIONS_PRESENCE_SCALE_OF_PRESENCE_FRAME"], dbKey = "presenceFrameScale", min = 0.5, max = 2, step = 0.1, get = function() return math.max(0.5, math.min(2, tonumber(getDB("presenceFrameScale", 1)) or 1)) end, set = function(v) setDB("presenceFrameScale", math.max(0.5, math.min(2, v))) end },
+            { type = "section", name = L["OPTIONS_PRESENCE_ANIMATION"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_ANIMATIONS"], desc = L["OPTIONS_PRESENCE_ENABLE_ENTRANCE_EXIT_ANIMATIONS_PRESENCE"], dbKey = "presenceAnimations", get = function() return getDB("presenceAnimations", true) end, set = function(v) setDB("presenceAnimations", v) end },
+            { type = "slider", name = L["OPTIONS_PRESENCE_ENTRANCE_DURATION"], desc = L["OPTIONS_PRESENCE_DURATION_OF_ENTRANCE_ANIMATION_SECONDS"], dbKey = "presenceEntranceDur", min = 0.2, max = 1.5, step = 0.1, get = function() return math.max(0.2, math.min(1.5, tonumber(getDB("presenceEntranceDur", 0.7)) or 0.7)) end, set = function(v) setDB("presenceEntranceDur", math.max(0.2, math.min(1.5, v))) end },
+            { type = "slider", name = L["OPTIONS_PRESENCE_EXIT_DURATION"], desc = L["OPTIONS_PRESENCE_DURATION_OF_EXIT_ANIMATION_SECONDS"], dbKey = "presenceExitDur", min = 0.2, max = 1.5, step = 0.1, get = function() return math.max(0.2, math.min(1.5, tonumber(getDB("presenceExitDur", 0.8)) or 0.8)) end, set = function(v) setDB("presenceExitDur", math.max(0.2, math.min(1.5, v))) end },
+            { type = "slider", name = L["OPTIONS_PRESENCE_HOLD_DURATION_SCALE"], desc = L["OPTIONS_PRESENCE_MULTIPLIER_LONG_NOTIFICATION_STAYS_S"], dbKey = "presenceHoldScale", min = 0.5, max = 2, step = 0.1, get = function() return math.max(0.5, math.min(2, tonumber(getDB("presenceHoldScale", 1)) or 1)) end, set = function(v) setDB("presenceHoldScale", math.max(0.5, math.min(2, v))) end },
         },
     },
     {
         key = "PresencePreview",
-        name = L["Preview"] or "Preview",
-        desc = L["Preview Presence toast layouts live and open a detachable sample while adjusting other settings."] or "Preview Presence toast layouts live and open a detachable sample while adjusting other settings.",
+        name = L["OPTIONS_PRESENCE_PREVIEW"] or "Preview",
+        desc = L["OPTIONS_PRESENCE_PREVIEW_PRESENCE_TOAST_LAYOUTS_LIVE_OPEN"] or "Preview Presence toast layouts live and open a detachable sample while adjusting other settings.",
         moduleKey = "presence",
         options = {
-            { type = "section", name = L["Preview"] },
+            { type = "section", name = L["OPTIONS_PRESENCE_PREVIEW"] },
             { type = "presencePreview" },
         },
     },
     {
         key = "PresenceNotifications",
-        name = L["Notifications"],
-        desc = L["Choose which events trigger on-screen alerts."] or "Choose which events trigger on-screen alerts.",
+        name = L["OPTIONS_PRESENCE_NOTIFICATIONS"],
+        desc = L["OPTIONS_CORE_CHOOSE_WHICH_EVENTS_TRIGGER_SCREEN_ALERTS"] or "Choose which events trigger on-screen alerts.",
         moduleKey = "presence",
         options = {
-            { type = "section", name = L["Notification types"] },
-            { type = "toggle", name = L["Zone entry"], desc = L["Show zone change when entering a new area."], dbKey = "presenceZoneChange", get = function() return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceZoneChange", v) end },
-            { type = "toggle", name = L["Subzone changes"], desc = L["Show subzone change when moving within the same zone."], dbKey = "presenceSubzoneChange", get = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceSubzoneChange", v) end },
-            { type = "toggle", name = L["Subzone only"], desc = L["Only show subzone name within same zone."], dbKey = "presenceHideZoneForSubzone", get = function() return getDB("presenceHideZoneForSubzone", false) end, set = function(v) setDB("presenceHideZoneForSubzone", v) end, tooltip = L["Zone name still appears when entering a new zone."] },
-            { type = "toggle", name = L["Suppress in M+"], desc = L["Hide zone notifications in Mythic+."], tooltip = L["Only boss emotes, achievements, and level-up. Hides zone, quest, and scenario notifications in Mythic+."], dbKey = "presenceSuppressZoneInMplus", get = function() return getDB("presenceSuppressZoneInMplus", true) end, set = function(v) setDB("presenceSuppressZoneInMplus", v) end },
-            { type = "section", name = L["Instance suppression"] },
-            { type = "toggle", name = L["Suppress in dungeon"], desc = L["Suppress notifications in dungeons."], tooltip = L["Suppress all Presence notifications while inside a dungeon (except boss emotes, achievements, level-up)."], dbKey = "presenceSuppressInDungeon", get = function() return getDB("presenceSuppressInDungeon", false) end, set = function(v) setDB("presenceSuppressInDungeon", v) end },
-            { type = "toggle", name = L["Suppress in Delve"], desc = L["Suppress scenario progress notifications in Delves."], tooltip = L["When on, hides objective update popups while in a Delve. Zone entry and completion toasts still show."], dbKey = "presenceSuppressInDelve", get = function() return getDB("presenceSuppressInDelve", false) end, set = function(v) setDB("presenceSuppressInDelve", v) end },
-            { type = "toggle", name = L["Suppress in raid"], desc = L["Suppress all Presence notifications while inside a raid."], dbKey = "presenceSuppressInRaid", get = function() return getDB("presenceSuppressInRaid", false) end, set = function(v) setDB("presenceSuppressInRaid", v) end },
-            { type = "toggle", name = L["Suppress in PvP"], desc = L["Suppress all Presence notifications while inside a PvP arena."], dbKey = "presenceSuppressInPvP", get = function() return getDB("presenceSuppressInPvP", false) end, set = function(v) setDB("presenceSuppressInPvP", v) end },
-            { type = "toggle", name = L["Suppress in battleground"], desc = L["Suppress all Presence notifications while inside a battleground."], dbKey = "presenceSuppressInBattleground", get = function() return getDB("presenceSuppressInBattleground", false) end, set = function(v) setDB("presenceSuppressInBattleground", v) end },
-            { type = "toggle", name = L["Level up"], desc = L["Show level-up notification."], dbKey = "presenceLevelUp", get = function() return getDB("presenceLevelUp", true) end, set = function(v) setDB("presenceLevelUp", v) end },
-            { type = "toggle", name = L["Boss emotes"], desc = L["Show raid and dungeon boss emote notifications."], dbKey = "presenceBossEmote", get = function() return getDB("presenceBossEmote", true) end, set = function(v) setDB("presenceBossEmote", v) end },
-            { type = "toggle", name = L["Achievements"], desc = L["Show achievement earned notifications."], dbKey = "presenceAchievement", get = function() return getDB("presenceAchievement", true) end, set = function(v) setDB("presenceAchievement", v) end },
-            { type = "toggle", name = L["Achievement progress"], desc = L["Notify on achievement criteria update."], tooltip = L["Show notification when achievement criteria update (tracked achievements always; others when Blizzard provides the achievement ID)."], dbKey = "presenceAchievementProgress", get = function() return getDB("presenceAchievementProgress", false) end, set = function(v) setDB("presenceAchievementProgress", v) end },
-            { type = "toggle", name = L["Quest accept"], desc = L["Show notification when accepting a quest."], dbKey = "presenceQuestAccept", get = function() local v = getDB("presenceQuestAccept", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestAccept", v) end },
-            { type = "toggle", name = L["World quest accept"], desc = L["Show notification when accepting a world quest."], dbKey = "presenceWorldQuestAccept", get = function() local v = getDB("presenceWorldQuestAccept", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceWorldQuestAccept", v) end },
-            { type = "toggle", name = L["Quest complete"], desc = L["Show notification when completing a quest."], dbKey = "presenceQuestComplete", get = function() local v = getDB("presenceQuestComplete", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestComplete", v) end },
-            { type = "toggle", name = L["World quest complete"], desc = L["Show notification when completing a world quest."], dbKey = "presenceWorldQuest", get = function() local v = getDB("presenceWorldQuest", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceWorldQuest", v) end },
-            { type = "toggle", name = L["Quest progress"], desc = L["Show notification when quest objectives update."], dbKey = "presenceQuestUpdate", get = function() local v = getDB("presenceQuestUpdate", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestUpdate", v) end },
-            { type = "toggle", name = L["Objective only"], desc = L["Show only the objective line on quest progress toasts, hiding the 'Quest Update' title."], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end },
-            { type = "toggle", name = L["Scenario start"], desc = L["Show notification when entering a scenario or Delve."], dbKey = "presenceScenarioStart", get = function() local v = getDB("presenceScenarioStart", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioStart", v) end },
-            { type = "toggle", name = L["Scenario progress"], desc = L["Show notification when scenario or Delve objectives update."], dbKey = "presenceScenarioUpdate", get = function() local v = getDB("presenceScenarioUpdate", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioUpdate", v) end },
-            { type = "toggle", name = L["Scenario complete"], desc = L["Show notification when a scenario or Delve is fully completed."], dbKey = "presenceScenarioComplete", get = function() local v = getDB("presenceScenarioComplete", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioComplete", v) end },
-            { type = "toggle", name = L["Rare defeated"], desc = L["Show notification when a rare mob is defeated nearby."], dbKey = "presenceRareDefeated", get = function() return getDB("presenceRareDefeated", true) end, set = function(v) setDB("presenceRareDefeated", v) end },
+            { type = "section", name = L["OPTIONS_PRESENCE_NOTIFICATION_TYPES"] },
+            { type = "toggle", name = L["OPTIONS_CORE_ZONE_ENTRY"], desc = L["OPTIONS_PRESENCE_ZONE_CHANGE_ENTERING_A_AREA"], dbKey = "presenceZoneChange", get = function() return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceZoneChange", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SUBZONE_CHANGES"], desc = L["OPTIONS_PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"], dbKey = "presenceSubzoneChange", get = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceSubzoneChange", v) end },
+            { type = "toggle", name = L["OPTIONS_VISTA_SUBZONE"], desc = L["OPTIONS_CORE_SUBZONE_NAME_WITHIN_SAME_ZONE"], dbKey = "presenceHideZoneForSubzone", get = function() return getDB("presenceHideZoneForSubzone", false) end, set = function(v) setDB("presenceHideZoneForSubzone", v) end, tooltip = L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"] },
+            { type = "toggle", name = L["OPTIONS_CORE_SUPPRESS_M"], desc = L["OPTIONS_CORE_HIDE_ZONE_NOTIFICATIONS_MYTHIC"], tooltip = L["OPTIONS_CORE_BOSS_EMOTES_ACHIEVEMENTS_LEVEL_HIDES_ZONE"], dbKey = "presenceSuppressZoneInMplus", get = function() return getDB("presenceSuppressZoneInMplus", true) end, set = function(v) setDB("presenceSuppressZoneInMplus", v) end },
+            { type = "section", name = L["OPTIONS_CORE_INSTANCE_SUPPRESSION"] },
+            { type = "toggle", name = L["OPTIONS_CORE_SUPPRESS_DUNGEON"], desc = L["OPTIONS_CORE_SUPPRESS_NOTIFICATIONS_DUNGEONS"], tooltip = L["OPTIONS_CORE_SUPPRESS_IN_DUNGEON_DETAIL"], dbKey = "presenceSuppressInDungeon", get = function() return getDB("presenceSuppressInDungeon", false) end, set = function(v) setDB("presenceSuppressInDungeon", v) end },
+            { type = "toggle", name = L["OPTIONS_PRESENCE_SUPPRESS_DELVE"], desc = L["OPTIONS_PRESENCE_SUPPRESS_SCENARIO_PROGRESS_NOTIFICATIONS_DELVES"], tooltip = L["OPTIONS_PRESENCE_HIDES_OBJECTIVE_UPDATE_POPUPS_WHILE_A"], dbKey = "presenceSuppressInDelve", get = function() return getDB("presenceSuppressInDelve", false) end, set = function(v) setDB("presenceSuppressInDelve", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SUPPRESS_RAID"], desc = L["OPTIONS_CORE_SUPPRESS_IN_RAID_DETAIL"], dbKey = "presenceSuppressInRaid", get = function() return getDB("presenceSuppressInRaid", false) end, set = function(v) setDB("presenceSuppressInRaid", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SUPPRESS_PVP"], desc = L["OPTIONS_CORE_SUPPRESS_IN_ARENA_DETAIL"], dbKey = "presenceSuppressInPvP", get = function() return getDB("presenceSuppressInPvP", false) end, set = function(v) setDB("presenceSuppressInPvP", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SUPPRESS_BATTLEGROUND"], desc = L["OPTIONS_CORE_SUPPRESS_PRESENCE_NOTIFICATIONS_WHILE_INSIDE_A"], dbKey = "presenceSuppressInBattleground", get = function() return getDB("presenceSuppressInBattleground", false) end, set = function(v) setDB("presenceSuppressInBattleground", v) end },
+            { type = "toggle", name = L["PRESENCE_LEVEL_UP_TOGGLE"], desc = L["OPTIONS_PRESENCE_LEVEL_NOTIFICATION"], dbKey = "presenceLevelUp", get = function() return getDB("presenceLevelUp", true) end, set = function(v) setDB("presenceLevelUp", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_BOSS_EMOTES"], desc = L["OPTIONS_PRESENCE_RAID_DUNGEON_BOSS_EMOTE_NOTIFICATIONS"], dbKey = "presenceBossEmote", get = function() return getDB("presenceBossEmote", true) end, set = function(v) setDB("presenceBossEmote", v) end },
+            { type = "toggle", name = L["OPTIONS_FOCUS_ACHIEVEMENTS"], desc = L["OPTIONS_PRESENCE_ACHIEVEMENT_EARNED_NOTIFICATIONS"], dbKey = "presenceAchievement", get = function() return getDB("presenceAchievement", true) end, set = function(v) setDB("presenceAchievement", v) end },
+            { type = "toggle", name = L["OPTIONS_PRESENCE_ACHIEVEMENT_PROGRESS"], desc = L["OPTIONS_CORE_NOTIFY_ACHIEVEMENT_CRITERIA_UPDATE"], tooltip = L["OPTIONS_PRESENCE_NOTIFICATION_ACHIEVEMENT_CRITERIA_UPDATE_T"], dbKey = "presenceAchievementProgress", get = function() return getDB("presenceAchievementProgress", false) end, set = function(v) setDB("presenceAchievementProgress", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_ACCEPT"], desc = L["OPTIONS_PRESENCE_NOTIFICATION_ACCEPTING_A_QUEST"], dbKey = "presenceQuestAccept", get = function() local v = getDB("presenceQuestAccept", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestAccept", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_WORLD_QUEST_ACCEPT"], desc = L["OPTIONS_PRESENCE_NOTIFICATION_ACCEPTING_A_WORLD_QUEST"], dbKey = "presenceWorldQuestAccept", get = function() local v = getDB("presenceWorldQuestAccept", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceWorldQuestAccept", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_COMPLETE"], desc = L["OPTIONS_PRESENCE_NOTIFICATION_COMPLETING_A_QUEST"], dbKey = "presenceQuestComplete", get = function() local v = getDB("presenceQuestComplete", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestComplete", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_WORLD_QUEST_COMPLETE"], desc = L["OPTIONS_PRESENCE_NOTIFICATION_COMPLETING_A_WORLD_QUEST"], dbKey = "presenceWorldQuest", get = function() local v = getDB("presenceWorldQuest", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceWorldQuest", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_QUEST_PROGRESS"], desc = L["OPTIONS_PRESENCE_NOTIFICATION_QUEST_OBJECTIVES_UPDATE"], dbKey = "presenceQuestUpdate", get = function() local v = getDB("presenceQuestUpdate", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestUpdate", v) end },
+            { type = "toggle", name = L["OPTIONS_PRESENCE_OBJECTIVE"], desc = L["OPTIONS_PRESENCE_QUEST_PROGRESS_HIDE_TITLE"], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SCENARIO_START"], desc = L["OPTIONS_PRESENCE_NOTIFICATION_ENTERING_A_SCENARIO_DELVE"], dbKey = "presenceScenarioStart", get = function() local v = getDB("presenceScenarioStart", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioStart", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_SCENARIO_PROGRESS"], desc = L["OPTIONS_PRESENCE_NOTIFICATION_SCENARIO_DELVE_OBJECTIVES"], dbKey = "presenceScenarioUpdate", get = function() local v = getDB("presenceScenarioUpdate", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioUpdate", v) end },
+            { type = "toggle", name = L["OPTIONS_PRESENCE_SCENARIO_COMPLETE"], desc = L["OPTIONS_CORE_NOTIFICATION_A_SCENARIO_DELVE_FULLY_COM"], dbKey = "presenceScenarioComplete", get = function() local v = getDB("presenceScenarioComplete", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioComplete", v) end },
+            { type = "toggle", name = L["OPTIONS_PRESENCE_RARE_DEFEATED"], desc = L["OPTIONS_CORE_NOTIFICATION_A_RARE_MOB_DEFEATED_NEARBY"], dbKey = "presenceRareDefeated", get = function() return getDB("presenceRareDefeated", true) end, set = function(v) setDB("presenceRareDefeated", v) end },
         },
     },
     {
         key = "PresenceTypography",
-        name = L["Typography"],
-        desc = L["Fonts, sizes, and colors for Presence notifications."] or "Fonts, sizes, and colors for Presence notifications.",
+        name = L["DASH_TYPOGRAPHY"],
+        desc = L["OPTIONS_CORE_FONTS_SIZES_COLORS_PRESENCE_NOTIFICATIONS"] or "Fonts, sizes, and colors for Presence notifications.",
         moduleKey = "presence",
         options = {
-            { type = "section", name = L["Typography"] },
-            { type = "button", name = L["Reset typography to defaults"], desc = L["Reset all Presence typography options (fonts, sizes, colors) to defaults."], onClick = function()
+            { type = "section", name = L["DASH_TYPOGRAPHY"] },
+            { type = "button", name = L["OPTIONS_PRESENCE_RESET_TYPOGRAPHY_DEFAULTS"], desc = L["OPTIONS_PRESENCE_RESET_PRESENCE_TYPOGRAPHY_OPTIONS_FONTS_SIZES"], onClick = function()
                 setDB("presenceTitleFontPath", nil)
                 setDB("presenceSubtitleFontPath", nil)
                 setDB("presencePrimaryLargeSz", nil)
@@ -1688,62 +1688,62 @@ local OptionCategories = {
                     addon.OptionsPanel_Refresh()
                 end
             end, refreshIds = { "presencePreview", "presenceTitleFontPath", "presenceSubtitleFontPath", "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary" } },
-            { type = "dropdown", name = L["Main title font"], desc = L["Font family for the main title."], dbKey = "presenceTitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end, get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceTitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" } },
-            { type = "dropdown", name = L["Subtitle font"], desc = L["Font family for the subtitle."], dbKey = "presenceSubtitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end, get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceSubtitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" } },
-            { type = "section", name = L["Large notifications"] },
-            { type = "slider", name = L["Large primary size"], desc = L["Font size for large notification titles (zone, quest complete, achievement, etc.)."], dbKey = "presencePrimaryLargeSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryLargeSz", 48)) or 48)) end, set = function(v) setDB("presencePrimaryLargeSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
-            { type = "slider", name = L["Large secondary size"], desc = L["Font size for large notification subtitles."], dbKey = "presenceSecondaryLargeSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryLargeSz", 24)) or 24)) end, set = function(v) setDB("presenceSecondaryLargeSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
-            { type = "section", name = L["Medium notifications"] },
-            { type = "slider", name = L["Medium primary size"], desc = L["Font size for medium notification titles (quest accept, subzone, scenario)."], dbKey = "presencePrimaryMediumSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryMediumSz", 36)) or 36)) end, set = function(v) setDB("presencePrimaryMediumSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
-            { type = "slider", name = L["Medium secondary size"], desc = L["Font size for medium notification subtitles."], dbKey = "presenceSecondaryMediumSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryMediumSz", 22)) or 22)) end, set = function(v) setDB("presenceSecondaryMediumSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
-            { type = "section", name = L["Small notifications"] },
-            { type = "slider", name = L["Small primary size"], desc = L["Font size for small notification titles (quest progress, achievement progress)."], dbKey = "presencePrimarySmallSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimarySmallSz", 28)) or 28)) end, set = function(v) setDB("presencePrimarySmallSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
-            { type = "slider", name = L["Small secondary size"], desc = L["Font size for small notification subtitles."], dbKey = "presenceSecondarySmallSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondarySmallSz", 20)) or 20)) end, set = function(v) setDB("presenceSecondarySmallSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
-            { type = "section", name = L["Colors"] },
-            { type = "color", name = L["Boss emote color"], desc = L["Color of raid and dungeon boss emote text."], dbKey = "presenceBossEmoteColor", default = addon.PRESENCE_BOSS_EMOTE_COLOR, refreshIds = { "presencePreview" } },
-            { type = "color", name = L["Discovery line color"], desc = L["Color of the 'Discovered' line under zone text."], dbKey = "presenceDiscoveryColor", default = addon.PRESENCE_DISCOVERY_COLOR, refreshIds = { "presencePreview" } },
-            { type = "section", name = L["Zone type coloring"] },
-            { type = "toggle", name = L["Color by zone type"], desc = L["Color zone/subzone titles by PvP zone type (friendly, hostile, contested, sanctuary). When off, uses the default category color."], dbKey = "presenceZoneTypeColoring", get = function() return getDB("presenceZoneTypeColoring", false) end, set = function(v) setDB("presenceZoneTypeColoring", v) end, refreshIds = { "presencePreview" } },
-            { type = "color", name = L["Friendly zone color"], desc = L["Color for friendly zones (green by default)."], dbKey = "presenceZoneColorFriendly", default = { 0.1, 1.0, 0.1 }, refreshIds = { "presencePreview" } },
-            { type = "color", name = L["Hostile zone color"], desc = L["Color for hostile zones (red by default)."], dbKey = "presenceZoneColorHostile", default = { 1.0, 0.1, 0.1 }, refreshIds = { "presencePreview" } },
-            { type = "color", name = L["Contested zone color"], desc = L["Color for contested zones (orange by default)."], dbKey = "presenceZoneColorContested", default = { 1.0, 0.7, 0.0 }, refreshIds = { "presencePreview" } },
-            { type = "color", name = L["Sanctuary zone color"], desc = L["Color for sanctuary zones (blue by default)."], dbKey = "presenceZoneColorSanctuary", default = { 0.41, 0.8, 0.94 }, refreshIds = { "presencePreview" } },
+            { type = "dropdown", name = L["OPTIONS_PRESENCE_MAIN_TITLE_FONT"], desc = L["OPTIONS_PRESENCE_FONT_FAMILY_MAIN_TITLE"], dbKey = "presenceTitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end, get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceTitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" } },
+            { type = "dropdown", name = L["OPTIONS_PRESENCE_SUBTITLE_FONT"], desc = L["OPTIONS_PRESENCE_FONT_FAMILY_SUBTITLE"], dbKey = "presenceSubtitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end, get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceSubtitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" } },
+            { type = "section", name = L["OPTIONS_PRESENCE_LARGE_NOTIFICATIONS"] },
+            { type = "slider", name = L["OPTIONS_PRESENCE_LARGE_PRIMARY_SIZE"], desc = L["OPTIONS_PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_TITLES_ZONE"], dbKey = "presencePrimaryLargeSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryLargeSz", 48)) or 48)) end, set = function(v) setDB("presencePrimaryLargeSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["OPTIONS_PRESENCE_LARGE_SECONDARY_SIZE"], desc = L["OPTIONS_PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondaryLargeSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryLargeSz", 24)) or 24)) end, set = function(v) setDB("presenceSecondaryLargeSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
+            { type = "section", name = L["OPTIONS_PRESENCE_MEDIUM_NOTIFICATIONS"] },
+            { type = "slider", name = L["OPTIONS_PRESENCE_MEDIUM_PRIMARY_SIZE"], desc = L["OPTIONS_PRESENCE_FONT_SIZE_MEDIUM_NOTIFICATION_TITLES_QUEST"], dbKey = "presencePrimaryMediumSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryMediumSz", 36)) or 36)) end, set = function(v) setDB("presencePrimaryMediumSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["OPTIONS_PRESENCE_MEDIUM_SECONDARY_SIZE"], desc = L["OPTIONS_PRESENCE_FONT_SIZE_MEDIUM_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondaryMediumSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryMediumSz", 22)) or 22)) end, set = function(v) setDB("presenceSecondaryMediumSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
+            { type = "section", name = L["OPTIONS_PRESENCE_SMALL_NOTIFICATIONS"] },
+            { type = "slider", name = L["OPTIONS_PRESENCE_SMALL_PRIMARY_SIZE"], desc = L["OPTIONS_PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_TITLES_QUEST"], dbKey = "presencePrimarySmallSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimarySmallSz", 28)) or 28)) end, set = function(v) setDB("presencePrimarySmallSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
+            { type = "slider", name = L["OPTIONS_PRESENCE_SMALL_SECONDARY_SIZE"], desc = L["OPTIONS_PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondarySmallSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondarySmallSz", 20)) or 20)) end, set = function(v) setDB("presenceSecondarySmallSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
+            { type = "section", name = L["DASH_COLORS"] },
+            { type = "color", name = L["OPTIONS_PRESENCE_BOSS_EMOTE_COLOR"], desc = L["OPTIONS_PRESENCE_COLOR_OF_RAID_DUNGEON_BOSS_EMOTE"], dbKey = "presenceBossEmoteColor", default = addon.PRESENCE_BOSS_EMOTE_COLOR, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["OPTIONS_PRESENCE_DISCOVERY_LINE_COLOR"], desc = L["OPTIONS_PRESENCE_COLOR_OF_DISCOVERED_LINE_UNDER_ZONE"], dbKey = "presenceDiscoveryColor", default = addon.PRESENCE_DISCOVERY_COLOR, refreshIds = { "presencePreview" } },
+            { type = "section", name = L["OPTIONS_CORE_ZONE_TYPE_COLORING"] },
+            { type = "toggle", name = L["OPTIONS_CORE_COLOR_ZONE_TYPE"], desc = L["OPTIONS_CORE_COLOR_ZONE_SUBZONE_TITLES_PVP_ZONE"], dbKey = "presenceZoneTypeColoring", get = function() return getDB("presenceZoneTypeColoring", false) end, set = function(v) setDB("presenceZoneTypeColoring", v) end, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["OPTIONS_CORE_FRIENDLY_ZONE_COLOR"], desc = L["OPTIONS_CORE_COLOR_FRIENDLY_ZONES_GREEN_DEFAULT"], dbKey = "presenceZoneColorFriendly", default = { 0.1, 1.0, 0.1 }, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["OPTIONS_CORE_HOSTILE_ZONE_COLOR"], desc = L["OPTIONS_CORE_COLOR_HOSTILE_ZONES_RED_DEFAULT"], dbKey = "presenceZoneColorHostile", default = { 1.0, 0.1, 0.1 }, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["OPTIONS_CORE_CONTESTED_ZONE_COLOR"], desc = L["OPTIONS_CORE_COLOR_CONTESTED_ZONES_ORANGE_DEFAULT"], dbKey = "presenceZoneColorContested", default = { 1.0, 0.7, 0.0 }, refreshIds = { "presencePreview" } },
+            { type = "color", name = L["OPTIONS_CORE_SANCTUARY_ZONE_COLOR"], desc = L["OPTIONS_CORE_COLOR_SANCTUARY_ZONES_BLUE_DEFAULT"], dbKey = "presenceZoneColorSanctuary", default = { 0.41, 0.8, 0.94 }, refreshIds = { "presencePreview" } },
         },
     },
     {
         key = "Insight",
-        name = L["Tooltips"] or "Tooltips",
-        desc = L["Enhance player and item tooltips with extra details like Mythic+ score and transmog status."] or "Enhance player and item tooltips with extra details like Mythic+ score and transmog status.",
+        name = L["OPTIONS_AXIS_TOOLTIPS"] or "Tooltips",
+        desc = L["OPTIONS_CORE_ENHANCE_PLAYER_ITEM_TOOLTIPS_EXTRA_DETAILS"] or "Enhance player and item tooltips with extra details like Mythic+ score and transmog status.",
         moduleKey = "insight",
         options = {
-            { type = "section", name = L["Position"] or "Position" },
-            { type = "dropdown", name = L["Tooltip anchor"] or "Tooltip anchor", desc = L["Where tooltips appear: follow cursor or fixed position."] or "Where tooltips appear: follow cursor or fixed position.", dbKey = "insightAnchorMode", options = { { L["Cursor"] or "Cursor", "cursor" }, { L["Fixed"] or "Fixed", "fixed" } }, get = function() return getDB("insightAnchorMode", "cursor") end, set = function(v) setDB("insightAnchorMode", v) end },
-            { type = "button", name = L["Show anchor to move"] or "Show anchor to move", desc = L["Click to show or hide the anchor. Drag to set position, right-click to confirm."] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
+            { type = "section", name = L["OPTIONS_AXIS_POSITION"] or "Position" },
+            { type = "dropdown", name = L["OPTIONS_CORE_TOOLTIP_ANCHOR"] or "Tooltip anchor", desc = L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"] or "Where tooltips appear: follow cursor or fixed position.", dbKey = "insightAnchorMode", options = { { L["OPTIONS_AXIS_CURSOR"] or "Cursor", "cursor" }, { L["OPTIONS_AXIS_FIXED"] or "Fixed", "fixed" } }, get = function() return getDB("insightAnchorMode", "cursor") end, set = function(v) setDB("insightAnchorMode", v) end },
+            { type = "button", name = L["OPTIONS_AXIS_ANCHOR_MOVE"] or "Show anchor to move", desc = L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
                 if addon.Insight and addon.Insight.ToggleAnchorFrame then addon.Insight.ToggleAnchorFrame() end
             end },
-            { type = "button", name = L["Reset tooltip position"] or "Reset tooltip position", desc = L["Reset fixed position to default."] or "Reset fixed position to default.", onClick = function()
+            { type = "button", name = L["OPTIONS_AXIS_RESET_TOOLTIP_POSITION"] or "Reset tooltip position", desc = L["OPTIONS_AXIS_RESET_FIXED_POSITION_DEFAULT"] or "Reset fixed position to default.", onClick = function()
                 setDB("insightFixedPoint", "BOTTOMRIGHT")
                 setDB("insightFixedX", -60)
                 setDB("insightFixedY", 120)
                 if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
             end },
-            { type = "section", name = L["Appearance"] or "Appearance" },
-            { type = "slider", name = L["Tooltip background opacity"] or "Tooltip background opacity", desc = L["Tooltip background opacity (0–100%)."] or "Tooltip background opacity (0–100%).", dbKey = "insightBgOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("insightBgOpacity", 0.75)) or 0.75; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("insightBgOpacity", math.max(0, math.min(100, v)) / 100) end },
-            { type = "dropdown", name = L["Tooltip font"] or "Tooltip font", desc = L["Font family used for all tooltip text."] or "Font family used for all tooltip text.", dbKey = "insightFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("insightFontPath") end, get = function() return getDB("insightFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("insightFontPath", v) end, displayFn = DisplayPerElementFont },
-            { type = "section", name = L["Player Tooltip"] or "Player Tooltip" },
-            { type = "toggle", name = L["Guild rank"] or "Guild rank", desc = L["Append the player's guild rank next to their guild name."] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
-            { type = "toggle", name = L["Character title"] or "Character title", desc = L["Show the player's selected title (achievement or PvP) in the name line."] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
-            { type = "color", name = L["Title color"] or "Title color", desc = L["Color of the character title in the player tooltip name line."] or "Color of the character title in the player tooltip name line.", dbKey = "insightTitleColor", default = { 1.00, 0.82, 0.00 }, visibleWhen = function() return getDB("insightShowCharacterTitle", true) end },
-            { type = "toggle", name = L["Honor level"] or "Honor level", desc = L["Show the player's PvP honor level in the tooltip."] or "Show the player's PvP honor level in the tooltip.", dbKey = "insightShowHonorLevel", get = function() return getDB("insightShowHonorLevel", true) end, set = function(v) setDB("insightShowHonorLevel", v) end },
-            { type = "toggle", name = L["Status badges"] or "Status badges", desc = L["Combat, AFK, DND, PvP, party, friends, targeting."], dbKey = "insightShowStatusBadges", get = function() return getDB("insightShowStatusBadges", true) end, set = function(v) setDB("insightShowStatusBadges", v) end },
-            { type = "toggle", name = L["Mythic+ score"] or "Mythic+ score", desc = L["Show the player's current season Mythic+ score, colour-coded by tier."] or "Show the player's current season Mythic+ score, colour-coded by tier.", dbKey = "insightShowMythicScore", get = function() return getDB("insightShowMythicScore", true) end, set = function(v) setDB("insightShowMythicScore", v) end },
-            { type = "toggle", name = L["Item level"] or "Item level", desc = L["Show the player's equipped item level after inspecting them."] or "Show the player's equipped item level after inspecting them.", dbKey = "insightShowIlvl", get = function() return getDB("insightShowIlvl", true) end, set = function(v) setDB("insightShowIlvl", v) end },
-            { type = "toggle", name = L["Mount info"] or "Mount info", desc = L["Mount name, source, and collection status."], dbKey = "insightShowMount", get = function() return getDB("insightShowMount", true) end, set = function(v) setDB("insightShowMount", v) end, tooltip = L["Shown when hovering a mounted player."] },
-            { type = "toggle", name = L["Blank separator"] or "Blank separator", desc = L["Use a blank line instead of dashes between tooltip sections."] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
-            { type = "toggle", name = L["Show icons"] or "Show icons", desc = L["Show faction, spec, mount, and Mythic+ icons in tooltips."] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end },
-            { type = "dropdown", name = L["Class icon style"] or "Class icon style", desc = L["Use Default (Blizzard) or RondoMedia class icons on the class/spec line."] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = L["RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"], dbKey = "insightClassIconSource", options = { { L["Default"] or "Default", "default" }, { "RondoMedia", "rondomedia" } }, get = function() return getDB("insightClassIconSource", "default") end, set = function(v) setDB("insightClassIconSource", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
-            { type = "section", name = L["Item Tooltip"] or "Item Tooltip" },
-            { type = "toggle", name = L["Transmog status"] or "Transmog status", desc = L["Show whether you have collected the appearance of an item you hover over."] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
+            { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" },
+            { type = "slider", name = L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"] or "Tooltip background opacity", desc = L["OPTIONS_AXIS_TOOLTIP_BG_OPACITY_PCT_DESC"] or "Tooltip background opacity (0–100%).", dbKey = "insightBgOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("insightBgOpacity", 0.75)) or 0.75; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("insightBgOpacity", math.max(0, math.min(100, v)) / 100) end },
+            { type = "dropdown", name = L["OPTIONS_AXIS_TOOLTIP_FONT"] or "Tooltip font", desc = L["OPTIONS_AXIS_FONT_FAMILY_TOOLTIP_TEXT"] or "Font family used for all tooltip text.", dbKey = "insightFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("insightFontPath") end, get = function() return getDB("insightFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("insightFontPath", v) end, displayFn = DisplayPerElementFont },
+            { type = "section", name = L["OPTIONS_AXIS_PLAYER_TOOLTIP"] or "Player Tooltip" },
+            { type = "toggle", name = L["OPTIONS_CORE_GUILD_RANK"] or "Guild rank", desc = L["OPTIONS_AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
+            { type = "toggle", name = L["OPTIONS_AXIS_CHARACTER_TITLE"] or "Character title", desc = L["OPTIONS_AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
+            { type = "color", name = L["OPTIONS_AXIS_TITLE_COLOR"] or "Title color", desc = L["OPTIONS_AXIS_COLOR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"] or "Color of the character title in the player tooltip name line.", dbKey = "insightTitleColor", default = { 1.00, 0.82, 0.00 }, visibleWhen = function() return getDB("insightShowCharacterTitle", true) end },
+            { type = "toggle", name = L["OPTIONS_CORE_HONOR_LEVEL"] or "Honor level", desc = L["OPTIONS_AXIS_PLAYER_S_PVP_HONOR_LEVEL_TOOLTIP"] or "Show the player's PvP honor level in the tooltip.", dbKey = "insightShowHonorLevel", get = function() return getDB("insightShowHonorLevel", true) end, set = function(v) setDB("insightShowHonorLevel", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_STATUS_BADGES"] or "Status badges", desc = L["OPTIONS_CORE_COMBAT_AFK_DND_PVP_PARTY_FRIENDS"], dbKey = "insightShowStatusBadges", get = function() return getDB("insightShowStatusBadges", true) end, set = function(v) setDB("insightShowStatusBadges", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_MYTHIC_SCORE"] or "Mythic+ score", desc = L["OPTIONS_AXIS_PLAYER_S_CURRENT_SEASON_MYTHIC_SCORE"] or "Show the player's current season Mythic+ score, colour-coded by tier.", dbKey = "insightShowMythicScore", get = function() return getDB("insightShowMythicScore", true) end, set = function(v) setDB("insightShowMythicScore", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_ITEM_LEVEL"] or "Item level", desc = L["OPTIONS_AXIS_PLAYER_S_EQUIPPED_ITEM_LEVEL_AFTER"] or "Show the player's equipped item level after inspecting them.", dbKey = "insightShowIlvl", get = function() return getDB("insightShowIlvl", true) end, set = function(v) setDB("insightShowIlvl", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_MOUNT_INFO"] or "Mount info", desc = L["OPTIONS_CORE_MOUNT_NAME_SOURCE_COLLECTION_STATUS"], dbKey = "insightShowMount", get = function() return getDB("insightShowMount", true) end, set = function(v) setDB("insightShowMount", v) end, tooltip = L["OPTIONS_CORE_SHOWN_HOVERING_A_MOUNTED_PLAYER"] },
+            { type = "toggle", name = L["OPTIONS_AXIS_BLANK_SEPARATOR"] or "Blank separator", desc = L["OPTIONS_AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
+            { type = "toggle", name = L["OPTIONS_AXIS_ICONS"] or "Show icons", desc = L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end },
+            { type = "dropdown", name = L["OPTIONS_AXIS_CLASS_ICON_STYLE"] or "Class icon style", desc = L["OPTIONS_AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"], dbKey = "insightClassIconSource", options = { { L["OPTIONS_AXIS_DEFAULT"] or "Default", "default" }, { "RondoMedia", "rondomedia" } }, get = function() return getDB("insightClassIconSource", "default") end, set = function(v) setDB("insightClassIconSource", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
+            { type = "section", name = L["OPTIONS_AXIS_ITEM_TOOLTIP"] or "Item Tooltip" },
+            { type = "toggle", name = L["OPTIONS_CORE_TRANSMOG_STATUS"] or "Transmog status", desc = L["OPTIONS_AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
         },
     },
     {
@@ -1767,89 +1767,89 @@ local OptionCategories = {
     },
     {
         key = "VistaMinimap",
-        name = L["Minimap"] or "Minimap",
-        desc = L["Configure the minimap's shape, size, position, and text overlays."] or "Configure the minimap's shape, size, position, and text overlays.",
+        name = L["OPTIONS_VISTA_MINIMAP"] or "Minimap",
+        desc = L["OPTIONS_CORE_CONFIGURE_MINIMAP_S_SHAPE_SIZE_POSITION"] or "Configure the minimap's shape, size, position, and text overlays.",
         moduleKey = "vista",
         options = {
-            { type = "section", name = L["Size & shape"] or "Size & shape" },
-            { type = "slider", name = L["Minimap size"] or "Minimap size",
-              desc = L["Width and height of the minimap in pixels (100–400)."] or "Width and height of the minimap in pixels (100–400).",
+            { type = "section", name = L["OPTIONS_CORE_SIZE_SHAPE"] or "Size & shape" },
+            { type = "slider", name = L["OPTIONS_VISTA_MINIMAP_SIZE"] or "Minimap size",
+              desc = L["OPTIONS_VISTA_WIDTH_HEIGHT_OF_MINIMAP_PIXELS"] or "Width and height of the minimap in pixels (100–400).",
               dbKey = "vistaMapSize", min = 100, max = 400,
               get = function() return math.max(100, math.min(400, tonumber(getDB("vistaMapSize", 200)) or 200)) end,
               set = function(v) setDB("vistaMapSize", math.max(100, math.min(400, v))) end },
-            { type = "toggle", name = L["Circular shape"] or "Circular shape",
-              desc = L["Use a circular minimap instead of square."] or "Use a circular minimap instead of square.",
+            { type = "toggle", name = L["OPTIONS_VISTA_CIRCULAR_SHAPE"] or "Circular shape",
+              desc = L["OPTIONS_VISTA_A_CIRCULAR_MINIMAP_INSTEAD_OF_SQUARE"] or "Use a circular minimap instead of square.",
               dbKey = "vistaCircular",
               get = function() return getDB("vistaCircular", false) end,
               set = function(v) setDB("vistaCircular", v) end },
-            { type = "section", name = L["Position"] or "Position" },
-            { type = "toggle", name = L["Lock minimap"] or "Lock minimap",
-              desc = L["Prevent dragging the minimap."] or "Prevent dragging the minimap.",
+            { type = "section", name = L["OPTIONS_AXIS_POSITION"] or "Position" },
+            { type = "toggle", name = L["OPTIONS_CORE_LOCK_MINIMAP"] or "Lock minimap",
+              desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_MINIMAP"] or "Prevent dragging the minimap.",
               dbKey = "vistaLock",
               get = function() return getDB("vistaLock", true) end,
               set = function(v) setDB("vistaLock", v) end },
-            { type = "button", name = L["Reset minimap position"] or "Reset minimap position",
-              desc = L["Reset minimap to its default position (top-right)."] or "Reset minimap to its default position (top-right).",
+            { type = "button", name = L["OPTIONS_VISTA_RESET_MINIMAP_POSITION"] or "Reset minimap position",
+              desc = L["OPTIONS_VISTA_RESET_MINIMAP_DEFAULT_POSITION_TOP_RIGHT"] or "Reset minimap to its default position (top-right).",
               onClick = function()
                   if addon.Vista and addon.Vista.ResetMinimapPosition then
                       addon.Vista.ResetMinimapPosition()
                   end
               end },
-            { type = "section", name = L["Auto Zoom"] or "Auto Zoom" },
-            { type = "slider", name = L["Auto zoom-out delay"] or "Auto zoom-out delay",
-              desc = L["Seconds after zooming before auto zoom-out fires. Set to 0 to disable."] or "Seconds after zooming before auto zoom-out fires. Set to 0 to disable.",
+            { type = "section", name = L["OPTIONS_VISTA_AUTO_ZOOM"] or "Auto Zoom" },
+            { type = "slider", name = L["OPTIONS_VISTA_AUTO_ZOOM_DELAY"] or "Auto zoom-out delay",
+              desc = L["OPTIONS_VISTA_SECONDS_AFTER_ZOOMING_BEFORE_AUTO_ZOOM"] or "Seconds after zooming before auto zoom-out fires. Set to 0 to disable.",
               dbKey = "vistaAutoZoom", min = 0, max = 30,
               get = function() return math.max(0, math.min(30, tonumber(getDB("vistaAutoZoom", 5)) or 5)) end,
               set = function(v) setDB("vistaAutoZoom", math.max(0, math.min(30, v))) end },
-            { type = "section", name = L["Text Elements"] or "Text Elements" },
-            { type = "toggle", name = L["Show zone text"] or "Show zone text",
-              desc = L["Show the zone name below the minimap."] or "Show the zone name below the minimap.",
+            { type = "section", name = L["OPTIONS_VISTA_TEXT_ELEMENTS"] or "Text Elements" },
+            { type = "toggle", name = L["OPTIONS_VISTA_ZONE_TEXT"] or "Show zone text",
+              desc = L["OPTIONS_VISTA_ZONE_NAME_BELOW_MINIMAP"] or "Show the zone name below the minimap.",
               dbKey = "vistaShowZoneText",
               get = function() return getDB("vistaShowZoneText", true) end,
               set = function(v) setDB("vistaShowZoneText", v) end },
-            { type = "dropdown", name = L["Zone text display mode"] or "Zone text display mode",
-              desc = L["What to show: zone only, subzone only, or both."] or "What to show: zone only, subzone only, or both.",
+            { type = "dropdown", name = L["OPTIONS_VISTA_ZONE_TEXT_DISPLAY_MODE"] or "Zone text display mode",
+              desc = L["OPTIONS_VISTA_WHAT_ZONE_SUBZONE"] or "What to show: zone only, subzone only, or both.",
               dbKey = "vistaZoneDisplayMode",
               options = function() return {
-                  { L["Zone only"] or "Zone only", "zone" },
-                  { L["Subzone only"] or "Subzone only", "subzone" },
-                  { L["Both"] or "Both", "both" },
+                  { L["OPTIONS_VISTA_ZONE"] or "Zone only", "zone" },
+                  { L["OPTIONS_VISTA_SUBZONE"] or "Subzone only", "subzone" },
+                  { L["OPTIONS_VISTA_BOTH"] or "Both", "both" },
               } end,
               get = function() return getDB("vistaZoneDisplayMode", "zone") end,
               set = function(v) setDB("vistaZoneDisplayMode", v) end,
               disabled = function() return not getDB("vistaShowZoneText", true) end },
-            { type = "toggle", name = L["Show coordinates"] or "Show coordinates",
-              desc = L["Show player coordinates below the minimap."] or "Show player coordinates below the minimap.",
+            { type = "toggle", name = L["OPTIONS_VISTA_COORDINATES"] or "Show coordinates",
+              desc = L["OPTIONS_VISTA_PLAYER_COORDINATES_BELOW_MINIMAP"] or "Show player coordinates below the minimap.",
               dbKey = "vistaShowCoordText",
               get = function() return getDB("vistaShowCoordText", true) end,
               set = function(v) setDB("vistaShowCoordText", v) end },
-            { type = "toggle", name = L["Show time"] or "Show time",
-              desc = L["Show current game time below the minimap."] or "Show current game time below the minimap.",
+            { type = "toggle", name = L["OPTIONS_VISTA_TIME"] or "Show time",
+              desc = L["OPTIONS_VISTA_CURRENT_GAME_BELOW_MINIMAP"] or "Show current game time below the minimap.",
               dbKey = "vistaShowTimeText",
               get = function() return getDB("vistaShowTimeText", true) end,
               set = function(v) setDB("vistaShowTimeText", v) end },
-            { type = "toggle", name = L["Show FPS and latency"] or "Show FPS and latency",
-              desc = L["Show FPS and latency (ms) below the minimap."] or "Show FPS and latency (ms) below the minimap.",
+            { type = "toggle", name = L["OPTIONS_VISTA_FPS_LATENCY"] or "Show FPS and latency",
+              desc = L["OPTIONS_VISTA_FPS_LATENCY_MS_BELOW_MINIMAP"] or "Show FPS and latency (ms) below the minimap.",
               dbKey = "vistaShowPerfText",
               get = function() return getDB("vistaShowPerfText", false) end,
               set = function(v) setDB("vistaShowPerfText", v) end },
-            { type = "toggle", name = L["Use local time"] or "Use local time",
-              desc = L["Show local system time."] or "Show local system time.",
-              tooltip = L["When on, shows your local system time. When off, shows server time."] or "When on, shows your local system time. When off, shows server time.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCAL"] or "Use local time",
+              desc = L["OPTIONS_CORE_LOCAL_SYSTEM"] or "Show local system time.",
+              tooltip = L["OPTIONS_VISTA_YOUR_LOCAL_SYSTEM"] or "When on, shows your local system time. When off, shows server time.",
               dbKey = "vistaTimeUseLocal",
               get = function() return getDB("vistaTimeUseLocal", true) end,
               set = function(v) setDB("vistaTimeUseLocal", v) end,
               disabled = function() return not getDB("vistaShowTimeText", true) end },
-            { type = "toggle", name = L["24-hour clock"] or "24-hour clock",
-              desc = L["Display time in 24-hour format (e.g. 14:30 instead of 2:30 PM)."] or "Display time in 24-hour format (e.g. 14:30 instead of 2:30 PM).",
+            { type = "toggle", name = L["OPTIONS_VISTA_HOUR_CLOCK"] or "24-hour clock",
+              desc = L["OPTIONS_VISTA_DISPLAY_HOUR_FORMAT_E_G_INSTEAD"] or "Display time in 24-hour format (e.g. 14:30 instead of 2:30 PM).",
               dbKey = "vistaTime24Hour",
               get = function() return getDB("vistaTime24Hour", false) end,
               set = function(v) setDB("vistaTime24Hour", v) end,
               disabled = function() return not getDB("vistaShowTimeText", true) end },
-            { type = "section", name = L["Minimap Buttons"] or "Minimap Buttons" },
-            { type = "header", name = L["Queue status and mail indicator are always shown when relevant."] or "Queue status and mail indicator are always shown when relevant." },
-            { type = "toggle", name = L["Show tracking button"] or "Show tracking button",
-              desc = L["Show the minimap tracking button."] or "Show the minimap tracking button.",
+            { type = "section", name = L["OPTIONS_VISTA_MINIMAP_BUTTONS"] or "Minimap Buttons" },
+            { type = "header", name = L["OPTIONS_VISTA_QUEUE_STATUS_MAIL_INDICATOR_ALWAYS_SHOWN"] or "Queue status and mail indicator are always shown when relevant." },
+            { type = "toggle", name = L["OPTIONS_VISTA_TRACKING_BUTTON"] or "Show tracking button",
+              desc = L["OPTIONS_VISTA_MINIMAP_TRACKING_BUTTON"] or "Show the minimap tracking button.",
               dbKey = "vistaShowTracking",
               get = function() return getDB("vistaShowTracking", true) end,
               set = function(v)
@@ -1860,15 +1860,15 @@ local OptionCategories = {
                       addon.OptionsPanel_Refresh()
                   end
               end },
-            { type = "toggle", name = L["Tracking button on mouseover only"] or "Tracking button on mouseover only",
-              desc = L["Show only on hover."] or "Show only on hover.",
-              tooltip = L["Hide tracking button until you hover over the minimap."] or "Hide tracking button until you hover over the minimap.",
+            { type = "toggle", name = L["OPTIONS_VISTA_TRACKING_BUTTON_MOUSEOVER"] or "Tracking button on mouseover only",
+              desc = L["OPTIONS_CORE_HOVER"] or "Show only on hover.",
+              tooltip = L["OPTIONS_VISTA_HIDE_TRACKING_BUTTON_UNTIL_YOU_HOVER"] or "Hide tracking button until you hover over the minimap.",
               dbKey = "vistaMouseoverTracking",
               get = function() return getDB("vistaMouseoverTracking", true) end,
               set = function(v) setDB("vistaMouseoverTracking", v) end,
               disabled = function() return not getDB("vistaShowTracking", true) end },
-            { type = "toggle", name = L["Show calendar button"] or "Show calendar button",
-              desc = L["Show the minimap calendar button."] or "Show the minimap calendar button.",
+            { type = "toggle", name = L["OPTIONS_VISTA_CALENDAR_BUTTON"] or "Show calendar button",
+              desc = L["OPTIONS_VISTA_MINIMAP_CALENDAR_BUTTON"] or "Show the minimap calendar button.",
               dbKey = "vistaShowCalendar",
               get = function() return getDB("vistaShowCalendar", true) end,
               set = function(v)
@@ -1879,14 +1879,14 @@ local OptionCategories = {
                       addon.OptionsPanel_Refresh()
                   end
               end },
-            { type = "toggle", name = L["Calendar button on mouseover only"] or "Calendar button on mouseover only",
-              desc = L["Hide calendar button until you hover over the minimap."] or "Hide calendar button until you hover over the minimap.",
+            { type = "toggle", name = L["OPTIONS_VISTA_CALENDAR_BUTTON_MOUSEOVER"] or "Calendar button on mouseover only",
+              desc = L["OPTIONS_VISTA_HIDE_CALENDAR_BUTTON_UNTIL_YOU_HOVER"] or "Hide calendar button until you hover over the minimap.",
               dbKey = "vistaMouseoverCalendar",
               get = function() return getDB("vistaMouseoverCalendar", true) end,
               set = function(v) setDB("vistaMouseoverCalendar", v) end,
               disabled = function() return not getDB("vistaShowCalendar", true) end },
-            { type = "toggle", name = L["Show zoom buttons"] or "Show zoom buttons",
-              desc = L["Show the + and - zoom buttons on the minimap."] or "Show the + and - zoom buttons on the minimap.",
+            { type = "toggle", name = L["OPTIONS_VISTA_ZOOM_BUTTONS"] or "Show zoom buttons",
+              desc = L["OPTIONS_VISTA_ZOOM_BUTTONS_MINIMAP"] or "Show the + and - zoom buttons on the minimap.",
               dbKey = "vistaShowZoomBtns",
               get = function() return getDB("vistaShowZoomBtns", true) end,
               set = function(v)
@@ -1897,8 +1897,8 @@ local OptionCategories = {
                       addon.OptionsPanel_Refresh()
                   end
               end },
-            { type = "toggle", name = L["Zoom buttons on mouseover only"] or "Zoom buttons on mouseover only",
-              desc = L["Hide zoom buttons until you hover over the minimap."] or "Hide zoom buttons until you hover over the minimap.",
+            { type = "toggle", name = L["OPTIONS_VISTA_ZOOM_BUTTONS_MOUSEOVER"] or "Zoom buttons on mouseover only",
+              desc = L["OPTIONS_VISTA_HIDE_ZOOM_BUTTONS_UNTIL_YOU_HOVER"] or "Hide zoom buttons until you hover over the minimap.",
               dbKey = "vistaMouseoverZoomBtns",
               get = function() return getDB("vistaMouseoverZoomBtns", true) end,
               set = function(v) setDB("vistaMouseoverZoomBtns", v) end,
@@ -1907,12 +1907,12 @@ local OptionCategories = {
     },
     {
         key = "VistaAppearance",
-        name = L["Appearance"] or "Appearance",
-        desc = L["Customize borders, colors, and the positioning of specific minimap elements."] or "Customize borders, colors, and the positioning of specific minimap elements.",
+        name = L["DASH_APPEARANCE"] or "Appearance",
+        desc = L["OPTIONS_CORE_CUSTOMIZE_BORDERS_COLORS_POSITIONING_OF_SPECIFI"] or "Customize borders, colors, and the positioning of specific minimap elements.",
         moduleKey = "vista",
         options = function()
             local GLOBAL_SENTINEL = "__global__"
-            local GLOBAL_LABEL = L["Use global font"] or "Use global font"
+            local GLOBAL_LABEL = L["OPTIONS_FOCUS_GLOBAL_FONT"] or "Use global font"
 
             local function fontOpts(dbKey)
                 local list = { { GLOBAL_LABEL, GLOBAL_SENTINEL } }
@@ -1940,14 +1940,14 @@ local OptionCategories = {
             end
 
             return {
-            { type = "section", name = L["Border"] or "Border" },
-            { type = "toggle", name = L["Show border"] or "Show border",
-              desc = L["Show a border around the minimap."] or "Show a border around the minimap.",
+            { type = "section", name = L["OPTIONS_VISTA_BORDER"] or "Border" },
+            { type = "toggle", name = L["OPTIONS_FOCUS_BORDER"] or "Show border",
+              desc = L["OPTIONS_VISTA_A_BORDER_AROUND_MINIMAP"] or "Show a border around the minimap.",
               dbKey = "vistaBorderShow",
               get = function() return getDB("vistaBorderShow", true) end,
               set = function(v) setDB("vistaBorderShow", v) end },
-            { type = "color", name = L["Border color"] or "Border color",
-              desc = L["Color (and opacity) of the minimap border."] or "Color (and opacity) of the minimap border.",
+            { type = "color", name = L["OPTIONS_VISTA_BORDER_COLOR"] or "Border color",
+              desc = L["OPTIONS_VISTA_COLOR_OPACITY_OF_MINIMAP_BORDER"] or "Color (and opacity) of the minimap border.",
               dbKey = "vistaBorderColor",
               get = function()
                   return getDB("vistaBorderColorR", 1), getDB("vistaBorderColorG", 1),
@@ -1959,8 +1959,8 @@ local OptionCategories = {
                   if a ~= nil then setDB("vistaBorderColorA", a) end
               end,
               hasAlpha = true },
-            { type = "slider", name = L["Border thickness"] or "Border thickness",
-              desc = L["Thickness of the minimap border in pixels (1–8)."] or "Thickness of the minimap border in pixels (1–8).",
+            { type = "slider", name = L["OPTIONS_VISTA_BORDER_THICKNESS"] or "Border thickness",
+              desc = L["OPTIONS_VISTA_THICKNESS_OF_MINIMAP_BORDER_PIXELS"] or "Thickness of the minimap border in pixels (1–8).",
               dbKey = "vistaBorderWidth", min = 1, max = 8,
               get = function() return math.max(1, math.min(8, tonumber(getDB("vistaBorderWidth", 1)) or 1)) end,
               set = function(v)
@@ -1973,90 +1973,90 @@ local OptionCategories = {
                       end)
                   end
               end },
-            { type = "section", name = L["Text Positions"] or "Text Positions" },
-            { type = "header", name = L["Drag text elements to reposition them. Lock to prevent accidental movement."] or "Drag text elements to reposition them. Lock to prevent accidental movement." },
-            { type = "dropdown", name = L["Location position"] or "Location position",
-              desc = L["Place the zone name above or below the minimap."] or "Place the zone name above or below the minimap.",
+            { type = "section", name = L["OPTIONS_VISTA_TEXT_POSITIONS"] or "Text Positions" },
+            { type = "header", name = L["OPTIONS_VISTA_DRAG_TEXT_ELEMENTS_REPOSITION_LOCK_PREVEN"] or "Drag text elements to reposition them. Lock to prevent accidental movement." },
+            { type = "dropdown", name = L["OPTIONS_VISTA_LOCATION_POSITION"] or "Location position",
+              desc = L["OPTIONS_VISTA_PLACE_ZONE_NAME_ABOVE_BELOW_MINIMAP"] or "Place the zone name above or below the minimap.",
               dbKey = "vistaZoneVerticalPos",
-              options = function() return { { L["Top"] or "Top", "top" }, { L["Bottom"] or "Bottom", "bottom" } } end,
+              options = function() return { { L["OPTIONS_FOCUS_TOP"] or "Top", "top" }, { L["OPTIONS_FOCUS_BOTTOM"] or "Bottom", "bottom" } } end,
               get = function() return getDB("vistaZoneVerticalPos", "bottom") or "bottom" end,
               set = function(v)
                   setDB("vistaZoneVerticalPos", v)
                   setDB("vistaEX_zone", nil); setDB("vistaEY_zone", nil)
               end },
-            { type = "toggle", name = L["Lock zone text position"] or "Lock zone text position",
-              desc = L["When on, the zone text cannot be dragged."] or "When on, the zone text cannot be dragged.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_ZONE_TEXT_POSITION"] or "Lock zone text position",
+              desc = L["OPTIONS_VISTA_ZONE_TEXT_CANNOT_DRAGGED"] or "When on, the zone text cannot be dragged.",
               dbKey = "vistaLocked_zone",
               get = function() return getDB("vistaLocked_zone", true) end,
               set = function(v) setDB("vistaLocked_zone", v) end },
-            { type = "dropdown", name = L["Coordinates position"] or "Coordinates position",
-              desc = L["Place the coordinates above or below the minimap."] or "Place the coordinates above or below the minimap.",
+            { type = "dropdown", name = L["OPTIONS_VISTA_COORDINATES_POSITION"] or "Coordinates position",
+              desc = L["OPTIONS_VISTA_PLACE_COORDINATES_ABOVE_BELOW_MINIMAP"] or "Place the coordinates above or below the minimap.",
               dbKey = "vistaCoordVerticalPos",
-              options = function() return { { L["Top"] or "Top", "top" }, { L["Bottom"] or "Bottom", "bottom" } } end,
+              options = function() return { { L["OPTIONS_FOCUS_TOP"] or "Top", "top" }, { L["OPTIONS_FOCUS_BOTTOM"] or "Bottom", "bottom" } } end,
               get = function() return getDB("vistaCoordVerticalPos", "bottom") or "bottom" end,
               set = function(v)
                   setDB("vistaCoordVerticalPos", v)
                   setDB("vistaEX_coord", nil); setDB("vistaEY_coord", nil)
               end },
-            { type = "toggle", name = L["Lock coordinates position"] or "Lock coordinates position",
-              desc = L["When on, the coordinates text cannot be dragged."] or "When on, the coordinates text cannot be dragged.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_COORDINATES_POSITION"] or "Lock coordinates position",
+              desc = L["OPTIONS_VISTA_COORDINATES_TEXT_CANNOT_DRAGGED"] or "When on, the coordinates text cannot be dragged.",
               dbKey = "vistaLocked_coord",
               get = function() return getDB("vistaLocked_coord", true) end,
               set = function(v) setDB("vistaLocked_coord", v) end },
-            { type = "dropdown", name = L["Clock position"] or "Clock position",
-              desc = L["Place the clock above or below the minimap."] or "Place the clock above or below the minimap.",
+            { type = "dropdown", name = L["OPTIONS_VISTA_CLOCK_POSITION"] or "Clock position",
+              desc = L["OPTIONS_VISTA_PLACE_CLOCK_ABOVE_BELOW_MINIMAP"] or "Place the clock above or below the minimap.",
               dbKey = "vistaTimeVerticalPos",
-              options = function() return { { L["Top"] or "Top", "top" }, { L["Bottom"] or "Bottom", "bottom" } } end,
+              options = function() return { { L["OPTIONS_FOCUS_TOP"] or "Top", "top" }, { L["OPTIONS_FOCUS_BOTTOM"] or "Bottom", "bottom" } } end,
               get = function() return getDB("vistaTimeVerticalPos", "bottom") or "bottom" end,
               set = function(v)
                   setDB("vistaTimeVerticalPos", v)
                   setDB("vistaEX_time", nil); setDB("vistaEY_time", nil)
               end },
-            { type = "toggle", name = L["Lock time position"] or "Lock time position",
-              desc = L["When on, the time text cannot be dragged."] or "When on, the time text cannot be dragged.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_POSITION"] or "Lock time position",
+              desc = L["OPTIONS_VISTA_TEXT_CANNOT_DRAGGED"] or "When on, the time text cannot be dragged.",
               dbKey = "vistaLocked_time",
               get = function() return getDB("vistaLocked_time", true) end,
               set = function(v) setDB("vistaLocked_time", v) end },
-            { type = "dropdown", name = L["Performance text position"] or "Performance text position",
-              desc = L["Place the FPS/latency text above or below the minimap."] or "Place the FPS/latency text above or below the minimap.",
+            { type = "dropdown", name = L["OPTIONS_VISTA_PERFORMANCE_TEXT_POSITION"] or "Performance text position",
+              desc = L["OPTIONS_VISTA_PLACE_FPS_LATENCY_TEXT_ABOVE_BELOW"] or "Place the FPS/latency text above or below the minimap.",
               dbKey = "vistaPerfVerticalPos",
-              options = function() return { { L["Top"] or "Top", "top" }, { L["Bottom"] or "Bottom", "bottom" } } end,
+              options = function() return { { L["OPTIONS_FOCUS_TOP"] or "Top", "top" }, { L["OPTIONS_FOCUS_BOTTOM"] or "Bottom", "bottom" } } end,
               get = function() return getDB("vistaPerfVerticalPos", "bottom") or "bottom" end,
               set = function(v)
                   setDB("vistaPerfVerticalPos", v)
                   setDB("vistaEX_perf", nil); setDB("vistaEY_perf", nil)
               end,
               disabled = function() return not getDB("vistaShowPerfText", false) end },
-            { type = "toggle", name = L["Lock performance text position"] or "Lock performance text position",
-              desc = L["When on, the FPS/latency text cannot be dragged."] or "When on, the FPS/latency text cannot be dragged.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_PERFORMANCE_TEXT_POSITION"] or "Lock performance text position",
+              desc = L["OPTIONS_VISTA_FPS_LATENCY_TEXT_CANNOT_DRAGGED"] or "When on, the FPS/latency text cannot be dragged.",
               dbKey = "vistaLocked_perf",
               get = function() return getDB("vistaLocked_perf", true) end,
               set = function(v) setDB("vistaLocked_perf", v) end,
               disabled = function() return not getDB("vistaShowPerfText", false) end },
-            { type = "section", name = L["Button Positions"] or "Button Positions" },
-            { type = "header", name = L["Drag buttons to reposition them. Lock to prevent movement."] or "Drag buttons to reposition them. Lock to prevent movement." },
-            { type = "toggle", name = L["Lock Zoom In button"] or "Lock Zoom In button",
-              desc = L["Prevent dragging the + zoom button."] or "Prevent dragging the + zoom button.",
+            { type = "section", name = L["OPTIONS_VISTA_BUTTON_POSITIONS"] or "Button Positions" },
+            { type = "header", name = L["OPTIONS_VISTA_DRAG_BUTTONS_REPOSITION_LOCK_PREVENT_MOVE"] or "Drag buttons to reposition them. Lock to prevent movement." },
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_ZOOM_BUTTON"] or "Lock Zoom In button",
+              desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_ZOOM_BUTTON"] or "Prevent dragging the + zoom button.",
               dbKey = "vistaLocked_zoomIn",
               get = function() return getDB("vistaLocked_zoomIn", true) end,
               set = function(v) setDB("vistaLocked_zoomIn", v) end },
-            { type = "toggle", name = L["Lock Zoom Out button"] or "Lock Zoom Out button",
-              desc = L["Prevent dragging the - zoom button."] or "Prevent dragging the - zoom button.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_ZOOM_OUT_BUTTON"] or "Lock Zoom Out button",
+              desc = L["OPTIONS_VISTA_LOCK_ZOOM_OUT_DRAG"] or "Prevent dragging the - zoom button.",
               dbKey = "vistaLocked_zoomOut",
               get = function() return getDB("vistaLocked_zoomOut", true) end,
               set = function(v) setDB("vistaLocked_zoomOut", v) end },
-            { type = "toggle", name = L["Lock Tracking button"] or "Lock Tracking button",
-              desc = L["Prevent dragging the tracking button."] or "Prevent dragging the tracking button.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_TRACKING_BUTTON"] or "Lock Tracking button",
+              desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_TRACKING_BUTTON"] or "Prevent dragging the tracking button.",
               dbKey = "vistaLocked_proxy_tracking",
               get = function() return getDB("vistaLocked_proxy_tracking", true) end,
               set = function(v) setDB("vistaLocked_proxy_tracking", v) end },
-            { type = "toggle", name = L["Lock Calendar button"] or "Lock Calendar button",
-              desc = L["Prevent dragging the calendar button."] or "Prevent dragging the calendar button.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_CALENDAR_BUTTON"] or "Lock Calendar button",
+              desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_CALENDAR_BUTTON"] or "Prevent dragging the calendar button.",
               dbKey = "vistaLocked_proxy_calendar",
               get = function() return getDB("vistaLocked_proxy_calendar", true) end,
               set = function(v) setDB("vistaLocked_proxy_calendar", v) end },
-            { type = "toggle", name = L["Lock Queue button"] or "Lock Queue button",
-              desc = L["Prevent dragging the queue status button."] or "Prevent dragging the queue status button.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_QUEUE_BUTTON"] or "Lock Queue button",
+              desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_QUEUE_STATUS_BUTTON"] or "Prevent dragging the queue status button.",
               dbKey = "vistaLocked_proxy_queue",
               get = function() return getDB("vistaLocked_proxy_queue", true) end,
               set = function(v)
@@ -2065,8 +2065,8 @@ local OptionCategories = {
                       addon.Vista.RefreshQueueProxies()
                   end
               end },
-            { type = "toggle", name = L["Lock Mail indicator"] or "Lock Mail indicator",
-              desc = L["Prevent dragging the mail icon."] or "Prevent dragging the mail icon.",
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_MAIL_INDICATOR"] or "Lock Mail indicator",
+              desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_MAIL_ICON"] or "Prevent dragging the mail icon.",
               dbKey = "vistaLocked_proxy_mail",
               get = function() return getDB("vistaLocked_proxy_mail", true) end,
               set = function(v)
@@ -2075,8 +2075,8 @@ local OptionCategories = {
                       addon.Vista.RefreshMailAnchor()
                   end
               end },
-            { type = "toggle", name = L["Disable queue handling"] or "Disable queue handling",
-              desc = L["Turn off all queue button anchoring (use if another addon manages it)."] or "Turn off all queue button anchoring (use if another addon manages it).",
+            { type = "toggle", name = L["OPTIONS_VISTA_DISABLE_QUEUE_HANDLING"] or "Disable queue handling",
+              desc = L["OPTIONS_VISTA_TURN_QUEUE_BUTTON_ANCHORING_ANOTHER_A"] or "Turn off all queue button anchoring (use if another addon manages it).",
               dbKey = "vistaQueueHandlingDisabled",
               get = function() return getDB("vistaQueueHandlingDisabled", false) end,
               set = function(v)
@@ -2085,40 +2085,40 @@ local OptionCategories = {
                       addon.Vista.RefreshQueueProxies()
                   end
               end },
-            { type = "section", name = L["Button Sizes"] or "Button Sizes" },
-            { type = "header", name = L["Adjust the size of minimap overlay buttons."] or "Adjust the size of minimap overlay buttons." },
-            { type = "slider", name = L["Tracking button size"] or "Tracking button size",
-              desc = L["Size of the tracking button (pixels)."] or "Size of the tracking button (pixels).",
+            { type = "section", name = L["OPTIONS_VISTA_BUTTON_SIZES"] or "Button Sizes" },
+            { type = "header", name = L["OPTIONS_VISTA_ADJUST_SIZE_OF_MINIMAP_OVERLAY_BUTTONS"] or "Adjust the size of minimap overlay buttons." },
+            { type = "slider", name = L["OPTIONS_VISTA_TRACKING_BUTTON_SIZE"] or "Tracking button size",
+              desc = L["OPTIONS_VISTA_SIZE_OF_TRACKING_BUTTON_PIXELS"] or "Size of the tracking button (pixels).",
               dbKey = "vistaTrackingBtnSize", min = 14, max = 40,
               get = function() return math.max(14, math.min(40, tonumber(getDB("vistaTrackingBtnSize", 22)) or 22)) end,
               set = function(v) setDB("vistaTrackingBtnSize", math.max(14, math.min(40, v))) end },
-            { type = "slider", name = L["Calendar button size"] or "Calendar button size",
-              desc = L["Size of the calendar button (pixels)."] or "Size of the calendar button (pixels).",
+            { type = "slider", name = L["OPTIONS_VISTA_CALENDAR_BUTTON_SIZE"] or "Calendar button size",
+              desc = L["OPTIONS_VISTA_SIZE_OF_CALENDAR_BUTTON_PIXELS"] or "Size of the calendar button (pixels).",
               dbKey = "vistaCalendarBtnSize", min = 14, max = 40,
               get = function() return math.max(14, math.min(40, tonumber(getDB("vistaCalendarBtnSize", 22)) or 22)) end,
               set = function(v) setDB("vistaCalendarBtnSize", math.max(14, math.min(40, v))) end },
-            { type = "slider", name = L["Queue button size"] or "Queue button size",
-              desc = L["Size of the queue status button (pixels)."] or "Size of the queue status button (pixels).",
+            { type = "slider", name = L["OPTIONS_VISTA_QUEUE_BUTTON_SIZE"] or "Queue button size",
+              desc = L["OPTIONS_VISTA_SIZE_OF_QUEUE_STATUS_BUTTON_PIXELS"] or "Size of the queue status button (pixels).",
               dbKey = "vistaQueueBtnSize", min = 14, max = 40,
               get = function() return math.max(14, math.min(40, tonumber(getDB("vistaQueueBtnSize", 22)) or 22)) end,
               set = function(v) setDB("vistaQueueBtnSize", math.max(14, math.min(40, v))) end },
-            { type = "slider", name = L["Zoom button size"] or "Zoom button size",
-              desc = L["Size of the + and - zoom buttons (pixels)."] or "Size of the + and - zoom buttons (pixels).",
+            { type = "slider", name = L["OPTIONS_VISTA_ZOOM_BUTTON_SIZE"] or "Zoom button size",
+              desc = L["OPTIONS_CORE_SIZE_OF_ZOOM_BUTTONS_PIXELS"] or "Size of the + and - zoom buttons (pixels).",
               dbKey = "vistaZoomBtnSize", min = 10, max = 32,
               get = function() return math.max(10, math.min(32, tonumber(getDB("vistaZoomBtnSize", 16)) or 16)) end,
               set = function(v) setDB("vistaZoomBtnSize", math.max(10, math.min(32, v))) end },
-            { type = "slider", name = L["Mail indicator size"] or "Mail indicator size",
-              desc = L["Size of the new mail icon (pixels)."] or "Size of the new mail icon (pixels).",
+            { type = "slider", name = L["OPTIONS_VISTA_MAIL_INDICATOR_SIZE"] or "Mail indicator size",
+              desc = L["OPTIONS_VISTA_SIZE_OF_MAIL_ICON_PIXELS"] or "Size of the new mail icon (pixels).",
               dbKey = "vistaMailIconSize", min = 14, max = 40,
               get = function() return math.max(14, math.min(40, tonumber(getDB("vistaMailIconSize", 20)) or 20)) end,
               set = function(v) setDB("vistaMailIconSize", math.max(14, math.min(40, v))) end },
-            { type = "toggle", name = L["Mail icon pulse"] or "Mail icon pulse",
-              desc = L["When on, the mail icon pulses to draw attention. When off, it stays at full opacity."] or "When on, the mail icon pulses to draw attention. When off, it stays at full opacity.",
+            { type = "toggle", name = L["OPTIONS_CORE_MAIL_ICON_PULSE"] or "Mail icon pulse",
+              desc = L["OPTIONS_VISTA_MAIL_ICON_PULSES_DRAW_ATTENTION"] or "When on, the mail icon pulses to draw attention. When off, it stays at full opacity.",
               dbKey = "vistaMailBlink",
               get = function() return getDB("vistaMailBlink", true) end,
               set = function(v) setDB("vistaMailBlink", v) end },
-            { type = "slider", name = L["Addon button size"] or "Addon button size",
-              desc = L["Size of collected addon minimap buttons (pixels)."] or "Size of collected addon minimap buttons (pixels).",
+            { type = "slider", name = L["OPTIONS_VISTA_ADDON_BUTTON_SIZE"] or "Addon button size",
+              desc = L["OPTIONS_VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"] or "Size of collected addon minimap buttons (pixels).",
               dbKey = "vistaAddonBtnSize", min = 16, max = 48,
               get = function() return math.max(16, math.min(48, tonumber(getDB("vistaAddonBtnSize", 26)) or 26)) end,
               set = function(v)
@@ -2131,20 +2131,20 @@ local OptionCategories = {
                       end)
                   end
               end },
-            { type = "section", name = L["Zone Text"] or "Zone Text" },
-            { type = "dropdown", name = L["Zone font"] or "Zone font",
-              desc = L["Font for the zone name below the minimap."] or "Font for the zone name below the minimap.",
+            { type = "section", name = L["OPTIONS_VISTA_ZONE_TEXT_HEADER"] or "Zone Text" },
+            { type = "dropdown", name = L["OPTIONS_VISTA_ZONE_FONT"] or "Zone font",
+              desc = L["OPTIONS_VISTA_FONT_ZONE_NAME_BELOW_MINIMAP"] or "Font for the zone name below the minimap.",
               dbKey = "vistaZoneFontPath", searchable = true,
               options = function() return fontOpts("vistaZoneFontPath") end,
               get = function() return getFont("vistaZoneFontPath") end,
               set = function(v) setDB("vistaZoneFontPath", v) end,
               displayFn = displayFont },
-            { type = "slider", name = L["Zone font size"] or "Zone font size",
+            { type = "slider", name = L["OPTIONS_VISTA_ZONE_FONT_SIZE"] or "Zone font size",
               dbKey = "vistaZoneFontSize", min = 7, max = 24,
               get = function() return math.max(7, math.min(24, tonumber(getDB("vistaZoneFontSize", 12)) or 12)) end,
               set = function(v) setDB("vistaZoneFontSize", math.max(7, math.min(24, v))) end },
-            { type = "color", name = L["Zone text color"] or "Zone text color",
-              desc = L["Color of the zone name text."] or "Color of the zone name text.",
+            { type = "color", name = L["OPTIONS_VISTA_ZONE_TEXT_COLOR"] or "Zone text color",
+              desc = L["OPTIONS_VISTA_COLOR_OF_ZONE_NAME_TEXT"] or "Color of the zone name text.",
               dbKey = "vistaZoneColor",
               get = function()
                   return getDB("vistaZoneColorR", 1), getDB("vistaZoneColorG", 1), getDB("vistaZoneColorB", 1)
@@ -2152,20 +2152,20 @@ local OptionCategories = {
               set = function(r, g, b)
                   setDB("vistaZoneColorR", r); setDB("vistaZoneColorG", g); setDB("vistaZoneColorB", b)
               end },
-            { type = "section", name = L["Coordinates Text"] or "Coordinates Text" },
-            { type = "dropdown", name = L["Coordinates font"] or "Coordinates font",
-              desc = L["Font for the coordinates text below the minimap."] or "Font for the coordinates text below the minimap.",
+            { type = "section", name = L["OPTIONS_VISTA_COORDINATES_TEXT"] or "Coordinates Text" },
+            { type = "dropdown", name = L["OPTIONS_VISTA_COORDINATES_FONT"] or "Coordinates font",
+              desc = L["OPTIONS_VISTA_FONT_COORDINATES_TEXT_BELOW_MINIMAP"] or "Font for the coordinates text below the minimap.",
               dbKey = "vistaCoordFontPath", searchable = true,
               options = function() return fontOpts("vistaCoordFontPath") end,
               get = function() return getFont("vistaCoordFontPath") end,
               set = function(v) setDB("vistaCoordFontPath", v) end,
               displayFn = displayFont },
-            { type = "slider", name = L["Coordinates font size"] or "Coordinates font size",
+            { type = "slider", name = L["OPTIONS_VISTA_COORDINATES_FONT_SIZE"] or "Coordinates font size",
               dbKey = "vistaCoordFontSize", min = 7, max = 20,
               get = function() return math.max(7, math.min(20, tonumber(getDB("vistaCoordFontSize", 10)) or 10)) end,
               set = function(v) setDB("vistaCoordFontSize", math.max(7, math.min(20, v))) end },
-            { type = "color", name = L["Coordinates text color"] or "Coordinates text color",
-              desc = L["Color of the coordinates text."] or "Color of the coordinates text.",
+            { type = "color", name = L["OPTIONS_VISTA_COORDINATES_TEXT_COLOR"] or "Coordinates text color",
+              desc = L["OPTIONS_VISTA_COLOR_OF_COORDINATES_TEXT"] or "Color of the coordinates text.",
               dbKey = "vistaCoordColor",
               get = function()
                   return getDB("vistaCoordColorR", 0.55), getDB("vistaCoordColorG", 0.65), getDB("vistaCoordColorB", 0.75)
@@ -2173,30 +2173,30 @@ local OptionCategories = {
               set = function(r, g, b)
                   setDB("vistaCoordColorR", r); setDB("vistaCoordColorG", g); setDB("vistaCoordColorB", b)
               end },
-            { type = "dropdown", name = L["Coordinate precision"] or "Coordinate precision",
-              desc = L["Number of decimal places shown for X and Y coordinates."] or "Number of decimal places shown for X and Y coordinates.",
+            { type = "dropdown", name = L["OPTIONS_VISTA_COORDINATE_PRECISION"] or "Coordinate precision",
+              desc = L["OPTIONS_VISTA_NUMBER_OF_DECIMAL_PLACES_SHOWN_X"] or "Number of decimal places shown for X and Y coordinates.",
               dbKey = "vistaCoordPrecision",
               options = function() return {
-                  { L["No decimals (e.g. 52, 37)"]      or "No decimals (e.g. 52, 37)",      0 },
-                  { L["1 decimal (e.g. 52.3, 37.1)"]    or "1 decimal (e.g. 52.3, 37.1)",    1 },
-                  { L["2 decimals (e.g. 52.34, 37.12)"] or "2 decimals (e.g. 52.34, 37.12)", 2 },
+                  { L["OPTIONS_VISTA_COORDS_DECIMALS_OFF"]      or "No decimals (e.g. 52, 37)",      0 },
+                  { L["OPTIONS_VISTA_DECIMAL_E_G"]    or "1 decimal (e.g. 52.3, 37.1)",    1 },
+                  { L["OPTIONS_VISTA_DECIMALS_E_G"] or "2 decimals (e.g. 52.34, 37.12)", 2 },
               } end,
               get = function() return tonumber(getDB("vistaCoordPrecision", 1)) or 1 end,
               set = function(v) setDB("vistaCoordPrecision", tonumber(v) or 1) end },
-            { type = "section", name = L["Time Text"] or "Time Text" },
-            { type = "dropdown", name = L["Time font"] or "Time font",
-              desc = L["Font for the time text below the minimap."] or "Font for the time text below the minimap.",
+            { type = "section", name = L["OPTIONS_VISTA_TEXT"] or "Time Text" },
+            { type = "dropdown", name = L["OPTIONS_VISTA_FONT"] or "Time font",
+              desc = L["OPTIONS_VISTA_FONT_TEXT_BELOW_MINIMAP"] or "Font for the time text below the minimap.",
               dbKey = "vistaTimeFontPath", searchable = true,
               options = function() return fontOpts("vistaTimeFontPath") end,
               get = function() return getFont("vistaTimeFontPath") end,
               set = function(v) setDB("vistaTimeFontPath", v) end,
               displayFn = displayFont },
-            { type = "slider", name = L["Time font size"] or "Time font size",
+            { type = "slider", name = L["OPTIONS_VISTA_FONT_SIZE"] or "Time font size",
               dbKey = "vistaTimeFontSize", min = 7, max = 20,
               get = function() return math.max(7, math.min(20, tonumber(getDB("vistaTimeFontSize", 10)) or 10)) end,
               set = function(v) setDB("vistaTimeFontSize", math.max(7, math.min(20, v))) end },
-            { type = "color", name = L["Time text color"] or "Time text color",
-              desc = L["Color of the time text."] or "Color of the time text.",
+            { type = "color", name = L["OPTIONS_VISTA_TEXT_COLOR"] or "Time text color",
+              desc = L["OPTIONS_VISTA_COLOR_OF_TEXT"] or "Color of the time text.",
               dbKey = "vistaTimeColor",
               get = function()
                   return getDB("vistaTimeColorR", 0.55), getDB("vistaTimeColorG", 0.65), getDB("vistaTimeColorB", 0.75)
@@ -2204,22 +2204,22 @@ local OptionCategories = {
               set = function(r, g, b)
                   setDB("vistaTimeColorR", r); setDB("vistaTimeColorG", g); setDB("vistaTimeColorB", b)
               end },
-            { type = "section", name = L["Performance Text"] or "Performance Text" },
-            { type = "dropdown", name = L["Performance font"] or "Performance font",
-              desc = L["Font for the FPS and latency text below the minimap."] or "Font for the FPS and latency text below the minimap.",
+            { type = "section", name = L["OPTIONS_VISTA_PERFORMANCE_TEXT"] or "Performance Text" },
+            { type = "dropdown", name = L["OPTIONS_VISTA_PERFORMANCE_FONT"] or "Performance font",
+              desc = L["OPTIONS_VISTA_FONT_FPS_LATENCY_TEXT_BELOW_MINIMAP"] or "Font for the FPS and latency text below the minimap.",
               dbKey = "vistaPerfFontPath", searchable = true,
               options = function() return fontOpts("vistaPerfFontPath") end,
               get = function() return getFont("vistaPerfFontPath") end,
               set = function(v) setDB("vistaPerfFontPath", v) end,
               displayFn = displayFont,
               disabled = function() return not getDB("vistaShowPerfText", false) end },
-            { type = "slider", name = L["Performance font size"] or "Performance font size",
+            { type = "slider", name = L["OPTIONS_VISTA_PERFORMANCE_FONT_SIZE"] or "Performance font size",
               dbKey = "vistaPerfFontSize", min = 7, max = 20,
               get = function() return math.max(7, math.min(20, tonumber(getDB("vistaPerfFontSize", 10)) or 10)) end,
               set = function(v) setDB("vistaPerfFontSize", math.max(7, math.min(20, v))) end,
               disabled = function() return not getDB("vistaShowPerfText", false) end },
-            { type = "color", name = L["Performance text color"] or "Performance text color",
-              desc = L["Color of the FPS and latency text."] or "Color of the FPS and latency text.",
+            { type = "color", name = L["OPTIONS_VISTA_PERFORMANCE_TEXT_COLOR"] or "Performance text color",
+              desc = L["OPTIONS_VISTA_COLOR_OF_FPS_LATENCY_TEXT"] or "Color of the FPS and latency text.",
               dbKey = "vistaPerfColor",
               get = function()
                   return getDB("vistaPerfColorR", 0.55), getDB("vistaPerfColorG", 0.65), getDB("vistaPerfColorB", 0.75)
@@ -2228,9 +2228,9 @@ local OptionCategories = {
                   setDB("vistaPerfColorR", r); setDB("vistaPerfColorG", g); setDB("vistaPerfColorB", b)
               end,
               disabled = function() return not getDB("vistaShowPerfText", false) end },
-            { type = "section", name = L["Difficulty Text"] or "Difficulty Text" },
-            { type = "color", name = L["Difficulty text color (fallback)"] or "Difficulty text color (fallback)",
-              desc = L["Default color when no per-difficulty color is set."] or "Default color when no per-difficulty color is set.",
+            { type = "section", name = L["OPTIONS_VISTA_DIFFICULTY_TEXT"] or "Difficulty Text" },
+            { type = "color", name = L["OPTIONS_VISTA_DIFFICULTY_TEXT_COLOR_FALLBACK"] or "Difficulty text color (fallback)",
+              desc = L["OPTIONS_VISTA_DEFAULT_COLOR_PER_DIFFICULTY_COLOR"] or "Default color when no per-difficulty color is set.",
               dbKey = "vistaDiffColor",
               get = function()
                   return getDB("vistaDiffColorR", 0.55), getDB("vistaDiffColorG", 0.65), getDB("vistaDiffColorB", 0.75)
@@ -2238,35 +2238,35 @@ local OptionCategories = {
               set = function(r, g, b)
                   setDB("vistaDiffColorR", r); setDB("vistaDiffColorG", g); setDB("vistaDiffColorB", b)
               end },
-            { type = "dropdown", name = L["Difficulty font"] or "Difficulty font",
-              desc = L["Font for the instance difficulty text."] or "Font for the instance difficulty text.",
+            { type = "dropdown", name = L["OPTIONS_VISTA_DIFFICULTY_FONT"] or "Difficulty font",
+              desc = L["OPTIONS_VISTA_FONT_INSTANCE_DIFFICULTY_TEXT"] or "Font for the instance difficulty text.",
               dbKey = "vistaDiffFontPath", searchable = true,
               options = function() return fontOpts("vistaDiffFontPath") end,
               get = function() return getFont("vistaDiffFontPath") end,
               set = function(v) setDB("vistaDiffFontPath", v) end,
               displayFn = displayFont },
-            { type = "slider", name = L["Difficulty font size"] or "Difficulty font size",
+            { type = "slider", name = L["OPTIONS_VISTA_DIFFICULTY_FONT_SIZE"] or "Difficulty font size",
               dbKey = "vistaDiffFontSize", min = 7, max = 24,
               get = function() return math.max(7, math.min(24, tonumber(getDB("vistaDiffFontSize", 10)) or 10)) end,
               set = function(v) setDB("vistaDiffFontSize", math.max(7, math.min(24, v))) end },
-            { type = "section", name = L["Per-Difficulty Colors"] or "Per-Difficulty Colors", defaultCollapsed = true },
-            { type = "color", name = L["Mythic color"] or "Mythic color",
-              desc = L["Color for Mythic difficulty text."] or "Color for Mythic difficulty text.",
+            { type = "section", name = L["OPTIONS_VISTA_PER_DIFFICULTY_COLORS"] or "Per-Difficulty Colors", defaultCollapsed = true },
+            { type = "color", name = L["OPTIONS_VISTA_MYTHIC_COLOR"] or "Mythic color",
+              desc = L["OPTIONS_VISTA_COLOR_MYTHIC_DIFFICULTY_TEXT"] or "Color for Mythic difficulty text.",
               dbKey = "vistaDiffColor_mythic",
               get = function() return getDB("vistaDiffColor_mythic_R", 0.64), getDB("vistaDiffColor_mythic_G", 0.21), getDB("vistaDiffColor_mythic_B", 0.93) end,
               set = function(r, g, b) setDB("vistaDiffColor_mythic_R", r); setDB("vistaDiffColor_mythic_G", g); setDB("vistaDiffColor_mythic_B", b) end },
-            { type = "color", name = L["Heroic color"] or "Heroic color",
-              desc = L["Color for Heroic difficulty text."] or "Color for Heroic difficulty text.",
+            { type = "color", name = L["OPTIONS_VISTA_HEROIC_COLOR"] or "Heroic color",
+              desc = L["OPTIONS_VISTA_COLOR_HEROIC_DIFFICULTY_TEXT"] or "Color for Heroic difficulty text.",
               dbKey = "vistaDiffColor_heroic",
               get = function() return getDB("vistaDiffColor_heroic_R", 1.00), getDB("vistaDiffColor_heroic_G", 0.12), getDB("vistaDiffColor_heroic_B", 0.12) end,
               set = function(r, g, b) setDB("vistaDiffColor_heroic_R", r); setDB("vistaDiffColor_heroic_G", g); setDB("vistaDiffColor_heroic_B", b) end },
-            { type = "color", name = L["Normal color"] or "Normal color",
-              desc = L["Color for Normal difficulty text."] or "Color for Normal difficulty text.",
+            { type = "color", name = L["OPTIONS_VISTA_NORMAL_COLOR"] or "Normal color",
+              desc = L["OPTIONS_VISTA_COLOR_NORMAL_DIFFICULTY_TEXT"] or "Color for Normal difficulty text.",
               dbKey = "vistaDiffColor_normal",
               get = function() return getDB("vistaDiffColor_normal_R", 0.12), getDB("vistaDiffColor_normal_G", 0.83), getDB("vistaDiffColor_normal_B", 0.12) end,
               set = function(r, g, b) setDB("vistaDiffColor_normal_R", r); setDB("vistaDiffColor_normal_G", g); setDB("vistaDiffColor_normal_B", b) end },
-            { type = "color", name = L["LFR color"] or "LFR color",
-              desc = L["Color for Looking For Raid difficulty text."] or "Color for Looking For Raid difficulty text.",
+            { type = "color", name = L["OPTIONS_VISTA_LFR_COLOR"] or "LFR color",
+              desc = L["OPTIONS_VISTA_COLOR_LOOKING_RAID_DIFFICULTY_TEXT"] or "Color for Looking For Raid difficulty text.",
               dbKey = "vistaDiffColor_lfr",
               get = function() return getDB("vistaDiffColor_looking_for_raid_R", 0.00), getDB("vistaDiffColor_looking_for_raid_G", 0.70), getDB("vistaDiffColor_looking_for_raid_B", 1.00) end,
               set = function(r, g, b) setDB("vistaDiffColor_looking_for_raid_R", r); setDB("vistaDiffColor_looking_for_raid_G", g); setDB("vistaDiffColor_looking_for_raid_B", b) end },
@@ -2274,20 +2274,20 @@ local OptionCategories = {
     },
     {
         key = "VistaButtons",
-        name = L["Addon Buttons"] or "Addon Buttons",
-        desc = L["Manage and organize minimap icons from other addons into a tidy drawer or bar."] or "Manage and organize minimap icons from other addons into a tidy drawer or bar.",
+        name = L["OPTIONS_VISTA_ADDON_BUTTONS"] or "Addon Buttons",
+        desc = L["OPTIONS_CORE_MANAGE_ORGANIZE_MINIMAP_ICONS_ADDONS_INT"] or "Manage and organize minimap icons from other addons into a tidy drawer or bar.",
         moduleKey = "vista",
         options = function()
             local BUTTON_MODE_OPTIONS = {
-                { L["Mouseover bar"] or "Mouseover bar", "mouseover" },
-                { L["Right-click panel"] or "Right-click panel", "rightclick" },
-                { L["Floating drawer"] or "Floating drawer", "drawer" },
+                { L["OPTIONS_VISTA_MOUSEOVER_BAR"] or "Mouseover bar", "mouseover" },
+                { L["OPTIONS_VISTA_RIGHT_CLICK_PANEL"] or "Right-click panel", "rightclick" },
+                { L["OPTIONS_VISTA_FLOATING_DRAWER"] or "Floating drawer", "drawer" },
             }
 
             local opts = {
-                { type = "section", name = L["Button Management"] or "Button Management" },
-                { type = "toggle", name = L["Manage addon buttons"] or "Manage addon buttons",
-                  desc = L["Collect and group addon minimap buttons."], tooltip = L["Groups them by the selected layout mode below."],
+                { type = "section", name = L["OPTIONS_VISTA_BUTTON_MANAGEMENT"] or "Button Management" },
+                { type = "toggle", name = L["OPTIONS_CORE_MANAGE_ADDON_BUTTONS"] or "Manage addon buttons",
+                  desc = L["OPTIONS_CORE_COLLECT_GROUP_ADDON_MINIMAP_BUTTONS"], tooltip = L["OPTIONS_CORE_GROUPS_SELECTED_LAYOUT_MODE_BELOW"],
                   dbKey = "vistaHandleAddonButtons",
                   get = function() return getDB("vistaHandleAddonButtons", true) end,
                   set = function(v)
@@ -2298,8 +2298,8 @@ local OptionCategories = {
                           addon.OptionsPanel_Refresh()
                       end
                   end },
-                { type = "dropdown", name = L["Button mode"] or "Button mode",
-                  desc = L["How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button."] or "How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.",
+                { type = "dropdown", name = L["OPTIONS_VISTA_BUTTON_MODE"] or "Button mode",
+                  desc = L["OPTIONS_VISTA_ADDON_BUTTONS_PRESENTED_HOVER_BAR_BELOW"] or "How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.",
                   dbKey = "vistaButtonMode",
                   options = BUTTON_MODE_OPTIONS,
                   get = function() return getDB("vistaButtonMode", "rightclick") end,
@@ -2313,8 +2313,8 @@ local OptionCategories = {
                       end
                   end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
-                { type = "toggle", name = L["Lock drawer button"] or "Lock drawer button",
-                  desc = L["Prevent dragging the floating drawer button."] or "Prevent dragging the floating drawer button.",
+                { type = "toggle", name = L["OPTIONS_CORE_LOCK_DRAWER_BUTTON"] or "Lock drawer button",
+                  desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_FLOATING_DRAWER_BUTTON"] or "Prevent dragging the floating drawer button.",
                   dbKey = "vistaDrawerButtonLocked",
                   get = function() return getDB("vistaDrawerButtonLocked", false) end,
                   set = function(v)
@@ -2325,24 +2325,24 @@ local OptionCategories = {
                   disabled = function()
                       return not getDB("vistaHandleAddonButtons", true) or getDB("vistaButtonMode", "mouseover") ~= "drawer"
                   end },
-                { type = "toggle", name = L["Lock mouseover bar"] or "Lock mouseover bar",
-                  desc = L["Prevent dragging the mouseover button bar."] or "Prevent dragging the mouseover button bar.",
+                { type = "toggle", name = L["OPTIONS_CORE_LOCK_MOUSEOVER_BAR"] or "Lock mouseover bar",
+                  desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_MOUSEOVER_BUTTON_BAR"] or "Prevent dragging the mouseover button bar.",
                   dbKey = "vistaMouseoverLocked",
                   get = function() return getDB("vistaMouseoverLocked", true) end,
                   set = function(v) setDB("vistaMouseoverLocked", v) end,
                   disabled = function()
                       return not getDB("vistaHandleAddonButtons", true) or getDB("vistaButtonMode", "mouseover") ~= "mouseover"
                   end },
-                { type = "toggle", name = L["Always show bar"] or "Always show bar",
-                  desc = L["Keep bar visible for repositioning."], tooltip = L["Disable when done."],
+                { type = "toggle", name = L["OPTIONS_VISTA_ALWAYS_BAR"] or "Always show bar",
+                  desc = L["OPTIONS_CORE_KEEP_BAR_VISIBLE_REPOSITIONING"], tooltip = L["OPTIONS_VISTA_DISABLE_DONE"],
                   dbKey = "vistaMouseoverBarVisible",
                   get = function() return getDB("vistaMouseoverBarVisible", false) end,
                   set = function(v) setDB("vistaMouseoverBarVisible", v) end,
                   disabled = function()
                       return not getDB("vistaHandleAddonButtons", true) or getDB("vistaButtonMode", "mouseover") ~= "mouseover"
                   end },
-                { type = "toggle", name = L["Lock right-click panel"] or "Lock right-click panel",
-                  desc = L["Prevent dragging the right-click panel."] or "Prevent dragging the right-click panel.",
+                { type = "toggle", name = L["OPTIONS_CORE_LOCK_RIGHT_CLICK_PANEL"] or "Lock right-click panel",
+                  desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_RIGHT_CLICK_PANEL"] or "Prevent dragging the right-click panel.",
                   dbKey = "vistaRightClickLocked",
                   get = function() return getDB("vistaRightClickLocked", true) end,
                   set = function(v) setDB("vistaRightClickLocked", v) end,
@@ -2350,44 +2350,44 @@ local OptionCategories = {
                       return not getDB("vistaHandleAddonButtons", true) or getDB("vistaButtonMode", "mouseover") ~= "rightclick"
                   end },
 
-                { type = "section", name = L["Close / Fade Timing"] or "Close / Fade Timing", defaultCollapsed = true },
-                { type = "slider", name = L["Mouseover close delay"] or "Mouseover close delay",
-                  desc = L["How long (in seconds) the bar stays visible after the cursor leaves. 0 = instant fade."] or "How long (in seconds) the bar stays visible after the cursor leaves. 0 = instant fade.",
+                { type = "section", name = L["OPTIONS_VISTA_CLOSE_FADE_TIMING"] or "Close / Fade Timing", defaultCollapsed = true },
+                { type = "slider", name = L["OPTIONS_CORE_MOUSEOVER_CLOSE_DELAY"] or "Mouseover close delay",
+                  desc = L["OPTIONS_VISTA_LONG_SECONDS_BAR_STAYS_VISIBLE_AFTER"] or "How long (in seconds) the bar stays visible after the cursor leaves. 0 = instant fade.",
                   dbKey = "vistaMouseoverCloseDelay", min = 0, max = 10, step = 0.5,
                   get = function() return math.max(0, math.min(10, tonumber(getDB("vistaMouseoverCloseDelay", 0)) or 0)) end,
                   set = function(v) setDB("vistaMouseoverCloseDelay", math.max(0, math.min(10, v))) end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
                 },
-                { type = "slider", name = L["Right-click close delay"] or "Right-click close delay",
-                  desc = L["How long (in seconds) the panel stays open after the cursor leaves. 0 = never auto-close (close by right-clicking again)."] or "How long (in seconds) the panel stays open after the cursor leaves. 0 = never auto-close (close by right-clicking again).",
+                { type = "slider", name = L["OPTIONS_CORE_RIGHT_CLICK_CLOSE_DELAY"] or "Right-click close delay",
+                  desc = L["OPTIONS_VISTA_LONG_SECONDS_PANEL_STAYS_OPEN_AFTER"] or "How long (in seconds) the panel stays open after the cursor leaves. 0 = never auto-close (close by right-clicking again).",
                   dbKey = "vistaRightClickCloseDelay", min = 0, max = 10, step = 0.5,
                   get = function() return math.max(0, math.min(10, tonumber(getDB("vistaRightClickCloseDelay", 2.5)) or 2.5)) end,
                   set = function(v) setDB("vistaRightClickCloseDelay", math.max(0, math.min(10, v))) end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
                 },
-                { type = "slider", name = L["Drawer close delay"] or "Drawer close delay",
-                  desc = L["Auto-close delay (0 to disable)."] or "Auto-close delay (0 to disable).",
-                  tooltip = L["How long (in seconds) the drawer panel stays open after clicking away. 0 = never auto-close (close only by clicking the drawer button again)."] or "How long (in seconds) the drawer panel stays open after clicking away. 0 = never auto-close (close only by clicking the drawer button again).",
+                { type = "slider", name = L["OPTIONS_VISTA_DRAWER_CLOSE_DELAY"] or "Drawer close delay",
+                  desc = L["OPTIONS_CORE_AUTO_CLOSE_DELAY_DISABLE"] or "Auto-close delay (0 to disable).",
+                  tooltip = L["OPTIONS_VISTA_LONG_SECONDS_DRAWER_PANEL_STAYS_OPEN"] or "How long (in seconds) the drawer panel stays open after clicking away. 0 = never auto-close (close only by clicking the drawer button again).",
                   dbKey = "vistaDrawerCloseDelay", min = 0, max = 10, step = 0.5,
                   get = function() return math.max(0, math.min(10, tonumber(getDB("vistaDrawerCloseDelay", 0)) or 0)) end,
                   set = function(v) setDB("vistaDrawerCloseDelay", math.max(0, math.min(10, v))) end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
                 },
 
-                { type = "section", name = L["Layout"] or "Layout" },
+                { type = "section", name = L["DASH_LAYOUT"] or "Layout" },
             }
 
             local DIR_OPTIONS = function() return {
-                { L["Right"] or "Right", "right" },
-                { L["Left"] or "Left",   "left"  },
-                { L["Down"] or "Down",   "down"  },
-                { L["Up"] or "Up",       "up"    },
+                { L["OPTIONS_VISTA_RIGHT"] or "Right", "right" },
+                { L["OPTIONS_VISTA_LEFT"] or "Left",   "left"  },
+                { L["OPTIONS_VISTA_DOWN"] or "Down",   "down"  },
+                { L["OPTIONS_VISTA_UP"] or "Up",       "up"    },
             } end
 
             -- Shared layout options (apply to all 3 modes)
             opts[#opts + 1] = {
-                type = "slider", name = L["Buttons per row/column"] or "Buttons per row/column",
-                desc = L["Controls how many buttons appear before wrapping. For left/right direction this is columns; for up/down it is rows."] or "Controls how many buttons appear before wrapping. For left/right direction this is columns; for up/down it is rows.",
+                type = "slider", name = L["OPTIONS_VISTA_BUTTONS_PER_ROW_COLUMN"] or "Buttons per row/column",
+                desc = L["OPTIONS_VISTA_CONTROLS_MANY_BUTTONS_APPEAR_BEFORE_WRAPPING"] or "Controls how many buttons appear before wrapping. For left/right direction this is columns; for up/down it is rows.",
                 dbKey = "vistaBtnLayoutCols", min = 1, max = 20, step = 1,
                 get = function() return math.max(1, math.min(20, tonumber(getDB("vistaBtnLayoutCols", 5)) or 5)) end,
                 set = function(v)
@@ -2403,20 +2403,20 @@ local OptionCategories = {
                 disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
             }
             opts[#opts + 1] = {
-                type = "dropdown", name = L["Expand direction"] or "Expand direction",
-                desc = L["Expand direction from anchor."] or "Expand direction from anchor.",
-                tooltip = L["Direction buttons fill from the anchor point. Left/Right = horizontal rows. Up/Down = vertical columns."] or "Direction buttons fill from the anchor point. Left/Right = horizontal rows. Up/Down = vertical columns.",
+                type = "dropdown", name = L["OPTIONS_VISTA_EXPAND_DIRECTION"] or "Expand direction",
+                desc = L["OPTIONS_CORE_EXPAND_DIRECTION_ANCHOR"] or "Expand direction from anchor.",
+                tooltip = L["OPTIONS_VISTA_DIRECTION_BUTTONS_FILL_ANCHOR_POINT_LEFT"] or "Direction buttons fill from the anchor point. Left/Right = horizontal rows. Up/Down = vertical columns.",
                 dbKey = "vistaBtnLayoutDir", options = DIR_OPTIONS,
                 get = function() return getDB("vistaBtnLayoutDir", "right") end,
                 set = function(v) setDB("vistaBtnLayoutDir", v) end,
                 disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
             }
 
-            opts[#opts + 1] = { type = "section", name = L["Panel Appearance"] or "Panel Appearance" }
-            opts[#opts + 1] = { type = "header", name = L["Colors for the drawer and right-click button panels."] or "Colors for the drawer and right-click button panels." }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_VISTA_PANEL_APPEARANCE"] or "Panel Appearance" }
+            opts[#opts + 1] = { type = "header", name = L["OPTIONS_VISTA_COLORS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"] or "Colors for the drawer and right-click button panels." }
             opts[#opts + 1] = {
-                type = "color", name = L["Panel background color"] or "Panel background color",
-                desc = L["Background color of the addon button panels."] or "Background color of the addon button panels.",
+                type = "color", name = L["OPTIONS_VISTA_PANEL_BG_COLOR_LABEL"] or "Panel background color",
+                desc = L["OPTIONS_VISTA_BACKGROUND_COLOR_OF_ADDON_BUTTON_PANELS"] or "Background color of the addon button panels.",
                 dbKey = "vistaPanelBg",
                 get = function()
                     return getDB("vistaPanelBgR", 0.08), getDB("vistaPanelBgG", 0.08),
@@ -2430,8 +2430,8 @@ local OptionCategories = {
                 hasAlpha = true,
             }
             opts[#opts + 1] = {
-                type = "color", name = L["Panel border color"] or "Panel border color",
-                desc = L["Border color of the addon button panels."] or "Border color of the addon button panels.",
+                type = "color", name = L["OPTIONS_VISTA_PANEL_BORDER_COLOR"] or "Panel border color",
+                desc = L["OPTIONS_VISTA_BORDER_COLOR_OF_ADDON_BUTTON_PANELS"] or "Border color of the addon button panels.",
                 dbKey = "vistaPanelBorder",
                 get = function()
                     return getDB("vistaPanelBorderR", 0.3), getDB("vistaPanelBorderG", 0.4),
@@ -2445,11 +2445,11 @@ local OptionCategories = {
                 hasAlpha = true,
             }
 
-            opts[#opts + 1] = { type = "section", name = L["Mouseover Bar Appearance"] or "Mouseover Bar Appearance" }
-            opts[#opts + 1] = { type = "header", name = L["Background and border for the mouseover button bar."] or "Background and border for the mouseover button bar." }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_VISTA_MOUSEOVER_BAR_APPEARANCE"] or "Mouseover Bar Appearance" }
+            opts[#opts + 1] = { type = "header", name = L["OPTIONS_VISTA_BACKGROUND_BORDER_MOUSEOVER_BUTTON_BAR"] or "Background and border for the mouseover button bar." }
             opts[#opts + 1] = {
-                type = "color", name = L["Bar background color"] or "Bar background color",
-                desc = L["Background color of the mouseover button bar (use alpha to control transparency)."] or "Background color of the mouseover button bar (use alpha to control transparency).",
+                type = "color", name = L["OPTIONS_VISTA_BAR_BACKGROUND_COLOR"] or "Bar background color",
+                desc = L["OPTIONS_VISTA_BACKGROUND_COLOR_OF_MOUSEOVER_BUTTON_BAR"] or "Background color of the mouseover button bar (use alpha to control transparency).",
                 dbKey = "vistaBarBg",
                 get = function()
                     return getDB("vistaBarBgR", 0.08), getDB("vistaBarBgG", 0.08),
@@ -2464,16 +2464,16 @@ local OptionCategories = {
                 disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
             }
             opts[#opts + 1] = {
-                type = "toggle", name = L["Show bar border"] or "Show bar border",
-                desc = L["Show a border around the mouseover button bar."] or "Show a border around the mouseover button bar.",
+                type = "toggle", name = L["OPTIONS_VISTA_BAR_BORDER"] or "Show bar border",
+                desc = L["OPTIONS_VISTA_A_BORDER_AROUND_MOUSEOVER_BUTTON_BAR"] or "Show a border around the mouseover button bar.",
                 dbKey = "vistaBarBorderShow",
                 get = function() return getDB("vistaBarBorderShow", false) end,
                 set = function(v) setDB("vistaBarBorderShow", v) end,
                 disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
             }
             opts[#opts + 1] = {
-                type = "color", name = L["Bar border color"] or "Bar border color",
-                desc = L["Border color of the mouseover button bar."] or "Border color of the mouseover button bar.",
+                type = "color", name = L["OPTIONS_VISTA_BAR_BORDER_COLOR"] or "Bar border color",
+                desc = L["OPTIONS_VISTA_BORDER_COLOR_OF_MOUSEOVER_BUTTON_BAR"] or "Border color of the mouseover button bar.",
                 dbKey = "vistaBarBorder",
                 get = function()
                     return getDB("vistaBarBorderR", 0.3), getDB("vistaBarBorderG", 0.4),
@@ -2491,7 +2491,7 @@ local OptionCategories = {
             -- Managed buttons: per-button toggle — uncheck to fully ignore a button
             opts[#opts + 1] = {
                 type = "section",
-                name = L["Managed buttons"] or "Managed buttons",
+                name = L["OPTIONS_VISTA_MANAGED_BUTTONS"] or "Managed buttons",
             }
 
             local function getButtonNames()
@@ -2511,7 +2511,7 @@ local OptionCategories = {
                 opts[#opts + 1] = {
                     type = "toggle",
                     name = (displayName ~= "" and displayName ~= localName) and displayName or localName,
-                    desc = L["When off, this button is completely ignored by this addon."] or "When off, this button is completely ignored by this addon.",
+                    desc = L["OPTIONS_VISTA_BUTTON_COMPLETELY_IGNORED_A"] or "When off, this button is completely ignored by this addon.",
                     dbKey = "vistaButtonManaged_" .. localName,
                     disabled = function() return not getDB("vistaHandleAddonButtons", true) end,
                     get = function() return getDB("vistaButtonManaged_" .. localName, true) end,
@@ -2523,7 +2523,7 @@ local OptionCategories = {
             if #managedNames == 0 then
                 opts[#opts + 1] = {
                     type = "toggle",
-                    name = L["(No addon buttons detected yet)"] or "(No addon buttons detected yet)",
+                    name = L["OPTIONS_VISTA_ADDON_BUTTONS_DETECTED"] or "(No addon buttons detected yet)",
                     dbKey = "_vista_no_managed_placeholder",
                     get = function() return false end, set = function() end,
                     disabled = function() return true end,
@@ -2532,7 +2532,7 @@ local OptionCategories = {
 
             opts[#opts + 1] = {
                 type = "section",
-                name = L["Visible buttons (check to include)"] or "Visible buttons (check to include)",
+                name = L["OPTIONS_VISTA_VISIBLE_BUTTONS_CHECK_INCLUDE"] or "Visible buttons (check to include)",
             }
 
             local names = getButtonNames()
@@ -2577,7 +2577,7 @@ local OptionCategories = {
             if #names == 0 then
                 opts[#opts + 1] = {
                     type = "toggle",
-                    name = L["(No addon buttons detected yet — open your minimap first)"] or "(No addon buttons detected yet — open your minimap first)",
+                    name = L["OPTIONS_VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"] or "(No addon buttons detected yet — open your minimap first)",
                     dbKey = "_vista_no_buttons_placeholder",
                     get = function() return false end,
                     set = function() end,
@@ -2590,15 +2590,15 @@ local OptionCategories = {
     },
     {
         key = "CacheGeneral",
-        name = L["General"],
-        desc = L["Positioning and visibility for the Cache loot toast system."] or "Positioning and visibility for the Cache loot toast system.",
+        name = L["OPTIONS_AXIS_GENERAL"],
+        desc = L["OPTIONS_CORE_POSITIONING_VISIBILITY_CACHE_LOOT_TOAST_SYS"] or "Positioning and visibility for the Cache loot toast system.",
         moduleKey = "cache",
         options = {
-            { type = "section", name = L["Position"] },
-            { type = "button", name = L["Show anchor to move"] or "Show anchor to move", desc = L["Click to show or hide the anchor. Drag to set position, right-click to confirm."] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
+            { type = "section", name = L["OPTIONS_AXIS_POSITION"] },
+            { type = "button", name = L["OPTIONS_AXIS_ANCHOR_MOVE"] or "Show anchor to move", desc = L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
                 if addon.Cache and addon.Cache.ToggleAnchorFrame then addon.Cache.ToggleAnchorFrame() end
             end },
-            { type = "button", name = L["Reset position"], desc = L["Reset loot toast position to default."], onClick = function()
+            { type = "button", name = L["OPTIONS_AXIS_RESET_POSITION"], desc = L["OPTIONS_AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"], onClick = function()
                 if addon.Cache and addon.Cache.ResetPosition then addon.Cache.ResetPosition() end
             end },
         },
@@ -2618,9 +2618,9 @@ function OptionsData_BuildSearchIndex()
         local moduleKey = cat.moduleKey
         local moduleLabel
         if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
-            moduleLabel = L["Axis"] or "Axis"
+            moduleLabel = L["OPTIONS_AXIS_GROUP"] or "Axis"
         else
-            moduleLabel = (moduleKey == "focus" and L["Focus"]) or (moduleKey == "presence" and L["Presence"]) or (moduleKey == "insight" and (L["Insight"] or "Insight")) or (moduleKey == "cache" and L["Cache"]) or (moduleKey == "vista" and (L["Vista"] or "Vista")) or L["Modules"]
+            moduleLabel = (moduleKey == "focus" and L["OPTIONS_FOCUS_GROUP"]) or (moduleKey == "presence" and L["OPTIONS_FOCUS_PRESENCE"]) or (moduleKey == "insight" and (L["OPTIONS_AXIS_INSIGHT"] or "Insight")) or (moduleKey == "cache" and L["OPTIONS_AXIS_CACHE"]) or (moduleKey == "vista" and (L["OPTIONS_AXIS_VISTA"] or "Vista")) or L["OPTIONS_AXIS_MODULES"]
         end
         local catOpts = type(cat.options) == "function" and cat.options() or cat.options
         for _, opt in ipairs(catOpts) do
