@@ -74,6 +74,26 @@ local INSIGHT_KEYS = {
     insightMountSize       = true,
     insightTransmogSize    = true,
     insightMountOwnershipDisplay = true,
+    -- NPC tooltip
+    insightNpcReactionBorder    = true,
+    insightNpcReactionName      = true,
+    insightNpcShowLevelLine     = true,
+    insightNpcShowIcons         = true,
+    insightNpcHeaderSize        = true,
+    insightNpcBodySize          = true,
+    -- Item tooltip
+    insightItemQualityBorder    = true,
+    insightItemSectionSpacing   = true,
+    insightItemHeaderSize       = true,
+    insightItemBodySize         = true,
+    insightItemTransmogSize     = true,
+    -- Player tooltip (per-type font sizes)
+    insightPlayerHeaderSize     = true,
+    insightPlayerBodySize       = true,
+    insightPlayerBadgesSize     = true,
+    insightPlayerStatsSize      = true,
+    insightPlayerMountSize      = true,
+
 }
 
 local ESSENCE_KEYS = {
@@ -1727,7 +1747,7 @@ local OptionCategories = {
     {
         key = "InsightGlobal",
         name = L["OPTIONS_INSIGHT_CATEGORY_GLOBAL"] or "Global Tooltips",
-        desc = L["OPTIONS_INSIGHT_CATEGORY_GLOBAL_DESC"] or "Anchor, backdrop, fonts, and sizes shared across tooltip types.",
+        desc = L["OPTIONS_INSIGHT_CATEGORY_GLOBAL_DESC"] or "Anchor, backdrop, font family, and display options shared across tooltip types.",
         moduleKey = "insight",
         dashboardPreviewMode = "global",
         options = {
@@ -1747,13 +1767,9 @@ local OptionCategories = {
             { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" },
             { type = "slider", name = L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"] or "Tooltip background opacity", desc = L["OPTIONS_AXIS_TOOLTIP_BG_OPACITY_PCT_DESC"] or "Tooltip background opacity (0–100%).", dbKey = "insightBgOpacity", min = 0, max = 100, get = function() local v = tonumber(getDB("insightBgOpacity", 0.75)) or 0.75; if v <= 1 and v > 0 then return math.floor(v * 100 + 0.5) end; return math.max(0, math.min(100, v)) end, set = function(v) setDB("insightBgOpacity", math.max(0, math.min(100, v)) / 100) end },
             { type = "dropdown", name = L["OPTIONS_AXIS_TOOLTIP_FONT"] or "Tooltip font", desc = L["OPTIONS_AXIS_FONT_FAMILY_TOOLTIP_TEXT"] or "Font family used for all tooltip text.", dbKey = "insightFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("insightFontPath") end, get = function() return getDB("insightFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("insightFontPath", v) end, displayFn = DisplayPerElementFont, fontPreviewInList = true },
-            { type = "section", name = L["OPTIONS_FOCUS_FONT_SIZES"] or "Font sizes" },
-            { type = "slider", name = L["OPTIONS_FOCUS_HEADER_SIZE"] or "Header size",       desc = L["OPTIONS_FOCUS_HEADER_FONT_SIZE"] or "Header font size.",                              dbKey = "insightHeaderSize",  min = 8, max = 24, get = function() return getDB("insightHeaderSize",  14) end, set = function(v) setDB("insightHeaderSize",  v) end },
-            { type = "slider", name = L["OPTIONS_INSIGHT_BODY_SIZE"] or "Body size",         desc = L["OPTIONS_INSIGHT_BODY_FONT_SIZE"] or "Body font size.",                                dbKey = "insightBodySize",    min = 8, max = 20, get = function() return getDB("insightBodySize",    12) end, set = function(v) setDB("insightBodySize",    v) end },
-            { type = "slider", name = L["OPTIONS_INSIGHT_BADGES_SIZE"] or "Badges size",     desc = L["OPTIONS_INSIGHT_BADGES_FONT_SIZE"] or "Status badges font size.",                     dbKey = "insightBadgesSize",  min = 6, max = 20, get = function() return getDB("insightBadgesSize",  12) end, set = function(v) setDB("insightBadgesSize",  v) end },
-            { type = "slider", name = L["OPTIONS_INSIGHT_STATS_SIZE"] or "Stats size",       desc = L["OPTIONS_INSIGHT_STATS_FONT_SIZE"] or "M+ score, item level, and honor level font size.", dbKey = "insightStatsSize", min = 6, max = 20, get = function() return getDB("insightStatsSize",   11) end, set = function(v) setDB("insightStatsSize",   v) end },
-            { type = "slider", name = L["OPTIONS_INSIGHT_MOUNT_SIZE"] or "Mount size",       desc = L["OPTIONS_INSIGHT_MOUNT_FONT_SIZE"] or "Mount name, source, and ownership font size.",  dbKey = "insightMountSize",   min = 6, max = 20, get = function() return getDB("insightMountSize",   11) end, set = function(v) setDB("insightMountSize",   v) end },
-            { type = "slider", name = L["OPTIONS_INSIGHT_TRANSMOG_SIZE"] or "Transmog size", desc = L["OPTIONS_INSIGHT_TRANSMOG_FONT_SIZE"] or "Item appearance status font size.",          dbKey = "insightTransmogSize", min = 6, max = 20, get = function() return getDB("insightTransmogSize", 11) end, set = function(v) setDB("insightTransmogSize", v) end },
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_ICONS_AND_SEPARATORS"] or "Icons & separators" },
+            { type = "toggle", name = L["OPTIONS_AXIS_ICONS"] or "Show icons", desc = L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end, refreshIds = { "insightClassIconSource" } },
+            { type = "toggle", name = L["OPTIONS_AXIS_BLANK_SEPARATOR"] or "Blank separator", desc = L["OPTIONS_AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
         },
     },
     {
@@ -1776,10 +1792,14 @@ local OptionCategories = {
             { type = "section", name = L["OPTIONS_INSIGHT_SECTION_MOUNT"] or "Mount" },
             { type = "toggle", name = L["OPTIONS_CORE_MOUNT_INFO"] or "Mount info", desc = L["OPTIONS_CORE_MOUNT_NAME_SOURCE_COLLECTION_STATUS"], dbKey = "insightShowMount", get = function() return getDB("insightShowMount", true) end, set = function(v) setDB("insightShowMount", v) end, tooltip = L["OPTIONS_CORE_SHOWN_HOVERING_A_MOUNTED_PLAYER"] },
             { type = "dropdown", name = L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_DISPLAY"] or "Mount collection indicator", desc = L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_DISPLAY_DESC"] or "How to show whether you have collected the hovered player's mount.", dbKey = "insightMountOwnershipDisplay", options = { { L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_TEXT"] or "Full text", "text" }, { L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_ICONS"] or "Tick / cross", "icons" } }, get = function() return getDB("insightMountOwnershipDisplay", "text") end, set = function(v) setDB("insightMountOwnershipDisplay", v) end, visibleWhen = function() return getDB("insightShowMount", true) end },
-            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_ICONS_AND_SEPARATORS"] or "Icons & separators" },
-            { type = "toggle", name = L["OPTIONS_AXIS_BLANK_SEPARATOR"] or "Blank separator", desc = L["OPTIONS_AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
-            { type = "toggle", name = L["OPTIONS_AXIS_ICONS"] or "Show icons", desc = L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end },
+            { type = "section", name = L["OPTIONS_AXIS_ICONS"] or "Icons" },
             { type = "dropdown", name = L["OPTIONS_AXIS_CLASS_ICON_STYLE"] or "Class icon style", desc = L["OPTIONS_AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"], dbKey = "insightClassIconSource", options = { { L["OPTIONS_AXIS_DEFAULT"] or "Default", "default" }, { "RondoMedia", "rondomedia" } }, get = function() return getDB("insightClassIconSource", "default") end, set = function(v) setDB("insightClassIconSource", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
+            { type = "section", name = L["OPTIONS_FOCUS_FONT_SIZES"] or "Font sizes" },
+            { type = "slider", name = L["OPTIONS_FOCUS_HEADER_SIZE"] or "Header size",   desc = L["OPTIONS_FOCUS_HEADER_FONT_SIZE"] or "Header font size for player tooltips.",                                dbKey = "insightPlayerHeaderSize",  min = 8, max = 24, get = function() return getDB("insightPlayerHeaderSize",  14) end, set = function(v) setDB("insightPlayerHeaderSize",  v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_BODY_SIZE"] or "Body size",     desc = L["OPTIONS_INSIGHT_BODY_FONT_SIZE"] or "Body font size for player tooltips.",                                  dbKey = "insightPlayerBodySize",    min = 8, max = 20, get = function() return getDB("insightPlayerBodySize",    12) end, set = function(v) setDB("insightPlayerBodySize",    v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_BADGES_SIZE"] or "Badges size", desc = L["OPTIONS_INSIGHT_BADGES_FONT_SIZE"] or "Status badges font size for player tooltips.",                      dbKey = "insightPlayerBadgesSize",  min = 6, max = 20, get = function() return getDB("insightPlayerBadgesSize",  12) end, set = function(v) setDB("insightPlayerBadgesSize",  v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_STATS_SIZE"] or "Stats size",   desc = L["OPTIONS_INSIGHT_STATS_FONT_SIZE"] or "M+ score, item level, and honor level font size for player tooltips.", dbKey = "insightPlayerStatsSize",  min = 6, max = 20, get = function() return getDB("insightPlayerStatsSize",   11) end, set = function(v) setDB("insightPlayerStatsSize",   v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_MOUNT_SIZE"] or "Mount size",   desc = L["OPTIONS_INSIGHT_MOUNT_FONT_SIZE"] or "Mount name, source, and ownership font size for player tooltips.",   dbKey = "insightPlayerMountSize",   min = 6, max = 20, get = function() return getDB("insightPlayerMountSize",   11) end, set = function(v) setDB("insightPlayerMountSize",   v) end },
         },
     },
     {
@@ -1790,7 +1810,13 @@ local OptionCategories = {
         dashboardPreviewMode = "npc",
         options = {
             { type = "section", name = L["OPTIONS_INSIGHT_SECTION_NPC_TOOLTIP"] or "NPC tooltip" },
-            { type = "header", name = L["OPTIONS_INSIGHT_NPC_PLACEHOLDER"] or "NPC-specific options will appear here when available. Reaction colours and level lines still apply in-game." },
+            { type = "toggle", name = L["OPTIONS_INSIGHT_NPC_REACTION_BORDER"] or "Reaction border", desc = L["OPTIONS_INSIGHT_NPC_REACTION_BORDER_DESC"] or "Tint the tooltip border to the NPC's faction reaction (hostile red, friendly green, neutral yellow).", dbKey = "insightNpcReactionBorder", get = function() return getDB("insightNpcReactionBorder", true) end, set = function(v) setDB("insightNpcReactionBorder", v) end },
+            { type = "toggle", name = L["OPTIONS_INSIGHT_NPC_REACTION_NAME"] or "Reaction name colour", desc = L["OPTIONS_INSIGHT_NPC_REACTION_NAME_DESC"] or "Colour the NPC's name to match their faction reaction.", dbKey = "insightNpcReactionName", get = function() return getDB("insightNpcReactionName", true) end, set = function(v) setDB("insightNpcReactionName", v) end },
+            { type = "toggle", name = L["OPTIONS_INSIGHT_NPC_LEVEL_LINE"] or "Level line", desc = L["OPTIONS_INSIGHT_NPC_LEVEL_LINE_DESC"] or "Show the NPC's level, classification (Elite, Rare, etc.), and creature type beneath their name.", dbKey = "insightNpcShowLevelLine", get = function() return getDB("insightNpcShowLevelLine", true) end, set = function(v) setDB("insightNpcShowLevelLine", v) end },
+            { type = "toggle", name = L["OPTIONS_AXIS_ICONS"] or "Icons", desc = L["OPTIONS_INSIGHT_NPC_ICONS_DESC"] or "Show an icon instead of '??' for NPCs with an unknown level.", dbKey = "insightNpcShowIcons", get = function() return getDB("insightNpcShowIcons", true) end, set = function(v) setDB("insightNpcShowIcons", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_FONT_SIZES"] or "Font sizes" },
+            { type = "slider", name = L["OPTIONS_FOCUS_HEADER_SIZE"] or "Header size", desc = L["OPTIONS_FOCUS_HEADER_FONT_SIZE"] or "Header font size for NPC tooltips.", dbKey = "insightNpcHeaderSize", min = 8, max = 24, get = function() return getDB("insightNpcHeaderSize", 14) end, set = function(v) setDB("insightNpcHeaderSize", v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_BODY_SIZE"] or "Body size",   desc = L["OPTIONS_INSIGHT_BODY_FONT_SIZE"] or "Body font size for NPC tooltips.",   dbKey = "insightNpcBodySize",   min = 8, max = 20, get = function() return getDB("insightNpcBodySize",   12) end, set = function(v) setDB("insightNpcBodySize",   v) end },
         },
     },
     {
@@ -1802,6 +1828,13 @@ local OptionCategories = {
         options = {
             { type = "section", name = L["OPTIONS_INSIGHT_SECTION_TRANSMOG"] or "Transmog" },
             { type = "toggle", name = L["OPTIONS_CORE_TRANSMOG_STATUS"] or "Transmog status", desc = L["OPTIONS_AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_ITEM_STYLING"] or "Item styling" },
+            { type = "toggle", name = L["OPTIONS_INSIGHT_ITEM_QUALITY_BORDER"] or "Quality border", desc = L["OPTIONS_INSIGHT_ITEM_QUALITY_BORDER_DESC"] or "Tint the tooltip border to the item's quality colour (Uncommon green, Rare blue, Epic purple, etc.).", dbKey = "insightItemQualityBorder", get = function() return getDB("insightItemQualityBorder", true) end, set = function(v) setDB("insightItemQualityBorder", v) end },
+            { type = "toggle", name = L["OPTIONS_INSIGHT_ITEM_SECTION_SPACING"] or "Blank line before blocks", desc = L["OPTIONS_INSIGHT_ITEM_SECTION_SPACING_DESC"] or "Insert a blank line before Insight blocks on item tooltips instead of a tinted separator line.", dbKey = "insightItemSectionSpacing", get = function() return getDB("insightItemSectionSpacing", false) end, set = function(v) setDB("insightItemSectionSpacing", v) end },
+            { type = "section", name = L["OPTIONS_FOCUS_FONT_SIZES"] or "Font sizes" },
+            { type = "slider", name = L["OPTIONS_FOCUS_HEADER_SIZE"] or "Header size", desc = L["OPTIONS_FOCUS_HEADER_FONT_SIZE"] or "Header font size for item tooltips (item name line).",        dbKey = "insightItemHeaderSize", min = 8, max = 24, get = function() return getDB("insightItemHeaderSize", 14) end, set = function(v) setDB("insightItemHeaderSize", v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_BODY_SIZE"] or "Body size",   desc = L["OPTIONS_INSIGHT_BODY_FONT_SIZE"] or "Body font size for item tooltips (stats and middle zone).", dbKey = "insightItemBodySize",   min = 8, max = 20, get = function() return getDB("insightItemBodySize",   12) end, set = function(v) setDB("insightItemBodySize",   v) end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_TRANSMOG_SIZE"] or "Transmog size", desc = L["OPTIONS_INSIGHT_TRANSMOG_FONT_SIZE"] or "Item appearance status font size.", dbKey = "insightItemTransmogSize", min = 6, max = 20, get = function() return getDB("insightItemTransmogSize", getDB("insightTransmogSize", 11)) end, set = function(v) setDB("insightItemTransmogSize", v) end },
         },
     },
     {

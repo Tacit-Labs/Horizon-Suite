@@ -86,6 +86,7 @@ local function GetItemQualityColor(quality)
 end
 
 local function ApplyItemIdentity(tooltip, quality)
+    if not addon.GetDB("insightItemQualityBorder", true) then return end
     local r, g, b = GetItemQualityColor(quality)
     if not r then return end
     if tooltip.SetBackdropBorderColor then
@@ -116,6 +117,9 @@ local function HookTooltipShowMethod(tooltip)
     hookedShow[tooltip] = true
     hooksecurefunc(tooltip, "Show", function(self)
         if not Insight.IsInsightEnabled() then return end
+        if not self._insightUnitTooltip and not self._insightItemMetadata then
+            self._insightTooltipType = "other"
+        end
         Insight.StyleFonts(self)
     end)
 end
@@ -281,6 +285,7 @@ local function HookGameTooltipAnimation()
         fadeLastAppliedAlpha = 1
         self._insightItemQuality = nil
         self._insightUnitTooltip = nil
+        self._insightTooltipType = nil
         self._insightLastAnchorParent = nil
     end)
     GameTooltip:HookScript("OnUpdate", function(self, elapsed)
@@ -413,6 +418,7 @@ local function ProcessUnitTooltip(tooltip)
     if tooltip._insightLineTags then wipe(tooltip._insightLineTags) end
     local unit     = "mouseover"
     local isPlayer = UnitIsPlayer(unit)
+    tooltip._insightTooltipType = isPlayer and "player" or "npc"
 
     StripHealthAndPowerText(tooltip)
 
@@ -464,6 +470,7 @@ local function OnItemTooltip(tooltip, data)
     end
 
     tooltip._insightItemMetadata = true
+    tooltip._insightTooltipType  = "item"
     tooltip._insightLastItemID   = itemID
     if tooltip._insightLineTags then wipe(tooltip._insightLineTags) end
     -- Structured item blocks (transmog, etc.)
@@ -645,6 +652,7 @@ local function RefreshPullout()
     else
         if Insight.RenderTestTooltipContent then Insight.RenderTestTooltipContent(pulloutMock) end
     end
+    pulloutMock._insightTooltipType = (mode == "player" or mode == "npc" or mode == "item") and mode or nil
     Insight.StyleFonts(pulloutMock)
     local br, bg, bb, ba = 0.77, 0.12, 0.23, 0.60
     if mode == "npc" and FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then

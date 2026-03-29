@@ -17,6 +17,14 @@ local function ShowTransmog()
     return addon.GetDB("insightShowTransmog", true)
 end
 
+local function AddItemSectionSeparator(tooltip, r, g, b)
+    if addon.GetDB("insightItemSectionSpacing", false) then
+        tooltip:AddLine(" ", 1, 1, 1)
+    else
+        Insight.AddSectionSeparator(tooltip, r, g, b)
+    end
+end
+
 local TRANSMOG_COLLECTED_TEXT = "Appearance: Collected"
 local TRANSMOG_MISSING_TEXT   = "Appearance: Not collected"
 
@@ -92,7 +100,7 @@ function Insight.ProcessItemTooltip(tooltip, itemID, quality)
         local c = ITEM_QUALITY_COLORS[quality]
         sepR, sepG, sepB = c.r, c.g, c.b
     end
-    Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
+    AddItemSectionSeparator(tooltip, sepR, sepG, sepB)
     return Insight.AddAppearanceBlock(tooltip, itemID)
 end
 

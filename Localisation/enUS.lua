@@ -280,11 +280,11 @@ L["OPTIONS_INSIGHT_TRANSMOG_SIZE"]                                    = "Transmo
 L["OPTIONS_INSIGHT_TRANSMOG_FONT_SIZE"]                               = "Item appearance status font size."
 L["OPTIONS_AXIS_TOOLTIPS"]                                            = "Tooltips"
 L["OPTIONS_INSIGHT_CATEGORY_GLOBAL"]                                  = "Global Tooltips"
-L["OPTIONS_INSIGHT_CATEGORY_GLOBAL_DESC"]                             = "Anchor, backdrop, fonts, and sizes shared across tooltip types."
+L["OPTIONS_INSIGHT_CATEGORY_GLOBAL_DESC"]                             = "Anchor, backdrop, font family, and display options shared across tooltip types."
 L["OPTIONS_INSIGHT_CATEGORY_PLAYER"]                                  = "Player Characters"
 L["OPTIONS_INSIGHT_CATEGORY_PLAYER_DESC"]                             = "Guild rank, titles, badges, PvP, ratings, gear, mount lines, icons, and section separators on player tooltips."
 L["OPTIONS_INSIGHT_CATEGORY_NPC"]                                     = "NPCs"
-L["OPTIONS_INSIGHT_CATEGORY_NPC_DESC"]                                = "NPC tooltip styling. Extra NPC-only toggles can be added here later."
+L["OPTIONS_INSIGHT_CATEGORY_NPC_DESC"]                                = "Reaction colours, level line, icons, and font sizes for NPC tooltips."
 L["OPTIONS_INSIGHT_CATEGORY_ITEM"]                                    = "Items"
 L["OPTIONS_INSIGHT_CATEGORY_ITEM_DESC"]                               = "Item tooltip options such as transmog collection status."
 L["OPTIONS_INSIGHT_SECTION_IDENTITY"]                                 = "Identity"
@@ -295,6 +295,18 @@ L["OPTIONS_INSIGHT_SECTION_ICONS_AND_SEPARATORS"]                     = "Icons &
 L["OPTIONS_INSIGHT_SECTION_NPC_TOOLTIP"]                              = "NPC tooltip"
 L["OPTIONS_INSIGHT_SECTION_TRANSMOG"]                                 = "Transmog"
 L["OPTIONS_INSIGHT_NPC_PLACEHOLDER"]                                  = "NPC-specific options will appear here when available. Reaction colours and level lines still apply in-game."
+L["OPTIONS_INSIGHT_NPC_REACTION_BORDER"]                              = "Reaction border"
+L["OPTIONS_INSIGHT_NPC_REACTION_BORDER_DESC"]                         = "Tint the tooltip border to the NPC's faction reaction (hostile red, friendly green, neutral yellow)."
+L["OPTIONS_INSIGHT_NPC_REACTION_NAME"]                                = "Reaction name colour"
+L["OPTIONS_INSIGHT_NPC_REACTION_NAME_DESC"]                           = "Colour the NPC's name to match their faction reaction."
+L["OPTIONS_INSIGHT_NPC_LEVEL_LINE"]                                   = "Level line"
+L["OPTIONS_INSIGHT_NPC_LEVEL_LINE_DESC"]                              = "Show the NPC's level, classification (Elite, Rare, etc.), and creature type beneath their name."
+L["OPTIONS_INSIGHT_NPC_ICONS_DESC"]                                   = "Show an icon instead of '??' for NPCs with an unknown level."
+L["OPTIONS_INSIGHT_SECTION_ITEM_STYLING"]                             = "Item styling"
+L["OPTIONS_INSIGHT_ITEM_QUALITY_BORDER"]                              = "Quality border"
+L["OPTIONS_INSIGHT_ITEM_QUALITY_BORDER_DESC"]                         = "Tint the tooltip border to the item's quality colour (Uncommon green, Rare blue, Epic purple, etc.)."
+L["OPTIONS_INSIGHT_ITEM_SECTION_SPACING"]                             = "Blank line before blocks"
+L["OPTIONS_INSIGHT_ITEM_SECTION_SPACING_DESC"]                        = "Insert a blank line before Insight blocks on item tooltips instead of a tinted separator line."
 L["OPTIONS_AXIS_ITEM_TOOLTIP"]                                        = "Item Tooltip"
 L["OPTIONS_AXIS_TRANSMOG_STATUS"]                                     = "Show transmog status"
 L["OPTIONS_AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"]              = "Show whether you have collected the appearance of an item you hover over."
@@ -1592,6 +1604,9 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
 
 
 
