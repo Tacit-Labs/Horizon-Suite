@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Patch Notes
     Version tracking and auto-show on login.
-    The "What's New" view is now built inside options/DashboardPanel.lua.
+    The "What's New" view is built inside options/dashboard/DashboardFrame.lua.
 
     Reopen: /h notes  or the Dashboard "What's New" button.
     Notes data lives in core/PatchNotesData.lua — edit that file each release.

@@ -1,5 +1,5 @@
 --[[
-    Horizon Suite - Dashboard preview pullout
+    Horizon Suite - Dashboard preview pullout (options/dashboard/).
     Shared shell + tab for module-specific live previews in the options dashboard.
     Modules register via DashboardPreview.Register(moduleKey, def).
 ]]
@@ -35,7 +35,7 @@ local function SetPulloutHeaderAlpha(a)
     if pulloutCloseBtn then pulloutCloseBtn:SetAlpha(a) end
 end
 
--- Tab accent refs (for live class-color updates and open-state feedback).
+-- Tab accent refs (for live class-colour updates and open-state feedback).
 local tabBg        = nil
 local tabAccentBar = nil
 local tabIcon      = nil
@@ -72,7 +72,7 @@ local function UpdateTabOpenState()
     end
 end
 
---- Called by DashboardPanel.ApplyDashboardClassColor — tab uses neutral colours only; no-op.
+--- Called when dashboard class colour is applied — tab uses neutral colours only; no-op.
 --- @param r number
 --- @param g number
 --- @param b number
@@ -227,13 +227,13 @@ end
 local function OpenPullout()
     if not activeModuleKey or not registrations[activeModuleKey] then return end
     local def = registrations[activeModuleKey]
-    local w = tonumber(def.width) or 260
 
     EnsurePulloutBuilt()
     RepositionPulloutToDashboard()
     ApplyHeader(def)
     EnsureMounted(activeModuleKey, def)
 
+    local w = tonumber(def.width) or 260
     animFullWidth = w
     pulloutFrame:SetWidth(1)
     SetPulloutHeaderAlpha(0)
@@ -383,7 +383,7 @@ local function EnsurePreviewTab(dashFrame)
     UpdateTabOpenState()
 end
 
---- Idempotent: bind tab + hooks to the dashboard frame created by DashboardPanel.
+--- Idempotent: bind tab + hooks to the dashboard frame created by Dashboard_BuildMainFrame / DashboardPanel slash handler.
 function DP.InitDashboard(dashFrame)
     if not dashFrame then return end
     dashRef = dashFrame

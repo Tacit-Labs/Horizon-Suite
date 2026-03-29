@@ -543,7 +543,7 @@ local function ApplyLiveBackdropColor(tooltip)
 end
 
 -- ============================================================================
--- DASHBOARD PREVIEW (mock tooltip; shell lives in options/DashboardPreviewPullout.lua)
+-- DASHBOARD PREVIEW (mock tooltip; shell lives in options/dashboard/DashboardPreviewPullout.lua)
 -- ============================================================================
 
 local MAX_PREVIEW_LINES  = 30

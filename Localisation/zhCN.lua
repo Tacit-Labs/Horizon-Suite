@@ -73,7 +73,7 @@ L["OPTIONS_AXIS_MODULES"]                                             = "模块"
 -- L["OPTIONS_AXIS_MODULE_TOGGLES"]                                   = "Module Toggles"  -- NEEDS TRANSLATION
 
 -- =====================================================================
--- DashboardPanel.lua — First-run welcome
+-- options/dashboard/HomeWelcome.lua — First-run welcome
 -- =====================================================================
 -- L["DASH_WELCOME_TAB"]                                              = "Welcome"  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_TITLE"]                                            = "Welcome to Horizon Suite"  -- NEEDS TRANSLATION
@@ -1554,6 +1554,8 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
 
 
 
