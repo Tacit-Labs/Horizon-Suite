@@ -270,6 +270,12 @@ L["OPTIONS_INSIGHT_STATS_SIZE"]                                       = "Stats s
 L["OPTIONS_INSIGHT_STATS_FONT_SIZE"]                                  = "M+ score, item level, and honor level font size."
 L["OPTIONS_INSIGHT_MOUNT_SIZE"]                                       = "Mount size"
 L["OPTIONS_INSIGHT_MOUNT_FONT_SIZE"]                                  = "Mount name, source, and ownership font size."
+L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_DISPLAY"]                          = "Mount collection indicator"
+L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_DISPLAY_DESC"]                     = "How to show whether you have collected the hovered player's mount."
+L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_TEXT"]                             = "Full text"
+L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_ICONS"]                            = "Tick / cross"
+L["INSIGHT_MOUNT_OWNED"]                                              = "You own this mount"
+L["INSIGHT_MOUNT_NOT_OWNED"]                                          = "You don't own this mount"
 L["OPTIONS_INSIGHT_TRANSMOG_SIZE"]                                    = "Transmog size"
 L["OPTIONS_INSIGHT_TRANSMOG_FONT_SIZE"]                               = "Item appearance status font size."
 L["OPTIONS_AXIS_TOOLTIPS"]                                            = "Tooltips"
@@ -1549,6 +1555,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

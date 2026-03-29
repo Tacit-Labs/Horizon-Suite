@@ -13,6 +13,10 @@ local INSPECT_THROTTLE = 1.5
 local CACHE_TTL        = 300
 local CACHE_MAX        = 100
 
+local MOUNT_READY_TEX  = "Interface\\RaidFrame\\ReadyCheck-Ready"
+local MOUNT_NOTREADY_TEX = "Interface\\RaidFrame\\ReadyCheck-NotReady"
+local MOUNT_OWN_ICON_BASE = 14
+
 local function ShowMount()            return addon.GetDB("insightShowMount",            true)  end
 local function ShowIlvl()             return addon.GetDB("insightShowIlvl",             true)  end
 local function ShowCharacterTitle()   return addon.GetDB("insightShowCharacterTitle",   true)  end
@@ -117,6 +121,31 @@ local function GetPlayerMountInfo(unit)
     return nil
 end
 
+-- Mount collection: icons append to the name line; full text stays on its own line.
+local function MountOwnershipIconSize()
+    local S = addon.ScaledForModule or addon.Scaled or function(x) return x end
+    return math.max(8, math.floor(S(MOUNT_OWN_ICON_BASE, "insight")))
+end
+
+--- @return string|nil nameSuffix Rich text to append after mount name (icons mode only)
+--- @return string|nil textLine Full line for tooltip (text mode only)
+local function GetMountOwnershipDisplay(isCollected)
+    if isCollected ~= true and isCollected ~= false then return nil, nil end
+    local mode = addon.GetDB("insightMountOwnershipDisplay", "text")
+    local L = addon.L
+    if mode == "icons" then
+        local sz = MountOwnershipIconSize()
+        local path = isCollected and MOUNT_READY_TEX or MOUNT_NOTREADY_TEX
+        local hex = isCollected and "55ff55" or "ff5555"
+        local suffix = " |cff" .. hex .. "|T" .. path .. ":" .. sz .. ":" .. sz .. ":0:0|t|r"
+        return suffix, nil
+    end
+    if isCollected then
+        return nil, "|cff55ff55" .. ((L and L["INSIGHT_MOUNT_OWNED"]) or "You own this mount") .. "|r"
+    end
+    return nil, "|cffff5555" .. ((L and L["INSIGHT_MOUNT_NOT_OWNED"]) or "You don't own this mount") .. "|r"
+end
+
 -- ============================================================================
 -- SECTION BUILDERS (reused by ProcessPlayerTooltip and /insight test)
 -- ============================================================================
@@ -218,14 +247,13 @@ function Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
     local iconStr = ShowIcons() and mount.icon and ("|T" .. mount.icon .. ":14:14:0:0|t ") or ""
     Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
     Insight.TagLines(tooltip, "mount", function()
-        tooltip:AddLine(iconStr .. mount.name, Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
-        if mount.source and mount.source ~= "" then
+        local ownSuffix, ownTextLine = GetMountOwnershipDisplay(mount.isCollected)
+        tooltip:AddLine(iconStr .. mount.name .. (ownSuffix or ""), Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
+        if mount.isCollected ~= true and mount.source and mount.source ~= "" then
             tooltip:AddLine(Insight.FormatNumbersInString(mount.source), Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
         end
-        if mount.isCollected == true then
-            tooltip:AddLine("|cff55ff55You own this mount|r", 1, 1, 1)
-        elseif mount.isCollected == false then
-            tooltip:AddLine("|cffff5555You don't own this mount|r", 1, 1, 1)
+        if ownTextLine then
+            tooltip:AddLine(ownTextLine, 1, 1, 1)
         end
     end)
 end
@@ -404,20 +432,43 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     return true
 end
 
---- Render sample player tooltip content for /insight test. Reuses same constants and formatting as live path.
+--- Render sample player tooltip content for /insight test and dashboard preview.
+--- Mirrors ProcessPlayerTooltip + block builders; each section gated by the same Show*() DB flags.
 function Insight.RenderTestTooltipContent(tooltip)
     if not tooltip then return end
     local testSepR, testSepG, testSepB = 0.77, 0.12, 0.23  -- DK class colour
     Insight.sepR, Insight.sepG, Insight.sepB = testSepR, testSepG, testSepB
 
     local showIcons = ShowIcons()
-    local tc = Insight.TITLE_COLOR
-    local titleHex = string.format("%02x%02x%02x", math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
     local fc = Insight.FACTION_COLORS["Alliance"]
     local nameHex = string.format("%02x%02x%02x", math.floor(fc[1] * 255), math.floor(fc[2] * 255), math.floor(fc[3] * 255))
-    tooltip:AddLine((showIcons and (Insight.FACTION_ICONS["Alliance"] or "") or "") .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Testplayer-Stormrage|r", 0.77, 0.12, 0.23)
-    tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", testSepR, testSepG, testSepB)
+    local facIcon = showIcons and (Insight.FACTION_ICONS["Alliance"] or "") or ""
+
+    -- 1. Name line (character title optional — same as live)
+    if ShowCharacterTitle() then
+        local tc = addon.GetDB("insightTitleColor", nil)
+        if not (tc and type(tc) == "table" and tc[1] and tc[2] and tc[3]) then
+            local r = addon.GetDB("insightTitleColorR", nil)
+            local g = addon.GetDB("insightTitleColorG", nil)
+            local b = addon.GetDB("insightTitleColorB", nil)
+            tc = (r and g and b) and { r, g, b } or Insight.TITLE_COLOR
+        end
+        local titleHex = string.format("%02x%02x%02x",
+            math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
+        tooltip:AddLine(facIcon .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Horizonaut-Stormrage|r", 0.77, 0.12, 0.23)
+    else
+        tooltip:AddLine(facIcon .. "|cff" .. nameHex .. "Horizonaut-Stormrage|r", fc[1], fc[2], fc[3])
+    end
+
+    -- 2. Guild (rank line only when guild rank toggle on — live augments guild line)
+    if ShowGuildRank() then
+        tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", testSepR, testSepG, testSepB)
+    else
+        tooltip:AddLine("<Ascension>", testSepR, testSepG, testSepB)
+    end
+
     tooltip:AddLine("Level 80 Human", 1, 0.82, 0)
+
     local rc = Insight.ROLE_COLORS["TANK"]
     local roleHex = string.format("%02x%02x%02x", math.floor(rc[1] * 255), math.floor(rc[2] * 255), math.floor(rc[3] * 255))
     local classIconStr = (showIcons and Insight.GetClassIconTexture and Insight.GetClassIconTexture("DEATHKNIGHT", 14)) or ""
@@ -427,19 +478,49 @@ function Insight.RenderTestTooltipContent(tooltip)
     tooltip:AddLine(
         classIconStr .. "Blood Death Knight  |cff" .. roleHex .. "Tank|r",
         0.77, 0.12, 0.23)
-    tooltip:AddLine("|cffff4444[Combat]|r  |cffff8c00[PvP]|r  |cff88ddff[Party]|r  |cff55ff55[Friend]|r  |cffff4466[Targeting You]|r", 1, 1, 1)
-    Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
-    tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(247), 0.85, 0.70, 1.00)
-    Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
-    tooltip:AddLine((showIcons and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
-    tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
-    Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
-    local mountIconStr = showIcons and "|TInterface\\Icons\\ability_mount_drake_proto:14:14:0:0|t " or ""
-    tooltip:AddLine(
-        mountIconStr .. "Reins of the Thundering Cobalt Cloud Serpent",
-        Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
-    tooltip:AddLine("Drop: Sha of Anger", Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
-    tooltip:AddLine("|cffff5555You don't own this mount|r", 1, 1, 1)
+
+    -- 4. Status badges (AddStatusBadgesBlock)
+    if ShowStatusBadges() then
+        tooltip:AddLine("|cffff4444[Combat]|r  |cffff8c00[PvP]|r  |cff88ddff[Party]|r  |cff55ff55[Friend]|r  |cffff4466[Targeting You]|r", 1, 1, 1)
+    end
+
+    -- 5. Honor (PvP block — separator only when honor will show, like PvPHasContent)
+    if ShowHonorLevel() then
+        Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+        tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(247), 0.85, 0.70, 1.00)
+    end
+
+    -- 6. Stats (M+ / ilvl — EnsureStatsSep pattern from AddStatsBlock)
+    local hasStats = false
+    local function ensureStatsSep()
+        if not hasStats then
+            Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+            hasStats = true
+        end
+    end
+    if ShowMythicScore() then
+        ensureStatsSep()
+        tooltip:AddLine((showIcons and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
+    end
+    if ShowIlvl() then
+        ensureStatsSep()
+        tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+    end
+
+    -- 7. Mount block (mirrors AddMountBlock: source only when not collected; ownership from setting)
+    if ShowMount() then
+        Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+        local mountIconStr = showIcons and "|TInterface\\Icons\\ability_mount_drake_proto:14:14:0:0|t " or ""
+        local ownSuffix, ownTextLine = GetMountOwnershipDisplay(false)
+        tooltip:AddLine(
+            mountIconStr .. "Reins of the Thundering Cobalt Cloud Serpent" .. (ownSuffix or ""),
+            Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
+        -- Uncollected sample mount: source line shown; collected mounts omit source in live tooltips.
+        tooltip:AddLine("Drop: Sha of Anger", Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
+        if ownTextLine then
+            tooltip:AddLine(ownTextLine, 1, 1, 1)
+        end
+    end
 end
 
 addon.Insight = Insight
