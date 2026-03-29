@@ -644,6 +644,9 @@ SlashCmdList["HSDASH"] = function(msg)
                         rail:SetColorTexture(ar, ag, ab, hover and 0.55 or 0.35)
                     end
                 end
+                if addon.DashboardPreview and addon.DashboardPreview.ApplyAccentColor then
+                    addon.DashboardPreview.ApplyAccentColor(ar, ag, ab)
+                end
                 RefreshDashboardClassIcon()
                 if LayoutDashboardSidebarUnderHeader then
                     LayoutDashboardSidebarUnderHeader()
@@ -1453,6 +1456,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 searchBox:Show()
                 f.currentModuleKey = nil
                 SetSidebarState({ view = "dashboard", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(nil)
+                end
                 if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             end
@@ -1877,6 +1883,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 end
                 f.currentModuleKey = matchedModuleKey
                 SetSidebarState({ view = "category", activeModuleKey = matchedModuleKey, activeCategoryIndex = matchedCatIdx })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(matchedModuleKey)
+                end
 
                 ClearDetailCards()
                 CrossfadeTo(detailView)
@@ -1916,6 +1925,9 @@ SlashCmdList["HSDASH"] = function(msg)
                 local mk = moduleKey or "modules"
                 f.currentModuleKey = mk
                 SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = CLEAR })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(mk)
+                end
 
                 -- Find all matching sub-categories
                 local cats = {}
@@ -3756,6 +3768,9 @@ SlashCmdList["HSDASH"] = function(msg)
                     if searchBox then searchBox:Hide() end
                     f.currentModuleKey = nil
                     SetSidebarState({ view = "welcome", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                    if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                        addon.DashboardPreview.SetActiveModuleKey(nil)
+                    end
                     if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
                 end
             end
@@ -3790,6 +3805,9 @@ SlashCmdList["HSDASH"] = function(msg)
 
                 f.currentModuleKey = nil
                 SetSidebarState({ view = "whatsnew", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(nil)
+                end
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             end
 
@@ -4165,6 +4183,9 @@ SlashCmdList["HSDASH"] = function(msg)
             f.ShowDashboard()
         end
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+        if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then
+            addon.DashboardPreview.InitDashboard(f)
+        end
         f:Show()
     end
 end

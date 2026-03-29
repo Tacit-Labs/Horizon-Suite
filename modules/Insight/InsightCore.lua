@@ -493,6 +493,112 @@ local function ApplyLiveBackdropColor(tooltip)
 end
 
 -- ============================================================================
+-- DASHBOARD PREVIEW (mock tooltip; shell lives in options/DashboardPreviewPullout.lua)
+-- ============================================================================
+
+local MAX_PREVIEW_LINES  = 30
+local PREVIEW_PAD_TOP    = 8
+local PREVIEW_PAD_SIDE   = 10
+local PREVIEW_PAD_BOTTOM = 10
+local PREVIEW_LINE_GAP   = 2
+
+local pulloutMock = nil
+
+-- ---- Mock tooltip (AddLine / ClearLines / NumLines / Layout) ----
+
+local MOCK_NAME = "HorizonSuiteInsightPreviewTooltip"
+
+local function CreateMockTooltipFrame(parent)
+    local mock = CreateFrame("Frame", MOCK_NAME, parent, "BackdropTemplate")
+
+    for i = 1, MAX_PREVIEW_LINES do
+        local fs = mock:CreateFontString(nil, "OVERLAY")
+        -- SetFont before any SetText (ClearLines runs before StyleFonts on first show).
+        fs:SetFont(Insight.FONT_PATH, Insight.Scaled(Insight.BODY_SIZE), "OUTLINE")
+        fs:SetWordWrap(true)
+        fs:SetJustifyH("LEFT")
+        fs:Hide()
+        _G[MOCK_NAME .. "TextLeft" .. i] = fs
+    end
+
+    mock._lineCount = 0
+
+    function mock:NumLines()   return self._lineCount or 0 end
+
+    function mock:ClearLines()
+        for i = 1, MAX_PREVIEW_LINES do
+            local fs = _G[MOCK_NAME .. "TextLeft" .. i]
+            if fs then fs:SetText(""); fs:Hide() end
+        end
+        self._lineCount      = 0
+        self._insightLineTags = {}
+    end
+
+    function mock:AddLine(text, r, g, b)
+        local i = (self._lineCount or 0) + 1
+        if i > MAX_PREVIEW_LINES then return end
+        self._lineCount = i
+        local fs = _G[MOCK_NAME .. "TextLeft" .. i]
+        if fs then
+            fs:SetText(text or "")
+            fs:SetTextColor(r or 1, g or 1, b or 1, 1)
+            fs:Show()
+        end
+    end
+
+    function mock:Layout()
+        local w = self:GetWidth()
+        if w <= 0 then w = 220 end
+        local innerW  = math.max(w - PREVIEW_PAD_SIDE * 2, 40)
+        local yOffset = -PREVIEW_PAD_TOP
+        for i = 1, self._lineCount do
+            local fs = _G[MOCK_NAME .. "TextLeft" .. i]
+            if fs and fs:IsShown() then
+                fs:ClearAllPoints()
+                fs:SetWidth(innerW)
+                fs:SetPoint("TOPLEFT", self, "TOPLEFT", PREVIEW_PAD_SIDE, yOffset)
+                local h = fs:GetStringHeight()
+                if h <= 0 then local _, fh = fs:GetFont(); h = (fh or 12) * 1.2 end
+                yOffset = yOffset - h - PREVIEW_LINE_GAP
+            end
+        end
+        self:SetHeight(math.max(math.abs(yOffset) + PREVIEW_PAD_BOTTOM, 40))
+    end
+
+    return mock
+end
+
+local function RefreshPullout()
+    if not pulloutMock then return end
+    pulloutMock:ClearLines()
+    Insight.ApplyBackdrop(pulloutMock)
+    if Insight.RenderTestTooltipContent then Insight.RenderTestTooltipContent(pulloutMock) end
+    Insight.StyleFonts(pulloutMock)
+    pulloutMock:SetBackdropBorderColor(0.77, 0.12, 0.23, 0.60)
+    pulloutMock:Layout()
+end
+
+--- Toggle dashboard preview pullout (delegates to shared options shell).
+function Insight.TogglePreviewPullout()
+    if addon.DashboardPreview and addon.DashboardPreview.TogglePullout then
+        addon.DashboardPreview.TogglePullout()
+    end
+end
+
+function Insight.ClosePullout()
+    if addon.DashboardPreview and addon.DashboardPreview.ClosePullout then
+        addon.DashboardPreview.ClosePullout()
+    end
+end
+
+--- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
+function Insight.EnsurePreviewTab(dashFrame)
+    if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then
+        addon.DashboardPreview.InitDashboard(dashFrame)
+    end
+end
+
+-- ============================================================================
 -- INIT / DISABLE / APPLY
 -- ============================================================================
 
@@ -517,6 +623,9 @@ function Insight.ApplyInsightOptions()
     end
     for _, tt in ipairs(tooltipsToStyle) do
         ApplyLiveBackdropColor(tt)
+    end
+    if addon.DashboardPreview and addon.DashboardPreview.NotifyRefresh then
+        addon.DashboardPreview.NotifyRefresh()
     end
 end
 
@@ -555,6 +664,30 @@ function Insight.Init()
         C_Timer.After(0, function()
             pcall(addon.RegisterRondoClassIconsWithLSM)
         end)
+    end
+
+    if addon.DashboardPreview and addon.DashboardPreview.Register then
+        addon.DashboardPreview.Register("insight", {
+            width = 260,
+            title = "TOOLTIP PREVIEW",
+            subtitle = "Updates as you change settings",
+            tabTooltipTitle = "Tooltip Preview",
+            tabTooltipBody = "Live preview — updates as you\nchange Insight settings.",
+            MountContent = function(host)
+                if not pulloutMock then
+                    pulloutMock = CreateMockTooltipFrame(host)
+                else
+                    pulloutMock:SetParent(host)
+                    pulloutMock:ClearAllPoints()
+                end
+                pulloutMock:SetPoint("TOPLEFT", host, "TOPLEFT", 10, -10)
+                pulloutMock:SetPoint("RIGHT", host, "RIGHT", -10, 0)
+                pulloutMock:SetHeight(300)
+            end,
+            refresh = function()
+                RefreshPullout()
+            end,
+        })
     end
 end
 

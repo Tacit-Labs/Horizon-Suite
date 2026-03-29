@@ -96,4 +96,5 @@ options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua
+options/DashboardPreviewPullout.lua
 options/DashboardPanel.lua
