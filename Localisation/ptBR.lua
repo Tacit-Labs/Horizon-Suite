@@ -251,6 +251,10 @@ L["OPTIONS_AXIS_ANCHOR_MOVE"]                                         = "Mostrar
 L["OPTIONS_AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_D"]            = "Mostra quadro arrastável para definir posição fixa do tooltip. Arraste e clique com o botão direito para confirmar."
 L["OPTIONS_AXIS_RESET_TOOLTIP_POSITION"]                              = "Redefinir posição do tooltip"
 L["OPTIONS_AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Redefinir posição fixa para o padrão."
+-- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"]                               = "Cursor offset X"  -- NEEDS TRANSLATION
+-- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                          = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."  -- NEEDS TRANSLATION
+-- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"]                               = "Cursor offset Y"  -- NEEDS TRANSLATION
+-- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                          = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_COLOR"]                            = "Cor de fundo do tooltip"
 L["OPTIONS_AXIS_COLOR_OF_TOOLTIP_BACKGROUND"]                         = "Cor de fundo do tooltip."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"]                          = "Opacidade do fundo do tooltip"
@@ -1550,6 +1554,7 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

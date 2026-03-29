@@ -256,6 +256,10 @@ L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"]                      = "Click t
 L["OPTIONS_AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_D"]            = "Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."
 L["OPTIONS_AXIS_RESET_TOOLTIP_POSITION"]                              = "Reset tooltip position"
 L["OPTIONS_AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Reset fixed position to default."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"]                                  = "Cursor offset X"
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"]                                  = "Cursor offset Y"
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                             = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_COLOR"]                            = "Tooltip background color"
 L["OPTIONS_AXIS_COLOR_OF_TOOLTIP_BACKGROUND"]                         = "Color of the tooltip background."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"]                          = "Tooltip background opacity"
@@ -1555,6 +1559,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

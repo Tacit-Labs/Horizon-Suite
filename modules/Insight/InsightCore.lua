@@ -38,6 +38,40 @@ local function GetFixedY()
     return tonumber(addon.GetDB("insightFixedY", FIXED_Y)) or FIXED_Y
 end
 
+local function GetCursorOffsetX()
+    return tonumber(addon.GetDB("insightCursorOffsetX", 0)) or 0
+end
+
+local function GetCursorOffsetY()
+    return tonumber(addon.GetDB("insightCursorOffsetY", 0)) or 0
+end
+
+-- Cursor offsets on SetOwner(..., "ANCHOR_CURSOR", x, y) are ignored in current retail builds;
+-- use ANCHOR_NONE + screen cursor position. Do not call SetOwner every OnUpdate — it clears tooltip lines (blank box on unit hover).
+local function MoveGameTooltipToCursor(tooltip)
+    if not tooltip or not UIParent then return end
+    tooltip:ClearAllPoints()
+    local x, y = GetCursorPosition()
+    local scale = UIParent:GetEffectiveScale()
+    if scale and scale > 0 then
+        x = x / scale
+        y = y / scale
+    end
+    local ox, oy = GetCursorOffsetX(), GetCursorOffsetY()
+    pcall(function()
+        tooltip:SetPoint("BOTTOM", UIParent, "BOTTOMLEFT", x + ox, y + oy)
+    end)
+end
+
+local function ApplyGameTooltipCursorAnchor(tooltip, parent)
+    if not tooltip or not UIParent then return end
+    parent = parent or UIParent
+    pcall(function()
+        tooltip:SetOwner(parent, "ANCHOR_NONE")
+    end)
+    MoveGameTooltipToCursor(tooltip)
+end
+
 -- ============================================================================
 -- ITEM IDENTITY (moved above tooltip hooks so OnShow closure can reference)
 -- ============================================================================
@@ -160,6 +194,18 @@ local function StartFadeOutStale(tooltip)
     animFrame:Show()
 end
 
+-- TooltipDataProcessor can refresh unit tooltips without OnShow; cancel fade-out so anim does not Hide() mid-hover.
+local function CancelGameTooltipFadeOutIfNeeded(tooltip)
+    if not tooltip then return end
+    if fadeState == "fadeout" and fadeTarget == tooltip then
+        fadeState = "idle"
+        fadeTarget = nil
+        animFrame:Hide()
+        tooltip:SetAlpha(1)
+        fadeLastAppliedAlpha = 1
+    end
+end
+
 -- Staggered checks after inspect refresh; catches delayed mouseover clearing when user moves off quickly.
 local postInspectSafetyGen = 0
 local POST_INSPECT_SAFETY_DELAYS = { 0, 0.1, 0.25, 0.5 }
@@ -197,13 +243,7 @@ local function HookGameTooltipAnimation()
     GameTooltip:HookScript("OnShow", function(self)
         if not Insight.IsInsightEnabled() then return end
         -- New show cancels a stale fade-out (e.g. user hovered something else mid-fade).
-        if fadeState == "fadeout" and fadeTarget == self then
-            fadeState = "idle"
-            fadeTarget = nil
-            animFrame:Hide()
-            self:SetAlpha(1)
-            fadeLastAppliedAlpha = 1
-        end
+        CancelGameTooltipFadeOutIfNeeded(self)
         -- pcall: GetUnit can throw or return secret values on Midnight; must not abort OnShow before StartFadeIn.
         local hasUnit = false
         if self.GetUnit then
@@ -241,9 +281,13 @@ local function HookGameTooltipAnimation()
         fadeLastAppliedAlpha = 1
         self._insightItemQuality = nil
         self._insightUnitTooltip = nil
+        self._insightLastAnchorParent = nil
     end)
     GameTooltip:HookScript("OnUpdate", function(self, elapsed)
         if not Insight.IsInsightEnabled() then return end
+        if GetAnchorMode() == "cursor" and self:IsShown() then
+            MoveGameTooltipToCursor(self)
+        end
         staleCheckElapsed = staleCheckElapsed + elapsed
         if staleCheckElapsed < STALE_CHECK_INTERVAL then return end
         staleCheckElapsed = 0
@@ -306,7 +350,11 @@ local function HookPositioning()
         if mode == "fixed" then
             tooltip:ClearAllPoints()
             tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
+        elseif tooltip == GameTooltip then
+            tooltip._insightLastAnchorParent = parent
+            ApplyGameTooltipCursorAnchor(tooltip, parent)
         else
+            -- Comparison / embedded tooltips: keep Blizzard cursor anchor (offsets not applied).
             tooltip:SetOwner(parent, "ANCHOR_CURSOR")
         end
     end)
@@ -354,6 +402,8 @@ end
 local function ProcessUnitTooltip(tooltip)
     if not Insight.IsInsightEnabled() or not tooltip then return end
     if not UnitExists("mouseover") then return end
+
+    CancelGameTooltipFadeOutIfNeeded(tooltip)
 
     -- If Blizzard already showed the tooltip, a second Show() re-runs OnShow (backdrop, fade) and flashes.
     local alreadyVisible = tooltip:IsShown()
@@ -778,7 +828,8 @@ local function HandleInsightSlash(msg)
         Insight.Print("Horizon Insight: Fixed position reset to default.")
 
     elseif cmd == "test" then
-        GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
+        GameTooltip._insightLastAnchorParent = UIParent
+        ApplyGameTooltipCursorAnchor(GameTooltip, UIParent)
         GameTooltip:ClearLines()
         Insight.RenderTestTooltipContent(GameTooltip)
         GameTooltip:Show()

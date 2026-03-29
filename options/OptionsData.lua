@@ -48,6 +48,8 @@ local INSIGHT_KEYS = {
     insightFixedPoint       = true,
     insightFixedX           = true,
     insightFixedY           = true,
+    insightCursorOffsetX    = true,
+    insightCursorOffsetY    = true,
     insightBgOpacity       = true,
     insightShowMount            = true,
     insightShowIlvl             = true,
@@ -1729,7 +1731,9 @@ local OptionCategories = {
         moduleKey = "insight",
         options = {
             { type = "section", name = L["OPTIONS_AXIS_POSITION"] or "Position" },
-            { type = "dropdown", name = L["OPTIONS_CORE_TOOLTIP_ANCHOR"] or "Tooltip anchor", desc = L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"] or "Where tooltips appear: follow cursor or fixed position.", dbKey = "insightAnchorMode", options = { { L["OPTIONS_AXIS_CURSOR"] or "Cursor", "cursor" }, { L["OPTIONS_AXIS_FIXED"] or "Fixed", "fixed" } }, get = function() return getDB("insightAnchorMode", "cursor") end, set = function(v) setDB("insightAnchorMode", v) end },
+            { type = "dropdown", name = L["OPTIONS_CORE_TOOLTIP_ANCHOR"] or "Tooltip anchor", desc = L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"] or "Where tooltips appear: follow cursor or fixed position.", dbKey = "insightAnchorMode", options = { { L["OPTIONS_AXIS_CURSOR"] or "Cursor", "cursor" }, { L["OPTIONS_AXIS_FIXED"] or "Fixed", "fixed" } }, get = function() return getDB("insightAnchorMode", "cursor") end, set = function(v) setDB("insightAnchorMode", v) end, refreshIds = { "insightCursorOffsetX", "insightCursorOffsetY" } },
+            { type = "slider", name = L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"] or "Cursor offset X", desc = L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"] or "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only).", dbKey = "insightCursorOffsetX", min = -300, max = 300, get = function() return math.max(-300, math.min(300, math.floor(tonumber(getDB("insightCursorOffsetX", 0)) or 0))) end, set = function(v) setDB("insightCursorOffsetX", math.max(-300, math.min(300, math.floor(v + 0.5)))) end, visibleWhen = function() return getDB("insightAnchorMode", "cursor") == "cursor" end },
+            { type = "slider", name = L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"] or "Cursor offset Y", desc = L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"] or "Vertical pixel offset from the default cursor tooltip position (cursor anchor only).", dbKey = "insightCursorOffsetY", min = -300, max = 300, get = function() return math.max(-300, math.min(300, math.floor(tonumber(getDB("insightCursorOffsetY", 0)) or 0))) end, set = function(v) setDB("insightCursorOffsetY", math.max(-300, math.min(300, math.floor(v + 0.5)))) end, visibleWhen = function() return getDB("insightAnchorMode", "cursor") == "cursor" end },
             { type = "button", name = L["OPTIONS_AXIS_ANCHOR_MOVE"] or "Show anchor to move", desc = L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"] or "Click to show or hide the anchor. Drag to set position, right-click to confirm.", onClick = function()
                 if addon.Insight and addon.Insight.ToggleAnchorFrame then addon.Insight.ToggleAnchorFrame() end
             end },
