@@ -37,7 +37,8 @@ local FADE_DUR       = 0.20
 local COORD_THROTTLE = 0.25
 local TIME_THROTTLE  = 1.0
 local PERF_THROTTLE  = 0.5
--- Refresh perf diagnostics tooltip while hovered (independent of bar text throttle).
+-- Ship: no hover tooltip on FPS/latency (hitbox mouse off). Implementation kept: Vista.ShowPerfDiagnosticsTooltip, PERF_TOOLTIP_* — set true to re-enable UI.
+local PERF_DIAGNOSTICS_TOOLTIP_UI = false
 local PERF_TOOLTIP_LIVE_THROTTLE = 0.25
 
 local PULSE_MIN   = 0.40
@@ -679,6 +680,31 @@ local function ApplyBorderTextures()
     end
 end
 
+-- When diagnostics tooltip is off, disable the hover hitbox so the perf button receives mouse (drag).
+local function UpdatePerfDiagnosticsHitboxMouse()
+    local hb = decor and decor._perfHitbox
+    if not hb then return end
+    if GetShowPerf() and PERF_DIAGNOSTICS_TOOLTIP_UI then
+        hb:EnableMouse(true)
+        if hb.SetMouseMotionEnabled then
+            hb:SetMouseMotionEnabled(true)
+        end
+    else
+        hb._perfTooltipLive = false
+        hb:SetScript("OnUpdate", nil)
+        pcall(function()
+            local tip = GameTooltip
+            if tip and tip.GetOwner and tip:IsShown() and tip:GetOwner() == hb then
+                tip:Hide()
+            end
+        end)
+        hb:EnableMouse(false)
+        if hb.SetMouseMotionEnabled then
+            hb:SetMouseMotionEnabled(false)
+        end
+    end
+end
+
 -- ============================================================================
 -- DECOR CREATION
 -- ============================================================================
@@ -1017,6 +1043,7 @@ local function CreateDecor()
     if Vista.ResizePerfContainer then
         Vista.ResizePerfContainer()
     end
+    UpdatePerfDiagnosticsHitboxMouse()
 
     -- Apply initial visibility
     local showZone  = GetShowZone()
@@ -1199,6 +1226,7 @@ do
 
     function Vista.ShowPerfDiagnosticsTooltip(owner)
         if not GameTooltip or not owner then return end
+        if not PERF_DIAGNOSTICS_TOOLTIP_UI then return end
         local L = addon.L
         GameTooltip:SetOwner(owner, "ANCHOR_BOTTOMLEFT")
         GameTooltip:ClearLines()
@@ -3502,6 +3530,7 @@ local function ApplyOptions_Texts(sz)
         if Vista.ResizePerfContainer then
             Vista.ResizePerfContainer()
         end
+        UpdatePerfDiagnosticsHitboxMouse()
     end
     if diffText and decor._diffContainer then
         local fp, fs = GetDiffFont(), GetDiffSize()
