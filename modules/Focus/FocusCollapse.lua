@@ -314,13 +314,16 @@ local function StartNearbyTurnOnTransition()
 end
 
 --- Whether to show the tracker in the current instance type (dungeon, raid, bg, arena).
---- Per-difficulty granularity for dungeon and raid; falls back to legacy toggle if granular keys are nil.
+--- Master dungeon/raid toggles apply first; per-difficulty keys only when master is on (nil = use default show).
 --- @return boolean
 local function ShouldShowInInstance()
     local _, inType, difficultyID = GetInstanceInfo()
     if inType == "none" then return true end
     if inType == "party" then
-        -- Per-difficulty dungeon toggles; fall back to legacy showInDungeon
+        if not addon.GetDB("showInDungeon", true) then
+            return false
+        end
+        -- Per-difficulty dungeon toggles; nil granular = show (master is on)
         if difficultyID == 1 then  -- Normal
             local v = addon.GetDB("showInDungeonNormal", nil)
             if v ~= nil then return v end
@@ -334,10 +337,13 @@ local function ShouldShowInInstance()
             local v = addon.GetDB("showInDungeonMythicPlus", nil)
             if v ~= nil then return v end
         end
-        return addon.GetDB("showInDungeon", true)
+        return true
     end
     if inType == "raid" then
-        -- Per-difficulty raid toggles; fall back to legacy showInRaid
+        if not addon.GetDB("showInRaid", false) then
+            return false
+        end
+        -- Per-difficulty raid toggles; nil granular = show (master is on)
         if difficultyID == 17 then  -- LFR
             local v = addon.GetDB("showInRaidLFR", nil)
             if v ~= nil then return v end
@@ -351,7 +357,7 @@ local function ShouldShowInInstance()
             local v = addon.GetDB("showInRaidMythic", nil)
             if v ~= nil then return v end
         end
-        return addon.GetDB("showInRaid", false)
+        return true
     end
     if inType == "pvp"    then return addon.GetDB("showInBattleground", false) end
     if inType == "arena"  then return addon.GetDB("showInArena", false) end
