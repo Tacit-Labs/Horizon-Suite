@@ -1129,27 +1129,6 @@ L["OPTIONS_VISTA_FONT_FPS_LATENCY_TEXT_BELOW_MINIMAP"]                = "Font fo
 L["OPTIONS_VISTA_PERFORMANCE_FONT_SIZE"]                              = "Performance font size"
 L["OPTIONS_VISTA_PERFORMANCE_TEXT_COLOR"]                             = "Performance text color"
 L["OPTIONS_VISTA_COLOR_OF_FPS_LATENCY_TEXT"]                          = "Color of the FPS and latency text."
-
--- =====================================================================
--- Vista — FPS/latency diagnostics tooltip (minimap performance text)
--- =====================================================================
-L["UI_VISTA_PERF_DIAG_TITLE"]                                         = "Performance and connection"
-L["UI_VISTA_PERF_DIAG_FPS"]                                           = "Framerate"
-L["UI_VISTA_PERF_DIAG_LATENCY_HOME"]                                  = "Latency (home)"
-L["UI_VISTA_PERF_DIAG_LATENCY_WORLD"]                                 = "Latency (world)"
-L["UI_VISTA_PERF_DIAG_BANDWIDTH_DOWN"]                                = "Download"
-L["UI_VISTA_PERF_DIAG_BANDWIDTH_UP"]                                  = "Upload"
-L["UI_VISTA_PERF_DIAG_CPU_BOUND"]                                     = "Client CPU-bound"
-L["UI_VISTA_PERF_DIAG_YES"]                                           = "Yes"
-L["UI_VISTA_PERF_DIAG_NO"]                                            = "No"
-L["UI_VISTA_PERF_DIAG_COMBAT_NOTE"]                                   = "Addon CPU, memory, and profiler details are hidden during combat."
-L["UI_VISTA_PERF_DIAG_ADDON_CPU"]                                     = "Horizon Suite (CPU time)"
-L["UI_VISTA_PERF_DIAG_ADDON_MEM"]                                     = "Horizon Suite (memory)"
-L["UI_VISTA_PERF_DIAG_PROFILER_HEADER"]                               = "Add-on profiler (UI time)"
-L["UI_VISTA_PERF_DIAG_PROFILER_RECENT"]                               = "Horizon Suite (60-tick avg)"
-L["UI_VISTA_PERF_DIAG_PROFILER_LAST"]                                 = "Horizon Suite (last tick)"
-L["UI_VISTA_PERF_DIAG_PROFILER_ALL_ADDONS"]                           = "All add-ons (60-tick avg)"
-L["UI_VISTA_PERF_DIAG_TOP_ADDONS"]                                    = "Top add-ons by recent avg"
 L["OPTIONS_VISTA_DIFFICULTY_TEXT"]                                    = "Difficulty Text"
 L["OPTIONS_VISTA_DIFFICULTY_TEXT_COLOR_FALLBACK"]                     = "Difficulty text color (fallback)"
 L["OPTIONS_VISTA_DEFAULT_COLOR_PER_DIFFICULTY_COLOR"]                 = "Default color when no per-difficulty color is set."
@@ -1604,6 +1583,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
