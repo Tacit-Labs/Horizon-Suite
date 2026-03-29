@@ -413,6 +413,13 @@ function addon.DashboardDetailView_Init(env)
             addon.DashboardPreview.SetActiveModuleKey(matchedModuleKey)
         end
 
+        if matchedCatIdx then
+            local selCat = addon.OptionCategories[matchedCatIdx]
+            if selCat and selCat.dashboardPreviewMode and addon.Insight and addon.Insight.SetDashboardPreviewMode then
+                addon.Insight.SetDashboardPreviewMode(selCat.dashboardPreviewMode)
+            end
+        end
+
         ClearDetailCards()
         CrossfadeTo(detailView)
         ShowDetailHeader()
@@ -511,6 +518,9 @@ function addon.DashboardDetailView_Init(env)
                 end
             end
             subCategoryContent:SetHeight(math.max(1, tileYOffset))
+            if mk == "insight" and addon.Insight and addon.Insight.SetDashboardPreviewMode then
+                addon.Insight.SetDashboardPreviewMode("global")
+            end
         elseif not skipDetailBuild then
             -- Only 1 category (or none), go straight to details
             ClearDetailCards()

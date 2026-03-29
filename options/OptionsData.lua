@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Focus - Options Data
-    OptionCategories (Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence General/Notifications/Typography, Insight, Vista Minimap/Appearance/Addon Buttons, Cache), getDB/setDB/notifyMainAddon, search index.
+    OptionCategories (Insight: InsightGlobal, InsightPlayer, InsightNpc, InsightItem + others), getDB/setDB/notifyMainAddon, search index.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -593,7 +593,7 @@ local function getActiveQuestHighlight()
 end
 
 -- ---------------------------------------------------------------------------
--- OptionCategories: Profiles, GlobalToggles, Modules, Layout, Display, Typography, Interactions, Instances, Content, Colors, Hidden Quests, Presence (General, Notifications, Typography), Insight, Vista (Minimap, Appearance, Addon Buttons), Cache
+-- OptionCategories: … Presence …, Insight (Global / Player / NPC / Item), Vista …, Cache
 -- ---------------------------------------------------------------------------
 
 local OptionCategories = {
@@ -1725,10 +1725,11 @@ local OptionCategories = {
         },
     },
     {
-        key = "Insight",
-        name = L["OPTIONS_AXIS_TOOLTIPS"] or "Tooltips",
-        desc = L["OPTIONS_CORE_ENHANCE_PLAYER_ITEM_TOOLTIPS_EXTRA_DETAILS"] or "Enhance player and item tooltips with extra details like Mythic+ score and transmog status.",
+        key = "InsightGlobal",
+        name = L["OPTIONS_INSIGHT_CATEGORY_GLOBAL"] or "Global Tooltips",
+        desc = L["OPTIONS_INSIGHT_CATEGORY_GLOBAL_DESC"] or "Anchor, backdrop, fonts, and sizes shared across tooltip types.",
         moduleKey = "insight",
+        dashboardPreviewMode = "global",
         options = {
             { type = "section", name = L["OPTIONS_AXIS_POSITION"] or "Position" },
             { type = "dropdown", name = L["OPTIONS_CORE_TOOLTIP_ANCHOR"] or "Tooltip anchor", desc = L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"] or "Where tooltips appear: follow cursor or fixed position.", dbKey = "insightAnchorMode", options = { { L["OPTIONS_AXIS_CURSOR"] or "Cursor", "cursor" }, { L["OPTIONS_AXIS_FIXED"] or "Fixed", "fixed" } }, get = function() return getDB("insightAnchorMode", "cursor") end, set = function(v) setDB("insightAnchorMode", v) end, refreshIds = { "insightCursorOffsetX", "insightCursorOffsetY" } },
@@ -1753,20 +1754,53 @@ local OptionCategories = {
             { type = "slider", name = L["OPTIONS_INSIGHT_STATS_SIZE"] or "Stats size",       desc = L["OPTIONS_INSIGHT_STATS_FONT_SIZE"] or "M+ score, item level, and honor level font size.", dbKey = "insightStatsSize", min = 6, max = 20, get = function() return getDB("insightStatsSize",   11) end, set = function(v) setDB("insightStatsSize",   v) end },
             { type = "slider", name = L["OPTIONS_INSIGHT_MOUNT_SIZE"] or "Mount size",       desc = L["OPTIONS_INSIGHT_MOUNT_FONT_SIZE"] or "Mount name, source, and ownership font size.",  dbKey = "insightMountSize",   min = 6, max = 20, get = function() return getDB("insightMountSize",   11) end, set = function(v) setDB("insightMountSize",   v) end },
             { type = "slider", name = L["OPTIONS_INSIGHT_TRANSMOG_SIZE"] or "Transmog size", desc = L["OPTIONS_INSIGHT_TRANSMOG_FONT_SIZE"] or "Item appearance status font size.",          dbKey = "insightTransmogSize", min = 6, max = 20, get = function() return getDB("insightTransmogSize", 11) end, set = function(v) setDB("insightTransmogSize", v) end },
-            { type = "section", name = L["OPTIONS_AXIS_PLAYER_TOOLTIP"] or "Player Tooltip" },
+        },
+    },
+    {
+        key = "InsightPlayer",
+        name = L["OPTIONS_INSIGHT_CATEGORY_PLAYER"] or "Player Characters",
+        desc = L["OPTIONS_INSIGHT_CATEGORY_PLAYER_DESC"] or "Guild rank, titles, badges, PvP, ratings, gear, mount lines, icons, and section separators on player tooltips.",
+        moduleKey = "insight",
+        dashboardPreviewMode = "player",
+        options = {
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_IDENTITY"] or "Identity" },
             { type = "toggle", name = L["OPTIONS_CORE_GUILD_RANK"] or "Guild rank", desc = L["OPTIONS_AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
             { type = "toggle", name = L["OPTIONS_AXIS_CHARACTER_TITLE"] or "Character title", desc = L["OPTIONS_AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
             { type = "color", name = L["OPTIONS_AXIS_TITLE_COLOR"] or "Title color", desc = L["OPTIONS_AXIS_COLOR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"] or "Color of the character title in the player tooltip name line.", dbKey = "insightTitleColor", default = { 1.00, 0.82, 0.00 }, visibleWhen = function() return getDB("insightShowCharacterTitle", true) end },
-            { type = "toggle", name = L["OPTIONS_CORE_HONOR_LEVEL"] or "Honor level", desc = L["OPTIONS_AXIS_PLAYER_S_PVP_HONOR_LEVEL_TOOLTIP"] or "Show the player's PvP honor level in the tooltip.", dbKey = "insightShowHonorLevel", get = function() return getDB("insightShowHonorLevel", true) end, set = function(v) setDB("insightShowHonorLevel", v) end },
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_STATUS_PVP"] or "Status & PvP" },
             { type = "toggle", name = L["OPTIONS_CORE_STATUS_BADGES"] or "Status badges", desc = L["OPTIONS_CORE_COMBAT_AFK_DND_PVP_PARTY_FRIENDS"], dbKey = "insightShowStatusBadges", get = function() return getDB("insightShowStatusBadges", true) end, set = function(v) setDB("insightShowStatusBadges", v) end },
+            { type = "toggle", name = L["OPTIONS_CORE_HONOR_LEVEL"] or "Honor level", desc = L["OPTIONS_AXIS_PLAYER_S_PVP_HONOR_LEVEL_TOOLTIP"] or "Show the player's PvP honor level in the tooltip.", dbKey = "insightShowHonorLevel", get = function() return getDB("insightShowHonorLevel", true) end, set = function(v) setDB("insightShowHonorLevel", v) end },
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_RATINGS_GEAR"] or "Ratings & gear" },
             { type = "toggle", name = L["OPTIONS_CORE_MYTHIC_SCORE"] or "Mythic+ score", desc = L["OPTIONS_AXIS_PLAYER_S_CURRENT_SEASON_MYTHIC_SCORE"] or "Show the player's current season Mythic+ score, colour-coded by tier.", dbKey = "insightShowMythicScore", get = function() return getDB("insightShowMythicScore", true) end, set = function(v) setDB("insightShowMythicScore", v) end },
             { type = "toggle", name = L["OPTIONS_CORE_ITEM_LEVEL"] or "Item level", desc = L["OPTIONS_AXIS_PLAYER_S_EQUIPPED_ITEM_LEVEL_AFTER"] or "Show the player's equipped item level after inspecting them.", dbKey = "insightShowIlvl", get = function() return getDB("insightShowIlvl", true) end, set = function(v) setDB("insightShowIlvl", v) end },
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_MOUNT"] or "Mount" },
             { type = "toggle", name = L["OPTIONS_CORE_MOUNT_INFO"] or "Mount info", desc = L["OPTIONS_CORE_MOUNT_NAME_SOURCE_COLLECTION_STATUS"], dbKey = "insightShowMount", get = function() return getDB("insightShowMount", true) end, set = function(v) setDB("insightShowMount", v) end, tooltip = L["OPTIONS_CORE_SHOWN_HOVERING_A_MOUNTED_PLAYER"] },
             { type = "dropdown", name = L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_DISPLAY"] or "Mount collection indicator", desc = L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_DISPLAY_DESC"] or "How to show whether you have collected the hovered player's mount.", dbKey = "insightMountOwnershipDisplay", options = { { L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_TEXT"] or "Full text", "text" }, { L["OPTIONS_INSIGHT_MOUNT_OWNERSHIP_ICONS"] or "Tick / cross", "icons" } }, get = function() return getDB("insightMountOwnershipDisplay", "text") end, set = function(v) setDB("insightMountOwnershipDisplay", v) end, visibleWhen = function() return getDB("insightShowMount", true) end },
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_ICONS_AND_SEPARATORS"] or "Icons & separators" },
             { type = "toggle", name = L["OPTIONS_AXIS_BLANK_SEPARATOR"] or "Blank separator", desc = L["OPTIONS_AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
             { type = "toggle", name = L["OPTIONS_AXIS_ICONS"] or "Show icons", desc = L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end },
             { type = "dropdown", name = L["OPTIONS_AXIS_CLASS_ICON_STYLE"] or "Class icon style", desc = L["OPTIONS_AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"], dbKey = "insightClassIconSource", options = { { L["OPTIONS_AXIS_DEFAULT"] or "Default", "default" }, { "RondoMedia", "rondomedia" } }, get = function() return getDB("insightClassIconSource", "default") end, set = function(v) setDB("insightClassIconSource", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
-            { type = "section", name = L["OPTIONS_AXIS_ITEM_TOOLTIP"] or "Item Tooltip" },
+        },
+    },
+    {
+        key = "InsightNpc",
+        name = L["OPTIONS_INSIGHT_CATEGORY_NPC"] or "NPCs",
+        desc = L["OPTIONS_INSIGHT_CATEGORY_NPC_DESC"] or "NPC tooltip styling. Extra NPC-only toggles can be added here later.",
+        moduleKey = "insight",
+        dashboardPreviewMode = "npc",
+        options = {
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_NPC_TOOLTIP"] or "NPC tooltip" },
+            { type = "header", name = L["OPTIONS_INSIGHT_NPC_PLACEHOLDER"] or "NPC-specific options will appear here when available. Reaction colours and level lines still apply in-game." },
+        },
+    },
+    {
+        key = "InsightItem",
+        name = L["OPTIONS_INSIGHT_CATEGORY_ITEM"] or "Items",
+        desc = L["OPTIONS_INSIGHT_CATEGORY_ITEM_DESC"] or "Item tooltip options such as transmog collection status.",
+        moduleKey = "insight",
+        dashboardPreviewMode = "item",
+        options = {
+            { type = "section", name = L["OPTIONS_INSIGHT_SECTION_TRANSMOG"] or "Transmog" },
             { type = "toggle", name = L["OPTIONS_CORE_TRANSMOG_STATUS"] or "Transmog status", desc = L["OPTIONS_AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
         },
     },
@@ -2650,7 +2684,7 @@ function OptionsData_BuildSearchIndex()
         for _, opt in ipairs(catOpts) do
             if opt.type == "section" then
                 currentSection = type(opt.name) == "function" and opt.name() or opt.name or ""
-            elseif opt.type ~= "section" then
+            elseif opt.type ~= "section" and opt.type ~= "header" then
                 local rawName = type(opt.name) == "function" and opt.name() or opt.name
                 local name = (rawName or ""):lower()
                 local desc = ((opt.desc or "") .. " " .. (opt.tooltip or "")):lower()
