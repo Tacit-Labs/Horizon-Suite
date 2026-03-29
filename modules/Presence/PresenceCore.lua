@@ -1938,6 +1938,7 @@ local function CreatePreviewWidget(parent, opts)
         nil,
         false,
         nil,
+        nil,
         nil
     )
     dd:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
