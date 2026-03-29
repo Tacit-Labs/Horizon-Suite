@@ -35,6 +35,38 @@ local function FormatObjective(o)
     return (addon.Presence.FormatObjectiveForDisplay and addon.Presence.FormatObjectiveForDisplay(o)) or (o and o.text) or ""
 end
 
+--- Criterion was in the previous snapshot but missing from GetCriteriaInfo (step advanced / cleared).
+--- Use full completion counts so we do not show stale 5/6 when the final tick removed the row from API.
+--- @param oldO table Objective row from lastScenarioObjectives
+--- @return string|nil
+local function FormatObjectiveVanishedCompleted(oldO)
+    if not oldO then return nil end
+    if oldO.percent ~= nil and type(oldO.percent) == "number" then
+        local synth = { text = oldO.text, percent = 100 }
+        local s = FormatObjective(synth)
+        if s and s ~= "" then return s end
+    end
+    if oldO.numRequired and type(oldO.numRequired) == "number" and oldO.numRequired > 0
+        and oldO.numFulfilled ~= nil and type(oldO.numFulfilled) == "number" then
+        if oldO.numFulfilled >= oldO.numRequired then
+            return FormatObjective(oldO)
+        end
+        local synth = {
+            text = oldO.text,
+            quantityString = oldO.quantityString,
+            finished = true,
+            numFulfilled = oldO.numRequired,
+            numRequired = oldO.numRequired,
+        }
+        local s = FormatObjective(synth)
+        if s and s ~= "" then return s end
+    end
+    if oldO.numRequired == 1 and oldO.text and oldO.text ~= "" then
+        return FormatObjective({ text = oldO.text, numFulfilled = 1, numRequired = 1, finished = true })
+    end
+    return FormatObjective(oldO)
+end
+
 --- Fix stale 0/X in objective text (Blizzard API lag on boss kill).
 --- @param text string
 --- @return string
@@ -193,7 +225,7 @@ local function ExecuteScenarioCriteriaUpdate()
         if not msg then
             for id, oldO in pairs(oldByID) do
                 if not oldO.finished and not newByID[id] then
-                    msg = FormatObjective(oldO)
+                    msg = FormatObjectiveVanishedCompleted(oldO)
                     break
                 end
             end
