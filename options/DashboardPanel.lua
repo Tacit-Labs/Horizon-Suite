@@ -2424,7 +2424,7 @@ SlashCmdList["HSDASH"] = function(msg)
                                     tooltip = resetBtn.tooltip,
                                 }
                             end
-                            widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn)
+                            widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList)
                             if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                         elseif opt.type == "color" then
                             widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)

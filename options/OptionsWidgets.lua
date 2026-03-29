@@ -549,10 +549,14 @@ local SECTION_CARD_BACKDROP = {
     insets   = { left = 4, right = 4, top = 4, bottom = 4 },
 }
 
+-- Sentinel stored in DB for "use global font" per-element pickers (must match OptionsData FONT_USE_GLOBAL / Vista GLOBAL_SENTINEL).
+local DROPDOWN_FONT_GLOBAL_SENTINEL = "__global__"
+
 -- Custom dropdown: button + popup list (no UIDropDownMenuTemplate)
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
 -- resetButton: optional table { onClick, tooltip } — adds a small reset-arrow icon button to the left of the dropdown.
-function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton)
+-- fontPreviewInList: when true, each list row (and closed button when a font path is selected) uses ResolveFontPath(value) for SetFont.
+function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton, fontPreviewInList)
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
     local row = CreateFrame("Frame", nil, parent)
@@ -704,11 +708,14 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         list:SetPropagateMouseMotion(false)
     end
 
+    -- Row height for open list; updated in populate when fontPreviewInList (taller rows for glyph clearance).
+    local listRowHeight = 22
+
     local function consumeWheel() end
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
         if not list:IsShown() then return end
         if self.StopMovingOrSizing then self:StopMovingOrSizing() end -- no-op consume
-        local step = 22 * 3
+        local step = listRowHeight * 3
         local cur = self:GetVerticalScroll() or 0
         local childH = (scrollChild and scrollChild:GetHeight()) or 0
         local frameH = self:GetHeight() or 0
@@ -756,9 +763,41 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         end
     end)
 
+    -- Must be declared before setValue (Lua 5.1: later `local function` is not visible to earlier closures).
+    local function isDisabled()
+        return disabledFn and disabledFn() == true
+    end
+
+    local function applyDisabledVisuals()
+        local dis = isDisabled()
+        if dis then
+            btn:Disable()
+            SetTextColor(btnText, Def.TextColorSection)
+            chevron:SetAlpha(0.5)
+            btnBg:SetAlpha(0.6)
+        else
+            btn:Enable()
+            SetTextColor(btnText, Def.TextColorLabel)
+            chevron:SetAlpha(1)
+            btnBg:SetAlpha(1)
+        end
+    end
+
+    local function applyBtnTextFontForValue(value)
+        if not fontPreviewInList then return end
+        if value == nil or value == "" or value == DROPDOWN_FONT_GLOBAL_SENTINEL then
+            SetSafeFont(btnText, Def.FontPath, Def.LabelSize, "OUTLINE")
+        else
+            local path = (addon.ResolveFontPath and addon.ResolveFontPath(value)) or value
+            SetSafeFont(btnText, path, Def.LabelSize, "OUTLINE")
+        end
+    end
+
     local function setValue(value, display)
         set(value)
         btnText:SetText(display or tostring(value))
+        applyBtnTextFontForValue(value)
+        applyDisabledVisuals()
         closeList()
     end
 
@@ -810,7 +849,8 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
         local num = #opts
 
-        local rowH = 22
+        local rowH = fontPreviewInList and 24 or 22
+        listRowHeight = rowH
         local maxHeight = 330
         local totalHeight = num * rowH
 
@@ -824,15 +864,17 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             searchEdit:Show()
         end
 
-         for i = 1, num do
-             local b = optionButtons[i]
-             if not b then
-                 b = CreateFrame("Button", nil, scrollChild)
-                 b:SetHeight(rowH)
+        local lblColor = Def.TextColorLabel
+        for i = 1, num do
+            local b = optionButtons[i]
+            if not b then
+                b = CreateFrame("Button", nil, scrollChild)
+                b:SetHeight(rowH)
 
                 local tb = b:CreateFontString(nil, "OVERLAY")
                 SetSafeFont(tb, Def.FontPath, Def.LabelSize, "OUTLINE")
                 tb:SetPoint("LEFT", b, "LEFT", 8, 0)
+                tb:SetJustifyV("MIDDLE")
                 tb:SetJustifyH("LEFT")
                 b.text = tb
 
@@ -845,6 +887,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
                 optionButtons[i] = b
             end
+            b:SetHeight(rowH)
         end
 
         for i = 1, num do
@@ -857,6 +900,15 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             b:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, -(i - 1) * rowH)
             b:SetPoint("TOPRIGHT", scrollChild, "TOPRIGHT", 0, -(i - 1) * rowH)
 
+            if fontPreviewInList then
+                if value == nil or value == "" or value == DROPDOWN_FONT_GLOBAL_SENTINEL then
+                    SetSafeFont(b.text, Def.FontPath, Def.LabelSize, "OUTLINE")
+                else
+                    local path = (addon.ResolveFontPath and addon.ResolveFontPath(value)) or value
+                    SetSafeFont(b.text, path, Def.LabelSize, "OUTLINE")
+                end
+                SetTextColor(b.text, lblColor)
+            end
             b.text:SetText(name)
             b:SetScript("OnClick", function()
                 setValue(value, name)
@@ -875,25 +927,6 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
     if searchable and searchEdit then
         searchEdit:SetScript("OnTextChanged", function() populate() end)
-    end
-
-    local function isDisabled()
-        return disabledFn and disabledFn() == true
-    end
-
-    local function applyDisabledVisuals()
-        local dis = isDisabled()
-        if dis then
-            btn:Disable()
-            SetTextColor(btnText, Def.TextColorSection)
-            chevron:SetAlpha(0.5)
-            btnBg:SetAlpha(0.6)
-        else
-            btn:Enable()
-            SetTextColor(btnText, Def.TextColorLabel)
-            chevron:SetAlpha(1)
-            btnBg:SetAlpha(1)
-        end
     end
 
     btn:SetScript("OnClick", function()
@@ -924,6 +957,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             local optVal = opt[2]
             if optVal == val then
                 btnText:SetText(opt[1])
+                applyBtnTextFontForValue(val)
                 applyDisabledVisuals()
                 return
             end
@@ -940,6 +974,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
                     else
                         btnText:SetText(opt[1])
                     end
+                    applyBtnTextFontForValue(val)
                     applyDisabledVisuals()
                     return
                 end
@@ -953,6 +988,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         else
             btnText:SetText(tostring(val))
         end
+        applyBtnTextFontForValue(val)
         applyDisabledVisuals()
     end
 
