@@ -10,6 +10,9 @@ if not addon then return end
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
+-- Equippable item used only for dashboard tooltip preview (name, quality border, transmog line).
+Insight.DASHBOARD_PREVIEW_ITEM_ID = 168602
+
 local function ShowTransmog()
     return addon.GetDB("insightShowTransmog", true)
 end
@@ -91,6 +94,42 @@ function Insight.ProcessItemTooltip(tooltip, itemID, quality)
     end
     Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
     return Insight.AddAppearanceBlock(tooltip, itemID)
+end
+
+--- Render sample item tooltip content for the options dashboard preview.
+--- @param tooltip table Mock tooltip with AddLine and optional ClearLines
+--- @return nil
+function Insight.RenderItemPreviewContent(tooltip)
+    if not tooltip or not tooltip.AddLine then return end
+    local itemID = Insight.DASHBOARD_PREVIEW_ITEM_ID
+    local itemName = "Sample Item"
+    local quality = 2
+    local itemLevel = nil
+    if C_Item and C_Item.GetItemInfo then
+        local name, _, q, ilvl = C_Item.GetItemInfo(itemID)
+        if name and name ~= "" then
+            itemName = name
+        end
+        if type(q) == "number" then
+            quality = q
+        end
+        if type(ilvl) == "number" and ilvl > 0 then
+            itemLevel = ilvl
+        end
+    end
+    local qr, qg, qb = 1, 1, 1
+    if ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
+        local c = ITEM_QUALITY_COLORS[quality]
+        qr, qg, qb = c.r, c.g, c.b
+    end
+    tooltip:AddLine(itemName, qr, qg, qb)
+    if itemLevel then
+        tooltip:AddLine("Item Level " .. tostring(itemLevel), 1, 1, 1)
+    end
+    if ShowTransmog() and C_TransmogCollection and IsTransmoggableItem(itemID) then
+        Insight.AddSectionSeparator(tooltip, qr, qg, qb)
+        Insight.AddAppearanceBlock(tooltip, itemID)
+    end
 end
 
 addon.Insight = Insight

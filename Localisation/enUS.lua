@@ -279,6 +279,22 @@ L["INSIGHT_MOUNT_NOT_OWNED"]                                          = "You don
 L["OPTIONS_INSIGHT_TRANSMOG_SIZE"]                                    = "Transmog size"
 L["OPTIONS_INSIGHT_TRANSMOG_FONT_SIZE"]                               = "Item appearance status font size."
 L["OPTIONS_AXIS_TOOLTIPS"]                                            = "Tooltips"
+L["OPTIONS_INSIGHT_CATEGORY_GLOBAL"]                                  = "Global Tooltips"
+L["OPTIONS_INSIGHT_CATEGORY_GLOBAL_DESC"]                             = "Anchor, backdrop, fonts, and sizes shared across tooltip types."
+L["OPTIONS_INSIGHT_CATEGORY_PLAYER"]                                  = "Player Characters"
+L["OPTIONS_INSIGHT_CATEGORY_PLAYER_DESC"]                             = "Guild rank, titles, badges, PvP, ratings, gear, mount lines, icons, and section separators on player tooltips."
+L["OPTIONS_INSIGHT_CATEGORY_NPC"]                                     = "NPCs"
+L["OPTIONS_INSIGHT_CATEGORY_NPC_DESC"]                                = "NPC tooltip styling. Extra NPC-only toggles can be added here later."
+L["OPTIONS_INSIGHT_CATEGORY_ITEM"]                                    = "Items"
+L["OPTIONS_INSIGHT_CATEGORY_ITEM_DESC"]                               = "Item tooltip options such as transmog collection status."
+L["OPTIONS_INSIGHT_SECTION_IDENTITY"]                                 = "Identity"
+L["OPTIONS_INSIGHT_SECTION_STATUS_PVP"]                               = "Status & PvP"
+L["OPTIONS_INSIGHT_SECTION_RATINGS_GEAR"]                             = "Ratings & gear"
+L["OPTIONS_INSIGHT_SECTION_MOUNT"]                                    = "Mount"
+L["OPTIONS_INSIGHT_SECTION_ICONS_AND_SEPARATORS"]                     = "Icons & separators"
+L["OPTIONS_INSIGHT_SECTION_NPC_TOOLTIP"]                              = "NPC tooltip"
+L["OPTIONS_INSIGHT_SECTION_TRANSMOG"]                                 = "Transmog"
+L["OPTIONS_INSIGHT_NPC_PLACEHOLDER"]                                  = "NPC-specific options will appear here when available. Reaction colours and level lines still apply in-game."
 L["OPTIONS_AXIS_ITEM_TOOLTIP"]                                        = "Item Tooltip"
 L["OPTIONS_AXIS_TRANSMOG_STATUS"]                                     = "Show transmog status"
 L["OPTIONS_AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"]              = "Show whether you have collected the appearance of an item you hover over."
@@ -1555,6 +1571,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

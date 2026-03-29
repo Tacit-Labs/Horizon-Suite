@@ -546,6 +546,19 @@ end
 -- DASHBOARD PREVIEW (mock tooltip; shell lives in options/dashboard/DashboardPreviewPullout.lua)
 -- ============================================================================
 
+local PREVIEW_MODES = { global = true, player = true, npc = true, item = true }
+
+--- Select which tooltip sample the dashboard preview shows when an Insight options page is active.
+--- @param mode string "global" | "player" | "npc" | "item"
+--- @return nil
+function Insight.SetDashboardPreviewMode(mode)
+    if type(mode) ~= "string" or not PREVIEW_MODES[mode] then return end
+    Insight.dashboardPreviewMode = mode
+    if addon.DashboardPreview and addon.DashboardPreview.NotifyRefresh then
+        addon.DashboardPreview.NotifyRefresh()
+    end
+end
+
 local MAX_PREVIEW_LINES  = 30
 local PREVIEW_PAD_TOP    = 8
 local PREVIEW_PAD_SIDE   = 10
@@ -622,9 +635,32 @@ local function RefreshPullout()
     if not pulloutMock then return end
     pulloutMock:ClearLines()
     Insight.ApplyBackdrop(pulloutMock)
-    if Insight.RenderTestTooltipContent then Insight.RenderTestTooltipContent(pulloutMock) end
+    local mode = Insight.dashboardPreviewMode or "global"
+    if mode == "item" and Insight.RenderItemPreviewContent then
+        Insight.RenderItemPreviewContent(pulloutMock)
+    elseif mode == "npc" and Insight.RenderNpcPreviewContent then
+        Insight.RenderNpcPreviewContent(pulloutMock)
+    elseif mode == "player" and Insight.RenderTestTooltipContent then
+        Insight.RenderTestTooltipContent(pulloutMock)
+    else
+        if Insight.RenderTestTooltipContent then Insight.RenderTestTooltipContent(pulloutMock) end
+    end
     Insight.StyleFonts(pulloutMock)
-    pulloutMock:SetBackdropBorderColor(0.77, 0.12, 0.23, 0.60)
+    local br, bg, bb, ba = 0.77, 0.12, 0.23, 0.60
+    if mode == "npc" and FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then
+        local c = FACTION_BAR_COLORS[2]
+        br, bg, bb = c.r, c.g, c.b
+    elseif mode == "item" then
+        local id = Insight.DASHBOARD_PREVIEW_ITEM_ID or 168602
+        if C_Item and C_Item.GetItemInfo then
+            local _, _, q = C_Item.GetItemInfo(id)
+            if q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q] then
+                local qc = ITEM_QUALITY_COLORS[q]
+                br, bg, bb = qc.r, qc.g, qc.b
+            end
+        end
+    end
+    pulloutMock:SetBackdropBorderColor(br, bg, bb, ba)
     pulloutMock:Layout()
 end
 
@@ -680,6 +716,10 @@ function Insight.ApplyInsightOptions()
 end
 
 function Insight.Init()
+    if Insight.dashboardPreviewMode == nil then
+        Insight.dashboardPreviewMode = "global"
+    end
+
     tooltipsToStyle = {
         GameTooltip,
         ItemRefTooltip,

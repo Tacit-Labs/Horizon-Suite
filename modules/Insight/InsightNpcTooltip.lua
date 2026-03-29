@@ -63,4 +63,18 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     return true
 end
 
+--- Render sample NPC tooltip lines for the options dashboard preview.
+--- @param tooltip table Mock tooltip with AddLine (Insight dashboard pullout)
+--- @return nil
+function Insight.RenderNpcPreviewContent(tooltip)
+    if not tooltip or not tooltip.AddLine then return end
+    local hostile = FACTION_BAR_COLORS and FACTION_BAR_COLORS[2]
+    local r, g, b = 0.9, 0.35, 0.35
+    if hostile then
+        r, g, b = hostile.r, hostile.g, hostile.b
+    end
+    tooltip:AddLine("Darkheart Villager", r, g, b)
+    tooltip:AddLine("Level 45 Elite Humanoid", 0.75, 0.75, 0.75)
+end
+
 addon.Insight = Insight
