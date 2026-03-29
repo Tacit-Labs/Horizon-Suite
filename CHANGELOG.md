@@ -10,6 +10,31 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.4.0] – 2026-03-29
+
+### ✨ New Features
+
+- **(Axis)** Localisation 2.0 — restructured string files and maintainer tooling
+- **(Insight)** Tooltip options split across focused pages with a contextual dashboard preview
+- **(Insight)** Cursor-follow tooltips with optional position offsets
+- **(Axis)** Font dropdowns show each option in its own typeface
+- **(Insight)** Live Insight tooltip preview on the dashboard; mount ownership in relevant tooltips
+- **(Focus)** Zone changes refresh tracker rows reliably
+- **(Insight)** Per-type tooltip styling options
+
+### 🔧 Improvements
+
+- **(Axis)** Options dashboard — modular layout under options/dashboard
+- **(Axis)** Horizon module names use consistent English labels in the UI
+- **(Insight)** Midnight-safe unit tooltips, per-section font sizes, and polish
+- **(Vista)** Minimap FPS/latency strip — urgency colours on values, improved layout and dragging (no extended performance hover panel)
+
+### 🐛 Fixes
+
+- **(Presence)** Scenario progress toast shows the full count on the last objective of a step
+
+---
+
 ## [4.3.1] – 2026-03-26
 
 ### 🔧 Improvements

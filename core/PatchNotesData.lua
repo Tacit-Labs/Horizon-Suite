@@ -9,6 +9,33 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.4.0"] = {
+        {
+            section = "New Features",
+            bullets = {
+                "Localisation 2.0 — restructured strings and tooling",
+                "Insight: tooltip options on separate pages with dashboard preview; cursor-follow tooltips and offsets; live preview and mount ownership on the dashboard",
+                "Font dropdowns show each font in its own typeface",
+                "Focus: zone-change tracker refresh; Insight: per-type tooltip options",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Options dashboard: modular layout under options/dashboard",
+                "Module names use fixed English labels in the UI",
+                "Insight: Midnight-safe unit tooltips, per-section font sizes, and polish",
+                "Vista: minimap FPS/latency strip — urgency colours, smoother layout and drag",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Presence: scenario progress toast shows the full count on the last objective of a step",
+            },
+        },
+    },
+
     ["4.3.1"] = {
         {
             section = "Improvements",
