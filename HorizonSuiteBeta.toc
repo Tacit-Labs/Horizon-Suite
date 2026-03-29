@@ -7,6 +7,15 @@
 ## IconTexture: Interface\AddOns\HorizonSuiteBeta\icon
 
 HorizonSuite.lua
+Localisation/LocaleCore.lua
+Localisation/enUS.lua
+Localisation/deDE.lua
+Localisation/koKR.lua
+Localisation/frFR.lua
+Localisation/ptBR.lua
+Localisation/ruRU.lua
+Localisation/esES.lua
+Localisation/zhCN.lua
 Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua
@@ -82,19 +91,18 @@ modules/Insight/InsightNpcTooltip.lua
 modules/Insight/InsightItemTooltip.lua
 modules/Insight/InsightCore.lua
 modules/Insight/InsightModule.lua
-
-Localisation/LocaleCore.lua
-Localisation/enUS.lua
-Localisation/deDE.lua
-Localisation/koKR.lua
-Localisation/frFR.lua
-Localisation/ptBR.lua
-Localisation/ruRU.lua
-Localisation/esES.lua
-Localisation/zhCN.lua
 options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua
-options/DashboardPreviewPullout.lua
-options/DashboardPanel.lua
+options/dashboard/Constants.lua
+options/dashboard/Util.lua
+options/dashboard/Background.lua
+options/dashboard/Context.lua
+options/dashboard/Sidebar.lua
+options/dashboard/Navigation.lua
+options/dashboard/DetailView.lua
+options/dashboard/HomeWelcome.lua
+options/dashboard/DashboardPreviewPullout.lua
+options/dashboard/DashboardFrame.lua
+options/dashboard/DashboardPanel.lua

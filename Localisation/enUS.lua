@@ -74,7 +74,7 @@ L["OPTIONS_AXIS_MODULES"]                                             = "Modules
 L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Module Toggles"
 
 -- =====================================================================
--- DashboardPanel.lua — First-run welcome
+-- options/dashboard/HomeWelcome.lua — First-run welcome
 -- =====================================================================
 L["DASH_WELCOME_TAB"]                                                 = "Welcome"
 L["DASH_WELCOME_TITLE"]                                               = "Welcome to Horizon Suite"

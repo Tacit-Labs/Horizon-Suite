@@ -1,6 +1,6 @@
 --[[
     Horizon Suite — Options Panel (deprecated)
-    Legacy card-based settings UI; retained for compatibility. Primary UI is DashboardPanel.lua.
+    Legacy card-based settings UI; retained for compatibility. Primary UI is options/dashboard/ (see dashboard/DashboardPanel.lua).
     Main panel frame, title bar, search bar, sidebar, content scroll, BuildCategory, FilterBySearch, animations.
 ]]
 

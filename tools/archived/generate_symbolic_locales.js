@@ -19,7 +19,7 @@ function sectionToPrefix(commentLine) {
     if (!m) return 'UI';
     const head = m[1].split('—')[0].trim();
     if (/OptionsPanel|OptionsData|SettingsBridge/i.test(head)) return 'OPTIONS';
-    if (/DashboardPanel/i.test(head)) return 'DASH';
+    if (/\/dashboard\/|DashboardPanel/i.test(head)) return 'DASH';
     if (/Presence/i.test(head)) return 'PRESENCE';
     if (/Focus/i.test(head)) return 'FOCUS';
     if (/Vista|Minimap/i.test(head)) return 'VISTA';
