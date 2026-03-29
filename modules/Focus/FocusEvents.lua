@@ -420,6 +420,12 @@ local function OnZoneChanged(event)
     addon.focus.nearbyQuestCacheDirty = true
     addon.focus.nearbyQuestCache = nil
     addon.focus.nearbyTaskQuestCache = nil
+    -- Clear Current Quest / Current Event transition memory from the previous zone; otherwise
+    -- FullLayout treats rows as moving into CURRENT/CURRENT_EVENT, skips PopulateEntry, and returns
+    -- early—wrong visuals until reload (see FocusLayout categoryChangeSkipKeys / category-change branch).
+    if addon.focus.categoryChange and addon.focus.categoryChange.prevGroupKey then
+        wipe(addon.focus.categoryChange.prevGroupKey)
+    end
     -- Clear quest timer cache so zone-specific WQ timers get fresh anchors in the new zone.
     if addon.focus.questTimerCache then wipe(addon.focus.questTimerCache) end
     RunMplusHeightTransitionCheck()

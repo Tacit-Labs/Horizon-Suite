@@ -282,6 +282,22 @@ local function StyleFonts(tooltip)
         transmog = GetInsightTransmogSize(),
     }
 
+    local tooltipType = tooltip._insightTooltipType
+    if tooltipType == "player" then
+        headerSz             = addon.GetDB("insightPlayerHeaderSize", headerSz)
+        bodySz               = addon.GetDB("insightPlayerBodySize",   bodySz)
+        sizeForTag.badges    = addon.GetDB("insightPlayerBadgesSize", sizeForTag.badges)
+        sizeForTag.stats     = addon.GetDB("insightPlayerStatsSize",  sizeForTag.stats)
+        sizeForTag.mount     = addon.GetDB("insightPlayerMountSize",  sizeForTag.mount)
+    elseif tooltipType == "npc" then
+        headerSz = addon.GetDB("insightNpcHeaderSize", headerSz)
+        bodySz   = addon.GetDB("insightNpcBodySize",   bodySz)
+    elseif tooltipType == "item" then
+        headerSz = addon.GetDB("insightItemHeaderSize", headerSz)
+        bodySz   = addon.GetDB("insightItemBodySize",   bodySz)
+        sizeForTag.transmog = addon.GetDB("insightItemTransmogSize", sizeForTag.transmog)
+    end
+
     Insight.ForTooltipLines(tooltip, function(i, left, right)
         local tag    = tags and tags[i]
         local sz     = tag and sizeForTag[tag] or ((i == 1) and headerSz or bodySz)

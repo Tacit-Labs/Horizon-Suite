@@ -9,9 +9,10 @@ if not addon then return end
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
-local function ShowIcons()
-    return addon.GetDB("insightShowIcons", true)
-end
+local function ShowReactionBorder() return addon.GetDB("insightNpcReactionBorder", true) end
+local function ShowReactionName()   return addon.GetDB("insightNpcReactionName",   true) end
+local function ShowLevelLine()      return addon.GetDB("insightNpcShowLevelLine",  true) end
+local function ShowNpcIcons()       return addon.GetDB("insightNpcShowIcons",      true) end
 
 --- Process NPC (non-player) unit tooltip. Reaction-coloured name, border, level/classification/creature type.
 --- @param unit string Unit token (e.g. "mouseover")
@@ -23,7 +24,7 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
 
     local reaction = UnitReaction(unit, "player")
     local c = (reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction]) and FACTION_BAR_COLORS[reaction] or nil
-    if c then
+    if c and ShowReactionBorder() then
         tooltip:SetBackdropBorderColor(c.r, c.g, c.b, 0.60)
     else
         tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
@@ -31,32 +32,34 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
 
     local ttName = tooltip:GetName()
     local nameLeft = ttName and _G[ttName .. "TextLeft1"]
-    if nameLeft and c then
+    if nameLeft and c and ShowReactionName() then
         nameLeft:SetTextColor(c.r, c.g, c.b)
     end
 
-    local level = UnitLevel(unit)
-    local levelStr = (level and level >= 0) and tostring(level) or (ShowIcons() and "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t" or "??")
-    local classification = UnitClassification(unit)
-    local classStr = (classification == "elite" and "Elite") or (classification == "rare" and "Rare") or (classification == "rareelite" and "Rare Elite") or (classification == "worldboss" and "World Boss") or (classification == "trivial" and "Trivial") or nil
-    local creatureType = UnitCreatureType(unit)
-    local parts = {}
-    parts[#parts + 1] = "Level " .. levelStr
-    if classStr then parts[#parts + 1] = classStr end
-    pcall(function()
-        if creatureType and creatureType ~= "" then
-            parts[#parts + 1] = creatureType
-        end
-    end)
-    local lineText = #parts > 0 and table.concat(parts, " ") or nil
-    if lineText then
-        local lineLeft = ttName and _G[ttName .. "TextLeft2"]
-        local gray = 0.75
-        if lineLeft then
-            lineLeft:SetText(lineText)
-            lineLeft:SetTextColor(gray, gray, gray)
-        else
-            tooltip:AddLine(lineText, gray, gray, gray)
+    if ShowLevelLine() then
+        local level = UnitLevel(unit)
+        local levelStr = (level and level >= 0) and tostring(level) or (ShowNpcIcons() and "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t" or "??")
+        local classification = UnitClassification(unit)
+        local classStr = (classification == "elite" and "Elite") or (classification == "rare" and "Rare") or (classification == "rareelite" and "Rare Elite") or (classification == "worldboss" and "World Boss") or (classification == "trivial" and "Trivial") or nil
+        local creatureType = UnitCreatureType(unit)
+        local parts = {}
+        parts[#parts + 1] = "Level " .. levelStr
+        if classStr then parts[#parts + 1] = classStr end
+        pcall(function()
+            if creatureType and creatureType ~= "" then
+                parts[#parts + 1] = creatureType
+            end
+        end)
+        local lineText = #parts > 0 and table.concat(parts, " ") or nil
+        if lineText then
+            local lineLeft = ttName and _G[ttName .. "TextLeft2"]
+            local gray = 0.75
+            if lineLeft then
+                lineLeft:SetText(lineText)
+                lineLeft:SetTextColor(gray, gray, gray)
+            else
+                tooltip:AddLine(lineText, gray, gray, gray)
+            end
         end
     end
 

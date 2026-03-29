@@ -766,6 +766,20 @@ local function FullLayout()
         end
     end
 
+    -- Category-change skip must not apply to a pool row that is not yet populated for this qData
+    -- (e.g. fresh AcquireEntry): skipping PopulateEntry would reserve height with stale entryHeight
+    -- and leave title/objectives empty until reload.
+    local function PoolEntryMatchesQuestData(entry, qData)
+        if not entry or not qData then return false end
+        if qData.entryKey ~= nil then
+            return entry.entryKey == qData.entryKey
+        end
+        if qData.questID ~= nil then
+            return entry.questID == qData.questID
+        end
+        return false
+    end
+
     -- When panel is collapsed with individual categories expanded, determine which
     -- groups are collapsed so we can skip acquiring entries for them entirely.
     local pcegForAcquire = collapsedFallThrough and addon.focus.collapsed
@@ -789,7 +803,8 @@ local function FullLayout()
                     SafeEntryFadeIn(entry, 0)
                 end
                 if entry then
-                    if not categoryChangeSkipKeys[key] then
+                    local skipPopulate = categoryChangeSkipKeys[key] and PoolEntryMatchesQuestData(entry, qData)
+                    if not skipPopulate then
                         entry.groupKey = grp.key
                         addon.PopulateEntry(entry, qData, grp.key)
                     end
