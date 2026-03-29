@@ -37,6 +37,8 @@ local FADE_DUR       = 0.20
 local COORD_THROTTLE = 0.25
 local TIME_THROTTLE  = 1.0
 local PERF_THROTTLE  = 0.5
+-- Refresh perf diagnostics tooltip while hovered (independent of bar text throttle).
+local PERF_TOOLTIP_LIVE_THROTTLE = 0.25
 
 local PULSE_MIN   = 0.40
 local PULSE_MAX   = 1.00
@@ -908,40 +910,113 @@ local function CreateDecor()
     timeContainer:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- ---- Performance text (FPS / latency, in a draggable container) ----
-    -- Split into num/label so numbers use class colour and labels use configured colour
-    local perfContainer = CreateFrame("Frame", nil, decor)
-    perfContainer:SetSize(100, 16)
+    -- Segments: FPS digits, " FPS | ", MS digits, " MS" — right-anchored with PERF_SEG_GAP.
+    -- Numeric colours use addon.TIMER_URGENCY_COLORS; labels use GetPerfNumColor().
+    -- Tooltip hover: decor._perfHitbox only (synced in ResizePerfContainer).
+    local perfContainer = CreateFrame("Button", nil, decor)
+    perfContainer:SetSize(120, 16)
     local pAp, pRp = GetPerfAnchors()
     perfContainer:SetPoint(pAp, Minimap, pRp, GetPerfOffsetX(), GetPerfOffsetY())
     perfContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
     MakeDraggable(perfContainer, "perf", "perf", "perf", GetPerfAnchors, Minimap)
+    if perfContainer.SetMouseMotionEnabled then
+        perfContainer:SetMouseMotionEnabled(true)
+    end
+    if perfContainer.SetMouseClickEnabled then
+        perfContainer:SetMouseClickEnabled(true)
+    end
+    perfContainer:RegisterForClicks("LeftButtonUp")
 
-    local function makePerfSeg(name, parent, anchorTo)
+    local PERF_SEG_GAP = 6
+    local function makePerfSeg(parent, relTo, relPoint, offsetX, offsetY)
+        offsetX = offsetX or 0
+        offsetY = offsetY or 0
         local sh = parent:CreateFontString(nil, "BORDER")
         sh:SetFont(GetPerfFont(), GetPerfSize(), "OUTLINE")
         sh:SetTextColor(0, 0, 0, SHADOW_A)
         sh:SetJustifyH("RIGHT")
-        sh:SetPoint("RIGHT", anchorTo or parent, anchorTo and "LEFT" or "RIGHT")
+        sh:SetPoint("RIGHT", relTo, relPoint, offsetX, offsetY)
         local tx = parent:CreateFontString(nil, "OVERLAY")
         tx:SetFont(GetPerfFont(), GetPerfSize(), "OUTLINE")
         tx:SetJustifyH("RIGHT")
-        tx:SetPoint("RIGHT", anchorTo or parent, anchorTo and "LEFT" or "RIGHT")
+        tx:SetPoint("RIGHT", relTo, relPoint, offsetX, offsetY)
         return tx, sh
     end
-    perf.lbl2, perf.lbl2Sh = makePerfSeg("perfLbl2", perfContainer, nil)
-    perf.num2, perf.num2Sh = makePerfSeg("perfNum2", perfContainer, perf.lbl2)
-    perf.lbl1, perf.lbl1Sh = makePerfSeg("perfLbl1", perfContainer, perf.num2)
-    perf.num1, perf.num1Sh = makePerfSeg("perfNum1", perfContainer, perf.lbl1)
+    perf.lbl2, perf.lbl2Sh = makePerfSeg(perfContainer, perfContainer, "RIGHT", 0, 0)
+    perf.num2, perf.num2Sh = makePerfSeg(perfContainer, perf.lbl2, "LEFT", -PERF_SEG_GAP, 0)
+    perf.lbl1, perf.lbl1Sh = makePerfSeg(perfContainer, perf.num2, "LEFT", -PERF_SEG_GAP, 0)
+    perf.num1, perf.num1Sh = makePerfSeg(perfContainer, perf.lbl1, "LEFT", -PERF_SEG_GAP, 0)
     perf.num1:SetText("0"); perf.num1Sh:SetText("0")
     perf.lbl1:SetText(" FPS | "); perf.lbl1Sh:SetText(" FPS | ")
     perf.num2:SetText("0"); perf.num2Sh:SetText("0")
     perf.lbl2:SetText(" MS");    perf.lbl2Sh:SetText(" MS")
+
+    -- FontStrings sit above the Button; if they keep mouse motion, only pixels that miss
+    -- the glyphs reach the parent — often only the MS side. Turn mouse off on text so the
+    -- full Button rect receives hover.
+    for _, fs in ipairs({
+        perf.num1, perf.num1Sh, perf.lbl1, perf.lbl1Sh,
+        perf.num2, perf.num2Sh, perf.lbl2, perf.lbl2Sh,
+    }) do
+        if fs then
+            pcall(function()
+                if fs.EnableMouse then fs:EnableMouse(false) end
+            end)
+            pcall(function()
+                if fs.SetMouseMotionEnabled then fs:SetMouseMotionEnabled(false) end
+            end)
+            pcall(function()
+                if fs.SetMouseClickEnabled then fs:SetMouseClickEnabled(false) end
+            end)
+        end
+    end
+
+    -- Dedicated hover hitbox anchored to the actual text span. This is more reliable than
+    -- sizing the parent button because the rendered glyphs can extend differently left/right.
+    local perfHitbox = CreateFrame("Frame", nil, decor)
+    perfHitbox:SetFrameLevel(perfContainer:GetFrameLevel() + 1)
+    perfHitbox:SetPoint("TOPLEFT", perf.num1, "TOPLEFT", -10, 4)
+    perfHitbox:SetPoint("BOTTOMRIGHT", perf.lbl2, "BOTTOMRIGHT", 10, -4)
+    perfHitbox:EnableMouse(true)
+    if perfHitbox.SetMouseMotionEnabled then
+        perfHitbox:SetMouseMotionEnabled(true)
+    end
+    if perfHitbox.SetMouseClickEnabled then
+        perfHitbox:SetMouseClickEnabled(false)
+    end
+    if perfHitbox.SetPropagateMouseClicks then
+        perfHitbox:SetPropagateMouseClicks(true)
+    end
+    perfHitbox:SetScript("OnEnter", function(self)
+        self._perfTooltipLive = true
+        self._perfTooltipElapsed = 0
+        Vista.ShowPerfDiagnosticsTooltip(self)
+        self:SetScript("OnUpdate", function(s, el)
+            if not s._perfTooltipLive then return end
+            s._perfTooltipElapsed = (s._perfTooltipElapsed or 0) + el
+            if s._perfTooltipElapsed < PERF_TOOLTIP_LIVE_THROTTLE then return end
+            s._perfTooltipElapsed = 0
+            local tip = GameTooltip
+            if tip and tip.IsShown and tip:IsShown() and tip.GetOwner and tip:GetOwner() == s then
+                Vista.ShowPerfDiagnosticsTooltip(s)
+            end
+        end)
+    end)
+    perfHitbox:SetScript("OnLeave", function(self)
+        self._perfTooltipLive = false
+        self:SetScript("OnUpdate", nil)
+        GameTooltip:Hide()
+    end)
 
     -- store containers for ApplyOptions
     decor._zoneContainer  = zoneContainer
     decor._coordContainer = coordContainer
     decor._timeContainer  = timeContainer
     decor._perfContainer  = perfContainer
+    decor._perfHitbox     = perfHitbox
+    if Vista.ResizePerfContainer then
+        Vista.ResizePerfContainer()
+    end
 
     -- Apply initial visibility
     local showZone  = GetShowZone()
@@ -956,6 +1031,7 @@ local function CreateDecor()
     perf.num2:SetShown(showPerf); perf.num2Sh:SetShown(showPerf)
     perf.lbl2:SetShown(showPerf); perf.lbl2Sh:SetShown(showPerf)
     perfContainer:SetShown(showPerf)
+    perfHitbox:SetShown(showPerf)
 end
 
 -- ============================================================================
@@ -1085,22 +1161,193 @@ local function UpdateTimeText(_, elapsed)
     timeText:SetText(str); timeShadow:SetText(str)
 end
 
-local function UpdatePerfText(_, elapsed)
-    if not perf.num1 or not GetShowPerf() then return end
-    perfElapsed = perfElapsed + elapsed
-    if perfElapsed < PERF_THROTTLE then return end
-    perfElapsed = 0
-    local fps = 0
-    if GetFramerate then fps = math.floor(GetFramerate()) end
-    local ms = 0
-    if GetNetStats then
-        local _, _, lagHome, lagWorld = GetNetStats()
-        ms = lagWorld or lagHome or 0
+-- Perf diagnostics + UpdatePerfText live in a do-block to avoid exceeding WoW's 200 chunk locals limit.
+local UpdatePerfText
+do
+    local ADDON_FOLDER_NAME = "HorizonSuite"
+    -- Last bar values for re-applying urgency colours after options / ApplyColors (matches CreateDecor PERF_SEG_GAP * 3).
+    local lastPerfFps, lastPerfMs = 0, 0
+    local PERF_SEG_GAP_FALLBACK = 18
+
+    local function PerfUrgencyRgb(bucket)
+        local pal = addon.TIMER_URGENCY_COLORS
+        local c = pal and pal[bucket]
+        if c then return c[1], c[2], c[3] end
+        return GetPerfColor()
     end
-    local fpsStr = tostring(fps)
-    local msStr = tostring(ms)
-    perf.num1:SetText(fpsStr); perf.num1Sh:SetText(fpsStr)
-    perf.num2:SetText(msStr);  perf.num2Sh:SetText(msStr)
+
+    local function FpsUrgencyBucket(fps)
+        if fps >= 60 then return "plenty" end
+        if fps >= 30 then return "low" end
+        return "critical"
+    end
+
+    local function LatencyUrgencyBucket(ms)
+        if ms <= 100 then return "plenty" end
+        if ms <= 200 then return "low" end
+        return "critical"
+    end
+
+    --- Apply green/yellow/red to FPS and latency digits from last sampled bar values.
+    function Vista.ApplyPerfNumericColors()
+        if not perf.num1 or not perf.num2 then return end
+        local r1, g1, b1 = PerfUrgencyRgb(FpsUrgencyBucket(lastPerfFps))
+        local r2, g2, b2 = PerfUrgencyRgb(LatencyUrgencyBucket(lastPerfMs))
+        perf.num1:SetTextColor(r1, g1, b1)
+        perf.num2:SetTextColor(r2, g2, b2)
+    end
+
+    function Vista.ShowPerfDiagnosticsTooltip(owner)
+        if not GameTooltip or not owner then return end
+        local L = addon.L
+        GameTooltip:SetOwner(owner, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:ClearLines()
+        GameTooltip:SetText(L["UI_VISTA_PERF_DIAG_TITLE"], 1, 1, 1)
+
+        local fps = 0
+        if GetFramerate then fps = math.floor(GetFramerate()) end
+        GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_FPS"], tostring(fps), 1, 1, 1, 1, 1, 1)
+
+        local bwIn, bwOut, lagHome, lagWorld
+        if GetNetStats then
+            bwIn, bwOut, lagHome, lagWorld = GetNetStats()
+        end
+        lagHome = lagHome or 0
+        lagWorld = lagWorld or 0
+        GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_LATENCY_HOME"], format("%d ms", lagHome), 1, 1, 1, 1, 1, 1)
+        GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_LATENCY_WORLD"], format("%d ms", lagWorld), 1, 1, 1, 1, 1, 1)
+        if bwIn ~= nil and bwOut ~= nil then
+            GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_BANDWIDTH_DOWN"], format("%.2f KB/s", bwIn), 1, 1, 1, 1, 1, 1)
+            GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_BANDWIDTH_UP"], format("%.2f KB/s", bwOut), 1, 1, 1, 1, 1, 1)
+        end
+
+        if C_Client and C_Client.IsCpuBound then
+            local ok, cpuBound = pcall(C_Client.IsCpuBound)
+            if ok and cpuBound ~= nil then
+                GameTooltip:AddDoubleLine(
+                    L["UI_VISTA_PERF_DIAG_CPU_BOUND"],
+                    cpuBound and L["UI_VISTA_PERF_DIAG_YES"] or L["UI_VISTA_PERF_DIAG_NO"],
+                    1, 1, 1, 1, 1, 1
+                )
+            end
+        end
+
+        if InCombatLockdown() then
+            GameTooltip:AddLine(L["UI_VISTA_PERF_DIAG_COMBAT_NOTE"], 0.65, 0.65, 0.65, true)
+        else
+            if UpdateAddOnCPUUsage then pcall(UpdateAddOnCPUUsage) end
+            if UpdateAddOnMemoryUsage then pcall(UpdateAddOnMemoryUsage) end
+            local cpuMs, memKb
+            if GetAddOnCPUUsage then
+                local ok, v = pcall(GetAddOnCPUUsage, ADDON_FOLDER_NAME)
+                if ok then cpuMs = v end
+            end
+            if GetAddOnMemoryUsage then
+                local ok, v = pcall(GetAddOnMemoryUsage, ADDON_FOLDER_NAME)
+                if ok then memKb = v end
+            end
+            if cpuMs ~= nil then
+                GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_ADDON_CPU"], format("%.3f ms", cpuMs), 1, 1, 1, 1, 1, 1)
+            end
+            if memKb ~= nil then
+                GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_ADDON_MEM"], format("%.1f KB", memKb), 1, 1, 1, 1, 1, 1)
+            end
+
+            local profEnum = Enum and Enum.AddOnProfilerMetric
+            local CAP = C_AddOnProfiler
+            if profEnum and CAP and CAP.IsEnabled and CAP.IsEnabled() and CAP.GetAddOnMetric and CAP.GetOverallMetric and CAP.GetTopKAddOnsForMetric then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine(L["UI_VISTA_PERF_DIAG_PROFILER_HEADER"], 0.72, 0.72, 0.72)
+                local okR, recent = pcall(CAP.GetAddOnMetric, ADDON_FOLDER_NAME, profEnum.RecentAverageTime)
+                local okL, lastTick = pcall(CAP.GetAddOnMetric, ADDON_FOLDER_NAME, profEnum.LastTime)
+                if okR then
+                    GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_PROFILER_RECENT"], format("%.2f ms", recent), 1, 1, 1, 1, 1, 1)
+                end
+                if okL then
+                    GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_PROFILER_LAST"], format("%.2f ms", lastTick), 1, 1, 1, 1, 1, 1)
+                end
+                local okO, overall = pcall(CAP.GetOverallMetric, profEnum.RecentAverageTime)
+                if okO then
+                    GameTooltip:AddDoubleLine(L["UI_VISTA_PERF_DIAG_PROFILER_ALL_ADDONS"], format("%.2f ms", overall), 1, 1, 1, 1, 1, 1)
+                end
+                local okT, top = pcall(CAP.GetTopKAddOnsForMetric, profEnum.RecentAverageTime, 3)
+                if okT and top and #top > 0 then
+                    GameTooltip:AddLine(L["UI_VISTA_PERF_DIAG_TOP_ADDONS"], 0.72, 0.72, 0.72)
+                    for i = 1, #top do
+                        local row = top[i]
+                        if row and row.addOnName then
+                            GameTooltip:AddDoubleLine(row.addOnName, format("%.2f ms", row.metricValue or 0), 0.9, 0.9, 0.9, 1, 1, 1)
+                        end
+                    end
+                end
+            end
+        end
+
+        GameTooltip:Show()
+    end
+
+    --- Widen perf row hit box so hover matches visible right-anchored text (outline extends past GetStringWidth).
+    function Vista.ResizePerfContainer()
+        local c = decor and decor._perfContainer
+        if not c or not perf.num1 then return end
+        local padX = 24
+        local w
+        local minL, maxR = math.huge, -math.huge
+        for _, fs in ipairs({ perf.num1, perf.lbl1, perf.num2, perf.lbl2 }) do
+            if fs and fs:IsShown() then
+                local l, _, rw = fs:GetRect()
+                if l and rw and rw >= 0 then
+                    minL = math.min(minL, l)
+                    maxR = math.max(maxR, l + rw)
+                end
+            end
+        end
+        if minL ~= math.huge and maxR > minL then
+            w = math.ceil((maxR - minL) + padX)
+        else
+            w = math.ceil(
+                (perf.num1:GetStringWidth() or 0) + (perf.lbl1:GetStringWidth() or 0)
+                    + (perf.num2:GetStringWidth() or 0) + (perf.lbl2:GetStringWidth() or 0)
+                    + PERF_SEG_GAP_FALLBACK + 32
+            )
+        end
+        if w < 88 then w = 88 end
+        c:SetWidth(w)
+        local fh = select(2, perf.num1:GetFont())
+        fh = (type(fh) == "number" and fh) or GetPerfSize() or 10
+        c:SetHeight(math.max(16, math.ceil(fh + 6)))
+
+        local hb = decor and decor._perfHitbox
+        if hb and perf.num1 and perf.lbl2 and hb.ClearAllPoints then
+            pcall(function()
+                hb:ClearAllPoints()
+                hb:SetPoint("TOPLEFT", perf.num1, "TOPLEFT", -8, 4)
+                hb:SetPoint("BOTTOMRIGHT", perf.lbl2, "BOTTOMRIGHT", 8, -4)
+            end)
+        end
+    end
+
+    UpdatePerfText = function(_, elapsed)
+        if not perf.num1 or not GetShowPerf() then return end
+        perfElapsed = perfElapsed + elapsed
+        if perfElapsed < PERF_THROTTLE then return end
+        perfElapsed = 0
+        local fps = 0
+        if GetFramerate then fps = math.floor(GetFramerate()) end
+        local ms = 0
+        if GetNetStats then
+            local _, _, lagHome, lagWorld = GetNetStats()
+            ms = lagWorld or lagHome or 0
+        end
+        lastPerfFps = fps
+        lastPerfMs = ms
+        local fpsStr = tostring(fps)
+        local msStr = tostring(ms)
+        perf.num1:SetText(fpsStr); perf.num1Sh:SetText(fpsStr)
+        perf.num2:SetText(msStr);  perf.num2Sh:SetText(msStr)
+        Vista.ApplyPerfNumericColors()
+        Vista.ResizePerfContainer()
+    end
 end
 
 -- ============================================================================
@@ -3131,10 +3378,9 @@ function Vista.ApplyColors()
     if zoneText  then zoneText:SetTextColor(GetZoneColor())   end
     if coordText then coordText:SetTextColor(GetCoordColor()) end
     if timeText  then timeText:SetTextColor(GetTimeColor())   end
-    if perf.num1 then perf.num1:SetTextColor(GetPerfColor())   end
     if perf.lbl1 then perf.lbl1:SetTextColor(GetPerfNumColor()) end
-    if perf.num2 then perf.num2:SetTextColor(GetPerfColor())   end
     if perf.lbl2 then perf.lbl2:SetTextColor(GetPerfNumColor()) end
+    if Vista.ApplyPerfNumericColors then Vista.ApplyPerfNumericColors() end
     if diffText  then UpdateDifficultyText() end  -- per-difficulty colors applied inside
     if drawerButton then
         if drawerButton._bg     then drawerButton._bg:SetColorTexture(GetPanelBgColor())     end
@@ -3238,17 +3484,24 @@ local function ApplyOptions_Texts(sz)
         perf.lbl1:SetFont(fp, fs, "OUTLINE"); perf.lbl1Sh:SetFont(fp, fs, "OUTLINE")
         perf.num2:SetFont(fp, fs, "OUTLINE"); perf.num2Sh:SetFont(fp, fs, "OUTLINE")
         perf.lbl2:SetFont(fp, fs, "OUTLINE"); perf.lbl2Sh:SetFont(fp, fs, "OUTLINE")
-        perf.num1:SetTextColor(GetPerfColor());   perf.lbl1:SetTextColor(GetPerfNumColor())
-        perf.num2:SetTextColor(GetPerfColor());   perf.lbl2:SetTextColor(GetPerfNumColor())
+        perf.lbl1:SetTextColor(GetPerfNumColor())
+        perf.lbl2:SetTextColor(GetPerfNumColor())
+        if Vista.ApplyPerfNumericColors then Vista.ApplyPerfNumericColors() end
         perf.num1:SetShown(show); perf.num1Sh:SetShown(show)
         perf.lbl1:SetShown(show); perf.lbl1Sh:SetShown(show)
         perf.num2:SetShown(show); perf.num2Sh:SetShown(show)
         perf.lbl2:SetShown(show); perf.lbl2Sh:SetShown(show)
         decor._perfContainer:SetShown(show)
+        if decor._perfHitbox then
+            decor._perfHitbox:SetShown(show)
+        end
         local ap, rp = GetPerfAnchors()
         decor._perfContainer:ClearAllPoints()
         decor._perfContainer:SetPoint(ap, Minimap, rp, GetPerfOffsetX(), GetPerfOffsetY())
         decor._perfContainer:SetMovable(not GetElemLocked("perf"))
+        if Vista.ResizePerfContainer then
+            Vista.ResizePerfContainer()
+        end
     end
     if diffText and decor._diffContainer then
         local fp, fs = GetDiffFont(), GetDiffSize()
