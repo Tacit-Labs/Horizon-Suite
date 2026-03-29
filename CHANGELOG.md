@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.4.1] – 2026-03-30
+
+### 🐛 Fixes
+
+- **(Focus)** Turning off In Raid or In Dungeon for the tracker now hides it reliably — master visibility is applied before per-difficulty raid/dungeon options, so stale granular settings no longer keep the panel visible.
+
+---
+
 ## [4.4.0] – 2026-03-29
 
 ### ✨ New Features

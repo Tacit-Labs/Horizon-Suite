@@ -9,6 +9,15 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.4.1"] = {
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: In Raid and In Dungeon master visibility is honored before per-difficulty options, so the tracker hides when those masters are off",
+            },
+        },
+    },
+
     ["4.4.0"] = {
         {
             section = "New Features",
