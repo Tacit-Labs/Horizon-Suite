@@ -1116,6 +1116,27 @@ L["OPTIONS_VISTA_COLOR_OF_TEXT"]                                      = "时间�
 -- L["OPTIONS_VISTA_PERFORMANCE_FONT_SIZE"]                           = "Performance font size"  -- NEEDS TRANSLATION
 -- L["OPTIONS_VISTA_PERFORMANCE_TEXT_COLOR"]                          = "Performance text color"  -- NEEDS TRANSLATION
 -- L["OPTIONS_VISTA_COLOR_OF_FPS_LATENCY_TEXT"]                       = "Color of the FPS and latency text."  -- NEEDS TRANSLATION
+
+-- =====================================================================
+-- Vista — FPS/latency diagnostics tooltip (minimap performance text)
+-- =====================================================================
+-- L["UI_VISTA_PERF_DIAG_TITLE"]                                      = "Performance and connection"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_FPS"]                                        = "Framerate"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_LATENCY_HOME"]                               = "Latency (home)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_LATENCY_WORLD"]                              = "Latency (world)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_BANDWIDTH_DOWN"]                             = "Download"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_BANDWIDTH_UP"]                               = "Upload"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_CPU_BOUND"]                                  = "Client CPU-bound"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_YES"]                                        = "Yes"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_NO"]                                         = "No"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_COMBAT_NOTE"]                                = "Addon CPU, memory, and profiler details are hidden during combat."  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_ADDON_CPU"]                                  = "Horizon Suite (CPU time)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_ADDON_MEM"]                                  = "Horizon Suite (memory)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_PROFILER_HEADER"]                            = "Add-on profiler (UI time)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_PROFILER_RECENT"]                            = "Horizon Suite (60-tick avg)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_PROFILER_LAST"]                              = "Horizon Suite (last tick)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_PROFILER_ALL_ADDONS"]                        = "All add-ons (60-tick avg)"  -- NEEDS TRANSLATION
+-- L["UI_VISTA_PERF_DIAG_TOP_ADDONS"]                                 = "Top add-ons by recent avg"  -- NEEDS TRANSLATION
 L["OPTIONS_VISTA_DIFFICULTY_TEXT"]                                    = "难度文本"
 L["OPTIONS_VISTA_DIFFICULTY_TEXT_COLOR_FALLBACK"]                     = "难度文本颜色(备用)"
 L["OPTIONS_VISTA_DEFAULT_COLOR_PER_DIFFICULTY_COLOR"]                 = "当没有设置特定难度颜色时的默认颜色"
@@ -1570,6 +1591,8 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
 
 
 
