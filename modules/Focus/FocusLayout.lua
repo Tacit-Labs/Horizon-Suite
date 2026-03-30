@@ -339,6 +339,7 @@ local function FullLayout()
             addon.optionsBtn:Hide()
         else
             addon.optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
+            if addon.optionsShadow then addon.optionsShadow:SetText(addon.L["PRESENCE_OPTIONS"]) end
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
             addon.optionsBtn:Show()
             -- Visible on hover only: use alpha so frames stay in layout and remain clickable
@@ -364,6 +365,7 @@ local function FullLayout()
             addon.optionsBtn:SetAlpha(1)
             addon.optionsBtn:Show()
             addon.optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
+            if addon.optionsShadow then addon.optionsShadow:SetText(addon.L["PRESENCE_OPTIONS"]) end
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
         end
         local showDiv = addon.GetDB("showHeaderDivider", true)

@@ -645,6 +645,11 @@ local function ApplyTypography()
     local shadowOy = tonumber(addon.GetDB("shadowOffsetY", -2)) or -2
     local shadowA  = addon.GetDB("showTextShadow", true) and (tonumber(addon.GetDB("shadowAlpha", 0.8)) or 0.8) or 0
 
+    -- Keep Config defaults in sync so FocusEntryRenderer, FocusSectionHeaders, and Utilities use DB values.
+    addon.SHADOW_OX = shadowOx
+    addon.SHADOW_OY = shadowOy
+    addon.SHADOW_A = shadowA
+
     addon.headerShadow:SetTextColor(0, 0, 0, shadowA)
     addon.headerShadow:SetPoint("CENTER", addon.headerText, "CENTER", shadowOx, shadowOy)
 
@@ -662,6 +667,12 @@ local function ApplyTypography()
 
     addon.countShadow:SetTextColor(0, 0, 0, shadowA)
     addon.countShadow:SetPoint("CENTER", addon.countText, "CENTER", shadowOx, shadowOy)
+
+    if addon.optionsShadow and addon.optionsLabel then
+        addon.optionsShadow:SetTextColor(0, 0, 0, shadowA)
+        addon.optionsShadow:SetPoint("CENTER", addon.optionsLabel, "CENTER", shadowOx, shadowOy)
+        addon.optionsShadow:SetText(addon.optionsLabel:GetText() or "")
+    end
 
     for i = 1, addon.POOL_SIZE do
         local e = pool[i]

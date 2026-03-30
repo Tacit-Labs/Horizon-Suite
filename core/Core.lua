@@ -1,4 +1,4 @@
-﻿--[[
+--[[
     Horizon Suite - Focus - Core
     DB access, easing, and main frame (HS + scroll, resize, drag, position).
     Constants, colors, fonts, and labels live in Config.lua.
@@ -1154,6 +1154,14 @@ optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
 optionsBtn:SetSize(math.max(optionsLabel:GetStringWidth() + 4, 44), 20)
 optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
 optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
+
+local optionsShadow = optionsBtn:CreateFontString(nil, "BORDER")
+optionsShadow:SetFontObject(addon.ObjFont)
+optionsShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
+optionsShadow:SetJustifyH("RIGHT")
+optionsShadow:SetText(addon.L["PRESENCE_OPTIONS"])
+optionsShadow:SetPoint("CENTER", optionsLabel, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+
 -- Delayed tooltip hide: cancels if mouse re-enters within 0.15s (stops flicker when cursor briefly leaves)
 local optionsTooltipHideRequested = false
 optionsBtn:SetScript("OnClick", function()
@@ -1968,6 +1976,7 @@ addon.countShadow         = countShadow
 addon.chevron             = chevron
 addon.optionsBtn          = optionsBtn
 addon.optionsLabel        = optionsLabel
+addon.optionsShadow       = optionsShadow
 addon.divider             = divider
 addon.HandleScroll        = HandleScroll
 addon.SavePanelPosition   = SavePanelPosition
