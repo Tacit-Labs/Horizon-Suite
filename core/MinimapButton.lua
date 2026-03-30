@@ -15,8 +15,8 @@ local BUTTON_SIZE = 20
 local ICON_PATH = "Interface\\AddOns\\HorizonSuite\\icon"
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
-local FADE_IN_DUR = 0.2
-local FADE_OUT_DUR = 0.3
+local FADE_IN_DUR  = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeIn  or 0.2
+local FADE_OUT_DUR = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeOut or 0.3
 
 local btn
 local hoverZone  -- invisible frame over minimap to detect hover

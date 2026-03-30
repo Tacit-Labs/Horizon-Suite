@@ -20,8 +20,9 @@ Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua
 core/Config.lua
-core/BrandDisplay.lua
 core/Core.lua
+core/UrlCopyDialog.lua
+core/ProfileIO.lua
 core/CoreSlash.lua
 core/MinimapButton.lua
 
@@ -95,14 +96,13 @@ options/OptionsWidgets.lua
 options/OptionsData.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua
-options/dashboard/Constants.lua
-options/dashboard/Util.lua
-options/dashboard/Background.lua
-options/dashboard/Context.lua
-options/dashboard/Sidebar.lua
-options/dashboard/Navigation.lua
-options/dashboard/DetailView.lua
-options/dashboard/HomeWelcome.lua
+options/dashboard/DashboardConstants.lua
+options/dashboard/DashboardUtil.lua
+options/dashboard/DashboardBackground.lua
+options/dashboard/DashboardContext.lua
+options/dashboard/DashboardSidebar.lua
+options/dashboard/DashboardDetailView.lua
+options/dashboard/DashboardHomeWelcome.lua
 options/dashboard/DashboardPreviewPullout.lua
 options/dashboard/DashboardFrame.lua
 options/dashboard/DashboardPanel.lua

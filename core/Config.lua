@@ -1,5 +1,5 @@
 --[[
-    Horizon Suite - Focus - Config
+    Horizon Suite — Config
     Constants, colors, fonts, labels, and group order. Loaded after Utilities, before Core.
 ]]
 
@@ -100,6 +100,8 @@ addon.FOCUS_ANIM = {
     slideOutX    = 20,
     driftOutY    = 10,
     hoverTitleDur = 0.15,
+    minimapFadeIn  = 0.2,
+    minimapFadeOut = 0.3,
 }
 addon.COMPLETE_HOLD   = 0.50
 addon.HEIGHT_SPEED    = 8
@@ -556,4 +558,26 @@ function addon.ApplyProgressBarFillTexture(tex, r, g, b, a)
     tex:SetTexture(path)
     tex:SetVertexColor(r or 0.4, g or 0.65, b or 0.9, a or 0.85)
 end
+
+-- ============================================================================
+-- BRAND DISPLAY
+-- Fixed English product and module display names — NOT localised.
+-- UI sentences/descriptions belong in addon.L; see TRANSLATING.md.
+-- ============================================================================
+
+addon.BrandDisplay = {
+    optionsTitle = "HORIZON SUITE",
+    productName = "Horizon Suite",
+    horizonInsight = "Horizon Insight",
+    module = {
+        axis = "Axis",
+        focus = "Focus",
+        presence = "Presence",
+        vista = "Vista",
+        insight = "Insight",
+        cache = "Cache",
+        essence = "Essence",
+        meridian = "Meridian",
+    },
+}
 
