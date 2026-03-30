@@ -1,6 +1,6 @@
 # Horizon Suite — `tools/`
 
-Node scripts for **localisation** maintenance. Run from the repo root (`HorizonSuite/`).
+Scripts for **localisation** maintenance and project administration. Run from the repo root (`HorizonSuite/`).
 
 ## Layout
 
@@ -9,6 +9,9 @@ Node scripts for **localisation** maintenance. Run from the repo root (`HorizonS
 | `lib/` | Shared helpers (`parseLocalisationEnUS.js`, `localeHash.js`) |
 | `locale-meta/` | Optional per-locale validation metadata (see `locale-meta/README.md`) |
 | `archived/` | **Historical** one-off migrations — do not use in normal workflow |
+| `color-palette-review.html` | Local HTML preview of the Focus colour palette for design review |
+| `migrate-pipeline-to-issues.ps1` | Bulk-create GitHub Issues from `pipeline.md` Open Items (`gh` CLI) |
+| `setup-labels.ps1` | Create GitHub issue labels via `gh` CLI |
 
 ## Everyday commands
 

@@ -1,4 +1,4 @@
---[[
+﻿--[[
     Horizon Suite - Focus - Core
     DB access, easing, and main frame (HS + scroll, resize, drag, position).
     Constants, colors, fonts, and labels live in Config.lua.
@@ -23,12 +23,13 @@ local function rawDB()
     end
     return db
 end
+addon._RawDB = rawDB  -- exposed for ProfileIO.lua
 
 -- ==========================================================================
 -- DB AND DIMENSION HELPERS (depend on Config constants)
 -- ==========================================================================
 
---- Returns the global UI scale factor from DB (default 1, range 0.5–2).
+--- Returns the global UI scale factor from DB (default 1, range 0.5â€“2).
 --- All visual sizes should be multiplied by this value at render time.
 --- @return number
 function addon.GetUIScale()
@@ -137,13 +138,13 @@ function addon.GetSectionSpacing()
     return addon.Scaled(math.max(0, math.min(24, v)))
 end
 
---- Returns the color multiplier for non-focused entries (0–1 range). Default 0.60 (40% dim).
+--- Returns the color multiplier for non-focused entries (0â€“1 range). Default 0.60 (40% dim).
 function addon.GetDimFactor()
     local strength = tonumber(addon.GetDB("dimStrength", 40)) or 40
     return 1 - math.max(0, math.min(100, strength)) / 100
 end
 
---- Returns the alpha for non-focused entries (0–1 range). Default 1.0 (no alpha change).
+--- Returns the alpha for non-focused entries (0â€“1 range). Default 1.0 (no alpha change).
 function addon.GetDimAlpha()
     local v = tonumber(addon.GetDB("dimAlpha", 100)) or 100
     return math.max(0, math.min(100, v)) / 100
@@ -311,7 +312,7 @@ function addon.ApplyAllClassColorConsumers()
     if addon.Cache and addon.Cache.ApplyCacheOptions then addon.Cache.ApplyCacheOptions() end
 end
 
---- Returns the header bar height from DB or default, clamped to 18–48 px.
+--- Returns the header bar height from DB or default, clamped to 18â€“48 px.
 --- @return number
 function addon.GetHeaderHeight()
     local v = tonumber(addon.GetDB("headerHeight", addon.HEADER_HEIGHT)) or addon.HEADER_HEIGHT
@@ -377,6 +378,7 @@ local function GetCurrentCharacterProfileKey()
     if realm then _cachedCharKey = key end
     return key
 end
+addon._GetCurrentCharacterProfileKey = GetCurrentCharacterProfileKey  -- exposed for ProfileIO.lua
 
 local function GetSpecName(specIndex)
     if type(specIndex) ~= "number" then return nil end
@@ -928,440 +930,7 @@ if StaticPopupDialogs then
 
 end
 
--- ==========================================================================
--- URL COPY BOX (Horizon-themed)
--- Accent colour uses Axis option "Class colours - Dashboard" (GetOptionsClassColor) when enabled, else default cyan.
--- ==========================================================================
-
-local urlCopyFrame
--- Match core/PatchNotes.lua chrome (What's New) for a consistent dialog.
-local URL_COPY_W = 440
-local URL_COPY_PAD = 16
-local URL_COPY_ACCENT_H = 3
-local URL_COPY_TITLE_H = 54
-local URL_COPY_RULE_COL = { 0.13, 0.13, 0.17, 1 }
-local URL_COPY_BG_COL = { 0.06, 0.06, 0.08, 0.97 }
-local URL_COPY_EDGE_COL = { 0.2, 0.2, 0.26, 0.95 }
-local URL_COPY_HINT_H = 14
-local URL_COPY_EDIT_H = 28
-local URL_COPY_BTN_H = 24
-local URL_COPY_F_HEAD = "Fonts\\FRIZQT__.TTF"
-local URL_COPY_F_BODY = "Fonts\\ARIALN.TTF"
-
-local function GetURLCopyAccentRGB()
-    local cc = addon.GetOptionsClassColor and addon.GetOptionsClassColor()
-    if cc then return cc[1], cc[2], cc[3] end
-    return 0.2, 0.8, 0.9
-end
-
-local function BuildURLCopyFrame()
-    if urlCopyFrame then return urlCopyFrame end
-    local Design = addon.Design
-    local ebBg = Design and Design.QUEST_ITEM_BG or { 0.12, 0.12, 0.15, 0.95 }
-    local ebBorder = Design and Design.QUEST_ITEM_BORDER or { 0.30, 0.32, 0.38, 0.6 }
-
-    local bodyTop = URL_COPY_TITLE_H + URL_COPY_PAD
-    local fH = bodyTop + URL_COPY_HINT_H + 4 + URL_COPY_EDIT_H + URL_COPY_PAD + URL_COPY_BTN_H + URL_COPY_PAD
-
-    local f = CreateFrame("Frame", "HorizonSuiteURLCopyBox", UIParent, "BackdropTemplate")
-    f:SetSize(URL_COPY_W, fH)
-    f:SetPoint("CENTER", 0, 30)
-    f:SetFrameStrata("DIALOG")
-    f:SetToplevel(true)
-    f:SetMovable(true)
-    f:SetClampedToScreen(true)
-    f:EnableMouse(true)
-    f:Hide()
-
-    f:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    f:SetBackdropColor(unpack(URL_COPY_BG_COL))
-    f:SetBackdropBorderColor(unpack(URL_COPY_EDGE_COL))
-
-    tinsert(UISpecialFrames, "HorizonSuiteURLCopyBox")
-
-    local ar, ag, ab = GetURLCopyAccentRGB()
-    local accentStrip = f:CreateTexture(nil, "OVERLAY")
-    accentStrip:SetHeight(URL_COPY_ACCENT_H)
-    accentStrip:SetPoint("TOPLEFT", 1, -1)
-    accentStrip:SetPoint("TOPRIGHT", -1, -1)
-    accentStrip:SetColorTexture(ar, ag, ab, 1)
-    f.accentStrip = accentStrip
-
-    local dragZone = CreateFrame("Frame", nil, f)
-    dragZone:SetPoint("TOPLEFT")
-    dragZone:SetPoint("TOPRIGHT")
-    dragZone:SetHeight(URL_COPY_TITLE_H)
-    dragZone:EnableMouse(true)
-    dragZone:RegisterForDrag("LeftButton")
-    dragZone:SetScript("OnDragStart", function()
-        if not InCombatLockdown() then f:StartMoving() end
-    end)
-    dragZone:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
-
-    local suiteLbl = dragZone:CreateFontString(nil, "OVERLAY")
-    suiteLbl:SetFont(URL_COPY_F_HEAD, 13, "OUTLINE")
-    suiteLbl:SetPoint("TOPLEFT", dragZone, "TOPLEFT", URL_COPY_PAD, -(URL_COPY_ACCENT_H + 10))
-    suiteLbl:SetText("HORIZON SUITE")
-    suiteLbl:SetTextColor(0.88, 0.88, 0.92)
-
-    local subtitleLbl = dragZone:CreateFontString(nil, "OVERLAY")
-    subtitleLbl:SetFont(URL_COPY_F_BODY, 10, "")
-    subtitleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -3)
-    subtitleLbl:SetText((addon.L and addon.L["OPTIONS_FOCUS_COPY_LINK"]) or "Copy link")
-    subtitleLbl:SetTextColor(ar, ag, ab)
-    f.subtitleLbl = subtitleLbl
-
-    local closeBtn = CreateFrame("Button", nil, dragZone)
-    closeBtn:SetSize(28, 28)
-    closeBtn:SetPoint("TOPRIGHT", dragZone, "TOPRIGHT", -4, -(URL_COPY_ACCENT_H + 8))
-    local closeBg = closeBtn:CreateTexture(nil, "BACKGROUND")
-    closeBg:SetAllPoints()
-    closeBg:SetColorTexture(1, 0.3, 0.3, 0)
-    local closeX = closeBtn:CreateFontString(nil, "OVERLAY")
-    closeX:SetFont(URL_COPY_F_HEAD, 13, "OUTLINE")
-    closeX:SetPoint("CENTER")
-    closeX:SetText("\195\151")
-    closeX:SetTextColor(0.36, 0.36, 0.42)
-    closeBtn:SetScript("OnEnter", function()
-        closeX:SetTextColor(1, 1, 1)
-        closeBg:SetColorTexture(1, 0.3, 0.3, 0.2)
-    end)
-    closeBtn:SetScript("OnLeave", function()
-        closeX:SetTextColor(0.36, 0.36, 0.42)
-        closeBg:SetColorTexture(1, 0.3, 0.3, 0)
-    end)
-    closeBtn:SetScript("OnClick", function() f:Hide() end)
-
-    local topRule = f:CreateTexture(nil, "ARTWORK")
-    topRule:SetHeight(1)
-    topRule:SetPoint("TOPLEFT", URL_COPY_PAD, -URL_COPY_TITLE_H)
-    topRule:SetPoint("TOPRIGHT", -URL_COPY_PAD, -URL_COPY_TITLE_H)
-    topRule:SetColorTexture(unpack(URL_COPY_RULE_COL))
-
-    local hintLbl = f:CreateFontString(nil, "OVERLAY")
-    hintLbl:SetFont(URL_COPY_F_BODY, 10, "")
-    hintLbl:SetPoint("TOPLEFT", f, "TOPLEFT", URL_COPY_PAD, -bodyTop)
-    hintLbl:SetPoint("RIGHT", f, "RIGHT", -URL_COPY_PAD, 0)
-    hintLbl:SetWordWrap(true)
-    hintLbl:SetNonSpaceWrap(false)
-    hintLbl:SetText((addon.L and addon.L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]) or "Copy the URL below (Ctrl+C) and paste in your browser.")
-    hintLbl:SetTextColor(0.42, 0.42, 0.50)
-
-    local eb = CreateFrame("EditBox", nil, f)
-    eb:SetSize(URL_COPY_W - URL_COPY_PAD * 2, URL_COPY_EDIT_H)
-    eb:SetPoint("TOPLEFT", hintLbl, "BOTTOMLEFT", 0, -4)
-    eb:SetPoint("RIGHT", f, "RIGHT", -URL_COPY_PAD, 0)
-    eb:SetFontObject(ChatFontNormal)
-    eb:SetFont("Fonts\\ARIALN.TTF", 11, "")
-    eb:SetAutoFocus(false)
-    eb:SetMaxLetters(2048)
-    eb:SetScript("OnEscapePressed", function() eb:ClearFocus() f:Hide() end)
-    local ebBgTex = eb:CreateTexture(nil, "BACKGROUND")
-    ebBgTex:SetAllPoints()
-    ebBgTex:SetColorTexture(ebBg[1], ebBg[2], ebBg[3], ebBg[4] or 1)
-    local ebLeft = eb:CreateTexture(nil, "BORDER")
-    ebLeft:SetWidth(1)
-    ebLeft:SetColorTexture(ebBorder[1], ebBorder[2], ebBorder[3], ebBorder[4] or 1)
-    ebLeft:SetPoint("TOPLEFT", 0, 1)
-    ebLeft:SetPoint("BOTTOMLEFT", 0, -1)
-    local ebRight = eb:CreateTexture(nil, "BORDER")
-    ebRight:SetWidth(1)
-    ebRight:SetColorTexture(ebBorder[1], ebBorder[2], ebBorder[3], ebBorder[4] or 1)
-    ebRight:SetPoint("TOPRIGHT", 0, 1)
-    ebRight:SetPoint("BOTTOMRIGHT", 0, -1)
-    local ebTop = eb:CreateTexture(nil, "BORDER")
-    ebTop:SetHeight(1)
-    ebTop:SetColorTexture(ebBorder[1], ebBorder[2], ebBorder[3], ebBorder[4] or 1)
-    ebTop:SetPoint("TOPLEFT", 0, 0)
-    ebTop:SetPoint("TOPRIGHT", 0, 0)
-    local ebBottom = eb:CreateTexture(nil, "BORDER")
-    ebBottom:SetHeight(1)
-    ebBottom:SetColorTexture(ebBorder[1], ebBorder[2], ebBorder[3], ebBorder[4] or 1)
-    ebBottom:SetPoint("BOTTOMLEFT", 0, 0)
-    ebBottom:SetPoint("BOTTOMRIGHT", 0, 0)
-    f.editBox = eb
-
-    local btn = CreateFrame("Button", nil, f)
-    btn:SetSize(72, URL_COPY_BTN_H)
-    btn:SetPoint("BOTTOM", f, "BOTTOM", 0, URL_COPY_PAD)
-    local btnBg = btn:CreateTexture(nil, "BACKGROUND")
-    btnBg:SetAllPoints()
-    btnBg:SetColorTexture(URL_COPY_EDGE_COL[1], URL_COPY_EDGE_COL[2], URL_COPY_EDGE_COL[3], 0.6)
-    btn:SetNormalTexture(btnBg)
-    local btnLabel = btn:CreateFontString(nil, "OVERLAY")
-    btnLabel:SetFont(URL_COPY_F_HEAD, 10, "")
-    btnLabel:SetPoint("CENTER")
-    btnLabel:SetText(_G.OKAY or "Close")
-    btnLabel:SetTextColor(0.9, 0.9, 0.92)
-    btn:SetScript("OnClick", function() f:Hide() end)
-    btn:SetScript("OnEnter", function()
-        btnBg:SetColorTexture(ar * 0.5, ag * 0.5, ab * 0.5, 0.5)
-    end)
-    btn:SetScript("OnLeave", function()
-        btnBg:SetColorTexture(URL_COPY_EDGE_COL[1], URL_COPY_EDGE_COL[2], URL_COPY_EDGE_COL[3], 0.6)
-    end)
-
-    urlCopyFrame = f
-    return f
-end
-
---- Show the URL copy box (same chrome as What's New / Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
---- @param url string Full URL to display and copy
---- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["OPTIONS_FOCUS_COPY_LINK"]
-function addon.ShowURLCopyBox(url, accentSubtitle)
-    if not url or type(url) ~= "string" or url == "" then return end
-    local f = BuildURLCopyFrame()
-    if not f or not f.editBox then return end
-    local ar, ag, ab = GetURLCopyAccentRGB()
-    if f.accentStrip then
-        f.accentStrip:SetColorTexture(ar, ag, ab, 1)
-    end
-    if f.subtitleLbl then
-        f.subtitleLbl:SetText(accentSubtitle or ((addon.L and addon.L["OPTIONS_FOCUS_COPY_LINK"]) or "Copy link"))
-        f.subtitleLbl:SetTextColor(ar, ag, ab)
-    end
-    f.editBox:SetText(url)
-    f:Show()
-    -- Defer focus and highlight so the edit box is ready and Ctrl+C works immediately (WoW quirk).
-    if C_Timer and C_Timer.After then
-        C_Timer.After(0, function()
-            if f:IsShown() and f.editBox then
-                f.editBox:SetFocus()
-                f.editBox:HighlightText()
-            end
-        end)
-    else
-        f.editBox:SetFocus()
-        f.editBox:HighlightText()
-    end
-end
-
---- Refresh URL copy dialog accent if visible (e.g. when Dashboard class colour option changes).
---- @return nil
-function addon.ApplyURLCopyBoxAccent()
-    if not urlCopyFrame or not urlCopyFrame:IsShown() then return end
-    local ar, ag, ab = GetURLCopyAccentRGB()
-    if urlCopyFrame.accentStrip then
-        urlCopyFrame.accentStrip:SetColorTexture(ar, ag, ab, 1)
-    end
-    if urlCopyFrame.subtitleLbl then
-        urlCopyFrame.subtitleLbl:SetTextColor(ar, ag, ab)
-    end
-end
-
--- ==========================================================================
--- PROFILE EXPORT / IMPORT
--- ==========================================================================
-
-local EXPORT_HEADER = "HSP2:"
-
--- Base64 encode/decode (pure Lua, no dependencies)
-local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-local function b64encode(data)
-    local out = {}
-    for i = 1, #data, 3 do
-        local a, b, c = data:byte(i, i + 2)
-        b = b or 0; c = c or 0
-        local n = a * 65536 + b * 256 + c
-        local remain = #data - i + 1
-        out[#out + 1] = B64:sub(math.floor(n / 262144) % 64 + 1, math.floor(n / 262144) % 64 + 1)
-        out[#out + 1] = B64:sub(math.floor(n / 4096) % 64 + 1, math.floor(n / 4096) % 64 + 1)
-        out[#out + 1] = remain > 1 and B64:sub(math.floor(n / 64) % 64 + 1, math.floor(n / 64) % 64 + 1) or "="
-        out[#out + 1] = remain > 2 and B64:sub(n % 64 + 1, n % 64 + 1) or "="
-    end
-    return table.concat(out)
-end
-
-local B64INV = {}
-for i = 1, #B64 do B64INV[B64:byte(i)] = i - 1 end
-
-local function b64decode(data)
-    data = data:gsub("[^A-Za-z0-9%+/=]", "")
-    local out = {}
-    for i = 1, #data, 4 do
-        local a, b, c, d = data:byte(i, i + 3)
-        a = B64INV[a] or 0; b = B64INV[b] or 0
-        c = B64INV[c or 0] or 0; d = B64INV[d or 0] or 0
-        local n = a * 262144 + b * 4096 + c * 64 + d
-        out[#out + 1] = string.char(math.floor(n / 65536) % 256)
-        if data:sub(i + 2, i + 2) ~= "=" then out[#out + 1] = string.char(math.floor(n / 256) % 256) end
-        if data:sub(i + 3, i + 3) ~= "=" then out[#out + 1] = string.char(n % 256) end
-    end
-    return table.concat(out)
-end
-
--- Compact Lua table serializer (supports string/number/boolean/nested table).
--- Format per value: type tag + content. Pairs joined by \n, key\tvalue per pair.
--- Nested tables are length-prefixed: "T" .. len .. ":" .. serialized_content
-local function SerializeValue(v)
-    local tv = type(v)
-    if tv == "string" then
-        return "s" .. v:gsub("\\", "\\\\"):gsub("\t", "\\t"):gsub("\n", "\\n")
-    elseif tv == "number" then return "n" .. tostring(v)
-    elseif tv == "boolean" then return v and "B1" or "B0"
-    elseif tv == "table" then
-        local parts = {}
-        for k, vv in pairs(v) do
-            local sk = SerializeValue(k)
-            local sv = SerializeValue(vv)
-            if sk and sv then parts[#parts + 1] = sk .. "\t" .. sv end
-        end
-        local body = table.concat(parts, "\n")
-        return "T" .. #body .. ":" .. body
-    end
-    return nil
-end
-
-local function DeserializeValue(str, pos)
-    if not str or not pos or pos > #str then return nil, pos end
-    local tag = str:sub(pos, pos)
-    if tag == "s" then
-        local nl = str:find("[\t\n]", pos + 1)
-        local raw
-        if not nl then raw = str:sub(pos + 1); nl = #str + 1
-        else raw = str:sub(pos + 1, nl - 1) end
-        return raw:gsub("\\n", "\n"):gsub("\\t", "\t"):gsub("\\\\", "\\"), nl
-    elseif tag == "n" then
-        local nl = str:find("[\t\n]", pos + 1)
-        if not nl then return tonumber(str:sub(pos + 1)), #str + 1 end
-        return tonumber(str:sub(pos + 1, nl - 1)), nl
-    elseif tag == "B" then
-        return str:sub(pos + 1, pos + 1) == "1", pos + 2
-    elseif tag == "T" then
-        local colon = str:find(":", pos + 1)
-        if not colon then return nil, pos end
-        local len = tonumber(str:sub(pos + 1, colon - 1))
-        if not len then return nil, pos end
-        local body = str:sub(colon + 1, colon + len)
-        local tbl = {}
-        local p = 1
-        while p <= #body do
-            local k, v
-            local tabPos = body:find("\t", p)
-            if not tabPos then break end
-            k = DeserializeValue(body, p)
-            p = tabPos + 1
-            local nlPos = nil
-            if body:sub(p, p) == "T" then
-                local innerColon = body:find(":", p + 1)
-                if innerColon then
-                    local innerLen = tonumber(body:sub(p + 1, innerColon - 1))
-                    if innerLen then nlPos = innerColon + innerLen + 1 end
-                end
-            end
-            if not nlPos then nlPos = body:find("\n", p) end
-            if nlPos then
-                v = DeserializeValue(body, p)
-                p = nlPos + 1
-            else
-                v = DeserializeValue(body, p)
-                p = #body + 1
-            end
-            if k ~= nil and v ~= nil then tbl[k] = v end
-        end
-        return tbl, colon + len + 1
-    end
-    return nil, pos + 1
-end
-
-local EXPORT_STRIP_PREFIXES = { "vistaButtonManaged_" }
-local EXPORT_STRIP_KEYS     = { vistaButtonWhitelist = true }
-
-local function StripMachineSpecificKeys(src)
-    local copy = {}
-    for k, v in pairs(src) do
-        local dominated = EXPORT_STRIP_KEYS[k]
-        if not dominated then
-            for _, prefix in ipairs(EXPORT_STRIP_PREFIXES) do
-                if type(k) == "string" and k:sub(1, #prefix) == prefix then
-                    dominated = true
-                    break
-                end
-            end
-        end
-        if not dominated then
-            copy[k] = v
-        end
-    end
-    return copy
-end
-
-function addon.ExportProfile(key)
-    if type(key) ~= "string" or key == "" then return nil end
-    addon.EnsureDB()
-    EnsureProfilesAndMigrateLegacy()
-    local db = rawDB()
-    db.profiles = db.profiles or {}
-    local profile
-    local activeKey = addon.GetEffectiveProfileKey()
-    if activeKey and activeKey == key then
-        profile = addon.GetActiveProfile()
-    else
-        profile = db.profiles[key]
-    end
-    if not profile or type(profile) ~= "table" or next(profile) == nil then return nil end
-    -- Strip machine-specific addon button selections before serialization.
-    local cleaned = StripMachineSpecificKeys(profile)
-    if not next(cleaned) then return nil end
-    local serialized = SerializeValue(cleaned)
-    if not serialized then return nil end
-    return EXPORT_HEADER .. b64encode(serialized)
-end
-
-function addon.ValidateProfileString(str)
-    if type(str) ~= "string" or str == "" then return false end
-    if str:sub(1, 5) ~= "HSP2:" then return false end
-    local payload = str:sub(6)
-    if payload == "" then return false end
-    local ok, decoded = pcall(b64decode, payload)
-    if not ok or type(decoded) ~= "string" or decoded == "" then return false end
-    if decoded:sub(1, 1) ~= "T" then return false end
-    local tbl = DeserializeValue(decoded, 1)
-    return type(tbl) == "table" and next(tbl) ~= nil
-end
-
-function addon.ImportProfile(name, dataString)
-    if type(name) ~= "string" or name == "" then return false, "invalid" end
-    if type(dataString) ~= "string" or dataString == "" then return false, "invalid" end
-    if dataString:sub(1, 5) ~= "HSP2:" then return false, "invalid" end
-
-    local payload = dataString:sub(6)
-    local ok, decoded = pcall(b64decode, payload)
-    if not ok or type(decoded) ~= "string" or decoded == "" then return false, "corrupt" end
-    local tbl = DeserializeValue(decoded, 1)
-    if type(tbl) ~= "table" or next(tbl) == nil then return false, "corrupt" end
-
-    tbl = StripMachineSpecificKeys(tbl)
-    if not next(tbl) then return false, "corrupt" end
-
-    addon.EnsureDB()
-    local db = rawDB()
-    db._profilesValidated = nil
-    EnsureProfilesAndMigrateLegacy()
-    db.profiles = db.profiles or {}
-
-    local finalName = name
-    if db.profiles[finalName] then
-        local base = finalName
-        local i = 2
-        while db.profiles[base .. " " .. i] do i = i + 1 end
-        finalName = base .. " " .. i
-    end
-
-    db.profiles[finalName] = tbl
-
-    local charKey = GetCurrentCharacterProfileKey()
-    if charKey and charKey ~= "" then
-        db.charProfileKeys = db.charProfileKeys or {}
-        db.charProfileKeys[charKey] = finalName
-    end
-
-    return true, finalName
-end
+-- URL copy box: see core/UrlCopyDialog.lua  |  Profile export/import: see core/ProfileIO.lua
 
 -- ==========================================================================
 -- SPEC CHANGE: apply per-spec profile when the player swaps specialization
@@ -2358,7 +1927,7 @@ function addon.DebugHeaderCount()
     addon.HSPrint(string.format("[HeaderCount] GetNumQuestLogEntries first=%s second=%s maxSlots=%s | loop=%s counted=%s afterCap=%s | skip: header=%s noQid=%s hidden=%s wq=%s notOnQuest=%s",
         tostring(a), tostring(b), tostring(maxSlots), tostring(numEntries), tostring(numInLog), tostring(afterCap),
         tostring(skippedHeader), tostring(skippedNoQid), tostring(skippedHidden), tostring(skippedWQ), tostring(skippedNotOnQuest)))
-    -- Breakdown: list each entry we counted (index, questID, title) — matches production (GetInfo + not isHidden + IsOnQuest + not WQ).
+    -- Breakdown: list each entry we counted (index, questID, title) â€” matches production (GetInfo + not isHidden + IsOnQuest + not WQ).
     addon.HSPrint("[HeaderCount] Breakdown of counted entries (production logic; index | questID | title):")
     local getTitle = C_QuestLog.GetTitleForQuestID
     local n = 0

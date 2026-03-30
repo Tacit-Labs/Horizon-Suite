@@ -1,5 +1,5 @@
 --[[
-    Horizon Suite - Focus - Utilities
+    Horizon Suite — Utilities
     Shared helpers for design tokens, borders, text, logging, and quest/map helpers.
 ]]
 
