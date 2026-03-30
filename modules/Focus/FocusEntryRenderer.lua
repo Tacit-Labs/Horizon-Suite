@@ -150,9 +150,11 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     local objColor = (addon.GetObjectiveColor and addon.GetObjectiveColor(cat)) or addon.OBJ_COLOR or c
     local doneColor = (addon.GetCompletedObjectiveColor and addon.GetCompletedObjectiveColor(cat))
         or (addon.GetObjectiveColor and addon.GetObjectiveColor(cat)) or addon.OBJ_DONE_COLOR
+    local dimTextAlpha = 1
     if addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked then
         objColor = addon.ApplyDimColor(objColor)
         doneColor = addon.ApplyDimColor(doneColor)
+        dimTextAlpha = addon.GetDimAlpha()
     end
     local effectiveDoneColor = doneColor
 
@@ -344,14 +346,15 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[oData.itemQuality]
                 if qc then useObjColor = { qc.r, qc.g, qc.b } end
             end
+            local outA = alpha * dimTextAlpha
             if oData.finished then
                 if useTick then
-                    obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], alpha)
+                    obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], outA)
                 else
-                    obj.text:SetTextColor(effectiveDoneColor[1], effectiveDoneColor[2], effectiveDoneColor[3], alpha)
+                    obj.text:SetTextColor(effectiveDoneColor[1], effectiveDoneColor[2], effectiveDoneColor[3], outA)
                 end
             else
-                obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], alpha)
+                obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], outA)
             end
 
             obj.text:ClearAllPoints()
@@ -427,7 +430,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 if obj.progressBarLabel then
                     local pct = math.floor(100 * fraction)
                     obj.progressBarLabel:SetText(("%d/%d (%d%%)"):format(nf, nr, pct))
-                    obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], 1)
+                    obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], dimTextAlpha)
                     obj.progressBarLabel:ClearAllPoints()
                     obj.progressBarLabel:SetPoint("CENTER", obj.progressBarBg, "CENTER", 0, 0)
                     obj.progressBarLabel:Show()
@@ -457,7 +460,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
                 if obj.progressBarLabel then
                     obj.progressBarLabel:SetText(("%d%%"):format(math.floor(pctVal)))
-                    obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], 1)
+                    obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], dimTextAlpha)
                     obj.progressBarLabel:ClearAllPoints()
                     obj.progressBarLabel:SetPoint("CENTER", obj.progressBarBg, "CENTER", 0, 0)
                     obj.progressBarLabel:Show()
@@ -500,7 +503,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         obj.shadow:SetText(firstLineText)
         obj._hsFinished = true
         obj._hsAlpha = 1
-        obj.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], 1)
+        obj.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
         obj.text:ClearAllPoints()
         local gapForComplete = (prevAnchor == entry.titleText) and titleGap or objSpacing
         obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", OBJ_EXTRA_LEFT_PAD, -gapForComplete)
@@ -518,7 +521,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj2.shadow:SetText(clickText)
             obj2._hsFinished = true
             obj2._hsAlpha = 1
-            obj2.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], 1)
+            obj2.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
             obj2.text:ClearAllPoints()
             obj2.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -objSpacing)
             obj2.text:Show()
@@ -791,7 +794,8 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             local cat = questData.category or "DEFAULT"
             local useTimerColor = addon.GetDB("timerColorByRemaining", true)
             local r, g, b = addon.GetTimerTextColor(remaining, duration, cat, useTimerColor)
-            entry.wqTimerText:SetTextColor(r, g, b, 1)
+            local wr, wg, wb, wa = addon.GetDimmedTrackerTextColor(r, g, b, questData.isSuperTracked)
+            entry.wqTimerText:SetTextColor(wr, wg, wb, wa)
             entry.wqTimerText:Show()
             local th = entry.wqTimerText:GetStringHeight()
             if not th or th < 1 then th = addon.OBJ_SIZE + 2 end
@@ -903,7 +907,8 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             if not txtColor or type(txtColor) ~= "table" then txtColor = { 0.95, 0.95, 0.95 } end
         end
         entry.wqProgressText:SetFontObject(addon.ProgressBarFont or addon.ObjFont)
-        entry.wqProgressText:SetTextColor(txtColor[1], txtColor[2], txtColor[3], 1)
+        local pr, pg, pb, pa = addon.GetDimmedTrackerTextColor(txtColor[1], txtColor[2], txtColor[3], questData.isSuperTracked)
+        entry.wqProgressText:SetTextColor(pr, pg, pb, pa)
         entry.wqProgressText:SetShown(firstPercent ~= nil)
         totalH = totalH + percentBarSpacing + barHeight
     else
@@ -1274,8 +1279,8 @@ local function PopulateEntry(entry, questData, groupKey)
             local cat = questData.category or groupKey or "DEFAULT"
             local useTimerColor = addon.GetDB("timerColorByRemaining", true)
             local r, g, b = addon.GetTimerTextColor(remaining, entry._inlineTimerDuration, cat, useTimerColor)
-            local inlineDimAlpha = (addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked) and addon.GetDimAlpha() or 1
-            entry.inlineTimerText:SetTextColor(r, g, b, inlineDimAlpha)
+            local tr, tg, tb, ta = addon.GetDimmedTrackerTextColor(r, g, b, questData.isSuperTracked)
+            entry.inlineTimerText:SetTextColor(tr, tg, tb, ta)
             entry.inlineTimerText:Show()
         end
     elseif entry.inlineTimerText then
@@ -1639,6 +1644,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.isTracked  = questData.isTracked
         entry.vignetteGUID = nil; entry.vignetteMapID = nil; entry.vignetteX = nil; entry.vignetteY = nil; entry.title = nil
     end
+    addon.ApplyDimToTrackerEntryIcons(entry, questData.isSuperTracked)
     return totalH
 end
 

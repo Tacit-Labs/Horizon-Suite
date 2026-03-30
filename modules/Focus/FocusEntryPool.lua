@@ -97,13 +97,13 @@ local function CreateQuestEntry(parent, index)
         addon.AttachSecureItemOverlay(self, entry and entry.itemLink)
     end)
     e.itemBtn:SetScript("OnLeave", function(self)
-        self:SetAlpha(0.9)
+        self:SetAlpha(1)
         if GameTooltip:GetOwner() == self then
             GameTooltip:Hide()
         end
         addon.DetachSecureItemOverlay(self)
     end)
-    e.itemBtn:SetAlpha(0.9)
+    e.itemBtn:SetAlpha(1)
 
     e.itemBtn:SetScript("OnClick", function(self, button)
         local entry = self._ownerEntry
@@ -204,6 +204,7 @@ local function CreateQuestEntry(parent, index)
         end
     end)
     e.lfgBtn:SetScript("OnEnter", function(self)
+        self:SetAlpha(1)
         self.icon:SetAlpha(1)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -212,12 +213,14 @@ local function CreateQuestEntry(parent, index)
         GameTooltip:Show()
     end)
     e.lfgBtn:SetScript("OnLeave", function(self)
-        self.icon:SetAlpha(0.8)
+        self:SetAlpha(1)
+        self.icon:SetAlpha(1)
         if GameTooltip:GetOwner() == self then
             GameTooltip:Hide()
         end
     end)
-    e.lfgBtn.icon:SetAlpha(0.8)
+    e.lfgBtn:SetAlpha(1)
+    e.lfgBtn.icon:SetAlpha(1)
     e.lfgBtn:Hide()
 
     -- Auctionator AH search button: shown on recipe entries when Auctionator is loaded.
@@ -231,9 +234,11 @@ local function CreateQuestEntry(parent, index)
     e.ahBtn.icon = e.ahBtn:CreateTexture(nil, "ARTWORK")
     e.ahBtn.icon:SetAllPoints()
     e.ahBtn.icon:SetAtlas("common-search-magnifyingglass")
-    e.ahBtn.icon:SetAlpha(0.8)
+    e.ahBtn:SetAlpha(1)
+    e.ahBtn.icon:SetAlpha(1)
 
     e.ahBtn:SetScript("OnEnter", function(self)
+        self:SetAlpha(1)
         self.icon:SetAlpha(1)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -242,7 +247,8 @@ local function CreateQuestEntry(parent, index)
         GameTooltip:Show()
     end)
     e.ahBtn:SetScript("OnLeave", function(self)
-        self.icon:SetAlpha(0.8)
+        self:SetAlpha(1)
+        self.icon:SetAlpha(1)
         if GameTooltip:GetOwner() == self then GameTooltip:Hide() end
     end)
     e.ahBtn:SetScript("OnClick", function(self)
@@ -473,7 +479,7 @@ for i = 1, addon.POOL_SIZE do
     pool[i] = CreateQuestEntry(scrollChild, i)
 end
 
-local function UpdateScenarioBar(bar, now, category)
+local function UpdateScenarioBar(bar, now, category, isSuperTracked)
     local d, s = bar.duration, bar.startTime
     if not d or not s then return end
     local remaining = d - (now - s)
@@ -506,9 +512,17 @@ local function UpdateScenarioBar(bar, now, category)
         if not progFillColor or type(progFillColor) ~= "table" then progFillColor = { 0.40, 0.65, 0.90 } end
     end
     local useTimerColor = addon.GetDB("timerColorByRemaining", true)
-    local labelR, labelG, labelB = addon.GetTimerTextColor(remaining, d, colorCat, useTimerColor)
-    addon.ApplyProgressBarFillTexture(bar.Fill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
-    bar.Label:SetTextColor(labelR, labelG, labelB, 1)
+    local fr, fg, fb = progFillColor[1], progFillColor[2], progFillColor[3]
+    local fa = progFillColor[4] or 0.85
+    if addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked then
+        local fc = addon.ApplyDimColor({ fr, fg, fb })
+        fr, fg, fb = fc[1], fc[2], fc[3]
+        fa = fa * addon.GetDimAlpha()
+    end
+    addon.ApplyProgressBarFillTexture(bar.Fill, fr, fg, fb, fa)
+    local lr, lg, lb = addon.GetTimerTextColor(remaining, d, colorCat, useTimerColor)
+    local labelR, labelG, labelB, labelA = addon.GetDimmedTrackerTextColor(lr, lg, lb, isSuperTracked)
+    bar.Label:SetTextColor(labelR, labelG, labelB, labelA)
 end
 
 function addon.UpdateScenarioTimerBars()
@@ -519,7 +533,7 @@ function addon.UpdateScenarioTimerBars()
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do
                 if bar.duration and bar.startTime then
-                    UpdateScenarioBar(bar, now, entry.category)
+                    UpdateScenarioBar(bar, now, entry.category, entry.isSuperTracked)
                 end
             end
         end
@@ -536,8 +550,8 @@ function addon.UpdateScenarioTimerBars()
                     local cat = entry.category or entry.groupKey or "DEFAULT"
                     local useTimerColor = addon.GetDB("timerColorByRemaining", true)
                     local r, g, b = addon.GetTimerTextColor(remaining, entry._inlineTimerDuration, cat, useTimerColor)
-                    local dimAlpha = (addon.GetDB("dimNonSuperTracked", false) and not entry.isSuperTracked) and addon.GetDimAlpha() or 1
-                    entry.inlineTimerText:SetTextColor(r, g, b, dimAlpha)
+                    local tr, tg, tb, ta = addon.GetDimmedTrackerTextColor(r, g, b, entry.isSuperTracked)
+                    entry.inlineTimerText:SetTextColor(tr, tg, tb, ta)
                 end
             end
         end
@@ -792,6 +806,19 @@ local function ClearEntry(entry, full)
     entry.isEventQuest = nil
     entry.isComplete = nil
     entry.isSuperTracked = nil
+    if entry.questTypeIcon then addon.ApplyDimToTrackerIconTexture(entry.questTypeIcon, true) end
+    if entry.itemBtn and entry.itemBtn.icon then
+        addon.ApplyDimToTrackerIconTexture(entry.itemBtn.icon, true)
+        entry.itemBtn:SetAlpha(1)
+    end
+    if entry.lfgBtn and entry.lfgBtn.icon then
+        addon.ApplyDimToTrackerIconTexture(entry.lfgBtn.icon, true)
+        entry.lfgBtn:SetAlpha(1)
+    end
+    if entry.ahBtn and entry.ahBtn.icon then
+        addon.ApplyDimToTrackerIconTexture(entry.ahBtn.icon, true)
+        entry.ahBtn:SetAlpha(1)
+    end
     entry.isDungeonQuest = nil
     entry.isGroupQuest   = nil
     entry.isAutoComplete = nil

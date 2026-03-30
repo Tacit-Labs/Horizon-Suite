@@ -166,6 +166,74 @@ function addon.ApplyDimColor(color)
     end
     return { r, g, b }
 end
+
+--- Applies dim strength, optional desaturation, and dim alpha to tracker text when "dim unfocused" is enabled.
+--- Use for timer lines and any text that should match title/objective dimming.
+--- @param r number
+--- @param g number
+--- @param b number
+--- @param isSuperTracked boolean|nil When true, returns original rgb and alpha 1.
+--- @return number r
+--- @return number g
+--- @return number b
+--- @return number textAlpha multiplier 0-1 (GetDimAlpha when dimmed)
+function addon.GetDimmedTrackerTextColor(r, g, b, isSuperTracked)
+    if addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked then
+        local c = addon.ApplyDimColor({ r, g, b })
+        return c[1], c[2], c[3], addon.GetDimAlpha()
+    end
+    return r, g, b, 1
+end
+
+--- Dims a tracker icon texture to match dim strength, dim alpha, and optional desaturate when "dim unfocused" is on.
+--- @param tex Texture|nil Region with SetVertexColor (and optionally SetDesaturated)
+--- @param isSuperTracked boolean|nil When true, resets vertex to white and clears desaturation
+--- @return nil
+function addon.ApplyDimToTrackerIconTexture(tex, isSuperTracked)
+    if not tex or not tex.SetVertexColor then return end
+    if not (addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked) then
+        pcall(function() tex:SetVertexColor(1, 1, 1, 1) end)
+        if tex.SetDesaturated then
+            pcall(function() tex:SetDesaturated(false) end)
+        end
+        return
+    end
+    local f = addon.GetDimFactor()
+    local a = addon.GetDimAlpha()
+    pcall(function() tex:SetVertexColor(f, f, f, a) end)
+    if tex.SetDesaturated then
+        pcall(function() tex:SetDesaturated(addon.GetDB("dimDesaturate", false)) end)
+    end
+end
+
+--- Applies dim (or reset) to quest type, item, LFG, and AH icon textures on a tracker entry.
+--- @param entry Frame Pool entry with optional questTypeIcon, itemBtn.icon, lfgBtn.icon, ahBtn.icon
+--- @param isSuperTracked boolean|nil When nil, uses entry.isSuperTracked
+--- @return nil
+function addon.ApplyDimToTrackerEntryIcons(entry, isSuperTracked)
+    if not entry then return end
+    local st = isSuperTracked
+    if st == nil then st = entry.isSuperTracked end
+    local function applyIcon(tex, shown)
+        if not tex then return end
+        if shown then
+            addon.ApplyDimToTrackerIconTexture(tex, st)
+        else
+            addon.ApplyDimToTrackerIconTexture(tex, true)
+        end
+    end
+    applyIcon(entry.questTypeIcon, entry.questTypeIcon and entry.questTypeIcon.IsShown and entry.questTypeIcon:IsShown())
+    if entry.itemBtn and entry.itemBtn.icon then
+        applyIcon(entry.itemBtn.icon, entry.itemBtn:IsShown())
+    end
+    if entry.lfgBtn and entry.lfgBtn.icon then
+        applyIcon(entry.lfgBtn.icon, entry.lfgBtn:IsShown())
+    end
+    if entry.ahBtn and entry.ahBtn.icon then
+        applyIcon(entry.ahBtn.icon, entry.ahBtn:IsShown())
+    end
+end
+
 function addon.GetSectionToEntryGap()
     local mode = addon.GetSpacingMode()
     if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then

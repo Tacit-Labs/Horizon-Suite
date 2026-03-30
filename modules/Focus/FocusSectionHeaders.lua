@@ -51,7 +51,17 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     local color = addon.GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     s.text:SetText(label)
     s.shadow:SetText(label)
-    s.text:SetTextColor(color[1], color[2], color[3], addon.SECTION_COLOR_A)
+    local secA = addon.SECTION_COLOR_A or 1
+    if addon.GetDB("dimNonSuperTracked", false) and (not focusedGroupKey or groupKey ~= focusedGroupKey) then
+        secA = secA * addon.GetDimAlpha()
+    end
+    s.text:SetTextColor(color[1], color[2], color[3], secA)
+    local baseSec = addon.SECTION_COLOR_A or 1
+    local shadowAlpha = (addon.SHADOW_A or 0.8) * (secA / baseSec)
+    if s.chevron then
+        s.chevron:SetTextColor(color[1], color[2], color[3], secA)
+    end
+    s.shadow:SetTextColor(0, 0, 0, shadowAlpha)
 
     -- Ensure a small visual gap between the chevron and the label text.
     if s.chevron and s.text then
