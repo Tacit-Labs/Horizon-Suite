@@ -1319,13 +1319,30 @@ function addon.ApplyFocusColors()
         local _, _, _, a = tex:GetVertexColor()
         tex:SetColorTexture(color[1], color[2], color[3], a or 1)
     end
-    local focusedGroupKey = addon.GetFocusedGroupKey and addon.GetFocusedGroupKey()
+    -- Infer from visible pool entries (GetFocusedGroupKey() requires grouped; we have no grouped here).
+    local focusedGroupKey
+    for _, entry in pairs(activeMap) do
+        if entry and entry.isSuperTracked and entry.groupKey then
+            focusedGroupKey = entry.groupKey
+            break
+        end
+    end
     for i = 1, addon.SECTION_POOL_SIZE do
         local s = sectionPool[i]
         if s and s.groupKey and s:IsShown() then
             local color = addon.GetSectionHeaderDisplayColor and addon.GetSectionHeaderDisplayColor(s.groupKey, focusedGroupKey)
             if color and type(color) == "table" and color[1] and color[2] and color[3] then
-                s.text:SetTextColor(color[1], color[2], color[3], addon.SECTION_COLOR_A or 1)
+                local secA = addon.SECTION_COLOR_A or 1
+                if addon.GetDB("dimNonSuperTracked", false) and (not focusedGroupKey or s.groupKey ~= focusedGroupKey) then
+                    secA = secA * addon.GetDimAlpha()
+                end
+                s.text:SetTextColor(color[1], color[2], color[3], secA)
+                local baseSec = addon.SECTION_COLOR_A or 1
+                local shadowAlpha = (addon.SHADOW_A or 0.8) * (secA / baseSec)
+                if s.chevron then
+                    s.chevron:SetTextColor(color[1], color[2], color[3], secA)
+                end
+                s.shadow:SetTextColor(0, 0, 0, shadowAlpha)
             end
         end
     end
@@ -1412,11 +1429,13 @@ function addon.ApplyFocusColors()
                         if obj.progressBarLabel and obj.progressBarLabel:IsShown() then
                             local ptc = addon.GetDB("progressBarTextColor", nil)
                             if not ptc or type(ptc) ~= "table" then ptc = { 0.95, 0.95, 0.95 } end
-                            obj.progressBarLabel:SetTextColor(ptc[1], ptc[2], ptc[3], 1)
+                            obj.progressBarLabel:SetTextColor(ptc[1], ptc[2], ptc[3], dimAlpha)
                         end
                     end
                 end
             end
+
+            addon.ApplyDimToTrackerEntryIcons(entry)
 
             if entry.isSuperTracked then
                 local highlightColor = addon.GetDB("highlightColor", nil)

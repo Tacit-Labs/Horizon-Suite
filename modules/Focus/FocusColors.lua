@@ -170,9 +170,9 @@ local function GetSectionColor(groupKey)
 end
 
 --- Colour for section/category row headers (CURRENT, NEARBY, …): per-group section colour, or player class when Focus class colour is on.
---- Applies dim when dimNonSuperTracked and this group is not the super-tracked group.
+--- Applies dim when dimNonSuperTracked and either there is no super-tracked quest (dim all headers) or this group is not the focused group.
 --- @param groupKey string
---- @param focusedGroupKey string|nil Group key that contains the super-tracked quest, if any
+--- @param focusedGroupKey string|nil Group key that contains the super-tracked quest, if any; nil means dim every header
 --- @return table {r,g,b}
 local function GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     local color = GetSectionColor(groupKey)
@@ -183,7 +183,7 @@ local function GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     if not color or type(color) ~= "table" or not color[1] or not color[2] or not color[3] then
         color = addon.SECTION_COLORS.DEFAULT
     end
-    if addon.GetDB("dimNonSuperTracked", false) and focusedGroupKey and groupKey ~= focusedGroupKey then
+    if addon.GetDB("dimNonSuperTracked", false) and (not focusedGroupKey or groupKey ~= focusedGroupKey) then
         color = addon.ApplyDimColor(color)
     end
     return color
