@@ -87,6 +87,7 @@ addon.AH_BTN_SIZE         = 18   -- Auctionator search button (right-side gutter
 addon.DELVE_TIER_ATLAS = "delves-scenario-flag"  -- Blizzard atlas for Delve tier/flag (TierFrame.Flag)
 addon.DELVE_LIFE_EMBED_SIZE = 13                 -- |T icon :H:W|t size for delve lives strip in tracker title row
 
+-- Runtime values overwritten in Focus ApplyTypography from saved shadow settings.
 addon.SHADOW_OX       = 2
 addon.SHADOW_OY       = -2
 addon.SHADOW_A        = 0.8
