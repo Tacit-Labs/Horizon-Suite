@@ -1973,6 +1973,17 @@ do
     proxyButtonCache    = {}
 end
 
+local HORIZON_MINIMAP_BTN_NAME = "HorizonSuiteMinimapButton"
+
+-- INTERNAL_BLACKLIST normally skips Horizon's minimap button; opt-in collects it like other addons.
+local function HorizonMinimapIsInternallyExcluded(cName)
+    if not cName or not INTERNAL_BLACKLIST[cName] then return false end
+    if cName == HORIZON_MINIMAP_BTN_NAME and DB("vistaCollectHorizonMinimapButton", true) then
+        return false
+    end
+    return true
+end
+
 local function SaveButtonState(btn)
     if buttonOriginalState[btn] then return end
     local parent = btn:GetParent()
@@ -2120,11 +2131,21 @@ local function GetOrCreateProxyButton(originalBtn, parent)
             end
             GameTooltip:Show()
         else
-            -- Try to fire original OnEnter
-            pcall(function()
-                local script = originalBtn:GetScript("OnEnter")
-                if script then script(originalBtn) end
-            end)
+            local cName = originalBtn.GetName and originalBtn:GetName()
+            -- Horizon: do not run original OnEnter on the hidden real button; anchor to visible proxy.
+            if cName == HORIZON_MINIMAP_BTN_NAME and addon.MinimapButton_ShowGameTooltip then
+                addon.MinimapButton_ShowGameTooltip(self, "ANCHOR_BOTTOMLEFT")
+            else
+                pcall(function()
+                    local script = originalBtn:GetScript("OnEnter")
+                    if script then script(originalBtn) end
+                end)
+                -- Re-anchor to visible proxy; IsShown() can be false briefly when owner was hidden.
+                if GameTooltip then
+                    GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
+                    GameTooltip:Show()
+                end
+            end
         end
     end)
     proxy:SetScript("OnLeave", function(self)
@@ -2171,7 +2192,7 @@ end
 
 local function IsButtonManagedByVista(btn)
     local cName = btn:GetName()
-    if cName and INTERNAL_BLACKLIST[cName] then return false end
+    if HorizonMinimapIsInternallyExcluded(cName) then return false end
     if cName and BLIZZARD_DEFAULT_BUTTONS[cName] then return false end
     if cName then
         for _, pat in ipairs(ClusterAndOtherAddonNamePatterns) do
@@ -2282,7 +2303,7 @@ local function ScanMinimapButtons()
         if not ok or not isBtn then return end
         local cName = child:GetName()
         if requireName and not cName then return end
-        if cName and INTERNAL_BLACKLIST[cName] then return end
+        if HorizonMinimapIsInternallyExcluded(cName) then return end
         if cName and BLIZZARD_DEFAULT_BUTTONS[cName] then return end
         if cName and matchesBlizzardPattern(cName) then return end
         local isProtected = false
@@ -3018,6 +3039,9 @@ local function CollectMinimapButtons()
         DestroyDrawerButton()
         if rightClickPanel then rightClickPanel:Hide(); rightClickVisible = false end
         if collectorBar then collectorBar:SetWidth(1) end
+        if addon.MinimapButton_SetVistaCollected then
+            addon.MinimapButton_SetVistaCollected(false)
+        end
         return
     end
 
@@ -3120,6 +3144,25 @@ local function CollectMinimapButtons()
         end
         UpdateDrawerPanelLayout()
         if collectorBar then collectorBar:SetWidth(1) end
+    end
+
+    local horizonInCollection = false
+    for _, b in ipairs(collectedButtons) do
+        if b.GetName and b:GetName() == HORIZON_MINIMAP_BTN_NAME then
+            horizonInCollection = true
+            break
+        end
+    end
+    if not horizonInCollection then
+        for _, b in ipairs(drawerPanelButtons) do
+            if b.GetName and b:GetName() == HORIZON_MINIMAP_BTN_NAME then
+                horizonInCollection = true
+                break
+            end
+        end
+    end
+    if addon.MinimapButton_SetVistaCollected then
+        addon.MinimapButton_SetVistaCollected(horizonInCollection)
     end
 end
 
@@ -3465,6 +3508,9 @@ function Vista.ApplyOptions()
     ApplyOptions_Minimap()
     ApplyOptions_Texts(GetMapSize())
     ApplyOptions_Buttons()
+    if addon.MinimapButton_ApplyPosition then
+        addon.MinimapButton_ApplyPosition()
+    end
 end
 
 --- Flash the mouseover bar visible for a few seconds so the user can see where it is

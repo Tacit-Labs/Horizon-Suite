@@ -1,25 +1,30 @@
 --[[
     Horizon Suite - Minimap Button
     Clickable minimap icon that opens the options panel.
-    Excluded from Vista's button collector via INTERNAL_BLACKLIST.
+    Excluded from Vista's collector unless vistaCollectHorizonMinimapButton is enabled.
+    Pixel size matches Vista's collected addon minimap buttons (vistaAddonBtnSize).
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
-local L = addon.L or {}
 local Minimap = _G.Minimap
 if not Minimap then return end
 
-local BUTTON_SIZE = 20
-local ICON_PATH = "Interface\\AddOns\\HorizonSuite\\icon"
+-- Same defaults/clamp as options Vista addon button slider and modules/Vista/VistaCore.lua BTN_DEFAULTS.addon
+local VISTA_ADDON_BTN_MIN = 16
+local VISTA_ADDON_BTN_MAX = 48
+local VISTA_ADDON_BTN_DEFAULT = 26
+
+local ICON_PATH = "Interface\\AddOns\\HorizonSuite\\HorizonLogo"
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 local FADE_IN_DUR  = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeIn  or 0.2
 local FADE_OUT_DUR = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeOut or 0.3
 
 local btn
-local hoverZone  -- invisible frame over minimap to detect hover
+local hoverZone  -- invisible frame over minimap to detect mouse enter/leave
+local vistaCollectedStandaloneHidden = false
 
 local function ShowOptions()
     if addon.ShowDashboard then
@@ -32,6 +37,24 @@ end
 local DEFAULT_ANCHOR = "BOTTOMLEFT"
 local DEFAULT_X, DEFAULT_Y = 2, 2
 
+-- Standalone minimap child: tooltip anchor; Vista proxies pass ANCHOR_BOTTOMLEFT via ShowGameTooltip.
+local STANDALONE_TOOLTIP_ANCHOR = "ANCHOR_LEFT"
+
+--- Show Horizon minimap tooltip anchored to the given frame (standalone button or Vista proxy).
+--- @param ownerFrame Frame
+--- @param anchor string|nil GameTooltip anchor token; default STANDALONE_TOOLTIP_ANCHOR
+--- @return nil
+local function ShowGameTooltip(ownerFrame, anchor)
+    if not GameTooltip or not ownerFrame then return end
+    anchor = anchor or STANDALONE_TOOLTIP_ANCHOR
+    GameTooltip:SetOwner(ownerFrame, anchor)
+    GameTooltip:ClearLines()
+    local title = (addon.BrandDisplay and addon.BrandDisplay.minimapTooltipTitle) or "Horizon"
+    -- wrap=false: avoids first-show width glitch; ClearLines resets shared tooltip from prior UI.
+    GameTooltip:SetText(title, nil, nil, nil, nil, false)
+    GameTooltip:Show()
+end
+
 local function IsMinimapButtonHidden()
     return addon.GetDB and addon.GetDB("hideMinimapButton", false) or false
 end
@@ -40,8 +63,23 @@ local function IsMinimapButtonLocked()
     return addon.GetDB and addon.GetDB("minimapButtonLocked", false) or false
 end
 
+local function MinimapHoverFadeEnabled()
+    if not addon.GetDB then return true end
+    return addon.GetDB("minimapButtonShowOnlyOnMinimapHover", true)
+end
+
+local function GetMinimapButtonPixelSize()
+    if not addon.GetDB then return VISTA_ADDON_BTN_DEFAULT end
+    local v = tonumber(addon.GetDB("vistaAddonBtnSize", VISTA_ADDON_BTN_DEFAULT)) or VISTA_ADDON_BTN_DEFAULT
+    if v < VISTA_ADDON_BTN_MIN then return VISTA_ADDON_BTN_MIN end
+    if v > VISTA_ADDON_BTN_MAX then return VISTA_ADDON_BTN_MAX end
+    return v
+end
+
 local function ApplyPosition()
     if not btn or not Minimap then return end
+    if vistaCollectedStandaloneHidden then return end
+    btn:SetSize(GetMinimapButtonPixelSize(), GetMinimapButtonPixelSize())
     local savedX = addon.GetDB and tonumber(addon.GetDB("minimapButtonX", nil))
     local savedY = addon.GetDB and tonumber(addon.GetDB("minimapButtonY", nil))
     btn:ClearAllPoints()
@@ -82,19 +120,44 @@ local function UpdateVisibility()
     if IsMinimapButtonHidden() then
         btn:Hide()
         if hoverZone then hoverZone:Hide() end
-    else
+        return
+    end
+    if vistaCollectedStandaloneHidden then
+        if hoverZone then hoverZone:Hide() end
+        return
+    end
+    if MinimapHoverFadeEnabled() then
         btn:SetAlpha(0)
         btn:EnableMouse(false)
-        btn:Show()
-        if hoverZone then hoverZone:Show() end
+    else
+        btn:SetAlpha(1)
+        btn:EnableMouse(true)
     end
+    btn:Show()
+    if hoverZone then hoverZone:Show() end
+end
+
+-- Vista calls when Horizon's minimap button is in the collector (bar / panel / drawer).
+local function SetVistaCollected(collected)
+    vistaCollectedStandaloneHidden = collected and true or false
+    if not btn then return end
+    btn:SetScript("OnUpdate", nil)
+    btn.fadeTo = nil
+    if collected then
+        if btn then btn._hsTooltipStick = nil end
+        if hoverZone then hoverZone:Hide() end
+        return
+    end
+    if hoverZone and not IsMinimapButtonHidden() then hoverZone:Show() end
+    UpdateVisibility()
+    ApplyPosition()
 end
 
 local function CreateButton()
     if btn then return btn end
 
     btn = CreateFrame("Button", "HorizonSuiteMinimapButton", Minimap)
-    btn:SetSize(BUTTON_SIZE, BUTTON_SIZE)
+    btn:SetSize(GetMinimapButtonPixelSize(), GetMinimapButtonPixelSize())
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(Minimap:GetFrameLevel() + 5)
     btn:SetClampedToScreen(true)
@@ -133,19 +196,18 @@ local function CreateButton()
         self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
     end)
     btn:SetScript("OnEnter", function(self)
-        FadeButton(1)
-        if GameTooltip then
-            GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-            GameTooltip:SetText(L["PRESENCE_OPTIONS"] or "Options", nil, nil, nil, nil, true)
-            local locked = IsMinimapButtonLocked()
-            local hint = locked and (L["PRESENCE_LOCKED"] or "Locked") or (L["PRESENCE_DRAG_TO_MOVE_WHEN_UNLOCKED"] or "Drag to move (when unlocked).")
-            GameTooltip:AddLine(hint, 0.6, 0.6, 0.6, true)
-            GameTooltip:Show()
+        if MinimapHoverFadeEnabled() then
+            FadeButton(1)
+        else
+            self:SetAlpha(1)
         end
+        self._hsTooltipStick = true
+        ShowGameTooltip(self, STANDALONE_TOOLTIP_ANCHOR)
     end)
     btn:SetScript("OnLeave", function()
+        btn._hsTooltipStick = nil
         if GameTooltip then GameTooltip:Hide() end
-        -- Stay visible if mouse is still over the minimap area
+        if not MinimapHoverFadeEnabled() then return end
         if hoverZone and hoverZone:IsMouseOver() then return end
         FadeButton(0)
     end)
@@ -165,15 +227,21 @@ local function CreateButton()
     hoverZone:SetFrameStrata("BACKGROUND")
     hoverZone:EnableMouse(false)  -- don't eat clicks
     hoverZone:SetScript("OnUpdate", function(self)
-        if IsMinimapButtonHidden() then return end
-        if self:IsMouseOver() or (btn and btn:IsMouseOver()) then
-            if btn:GetAlpha() < 1 and btn.fadeTo ~= 1 then
-                FadeButton(1)
+        if MinimapHoverFadeEnabled() and not IsMinimapButtonHidden() and not vistaCollectedStandaloneHidden then
+            if self:IsMouseOver() or (btn and btn:IsMouseOver()) then
+                if btn:GetAlpha() < 1 and btn.fadeTo ~= 1 then
+                    FadeButton(1)
+                end
+            else
+                if btn:GetAlpha() > 0 and btn.fadeTo ~= 0 then
+                    FadeButton(0)
+                end
             end
-        else
-            if btn:GetAlpha() > 0 and btn.fadeTo ~= 0 then
-                FadeButton(0)
-            end
+        end
+        -- Re-anchor tooltip every frame while hovering (minimap resize / drag moves the button).
+        if btn and btn._hsTooltipStick and GameTooltip and GameTooltip:GetOwner() == btn then
+            GameTooltip:SetOwner(btn, STANDALONE_TOOLTIP_ANCHOR)
+            GameTooltip:Show()
         end
     end)
 
@@ -189,9 +257,16 @@ initFrame:SetScript("OnEvent", function(self, event)
         self:UnregisterEvent("PLAYER_ENTERING_WORLD")
         C_Timer.After(0.5, function()
             CreateButton()
+            if addon.IsModuleEnabled and addon:IsModuleEnabled("vista") and addon.Vista and addon.Vista.CollectButtons then
+                addon.Vista.CollectButtons()
+            end
         end)
     end
 end)
 
+--- @param collected boolean True when Vista is showing the icon in its managed UI.
+--- @return nil
+addon.MinimapButton_SetVistaCollected = SetVistaCollected
 addon.MinimapButton_UpdateVisibility = UpdateVisibility
 addon.MinimapButton_ApplyPosition = ApplyPosition
+addon.MinimapButton_ShowGameTooltip = ShowGameTooltip
