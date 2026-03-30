@@ -5,7 +5,7 @@
 ## Version: 4.4.1
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator
-## IconTexture: Interface\AddOns\HorizonSuite\icon
+## IconTexture: Interface\AddOns\HorizonSuite\HorizonLogo
 ## X-Curse-Project-ID: 1457844
 ## X-Wago-ID: jK8gY56y
 

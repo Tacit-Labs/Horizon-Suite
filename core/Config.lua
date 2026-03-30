@@ -567,6 +567,8 @@ end
 
 addon.BrandDisplay = {
     optionsTitle = "HORIZON SUITE",
+    -- Short name for minimap icon tooltip title (not localised).
+    minimapTooltipTitle = "Horizon",
     productName = "Horizon Suite",
     horizonInsight = "Horizon Insight",
     module = {

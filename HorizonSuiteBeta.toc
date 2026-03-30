@@ -4,7 +4,7 @@
 ## Author: Crystilac
 ## Version: 4.0.0-BETA
 ## SavedVariables: HorizonBetaDB
-## IconTexture: Interface\AddOns\HorizonSuiteBeta\icon
+## IconTexture: Interface\AddOns\HorizonSuiteBeta\HorizonLogo
 
 HorizonSuite.lua
 Localisation/LocaleCore.lua

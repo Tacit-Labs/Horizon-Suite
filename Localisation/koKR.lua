@@ -1027,6 +1027,8 @@ L["PRESENCE_OPEN_HORIZON_SUITE"]                                      = "Horizon
 L["PRESENCE_OPEN_FULL_HORIZON_SUITE_OPTIONS"]                         = "Focus, Presence, Vista 및 기타 모듈을 구성하는 전체 Horizon Suite 옵션 패널을 엽니다."
 L["PRESENCE_SHOW_MINIMAP_ICON"]                                       = "미니맵 아이콘 표시"
 L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"]                          = "옵션 패널을 여는 미니맵의 클릭 가능한 아이콘을 표시합니다."
+-- L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"]              = "Fade until minimap hover"  -- NEEDS TRANSLATION
+-- L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"]         = "When on, the icon stays faded until you move the cursor over the minimap. When off, it stays fully visible."  -- NEEDS TRANSLATION
 -- L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"]                         = "Lock minimap button position"  -- NEEDS TRANSLATION
 -- L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"]              = "Prevent dragging the Horizon minimap button."  -- NEEDS TRANSLATION
 -- L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"]                        = "Reset minimap button position"  -- NEEDS TRANSLATION
@@ -1240,6 +1242,8 @@ L["OPTIONS_VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "수집�
 -- =====================================================================
 -- OptionsData.lua Vista — Minimap Addon Buttons
 -- =====================================================================
+-- L["OPTIONS_VISTA_COLLECT_HORIZON_MINIMAP"]                         = "Include Horizon minimap icon"  -- NEEDS TRANSLATION
+-- L["OPTIONS_VISTA_COLLECT_HORIZON_MINIMAP_DESC"]                    = "Put Horizon's own minimap icon in the managed addon bar, right-click panel, or drawer instead of leaving it on the minimap edge."  -- NEEDS TRANSLATION
 -- L["OPTIONS_VISTA_ADDON_BUTTONS"]                                   = "Addon Buttons"  -- NEEDS TRANSLATION
 L["OPTIONS_VISTA_MINIMAP_ADDON_BUTTONS"]                              = "미니맵 애드온 버튼"
 L["OPTIONS_VISTA_BUTTON_MANAGEMENT"]                                  = "버튼 관리"
@@ -1582,6 +1586,7 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

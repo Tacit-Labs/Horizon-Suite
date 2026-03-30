@@ -266,6 +266,7 @@ local VISTA_KEYS = {
     vistaBarBorderR = true, vistaBarBorderG = true, vistaBarBorderB = true, vistaBarBorderA = true,
     vistaRightClickLocked = true, vistaRightClickPanelX = true, vistaRightClickPanelY = true,
     vistaButtonMode = true, vistaHandleAddonButtons = true,
+    vistaCollectHorizonMinimapButton = true,
     vistaDrawerButtonLocked = true, vistaButtonWhitelist = true,
     vistaMailBlink = true,
     -- Button sizes (separate per type)
@@ -318,6 +319,12 @@ local SCALE_DEBOUNCE_KEYS = {
     vistaBorderWidth = true,
     vistaAddonBtnSize = true,
     vistaBtnLayoutCols = true,
+}
+
+-- Keys where Vista.ApplyOptions (via VISTA_KEYS) is enough; skip synchronous FullLayout on toggle
+-- so dashboard pill toggles keep their slide animation (set() runs before the thumb anim starts).
+local NOTIFY_MAIN_ADDON_SKIP_KEYS = {
+    vistaCollectHorizonMinimapButton = true,
 }
 
 local CLASS_COLOR_KEYS = {
@@ -465,6 +472,10 @@ function OptionsData_SetDB(key, value)
             addon.StartCurrentQuestExpiryTicker()
         end
     end
+    if key == "minimapButtonShowOnlyOnMinimapHover" and addon.MinimapButton_UpdateVisibility then
+        addon.MinimapButton_UpdateVisibility()
+    end
+    if NOTIFY_MAIN_ADDON_SKIP_KEYS[key] then return end
     OptionsData_NotifyMainAddon()
 end
 
@@ -1205,8 +1216,24 @@ local OptionCategories = {
                 { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) addon:SetModuleEnabled("essence", v) end },
             }
             opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v) setDB("hideMinimapButton", not v); if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v) setDB("minimapButtonLocked", v) end }
+            -- Defer setDB to next frame so CreateToggleSwitch can start the thumb slide before OptionsData_SetDB runs (matches dashboard note: heavy work in set() fights the pill animation).
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, function()
+                        setDB("hideMinimapButton", not v)
+                        if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                    end)
+                else
+                    setDB("hideMinimapButton", not v)
+                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                end
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"] or "Fade until minimap hover", desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"] or "When on, the icon stays hidden until you move the cursor over the minimap. When off, it stays visible.", dbKey = "minimapButtonShowOnlyOnMinimapHover", get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", true) end, set = function(v)
+                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonShowOnlyOnMinimapHover", v) end) else setDB("minimapButtonShowOnlyOnMinimapHover", v) end
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
+                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonLocked", v) end) else setDB("minimapButtonLocked", v) end
+            end }
             opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             return opts
         end)(),
@@ -2215,10 +2242,14 @@ local OptionCategories = {
               set = function(v)
                   setDB("vistaAddonBtnSize", math.max(16, math.min(48, v)))
                   if addon._vistaAddonBtnDebounce then addon._vistaAddonBtnDebounce:Cancel() end
-                  if C_Timer and C_Timer.NewTimer and addon.Vista and addon.Vista.ApplyOptions then
+                  if C_Timer and C_Timer.NewTimer then
                       addon._vistaAddonBtnDebounce = C_Timer.NewTimer(0.15, function()
                           addon._vistaAddonBtnDebounce = nil
-                          addon.Vista.ApplyOptions()
+                          if addon.Vista and addon.Vista.ApplyOptions then
+                              addon.Vista.ApplyOptions()
+                          elseif addon.MinimapButton_ApplyPosition then
+                              addon.MinimapButton_ApplyPosition()
+                          end
                       end)
                   end
               end },
@@ -2389,6 +2420,19 @@ local OptionCategories = {
                           addon.OptionsPanel_Refresh()
                       end
                   end },
+                { type = "toggle", name = L["OPTIONS_VISTA_COLLECT_HORIZON_MINIMAP"] or "Include Horizon minimap icon",
+                  desc = L["OPTIONS_VISTA_COLLECT_HORIZON_MINIMAP_DESC"] or "Place Horizon's own minimap icon in the managed addon bar, panel, or drawer instead of leaving it on the minimap edge.",
+                  dbKey = "vistaCollectHorizonMinimapButton",
+                  get = function() return getDB("vistaCollectHorizonMinimapButton", true) end,
+                  set = function(v)
+                      if not getDB("vistaHandleAddonButtons", true) then return end
+                      if C_Timer and C_Timer.After then
+                          C_Timer.After(0, function() setDB("vistaCollectHorizonMinimapButton", v) end)
+                      else
+                          setDB("vistaCollectHorizonMinimapButton", v)
+                      end
+                  end,
+                  disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
                 { type = "dropdown", name = L["OPTIONS_VISTA_BUTTON_MODE"] or "Button mode",
                   desc = L["OPTIONS_VISTA_ADDON_BUTTONS_PRESENTED_HOVER_BAR_BELOW"] or "How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.",
                   dbKey = "vistaButtonMode",
