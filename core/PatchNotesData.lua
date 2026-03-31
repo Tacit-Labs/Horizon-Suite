@@ -2,6 +2,11 @@
     Horizon Suite - Patch Notes Data
     Update this file each release. Key must exactly match ## Version in HorizonSuite.toc.
     In-game notes should be player-facing summaries — not every internal/CI entry.
+
+    Per version table:
+    - date = "YYYY-MM-DD" (optional but preferred) — shown next to the version in the dashboard; match CHANGELOG.
+    - Array entries { section = "...", bullets = { ... } } — bullets may use "Module: rest"; the UI capitalizes the
+      first letter after ": " when it is lowercase (ASCII). Data can stay lowercase after the colon if you prefer.
 ]]
 
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then return end
@@ -10,6 +15,7 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 addon.PATCH_NOTES = {
 
     ["4.5.0"] = {
+        date = "2026-03-31",
         {
             section = "New Features",
             bullets = {
@@ -34,6 +40,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.4.2"] = {
+        date = "2026-03-31",
         {
             section = "Improvements",
             bullets = {
@@ -51,6 +58,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.4.1"] = {
+        date = "2026-03-30",
         {
             section = "Fixes",
             bullets = {
@@ -60,6 +68,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.4.0"] = {
+        date = "2026-03-29",
         {
             section = "New Features",
             bullets = {
@@ -87,6 +96,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.3.1"] = {
+        date = "2026-03-26",
         {
             section = "Improvements",
             bullets = {
@@ -104,6 +114,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.3.0"] = {
+        date = "2026-03-25",
         {
             section = "New Features",
             bullets = {
@@ -125,6 +136,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.2.2"] = {
+        date = "2026-03-24",
         {
             section = "Fixes",
             bullets = {
@@ -135,6 +147,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.2.1"] = {
+        date = "2026-03-24",
         {
             section = "Fixes",
             bullets = {
@@ -145,6 +158,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.2.0"] = {
+        date = "2026-03-23",
         {
             section = "New Features",
             bullets = {
@@ -168,6 +182,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.1.2"] = {
+        date = "2026-03-18",
         {
             section = "Improvements",
             bullets = {
@@ -178,6 +193,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.1.0"] = {
+        date = "2026-03-18",
         {
             section = "New Features",
             bullets = {
@@ -195,6 +211,7 @@ addon.PATCH_NOTES = {
     },
 
     ["4.0.0"] = {
+        date = "2026-03-18",
         {
             section = "New Features",
             bullets = {
