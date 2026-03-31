@@ -10,6 +10,20 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.4.2] – 2026-03-31
+
+### 🔧 Improvements
+
+- **(Vista)** Minimap — Horizon icon refresh, optional Vista collector integration, fade until the cursor is over the map, and tooltip anchored to the minimap button when it moves or resizes
+- **(Axis)** Core and options dashboard — modular dashboard layout, profile import/export, URL copy dialog, and tooling layout updates
+
+### 🐛 Fixes
+
+- **(Focus)** Dim strength and dim alpha apply consistently when dimming unfocused entries
+- **(Focus)** Text shadow offsets apply consistently across section headers, quest titles, and related controls
+
+---
+
 ## [4.4.1] – 2026-03-30
 
 ### 🐛 Fixes
