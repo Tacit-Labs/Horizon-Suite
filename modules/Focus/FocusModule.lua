@@ -87,6 +87,24 @@ end
 addon.StartCurrentQuestExpiryTicker = StartCurrentQuestExpiryTicker
 addon.StopCurrentQuestExpiryTicker = StopCurrentQuestExpiryTicker
 
+-- Only while tracker is visible and at least one row has scenario/timer UI to update.
+local function AnyActiveEntryNeedsScenarioBarTicker()
+    if not addon.activeMap then return false end
+    for _, e in pairs(addon.activeMap) do
+        if e and e.scenarioTimerBars then
+            for _, bar in ipairs(e.scenarioTimerBars) do
+                if bar and bar.duration and bar.startTime then
+                    return true
+                end
+            end
+        end
+        if e and e._inlineTimerDuration and e._inlineTimerStartTime and e.inlineTimerText then
+            return true
+        end
+    end
+    return false
+end
+
 local function StartScenarioBarTicker()
     if addon._scenarioBarTicker then return end
     addon._scenarioBarTicker = C_Timer.NewTicker(0.5, function()
@@ -98,6 +116,29 @@ local function StopScenarioBarTicker()
     if addon._scenarioBarTicker then
         addon._scenarioBarTicker:Cancel()
         addon._scenarioBarTicker = nil
+    end
+end
+
+--- Start or stop the scenario/inline timer bar ticker based on visible tracker rows.
+--- Called from FullLayout so we do not run pool-wide timer work when nothing needs it.
+--- @return nil
+local function SyncScenarioBarTickerState()
+    if not addon.focus or not addon.focus.enabled then
+        StopScenarioBarTicker()
+        return
+    end
+    if addon.ShouldShowInInstance and not addon.ShouldShowInInstance() then
+        StopScenarioBarTicker()
+        return
+    end
+    if addon.ShouldHideInCombat and addon.ShouldHideInCombat() then
+        StopScenarioBarTicker()
+        return
+    end
+    if AnyActiveEntryNeedsScenarioBarTicker() then
+        StartScenarioBarTicker()
+    else
+        StopScenarioBarTicker()
     end
 end
 
@@ -135,6 +176,7 @@ addon.FocusModuleHooks = addon.FocusModuleHooks or {}
 addon.FocusModuleHooks.WorldMap = tryHookWorldMap
 -- Also expose so FocusEvents SCENARIO_UPDATE can start the heartbeat on demand.
 addon.StartScenarioTimerHeartbeat = StartScenarioTimerHeartbeat
+addon.SyncScenarioBarTickerState   = SyncScenarioBarTickerState
 
 addon:RegisterModule("focus", {
     title       = "Focus",
@@ -186,7 +228,7 @@ addon:RegisterModule("focus", {
         if addon.GetDB("showCurrentQuestCategory", true) then
             StartCurrentQuestExpiryTicker()
         end
-        StartScenarioBarTicker()
+        -- Scenario bar ticker starts only when FullLayout finds active timer UI (SyncScenarioBarTickerState).
         StartMapChangedListener()
         -- Proximity ticker removed: TASK_PROGRESS_UPDATE fires when the player enters
         -- a WQ area (the exact moment a proximity WQ should appear), and ZONE_CHANGED
@@ -201,6 +243,7 @@ addon:RegisterModule("focus", {
 
     OnDisable = function()
         addon.focus.enabled = false
+        if addon.InvalidateScenarioEntriesCache then addon.InvalidateScenarioEntriesCache() end
         StopScenarioTimerHeartbeat()
         if addon.focus.questTimerCache then wipe(addon.focus.questTimerCache) end
         StopCurrentQuestExpiryTicker()

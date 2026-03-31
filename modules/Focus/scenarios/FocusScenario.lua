@@ -18,6 +18,18 @@ local function IsScenarioActive()
     return false
 end
 
+-- Short TTL cache: ReadTrackedQuests / SortAndGroupQuests call ReadScenarioEntries multiple times per layout.
+-- Invalidated on scenario step changes (see InvalidateScenarioEntriesCache from FocusEvents).
+local SCENARIO_ENTRIES_CACHE_TTL = 0.12
+local scenarioEntriesCache = nil
+local scenarioEntriesCacheTime = 0
+
+-- Clears ReadScenarioEntries TTL cache; FocusEvents calls this on scenario step changes.
+local function InvalidateScenarioEntriesCache()
+    scenarioEntriesCache = nil
+    scenarioEntriesCacheTime = 0
+end
+
 -- ============================================================================
 -- INTERFACE METHODS
 -- ============================================================================
@@ -36,12 +48,22 @@ end
 --- Build tracker rows from active scenario.
 --- @return table Array of normalized entry tables for the tracker
 local function ReadScenarioEntries()
-    if not IsScenarioActive() then return {} end
-    local provider = addon.FocusScenarioRegistry:GetProvider()
-    if provider and provider.ReadEntries then
-        return provider:ReadEntries()
+    if not IsScenarioActive() then
+        InvalidateScenarioEntriesCache()
+        return {}
     end
-    return {}
+    local now = GetTime()
+    if scenarioEntriesCache and (now - scenarioEntriesCacheTime) < SCENARIO_ENTRIES_CACHE_TTL then
+        return scenarioEntriesCache
+    end
+    local provider = addon.FocusScenarioRegistry:GetProvider()
+    local out = {}
+    if provider and provider.ReadEntries then
+        out = provider:ReadEntries()
+    end
+    scenarioEntriesCache = out
+    scenarioEntriesCacheTime = now
+    return out
 end
 
 --- Debug tool to dump scenario timer info.
@@ -66,6 +88,10 @@ end
 -- ============================================================================
 
 addon.ReadScenarioEntries      = ReadScenarioEntries
-addon.IsScenarioActive        = IsScenarioActive
-addon.GetScenarioDisplayInfo  = GetScenarioDisplayInfo
-addon.DumpScenarioTimerInfo   = DumpScenarioTimerInfo
+addon.IsScenarioActive         = IsScenarioActive
+addon.GetScenarioDisplayInfo   = GetScenarioDisplayInfo
+addon.DumpScenarioTimerInfo    = DumpScenarioTimerInfo
+
+--- Drop cached scenario rows so the next ReadScenarioEntries rebuilds from APIs.
+--- @return nil
+addon.InvalidateScenarioEntriesCache = InvalidateScenarioEntriesCache
