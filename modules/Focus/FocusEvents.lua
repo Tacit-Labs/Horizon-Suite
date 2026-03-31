@@ -542,13 +542,7 @@ local eventHandlers = {
     TRACKED_ACHIEVEMENT_UPDATE = function() ScheduleRefresh() end,
     CRITERIA_UPDATE          = function() ScheduleRefresh() end,
     ACHIEVEMENT_EARNED       = function() ScheduleRefresh() end,
-    CONTENT_TRACKING_UPDATE  = function(_, trackableType)
-        local achType  = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Achievement) or 2
-        local decorType = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Decor) or 3
-        if trackableType == achType or trackableType == decorType then
-            ScheduleRefresh()
-        end
-    end,
+    CONTENT_TRACKING_UPDATE  = function() ScheduleRefresh() end,
     CONTENT_TRACKING_LIST_UPDATE = function() ScheduleRefresh() end,
     PERKS_ACTIVITIES_TRACKED_UPDATED = function() ScheduleRefresh() end,
     PERKS_ACTIVITY_COMPLETED = function() ScheduleRefresh() end,
