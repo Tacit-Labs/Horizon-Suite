@@ -52,7 +52,7 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     s.text:SetText(label)
     s.shadow:SetText(label)
     local secA = addon.SECTION_COLOR_A or 1
-    if addon.GetDB("dimNonSuperTracked", false) and (not focusedGroupKey or groupKey ~= focusedGroupKey) then
+    if addon.ShouldDimSectionHeaderForSuperTrack(groupKey, focusedGroupKey) then
         secA = secA * addon.GetDimAlpha()
     end
     s.text:SetTextColor(color[1], color[2], color[3], secA)

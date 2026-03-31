@@ -261,6 +261,17 @@ addon.GROUP_ORDER_PRESETS = {
     ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
+-- Section groupKeys whose headers skip super-track dimming (achievements, rares, etc. — not quest log rows).
+addon.NON_QUEST_SUPERTRACK_DIM_SECTION_KEYS = {
+    ACHIEVEMENTS = true,
+    ENDEAVORS = true,
+    DECOR = true,
+    RECIPES = true,
+    ADVENTURE = true,
+    RARES = true,
+    RARE_LOOT = true,
+}
+
 -- Category keys (enum-style) for consistent string usage across modules.
 addon.CATEGORY_KEYS = {
     CURRENT = "CURRENT", CURRENT_EVENT = "CURRENT_EVENT", DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
