@@ -9,6 +9,30 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.5.0"] = {
+        {
+            section = "New Features",
+            bullets = {
+                "Presence: optional progress toasts for achievements that are not tracked",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: stable achievement tracking and content-tracking refresh",
+                "Focus: quest row pool increased from 25 to 50",
+                "Focus: scenario and delve updates with fewer FPS dips from less layout churn",
+                "Focus: dim unfocused affects only quest rows",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Presence: achievement progress toast uses the correct criterion on multi-part achievements",
+            },
+        },
+    },
+
     ["4.4.2"] = {
         {
             section = "Improvements",

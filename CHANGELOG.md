@@ -10,6 +10,25 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.5.0] – 2026-03-31
+
+### ✨ New Features
+
+- **(Presence)** Untracked achievements — optional progress toasts when an achievement is not on the tracker
+
+### 🔧 Improvements
+
+- **(Focus)** Stable achievement tracking and content-tracking refresh
+- **(Focus)** Quest row pool increased from 25 to 50
+- **(Focus)** Scenario and delve updates — fewer FPS dips from reduced layout churn
+- **(Focus)** Dim unfocused applies only to quest rows, not achievements, endeavors, or rares
+
+### 🐛 Fixes
+
+- **(Presence)** Achievement progress toast showed the wrong criterion for multi-part achievements
+
+---
+
 ## [4.4.2] – 2026-03-31
 
 ### 🔧 Improvements
