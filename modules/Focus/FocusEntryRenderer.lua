@@ -151,7 +151,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     local doneColor = (addon.GetCompletedObjectiveColor and addon.GetCompletedObjectiveColor(cat))
         or (addon.GetObjectiveColor and addon.GetObjectiveColor(cat)) or addon.OBJ_DONE_COLOR
     local dimTextAlpha = 1
-    if addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked then
+    if addon.ShouldApplySuperTrackQuestDim(questData) then
         objColor = addon.ApplyDimColor(objColor)
         doneColor = addon.ApplyDimColor(doneColor)
         dimTextAlpha = addon.GetDimAlpha()
@@ -794,7 +794,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             local cat = questData.category or "DEFAULT"
             local useTimerColor = addon.GetDB("timerColorByRemaining", true)
             local r, g, b = addon.GetTimerTextColor(remaining, duration, cat, useTimerColor)
-            local wr, wg, wb, wa = addon.GetDimmedTrackerTextColor(r, g, b, questData.isSuperTracked)
+            local wr, wg, wb, wa = addon.GetDimmedTrackerTextColor(r, g, b, questData.isSuperTracked, questData)
             entry.wqTimerText:SetTextColor(wr, wg, wb, wa)
             entry.wqTimerText:Show()
             local th = entry.wqTimerText:GetStringHeight()
@@ -907,7 +907,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             if not txtColor or type(txtColor) ~= "table" then txtColor = { 0.95, 0.95, 0.95 } end
         end
         entry.wqProgressText:SetFontObject(addon.ProgressBarFont or addon.ObjFont)
-        local pr, pg, pb, pa = addon.GetDimmedTrackerTextColor(txtColor[1], txtColor[2], txtColor[3], questData.isSuperTracked)
+        local pr, pg, pb, pa = addon.GetDimmedTrackerTextColor(txtColor[1], txtColor[2], txtColor[3], questData.isSuperTracked, questData)
         entry.wqProgressText:SetTextColor(pr, pg, pb, pa)
         entry.wqProgressText:SetShown(firstPercent ~= nil)
         totalH = totalH + percentBarSpacing + barHeight
@@ -1279,7 +1279,7 @@ local function PopulateEntry(entry, questData, groupKey)
             local cat = questData.category or groupKey or "DEFAULT"
             local useTimerColor = addon.GetDB("timerColorByRemaining", true)
             local r, g, b = addon.GetTimerTextColor(remaining, entry._inlineTimerDuration, cat, useTimerColor)
-            local tr, tg, tb, ta = addon.GetDimmedTrackerTextColor(r, g, b, questData.isSuperTracked)
+            local tr, tg, tb, ta = addon.GetDimmedTrackerTextColor(r, g, b, questData.isSuperTracked, questData)
             entry.inlineTimerText:SetTextColor(tr, tg, tb, ta)
             entry.inlineTimerText:Show()
         end
@@ -1296,14 +1296,14 @@ local function PopulateEntry(entry, questData, groupKey)
     if questData.isDungeonQuest and not questData.isTracked then
         local df = addon.DUNGEON_UNTRACKED_DIM or 0.65
         c = { c[1] * df, c[2] * df, c[3] * df }
-    elseif addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked then
+    elseif addon.ShouldApplySuperTrackQuestDim(questData) then
         c = addon.ApplyDimColor(c)
     end
     if questData.isRecipe and addon.GetDB("recipeRarityColors", false) and questData.outputQuality then
         local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[questData.outputQuality]
         if qc then c = { qc.r, qc.g, qc.b } end
     end
-    local dimAlpha = (addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked) and addon.GetDimAlpha() or 1
+    local dimAlpha = addon.ShouldApplySuperTrackQuestDim(questData) and addon.GetDimAlpha() or 1
     local baseColor = { c[1], c[2], c[3], dimAlpha }
     entry._baseTitleColor = baseColor
     if not entry.hoverAnimState then
@@ -1413,7 +1413,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.zoneText:SetText(zoneLabel)
         entry.zoneShadow:SetText(zoneLabel)
         local zoneColor = (addon.GetZoneColor and addon.GetZoneColor(effectiveCat)) or addon.ZONE_COLOR
-        if addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked then
+        if addon.ShouldApplySuperTrackQuestDim(questData) then
             zoneColor = addon.ApplyDimColor(zoneColor)
         end
         entry.zoneText:SetTextColor(zoneColor[1], zoneColor[2], zoneColor[3], dimAlpha)
@@ -1434,7 +1434,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.zoneText:SetText(stageLabel)
         entry.zoneShadow:SetText(stageLabel)
         local stageColor = (addon.GetScenarioStageColor and addon.GetScenarioStageColor()) or addon.ZONE_COLOR or { 0.55, 0.65, 0.75 }
-        if addon.GetDB("dimNonSuperTracked", false) and not questData.isSuperTracked then
+        if addon.ShouldApplySuperTrackQuestDim(questData) then
             stageColor = addon.ApplyDimColor(stageColor)
         end
         entry.zoneText:SetTextColor(stageColor[1], stageColor[2], stageColor[3], dimAlpha)
@@ -1644,7 +1644,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.isTracked  = questData.isTracked
         entry.vignetteGUID = nil; entry.vignetteMapID = nil; entry.vignetteX = nil; entry.vignetteY = nil; entry.title = nil
     end
-    addon.ApplyDimToTrackerEntryIcons(entry, questData.isSuperTracked)
+    addon.ApplyDimToTrackerEntryIcons(entry, questData.isSuperTracked, questData)
     return totalH
 end
 

@@ -1333,7 +1333,7 @@ function addon.ApplyFocusColors()
             local color = addon.GetSectionHeaderDisplayColor and addon.GetSectionHeaderDisplayColor(s.groupKey, focusedGroupKey)
             if color and type(color) == "table" and color[1] and color[2] and color[3] then
                 local secA = addon.SECTION_COLOR_A or 1
-                if addon.GetDB("dimNonSuperTracked", false) and (not focusedGroupKey or s.groupKey ~= focusedGroupKey) then
+                if addon.ShouldDimSectionHeaderForSuperTrack(s.groupKey, focusedGroupKey) then
                     secA = secA * addon.GetDimAlpha()
                 end
                 s.text:SetTextColor(color[1], color[2], color[3], secA)
@@ -1362,7 +1362,7 @@ function addon.ApplyFocusColors()
                 if entry.isDungeonQuest and not entry.isTracked then
                     local df = addon.DUNGEON_UNTRACKED_DIM or 0.65
                     titleColor = { titleColor[1] * df, titleColor[2] * df, titleColor[3] * df }
-                elseif addon.GetDB("dimNonSuperTracked", false) and not entry.isSuperTracked then
+                elseif addon.ShouldApplySuperTrackQuestDim(entry) then
                     titleColor = addon.ApplyDimColor(titleColor)
                     dimAlpha = addon.GetDimAlpha()
                 end
@@ -1377,7 +1377,7 @@ function addon.ApplyFocusColors()
                 local zoneColor = (addon.GetZoneColor and addon.GetZoneColor(effectiveCat)) or addon.ZONE_COLOR
                 if zoneColor and type(zoneColor) == "table" and zoneColor[1] and zoneColor[2] and zoneColor[3] then
                     local dimAlpha = 1
-                    if addon.GetDB("dimNonSuperTracked", false) and not entry.isSuperTracked then
+                    if addon.ShouldApplySuperTrackQuestDim(entry) then
                         zoneColor = addon.ApplyDimColor(zoneColor)
                         dimAlpha = addon.GetDimAlpha()
                     end
@@ -1392,7 +1392,7 @@ function addon.ApplyFocusColors()
                     or (addon.GetObjectiveColor and addon.GetObjectiveColor(effectiveCat))
                     or addon.OBJ_DONE_COLOR or objColor
                 local dimAlpha = 1
-                if addon.GetDB("dimNonSuperTracked", false) and not entry.isSuperTracked then
+                if addon.ShouldApplySuperTrackQuestDim(entry) then
                     objColor = addon.ApplyDimColor(objColor)
                     doneColor = addon.ApplyDimColor(doneColor)
                     dimAlpha = addon.GetDimAlpha()

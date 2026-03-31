@@ -150,6 +150,28 @@ function addon.GetDimAlpha()
     return math.max(0, math.min(100, v)) / 100
 end
 
+--- True when "dim unfocused" should apply to this tracker row (quest with questID, not super-tracked).
+--- @param row table|nil Must have isSuperTracked and questID (e.g. questData or pool entry)
+--- @return boolean
+function addon.ShouldApplySuperTrackQuestDim(row)
+    if not row or type(row) ~= "table" then return false end
+    if not addon.GetDB("dimNonSuperTracked", false) or row.isSuperTracked then return false end
+    local qid = row.questID
+    return type(qid) == "number" and qid > 0
+end
+
+--- True when a section header should use super-track dim (alpha/RGB) for the non-focused-group case.
+--- Non-quest sections (achievements, rares, …) never dim.
+--- @param groupKey string|nil
+--- @param focusedGroupKey string|nil Group containing the super-tracked quest, if any
+--- @return boolean
+function addon.ShouldDimSectionHeaderForSuperTrack(groupKey, focusedGroupKey)
+    if not addon.GetDB("dimNonSuperTracked", false) then return false end
+    local skip = addon.NON_QUEST_SUPERTRACK_DIM_SECTION_KEYS
+    if groupKey and skip and skip[groupKey] then return false end
+    return not focusedGroupKey or groupKey ~= focusedGroupKey
+end
+
 --- Applies dimming (color multiply) and optional desaturation to a color table.
 --- @param color table {r,g,b} input color
 --- @return table {r,g,b} dimmed color
@@ -172,13 +194,20 @@ end
 --- @param r number
 --- @param g number
 --- @param b number
---- @param isSuperTracked boolean|nil When true, returns original rgb and alpha 1.
+--- @param isSuperTracked boolean|nil When true, returns original rgb and alpha 1 (ignored if questContext is set).
+--- @param questContext table|nil When set (questData or entry), only quest rows with questID are dimmed; when nil, legacy: any non-super-tracked row.
 --- @return number r
 --- @return number g
 --- @return number b
 --- @return number textAlpha multiplier 0-1 (GetDimAlpha when dimmed)
-function addon.GetDimmedTrackerTextColor(r, g, b, isSuperTracked)
-    if addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked then
+function addon.GetDimmedTrackerTextColor(r, g, b, isSuperTracked, questContext)
+    local dim
+    if questContext ~= nil then
+        dim = addon.ShouldApplySuperTrackQuestDim(questContext)
+    else
+        dim = addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked
+    end
+    if dim then
         local c = addon.ApplyDimColor({ r, g, b })
         return c[1], c[2], c[3], addon.GetDimAlpha()
     end
@@ -187,11 +216,18 @@ end
 
 --- Dims a tracker icon texture to match dim strength, dim alpha, and optional desaturate when "dim unfocused" is on.
 --- @param tex Texture|nil Region with SetVertexColor (and optionally SetDesaturated)
---- @param isSuperTracked boolean|nil When true, resets vertex to white and clears desaturation
+--- @param isSuperTracked boolean|nil When true, resets vertex to white and clears desaturation (legacy path only).
+--- @param questContext table|nil When set, only quest rows dim; when nil, legacy uses isSuperTracked only.
 --- @return nil
-function addon.ApplyDimToTrackerIconTexture(tex, isSuperTracked)
+function addon.ApplyDimToTrackerIconTexture(tex, isSuperTracked, questContext)
     if not tex or not tex.SetVertexColor then return end
-    if not (addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked) then
+    local shouldDim
+    if questContext ~= nil then
+        shouldDim = addon.ShouldApplySuperTrackQuestDim(questContext)
+    else
+        shouldDim = addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked
+    end
+    if not shouldDim then
         pcall(function() tex:SetVertexColor(1, 1, 1, 1) end)
         if tex.SetDesaturated then
             pcall(function() tex:SetDesaturated(false) end)
@@ -208,18 +244,20 @@ end
 
 --- Applies dim (or reset) to quest type, item, LFG, and AH icon textures on a tracker entry.
 --- @param entry Frame Pool entry with optional questTypeIcon, itemBtn.icon, lfgBtn.icon, ahBtn.icon
---- @param isSuperTracked boolean|nil When nil, uses entry.isSuperTracked
+--- @param isSuperTracked boolean|nil When nil, uses entry.isSuperTracked (legacy only when questContext nil).
+--- @param questContext table|nil When nil, uses entry for quest-only dim; pass questData during PopulateEntry if entry fields not set yet.
 --- @return nil
-function addon.ApplyDimToTrackerEntryIcons(entry, isSuperTracked)
+function addon.ApplyDimToTrackerEntryIcons(entry, isSuperTracked, questContext)
     if not entry then return end
     local st = isSuperTracked
     if st == nil then st = entry.isSuperTracked end
+    local ctx = questContext or entry
     local function applyIcon(tex, shown)
         if not tex then return end
         if shown then
-            addon.ApplyDimToTrackerIconTexture(tex, st)
+            addon.ApplyDimToTrackerIconTexture(tex, st, ctx)
         else
-            addon.ApplyDimToTrackerIconTexture(tex, true)
+            addon.ApplyDimToTrackerIconTexture(tex, true, nil)
         end
     end
     applyIcon(entry.questTypeIcon, entry.questTypeIcon and entry.questTypeIcon.IsShown and entry.questTypeIcon:IsShown())

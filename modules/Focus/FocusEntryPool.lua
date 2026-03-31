@@ -479,7 +479,9 @@ for i = 1, addon.POOL_SIZE do
     pool[i] = CreateQuestEntry(scrollChild, i)
 end
 
-local function UpdateScenarioBar(bar, now, category, isSuperTracked)
+local function UpdateScenarioBar(bar, now, entry)
+    local category = entry and entry.category
+    local isSuperTracked = entry and entry.isSuperTracked
     local d, s = bar.duration, bar.startTime
     if not d or not s then return end
     local remaining = d - (now - s)
@@ -514,14 +516,14 @@ local function UpdateScenarioBar(bar, now, category, isSuperTracked)
     local useTimerColor = addon.GetDB("timerColorByRemaining", true)
     local fr, fg, fb = progFillColor[1], progFillColor[2], progFillColor[3]
     local fa = progFillColor[4] or 0.85
-    if addon.GetDB("dimNonSuperTracked", false) and not isSuperTracked then
+    if entry and addon.ShouldApplySuperTrackQuestDim(entry) then
         local fc = addon.ApplyDimColor({ fr, fg, fb })
         fr, fg, fb = fc[1], fc[2], fc[3]
         fa = fa * addon.GetDimAlpha()
     end
     addon.ApplyProgressBarFillTexture(bar.Fill, fr, fg, fb, fa)
     local lr, lg, lb = addon.GetTimerTextColor(remaining, d, colorCat, useTimerColor)
-    local labelR, labelG, labelB, labelA = addon.GetDimmedTrackerTextColor(lr, lg, lb, isSuperTracked)
+    local labelR, labelG, labelB, labelA = addon.GetDimmedTrackerTextColor(lr, lg, lb, isSuperTracked, entry)
     bar.Label:SetTextColor(labelR, labelG, labelB, labelA)
 end
 
@@ -533,7 +535,7 @@ function addon.UpdateScenarioTimerBars()
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do
                 if bar.duration and bar.startTime then
-                    UpdateScenarioBar(bar, now, entry.category, entry.isSuperTracked)
+                    UpdateScenarioBar(bar, now, entry)
                 end
             end
         end
@@ -550,7 +552,7 @@ function addon.UpdateScenarioTimerBars()
                     local cat = entry.category or entry.groupKey or "DEFAULT"
                     local useTimerColor = addon.GetDB("timerColorByRemaining", true)
                     local r, g, b = addon.GetTimerTextColor(remaining, entry._inlineTimerDuration, cat, useTimerColor)
-                    local tr, tg, tb, ta = addon.GetDimmedTrackerTextColor(r, g, b, entry.isSuperTracked)
+                    local tr, tg, tb, ta = addon.GetDimmedTrackerTextColor(r, g, b, entry.isSuperTracked, entry)
                     entry.inlineTimerText:SetTextColor(tr, tg, tb, ta)
                 end
             end
