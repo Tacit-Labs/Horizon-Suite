@@ -9,6 +9,23 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.4.2"] = {
+        {
+            section = "Improvements",
+            bullets = {
+                "Vista: Minimap Horizon icon, optional Vista bar integration, fade until hover over the map, anchored tooltip when the button moves",
+                "Axis: Modular options dashboard, profile import/export, URL copy dialog, tooling layout",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Dim strength and dim alpha apply consistently when dimming unfocused entries",
+                "Focus: Text shadow offsets apply consistently across headers, titles, and controls",
+            },
+        },
+    },
+
     ["4.4.1"] = {
         {
             section = "Fixes",
