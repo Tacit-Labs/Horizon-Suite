@@ -216,6 +216,11 @@ local function ExecuteAchievementProgressCheck(pendingIDs, hintsByAchID)
             idsToCheck[achID] = true
         end
     end
+    for achID, _ in pairs(achievementProgressCache) do
+        if type(achID) == "number" and achID > 0 then
+            idsToCheck[achID] = true
+        end
+    end
 
     hintsByAchID = hintsByAchID or {}
 
@@ -223,8 +228,9 @@ local function ExecuteAchievementProgressCheck(pendingIDs, hintsByAchID)
         local newState = SerializeAchievementProgress(achID)
         if newState then
             local oldState = achievementProgressCache[achID]
-            if oldState and oldState ~= newState then
-                local hint = hintsByAchID[achID]
+            local hint = hintsByAchID[achID]
+            local earnedFirstTime = (not oldState) and hint and hint.fromEarned
+            if (oldState and oldState ~= newState) or earnedFirstTime then
                 local progressText = GetAchievementProgressTextForChange(achID, oldState, newState, hint)
                 if progressText then
                     local now = GetTime()
