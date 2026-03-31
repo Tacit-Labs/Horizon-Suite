@@ -517,6 +517,15 @@ function addon.Dashboard_BuildMainFrame()
                 ["Axis"]     = "E0E0E0",
             }
 
+            -- Capitalize first letter after "…: " (module prefix) so in-game bullets read consistently.
+            local function CapitalizeAfterModulePrefix(text)
+                if type(text) ~= "string" or text == "" then return text end
+                local pre, first, rest = text:match("^(.-:%s*)(%a)(.*)$")
+                if not pre or not first then return text end
+                if first ~= string.lower(first) then return text end
+                return pre .. string.upper(first) .. rest
+            end
+
             local function ColorModuleNames(text)
                 for name, hex in pairs(PN_MODULE_COLORS) do
                     text = text:gsub("%f[%a](" .. name .. ")%f[%A]", "|cFF" .. hex .. "%1|r")
@@ -652,11 +661,16 @@ function addon.Dashboard_BuildMainFrame()
                                 tinsert(items, { type = "tex", tex = sep, gap = 18 })
                             end
 
-                            -- Version header
+                            -- Version header (optional date from PatchNotesData matches CHANGELOG)
                             local vHdr = inner:CreateFontString(nil, "OVERLAY")
                             vHdr:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
                             vHdr:SetJustifyH("LEFT")
-                            vHdr:SetText("v" .. ver)
+                            local noteDate = notes.date
+                            if type(noteDate) == "string" and noteDate ~= "" then
+                                vHdr:SetText("v" .. ver .. " — " .. noteDate)
+                            else
+                                vHdr:SetText("v" .. ver)
+                            end
                             vHdr:SetTextColor(ar, ag, ab)
                             tinsert(dashAccentRefs.patchNotesSectionLabels, vHdr)
                             tinsert(items, { type = "fs", fs = vHdr, x = 0, gap = 14 })
@@ -680,7 +694,7 @@ function addon.Dashboard_BuildMainFrame()
                                     txt:SetWidth(cW - PN_BULLET_X)
                                     txt:SetJustifyH("LEFT")
                                     txt:SetWordWrap(true)
-                                    local coloredBullet = ColorModuleNames(bullet)
+                                    local coloredBullet = ColorModuleNames(CapitalizeAfterModulePrefix(bullet))
                                     txt:SetText("|cFF"..hex.."\226\128\148|r  "..coloredBullet)
                                     txt:SetTextColor(unpack(PN_BODY_COL))
                                     tinsert(dashAccentRefs.patchNotesBullets, { fs = txt, bullet = bullet, coloredBullet = coloredBullet })
