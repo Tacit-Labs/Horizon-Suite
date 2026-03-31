@@ -119,14 +119,14 @@ local function ReadTrackedAchievements()
     local idList = {}
 
     if C_ContentTracking and C_ContentTracking.GetTrackedIDs then
-        local ids = C_ContentTracking.GetTrackedIDs(TRACKING_TYPE_ACHIEVEMENT)
-        if ids and type(ids) == "table" then
+        local ok, ids = pcall(C_ContentTracking.GetTrackedIDs, TRACKING_TYPE_ACHIEVEMENT)
+        if ok and ids and type(ids) == "table" then
             for _, id in ipairs(ids) do
                 if type(id) == "number" and id > 0 then
                     idList[#idList + 1] = id
                 end
+            end
         end
-    end
     elseif GetTrackedAchievements then
         for i = 1, MAX_LEGACY_TRACKED_ACHIEVEMENTS do
             local id = select(i, GetTrackedAchievements())
