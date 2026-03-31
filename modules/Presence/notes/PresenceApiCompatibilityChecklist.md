@@ -14,6 +14,7 @@ Map of Presence module Blizzard API usage to [Blizzard_APIDocumentationGenerated
 | **C_Timer** | After | UITimerDocumentation.lua | [UITimerDocumentation.lua](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/UITimerDocumentation.lua) |
 | **C_ContentTracking** | GetTrackedIDs | ContentTrackingDocumentation.lua | [ContentTrackingDocumentation.lua](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/ContentTrackingDocumentation.lua) |
 | **C_PvP** | GetZonePVPInfo | PvPDocumentation.lua | [PvPDocumentation.lua](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/PvPDocumentation.lua) |
+| **C_AchievementInfo** | (events only; no Lua calls) | AchievementInfoDocumentation.lua | Criteria-related events: `CRITERIA_UPDATE`, `CRITERIA_EARNED`, `TRACKED_ACHIEVEMENT_UPDATE` (payload includes `achievementID`, optional `criteriaID` on tracked updates). |
 
 ---
 
@@ -36,6 +37,8 @@ These APIs are called by Presence but have **no dedicated generated docs file** 
 | **GetSubZoneText** (global) | PresenceEvents, PresenceSlash | Subzone display. Standard WoW API. |
 | **GetInstanceInfo** (global) | PresenceEvents, PresenceCore | Instance type for suppression; dungeon name for scenario display. Standard WoW API. |
 | **GetAchievementInfo** (global) | PresenceEvents | Achievement name for ACHIEVEMENT and ACHIEVEMENT_PROGRESS toasts. pcall-wrapped (can throw on invalid ID). |
+| **GetAchievementNumCriteria** (global) | PresenceAchievement | Criterion count for progress snapshots and subtitle resolution. pcall-wrapped. |
+| **GetAchievementCriteriaInfo** (global) | PresenceAchievement | Per-criterion progress, label, and `criteriaID` (for matching `TRACKED_ACHIEVEMENT_UPDATE`). pcall-wrapped. |
 | **C_VignetteInfo** | Utilities (GetRareNamesOnMap) | GetVignettes, GetVignetteInfo. Used for rare defeated detection when Focus disabled. |
 
 ---

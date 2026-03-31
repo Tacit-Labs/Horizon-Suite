@@ -200,9 +200,9 @@ local function OnAchievementEarned(_, achID)
     end
 end
 
-local function OnAchievementCriteriaUpdate(event, achievementID, ...)
+local function OnAchievementCriteriaUpdate(event, ...)
     if addon.Presence.Achievement_OnCriteriaUpdate then
-        addon.Presence.Achievement_OnCriteriaUpdate(event, achievementID, ...)
+        addon.Presence.Achievement_OnCriteriaUpdate(event, ...)
     end
 end
 
@@ -282,9 +282,9 @@ local eventHandlers = {
     VIGNETTES_UPDATED        = function() OnVignettesUpdated() end,
     PLAYER_REGEN_DISABLED    = function() OnPlayerRegenDisabled() end,
     PLAYER_REGEN_ENABLED     = function() OnPlayerRegenEnabled() end,
-    CRITERIA_UPDATE          = function() OnAchievementCriteriaUpdate() end,
-    CRITERIA_EARNED          = function() OnAchievementCriteriaUpdate() end,
-    TRACKED_ACHIEVEMENT_UPDATE = function() OnAchievementCriteriaUpdate() end,
+    CRITERIA_UPDATE            = function(event, ...) OnAchievementCriteriaUpdate(event, ...) end,
+    CRITERIA_EARNED            = function(event, ...) OnAchievementCriteriaUpdate(event, ...) end,
+    TRACKED_ACHIEVEMENT_UPDATE = function(event, ...) OnAchievementCriteriaUpdate(event, ...) end,
     ACTIVE_DELVE_DATA_UPDATE = function() OnDelveDataUpdate() end,
     WALK_IN_DATA_UPDATE      = function() OnDelveDataUpdate() end,
 }
