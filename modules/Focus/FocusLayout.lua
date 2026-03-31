@@ -278,11 +278,16 @@ end
 local function FullLayout()
     if not addon.focus.enabled then return end
 
+    local function syncScenarioBarTickerForLayout()
+        if addon.SyncScenarioBarTickerState then addon.SyncScenarioBarTickerState() end
+    end
+
     if not addon.ShouldShowInInstance() then
         addon.HS:Hide()
         HideAllItemButtons()
         addon.UpdateFloatingQuestItem(nil)
         if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+        syncScenarioBarTickerForLayout()
         return
     end
 
@@ -291,6 +296,7 @@ local function FullLayout()
         HideAllItemButtons()
         addon.UpdateFloatingQuestItem(nil)
         if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end
+        syncScenarioBarTickerForLayout()
         return
     end
 
@@ -477,6 +483,7 @@ local function FullLayout()
                 ApplyShowAlpha()
                 addon.HS:Show()
             end
+            syncScenarioBarTickerForLayout()
             return
         end
         if addon.GetDB("showSectionHeadersWhenCollapsed", false) then
@@ -573,6 +580,7 @@ local function FullLayout()
                 HideAllItemButtons()
                 addon.UpdateFloatingQuestItem(nil)
             end
+            syncScenarioBarTickerForLayout()
             return
         end
     end
@@ -870,6 +878,7 @@ local function FullLayout()
                 end
                 addon.UpdateHeaderQuestCount(#quests, addon.CountTrackedInLog(quests))
                 if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
+                syncScenarioBarTickerForLayout()
                 return
             end
         end
@@ -1307,6 +1316,7 @@ local function FullLayout()
         addon.focus.categoryChange.prevGroupKey[k] = v
     end
 
+    syncScenarioBarTickerForLayout()
     if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
 end
 

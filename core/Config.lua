@@ -14,7 +14,7 @@ addon.HEADER_SIZE     = 16
 addon.TITLE_SIZE      = 13
 addon.OBJ_SIZE        = 11
 
-addon.POOL_SIZE       = 25
+addon.POOL_SIZE       = 50
 addon.MAX_OBJECTIVES  = 7
 
 addon.PANEL_WIDTH     = 260

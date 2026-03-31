@@ -71,6 +71,14 @@ pcall(function() eventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED") end)
 
 local VIGNETTE_DEBOUNCE = 0.5
 
+-- UPDATE_UI_WIDGET fires in bursts in widget-heavy scenarios; debounce to avoid full layout per tick.
+local UPDATE_UI_WIDGET_DEBOUNCE = 0.2
+local updateWidgetDebounceTimer
+
+-- Coalesce rapid scenario criteria / spell updates into a single deferred layout.
+local SCENARIO_CRITERIA_DEBOUNCE = 0.12
+local scenarioCriteriaDebounceTimer
+
 -- OnUpdate dirty flag breaks taint chain from event-driven C_QuestLog calls.
 local layoutDirtyFrame = CreateFrame("Frame")
 layoutDirtyFrame:Hide()
@@ -96,10 +104,43 @@ local function OnVignettesUpdated()
     if not addon.focus.enabled then return end
     if not addon.GetDB("showRareBosses", true) and not addon.GetDB("showRareLoot", false) then return end
     if vignetteDebounceTimer then vignetteDebounceTimer:Cancel() end
-    vignetteDebounceTimer = C_Timer.After(VIGNETTE_DEBOUNCE, function()
-        vignetteDebounceTimer = nil
+    if C_Timer and C_Timer.NewTimer then
+        vignetteDebounceTimer = C_Timer.NewTimer(VIGNETTE_DEBOUNCE, function()
+            vignetteDebounceTimer = nil
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    else
+        C_Timer.After(VIGNETTE_DEBOUNCE, function()
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    end
+end
+
+local function OnUpdateUiWidgetDebounced()
+    if not addon.focus.enabled then return end
+    if not ((addon.IsDelveActive and addon.IsDelveActive()) or (addon.IsScenarioActive and addon.IsScenarioActive())) then
+        return
+    end
+    if updateWidgetDebounceTimer then updateWidgetDebounceTimer:Cancel() end
+    updateWidgetDebounceTimer = C_Timer.After(UPDATE_UI_WIDGET_DEBOUNCE, function()
+        updateWidgetDebounceTimer = nil
         if addon.focus.enabled then ScheduleRefresh() end
     end)
+end
+
+local function ScheduleScenarioCriteriaDebouncedRefresh()
+    if not addon.focus.enabled then return end
+    if scenarioCriteriaDebounceTimer then scenarioCriteriaDebounceTimer:Cancel() end
+    if C_Timer and C_Timer.NewTimer then
+        scenarioCriteriaDebounceTimer = C_Timer.NewTimer(SCENARIO_CRITERIA_DEBOUNCE, function()
+            scenarioCriteriaDebounceTimer = nil
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    else
+        C_Timer.After(SCENARIO_CRITERIA_DEBOUNCE, function()
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    end
 end
 
 _G.HorizonSuite_ApplyTypography  = addon.ApplyTypography
@@ -517,22 +558,28 @@ local eventHandlers = {
     -- SCENARIO_UPDATE: fires when a scenario starts/steps/ends. Start the 5s heartbeat
     -- (for timer countdown display) when a scenario becomes active; it self-cancels on end.
     SCENARIO_UPDATE          = function()
+        if addon.InvalidateScenarioEntriesCache then addon.InvalidateScenarioEntriesCache() end
         if addon.focus.enabled and addon.IsScenarioActive and addon.IsScenarioActive() then
             if addon.StartScenarioTimerHeartbeat then addon.StartScenarioTimerHeartbeat() end
         end
         ScheduleRefresh()
     end,
-    SCENARIO_CRITERIA_UPDATE = function() ScheduleRefresh() end,
-    SCENARIO_CRITERIA_SHOW_STATE_UPDATE = function() ScheduleRefresh() end,
+    SCENARIO_CRITERIA_UPDATE = function() ScheduleScenarioCriteriaDebouncedRefresh() end,
+    SCENARIO_CRITERIA_SHOW_STATE_UPDATE = function() ScheduleScenarioCriteriaDebouncedRefresh() end,
     SCENARIO_COMPLETED       = function()
+        if addon.InvalidateScenarioEntriesCache then addon.InvalidateScenarioEntriesCache() end
         if addon.focus then addon.focus.scenarioTimerCache = nil end
         ScheduleRefresh()
     end,
     SCENARIO_SPELL_UPDATE    = function() ScheduleRefresh() end,
-    SCENARIO_BONUS_OBJECTIVE_COMPLETE = function() ScheduleRefresh() end,
+    SCENARIO_BONUS_OBJECTIVE_COMPLETE = function()
+        if addon.InvalidateScenarioEntriesCache then addon.InvalidateScenarioEntriesCache() end
+        ScheduleRefresh()
+    end,
     -- Bonus objective became visible (e.g. entered zone/area). Invalidate nearby cache so GetTasksTable is re-read.
     SCENARIO_BONUS_VISIBILITY_UPDATE  = function()
         if not addon.focus.enabled then return end
+        if addon.InvalidateScenarioEntriesCache then addon.InvalidateScenarioEntriesCache() end
         addon.focus.nearbyQuestCacheDirty = true
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
@@ -554,11 +601,7 @@ local eventHandlers = {
     -- CHALLENGE_MODE_START: fires when an M+ key is activated (dungeon begins).
     -- Replaces the recursive instance-state poll for the M+ case.
     CHALLENGE_MODE_START     = function() OnInstanceEntered() end,
-    UPDATE_UI_WIDGET         = function()
-        if (addon.IsDelveActive and addon.IsDelveActive()) or (addon.IsScenarioActive and addon.IsScenarioActive()) then
-            ScheduleRefresh()
-        end
-    end,
+    UPDATE_UI_WIDGET         = function() OnUpdateUiWidgetDebounced() end,
     INITIATIVE_TASKS_TRACKED_UPDATED = function() ScheduleRefresh() end,
     INITIATIVE_TASKS_TRACKED_LIST_CHANGED = function() ScheduleRefresh() end,
     TRACKING_TARGET_INFO_UPDATE = function() ScheduleRefresh() end,
