@@ -1113,6 +1113,8 @@ L["OPTIONS_VISTA_LOCK_MINIMAP_POSITION"]                              = "Bloquea
 L["OPTIONS_VISTA_PREVENT_DRAGGING_MINIMAP"]                           = "Impede arrastar o minimapa."
 L["OPTIONS_VISTA_RESET_MINIMAP_POSITION"]                             = "Redefinir posição do minimapa"
 L["OPTIONS_VISTA_RESET_MINIMAP_DEFAULT_POSITION_TOP_RIGHT"]           = "Redefine o minimapa para a posição padrão (canto superior direito)."
+-- L["OPTIONS_VISTA_RESET_OVERLAY_POSITIONS"]                         = "Reset overlay positions to defaults"  -- NEEDS TRANSLATION
+L["OPTIONS_VISTA_RESET_OVERLAY_POSITIONS_DESC"]                       = "Clear saved positions for zone text, coordinates, clock, performance and difficulty text, zoom buttons, tracking, calendar, queue, mail, the addon button bar, drawer button, and right-click panel. The minimap frame position is not changed."
 L["OPTIONS_VISTA_AUTO_ZOOM"]                                          = "Zoom Automático"
 L["OPTIONS_VISTA_AUTO_ZOOM_DELAY"]                                    = "Atraso do zoom-out automático"
 L["OPTIONS_VISTA_SECONDS_AFTER_ZOOMING_BEFORE_AUTO_ZOOM"]             = "Segundos após o zoom antes do zoom-out automático. 0 para desativar."
@@ -1605,6 +1607,8 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
 
 
 
