@@ -448,6 +448,7 @@ L["OPTIONS_FOCUS_TOOLTIPS_HOVERING_TRACKER_ENTRIES_ITE"]              = "Tooltip
 L["OPTIONS_FOCUS_WOWHEAD_LINK_TOOLTIPS"]                              = "Wowhead Links in Tooltips anzeigen"
 L["OPTIONS_FOCUS_A_TOOLTIP_SHOWN_ADD_A_LINK"]                         = "Wenn ein Tooltip angezeigt wird, füge einen Link hinzu, über den die Quest, der Erfolg oder der NPC auf WoWhead geöffnet werden kann."
 L["OPTIONS_FOCUS_VIEW_WOWHEAD"]                                       = "Auf Wowhead anzeigen"
+L["OPTIONS_FOCUS_WOWHEAD_ALT_CLICK_HINT"]                             = "Alt+click row to copy"
 L["OPTIONS_FOCUS_COPY_LINK"]                                          = "Link kopieren"
 L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]                        = "Kopiere die folgende URL (STRG+C) und füge sie in deinem Browser ein."
 L["OPTIONS_FOCUS_OBJECTIVE_NUMBERS"]                                  = "Zahlen für Ziele anzeigen"
@@ -1604,6 +1605,8 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
 
 
 

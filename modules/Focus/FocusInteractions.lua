@@ -17,8 +17,10 @@ local function AppendWoWheadLineToTooltip(entry)
     local url = addon.GetWoWheadURL(entry)
     if not url then return end
     local text = (addon.L and addon.L["OPTIONS_FOCUS_VIEW_WOWHEAD"]) or "View on WoWhead"
+    local hint = (addon.L and addon.L["OPTIONS_FOCUS_WOWHEAD_ALT_CLICK_HINT"]) or "Alt + Click"
+    local line = ("|cff00b4ff|Hurl:%s|h[%s]|h|r |cff888888(%s)|r"):format(url, text, hint)
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(("|cff00b4ff|Hurl:%s|h[%s]|h|r"):format(url, text), 0.4, 0.7, 1)
+    GameTooltip:AddLine(line, 0.4, 0.7, 1)
 end
 
 --- Try to complete an auto-complete quest via ShowQuestComplete (Blizzard behavior).
