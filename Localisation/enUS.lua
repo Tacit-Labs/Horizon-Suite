@@ -295,6 +295,14 @@ L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR_CLASS"]                          = "Class"
 L["OPTIONS_INSIGHT_SECTION_STATUS_PVP"]                               = "Status & PvP"
 L["OPTIONS_INSIGHT_SECTION_RATINGS_GEAR"]                             = "Ratings & gear"
 L["OPTIONS_INSIGHT_SECTION_MOUNT"]                                    = "Mount"
+L["OPTIONS_INSIGHT_SECTION_DISMISS"]                                  = "Unit tooltip dismiss"
+L["OPTIONS_INSIGHT_DISMISS_GRACE"]                                    = "Dismiss grace"
+L["OPTIONS_INSIGHT_DISMISS_GRACE_DESC"]                               = "How long to wait after the mouse leaves a unit before dismiss begins. This is separate from fade-out duration, which only runs after dismiss starts. Longer grace reduces flicker from brief cursor gaps."
+L["OPTIONS_INSIGHT_DISMISS_GRACE_INSTANT"]                            = "Instant"
+L["OPTIONS_INSIGHT_DISMISS_GRACE_DEFAULT"]                            = "Normal"
+L["OPTIONS_INSIGHT_DISMISS_GRACE_RELAXED"]                            = "Relaxed"
+L["OPTIONS_INSIGHT_FADE_OUT_SEC"]                                     = "Fade-out duration"
+L["OPTIONS_INSIGHT_FADE_OUT_SEC_DESC"]                                = "How long the unit tooltip takes to fade out after dismiss has started (not the delay before dismiss). Zero hides immediately with no fade. Applies to GameTooltip unit tips only."
 L["OPTIONS_INSIGHT_SECTION_ICONS_AND_SEPARATORS"]                     = "Icons & separators"
 L["OPTIONS_INSIGHT_SECTION_NPC_TOOLTIP"]                              = "NPC tooltip"
 L["OPTIONS_INSIGHT_SECTION_TRANSMOG"]                                 = "Transmog"
@@ -1591,6 +1599,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 
