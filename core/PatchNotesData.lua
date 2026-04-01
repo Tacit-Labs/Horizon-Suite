@@ -15,6 +15,18 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.6.1"] = {
+        date = "2026-04-02",
+        {
+            section = "Improvements",
+            bullets = {
+                "Insight: optional hide tooltips in combat — toggle under Global Tooltips; frames close on combat start and stay suppressed while in combat",
+                "Axis: Discord invite links updated in dashboard, READMEs, and GitHub issue template",
+                "Axis: README and CurseForge listing refresh — clearer install steps and expanded listing copy",
+            },
+        },
+    },
+
     ["4.6.0"] = {
         date = "2026-04-01",
         {

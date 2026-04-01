@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.6.1] – 2026-04-02
+
+### 🔧 Improvements
+
+- **(Insight)** Optional hide tooltips in combat — toggle under Insight → Global Tooltips closes styled tooltip frames when you enter combat and blocks them from staying open while fighting
+- **(Axis)** Discord invite links updated in the dashboard, READMEs, and GitHub issue template so community links point at the current server
+- **(Axis)** README and CurseForge listing refresh — clearer install steps, expanded CurseForge page copy, Basic Commands table removed from short READMEs
+
+---
+
 ## [4.6.0] – 2026-04-01
 
 ### ✨ New Features
