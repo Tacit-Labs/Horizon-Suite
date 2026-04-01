@@ -155,7 +155,7 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
     local MakeText = env.MakeText
 
     local linkData = {
-        { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj", icon = "Interface/AddOns/HorizonSuite/media/discord.tga" },
+        { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.gg/nFabdZmvSB", icon = "Interface/AddOns/HorizonSuite/media/discord.tga" },
         { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite", icon = "Interface/AddOns/HorizonSuite/media/kofi.tga" },
         { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite", icon = "Interface/AddOns/HorizonSuite/media/patreon.tga" },
         { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite", icon = "Interface/AddOns/HorizonSuite/media/gitlab.tga" },

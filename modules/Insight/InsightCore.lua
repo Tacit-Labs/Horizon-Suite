@@ -101,9 +101,25 @@ end
 local tooltipsToStyle = {}
 local hookedShow      = {}
 
+-- Close styled tooltips when combat suppression is on (option + lockdown).
+local function HideStyledTooltipsIfCombatSuppressionActive()
+    if not Insight.IsInsightEnabled() then return end
+    if not addon.GetDB("insightHideTooltipsInCombat", false) then return end
+    if not InCombatLockdown() then return end
+    for _, tt in ipairs(tooltipsToStyle) do
+        if tt and tt.Hide then
+            pcall(tt.Hide, tt)
+        end
+    end
+end
+
 local function HookTooltipOnShow(tooltip)
     tooltip:HookScript("OnShow", function(self)
         if not Insight.IsInsightEnabled() then return end
+        if addon.GetDB("insightHideTooltipsInCombat", false) and InCombatLockdown() then
+            self:Hide()
+            return
+        end
         Insight.StripNineSlice(self)
         Insight.ApplyBackdrop(self)
         if self._insightItemQuality then
@@ -931,6 +947,7 @@ function Insight.ApplyInsightOptions()
     if addon.DashboardPreview and addon.DashboardPreview.NotifyRefresh then
         addon.DashboardPreview.NotifyRefresh()
     end
+    HideStyledTooltipsIfCombatSuppressionActive()
 end
 
 function Insight.Init()
@@ -1036,7 +1053,12 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("INSPECT_READY")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:SetScript("OnEvent", function(self, event, guid)
+    if event == "PLAYER_REGEN_DISABLED" then
+        HideStyledTooltipsIfCombatSuppressionActive()
+        return
+    end
     if event == "UPDATE_MOUSEOVER_UNIT" then
         if not Insight.IsInsightEnabled() then return end
         local okGt, gtUnit = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
