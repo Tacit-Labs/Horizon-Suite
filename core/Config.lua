@@ -571,6 +571,30 @@ function addon.ApplyProgressBarFillTexture(tex, r, g, b, a)
     tex:SetVertexColor(r or 0.4, g or 0.65, b or 0.9, a or 0.85)
 end
 
+--- Unread patch-notes marker: bundled media/update.tga; fallback masked green dot if missing.
+--- Loaded from Config so MinimapButton (and beta TOC without PatchNotes.lua) can use it.
+--- @param tex Texture
+--- @return nil
+function addon.PatchNotes_StyleAttentionBadge(tex)
+    if not tex then return end
+    pcall(function() tex:SetMask(nil) end)
+    local folder = addon.ADDON_NAME or "HorizonSuite"
+    local base = "Interface\\AddOns\\" .. folder .. "\\media\\update"
+    local ok = pcall(function() tex:SetTexture(base) end)
+    if not ok then
+        ok = pcall(function() tex:SetTexture(base .. ".tga") end)
+    end
+    if ok then
+        pcall(function() tex:SetVertexColor(1, 1, 1, 1) end)
+        return
+    end
+    pcall(function()
+        tex:SetTexture(nil)
+        tex:SetColorTexture(0.20, 0.82, 0.28, 1)
+        tex:SetMask("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+    end)
+end
+
 -- ============================================================================
 -- BRAND DISPLAY
 -- Fixed English product and module display names — NOT localised.

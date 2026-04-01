@@ -19,6 +19,7 @@ function addon.DashboardSidebar_CreateChrome(p)
 
     -- ===== SIDEBAR =====
     local SIDEBAR_WIDTH = 160
+    local SIDEBAR_CONTENT_X_INSET = 15 -- logo separator + scroll list; bottom Patch Notes row uses same X as Welcome/Home
     local CONTENT_OFFSET = SIDEBAR_WIDTH + 10
 
     local sidebar = CreateFrame("Frame", nil, f)
@@ -94,8 +95,8 @@ function addon.DashboardSidebar_CreateChrome(p)
         local icon = dashAccentRefs.dashboardClassIcon
         local anchorBelow = (icon and icon:IsShown()) and icon or lastSidebarHeader
         logoSep:SetPoint("TOP", anchorBelow, "BOTTOM", 0, -8)
-        logoSep:SetPoint("LEFT", sidebar, "LEFT", 15, 0)
-        logoSep:SetPoint("RIGHT", sidebar, "RIGHT", -15, 0)
+        logoSep:SetPoint("LEFT", sidebar, "LEFT", SIDEBAR_CONTENT_X_INSET, 0)
+        logoSep:SetPoint("RIGHT", sidebar, "RIGHT", -SIDEBAR_CONTENT_X_INSET, 0)
         sidebarScrollFrame:ClearAllPoints()
         sidebarScrollFrame:SetPoint("TOPLEFT", logoSep, "BOTTOMLEFT", 0, -10)
         sidebarScrollFrame:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, 10 + SIDEBAR_WHATSNEW_RESERVE)
@@ -176,15 +177,23 @@ function addon.DashboardSidebar_CreateChrome(p)
             btn:SetScript("OnEnter", function()
                 if btn ~= dashSession.activeSidebarBtn then
                     btnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
-                    lbl:SetTextColor(0.9, 0.9, 0.95)
-                    if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
+                    if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+                        addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, true)
+                    else
+                        lbl:SetTextColor(0.9, 0.9, 0.95)
+                        if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
+                    end
                 end
             end)
             btn:SetScript("OnLeave", function()
                 if btn ~= dashSession.activeSidebarBtn then
                     btnBg:SetColorTexture(0, 0, 0, 0)
-                    lbl:SetTextColor(0.65, 0.65, 0.7)
-                    if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                    if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+                        addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, false)
+                    else
+                        lbl:SetTextColor(0.65, 0.65, 0.7)
+                        if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                    end
                 end
             end)
         end
@@ -197,17 +206,26 @@ function addon.DashboardSidebar_CreateChrome(p)
 
     local function SetActiveSidebarButton(btn)
         if dashSession.activeSidebarBtn then
-            dashSession.activeSidebarBtn.btnBg:SetColorTexture(0, 0, 0, 0)
-            dashSession.activeSidebarBtn.label:SetTextColor(0.65, 0.65, 0.7)
-            if dashSession.activeSidebarBtn.icon then dashSession.activeSidebarBtn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
-            dashSession.activeSidebarBtn.accentBar:Hide()
+            local prev = dashSession.activeSidebarBtn
+            prev.btnBg:SetColorTexture(0, 0, 0, 0)
+            if prev._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+                addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(prev, prev.label, prev.icon, false)
+            else
+                prev.label:SetTextColor(0.65, 0.65, 0.7)
+                if prev.icon then prev.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+            end
+            prev.accentBar:Hide()
         end
         dashSession.activeSidebarBtn = btn
         if btn then
             local bar, bag, bab = GetAccentColor()
             btn.btnBg:SetColorTexture(bar * 0.15, bag * 0.15, bab * 0.15, DASHBOARD_CHILD_PANEL_ALPHA)
-            btn.label:SetTextColor(1, 1, 1)
-            if btn.icon then btn.icon:SetVertexColor(1, 1, 1, 1) end
+            if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+                addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, btn.label, btn.icon, false)
+            else
+                btn.label:SetTextColor(1, 1, 1)
+                if btn.icon then btn.icon:SetVertexColor(1, 1, 1, 1) end
+            end
             btn.accentBar:Show()
         end
     end
@@ -215,6 +233,7 @@ function addon.DashboardSidebar_CreateChrome(p)
     -- ===== END SIDEBAR (chrome) =====
     return {
         CONTENT_OFFSET = CONTENT_OFFSET,
+        SIDEBAR_CONTENT_X_INSET = SIDEBAR_CONTENT_X_INSET,
         SIDEBAR_WIDTH = SIDEBAR_WIDTH,
         sidebar = sidebar,
         sidebarScrollFrame = sidebarScrollFrame,

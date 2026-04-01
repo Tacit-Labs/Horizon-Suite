@@ -4,7 +4,8 @@
     In-game notes should be player-facing summaries — not every internal/CI entry.
 
     Per version table:
-    - date = "YYYY-MM-DD" (optional but preferred) — shown next to the version in the dashboard; match CHANGELOG.
+    - date = "YYYY-MM-DD" (optional but preferred) — store ISO for CHANGELOG parity; the dashboard shows long UK text
+      (e.g. 31 March 2026) in parentheses after the version.
     - Array entries { section = "...", bullets = { ... } } — bullets may use "Module: rest"; the UI capitalizes the
       first letter after ": " when it is lowercase (ASCII). Data can stay lowercase after the colon if you prefer.
 ]]
@@ -101,7 +102,7 @@ addon.PATCH_NOTES = {
             section = "Improvements",
             bullets = {
                 "Axis: Rename Yield and Persona modules to Cache and Essence",
-                "Axis: What's New — inline patch notes in the Dashboard",
+                "Axis: Patch Notes — inline patch notes in the Dashboard",
                 "Axis: Dashboard — Meridian coming-soon tile, locales, and welcome layout",
             },
         },

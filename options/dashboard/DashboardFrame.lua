@@ -340,6 +340,7 @@ function addon.Dashboard_BuildMainFrame()
             local easeOut = sb.easeOut
             local TAB_ROW_HEIGHT = sb.TAB_ROW_HEIGHT
             local SIDEBAR_WHATSNEW_RESERVE = sb.SIDEBAR_WHATSNEW_RESERVE
+            local SIDEBAR_CONTENT_X_INSET = sb.SIDEBAR_CONTENT_X_INSET
             local CreateSidebarButton = sb.CreateSidebarButton
             local SetActiveSidebarButton = sb.SetActiveSidebarButton
             LayoutDashboardSidebarUnderHeader = sb.layoutUnderHeader
@@ -667,7 +668,8 @@ function addon.Dashboard_BuildMainFrame()
                             vHdr:SetJustifyH("LEFT")
                             local noteDate = notes.date
                             if type(noteDate) == "string" and noteDate ~= "" then
-                                vHdr:SetText("v" .. ver .. " — " .. noteDate)
+                                local disp = (addon.PatchNotes_FormatIsoDateLongUK and addon.PatchNotes_FormatIsoDateLongUK(noteDate)) or noteDate
+                                vHdr:SetText("v" .. ver .. " (" .. disp .. ")")
                             else
                                 vHdr:SetText("v" .. ver)
                             end
@@ -981,6 +983,9 @@ function addon.Dashboard_BuildMainFrame()
 
 
             f.ShowPatchNotes = function()
+                if addon.PatchNotes_MarkCurrentVersionViewed then
+                    addon.PatchNotes_MarkCurrentVersionViewed()
+                end
                 HideContextHeader()
                 detailView:Hide()
                 subCategoryView:Hide()
@@ -1004,7 +1009,8 @@ function addon.Dashboard_BuildMainFrame()
                     BuildPatchNotesContent(targetVer)
                 end
 
-                detailTitle:SetText("WHAT'S NEW" .. (ver ~= "" and ("  |cFF888899v"..ver.."|r") or ""))
+                local patchNotesTitle = string.upper(L["DASH_WHATS_NEW"] or "Patch Notes")
+                detailTitle:SetText(patchNotesTitle .. (ver ~= "" and ("  |cFF888899v"..ver.."|r") or ""))
                 detailTitle:Show()
                 detailTitleUnderline:Show()
 
@@ -1196,15 +1202,29 @@ function addon.Dashboard_BuildMainFrame()
                 end
             end
 
-            -- What's New: pinned to sidebar bottom (outside scroll; see SIDEBAR_WHATSNEW_RESERVE)
+            -- Patch Notes: pinned to sidebar bottom (outside scroll; see SIDEBAR_WHATSNEW_RESERVE)
             do
-                local wnBtn = CreateSidebarButton(sidebar, "What's New", "INV_Scroll_05", function()
+                local whatsNewBase = L["DASH_WHATS_NEW"] or "Patch Notes"
+                local wnBtn = CreateSidebarButton(sidebar, whatsNewBase, "INV_Scroll_05", function()
+                    if addon.PatchNotes_MarkWhatsNewSidebarClicked then
+                        addon.PatchNotes_MarkWhatsNewSidebarClicked()
+                    end
                     if f.ShowPatchNotes then f.ShowPatchNotes() end
                 end)
-                wnBtn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, 10)
+                -- Same inner width as sidebarScrollFrame (left inset + right -1); full SIDEBAR_WIDTH-1 would spill past the sidebar edge.
+                wnBtn:SetWidth(SIDEBAR_WIDTH - SIDEBAR_CONTENT_X_INSET - 1)
+                wnBtn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", SIDEBAR_CONTENT_X_INSET, 10)
                 wnBtn:SetFrameLevel(sidebarScrollFrame:GetFrameLevel() + 1)
+                wnBtn._whatsNewBaseText = whatsNewBase
+                wnBtn._patchNotesSidebarRowStyle = true
+                wnBtn._sidebarViewGetter = function()
+                    return sidebarState.view
+                end
                 tinsert(sidebarButtons, wnBtn)
                 f.whatsnewSidebarBtn = wnBtn
+                if addon.PatchNotes_RefreshAttentionIndicators then
+                    addon.PatchNotes_RefreshAttentionIndicators()
+                end
             end
 
             --- Reflow sidebar scroll content height from top to last row.
@@ -1264,6 +1284,9 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 SetActiveSidebarButton(activeBtn)
+                if addon.PatchNotes_RefreshAttentionIndicators then
+                    addon.PatchNotes_RefreshAttentionIndicators()
+                end
                 LayoutSidebar()
                 if C_Timer and C_Timer.After then
                     C_Timer.After(0, function() LayoutSidebar() end)

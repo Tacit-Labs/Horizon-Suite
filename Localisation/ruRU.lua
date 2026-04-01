@@ -75,6 +75,8 @@ L["OPTIONS_AXIS_MODULES"]                                             = "Мод�
 -- =====================================================================
 -- options/dashboard/HomeWelcome.lua — First-run welcome
 -- =====================================================================
+-- L["DASH_WHATS_NEW"]                                                = "Patch Notes"  -- NEEDS TRANSLATION
+-- L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                  = " (New!)"  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_TAB"]                                              = "Welcome"  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_TITLE"]                                            = "Welcome to Horizon Suite"  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_HEAD_SUB"]                                         = "What each module does and where to turn them on"  -- NEEDS TRANSLATION
@@ -223,6 +225,9 @@ L["OPTIONS_AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Кин�
 L["OPTIONS_AXIS_BETA"]                                                = "Бета"
 L["OPTIONS_AXIS_SCALING"]                                             = "Масштабирование"
 -- L["OPTIONS_AXIS_GLOBAL_TOGGLES"]                                   = "Global Toggles"  -- NEEDS TRANSLATION
+-- L["OPTIONS_AXIS_PATCH_NOTES_SECTION"]                              = "Patch notes"  -- NEEDS TRANSLATION
+-- L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"]                   = "Show Patch Notes automatically after an update"  -- NEEDS TRANSLATION
+-- L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"]              = "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes."  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"]               = "Dashboard background theme, class colour tinting, and UI scale (global or per module)."  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_GLOBAL_UI_SCALE"]                                     = "Глобальный масштаб интерфейса"
 L["OPTIONS_AXIS_SCALE_SIZES_SPACINGS_FONTS_FACTOR"]                   = "Масштабирует все размеры, интервалы и шрифты (50–200%). Не изменяет ваши настройки."
@@ -529,6 +534,7 @@ L["UI_VOLUME_OF_RARE_ALERT_SOUND"]                                    = "Гро�
 L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"]                                = "Увеличить или уменьшить громкость. 100% = нормально; 150% = громче."
 L["UI_RARE_ADDED_SOUND"]                                              = "Звук при добавлении редкого"
 L["UI_PLAY_A_SOUND_A_RARE"]                                           = "Воспроизводит звук при добавлении редкого."
+-- L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]                            = "New patch notes — open Axis and choose Patch Notes."  -- NEEDS TRANSLATION
 
 -- =====================================================================
 -- OptionsData.lua Features — World quests
@@ -1598,6 +1604,12 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
+
+
+
+
 
 
 
