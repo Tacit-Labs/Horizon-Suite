@@ -84,11 +84,12 @@ L["DASH_WHATS_NEW"]                                                   = "Patch N
 L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                     = " (New!)"
 L["DASH_WELCOME_TAB"]                                                 = "Welcome"
 L["DASH_WELCOME_TITLE"]                                               = "Welcome to Horizon Suite"
-L["DASH_WELCOME_HEAD_SUB"]                                            = "Credits, shortcuts, and where to find help"
-L["DASH_WELCOME_INTRO"]                                               = [=[Horizon Suite is modular — turn features on or off under |cffaaaaaaAxis → Modules|r (|cffaaaaaaReload UI|r to apply). Open |cffaaaaaaQuick Start|r in the sidebar for a tour of every module. After an update, check |cffaaaaaaPatch Notes|r in the sidebar for what changed. Expand Contributors or Localisations below for credits and supported languages. Use the shortcuts under those sections to jump to module toggles or the quick-start page. You can return here anytime from Welcome.]=]
+L["DASH_WELCOME_HEAD_SUB"]                                            = "Credits, community, and where to find help"
+L["DASH_WELCOME_INTRO"]                                               = [=[Horizon Suite is modular — turn features on or off under |cffaaaaaaAxis → Modules|r (|cffaaaaaaReload UI|r to apply). Open |cffaaaaaaQuick Start|r in the sidebar for a tour of every module. After an update, check |cffaaaaaaPatch Notes|r in the sidebar for what changed. Expand Contributors or Localisations below for credits and supported languages. You can return here anytime from Welcome.]=]
 L["DASH_WELCOME_PATH"]                                                = "%s → %s → %s"
-L["DASH_WELCOME_QUICK_LINKS_HEADING"]                                 = "Shortcuts"
-L["DASH_WELCOME_OPEN_QUICK_START_LINK"]                               = "Open Quick Start"
+L["DASH_WELCOME_COMING_SOON_TITLE"]                                   = "Coming Soon"
+L["DASH_WELCOME_COMING_SOON_TAGLINE"]                                 = "New welcome experiences are on the way."
+L["DASH_WELCOME_COMING_SOON_BODY"]                                    = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
 L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                                = "Contributors"
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
@@ -113,7 +114,6 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The a
 • Spanish (esES) — Localisation/esES.lua
 
 See TRANSLATING.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
-L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"]                            = "Open module toggles"
 
 
 -- =====================================================================
@@ -1655,6 +1655,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

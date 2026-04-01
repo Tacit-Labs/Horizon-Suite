@@ -144,3 +144,135 @@ function addon.Dashboard_ApplySmoothScroll(scrollFrame, scrollContent, speed, ad
         end)
     end)
 end
+
+--- Shared Community & Support footer for Welcome and Module Guide tabs.
+--- @param parent Frame — frame that will hold the footer (e.g., footerPanel)
+--- @param env table — { L, GetAccentColor, MakeText, addon }
+--- @return table — { footerPanel, footerLinkButtons, communityHdr, footerTopRule, layout }
+function addon.Dashboard_CreateCommunityFooter(parent, env)
+    local L = env.L
+    local GetAccentColor = env.GetAccentColor
+    local MakeText = env.MakeText
+
+    local linkData = {
+        { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj", icon = "Interface/AddOns/HorizonSuite/media/discord.tga" },
+        { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite", icon = "Interface/AddOns/HorizonSuite/media/kofi.tga" },
+        { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite", icon = "Interface/AddOns/HorizonSuite/media/patreon.tga" },
+        { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite", icon = "Interface/AddOns/HorizonSuite/media/gitlab.tga" },
+        { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844", icon = "Interface/AddOns/HorizonSuite/media/CurseForge.tga" },
+        { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y", icon = "Interface/AddOns/HorizonSuite/media/wago.tga" },
+    }
+
+    local footerTopRule = parent:CreateTexture(nil, "ARTWORK")
+    footerTopRule:SetHeight(1)
+    footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
+
+    local communityHdr = MakeText(parent, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
+
+    local function ShowCopyURL(label, url)
+        if env.addon and env.addon.ShowURLCopyBox then
+            env.addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
+        end
+    end
+
+    local function CreateFooterLink(parentFrame, label, onClick, iconPath)
+        local btn = CreateFrame("Button", nil, parentFrame)
+        btn:SetSize(100, 20)
+
+        local iconTex
+        if iconPath then
+            iconTex = btn:CreateTexture(nil, "ARTWORK")
+            iconTex:SetSize(14, 14)
+            iconTex:SetPoint("LEFT", btn, "LEFT", 12, 0)
+            iconTex:SetTexture(iconPath)
+            iconTex:SetVertexColor(0.52, 0.56, 0.62)
+        end
+
+        local lbl = MakeText(btn, label, 12, 0.52, 0.56, 0.62, iconPath and "CENTER" or "CENTER")
+        lbl:ClearAllPoints()
+        if iconTex then
+            lbl:SetPoint("LEFT", iconTex, "RIGHT", 4, 0)
+            lbl:SetPoint("RIGHT", btn, "RIGHT", -12, 0)
+        elseif iconPath == nil then
+            lbl:SetAllPoints()
+        else
+            lbl:SetPoint("LEFT", btn, "LEFT", 0, 0)
+            lbl:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+        end
+        btn.label = lbl
+
+        local underline = btn:CreateTexture(nil, "OVERLAY")
+        underline:SetHeight(1)
+        underline:SetPoint("BOTTOM", btn, "BOTTOM", 0, 0)
+        underline:SetPoint("LEFT", btn, "LEFT", 0, 0)
+        underline:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+        underline:Hide()
+        btn.underline = underline
+
+        btn:SetScript("OnEnter", function()
+            lbl:SetTextColor(0.88, 0.90, 0.94)
+            if iconTex then iconTex:SetVertexColor(0.88, 0.90, 0.94) end
+            local ar, ag, ab = GetAccentColor()
+            underline:SetColorTexture(ar, ag, ab, 0.6)
+            underline:Show()
+        end)
+        btn:SetScript("OnLeave", function()
+            lbl:SetTextColor(0.52, 0.56, 0.62)
+            if iconTex then iconTex:SetVertexColor(0.52, 0.56, 0.62) end
+            underline:Hide()
+        end)
+        btn:SetScript("OnClick", onClick)
+        return btn
+    end
+
+    local footerLinkButtons = {}
+    for _, link in ipairs(linkData) do
+        local btn = CreateFooterLink(parent, link.label, function()
+            ShowCopyURL(link.label, link.url)
+        end, link.icon)
+        table.insert(footerLinkButtons, btn)
+    end
+
+    local function LayoutFooter(w, fy, bgFrame)
+        -- Position the separator rule
+        footerTopRule:ClearAllPoints()
+        footerTopRule:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -fy)
+        footerTopRule:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, -fy)
+        fy = fy + 1 + 12
+
+        -- Position the heading
+        communityHdr:SetWidth(w)
+        communityHdr:ClearAllPoints()
+        communityHdr:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -fy)
+        fy = fy + communityHdr:GetHeight() + 8
+
+        -- Distribute buttons evenly across available width
+        local numButtons = #footerLinkButtons
+        local spacedBtnW = math.floor((w - 20) / numButtons)  -- 20 = left+right margin
+        local btnSpacing = spacedBtnW
+
+        for i, btn in ipairs(footerLinkButtons) do
+            btn:SetWidth(spacedBtnW - 4)  -- Small margin between buttons
+            btn:ClearAllPoints()
+            btn:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i - 1) * btnSpacing, -fy)
+        end
+        fy = fy + 20
+
+        -- Position footer panel itself
+        parent:SetWidth(w)
+        parent:SetHeight(math.max(fy + 4, 1))
+        parent:ClearAllPoints()
+        parent:SetPoint("BOTTOMLEFT", bgFrame, "BOTTOMLEFT", 20, 14)
+        parent:SetPoint("BOTTOMRIGHT", bgFrame, "BOTTOMRIGHT", -20, 14)
+
+        return fy
+    end
+
+    return {
+        footerPanel = parent,
+        footerLinkButtons = footerLinkButtons,
+        communityHdr = communityHdr,
+        footerTopRule = footerTopRule,
+        layout = LayoutFooter,
+    }
+end

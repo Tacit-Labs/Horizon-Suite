@@ -424,16 +424,20 @@ function addon.DashboardHomeWelcome_Init(env)
         local WELCOME_SCROLL_BODY_X_INSET = 0
         local WELCOME_SCROLL_ABOVE_FOOTER_GAP = 10
         local SCROLL_TO_BG_INSET = 20
-        local FOOTER_TO_BG_BOTTOM = 14
-        local FOOTER_LINK_BTN_W = 82
-        local FOOTER_LINK_GAP = 10
+        -- Coming Soon hero art: BLP or TGA on Texture; GIF/PNG/JPG from addons show a placeholder. File: media/cache.tga (match casing for non-Windows clients).
+        -- For animation, use a TGA/BLP sprite sheet + SetTexCoord or flip frames with a timer.
+        local WELCOME_COMING_SOON_MEDIA = "Interface/AddOns/HorizonSuite/media/cache.tga"
+        -- Max box for Coming Soon image (uniform scale inside; native aspect preserved, no stretch).
+        local WELCOME_COMING_SOON_GIF_MAX_H = 132
+        local WELCOME_COMING_SOON_TWO_COL_MIN_W = 440
+        local WELCOME_COMING_SOON_GIF_COL_W = 200
 
         local welcomeBg = welcomeView:CreateTexture(nil, "BACKGROUND")
         welcomeBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + WELCOME_BG_TOP_NUDGE)
         -- Room for footer links only (bottom buttons removed)
         welcomeBg:SetPoint("BOTTOMRIGHT", welcomeView, "BOTTOMRIGHT", -28, 20)
 
-        -- Scrollable body (title, intro, accordions, shortcuts); footer stays fixed so expanded accordions do not cover Community & Support.
+        -- Scrollable body (title, intro, accordions, Coming Soon hero); footer stays fixed so expanded accordions do not cover Community & Support.
         local footerPanel = CreateFrame("Frame", nil, welcomeView)
         footerPanel:SetFrameLevel((welcomeView:GetFrameLevel() or 0) + 10)
 
@@ -550,40 +554,6 @@ function addon.DashboardHomeWelcome_Init(env)
             return card
         end
 
-        local function CreateWelcomeTextLink(parent, label, onClick, justify)
-            justify = justify or "CENTER"
-            local btn = CreateFrame("Button", nil, parent)
-            btn:SetSize(100, 20)
-            local lbl = MakeText(btn, label, 12, 0.52, 0.56, 0.62, justify)
-            lbl:ClearAllPoints()
-            if justify == "LEFT" then
-                lbl:SetPoint("LEFT", btn, "LEFT", 0, 0)
-                lbl:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
-            else
-                lbl:SetAllPoints()
-            end
-            btn.label = lbl
-            local underline = btn:CreateTexture(nil, "OVERLAY")
-            underline:SetHeight(1)
-            underline:SetPoint("BOTTOM", btn, "BOTTOM", 0, 0)
-            underline:SetPoint("LEFT", btn, "LEFT", 0, 0)
-            underline:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
-            underline:Hide()
-            btn.underline = underline
-            btn:SetScript("OnEnter", function()
-                lbl:SetTextColor(0.88, 0.90, 0.94)
-                local ar, ag, ab = GetAccentColor()
-                underline:SetColorTexture(ar, ag, ab, 0.6)
-                underline:Show()
-            end)
-            btn:SetScript("OnLeave", function()
-                lbl:SetTextColor(0.52, 0.56, 0.62)
-                underline:Hide()
-            end)
-            btn:SetScript("OnClick", onClick)
-            return btn
-        end
-
         local LayoutWelcomeContent
         local contributorsCard = CreateWelcomeAccordionCard(content, L["DASH_WELCOME_CONTRIBUTORS_HEADING"] or "Contributors", function()
             LayoutWelcomeContent()
@@ -605,77 +575,64 @@ function addon.DashboardHomeWelcome_Init(env)
         introFs:SetWordWrap(true)
         introFs:SetSpacing(4)
 
-        local shortcutsHdr = MakeText(content, (L["DASH_WELCOME_QUICK_LINKS_HEADING"] or "Shortcuts"), 16, 0.88, 0.90, 0.94, "LEFT")
+        local comingSoonHero = CreateFrame("Frame", nil, content)
+        comingSoonHero:SetClipsChildren(true)
+        local heroBg = comingSoonHero:CreateTexture(nil, "BACKGROUND")
+        heroBg:SetAllPoints()
+        heroBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+        local heroDivider = comingSoonHero:CreateTexture(nil, "ARTWORK")
+        heroDivider:SetHeight(1)
+        heroDivider:SetPoint("BOTTOMLEFT", 14, 0)
+        heroDivider:SetPoint("BOTTOMRIGHT", -14, 0)
+        local hdr, hdg, hdb = GetAccentColor()
+        heroDivider:SetColorTexture(hdr, hdg, hdb, 0.2)
+        local heroAccent = comingSoonHero:CreateTexture(nil, "ARTWORK")
+        heroAccent:SetWidth(3)
+        local cr, cg, cb = GetAccentColor()
+        heroAccent:SetColorTexture(cr, cg, cb, 1)
+        local comingSoonGif = comingSoonHero:CreateTexture(nil, "ARTWORK", nil, 1)
+        comingSoonGif:SetTexture(WELCOME_COMING_SOON_MEDIA)
+        local comingSoonTitleFs = MakeText(comingSoonHero, L["DASH_WELCOME_COMING_SOON_TITLE"] or "Coming Soon", 22, 1, 1, 1, "LEFT")
+        local comingSoonTagFs = MakeText(comingSoonHero, L["DASH_WELCOME_COMING_SOON_TAGLINE"] or "", 14, 0.78, 0.80, 0.85, "LEFT")
+        local comingSoonBodyFs = MakeDashboardWelcomeMixedScriptText(comingSoonHero, L["DASH_WELCOME_COMING_SOON_BODY"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
+        comingSoonBodyFs:SetWordWrap(true)
+        comingSoonBodyFs:SetSpacing(4)
 
-        local function DismissWelcomeAndOpenModuleToggles()
-            if addon.SetDB then addon.SetDB("dashboardWelcomeSeen", true) end
-            detailNav.NavigateToModuleToggles()
-        end
-
-        local btnOpenQuickStart = CreateWelcomeTextLink(content, L["DASH_WELCOME_OPEN_QUICK_START_LINK"] or "Open Quick Start", function()
-            if f.ShowModuleGuide then
-                f.ShowModuleGuide()
+        -- Fit image inside a max box with uniform scale only (no stretch). Optional capScaleOne: never upscale past native pixels.
+        local function ComingSoonImageDisplaySize(tex, boxW, boxH, capScaleOne)
+            if not tex or not boxW or not boxH or boxW < 1 or boxH < 1 then
+                return math.max(1, boxW or 1), math.max(1, boxH or 1)
             end
-        end, "LEFT")
-
-        local btnOpenModuleToggles = CreateWelcomeTextLink(content, L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles", DismissWelcomeAndOpenModuleToggles, "LEFT")
-
-        -- Footer: Community & Support + external links (copy URL)
-        local footerTopRule = footerPanel:CreateTexture(nil, "ARTWORK")
-        footerTopRule:SetHeight(1)
-        footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
-
-        local communityHdr = MakeText(footerPanel, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
-
-        local linkData = {
-            { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj" },
-            { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite" },
-            { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite" },
-            { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite" },
-            { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844" },
-            { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y" },
-        }
-
-        local linkButtons = {}
-        for _, link in ipairs(linkData) do
-            local btn = CreateWelcomeTextLink(footerPanel, link.label, function()
-                ShowCopyURL(link.label, link.url)
-            end, "CENTER")
-            tinsert(linkButtons, btn)
+            local nw = tex.GetTextureFileWidth and tex:GetTextureFileWidth() or 0
+            local nh = tex.GetTextureFileHeight and tex:GetTextureFileHeight() or 0
+            if nw < 1 or nh < 1 then
+                return boxW, boxH
+            end
+            local scale = math.min(boxW / nw, boxH / nh)
+            if capScaleOne then
+                scale = math.min(scale, 1)
+            end
+            return math.max(1, math.floor(nw * scale + 0.5)), math.max(1, math.floor(nh * scale + 0.5))
         end
+
+        -- Footer: Community & Support + external links (shared factory)
+        local footerObj = addon.Dashboard_CreateCommunityFooter(footerPanel, {
+            L = L,
+            GetAccentColor = GetAccentColor,
+            MakeText = MakeText,
+            addon = addon,
+        })
+        local footerTopRule = footerObj.footerTopRule
+        local communityHdr = footerObj.communityHdr
+        local linkButtons = footerObj.footerLinkButtons
 
         LayoutWelcomeContent = function()
             local rawW = welcomeBg:GetWidth() or 0
             local w = math.max(280, rawW - 40)
             local innerPad = 28
 
-            -- --- Footer (bottom of card) ---
-            local fy = 0
-            footerTopRule:ClearAllPoints()
-            footerTopRule:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
-            footerTopRule:SetPoint("TOPRIGHT", footerPanel, "TOPRIGHT", 0, -fy)
-            fy = fy + 1 + 12
-
-            communityHdr:SetWidth(w)
-            communityHdr:ClearAllPoints()
-            communityHdr:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
-            fy = fy + communityHdr:GetHeight() + 8
-
-            local totalLinkWidth = (#linkButtons * FOOTER_LINK_BTN_W) + ((#linkButtons - 1) * FOOTER_LINK_GAP)
-            local linkRowX = math.max(0, (w - totalLinkWidth) / 2)
-
-            for i, btn in ipairs(linkButtons) do
-                btn:SetWidth(FOOTER_LINK_BTN_W)
-                btn:ClearAllPoints()
-                btn:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", linkRowX + (i - 1) * (FOOTER_LINK_BTN_W + FOOTER_LINK_GAP), -fy)
-            end
-            fy = fy + 20
-
-            footerPanel:SetWidth(w)
-            footerPanel:SetHeight(math.max(fy + 4, 1))
-            footerPanel:ClearAllPoints()
-            footerPanel:SetPoint("BOTTOMLEFT", welcomeBg, "BOTTOMLEFT", SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
-            footerPanel:SetPoint("BOTTOMRIGHT", welcomeBg, "BOTTOMRIGHT", -SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
+            -- --- Footer (bottom of card; layout via shared factory) ---
+            local fy = footerObj.layout(w, 0, welcomeBg)
 
             welcomeScroll:ClearAllPoints()
             welcomeScroll:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", SCROLL_TO_BG_INSET, -WELCOME_CONTENT_TOP_PAD)
@@ -729,26 +686,62 @@ function addon.DashboardHomeWelcome_Init(env)
             localisationsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
             y = y + localisationsCard:GetHeight() + 16
 
-            shortcutsHdr:SetWidth(w)
-            shortcutsHdr:ClearAllPoints()
-            shortcutsHdr:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
-            y = y + shortcutsHdr:GetHeight() + 8
+            local heroPad = 28
+            comingSoonTitleFs:SetText(L["DASH_WELCOME_COMING_SOON_TITLE"] or "Coming Soon")
+            comingSoonTagFs:SetText(L["DASH_WELCOME_COMING_SOON_TAGLINE"] or "")
+            comingSoonBodyFs:SetText(L["DASH_WELCOME_COMING_SOON_BODY"] or "")
 
-            local qsLabel = L["DASH_WELCOME_OPEN_QUICK_START_LINK"] or "Open Quick Start"
-            btnOpenQuickStart.label:SetText(qsLabel)
-            local qsw = btnOpenQuickStart.label:GetStringWidth() or 120
-            btnOpenQuickStart:SetSize(math.min(w, math.floor(qsw) + 12), 20)
-            btnOpenQuickStart:ClearAllPoints()
-            btnOpenQuickStart:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
-            y = y + btnOpenQuickStart:GetHeight() + 8
+            local twoCol = w >= WELCOME_COMING_SOON_TWO_COL_MIN_W
+            local gifColW = twoCol and WELCOME_COMING_SOON_GIF_COL_W or math.min(w - heroPad * 2, 300)
+            local textW = twoCol and math.max(120, w - heroPad * 2 - gifColW - 16) or (w - heroPad * 2)
+            local dispW, dispH = ComingSoonImageDisplaySize(comingSoonGif, gifColW, WELCOME_COMING_SOON_GIF_MAX_H, true)
+            comingSoonGif:SetSize(dispW, dispH)
 
-            local togglesLabel = L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles"
-            btnOpenModuleToggles.label:SetText(togglesLabel)
-            local tw = btnOpenModuleToggles.label:GetStringWidth() or 120
-            btnOpenModuleToggles:SetSize(math.min(w, math.floor(tw) + 12), 20)
-            btnOpenModuleToggles:ClearAllPoints()
-            btnOpenModuleToggles:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
-            y = y + btnOpenModuleToggles:GetHeight() + 16
+            comingSoonHero:SetWidth(w)
+            comingSoonHero:ClearAllPoints()
+            comingSoonHero:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            heroAccent:ClearAllPoints()
+            heroAccent:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", 14, -14)
+            local heroH
+            if twoCol then
+                comingSoonGif:ClearAllPoints()
+                local imgLeft = heroPad + math.max(0, math.floor((gifColW - dispW) / 2 + 0.5))
+                comingSoonGif:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", imgLeft, -heroPad)
+                comingSoonTitleFs:SetWidth(textW)
+                comingSoonTitleFs:ClearAllPoints()
+                comingSoonTitleFs:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", heroPad + gifColW + 16, -heroPad)
+                local yt = heroPad + comingSoonTitleFs:GetHeight() + 8
+                comingSoonTagFs:SetWidth(textW)
+                comingSoonTagFs:ClearAllPoints()
+                comingSoonTagFs:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", heroPad + gifColW + 16, -yt)
+                yt = yt + comingSoonTagFs:GetHeight() + 10
+                comingSoonBodyFs:SetWidth(textW)
+                comingSoonBodyFs:ClearAllPoints()
+                comingSoonBodyFs:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", heroPad + gifColW + 16, -yt)
+                yt = yt + comingSoonBodyFs:GetHeight()
+                heroH = math.max(dispH + heroPad * 2, yt + heroPad)
+                heroAccent:SetPoint("BOTTOMLEFT", comingSoonHero, "BOTTOMLEFT", 14, 14)
+            else
+                comingSoonGif:ClearAllPoints()
+                comingSoonGif:SetPoint("TOP", comingSoonHero, "TOP", 0, -heroPad)
+                local yt = heroPad + dispH + 12
+                comingSoonTitleFs:SetWidth(textW)
+                comingSoonTitleFs:ClearAllPoints()
+                comingSoonTitleFs:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", heroPad, -yt)
+                yt = yt + comingSoonTitleFs:GetHeight() + 8
+                comingSoonTagFs:SetWidth(textW)
+                comingSoonTagFs:ClearAllPoints()
+                comingSoonTagFs:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", heroPad, -yt)
+                yt = yt + comingSoonTagFs:GetHeight() + 10
+                comingSoonBodyFs:SetWidth(textW)
+                comingSoonBodyFs:ClearAllPoints()
+                comingSoonBodyFs:SetPoint("TOPLEFT", comingSoonHero, "TOPLEFT", heroPad, -yt)
+                yt = yt + comingSoonBodyFs:GetHeight()
+                heroH = yt + heroPad
+                heroAccent:SetPoint("BOTTOMLEFT", comingSoonHero, "BOTTOMLEFT", 14, 14)
+            end
+            comingSoonHero:SetHeight(math.max(heroH, 1))
+            y = y + comingSoonHero:GetHeight() + 16
 
             content:SetHeight(math.max(y + 8, 1))
 
@@ -769,6 +762,8 @@ function addon.DashboardHomeWelcome_Init(env)
             LayoutWelcomeContent()
             if C_Timer and C_Timer.After then
                 C_Timer.After(0, LayoutWelcomeContent)
+                -- GetTextureFileWidth/Height can be 0 until the file resolves; refit without stretch.
+                C_Timer.After(0.05, LayoutWelcomeContent)
             end
         end)
         welcomeView:SetScript("OnSizeChanged", function()
@@ -788,7 +783,7 @@ function addon.DashboardHomeWelcome_Init(env)
             if head then head:Show() end
             if headSub then
                 headSub:Show()
-                headSub:SetText(L["DASH_WELCOME_HEAD_SUB"] or "Credits, shortcuts, and where to find help")
+                headSub:SetText(L["DASH_WELCOME_HEAD_SUB"] or "Credits, community, and where to find help")
             end
             if searchBox then searchBox:Hide() end
             f.currentModuleKey = nil
