@@ -25,6 +25,8 @@ local FADE_OUT_DUR = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeOut or 0.3
 local btn
 local hoverZone  -- invisible frame over minimap to detect mouse enter/leave
 local vistaCollectedStandaloneHidden = false
+-- Vista proxy for HorizonSuiteMinimapButton when the icon is in the collector UI.
+local horizonPatchNotesProxy
 
 local function ShowOptions()
     if addon.ShowDashboard then
@@ -52,6 +54,11 @@ local function ShowGameTooltip(ownerFrame, anchor)
     local title = (addon.BrandDisplay and addon.BrandDisplay.minimapTooltipTitle) or "Horizon"
     -- wrap=false: avoids first-show width glitch; ClearLines resets shared tooltip from prior UI.
     GameTooltip:SetText(title, nil, nil, nil, nil, false)
+    if addon.PatchNotes_HasUnread and addon.PatchNotes_HasUnread() then
+        local L = addon.L
+        local hint = (L and L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]) or "New patch notes — open Axis and choose Patch Notes."
+        GameTooltip:AddLine(hint, 0.75, 0.92, 0.78, true)
+    end
     GameTooltip:Show()
 end
 
@@ -76,10 +83,75 @@ local function GetMinimapButtonPixelSize()
     return v
 end
 
+-- Slightly larger than DB size when patch notes are unread (clamped to addon button max).
+local UNREAD_MINIMAP_SIZE_MULT = 1.12
+
+local function GetMinimapButtonDisplayPixelSize()
+    local base = GetMinimapButtonPixelSize()
+    if addon.PatchNotes_HasUnread and addon.PatchNotes_HasUnread() then
+        local enlarged = math.floor(base * UNREAD_MINIMAP_SIZE_MULT + 0.5)
+        enlarged = math.max(enlarged, base + 2)
+        if enlarged > VISTA_ADDON_BTN_MAX then enlarged = VISTA_ADDON_BTN_MAX end
+        return enlarged
+    end
+    return base
+end
+
+-- ~25% of minimap / Vista proxy button — top-right corner exclamation-style marker.
+local function GetPatchNotesBadgePixelSize()
+    local icon = GetMinimapButtonDisplayPixelSize()
+    return math.max(5, math.floor(icon * 0.25 + 0.5))
+end
+
+local function EnsurePatchNotesBadgeOnParent(parent)
+    if not parent then return nil end
+    if parent.patchNotesAttentionBadge then
+        return parent.patchNotesAttentionBadge
+    end
+    local t = parent:CreateTexture(nil, "OVERLAY", nil, 1)
+    if addon.PatchNotes_StyleAttentionBadge then
+        addon.PatchNotes_StyleAttentionBadge(t)
+    else
+        t:SetColorTexture(0.20, 0.82, 0.28, 1)
+    end
+    parent.patchNotesAttentionBadge = t
+    return t
+end
+
+local function LayoutPatchNotesBadgeOnParent(parent, badge)
+    if not parent or not badge then return end
+    local icon = GetMinimapButtonDisplayPixelSize()
+    local sz = GetPatchNotesBadgePixelSize()
+    badge:SetSize(sz, sz)
+    badge:ClearAllPoints()
+    -- Pull in from the button edge: scales with badge + a slice of icon so it is not cramped.
+    local inset = math.max(4, math.floor(sz * 0.40 + 0.5) + math.floor(icon * 0.08 + 0.5))
+    badge:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -inset, -inset)
+end
+
+local function UpdatePatchNotesBadgeInternal()
+    local hasUnread = addon.PatchNotes_HasUnread and addon.PatchNotes_HasUnread()
+    local minimapHidden = IsMinimapButtonHidden()
+    if btn then
+        local b = EnsurePatchNotesBadgeOnParent(btn)
+        LayoutPatchNotesBadgeOnParent(btn, b)
+        local showMain = hasUnread and not minimapHidden and not vistaCollectedStandaloneHidden
+        b:SetShown(showMain)
+    end
+    if horizonPatchNotesProxy then
+        local disp = GetMinimapButtonDisplayPixelSize()
+        pcall(function() horizonPatchNotesProxy:SetSize(disp, disp) end)
+        local pb = EnsurePatchNotesBadgeOnParent(horizonPatchNotesProxy)
+        LayoutPatchNotesBadgeOnParent(horizonPatchNotesProxy, pb)
+        local showProxy = hasUnread and not minimapHidden and vistaCollectedStandaloneHidden
+        pb:SetShown(showProxy)
+    end
+end
+
 local function ApplyPosition()
     if not btn or not Minimap then return end
     if vistaCollectedStandaloneHidden then return end
-    btn:SetSize(GetMinimapButtonPixelSize(), GetMinimapButtonPixelSize())
+    btn:SetSize(GetMinimapButtonDisplayPixelSize(), GetMinimapButtonDisplayPixelSize())
     local savedX = addon.GetDB and tonumber(addon.GetDB("minimapButtonX", nil))
     local savedY = addon.GetDB and tonumber(addon.GetDB("minimapButtonY", nil))
     btn:ClearAllPoints()
@@ -88,6 +160,7 @@ local function ApplyPosition()
     else
         btn:SetPoint(DEFAULT_ANCHOR, Minimap, DEFAULT_ANCHOR, DEFAULT_X, DEFAULT_Y)
     end
+    UpdatePatchNotesBadgeInternal()
 end
 
 local function FadeButton(targetAlpha)
@@ -135,6 +208,7 @@ local function UpdateVisibility()
     end
     btn:Show()
     if hoverZone then hoverZone:Show() end
+    UpdatePatchNotesBadgeInternal()
 end
 
 -- Vista calls when Horizon's minimap button is in the collector (bar / panel / drawer).
@@ -151,13 +225,14 @@ local function SetVistaCollected(collected)
     if hoverZone and not IsMinimapButtonHidden() then hoverZone:Show() end
     UpdateVisibility()
     ApplyPosition()
+    UpdatePatchNotesBadgeInternal()
 end
 
 local function CreateButton()
     if btn then return btn end
 
     btn = CreateFrame("Button", "HorizonSuiteMinimapButton", Minimap)
-    btn:SetSize(GetMinimapButtonPixelSize(), GetMinimapButtonPixelSize())
+    btn:SetSize(GetMinimapButtonDisplayPixelSize(), GetMinimapButtonDisplayPixelSize())
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(Minimap:GetFrameLevel() + 5)
     btn:SetClampedToScreen(true)
@@ -249,6 +324,20 @@ local function CreateButton()
     return btn
 end
 
+--- Show or hide unread patch-notes dot on the minimap button and Vista proxy (if any).
+--- @return nil
+function addon.MinimapButton_UpdatePatchNotesBadge()
+    UpdatePatchNotesBadgeInternal()
+end
+
+--- Vista: the visible proxy frame for Horizon's minimap icon when collected into the bar/panel/drawer.
+--- @param frame Frame|nil
+--- @return nil
+function addon.MinimapButton_SetHorizonPatchNotesProxy(frame)
+    horizonPatchNotesProxy = frame
+    UpdatePatchNotesBadgeInternal()
+end
+
 -- Create on load; defer slightly so Minimap is fully ready
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -260,6 +349,9 @@ initFrame:SetScript("OnEvent", function(self, event)
             if addon.IsModuleEnabled and addon:IsModuleEnabled("vista") and addon.Vista and addon.Vista.CollectButtons then
                 addon.Vista.CollectButtons()
             end
+            if addon.PatchNotes_RefreshAttentionIndicators then
+                addon.PatchNotes_RefreshAttentionIndicators()
+            end
         end)
     end
 end)
@@ -270,3 +362,6 @@ addon.MinimapButton_SetVistaCollected = SetVistaCollected
 addon.MinimapButton_UpdateVisibility = UpdateVisibility
 addon.MinimapButton_ApplyPosition = ApplyPosition
 addon.MinimapButton_ShowGameTooltip = ShowGameTooltip
+--- Effective minimap button edge size (slightly enlarged when patch notes are unread); Vista proxy matches this.
+--- @return number
+addon.MinimapButton_GetDisplayPixelSize = GetMinimapButtonDisplayPixelSize

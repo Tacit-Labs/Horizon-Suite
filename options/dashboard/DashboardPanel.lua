@@ -38,6 +38,11 @@ SlashCmdList["HSDASH"] = function(msg)
         if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then
             addon.DashboardPreview.InitDashboard(f)
         end
-        if f then f:Show() end
+        if f then
+            f:Show()
+            if addon.PatchNotes_RefreshAttentionIndicators then
+                addon.PatchNotes_RefreshAttentionIndicators()
+            end
+        end
     end
 end

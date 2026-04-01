@@ -1066,6 +1066,15 @@ local OptionCategories = {
                 end,
                 refreshIds = { "dashboardBackgroundOpacity" },
             }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PATCH_NOTES_SECTION"] or "Patch notes" }
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"] or "Show Patch Notes automatically after an update",
+                desc = L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"] or "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes.",
+                dbKey = "autoShowPatchNotesOnLogin",
+                get = function() return getDB("autoShowPatchNotesOnLogin", true) end,
+                set = function(v) setDB("autoShowPatchNotesOnLogin", v) end,
+            }
             opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_CLASS_COLOURS"] or "Class Colours" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",

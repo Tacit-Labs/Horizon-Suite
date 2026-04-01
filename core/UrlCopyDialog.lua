@@ -13,7 +13,7 @@ if not addon then return end
 -- ==========================================================================
 
 local urlCopyFrame
--- Match core/PatchNotes.lua chrome (What's New) for a consistent dialog.
+-- Match core/PatchNotes.lua chrome (Patch Notes) for a consistent dialog.
 local URL_COPY_W = 440
 local URL_COPY_PAD = 16
 local URL_COPY_ACCENT_H = 3
@@ -188,7 +188,7 @@ local function BuildURLCopyFrame()
     return f
 end
 
---- Show the URL copy box (same chrome as What's New / Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
+--- Show the URL copy box (same chrome as Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
 --- @param url string Full URL to display and copy
 --- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["OPTIONS_FOCUS_COPY_LINK"]
 function addon.ShowURLCopyBox(url, accentSubtitle)

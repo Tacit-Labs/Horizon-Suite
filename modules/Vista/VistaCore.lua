@@ -2046,15 +2046,33 @@ end
 -- Instead of placing the original LibDBIcon button (which has dark rendering issues),
 -- we create a clean proxy button that copies the icon texture and forwards events.
 
+local function HorizonMinimapProxyPixelSize()
+    if addon.MinimapButton_GetDisplayPixelSize then
+        return addon.MinimapButton_GetDisplayPixelSize()
+    end
+    return GetAddonBtnSize()
+end
+
 local function GetOrCreateProxyButton(originalBtn, parent)
     if proxyButtonCache[originalBtn] then
         local proxy = proxyButtonCache[originalBtn]
         proxy:SetParent(parent)
+        local onameEarly = originalBtn.GetName and originalBtn:GetName()
+        if onameEarly == HORIZON_MINIMAP_BTN_NAME then
+            local psz = HorizonMinimapProxyPixelSize()
+            proxy:SetSize(psz, psz)
+        end
+        if onameEarly == HORIZON_MINIMAP_BTN_NAME and addon.MinimapButton_SetHorizonPatchNotesProxy then
+            addon.MinimapButton_SetHorizonPatchNotesProxy(proxy)
+            if addon.MinimapButton_UpdatePatchNotesBadge then addon.MinimapButton_UpdatePatchNotesBadge() end
+        end
         return proxy
     end
 
     local proxy = CreateFrame("Button", nil, parent)
-    proxy:SetSize(GetAddonBtnSize(), GetAddonBtnSize())
+    local onameNew = originalBtn.GetName and originalBtn:GetName()
+    local pszNew = (onameNew == HORIZON_MINIMAP_BTN_NAME) and HorizonMinimapProxyPixelSize() or GetAddonBtnSize()
+    proxy:SetSize(pszNew, pszNew)
     proxy._vistaOriginalBtn = originalBtn
 
     -- Create our own icon texture
@@ -2162,6 +2180,11 @@ local function GetOrCreateProxyButton(originalBtn, parent)
     highlight:SetColorTexture(1, 1, 1, 0.15)
 
     proxyButtonCache[originalBtn] = proxy
+    local oname = originalBtn.GetName and originalBtn:GetName()
+    if oname == HORIZON_MINIMAP_BTN_NAME and addon.MinimapButton_SetHorizonPatchNotesProxy then
+        addon.MinimapButton_SetHorizonPatchNotesProxy(proxy)
+        if addon.MinimapButton_UpdatePatchNotesBadge then addon.MinimapButton_UpdatePatchNotesBadge() end
+    end
     return proxy
 end
 
