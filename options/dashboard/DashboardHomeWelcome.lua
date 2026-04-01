@@ -417,17 +417,23 @@ function addon.DashboardHomeWelcome_Init(env)
 
     -- Welcome tab (always in sidebar, above Home; dedicated view)
     do
-        -- Search is hidden on Welcome; nudge card up to reclaim vertical space below the header band.
+        -- Match DashboardModuleGuide.lua: bg nudge, scroll insets, footer link row, scroll–footer gap.
         local WELCOME_BG_TOP_NUDGE = 50
         local WELCOME_CONTENT_TOP_PAD = 6
         local WELCOME_ACC_HEAD_H = 48
+        local WELCOME_SCROLL_BODY_X_INSET = 0
+        local WELCOME_SCROLL_ABOVE_FOOTER_GAP = 10
+        local SCROLL_TO_BG_INSET = 20
+        local FOOTER_TO_BG_BOTTOM = 14
+        local FOOTER_LINK_BTN_W = 82
+        local FOOTER_LINK_GAP = 10
 
         local welcomeBg = welcomeView:CreateTexture(nil, "BACKGROUND")
         welcomeBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + WELCOME_BG_TOP_NUDGE)
         -- Room for footer links only (bottom buttons removed)
         welcomeBg:SetPoint("BOTTOMRIGHT", welcomeView, "BOTTOMRIGHT", -28, 20)
 
-        -- Scrollable body (title → modules); footer stays fixed so expanded accordions do not cover Community & Support.
+        -- Scrollable body (title, intro, accordions, shortcuts); footer stays fixed so expanded accordions do not cover Community & Support.
         local footerPanel = CreateFrame("Frame", nil, welcomeView)
         footerPanel:SetFrameLevel((welcomeView:GetFrameLevel() or 0) + 10)
 
@@ -595,48 +601,24 @@ function addon.DashboardHomeWelcome_Init(env)
 
         local titleFs = MakeText(content, L["DASH_WELCOME_TITLE"] or "Welcome to Horizon Suite", 22, 1, 1, 1, "LEFT")
 
-        local introFs = MakeText(content, L["DASH_WELCOME_INTRO"] or "", 13, 0.72, 0.74, 0.78, "LEFT")
+        local introFs = MakeDashboardWelcomeMixedScriptText(content, L["DASH_WELCOME_INTRO"] or "", 13, 0.72, 0.74, 0.78, "LEFT")
         introFs:SetWordWrap(true)
         introFs:SetSpacing(4)
 
-        local modulesHdr = MakeText(content, (L["DASH_WELCOME_MODULES_HEADING"] or "Modules"), 16, 0.88, 0.90, 0.94, "LEFT")
-
-        local listRule = content:CreateTexture(nil, "ARTWORK")
-        listRule:SetHeight(1)
-        listRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
+        local shortcutsHdr = MakeText(content, (L["DASH_WELCOME_QUICK_LINKS_HEADING"] or "Shortcuts"), 16, 0.88, 0.90, 0.94, "LEFT")
 
         local function DismissWelcomeAndOpenModuleToggles()
             if addon.SetDB then addon.SetDB("dashboardWelcomeSeen", true) end
             detailNav.NavigateToModuleToggles()
         end
 
-        local btnOpenModuleToggles = CreateWelcomeTextLink(content, L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles", DismissWelcomeAndOpenModuleToggles, "LEFT")
-
-        local modRows = {
-            { key = "axis", name = addon.Dashboard_BrandModule("axis") or "Axis", desc = L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"] or "Core settings hub: profiles, modules, and global toggles." },
-            { key = "focus", name = addon.Dashboard_BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"] or "" },
-            { key = "presence", name = addon.Dashboard_BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"] or "" },
-            { key = "vista", name = addon.Dashboard_BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector." },
-            { key = "insight", name = addon.Dashboard_BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"] or "" },
-            { key = "cache", name = addon.Dashboard_BrandModule("cache"), desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"] or "" },
-            { key = "essence", name = addon.Dashboard_BrandModule("essence"), desc = L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] or "Custom character sheet with 3D model, item level, stats, and gear grid." },
-            { key = "meridian", name = addon.Dashboard_BrandModule("meridian"), desc = L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"] or "Join the Discord and have a guess!" },
-        }
-        local moduleLineWidgets = {}
-        for _, row in ipairs(modRows) do
-            local nm = row.name
-            if PREVIEW_MODULE_KEYS[row.key] then
-                nm = nm .. " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
-            elseif COMING_SOON_MODULE_KEYS[row.key] then
-                nm = nm .. " |cff8cb2e6(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")|r"
+        local btnOpenQuickStart = CreateWelcomeTextLink(content, L["DASH_WELCOME_OPEN_QUICK_START_LINK"] or "Open Quick Start", function()
+            if f.ShowModuleGuide then
+                f.ShowModuleGuide()
             end
-            local nameFs = MakeText(content, nm, 14, 0.96, 0.97, 1, "LEFT")
-            nameFs:SetWordWrap(true)
-            local descFs = MakeText(content, row.desc, 12, 0.52, 0.56, 0.62, "LEFT")
-            descFs:SetWordWrap(true)
-            descFs:SetSpacing(3)
-            tinsert(moduleLineWidgets, { nameFs = nameFs, descFs = descFs })
-        end
+        end, "LEFT")
+
+        local btnOpenModuleToggles = CreateWelcomeTextLink(content, L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles", DismissWelcomeAndOpenModuleToggles, "LEFT")
 
         -- Footer: Community & Support + external links (copy URL)
         local footerTopRule = footerPanel:CreateTexture(nil, "ARTWORK")
@@ -658,7 +640,7 @@ function addon.DashboardHomeWelcome_Init(env)
         for _, link in ipairs(linkData) do
             local btn = CreateWelcomeTextLink(footerPanel, link.label, function()
                 ShowCopyURL(link.label, link.url)
-            end)
+            end, "CENTER")
             tinsert(linkButtons, btn)
         end
 
@@ -679,29 +661,26 @@ function addon.DashboardHomeWelcome_Init(env)
             communityHdr:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
             fy = fy + communityHdr:GetHeight() + 8
 
-            local linkBtnW = 82
-            local linkGap = 10
-            local totalLinkWidth = (#linkButtons * linkBtnW) + ((#linkButtons - 1) * linkGap)
+            local totalLinkWidth = (#linkButtons * FOOTER_LINK_BTN_W) + ((#linkButtons - 1) * FOOTER_LINK_GAP)
             local linkRowX = math.max(0, (w - totalLinkWidth) / 2)
 
             for i, btn in ipairs(linkButtons) do
-                btn:SetWidth(linkBtnW)
+                btn:SetWidth(FOOTER_LINK_BTN_W)
                 btn:ClearAllPoints()
-                btn:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", linkRowX + (i - 1) * (linkBtnW + linkGap), -fy)
+                btn:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", linkRowX + (i - 1) * (FOOTER_LINK_BTN_W + FOOTER_LINK_GAP), -fy)
             end
             fy = fy + 20
 
             footerPanel:SetWidth(w)
             footerPanel:SetHeight(math.max(fy + 4, 1))
             footerPanel:ClearAllPoints()
-            footerPanel:SetPoint("BOTTOMLEFT", welcomeBg, "BOTTOMLEFT", 20, 14)
-            footerPanel:SetPoint("BOTTOMRIGHT", welcomeBg, "BOTTOMRIGHT", -20, 14)
+            footerPanel:SetPoint("BOTTOMLEFT", welcomeBg, "BOTTOMLEFT", SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
+            footerPanel:SetPoint("BOTTOMRIGHT", welcomeBg, "BOTTOMRIGHT", -SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
 
-            local WELCOME_SCROLL_ABOVE_FOOTER_GAP = 10
             welcomeScroll:ClearAllPoints()
-            welcomeScroll:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", 20, -WELCOME_CONTENT_TOP_PAD)
+            welcomeScroll:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", SCROLL_TO_BG_INSET, -WELCOME_CONTENT_TOP_PAD)
             welcomeScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
-            welcomeScroll:SetPoint("TOPRIGHT", welcomeBg, "TOPRIGHT", -20, -WELCOME_CONTENT_TOP_PAD)
+            welcomeScroll:SetPoint("TOPRIGHT", welcomeBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -WELCOME_CONTENT_TOP_PAD)
             welcomeScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
 
             -- --- Body (scroll child; height may exceed viewport) ---
@@ -709,11 +688,11 @@ function addon.DashboardHomeWelcome_Init(env)
             local y = 0
             titleFs:SetWidth(w)
             titleFs:ClearAllPoints()
-            titleFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            titleFs:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
             y = y + titleFs:GetHeight() + 12
             introFs:SetWidth(w)
             introFs:ClearAllPoints()
-            introFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            introFs:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
             y = y + introFs:GetHeight() + 12
 
             contributorsBodyFs:ClearAllPoints()
@@ -750,52 +729,27 @@ function addon.DashboardHomeWelcome_Init(env)
             localisationsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
             y = y + localisationsCard:GetHeight() + 16
 
-            modulesHdr:SetWidth(w)
-            modulesHdr:ClearAllPoints()
-            modulesHdr:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-            y = y + modulesHdr:GetHeight() + 8
-            listRule:ClearAllPoints()
-            listRule:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-            listRule:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
-            y = y + 10
+            shortcutsHdr:SetWidth(w)
+            shortcutsHdr:ClearAllPoints()
+            shortcutsHdr:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
+            y = y + shortcutsHdr:GetHeight() + 8
+
+            local qsLabel = L["DASH_WELCOME_OPEN_QUICK_START_LINK"] or "Open Quick Start"
+            btnOpenQuickStart.label:SetText(qsLabel)
+            local qsw = btnOpenQuickStart.label:GetStringWidth() or 120
+            btnOpenQuickStart:SetSize(math.min(w, math.floor(qsw) + 12), 20)
+            btnOpenQuickStart:ClearAllPoints()
+            btnOpenQuickStart:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
+            y = y + btnOpenQuickStart:GetHeight() + 8
 
             local togglesLabel = L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"] or "Open module toggles"
             btnOpenModuleToggles.label:SetText(togglesLabel)
             local tw = btnOpenModuleToggles.label:GetStringWidth() or 120
             btnOpenModuleToggles:SetSize(math.min(w, math.floor(tw) + 12), 20)
             btnOpenModuleToggles:ClearAllPoints()
-            btnOpenModuleToggles:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-            y = y + btnOpenModuleToggles:GetHeight() + 12
+            btnOpenModuleToggles:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
+            y = y + btnOpenModuleToggles:GetHeight() + 16
 
-            local colGap = 32
-            local colW = math.floor((w - colGap) / 2)
-            local leftX, rightX = 4, colW + colGap + 4
-            local leftY, rightY = y, y
-
-            for i, pair in ipairs(moduleLineWidgets) do
-                local nameFs, descFs = pair.nameFs, pair.descFs
-                local isRight = i > 4
-                local colX = isRight and rightX or leftX
-                local colRef = isRight and rightY or leftY
-
-                nameFs:SetWidth(colW - 4)
-                nameFs:ClearAllPoints()
-                nameFs:SetPoint("TOPLEFT", content, "TOPLEFT", colX, -colRef)
-                local nameH = nameFs:GetHeight()
-
-                descFs:SetWidth(colW - 16)
-                descFs:ClearAllPoints()
-                descFs:SetPoint("TOPLEFT", content, "TOPLEFT", colX + 8, -(colRef + nameH + 4))
-                local descH = descFs:GetHeight()
-
-                if isRight then
-                    rightY = rightY + nameH + 4 + descH + 14
-                else
-                    leftY = leftY + nameH + 4 + descH + 14
-                end
-            end
-
-            y = math.max(leftY, rightY)
             content:SetHeight(math.max(y + 8, 1))
 
             if welcomeScroll.UpdateScrollChildRect then
@@ -826,6 +780,7 @@ function addon.DashboardHomeWelcome_Init(env)
             detailView:Hide()
             subCategoryView:Hide()
             dashboardView:Hide()
+            if f.guideView then f.guideView:Hide() end
             patchNotesView:Hide()
             welcomeView:SetAlpha(0)
             welcomeView:Show()
@@ -833,7 +788,7 @@ function addon.DashboardHomeWelcome_Init(env)
             if head then head:Show() end
             if headSub then
                 headSub:Show()
-                headSub:SetText(L["DASH_WELCOME_HEAD_SUB"] or "What each module does and where to turn them on")
+                headSub:SetText(L["DASH_WELCOME_HEAD_SUB"] or "Credits, shortcuts, and where to find help")
             end
             if searchBox then searchBox:Hide() end
             f.currentModuleKey = nil

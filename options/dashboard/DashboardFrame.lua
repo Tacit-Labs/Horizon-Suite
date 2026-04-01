@@ -174,6 +174,7 @@ function addon.Dashboard_BuildMainFrame()
                 logoText = nil,
                 searchDropBorder = nil,
                 welcomeAccentStrip = nil,
+                guideHeroRail = nil,
                 pnFooterRule = nil,
                 dashboardClassIcon = nil,
             }
@@ -244,6 +245,9 @@ function addon.Dashboard_BuildMainFrame()
                 end
                 if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
                     dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
+                end
+                if dashAccentRefs.guideHeroRail and dashAccentRefs.guideHeroRail.SetColorTexture then
+                    dashAccentRefs.guideHeroRail:SetColorTexture(ar, ag, ab, 0.55)
                 end
                 for _, lbl in ipairs(dashAccentRefs.patchNotesSectionLabels) do
                     if lbl and lbl.SetTextColor then lbl:SetTextColor(ar, ag, ab) end
@@ -492,6 +496,12 @@ function addon.Dashboard_BuildMainFrame()
             welcomeView:SetPoint("CENTER", viewCenterX, 0)
             welcomeView:Hide()
             f.welcomeView = welcomeView
+
+            local guideView = CreateFrame("Frame", nil, f)
+            guideView:SetSize(viewWidth, DASHBOARD_VIEW_H)
+            guideView:SetPoint("CENTER", viewCenterX, 0)
+            guideView:Hide()
+            f.guideView = guideView
 
             local patchNotesView = CreateFrame("Frame", nil, f)
             patchNotesView:SetSize(viewWidth, DASHBOARD_VIEW_H)
@@ -810,6 +820,7 @@ function addon.Dashboard_BuildMainFrame()
                 detailView:Hide()
                 subCategoryView:Hide()
                 welcomeView:Hide()
+                guideView:Hide()
                 patchNotesView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
@@ -825,6 +836,7 @@ function addon.Dashboard_BuildMainFrame()
                 detailView:Hide()
                 subCategoryView:Hide()
                 welcomeView:Hide()
+                guideView:Hide()
                 patchNotesView:Hide()
                 dashboardView:SetAlpha(0)
                 dashboardView:Show()
@@ -980,7 +992,34 @@ function addon.Dashboard_BuildMainFrame()
             local homeApi = addon.DashboardHomeWelcome_Init(homeEnv)
             homeApi.RefreshDashboardTiles()
 
-
+            local guideEnv = {
+                f = f,
+                addon = addon,
+                L = L,
+                guideView = guideView,
+                detailView = detailView,
+                subCategoryView = subCategoryView,
+                dashboardView = dashboardView,
+                welcomeView = welcomeView,
+                patchNotesView = patchNotesView,
+                dashScrollTopOffset = dashScrollTopOffset,
+                dashAccentRefs = dashAccentRefs,
+                GetAccentColor = GetAccentColor,
+                MakeText = MakeText,
+                MakeDashboardWelcomeMixedScriptText = MakeDashboardWelcomeMixedScriptText,
+                HideContextHeader = HideContextHeader,
+                setSidebarState = function(s) detailEnv.setSidebarState(s) end,
+                CLEAR = CLEAR,
+                searchBox = searchBox,
+                head = head,
+                headSub = headSub,
+                DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
+                PREVIEW_MODULE_KEYS = PREVIEW_MODULE_KEYS,
+                COMING_SOON_MODULE_KEYS = COMING_SOON_MODULE_KEYS,
+            }
+            if addon.DashboardModuleGuide_Init then
+                addon.DashboardModuleGuide_Init(guideEnv)
+            end
 
             f.ShowPatchNotes = function()
                 if addon.PatchNotes_MarkCurrentVersionViewed then
@@ -991,6 +1030,7 @@ function addon.Dashboard_BuildMainFrame()
                 subCategoryView:Hide()
                 dashboardView:Hide()
                 welcomeView:Hide()
+                guideView:Hide()
                 patchNotesView:SetAlpha(0)
                 patchNotesView:Show()
                 UIFrameFadeIn(patchNotesView, 0.2, 0, 1)
@@ -1053,11 +1093,22 @@ function addon.Dashboard_BuildMainFrame()
             lastSidebarRow = welcomeBtn
             yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
 
+            -- Quick Start (in-game module guide; scroll icon)
+            local guideBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_GUIDE_TAB"] or "Quick Start", "INV_Misc_ScrollUnrolled01", function()
+                if f.ShowModuleGuide then f.ShowModuleGuide() end
+            end)
+            guideBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
+            f.guideSidebarBtn = guideBtn
+            tinsert(sidebarButtons, guideBtn)
+            tinsert(sidebarRows, { type = "guide", frame = guideBtn, bottom = guideBtn, offsetFromPrev = 0 })
+            lastSidebarRow = guideBtn
+            yOff = yOff + TAB_ROW_HEIGHT
+
             -- Home
             local homeBtn = CreateSidebarButton(sidebarScrollContent, "Home", "INV_Misc_Map_01", function()
                 f.ShowDashboard()
             end)
-            homeBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
+            homeBtn:SetPoint("TOPLEFT", guideBtn, "BOTTOMLEFT", 0, 0)
             f.homeSidebarBtn = homeBtn
             tinsert(sidebarButtons, homeBtn)
             tinsert(sidebarRows, { type = "home", frame = homeBtn, bottom = homeBtn, offsetFromPrev = 0 })
@@ -1263,6 +1314,8 @@ function addon.Dashboard_BuildMainFrame()
                 local activeBtn = f.homeSidebarBtn or sidebarButtons[1]
                 if sidebarState.view == "welcome" and f.welcomeSidebarBtn then
                     activeBtn = f.welcomeSidebarBtn
+                elseif sidebarState.view == "guide" and f.guideSidebarBtn then
+                    activeBtn = f.guideSidebarBtn
                 elseif sidebarState.view == "whatsnew" and f.whatsnewSidebarBtn then
                     activeBtn = f.whatsnewSidebarBtn
                 elseif sidebarState.view == "module" or sidebarState.view == "category" then

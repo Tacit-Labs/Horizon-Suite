@@ -1,0 +1,534 @@
+--[[
+    Horizon Suite - Dashboard in-game module guide (quick-start).
+    Consumer-friendly overview: coloured module bullets, per-module accordions, Welcome-style footer.
+    Wired from DashboardFrame.lua via addon.DashboardModuleGuide_Init(env).
+]]
+
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+if not addon then return end
+
+local tinsert = table.insert
+
+-- Match Patch Notes / Home tile module colours (DashboardFrame PN_MODULE_COLORS + Meridian accent).
+local GUIDE_MODULE_COLORS = {
+    ["Essence"]  = "DC143C",
+    ["Focus"]    = "FFD133",
+    ["Cache"]    = "33CC66",
+    ["Presence"] = "33FFDF",
+    ["Vista"]    = "B366FF",
+    ["Insight"]  = "FF66B3",
+    ["Axis"]     = "E0E0E0",
+    ["Meridian"] = "8CB2E6",
+}
+
+--- Wrap module proper names in |cFF……|r for guide bullets (enUS uses English names per BrandDisplay rule).
+--- @param text string
+--- @return string
+local function ColorGuideModuleNames(text)
+    if type(text) ~= "string" or text == "" then return text end
+    for name, hex in pairs(GUIDE_MODULE_COLORS) do
+        text = text:gsub("%f[%a](" .. name .. ")%f[%A]", "|cFF" .. hex .. "%1|r")
+    end
+    return text
+end
+
+--- @param env table
+--- @return nil
+function addon.DashboardModuleGuide_Init(env)
+    local f = env.f
+    local addon = env.addon
+    local L = env.L
+    local guideView = env.guideView
+    local detailView = env.detailView
+    local subCategoryView = env.subCategoryView
+    local dashboardView = env.dashboardView
+    local welcomeView = env.welcomeView
+    local patchNotesView = env.patchNotesView
+    local dashScrollTopOffset = env.dashScrollTopOffset
+    local dashAccentRefs = env.dashAccentRefs
+    local GetAccentColor = env.GetAccentColor
+    local MakeText = env.MakeText
+    local MakeDashboardWelcomeMixedScriptText = env.MakeDashboardWelcomeMixedScriptText
+    local HideContextHeader = env.HideContextHeader
+    local SetSidebarState = env.setSidebarState
+    local CLEAR = env.CLEAR
+    local searchBox = env.searchBox
+    local head = env.head
+    local headSub = env.headSub
+    local PREVIEW_MODULE_KEYS = env.PREVIEW_MODULE_KEYS or {}
+    local COMING_SOON_MODULE_KEYS = env.COMING_SOON_MODULE_KEYS or {}
+
+    local WDef = addon.OptionsWidgetsDef
+    local DASHBOARD_CONTENT_CARD_ALPHA_MULT = env.DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1
+    local SBg = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
+    local SBgA = SBg[4] * DASHBOARD_CONTENT_CARD_ALPHA_MULT
+    local SBgHoverR, SBgHoverG, SBgHoverB = 0.11, 0.11, 0.13
+    local SBgExpandedR, SBgExpandedG, SBgExpandedB = 0.10, 0.10, 0.12
+
+    -- Match DashboardHomeWelcome.lua: bg nudge, scroll insets, footer anchor, link row (82×6 @ gap 10), scroll–footer gap.
+    local GUIDE_BG_TOP_NUDGE = 50
+    local GUIDE_CONTENT_TOP_PAD = 6
+    local GUIDE_ACC_HEAD_H = 48
+    local SCROLL_BODY_X_INSET = 0
+    local HERO_TOP_PAD = 0
+    local SCROLL_ABOVE_FOOTER_GAP = 10
+    local SCROLL_TO_BG_INSET = 20
+    local FOOTER_TO_BG_BOTTOM = 14
+    local FOOTER_LINK_BTN_W = 82
+    local FOOTER_LINK_GAP = 10
+
+    local function ShowCopyURL(label, url)
+        if addon.ShowURLCopyBox then
+            addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
+        end
+    end
+
+    local function BrandMod(mk)
+        return addon.Dashboard_BrandModule and addon.Dashboard_BrandModule(mk) or mk
+    end
+
+    --- Accordion title: localized module name (uppercase) plus Preview / Coming Soon when applicable (matches Home tiles).
+    --- @param moduleKey string
+    --- @return string
+    local function ModuleGuideSectionTitle(moduleKey)
+        local base = (BrandMod(moduleKey) or ""):upper()
+        if PREVIEW_MODULE_KEYS[moduleKey] then
+            return base .. " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+        end
+        if COMING_SOON_MODULE_KEYS[moduleKey] then
+            return base .. " |cff8cb2e6(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")|r"
+        end
+        return base
+    end
+
+    --- After ColorGuideModuleNames: append (Preview) / (Coming Soon) next to coloured module names (same rules as Home).
+    --- @param text string
+    --- @return string
+    local function ApplyGuideBulletStatusTags(text)
+        if type(text) ~= "string" or text == "" then return text end
+        local prevTag = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+        local soonTag = " |cff8cb2e6(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")|r"
+        for _, row in ipairs({
+            { key = "cache", label = "Cache", tag = prevTag, when = PREVIEW_MODULE_KEYS },
+            { key = "essence", label = "Essence", tag = prevTag, when = PREVIEW_MODULE_KEYS },
+            { key = "meridian", label = "Meridian", tag = soonTag, when = COMING_SOON_MODULE_KEYS },
+        }) do
+            if row.when[row.key] then
+                local hex = GUIDE_MODULE_COLORS[row.label]
+                if hex then
+                    local colored = "|cFF" .. hex .. row.label .. "|r"
+                    text = text:gsub(colored, colored .. row.tag, 1)
+                end
+            end
+        end
+        return text
+    end
+
+    local guideBg = guideView:CreateTexture(nil, "BACKGROUND")
+    guideBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + GUIDE_BG_TOP_NUDGE)
+    guideBg:SetPoint("BOTTOMRIGHT", guideView, "BOTTOMRIGHT", -28, 20)
+
+    -- Footer: fixed below scroll (same pattern as Welcome)
+    local footerPanel = CreateFrame("Frame", nil, guideView)
+    footerPanel:SetFrameLevel((guideView:GetFrameLevel() or 0) + 10)
+
+    local footerTopRule = footerPanel:CreateTexture(nil, "ARTWORK")
+    footerTopRule:SetHeight(1)
+    footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
+
+    local communityHdr = MakeText(footerPanel, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
+
+    local linkData = {
+        { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj" },
+        { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite" },
+        { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite" },
+        { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite" },
+        { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844" },
+        { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y" },
+    }
+
+    local function CreateGuideTextLink(parent, label, onClick, justify)
+        justify = justify or "LEFT"
+        local btn = CreateFrame("Button", nil, parent)
+        btn:SetSize(100, 20)
+        local lbl = MakeText(btn, label, 12, 0.52, 0.56, 0.62, justify)
+        lbl:ClearAllPoints()
+        if justify == "LEFT" then
+            lbl:SetPoint("LEFT", btn, "LEFT", 0, 0)
+            lbl:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+        else
+            lbl:SetAllPoints()
+        end
+        btn.label = lbl
+        local underline = btn:CreateTexture(nil, "OVERLAY")
+        underline:SetHeight(1)
+        underline:SetPoint("BOTTOM", btn, "BOTTOM", 0, 0)
+        underline:SetPoint("LEFT", btn, "LEFT", 0, 0)
+        underline:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+        underline:Hide()
+        btn.underline = underline
+        btn:SetScript("OnEnter", function()
+            lbl:SetTextColor(0.88, 0.90, 0.94)
+            local ar, ag, ab = GetAccentColor()
+            underline:SetColorTexture(ar, ag, ab, 0.6)
+            underline:Show()
+        end)
+        btn:SetScript("OnLeave", function()
+            lbl:SetTextColor(0.52, 0.56, 0.62)
+            underline:Hide()
+        end)
+        btn:SetScript("OnClick", onClick)
+        return btn
+    end
+
+    local footerLinkButtons = {}
+    for _, link in ipairs(linkData) do
+        local btn = CreateGuideTextLink(footerPanel, link.label, function()
+            ShowCopyURL(link.label, link.url)
+        end, "CENTER")
+        tinsert(footerLinkButtons, btn)
+    end
+
+    local guideScroll = CreateFrame("ScrollFrame", nil, guideView, "UIPanelScrollFrameTemplate")
+    guideScroll:SetFrameLevel((guideView:GetFrameLevel() or 0) + 2)
+    guideScroll.ScrollBar:Hide()
+    guideScroll.ScrollBar:ClearAllPoints()
+
+    local content = CreateFrame("Frame", nil, guideScroll)
+    content:SetSize(400, 1)
+    guideScroll:SetScrollChild(content)
+    addon.Dashboard_ApplySmoothScroll(guideScroll, content, 60, true)
+
+    local function CreateGuideAccordionCard(parent, titleText, startExpanded, onLayout)
+        local card = CreateFrame("Frame", nil, parent)
+        card:SetHeight(GUIDE_ACC_HEAD_H)
+        card.expanded = startExpanded and true or false
+        card.collapsedHeight = GUIDE_ACC_HEAD_H
+        card.fullHeight = GUIDE_ACC_HEAD_H
+        card:SetClipsChildren(true)
+
+        local cBg = card:CreateTexture(nil, "BACKGROUND")
+        cBg:SetAllPoints()
+        cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+
+        local divider = card:CreateTexture(nil, "ARTWORK")
+        divider:SetHeight(1)
+        divider:SetPoint("BOTTOMLEFT", 14, 0)
+        divider:SetPoint("BOTTOMRIGHT", -14, 0)
+        local cdr, cdg, cdb = GetAccentColor()
+        divider:SetColorTexture(cdr, cdg, cdb, 0.2)
+
+        local accent = card:CreateTexture(nil, "ARTWORK")
+        accent:SetSize(3, 20)
+        accent:SetPoint("TOPLEFT", 14, -14)
+        local cr, cg, cb = GetAccentColor()
+        accent:SetColorTexture(cr, cg, cb, 1)
+
+        local chevron = MakeText(card, card.expanded and "-" or "+", 14, 0.5, 0.5, 0.55, "RIGHT")
+        chevron:SetPoint("TOPRIGHT", -18, -17)
+
+        local rawTitle = titleText or ""
+        local displayTitle = string.find(rawTitle, "|", 1, true) and rawTitle or rawTitle:upper()
+        local lbl = MakeText(card, displayTitle, 13, 0.9, 0.9, 0.95, "LEFT")
+        lbl:SetPoint("TOPLEFT", 28, -16)
+
+        local headerBtn = CreateFrame("Button", nil, card)
+        headerBtn:SetPoint("TOPLEFT", 0, 0)
+        headerBtn:SetPoint("TOPRIGHT", 0, 0)
+        headerBtn:SetHeight(GUIDE_ACC_HEAD_H)
+        headerBtn:SetFrameLevel(card:GetFrameLevel() + 5)
+
+        local sc = CreateFrame("Frame", nil, card)
+        sc:SetPoint("TOPLEFT", 0, -GUIDE_ACC_HEAD_H)
+        sc:SetPoint("RIGHT", card, "RIGHT", 0, 0)
+        sc:SetHeight(1)
+        sc:SetAlpha(card.expanded and 1 or 0)
+        card.settingsContainer = sc
+
+        local function updateExpandedVisuals()
+            if card.expanded then
+                cBg:SetColorTexture(SBgExpandedR, SBgExpandedG, SBgExpandedB, SBgA)
+                chevron:SetText("-")
+            else
+                cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+                chevron:SetText("+")
+            end
+        end
+
+        headerBtn:SetScript("OnEnter", function()
+            if not card.expanded then
+                cBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, SBgA)
+            end
+        end)
+        headerBtn:SetScript("OnLeave", function()
+            if not card.expanded then
+                cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+            end
+        end)
+
+        card.anim = card:CreateAnimationGroup()
+        local sizeAnim = card.anim:CreateAnimation("Animation")
+        sizeAnim:SetDuration(0.15)
+        sizeAnim:SetSmoothing("IN_OUT")
+
+        card.anim:SetScript("OnUpdate", function()
+            local progress = sizeAnim:GetSmoothProgress()
+            local startH = card.expanded and card.collapsedHeight or (card.fullHeight or GUIDE_ACC_HEAD_H)
+            local endH = card.expanded and (card.fullHeight or GUIDE_ACC_HEAD_H) or card.collapsedHeight
+            local curH = startH + (endH - startH) * progress
+            card:SetHeight(curH)
+            if card.expanded then
+                sc:SetAlpha(progress)
+            else
+                sc:SetAlpha(1 - progress)
+            end
+            if onLayout then onLayout() end
+        end)
+
+        card.anim:SetScript("OnFinished", function()
+            local finalH = card.expanded and (card.fullHeight or GUIDE_ACC_HEAD_H) or card.collapsedHeight
+            card:SetHeight(finalH)
+            sc:SetAlpha(card.expanded and 1 or 0)
+            updateExpandedVisuals()
+            if onLayout then onLayout() end
+        end)
+
+        headerBtn:SetScript("OnClick", function()
+            if card.anim:IsPlaying() then return end
+            card.expanded = not card.expanded
+            updateExpandedVisuals()
+            card.anim:Play()
+        end)
+
+        if card.expanded then
+            cBg:SetColorTexture(SBgExpandedR, SBgExpandedG, SBgExpandedB, SBgA)
+        end
+
+        return card
+    end
+
+    -- Hero: title block only (no card chrome — sits on guide background)
+    dashAccentRefs.guideHeroRail = nil
+    local heroCard = CreateFrame("Frame", nil, content)
+
+    local heroTitle = MakeText(heroCard, L["DASH_GUIDE_HERO_TITLE"] or "Getting started", 22, 1, 1, 1, "LEFT")
+    local heroTag = MakeText(heroCard, L["DASH_GUIDE_HERO_TAGLINE"] or "", 14, 0.78, 0.80, 0.85, "LEFT")
+    local heroIntro = MakeDashboardWelcomeMixedScriptText(heroCard, L["DASH_GUIDE_HERO_INTRO"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
+    heroIntro:SetWordWrap(true)
+    heroIntro:SetSpacing(4)
+
+    local LayoutGuideContent
+    local quickHeading = MakeText(content, (L["DASH_GUIDE_QUICK_START_HEADING"] or "Quick start"):upper(), 13, 0.9, 0.9, 0.95, "LEFT")
+    local quickBody = MakeDashboardWelcomeMixedScriptText(content, L["DASH_GUIDE_QUICK_START_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    quickBody:SetWordWrap(true)
+    quickBody:SetSpacing(4)
+
+    local horizonCard = CreateGuideAccordionCard(content, L["DASH_GUIDE_HORIZON_HEADING"] or "What is Horizon Suite?", false, function()
+        LayoutGuideContent()
+    end)
+    local horizonBullets = ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or ""))
+    local horizonBulletsFs = MakeDashboardWelcomeMixedScriptText(horizonCard.settingsContainer, horizonBullets, 12, 0.62, 0.65, 0.70, "LEFT")
+    horizonBulletsFs:SetWordWrap(true)
+    horizonBulletsFs:SetSpacing(5)
+
+    -- Per-module detail accordions (order matches bullet list)
+    local axisCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("axis"), false, function() LayoutGuideContent() end)
+    local axisBody = MakeDashboardWelcomeMixedScriptText(axisCard.settingsContainer, L["DASH_GUIDE_MOD_AXIS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    axisBody:SetWordWrap(true)
+    axisBody:SetSpacing(4)
+
+    local focusCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("focus"), false, function() LayoutGuideContent() end)
+    local focusBody = MakeDashboardWelcomeMixedScriptText(focusCard.settingsContainer, L["DASH_GUIDE_MOD_FOCUS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    focusBody:SetWordWrap(true)
+    focusBody:SetSpacing(4)
+
+    local presenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("presence"), false, function() LayoutGuideContent() end)
+    local presenceIntro = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_INTRO"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    presenceIntro:SetWordWrap(true)
+    presenceIntro:SetSpacing(4)
+    local presenceBody = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    presenceBody:SetWordWrap(true)
+    presenceBody:SetSpacing(4)
+    local presenceBlizzard = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_BLIZZARD"] or "", 12, 0.55, 0.58, 0.64, "LEFT")
+    presenceBlizzard:SetWordWrap(true)
+    presenceBlizzard:SetSpacing(4)
+
+    local vistaCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("vista"), false, function() LayoutGuideContent() end)
+    local vistaBody = MakeDashboardWelcomeMixedScriptText(vistaCard.settingsContainer, L["DASH_GUIDE_MOD_VISTA_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    vistaBody:SetWordWrap(true)
+    vistaBody:SetSpacing(4)
+
+    local insightCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("insight"), false, function() LayoutGuideContent() end)
+    local insightBody = MakeDashboardWelcomeMixedScriptText(insightCard.settingsContainer, L["DASH_GUIDE_MOD_INSIGHT_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    insightBody:SetWordWrap(true)
+    insightBody:SetSpacing(4)
+
+    local cacheCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("cache"), false, function() LayoutGuideContent() end)
+    local cacheBody = MakeDashboardWelcomeMixedScriptText(cacheCard.settingsContainer, L["DASH_GUIDE_MOD_CACHE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    cacheBody:SetWordWrap(true)
+    cacheBody:SetSpacing(4)
+
+    local essenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("essence"), false, function() LayoutGuideContent() end)
+    local essenceBody = MakeDashboardWelcomeMixedScriptText(essenceCard.settingsContainer, L["DASH_GUIDE_MOD_ESSENCE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    essenceBody:SetWordWrap(true)
+    essenceBody:SetSpacing(4)
+
+    local meridianCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("meridian"), false, function() LayoutGuideContent() end)
+    local meridianBody = MakeDashboardWelcomeMixedScriptText(meridianCard.settingsContainer, L["DASH_GUIDE_MOD_MERIDIAN_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    meridianBody:SetWordWrap(true)
+    meridianBody:SetSpacing(4)
+
+    LayoutGuideContent = function()
+        local rawW = guideBg:GetWidth() or 0
+        local w = math.max(280, rawW - 40)
+        local innerPad = 28
+
+        -- Footer layout (fixed to bottom of guideBg)
+        local fy = 0
+        footerTopRule:ClearAllPoints()
+        footerTopRule:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
+        footerTopRule:SetPoint("TOPRIGHT", footerPanel, "TOPRIGHT", 0, -fy)
+        fy = fy + 1 + 12
+
+        communityHdr:SetWidth(w)
+        communityHdr:ClearAllPoints()
+        communityHdr:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
+        fy = fy + communityHdr:GetHeight() + 8
+
+        local totalLinkWidth = (#footerLinkButtons * FOOTER_LINK_BTN_W) + ((#footerLinkButtons - 1) * FOOTER_LINK_GAP)
+        local linkRowX = math.max(0, (w - totalLinkWidth) / 2)
+
+        for i, btn in ipairs(footerLinkButtons) do
+            btn:SetWidth(FOOTER_LINK_BTN_W)
+            btn:ClearAllPoints()
+            btn:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", linkRowX + (i - 1) * (FOOTER_LINK_BTN_W + FOOTER_LINK_GAP), -fy)
+        end
+        fy = fy + 20
+
+        footerPanel:SetWidth(w)
+        footerPanel:SetHeight(math.max(fy + 4, 1))
+        footerPanel:ClearAllPoints()
+        footerPanel:SetPoint("BOTTOMLEFT", guideBg, "BOTTOMLEFT", SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
+        footerPanel:SetPoint("BOTTOMRIGHT", guideBg, "BOTTOMRIGHT", -SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
+
+        content:SetWidth(w)
+        guideScroll:ClearAllPoints()
+        guideScroll:SetPoint("TOPLEFT", guideBg, "TOPLEFT", SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
+        guideScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, SCROLL_ABOVE_FOOTER_GAP)
+        guideScroll:SetPoint("TOPRIGHT", guideBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
+        guideScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, SCROLL_ABOVE_FOOTER_GAP)
+
+        -- Refresh coloured bullets + Preview / Coming soon tags if locale or keys changed (rare)
+        horizonBulletsFs:SetText(ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or "")))
+
+        local y = HERO_TOP_PAD
+
+        heroCard:SetWidth(w)
+        heroCard:ClearAllPoints()
+        heroCard:SetPoint("TOPLEFT", content, "TOPLEFT", SCROLL_BODY_X_INSET, -y)
+        -- First line at content top (0,0), same as Welcome titleFs — no extra top nudge.
+        heroTitle:SetWidth(w)
+        heroTitle:ClearAllPoints()
+        heroTitle:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, 0)
+        local yt = heroTitle:GetHeight() + 8
+        heroTag:SetWidth(w)
+        heroTag:ClearAllPoints()
+        heroTag:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
+        yt = yt + heroTag:GetHeight() + 10
+        heroIntro:SetWidth(w)
+        heroIntro:ClearAllPoints()
+        heroIntro:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
+        yt = yt + heroIntro:GetHeight() + 18
+        heroCard:SetHeight(math.max(yt, 100))
+        y = y + heroCard:GetHeight() + 20
+
+        quickHeading:SetText((L["DASH_GUIDE_QUICK_START_HEADING"] or "Quick start"):upper())
+        quickHeading:SetWidth(math.max(40, w))
+        quickHeading:ClearAllPoints()
+        quickHeading:SetPoint("TOPLEFT", content, "TOPLEFT", SCROLL_BODY_X_INSET, -y)
+        y = y + quickHeading:GetHeight() + 10
+        quickBody:SetWidth(math.max(40, w))
+        quickBody:ClearAllPoints()
+        quickBody:SetPoint("TOPLEFT", content, "TOPLEFT", SCROLL_BODY_X_INSET, -y)
+        y = y + quickBody:GetHeight() + 20
+
+        local function layoutAccordionCard(card, bodyWidgets, extraGapAfterBodies)
+            extraGapAfterBodies = extraGapAfterBodies or 0
+            local by = 10
+            for _, fs in ipairs(bodyWidgets) do
+                fs:ClearAllPoints()
+                fs:SetWidth(w - innerPad * 2)
+                fs:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", innerPad, -by)
+                by = by + fs:GetHeight() + (extraGapAfterBodies > 0 and 8 or 6)
+            end
+            by = by + extraGapAfterBodies
+            card.fullHeight = GUIDE_ACC_HEAD_H + by
+            if not card.anim:IsPlaying() then
+                card:SetHeight(card.expanded and card.fullHeight or card.collapsedHeight)
+            end
+            card:SetWidth(w)
+            card:ClearAllPoints()
+            card:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            y = y + card:GetHeight() + 8
+        end
+
+        layoutAccordionCard(horizonCard, { horizonBulletsFs }, 10)
+        layoutAccordionCard(axisCard, { axisBody }, 10)
+        layoutAccordionCard(focusCard, { focusBody }, 10)
+        layoutAccordionCard(presenceCard, { presenceIntro, presenceBody, presenceBlizzard }, 10)
+        layoutAccordionCard(vistaCard, { vistaBody }, 10)
+        layoutAccordionCard(insightCard, { insightBody }, 10)
+        layoutAccordionCard(cacheCard, { cacheBody }, 10)
+        layoutAccordionCard(essenceCard, { essenceBody }, 10)
+        layoutAccordionCard(meridianCard, { meridianBody }, 10)
+
+        y = y + 8
+        content:SetHeight(math.max(y + 8, 1))
+
+        if guideScroll.UpdateScrollChildRect then
+            guideScroll:UpdateScrollChildRect()
+        end
+        local viewH = guideScroll:GetHeight() or 0
+        local contentH = content:GetHeight() or 0
+        local maxScroll = math.max(0, contentH - viewH)
+        local curScroll = guideScroll:GetVerticalScroll() or 0
+        if curScroll > maxScroll then
+            guideScroll:SetVerticalScroll(maxScroll)
+            guideScroll.targetScroll = nil
+        end
+    end
+
+    guideView:SetScript("OnShow", function()
+        LayoutGuideContent()
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0, LayoutGuideContent)
+        end
+    end)
+    guideView:SetScript("OnSizeChanged", function()
+        if guideView:IsShown() then LayoutGuideContent() end
+    end)
+
+    f.ShowModuleGuide = function()
+        HideContextHeader()
+        detailView:Hide()
+        subCategoryView:Hide()
+        dashboardView:Hide()
+        welcomeView:Hide()
+        patchNotesView:Hide()
+        guideView:SetAlpha(0)
+        guideView:Show()
+        UIFrameFadeIn(guideView, 0.2, 0, 1)
+        if head then head:Show() end
+        if headSub then
+            headSub:Show()
+            headSub:SetText(L["DASH_GUIDE_HEAD_SUB"] or "What each part of Horizon does")
+        end
+        if searchBox then searchBox:Hide() end
+        f.currentModuleKey = nil
+        SetSidebarState({ view = "guide", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+        if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+            addon.DashboardPreview.SetActiveModuleKey(nil)
+        end
+        if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+    end
+end

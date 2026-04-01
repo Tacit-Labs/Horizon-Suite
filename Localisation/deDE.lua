@@ -79,10 +79,11 @@ L["OPTIONS_AXIS_MODULES"]                                             = "Module"
 -- L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                  = " (New!)"  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_TAB"]                                              = "Welcome"  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_TITLE"]                                            = "Welcome to Horizon Suite"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_HEAD_SUB"]                                         = "What each module does and where to turn them on"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_INTRO"]                                            = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."  -- NEEDS TRANSLATION
+L["DASH_WELCOME_HEAD_SUB"]                                            = "What each module does and where to turn them on"
+L["DASH_WELCOME_INTRO"]                                               = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
 -- L["DASH_WELCOME_PATH"]                                             = "%s → %s → %s"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_MODULES_HEADING"]                                  = "Modules"  -- NEEDS TRANSLATION
+-- L["DASH_WELCOME_QUICK_LINKS_HEADING"]                              = "Shortcuts"  -- NEEDS TRANSLATION
+-- L["DASH_WELCOME_OPEN_QUICK_START_LINK"]                            = "Open Quick Start"  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                             = "Contributors"  -- NEEDS TRANSLATION
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
@@ -108,6 +109,48 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The o
 
 Contributions for additional locales are welcome via Discord.]=]
 -- L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"]                         = "Open module toggles"  -- NEEDS TRANSLATION
+
+
+-- =====================================================================
+-- options/dashboard/ModuleGuide.lua — In-game module quick-start
+-- =====================================================================
+L["DASH_GUIDE_TAB"]                                                   = "Guide"
+-- L["DASH_GUIDE_HEAD_SUB"]                                           = "What each part of Horizon does"  -- NEEDS TRANSLATION
+-- L["DASH_GUIDE_HERO_TITLE"]                                         = "Getting started with Horizon Suite"  -- NEEDS TRANSLATION
+-- L["DASH_GUIDE_HERO_TAGLINE"]                                       = "A modular UI toolkit for quests, notifications, the minimap, and more."  -- NEEDS TRANSLATION
+L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
+-- L["DASH_GUIDE_QUICK_START_HEADING"]                                = "Quick start"  -- NEEDS TRANSLATION
+L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis → Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
+-- • Under |cffaaaaaaAxis → Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
+-- L["DASH_GUIDE_HORIZON_HEADING"]                                    = "What is Horizon Suite?"  -- NEEDS TRANSLATION
+L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.  -- NEEDS TRANSLATION
+• Focus — Quest and content tracker: quests, world quests, scenarios, rares, achievements, and more in coloured sections.
+• Presence — Large cinematic toasts for zones, quests, scenarios, achievements, level up, and similar moments.
+• Vista — Minimap chrome: zone text, coordinates, clock, and a collector for minimap buttons.
+• Insight — Richer tooltips for players, NPCs, and items (class colours, spec, icons, extras).
+• Cache — Loot toasts and bag presentation.
+• Essence — Character sheet with 3D model, item level, stats, and gear grid.
+• Meridian — Coming soon.]=]
+-- L["DASH_GUIDE_MOD_AXIS_BODY"]                                      = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Toggles for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."  -- NEEDS TRANSLATION
+L["DASH_GUIDE_MOD_FOCUS_BODY"]                                        = [=[Focus replaces the default objective list with a flexible tracker. Tracked quests, world quests, scenarios, rares, achievements, endeavors, decor, recipes, and more are grouped into coloured section headers so you can scan quickly.  -- NEEDS TRANSLATION
+
+Sections only appear when they have something to show — for example Current (recent progress), Current zone, Ready to turn in, World / weekly / daily / Prey, campaign and special quests, delves and scenarios, rare bosses and loot, achievements and collections, and time-limited or zone events.
+
+Use Focus → Sorting & filtering to reorder sections, and Focus → Content to choose which types of content appear.]=]
+-- L["DASH_GUIDE_PRESENCE_INTRO"]                                     = "Presence shows large, styled alerts for moments that used to be separate Blizzard popups — zone changes, quest progress, achievements, scenarios, and more. You can turn each type on or off and tune typography in Presence settings."  -- NEEDS TRANSLATION
+L["DASH_GUIDE_PRESENCE_BODY"]                                         = [=[Typical Presence toasts include:  -- NEEDS TRANSLATION
+
+• Zone and subzone discovery text when you enter new areas.
+• Quest accepted, objective progress, quest complete, and world quest complete.
+• Scenario start, progress updates, and completion (including delve-style flow).
+• Achievements earned and optional achievement progress ticks.
+• Level up, boss emotes, and rare defeated.]=]
+-- L["DASH_GUIDE_PRESENCE_BLIZZARD"]                                  = [=[When a Presence type is enabled, Horizon can hide the matching default UI so you don’t get duplicates — for example zone name banners, the level-up frame, boss emote bar, event toast manager, world-quest completion banner, and some objective bonus banners. Turn a Presence type off in settings to let the default game UI show again for that category.]=]  -- NEEDS TRANSLATION
+-- L["DASH_GUIDE_MOD_VISTA_BODY"]                                     = "Vista wraps your minimap with readable zone and subzone text, optional coordinates and clock, and a bar that collects stray minimap buttons so they stay tidy. Tune layout and colours under Vista in the sidebar."  -- NEEDS TRANSLATION
+-- L["DASH_GUIDE_MOD_INSIGHT_BODY"]                                   = "Insight extends Blizzard tooltips for players, NPCs, and items — class and faction colouring, spec and icon lines, optional Mythic+ score, item level, mount collection hints, and cleaner separators. Each tooltip type has its own category under Insight."  -- NEEDS TRANSLATION
+-- L["DASH_GUIDE_MOD_CACHE_BODY"]                                     = "Cache handles loot feedback: styled loot toasts for items, money, currency, and reputation, plus options that tie into how rewards are shown. Enable it when you want Horizon’s presentation instead of the default loot popups."  -- NEEDS TRANSLATION
+-- L["DASH_GUIDE_MOD_ESSENCE_BODY"]                                   = "Essence is an optional character sheet: 3D model, item level, primary stats, and a gear grid so you can review your equipment at a glance. Open Essence in the sidebar to adjust layout and visibility."  -- NEEDS TRANSLATION
+-- L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                                  = "Coming soon."  -- NEEDS TRANSLATION
 -- L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                            = "Core settings hub: profiles, modules, and global toggles."  -- NEEDS TRANSLATION
 -- L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"]                    = "Objective tracker for quests, world quests, rares, achievements, scenarios."  -- NEEDS TRANSLATION
 -- L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"]                              = "Zone text and notifications."  -- NEEDS TRANSLATION
@@ -115,7 +158,7 @@ Contributions for additional locales are welcome via Discord.]=]
 -- L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"]                       = "Tooltips with class colors, spec, and faction icons."  -- NEEDS TRANSLATION
 -- L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]                         = "Loot toasts for items, money, currency, reputation, and bag overhaul."  -- NEEDS TRANSLATION
 -- L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"]                         = "Custom character sheet with 3D model, item level, stats, and gear grid."  -- NEEDS TRANSLATION
--- L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                        = "Join the Discord and have a guess!"  -- NEEDS TRANSLATION
+-- L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                        = "Coming soon."  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_COMMUNITY_HEADING"]                                = "Community & Support"  -- NEEDS TRANSLATION
 -- L["DASH_DISCORD"]                                                  = "Discord"  -- NEEDS TRANSLATION
 -- L["DASH_KO_FI"]                                                    = "Ko-fi"  -- NEEDS TRANSLATION
@@ -1607,6 +1650,14 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
+
+
+
+
+
+
 
 
 
