@@ -290,7 +290,7 @@ function addon.DashboardHomeWelcome_Init(env)
         end)
         tile:SetScript("OnClick", function()
             if tile._isComingSoon then
-                ShowCopyURL(L["DASH_DISCORD"] or "Discord", "https://discord.com/invite/e7nW2f4VQj")
+                ShowCopyURL(L["DASH_DISCORD"] or "Discord", "https://discord.gg/nFabdZmvSB")
             elseif tile._isSkeleton then
                 detailNav.NavigateToModuleToggles()
             else

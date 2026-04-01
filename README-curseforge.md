@@ -1,119 +1,148 @@
 # 🌌 Horizon Suite
 
 ![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge)
-
-![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) ![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)
-
-[![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite) 
-
-**Horizon Suite** is a core addon with pluggable modules: **Focus** (objective tracker), **Presence** (zone text & notifications), **Insight** (cinematic tooltips), **Vista** (minimap), and **Cache** (loot toasts). Designed for the Midnight era—clean, cinematic, player-in-control. It replaces static, cluttered lists with a fluid interface that grants you total agency over your goals. Additional suites will appear as modules in the same options panel.
+![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) [![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)](https://discord.gg/nFabdZmvSB)
+[![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite)
 
 ---
 
-## 🎯 Focus (Objective Tracker)
+> **One addon. Everything your UI needs.**
+> Horizon Suite replaces your objective tracker, zone text, minimap, tooltips, and loot toasts — all in one place, all working together, all built for Midnight.
+
+Stop juggling separate addons with separate option panels. Horizon Suite brings them together under one roof with a shared design language, unified profiles, and a community actively shaping what comes next.
+
+**Eight modules. One options panel. Zero clutter.**
+
+| Module | What it does | Status |
+|---|---|---|
+| 🎯 **Focus** | Objective tracker | Live |
+| 🎬 **Presence** | Zone text & cinematic notifications | Live |
+| 🗺️ **Vista** | Minimap with full customisation | Live |
+| 🔍 **Insight** | Cinematic tooltips | Live |
+| 🎒 **Cache** | Loot toasts & bag organisation | Preview |
+| 📜 **Essence** | Character sheet | Preview |
+| 💬 **Flow** | Chat frame | Coming Soon |
+| 🌅 **Meridian** | Take a Guess! | Coming Soon |
+
+---
+
+## 🎯 Focus — Objective Tracker
 
 ![Focus - Objective Tracker](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-5frvkrwhxhng1.gif?width=489&auto=webp&s=9c6da75805f3cff68cdcf545b22cc6ec082b20c5)
 
-- **Smart zone tracking** – Nearby quests float to the top; list updates as you move. Delves, scenarios, raids, and world events get their own sections with progress bars and timers. Zone event quests appear in Events in Zone before you enter; once you step in, they move to the Current Event section. World quests you're actively doing also appear in Current Event.
-- **Track what matters** – Achievements, Endeavors (housing), Decor, Recipes (professions), and Traveler's Log objectives appear in the tracker. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open achievement panel, housing dashboard, decor catalog, or Adventure Guide.
-- **Rare boss alerts** – Super-track nearby rares with one click and optional audio alerts.
-- **Live quest sync** – World quests, dailies, and weeklies update dynamically. Quests auto-track when you accept them. Choose a radar icon for auto-tracked in-zone entries.
-- **Prey section** – Midnight hunting activities (Prey hunts) appear in a dedicated Prey section with distinct colours, separate from weeklies.
-- **All The Things integration** – Collection data appears directly in your objectives.
-- **Profiles** – Create, switch, copy, and delete named profiles. Per-character, per-specialization, or global (account-wide) modes. Import and export profiles as shareable text strings.
-- **Combat-ready** – Show, fade, or hide in combat; show or hide in dungeons/raids/BGs; compact or super-minimal layouts.
-- **Show only on mouseover** – Fade the tracker when not hovering; move the mouse over it to reveal.
-- **Mythic+ and Delves** – Banner for keystone info, timer, and affixes. Delve objectives in the standard layout.
-- **Classic click behaviour** – Optional toggle: left-click opens the quest map, right-click shows share/abandon menu. When off, Shift+Left opens or closes quest details; Ctrl+Right shares the quest with your party.
+Your tracker shouldn't need babysitting. Focus keeps up with you — surfacing nearby quests, updating as you move, and getting out of the way when you don't need it.
 
-## 🎬 Presence (Zone Text & Notifications)
+- **Always relevant** — Nearby quests rise to the top automatically. Move zones and the list reorganises around you. Delves, scenarios, raids, and world events get their own sections with live progress bars and timers. Zone event quests appear in Events in Zone before you enter; step inside and they move to Current Event.
+- **Tracks everything** — Achievements, Endeavors (housing), Decor, Recipes (professions), and Traveler's Log objectives. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open the achievement panel, housing dashboard, decor catalog, or Adventure Guide.
+- **Rare boss alerts** — Super-track nearby rares with one click and optional audio cues.
+- **Live quest sync** — World quests, dailies, and weeklies update dynamically. Quests auto-track when you accept them. Choose a radar icon for auto-tracked in-zone entries.
+- **Prey section** — Midnight hunting activities appear in a dedicated Prey section with distinct colours, separate from weeklies.
+- **Plays well with others** — Full [All The Things](https://www.curseforge.com/wow/addons/all-the-things) integration: collection data shows up right in your objectives.
+- **Combat-aware** — Show, fade, or hide in combat. Show or hide in dungeons/raids/BGs. Compact or super-minimal layouts. Show only on mouseover. Your call.
+- **Mythic+ and Delves** — Keystone info, affixes, timer, and delve objectives all in the standard layout.
+- **Click your way** — Optional classic mode: left-click opens the quest map, right-click shows share/abandon. Or use Shift+Left for quest details and Ctrl+Right to share with your party.
+- **Profiles** — Per-character, per-spec, or global. Create, copy, export, and share as text strings.
+
+---
+
+## 🎬 Presence — Zone Text & Notifications
 
 ![Presence - Zone Text & Notifications](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-mj3ii5rnxhng1.gif?width=731&auto=webp&s=e9267169ee7e52bd3276b49114e65047d412037f)
 
-- **Cinematic notifications** – Replaces Blizzard's default zone text, level-up banner, boss emote frame, and achievement alerts with styled toasts: smooth entrance and exit animations, a dividing line between title and subtitle, and an optional "Discovered!" third line on first visits.
-- **Full notification coverage** – Zone entry, subzone changes, level-up, boss emotes, achievements, quest accepted/complete/progress, world quest accepted/complete, scenario start, scenario or delve complete, and scenario or delve objective updates — 13 types in total.
-- **Per-type toggles** – Enable or disable each notification type individually. Mythic+ suppression silences zone, quest, and scenario notifications while inside a keystone dungeon.
-- **Delve suppression** – Toggle to hide objective update popups while in a Delve. Zone entry and completion toasts still show.
-- **Prioritised queue** – Up to five notifications queue when one is already playing; higher-priority events (level-up, boss emotes, achievements) play ahead of routine quest updates.
-- **Visual customisation** – Vertical screen position, frame scale, and independent font types and sizes for title and subtitle. Entrance speed, exit speed, and hold-duration multiplier are all adjustable.
+Blizzard's zone text does the job. Presence makes it feel like a moment.
 
-## 🗺️ Vista (Minimap)
+- **Cinematic notifications** — Zone entry, level-ups, boss emotes, achievements, and quest updates arrive as styled toasts with smooth animations, a title/subtitle divider, and an optional "Discovered!" line on first visits.
+- **13 notification types** — Zone entry, subzone changes, level-up, boss emotes, achievements, quest accepted/complete/progress, world quest accepted/complete, scenario start, scenario/delve complete, and scenario/delve objective updates.
+- **Smart queue** — Up to five notifications queue while one plays. Level-ups and boss emotes cut the line automatically.
+- **Mythic+ suppression** — Silence zone, quest, and scenario chatter while you're in a key.
+- **Delve suppression** — Hide objective update popups inside Delves while zone entry and completion toasts still show.
+- **Per-type toggles** — Turn off anything you don't want. Keep only what you care about.
+- **Fully adjustable** — Screen position, scale, font and size for title and subtitle, entrance/exit speed, and hold duration. Tune it to match your playstyle.
+
+---
+
+## 🗺️ Vista — Minimap
 
 ![Vista - Minimap](https://preview.redd.it/addon-horizon-suite-3-0-0-released-vista-minimap-is-now-out-v0-adkv296wnblg1.gif?width=325&auto=webp&s=f623b0327377002da3eaa64b3ef78062dc7cfebf)
 
-- **Square or circular minimap** – Choose a square or circular mask. Adjust size (100–400px), lock position, or drag to relocate. Optional auto zoom-out after zooming.
-- **Zone text, coordinates, time, and FPS/latency** – Zone name, player coordinates, game time, and optional FPS/latency (ms) below the minimap. Each element has its own font, size, and colour; show or hide individually. Click the time to open the stopwatch.
-- **Instance difficulty** – Difficulty name and Mythic+ keystone level shown when in an instance.
-- **Mail and queue indicators** – New mail icon and queue status button appear automatically when relevant. Unlock the mail icon in options to drag and reposition it.
-- **Built-in buttons** – Tracking and calendar buttons. Show always or on mouseover. Each is draggable and resizable; lock to prevent accidental movement.
-- **Addon button collector** – Minimap buttons from other addons are grouped and presented in one of three modes: mouseover bar below the minimap, right-click panel, or floating drawer button. Per-addon filter to show only selected buttons.
-- **Customizable appearance** – Border (thickness, colour, opacity), panel background and border colours for button panels, and per-element typography. SharedMedia support for fonts.
-- **Mouse wheel zoom** – Scroll over the minimap to zoom in and out.
+A minimap that fits your UI — not the other way around.
 
-## 💎 Cache (Loot Toasts) - BETA
+- **Square or circular** — Pick your shape. Drag it anywhere, lock it in place, resize from 100–400 px. Optional auto zoom-out after zooming.
+- **Zone text, coordinates, time, and FPS/latency** — Each element has its own font, size, and colour; show or hide individually. Click the clock to open the stopwatch.
+- **Instance info** — Difficulty name and Mythic+ keystone level shown automatically inside instances.
+- **Addon button collector** — Minimap buttons from other addons grouped into a mouseover bar, right-click panel, or floating drawer. Per-addon filter so you show only what you want.
+- **Built-in controls** — Tracking and calendar buttons. Show always or on mouseover. Draggable, resizable, lockable. Unlock the mail icon to reposition it too.
+- **Mail and queue** — New mail and group queue indicators appear automatically when relevant.
+- **Mouse wheel zoom** — Scroll over the minimap to zoom in and out.
+- **Full typography and colour control** — Border thickness, opacity, panel colours, fonts, SharedMedia support.
+
+---
+
+## 🎒 Cache — Loot Toasts & Bags *(Preview)*
 
 ![Cache - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
 
-- **Cinematic loot notifications** – Items, money, currency, and reputation gains appear as styled toasts with quality-based colours and smooth slide-in animations.
-- **Epic and legendary flair** – Extra entrance time, shine effects, and optional sounds for high-value loot.
+Loot that deserves to be seen — and a bag that keeps itself organised.
 
-## 🔍 Insight (Tooltips) - BETA
+- **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
+- **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
+- **Bag organisation** — Clean up your inventory with Cache's built-in bag management.
+
+---
+
+## 🔍 Insight — Tooltips
 
 ![Insight - Tooltips](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-9luqvfjeyhng1.png?width=387&format=png&auto=webp&s=e0816c4ced5581178a50507f8d803adc9a93edde)
 
-- **Cinematic tooltips** – Dark backdrop, class-colored player names and borders, faction icons, spec/role display, and fade-in animation.
-- **Profile-backed settings** – Anchor mode (cursor or fixed) and position stored per profile.
+Tooltips that actually tell you who you're looking at.
 
-## 🎨 Visuals & UI Design
-
-- **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
-- **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
-- **Global Toggles (Axis)** – Under **Axis → Global Toggles**, enable class tint per module or all at once (dashboard, Focus, Presence, Vista, Insight, Cache, Essence), pick a **dashboard background** preset (flat Default, Midnight artwork, or **Specialisation (auto)** using Blizzard’s talent UI art for your current spec—with a short crossfade when you change preset or spec), and set global UI scale (50–200%) or per-module scale sliders for Focus, Presence, Vista, Insight, and Cache.
-- **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
-- **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
-- **Timer layout** – Bar below objectives, inline beside the title, or inline on its own line below the title.
-- **Fluid motion** – Smooth entry/exit animations and a subtle pulse on objective completion.
-- **Scroll indicators** – Optional fade or arrow buttons when the list has more content than visible.
+- **Class-coloured names and borders** — Player tooltips tinted to class colour at a glance.
+- **Spec, role, faction, and PvP title** — See what someone plays without having to inspect them.
+- **Item level and Mythic+ score** — iLvl from inspect cache and colour-tiered M+ rating inline.
+- **Mount identification** — Hover a mounted player and see the mount name, source, and whether you own it.
+- **Transmog status** — Item tooltips show whether you've already collected the appearance.
+- **Cinematic presentation** — Dark backdrop, fade-in animation, cursor or fixed anchor. Stored per profile.
+- **Combat mode** — Optional toggle to close styled tooltip frames during combat.
 
 ---
 
-## ⌨️ Basic Commands
+## 🎨 Shared Design & Customisation
 
-| Command | Description |
-|---------|-------------|
-| **/h**, **/hopt**, **/hedit** | Core — help, options, edit screen |
-| **/h focus** toggle, collapse, nearby, resetpos | Tracker — enable/disable, collapse, toggle Nearby group, reset position |
-| **/h vista** reset, toggle, lock, scale | Minimap — reset position, show/hide, lock, set scale |
-| **/h cache** edit, reset, toggle | Loot toasts — reposition, reset position, enable/disable |
-| **/h insight** anchor, move, resetpos | Tooltips — anchor mode, reposition, reset position |
+Every module shares the same design foundations, so they feel like one cohesive UI.
 
----
-
-## 📦 Modules & Roadmap
-
-**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colors, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, time, optional FPS/latency, addon button collector, and full customisation. **Cache** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
+- **Global or per-module scaling** — Set one global scale (50–200%) or dial in each module independently under Axis → Global Toggles.
+- **Class tint** — Enable class colours per module or all at once from the Axis panel. Dashboard background presets: flat Default, Midnight artwork, or Specialisation (auto) — uses Blizzard's talent UI art for your current spec with a crossfade when you switch.
+- **SharedMedia support** — Fonts and progress bar textures from addon packs across all modules. Works without SharedMedia installed too.
+- **Per-category colours** — Title, objective, zone, section, and backdrop colours all configurable.
+- **Typography and spacing** — Fonts, sizes, outlines, and spacing sliders. Turn-in highlights and quantity strings (e.g. 15/18) at a glance.
+- **Progress bars** — Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colour, and texture. Filter by X/Y, percent-only, or both. Timer layout: bar below, inline beside title, or inline on its own line.
+- **Fluid animations** — Smooth entry/exit on tracker and notifications, subtle pulse on quest completion.
+- **Scroll indicators** — Optional fade or arrow buttons when the list has more content than visible.
+- **High-fidelity icons** — Distinct icons for Campaign, Legendary, and World Quests.
 
 ---
 
-## 📥 Installation & Support
+## 📥 Installation
 
 **Requirements:** World of Warcraft Retail (The War Within or later).
 
-**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in Typography and statusbar textures for progress bars. If not installed, the font dropdown shows only Game Font and any custom path you enter; progress bars use Solid texture. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips and, when Dashboard class colours are on, for the Dashboard header class icon (Axis → Class Colours → Dashboard class icon style—separate from Insight).
+**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) for expanded font choices and progress bar textures. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips and the Dashboard header icon when class colours are on.
 
 1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://gitlab.com/Crystilac/horizon-suite/-/releases) and extract the `HorizonSuite` folder. ([Beta](https://gitlab.com/Crystilac/horizon-suite/-/releases/beta))
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
-4. Type `/h options` or `/hopt` to customize.
-5. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker). **Welcome** is the first sidebar item with a short overview of each module (Preview items are labelled); **Quick Start** (under Welcome) explains Focus sections, Presence notifications, and each module in more detail. **Home** shows module tiles. Under **Axis** use **Global Toggles** (class colours and UI scale) or **Modules** (module on/off and minimap button). After your first visit, the dashboard opens on **Home** by default; **Welcome** and **Quick Start** stay in the sidebar.
-
-[ko-fi](https://ko-fi.com/T6T71TX1Y1) **[Patreon](https://patreon.com/HorizonSuite?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)** | **[Discord](https://discord.gg/RkkYJgB3PA)** — Bug reports, feature requests, and community.
+4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
+5. **Welcome** gives a quick overview of each module. **Quick Start** walks through Focus sections, Presence notifications, and each module in detail. **Home** shows module tiles. Under **Axis** use **Global Toggles** for class colours and UI scale, or **Modules** to toggle modules on/off and control the minimap button.
 
 ---
 
-## 🤝 Contributing
+## 💬 Community & Support
 
-**Issues** — [GitHub Issues](https://gitlab.com/Crystilac/horizon-suite/-/issues). Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are welcome.
+Horizon Suite is built with the community, not just for it. Feature requests and bug reports shape every update.
+
+**[Discord](https://discord.gg/nFabdZmvSB)** — The best place to get help, share feedback, or see what's coming next.
+**[GitLab Issues](https://gitlab.com/Crystilac/horizon-suite/-/issues)** — Bug reports and feature requests welcome. Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are also welcome.
+**[Patreon](https://patreon.com/HorizonSuite)** | **[Ko-fi](https://ko-fi.com/T6T71TX1Y1)** — Support development and keep the lights on.
 
 ---
 
@@ -122,7 +151,9 @@
 Thanks to everyone who has contributed to Horizon Suite:
 
 - **feanor21#2847 — Panoramuxa (Tarren Mill -EU)** — Development
-- **Boofuls** — Moderator
+- Marthix — Development
+- Swift — Coordinator
+- Boofuls — Moderator
 - **RondoFerrari** — [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) — Class icons in Insight tooltips and optional Dashboard header icon when class colours are on (optional)
 - **Aishuu** — French localization (frFR)
 - **아즈샤라-두녘** — Korean localization (koKR)
@@ -133,15 +164,7 @@ Thanks to everyone who has contributed to Horizon Suite:
 
 ## 🌐 Localizations
 
-The addon UI is localized for:
-
-- **Chinese (zhCN)** — `Localisation/zhCN.lua`
-- **French (frFR)** — `Localisation/frFR.lua`
-- **German (deDE)** — `Localisation/deDE.lua`
-- **Korean (koKR)** — `Localisation/koKR.lua`
-- **Brazilian Portuguese (ptBR)** — `Localisation/ptBR.lua`
-- **Russian (ruRU)** — `Localisation/ruRU.lua`
-- **Spanish (esES)** — `Localisation/esES.lua`
+The addon UI is localized for: Chinese (zhCN), French (frFR), German (deDE), Korean (koKR), Brazilian Portuguese (ptBR), Russian (ruRU), Spanish (esES).
 
 Contributions for additional locales are welcome — see **[TRANSLATING.md](TRANSLATING.md)** and Discord.
 

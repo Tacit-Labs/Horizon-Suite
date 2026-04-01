@@ -2,7 +2,7 @@
 
 ![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge)
 
-![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) ![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)
+![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) [![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)](https://discord.gg/nFabdZmvSB)
 
 [![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite) 
 
@@ -63,6 +63,7 @@
 
 - **Cinematic tooltips** – Dark backdrop, class-colored player names and borders, faction icons, spec/role display, and fade-in animation.
 - **Profile-backed settings** – Anchor mode (cursor or fixed) and position stored per profile.
+- **Hide tooltips in combat** – Optional toggle under Insight → Global Tooltips to close styled tooltip frames during combat.
 
 ## 🎨 Visuals & UI Design
 
@@ -74,18 +75,6 @@
 - **Timer layout** – Bar below objectives, inline beside the title, or inline on its own line below the title.
 - **Fluid motion** – Smooth entry/exit animations and a subtle pulse on objective completion.
 - **Scroll indicators** – Optional fade or arrow buttons when the list has more content than visible.
-
----
-
-## ⌨️ Basic Commands
-
-| Command | Description |
-|---------|-------------|
-| **/h**, **/hopt**, **/hedit** | Core — help, options, edit screen |
-| **/h focus** toggle, collapse, nearby, resetpos | Tracker — enable/disable, collapse, toggle Nearby group, reset position |
-| **/h vista** reset, toggle, lock, scale | Minimap — reset position, show/hide, lock, set scale |
-| **/h cache** edit, reset, toggle | Loot toasts — reposition, reset position, enable/disable |
-| **/h insight** anchor, move, resetpos | Tooltips — anchor mode, reposition, reset position |
 
 ---
 
@@ -104,10 +93,10 @@
 1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://gitlab.com/Crystilac/horizon-suite/-/releases) and extract the `HorizonSuite` folder. ([Beta](https://gitlab.com/Crystilac/horizon-suite/-/releases/beta))
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
-4. Type `/h options` or `/hopt` to customize.
-5. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker). **Welcome** is the first sidebar item with a short overview of each module (Preview items are labelled); **Quick Start** (under Welcome) explains Focus sections, Presence notifications, and each module in more detail. **Home** shows module tiles. Under **Axis** use **Global Toggles** (class colours and UI scale) or **Modules** (module on/off and minimap button). After your first visit, the dashboard opens on **Home** by default; **Welcome** and **Quick Start** stay in the sidebar.
+4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
+5. **Welcome** is the first sidebar item with a short overview of each module (Preview items are labelled); **Quick Start** (under Welcome) explains Focus sections, Presence notifications, and each module in more detail. **Home** shows module tiles. Under **Axis** use **Global Toggles** (class colours and UI scale) or **Modules** (module on/off and minimap button). After your first visit, the dashboard opens on **Home** by default; **Welcome** and **Quick Start** stay in the sidebar.
 
-[ko-fi](https://ko-fi.com/T6T71TX1Y1) **[Patreon](https://patreon.com/HorizonSuite?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)** | **[Discord](https://discord.gg/RkkYJgB3PA)** — Bug reports, feature requests, and community.
+[ko-fi](https://ko-fi.com/T6T71TX1Y1) **[Patreon](https://patreon.com/HorizonSuite?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)** | **[Discord](https://discord.gg/nFabdZmvSB)** — Bug reports, feature requests, and community.
 
 ---
 

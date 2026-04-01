@@ -353,6 +353,9 @@ L["OPTIONS_INSIGHT_DISMISS_GRACE_DESC"]                               = "How lon
 L["OPTIONS_INSIGHT_DISMISS_GRACE_INSTANT"]                            = "Instant"
 L["OPTIONS_INSIGHT_DISMISS_GRACE_DEFAULT"]                            = "Normal"
 L["OPTIONS_INSIGHT_DISMISS_GRACE_RELAXED"]                            = "Relaxed"
+L["OPTIONS_INSIGHT_SECTION_COMBAT"]                                   = "Combat"
+L["OPTIONS_INSIGHT_HIDE_IN_COMBAT"]                                   = "Hide tooltips in combat"
+L["OPTIONS_INSIGHT_HIDE_IN_COMBAT_DESC"]                              = "While in combat, close GameTooltip and other Insight-styled tooltip frames and block them from staying open. Applies only when the Insight module is enabled."
 L["OPTIONS_INSIGHT_FADE_OUT_SEC"]                                     = "Fade-out duration"
 L["OPTIONS_INSIGHT_FADE_OUT_SEC_DESC"]                                = "How long the unit tooltip takes to fade out after dismiss has started (not the delay before dismiss). Zero hides immediately with no fade. Applies to GameTooltip unit tips only."
 L["OPTIONS_INSIGHT_SECTION_ICONS_AND_SEPARATORS"]                     = "Icons & separators"
@@ -1655,6 +1658,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
