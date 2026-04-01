@@ -137,15 +137,46 @@ local lastTooltipItemLinkByTT = setmetatable({}, { __mode = "k" })
 -- [tooltip] = { state, elapsed, fadeInStartAlpha, fadeOutStartAlpha, lastAppliedAlpha }
 local tooltipFadeData         = setmetatable({}, { __mode = "k" })
 
--- Throttle stale unit-tooltip check (player moved away; mouseover not yet cleared).
--- Race with Blizzard: if the client calls GameTooltip:Hide() before StartFadeOutStale runs, the tooltip "pops"
--- with no custom fade. Lower threshold → fade starts sooner (fewer pops); higher → fewer false fades on brief mouseover flicker.
--- UPDATE_MOUSEOVER_UNIT triggers stale fade immediately; this path debounces by STALE_CHECK_INTERVAL * threshold.
-local STALE_CHECK_INTERVAL = 0.1
-local staleCheckElapsed    = 0
--- Consecutive stale samples before OnUpdate calls StartFadeOutStale (UMU path has no debounce).
-local STALE_MOUSEOVER_MISS_THRESHOLD = 2
-local staleMouseoverMissTicks        = 0
+-- Stale unit-tooltip dismiss: debounce from insightTooltipDismissGrace; fade length from insightTooltipFadeOutSec.
+-- Race with Blizzard: if the client calls GameTooltip:Hide() before our dismiss runs, the tooltip "pops" with no custom fade.
+local staleCheckElapsed     = 0
+local staleMouseoverMissTicks = 0
+local umuDismissGen         = 0
+
+local function GetTooltipDismissGrace()
+    local raw = addon.GetDB("insightTooltipDismissGrace", "default")
+    if raw == "instant" then return "instant" end
+    if raw == "relaxed" then return "relaxed" end
+    return "default"
+end
+
+local function GetStaleCheckInterval()
+    if GetTooltipDismissGrace() == "instant" then
+        return 0.05
+    end
+    return 0.1
+end
+
+local function GetStaleMissThreshold()
+    local g = GetTooltipDismissGrace()
+    if g == "instant" then return 1 end
+    if g == "relaxed" then return 5 end
+    return 2
+end
+
+local function GetUmuDismissDelaySeconds()
+    if GetTooltipDismissGrace() == "relaxed" then
+        return 0.15
+    end
+    return 0
+end
+
+local function SyncFadeOutDurationFromDB()
+    local s = tonumber(addon.GetDB("insightTooltipFadeOutSec", 0.4)) or 0.4
+    s = math.max(0, math.min(0.8, s))
+    s = math.floor(s / 0.05 + 0.5) * 0.05
+    Insight.FADE_OUT_DUR = s
+end
 -- Expand GameTooltip hit box slightly so cursor gaps between anchor and tooltip do not count as "stale".
 local STALE_MOUSEOVER_PADDING        = 4
 
@@ -212,15 +243,22 @@ animFrame:SetScript("OnUpdate", function(self, elapsed)
             end
         elseif d.state == FADE_STATE_FADEOUT then
             d.elapsed = d.elapsed + elapsed
-            local progress = math.min(d.elapsed / durOut, 1)
-            local alpha = d.fadeOutStartAlpha * (1 - Insight.easeOut(progress))
-            if tt.SetAlpha then tt:SetAlpha(alpha) end
-            d.lastAppliedAlpha = alpha
-            if progress >= 1 then
+            if durOut <= 0 then
                 if tt and tt:IsShown() then
                     tt:Hide()
                 end
                 toRemove[#toRemove + 1] = tt
+            else
+                local progress = math.min(d.elapsed / durOut, 1)
+                local alpha = d.fadeOutStartAlpha * (1 - Insight.easeOut(progress))
+                if tt.SetAlpha then tt:SetAlpha(alpha) end
+                d.lastAppliedAlpha = alpha
+                if progress >= 1 then
+                    if tt and tt:IsShown() then
+                        tt:Hide()
+                    end
+                    toRemove[#toRemove + 1] = tt
+                end
             end
         end
     end
@@ -254,6 +292,26 @@ local function StartFadeOutStale(tooltip)
     end
     d.fadeOutStartAlpha = startA
     animFrame:Show()
+end
+
+-- GameTooltip unit tip only: instant Hide when fade-out duration is 0, else fade (Insight.FADE_OUT_DUR from DB).
+local function DismissStaleUnitGameTooltip(tooltip)
+    if not tooltip then return end
+    if ShouldDeferStaleFadeOut(tooltip) then return end
+    if IsTooltipInFadeOut(tooltip) then return end
+    SyncFadeOutDurationFromDB()
+    local dur = Insight.FADE_OUT_DUR or 0
+    if dur <= 0 then
+        tooltipFadeData[tooltip] = nil
+        if tooltip == GameTooltip then
+            staleMouseoverMissTicks = 0
+        end
+        if tooltip:IsShown() then
+            tooltip:Hide()
+        end
+    else
+        StartFadeOutStale(tooltip)
+    end
 end
 
 -- TooltipDataProcessor can refresh unit tooltips without OnShow; cancel fade-out so anim does not Hide() mid-hover.
@@ -296,7 +354,7 @@ local function SchedulePostInspectTooltipSafetyNet()
             if UnitExists("mouseover") then return end
             if ShouldDeferStaleFadeOut(tt) then return end
             if not IsTooltipInFadeOut(tt) then
-                StartFadeOutStale(tt)
+                DismissStaleUnitGameTooltip(tt)
             end
         end)
     end
@@ -372,7 +430,8 @@ local function HookGameTooltipAnimation()
             MoveGameTooltipToCursor(self)
         end
         staleCheckElapsed = staleCheckElapsed + elapsed
-        if staleCheckElapsed < STALE_CHECK_INTERVAL then return end
+        local checkInt = GetStaleCheckInterval()
+        if staleCheckElapsed < checkInt then return end
         staleCheckElapsed = 0
         local okU, u = self.GetUnit and pcall(self.GetUnit, self)
         local unitTip = self._insightUnitTooltip or (okU and u)
@@ -383,9 +442,9 @@ local function HookGameTooltipAnimation()
                 staleMouseoverMissTicks = 0
             else
                 staleMouseoverMissTicks = staleMouseoverMissTicks + 1
-                if staleMouseoverMissTicks >= STALE_MOUSEOVER_MISS_THRESHOLD then
+                if staleMouseoverMissTicks >= GetStaleMissThreshold() then
                     if not IsTooltipInFadeOut(self) then
-                        StartFadeOutStale(self)
+                        DismissStaleUnitGameTooltip(self)
                     end
                 end
             end
@@ -849,6 +908,7 @@ function Insight.ToggleAnchorFrame()
 end
 
 function Insight.ApplyInsightOptions()
+    SyncFadeOutDurationFromDB()
     if anchorFrame:IsShown() then
         Insight.ApplyStoredAnchor(anchorFrame)
         ApplyLiveBackdropColor(anchorFrame)
@@ -928,6 +988,7 @@ function Insight.Init()
             end,
         })
     end
+    SyncFadeOutDurationFromDB()
 end
 
 function Insight.Disable()
@@ -954,8 +1015,26 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         if not UnitExists("mouseover") and GameTooltip:IsShown()
             and (GameTooltip._insightUnitTooltip or (okGt and gtUnit)) then
             if ShouldDeferStaleFadeOut(GameTooltip) then return end
-            if not IsTooltipInFadeOut(GameTooltip) then
-                StartFadeOutStale(GameTooltip)
+            umuDismissGen = umuDismissGen + 1
+            local gen = umuDismissGen
+            local delay = GetUmuDismissDelaySeconds()
+            local function runUmuDismiss()
+                if gen ~= umuDismissGen then return end
+                if UnitExists("mouseover") then return end
+                if not GameTooltip:IsShown() then return end
+                local okGt2, gtUnit2 = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
+                if not (GameTooltip._insightUnitTooltip or (okGt2 and gtUnit2)) then return end
+                DismissStaleUnitGameTooltip(GameTooltip)
+            end
+            -- Defer with C_Timer so we run after Blizzard's UMU handlers; may start fade before engine Hide().
+            if C_Timer and C_Timer.After then
+                if delay > 0 then
+                    C_Timer.After(delay, runUmuDismiss)
+                else
+                    C_Timer.After(0, runUmuDismiss)
+                end
+            else
+                runUmuDismiss()
             end
         end
         return
@@ -1136,3 +1215,4 @@ if addon.RegisterSlashHandlerDebug then
 end
 
 addon.Insight = Insight
+
