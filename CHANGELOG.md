@@ -10,6 +10,30 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.6.0] – 2026-04-01
+
+### ✨ New Features
+
+- **(Axis)** Dashboard Quick Start guide, streamlined Welcome, and locale updates
+
+### 🔧 Improvements
+
+- **(Insight)** Stop shopping tooltip fade flicker on minimap and world quest item tooltips
+- **(Axis)** Dashboard welcome — community links with icons, mixed-script contributor text, and Cache hero art
+- **(Vista)** Minimap — mouse-wheel zoom only; overlay zoom controls removed; reset overlay positions
+- **(Focus)** Show Alt + Click hint next to WoWhead link in tooltip
+- **(Focus)** Quest level next to titles uses bracketed numbers (e.g. `[60]`) instead of an `L` prefix (`[L60]`) when level display is enabled
+- **(Axis)** Patch notes attention, labelling, and dashboard polish
+- **(Insight)** Unit tooltip dismiss options and deferred dismiss behaviour
+- **(Insight)** Player-frame unit tooltips; choose faction or class colour for the player name on the first line
+- **(Axis)** What's New — version dates and capitalized module bullets
+
+### 🐛 Fixes
+
+- **(Insight)** Unit tooltip frame sometimes stays unskinned on refresh
+
+---
+
 ## [4.5.0] – 2026-03-31
 
 ### ✨ New Features

@@ -15,6 +15,36 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.6.0"] = {
+        date = "2026-04-01",
+        {
+            section = "New Features",
+            bullets = {
+                "Axis: dashboard Quick Start guide, streamlined Welcome, and locale updates",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Insight: stop shopping tooltip fade flicker on minimap and world quest item tooltips",
+                "Axis: dashboard welcome with community link icons, mixed-script contributors, and Cache hero art",
+                "Vista: minimap mouse-wheel zoom only; overlay zoom controls removed; reset overlay positions",
+                "Focus: Alt + Click hint next to WoWhead link in tooltip",
+                "Focus: quest level next to titles shows as [60] instead of [L60] when level display is on",
+                "Axis: patch notes attention, labelling, and dashboard polish",
+                "Insight: unit tooltip dismiss options and deferred dismiss behaviour",
+                "Insight: player-frame unit tooltips; choose faction or class colour for the player name on the first line",
+                "Axis: What's New shows version dates and capitalizes module bullets",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: unit tooltip frame no longer sometimes stays unskinned on refresh",
+            },
+        },
+    },
+
     ["4.5.0"] = {
         date = "2026-03-31",
         {
