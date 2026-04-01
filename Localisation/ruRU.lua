@@ -82,8 +82,9 @@ L["OPTIONS_AXIS_MODULES"]                                             = "Мод�
 L["DASH_WELCOME_HEAD_SUB"]                                            = "What each module does and where to turn them on"
 L["DASH_WELCOME_INTRO"]                                               = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
 -- L["DASH_WELCOME_PATH"]                                             = "%s → %s → %s"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_QUICK_LINKS_HEADING"]                              = "Shortcuts"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_OPEN_QUICK_START_LINK"]                            = "Open Quick Start"  -- NEEDS TRANSLATION
+-- L["DASH_WELCOME_COMING_SOON_TITLE"]                                = "Coming Soon"  -- NEEDS TRANSLATION
+-- L["DASH_WELCOME_COMING_SOON_TAGLINE"]                              = "New welcome experiences are on the way."  -- NEEDS TRANSLATION
+-- L["DASH_WELCOME_COMING_SOON_BODY"]                                 = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                             = "Contributors"  -- NEEDS TRANSLATION
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
@@ -108,7 +109,6 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The o
 • Spanish (esES) — Localisation/esES.lua
 
 Contributions for additional locales are welcome via Discord.]=]
--- L["DASH_WELCOME_OPEN_MODULE_TOGGLES_LINK"]                         = "Open module toggles"  -- NEEDS TRANSLATION
 
 
 -- =====================================================================
@@ -1650,6 +1650,7 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

@@ -460,6 +460,13 @@ local function HookStyledTooltipFade(tt)
     tt:HookScript("OnShow", function(self)
         if not Insight.IsInsightEnabled() then return end
         CancelTooltipFadeOutIfNeeded(self)
+        -- Comparison tooltips are repositioned by Blizzard on every Show(); fade-in
+        -- resets alpha to 0 each time, causing visible flicker on minimap/world quest
+        -- tooltips. Let them appear at full alpha; borders and styling are unaffected.
+        if self == ShoppingTooltip1 or self == ShoppingTooltip2 then
+            self:SetAlpha(1)
+            return
+        end
         local itemLink = GetTooltipItemLink(self)
         local last = lastTooltipItemLinkByTT[self]
         if itemLink and last == itemLink then
@@ -665,6 +672,11 @@ local function OnItemTooltip(tooltip, data)
         Insight.sepR, Insight.sepG, Insight.sepB = nil, nil, nil
         tooltip._insightItemQuality = nil
     end
+
+    -- Comparison tooltips get quality borders (above) but no line enrichment:
+    -- adding lines triggers Blizzard to reposition them, re-firing Show() and
+    -- feeding the StartFadeIn flicker loop on World Quest / minimap tooltips.
+    if tooltip == ShoppingTooltip1 or tooltip == ShoppingTooltip2 then return end
 
     tooltip._insightItemMetadata = true
     tooltip._insightTooltipType  = "item"
@@ -945,6 +957,16 @@ function Insight.Init()
         end
     end
 
+    -- Comparison tooltips inherit GameTooltip's alpha through the frame hierarchy.
+    -- When Insight fades GameTooltip in from alpha=0, the shopping panels visually
+    -- dim too. SetIgnoreParentAlpha(true) breaks that inheritance so they stay at 1.
+    if ShoppingTooltip1 and ShoppingTooltip1.SetIgnoreParentAlpha then
+        ShoppingTooltip1:SetIgnoreParentAlpha(true)
+    end
+    if ShoppingTooltip2 and ShoppingTooltip2.SetIgnoreParentAlpha then
+        ShoppingTooltip2:SetIgnoreParentAlpha(true)
+    end
+
     HookGameTooltipAnimation()
     HideHealthBar()
     HookPositioning()
@@ -998,6 +1020,12 @@ function Insight.Disable()
             Insight.RestoreNineSlice(tt)
             if tt.SetBackdrop then tt:SetBackdrop(nil) end
         end
+    end
+    if ShoppingTooltip1 and ShoppingTooltip1.SetIgnoreParentAlpha then
+        ShoppingTooltip1:SetIgnoreParentAlpha(false)
+    end
+    if ShoppingTooltip2 and ShoppingTooltip2.SetIgnoreParentAlpha then
+        ShoppingTooltip2:SetIgnoreParentAlpha(false)
     end
 end
 

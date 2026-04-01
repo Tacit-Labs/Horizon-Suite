@@ -73,9 +73,6 @@ function addon.DashboardModuleGuide_Init(env)
     local HERO_TOP_PAD = 0
     local SCROLL_ABOVE_FOOTER_GAP = 10
     local SCROLL_TO_BG_INSET = 20
-    local FOOTER_TO_BG_BOTTOM = 14
-    local FOOTER_LINK_BTN_W = 82
-    local FOOTER_LINK_GAP = 10
 
     local function ShowCopyURL(label, url)
         if addon.ShowURLCopyBox then
@@ -128,66 +125,19 @@ function addon.DashboardModuleGuide_Init(env)
     guideBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + GUIDE_BG_TOP_NUDGE)
     guideBg:SetPoint("BOTTOMRIGHT", guideView, "BOTTOMRIGHT", -28, 20)
 
-    -- Footer: fixed below scroll (same pattern as Welcome)
+    -- Footer: fixed below scroll (shared factory with Welcome)
     local footerPanel = CreateFrame("Frame", nil, guideView)
     footerPanel:SetFrameLevel((guideView:GetFrameLevel() or 0) + 10)
 
-    local footerTopRule = footerPanel:CreateTexture(nil, "ARTWORK")
-    footerTopRule:SetHeight(1)
-    footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
-
-    local communityHdr = MakeText(footerPanel, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
-
-    local linkData = {
-        { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.com/invite/e7nW2f4VQj" },
-        { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite" },
-        { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite" },
-        { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite" },
-        { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844" },
-        { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y" },
-    }
-
-    local function CreateGuideTextLink(parent, label, onClick, justify)
-        justify = justify or "LEFT"
-        local btn = CreateFrame("Button", nil, parent)
-        btn:SetSize(100, 20)
-        local lbl = MakeText(btn, label, 12, 0.52, 0.56, 0.62, justify)
-        lbl:ClearAllPoints()
-        if justify == "LEFT" then
-            lbl:SetPoint("LEFT", btn, "LEFT", 0, 0)
-            lbl:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
-        else
-            lbl:SetAllPoints()
-        end
-        btn.label = lbl
-        local underline = btn:CreateTexture(nil, "OVERLAY")
-        underline:SetHeight(1)
-        underline:SetPoint("BOTTOM", btn, "BOTTOM", 0, 0)
-        underline:SetPoint("LEFT", btn, "LEFT", 0, 0)
-        underline:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
-        underline:Hide()
-        btn.underline = underline
-        btn:SetScript("OnEnter", function()
-            lbl:SetTextColor(0.88, 0.90, 0.94)
-            local ar, ag, ab = GetAccentColor()
-            underline:SetColorTexture(ar, ag, ab, 0.6)
-            underline:Show()
-        end)
-        btn:SetScript("OnLeave", function()
-            lbl:SetTextColor(0.52, 0.56, 0.62)
-            underline:Hide()
-        end)
-        btn:SetScript("OnClick", onClick)
-        return btn
-    end
-
-    local footerLinkButtons = {}
-    for _, link in ipairs(linkData) do
-        local btn = CreateGuideTextLink(footerPanel, link.label, function()
-            ShowCopyURL(link.label, link.url)
-        end, "CENTER")
-        tinsert(footerLinkButtons, btn)
-    end
+    local footerObj = addon.Dashboard_CreateCommunityFooter(footerPanel, {
+        L = L,
+        GetAccentColor = GetAccentColor,
+        MakeText = MakeText,
+        addon = addon,
+    })
+    local footerTopRule = footerObj.footerTopRule
+    local communityHdr = footerObj.communityHdr
+    local footerLinkButtons = footerObj.footerLinkButtons
 
     local guideScroll = CreateFrame("ScrollFrame", nil, guideView, "UIPanelScrollFrameTemplate")
     guideScroll:SetFrameLevel((guideView:GetFrameLevel() or 0) + 2)
@@ -383,33 +333,8 @@ function addon.DashboardModuleGuide_Init(env)
         local w = math.max(280, rawW - 40)
         local innerPad = 28
 
-        -- Footer layout (fixed to bottom of guideBg)
-        local fy = 0
-        footerTopRule:ClearAllPoints()
-        footerTopRule:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
-        footerTopRule:SetPoint("TOPRIGHT", footerPanel, "TOPRIGHT", 0, -fy)
-        fy = fy + 1 + 12
-
-        communityHdr:SetWidth(w)
-        communityHdr:ClearAllPoints()
-        communityHdr:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", 0, -fy)
-        fy = fy + communityHdr:GetHeight() + 8
-
-        local totalLinkWidth = (#footerLinkButtons * FOOTER_LINK_BTN_W) + ((#footerLinkButtons - 1) * FOOTER_LINK_GAP)
-        local linkRowX = math.max(0, (w - totalLinkWidth) / 2)
-
-        for i, btn in ipairs(footerLinkButtons) do
-            btn:SetWidth(FOOTER_LINK_BTN_W)
-            btn:ClearAllPoints()
-            btn:SetPoint("TOPLEFT", footerPanel, "TOPLEFT", linkRowX + (i - 1) * (FOOTER_LINK_BTN_W + FOOTER_LINK_GAP), -fy)
-        end
-        fy = fy + 20
-
-        footerPanel:SetWidth(w)
-        footerPanel:SetHeight(math.max(fy + 4, 1))
-        footerPanel:ClearAllPoints()
-        footerPanel:SetPoint("BOTTOMLEFT", guideBg, "BOTTOMLEFT", SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
-        footerPanel:SetPoint("BOTTOMRIGHT", guideBg, "BOTTOMRIGHT", -SCROLL_TO_BG_INSET, FOOTER_TO_BG_BOTTOM)
+        -- Footer layout (shared factory with Welcome)
+        footerObj.layout(w, 0, guideBg)
 
         content:SetWidth(w)
         guideScroll:ClearAllPoints()
