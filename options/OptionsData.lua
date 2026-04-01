@@ -236,7 +236,6 @@ local VISTA_KEYS = {
     vistaDrawerBtnX = true, vistaDrawerBtnY = true,
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
-    vistaShowZoomBtns = true, vistaMouseoverZoomBtns = true,
     vistaQueueBtnX = true, vistaQueueBtnY = true,
     -- Draggable element positions (stored by MakeDraggable on drag-stop)
     vistaEX_zone = true, vistaEY_zone = true,
@@ -252,7 +251,6 @@ local VISTA_KEYS = {
     -- Lock toggles
     vistaLocked_zone = true, vistaLocked_coord = true, vistaLocked_time = true, vistaLocked_perf = true,
     vistaLocked_diff = true,
-    vistaLocked_zoomIn = true, vistaLocked_zoomOut = true,
     ["vistaLocked_proxy_tracking"] = true,
     ["vistaLocked_proxy_calendar"] = true,
     ["vistaLocked_proxy_queue"]    = true,
@@ -274,7 +272,7 @@ local VISTA_KEYS = {
     vistaMailBlink = true,
     -- Button sizes (separate per type)
     vistaTrackingBtnSize = true, vistaCalendarBtnSize = true, vistaQueueBtnSize = true,
-    vistaZoomBtnSize = true, vistaMailIconSize = true, vistaAddonBtnSize = true,
+    vistaMailIconSize = true, vistaAddonBtnSize = true,
     -- Text colors
     vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
     vistaCoordColorR = true, vistaCoordColorG = true, vistaCoordColorB = true,
@@ -324,10 +322,27 @@ local SCALE_DEBOUNCE_KEYS = {
     vistaBtnLayoutCols = true,
 }
 
--- Keys where Vista.ApplyOptions (via VISTA_KEYS) is enough; skip synchronous FullLayout on toggle
--- so dashboard pill toggles keep their slide animation (set() runs before the thumb anim starts).
-local NOTIFY_MAIN_ADDON_SKIP_KEYS = {
-    vistaCollectHorizonMinimapButton = true,
+-- Vista-only keys: Vista.ApplyOptions / ApplyLockOnlyOptions already ran above; Focus does not read vista*
+-- for layout. Skip OptionsData_NotifyMainAddon (FullLayout) so dashboard toggles stay smooth.
+-- Add exceptions here only if a Vista key must still rebuild the tracker or global dimensions.
+local VISTA_KEYS_REQUIRE_NOTIFY = {
+}
+
+-- Vista position / drag locks: use Vista.ApplyLockOnlyOptions and skip FullLayout (Focus rebuild is unnecessary).
+local VISTA_SKIP_FULL_LAYOUT_KEYS = {
+    vistaLocked_zone = true,
+    vistaLocked_coord = true,
+    vistaLocked_time = true,
+    vistaLocked_perf = true,
+    vistaLocked_diff = true,
+    ["vistaLocked_proxy_tracking"] = true,
+    ["vistaLocked_proxy_calendar"] = true,
+    ["vistaLocked_proxy_queue"]    = true,
+    ["vistaLocked_proxy_mail"]     = true,
+    ["vistaQueueHandlingDisabled"] = true,
+    vistaMouseoverLocked = true,
+    vistaRightClickLocked = true,
+    vistaDrawerButtonLocked = true,
 }
 
 local CLASS_COLOR_KEYS = {
@@ -431,8 +446,18 @@ function OptionsData_SetDB(key, value)
     if VISTA_KEYS[key] and addon.Vista then
         if addon._colorPickerLive and VISTA_COLOR_LIVE_KEYS[key] then
             if addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
-        elseif addon.Vista.ApplyOptions then
-            local fn = addon.Vista.ApplyOptions
+        elseif addon.Vista.ApplyOptions or addon.Vista.ApplyLockOnlyOptions then
+            local fn
+            if VISTA_SKIP_FULL_LAYOUT_KEYS[key] and addon.Vista.ApplyLockOnlyOptions then
+                fn = addon.Vista.ApplyLockOnlyOptions
+            else
+                local vistaKey = key
+                fn = function()
+                    if addon.Vista and addon.Vista.ApplyOptions then
+                        addon.Vista.ApplyOptions(vistaKey)
+                    end
+                end
+            end
             -- vistaLock: apply immediately when not in combat for responsive toggle feedback
             if key == "vistaLock" and not InCombatLockdown() then
                 fn()
@@ -445,8 +470,16 @@ function OptionsData_SetDB(key, value)
     end
     -- vistaButtonManaged_* keys trigger a full button re-collect
     if key:sub(1, 19) == "vistaButtonManaged_" and addon.Vista and addon.Vista.ApplyOptions then
-        local fn = addon.Vista.ApplyOptions
-        if C_Timer and C_Timer.After then C_Timer.After(0, fn) else fn() end
+        local managedKey = key
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0, function()
+                if addon.Vista and addon.Vista.ApplyOptions then
+                    addon.Vista.ApplyOptions(managedKey)
+                end
+            end)
+        else
+            addon.Vista.ApplyOptions(managedKey)
+        end
     end
     if key == "lockPosition" and addon.UpdateResizeHandleVisibility then
         addon.UpdateResizeHandleVisibility()
@@ -478,7 +511,8 @@ function OptionsData_SetDB(key, value)
     if key == "minimapButtonShowOnlyOnMinimapHover" and addon.MinimapButton_UpdateVisibility then
         addon.MinimapButton_UpdateVisibility()
     end
-    if NOTIFY_MAIN_ADDON_SKIP_KEYS[key] then return end
+    if VISTA_KEYS[key] and not VISTA_KEYS_REQUIRE_NOTIFY[key] then return end
+    if key:sub(1, 19) == "vistaButtonManaged_" then return end
     OptionsData_NotifyMainAddon()
 end
 
@@ -714,7 +748,7 @@ local OptionCategories = {
                         if v and addon.GetActiveProfileKey and addon.SetPerSpecProfileKey then
                             local baseKey = addon.GetActiveProfileKey()
                             if baseKey then
-                                local currentSpec = GetSpecialization and GetSpecialization() or nil
+                                local currentSpec = PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID() or nil
                                 for si = 1, 4 do
                                     if si == currentSpec then
                                         addon.SetPerSpecProfileKey(si, baseKey)
@@ -1986,14 +2020,8 @@ local OptionCategories = {
               desc = L["OPTIONS_VISTA_MINIMAP_TRACKING_BUTTON"] or "Show the minimap tracking button.",
               dbKey = "vistaShowTracking",
               get = function() return getDB("vistaShowTracking", true) end,
-              set = function(v)
-                  setDB("vistaShowTracking", v)
-                  if addon.OptionsPanel_Refresh and C_Timer and C_Timer.After then
-                      C_Timer.After(0, addon.OptionsPanel_Refresh)
-                  elseif addon.OptionsPanel_Refresh then
-                      addon.OptionsPanel_Refresh()
-                  end
-              end },
+              set = function(v) setDB("vistaShowTracking", v) end,
+              refreshIds = { "vistaMouseoverTracking" } },
             { type = "toggle", name = L["OPTIONS_VISTA_TRACKING_BUTTON_MOUSEOVER"] or "Tracking button on mouseover only",
               desc = L["OPTIONS_CORE_HOVER"] or "Show only on hover.",
               tooltip = L["OPTIONS_VISTA_HIDE_TRACKING_BUTTON_UNTIL_YOU_HOVER"] or "Hide tracking button until you hover over the minimap.",
@@ -2005,38 +2033,14 @@ local OptionCategories = {
               desc = L["OPTIONS_VISTA_MINIMAP_CALENDAR_BUTTON"] or "Show the minimap calendar button.",
               dbKey = "vistaShowCalendar",
               get = function() return getDB("vistaShowCalendar", true) end,
-              set = function(v)
-                  setDB("vistaShowCalendar", v)
-                  if addon.OptionsPanel_Refresh and C_Timer and C_Timer.After then
-                      C_Timer.After(0, addon.OptionsPanel_Refresh)
-                  elseif addon.OptionsPanel_Refresh then
-                      addon.OptionsPanel_Refresh()
-                  end
-              end },
+              set = function(v) setDB("vistaShowCalendar", v) end,
+              refreshIds = { "vistaMouseoverCalendar" } },
             { type = "toggle", name = L["OPTIONS_VISTA_CALENDAR_BUTTON_MOUSEOVER"] or "Calendar button on mouseover only",
               desc = L["OPTIONS_VISTA_HIDE_CALENDAR_BUTTON_UNTIL_YOU_HOVER"] or "Hide calendar button until you hover over the minimap.",
               dbKey = "vistaMouseoverCalendar",
               get = function() return getDB("vistaMouseoverCalendar", true) end,
               set = function(v) setDB("vistaMouseoverCalendar", v) end,
               disabled = function() return not getDB("vistaShowCalendar", true) end },
-            { type = "toggle", name = L["OPTIONS_VISTA_ZOOM_BUTTONS"] or "Show zoom buttons",
-              desc = L["OPTIONS_VISTA_ZOOM_BUTTONS_MINIMAP"] or "Show the + and - zoom buttons on the minimap.",
-              dbKey = "vistaShowZoomBtns",
-              get = function() return getDB("vistaShowZoomBtns", true) end,
-              set = function(v)
-                  setDB("vistaShowZoomBtns", v)
-                  if addon.OptionsPanel_Refresh and C_Timer and C_Timer.After then
-                      C_Timer.After(0, addon.OptionsPanel_Refresh)
-                  elseif addon.OptionsPanel_Refresh then
-                      addon.OptionsPanel_Refresh()
-                  end
-              end },
-            { type = "toggle", name = L["OPTIONS_VISTA_ZOOM_BUTTONS_MOUSEOVER"] or "Zoom buttons on mouseover only",
-              desc = L["OPTIONS_VISTA_HIDE_ZOOM_BUTTONS_UNTIL_YOU_HOVER"] or "Hide zoom buttons until you hover over the minimap.",
-              dbKey = "vistaMouseoverZoomBtns",
-              get = function() return getDB("vistaMouseoverZoomBtns", true) end,
-              set = function(v) setDB("vistaMouseoverZoomBtns", v) end,
-              disabled = function() return not getDB("vistaShowZoomBtns", true) end },
         },
     },
     {
@@ -2169,16 +2173,13 @@ local OptionCategories = {
               disabled = function() return not getDB("vistaShowPerfText", false) end },
             { type = "section", name = L["OPTIONS_VISTA_BUTTON_POSITIONS"] or "Button Positions" },
             { type = "header", name = L["OPTIONS_VISTA_DRAG_BUTTONS_REPOSITION_LOCK_PREVENT_MOVE"] or "Drag buttons to reposition them. Lock to prevent movement." },
-            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_ZOOM_BUTTON"] or "Lock Zoom In button",
-              desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_ZOOM_BUTTON"] or "Prevent dragging the + zoom button.",
-              dbKey = "vistaLocked_zoomIn",
-              get = function() return getDB("vistaLocked_zoomIn", true) end,
-              set = function(v) setDB("vistaLocked_zoomIn", v) end },
-            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_ZOOM_OUT_BUTTON"] or "Lock Zoom Out button",
-              desc = L["OPTIONS_VISTA_LOCK_ZOOM_OUT_DRAG"] or "Prevent dragging the - zoom button.",
-              dbKey = "vistaLocked_zoomOut",
-              get = function() return getDB("vistaLocked_zoomOut", true) end,
-              set = function(v) setDB("vistaLocked_zoomOut", v) end },
+            { type = "button", name = L["OPTIONS_VISTA_RESET_OVERLAY_POSITIONS"] or "Reset overlay positions to defaults",
+              desc = L["OPTIONS_VISTA_RESET_OVERLAY_POSITIONS_DESC"] or "Clear saved positions for zone text, coordinates, clock, performance and difficulty text, tracking, calendar, queue, mail, the addon button bar, drawer button, and right-click panel. The minimap frame position is not changed.",
+              onClick = function()
+                  if addon.Vista and addon.Vista.ResetOverlayPositionsToDefaults then
+                      addon.Vista.ResetOverlayPositionsToDefaults()
+                  end
+              end },
             { type = "toggle", name = L["OPTIONS_VISTA_LOCK_TRACKING_BUTTON"] or "Lock Tracking button",
               desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_TRACKING_BUTTON"] or "Prevent dragging the tracking button.",
               dbKey = "vistaLocked_proxy_tracking",
@@ -2193,32 +2194,17 @@ local OptionCategories = {
               desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_QUEUE_STATUS_BUTTON"] or "Prevent dragging the queue status button.",
               dbKey = "vistaLocked_proxy_queue",
               get = function() return getDB("vistaLocked_proxy_queue", true) end,
-              set = function(v)
-                  setDB("vistaLocked_proxy_queue", v)
-                  if addon.Vista and addon.Vista.RefreshQueueProxies then
-                      addon.Vista.RefreshQueueProxies()
-                  end
-              end },
+              set = function(v) setDB("vistaLocked_proxy_queue", v) end },
             { type = "toggle", name = L["OPTIONS_VISTA_LOCK_MAIL_INDICATOR"] or "Lock Mail indicator",
               desc = L["OPTIONS_VISTA_PREVENT_DRAGGING_MAIL_ICON"] or "Prevent dragging the mail icon.",
               dbKey = "vistaLocked_proxy_mail",
               get = function() return getDB("vistaLocked_proxy_mail", true) end,
-              set = function(v)
-                  setDB("vistaLocked_proxy_mail", v)
-                  if addon.Vista and addon.Vista.RefreshMailAnchor then
-                      addon.Vista.RefreshMailAnchor()
-                  end
-              end },
+              set = function(v) setDB("vistaLocked_proxy_mail", v) end },
             { type = "toggle", name = L["OPTIONS_VISTA_DISABLE_QUEUE_HANDLING"] or "Disable queue handling",
               desc = L["OPTIONS_VISTA_TURN_QUEUE_BUTTON_ANCHORING_ANOTHER_A"] or "Turn off all queue button anchoring (use if another addon manages it).",
               dbKey = "vistaQueueHandlingDisabled",
               get = function() return getDB("vistaQueueHandlingDisabled", false) end,
-              set = function(v)
-                  setDB("vistaQueueHandlingDisabled", v)
-                  if addon.Vista and addon.Vista.RefreshQueueProxies then
-                      addon.Vista.RefreshQueueProxies()
-                  end
-              end },
+              set = function(v) setDB("vistaQueueHandlingDisabled", v) end },
             { type = "section", name = L["OPTIONS_VISTA_BUTTON_SIZES"] or "Button Sizes" },
             { type = "header", name = L["OPTIONS_VISTA_ADJUST_SIZE_OF_MINIMAP_OVERLAY_BUTTONS"] or "Adjust the size of minimap overlay buttons." },
             { type = "slider", name = L["OPTIONS_VISTA_TRACKING_BUTTON_SIZE"] or "Tracking button size",
@@ -2236,11 +2222,6 @@ local OptionCategories = {
               dbKey = "vistaQueueBtnSize", min = 14, max = 40,
               get = function() return math.max(14, math.min(40, tonumber(getDB("vistaQueueBtnSize", 22)) or 22)) end,
               set = function(v) setDB("vistaQueueBtnSize", math.max(14, math.min(40, v))) end },
-            { type = "slider", name = L["OPTIONS_VISTA_ZOOM_BUTTON_SIZE"] or "Zoom button size",
-              desc = L["OPTIONS_CORE_SIZE_OF_ZOOM_BUTTONS_PIXELS"] or "Size of the + and - zoom buttons (pixels).",
-              dbKey = "vistaZoomBtnSize", min = 10, max = 32,
-              get = function() return math.max(10, math.min(32, tonumber(getDB("vistaZoomBtnSize", 16)) or 16)) end,
-              set = function(v) setDB("vistaZoomBtnSize", math.max(10, math.min(32, v))) end },
             { type = "slider", name = L["OPTIONS_VISTA_MAIL_INDICATOR_SIZE"] or "Mail indicator size",
               desc = L["OPTIONS_VISTA_SIZE_OF_MAIL_ICON_PIXELS"] or "Size of the new mail icon (pixels).",
               dbKey = "vistaMailIconSize", min = 14, max = 40,
