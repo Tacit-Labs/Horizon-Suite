@@ -1219,7 +1219,7 @@ local function PopulateEntry(entry, questData, groupKey)
     end
     displayTitle = addon.ApplyTextCase(displayTitle, "questTitleCase", "proper")
     if addon.GetDB("showQuestLevel", false) and questData.level then
-        displayTitle = ("%s [L%d]"):format(displayTitle, questData.level)
+        displayTitle = ("%s [%d]"):format(displayTitle, questData.level)
     end
     entry.titleText:SetText(displayTitle)
     entry.titleShadow:SetText(displayTitle)
