@@ -288,6 +288,10 @@ L["OPTIONS_INSIGHT_CATEGORY_NPC_DESC"]                                = "Reactio
 L["OPTIONS_INSIGHT_CATEGORY_ITEM"]                                    = "Items"
 L["OPTIONS_INSIGHT_CATEGORY_ITEM_DESC"]                               = "Item tooltip options such as transmog collection status."
 L["OPTIONS_INSIGHT_SECTION_IDENTITY"]                                 = "Identity"
+L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR"]                                = "Player name colour"
+L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR_DESC"]                           = "Colour for the player's name on the first tooltip line: faction (Alliance blue, Horde red) or class."
+L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR_FACTION"]                        = "Faction"
+L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR_CLASS"]                          = "Class"
 L["OPTIONS_INSIGHT_SECTION_STATUS_PVP"]                               = "Status & PvP"
 L["OPTIONS_INSIGHT_SECTION_RATINGS_GEAR"]                             = "Ratings & gear"
 L["OPTIONS_INSIGHT_SECTION_MOUNT"]                                    = "Mount"
@@ -1587,6 +1591,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

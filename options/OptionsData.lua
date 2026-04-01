@@ -54,6 +54,7 @@ local INSIGHT_KEYS = {
     insightShowMount            = true,
     insightShowIlvl             = true,
     insightShowCharacterTitle   = true,
+    insightPlayerNameColor      = true,
     insightTitleColor           = true,
     insightTitleColorR          = true,
     insightTitleColorG          = true,
@@ -1807,6 +1808,7 @@ local OptionCategories = {
         dashboardPreviewMode = "player",
         options = {
             { type = "section", name = L["OPTIONS_INSIGHT_SECTION_IDENTITY"] or "Identity" },
+            { type = "dropdown", name = L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR"] or "Player name colour", desc = L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR_DESC"] or "Colour for the player's name on the first tooltip line.", dbKey = "insightPlayerNameColor", options = { { L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR_FACTION"] or "Faction", "faction" }, { L["OPTIONS_INSIGHT_PLAYER_NAME_COLOR_CLASS"] or "Class", "class" } }, get = function() local v = getDB("insightPlayerNameColor", "faction"); return v == "class" and "class" or "faction" end, set = function(v) setDB("insightPlayerNameColor", v == "class" and "class" or "faction") end },
             { type = "toggle", name = L["OPTIONS_CORE_GUILD_RANK"] or "Guild rank", desc = L["OPTIONS_AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
             { type = "toggle", name = L["OPTIONS_AXIS_CHARACTER_TITLE"] or "Character title", desc = L["OPTIONS_AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
             { type = "color", name = L["OPTIONS_AXIS_TITLE_COLOR"] or "Title color", desc = L["OPTIONS_AXIS_COLOR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"] or "Color of the character title in the player tooltip name line.", dbKey = "insightTitleColor", default = { 1.00, 0.82, 0.00 }, visibleWhen = function() return getDB("insightShowCharacterTitle", true) end },

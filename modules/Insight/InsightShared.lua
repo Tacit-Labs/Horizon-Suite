@@ -65,6 +65,8 @@ Insight.PANEL_BG        = { 0, 0, 0, 0.75 }
 Insight.PANEL_BORDER    = { 0.25, 0.25, 0.25, 0.30 }
 
 Insight.FADE_IN_DUR     = 0.4
+-- Fade-out duration (stale unit dismiss and future unified outs); match fade-in for symmetry.
+Insight.FADE_OUT_DUR    = Insight.FADE_IN_DUR
 
 Insight.DEFAULT_ANCHOR  = "cursor"
 Insight.FIXED_POINT     = "BOTTOMRIGHT"

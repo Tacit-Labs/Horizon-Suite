@@ -318,10 +318,21 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         local faction = UnitFactionGroup(unit)
         local icon    = ShowIcons() and (Insight.FACTION_ICONS[faction] or "") or ""
         local displayText
-        local fc = Insight.FACTION_COLORS[faction]
-        local nameR = (fc and fc[1]) or (classColor and classColor.r) or 1
-        local nameG = (fc and fc[2]) or (classColor and classColor.g) or 1
-        local nameB = (fc and fc[3]) or (classColor and classColor.b) or 1
+        local nameR, nameG, nameB
+        local nameModeRaw = addon.GetDB("insightPlayerNameColor", "faction")
+        local nameMode = (nameModeRaw == "class") and "class" or "faction"
+        if nameMode == "class" and classFile and C_ClassColor and C_ClassColor.GetClassColor then
+            local ccName = C_ClassColor.GetClassColor(classFile)
+            if ccName then
+                nameR, nameG, nameB = ccName.r, ccName.g, ccName.b
+            end
+        end
+        if not nameR then
+            local fc = Insight.FACTION_COLORS[faction]
+            nameR = (fc and fc[1]) or (classColor and classColor.r) or 1
+            nameG = (fc and fc[2]) or (classColor and classColor.g) or 1
+            nameB = (fc and fc[3]) or (classColor and classColor.b) or 1
+        end
         if ShowCharacterTitle() then
             local ok, pvpName, baseName = pcall(function()
                 return UnitPVPName(unit), UnitName(unit)
@@ -441,7 +452,13 @@ function Insight.RenderTestTooltipContent(tooltip)
 
     local showIcons = ShowIcons()
     local fc = Insight.FACTION_COLORS["Alliance"]
-    local nameHex = string.format("%02x%02x%02x", math.floor(fc[1] * 255), math.floor(fc[2] * 255), math.floor(fc[3] * 255))
+    local nameModeRaw = addon.GetDB("insightPlayerNameColor", "faction")
+    local nameMode = (nameModeRaw == "class") and "class" or "faction"
+    local nameR, nameG, nameB = fc[1], fc[2], fc[3]
+    if nameMode == "class" then
+        nameR, nameG, nameB = testSepR, testSepG, testSepB
+    end
+    local nameHex = string.format("%02x%02x%02x", math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
     local facIcon = showIcons and (Insight.FACTION_ICONS["Alliance"] or "") or ""
 
     -- 1. Name line (character title optional — same as live)
@@ -455,9 +472,9 @@ function Insight.RenderTestTooltipContent(tooltip)
         end
         local titleHex = string.format("%02x%02x%02x",
             math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
-        tooltip:AddLine(facIcon .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Horizonaut-Stormrage|r", 0.77, 0.12, 0.23)
+        tooltip:AddLine(facIcon .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Horizonaut-Stormrage|r", nameR, nameG, nameB)
     else
-        tooltip:AddLine(facIcon .. "|cff" .. nameHex .. "Horizonaut-Stormrage|r", fc[1], fc[2], fc[3])
+        tooltip:AddLine(facIcon .. "|cff" .. nameHex .. "Horizonaut-Stormrage|r", nameR, nameG, nameB)
     end
 
     -- 2. Guild (rank line only when guild rank toggle on — live augments guild line)
