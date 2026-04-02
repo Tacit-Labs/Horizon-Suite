@@ -89,11 +89,8 @@ local function CreateQuestEntry(parent, index)
     e.itemBtn:SetScript("OnEnter", function(self)
         self:SetAlpha(1)
         local entry = self._ownerEntry
-        if addon.GetDB("focusShowTooltipOnHover", false) and entry and entry.itemLink then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            pcall(GameTooltip.SetHyperlink, GameTooltip, entry.itemLink)
-            GameTooltip:Show()
-        end
+        -- Item tooltip: HSSecureItemOverlay OnEnter shows GameTooltip once. Do not SetHyperlink here —
+        -- duplicate Show() retriggers Insight fade-in (WQ / tracker item hover flicker).
         addon.AttachSecureItemOverlay(self, entry and entry.itemLink)
     end)
     e.itemBtn:SetScript("OnLeave", function(self)
@@ -786,6 +783,8 @@ local function ClearEntry(entry, full)
     entry.achievementID = nil
     entry.endeavorID = nil
     entry.decorID    = nil
+    entry.appearanceID = nil
+    entry.appearanceItemLink = nil
     entry.recipeID   = nil
     entry.recipeIsRecraft = nil
     entry.isRecipe   = nil
@@ -793,6 +792,7 @@ local function ClearEntry(entry, full)
     entry.affixData  = nil
     entry.tierSpellID = nil
     entry.itemLink   = nil
+    if entry.itemBtn then entry.itemBtn._itemLink = nil end
     entry.vignetteGUID  = nil
     entry.vignetteID    = nil
     entry.vignetteMapID = nil

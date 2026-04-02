@@ -200,6 +200,7 @@ L["OPTIONS_FOCUS_MYTHIC"]                                             = "Mythic+
 L["OPTIONS_FOCUS_ACHIEVEMENTS"]                                       = "ACHIEVEMENTS"
 L["OPTIONS_FOCUS_ENDEAVORS"]                                          = "ENDEAVORS"
 L["OPTIONS_FOCUS_DECOR"]                                              = "Decor"
+L["OPTIONS_FOCUS_APPEARANCES"]                                        = "Appearances"
 L["OPTIONS_FOCUS_SCENARIO_DELVE"]                                     = "Scenario & Delve"
 L["OPTIONS_FOCUS_FONT"]                                               = "Font"
 L["OPTIONS_FOCUS_FONT_FAMILIES"]                                      = "Font families"
@@ -647,6 +648,17 @@ L["OPTIONS_FOCUS_DECOR_ICONS"]                                        = "Show de
 L["OPTIONS_FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Show each decor item's icon next to the title. Requires 'Show quest type icons' in Display."
 
 -- =====================================================================
+-- OptionsData.lua Features — Appearances
+-- =====================================================================
+L["OPTIONS_FOCUS_SHOW_APPEARANCES"]                                   = "Show appearances"
+L["OPTIONS_FOCUS_TRACKED_TRANSMOG_APPEARANCES_LIST"]                  = "Show tracked transmog appearances in the list."
+L["OPTIONS_FOCUS_INCLUDE_COLLECTED_APPEARANCES_TRACKER"]              = "Include collected appearances in the tracker. When off, only appearances you have not yet collected are shown."
+L["OPTIONS_FOCUS_APPEARANCE_ICONS"]                                   = "Show appearance icons"
+L["OPTIONS_FOCUS_APPEARANCE_ICON_NEXT_TITLE"]                         = "Show each appearance's icon next to the title. Requires 'Show quest type icons' in Display."
+L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON"]                  = "Use transmog list icon"
+L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON_DESC"]             = "Use the in-game Appearances / transmog list icon for every row instead of each appearance's item icon. If that icon cannot be resolved, the item icon is used."
+
+-- =====================================================================
 -- OptionsData.lua Features — Adventure Guide
 -- =====================================================================
 L["OPTIONS_FOCUS_ADVENTURE_GUIDE"]                                    = "Adventure Guide"
@@ -1081,6 +1093,7 @@ L["UI_RARE_BOSSES"]                                                   = "Rare bo
 L["UI_ACHIEVEMENTS"]                                                  = "ACHIEVEMENTS"
 L["UI_ENDEAVORS"]                                                     = "ENDEAVORS"
 L["UI_DECOR"]                                                         = "Decor"
+L["UI_APPEARANCES"]                                                   = "Appearances"
 L["UI_QUESTS"]                                                        = "QUESTS"
 L["UI_READY_TO_TURN_IN"]                                              = "READY TO TURN IN"
 
@@ -1654,6 +1667,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

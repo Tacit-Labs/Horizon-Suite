@@ -163,6 +163,8 @@ addon.QUEST_COLORS = {
     ENDEAVOR   = { 0.45, 0.95, 0.75 },  -- mint green (housing/endeavor)
     ENDEAVORS  = { 0.45, 0.95, 0.75 },  -- mint green (color matrix group default)
     DECOR      = { 0.65, 0.55, 0.45 },  -- warm brown (housing decor)
+    APPEARANCE = { 135/255, 96/255, 1 },  -- #8760FF (transmog / tracked appearances)
+    APPEARANCES = { 135/255, 96/255, 1 },  -- group default (color matrix)
     RECIPE     = { 0.55, 0.75, 0.45 },  -- sage green (profession recipes)
     RECIPES    = { 0.55, 0.75, 0.45 },  -- sage green (group default)
     ADVENTURE  = { 0.90, 0.80, 0.50 },  -- artifact gold (WoW e6cc80; distinct from CAMPAIGN)
@@ -218,6 +220,7 @@ addon.SECTION_LABELS = {
     ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVORS  = "ENDEAVORS",
     DECOR      = "DECOR",
+    APPEARANCES = "UI_APPEARANCES",
     RECIPES    = "RECIPES",
     ADVENTURE  = "ADVENTURE GUIDE",
     DEFAULT   = "QUESTS",
@@ -246,19 +249,20 @@ addon.SECTION_COLORS = {
     ACHIEVEMENTS = { 0.78, 0.48, 0.22 },  -- bronze
     ENDEAVORS  = { 0.45, 0.95, 0.75 },  -- mint green (housing/endeavor)
     DECOR      = { 0.65, 0.55, 0.45 },  -- warm brown (housing decor)
+    APPEARANCES = { 135/255, 96/255, 1 },  -- #8760FF (transmog appearances)
     RECIPES    = { 0.55, 0.75, 0.45 },  -- sage green (profession recipes)
     ADVENTURE  = { 0.90, 0.80, 0.50 },  -- artifact gold (WoW e6cc80; distinct from CAMPAIGN)
     DEFAULT   = { 0.90, 0.90, 0.90 },  -- matches QUEST_COLORS.DEFAULT so section/title/objective share same default
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
 
-addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
+addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
 addon.GROUP_ORDER_PRESETS = {
-    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
-    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
+    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
 -- Section groupKeys whose headers skip super-track dimming (achievements, rares, etc. — not quest log rows).
@@ -266,6 +270,7 @@ addon.NON_QUEST_SUPERTRACK_DIM_SECTION_KEYS = {
     ACHIEVEMENTS = true,
     ENDEAVORS = true,
     DECOR = true,
+    APPEARANCES = true,
     RECIPES = true,
     ADVENTURE = true,
     RARES = true,
@@ -279,6 +284,7 @@ addon.CATEGORY_KEYS = {
     DAILY = "DAILY", RARES = "RARES", RARE = "RARE", RARE_LOOT = "RARE_LOOT", ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVOR = "ENDEAVOR", ENDEAVORS = "ENDEAVORS",
     DECOR = "DECOR",
+    APPEARANCE = "APPEARANCE", APPEARANCES = "APPEARANCES",
     RECIPE = "RECIPE", RECIPES = "RECIPES",
     ADVENTURE = "ADVENTURE",
     DEFAULT = "DEFAULT", COMPLETE = "COMPLETE", CALLING = "CALLING",
@@ -310,6 +316,7 @@ addon.CATEGORY_TO_GROUP = {
     ACHIEVEMENT = "ACHIEVEMENTS",
     ENDEAVOR   = "ENDEAVORS",
     DECOR      = "DECOR",
+    APPEARANCE = "APPEARANCES",
     RECIPE     = "RECIPES",
     ADVENTURE  = "ADVENTURE",
     DEFAULT   = "DEFAULT",

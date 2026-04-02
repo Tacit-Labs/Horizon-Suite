@@ -46,6 +46,7 @@ modules/Focus/scenarios/FocusMplusBlock.lua
 modules/Focus/FocusAchievements.lua
 modules/Focus/FocusEndeavors.lua
 modules/Focus/FocusDecor.lua
+modules/Focus/FocusAppearances.lua
 modules/Focus/FocusRecipes.lua
 modules/Focus/FocusAdventureGuide.lua
 modules/Focus/FocusAggregator.lua

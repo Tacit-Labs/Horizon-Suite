@@ -25,6 +25,13 @@ addon.PATCH_NOTES = {
                 "Axis: README and CurseForge listing refresh — clearer install steps and expanded listing copy",
             },
         },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: world quest / tracker quest item hover no longer double-triggers the item tooltip (Insight fade flicker)",
+                "Insight: tooltip fade-in dedupes item tooltips by stable item id when the link string changes on refresh",
+            },
+        },
     },
 
     ["4.6.0"] = {

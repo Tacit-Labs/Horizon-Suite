@@ -199,6 +199,7 @@ L["OPTIONS_FOCUS_MYTHIC"]                                             = "쐐기"
 L["OPTIONS_FOCUS_ACHIEVEMENTS"]                                       = "업적"
 L["OPTIONS_FOCUS_ENDEAVORS"]                                          = "활동 과제"
 L["OPTIONS_FOCUS_DECOR"]                                              = "장식"
+-- L["OPTIONS_FOCUS_APPEARANCES"]                                     = "Appearances"  -- NEEDS TRANSLATION
 L["OPTIONS_FOCUS_SCENARIO_DELVE"]                                     = "시나리오 및 구렁"
 L["OPTIONS_FOCUS_FONT"]                                               = "글꼴"
 -- L["OPTIONS_FOCUS_FONT_FAMILIES"]                                   = "Font families"  -- NEEDS TRANSLATION
@@ -646,6 +647,17 @@ L["OPTIONS_FOCUS_DECOR_ICONS"]                                        = "장식 
 L["OPTIONS_FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "각 장식 아이템의 아이콘을 제목 옆에 표시합니다. '퀘스트 유형 아이콘 표시' 옵션이 필요합니다."
 
 -- =====================================================================
+-- OptionsData.lua Features — Appearances
+-- =====================================================================
+-- L["OPTIONS_FOCUS_SHOW_APPEARANCES"]                                = "Show appearances"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_TRACKED_TRANSMOG_APPEARANCES_LIST"]               = "Show tracked transmog appearances in the list."  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_INCLUDE_COLLECTED_APPEARANCES_TRACKER"]           = "Include collected appearances in the tracker. When off, only appearances you have not yet collected are shown."  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_APPEARANCE_ICONS"]                                = "Show appearance icons"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_APPEARANCE_ICON_NEXT_TITLE"]                      = "Show each appearance's icon next to the title. Requires 'Show quest type icons' in Display."  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON"]               = "Use transmog list icon"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON_DESC"]          = "Use the in-game Appearances / transmog list icon for every row instead of each appearance's item icon. If that icon cannot be resolved, the item icon is used."  -- NEEDS TRANSLATION
+
+-- =====================================================================
 -- OptionsData.lua Features — Adventure Guide
 -- =====================================================================
 L["OPTIONS_FOCUS_ADVENTURE_GUIDE"]                                    = "모험 안내서"
@@ -1080,6 +1092,7 @@ L["UI_RARE_BOSSES"]                                                   = "희귀 
 L["UI_ACHIEVEMENTS"]                                                  = "업적"
 L["UI_ENDEAVORS"]                                                     = "활동 과제"
 L["UI_DECOR"]                                                         = "장식"
+-- L["UI_APPEARANCES"]                                                = "Appearances"  -- NEEDS TRANSLATION
 L["UI_QUESTS"]                                                        = "퀘스트"
 L["UI_READY_TO_TURN_IN"]                                              = "완료된 퀘스트"
 
@@ -1653,6 +1666,8 @@ L["OPTIONS_CORE_NORMAL_RAID"]                                         = "  Norma
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
 
 
 

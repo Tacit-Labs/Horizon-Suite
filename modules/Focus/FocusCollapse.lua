@@ -373,7 +373,7 @@ local function CountTrackedInLog(quests)
     local getLogIdx = C_QuestLog and C_QuestLog.GetLogIndexForQuestID
     local isWQ = addon.IsQuestWorldQuest
     for _, entry in ipairs(quests) do
-        if not (entry.isRare or entry.category == "RARE" or entry.isAchievement or entry.category == "ACHIEVEMENT" or entry.isEndeavor or entry.category == "ENDEAVOR" or entry.isDecor or entry.category == "DECOR") then
+        if not (entry.isRare or entry.category == "RARE" or entry.isAchievement or entry.category == "ACHIEVEMENT" or entry.isEndeavor or entry.category == "ENDEAVOR" or entry.isDecor or entry.category == "DECOR" or entry.isAppearance or entry.category == "APPEARANCE") then
             local qid = entry.questID
             if qid and getLogIdx and getLogIdx(qid) and (not isWQ or not isWQ(qid)) then
                 n = n + 1
