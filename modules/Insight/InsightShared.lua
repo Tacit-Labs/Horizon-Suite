@@ -320,11 +320,11 @@ function Insight.StyleTooltipFull(tooltip)
 end
 
 -- ============================================================================
--- CLASS ICON (Default / RondoMedia via core/ClassIconMedia.lua)
+-- CLASS ICON (Default / RondoMedia / custom media via core/ClassIconMedia.lua)
 -- ============================================================================
 
 --- Returns texture string for class icon, or nil if icons disabled.
---- Respects insightClassIconSource: "default" | "rondomedia".
+--- Respects insightClassIconSource: "default" | "rondomedia" | "custom".
 --- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
 --- @param size number Display size (default 14)
 --- @return string|nil Texture markup or nil

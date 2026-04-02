@@ -1267,7 +1267,7 @@ local function HandleInsightDebugSlash(msg)
             "Insight debug commands (/h debug insight [cmd]):",
             "  status  - Print config + cache count",
             "  lsm     - Test LibSharedMedia classicon registration",
-            "  path    - Show RondoMedia path and detection",
+            "  path    - Show class icon paths (Rondo + custom sample)",
         })
         return
     end
@@ -1282,14 +1282,16 @@ local function HandleInsightDebugSlash(msg)
         local rondo = addon.CLASS_ICON_RONDO_NAMES
         local displayName = rondo and rondo["WARRIOR"] or "Warrior"
         local folder = addon.ADDON_NAME or "HorizonSuite"
-        local path = isRondo
+        local rondoPath = isRondo
             and ("Interface\\AddOns\\RondoMedia\\media\\Class_icons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
             or ("Interface\\AddOns\\%s\\media\\RondoClassIcons\\class_colored border\\32x32\\%s_32.tga"):format(folder, displayName)
+        local customPath = ("Interface\\AddOns\\%s\\media\\CustomClassIcons\\WARRIOR\\warrior.tga"):format(folder)
         Insight.PrintBlock({
-            "RondoMedia path debug",
+            "Class icon path debug",
             "   Class icon source : " .. source,
             "   RondoMedia loaded : " .. tostring(isRondo),
-            "   Sample path      : " .. path,
+            "   Sample Rondo path : " .. rondoPath,
+            "   Sample custom path: " .. customPath,
         })
         return
     end
