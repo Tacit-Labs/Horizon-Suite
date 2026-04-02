@@ -190,13 +190,15 @@ function addon.Dashboard_BuildMainFrame()
                     return
                 end
                 local _, classFile = UnitClass("player")
-                local src = (addon.GetDB and addon.GetDB("dashboardClassIconSource", "default")) or "default"
+                local src = (addon.GetDB and addon.GetDB("dashboardClassIconSource", "custom")) or "custom"
                 local disp = addon.ResolveClassIconDisplay and addon.ResolveClassIconDisplay(classFile, src)
                 if not disp then
                     tex:Hide()
                     return
                 end
                 tex:SetVertexColor(1, 1, 1, 1)
+                local iconPx = (addon.GetDashboardClassIconDisplaySize and addon.GetDashboardClassIconDisplaySize()) or 28
+                tex:SetSize(iconPx, iconPx)
                 if disp.kind == "atlas" then
                     tex:SetTexture(nil)
                     tex:SetAtlas(disp.atlas)

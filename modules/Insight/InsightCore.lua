@@ -1273,7 +1273,7 @@ local function HandleInsightDebugSlash(msg)
     end
 
     if cmd == "path" then
-        local source = addon.GetDB and addon.GetDB("insightClassIconSource", "default") or "default"
+        local source = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
         local isRondo = false
         if C_AddOns and C_AddOns.IsAddOnLoaded then
             local ok, r = pcall(C_AddOns.IsAddOnLoaded, "RondoMedia")
@@ -1325,7 +1325,7 @@ local function HandleInsightDebugSlash(msg)
         if Insight.inspectCache then
             for _ in pairs(Insight.inspectCache) do cacheCount = cacheCount + 1 end
         end
-        local classIconSource = addon.GetDB and addon.GetDB("insightClassIconSource", "default") or "default"
+        local classIconSource = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
         Insight.PrintBlock({
             "Horizon Insight Status",
             "   Enabled      : Yes",

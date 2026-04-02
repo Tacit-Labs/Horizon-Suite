@@ -81,11 +81,16 @@ L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                     = " (New!)
 L["DASH_WELCOME_TAB"]                                                 = "Welcome"
 L["DASH_WELCOME_TITLE"]                                               = "Welcome to Horizon Suite"
 L["DASH_WELCOME_HEAD_SUB"]                                            = "Credits, community, and where to find help"
-L["DASH_WELCOME_INTRO"]                                               = [=[Horizon Suite is modular — turn features on or off under |cffaaaaaaAxis → Modules|r (|cffaaaaaaReload UI|r to apply). Open |cffaaaaaaQuick Start|r in the sidebar for a tour of every module. After an update, check |cffaaaaaaPatch Notes|r in the sidebar for what changed. Expand Contributors or Localisations below for credits and supported languages. You can return here anytime from Welcome.]=]
+L["DASH_WELCOME_INTRO"]                                               = [=[Horizon Suite is modular — turn features on or off under |cffaaaaaaAxis → Modules|r (|cffaaaaaaReload UI|r to apply). Open |cffaaaaaaQuick Start|r in the sidebar for a tour of every module. After an update, check |cffaaaaaaPatch Notes|r in the sidebar for what changed. The first section below highlights new Horizon class icons; Contributors and Localisations follow Coming Soon. You can return here anytime from Welcome.]=]
 L["DASH_WELCOME_PATH"]                                                = "%s → %s → %s"
 L["DASH_WELCOME_COMING_SOON_TITLE"]                                   = "Coming Soon"
 L["DASH_WELCOME_COMING_SOON_TAGLINE"]                                 = "New welcome experiences are on the way."
 L["DASH_WELCOME_COMING_SOON_BODY"]                                    = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
+L["DASH_WELCOME_CLASS_ICONS_HEADING"]                                 = "New: Horizon class icons"
+L["DASH_WELCOME_CLASS_ICONS_LEAD"]                                    = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r under |cffaaaaaaAxis → Global Toggles|r (Class icon style).]=]
+L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"]                           = [=[Thank you, Boofuls, for commissioning this art and helping bring these icons to everyone.]=]
+L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"]                          = "• Created by "
+L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                             = "Gabriel C"
 L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                                = "Contributors"
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
@@ -397,9 +402,9 @@ L["OPTIONS_AXIS_BLANK_SEPARATOR"]                                     = "Blank s
 L["OPTIONS_AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"]                      = "Use a blank line instead of dashes between tooltip sections."
 L["OPTIONS_AXIS_ICONS"]                                               = "Show icons"
 L["OPTIONS_AXIS_CLASS_ICON_STYLE"]                                    = "Class icon style"
-L["OPTIONS_AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"]          = "Use Blizzard default, RondoMedia, or custom textures from this addon's media folder on the class/spec line."
-L["OPTIONS_AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Custom (addon media)"
-L["OPTIONS_AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Custom: place one .tga per class under media/CustomClassIcons/<CLASS>/<class lower>.tga (e.g. WARRIOR/warrior.tga), then /reload."
+L["OPTIONS_AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"]          = "Use Blizzard default, RondoMedia, or Horizon icons from this addon's media folder on the class/spec line."
+L["OPTIONS_AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Horizon"
+L["OPTIONS_AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Horizon: bundled icons under media/CustomClassIcons/<CLASS>/<class lower>.tga (e.g. WARRIOR/warrior.tga); replace files and /reload to override."
 L["OPTIONS_AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]       = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
 L["OPTIONS_AXIS_DEFAULT"]                                             = "Default"
 L["OPTIONS_AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]            = "Show faction, spec, mount, and Mythic+ icons in tooltips."
@@ -695,6 +700,12 @@ L["OPTIONS_FOCUS_CINEMATIC_SCENARIO_BAR"]                             = "Cinemat
 L["OPTIONS_FOCUS_TIMER_PROGRESS_BAR_SCENARIO_ENTRIES"]                = "Show timer and progress bar for scenario entries."
 L["OPTIONS_FOCUS_TIMER"]                                              = "Show timer"
 L["OPTIONS_FOCUS_COUNTDOWN_TIMER_TIMED_QUESTS_EVENTS_SCEN"]           = "Show countdown timer on timed quests, events, and scenarios. When off, timers are hidden for all entry types."
+L["OPTIONS_FOCUS_TIMER_SCENARIOS"]                                    = "Scenarios"
+L["OPTIONS_FOCUS_TIMER_SCENARIOS_DESC"]                               = "Show countdown timer for scenario, delve, and dungeon tracker entries."
+L["OPTIONS_FOCUS_TIMER_WORLD"]                                        = "World Quests"
+L["OPTIONS_FOCUS_TIMER_WORLD_DESC"]                                   = "Show countdown timer for world quests and callings."
+L["OPTIONS_FOCUS_TIMER_QUEST_LOG"]                                    = "Dailies / Weeklies"
+L["OPTIONS_FOCUS_TIMER_QUEST_LOG_DESC"]                               = "Show countdown timer for dailies, weeklies, and other timed quest log entries."
 L["OPTIONS_FOCUS_TIMER_DISPLAY"]                                      = "Timer display"
 L["OPTIONS_FOCUS_COLOR_TIMER_REMAINING"]                              = "Color timer by remaining time"
 L["OPTIONS_FOCUS_GREEN_PLENTY_OF_LEFT_YELLOW_RUNNING"]                = "Green when plenty of time left, yellow when running low, red when critical."
@@ -1417,7 +1428,7 @@ L["OPTIONS_CORE_AUTO_ADD_WQS_YOUR_CURRENT_ZONE"]                      = "Auto-ad
 L["OPTIONS_CORE_AUTO_CLOSE_DELAY_DISABLE"]                            = "Auto-close delay (0 to disable)."
 L["OPTIONS_CORE_AUTO_UNTRACK_FINISHED_ACTIVITIES"]                    = "Auto-untrack finished activities."
 L["OPTIONS_CORE_BAR_UNDER_NUMERIC_OBJECTIVES_E_G"]                    = "Bar under numeric objectives (e.g. 3/250)."
-L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzard default, RondoMedia, or custom addon-media class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons."
+L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzard default, RondoMedia, or Horizon class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons."
 L["OPTIONS_CORE_BLOCK_POSITION"]                                      = "Block position"
 L["OPTIONS_CORE_BOSS_EMOTES"]                                         = "Boss emotes"
 L["OPTIONS_CORE_CHOICE_SLOTS"]                                        = "Choice slots"
@@ -1674,6 +1685,13 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
+
+
 
 
 

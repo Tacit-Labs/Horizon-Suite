@@ -583,6 +583,27 @@ local function GetTimerDisplayInfo(questData, isWorld, isScenario, isGenericTime
     return timerStr, duration, startTime
 end
 
+--- Whether countdown timer chrome is allowed for this row (master on + per-bucket toggle).
+--- Bucket order: scenario/delve/dungeon, then world/calling, then timed quest log (non-world).
+--- @param masterOn boolean
+--- @param isWorld boolean
+--- @param isScenarioOrDelve boolean
+--- @param isGenericTimed boolean
+--- @return boolean
+local function GetFocusTimerChromeEnabled(masterOn, isWorld, isScenarioOrDelve, isGenericTimed)
+    if not masterOn then return false end
+    if isScenarioOrDelve then
+        return addon.GetDB("showTimerScenario", true)
+    end
+    if isWorld then
+        return addon.GetDB("showTimerWorld", true)
+    end
+    if isGenericTimed then
+        return addon.GetDB("showTimerQuestTimed", true)
+    end
+    return false
+end
+
 local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor, totalH)
     -- Master toggle for timer / reverse-progress bars.
     local showTimerBars = addon.GetDB("showTimerBars", true)
@@ -623,6 +644,8 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
 
     -- Any non-scenario entry with timer data gets the timed treatment (reverse progress bar + countdown).
     local isGenericTimed = (not isScenarioOrDelve) and hasAnyTimer and not questData.isRare
+
+    local timerChromeEnabled = GetFocusTimerChromeEnabled(showTimerBars, isWorld, isScenarioOrDelve, isGenericTimed)
 
     if not isWorld and not isScenarioOrDelve and not isGenericTimed then
         entry.wqTimerText:Hide()
@@ -704,7 +727,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
 
     local showBar
     -- Use cinematic timer bars (reverse progress) for scenario entries and any entry with structured timer data.
-    local wantTimerBars = showTimerBars and ((isScenarioOrDelve and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer))
+    local wantTimerBars = timerChromeEnabled and ((isScenarioOrDelve and addon.GetDB("cinematicScenarioBar", true)) or (isGenericTimed and hasStructuredTimer))
     if wantTimerBars and entry.scenarioTimerBars and not skipTimerBarDisplay then
         local timerSources = {}
         for _, o in ipairs(questData.objectives or {}) do
@@ -760,14 +783,14 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             showBar = addon.GetDB("cinematicScenarioBar", true) or questData.isAbundanceScenario
         elseif isWorld and not hasStructuredTimer then
             -- Legacy WORLD quest timer (no structured timer data)
-            showTimer = addon.GetDB("showWorldQuestTimer", true) and (timerStr ~= nil)
+            showTimer = (timerStr ~= nil)
             showBar = addon.GetDB("showWorldQuestProgressBar", true)
         else
             showTimer = (timerStr ~= nil)
             showBar = true
         end
 
-        if showTimerBars and showTimer and timerStr and not skipTimerBarDisplay then
+        if timerChromeEnabled and showTimer and timerStr and not skipTimerBarDisplay then
             local timerSpacing = (isScenarioOrDelve or isGenericTimed) and (spacing + timedBarTopMargin) or spacing
             entry.wqTimerText:SetText(timerStr)
             entry.wqTimerText:SetWidth(barW)
@@ -1068,7 +1091,8 @@ local function PopulateEntry(entry, questData, groupKey)
     end
     local hasLegacyTimer = (questData.timeLeftSeconds and questData.timeLeftSeconds > 0) or (questData.timeLeft and questData.timeLeft > 0)
     local isGenericTimed = (not isScenarioOrDelve) and (hasStructuredTimer or hasLegacyTimer) and not questData.isRare
-    local showInlineTimer = showTimerBars and (timerDisplayMode == "inline" or timerDisplayMode == "inline-below") and (isWorld or isScenarioOrDelve or isGenericTimed) and not questData.isRare
+    local timerChromeEnabled = GetFocusTimerChromeEnabled(showTimerBars, isWorld, isScenarioOrDelve, isGenericTimed)
+    local showInlineTimer = showTimerBars and timerChromeEnabled and (timerDisplayMode == "inline" or timerDisplayMode == "inline-below") and (isWorld or isScenarioOrDelve or isGenericTimed) and not questData.isRare
     if showInlineTimer then
         local timerStr, duration, startTime = GetTimerDisplayInfo(questData, isWorld, isScenarioOrDelve, isGenericTimed)
         if timerStr then
