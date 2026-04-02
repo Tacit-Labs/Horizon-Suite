@@ -114,6 +114,14 @@ local function ReadTrackedAppearances()
     local useTransmogTypeIcon = addon.GetDB and addon.GetDB("appearanceIconsUseTransmogTypeIcon", true)
     local transmogListAtlas = useTransmogTypeIcon and GetResolvedTransmogTypeIconAtlas() or nil
 
+    local superType, superID = nil, nil
+    if C_SuperTrack and C_SuperTrack.GetSuperTrackedContent then
+        local ok, t, id = pcall(C_SuperTrack.GetSuperTrackedContent)
+        if ok and t ~= nil and id ~= nil then
+            superType, superID = t, id
+        end
+    end
+
     for _, appearanceID in ipairs(idList) do
         local title, icon, itemLink, isCollected = GetAppearanceDisplayInfo(trackType, appearanceID)
         if isCollected and not showCollected then
@@ -131,6 +139,7 @@ local function ReadTrackedAppearances()
             if not appearanceIconAtlas then
                 appearanceIcon = (icon and (type(icon) == "number" or (type(icon) == "string" and icon ~= ""))) and icon or nil
             end
+            local isAppearanceFocused = (superType == trackType and superID == appearanceID)
             out[#out + 1] = {
                 entryKey               = "appearance:" .. tostring(appearanceID),
                 appearanceID           = appearanceID,
@@ -140,7 +149,7 @@ local function ReadTrackedAppearances()
                 color                  = appearanceColor,
                 category               = "APPEARANCE",
                 isComplete             = isCollected,
-                isSuperTracked         = false,
+                isSuperTracked         = isAppearanceFocused,
                 isNearby               = false,
                 zoneName               = nil,
                 itemLink               = nil,

@@ -661,6 +661,9 @@ L["OPTIONS_FOCUS_APPEARANCE_ICONS"]                                   = "Show ap
 L["OPTIONS_FOCUS_APPEARANCE_ICON_NEXT_TITLE"]                         = "Show each appearance's icon next to the title. Requires 'Show quest type icons' in Display."
 L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON"]                  = "Use transmog list icon"
 L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON_DESC"]             = "Use the in-game Appearances / transmog list icon for every row instead of each appearance's item icon. If that icon cannot be resolved, the item icon is used."
+L["OPTIONS_FOCUS_OPEN_APPEARANCES_COLLECTIONS"]                       = "Open Collections"
+L["OPTIONS_FOCUS_UNTRACK_APPEARANCE"]                                 = "Untrack appearance"
+L["OPTIONS_FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map; with TomTom waypoints enabled, that click also sets the arrow. Ctrl-click Collections, Alt-click dressing room. Right-click clears focus or untracks."
 
 -- =====================================================================
 -- OptionsData.lua Features — Adventure Guide
@@ -880,9 +883,9 @@ L["OPTIONS_FOCUS_KEEP_CAMPAIGN_QUESTS_CATEGORY"]                      = "Keep ca
 L["OPTIONS_FOCUS_CAMPAIGN_QUESTS_READY_TURN_RE"]                      = "When on, campaign quests that are ready to turn in remain in the Campaign category instead of moving to Complete."
 L["OPTIONS_FOCUS_KEEP_IMPORTANT_QUESTS_CATEGORY"]                     = "Keep important quests in category"
 L["OPTIONS_FOCUS_IMPORTANT_QUESTS_READY_TURN_R"]                      = "When on, important quests that are ready to turn in remain in the Important category instead of moving to Complete."
-L["OPTIONS_FOCUS_TOMTOM_QUEST_WAYPOINT"]                              = "TomTom quest waypoint"
-L["OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_FOCUSING_A_QUEST"]                 = "Set a TomTom waypoint when focusing a quest."
-L["OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_NEXT_QUEST"]            = "Requires TomTom. Points the arrow to the next quest objective."
+L["OPTIONS_FOCUS_TOMTOM_QUEST_WAYPOINT"]                              = "TomTom quest & appearance waypoint"
+L["OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_FOCUSING_A_QUEST"]                 = "Set a TomTom waypoint when focusing a quest or a tracked transmog appearance."
+L["OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_NEXT_QUEST"]            = "Requires TomTom. Points the arrow to the next quest objective or the next step for a focused appearance."
 L["OPTIONS_FOCUS_TOMTOM_RARE_WAYPOINT"]                               = "TomTom rare waypoint"
 L["OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_CLICKING_A_RARE"]                  = "Set a TomTom waypoint when clicking a rare boss."
 L["OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE_S"]                = "Requires TomTom. Points the arrow to the rare's location."
@@ -1671,6 +1674,13 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
+
+
 
 
 

@@ -1147,9 +1147,12 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.questTypeIcon:Hide()
     end
 
-    -- Quest icon button: show only for quest entries with visible icon in Classic mode.
+    -- Quest icon button: classic quests, or classic tracked appearances (name vs icon clicks).
     if entry.questIconBtn then
-        if entry.questID and entry.questTypeIcon:IsShown() and addon.GetDB("useClassicClickBehaviour", false) then
+        local classic = addon.GetDB("useClassicClickBehaviour", false)
+        local showQuestIcon = classic and entry.questID and entry.questTypeIcon:IsShown()
+        local showAppearanceIcon = classic and (questData.isAppearance or questData.category == "APPEARANCE") and entry.questTypeIcon:IsShown()
+        if showQuestIcon or showAppearanceIcon then
             entry.questIconBtn:Show()
         else
             entry.questIconBtn:Hide()
@@ -1668,6 +1671,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.isTracked  = questData.isTracked
         entry.vignetteGUID = nil; entry.vignetteMapID = nil; entry.vignetteX = nil; entry.vignetteY = nil; entry.title = nil
     end
+    entry.isAppearance = (questData.isAppearance or questData.category == "APPEARANCE") and true or nil
     addon.ApplyDimToTrackerEntryIcons(entry, questData.isSuperTracked, questData)
     return totalH
 end

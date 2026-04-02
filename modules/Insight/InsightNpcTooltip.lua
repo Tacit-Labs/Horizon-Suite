@@ -3,6 +3,7 @@
     NPC-specific tooltip enrichment: reaction color, level/classification/creature type.
 ]]
 
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
@@ -19,7 +20,7 @@ local function ShowNpcIcons()       return addon.GetDB("insightNpcShowIcons",   
 --- @param tooltip table GameTooltip
 --- @return boolean true if processed (caller should finalize)
 function Insight.ProcessNpcTooltip(unit, tooltip)
-    if not Insight.IsInsightEnabled() or not tooltip or not tooltip:IsShown() then return false end
+    if not Insight.IsInsightEnabled() or not tooltip then return false end
     if UnitIsPlayer(unit) then return false end
 
     local reaction = UnitReaction(unit, "player")

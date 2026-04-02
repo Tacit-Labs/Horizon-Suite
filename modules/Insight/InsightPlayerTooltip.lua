@@ -3,6 +3,7 @@
     Player-specific tooltip enrichment: class/spec/role, PvP title, honor, badges, stats, mount block, inspect.
 ]]
 
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
@@ -294,9 +295,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
 
     -- Self-unit: populate inspect cache directly
     if not cached and UnitIsUnit(unit, "player") then
-        local specIdx = GetSpecialization()
-        if specIdx then
-            local _, specName, _, specIcon, role = GetSpecializationInfo(specIdx)
+        local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
+        if specID and specID > 0 then
+            local _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
             local _, equipped = GetAverageItemLevel()
             if specName then
                 inspectCache[guid] = {
