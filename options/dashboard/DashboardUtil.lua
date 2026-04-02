@@ -16,7 +16,7 @@ local FOOTER_WORDMARK_INTRINSIC_PX = {
     [DASHBOARD_FOOTER_MEDIA .. "patreon.tga"] = { w = 128, h = 29 },
     [DASHBOARD_FOOTER_MEDIA .. "gitlab.tga"] = { w = 90, h = 21 },
     [DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga"] = { w = 728, h = 150, maxVisualH = 22 },
-    [DASHBOARD_FOOTER_MEDIA .. "wago.tga"] = { w = 128, h = 74 },
+    [DASHBOARD_FOOTER_MEDIA .. "wago.tga"] = { w = 128, h = 29 },
 }
 -- Footer link row: bright at rest; wordmarks are icon-only (texture includes text). Hover: underline + nudge to white.
 local FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B = 0.93, 0.95, 0.98
