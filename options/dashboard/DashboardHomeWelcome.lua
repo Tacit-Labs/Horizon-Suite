@@ -417,7 +417,7 @@ function addon.DashboardHomeWelcome_Init(env)
 
     -- Welcome tab (always in sidebar, above Home; dedicated view)
     do
-        -- Match DashboardModuleGuide.lua: bg nudge, scroll insets, footer link row, scroll–footer gap.
+        -- Match DashboardModuleGuide.lua: bg nudge, scroll insets, scroll–footer gap. Footer layout/anchor matches Patch Notes (full view width).
         local WELCOME_BG_TOP_NUDGE = 50
         local WELCOME_CONTENT_TOP_PAD = 6
         local WELCOME_ACC_HEAD_H = 48
@@ -712,6 +712,7 @@ function addon.DashboardHomeWelcome_Init(env)
             MakeText = MakeText,
             addon = addon,
         })
+        tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
         local footerTopRule = footerObj.footerTopRule
         local communityHdr = footerObj.communityHdr
         local linkButtons = footerObj.footerLinkButtons
@@ -719,10 +720,13 @@ function addon.DashboardHomeWelcome_Init(env)
         LayoutWelcomeContent = function()
             local rawW = welcomeBg:GetWidth() or 0
             local w = math.max(280, rawW - 40)
+            -- Match Patch Notes: footer anchors to full view + same width math so Community & Support block height matches.
+            local viewW = welcomeView:GetWidth() or 0
+            local wFooter = math.max(280, viewW - 40)
             local innerPad = 28
 
             -- --- Footer (bottom of card; layout via shared factory) ---
-            local fy = footerObj.layout(w, 0, welcomeBg)
+            local fy = footerObj.layout(wFooter, 0, welcomeView)
 
             welcomeScroll:ClearAllPoints()
             welcomeScroll:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", SCROLL_TO_BG_INSET, -WELCOME_CONTENT_TOP_PAD)
@@ -932,6 +936,7 @@ function addon.DashboardHomeWelcome_Init(env)
         end)
 
         f.ShowWelcome = function()
+            if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
             HideContextHeader()
             detailView:Hide()
             subCategoryView:Hide()

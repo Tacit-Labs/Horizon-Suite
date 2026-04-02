@@ -76,6 +76,7 @@ L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Modulst
 -- options/dashboard/HomeWelcome.lua — First-run welcome
 -- =====================================================================
 L["DASH_WHATS_NEW"]                                                   = "Änderungen"
+L["DASH_FULL_CHANGELOG"]                                              = "Full changelog"
 L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                     = " (Neu!)"
 L["DASH_WELCOME_TAB"]                                                 = "Willkommen"
 L["DASH_WELCOME_TITLE"]                                               = "Willkommen bei der Horizon Suite"
@@ -1684,6 +1685,7 @@ L["OPTIONS_CORE_SORTING_FILTERING"]                                   = "Sortier
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

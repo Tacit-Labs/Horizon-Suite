@@ -175,7 +175,7 @@ function addon.Dashboard_BuildMainFrame()
                 searchDropBorder = nil,
                 welcomeAccentStrip = nil,
                 guideHeroRail = nil,
-                pnFooterRule = nil,
+                communityFooterTopRules = {},
                 dashboardClassIcon = nil,
             }
 
@@ -257,8 +257,10 @@ function addon.Dashboard_BuildMainFrame()
                 for _, rule in ipairs(dashAccentRefs.patchNotesRules) do
                     if rule and rule.SetColorTexture then rule:SetColorTexture(ar, ag, ab, 0.35) end
                 end
-                if dashAccentRefs.pnFooterRule and dashAccentRefs.pnFooterRule.SetColorTexture then
-                    dashAccentRefs.pnFooterRule:SetColorTexture(ar, ag, ab, 0.3)
+                for _, rule in ipairs(dashAccentRefs.communityFooterTopRules) do
+                    if rule and rule.SetColorTexture then
+                        rule:SetColorTexture(ar, ag, ab, 0.3)
+                    end
                 end
                 local pnHex = string.format("%02X%02X%02X",
                     math.floor(ar*255+0.5), math.floor(ag*255+0.5), math.floor(ab*255+0.5))
@@ -476,6 +478,29 @@ function addon.Dashboard_BuildMainFrame()
             detailTitleUnderline:Hide()
             dashAccentRefs.underline = detailTitleUnderline
 
+            -- Patch Notes only: full changelog link (top-right of frame, aligned with title row).
+            local PN_CHANGELOG_URL = "https://gitlab.com/Crystilac/horizon-suite/-/blob/main/CHANGELOG.md"
+            local pnChangelogHeaderBtn = CreateFrame("Button", nil, f)
+            pnChangelogHeaderBtn:SetFrameLevel(f:GetFrameLevel() + 12)
+            pnChangelogHeaderBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -48, DASH_HEAD_TITLE_Y)
+            pnChangelogHeaderBtn:SetSize(160, 22)
+            local pnClHdrTxt = pnChangelogHeaderBtn:CreateFontString(nil, "OVERLAY")
+            pnClHdrTxt:SetFont("Fonts\\ARIALN.TTF", 12, "")
+            pnClHdrTxt:SetPoint("CENTER", pnChangelogHeaderBtn, "CENTER", 0, 0)
+            pnClHdrTxt:SetText(L["DASH_FULL_CHANGELOG"] or "Full changelog")
+            pnClHdrTxt:SetTextColor(0.92, 0.94, 0.98, 1)
+            pnChangelogHeaderBtn:SetScript("OnEnter", function()
+                pnClHdrTxt:SetTextColor(1, 1, 1, 1)
+            end)
+            pnChangelogHeaderBtn:SetScript("OnLeave", function()
+                pnClHdrTxt:SetTextColor(0.92, 0.94, 0.98, 1)
+            end)
+            pnChangelogHeaderBtn:SetScript("OnClick", function()
+                if addon.ShowURLCopyBox then addon.ShowURLCopyBox(PN_CHANGELOG_URL) end
+            end)
+            pnChangelogHeaderBtn:Hide()
+            f.pnChangelogHeaderBtn = pnChangelogHeaderBtn
+
             local dashboardView = CreateFrame("Frame", nil, f)
             dashboardView:SetSize(viewWidth, DASHBOARD_VIEW_H)
             dashboardView:SetPoint("CENTER", viewCenterX, 0)
@@ -511,13 +536,12 @@ function addon.Dashboard_BuildMainFrame()
             patchNotesView:Hide()
             f.patchNotesView = patchNotesView
 
-            local PN_FOOTER_H    = 44
+            local PN_SCROLL_ABOVE_COMMUNITY_FOOTER = (DC.COMMUNITY_FOOTER_SCROLL_GAP) or 24
             local PN_BODY_COL  = { 0.72, 0.72, 0.76, 1 }
             local PN_MUTED_COL = { 0.52, 0.56, 0.62, 1 }
             local PN_SECTION_GAP = 16
             local PN_BULLET_X    = 16
             local PN_LINE_GAP    = 5
-            local PN_CHANGELOG_URL = "https://gitlab.com/Crystilac/horizon-suite/-/blob/main/CHANGELOG.md"
 
             local PN_MODULE_COLORS = {
                 ["Essence"]  = "DC143C",
@@ -546,62 +570,33 @@ function addon.Dashboard_BuildMainFrame()
                 return text
             end
 
-            -- Footer (fixed, outside scroll — mirrors welcome screen footer style)
-            local pnFooter = CreateFrame("Frame", nil, patchNotesView)
-            pnFooter:SetPoint("BOTTOMLEFT",  patchNotesView, "BOTTOMLEFT",   40, 0)
-            pnFooter:SetPoint("BOTTOMRIGHT", patchNotesView, "BOTTOMRIGHT", -40, 0)
-            pnFooter:SetHeight(PN_FOOTER_H)
-            pnFooter:SetFrameLevel(patchNotesView:GetFrameLevel() + 10)
+            -- Community & Support footer (shared factory with Welcome); scroll stops above it.
+            local pnCommunityFooterPanel = CreateFrame("Frame", nil, patchNotesView)
+            pnCommunityFooterPanel:SetFrameLevel(patchNotesView:GetFrameLevel() + 10)
+            local pnCommunityFooterObj = addon.Dashboard_CreateCommunityFooter(pnCommunityFooterPanel, {
+                L = L,
+                GetAccentColor = GetAccentColor,
+                MakeText = MakeText,
+                addon = addon,
+            })
+            tinsert(dashAccentRefs.communityFooterTopRules, pnCommunityFooterObj.footerTopRule)
 
-            local pnFooterTopRule = pnFooter:CreateTexture(nil, "ARTWORK")
-            pnFooterTopRule:SetHeight(1)
-            pnFooterTopRule:SetPoint("TOPLEFT",  pnFooter, "TOPLEFT",  0, 0)
-            pnFooterTopRule:SetPoint("TOPRIGHT", pnFooter, "TOPRIGHT", 0, 0)
-            local pnFar, pnFag, pnFab = GetAccentColor()
-            pnFooterTopRule:SetColorTexture(pnFar, pnFag, pnFab, 0.3)
-            dashAccentRefs.pnFooterRule = pnFooterTopRule
+            local function LayoutPatchNotesFooter()
+                local rawW = patchNotesView:GetWidth() or 0
+                local w = math.max(280, rawW - 40)
+                pnCommunityFooterObj.layout(w, 0, patchNotesView)
+            end
 
-            local pnClBtn = CreateFrame("Button", nil, pnFooter)
-            pnClBtn:SetPoint("BOTTOM", pnFooter, "BOTTOM", 0, 10)
-            pnClBtn:SetSize(120, 20)
-
-            local pnClTxt = pnClBtn:CreateFontString(nil, "OVERLAY")
-            pnClTxt:SetFont("Fonts\\ARIALN.TTF", 12, "")
-            pnClTxt:SetPoint("CENTER", pnClBtn, "CENTER", 0, 0)
-            pnClTxt:SetText("Full changelog")
-            pnClTxt:SetTextColor(unpack(PN_MUTED_COL))
-
-            local pnClUnderline = pnClBtn:CreateTexture(nil, "OVERLAY")
-            pnClUnderline:SetHeight(1)
-            pnClUnderline:SetPoint("BOTTOM", pnClBtn, "BOTTOM", 0,  0)
-            pnClUnderline:SetPoint("LEFT",   pnClBtn, "LEFT",   0,  0)
-            pnClUnderline:SetPoint("RIGHT",  pnClBtn, "RIGHT",  0,  0)
-            pnClUnderline:Hide()
-
-            pnClBtn:SetScript("OnEnter", function()
-                pnClTxt:SetTextColor(0.88, 0.90, 0.94)
-                local r, g, b = GetAccentColor()
-                pnClUnderline:SetColorTexture(r, g, b, 0.6)
-                pnClUnderline:Show()
-                if GameTooltip then
-                    GameTooltip:SetOwner(pnClBtn, "ANCHOR_TOP")
-                    GameTooltip:SetText(PN_CHANGELOG_URL, 1, 1, 1, 1, true)
-                    GameTooltip:Show()
+            patchNotesView:SetScript("OnSizeChanged", function()
+                if patchNotesView:IsShown() then
+                    LayoutPatchNotesFooter()
                 end
-            end)
-            pnClBtn:SetScript("OnLeave", function()
-                pnClTxt:SetTextColor(unpack(PN_MUTED_COL))
-                pnClUnderline:Hide()
-                if GameTooltip then GameTooltip:Hide() end
-            end)
-            pnClBtn:SetScript("OnClick", function()
-                if GameTooltip then GameTooltip:Hide() end
-                if addon.ShowURLCopyBox then addon.ShowURLCopyBox(PN_CHANGELOG_URL) end
             end)
 
             local pnScroll = CreateFrame("ScrollFrame", nil, patchNotesView, "UIPanelScrollFrameTemplate")
             pnScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
-            pnScroll:SetPoint("BOTTOMRIGHT", -40, PN_FOOTER_H)
+            pnScroll:SetPoint("BOTTOMLEFT", pnCommunityFooterPanel, "TOPLEFT", 0, PN_SCROLL_ABOVE_COMMUNITY_FOOTER)
+            pnScroll:SetPoint("BOTTOMRIGHT", pnCommunityFooterPanel, "TOPRIGHT", 0, PN_SCROLL_ABOVE_COMMUNITY_FOOTER)
             pnScroll.ScrollBar:Hide()
             pnScroll.ScrollBar:ClearAllPoints()
 
@@ -609,6 +604,7 @@ function addon.Dashboard_BuildMainFrame()
             pnContent:SetSize(contentWidth, 1)
             pnScroll:SetScrollChild(pnContent)
             addon.Dashboard_ApplySmoothScroll(pnScroll, pnContent, 60, true)
+            LayoutPatchNotesFooter()
 
             local pnBuiltVersion = nil
 
@@ -818,6 +814,9 @@ function addon.Dashboard_BuildMainFrame()
 
             -- Transitions (faster animations per UX feedback)
             local function CrossfadeTo(targetView)
+                if targetView ~= patchNotesView then
+                    pnChangelogHeaderBtn:Hide()
+                end
                 dashboardView:Hide()
                 detailView:Hide()
                 subCategoryView:Hide()
@@ -834,6 +833,7 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             f.ShowDashboard = function()
+                pnChangelogHeaderBtn:Hide()
                 HideContextHeader()
                 detailView:Hide()
                 subCategoryView:Hide()
@@ -1062,6 +1062,13 @@ function addon.Dashboard_BuildMainFrame()
                     addon.DashboardPreview.SetActiveModuleKey(nil)
                 end
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+
+                pnChangelogHeaderBtn:Show()
+                LayoutPatchNotesFooter()
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, LayoutPatchNotesFooter)
+                    C_Timer.After(0.05, LayoutPatchNotesFooter)
+                end
             end
 
             -- ===== POPULATE SIDEBAR =====

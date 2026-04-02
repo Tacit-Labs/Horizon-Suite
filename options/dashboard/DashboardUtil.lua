@@ -7,9 +7,24 @@ if not addon then return end
 
 -- Community & Support footer link icons (Welcome + Module Guide); keep paths in sync with media/dashboard/footer/
 local DASHBOARD_FOOTER_MEDIA = "Interface/AddOns/HorizonSuite/media/dashboard/footer/"
--- Footer link row: bright at rest so icons/labels read clearly; hover keeps accent underline + nudge to white.
+-- Authoritative pixel size of each bundled footer .tga (aspect ratio). WoW GetTextureFileWidth/Height can reflect
+-- GPU-padded dimensions and skew layout; using file dimensions keeps wordmarks uniformly scaled without stretch.
+-- Optional maxVisualH raises the height cap for that slot only (still clamped to FOOTER_LINK_ROW_HEIGHT insets).
+local FOOTER_WORDMARK_INTRINSIC_PX = {
+    [DASHBOARD_FOOTER_MEDIA .. "discord.tga"] = { w = 128, h = 19 },
+    [DASHBOARD_FOOTER_MEDIA .. "kofi.tga"] = { w = 128, h = 35 },
+    [DASHBOARD_FOOTER_MEDIA .. "patreon.tga"] = { w = 128, h = 29 },
+    [DASHBOARD_FOOTER_MEDIA .. "gitlab.tga"] = { w = 90, h = 21 },
+    [DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga"] = { w = 728, h = 150, maxVisualH = 22 },
+    [DASHBOARD_FOOTER_MEDIA .. "wago.tga"] = { w = 128, h = 74 },
+}
+-- Footer link row: bright at rest; wordmarks are icon-only (texture includes text). Hover: underline + nudge to white.
 local FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B = 0.93, 0.95, 0.98
 local FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B = 1, 1, 1
+local FOOTER_LINK_ROW_HEIGHT = 32
+local FOOTER_LINK_MAX_VISUAL_H = 16
+local FOOTER_LINK_ICON_INSET = 4
+local FOOTER_LINK_GAP = 10
 
 --- @param moduleKey string|nil
 --- @return string|nil
@@ -181,29 +196,76 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
         end
     end
 
+    -- Uniform scale inside max box; cap at 1 so wordmarks are not upscaled (crisp). Centered; no stretch.
+    -- intrinsicW/H from FOOTER_WORDMARK_INTRINSIC_PX when set; else GetTextureFile* (may be 0 until load).
+    local function FooterWordmarkDisplaySize(tex, boxW, boxH, intrinsicW, intrinsicH)
+        if not tex or not boxW or not boxH or boxW < 1 or boxH < 1 then
+            return 1, 1
+        end
+        local nw, nh
+        if intrinsicW and intrinsicH and intrinsicW > 0 and intrinsicH > 0 then
+            nw, nh = intrinsicW, intrinsicH
+        else
+            nw = tex.GetTextureFileWidth and tex:GetTextureFileWidth() or 0
+            nh = tex.GetTextureFileHeight and tex:GetTextureFileHeight() or 0
+        end
+        if nw < 1 or nh < 1 then
+            return boxW, boxH
+        end
+        local scale = math.min(boxW / nw, boxH / nh, 1)
+        return math.max(1, math.floor(nw * scale + 0.5)), math.max(1, math.floor(nh * scale + 0.5))
+    end
+
+    local function FitCommunityFooterWordmarks(buttons)
+        for _, btn in ipairs(buttons) do
+            local tex = btn.iconTex
+            if tex then
+                local bw = btn:GetWidth() or 0
+                local maxW = bw - 2 * FOOTER_LINK_ICON_INSET
+                local visualCap = btn.wordmarkMaxVisualH or FOOTER_LINK_MAX_VISUAL_H
+                local maxH = math.min(FOOTER_LINK_ROW_HEIGHT - 2 * FOOTER_LINK_ICON_INSET, visualCap)
+                if maxW > 0 and maxH > 0 then
+                    local dw, dh = FooterWordmarkDisplaySize(tex, maxW, maxH, btn.wordmarkIntrinsicW, btn.wordmarkIntrinsicH)
+                    tex:ClearAllPoints()
+                    tex:SetSize(dw, dh)
+                    tex:SetPoint("CENTER", btn, "CENTER", 0, 0)
+                end
+            end
+        end
+    end
+
     local function CreateFooterLink(parentFrame, label, onClick, iconPath)
         local btn = CreateFrame("Button", nil, parentFrame)
-        btn:SetSize(100, 20)
+        btn:SetSize(100, FOOTER_LINK_ROW_HEIGHT)
 
         local iconTex
         if iconPath then
             iconTex = btn:CreateTexture(nil, "ARTWORK")
-            iconTex:SetSize(14, 14)
-            iconTex:SetPoint("LEFT", btn, "LEFT", 12, 0)
+            if iconTex.SetBlockingLoadsRequested then
+                iconTex:SetBlockingLoadsRequested(true)
+            end
             iconTex:SetTexture(iconPath)
+            if iconTex.SetBlockingLoadsRequested then
+                iconTex:SetBlockingLoadsRequested(false)
+            end
             iconTex:SetVertexColor(FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B)
+            btn.iconTex = iconTex
+            local intrinsic = FOOTER_WORDMARK_INTRINSIC_PX[iconPath]
+            if intrinsic then
+                btn.wordmarkIntrinsicW = intrinsic.w
+                btn.wordmarkIntrinsicH = intrinsic.h
+                if intrinsic.maxVisualH and intrinsic.maxVisualH > 0 then
+                    btn.wordmarkMaxVisualH = intrinsic.maxVisualH
+                end
+            end
         end
 
-        local lbl = MakeText(btn, label, 12, FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B, iconPath and "CENTER" or "CENTER")
+        local lbl = MakeText(btn, label, 12, FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B, "CENTER")
         lbl:ClearAllPoints()
-        if iconTex then
-            lbl:SetPoint("LEFT", iconTex, "RIGHT", 4, 0)
-            lbl:SetPoint("RIGHT", btn, "RIGHT", -12, 0)
-        elseif iconPath == nil then
-            lbl:SetAllPoints()
+        if iconPath then
+            lbl:Hide()
         else
-            lbl:SetPoint("LEFT", btn, "LEFT", 0, 0)
-            lbl:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+            lbl:SetAllPoints()
         end
         btn.label = lbl
 
@@ -216,14 +278,18 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
         btn.underline = underline
 
         btn:SetScript("OnEnter", function()
-            lbl:SetTextColor(FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B)
+            if lbl:IsShown() then
+                lbl:SetTextColor(FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B)
+            end
             if iconTex then iconTex:SetVertexColor(FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B) end
             local ar, ag, ab = GetAccentColor()
             underline:SetColorTexture(ar, ag, ab, 0.6)
             underline:Show()
         end)
         btn:SetScript("OnLeave", function()
-            lbl:SetTextColor(FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B)
+            if lbl:IsShown() then
+                lbl:SetTextColor(FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B)
+            end
             if iconTex then iconTex:SetVertexColor(FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B) end
             underline:Hide()
         end)
@@ -261,15 +327,29 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
 
         -- Distribute buttons evenly across available width
         local numButtons = #footerLinkButtons
-        local spacedBtnW = math.floor((w - 20) / numButtons)  -- 20 = left+right margin
-        local btnSpacing = spacedBtnW
+        local availableW = w - 20 - ((numButtons - 1) * FOOTER_LINK_GAP)  -- 20 = left+right margin
+        local spacedBtnW = math.floor(availableW / numButtons)
+        local btnSpacing = spacedBtnW + FOOTER_LINK_GAP
 
         for i, btn in ipairs(footerLinkButtons) do
-            btn:SetWidth(spacedBtnW - 4)  -- Small margin between buttons
+            btn:SetWidth(spacedBtnW)
             btn:ClearAllPoints()
             btn:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i - 1) * btnSpacing, -fy)
         end
-        fy = fy + 20
+        FitCommunityFooterWordmarks(footerLinkButtons)
+        -- GetTextureFileWidth/Height can be 0 until the file resolves.
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0, function()
+                FitCommunityFooterWordmarks(footerLinkButtons)
+            end)
+            C_Timer.After(0.05, function()
+                FitCommunityFooterWordmarks(footerLinkButtons)
+            end)
+            C_Timer.After(0.15, function()
+                FitCommunityFooterWordmarks(footerLinkButtons)
+            end)
+        end
+        fy = fy + FOOTER_LINK_ROW_HEIGHT
 
         -- Position footer panel itself
         parent:SetWidth(w)
