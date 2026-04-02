@@ -71,7 +71,7 @@ function addon.DashboardModuleGuide_Init(env)
     local GUIDE_ACC_HEAD_H = 48
     local SCROLL_BODY_X_INSET = 0
     local HERO_TOP_PAD = 0
-    local SCROLL_ABOVE_FOOTER_GAP = 10
+    local SCROLL_ABOVE_FOOTER_GAP = (addon.DashboardConstants and addon.DashboardConstants.COMMUNITY_FOOTER_SCROLL_GAP) or 24
     local SCROLL_TO_BG_INSET = 20
 
     local function ShowCopyURL(label, url)

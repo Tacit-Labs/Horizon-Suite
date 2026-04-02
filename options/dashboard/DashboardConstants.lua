@@ -26,6 +26,8 @@ addon.DashboardConstants = {
     HEAD_SUBTITLE_Y = -58,
     SEARCH_Y = -88,
     SEARCH_BOX_H = 36,
+    -- Welcome + Module Guide: visible space between scroll content and Community & Support block.
+    COMMUNITY_FOOTER_SCROLL_GAP = 24,
 }
 
 local C = addon.DashboardConstants

@@ -74,6 +74,9 @@ Insight.FIXED_POINT     = "BOTTOMRIGHT"
 Insight.FIXED_X         = -60
 Insight.FIXED_Y         = 120
 
+-- Class/spec line icons: Horizon bundled media (OptionsData value "custom"); default for new profiles.
+Insight.DEFAULT_CLASS_ICON_SOURCE = "custom"
+
 Insight.FACTION_ICONS = {
     Horde    = "|TInterface\\FriendsFrame\\PlusManz-Horde:14:14:0:0|t ",
     Alliance = "|TInterface\\FriendsFrame\\PlusManz-Alliance:14:14:0:0|t ",
@@ -323,15 +326,30 @@ end
 -- CLASS ICON (Default / RondoMedia / custom media via core/ClassIconMedia.lua)
 -- ============================================================================
 
+local VALID_INSIGHT_CLASS_ICON_SOURCE = { custom = true, default = true, rondomedia = true }
+
+--- Tooltip class icon pack: Horizon (custom), Blizzard default atlas, or RondoMedia.
+--- @return string "custom" | "default" | "rondomedia"
+function Insight.GetClassIconSource()
+    local def = Insight.DEFAULT_CLASS_ICON_SOURCE
+    local s = (addon.GetDB and addon.GetDB("insightClassIconSource", def)) or def
+    if type(s) ~= "string" or not VALID_INSIGHT_CLASS_ICON_SOURCE[s] then
+        return def
+    end
+    return s
+end
+
 --- Returns texture string for class icon, or nil if icons disabled.
---- Respects insightClassIconSource: "default" | "rondomedia" | "custom".
+--- Respects insightClassIconSource: "custom" (Horizon bundled) | "default" | "rondomedia".
 --- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
---- @param size number Display size (default 14)
+--- @param size number|nil Display size; omit to use GetInsightClassIconDisplaySize() (larger for custom source).
 --- @return string|nil Texture markup or nil
 function Insight.GetClassIconTexture(classFile, size)
     if not addon.GetDB("insightShowIcons", true) or not classFile then return nil end
-    size = size or 14
-    local source = addon.GetDB("insightClassIconSource", "default")
+    if size == nil then
+        size = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
+    end
+    local source = Insight.GetClassIconSource()
     local disp = addon.ResolveClassIconDisplay and addon.ResolveClassIconDisplay(classFile, source)
     if not disp then return nil end
     if disp.kind == "file" then

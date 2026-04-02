@@ -5,6 +5,12 @@
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
+-- Community & Support footer link icons (Welcome + Module Guide); keep paths in sync with media/dashboard/footer/
+local DASHBOARD_FOOTER_MEDIA = "Interface/AddOns/HorizonSuite/media/dashboard/footer/"
+-- Footer link row: bright at rest so icons/labels read clearly; hover keeps accent underline + nudge to white.
+local FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B = 0.93, 0.95, 0.98
+local FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B = 1, 1, 1
+
 --- @param moduleKey string|nil
 --- @return string|nil
 function addon.Dashboard_BrandModule(moduleKey)
@@ -155,12 +161,12 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
     local MakeText = env.MakeText
 
     local linkData = {
-        { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.gg/nFabdZmvSB", icon = "Interface/AddOns/HorizonSuite/media/discord.tga" },
-        { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite", icon = "Interface/AddOns/HorizonSuite/media/kofi.tga" },
-        { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite", icon = "Interface/AddOns/HorizonSuite/media/patreon.tga" },
-        { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite", icon = "Interface/AddOns/HorizonSuite/media/gitlab.tga" },
-        { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844", icon = "Interface/AddOns/HorizonSuite/media/CurseForge.tga" },
-        { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y", icon = "Interface/AddOns/HorizonSuite/media/wago.tga" },
+        { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.gg/nFabdZmvSB", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
+        { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
+        { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
+        { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite", icon = DASHBOARD_FOOTER_MEDIA .. "gitlab.tga" },
+        { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844", icon = DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga" },
+        { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y", icon = DASHBOARD_FOOTER_MEDIA .. "wago.tga" },
     }
 
     local footerTopRule = parent:CreateTexture(nil, "ARTWORK")
@@ -185,10 +191,10 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
             iconTex:SetSize(14, 14)
             iconTex:SetPoint("LEFT", btn, "LEFT", 12, 0)
             iconTex:SetTexture(iconPath)
-            iconTex:SetVertexColor(0.52, 0.56, 0.62)
+            iconTex:SetVertexColor(FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B)
         end
 
-        local lbl = MakeText(btn, label, 12, 0.52, 0.56, 0.62, iconPath and "CENTER" or "CENTER")
+        local lbl = MakeText(btn, label, 12, FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B, iconPath and "CENTER" or "CENTER")
         lbl:ClearAllPoints()
         if iconTex then
             lbl:SetPoint("LEFT", iconTex, "RIGHT", 4, 0)
@@ -210,15 +216,15 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
         btn.underline = underline
 
         btn:SetScript("OnEnter", function()
-            lbl:SetTextColor(0.88, 0.90, 0.94)
-            if iconTex then iconTex:SetVertexColor(0.88, 0.90, 0.94) end
+            lbl:SetTextColor(FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B)
+            if iconTex then iconTex:SetVertexColor(FOOTER_LINK_HOVER_R, FOOTER_LINK_HOVER_G, FOOTER_LINK_HOVER_B) end
             local ar, ag, ab = GetAccentColor()
             underline:SetColorTexture(ar, ag, ab, 0.6)
             underline:Show()
         end)
         btn:SetScript("OnLeave", function()
-            lbl:SetTextColor(0.52, 0.56, 0.62)
-            if iconTex then iconTex:SetVertexColor(0.52, 0.56, 0.62) end
+            lbl:SetTextColor(FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B)
+            if iconTex then iconTex:SetVertexColor(FOOTER_LINK_IDLE_R, FOOTER_LINK_IDLE_G, FOOTER_LINK_IDLE_B) end
             underline:Hide()
         end)
         btn:SetScript("OnClick", onClick)
@@ -234,17 +240,24 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
     end
 
     local function LayoutFooter(w, fy, bgFrame)
-        -- Position the separator rule
-        footerTopRule:ClearAllPoints()
-        footerTopRule:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -fy)
-        footerTopRule:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, -fy)
-        fy = fy + 1 + 12
+        local ruleH = 1
+        -- Heading first, then divider, then links — gap under title is obvious (was: 1px rule above title, easy to miss).
+        local titleToRuleGap = 14
+        local ruleToButtonsGap = 10
 
-        -- Position the heading
         communityHdr:SetWidth(w)
         communityHdr:ClearAllPoints()
         communityHdr:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -fy)
-        fy = fy + communityHdr:GetHeight() + 8
+        local hdrH = communityHdr:GetStringHeight()
+        if not hdrH or hdrH < 1 then
+            hdrH = math.max(communityHdr:GetHeight(), 18)
+        end
+        fy = fy + hdrH + titleToRuleGap
+
+        footerTopRule:ClearAllPoints()
+        footerTopRule:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -fy)
+        footerTopRule:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, -fy)
+        fy = fy + ruleH + ruleToButtonsGap
 
         -- Distribute buttons evenly across available width
         local numButtons = #footerLinkButtons

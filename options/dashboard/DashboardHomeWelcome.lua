@@ -422,7 +422,7 @@ function addon.DashboardHomeWelcome_Init(env)
         local WELCOME_CONTENT_TOP_PAD = 6
         local WELCOME_ACC_HEAD_H = 48
         local WELCOME_SCROLL_BODY_X_INSET = 0
-        local WELCOME_SCROLL_ABOVE_FOOTER_GAP = 10
+        local WELCOME_SCROLL_ABOVE_FOOTER_GAP = (addon.DashboardConstants and addon.DashboardConstants.COMMUNITY_FOOTER_SCROLL_GAP) or 24
         local SCROLL_TO_BG_INSET = 20
         -- Coming Soon hero art: BLP or TGA on Texture; GIF/PNG/JPG from addons show a placeholder. File: media/cache.tga (match casing for non-Windows clients).
         -- For animation, use a TGA/BLP sprite sheet + SetTexCoord or flip frames with a timer.
@@ -451,11 +451,21 @@ function addon.DashboardHomeWelcome_Init(env)
         welcomeScroll:SetScrollChild(content)
         addon.Dashboard_ApplySmoothScroll(welcomeScroll, content, 60, true)
 
+        -- Fiverr profile for Welcome class-icons credit (copy dialog; not localized).
+        local DASH_CLASS_ICONS_ARTIST_URL = "https://www.fiverr.com/gc_fresh_ideas?source=gig_page"
+
+        -- Playable classes, left-to-right strip (matches core/ClassIconMedia.lua bundled set).
+        local WELCOME_CLASS_ICON_STRIP_ORDER = {
+            "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "EVOKER", "HUNTER", "MAGE", "MONK",
+            "PALADIN", "PRIEST", "ROGUE", "SHAMAN", "WARLOCK", "WARRIOR",
+        }
+
         -- Accordion aligned with detail-view section cards; calls onLayout during resize animation.
-        local function CreateWelcomeAccordionCard(parent, titleText, onLayout)
+        --- @param startExpanded boolean|nil When true, card starts open (announcement-style).
+        local function CreateWelcomeAccordionCard(parent, titleText, onLayout, startExpanded)
             local card = CreateFrame("Frame", nil, parent)
             card:SetHeight(WELCOME_ACC_HEAD_H)
-            card.expanded = false
+            card.expanded = startExpanded and true or false
             card.collapsedHeight = WELCOME_ACC_HEAD_H
             card.fullHeight = WELCOME_ACC_HEAD_H
             card:SetClipsChildren(true)
@@ -551,7 +561,44 @@ function addon.DashboardHomeWelcome_Init(env)
                 card.anim:Play()
             end)
 
+            if card.expanded then
+                sc:SetAlpha(1)
+            else
+                sc:SetAlpha(0)
+            end
+            updateExpandedVisuals()
+
             return card
+        end
+
+        --- Link-style button that opens the URL copy dialog (same as Community & Support footer).
+        --- Uses MakeDashboardWelcomeMixedScriptText (2002.TTF) so baselines match adjacent Welcome lines.
+        local function CreateWelcomeURLLinkButton(parent, text, url, linkLabelForDialog)
+            local btn = CreateFrame("Button", nil, parent)
+            btn:SetFrameLevel((parent:GetFrameLevel() or 0) + 2)
+            local lbl = MakeDashboardWelcomeMixedScriptText(btn, text, 12, 0.45, 0.72, 0.95, "LEFT")
+            lbl:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+            local underline = btn:CreateTexture(nil, "OVERLAY")
+            underline:SetHeight(1)
+            underline:SetPoint("BOTTOMLEFT", lbl, "BOTTOMLEFT", 0, -1)
+            underline:SetPoint("BOTTOMRIGHT", lbl, "BOTTOMRIGHT", 0, -1)
+            underline:SetColorTexture(0.45, 0.72, 0.95, 0.65)
+            underline:Hide()
+            btn:SetScript("OnClick", function()
+                ShowCopyURL(linkLabelForDialog or text, url)
+            end)
+            btn:SetScript("OnEnter", function()
+                lbl:SetTextColor(0.65, 0.88, 1, 1)
+                underline:Show()
+            end)
+            btn:SetScript("OnLeave", function()
+                lbl:SetTextColor(0.45, 0.72, 0.95, 1)
+                underline:Hide()
+            end)
+            btn._linkLabel = lbl
+            local lh = lbl:GetHeight() or 14
+            btn:SetSize(math.max(40, (lbl:GetStringWidth() or 0) + 4), math.max(14, lh + 2))
+            return btn
         end
 
         local LayoutWelcomeContent
@@ -574,6 +621,49 @@ function addon.DashboardHomeWelcome_Init(env)
         local introFs = MakeDashboardWelcomeMixedScriptText(content, L["DASH_WELCOME_INTRO"] or "", 13, 0.72, 0.74, 0.78, "LEFT")
         introFs:SetWordWrap(true)
         introFs:SetSpacing(4)
+
+        -- Class icons: same shell as Coming Soon (banner, not accordion).
+        local classIconsHero = CreateFrame("Frame", nil, content)
+        classIconsHero:SetClipsChildren(true)
+        local classIconsBg = classIconsHero:CreateTexture(nil, "BACKGROUND")
+        classIconsBg:SetAllPoints()
+        classIconsBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+        local classIconsDivider = classIconsHero:CreateTexture(nil, "ARTWORK")
+        classIconsDivider:SetHeight(1)
+        classIconsDivider:SetPoint("BOTTOMLEFT", 14, 0)
+        classIconsDivider:SetPoint("BOTTOMRIGHT", -14, 0)
+        local cidr, cidg, cidb = GetAccentColor()
+        classIconsDivider:SetColorTexture(cidr, cidg, cidb, 0.2)
+        local classIconsAccent = classIconsHero:CreateTexture(nil, "ARTWORK")
+        classIconsAccent:SetWidth(3)
+        local ciar, ciag, ciab = GetAccentColor()
+        classIconsAccent:SetColorTexture(ciar, ciag, ciab, 1)
+        local classIconsTitleFs = MakeText(classIconsHero, L["DASH_WELCOME_CLASS_ICONS_HEADING"] or "New: Horizon class icons", 22, 1, 1, 1, "LEFT")
+        local classIconsLeadFs = MakeDashboardWelcomeMixedScriptText(classIconsHero, L["DASH_WELCOME_CLASS_ICONS_LEAD"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
+        classIconsLeadFs:SetWordWrap(true)
+        classIconsLeadFs:SetSpacing(4)
+        local classIconsThankBoofulsFs = MakeDashboardWelcomeMixedScriptText(classIconsHero, L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
+        classIconsThankBoofulsFs:SetWordWrap(true)
+        classIconsThankBoofulsFs:SetSpacing(4)
+        local classIconsCreatedRow = CreateFrame("Frame", nil, classIconsHero)
+        classIconsCreatedRow:SetHeight(20)
+        local classIconsCreatedPrefixFs = MakeDashboardWelcomeMixedScriptText(classIconsCreatedRow, L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+        classIconsCreatedPrefixFs:SetWordWrap(false)
+        classIconsCreatedPrefixFs:SetPoint("TOPLEFT", classIconsCreatedRow, "TOPLEFT", 0, 0)
+        local classIconsArtistBtn = CreateWelcomeURLLinkButton(
+            classIconsCreatedRow,
+            L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"] or "Gabriel C",
+            DASH_CLASS_ICONS_ARTIST_URL,
+            L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"] or "Gabriel C"
+        )
+        classIconsArtistBtn:SetPoint("BOTTOMLEFT", classIconsCreatedPrefixFs, "BOTTOMRIGHT", 2, 0)
+        local classIconsStrip = CreateFrame("Frame", nil, classIconsHero)
+        classIconsStrip.textures = {}
+        for i = 1, #WELCOME_CLASS_ICON_STRIP_ORDER do
+            local tex = classIconsStrip:CreateTexture(nil, "ARTWORK", nil, 1)
+            tex:SetTexCoord(0, 1, 0, 1)
+            classIconsStrip.textures[i] = tex
+        end
 
         local comingSoonHero = CreateFrame("Frame", nil, content)
         comingSoonHero:SetClipsChildren(true)
@@ -652,39 +742,76 @@ function addon.DashboardHomeWelcome_Init(env)
             introFs:SetPoint("TOPLEFT", content, "TOPLEFT", WELCOME_SCROLL_BODY_X_INSET, -y)
             y = y + introFs:GetHeight() + 12
 
-            contributorsBodyFs:ClearAllPoints()
-            contributorsBodyFs:SetPoint("TOPLEFT", contributorsCard.settingsContainer, "TOPLEFT", innerPad, -10)
-            contributorsBodyFs:SetPoint("TOPRIGHT", contributorsCard.settingsContainer, "TOPRIGHT", -innerPad, -10)
-            local contribBodyH = contributorsBodyFs:GetHeight()
-            contributorsCard.fullHeight = WELCOME_ACC_HEAD_H + 10 + contribBodyH + 14
-            if not contributorsCard.anim:IsPlaying() then
-                if contributorsCard.expanded then
-                    contributorsCard:SetHeight(contributorsCard.fullHeight)
-                else
-                    contributorsCard:SetHeight(contributorsCard.collapsedHeight)
+            -- Class icons hero (same padding rhythm as Coming Soon single-column).
+            local classHeroPad = 28
+            local classTextW = w - classHeroPad * 2
+            classIconsTitleFs:SetText(L["DASH_WELCOME_CLASS_ICONS_HEADING"] or "New: Horizon class icons")
+            classIconsLeadFs:SetText(L["DASH_WELCOME_CLASS_ICONS_LEAD"] or "")
+            classIconsThankBoofulsFs:SetText(L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"] or "")
+            classIconsCreatedPrefixFs:SetText(L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"] or "")
+            classIconsHero:SetWidth(w)
+            classIconsHero:ClearAllPoints()
+            classIconsHero:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            classIconsAccent:ClearAllPoints()
+            classIconsAccent:SetPoint("TOPLEFT", classIconsHero, "TOPLEFT", 14, -14)
+            local cyt = classHeroPad
+            classIconsTitleFs:SetWidth(classTextW)
+            classIconsTitleFs:ClearAllPoints()
+            classIconsTitleFs:SetPoint("TOPLEFT", classIconsHero, "TOPLEFT", classHeroPad, -cyt)
+            cyt = cyt + classIconsTitleFs:GetHeight() + 8
+            classIconsLeadFs:SetWidth(classTextW)
+            classIconsLeadFs:ClearAllPoints()
+            classIconsLeadFs:SetPoint("TOPLEFT", classIconsHero, "TOPLEFT", classHeroPad, -cyt)
+            local leadH = classIconsLeadFs:GetHeight()
+            cyt = cyt + leadH + 6
+            classIconsThankBoofulsFs:SetWidth(classTextW)
+            classIconsThankBoofulsFs:ClearAllPoints()
+            classIconsThankBoofulsFs:SetPoint("TOPLEFT", classIconsHero, "TOPLEFT", classHeroPad, -cyt)
+            local thankH = classIconsThankBoofulsFs:GetHeight()
+            cyt = cyt + thankH + 6
+            if classIconsArtistBtn._linkLabel then
+                classIconsArtistBtn._linkLabel:SetText(L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"] or "Gabriel C")
+                classIconsArtistBtn:SetWidth(math.max(40, (classIconsArtistBtn._linkLabel:GetStringWidth() or 0) + 4))
+                classIconsArtistBtn:SetHeight(math.max(16, (classIconsArtistBtn._linkLabel:GetHeight() or 14) + 2))
+            end
+            classIconsCreatedRow:SetWidth(classTextW)
+            classIconsCreatedRow:ClearAllPoints()
+            classIconsCreatedRow:SetPoint("TOPLEFT", classIconsHero, "TOPLEFT", classHeroPad, -cyt)
+            classIconsCreatedPrefixFs:ClearAllPoints()
+            classIconsCreatedPrefixFs:SetPoint("TOPLEFT", classIconsCreatedRow, "TOPLEFT", 0, 0)
+            classIconsArtistBtn:ClearAllPoints()
+            classIconsArtistBtn:SetPoint("BOTTOMLEFT", classIconsCreatedPrefixFs, "BOTTOMRIGHT", 2, 0)
+            local rowH = math.max(classIconsCreatedPrefixFs:GetHeight(), classIconsArtistBtn:GetHeight())
+            classIconsCreatedRow:SetHeight(math.max(rowH, 1))
+            cyt = cyt + rowH + 6
+            local nStrip = #WELCOME_CLASS_ICON_STRIP_ORDER
+            local stripGap = 4
+            local maxStripW = classTextW
+            local iconPx = math.max(8, math.floor((maxStripW - (nStrip - 1) * stripGap) / nStrip))
+            classIconsStrip:ClearAllPoints()
+            classIconsStrip:SetPoint("TOPLEFT", classIconsHero, "TOPLEFT", classHeroPad, -cyt)
+            classIconsStrip:SetSize(maxStripW, iconPx + 6)
+            for i = 1, nStrip do
+                local tex = classIconsStrip.textures[i]
+                if tex then
+                    local cf = WELCOME_CLASS_ICON_STRIP_ORDER[i]
+                    if addon.ResolveClassIconDisplay then
+                        local disp = addon.ResolveClassIconDisplay(cf, "custom")
+                        if disp and disp.kind == "file" and disp.path then
+                            tex:SetTexture(disp.path)
+                        end
+                    end
+                    tex:SetSize(iconPx, iconPx)
+                    tex:ClearAllPoints()
+                    tex:SetPoint("TOPLEFT", classIconsStrip, "TOPLEFT", (i - 1) * (iconPx + stripGap), -2)
                 end
             end
-            contributorsCard:SetWidth(w)
-            contributorsCard:ClearAllPoints()
-            contributorsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-            y = y + contributorsCard:GetHeight() + 8
-
-            localisationsBodyFs:ClearAllPoints()
-            localisationsBodyFs:SetPoint("TOPLEFT", localisationsCard.settingsContainer, "TOPLEFT", innerPad, -10)
-            localisationsBodyFs:SetPoint("TOPRIGHT", localisationsCard.settingsContainer, "TOPRIGHT", -innerPad, -10)
-            local locBodyH = localisationsBodyFs:GetHeight()
-            localisationsCard.fullHeight = WELCOME_ACC_HEAD_H + 10 + locBodyH + 14
-            if not localisationsCard.anim:IsPlaying() then
-                if localisationsCard.expanded then
-                    localisationsCard:SetHeight(localisationsCard.fullHeight)
-                else
-                    localisationsCard:SetHeight(localisationsCard.collapsedHeight)
-                end
-            end
-            localisationsCard:SetWidth(w)
-            localisationsCard:ClearAllPoints()
-            localisationsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-            y = y + localisationsCard:GetHeight() + 16
+            local stripH = iconPx + 10
+            cyt = cyt + stripH
+            local classIconsHeroH = cyt + classHeroPad
+            classIconsHero:SetHeight(math.max(classIconsHeroH, 1))
+            classIconsAccent:SetPoint("BOTTOMLEFT", classIconsHero, "BOTTOMLEFT", 14, 14)
+            y = y + classIconsHero:GetHeight() + 8
 
             local heroPad = 28
             comingSoonTitleFs:SetText(L["DASH_WELCOME_COMING_SOON_TITLE"] or "Coming Soon")
@@ -742,6 +869,40 @@ function addon.DashboardHomeWelcome_Init(env)
             end
             comingSoonHero:SetHeight(math.max(heroH, 1))
             y = y + comingSoonHero:GetHeight() + 16
+
+            contributorsBodyFs:ClearAllPoints()
+            contributorsBodyFs:SetPoint("TOPLEFT", contributorsCard.settingsContainer, "TOPLEFT", innerPad, -10)
+            contributorsBodyFs:SetPoint("TOPRIGHT", contributorsCard.settingsContainer, "TOPRIGHT", -innerPad, -10)
+            local contribBodyH = contributorsBodyFs:GetHeight()
+            contributorsCard.fullHeight = WELCOME_ACC_HEAD_H + 10 + contribBodyH + 14
+            if not contributorsCard.anim:IsPlaying() then
+                if contributorsCard.expanded then
+                    contributorsCard:SetHeight(contributorsCard.fullHeight)
+                else
+                    contributorsCard:SetHeight(contributorsCard.collapsedHeight)
+                end
+            end
+            contributorsCard:SetWidth(w)
+            contributorsCard:ClearAllPoints()
+            contributorsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            y = y + contributorsCard:GetHeight() + 8
+
+            localisationsBodyFs:ClearAllPoints()
+            localisationsBodyFs:SetPoint("TOPLEFT", localisationsCard.settingsContainer, "TOPLEFT", innerPad, -10)
+            localisationsBodyFs:SetPoint("TOPRIGHT", localisationsCard.settingsContainer, "TOPRIGHT", -innerPad, -10)
+            local locBodyH = localisationsBodyFs:GetHeight()
+            localisationsCard.fullHeight = WELCOME_ACC_HEAD_H + 10 + locBodyH + 14
+            if not localisationsCard.anim:IsPlaying() then
+                if localisationsCard.expanded then
+                    localisationsCard:SetHeight(localisationsCard.fullHeight)
+                else
+                    localisationsCard:SetHeight(localisationsCard.collapsedHeight)
+                end
+            end
+            localisationsCard:SetWidth(w)
+            localisationsCard:ClearAllPoints()
+            localisationsCard:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            y = y + localisationsCard:GetHeight() + 16
 
             content:SetHeight(math.max(y + 8, 1))
 

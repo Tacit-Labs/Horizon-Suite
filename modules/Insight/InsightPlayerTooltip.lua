@@ -398,11 +398,12 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 end
                 local iconPrefix = ""
                 if ShowIcons() then
-                    local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile, 14)
+                    local lineIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
+                    local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile)
                     if classIcon then
                         iconPrefix = classIcon
                     elseif cached and cached.specIcon then
-                        iconPrefix = "|T" .. cached.specIcon .. ":14:14:0:0|t "
+                        iconPrefix = "|T" .. cached.specIcon .. ":" .. lineIconPx .. ":" .. lineIconPx .. ":0:0|t "
                     end
                 end
                 local roleSuffix = ""
@@ -489,9 +490,10 @@ function Insight.RenderTestTooltipContent(tooltip)
 
     local rc = Insight.ROLE_COLORS["TANK"]
     local roleHex = string.format("%02x%02x%02x", math.floor(rc[1] * 255), math.floor(rc[2] * 255), math.floor(rc[3] * 255))
-    local classIconStr = (showIcons and Insight.GetClassIconTexture and Insight.GetClassIconTexture("DEATHKNIGHT", 14)) or ""
+    local testIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
+    local classIconStr = (showIcons and Insight.GetClassIconTexture and Insight.GetClassIconTexture("DEATHKNIGHT")) or ""
     if classIconStr == "" and showIcons then
-        classIconStr = "|TInterface\\Icons\\spell_deathknight_bloodpresence:14:14:0:0|t "
+        classIconStr = "|TInterface\\Icons\\spell_deathknight_bloodpresence:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t "
     end
     tooltip:AddLine(
         classIconStr .. "Blood Death Knight  |cff" .. roleHex .. "Tank|r",
