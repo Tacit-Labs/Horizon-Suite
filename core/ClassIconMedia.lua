@@ -1,7 +1,8 @@
 --[[
-    Horizon Suite - Class icon media (Blizzard atlas / RondoMedia / bundled).
+    Horizon Suite - Class icon media (Blizzard atlas / RondoMedia / bundled / custom addon media).
     Shared by Insight tooltips and the Dashboard; not Insight-specific.
     RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia
+    Custom icons: media/CustomClassIcons/<CLASSFILE>/<classfile lower>.tga (e.g. WARRIOR/warrior.tga).
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -35,12 +36,27 @@ local function BundledRondoBasePath()
     return ("Interface\\AddOns\\%s\\media\\RondoClassIcons\\%s\\32x32\\"):format(folder, RONDO_BORDER_FOLDER)
 end
 
+-- classFile must be a known playable class (same set as Rondo map).
+local function BundledCustomClassIconPath(classFile)
+    if not classFile or not addon.CLASS_ICON_RONDO_NAMES[classFile] then return nil end
+    local folder = addon.ADDON_NAME or "HorizonSuite"
+    local lower = strlower(classFile)
+    return ("Interface\\AddOns\\%s\\media\\CustomClassIcons\\%s\\%s.tga"):format(folder, classFile, lower)
+end
+
 --- Resolve class icon for Texture:SetTexture / SetAtlas or tooltip |T markup.
 --- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
---- @param source string "default" | "rondomedia"
+--- @param source string "default" | "rondomedia" | "custom"
 --- @return table|nil { kind = "file", path = string } | { kind = "atlas", atlas = string }
 function addon.ResolveClassIconDisplay(classFile, source)
     if not classFile then return nil end
+    if source == "custom" then
+        local path = BundledCustomClassIconPath(classFile)
+        if path then
+            return { kind = "file", path = path }
+        end
+        return nil
+    end
     if source == "rondomedia" then
         local displayName = addon.CLASS_ICON_RONDO_NAMES[classFile]
         if displayName then
