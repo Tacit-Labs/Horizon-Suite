@@ -4,6 +4,7 @@
     Player/NPC/Item logic lives in InsightPlayerTooltip, InsightNpcTooltip, InsightItemTooltip.
 ]]
 
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
@@ -116,15 +117,19 @@ end
 local function HookTooltipOnShow(tooltip)
     tooltip:HookScript("OnShow", function(self)
         if not Insight.IsInsightEnabled() then return end
+        -- Suppress when ProcessUnitTooltip is driving Show(); it will call StyleTooltipFull itself.
+        if self._insightSuppressOnShowStyle then return end
         if addon.GetDB("insightHideTooltipsInCombat", false) and InCombatLockdown() then
             self:Hide()
             return
         end
+        -- Rapid re-show (AH browsing): skip backdrop reset to avoid flash; TDP post-call applies correct styling.
+        if self._insightLastHideTime and (GetTime() - self._insightLastHideTime) < 0.15 then
+            Insight.StripNineSlice(self)
+            return
+        end
         Insight.StripNineSlice(self)
         Insight.ApplyBackdrop(self)
-        if self._insightItemQuality then
-            ApplyItemIdentity(self, self._insightItemQuality)
-        end
     end)
 end
 
@@ -133,6 +138,8 @@ local function HookTooltipShowMethod(tooltip)
     hookedShow[tooltip] = true
     hooksecurefunc(tooltip, "Show", function(self)
         if not Insight.IsInsightEnabled() then return end
+        -- Suppress when ProcessUnitTooltip is driving Show(); StyleTooltipFull handles fonts after Show().
+        if self._insightSuppressOnShowStyle then return end
         if not self._insightUnitTooltip and not self._insightItemMetadata then
             self._insightTooltipType = "other"
         end
@@ -152,6 +159,7 @@ local suppressFadeIn = false
 local lastTooltipItemLinkByTT = setmetatable({}, { __mode = "k" })
 -- [tooltip] = { state, elapsed, fadeInStartAlpha, fadeOutStartAlpha, lastAppliedAlpha }
 local tooltipFadeData         = setmetatable({}, { __mode = "k" })
+local toRemove                = {}  -- reused each OnUpdate tick; avoids per-tick allocation
 
 -- Stale unit-tooltip dismiss: debounce from insightTooltipDismissGrace; fade length from insightTooltipFadeOutSec.
 -- Race with Blizzard: if the client calls GameTooltip:Hide() before our dismiss runs, the tooltip "pops" with no custom fade.
@@ -268,7 +276,7 @@ end
 animFrame:SetScript("OnUpdate", function(self, elapsed)
     local durIn = Insight.FADE_IN_DUR
     local durOut = Insight.FADE_OUT_DUR or durIn
-    local toRemove = {}
+    wipe(toRemove)
     for tt, d in pairs(tooltipFadeData) do
         if d.state == FADE_STATE_FADEIN then
             d.elapsed = d.elapsed + elapsed
@@ -417,6 +425,18 @@ local function HookGameTooltipAnimation()
         if not Insight.IsInsightEnabled() then return end
         -- New show cancels a stale fade-out (e.g. user hovered something else mid-fade).
         CancelTooltipFadeOutIfNeeded(self)
+        -- Rapid re-show (AH browsing): skip fade-in to avoid alpha flash.
+        if self._insightLastHideTime and (GetTime() - self._insightLastHideTime) < 0.15 then
+            self._insightLastHideTime = nil
+            local fadeKey = GetTooltipItemFadeKey(self)
+            lastTooltipItemLinkByTT[self] = fadeKey
+            self:SetAlpha(1)
+            if not HasActiveTooltipFadeDriver() then
+                animFrame:Hide()
+            end
+            return
+        end
+        self._insightLastHideTime = nil
         -- pcall: GetUnit can throw or return secret values on Midnight; do not compare or branch on the token string.
         local hasUnit = false
         if self.GetUnit then
@@ -467,6 +487,9 @@ local function HookGameTooltipAnimation()
         self._insightUnitTooltip = nil
         self._insightTooltipType = nil
         self._insightLastAnchorParent = nil
+        self._insightStyled = nil
+        -- Timestamp for rapid re-show detection (AH browsing: Hide→Show within one frame).
+        self._insightLastHideTime = GetTime()
     end)
     GameTooltip:HookScript("OnUpdate", function(self, elapsed)
         if not Insight.IsInsightEnabled() then return end
@@ -683,15 +706,19 @@ local function ProcessUnitTooltip(tooltip)
     end
 
     if processed then
-        Insight.StyleFonts(tooltip)
         if not alreadyVisible then
-            -- First show this pass: Show() can repopulate Blizzard health/power text after our edits.
+            -- Suppress OnShow/Show hooks so StyleTooltipFull below is the single authoritative styling pass.
+            tooltip._insightSuppressOnShowStyle = true
             tooltip:Show()
+            tooltip._insightSuppressOnShowStyle = nil
         end
-        -- Second strip after Show when we showed; same strip when already visible (no redundant Show).
+        -- Strip after Show (Show() can repopulate Blizzard health/power text).
         StripHealthAndPowerText(tooltip)
-        -- TooltipDataProcessor can refresh without OnShow; re-apply cinematic chrome (OnShow-only hooks would skip).
-        Insight.StyleTooltipFull(tooltip)
+        -- Apply cinematic chrome once per tooltip lifetime; cleared on OnHide for the next hover.
+        if not tooltip._insightStyled then
+            Insight.StyleTooltipFull(tooltip)
+            tooltip._insightStyled = true
+        end
         pcall(ReapplyUnitTooltipBorder, tooltip, unit, isPlayer)
     end
 end
@@ -714,7 +741,7 @@ local function OnItemTooltip(tooltip, data)
     if not itemID then return end
 
     -- Item identity: quality-colored border and separator tint
-    local quality = (data and data.quality) or (GetItemInfo and select(3, GetItemInfo(itemID)))
+    local quality = (data and data.quality) or (C_Item and C_Item.GetItemInfo and select(3, C_Item.GetItemInfo(itemID)))
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
         if r then
@@ -980,6 +1007,7 @@ function Insight.ApplyInsightOptions()
         ApplyLiveBackdropColor(anchorFrame)
     end
     for _, tt in ipairs(tooltipsToStyle) do
+        tt._insightStyled = nil
         ApplyLiveBackdropColor(tt)
     end
     if addon.DashboardPreview and addon.DashboardPreview.NotifyRefresh then
@@ -1249,9 +1277,6 @@ local function HandleInsightDebugSlash(msg)
         local isRondo = false
         if C_AddOns and C_AddOns.IsAddOnLoaded then
             local ok, r = pcall(C_AddOns.IsAddOnLoaded, "RondoMedia")
-            isRondo = ok and r
-        elseif type(IsAddOnLoaded) == "function" then
-            local ok, r = pcall(IsAddOnLoaded, "RondoMedia")
             isRondo = ok and r
         end
         local rondo = addon.CLASS_ICON_RONDO_NAMES

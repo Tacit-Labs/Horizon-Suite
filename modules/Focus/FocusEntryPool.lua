@@ -135,27 +135,18 @@ local function CreateQuestEntry(parent, index)
     e.questIconBtn._ownerEntry = e
     e.questIconBtn:SetScript("OnMouseDown", function(self, button)
         if button ~= "LeftButton" then return end
-        if not addon.GetDB("useClassicClickBehaviour", false) then return end
         local entry = self._ownerEntry
-        if not entry or not entry.questID then return end
-        local questID = entry.questID
-        if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
-            local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
-            if currentFocused and currentFocused == questID then
-                C_SuperTrack.SetSuperTrackedQuestID(0)
-                if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
-            else
-                C_SuperTrack.SetSuperTrackedQuestID(questID)
-                if addon.GetDB("tomtomQuestWaypoint", false) and addon.SetQuestWaypoint then
-                    addon.SetQuestWaypoint(questID, true)
-                end
+        if not entry then return end
+        if entry.isAppearance and entry.appearanceID and addon.GetDB("useClassicClickBehaviour", false) then
+            if addon.HandleClassicAppearanceIconMouseDown then
+                addon.HandleClassicAppearanceIconMouseDown(entry)
             end
-            local wqtPanel = _G.WorldQuestTrackerScreenPanel
-            if wqtPanel and wqtPanel:IsShown() then
-                wqtPanel:Hide()
-            end
+            return
         end
-        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        if not addon.GetDB("useClassicClickBehaviour", false) then return end
+        if addon.HandleClassicQuestIconMouseDown then
+            addon.HandleClassicQuestIconMouseDown(entry)
+        end
     end)
     e.questIconBtn:SetScript("OnEnter", function(self)
         local entry = self._ownerEntry

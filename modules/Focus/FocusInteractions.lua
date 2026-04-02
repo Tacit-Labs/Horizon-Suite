@@ -9,6 +9,7 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 -- ============================================================================
 
 local pool = addon.pool
+local CLASSIC_ICON_CLICK_DEBOUNCE = 0.05
 
 --- Append a WoWhead link line to GameTooltip when option is on and entry has a known URL.
 --- @param entry table Pool entry (self) with questID, achievementID, and/or creatureID
@@ -160,6 +161,250 @@ local function ShowQuestContextMenu(questID, questName, anchor)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- Tracked appearances (Horizon vs classic click behaviour)
+-- ---------------------------------------------------------------------------
+
+local function GetAppearanceDressLink(entry)
+    if entry.appearanceItemLink and type(entry.appearanceItemLink) == "string" and entry.appearanceItemLink ~= "" then
+        return entry.appearanceItemLink
+    end
+    if entry.appearanceID and C_TransmogCollection and C_TransmogCollection.GetAppearanceSourceInfo then
+        local ok, info = pcall(C_TransmogCollection.GetAppearanceSourceInfo, entry.appearanceID)
+        if ok and info and type(info) == "table" and info.itemLink and type(info.itemLink) == "string" and info.itemLink ~= "" then
+            return info.itemLink
+        end
+    end
+    return nil
+end
+
+local function AppearanceOpenDressingRoom(entry)
+    local link = GetAppearanceDressLink(entry)
+    if not link then return end
+    if DressUpItemLink and type(DressUpItemLink) == "function" then
+        pcall(DressUpItemLink, link)
+    end
+end
+
+local function AppearanceStopTracking(appearanceID)
+    if not appearanceID then return end
+    if addon._appearanceWaypointTargetID == appearanceID and addon.ClearAppearanceWaypoint then
+        addon.ClearAppearanceWaypoint()
+    end
+    local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
+    local stopType = Enum and Enum.ContentTrackingStopType and Enum.ContentTrackingStopType.Manual
+    if trackType and stopType and C_ContentTracking and C_ContentTracking.StopTracking then
+        pcall(C_ContentTracking.StopTracking, trackType, appearanceID, stopType)
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function AppearanceOpenMapToTrackable(appearanceID)
+    if InCombatLockdown() then return end
+    local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
+    if trackType and ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
+        pcall(ContentTrackingUtil.OpenMapToTrackable, trackType, appearanceID)
+    end
+    if addon.SetAppearanceWaypoint then
+        addon.SetAppearanceWaypoint(appearanceID)
+    end
+end
+
+local function AppearanceToggleContentFocus(appearanceID)
+    if not appearanceID then return end
+    local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
+    if not trackType or not C_SuperTrack or not C_SuperTrack.GetSuperTrackedContent or not C_SuperTrack.SetSuperTrackedContent then
+        return
+    end
+    local ok, curType, curId = pcall(C_SuperTrack.GetSuperTrackedContent)
+    if ok and curType == trackType and curId == appearanceID then
+        if C_SuperTrack.ClearSuperTrackedContent then
+            pcall(C_SuperTrack.ClearSuperTrackedContent)
+        end
+        if addon.ClearAppearanceWaypoint then
+            addon.ClearAppearanceWaypoint()
+        end
+    else
+        -- Retail keeps a single super-track target; a focused quest prevents content super-track from sticking (focus flashes off).
+        if C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.SetSuperTrackedQuestID then
+            local okQ, qid = pcall(C_SuperTrack.GetSuperTrackedQuestID)
+            if okQ and type(qid) == "number" and qid > 0 then
+                pcall(C_SuperTrack.SetSuperTrackedQuestID, 0)
+                if addon.ClearQuestWaypoint then
+                    addon.ClearQuestWaypoint()
+                end
+            end
+        end
+        pcall(C_SuperTrack.SetSuperTrackedContent, trackType, appearanceID)
+        if addon.GetDB("useClassicClickBehaviour", false) then
+            AppearanceOpenMapToTrackable(appearanceID)
+        end
+        -- Horizon: do not SetAppearanceWaypoint here; same-frame TomTom/content-tracking APIs clear content super-track when a route exists. Use Shift+Left (AppearanceOpenMapToTrackable) for map + TomTom.
+    end
+    local wqtPanel = _G.WorldQuestTrackerScreenPanel
+    if wqtPanel and wqtPanel:IsShown() then
+        wqtPanel:Hide()
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function AppearanceClearFocusOnly()
+    if C_SuperTrack and C_SuperTrack.ClearSuperTrackedContent then
+        pcall(C_SuperTrack.ClearSuperTrackedContent)
+    end
+    if addon.ClearAppearanceWaypoint then
+        addon.ClearAppearanceWaypoint()
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+--- Classic mode: context menu for tracked appearance (Open Collections, Untrack).
+--- @param appearanceID number
+--- @param anchor Frame|nil
+local function ShowAppearanceContextMenu(appearanceID, anchor)
+    if not appearanceID then return end
+    local L = addon.L or {}
+    local menuList = {
+        {
+            text = L["OPTIONS_FOCUS_OPEN_APPEARANCES_COLLECTIONS"] or "Open Collections",
+            notCheckable = true,
+            func = function()
+                if addon.OpenTrackedAppearanceInCollections then
+                    addon.OpenTrackedAppearanceInCollections(appearanceID)
+                end
+            end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_UNTRACK_APPEARANCE"] or "Untrack appearance",
+            notCheckable = true,
+            func = function()
+                AppearanceStopTracking(appearanceID)
+            end,
+        },
+    }
+    if C_AddOns and C_AddOns.LoadAddOn then
+        pcall(C_AddOns.LoadAddOn, "Blizzard_UIDropDownMenu")
+    end
+    local menuFrame = _G.HorizonSuite_AppearanceContextMenu
+    if not menuFrame then
+        menuFrame = CreateFrame("Frame", "HorizonSuite_AppearanceContextMenu", UIParent, "UIDropDownMenuTemplate")
+        if not menuFrame then return end
+    end
+    local anchorFrame = anchor or UIParent
+    if EasyMenu then
+        if CloseDropDownMenus then CloseDropDownMenus() end
+        C_Timer.After(0, function()
+            EasyMenu(menuList, menuFrame, "cursor", 0, 0, "MENU")
+        end)
+    elseif UIDropDownMenu_Initialize and ToggleDropDownMenu and UIDropDownMenu_CreateInfo and UIDropDownMenu_AddButton then
+        local items = menuList
+        UIDropDownMenu_Initialize(menuFrame, function(dropdown, level, list)
+            if not level or level ~= 1 then return end
+            for _, item in ipairs(items) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = item.text
+                info.notCheckable = true
+                info.func = item.func
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end, "MENU", 1, nil)
+        if CloseDropDownMenus then CloseDropDownMenus() end
+        C_Timer.After(0, function()
+            ToggleDropDownMenu(1, nil, menuFrame, anchorFrame, 0, 0)
+        end)
+    end
+end
+
+--- Classic: left-click on quest type icon (questIconBtn). Called from FocusEntryPool and row fallback.
+--- @param entry Frame pool entry
+--- @return nil
+function addon.HandleClassicQuestIconMouseDown(entry)
+    if not entry or not entry.questID then return end
+
+    local now = (GetTimePreciseSec and GetTimePreciseSec()) or GetTime()
+    local lastClick = entry._classicQuestIconClickAt
+    if lastClick and (now - lastClick) < CLASSIC_ICON_CLICK_DEBOUNCE then
+        return
+    end
+    entry._classicQuestIconClickAt = now
+
+    local questID = entry.questID
+    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
+        local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
+        if currentFocused and currentFocused == questID then
+            C_SuperTrack.SetSuperTrackedQuestID(0)
+            if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
+        else
+            C_SuperTrack.SetSuperTrackedQuestID(questID)
+            if addon.GetDB("tomtomQuestWaypoint", false) and addon.SetQuestWaypoint then
+                addon.SetQuestWaypoint(questID, true)
+            end
+        end
+        local wqtPanel = _G.WorldQuestTrackerScreenPanel
+        if wqtPanel and wqtPanel:IsShown() then
+            wqtPanel:Hide()
+        end
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+--- Classic: left-click on appearance type icon (questIconBtn). Called from FocusEntryPool.
+--- @param entry Frame pool entry
+function addon.HandleClassicAppearanceIconMouseDown(entry)
+    if not entry or not entry.appearanceID then return end
+    local id = entry.appearanceID
+    if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
+        local link = GetAppearanceDressLink(entry)
+        if link then
+            ChatFrameUtil.InsertLink(link)
+            if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+            return
+        end
+    end
+    if IsAltKeyDown() then
+        local url = addon.GetWoWheadURL(entry)
+        if url and type(url) == "string" and url ~= "" then
+            if addon.ShowURLCopyBox then addon.ShowURLCopyBox(url) end
+            return
+        end
+    end
+    if IsShiftKeyDown() then
+        AppearanceStopTracking(id)
+        return
+    end
+    if IsControlKeyDown() then
+        AppearanceOpenDressingRoom(entry)
+        return
+    end
+    AppearanceToggleContentFocus(id)
+end
+
+--- @param entry Frame pool entry
+local function HandleAppearanceRowLeftClick(entry)
+    if not entry or not entry.appearanceID then return end
+    local id = entry.appearanceID
+    local useClassic = addon.GetDB("useClassicClickBehaviour", false)
+    if useClassic then
+        if entry.questIconBtn and entry.questIconBtn:IsVisible() and entry.questIconBtn:IsMouseOver() then
+            return
+        end
+        if IsControlKeyDown() then
+            AppearanceOpenDressingRoom(entry)
+            return
+        end
+        AppearanceOpenMapToTrackable(id)
+        return
+    end
+    -- Horizon: dressing room is Alt+Left on the pool entry (before WoWhead). Shift+Left is map there.
+    if IsControlKeyDown() then
+        if addon.OpenTrackedAppearanceInCollections then
+            addon.OpenTrackedAppearanceInCollections(id)
+        end
+        return
+    end
+    AppearanceToggleContentFocus(id)
+end
+
 StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] or {
     text = "Abandon %s?",
     button1 = YES,
@@ -189,6 +434,7 @@ StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSU
 -- ============================================================================
 
 local activeQuestWaypointUID
+local activeAppearanceWaypointUID
 
 local function TryWaypointOnMap(questID, mapID)
     if not mapID then return nil, nil end
@@ -302,12 +548,64 @@ local function GetQuestObjectiveCoords(questID)
     return nil, nil, nil
 end
 
+local function ClearAppearanceWaypoint()
+    addon._appearanceWaypointTargetID = nil
+    if not activeAppearanceWaypointUID then return end
+    local TomTom = _G.TomTom
+    if TomTom and TomTom.RemoveWaypoint then
+        pcall(TomTom.RemoveWaypoint, TomTom, activeAppearanceWaypointUID)
+    end
+    activeAppearanceWaypointUID = nil
+end
+
+local function ClearQuestWaypoint()
+    if not activeQuestWaypointUID then return end
+    local TomTom = _G.TomTom
+    if TomTom and TomTom.RemoveWaypoint then
+        pcall(TomTom.RemoveWaypoint, TomTom, activeQuestWaypointUID)
+    end
+    activeQuestWaypointUID = nil
+end
+
+--- TomTom arrow for super-tracked transmog appearance (same toggle as quest waypoints).
+--- @param appearanceID number
+local function SetAppearanceWaypoint(appearanceID)
+    if not appearanceID or appearanceID <= 0 then return end
+    if not addon.GetDB("tomtomQuestWaypoint", false) then return end
+    local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
+    if not trackType or not C_ContentTracking or not C_ContentTracking.GetBestMapForTrackable or not C_ContentTracking.GetNextWaypointForTrackable then
+        return
+    end
+    ClearQuestWaypoint()
+    local okBest, _, bestMapID = pcall(C_ContentTracking.GetBestMapForTrackable, trackType, appearanceID, false)
+    if not okBest or not bestMapID or bestMapID == 0 then return end
+    local okNext, _, mapInfo = pcall(C_ContentTracking.GetNextWaypointForTrackable, trackType, appearanceID, bestMapID)
+    if not okNext or not mapInfo or type(mapInfo) ~= "table" then return end
+    local x, y = mapInfo.x, mapInfo.y
+    if type(x) ~= "number" or type(y) ~= "number" then return end
+    local title = "Appearance " .. tostring(appearanceID)
+    if C_ContentTracking.GetTitle then
+        local okT, t = pcall(C_ContentTracking.GetTitle, trackType, appearanceID)
+        if okT and t and type(t) == "string" and t ~= "" then title = t end
+    end
+    ClearAppearanceWaypoint()
+    local TomTom = _G.TomTom
+    if TomTom and TomTom.AddWaypoint then
+        local okAdd, uid = pcall(TomTom.AddWaypoint, TomTom, bestMapID, x, y, { title = title, persistent = false, minimap = true, world = true, crazy = true })
+        activeAppearanceWaypointUID = okAdd and uid or nil
+        if activeAppearanceWaypointUID then
+            addon._appearanceWaypointTargetID = appearanceID
+        end
+    end
+end
+
 --- Place a waypoint for a quest (TomTom or native). When keepQuestSuperTracked is true,
 --- do not call SetSuperTrackedUserWaypoint so the quest remains the super-track target
 --- (blue highlight in Focus, yellow in Blizzard quest log).
 --- @param questID number
 --- @param keepQuestSuperTracked boolean|nil If true, do not override quest super-track with user waypoint
 local function SetQuestWaypoint(questID, keepQuestSuperTracked)
+    ClearAppearanceWaypoint()
     if not questID or questID <= 0 then return end
     if not C_QuestLog then return end
     local mapID, x, y = GetQuestObjectiveCoords(questID)
@@ -337,17 +635,10 @@ local function SetQuestWaypoint(questID, keepQuestSuperTracked)
     end
 end
 
-local function ClearQuestWaypoint()
-    if not activeQuestWaypointUID then return end
-    local TomTom = _G.TomTom
-    if TomTom and TomTom.RemoveWaypoint then
-        pcall(TomTom.RemoveWaypoint, TomTom, activeQuestWaypointUID)
-    end
-    activeQuestWaypointUID = nil
-end
-
 addon.SetQuestWaypoint = SetQuestWaypoint
 addon.ClearQuestWaypoint = ClearQuestWaypoint
+addon.SetAppearanceWaypoint = SetAppearanceWaypoint
+addon.ClearAppearanceWaypoint = ClearAppearanceWaypoint
 
 local function AppendDelveTooltipData(self, tooltip)
     if self.tierSpellID and addon.GetDB("showDelveAffixes", true) then
@@ -400,6 +691,17 @@ for i = 1, addon.POOL_SIZE do
 
     e:SetScript("OnMouseDown", function(self, button)
         if button == "LeftButton" then
+            -- Tracked appearance: Shift+Left is map (Horizon) or untrack (Classic). Run before CHATLINK or Shift is consumed as chat-link.
+            if self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$") and IsShiftKeyDown() then
+                if not (self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver()) then
+                    if addon.GetDB("useClassicClickBehaviour", false) then
+                        AppearanceStopTracking(self.appearanceID)
+                    else
+                        AppearanceOpenMapToTrackable(self.appearanceID)
+                    end
+                end
+                return
+            end
             -- Shift+click to link in chat (native WoW behavior). Must run before any other click handling.
             if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
                 if self.questID and GetQuestLink then
@@ -422,6 +724,11 @@ for i = 1, addon.POOL_SIZE do
                     local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, self.adventureGuideID)
                     if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link); return end
                 end
+            end
+            -- Horizon tracked appearance: Alt+Left opens dressing room (not WoWhead). Skip when Ctrl is held so Ctrl+Left still reaches Collections below.
+            if self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$") and IsAltKeyDown() and not IsControlKeyDown() and not addon.GetDB("useClassicClickBehaviour", false) then
+                AppearanceOpenDressingRoom(self)
+                return
             end
             -- Alt+LeftClick: show WoWhead URL in the copy box so the user can Ctrl+C and paste in a browser.
             if IsAltKeyDown() then
@@ -506,16 +813,7 @@ for i = 1, addon.POOL_SIZE do
                 end
                 local appearanceIDMatch = self.entryKey:match("^appearance:(%d+)$")
                 if appearanceIDMatch and self.appearanceID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if IsShiftKeyDown() then
-                        if InCombatLockdown() then return end
-                        if Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance and ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
-                            pcall(ContentTrackingUtil.OpenMapToTrackable, Enum.ContentTrackingType.Appearance, self.appearanceID)
-                        end
-                    elseif addon.OpenTrackedAppearanceInCollections then
-                        addon.OpenTrackedAppearanceInCollections(self.appearanceID)
-                    end
+                    HandleAppearanceRowLeftClick(self)
                     return
                 end
                 local advMatch = self.entryKey:match("^advguide:")
@@ -605,24 +903,9 @@ for i = 1, addon.POOL_SIZE do
                 end
                 -- If click was on the quest icon, handle super-track here (entry may receive click before child).
                 if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
-                    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
-                        local questID = self.questID
-                        local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
-                        if currentFocused and currentFocused == questID then
-                            C_SuperTrack.SetSuperTrackedQuestID(0)
-                            if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
-                        else
-                            C_SuperTrack.SetSuperTrackedQuestID(questID)
-                            if addon.GetDB("tomtomQuestWaypoint", false) and addon.SetQuestWaypoint then
-                                addon.SetQuestWaypoint(questID, true)
-                            end
-                        end
-                        local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                        if wqtPanel and wqtPanel:IsShown() then
-                            wqtPanel:Hide()
-                        end
+                    if addon.HandleClassicQuestIconMouseDown then
+                        addon.HandleClassicQuestIconMouseDown(self)
                     end
-                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                     return
                 end
                 -- Click-to-complete takes priority: auto-complete quests can be completed by left-click.
@@ -782,12 +1065,21 @@ for i = 1, addon.POOL_SIZE do
                 end
                 local appearanceIDMatch = self.entryKey:match("^appearance:(%d+)$")
                 if appearanceIDMatch and self.appearanceID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance and Enum.ContentTrackingStopType and Enum.ContentTrackingStopType.Manual and C_ContentTracking and C_ContentTracking.StopTracking then
-                        pcall(C_ContentTracking.StopTracking, Enum.ContentTrackingType.Appearance, self.appearanceID, Enum.ContentTrackingStopType.Manual)
+                    if addon.GetDB("useClassicClickBehaviour", false) then
+                        ShowAppearanceContextMenu(self.appearanceID, self)
+                    else
+                        local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
+                        if trackType and C_SuperTrack and C_SuperTrack.GetSuperTrackedContent then
+                            local ok, curType, curId = pcall(C_SuperTrack.GetSuperTrackedContent)
+                            if ok and curType == trackType and curId == self.appearanceID then
+                                AppearanceClearFocusOnly()
+                            else
+                                AppearanceStopTracking(self.appearanceID)
+                            end
+                        else
+                            AppearanceStopTracking(self.appearanceID)
+                        end
                     end
-                    addon.ScheduleRefresh()
                     return
                 end
                 local advMatch = self.entryKey:match("^advguide:")

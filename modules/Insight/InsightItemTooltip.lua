@@ -4,6 +4,7 @@
     Structured as append-only block builders (AddAppearanceBlock, etc.).
 ]]
 
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
@@ -35,8 +36,9 @@ local NON_TRANSMOG_EQUIP = {
 }
 
 local function IsTransmoggableItem(itemID)
-    if not GetItemInfo then return false end
-    local _, _, _, _, _, itemType, _, _, itemEquipLoc = GetItemInfo(itemID)
+    if not C_Item or not C_Item.GetItemInfo then return false end
+    local _, _, _, _, _, itemType, _, _, itemEquipLoc = C_Item.GetItemInfo(itemID)
+    if not itemType then return false end
     if itemType ~= "Armor" and itemType ~= "Weapon" then return false end
     if itemEquipLoc and NON_TRANSMOG_EQUIP[itemEquipLoc] then return false end
     return true
