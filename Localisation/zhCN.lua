@@ -1097,6 +1097,8 @@ L["UI_RARE_BOSSES"]                                                   = "稀有�
 L["UI_ACHIEVEMENTS"]                                                  = "成就"
 L["UI_ENDEAVORS"]                                                     = "宏图"
 L["UI_DECOR"]                                                         = "装饰"
+-- L["UI_RECIPES"]                                                    = "Recipes"  -- NEEDS TRANSLATION
+-- L["UI_ADVENTURE_GUIDE"]                                            = "Adventure Guide"  -- NEEDS TRANSLATION
 -- L["UI_APPEARANCES"]                                                = "Appearances"  -- NEEDS TRANSLATION
 L["UI_QUESTS"]                                                        = "任务"
 L["UI_READY_TO_TURN_IN"]                                              = "准备提交"
@@ -1671,6 +1673,9 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
+
 
 
 

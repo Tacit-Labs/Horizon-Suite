@@ -1098,6 +1098,8 @@ L["UI_RARE_BOSSES"]                                                   = "Rare bo
 L["UI_ACHIEVEMENTS"]                                                  = "ACHIEVEMENTS"
 L["UI_ENDEAVORS"]                                                     = "ENDEAVORS"
 L["UI_DECOR"]                                                         = "Decor"
+L["UI_RECIPES"]                                                       = "Recipes"
+L["UI_ADVENTURE_GUIDE"]                                               = "Adventure Guide"
 L["UI_APPEARANCES"]                                                   = "Appearances"
 L["UI_QUESTS"]                                                        = "QUESTS"
 L["UI_READY_TO_TURN_IN"]                                              = "READY TO TURN IN"
@@ -1672,6 +1674,9 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
 
 
 

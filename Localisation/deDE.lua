@@ -16,11 +16,11 @@ L["OPTIONS_FOCUS_OTHER"]                                              = "Andere"
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
 -- =====================================================================
-L["OPTIONS_FOCUS_QUEST_TYPES"]                                        = "Questtypen"
+L["OPTIONS_FOCUS_QUEST_TYPES"]                                        = "Quest-Typen"
 L["OPTIONS_FOCUS_ELEMENT_OVERRIDES"]                                  = "Elementübersteuerung"
 L["OPTIONS_FOCUS_PER_CATEGORY"]                                       = "Pro Kategorie"
 L["OPTIONS_FOCUS_GROUPING_OVERRIDES"]                                 = "Gruppenübersteuerung"
--- L["OPTIONS_FOCUS_SECTION_OVERRIDES"]                               = "Section Overrides"  -- NEEDS TRANSLATION
+L["OPTIONS_FOCUS_SECTION_OVERRIDES"]                                  = "Sektionübersteuerung"
 L["OPTIONS_FOCUS_COLORS"]                                             = "Weitere Farben"
 
 -- =====================================================================
@@ -34,11 +34,11 @@ L["OPTIONS_FOCUS_OBJECTIVE"]                                          = "Ziel"
 -- =====================================================================
 -- OptionsPanel.lua — Toggle switch labels & tooltips
 -- =====================================================================
-L["OPTIONS_FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"]                  = "Abgabereif überschreibt Basis-Farben"
-L["OPTIONS_FOCUS_READY_TURN_COLOURS_QUESTS"]                          = "Abgabereife Quests verwenden ihre Farben in diesem Abschnitt."
-L["OPTIONS_FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"]                = "Aktuelle Zone überschreibt Basis-Farben"
+L["OPTIONS_FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"]                  = "Abgabebereit überschreibt Basis-Farben"
+L["OPTIONS_FOCUS_READY_TURN_COLOURS_QUESTS"]                          = "Abgabebereite Quests verwenden ihre Farben in diesem Abschnitt."
+L["OPTIONS_FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"]                = "Aktuelle Zone überschreibt Basisfarben"
 L["OPTIONS_FOCUS_CURRENT_ZONE_COLOURS_QUESTS_SEC"]                    = "Quests der aktuellen Zone verwenden ihre Farben in diesem Abschnitt."
-L["OPTIONS_FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"]               = "Aktuelle Quest überschreibt Basis-Farben"
+L["OPTIONS_FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"]               = "Aktuelle Quest überschreibt Basisfarben"
 L["OPTIONS_FOCUS_CURRENT_QUEST_COLOURS_QUESTS_SE"]                    = "Quests der aktuellen Quest verwenden ihre Farben in diesem Abschnitt."
 L["OPTIONS_FOCUS_DISTINCT_COLOR_COMPLETED_OBJECTIVES"]                = "Abgeschlossene Ziele hervorheben"
 L["OPTIONS_FOCUS_COMPLETED_OBJECTIVES_E_G_COLOR_B"]                   = "An: abgeschlossene Ziele (z.B. 1/1) nutzen die Farbe unten. Aus: gleiche Farbe wie unvollständige Ziele."
@@ -48,7 +48,7 @@ L["OPTIONS_FOCUS_COMPLETED_OBJECTIVE"]                                = "Abgesch
 -- OptionsPanel.lua — Button labels
 -- =====================================================================
 L["OPTIONS_FOCUS_RESET"]                                              = "Zurücksetzen"
-L["OPTIONS_FOCUS_RESET_QUEST_TYPES"]                                  = "Questtypen zurücksetzen"
+L["OPTIONS_FOCUS_RESET_QUEST_TYPES"]                                  = "Quest-Typen zurücksetzen"
 L["OPTIONS_FOCUS_RESET_OVERRIDES"]                                    = "Übersteuerungen zurücksetzen"
 L["OPTIONS_FOCUS_RESET_DEFAULTS"]                                     = "Alle auf Standard zurücksetzen"
 L["OPTIONS_FOCUS_RESET_TO_DEFAULTS"]                                  = "Auf Standard zurücksetzen"
@@ -58,7 +58,7 @@ L["OPTIONS_FOCUS_RESET_DEFAULT"]                                      = "Auf Sta
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
 L["OPTIONS_FOCUS_SEARCH_SETTINGS"]                                    = "Einstellungen durchsuchen..."
-L["OPTIONS_FOCUS_SEARCH_FONTS"]                                       = "Schriften durchsuchen..."
+L["OPTIONS_FOCUS_SEARCH_FONTS"]                                       = "Schriftarten durchsuchen..."
 
 -- =====================================================================
 -- OptionsPanel.lua — Resize handle tooltip
@@ -70,43 +70,43 @@ L["OPTIONS_FOCUS_DRAG_RESIZE"]                                        = "Zum Ver
 -- =====================================================================
 L["OPTIONS_AXIS_PROFILES"]                                            = "Profile"
 L["OPTIONS_AXIS_MODULES"]                                             = "Module"
--- L["OPTIONS_AXIS_MODULE_TOGGLES"]                                   = "Module Toggles"  -- NEEDS TRANSLATION
+L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Modulsteuerung"
 
 -- =====================================================================
 -- options/dashboard/HomeWelcome.lua — First-run welcome
 -- =====================================================================
--- L["DASH_WHATS_NEW"]                                                = "Patch Notes"  -- NEEDS TRANSLATION
--- L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                  = " (New!)"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_TAB"]                                              = "Welcome"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_TITLE"]                                            = "Welcome to Horizon Suite"  -- NEEDS TRANSLATION
+L["DASH_WHATS_NEW"]                                                   = "Änderungen"
+L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                     = " (Neu!)"
+L["DASH_WELCOME_TAB"]                                                 = "Willkommen"
+L["DASH_WELCOME_TITLE"]                                               = "Willkommen bei der Horizon Suite"
 L["DASH_WELCOME_HEAD_SUB"]                                            = "What each module does and where to turn them on"
 L["DASH_WELCOME_INTRO"]                                               = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
 -- L["DASH_WELCOME_PATH"]                                             = "%s → %s → %s"  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_COMING_SOON_TITLE"]                                = "Coming Soon"  -- NEEDS TRANSLATION
+L["DASH_WELCOME_COMING_SOON_TITLE"]                                   = "In Kürze"
 -- L["DASH_WELCOME_COMING_SOON_TAGLINE"]                              = "New welcome experiences are on the way."  -- NEEDS TRANSLATION
 -- L["DASH_WELCOME_COMING_SOON_BODY"]                                 = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]  -- NEEDS TRANSLATION
--- L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                             = "Contributors"  -- NEEDS TRANSLATION
+L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                                = "Beitragende"
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
-• feanor21#2847 — Panoramuxa (Tarren Mill - EU) — Development
-• Marthix — Development
-• Swift — Coordinator
+• feanor21#2847 — Panoramuxa (Tarren Mill - EU) — Entwicklung
+• Marthix — Entwicklung
+• Swift — Koordinator
 • Boofuls — Moderator
 • RondoFerrari — RondoMedia (CurseForge addon) — Class icons in Insight tooltips and optional Dashboard header icon when class colors are on (optional)
-• Aishuu — French localisation (frFR)
-• 아즈샤라-두녘 — Korean localisation (koKR)
+• Aishuu — Französische Lokalisierung (frFR)
+• 아즈샤라-두녘 — Koreanische Lokalisierung (koKR)
 • Linho-Gallywix — Brazilian Portuguese localisation (ptBR)
-• allmoon — Chinese localisation (zhCN)]=]
--- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                            = "Localisations"  -- NEEDS TRANSLATION
+• allmoon — Chinesische Lokalisierung (zhCN)]=]
+L["DASH_WELCOME_LOCALISATIONS_HEADING"]                               = "Lokalisierungen"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The options panel is localised for:
 
-• Chinese (zhCN) — Localisation/zhCN.lua
-• French (frFR) — Localisation/frFR.lua
-• German (deDE) — Localisation/deDE.lua
-• Korean (koKR) — Localisation/koKR.lua
-• Brazilian Portuguese (ptBR) — Localisation/ptBR.lua
-• Russian (ruRU) — Localisation/ruRU.lua
-• Spanish (esES) — Localisation/esES.lua
+• Chinesisch (zhCN) — Localisation/zhCN.lua
+• Französisch (frFR) — Localisation/frFR.lua
+• Deutsch (deDE) — Localisation/deDE.lua
+• Koreanisch (koKR) — Localisation/koKR.lua
+• Brasilianisch-Portugiesisch (ptBR) — Localisation/ptBR.lua
+• Russisch (ruRU) — Localisation/ruRU.lua
+• Spanisch (esES) — Localisation/esES.lua
 
 Contributions for additional locales are welcome via Discord.]=]
 
@@ -114,15 +114,15 @@ Contributions for additional locales are welcome via Discord.]=]
 -- =====================================================================
 -- options/dashboard/ModuleGuide.lua — In-game module quick-start
 -- =====================================================================
-L["DASH_GUIDE_TAB"]                                                   = "Guide"
+L["DASH_GUIDE_TAB"]                                                   = "Anleitung"
 -- L["DASH_GUIDE_HEAD_SUB"]                                           = "What each part of Horizon does"  -- NEEDS TRANSLATION
 -- L["DASH_GUIDE_HERO_TITLE"]                                         = "Getting started with Horizon Suite"  -- NEEDS TRANSLATION
 -- L["DASH_GUIDE_HERO_TAGLINE"]                                       = "A modular UI toolkit for quests, notifications, the minimap, and more."  -- NEEDS TRANSLATION
 L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
--- L["DASH_GUIDE_QUICK_START_HEADING"]                                = "Quick start"  -- NEEDS TRANSLATION
+L["DASH_GUIDE_QUICK_START_HEADING"]                                   = "Schnellstart"
 L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis → Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
 -- • Under |cffaaaaaaAxis → Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
--- L["DASH_GUIDE_HORIZON_HEADING"]                                    = "What is Horizon Suite?"  -- NEEDS TRANSLATION
+L["DASH_GUIDE_HORIZON_HEADING"]                                       = "Was ist die Horizon Suite?"
 L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.  -- NEEDS TRANSLATION
 • Focus — Quest and content tracker: quests, world quests, scenarios, rares, achievements, and more in coloured sections.
 • Presence — Large cinematic toasts for zones, quests, scenarios, achievements, level up, and similar moments.
@@ -150,7 +150,7 @@ L["DASH_GUIDE_PRESENCE_BODY"]                                         = [=[Typic
 -- L["DASH_GUIDE_MOD_INSIGHT_BODY"]                                   = "Insight extends Blizzard tooltips for players, NPCs, and items — class and faction colouring, spec and icon lines, optional Mythic+ score, item level, mount collection hints, and cleaner separators. Each tooltip type has its own category under Insight."  -- NEEDS TRANSLATION
 -- L["DASH_GUIDE_MOD_CACHE_BODY"]                                     = "Cache handles loot feedback: styled loot toasts for items, money, currency, and reputation, plus options that tie into how rewards are shown. Enable it when you want Horizon’s presentation instead of the default loot popups."  -- NEEDS TRANSLATION
 -- L["DASH_GUIDE_MOD_ESSENCE_BODY"]                                   = "Essence is an optional character sheet: 3D model, item level, primary stats, and a gear grid so you can review your equipment at a glance. Open Essence in the sidebar to adjust layout and visibility."  -- NEEDS TRANSLATION
--- L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                                  = "Coming soon."  -- NEEDS TRANSLATION
+L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                                     = "In Kürze."
 -- L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                            = "Core settings hub: profiles, modules, and global toggles."  -- NEEDS TRANSLATION
 -- L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"]                    = "Objective tracker for quests, world quests, rares, achievements, scenarios."  -- NEEDS TRANSLATION
 -- L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"]                              = "Zone text and notifications."  -- NEEDS TRANSLATION
@@ -158,7 +158,7 @@ L["DASH_GUIDE_PRESENCE_BODY"]                                         = [=[Typic
 -- L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"]                       = "Tooltips with class colors, spec, and faction icons."  -- NEEDS TRANSLATION
 -- L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]                         = "Loot toasts for items, money, currency, reputation, and bag overhaul."  -- NEEDS TRANSLATION
 -- L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"]                         = "Custom character sheet with 3D model, item level, stats, and gear grid."  -- NEEDS TRANSLATION
--- L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                        = "Coming soon."  -- NEEDS TRANSLATION
+L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                           = "In Kürze."
 -- L["DASH_WELCOME_COMMUNITY_HEADING"]                                = "Community & Support"  -- NEEDS TRANSLATION
 -- L["DASH_DISCORD"]                                                  = "Discord"  -- NEEDS TRANSLATION
 -- L["DASH_KO_FI"]                                                    = "Ko-fi"  -- NEEDS TRANSLATION
@@ -166,7 +166,7 @@ L["DASH_GUIDE_PRESENCE_BODY"]                                         = [=[Typic
 -- L["DASH_GITLAB"]                                                   = "GitLab"  -- NEEDS TRANSLATION
 -- L["DASH_CURSEFORGE"]                                               = "CurseForge"  -- NEEDS TRANSLATION
 -- L["DASH_WAGO"]                                                     = "Wago"  -- NEEDS TRANSLATION
--- L["DASH_COPY_LINK_X"]                                              = "Copy link — %s"  -- NEEDS TRANSLATION
+L["DASH_COPY_LINK_X"]                                                 = "Link kopieren — %s"
 -- L["DASH_LAYOUT"]                                                   = "Layout"  -- NEEDS TRANSLATION
 L["DASH_VISIBILITY"]                                                  = "Sichtbarkeit"
 L["DASH_DISPLAY"]                                                     = "Anzeige"
@@ -184,28 +184,28 @@ L["OPTIONS_FOCUS_DIMENSIONS"]                                         = "Abmessu
 L["OPTIONS_FOCUS_INSTANCE"]                                           = "Instanz"
 L["OPTIONS_FOCUS_INSTANCES"]                                          = "Instanzen"
 L["OPTIONS_FOCUS_COMBAT"]                                             = "Kampf"
-L["OPTIONS_FOCUS_FILTERING"]                                          = "Filter"
+L["OPTIONS_FOCUS_FILTERING"]                                          = "Filterung"
 L["OPTIONS_FOCUS_HEADER"]                                             = "Kopfzeile"
--- L["OPTIONS_FOCUS_SECTIONS_STRUCTURE"]                              = "Sections & structure"  -- NEEDS TRANSLATION
--- L["OPTIONS_FOCUS_ENTRY_DETAILS"]                                   = "Entry details"  -- NEEDS TRANSLATION
--- L["OPTIONS_FOCUS_PROGRESS_TIMERS"]                                 = "Progress & timers"  -- NEEDS TRANSLATION
--- L["OPTIONS_FOCUS_EMPHASIS"]                                        = "Focus emphasis"  -- NEEDS TRANSLATION
+L["OPTIONS_FOCUS_SECTIONS_STRUCTURE"]                                 = "Sektionen & Struktur"
+L["OPTIONS_FOCUS_ENTRY_DETAILS"]                                      = "Eintragsdetails"
+L["OPTIONS_FOCUS_PROGRESS_TIMERS"]                                    = "Fortschritt & Timer"
+L["OPTIONS_FOCUS_EMPHASIS"]                                           = "Fokus-Hervorhebung"
 L["OPTIONS_FOCUS_LIST"]                                               = "Liste"
 L["OPTIONS_FOCUS_SPACING"]                                            = "Abstände"
 L["OPTIONS_FOCUS_RARE_BOSSES"]                                        = "Rare Bosse"
-L["OPTIONS_FOCUS_WORLD_QUESTS"]                                       = "Weltquests"
+L["OPTIONS_FOCUS_WORLD_QUESTS"]                                       = "Welt-Quests"
 L["OPTIONS_FOCUS_FLOATING_QUEST_ITEM"]                                = "Schwebendes Quest-Item"
 L["OPTIONS_FOCUS_MYTHIC"]                                             = "Mythisch+"
 L["OPTIONS_FOCUS_ACHIEVEMENTS"]                                       = "Erfolge"
 L["OPTIONS_FOCUS_ENDEAVORS"]                                          = "Bestrebungen"
 L["OPTIONS_FOCUS_DECOR"]                                              = "Dekoration"
 -- L["OPTIONS_FOCUS_APPEARANCES"]                                     = "Appearances"  -- NEEDS TRANSLATION
-L["OPTIONS_FOCUS_SCENARIO_DELVE"]                                     = "Szenario & Tiefe"
+L["OPTIONS_FOCUS_SCENARIO_DELVE"]                                     = "Szenarios & Tiefen"
 L["OPTIONS_FOCUS_FONT"]                                               = "Schriftart"
--- L["OPTIONS_FOCUS_FONT_FAMILIES"]                                   = "Font families"  -- NEEDS TRANSLATION
--- L["OPTIONS_FOCUS_GLOBAL_FONT_SIZE"]                                = "Global font size"  -- NEEDS TRANSLATION
--- L["OPTIONS_FOCUS_FONT_SIZES"]                                      = "Font sizes"  -- NEEDS TRANSLATION
--- L["OPTIONS_FOCUS_PER_ELEMENT_FONTS"]                               = "Per-element fonts"  -- NEEDS TRANSLATION
+L["OPTIONS_FOCUS_FONT_FAMILIES"]                                      = "Schriftarten"
+L["OPTIONS_FOCUS_GLOBAL_FONT_SIZE"]                                   = "Globale Schriftgröße"
+L["OPTIONS_FOCUS_FONT_SIZES"]                                         = "Schriftgrößen"
+L["OPTIONS_FOCUS_PER_ELEMENT_FONTS"]                                  = "Schriftart pro Element"
 L["OPTIONS_FOCUS_TEXT_CASE"]                                          = "Groß-/Kleinschreibung"
 L["OPTIONS_FOCUS_SHADOW"]                                             = "Schatten"
 -- L["OPTIONS_FOCUS_PANEL"]                                           = "Panel"  -- NEEDS TRANSLATION
@@ -216,11 +216,11 @@ L["OPTIONS_FOCUS_SORT"]                                               = "Sortier
 L["OPTIONS_FOCUS_BEHAVIOUR"]                                          = "Verhalten"
 L["OPTIONS_FOCUS_CONTENT_TYPES"]                                      = "Inhaltstypen"
 L["OPTIONS_FOCUS_DELVES"]                                             = "Tiefen"
-L["OPTIONS_FOCUS_DELVES_DUNGEONS"]                                    = "Tiefen & Dungeons"
+L["OPTIONS_FOCUS_DELVES_DUNGEONS"]                                    = "Tiefen & Verliese"
 L["OPTIONS_FOCUS_DELVE_COMPLETE"]                                     = "Tiefe abgeschlossen"
 L["OPTIONS_FOCUS_INTERACTIONS"]                                       = "Interaktionen"
 L["OPTIONS_FOCUS_TRACKING"]                                           = "Verfolgung"
-L["OPTIONS_FOCUS_SCENARIO_BAR"]                                       = "Szenario-Leiste"
+L["OPTIONS_FOCUS_SCENARIO_BAR"]                                       = "Szenarioleiste"
 
 -- =====================================================================
 -- OptionsData.lua Profiles
@@ -237,7 +237,7 @@ L["OPTIONS_AXIS_IMPORT_PROFILE"]                                      = "Profil 
 L["OPTIONS_AXIS_IMPORT_STRING"]                                       = "Import String"
 L["OPTIONS_AXIS_EXPORT_PROFILE"]                                      = "Profil exportieren"
 L["OPTIONS_AXIS_SELECT_A_PROFILE_EXPORT"]                             = "Wähle ein Profil für den Export"
-L["OPTIONS_AXIS_EXPORT_STRING"]                                       = "Export String"
+L["OPTIONS_AXIS_EXPORT_STRING"]                                       = "Export-String"
 L["OPTIONS_AXIS_COPY_PROFILE"]                                        = "Von Profil kopieren"
 L["OPTIONS_AXIS_SOURCE_PROFILE_COPYING"]                              = "Quell-Profil zum Kopieren"
 L["OPTIONS_AXIS_COPY_SELECTED"]                                       = "Auswahl kopieren"
@@ -257,33 +257,33 @@ L["OPTIONS_AXIS_PER_SPEC_PROFILES"]                                   = "Pro-Spe
 -- =====================================================================
 -- OptionsData.lua Modules
 -- =====================================================================
-L["OPTIONS_AXIS_ENABLE_FOCUS_MODULE"]                                 = "Focus Modul aktivieren"
+L["OPTIONS_AXIS_ENABLE_FOCUS_MODULE"]                                 = "Fokus-Modul aktivieren"
 L["OPTIONS_AXIS_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS_R"]             = "Zeige die Zielverfolgung für Welt-(Quests), Rares, Erfolge und Szenarien an"
 L["OPTIONS_AXIS_ENABLE_PRESENCE_MODULE"]                              = "Presence Modul aktivieren"
 L["OPTIONS_AXIS_CINEMATIC_ZONE_TEXT_NOTIFICATIONS_ZONE_CHANGES"]      = "Filmische Zonentext- und Benachrichtigungsanzeige (Zonenänderungen, Level up, Boss Emotes, Erfolge, Quest updates)"
 L["OPTIONS_AXIS_ENABLE_CACHE_MODULE"]                                 = "Ertrag-Modul aktivieren"
 L["OPTIONS_AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Filmische Loot-Benachrichtigungen (Items, Gold, Währungen, Ruf)"
-L["OPTIONS_AXIS_ENABLE_VISTA_MODULE"]                                 = "Vista Modul aktivieren"
+L["OPTIONS_AXIS_ENABLE_VISTA_MODULE"]                                 = "Vista-Modul aktivieren"
 L["OPTIONS_AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Filmische quadratische Minimap mit Zonentext, Koordinaten und Button-Sammlung"
 L["OPTIONS_AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Filmische quadratische Minimap mit Zonentext, Koordinaten, Uhrzeit und Button-Sammlung"
 -- L["OPTIONS_AXIS_BETA"]                                             = "Beta"  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_SCALING"]                                             = "Skalierung"
 -- L["OPTIONS_AXIS_GLOBAL_TOGGLES"]                                   = "Global Toggles"  -- NEEDS TRANSLATION
--- L["OPTIONS_AXIS_PATCH_NOTES_SECTION"]                              = "Patch notes"  -- NEEDS TRANSLATION
+L["OPTIONS_AXIS_PATCH_NOTES_SECTION"]                                 = "Versionsänderungen"
 -- L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"]                   = "Show Patch Notes automatically after an update"  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"]              = "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes."  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"]               = "Dashboard background theme, class colour tinting, and UI scale (global or per module)."  -- NEEDS TRANSLATION
-L["OPTIONS_AXIS_GLOBAL_UI_SCALE"]                                     = "Globale UI Skalierung"
+L["OPTIONS_AXIS_GLOBAL_UI_SCALE"]                                     = "Globale UI-Skalierung"
 L["OPTIONS_AXIS_SCALE_SIZES_SPACINGS_FONTS_FACTOR"]                   = "Alle Größen, Abstände und Schriftarten werden um diesen Faktor (50–200 %) skaliert. Deine konfigurierten Werte bleiben dabei unverändert."
 L["OPTIONS_AXIS_PER_MODULE_SCALING"]                                  = "Skalierung pro Modul"
 L["OPTIONS_AXIS_OVERRIDE_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_FO"]         = "Globale Skalierung durch Einzelschieber je Modul ersetzen."
 L["OPTIONS_AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"]         = "Überschreibt die globale Skalierung durch individuelle Schieberegler für Focus, Presence, Vista, usw."
 L["OPTIONS_AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"]               = "Deine konfigurierten Werte werden dadurch nicht verändert, nur die effektive Anzeigeskalierung"
-L["OPTIONS_FOCUS_SCALE"]                                              = "Focus Skalierung"
-L["OPTIONS_AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"]                       = "Focus Ziel-Verfolung Skalierung (50–200%)"
+L["OPTIONS_FOCUS_SCALE"]                                              = "Fokus-Skalierung"
+L["OPTIONS_AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"]                       = "Fokus-Zielverfolungsskalierung (50–200%)"
 L["OPTIONS_PRESENCE_SCALE"]                                           = "Presence Skalierung"
 L["OPTIONS_AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"]                       = "Skalierung für den filmischen Presence Text (50–200%)"
-L["OPTIONS_VISTA_SCALE"]                                              = "Vista Skalierung"
+L["OPTIONS_VISTA_SCALE"]                                              = "Vista-Skalierung"
 L["OPTIONS_AXIS_SCALE_VISTA_MINIMAP_MODULE"]                          = "Skalierung für das Vista Minimap-Modul (50–200%)"
 L["OPTIONS_INSIGHT_SCALE"]                                            = "Insight Skalierung"
 L["OPTIONS_AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"]                        = "Skalierung für das Insight Tooltip-Modul (50–200%)"
@@ -291,18 +291,18 @@ L["OPTIONS_CACHE_SCALE"]                                              = "Ertrag-
 L["OPTIONS_AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"]                       = "Skalierung des Ertrag-Beute-Toast-Moduls (50–200%)."
 L["OPTIONS_AXIS_ENABLE_HORIZON_INSIGHT_MODULE"]                       = "Horizon Insight-Modul aktivieren"
 L["OPTIONS_AXIS_CINEMATIC_TOOLTIPS_CLASS_COLORS_SPEC_DISPLAY"]        = "Filmische Tooltips mit Klassenfarben, Spez-Anzeige und Fraktionssymbolen."
-L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Tooltip-Anker-Modus"
+L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Tooltip-Ankermodus"
 L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "Wo Tooltips erscheinen: Cursor folgen oder feste Position."
--- L["OPTIONS_AXIS_CURSOR"]                                           = "Cursor"  -- NEEDS TRANSLATION
-L["OPTIONS_AXIS_FIXED"]                                               = "Fest"
+L["OPTIONS_AXIS_CURSOR"]                                              = "Zeiger"
+L["OPTIONS_AXIS_FIXED"]                                               = "Fixiert"
 L["OPTIONS_AXIS_ANCHOR_MOVE"]                                         = "Anker zum Verschieben anzeigen"
 -- L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"]                   = "Click to show or hide the anchor. Drag to set position, right-click to confirm."  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_D"]            = "Ziehbaren Rahmen zur festen Tooltip-Position anzeigen. Ziehen, dann Rechtsklick zum Bestätigen."
 L["OPTIONS_AXIS_RESET_TOOLTIP_POSITION"]                              = "Tooltip-Position zurücksetzen"
 L["OPTIONS_AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Feste Position auf Standard zurücksetzen."
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"]                               = "Cursor offset X"  -- NEEDS TRANSLATION
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"]                                  = "Zeigerversatz X"
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                          = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."  -- NEEDS TRANSLATION
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"]                               = "Cursor offset Y"  -- NEEDS TRANSLATION
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"]                                  = "Zeigerversatz Y"
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                          = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_COLOR"]                            = "Tooltip-Hintergrundfarbe"
 L["OPTIONS_AXIS_COLOR_OF_TOOLTIP_BACKGROUND"]                         = "Farbe des Tooltip-Hintergrunds."
@@ -372,16 +372,16 @@ L["OPTIONS_INSIGHT_FADE_OUT_SEC_DESC"]                                = "Seconds
 -- L["OPTIONS_INSIGHT_ITEM_SECTION_SPACING_DESC"]                     = "Insert a blank line before Insight blocks on item tooltips instead of a tinted separator line."  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_ITEM_TOOLTIP"]                                        = "Item-Tooltip"
 L["OPTIONS_AXIS_TRANSMOG_STATUS"]                                     = "Transmog-Status anzeigen"
-L["OPTIONS_AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"]              = "Anzeigen ob Sie bereits die Erscheinung eines Items gesammelt haben."
+L["OPTIONS_AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"]              = "Anzeigen ob die Erscheinung eines Gegenstands gesammelt wurde."
 L["OPTIONS_AXIS_PLAYER_TOOLTIP"]                                      = "Spieler-Tooltip"
 L["OPTIONS_AXIS_GUILD_RANK"]                                          = "Gildenrang anzeigen"
 L["OPTIONS_AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"]                     = "Gildenrang des Spielers neben dem Gildennamen anzeigen."
 L["OPTIONS_AXIS_MYTHIC_SCORE"]                                        = "Mythisch+-Punkte anzeigen"
 L["OPTIONS_AXIS_PLAYER_S_CURRENT_SEASON_MYTHIC_SCORE"]                = "Aktuelle Saison-Mythisch+-Punkte des Spielers, farbcodiert nach Stufe."
-L["OPTIONS_AXIS_ITEM_LEVEL"]                                          = "Itemlevel anzeigen"
-L["OPTIONS_AXIS_PLAYER_S_EQUIPPED_ITEM_LEVEL_AFTER"]                  = "Itemlevel des Spielers nach Inspektion anzeigen."
-L["OPTIONS_AXIS_HONOR_LEVEL"]                                         = "Ehren-Ebenen anzeigen"
-L["OPTIONS_AXIS_PLAYER_S_PVP_HONOR_LEVEL_TOOLTIP"]                    = "PvP-Ehren-Ebene des Spielers im Tooltip anzeigen."
+L["OPTIONS_AXIS_ITEM_LEVEL"]                                          = "Gegenstandsstufe anzeigen"
+L["OPTIONS_AXIS_PLAYER_S_EQUIPPED_ITEM_LEVEL_AFTER"]                  = "Gegenstandsstufe des Spielers nach Inspektion anzeigen."
+L["OPTIONS_AXIS_HONOR_LEVEL"]                                         = "Ehrenstufe anzeigen"
+L["OPTIONS_AXIS_PLAYER_S_PVP_HONOR_LEVEL_TOOLTIP"]                    = "PvP-Ehrenstufe des Spielers im Tooltip anzeigen."
 L["OPTIONS_AXIS_PVP_TITLE"]                                           = "PvP-Titel anzeigen"
 L["OPTIONS_AXIS_PLAYER_S_PVP_TITLE_E_G"]                              = "PvP-Titel des Spielers (z.B. Gladiator) im Tooltip anzeigen."
 -- L["OPTIONS_AXIS_CHARACTER_TITLE"]                                  = "Character title"  -- NEEDS TRANSLATION
@@ -390,7 +390,7 @@ L["OPTIONS_AXIS_PLAYER_S_PVP_TITLE_E_G"]                              = "PvP-Tit
 -- L["OPTIONS_AXIS_COLOR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"]          = "Color of the character title in the player tooltip name line."  -- NEEDS TRANSLATION
 L["OPTIONS_AXIS_STATUS_BADGES"]                                       = "Status-Badges anzeigen"
 L["OPTIONS_AXIS_INLINE_BADGES_COMBAT_AFK_DND_PVP"]                    = "Inline-Badges für Kampf, AFK, DND, PvP, Schlachtzug/Gruppe, Freunde und Zielanzeige anzeigen."
-L["OPTIONS_AXIS_MOUNT_INFO"]                                          = "Reittier-Info anzeigen"
+L["OPTIONS_AXIS_MOUNT_INFO"]                                          = "Reittierinfo anzeigen"
 L["OPTIONS_AXIS_HOVERING_A_MOUNTED_PLAYER_THEIR_MOUNT"]               = "Bei Reittier-Spieler: Reittiername, Quelle und ob Sie es besitzen anzeigen."
 -- L["OPTIONS_AXIS_BLANK_SEPARATOR"]                                  = "Blank separator"  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"]                   = "Use a blank line instead of dashes between tooltip sections."  -- NEEDS TRANSLATION
@@ -501,9 +501,9 @@ L["OPTIONS_FOCUS_WOWHEAD_ALT_CLICK_HINT"]                             = "Alt+cli
 L["OPTIONS_FOCUS_COPY_LINK"]                                          = "Link kopieren"
 L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]                        = "Kopiere die folgende URL (STRG+C) und füge sie in deinem Browser ein."
 L["OPTIONS_FOCUS_OBJECTIVE_NUMBERS"]                                  = "Zahlen für Ziele anzeigen"
-L["OPTIONS_FOCUS_OBJECTIVE_PREFIX"]                                   = "Ziel Prefix"
+L["OPTIONS_FOCUS_OBJECTIVE_PREFIX"]                                   = "Zielprefix"
 L["OPTIONS_FOCUS_PREFIX_OBJECTIVE_A_NUMBER_HYPHEN"]                   = "Jedem Ziel eine Zahl oder einen Bindestrich voranstellen."
-L["OPTIONS_FOCUS_NUMBERS"]                                            = "Zahlen (1. 2. 3.)"
+L["OPTIONS_FOCUS_NUMBERS"]                                            = "Nummerierung (1. 2. 3.)"
 L["OPTIONS_FOCUS_HYPHENS"]                                            = "Bindestriche (-)"
 L["OPTIONS_FOCUS_AFTER_SECTION_HEADER"]                               = "Nach der Abschnittsüberschrift"
 L["OPTIONS_FOCUS_BEFORE_SECTION_HEADER"]                              = "Vor der Abschnittsüberschrift"
@@ -546,8 +546,8 @@ L["OPTIONS_FOCUS_COMPACT_MODE"]                                       = "Kompakt
 L["OPTIONS_FOCUS_PRESET_SETS_ENTRY_OBJECTIVE_SPACING_P"]              = "Voreinstellung: Eintrags- und Zielabstand auf 4 und 1 px."
 L["OPTIONS_FOCUS_SPACING_PRESET"]                                     = "Abstands-Voreinstellung"
 L["OPTIONS_FOCUS_PRESET_ENTRY_OBJECTIVE_SPACING_DEFAULT_P"]           = "Voreinstellung: Standard (8/2 px), Kompakt (4/1 px), Abstand (12/3 px) oder Benutzerdefiniert (Slider)."
-L["OPTIONS_FOCUS_COMPACT_VERSION"]                                    = "Kompakte Version"
-L["OPTIONS_FOCUS_SPACED_VERSION"]                                     = "Abstands-Version"
+L["OPTIONS_FOCUS_COMPACT_VERSION"]                                    = "Kompaktversion"
+L["OPTIONS_FOCUS_SPACED_VERSION"]                                     = "Abstandsversion"
 L["OPTIONS_FOCUS_SPACING_BETWEEN_QUEST_ENTRIES_PX"]                   = "Abstand zwischen Quest-Einträgen (px)"
 L["OPTIONS_FOCUS_VERTICAL_GAP_BETWEEN_QUEST_ENTRIES"]                 = "Vertikaler Abstand zwischen Quest-Einträgen."
 L["OPTIONS_FOCUS_SPACING_BEFORE_CATEGORY_HEADER_PX"]                  = "Abstand vor Kategorie-Header (px)"
@@ -581,7 +581,7 @@ L["UI_RARE_LOOT"]                                                     = "Seltene
 L["UI_TREASURE_ITEM_VIGNETTES_RARE_LOOT"]                             = "Zeigt Schätze und Gegenstände in der Liste seltener Beute."
 L["UI_RARE_SOUND_VOLUME"]                                             = "Lautstärke seltener Beute"
 L["UI_VOLUME_OF_RARE_ALERT_SOUND"]                                    = "Lautstärke des Alarmsounds für seltene Beute (50–200%)."
-L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"]                                = "Lautstärke anpassen. 100% = normal; 150% = lauter."
+L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"]                                = "Lautstärke anpassen. 100 % = normal; 150 % = lauter."
 L["UI_RARE_ADDED_SOUND"]                                              = "Sound bei seltenem Boss"
 L["UI_PLAY_A_SOUND_A_RARE"]                                           = "Sound abspielen wenn ein seltener Boss hinzugefügt wird."
 -- L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]                            = "New patch notes — open Axis and choose Patch Notes."  -- NEEDS TRANSLATION
@@ -589,8 +589,8 @@ L["UI_PLAY_A_SOUND_A_RARE"]                                           = "Sound a
 -- =====================================================================
 -- OptionsData.lua Features — World quests
 -- =====================================================================
-L["OPTIONS_FOCUS_ZONE_WORLD_QUESTS"]                                  = "Weltquests in Zone anzeigen"
-L["OPTIONS_FOCUS_AUTO_ADD_WORLD_QUESTS_YOUR_CURRENT"]                 = "Weltquests in Ihrer Zone automatisch hinzufügen. Aus: nur getrackte Quests oder nahe Weltquests (Blizzard-Standard)."
+L["OPTIONS_FOCUS_ZONE_WORLD_QUESTS"]                                  = "Welt-Quests in Zone anzeigen"
+L["OPTIONS_FOCUS_AUTO_ADD_WORLD_QUESTS_YOUR_CURRENT"]                 = "Welt-Quests in Zone automatisch hinzufügen. Aus: nur getrackte Quests oder nahe Weltquests (Blizzard-Standard)."
 
 -- =====================================================================
 -- OptionsData.lua Features — Floating quest item
@@ -625,18 +625,18 @@ L["OPTIONS_FOCUS_GREEN_COLOR"]                                        = "Grün-F
 -- =====================================================================
 L["OPTIONS_PRESENCE_ACHIEVEMENTS"]                                    = "Erfolge anzeigen"
 L["OPTIONS_FOCUS_TRACKED_ACHIEVEMENTS_LIST"]                          = "Verfolgte Erfolge in der Liste anzeigen."
-L["OPTIONS_FOCUS_COMPLETED_ACHIEVEMENTS"]                             = "Abgeschlossene Erfolge anzeigen"
-L["OPTIONS_FOCUS_INCLUDE_COMPLETED_ACHIEVEMENTS_TRACKER_O"]           = "Abgeschlossene Erfolge im Zielverfolger anzeigen. Aus: nur verfolgte in Bearbeitung."
-L["OPTIONS_FOCUS_ACHIEVEMENT_ICONS"]                                  = "Erfolgs-Symbole anzeigen"
-L["OPTIONS_FOCUS_ACHIEVEMENT_S_ICON_NEXT_TITLE_REQUI"]                = "Erfolgs-Symbol neben Titel anzeigen. Erfordert „Quest-Typ-Symbole anzeigen\" in Anzeige."
-L["OPTIONS_FOCUS_MISSING_REQUIREMENTS"]                               = "Nur fehlende Anforderungen anzeigen"
+L["OPTIONS_FOCUS_COMPLETED_ACHIEVEMENTS"]                             = "Errungene Erfolge anzeigen"
+L["OPTIONS_FOCUS_INCLUDE_COMPLETED_ACHIEVEMENTS_TRACKER_O"]           = "Errungene Erfolge im Zielverfolger anzeigen. Aus: nur verfolgte in Bearbeitung."
+L["OPTIONS_FOCUS_ACHIEVEMENT_ICONS"]                                  = "Erfolgssymbole anzeigen"
+L["OPTIONS_FOCUS_ACHIEVEMENT_S_ICON_NEXT_TITLE_REQUI"]                = "Erfolgssymbol neben Titel anzeigen. Erfordert „Quest-Typ-Symbole anzeigen\" in Anzeige."
+L["OPTIONS_FOCUS_MISSING_REQUIREMENTS"]                               = "Nur fehlende Kriterien anzeigen"
 L["OPTIONS_FOCUS_CRITERIA_YOU_HAVEN_T_COMPLETED_TR"]                  = "Nur nicht abgeschlossene Kriterien pro verfolgtem Erfolg. Aus: alle Kriterien."
 
 -- =====================================================================
 -- OptionsData.lua Features — Endeavors
 -- =====================================================================
 L["OPTIONS_FOCUS_SHOW_ENDEAVORS"]                                     = "Bestrebungen anzeigen"
-L["OPTIONS_FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"]              = "Verfolgte Bestrebungen (Spielerwohnung) in der Liste anzeigen."
+L["OPTIONS_FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"]              = "Verfolgte Bestrebungen (Spielerbehausung) in der Liste anzeigen."
 L["OPTIONS_FOCUS_COMPLETED_ENDEAVORS"]                                = "Abgeschlossene Bestrebungen anzeigen"
 L["OPTIONS_FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"]                = "Abgeschlossene Bestrebungen im Zielverfolger anzeigen. Aus: nur verfolgte in Bearbeitung."
 
@@ -644,9 +644,9 @@ L["OPTIONS_FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"]                = "Abgesch
 -- OptionsData.lua Features — Decor
 -- =====================================================================
 L["OPTIONS_FOCUS_SHOW_DECOR"]                                         = "Dekoration anzeigen"
-L["OPTIONS_FOCUS_TRACKED_HOUSING_DECOR_LIST"]                         = "Verfolgte Wohnungs-Dekoration in der Liste anzeigen."
-L["OPTIONS_FOCUS_DECOR_ICONS"]                                        = "Dekorations-Symbole anzeigen"
-L["OPTIONS_FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Dekorations-Symbol neben Titel anzeigen. Erfordert „Quest-Typ-Symbole anzeigen\" in Anzeige."
+L["OPTIONS_FOCUS_TRACKED_HOUSING_DECOR_LIST"]                         = "Verfolgte Behausungsdekoration in der Liste anzeigen."
+L["OPTIONS_FOCUS_DECOR_ICONS"]                                        = "Dekorationssymbole anzeigen"
+L["OPTIONS_FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Dekorationssymbol neben Titel anzeigen. Erfordert „Quest-Typ-Symbole anzeigen\" in Anzeige."
 
 -- =====================================================================
 -- OptionsData.lua Features — Appearances
@@ -660,27 +660,27 @@ L["OPTIONS_FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Dekorat
 -- L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON_DESC"]          = "Use the in-game Appearances / transmog list icon for every row instead of each appearance's item icon. If that icon cannot be resolved, the item icon is used."  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_OPEN_APPEARANCES_COLLECTIONS"]                    = "Open Collections"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_UNTRACK_APPEARANCE"]                              = "Untrack appearance"  -- NEEDS TRANSLATION
-L["OPTIONS_FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map, Ctrl-click Collections, Ctrl+Shift-click dressing room. Right-click clears focus or untracks."
+-- L["OPTIONS_FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                = "Horizon: Shift-click map; with TomTom waypoints enabled, that click also sets the arrow. Ctrl-click Collections, Alt-click dressing room. Right-click clears focus or untracks."  -- NEEDS TRANSLATION
 
 -- =====================================================================
 -- OptionsData.lua Features — Adventure Guide
 -- =====================================================================
 L["OPTIONS_FOCUS_ADVENTURE_GUIDE"]                                    = "Abenteuerführer"
-L["OPTIONS_FOCUS_TRAVELER_S_LOG"]                                     = "Reisenden-Log anzeigen"
-L["OPTIONS_FOCUS_TRACKED_TRAVELER_S_LOG_OBJECTIVES_SHIFT"]            = "Verfolgte Reisenden-Log-Ziele (Umschalt+Klick im Abenteuerführer) in der Liste anzeigen."
+L["OPTIONS_FOCUS_TRAVELER_S_LOG"]                                     = "Reisetagebuch anzeigen"
+L["OPTIONS_FOCUS_TRACKED_TRAVELER_S_LOG_OBJECTIVES_SHIFT"]            = "Verfolgte Reisetagebuchziele (Umschalt+Klick im Abenteuerführer) in der Liste anzeigen."
 L["OPTIONS_FOCUS_AUTO_REMOVE_COMPLETED_ACTIVITIES"]                   = "Abgeschlossene Aktivitäten automatisch entfernen"
-L["OPTIONS_FOCUS_AUTOMATICALLY_STOP_TRACKING_TRAVELER_S_LOG"]         = "Reisenden-Log-Aktivitäten nach Abschluss automatisch nicht mehr verfolgen."
+L["OPTIONS_FOCUS_AUTOMATICALLY_STOP_TRACKING_TRAVELER_S_LOG"]         = "Reisetagebuchaktivitäten nach Abschluss automatisch nicht mehr verfolgen."
 
 -- =====================================================================
 -- OptionsData.lua Features — Scenario & Delve
 -- =====================================================================
-L["OPTIONS_FOCUS_SCENARIO_EVENTS"]                                    = "Szenario-Ereignisse anzeigen"
+L["OPTIONS_FOCUS_SCENARIO_EVENTS"]                                    = "Szenarioereignisse anzeigen"
 L["OPTIONS_FOCUS_ACTIVE_SCENARIO_DELVE_ACTIVITIES_DELVES_APP"]        = "Aktive Szenario- und Tiefen-Aktivitäten anzeigen. Tiefen in Tiefen; andere in Szenario-Ereignisse."
 L["OPTIONS_FOCUS_TRACK_DELVE_DUNGEON_SCENARIO_ACTIVITIES"]            = "Tiefen-, Dungeon- und Szenario-Aktivitäten verfolgen."
 L["OPTIONS_FOCUS_DELVES_APPEAR_DELVES_SECTION_DUNGEONS_DUNGEON"]      = "Tiefen in Tiefen; Dungeons in Dungeon; andere Szenarien in Szenario-Ereignisse."
 L["OPTIONS_FOCUS_DELVES_APPEAR_DELVES_SECTION_SCENARIOS_S"]           = "Tiefen in Tiefen; andere Szenarien in Szenario-Ereignisse."
 L["OPTIONS_FOCUS_DELVE_AFFIX_NAMES"]                                  = "Tiefen-Affix-Namen"
-L["OPTIONS_FOCUS_DELVE_DUNGEON"]                                      = "Nur Tiefe/Dungeon"
+L["OPTIONS_FOCUS_DELVE_DUNGEON"]                                      = "Nur Tiefe/Verlies"
 L["OPTIONS_FOCUS_SCENARIO_DEBUG_LOGGING"]                             = "Szenario-Debug-Protokoll"
 L["OPTIONS_FOCUS_LOG_SCENARIO_API_DATA_CHAT_H"]                       = "Szenario-API-Daten im Chat protokollieren. /h debug focus scendebug zum Umschalten."
 L["OPTIONS_FOCUS_PRINTS_C_SCENARIOINFO_CRITERIA_WIDGET_DATA"]         = "Gibt C_ScenarioInfo-Kriterien und Widget-Daten aus. Hilft bei Anzeigeproblemen wie Abundance 46/300."
@@ -697,7 +697,7 @@ L["OPTIONS_FOCUS_COUNTDOWN_TIMER_TIMED_QUESTS_EVENTS_SCEN"]           = "Countdo
 L["OPTIONS_FOCUS_TIMER_DISPLAY"]                                      = "Timer-Anzeige"
 L["OPTIONS_FOCUS_COLOR_TIMER_REMAINING"]                              = "Timer nach verbleibender Zeit einfärben"
 L["OPTIONS_FOCUS_GREEN_PLENTY_OF_LEFT_YELLOW_RUNNING"]                = "Grün bei viel Zeit, gelb bei wenig, rot bei kritisch."
-L["OPTIONS_FOCUS_WHERE_COUNTDOWN_BAR_BELOW_OBJECTIVES"]               = "Wo der Countdown angezeigt wird: Leiste unter Zielen oder Text neben dem Questnamen."
+L["OPTIONS_FOCUS_WHERE_COUNTDOWN_BAR_BELOW_OBJECTIVES"]               = "Countdown-Position: Leiste unter Zielen oder Text neben dem Questnamen."
 L["OPTIONS_FOCUS_BAR_BELOW"]                                          = "Leiste unten"
 L["OPTIONS_FOCUS_INLINE_BESIDE_TITLE"]                                = "Inline neben Titel"
 
@@ -705,31 +705,31 @@ L["OPTIONS_FOCUS_INLINE_BESIDE_TITLE"]                                = "Inline 
 -- OptionsData.lua Typography — Font
 -- =====================================================================
 L["OPTIONS_FOCUS_FONT_FAMILY"]                                        = "Schriftart"
-L["OPTIONS_FOCUS_TITLE_FONT"]                                         = "Titel-Schriftart"
-L["OPTIONS_VISTA_ZONE_FONT"]                                          = "Zonen-Schriftart"
-L["OPTIONS_FOCUS_OBJECTIVE_FONT"]                                     = "Ziel-Schriftart"
-L["OPTIONS_FOCUS_SECTION_FONT"]                                       = "Abschnitts-Schriftart"
+L["OPTIONS_FOCUS_TITLE_FONT"]                                         = "Titelschriftart"
+L["OPTIONS_VISTA_ZONE_FONT"]                                          = "Zonenschriftart"
+L["OPTIONS_FOCUS_OBJECTIVE_FONT"]                                     = "Zielschriftart"
+L["OPTIONS_FOCUS_SECTION_FONT"]                                       = "Abschnittsschriftart"
 L["OPTIONS_FOCUS_GLOBAL_FONT"]                                        = "Globale Schriftart verwenden"
-L["OPTIONS_FOCUS_FONT_FAMILY_QUEST_TITLES"]                           = "Schriftart für Questtitel"
+L["OPTIONS_FOCUS_FONT_FAMILY_QUEST_TITLES"]                           = "Schriftart für Quest-Titel"
 L["OPTIONS_FOCUS_FONT_FAMILY_ZONE_LABELS"]                            = "Schriftart für Zonenbezeichnungen"
-L["OPTIONS_FOCUS_FONT_FAMILY_OBJECTIVE_TEXT"]                         = "Schriftart für Ziel Text"
+L["OPTIONS_FOCUS_FONT_FAMILY_OBJECTIVE_TEXT"]                         = "Schriftart für Zieltext"
 L["OPTIONS_FOCUS_FONT_FAMILY_SECTION_HEADERS"]                        = "Schriftart für Abschnittsüberschriften"
-L["OPTIONS_FOCUS_HEADER_SIZE"]                                        = "Größe der Kopfzeile"
-L["OPTIONS_FOCUS_HEADER_FONT_SIZE"]                                   = "Größe der Kopfzeilen-Schriftart"
-L["OPTIONS_FOCUS_TITLE_SIZE"]                                         = "Titel Größe"
-L["OPTIONS_FOCUS_QUEST_TITLE_FONT_SIZE"]                              = "Größe der Questtitel-Schriftart"
-L["OPTIONS_FOCUS_OBJECTIVE_SIZE"]                                     = "Ziel Größe"
-L["OPTIONS_FOCUS_OBJECTIVE_TEXT_FONT_SIZE"]                           = "Größe der Ziel-Schriftart"
-L["OPTIONS_FOCUS_ZONE_SIZE"]                                          = "Größe der Zone"
-L["OPTIONS_FOCUS_ZONE_LABEL_FONT_SIZE"]                               = "Größe der Zonenbeschreibungs-Schriftart"
+L["OPTIONS_FOCUS_HEADER_SIZE"]                                        = "Kopfzeilengröße"
+L["OPTIONS_FOCUS_HEADER_FONT_SIZE"]                                   = "Größe der Kopfzeilenschriftart"
+L["OPTIONS_FOCUS_TITLE_SIZE"]                                         = "Titelgröße"
+L["OPTIONS_FOCUS_QUEST_TITLE_FONT_SIZE"]                              = "Größe der Quest-Titelschriftart"
+L["OPTIONS_FOCUS_OBJECTIVE_SIZE"]                                     = "Zielgröße"
+L["OPTIONS_FOCUS_OBJECTIVE_TEXT_FONT_SIZE"]                           = "Größe der Zielschriftart"
+L["OPTIONS_FOCUS_ZONE_SIZE"]                                          = "Zonengröße"
+L["OPTIONS_FOCUS_ZONE_LABEL_FONT_SIZE"]                               = "Größe der Zonenbezeichnungsschriftart"
 L["OPTIONS_FOCUS_SECTION_SIZE"]                                       = "Abschnittsgröße"
 L["OPTIONS_FOCUS_SECTION_HEADER_FONT_SIZE"]                           = "Größe der Schriftart für Abschnitte"
-L["OPTIONS_FOCUS_PROGRESS_BAR_FONT"]                                  = "Fortschrittsbalken-Schriftart"
+L["OPTIONS_FOCUS_PROGRESS_BAR_FONT"]                                  = "Fortschrittsbalkenschriftart"
 L["OPTIONS_FOCUS_FONT_FAMILY_PROGRESS_BAR_LABEL"]                     = "Schriftart für die Fortschrittsbalkensbeschriftung"
-L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT_SIZE"]                             = "Textgröße der Fortschrittsbalken"
+L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT_SIZE"]                             = "Fortschrittsbalkentextgröße"
 L["OPTIONS_FOCUS_FONT_SIZE_PROGRESS_BAR_LABEL_ADJUSTS"]               = "Schriftgröße für die Beschriftung des Fortschrittsbalkens. Ändert auch die Höhe des Balkens. Betrifft Questziele, den Szenariofortschritt und die Szenario-Zeit-Balken."
 L["OPTIONS_FOCUS_PROGRESS_BAR_FILL"]                                  = "Füllung des Fortschrittsbalkens"
-L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT"]                                  = "Text für den Fortschrittsbalken"
+L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT"]                                  = "Text des Fortschrittsbalkens"
 L["OPTIONS_FOCUS_OUTLINE"]                                            = "Kontur"
 L["OPTIONS_FOCUS_FONT_OUTLINE_STYLE"]                                 = "Schriftkonturstil"
 
@@ -746,22 +746,22 @@ L["OPTIONS_FOCUS_DISPLAY_CASE_QUEST_TITLES"]                          = "Groß-/
 -- =====================================================================
 -- OptionsData.lua Typography — Shadow
 -- =====================================================================
-L["OPTIONS_FOCUS_TEXT_SHADOW"]                                        = "Text-Schatten anzeigen"
+L["OPTIONS_FOCUS_TEXT_SHADOW"]                                        = "Textschatten anzeigen"
 L["OPTIONS_FOCUS_ENABLE_DROP_SHADOW_TEXT"]                            = "Schattierung für Text aktivieren."
 L["OPTIONS_FOCUS_SHADOW_X"]                                           = "Schatten X"
-L["OPTIONS_FOCUS_HORIZONTAL_SHADOW_OFFSET"]                           = "Horizontaler Schatten-Offset."
+L["OPTIONS_FOCUS_HORIZONTAL_SHADOW_OFFSET"]                           = "Horizontaler Schattenversatz."
 L["OPTIONS_FOCUS_SHADOW_Y"]                                           = "Schatten Y"
-L["OPTIONS_FOCUS_VERTICAL_SHADOW_OFFSET"]                             = "Vertikaler Schatten-Offset."
-L["OPTIONS_FOCUS_SHADOW_ALPHA"]                                       = "Schatten-Alpha"
-L["OPTIONS_FOCUS_SHADOW_OPACITY"]                                     = "Schatten-Deckkraft (0–1)."
+L["OPTIONS_FOCUS_VERTICAL_SHADOW_OFFSET"]                             = "Vertikaler Schattenversatz."
+L["OPTIONS_FOCUS_SHADOW_ALPHA"]                                       = "Schattendeckkraft"
+L["OPTIONS_FOCUS_SHADOW_OPACITY"]                                     = "Schattendeckkraft (0–1)."
 
 -- =====================================================================
 -- OptionsData.lua Typography — Mythic+ Typography
 -- =====================================================================
 L["OPTIONS_FOCUS_MYTHIC_TYPOGRAPHY"]                                  = "Mythisch+-Typografie"
-L["OPTIONS_FOCUS_DUNGEON_NAME_SIZE"]                                  = "Dungeon-Namen-Größe"
+L["OPTIONS_FOCUS_DUNGEON_NAME_SIZE"]                                  = "Verliesnamengröße"
 L["OPTIONS_FOCUS_FONT_SIZE_DUNGEON_NAME_PX"]                          = "Schriftgröße für Dungeon-Namen (8–32 px)."
-L["OPTIONS_FOCUS_DUNGEON_NAME_COLOR"]                                 = "Dungeon-Namen-Farbe"
+L["OPTIONS_FOCUS_DUNGEON_NAME_COLOR"]                                 = "Verliesnamenfarbe"
 L["OPTIONS_FOCUS_TEXT_COLOR_DUNGEON_NAME"]                            = "Textfarbe für Dungeon-Namen."
 L["OPTIONS_FOCUS_TIMER_SIZE"]                                         = "Timer-Größe"
 L["OPTIONS_FOCUS_FONT_SIZE_TIMER_PX"]                                 = "Schriftgröße für Timer (8–32 px)."
@@ -769,14 +769,14 @@ L["OPTIONS_FOCUS_TIMER_COLOR"]                                        = "Timer-F
 L["OPTIONS_FOCUS_TEXT_COLOR_TIMER"]                                   = "Textfarbe für Timer (in Zeit)."
 L["OPTIONS_FOCUS_TIMER_OVERTIME_COLOR"]                               = "Timer-Überzeit-Farbe"
 L["OPTIONS_FOCUS_TEXT_COLOR_TIMER_LIMIT"]                             = "Textfarbe für Timer bei Überschreitung."
-L["OPTIONS_FOCUS_PROGRESS_SIZE"]                                      = "Fortschritts-Größe"
+L["OPTIONS_FOCUS_PROGRESS_SIZE"]                                      = "Fortschrittsgröße"
 L["OPTIONS_FOCUS_FONT_SIZE_ENEMY_FORCES_PX"]                          = "Schriftgröße für feindliche Streitkräfte (8–32 px)."
-L["OPTIONS_FOCUS_PROGRESS_COLOR"]                                     = "Fortschritts-Farbe"
+L["OPTIONS_FOCUS_PROGRESS_COLOR"]                                     = "Fortschrittsfarbe"
 L["OPTIONS_FOCUS_TEXT_COLOR_ENEMY_FORCES"]                            = "Textfarbe für feindliche Streitkräfte."
-L["OPTIONS_FOCUS_BAR_FILL_COLOR"]                                     = "Leisten-Füllfarbe"
+L["OPTIONS_FOCUS_BAR_FILL_COLOR"]                                     = "Leistenfüllfarbe"
 L["OPTIONS_FOCUS_PROGRESS_BAR_FILL_COLOR_PROGRESS"]                   = "Fortschrittsbalken-Füllfarbe (in Bearbeitung)."
-L["OPTIONS_FOCUS_BAR_COMPLETE_COLOR"]                                 = "Leisten-Farbe (abgeschlossen)"
-L["OPTIONS_FOCUS_PROGRESS_BAR_FILL_COLOR_ENEMY_FORCES"]               = "Fortschrittsbalken-Füllfarbe bei 100% feindlicher Streitkräfte."
+L["OPTIONS_FOCUS_BAR_COMPLETE_COLOR"]                                 = "Leistenfarbe (abgeschlossen)"
+L["OPTIONS_FOCUS_PROGRESS_BAR_FILL_COLOR_ENEMY_FORCES"]               = "Fortschrittsbalkenfüllfarbe bei 100 % feindlicher Streitkräfte."
 L["OPTIONS_FOCUS_AFFIX_SIZE"]                                         = "Affix-Größe"
 L["OPTIONS_FOCUS_FONT_SIZE_AFFIXES_PX"]                               = "Schriftgröße für Affixe (8–32 px)."
 L["OPTIONS_FOCUS_AFFIX_COLOR"]                                        = "Affix-Farbe"
@@ -790,7 +790,7 @@ L["OPTIONS_FOCUS_RESET_MYTHIC_TYPOGRAPHY"]                            = "Mythisc
 -- =====================================================================
 -- OptionsData.lua Appearance
 -- =====================================================================
--- L["OPTIONS_FOCUS_FRAME"]                                           = "Frame"  -- NEEDS TRANSLATION
+L["OPTIONS_FOCUS_FRAME"]                                              = "Rahmen"
 L["OPTIONS_FOCUS_CLASS_COLOURS_DASHBOARD"]                            = "Klassenfarben – Dashboard"
 -- L["OPTIONS_FOCUS_CLASS_COLOURS"]                                   = "Class Colours"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_ENABLE_CLASS_COLOURS"]                            = "Enable all class colours"  -- NEEDS TRANSLATION
@@ -812,18 +812,18 @@ L["OPTIONS_FOCUS_TINT_DASHBOARD_ACCENTS_DIVIDERS_HIGHLIGHTS"]         = "Dashboa
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"]                    = "Dashboard background opacity"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"]          = "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."  -- NEEDS TRANSLATION
 L["OPTIONS_FOCUS_BACKDROP_OPACITY"]                                   = "Hintergrunddeckkraft"
-L["OPTIONS_FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Panel-Hintergrund-Deckkraft (0–1)."
+L["OPTIONS_FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Panel-Hintergrunddeckkraft (0–1)."
 L["OPTIONS_FOCUS_BORDER"]                                             = "Rahmen anzeigen"
 L["OPTIONS_FOCUS_BORDER_AROUND_TRACKER"]                              = "Rahmen um den Zielverfolger anzeigen."
 L["OPTIONS_FOCUS_SCROLL_INDICATOR"]                                   = "Scroll-Indikator anzeigen"
-L["OPTIONS_FOCUS_A_VISUAL_HINT_LIST_CONTENT_TH"]                      = "Visuellen Hinweis anzeigen wenn mehr Inhalt als sichtbar vorhanden."
+L["OPTIONS_FOCUS_A_VISUAL_HINT_LIST_CONTENT_TH"]                      = "Visuellen Hinweis anzeigen, wenn mehr Inhalt als sichtbar vorhanden."
 L["OPTIONS_FOCUS_SCROLL_INDICATOR_STYLE"]                             = "Scroll-Indikator-Stil"
 L["OPTIONS_FOCUS_CHOOSE_BETWEEN_A_FADE_GRADIENT_A"]                   = "Verlauf oder Pfeil für scrollbaren Inhalt wählen."
 L["OPTIONS_FOCUS_ARROW"]                                              = "Pfeil"
 L["OPTIONS_FOCUS_HIGHLIGHT_ALPHA"]                                    = "Hervorhebungs-Alpha"
 L["OPTIONS_FOCUS_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"]                 = "Deckkraft der Quest-Hervorhebung (0–1)."
 L["OPTIONS_FOCUS_BAR_WIDTH"]                                          = "Leistenbreite"
-L["OPTIONS_FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"]                   = "Breite der Leisten-Hervorhebung (2–6 px)."
+L["OPTIONS_FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"]                   = "Breite der Leistenhervorhebung (2–6 px)."
 
 -- =====================================================================
 -- OptionsData.lua Organization
@@ -832,18 +832,18 @@ L["OPTIONS_FOCUS_ACTIVITY"]                                           = "Aktivit
 L["OPTIONS_FOCUS_CONTENT"]                                            = "Inhalt"
 L["OPTIONS_FOCUS_SORTING"]                                            = "Sortierung"
 L["OPTIONS_FOCUS_ELEMENTS"]                                           = "Elemente"
-L["OPTIONS_FOCUS_CATEGORY_ORDER"]                                     = "Fokus-Kategorie-Reihenfolge"
+L["OPTIONS_FOCUS_CATEGORY_ORDER"]                                     = "Fokus-Kategoriereihenfolge"
 L["OPTIONS_FOCUS_CATEGORY_COLOR_BAR"]                                 = "Kategoriefarbe für Leiste"
 L["OPTIONS_FOCUS_CHECKMARK_COMPLETED"]                                = "Häkchen für abgeschlossen"
 L["OPTIONS_FOCUS_CURRENT_QUEST_CATEGORY"]                             = "Aktuelle Quest-Kategorie"
 L["OPTIONS_FOCUS_CURRENT_QUEST_WINDOW"]                               = "Aktuelle Quest-Fenster"
 L["OPTIONS_FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                         = "Quests mit kürzlichem Fortschritt oben anzeigen."
-L["OPTIONS_FOCUS_SECONDS_OF_RECENT_PROGRESS_CURRENT_QUEST"]           = "Sekunden Fortschritt für Aktuelle Quest (30–120)."
+L["OPTIONS_FOCUS_SECONDS_OF_RECENT_PROGRESS_CURRENT_QUEST"]           = "Sekundenfortschritt für aktuelle Quest (30–120)."
 L["OPTIONS_FOCUS_QUESTS_YOU_MADE_PROGRESS_LAST_MINUTE"]               = "Quests mit Fortschritt in der letzten Minute erscheinen in eigenem Abschnitt."
-L["OPTIONS_FOCUS_CATEGORY_ORDER"]                                     = "Fokus-Kategorie-Reihenfolge"
+L["OPTIONS_FOCUS_CATEGORY_ORDER"]                                     = "Fokus-Kategoriereihenfolge"
 L["OPTIONS_FOCUS_DRAG_REORDER_CATEGORIES_DELVES_SCENARIO_EVENT"]      = "Ziehen zum Ändern der Kategorie-Reihenfolge. Tiefen und Szenario-Ereignisse bleiben zuerst."
 L["OPTIONS_FOCUS_DRAG_REORDER_DELVES_SCENARIOS_STAY_FIRST"]           = "Ziehen zum Ändern der Reihenfolge. Tiefen und Szenarien bleiben zuerst."
-L["OPTIONS_FOCUS_SORT_MODE"]                                          = "Fokus-Sortiermodus"
+L["OPTIONS_FOCUS_SORT_MODE"]                                          = "Fokus-Sortiermethode"
 L["OPTIONS_FOCUS_ORDER_OF_ENTRIES_WITHIN_CATEGORY"]                   = "Reihenfolge der Einträge innerhalb jeder Kategorie."
 L["OPTIONS_FOCUS_AUTO_TRACK_ACCEPTED_QUESTS"]                         = "Angenommene Quests automatisch verfolgen"
 L["OPTIONS_FOCUS_YOU_ACCEPT_A_QUEST_QUEST_LOG"]                       = "Angenommene Quests (nur Questlog, nicht Weltquests) automatisch zum Zielverfolger hinzufügen."
@@ -857,33 +857,33 @@ L["OPTIONS_FOCUS_SHARE_PARTY"]                                        = "Mit Gru
 L["OPTIONS_FOCUS_ABANDON_QUEST"]                                      = "Quest abbrechen"
 L["OPTIONS_FOCUS_STOP_TRACKING"]                                      = "Nicht mehr verfolgen"
 L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"]                                = "Diese Quest kann nicht geteilt werden."
-L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"]                       = "Sie müssen in einer Gruppe sein, um diese Quest zu teilen."
-L["OPTIONS_FOCUS_LEFT_CLICK_OPENS_QUEST_MAP_RIGHT"]                   = "An: Linksklick öffnet Questkarte, Rechtsklick Teilen/Abbruch (Blizzard). Aus: Linksklick fokussiert, Rechtsklick nicht verfolgen; Strg+Rechts teilt."
+L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"]                       = "Ihr müsst in einer Gruppe sein, um diese Quest zu teilen."
+L["OPTIONS_FOCUS_LEFT_CLICK_OPENS_QUEST_MAP_RIGHT"]                   = "Ein: Linksklick öffnet Questkarte, Rechtsklick Teilen/Abbruch (Blizzard). Aus: Linksklick fokussiert, Rechtsklick nicht verfolgen; Strg+Rechts teilt."
 L["OPTIONS_FOCUS_ANIMATIONS"]                                         = "Focus animations"
 L["OPTIONS_FOCUS_ENABLE_SLIDE_FADE_QUESTS"]                           = "Slide- und Fade-Effekte für Quests aktivieren."
-L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_FLASH"]                           = "Ziel-Fortschritt-Blitz"
-L["OPTIONS_FOCUS_FLASH_AN_OBJECTIVE_COMPLETES"]                       = "Blitz bei Ziel-Abschluss anzeigen."
-L["OPTIONS_FOCUS_FLASH_INTENSITY"]                                    = "Blitz-Intensität"
-L["OPTIONS_FOCUS_NOTICEABLE_OBJECTIVE_COMPLETE_FLASH"]                = "Wie auffällig der Ziel-Abschluss-Blitz ist."
-L["OPTIONS_FOCUS_FLASH_COLOR"]                                        = "Blitz-Farbe"
-L["OPTIONS_FOCUS_COLOR_OF_OBJECTIVE_COMPLETE_FLASH"]                  = "Farbe des Ziel-Abschluss-Blitzes."
+L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_FLASH"]                           = "Ziel-Fortschrittsfunken"
+L["OPTIONS_FOCUS_FLASH_AN_OBJECTIVE_COMPLETES"]                       = "Leuchten bei Ziel-Abschluss anzeigen."
+L["OPTIONS_FOCUS_FLASH_INTENSITY"]                                    = "Leuchtintensität"
+L["OPTIONS_FOCUS_NOTICEABLE_OBJECTIVE_COMPLETE_FLASH"]                = "Auffälligkeit des Zielabschlussleuchtens."
+L["OPTIONS_FOCUS_FLASH_COLOR"]                                        = "Leuchtfarbe"
+L["OPTIONS_FOCUS_COLOR_OF_OBJECTIVE_COMPLETE_FLASH"]                  = "Farbe des Zielabschlussleuchtens."
 L["OPTIONS_FOCUS_SUBTLE"]                                             = "Dezent"
 L["OPTIONS_FOCUS_MEDIUM"]                                             = "Mittel"
 L["OPTIONS_FOCUS_STRONG"]                                             = "Stark"
 L["OPTIONS_FOCUS_REQUIRE_CTRL_CLICK_COMPLETE"]                        = "Strg für Klick zum Abschließen erforderlich"
-L["OPTIONS_FOCUS_REQUIRES_CTRL_LEFT_CLICK_COMPLETE_AUTO"]             = "An: Strg+Linksklick für Klick-Abschluss. Aus: einfacher Linksklick (Blizzard-Standard). Nur bei klickbaren Quests."
+L["OPTIONS_FOCUS_REQUIRES_CTRL_LEFT_CLICK_COMPLETE_AUTO"]             = "EIN: Strg+Linksklick für Klick-Abschluss. AUS: einfacher Linksklick (Blizzard-Standard). Nur bei klickbaren Quests."
 L["OPTIONS_FOCUS_SUPPRESS_UNTRACKED_UNTIL_RELOAD"]                    = "Nicht verfolgte bis Neuladen unterdrücken"
-L["OPTIONS_FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS_Z"]                 = "An: Rechtsklick Nicht verfolgen versteckt bis Neuladen oder neuer Sitzung. Aus: erscheinen wieder bei Zonen-Rückkehr."
+L["OPTIONS_FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS_Z"]                 = "EIN: Rechtsklick Nicht verfolgen versteckt bis Neuladen oder neuer Sitzung. AUS: erscheinen wieder bei Zonen-Rückkehr."
 L["OPTIONS_FOCUS_PERMANENTLY_SUPPRESS_UNTRACKED_QUESTS"]              = "Nicht verfolgte Quests dauerhaft unterdrücken"
 L["OPTIONS_FOCUS_RIGHT_CLICK_UNTRACKED_WORLD_QUESTS_ZO"]              = "An: Rechtsklick Nicht verfolgen versteckt dauerhaft (über Neuladen). Vorrang vor „Bis Neuladen\". Annehmen entfernt von Sperrliste."
 L["OPTIONS_FOCUS_KEEP_CAMPAIGN_QUESTS_CATEGORY"]                      = "Kampagnen-Quest in Kategorie bleiben"
-L["OPTIONS_FOCUS_CAMPAIGN_QUESTS_READY_TURN_RE"]                      = "An: abgabereife Kampagnen-Quests bleiben in Kampagne statt in Abgeschlossen."
+L["OPTIONS_FOCUS_CAMPAIGN_QUESTS_READY_TURN_RE"]                      = "An: abgabebereite Kampagnen-Quests bleiben in Kampagne statt in Abgeschlossen."
 L["OPTIONS_FOCUS_KEEP_IMPORTANT_QUESTS_CATEGORY"]                     = "Wichtige Quests in Kategorie bleiben"
-L["OPTIONS_FOCUS_IMPORTANT_QUESTS_READY_TURN_R"]                      = "An: abgabereife wichtige Quests bleiben in Wichtig statt in Abgeschlossen."
+L["OPTIONS_FOCUS_IMPORTANT_QUESTS_READY_TURN_R"]                      = "An: abgabebereite wichtige Quests bleiben in Wichtig statt in Abgeschlossen."
 L["OPTIONS_FOCUS_TOMTOM_QUEST_WAYPOINT"]                              = "TomTom-Quest-Wegpunkt"
 L["OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_FOCUSING_A_QUEST"]                 = "TomTom-Wegpunkt setzen beim Fokussieren einer Quest."
 L["OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_NEXT_QUEST"]            = "TomTom erforderlich. Der Pfeil zeigt auf das nächste Questziel."
-L["OPTIONS_FOCUS_TOMTOM_RARE_WAYPOINT"]                               = "TomTom-Selten-Boss-Wegpunkt"
+L["OPTIONS_FOCUS_TOMTOM_RARE_WAYPOINT"]                               = "TomTom-Rare-Boss-Wegpunkt"
 L["OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_CLICKING_A_RARE"]                  = "TomTom-Wegpunkt setzen beim Klicken auf einen seltenen Boss."
 L["OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE_S"]                = "TomTom erforderlich. Der Pfeil zeigt auf die Position des seltenen Bosses."
 L["OPTIONS_FOCUS_FIND_A_GROUP"]                                       = "Gruppe finden"
@@ -1024,8 +1024,8 @@ L["OPTIONS_FOCUS_BAR_TOP_EDGE"]                                       = "Leiste 
 L["OPTIONS_FOCUS_BAR_BOTTOM_EDGE"]                                    = "Leiste (unterer Rand)"
 L["OPTIONS_FOCUS_OUTLINE_ONLY_STYLE"]                                 = "Nur Umriss"
 L["OPTIONS_FOCUS_SOFT_GLOW"]                                          = "Sanftes Leuchten"
-L["OPTIONS_FOCUS_DUAL_EDGE_BARS"]                                     = "Doppelrand-Leisten"
-L["OPTIONS_FOCUS_PILL_LEFT_ACCENT"]                                   = "Pill-Links-Akzent"
+L["OPTIONS_FOCUS_DUAL_EDGE_BARS"]                                     = "Doppelrandleisten"
+L["OPTIONS_FOCUS_PILL_LEFT_ACCENT"]                                   = "Akzentpille (links)"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position
@@ -1036,11 +1036,11 @@ L["OPTIONS_FOCUS_BOTTOM"]                                             = "Unten"
 -- =====================================================================
 -- OptionsData.lua Vista — Text element positions
 -- =====================================================================
-L["OPTIONS_VISTA_LOCATION_POSITION"]                                  = "Standort-Position"
+L["OPTIONS_VISTA_LOCATION_POSITION"]                                  = "Standortposition"
 L["OPTIONS_VISTA_PLACE_ZONE_NAME_ABOVE_BELOW_MINIMAP"]                = "Zonennamen über oder unter der Minikarte platzieren."
-L["OPTIONS_VISTA_COORDINATES_POSITION"]                               = "Koordinaten-Position"
+L["OPTIONS_VISTA_COORDINATES_POSITION"]                               = "Koordinatenposition"
 L["OPTIONS_VISTA_PLACE_COORDINATES_ABOVE_BELOW_MINIMAP"]              = "Koordinaten über oder unter der Minikarte platzieren."
-L["OPTIONS_VISTA_CLOCK_POSITION"]                                     = "Uhr-Position"
+L["OPTIONS_VISTA_CLOCK_POSITION"]                                     = "Uhrposition"
 L["OPTIONS_VISTA_PLACE_CLOCK_ABOVE_BELOW_MINIMAP"]                    = "Uhr über oder unter der Minikarte platzieren."
 
 -- =====================================================================
@@ -1048,7 +1048,7 @@ L["OPTIONS_VISTA_PLACE_CLOCK_ABOVE_BELOW_MINIMAP"]                    = "Uhr üb
 -- =====================================================================
 L["OPTIONS_FOCUS_LOWER_CASE"]                                         = "Kleinbuchstaben"
 L["OPTIONS_FOCUS_UPPER_CASE"]                                         = "Großbuchstaben"
-L["OPTIONS_FOCUS_PROPER"]                                             = "Erster Buchstabe groß"
+L["OPTIONS_FOCUS_PROPER"]                                             = "Große Anfangsbuchstaben"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Header count format
@@ -1072,33 +1072,35 @@ L["OPTIONS_FOCUS_ORDER"]                                              = "Reihenf
 -- =====================================================================
 -- Tracker section labels (SECTION_LABELS)
 -- =====================================================================
--- L["UI_DUNGEON"]                                                    = "DUNGEON"  -- NEEDS TRANSLATION
--- L["UI_RAID"]                                                       = "RAID"  -- NEEDS TRANSLATION
-L["UI_DELVES"]                                                        = "Tiefen"
-L["UI_SCENARIO_EVENTS"]                                               = "Szenario-Ereignisse"
--- L["UI_STAGE"]                                                      = "Stage"  -- NEEDS TRANSLATION
--- L["UI_STAGE_X_X"]                                                  = "Stage %d: %s"  -- NEEDS TRANSLATION
-L["UI_AVAILABLE_IN_ZONE"]                                             = "IN ZONE VERFÜGBAR"
-L["UI_EVENTS_IN_ZONE"]                                                = "Ereignisse in Zone"
+L["UI_DUNGEON"]                                                       = "Verlies"
+L["UI_RAID"]                                                          = "Schlachtzug"
+L["UI_DELVES"]                                                        = "Tiefe"
+L["UI_SCENARIO_EVENTS"]                                               = "Szenario"
+L["UI_STAGE"]                                                         = "Phase"
+L["UI_STAGE_X_X"]                                                     = "Phase %d: %s"
+L["UI_AVAILABLE_IN_ZONE"]                                             = "In Zone verfügbar"
+L["UI_EVENTS_IN_ZONE"]                                                = "Zonenereignisse"
 L["UI_CURRENT_EVENT"]                                                 = "Aktuelles Ereignis"
-L["UI_CURRENT_QUEST"]                                                 = "AKTUELLE QUEST"
-L["UI_CURRENT_ZONE"]                                                  = "AKTUELLE ZONE"
-L["UI_CAMPAIGN"]                                                      = "KAMPAGNE"
-L["UI_IMPORTANT"]                                                     = "WICHTIG"
-L["UI_LEGENDARY"]                                                     = "LEGENDÄR"
-L["UI_WORLD_QUESTS"]                                                  = "WELTQUESTS"
-L["UI_WEEKLY_QUESTS"]                                                 = "Wochenquests"
+L["UI_CURRENT_QUEST"]                                                 = "Aktuelle Quest"
+L["UI_CURRENT_ZONE"]                                                  = "Aktuelle Zone"
+L["UI_CAMPAIGN"]                                                      = "Kampagne"
+L["UI_IMPORTANT"]                                                     = "Wichtig"
+L["UI_LEGENDARY"]                                                     = "Legendär"
+L["UI_WORLD_QUESTS"]                                                  = "Welt"
+L["UI_WEEKLY_QUESTS"]                                                 = "Wöchentlich"
 L["UI_PREY"]                                                          = "Beute"
 L["UI_ABUNDANCE"]                                                     = "Überfluss"
 L["UI_ABUNDANCE_BAG"]                                                 = "Überflussbeutel"
 L["UI_ABUNDANCE_HELD"]                                                = "Überfluss gehalten"
-L["UI_DAILY_QUESTS"]                                                  = "Tagesquests"
-L["UI_RARE_BOSSES"]                                                   = "RARE BOSSE"
-L["UI_ACHIEVEMENTS"]                                                  = "ERFOLGE"
-L["UI_ENDEAVORS"]                                                     = "BESTREBUNGEN"
-L["UI_DECOR"]                                                         = "DEKORATION"
+L["UI_DAILY_QUESTS"]                                                  = "Täglich"
+L["UI_RARE_BOSSES"]                                                   = "Rare Bosse"
+L["UI_ACHIEVEMENTS"]                                                  = "Erfolge"
+L["UI_ENDEAVORS"]                                                     = "Bestrebungen"
+L["UI_DECOR"]                                                         = "Dekoration"
+L["UI_RECIPES"]                                                       = "Rezepte"
+L["UI_ADVENTURE_GUIDE"]                                               = "Abenteuerführer"
 -- L["UI_APPEARANCES"]                                                = "Appearances"  -- NEEDS TRANSLATION
--- L["UI_QUESTS"]                                                     = "QUESTS"  -- NEEDS TRANSLATION
+L["UI_QUESTS"]                                                        = "Quests"
 L["UI_READY_TO_TURN_IN"]                                              = "ABGABEBEREIT"
 
 -- =====================================================================
@@ -1117,30 +1119,30 @@ L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"]                          = "Zeigt e
 -- L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"]                        = "Reset minimap button position"  -- NEEDS TRANSLATION
 -- L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"]                = "Reset the minimap button to the default position (bottom-left)."  -- NEEDS TRANSLATION
 -- L["PRESENCE_DRAG_TO_MOVE_WHEN_UNLOCKED"]                           = "Drag to move (when unlocked)."  -- NEEDS TRANSLATION
--- L["PRESENCE_LOCKED"]                                               = "Locked"  -- NEEDS TRANSLATION
+L["PRESENCE_LOCKED"]                                                  = "Fixiert"
 L["PRESENCE_DISCOVERED"]                                              = "Entdeckt"
 L["PRESENCE_REFRESH"]                                                 = "Aktualisieren"
 L["PRESENCE_BEST_EFFORT_UNACCEPTED_QUESTS_EXPO"]                      = "Nur bestmöglich. Manche nicht angenommenen Quests werden erst nach NPC-Interaktion oder Phasenbedingungen angezeigt."
 L["PRESENCE_UNACCEPTED_QUESTS_X_MAP_X"]                               = "Nicht angenommene Quests - %s (Karte %s) - %d Treffer"
-L["PRESENCE_LEVEL_UP"]                                                = "LEVELAUFSTIEG"
+L["PRESENCE_LEVEL_UP"]                                                = "STUFENAUFSTIEG"
 L["PRESENCE_YOU_HAVE_REACHED_LEVEL_80"]                               = "Ihr habt Stufe 80 erreicht"
 L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"]                                = "Ihr habt Stufe %s erreicht"
-L["PRESENCE_ACHIEVEMENT_EARNED"]                                      = "ERFOLG ERLANGT"
+L["PRESENCE_ACHIEVEMENT_EARNED"]                                      = "ERFOLG ERRUNGEN"
 L["PRESENCE_EXPLORING_THE_MIDNIGHT_ISLES"]                            = "Mitternachtsinseln erkunden"
 L["PRESENCE_EXPLORING_KHAZ_ALGAR"]                                    = "Khaz Algar erkunden"
 L["PRESENCE_QUEST_COMPLETE"]                                          = "QUEST ABGESCHLOSSEN"
 L["PRESENCE_OBJECTIVE_SECURED"]                                       = "Ziel gesichert"
 L["PRESENCE_AIDING_THE_ACCORD"]                                       = "Dem Abkommen helfen"
-L["PRESENCE_WORLD_QUEST"]                                             = "WELTQUEST"
-L["PRESENCE_WORLD_QUEST_COMPLETE"]                                    = "WELTQUEST ABGESCHLOSSEN"
+L["PRESENCE_WORLD_QUEST"]                                             = "WELT-QUEST"
+L["PRESENCE_WORLD_QUEST_COMPLETE"]                                    = "WELT-QUEST ABGESCHLOSSEN"
 L["PRESENCE_AZERITE_MINING"]                                          = "Azerit-Abbau"
-L["PRESENCE_WORLD_QUEST_ACCEPTED"]                                    = "WELTQUEST ANGENOMMEN"
+L["PRESENCE_WORLD_QUEST_ACCEPTED"]                                    = "WELT-QUEST ANGENOMMEN"
 L["PRESENCE_QUEST_ACCEPTED"]                                          = "QUEST ANGENOMMEN"
 L["PRESENCE_THE_FATE_OF_THE_HORDE"]                                   = "Das Schicksal der Horde"
 L["PRESENCE_NEW_QUEST"]                                               = "Neue Quest"
-L["PRESENCE_QUEST_UPDATE"]                                            = "QUEST-UPDATE"
+L["PRESENCE_QUEST_UPDATE"]                                            = "QUEST-FORTSCHRITT"
 L["PRESENCE_BOAR_PELTS_7_10"]                                         = "Eberfelle: 7/10"
--- L["PRESENCE_DRAGON_GLYPHS_3_5"]                                    = "Dragon Glyphs: 3/5"  -- NEEDS TRANSLATION
+L["PRESENCE_DRAGON_GLYPHS_3_5"]                                       = "Drachenglyphen: 3/5"
 L["PRESENCE_PRESENCE_TEST_COMMANDS"]                                  = "Präsenz-Testbefehle:"
 L["PRESENCE_H_PRESENCE_DEBUGTYPES_DUMP_NOTIFICATION"]                 = "  /h presence debugtypes - Benachrichtigungsoptionen und Blizzard-Unterdrückungsstatus ausgeben"
 L["PRESENCE_PRESENCE_PLAYING_DEMO_REEL_NOTIFICATION"]                 = "Präsenz: Demo wird abgespielt (alle Benachrichtigungstypen)..."
@@ -1186,19 +1188,19 @@ L["OPTIONS_VISTA_SECONDS_AFTER_ZOOMING_BEFORE_AUTO_ZOOM"]             = "Sekunde
 -- =====================================================================
 -- OptionsData.lua Vista — Typography
 -- =====================================================================
-L["OPTIONS_VISTA_ZONE_TEXT_HEADER"]                                   = "Zonen-Text"
-L["OPTIONS_VISTA_ZONE_FONT"]                                          = "Zonen-Schriftart"
+L["OPTIONS_VISTA_ZONE_TEXT_HEADER"]                                   = "Zonentext"
+L["OPTIONS_VISTA_ZONE_FONT"]                                          = "Zonenschriftart"
 L["OPTIONS_VISTA_FONT_ZONE_NAME_BELOW_MINIMAP"]                       = "Schriftart für den Zonennamen unter der Minikarte."
-L["OPTIONS_VISTA_ZONE_FONT_SIZE"]                                     = "Zonen-Schriftgröße"
-L["OPTIONS_VISTA_ZONE_TEXT_COLOR"]                                    = "Zonentext-Farbe"
-L["OPTIONS_VISTA_COLOR_OF_ZONE_NAME_TEXT"]                            = "Farbe des Zonennamen-Texts."
-L["OPTIONS_VISTA_COORDINATES_TEXT"]                                   = "Koordinaten-Text"
-L["OPTIONS_VISTA_COORDINATES_FONT"]                                   = "Koordinaten-Schriftart"
+L["OPTIONS_VISTA_ZONE_FONT_SIZE"]                                     = "Zonenschriftgröße"
+L["OPTIONS_VISTA_ZONE_TEXT_COLOR"]                                    = "Zonentextfarbe"
+L["OPTIONS_VISTA_COLOR_OF_ZONE_NAME_TEXT"]                            = "Farbe des Zonennamentexts."
+L["OPTIONS_VISTA_COORDINATES_TEXT"]                                   = "Koordinatentext"
+L["OPTIONS_VISTA_COORDINATES_FONT"]                                   = "Koordinatenschriftart"
 L["OPTIONS_VISTA_FONT_COORDINATES_TEXT_BELOW_MINIMAP"]                = "Schriftart für den Koordinaten-Text unter der Minikarte."
-L["OPTIONS_VISTA_COORDINATES_FONT_SIZE"]                              = "Koordinaten-Schriftgröße"
-L["OPTIONS_VISTA_COORDINATES_TEXT_COLOR"]                             = "Koordinaten-Textfarbe"
-L["OPTIONS_VISTA_COLOR_OF_COORDINATES_TEXT"]                          = "Farbe des Koordinaten-Texts."
-L["OPTIONS_VISTA_COORDINATE_PRECISION"]                               = "Koordinaten-Genauigkeit"
+L["OPTIONS_VISTA_COORDINATES_FONT_SIZE"]                              = "Koordinatenschriftgröße"
+L["OPTIONS_VISTA_COORDINATES_TEXT_COLOR"]                             = "Koordinatentextfarbe"
+L["OPTIONS_VISTA_COLOR_OF_COORDINATES_TEXT"]                          = "Farbe des Koordinatentexts."
+L["OPTIONS_VISTA_COORDINATE_PRECISION"]                               = "Koordinatenpräzision"
 L["OPTIONS_VISTA_NUMBER_OF_DECIMAL_PLACES_SHOWN_X"]                   = "Anzahl Dezimalstellen für X- und Y-Koordinaten."
 L["OPTIONS_VISTA_COORDS_DECIMALS_OFF"]                                = "Keine Dezimalstellen (z.B. 52, 37)"
 L["OPTIONS_VISTA_DECIMAL_E_G"]                                        = "1 Dezimalstelle (z.B. 52,3, 37,1)"
@@ -1473,7 +1475,7 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_FONTS_SIZES_COLORS_PRESENCE_NOTIFICATIONS"]        = "Fonts, sizes, and colors for Presence notifications."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_WORLD_QUESTS_WEEKLIES_YOUR_QUEST_LOG"]             = "For world quests and weeklies not in your quest log."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_FRIENDLY_ZONE_COLOR"]                              = "Friendly zone color"  -- NEEDS TRANSLATION
--- L["OPTIONS_CORE_GROUPING"]                                         = "Grouping"  -- NEEDS TRANSLATION
+L["OPTIONS_CORE_GROUPING"]                                            = "Gruppierung"
 -- L["OPTIONS_CORE_GROUPS_SELECTED_LAYOUT_MODE_BELOW"]                = "Groups them by the selected layout mode below."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_GUILD_RANK"]                                       = "Guild rank"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_HEADER_DIVIDER"]                                   = "Header divider"  -- NEEDS TRANSLATION
@@ -1627,7 +1629,7 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_SIZE_SHAPE"]                                       = "Size & shape"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_SIZE_OF_ZOOM_BUTTONS_PIXELS"]                      = "Size of the + and - zoom buttons (pixels)."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_SORT_MODE"]                                        = "Sort mode"  -- NEEDS TRANSLATION
--- L["OPTIONS_CORE_SORTING_FILTERING"]                                = "Sorting & Filtering"  -- NEEDS TRANSLATION
+L["OPTIONS_CORE_SORTING_FILTERING"]                                   = "Sortierung & Filterung"
 -- L["OPTIONS_CORE_SOUND_PLAYED_A_RARE_BOSS_APPEARS"]                 = "Sound played when a rare boss appears."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_STATUS_BADGES"]                                    = "Status badges"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_SUBZONE_CHANGES"]                                  = "Subzone changes"  -- NEEDS TRANSLATION
@@ -1671,6 +1673,9 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
+
 
 
 
