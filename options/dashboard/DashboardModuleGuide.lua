@@ -65,7 +65,7 @@ function addon.DashboardModuleGuide_Init(env)
     local SBgHoverR, SBgHoverG, SBgHoverB = 0.11, 0.11, 0.13
     local SBgExpandedR, SBgExpandedG, SBgExpandedB = 0.10, 0.10, 0.12
 
-    -- Match DashboardHomeWelcome.lua: bg nudge, scroll insets, footer anchor, link row (82×6 @ gap 10), scroll–footer gap.
+    -- Match DashboardHomeWelcome.lua: bg nudge, scroll insets, scroll–footer gap. Footer layout/anchor matches Patch Notes (full view width).
     local GUIDE_BG_TOP_NUDGE = 50
     local GUIDE_CONTENT_TOP_PAD = 6
     local GUIDE_ACC_HEAD_H = 48
@@ -135,6 +135,7 @@ function addon.DashboardModuleGuide_Init(env)
         MakeText = MakeText,
         addon = addon,
     })
+    tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
     local footerTopRule = footerObj.footerTopRule
     local communityHdr = footerObj.communityHdr
     local footerLinkButtons = footerObj.footerLinkButtons
@@ -331,10 +332,13 @@ function addon.DashboardModuleGuide_Init(env)
     LayoutGuideContent = function()
         local rawW = guideBg:GetWidth() or 0
         local w = math.max(280, rawW - 40)
+        -- Match Patch Notes: footer anchors to full view + same width math so Community & Support block height matches.
+        local viewW = guideView:GetWidth() or 0
+        local wFooter = math.max(280, viewW - 40)
         local innerPad = 28
 
         -- Footer layout (shared factory with Welcome)
-        footerObj.layout(w, 0, guideBg)
+        footerObj.layout(wFooter, 0, guideView)
 
         content:SetWidth(w)
         guideScroll:ClearAllPoints()
@@ -434,6 +438,7 @@ function addon.DashboardModuleGuide_Init(env)
     end)
 
     f.ShowModuleGuide = function()
+        if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
         HideContextHeader()
         detailView:Hide()
         subCategoryView:Hide()

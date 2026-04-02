@@ -25,12 +25,8 @@ SlashCmdList["HSDASH"] = function(msg)
                 f = addon.Dashboard_BuildMainFrame()
             end
         end
-        if f and f.ShowDashboard and f.ShowWelcome then
-            if addon.GetDB and not addon.GetDB("dashboardWelcomeSeen", false) then
-                f.ShowWelcome()
-            else
-                f.ShowDashboard()
-            end
+        if f and f.ShowWelcome then
+            f.ShowWelcome()
         elseif f and f.ShowDashboard then
             f.ShowDashboard()
         end

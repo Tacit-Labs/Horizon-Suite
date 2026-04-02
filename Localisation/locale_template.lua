@@ -81,11 +81,12 @@ L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Module 
 -- options/dashboard/HomeWelcome.lua — First-run welcome
 -- =====================================================================
 L["DASH_WHATS_NEW"]                                                   = "Patch Notes"
+L["DASH_FULL_CHANGELOG"]                                              = "Full Changelog"
 L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                     = " (New!)"
 L["DASH_WELCOME_TAB"]                                                 = "Welcome"
 L["DASH_WELCOME_TITLE"]                                               = "Welcome to Horizon Suite"
 L["DASH_WELCOME_HEAD_SUB"]                                            = "Credits, community, and where to find help"
-L["DASH_WELCOME_INTRO"]                                               = [=[Horizon Suite is modular — turn features on or off under |cffaaaaaaAxis → Modules|r (|cffaaaaaaReload UI|r to apply). Open |cffaaaaaaQuick Start|r in the sidebar for a tour of every module. After an update, check |cffaaaaaaPatch Notes|r in the sidebar for what changed. The first section below highlights new Horizon class icons; Contributors and Localisations follow Coming Soon. You can return here anytime from Welcome.]=]
+L["DASH_WELCOME_INTRO"]                                               = [=[Welcome to Horizon Suite — modular UI for your tracker, notifications, and more, built so you only run what you want. Turn features on or off under |cffaaaaaaAxis → Modules|r, take the |cffaaaaaaQuick Start|r tour, and see what is new in |cffaaaaaaPatch Notes|r each release.]=]
 L["DASH_WELCOME_PATH"]                                                = "%s → %s → %s"
 L["DASH_WELCOME_COMING_SOON_TITLE"]                                   = "Coming Soon"
 L["DASH_WELCOME_COMING_SOON_TAGLINE"]                                 = "New welcome experiences are on the way."
@@ -1689,6 +1690,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
