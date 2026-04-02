@@ -322,7 +322,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             end
             local useTick = oData.finished and addon.GetDB("useTickForCompletedObjectives", false) and not questData.isComplete
             obj.text:SetText(objText)
-            obj.shadow:SetText(objText)
+            obj.shadow:SetText(addon.PlainTextForShadowFontString(objText))
 
             local tickSize = math.max(10, (tonumber(addon.GetDB("objectiveFontSize", 11)) or 11) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
             if useTick and obj.tick then
@@ -990,8 +990,9 @@ local function PopulateEntry(entry, questData, groupKey)
     local showQuestIcons = addon.GetDB("showQuestTypeIcons", false)
     local showAchievementIcons = addon.GetDB("showAchievementIcons", true)
     local showDecorIcons = addon.GetDB("showDecorIcons", true)
+    local showAppearanceIcons = addon.GetDB("showAppearanceIcons", true)
     local showRecipeIcons = addon.GetDB("showRecipeIcons", true)
-    local hasIcon = ((questData.questTypeAtlas ~= nil) and showQuestIcons) or (questData.isAchievement and questData.achievementIcon and showQuestIcons and showAchievementIcons) or (questData.isDecor and questData.decorIcon and showQuestIcons and showDecorIcons) or (questData.isRecipe and questData.recipeIcon and showQuestIcons and showRecipeIcons)
+    local hasIcon = ((questData.questTypeAtlas ~= nil) and showQuestIcons) or (questData.isAchievement and questData.achievementIcon and showQuestIcons and showAchievementIcons) or (questData.isDecor and questData.decorIcon and showQuestIcons and showDecorIcons) or (questData.isAppearance and (questData.appearanceIcon or questData.appearanceIconAtlas) and showQuestIcons and showAppearanceIcons) or (questData.isRecipe and questData.recipeIcon and showQuestIcons and showRecipeIcons)
     local isOffMapWorld = (questData.category == "WORLD") and questData.isTracked and not questData.isNearby
 
     local S = addon.Scaled or function(v) return v end
@@ -1127,6 +1128,13 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.questTypeIcon:Show()
     elseif questData.isDecor and questData.decorIcon and showDecorIcons then
         entry.questTypeIcon:SetTexture(questData.decorIcon)
+        entry.questTypeIcon:Show()
+    elseif questData.isAppearance and showAppearanceIcons and (questData.appearanceIconAtlas or questData.appearanceIcon) then
+        if questData.appearanceIconAtlas then
+            entry.questTypeIcon:SetAtlas(questData.appearanceIconAtlas)
+        else
+            entry.questTypeIcon:SetTexture(questData.appearanceIcon)
+        end
         entry.questTypeIcon:Show()
     elseif questData.isRecipe and questData.recipeIcon and showRecipeIcons then
         entry.questTypeIcon:SetTexture(questData.recipeIcon)
@@ -1338,6 +1346,7 @@ local function PopulateEntry(entry, questData, groupKey)
     -- When only one is present, it sits at the rightmost position.
     if showItemBtn then
         entry.itemLink = questData.itemLink
+        entry.itemBtn._itemLink = questData.itemLink
         entry.itemBtn.icon:SetTexture(questData.itemTexture)
         entry.itemBtn:SetSize(itemBtnSize, itemBtnSize)
         entry.itemBtn:ClearAllPoints()
@@ -1350,6 +1359,7 @@ local function PopulateEntry(entry, questData, groupKey)
         addon.ApplyItemCooldown(entry.itemBtn.cooldown, questData.itemLink)
     else
         entry.itemLink = nil
+        entry.itemBtn._itemLink = nil
         entry.itemBtn:Hide()
     end
     entry:SetHitRectInsets(0, 0, 0, 0)
@@ -1593,6 +1603,20 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.achievementID = nil
         entry.endeavorID = nil
         entry.decorID    = questData.decorID
+        entry.adventureGuideID   = nil
+        entry.adventureGuideType = nil
+        entry.isTracked  = true
+        entry.vignetteGUID = nil; entry.vignetteMapID = nil; entry.vignetteX = nil; entry.vignetteY = nil; entry.title = nil
+    elseif questData.isAppearance or questData.category == "APPEARANCE" then
+        entry.questID    = nil
+        entry.entryKey   = questData.entryKey
+        entry.category   = questData.category
+        entry.creatureID = nil
+        entry.achievementID = nil
+        entry.endeavorID = nil
+        entry.decorID    = nil
+        entry.appearanceID = questData.appearanceID
+        entry.appearanceItemLink = questData.appearanceItemLink
         entry.adventureGuideID   = nil
         entry.adventureGuideType = nil
         entry.isTracked  = true

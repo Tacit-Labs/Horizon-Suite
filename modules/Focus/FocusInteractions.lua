@@ -504,6 +504,20 @@ for i = 1, addon.POOL_SIZE do
                     end
                     return
                 end
+                local appearanceIDMatch = self.entryKey:match("^appearance:(%d+)$")
+                if appearanceIDMatch and self.appearanceID then
+                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
+                    if requireCtrl and not IsControlKeyDown() then return end
+                    if IsShiftKeyDown() then
+                        if InCombatLockdown() then return end
+                        if Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance and ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
+                            pcall(ContentTrackingUtil.OpenMapToTrackable, Enum.ContentTrackingType.Appearance, self.appearanceID)
+                        end
+                    elseif addon.OpenTrackedAppearanceInCollections then
+                        addon.OpenTrackedAppearanceInCollections(self.appearanceID)
+                    end
+                    return
+                end
                 local advMatch = self.entryKey:match("^advguide:")
                 if advMatch and self.adventureGuideID then
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
@@ -766,6 +780,16 @@ for i = 1, addon.POOL_SIZE do
                     addon.ScheduleRefresh()
                     return
                 end
+                local appearanceIDMatch = self.entryKey:match("^appearance:(%d+)$")
+                if appearanceIDMatch and self.appearanceID then
+                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
+                    if requireCtrl and not IsControlKeyDown() then return end
+                    if Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance and Enum.ContentTrackingStopType and Enum.ContentTrackingStopType.Manual and C_ContentTracking and C_ContentTracking.StopTracking then
+                        pcall(C_ContentTracking.StopTracking, Enum.ContentTrackingType.Appearance, self.appearanceID, Enum.ContentTrackingStopType.Manual)
+                    end
+                    addon.ScheduleRefresh()
+                    return
+                end
                 local advMatch = self.entryKey:match("^advguide:")
                 if advMatch and self.adventureGuideID then
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
@@ -1022,6 +1046,21 @@ for i = 1, addon.POOL_SIZE do
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText(self.titleText:GetText() or "")
             GameTooltip:AddLine(("Decor #%d"):format(self.decorID), 0.7, 0.7, 0.7)
+            AppendWoWheadLineToTooltip(self)
+            GameTooltip:Show()
+        elseif self.appearanceID then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            local link = self.appearanceItemLink
+            if link and type(link) == "string" and link ~= "" and GameTooltip.SetHyperlink then
+                local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+                if not ok then
+                    GameTooltip:SetText(self.titleText:GetText() or "")
+                    GameTooltip:AddLine(("Appearance #%s"):format(tostring(self.appearanceID)), 0.7, 0.7, 0.7)
+                end
+            else
+                GameTooltip:SetText(self.titleText:GetText() or "")
+                GameTooltip:AddLine(("Appearance #%s"):format(tostring(self.appearanceID)), 0.7, 0.7, 0.7)
+            end
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.achievementID and GetAchievementLink then

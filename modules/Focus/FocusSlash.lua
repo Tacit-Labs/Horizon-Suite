@@ -45,6 +45,7 @@ local function MatrixKey(category)
     if category == "ACHIEVEMENT" then return "ACHIEVEMENTS" end
     if category == "ENDEAVOR" then return "ENDEAVORS" end
     if category == "DECOR" then return "DECOR" end
+    if category == "APPEARANCE" then return "APPEARANCES" end
     if category == "RECIPE" then return "RECIPES" end
     return category
 end
@@ -58,6 +59,7 @@ local function CategoryFromEntry(entry)
     if groupKey == "ACHIEVEMENTS" then return "ACHIEVEMENT" end
     if groupKey == "ENDEAVORS" then return "ENDEAVOR" end
     if groupKey == "DECOR" then return "DECOR" end
+    if groupKey == "APPEARANCES" then return "APPEARANCE" end
     if groupKey == "RECIPES" then return "RECIPE" end
     return nil
 end
@@ -244,6 +246,11 @@ local function HandleFocusSlash(msg)
               color = qc("DECOR"), category = "DECOR", isDecor = true,
               decorIcon = "Interface\\Icons\\INV_Misc_Statue_01",
               isComplete = false, objectives = { { text = "Collect from raid", finished = false } }},
+            -- APPEARANCES
+            { entryKey = "test:appearance", appearanceID = 90001, questID = nil, title = "[Test] Appearance: Mantle of the Lost",
+              color = qc("APPEARANCE"), category = "APPEARANCE", isAppearance = true,
+              appearanceIcon = "Interface\\Icons\\INV_Shoulder_04",
+              isComplete = false, objectives = { { text = "Drop: Boss Name (Heroic)", finished = false } }},
             -- RECIPES
             { entryKey = "test:recipe", recipeID = 90001, questID = nil, title = "[Test] Recipe: Flasks of the Currents",
               color = qc("RECIPE"), category = "RECIPE", isRecipe = true,
@@ -770,6 +777,7 @@ local function HandleFocusDebugSlash(msg)
         end
         HSPrint("ReadTrackedEndeavors count: " .. (addon.ReadTrackedEndeavors and #addon.ReadTrackedEndeavors() or 0))
         HSPrint("ReadTrackedDecor count: " .. (addon.ReadTrackedDecor and #addon.ReadTrackedDecor() or 0))
+        HSPrint("ReadTrackedAppearances count: " .. (addon.ReadTrackedAppearances and #addon.ReadTrackedAppearances() or 0))
         if C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetTrackedInitiativeTasks and C_NeighborhoodInitiative.GetInitiativeTaskInfo then
             local ok, result = pcall(C_NeighborhoodInitiative.GetTrackedInitiativeTasks)
             local ids = {}

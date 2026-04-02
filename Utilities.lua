@@ -280,6 +280,38 @@ function addon.SetTextColor(fontString, color)
     fontString:SetTextColor(color[1], color[2], color[3], color[4] or 1)
 end
 
+--- Strip WoW FontString escapes for a manual shadow FontString so SetTextColor(0,0,0) draws a black outline.
+--- Expands |H…|h…|h hyperlinks to visible text; removes |T textures and |c…|r color. Plain strings pass through.
+--- @param text string|nil
+--- @return string
+function addon.PlainTextForShadowFontString(text)
+    if not text or type(text) ~= "string" or text == "" then
+        return ""
+    end
+    local s = text
+    local guard = 0
+    while s:find("|H", 1, true) and guard < 24 do
+        local n = s:gsub("|H[^|]*|h(.-)|h", "%1")
+        if n == s then
+            break
+        end
+        s = n
+        guard = guard + 1
+    end
+    s = s:gsub("(|[TtAa][^|]*|[TtAa])", "")
+    s = s:gsub("|n", " "):gsub("|N", " ")
+    guard = 0
+    while guard < 32 do
+        local n = s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        if n == s then
+            break
+        end
+        s = n
+        guard = guard + 1
+    end
+    return s
+end
+
 --- Apply text case from DB option. Returns text in upper, lower, or proper (title) case based on dbKey.
 -- @param text string or nil
 -- @param dbKey string DB key (e.g. "headerTextCase"); values "upper", "lower", or "proper"

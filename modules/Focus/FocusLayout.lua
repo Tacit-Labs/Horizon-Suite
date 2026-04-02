@@ -43,7 +43,8 @@ local function SchedulePlaceholderRefreshes(quests)
     for _, q in ipairs(quests) do
         local isEndeavorPlaceholder = q.isEndeavor and q.endeavorID and q.title == ("Endeavor " .. tostring(q.endeavorID))
         local isDecorPlaceholder = q.isDecor and q.decorID and q.title == ("Decor " .. tostring(q.decorID))
-        if isEndeavorPlaceholder or isDecorPlaceholder then
+        local isAppearancePlaceholder = q.isAppearance and q.appearanceID and q.title == ("Appearance " .. tostring(q.appearanceID))
+        if isEndeavorPlaceholder or isDecorPlaceholder or isAppearancePlaceholder then
             hasPlaceholder = true
             break
         end
@@ -239,7 +240,7 @@ nearbyToggleKeybindBtn:RegisterForClicks("AnyUp")
 -- respecting collapsed categories. (8) Set scroll child height, clamp scroll offset,
 -- compute target panel height and show frame.
 
---- Collect all tracked entries (quests + rares + rare loot + achievements + endeavors + decor + adventure guide).
+--- Collect all tracked entries (quests + rares + rare loot + achievements + endeavors + decor + appearances + adventure guide).
 --- @param rares table Array of rare entries from GetRaresOnMap
 --- @param treasures table|nil Array of treasure entries from GetTreasuresOnMap
 --- @return table Combined entry array
@@ -257,6 +258,9 @@ local function CollectAllEntries(rares, treasures)
     end
     if addon.ReadTrackedDecor then
         for _, d in ipairs(addon.ReadTrackedDecor()) do quests[#quests + 1] = d end
+    end
+    if addon.ReadTrackedAppearances then
+        for _, ap in ipairs(addon.ReadTrackedAppearances()) do quests[#quests + 1] = ap end
     end
     if addon.GetDB("showRecipes", true) and addon.ReadTrackedRecipes then
         for _, rp in ipairs(addon.ReadTrackedRecipes()) do quests[#quests + 1] = rp end
@@ -1363,6 +1367,7 @@ function addon.ApplyFocusColors()
             if not category and entry.groupKey == "ACHIEVEMENTS" then category = "ACHIEVEMENT" end
             if not category and entry.groupKey == "ENDEAVORS" then category = "ENDEAVOR" end
             if not category and entry.groupKey == "DECOR" then category = "DECOR" end
+            if not category and entry.groupKey == "APPEARANCES" then category = "APPEARANCE" end
             if not category and entry.groupKey == "RECIPES" then category = "RECIPE" end
             local effectiveCat = (addon.GetEffectiveColorCategory and addon.GetEffectiveColorCategory(category, entry.groupKey, entry.baseCategory, entry.isEventQuest)) or category
 
