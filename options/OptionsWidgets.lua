@@ -807,7 +807,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local out = {}
         for k, v in pairs(opts) do
             if type(k) == "number" and type(v) == "table" then
-                -- Expected shape: { name, value }
+                -- Expected shape: { name, value [, disabled] } — [3] truthy = not selectable (grey label, click closes list only).
                 out[#out + 1] = v
             elseif type(k) == "string" then
                 -- Map shape: name -> value
@@ -882,8 +882,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
                 hi:SetAllPoints(b)
                 hi:SetColorTexture(1, 1, 1, 0.06)
                 hi:Hide()
-                b:SetScript("OnEnter", function() hi:Show() end)
-                b:SetScript("OnLeave", function() hi:Hide() end)
+                b._dropdownHi = hi
 
                 optionButtons[i] = b
             end
@@ -894,7 +893,9 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             local opt = opts[i]
             local name = opt and opt[1]
             local value = opt and opt[2]
+            local rowDisabled = opt and opt[3] == true
             local b = optionButtons[i]
+            local hi = b._dropdownHi
 
             b:ClearAllPoints()
             b:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, -(i - 1) * rowH)
@@ -907,12 +908,30 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
                     local path = (addon.ResolveFontPath and addon.ResolveFontPath(value)) or value
                     SetSafeFont(b.text, path, Def.LabelSize, "OUTLINE")
                 end
+                SetTextColor(b.text, rowDisabled and Def.TextColorSection or lblColor)
+            elseif rowDisabled then
+                SetTextColor(b.text, Def.TextColorSection)
+            else
                 SetTextColor(b.text, lblColor)
             end
             b.text:SetText(name)
-            b:SetScript("OnClick", function()
-                setValue(value, name)
-            end)
+            if rowDisabled then
+                b:SetScript("OnEnter", function() end)
+                b:SetScript("OnLeave", function() end)
+                b:SetScript("OnClick", function()
+                    closeList()
+                end)
+            else
+                b:SetScript("OnEnter", function()
+                    if hi then hi:Show() end
+                end)
+                b:SetScript("OnLeave", function()
+                    if hi then hi:Hide() end
+                end)
+                b:SetScript("OnClick", function()
+                    setValue(value, name)
+                end)
+            end
             b:Show()
         end
 

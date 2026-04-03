@@ -173,7 +173,10 @@ end
 -- ============================================================================
 
 --- Open the Collections Appearances (wardrobe) UI for a tracked appearance source ID.
---- Loads Blizzard_Collections if needed; falls back to opening the journal then retrying navigation.
+--- Loads Blizzard_Collections, switches the journal to Appearances/Transmog, then calls
+--- WardrobeCollectionFrame:GoToSource. Do not treat pcall success as “navigation done”:
+--- GoToSource can no-op without error when the journal is wrong or layout is not ready, so we
+--- always toggle the tab first and retry on short delays (same idea as Blizzard after tab change).
 --- @param itemModifiedAppearanceID number ID from content tracking (appearance source)
 --- @return nil
 local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
@@ -188,17 +191,15 @@ local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
         pcall(C_AddOns.LoadAddOn, "Blizzard_Collections")
     end
 
+    -- pcall only suppresses errors; it does not mean the list scrolled to the source.
     local function tryGoToSource()
+        if InCombatLockdown() then
+            return
+        end
         local frame = _G.WardrobeCollectionFrame
         if frame and type(frame.GoToSource) == "function" then
-            local ok = pcall(frame.GoToSource, frame, itemModifiedAppearanceID)
-            return ok
+            pcall(frame.GoToSource, frame, itemModifiedAppearanceID)
         end
-        return false
-    end
-
-    if tryGoToSource() then
-        return
     end
 
     local tab = nil
@@ -213,17 +214,10 @@ local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
         end
     end
 
-    if tryGoToSource() then
-        return
-    end
-
+    tryGoToSource()
     if C_Timer and C_Timer.After then
-        C_Timer.After(0, function()
-            if InCombatLockdown() then
-                return
-            end
-            tryGoToSource()
-        end)
+        C_Timer.After(0, tryGoToSource)
+        C_Timer.After(0.1, tryGoToSource)
     end
 end
 

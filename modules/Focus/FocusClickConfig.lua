@@ -7,6 +7,10 @@
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
+-- When true: only blizzardDefault is active; Horizon+ and Custom are hidden and DB is normalized.
+-- Set false when those presets are ready to ship again.
+local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = true
+
 -- ============================================================================
 -- Action registry: maps action keys to localization keys for dropdown labels.
 -- ============================================================================
@@ -100,13 +104,14 @@ local function ResolveComboKey(button, mods)
     return prefix .. side
 end
 
---- If DB/profile returned an unknown action, fall back to Horizon+ default for this combo.
+--- If DB/profile returned an unknown action, fall back to preset default for this combo.
 --- @param action any
 --- @param comboKey string
 --- @return string
 local function SanitizeQuestClickAction(action, comboKey)
     if type(action) ~= "string" or action == "" or not ACTION_LABELS[action] then
-        return PROFILES.horizonPlus[comboKey] or "none"
+        local preset = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD and PROFILES.blizzardDefault or PROFILES.horizonPlus
+        return preset[comboKey] or "none"
     end
     return action
 end
@@ -126,8 +131,9 @@ end
 --- True when the quest/appearance type icon is shown and super-tracks on left click (legacy classic toggle or Blizzard+ profile).
 --- @return boolean
 function addon.focus.UseBlizzardStyleQuestIconClicks()
+    if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then return true end
     if addon.GetDB("useClassicClickBehaviour", false) then return true end
-    return addon.GetDB("focusClickProfile", "horizonPlus") == "blizzardDefault"
+    return addon.GetDB("focusClickProfile", "blizzardDefault") == "blizzardDefault"
 end
 
 --- Return the action name for a quest-row click.
@@ -137,7 +143,10 @@ end
 --- @param profile string|nil If already read by caller, pass it to skip a second DB read.
 --- @return string action key (e.g. "superTrack", "untrack", "none")
 function addon.focus.GetQuestClickAction(button, mods, profile)
-    if not profile then profile = addon.GetDB("focusClickProfile", "horizonPlus") end
+    if not profile then profile = addon.GetDB("focusClickProfile", "blizzardDefault") end
+    if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then
+        profile = "blizzardDefault"
+    end
     local comboKey = ResolveComboKey(button, mods)
 
     local raw
@@ -186,9 +195,10 @@ end
 -- ============================================================================
 
 addon.focus.clickConfig = {
-    GetComboOptions = GetComboOptions,
-    COMBO_KEYS      = COMBO_KEYS,
-    PROFILES        = PROFILES,
+    GetComboOptions          = GetComboOptions,
+    COMBO_KEYS               = COMBO_KEYS,
+    PROFILES                 = PROFILES,
+    profilesLockedToBlizzard = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD,
 }
 
 -- ============================================================================
@@ -201,7 +211,7 @@ local function MigrateClickProfile()
     if addon.GetDB("focusClickProfile", nil) ~= nil then return end
 
     local wasClassic = addon.GetDB("useClassicClickBehaviour", false)
-    if wasClassic then
+    if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD or wasClassic then
         addon.SetDB("focusClickProfile", "blizzardDefault")
     else
         addon.SetDB("focusClickProfile", "horizonPlus")
@@ -209,4 +219,15 @@ local function MigrateClickProfile()
     -- useClassicClickBehaviour is intentionally left in DB for safe rollback.
 end
 
+--- While profiles are locked to Blizzard, coerce horizonPlus/custom saves to blizzardDefault.
+--- @return nil
+local function NormalizeFocusClickProfileToBlizzard()
+    if not FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then return end
+    local p = addon.GetDB("focusClickProfile", "blizzardDefault")
+    if p ~= "blizzardDefault" then
+        addon.SetDB("focusClickProfile", "blizzardDefault")
+    end
+end
+
 MigrateClickProfile()
+NormalizeFocusClickProfileToBlizzard()

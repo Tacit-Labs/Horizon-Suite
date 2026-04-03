@@ -669,6 +669,7 @@ L["OPTIONS_FOCUS_APPEARANCE_ICONS"]                                   = "Show ap
 L["OPTIONS_FOCUS_APPEARANCE_ICON_NEXT_TITLE"]                         = "Show each appearance's icon next to the title. Requires 'Show quest type icons' in Display."
 L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON"]                  = "Use transmog list icon"
 L["OPTIONS_FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON_DESC"]             = "Use the in-game Appearances / transmog list icon for every row instead of each appearance's item icon. If that icon cannot be resolved, the item icon is used."
+L["OPTIONS_FOCUS_SHOW_APPEARANCE_WARDROBE"]                           = "Show wardrobe"
 L["OPTIONS_FOCUS_OPEN_APPEARANCES_COLLECTIONS"]                       = "Open Collections"
 L["OPTIONS_FOCUS_UNTRACK_APPEARANCE"]                                 = "Untrack appearance"
 L["OPTIONS_FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map; with TomTom waypoints enabled, that click also sets the arrow. Ctrl-click Collections, Alt-click dressing room. Right-click clears focus or untracks."
@@ -876,6 +877,7 @@ L["OPTIONS_FOCUS_CLICK_PROFILE_DESC"]                                 = "Pick a 
 L["OPTIONS_FOCUS_PROFILE_HORIZON_PLUS"]                               = "Horizon+"
 L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzard+"
 L["OPTIONS_FOCUS_PROFILE_CUSTOM"]                                     = "Custom"
+L["OPTIONS_FOCUS_COMING_SOON"]                                        = "Coming soon"
 L["OPTIONS_FOCUS_CLICK_COMBOS"]                                       = "Custom bindings"
 L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"]                         = "Fixed for this profile. Select Custom to edit shortcuts."
 L["OPTIONS_FOCUS_CLICK_SAFETY"]                                       = "Safety"
@@ -1717,6 +1719,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

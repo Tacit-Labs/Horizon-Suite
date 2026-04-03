@@ -189,6 +189,9 @@ end
 
 local function AppearanceStopTracking(appearanceID)
     if not appearanceID then return end
+    if addon.focus and addon.focus.appearanceMapToggleID == appearanceID then
+        addon.focus.appearanceMapToggleID = nil
+    end
     if addon._appearanceWaypointTargetID == appearanceID and addon.ClearAppearanceWaypoint then
         addon.ClearAppearanceWaypoint()
     end
@@ -212,15 +215,21 @@ local function AppearanceOpenMapToTrackable(appearanceID, deferOpen)
     local function runOpenMap()
         if InCombatLockdown() then return end
         local opened = false
+        local togglableOpen = false
         if C_ContentTracking and C_ContentTracking.GetBestMapForTrackable and C_Map and C_Map.OpenWorldMap then
             local okP, _, bestMapID = pcall(C_ContentTracking.GetBestMapForTrackable, trackType, appearanceID, false)
             if okP and type(bestMapID) == "number" and bestMapID > 0 then
                 pcall(C_Map.OpenWorldMap, bestMapID)
                 opened = true
+                togglableOpen = true
             end
         end
         if not opened and ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
             pcall(ContentTrackingUtil.OpenMapToTrackable, trackType, appearanceID)
+            togglableOpen = true
+        end
+        if togglableOpen and addon.focus then
+            addon.focus.appearanceMapToggleID = appearanceID
         end
         if addon.SetAppearanceWaypoint then
             addon.SetAppearanceWaypoint(appearanceID)
@@ -232,6 +241,26 @@ local function AppearanceOpenMapToTrackable(appearanceID, deferOpen)
     else
         runOpenMap()
     end
+end
+
+--- Toggle world map for a tracked appearance: close if already open from this row (same ID), else open.
+--- Mirrors addon.ToggleQuestDetails / openQuestLog quest behaviour.
+--- @param appearanceID number
+local function ToggleAppearanceMapToTrackable(appearanceID)
+    if not appearanceID or appearanceID <= 0 then return end
+    if InCombatLockdown() then return end
+    local worldMap = _G.WorldMapFrame
+    if worldMap and worldMap.IsShown and worldMap:IsShown() and addon.focus
+        and addon.focus.appearanceMapToggleID == appearanceID then
+        if HideUIPanel and type(HideUIPanel) == "function" then
+            pcall(HideUIPanel, worldMap)
+        else
+            pcall(function() worldMap:Hide() end)
+        end
+        addon.focus.appearanceMapToggleID = nil
+        return
+    end
+    AppearanceOpenMapToTrackable(appearanceID)
 end
 
 local function AppearanceToggleContentFocus(appearanceID)
@@ -261,9 +290,21 @@ local function AppearanceToggleContentFocus(appearanceID)
         end
         pcall(C_SuperTrack.SetSuperTrackedContent, trackType, appearanceID)
         if addon.focus and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
-            AppearanceOpenMapToTrackable(appearanceID, true)
+            -- No map open: TomTom waypoint only, matching quest icon behaviour (super-track persists).
+            -- Defer one frame: GetNextWaypointForTrackable often returns nothing the same frame as SetSuperTrackedContent
+            -- (same class of issue as map open vs super-track in AppearanceOpenMapToTrackable).
+            local idDeferred = appearanceID
+            if C_Timer and C_Timer.After then
+                C_Timer.After(0, function()
+                    if addon.SetAppearanceWaypoint then
+                        addon.SetAppearanceWaypoint(idDeferred)
+                    end
+                end)
+            elseif addon.SetAppearanceWaypoint then
+                addon.SetAppearanceWaypoint(appearanceID)
+            end
         end
-        -- Horizon: do not SetAppearanceWaypoint here; same-frame TomTom/content-tracking APIs clear content super-track when a route exists. Use Shift+Left (AppearanceOpenMapToTrackable) for map + TomTom.
+        -- Shift+Left still opens the map via AppearanceOpenMapToTrackable (separate action path).
     end
     local wqtPanel = _G.WorldQuestTrackerScreenPanel
     if wqtPanel and wqtPanel:IsShown() then
@@ -282,13 +323,24 @@ local function AppearanceClearFocusOnly()
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
---- Classic mode: context menu for tracked appearance (Open Collections, Untrack).
+--- Classic mode: context menu for tracked appearance (dressing room 3D preview, jump to Appearances page, Untrack).
 --- @param appearanceID number
---- @param anchor Frame|nil
+--- @param anchor Frame|nil Pool entry frame (for cached item link when opening dressing room).
 local function ShowAppearanceContextMenu(appearanceID, anchor)
     if not appearanceID then return end
     local L = addon.L or {}
     local menuList = {
+        {
+            text = L["OPTIONS_FOCUS_SHOW_APPEARANCE_WARDROBE"] or "Show wardrobe",
+            notCheckable = true,
+            func = function()
+                local entry = anchor
+                if not (type(entry) == "table" and entry.appearanceID == appearanceID) then
+                    entry = { appearanceID = appearanceID }
+                end
+                AppearanceOpenDressingRoom(entry)
+            end,
+        },
         {
             text = L["OPTIONS_FOCUS_OPEN_APPEARANCES_COLLECTIONS"] or "Open Collections",
             notCheckable = true,
@@ -565,7 +617,9 @@ local function ClearQuestWaypoint()
     activeQuestWaypointUID = nil
 end
 
---- TomTom arrow for super-tracked transmog appearance (same toggle as quest waypoints).
+--- Waypoint for super-tracked transmog appearance: TomTom if available, else native map user waypoint.
+--- Same preference order and option (`tomtomQuestWaypoint`) as SetQuestWaypoint; does not call
+--- SetSuperTrackedUserWaypoint so appearance content super-track stays the active target.
 --- @param appearanceID number
 local function SetAppearanceWaypoint(appearanceID)
     if not appearanceID or appearanceID <= 0 then return end
@@ -593,6 +647,18 @@ local function SetAppearanceWaypoint(appearanceID)
         activeAppearanceWaypointUID = okAdd and uid or nil
         if activeAppearanceWaypointUID then
             addon._appearanceWaypointTargetID = appearanceID
+        end
+        return
+    end
+
+    if C_Map and C_Map.SetUserWaypoint and UiMapPoint then
+        local point = UiMapPoint.CreateFromCoordinates(bestMapID, x, y)
+        if point then
+            local okSet = pcall(C_Map.SetUserWaypoint, point)
+            if okSet then
+                addon._appearanceWaypointTargetID = appearanceID
+            end
+            -- Do not call SetSuperTrackedUserWaypoint: keep appearance as content super-track target.
         end
     end
 end
@@ -873,7 +939,7 @@ end
 -- "Open quest log" on appearance rows opens the map to the trackable (Blizzard+ row left; Horizon+ shift matches quest binding).
 APPEARANCE_ACTIONS["openQuestLog"] = function(entry)
     if entry.appearanceID then
-        AppearanceOpenMapToTrackable(entry.appearanceID)
+        ToggleAppearanceMapToTrackable(entry.appearanceID)
     end
 end
 
@@ -942,7 +1008,7 @@ local function MaybeLogQuestClickDispatch(buttonName, profile, clickModsTbl, act
     local printFn = addon.HSPrint or print
     local combo = addon.focus.GetQuestClickComboKey and addon.focus.GetQuestClickComboKey(buttonName, clickModsTbl) or "?"
     local prof = profile
-    if prof == nil then prof = addon.GetDB("focusClickProfile", "horizonPlus") end
+    if prof == nil then prof = addon.GetDB("focusClickProfile", "blizzardDefault") end
     printFn(("[Horizon Focus click] profile=%s combo=%s action=%s questID=%s %s"):format(
         tostring(prof), tostring(combo), tostring(action), tostring(questID), note or ""))
 end
@@ -952,7 +1018,7 @@ local function MaybeLogAppearanceClickDispatch(buttonName, profile, clickModsTbl
     local printFn = addon.HSPrint or print
     local combo = addon.focus.GetQuestClickComboKey and addon.focus.GetQuestClickComboKey(buttonName, clickModsTbl) or "?"
     local prof = profile
-    if prof == nil then prof = addon.GetDB("focusClickProfile", "horizonPlus") end
+    if prof == nil then prof = addon.GetDB("focusClickProfile", "blizzardDefault") end
     printFn(("[Horizon Focus click] profile=%s combo=%s action=%s appearanceID=%s %s"):format(
         tostring(prof), tostring(combo), tostring(action), tostring(appearanceID), note or ""))
 end
@@ -1012,8 +1078,13 @@ for i = 1, addon.POOL_SIZE do
                         if addon.HandleClassicAppearanceIconMouseDown then addon.HandleClassicAppearanceIconMouseDown(self) end
                         return
                     end
+                    -- Ctrl+left on row body: match icon behaviour (dressing room); icon handler only runs when over questIconBtn.
+                    if IsControlKeyDown() and not IsShiftKeyDown() and not IsAltKeyDown() then
+                        AppearanceOpenDressingRoom(self)
+                        return
+                    end
                 end
-                local profileAppearance = addon.GetDB("focusClickProfile", "horizonPlus")
+                local profileAppearance = addon.GetDB("focusClickProfile", "blizzardDefault")
                 clickMods.shift = IsShiftKeyDown()
                 clickMods.ctrl  = IsControlKeyDown()
                 clickMods.alt   = IsAltKeyDown()
@@ -1154,7 +1225,7 @@ for i = 1, addon.POOL_SIZE do
             if not self.questID then return end
 
             -- Classic icon click: delegate to icon handler (runs before all other quest logic).
-            local profile = addon.GetDB("focusClickProfile", "horizonPlus")
+            local profile = addon.GetDB("focusClickProfile", "blizzardDefault")
             local isClassicProfile = (profile == "blizzardDefault")
             if isClassicProfile then
                 if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
@@ -1187,7 +1258,7 @@ for i = 1, addon.POOL_SIZE do
         elseif button == "RightButton" then
             local isAppearanceRowRight = self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$")
             if isAppearanceRowRight and addon.focus and addon.focus.GetAppearanceClickAction then
-                local profileAppRight = addon.GetDB("focusClickProfile", "horizonPlus")
+                local profileAppRight = addon.GetDB("focusClickProfile", "blizzardDefault")
                 clickMods.shift = IsShiftKeyDown()
                 clickMods.ctrl  = IsControlKeyDown()
                 clickMods.alt   = IsAltKeyDown()

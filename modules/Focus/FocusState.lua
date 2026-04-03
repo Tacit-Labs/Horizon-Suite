@@ -13,6 +13,8 @@ addon.focus = {
     refreshPending  = false,
     zoneJustChanged = false,
     lastPlayerMapID = nil,
+    -- Set when Focus opens the world map to an appearance; second click closes (parity with ToggleQuestDetails).
+    appearanceMapToggleID = nil,
     placeholderRefreshScheduled = false,
     layoutPendingAfterCombat     = false,
     pendingDimensionsAfterCombat  = false,
