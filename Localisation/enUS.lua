@@ -511,6 +511,8 @@ L["OPTIONS_FOCUS_COPY_LINK"]                                          = "Copy li
 L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]                        = "Copy the URL below (Ctrl+C) and paste in your browser."
 L["OPTIONS_FOCUS_OBJECTIVE_NUMBERS"]                                  = "Show objective numbers"
 L["OPTIONS_FOCUS_OBJECTIVE_PREFIX"]                                   = "Objective prefix"
+L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLORS"]                   = "Color objective progress numbers"
+L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLORS_DESC"]              = "Tint X/Y counts: normal color at 0/n, gold while in progress, green when complete. The slash uses the usual objective color."
 L["OPTIONS_FOCUS_PREFIX_OBJECTIVE_A_NUMBER_HYPHEN"]                   = "Prefix each objective with a number or hyphen."
 L["OPTIONS_FOCUS_NUMBERS"]                                            = "Numbers (1. 2. 3.)"
 L["OPTIONS_FOCUS_HYPHENS"]                                            = "Hyphens (-)"
@@ -1724,6 +1726,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

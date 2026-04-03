@@ -57,6 +57,100 @@ local function IsProgressBarEnabled(questData)
     end
 end
 
+-- Inline color for in-progress X/Y digits (slash stays vertex-colored via |r).
+local OBJECTIVE_PROGRESS_IN_PROGRESS_ESC = "|cffffcc00"
+
+--- Convert 0–1 RGB to WoW |cffRRGGBB (opaque).
+--- @param rgb table|nil
+--- @return string
+local function RGBToWoWColorEscape(rgb)
+    if not rgb or type(rgb) ~= "table" then return "|cffffffff" end
+    local r = tonumber(rgb[1]) or 1
+    local g = tonumber(rgb[2]) or 1
+    local b = tonumber(rgb[3]) or 1
+    return string.format(
+        "|cff%02x%02x%02x",
+        math.max(0, math.min(255, math.floor(r * 255 + 0.5))),
+        math.max(0, math.min(255, math.floor(g * 255 + 0.5))),
+        math.max(0, math.min(255, math.floor(b * 255 + 0.5)))
+    )
+end
+
+--- Build colored nf/nr fragment; slash unwrapped so SetTextColor applies to "/".
+--- @param nf number
+--- @param nr number
+--- @param finished boolean
+--- @param doneRgb table
+--- @return string|nil Colored fragment, or nil when not started (use plain text).
+local function ColoredProgressSlashFragment(nf, nr, finished, doneRgb)
+    local snf, snr = tostring(nf), tostring(nr)
+    local complete = finished or (nr > 0 and nf >= nr)
+    if complete then
+        local esc = RGBToWoWColorEscape(doneRgb)
+        return esc .. snf .. "|r/" .. esc .. snr .. "|r"
+    end
+    if nf > 0 then
+        local esc = OBJECTIVE_PROGRESS_IN_PROGRESS_ESC
+        return esc .. snf .. "|r/" .. esc .. snr .. "|r"
+    end
+    return nil
+end
+
+-- Replace literal needle with repl only at boundaries (avoid 5/10 inside 15/105 or 5/100).
+local function ReplaceBoundedPlain(objText, needle, repl)
+    if not objText or needle == "" or not objText:find(needle, 1, true) then
+        return objText
+    end
+    local nlen = #needle
+    local parts = {}
+    local startIdx = 1
+    while startIdx <= #objText do
+        local pos = objText:find(needle, startIdx, true)
+        if not pos then
+            parts[#parts + 1] = objText:sub(startIdx)
+            break
+        end
+        parts[#parts + 1] = objText:sub(startIdx, pos - 1)
+        local prevCh = pos > 1 and objText:sub(pos - 1, pos - 1) or ""
+        local nextPos = pos + nlen
+        local nextCh = nextPos <= #objText and objText:sub(nextPos, nextPos) or ""
+        local prevDigit = prevCh:match("%d")
+        local nextDigit = nextCh:match("%d")
+        if not prevDigit and not nextDigit then
+            parts[#parts + 1] = repl
+        else
+            parts[#parts + 1] = needle
+        end
+        startIdx = pos + nlen
+    end
+    return table.concat(parts)
+end
+
+--- Color X/Y numerals when DB toggle on; leaves "/" on objective vertex color.
+--- @param objText string
+--- @param nf number|nil
+--- @param nr number|nil
+--- @param oData table
+--- @param effectiveDoneColor table
+--- @return string
+local function ApplyObjectiveProgressNumberColoring(objText, nf, nr, oData, effectiveDoneColor)
+    if not (addon.GetDB and addon.GetDB("objectiveProgressNumberColors", true)) then
+        return objText
+    end
+    if type(nf) ~= "number" or type(nr) ~= "number" or nr < 1 then
+        return objText
+    end
+    local plain = tostring(nf) .. "/" .. tostring(nr)
+    if not objText:find(plain, 1, true) then
+        return objText
+    end
+    local fragment = ColoredProgressSlashFragment(nf, nr, oData.finished and true or false, effectiveDoneColor)
+    if not fragment then
+        return objText
+    end
+    return ReplaceBoundedPlain(objText, plain, fragment)
+end
+
 local function hideAllHighlight(entry)
     entry.trackBar:Hide()
     entry.highlightBg:Hide()
@@ -320,6 +414,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                     objText = "- " .. objText
                 end
             end
+            objText = ApplyObjectiveProgressNumberColoring(objText, nf, nr, oData, effectiveDoneColor)
             local useTick = oData.finished and addon.GetDB("useTickForCompletedObjectives", false) and not questData.isComplete
             obj.text:SetText(objText)
             obj.shadow:SetText(addon.PlainTextForShadowFontString(objText))
