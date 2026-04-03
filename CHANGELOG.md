@@ -10,6 +10,22 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.8.2] – 2026-04-03
+
+### ✨ New Features
+
+- **(Focus)** Tracker row interactions — transmog appearances (map, context menu, waypoints where enabled), clearer completion from clicks on finished quests, optional WoWhead line on tooltips, and new locale strings
+- **(Insight)** Long numeric runs in tooltip and UI text can show thousands grouping (shared formatting with Focus objective lines)
+
+### 🔧 Improvements
+
+- **(Focus)** Optional colours on X/Y objective progress (gold in progress, green when complete) — toggle under Focus display
+- **(Focus)** When objective count colouring is on, the slash between X and Y uses the same tint so the whole token reads as one styled unit
+- **(Axis)** Module dashboard background defaults to Midnight; existing flat defaults migrate once; the flat style is labelled Minimalistic in settings
+- **(Axis)** Bundled Night Fae and Zin-Azshari dashboard background art; legacy stored theme ids normalise to Midnight while the options list stays streamlined
+
+---
+
 ## [4.8.1] – 2026-04-03
 
 ### 🔧 Improvements
