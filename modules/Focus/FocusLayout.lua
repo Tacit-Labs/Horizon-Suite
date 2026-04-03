@@ -1021,6 +1021,24 @@ local function FullLayout()
     -- Persist for other modules/tests.
     addon.focus.layout.sectionLabelX = sectionLabelX
 
+    -- For bar-left/pill-left styles the icon is anchored by its TOPRIGHT edge at
+    -- anchorX = (-barLeft + barW + padAfterBar) from the entry TOPLEFT, so it grows
+    -- leftward as its size increases.  Only shift the entry right enough that the
+    -- icon's left edge stays within the panel (i.e. doesn't go off-screen left).
+    local iconModePad = 0
+    if addon.GetDB("showQuestTypeIcons", false) then
+        local hs = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
+        if hs == "bar-left" or hs == "pill-left" then
+            local barLeft     = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
+            local barW        = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
+            local padAfterBar = addon.Scaled(6)
+            local iconSz      = addon.Scaled(addon.GetEffectiveQuestIconSize())
+            local anchorX     = -barLeft + barW + padAfterBar  -- TOPRIGHT of icon, relative to entry TOPLEFT
+            -- icon left edge = anchorX - iconSz from entryX; must be >= 0 from scrollChild left
+            iconModePad = math.max(0, iconSz - anchorX - addon.GetScaledPadding())
+        end
+    end
+
     -- Section divider pool (lazy-created textures for between-section dividers)
     if not addon.focus.layout.sectionDividers then addon.focus.layout.sectionDividers = {} end
     local sectionDividers = addon.focus.layout.sectionDividers
@@ -1109,10 +1127,6 @@ local function FullLayout()
                     local entryBaseX = addon.GetScaledPadding()
                     local entryIndentPx = (addon.focus and addon.focus.layout and addon.focus.layout.entryIndentPx) or 0
 
-                    -- Extra cushion when quest icons are enabled:
-                    -- Do NOT shift the whole entry; that can make the icon sit left of the supertrack bar.
-                    local iconModePad = 0
-
                     local entryX = entryBaseX + sectionLabelX + entryIndentPx + iconModePad
 
                     entry.finalX = entryX
@@ -1155,8 +1169,9 @@ local function FullLayout()
                             local padAfterBar = addon.Scaled(6)
 
                             if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-                                -- bar starts at -barLeft; its right edge is (-barLeft + barW)
-                                entry.questTypeIcon:SetPoint("TOPLEFT", entry, "TOPLEFT", -barLeft + barW + padAfterBar, 0)
+                                -- Anchor by TOPRIGHT so icon grows leftward as size increases.
+                                -- Right edge stays fixed at (-barLeft + barW + padAfterBar) from entry TOPLEFT.
+                                entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -barLeft + barW + padAfterBar, 0)
                             else
                                 -- Fallback to legacy off-to-the-left placement for non-left-bar styles.
                                 local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)

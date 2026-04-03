@@ -30,14 +30,6 @@ local DASH_HOME_TILE_BORDER_ALPHA_MULT = DC.HOME_TILE_BORDER_ALPHA_MULT
 local DASH_HOME_SKELETON_BG_ALPHA_MULT = DC.HOME_SKELETON_BG_ALPHA_MULT
 local DASH_HOME_SKELETON_BORDER_ALPHA_MULT = DC.HOME_SKELETON_BORDER_ALPHA_MULT
 
-local function MakeText(parent, text, size, r, g, b, justify)
-    return addon.Dashboard_MakeText(parent, text, size, r, g, b, justify)
-end
-
-local function MakeDashboardWelcomeMixedScriptText(parent, text, size, r, g, b, justify)
-    return addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify)
-end
-
 local function OptionCategoryKeyIsAxis(catKey)
     return addon.Dashboard_IsAxisCategoryKey(catKey)
 end
@@ -54,6 +46,16 @@ function addon.Dashboard_BuildMainFrame()
             f:SetClampedToScreen(true)
             f:EnableMouse(true)
             f:Hide()
+
+            local typoRefs = { fontStrings = {}, editBoxes = {} }
+            f._dashboardTypographyRefs = typoRefs
+
+            local function MakeText(parent, text, size, r, g, b, justify)
+                return addon.Dashboard_MakeText(parent, text, size, r, g, b, justify, typoRefs)
+            end
+            local function MakeDashboardWelcomeMixedScriptText(parent, text, size, r, g, b, justify)
+                return addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify, typoRefs)
+            end
 
             -- Drag region: top bar to move the window (header area only; search box remains clickable)
             local dragBar = CreateFrame("Frame", nil, f)
@@ -90,14 +92,6 @@ function addon.Dashboard_BuildMainFrame()
                     ReloadUI()
                 end
             end)
-
-            if _G.OptionsWidgets_SetDef then
-                _G.OptionsWidgets_SetDef({
-                    FontPath = "Fonts\\FRIZQT__.TTF",
-                    LabelSize = 13,
-                    SectionSize = 11,
-                })
-            end
 
             local moduleLabels = {
                 axis = addon.Dashboard_BrandModule("axis") or "Axis",
@@ -366,7 +360,16 @@ function addon.Dashboard_BuildMainFrame()
             local searchBox = CreateFrame("EditBox", nil, f)
             searchBox:SetSize(500, DASH_SEARCH_BOX_H)
             searchBox:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_SEARCH_Y)
-            searchBox:SetFont("Fonts\\FRIZQT__.TTF", 14, "")
+            do
+                local sp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                    (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                )
+                local se = addon.Dashboard_EffectiveDashboardFontSize(14)
+                pcall(function()
+                    searchBox:SetFont(sp, se, "")
+                end)
+            end
+            addon.Dashboard_RegisterTypographyEditBox(typoRefs, searchBox, 14, "")
             searchBox:SetTextInsets(48, 15, 0, 0)
             searchBox:SetAutoFocus(false)
             searchBox:SetFrameLevel(f:GetFrameLevel() + 5)
@@ -485,7 +488,16 @@ function addon.Dashboard_BuildMainFrame()
             pnChangelogHeaderBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -48, DASH_HEAD_TITLE_Y)
             pnChangelogHeaderBtn:SetSize(160, 22)
             local pnClHdrTxt = pnChangelogHeaderBtn:CreateFontString(nil, "OVERLAY")
-            pnClHdrTxt:SetFont("Fonts\\ARIALN.TTF", 12, "")
+            do
+                local pp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                    (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                )
+                local pe = addon.Dashboard_EffectiveDashboardFontSize(12)
+                pcall(function()
+                    pnClHdrTxt:SetFont(pp, pe, "")
+                end)
+            end
+            addon.Dashboard_RegisterTypographyFontString(typoRefs, pnClHdrTxt, 12, "")
             pnClHdrTxt:SetPoint("CENTER", pnChangelogHeaderBtn, "CENTER", 0, 0)
             pnClHdrTxt:SetText(L["DASH_FULL_CHANGELOG"] or "Full changelog")
             pnClHdrTxt:SetTextColor(0.92, 0.94, 0.98, 1)
@@ -606,6 +618,31 @@ function addon.Dashboard_BuildMainFrame()
             addon.Dashboard_ApplySmoothScroll(pnScroll, pnContent, 60, true)
             LayoutPatchNotesFooter()
 
+            f._patchNotesTypoRefs = {}
+            f._layoutPatchNotesScroll = function()
+                local inner = pnContent._inner
+                local layoutItems = f._patchNotesLayoutItems
+                if not inner or not layoutItems then return end
+                local y = 0
+                for _, item in ipairs(layoutItems) do
+                    if item.type == "fs" then
+                        item.fs:ClearAllPoints()
+                        item.fs:SetPoint("TOPLEFT", inner, "TOPLEFT", item.x, y)
+                        y = y - math.max(item.fs:GetStringHeight(), 13) - item.gap
+                    elseif item.type == "tex" then
+                        item.tex:ClearAllPoints()
+                        item.tex:SetPoint("TOPLEFT", inner, "TOPLEFT", 0, y)
+                        y = y - 1 - item.gap
+                    elseif item.type == "gap" then
+                        y = y - item.h
+                    end
+                end
+                local totalH = math.max(1, -y)
+                inner:SetHeight(totalH)
+                pnContent:SetHeight(totalH)
+                pnScroll:SetVerticalScroll(0)
+            end
+
             local pnBuiltVersion = nil
 
             local function BuildPatchNotesContent(currentVersion)
@@ -614,6 +651,18 @@ function addon.Dashboard_BuildMainFrame()
                 wipe(dashAccentRefs.patchNotesSectionLabels)
                 wipe(dashAccentRefs.patchNotesBullets)
                 wipe(dashAccentRefs.patchNotesRules)
+                wipe(f._patchNotesTypoRefs)
+
+                local function ApplyPatchNoteFontString(fs, base, flags)
+                    local path = addon.Dashboard_ResolveSavedDashboardFontPath(
+                        (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                    )
+                    local eff = addon.Dashboard_EffectiveDashboardFontSize(base)
+                    pcall(function()
+                        fs:SetFont(path, eff, flags or "")
+                    end)
+                    tinsert(f._patchNotesTypoRefs, { fs = fs, base = base, flags = flags })
+                end
 
                 -- Inner container parented to pnContent (scroll child stays fixed)
                 local cW = contentWidth
@@ -650,7 +699,7 @@ function addon.Dashboard_BuildMainFrame()
 
                 if #versions == 0 then
                     local lbl = inner:CreateFontString(nil, "OVERLAY")
-                    lbl:SetFont("Fonts\\ARIALN.TTF", 12, "")
+                    ApplyPatchNoteFontString(lbl, 12, "")
                     lbl:SetWidth(cW)
                     lbl:SetJustifyH("CENTER")
                     lbl:SetText("No notes available.")
@@ -672,7 +721,7 @@ function addon.Dashboard_BuildMainFrame()
 
                             -- Version header (optional date from PatchNotesData matches CHANGELOG)
                             local vHdr = inner:CreateFontString(nil, "OVERLAY")
-                            vHdr:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+                            ApplyPatchNoteFontString(vHdr, 14, "OUTLINE")
                             vHdr:SetJustifyH("LEFT")
                             local noteDate = notes.date
                             if type(noteDate) == "string" and noteDate ~= "" then
@@ -690,7 +739,7 @@ function addon.Dashboard_BuildMainFrame()
                                 if si > 1 then tinsert(items, { type = "gap", h = PN_SECTION_GAP }) end
 
                                 local lbl = inner:CreateFontString(nil, "OVERLAY")
-                                lbl:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
+                                ApplyPatchNoteFontString(lbl, 10, "OUTLINE")
                                 lbl:SetWidth(cW)
                                 lbl:SetJustifyH("LEFT")
                                 lbl:SetText(sec.section:upper())
@@ -700,7 +749,7 @@ function addon.Dashboard_BuildMainFrame()
 
                                 for _, bullet in ipairs(sec.bullets) do
                                     local txt = inner:CreateFontString(nil, "OVERLAY")
-                                    txt:SetFont("Fonts\\ARIALN.TTF", 12, "")
+                                    ApplyPatchNoteFontString(txt, 12, "")
                                     txt:SetWidth(cW - PN_BULLET_X)
                                     txt:SetJustifyH("LEFT")
                                     txt:SetWordWrap(true)
@@ -715,26 +764,10 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
 
+                f._patchNotesLayoutItems = items
                 C_Timer.After(0, function()
                     if not (patchNotesView and patchNotesView:IsShown()) then return end
-                    local y = 0
-                    for _, item in ipairs(items) do
-                        if item.type == "fs" then
-                            item.fs:ClearAllPoints()
-                            item.fs:SetPoint("TOPLEFT", inner, "TOPLEFT", item.x, y)
-                            y = y - math.max(item.fs:GetStringHeight(), 13) - item.gap
-                        elseif item.type == "tex" then
-                            item.tex:ClearAllPoints()
-                            item.tex:SetPoint("TOPLEFT", inner, "TOPLEFT", 0, y)
-                            y = y - 1 - item.gap
-                        elseif item.type == "gap" then
-                            y = y - item.h
-                        end
-                    end
-                    local totalH = math.max(1, -y)
-                    inner:SetHeight(totalH)
-                    pnContent:SetHeight(totalH)
-                    pnScroll:SetVerticalScroll(0)
+                    if f._layoutPatchNotesScroll then f._layoutPatchNotesScroll() end
                 end)
 
                 pnBuiltVersion = currentVersion
@@ -869,7 +902,16 @@ function addon.Dashboard_BuildMainFrame()
             closeBg:SetColorTexture(1, 0.3, 0.3, 0)
             
             local closeTxt = closeBtn:CreateFontString(nil, "OVERLAY")
-            closeTxt:SetFont(addon.GetDefaultFontPath and addon.GetDefaultFontPath() or "Fonts\\FRIZQT__.TTF", 16, "OUTLINE")
+            do
+                local cp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                    (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                )
+                local ce = addon.Dashboard_EffectiveDashboardFontSize(16)
+                pcall(function()
+                    closeTxt:SetFont(cp, ce, "OUTLINE")
+                end)
+            end
+            addon.Dashboard_RegisterTypographyFontString(typoRefs, closeTxt, 16, "OUTLINE")
             closeTxt:SetPoint("CENTER", 0, 0)
             closeTxt:SetText("\195\151")
             closeTxt:SetTextColor(0.5, 0.5, 0.55)
@@ -1177,12 +1219,31 @@ function addon.Dashboard_BuildMainFrame()
                         header.hoverBg:SetColorTexture(1, 1, 1, 0.03)
                         header.hoverBg:Hide()
                         local chevron = header:CreateFontString(nil, "OVERLAY")
-                        chevron:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
+                        do
+                            local hp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                                (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                            )
+                            local he1 = addon.Dashboard_EffectiveDashboardFontSize(11)
+                            local he2 = addon.Dashboard_EffectiveDashboardFontSize(12)
+                            pcall(function()
+                                chevron:SetFont(hp, he1, "OUTLINE")
+                            end)
+                        end
+                        addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, "OUTLINE")
                         chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
                         chevron:SetTextColor(0.55, 0.55, 0.65, 1)
                         header.chevron = chevron
                         local headerLabel = header:CreateFontString(nil, "OVERLAY")
-                        headerLabel:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+                        do
+                            local hp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                                (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                            )
+                            local he2 = addon.Dashboard_EffectiveDashboardFontSize(12)
+                            pcall(function()
+                                headerLabel:SetFont(hp, he2, "OUTLINE")
+                            end)
+                        end
+                        addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, "OUTLINE")
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
                         local headerLabelText = (g.label or ""):upper()
@@ -1474,6 +1535,9 @@ function addon.Dashboard_BuildMainFrame()
             viewCenterX = viewCenterX,
             dashTitleX = dashTitleX,
         }
+    end
+    if addon.ApplyDashboardTypography then
+        addon.ApplyDashboardTypography()
     end
     return f
 end

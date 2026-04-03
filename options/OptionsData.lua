@@ -376,6 +376,11 @@ local DASHBOARD_BACKGROUND_KEYS = {
     dashboardBackgroundOpacity = true,
 }
 
+local DASHBOARD_TYPOGRAPHY_KEYS = {
+    dashboardFontPath = true,
+    dashboardFontSizeOffset = true,
+}
+
 function OptionsData_GetDB(key, default)
     return addon.GetDB(key, default)
 end
@@ -428,6 +433,9 @@ function OptionsData_SetDB(key, value)
     end
     if DASHBOARD_BACKGROUND_KEYS[key] then
         if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
+    end
+    if DASHBOARD_TYPOGRAPHY_KEYS[key] then
+        if addon.ApplyDashboardTypography then addon.ApplyDashboardTypography() end
     end
     if CLASS_COLOR_KEYS[key] then
         if key == "classColorDashboard" then
@@ -620,6 +628,7 @@ local function GetFocusClickProfileDropdownOptions()
 end
 
 local defaultFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+local defaultDashboardFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 
 local function GetFontDropdownOptions()
     if addon.RefreshFontList then addon.RefreshFontList() end
@@ -644,6 +653,28 @@ local function GetFontDropdownOptions()
     local out = {}
     for i = 1, #list do out[i] = list[i] end
     -- If it's not one of our known choices, keep it selectable as "Custom".
+    out[#out + 1] = { L["OPTIONS_FOCUS_CUSTOM"], saved }
+    return out
+end
+
+local function GetDashboardFontDropdownOptions()
+    if addon.RefreshFontList then addon.RefreshFontList() end
+    local list = (addon.GetFontList and addon.GetFontList()) or {}
+    local saved = getDB("dashboardFontPath", defaultDashboardFontPath)
+    if addon.GetFontNameForPath then
+        local mapped = addon.GetFontNameForPath(saved)
+        if mapped and mapped ~= "" and mapped ~= "Custom" and mapped ~= saved then
+            local path = addon.ResolveFontPath and addon.ResolveFontPath(mapped) or nil
+            if path and path == saved then
+                saved = mapped
+            end
+        end
+    end
+    for _, o in ipairs(list) do
+        if o[2] == saved then return list end
+    end
+    local out = {}
+    for i = 1, #list do out[i] = list[i] end
     out[#out + 1] = { L["OPTIONS_FOCUS_CUSTOM"], saved }
     return out
 end
@@ -1172,6 +1203,32 @@ local OptionCategories = {
                 end,
                 refreshIds = { "dashboardBackgroundOpacity" },
             }
+            opts[#opts + 1] = { type = "section", name = L["DASHBOARD_TYPO_SECTION"] or "Dashboard text" }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["DASHBOARD_TYPO_FONT"] or "Dashboard font",
+                desc = L["DASHBOARD_TYPO_FONT_DESC"] or "Font for the Axis settings window (sidebar, search, options list). Independent of the Focus tracker font.",
+                dbKey = "dashboardFontPath",
+                searchable = true,
+                options = GetDashboardFontDropdownOptions,
+                get = function() return getDB("dashboardFontPath", defaultDashboardFontPath) end,
+                set = function(v) setDB("dashboardFontPath", v) end,
+                displayFn = addon.GetFontNameForPath,
+                fontPreviewInList = true,
+                refreshIds = { "dashboardFontPath", "dashboardFontSizeOffset" },
+            }
+            opts[#opts + 1] = {
+                type = "slider",
+                name = L["DASHBOARD_TYPO_SIZE"] or "Dashboard text size",
+                desc = L["DASHBOARD_TYPO_SIZE_DESC"] or "Nudge all dashboard text larger or smaller (same idea as Focus global font offset).",
+                dbKey = "dashboardFontSizeOffset",
+                min = -4,
+                max = 4,
+                step = 1,
+                get = function() return getDB("dashboardFontSizeOffset", 0) end,
+                set = function(v) setDB("dashboardFontSizeOffset", math.max(-4, math.min(4, math.floor((tonumber(v) or 0) + 0.5)))) end,
+                refreshIds = { "dashboardFontPath", "dashboardFontSizeOffset" },
+            }
             opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PATCH_NOTES_SECTION"] or "Patch notes" }
             opts[#opts + 1] = {
                 type = "toggle",
@@ -1523,6 +1580,7 @@ local OptionCategories = {
             { type = "toggle", name = L["OPTIONS_FOCUS_CHECKMARK_COMPLETED"], desc = L["OPTIONS_CORE_CHECKMARK_COMPLETED_OBJECTIVES"], tooltip = L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"], dbKey = "useTickForCompletedObjectives", get = function() return getDB("useTickForCompletedObjectives", false) end, set = function(v) setDB("useTickForCompletedObjectives", v) end },
             { type = "toggle", name = L["OPTIONS_CORE_QUEST_LEVEL"], desc = L["OPTIONS_FOCUS_QUEST_LEVEL_NEXT_TITLE"], dbKey = "showQuestLevel", get = function() return getDB("showQuestLevel", false) end, set = function(v) setDB("showQuestLevel", v) end },
             { type = "toggle", name = L["OPTIONS_CORE_QUEST_TYPE_ICONS"], desc = L["OPTIONS_PRESENCE_QUEST_TYPE_ICON_FOCUS_TRACKER_QUEST"], dbKey = "showQuestTypeIcons", get = function() return getDB("showQuestTypeIcons", false) end, set = function(v) setDB("showQuestTypeIcons", v) end },
+            { type = "slider", name = L["OPTIONS_FOCUS_QUEST_TYPE_ICON_SIZE"], desc = L["OPTIONS_FOCUS_QUEST_TYPE_ICON_SIZE_DESC"], dbKey = "focusIconSize", min = 10, max = 28, get = function() return getDB("focusIconSize", 16) end, set = function(v) setDB("focusIconSize", math.max(10, math.min(28, v))) end, visibleWhen = function() return getDB("showQuestTypeIcons", false) end },
             { type = "toggle", name = L["OPTIONS_FOCUS_AUTO_TRACK_ICON"], desc = L["OPTIONS_CORE_ICON_NEXT_AUTO_TRACKED_ZONE_ENTRIES"], dbKey = "showInZoneSuffix", get = function() return getDB("showInZoneSuffix", true) end, set = function(v) setDB("showInZoneSuffix", v) end, tooltip = L["OPTIONS_CORE_WORLD_QUESTS_WEEKLIES_YOUR_QUEST_LOG"], refreshIds = { "autoTrackIcon" } },
             { type = "dropdown", name = L["OPTIONS_FOCUS_AUTO_TRACK_ICON"], desc = L["OPTIONS_FOCUS_CHOOSE_WHICH_ICON_DISPLAY_NEXT_AUTO"], dbKey = "autoTrackIcon", options = addon.GetRadarIconOptions and addon.GetRadarIconOptions() or {}, get = function() return getDB("autoTrackIcon", "radar1") end, set = function(v) setDB("autoTrackIcon", v) end, visibleWhen = function() return getDB("showInZoneSuffix", true) end },
             { type = "dropdown", name = L["OPTIONS_FOCUS_ACTIVE_QUEST_HIGHLIGHT"], desc = L["OPTIONS_FOCUS_FOCUSED_QUEST_HIGHLIGHTED"], dbKey = "activeQuestHighlight", options = HIGHLIGHT_OPTIONS, get = getActiveQuestHighlight, set = function(v) setDB("activeQuestHighlight", v) end },

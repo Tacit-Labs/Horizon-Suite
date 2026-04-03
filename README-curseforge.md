@@ -112,7 +112,7 @@ Tooltips that actually tell you who you're looking at.
 Every module shares the same design foundations, so they feel like one cohesive UI.
 
 - **Global or per-module scaling** — Set one global scale (50–200%) or dial in each module independently under Axis → Global Toggles.
-- **Class tint** — Enable class colours per module or all at once from the Axis panel. Dashboard background presets: flat Default, Midnight artwork, or Specialisation (auto) — uses Blizzard's talent UI art for your current spec with a crossfade when you switch.
+- **Class tint** — Enable class colours per module or all at once from the Axis panel. Under Global Toggles, set **dashboard font** and **dashboard text size** for the settings window (separate from Focus tracker typography). Dashboard background presets: flat Default, Midnight artwork, or Specialisation (auto) — uses Blizzard's talent UI art for your current spec with a crossfade when you switch.
 - **SharedMedia support** — Fonts and progress bar textures from addon packs across all modules. Works without SharedMedia installed too.
 - **Per-category colours** — Title, objective, zone, section, and backdrop colours all configurable.
 - **Typography and spacing** — Fonts, sizes, outlines, and spacing sliders. Turn-in highlights and quantity strings (e.g. 15/18) at a glance.
