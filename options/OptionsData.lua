@@ -1654,7 +1654,6 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_left", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
-                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1665,7 +1664,6 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_shiftLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
-                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1676,7 +1674,6 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_ctrlLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
-                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1687,7 +1684,6 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_altLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
-                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1698,7 +1694,6 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_right", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
-                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1709,7 +1704,6 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_shiftRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
-                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1720,7 +1714,6 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_ctrlRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
-                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             { type = "section", name = L["OPTIONS_CORE_QUEST_TRACKING"] },
             { type = "toggle", name = L["OPTIONS_FOCUS_AUTO_TRACK_ACCEPTED_QUESTS"], desc = L["OPTIONS_FOCUS_YOU_ACCEPT_A_QUEST_QUEST_LOG"], dbKey = "autoTrackOnAccept", get = function() return getDB("autoTrackOnAccept", true) end, set = function(v) setDB("autoTrackOnAccept", v) end },
