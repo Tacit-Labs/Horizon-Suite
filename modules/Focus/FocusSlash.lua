@@ -117,7 +117,7 @@ local function ShowFocusShortHelp()
     HSPrint("  Scroll with mouse wheel when content overflows.")
     HSPrint("  Drag the panel to reposition it (saved across sessions).")
     HSPrint("  Left-click a quest or rare to super-track; Left-click auto-complete quests to complete them.")
-    HSPrint("  Shift+Left-click opens or closes quest details; Right-click a quest to untrack, recipe to untrack, rare to clear super-track.")
+    HSPrint("  Blizzard+: Shift+Left untracks; Right-click opens a context menu on quests and tracked non-quest rows (achievements, recipes, etc.).")
 end
 
 local function ShowFocusDebugHelp()

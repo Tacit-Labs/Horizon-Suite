@@ -907,6 +907,16 @@ L["OPTIONS_FOCUS_QUEST_DETAILS_AFTER_COMBAT"]                         = "Quest d
 L["OPTIONS_FOCUS_SHARE_PARTY"]                                        = "Share with party"
 L["OPTIONS_FOCUS_ABANDON_QUEST"]                                      = "Abandon quest"
 L["OPTIONS_FOCUS_STOP_TRACKING"]                                      = "Stop tracking"
+L["OPTIONS_FOCUS_CONTEXT_OPEN_ACHIEVEMENT"]                           = "Open achievement"
+L["OPTIONS_FOCUS_CONTEXT_OPEN_ENDEAVOR"]                              = "Open endeavor"
+L["OPTIONS_FOCUS_CONTEXT_OPEN_RECIPE"]                                = "Open recipe"
+L["OPTIONS_FOCUS_CONTEXT_OPEN_DECOR_CATALOG"]                         = "Open in catalog"
+L["OPTIONS_FOCUS_CONTEXT_PREVIEW_DECOR"]                              = "Preview decor"
+L["OPTIONS_FOCUS_CONTEXT_SHOW_DECOR_MAP"]                             = "Show on map"
+L["OPTIONS_FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"]                         = "Open Traveler's Log"
+L["OPTIONS_FOCUS_CONTEXT_SET_RARE_WAYPOINT"]                          = "Set waypoint"
+L["OPTIONS_FOCUS_CONTEXT_CLEAR_RARE_FOCUS"]                           = "Clear map focus"
+L["OPTIONS_FOCUS_TRACKED_CONTENT_CANNOT_SHARE"]                       = "This entry cannot be shared with the party."
 L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"]                                = "This quest cannot be shared."
 L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"]                       = "You must be in a party to share this quest."
 L["OPTIONS_FOCUS_LEFT_CLICK_OPENS_QUEST_MAP_RIGHT"]                   = "When on, left-click opens the quest map and right-click shows share/abandon menu (Blizzard-style). When off, left-click focuses and right-click untracks; Ctrl+Right shares with party."
@@ -1726,6 +1736,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

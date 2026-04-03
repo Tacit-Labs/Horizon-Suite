@@ -235,6 +235,51 @@ function addon.GetTimerColorByRemaining(remaining, duration)
 end
 
 -- ============================================================================
+-- NUMBER FORMATTING (UI)
+-- ============================================================================
+
+local floor = math.floor
+
+--- Format a whole number for display with locale-style thousands grouping.
+--- Prefers Blizzard BreakUpLargeNumbers when available; otherwise inserts comma separators.
+--- @param n number|nil
+--- @return string
+function addon.FormatNumberWithGrouping(n)
+    if type(n) ~= "number" then return tostring(n) end
+    local neg = false
+    local v = floor(n)
+    if v < 0 then
+        neg = true
+        v = -v
+    end
+    local s
+    if BreakUpLargeNumbers then
+        s = BreakUpLargeNumbers(v)
+    else
+        s = tostring(v)
+        local i = #s % 3
+        if i == 0 then i = 3 end
+        s = s:sub(1, i) .. s:sub(i + 1):gsub("(%d%d%d)", ",%1")
+    end
+    return neg and ("-" .. s) or s
+end
+
+--- Replace digit runs of length 4+ with thousands-grouped form (objective/title lines from Blizzard).
+--- Skips shorter numbers to avoid touching "2024", small counts, or 3-digit IDs in plain text.
+--- @param str string|nil
+--- @return string
+function addon.FormatLargeNumbersInString(str)
+    if not str or str == "" or type(str) ~= "string" then return str end
+    return (str:gsub("%d+", function(numStr)
+        local n = tonumber(numStr)
+        if n and #numStr >= 4 then
+            return addon.FormatNumberWithGrouping(n)
+        end
+        return numStr
+    end))
+end
+
+-- ============================================================================
 -- BORDERS & TEXT
 -- ============================================================================
 

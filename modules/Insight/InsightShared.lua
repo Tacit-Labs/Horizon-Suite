@@ -125,20 +125,24 @@ function Insight.IsInsightEnabled()
     return addon:IsModuleEnabled("insight")
 end
 
-local floor = math.floor
-
 function Insight.FormatNumberWithCommas(n)
+    if addon.FormatNumberWithGrouping then
+        return addon.FormatNumberWithGrouping(n)
+    end
     if type(n) ~= "number" then return tostring(n) end
     if BreakUpLargeNumbers then
-        return BreakUpLargeNumbers(floor(n))
+        return BreakUpLargeNumbers(math.floor(n))
     end
-    local s = tostring(floor(n))
+    local s = tostring(math.floor(n))
     local i = #s % 3
     if i == 0 then i = 3 end
     return s:sub(1, i) .. s:sub(i + 1):gsub("(%d%d%d)", ",%1")
 end
 
 function Insight.FormatNumbersInString(str)
+    if addon.FormatLargeNumbersInString then
+        return addon.FormatLargeNumbersInString(str)
+    end
     if not str or str == "" then return str end
     return (str:gsub("%d+", function(numStr)
         local n = tonumber(numStr)

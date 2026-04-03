@@ -406,7 +406,9 @@ local function UpdateMplusBlockDisplay(data)
     -- Line 3: Progress bar (enemy forces)
     if data.enemyForces.total > 0 then
         local pctStr  = string.format("%.2f%%", data.enemyForces.percent)
-        local cntStr  = string.format("(%d/%d)", data.enemyForces.current, data.enemyForces.total)
+        local cntStr  = ("(%s/%s)"):format(
+            addon.FormatNumberWithGrouping(data.enemyForces.current),
+            addon.FormatNumberWithGrouping(data.enemyForces.total))
         progressPercentLabel:SetText(pctStr)
         progressPercentShadow:SetText(pctStr)
         progressCountLabel:SetText(cntStr)

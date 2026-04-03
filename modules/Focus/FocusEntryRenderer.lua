@@ -44,6 +44,11 @@ local function IsIntrinsicallyPercentBased(o)
     return (textPct ~= nil) or isProgressBarType
 end
 
+--- X/Y progress for display (e.g. achievements with large reputation totals).
+local function FormatProgressPair(nf, nr)
+    return addon.FormatNumberWithGrouping(nf) .. "/" .. addon.FormatNumberWithGrouping(nr)
+end
+
 local function IsProgressBarEnabled(questData)
     local isScenario = questData.category == "SCENARIO"
         or questData.category == "DELVES"
@@ -83,7 +88,8 @@ end
 --- @param doneRgb table
 --- @return string|nil Colored fragment, or nil when not started (use plain text).
 local function ColoredProgressSlashFragment(nf, nr, finished, doneRgb)
-    local snf, snr = tostring(nf), tostring(nr)
+    local snf = addon.FormatNumberWithGrouping(nf)
+    local snr = addon.FormatNumberWithGrouping(nr)
     local complete = finished or (nr > 0 and nf >= nr)
     if complete then
         local esc = RGBToWoWColorEscape(doneRgb)
@@ -141,14 +147,18 @@ local function ApplyObjectiveProgressNumberColoring(objText, nf, nr, oData, effe
         return objText
     end
     local plain = tostring(nf) .. "/" .. tostring(nr)
-    if not objText:find(plain, 1, true) then
-        return objText
-    end
+    local display = FormatProgressPair(nf, nr)
     local fragment = ColoredProgressSlashFragment(nf, nr, oData.finished and true or false, effectiveDoneColor)
     if not fragment then
         return objText
     end
-    return ReplaceBoundedPlain(objText, plain, fragment)
+    if objText:find(plain, 1, true) then
+        return ReplaceBoundedPlain(objText, plain, fragment)
+    end
+    if display ~= plain and objText:find(display, 1, true) then
+        return ReplaceBoundedPlain(objText, display, fragment)
+    end
+    return objText
 end
 
 local function hideAllHighlight(entry)
@@ -373,38 +383,50 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         end
         if oData then
             local objText = oData.text or ""
+            if type(objText) == "string" and objText ~= "" then
+                objText = addon.FormatLargeNumbersInString(objText)
+            end
             local nf, nr = oData.numFulfilled, oData.numRequired
             local thisObjHasBar = (progressBarObjIdx == j) or (progressBarSet and progressBarSet[j])
             local isRecipeHeader = oData.isOptionalHeader or oData.isFinishingHeader
 
             if isRecipeHeader then
                 local baseText = oData.text or ""
+                if type(baseText) == "string" and baseText ~= "" then
+                    baseText = addon.FormatLargeNumbersInString(baseText)
+                end
                 local count = oData.sectionCount
-                if count and type(count) == "number" then baseText = baseText .. " (" .. count .. ")" end
+                if count and type(count) == "number" then baseText = baseText .. " (" .. addon.FormatNumberWithGrouping(count) .. ")" end
                 local collapsed = (oData.isOptionalHeader and optCollapsed) or (oData.isFinishingHeader and finCollapsed)
                 objText = baseText .. " " .. (collapsed and "+" or "-")
             else
                 -- Recipe reagents: count before text (e.g. "0/1 Hochenblume"). Skip informational lines (Can craft, Quality, Requirements).
                 local isRecipeReagent = questData.isRecipe and not oData.isCraftableCount and not oData.isQualityInfo and not oData.isRequirement
                 if isRecipeReagent and not thisObjHasBar and nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 0 then
-                    objText = ("%d/%d %s"):format(nf, nr, objText)
+                    objText = FormatProgressPair(nf, nr) .. " " .. objText
                 else
                     -- Quest objectives: append (X/Y) when nr > 1. Skip when title shows it or progress bar is active.
                     local titleShowsNumeric = questData.numericQuantity ~= nil and questData.numericRequired and type(questData.numericRequired) == "number" and questData.numericRequired > 1
                     local singleObjective = questData.objectives and #questData.objectives == 1
                     if not thisObjHasBar and nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 1 and not (titleShowsNumeric and singleObjective) then
-                        local pattern = tostring(nf) .. "/" .. tostring(nr)
-                        if not objText:find(pattern, 1, true) then
-                            objText = objText .. (" (%d/%d)"):format(nf, nr)
+                        local rawPair = tostring(nf) .. "/" .. tostring(nr)
+                        local fmtPair = FormatProgressPair(nf, nr)
+                        local already = objText:find(rawPair, 1, true) or (fmtPair ~= rawPair and objText:find(fmtPair, 1, true))
+                        if not already then
+                            objText = objText .. (" (%s)"):format(fmtPair)
                         end
                     end
                 end
                 -- Strip trailing (X/Y) when text already starts with X/Y (scenario/delve often duplicate)
                 if nf and nr and (questData.category == "SCENARIO" or questData.category == "DELVES" or questData.category == "DUNGEON") then
-                    local pattern = ("%d/%d"):format(nf, nr)
-                    local trailing = (" (%s)"):format(pattern)
-                    if #objText >= #trailing and objText:sub(1, #pattern + 1) == pattern .. " " and objText:sub(-#trailing) == trailing then
-                        objText = objText:sub(1, #objText - #trailing)
+                    local patternRaw = ("%d/%d"):format(nf, nr)
+                    local patternFmt = FormatProgressPair(nf, nr)
+                    for _, pattern in ipairs({ patternRaw, patternFmt }) do
+                        local trailing = (" (%s)"):format(pattern)
+                        if #objText >= #trailing and objText:sub(1, #pattern + 1) == pattern .. " " and objText:sub(-#trailing) == trailing then
+                            objText = objText:sub(1, #objText - #trailing)
+                            break
+                        end
                     end
                 end
                 local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
@@ -524,7 +546,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
                 if obj.progressBarLabel then
                     local pct = math.floor(100 * fraction)
-                    obj.progressBarLabel:SetText(("%d/%d (%d%%)"):format(nf, nr, pct))
+                    obj.progressBarLabel:SetText(FormatProgressPair(nf, nr) .. (" (%d%%)"):format(pct))
                     obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], dimTextAlpha)
                     obj.progressBarLabel:ClearAllPoints()
                     obj.progressBarLabel:SetPoint("CENTER", obj.progressBarBg, "CENTER", 0, 0)
@@ -1000,7 +1022,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         if isAbundanceBar and hasXy then
             -- Abundance: always show X/Y and % together.
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
-            barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
+            barLabel = FormatProgressPair(nf, selectedObj.numRequired)
             if firstPercent ~= nil then
                 barLabel = barLabel .. " (" .. tostring(firstPercent) .. "%)"
             end
@@ -1008,7 +1030,7 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"] or "abundance held") end
         elseif useXyFormat then
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
-            barLabel = ("%d/%d"):format(nf, selectedObj.numRequired)
+            barLabel = FormatProgressPair(nf, selectedObj.numRequired)
             if isAbundanceBagSel then barLabel = (addon.L and addon.L["UI_ABUNDANCE_BAG"] or "Abundance Bag") .. ": " .. barLabel end
             if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"] or "abundance held") end
         else
@@ -1304,6 +1326,9 @@ local function PopulateEntry(entry, questData, groupKey)
     entry.titleShadow:SetWidth(titleLineWidth)
 
     local displayTitle = questData.title
+    if type(displayTitle) == "string" and displayTitle ~= "" then
+        displayTitle = addon.FormatLargeNumbersInString(displayTitle)
+    end
     if not questData._progressBarActive and (addon.GetDB("showCompletedCount", false) or questData.isAchievement or questData.isEndeavor) then
         local done, total
         if questData.numericQuantity ~= nil and questData.numericRequired and type(questData.numericRequired) == "number" and questData.numericRequired > 1 then
@@ -1317,7 +1342,7 @@ local function PopulateEntry(entry, questData, groupKey)
             for _, o in ipairs(questData.objectives) do if o.finished then done = done + 1 end end
         end
         if done and total then
-            displayTitle = ("%s (%d/%d)"):format(displayTitle, done, total)
+            displayTitle = ("%s (%s)"):format(displayTitle, FormatProgressPair(done, total))
         end
     end
 

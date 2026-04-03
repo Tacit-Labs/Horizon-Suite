@@ -906,6 +906,16 @@ L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzar
 L["OPTIONS_FOCUS_SHARE_PARTY"]                                        = "Partager avec le groupe"
 L["OPTIONS_FOCUS_ABANDON_QUEST"]                                      = "Abandonner la quête"
 L["OPTIONS_FOCUS_STOP_TRACKING"]                                      = "Arrêter le suivi"
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_ACHIEVEMENT"]                        = "Open achievement"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_ENDEAVOR"]                           = "Open endeavor"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_RECIPE"]                             = "Open recipe"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_DECOR_CATALOG"]                      = "Open in catalog"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_PREVIEW_DECOR"]                           = "Preview decor"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_SHOW_DECOR_MAP"]                          = "Show on map"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"]                      = "Open Traveler's Log"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_SET_RARE_WAYPOINT"]                       = "Set waypoint"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_CLEAR_RARE_FOCUS"]                        = "Clear map focus"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_TRACKED_CONTENT_CANNOT_SHARE"]                    = "This entry cannot be shared with the party."  -- NEEDS TRANSLATION
 L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"]                                = "Cette quête ne peut pas être partagée."
 L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"]                       = "Vous devez être en groupe pour partager cette quête."
 L["OPTIONS_FOCUS_LEFT_CLICK_OPENS_QUEST_MAP_RIGHT"]                   = "Activé : clic gauche ouvre la carte de quête, clic droit affiche le menu partager/abandonner (style Blizzard). Désactivé : clic gauche suit, clic droit arrête le suivi ; Ctrl+clic droit partage avec le groupe."
@@ -1725,6 +1735,7 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

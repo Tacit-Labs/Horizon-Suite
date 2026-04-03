@@ -109,7 +109,7 @@ function BaseProvider:ParseWidgetObjectives(setID)
                     local text = sInfo.overrideBarText or sInfo.text or ""
                     local cur, max = sInfo.barValue, sInfo.barMax
                     objectives[#objectives+1] = {
-                        text = text ~= "" and text or string.format("%d/%d", cur, max),
+                        text = text ~= "" and text or (addon.FormatNumberWithGrouping(cur) .. "/" .. addon.FormatNumberWithGrouping(max)),
                         numFulfilled = cur,
                         numRequired = max,
                         percent = math.min(100, math.floor(100 * cur / max)),
