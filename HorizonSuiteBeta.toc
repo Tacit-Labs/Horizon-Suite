@@ -27,6 +27,7 @@ core/CoreSlash.lua
 core/MinimapButton.lua
 
 modules/Focus/FocusState.lua
+modules/Focus/FocusClickConfig.lua
 modules/Focus/FocusCategories.lua
 modules/Focus/FocusColors.lua
 modules/Focus/FocusDailies.lua

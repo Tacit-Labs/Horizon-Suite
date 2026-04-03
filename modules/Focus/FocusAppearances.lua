@@ -2,8 +2,10 @@
     Horizon Suite - Focus - Transmog appearance tracking
     C_ContentTracking.GetTrackedIDs(ContentTrackingType.Appearance) for appearances tracked in the Collections UI.
     IDs are Blizzard content-tracking IDs (typically item modified appearance source IDs).
+    Mouse/click behaviour for appearance rows lives in FocusInteractions.lua (same click profile as quests).
 ]]
 
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- Blizzard UI atlases that represent transmog / Appearances (first match via C_Texture.GetAtlasExists wins).
