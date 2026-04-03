@@ -824,9 +824,11 @@ L["OPTIONS_FOCUS_CLASS_COLORS"]                                       = "Class c
 L["OPTIONS_FOCUS_TINT_DASHBOARD_ACCENTS_DIVIDERS_HIGHLIGHTS"]         = "Tint dashboard accents, dividers, and highlights with your class colour."
 L["OPTIONS_FOCUS_THEME"]                                              = "Theme"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND"]                               = "Dashboard background"
-L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"]       = "Background style for the module dashboard window (Axis). Minimalistic is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."
+L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"]       = "Background style for the module dashboard window (Axis). Minimalistic is flat; Midnight uses bundled full-bleed art; Specialisation (auto) uses the in-game talent UI background for your current specialization."
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"]                  = "Minimalistic"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"]                      = "Midnight"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"]                      = "Night Fae"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"]                   = "Zin-Azshari"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"]                 = "Specialisation (auto)"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"]                       = "Dashboard background opacity"
 L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"]             = "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."
@@ -1737,6 +1739,9 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
 
 
 
