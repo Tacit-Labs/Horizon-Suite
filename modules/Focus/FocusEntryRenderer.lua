@@ -57,7 +57,7 @@ local function IsProgressBarEnabled(questData)
     end
 end
 
--- Inline color for in-progress X/Y digits (slash stays vertex-colored via |r).
+-- Inline color for in-progress X/Y (one span covers digits and slash).
 local OBJECTIVE_PROGRESS_IN_PROGRESS_ESC = "|cffffcc00"
 
 --- Convert 0–1 RGB to WoW |cffRRGGBB (opaque).
@@ -76,7 +76,7 @@ local function RGBToWoWColorEscape(rgb)
     )
 end
 
---- Build colored nf/nr fragment; slash unwrapped so SetTextColor applies to "/".
+--- Build colored nf/nr fragment (slash uses the same tint as the digits).
 --- @param nf number
 --- @param nr number
 --- @param finished boolean
@@ -87,11 +87,11 @@ local function ColoredProgressSlashFragment(nf, nr, finished, doneRgb)
     local complete = finished or (nr > 0 and nf >= nr)
     if complete then
         local esc = RGBToWoWColorEscape(doneRgb)
-        return esc .. snf .. "|r/" .. esc .. snr .. "|r"
+        return esc .. snf .. "/" .. snr .. "|r"
     end
     if nf > 0 then
         local esc = OBJECTIVE_PROGRESS_IN_PROGRESS_ESC
-        return esc .. snf .. "|r/" .. esc .. snr .. "|r"
+        return esc .. snf .. "/" .. snr .. "|r"
     end
     return nil
 end
@@ -126,7 +126,7 @@ local function ReplaceBoundedPlain(objText, needle, repl)
     return table.concat(parts)
 end
 
---- Color X/Y numerals when DB toggle on; leaves "/" on objective vertex color.
+--- Color X/Y progress token when DB toggle on (digits and slash share the tint).
 --- @param objText string
 --- @param nf number|nil
 --- @param nr number|nil

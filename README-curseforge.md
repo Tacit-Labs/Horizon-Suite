@@ -36,7 +36,7 @@ Your tracker shouldn't need babysitting. Focus keeps up with you — surfacing n
 - **Tracks everything** — Achievements, Endeavors (housing), Decor, tracked transmog appearances, Recipes (professions), and Traveler's Log objectives. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open the achievement panel, housing dashboard, decor catalog, the Appearances wardrobe for a tracked look (Shift+click opens the map to the source), or Adventure Guide. Under Appearances, you can use the in-game transmog list icon for every row instead of each item's icon.
 - **Rare boss alerts** — Super-track nearby rares with one click and optional audio cues.
 - **Live quest sync** — World quests, dailies, and weeklies update dynamically. Quests auto-track when you accept them. Choose a radar icon for auto-tracked in-zone entries.
-- **Objective progress colours** — Optional gold and green tint on X/Y counts (not started stays the normal objective colour); the slash between the numbers keeps that same colour.
+- **Objective progress colours** — Optional gold and green tint on the whole X/Y token, including the slash (not started stays the normal objective colour).
 - **Prey section** — Midnight hunting activities appear in a dedicated Prey section with distinct colours, separate from weeklies.
 - **Plays well with others** — Full [All The Things](https://www.curseforge.com/wow/addons/all-the-things) integration: collection data shows up right in your objectives.
 - **Combat-aware** — Show, fade, or hide in combat. Show or hide in dungeons/raids/BGs. Compact or super-minimal layouts. Show only on mouseover. Your call.

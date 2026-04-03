@@ -18,7 +18,7 @@ Focus - Objective Tracker
 - **Track what matters** – Achievements, Endeavors (housing), Decor, tracked transmog appearances, Recipes (professions), and Traveler's Log objectives appear in the tracker. Full achievement progress tracking with criteria parsing and quantity strings. One-click to open achievement panel, housing dashboard, decor catalog, the Appearances wardrobe for a tracked look (Shift+click opens the map to the source), or Adventure Guide. Under Appearances, you can use the in-game transmog list icon for every row instead of each item's icon.
 - **Rare boss alerts** – Super-track nearby rares with one click and optional audio alerts.
 - **Live quest sync** – World quests, dailies, and weeklies update dynamically. Quests auto-track when you accept them. Choose a radar icon for auto-tracked in-zone entries.
-- **Objective progress colours** – Optional gold and green tint on X/Y counts (not started stays the normal objective colour); the slash between the numbers keeps that same colour.
+- **Objective progress colours** – Optional gold and green tint on the whole X/Y token, including the slash (not started stays the normal objective colour).
 - **Prey section** – Midnight hunting activities (Prey hunts) appear in a dedicated Prey section with distinct colours, separate from weeklies.
 - **All The Things integration** – Collection data appears directly in your objectives.
 - **Profiles** – Create, switch, copy, and delete named profiles. Per-character, per-specialization, or global (account-wide) modes. Import and export profiles as shareable text strings.
