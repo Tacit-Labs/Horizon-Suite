@@ -510,6 +510,8 @@ L["OPTIONS_FOCUS_COPY_LINK"]                                          = "Link ko
 L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]                        = "Kopiere die folgende URL (STRG+C) und füge sie in deinem Browser ein."
 L["OPTIONS_FOCUS_OBJECTIVE_NUMBERS"]                                  = "Zahlen für Ziele anzeigen"
 L["OPTIONS_FOCUS_OBJECTIVE_PREFIX"]                                   = "Zielprefix"
+-- L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLORS"]                = "Color objective progress numbers"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLORS_DESC"]           = "Tint X/Y counts: normal color at 0/n, gold while in progress, green when complete. The slash uses the usual objective color."  -- NEEDS TRANSLATION
 L["OPTIONS_FOCUS_PREFIX_OBJECTIVE_A_NUMBER_HYPHEN"]                   = "Jedem Ziel eine Zahl oder einen Bindestrich voranstellen."
 L["OPTIONS_FOCUS_NUMBERS"]                                            = "Nummerierung (1. 2. 3.)"
 L["OPTIONS_FOCUS_HYPHENS"]                                            = "Bindestriche (-)"
@@ -1723,6 +1725,7 @@ L["OPTIONS_CORE_SORTING_FILTERING"]                                   = "Sortier
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

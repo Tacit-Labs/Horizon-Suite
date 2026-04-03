@@ -510,6 +510,8 @@ L["OPTIONS_FOCUS_WOWHEAD_ALT_CLICK_HINT"]                             = "Alt+cli
 -- L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]                     = "Copy the URL below (Ctrl+C) and paste in your browser."  -- NEEDS TRANSLATION
 L["OPTIONS_FOCUS_OBJECTIVE_NUMBERS"]                                  = "Показывать номера целей"
 -- L["OPTIONS_FOCUS_OBJECTIVE_PREFIX"]                                = "Objective prefix"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLORS"]                = "Color objective progress numbers"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLORS_DESC"]           = "Tint X/Y counts: normal color at 0/n, gold while in progress, green when complete. The slash uses the usual objective color."  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_PREFIX_OBJECTIVE_A_NUMBER_HYPHEN"]                = "Prefix each objective with a number or hyphen."  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_NUMBERS"]                                         = "Numbers (1. 2. 3.)"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_HYPHENS"]                                         = "Hyphens (-)"  -- NEEDS TRANSLATION
@@ -1723,6 +1725,7 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 
