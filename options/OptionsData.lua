@@ -1156,7 +1156,7 @@ local OptionCategories = {
                 for _, id in ipairs(order) do
                     local label
                     if id == "horizon" then
-                        label = L["OPTIONS_AXIS_DEFAULT"] or "Default"
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"] or "Minimalistic"
                     elseif id == "midnight" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"] or "Midnight"
                     elseif id == "talents" then
@@ -1176,7 +1176,7 @@ local OptionCategories = {
                 searchable = true,
                 options = dashboardBackgroundDropdownOptions,
                 get = function()
-                    local v = getDB("dashboardBackgroundTheme", "horizon")
+                    local v = getDB("dashboardBackgroundTheme", "midnight")
                     if v == "solid" then
                         v = "horizon"
                     end
@@ -1186,7 +1186,7 @@ local OptionCategories = {
                             return v
                         end
                     end
-                    return "horizon"
+                    return "midnight"
                 end,
                 set = function(v) setDB("dashboardBackgroundTheme", v) end,
                 refreshIds = { "dashboardBackgroundTheme" },

@@ -5,12 +5,12 @@
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
--- Dashboard background: Default = solid only. Midnight = addon PNG. Talents = Blizzard class-talent atlas for current spec.
+-- Dashboard background: Minimalistic (horizon) = solid only. Default theme = Midnight (addon PNG). Talents = Blizzard class-talent atlas for current spec.
 local DASHBOARD_BG_MEDIA_PATH = "Interface\\AddOns\\HorizonSuite\\media\\dashboard\\"
--- Full-bleed background: solid + art stack. Solid alpha adjusts dynamically so default/horizon (solid-only)
+-- Full-bleed background: solid + art stack. Solid alpha adjusts dynamically so Minimalistic/horizon (solid-only)
 -- stays dark and readable, while Midnight/Specialisation (solid + art) lets the world peek through.
 -- Art alpha is user-configurable via dashboardBackgroundOpacity (50–100%, stored as integer, default 90).
-local DASHBOARD_BG_SOLID_ALPHA_BARE = 0.88      -- used when NO art layer is showing (default/horizon)
+local DASHBOARD_BG_SOLID_ALPHA_BARE = 0.88      -- used when NO art layer is showing (Minimalistic/horizon)
 local DASHBOARD_BG_SOLID_ALPHA_WITH_ART = 0.25  -- under themed art; kept low so art+solid don't compound to fully opaque
 local DASHBOARD_BG_ART_ALPHA_DEFAULT = 0.90     -- fallback before DB is available
 
@@ -277,7 +277,7 @@ function addon.ApplyDashboardBackground()
     if not dash or not L1 or not L2 then
         return
     end
-    local raw = (addon.GetDB and addon.GetDB("dashboardBackgroundTheme", "horizon")) or "horizon"
+    local raw = (addon.GetDB and addon.GetDB("dashboardBackgroundTheme", "midnight")) or "midnight"
     local themeId = NormalizeDashboardThemeId(raw)
     local solid = dash._dashboardBgSolid
     if solid then
