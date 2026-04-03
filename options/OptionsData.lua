@@ -575,14 +575,14 @@ end
 --- @param fallback string
 --- @return string
 local function GetEffectiveFocusClickAction(comboKey, dbKey, fallback)
-    local prof = getDB("focusClickProfile", "horizonPlus")
+    local prof = getDB("focusClickProfile", "blizzardDefault")
     if prof == "custom" then
         return getDB(dbKey, fallback)
     end
     local cfg = addon.focus and addon.focus.clickConfig
     local profiles = cfg and cfg.PROFILES
     if not profiles then return fallback end
-    local t = profiles[prof] or profiles.horizonPlus
+    local t = profiles[prof] or profiles.blizzardDefault
     local v = t and t[comboKey]
     if type(v) == "string" and v ~= "" then return v end
     return fallback
@@ -591,7 +591,32 @@ end
 --- When true, per-combo dropdowns are read-only (preset profile selected).
 --- @return boolean
 local function FocusClickPresetCombosLocked()
-    return getDB("focusClickProfile", "horizonPlus") ~= "custom"
+    return getDB("focusClickProfile", "blizzardDefault") ~= "custom"
+end
+
+--- True while Focus locks click profile to Blizzard (Horizon+ / Custom hidden).
+--- @return boolean
+local function FocusClickProfileChoiceHidden()
+    local c = addon.focus and addon.focus.clickConfig
+    return c and c.profilesLockedToBlizzard
+end
+
+--- Click profile dropdown: all presets listed; when locked, only Blizzard+ is selectable (others show "Coming soon").
+--- @return table
+local function GetFocusClickProfileDropdownOptions()
+    if FocusClickProfileChoiceHidden() then
+        local soon = L["OPTIONS_FOCUS_COMING_SOON"] or "Coming soon"
+        return {
+            { L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"],                           "blizzardDefault" },
+            { (L["OPTIONS_FOCUS_PROFILE_HORIZON_PLUS"] or "Horizon+") .. " — " .. soon, "horizonPlus", true },
+            { (L["OPTIONS_FOCUS_PROFILE_CUSTOM"] or "Custom") .. " — " .. soon, "custom", true },
+        }
+    end
+    return {
+        { L["OPTIONS_FOCUS_PROFILE_HORIZON_PLUS"],     "horizonPlus" },
+        { L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"], "blizzardDefault" },
+        { L["OPTIONS_FOCUS_PROFILE_CUSTOM"],           "custom" },
+    }
 end
 
 local defaultFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
@@ -1600,19 +1625,21 @@ local OptionCategories = {
         desc = L["OPTIONS_CORE_CONFIGURE_CLICK_BEHAVIORS_TRACKING_RULES_TOMTOM"] or "Configure click behaviors, tracking rules, and TomTom integration.",
         moduleKey = "focus",
         options = {
+            { type = "section", name = L["OPTIONS_FOCUS_CLICK_SAFETY"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CTRL_FOCUS_UNTRACK"], desc = L["OPTIONS_CORE_PREVENT_ACCIDENTAL_CLICKS"], dbKey = "requireCtrlForQuestClicks", get = function() return getDB("requireCtrlForQuestClicks", false) end, set = function(v) setDB("requireCtrlForQuestClicks", v) end, tooltip = L["OPTIONS_CORE_CTRL_LEFT_FOCUS_ADD_CTRL_RIGHT"] },
+            { type = "toggle", name = L["OPTIONS_FOCUS_CTRL_CLICK_COMPLETE"], desc = L["OPTIONS_CORE_REQUIRE_CTRL_COMPLETE_CLICK_COMPLETABLE_QUESTS"], dbKey = "requireModifierForClickToComplete", get = function() return getDB("requireModifierForClickToComplete", false) end, set = function(v) setDB("requireModifierForClickToComplete", v) end, tooltip = L["OPTIONS_CORE_QUESTS_DON_T_NEED_NPC_TURN"] },
             { type = "section", name = L["OPTIONS_CORE_CLICK_BEHAVIOR"] },
             {
                 type    = "dropdown",
                 name    = L["OPTIONS_FOCUS_CLICK_PROFILE"],
                 desc    = L["OPTIONS_FOCUS_CLICK_PROFILE_DESC"],
                 dbKey   = "focusClickProfile",
-                options = {
-                    { L["OPTIONS_FOCUS_PROFILE_HORIZON_PLUS"],     "horizonPlus" },
-                    { L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"], "blizzardDefault" },
-                    { L["OPTIONS_FOCUS_PROFILE_CUSTOM"],           "custom" },
-                },
-                get = function() return getDB("focusClickProfile", "horizonPlus") end,
-                set = function(v) setDB("focusClickProfile", v) end,
+                options = GetFocusClickProfileDropdownOptions,
+                get = function() return getDB("focusClickProfile", "blizzardDefault") end,
+                set = function(v)
+                    if FocusClickProfileChoiceHidden() and v ~= "blizzardDefault" then return end
+                    setDB("focusClickProfile", v)
+                end,
                 refreshIds = {
                     "focusClick_left", "focusClick_shiftLeft", "focusClick_ctrlLeft", "focusClick_altLeft",
                     "focusClick_right", "focusClick_shiftRight", "focusClick_ctrlRight",
@@ -1623,30 +1650,33 @@ local OptionCategories = {
                 name        = L["OPTIONS_FOCUS_COMBO_LEFT"],
                 dbKey       = "focusClick_left",
                 options     = GetComboActionOptions("left"),
-                get         = function() return GetEffectiveFocusClickAction("left", "focusClick_left", "superTrack") end,
+                get         = function() return GetEffectiveFocusClickAction("left", "focusClick_left", "openQuestLog") end,
                 set         = function(v) setDB("focusClick_left", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_SHIFT_LEFT"],
                 dbKey       = "focusClick_shiftLeft",
                 options     = GetComboActionOptions("shiftLeft"),
-                get         = function() return GetEffectiveFocusClickAction("shiftLeft", "focusClick_shiftLeft", "openQuestLog") end,
+                get         = function() return GetEffectiveFocusClickAction("shiftLeft", "focusClick_shiftLeft", "untrack") end,
                 set         = function(v) setDB("focusClick_shiftLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_CTRL_LEFT"],
                 dbKey       = "focusClick_ctrlLeft",
                 options     = GetComboActionOptions("ctrlLeft"),
-                get         = function() return GetEffectiveFocusClickAction("ctrlLeft", "focusClick_ctrlLeft", "share") end,
+                get         = function() return GetEffectiveFocusClickAction("ctrlLeft", "focusClick_ctrlLeft", "none") end,
                 set         = function(v) setDB("focusClick_ctrlLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1657,16 +1687,18 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_altLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_RIGHT"],
                 dbKey       = "focusClick_right",
                 options     = GetComboActionOptions("right"),
-                get         = function() return GetEffectiveFocusClickAction("right", "focusClick_right", "untrack") end,
+                get         = function() return GetEffectiveFocusClickAction("right", "focusClick_right", "contextMenu") end,
                 set         = function(v) setDB("focusClick_right", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1677,6 +1709,7 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_shiftRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
             {
                 type        = "dropdown",
@@ -1687,10 +1720,8 @@ local OptionCategories = {
                 set         = function(v) setDB("focusClick_ctrlRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+                visibleWhen = function() return not FocusClickProfileChoiceHidden() end,
             },
-            { type = "section", name = L["OPTIONS_FOCUS_CLICK_SAFETY"] },
-            { type = "toggle", name = L["OPTIONS_FOCUS_CTRL_FOCUS_UNTRACK"], desc = L["OPTIONS_CORE_PREVENT_ACCIDENTAL_CLICKS"], dbKey = "requireCtrlForQuestClicks", get = function() return getDB("requireCtrlForQuestClicks", false) end, set = function(v) setDB("requireCtrlForQuestClicks", v) end, tooltip = L["OPTIONS_CORE_CTRL_LEFT_FOCUS_ADD_CTRL_RIGHT"] },
-            { type = "toggle", name = L["OPTIONS_FOCUS_CTRL_CLICK_COMPLETE"], desc = L["OPTIONS_CORE_REQUIRE_CTRL_COMPLETE_CLICK_COMPLETABLE_QUESTS"], dbKey = "requireModifierForClickToComplete", get = function() return getDB("requireModifierForClickToComplete", false) end, set = function(v) setDB("requireModifierForClickToComplete", v) end, tooltip = L["OPTIONS_CORE_QUESTS_DON_T_NEED_NPC_TURN"] },
             { type = "section", name = L["OPTIONS_CORE_QUEST_TRACKING"] },
             { type = "toggle", name = L["OPTIONS_FOCUS_AUTO_TRACK_ACCEPTED_QUESTS"], desc = L["OPTIONS_FOCUS_YOU_ACCEPT_A_QUEST_QUEST_LOG"], dbKey = "autoTrackOnAccept", get = function() return getDB("autoTrackOnAccept", true) end, set = function(v) setDB("autoTrackOnAccept", v) end },
             { type = "toggle", name = L["OPTIONS_FOCUS_SUPPRESS_UNTRACKED_UNTIL_RELOAD"], desc = L["OPTIONS_CORE_HIDE_UNTRACKED_QUESTS_UNTIL_RELOAD"], tooltip = L["OPTIONS_FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS_Z"], dbKey = "suppressUntrackedUntilReload", get = function() return getDB("suppressUntrackedUntilReload", false) end, set = function(v) setDB("suppressUntrackedUntilReload", v) end },
