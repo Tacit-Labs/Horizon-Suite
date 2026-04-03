@@ -15,6 +15,23 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.8.0"] = {
+        date = "2026-04-03",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: introducing Blizzard+ as the standard; profile-based quest row clicks (including Classic Click) are available now, with Horizon+ and further customisation coming soon",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: configurable font and text size for the settings window",
+                "Focus: when you resize quest type icons larger, bar-left and pill-left layouts keep them inside the tracker panel",
+            },
+        },
+    },
+
     ["4.7.0"] = {
         date = "2026-04-03",
         {

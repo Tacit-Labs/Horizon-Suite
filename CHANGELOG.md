@@ -10,6 +10,19 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.8.0] – 2026-04-03
+
+### ✨ New Features
+
+- **(Focus)** Introducing Blizzard+ as the standard for Focus; profile-based quest row clicks (including Classic Click) ship now, with Horizon+ and further customisation coming soon.
+
+### 🔧 Improvements
+
+- **(Axis)** Configurable font and text size for the Axis settings window
+- **(Focus)** Resizing quest type icons keeps them inside the tracker panel for bar-left and pill-left active-quest highlights
+
+---
+
 ## [4.7.0] – 2026-04-03
 
 ### ✨ New Features
