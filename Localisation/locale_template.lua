@@ -829,6 +829,11 @@ L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"]                      = "Midnigh
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"]                 = "Specialisation (auto)"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"]                       = "Dashboard background opacity"
 L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"]             = "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."
+L["DASHBOARD_TYPO_SECTION"]                                           = "Dashboard text"
+L["DASHBOARD_TYPO_FONT"]                                              = "Dashboard font"
+L["DASHBOARD_TYPO_FONT_DESC"]                                         = "Font for the Axis settings window (sidebar, search, and option rows). Separate from the Focus tracker font. For CJK or mixed-script welcome text, pick a broad-coverage font (e.g. 2002) if needed."
+L["DASHBOARD_TYPO_SIZE"]                                              = "Dashboard text size"
+L["DASHBOARD_TYPO_SIZE_DESC"]                                         = "Nudge all dashboard text larger or smaller (−4 to +4), similar to Focus global font offset."
 L["OPTIONS_FOCUS_BACKDROP_OPACITY"]                                   = "Backdrop opacity"
 L["OPTIONS_FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Panel background opacity (0–1)."
 L["OPTIONS_FOCUS_BORDER"]                                             = "Show border"
@@ -1608,6 +1613,8 @@ L["OPTIONS_CORE_QUEST_PROGRESS"]                                      = "Quest p
 L["OPTIONS_CORE_QUEST_PROGRESS_BAR"]                                  = "Quest progress bar"
 L["OPTIONS_CORE_QUEST_TRACKING"]                                      = "Quest tracking"
 L["OPTIONS_CORE_QUEST_TYPE_ICONS"]                                    = "Quest type icons"
+L["OPTIONS_FOCUS_QUEST_TYPE_ICON_SIZE"]                               = "Quest type icon size"
+L["OPTIONS_FOCUS_QUEST_TYPE_ICON_SIZE_DESC"]                          = "Pixel size of the quest type icon shown in the left gutter (default 16)."
 L["PRESENCE_RARE_DEFEATED"]                                           = "RARE DEFEATED"
 L["OPTIONS_CORE_RARE_ADDED_SOUND_CHOICE"]                             = "Rare added sound choice"
 L["OPTIONS_CORE_RARE_SOUND_ALERT"]                                    = "Rare sound alert"
@@ -1719,6 +1726,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

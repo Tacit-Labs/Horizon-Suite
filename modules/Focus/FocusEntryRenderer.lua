@@ -1114,14 +1114,16 @@ local function PopulateEntry(entry, questData, groupKey)
         local extraTitlePad = 0
         if showQuestIcons then
             local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-            local iconW = S(addon.QUEST_TYPE_ICON_SIZE or 14)
+            local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
             local iconTitleGap = S(6)
             if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
                 local barLeft = S(addon.BAR_LEFT_OFFSET or 12)
                 local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-                local padAfterBar = 6
-                local iconLeft = -barLeft + barW + padAfterBar
-                extraTitlePad = math.max(0, iconLeft + iconW + iconTitleGap)
+                local padAfterBar = S(6)
+                -- Icon is TOPRIGHT-anchored: its right edge is at iconAnchorX from entry TOPLEFT.
+                -- Title needs to start after that right edge plus a small gap.
+                local iconAnchorX = -barLeft + barW + padAfterBar
+                extraTitlePad = math.max(0, iconAnchorX + iconTitleGap)
             else
                 extraTitlePad = iconW + iconTitleGap
             end

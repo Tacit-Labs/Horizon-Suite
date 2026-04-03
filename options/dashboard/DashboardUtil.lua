@@ -41,6 +41,143 @@ function addon.Dashboard_IsAxisCategoryKey(catKey)
     return catKey == "Profiles" or catKey == "Modules" or catKey == "GlobalToggles"
 end
 
+local DASHBOARD_TYPO_MIN_PX = 8
+
+--- Default font when dashboardFontPath is unset (matches Focus/options widget default).
+--- @return string
+function addon.Dashboard_GetDefaultDashboardFontPath()
+    return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+end
+
+--- Resolve saved dashboard font (LSM key or path) to a file path for SetFont.
+--- @param raw string|nil
+--- @return string
+function addon.Dashboard_ResolveSavedDashboardFontPath(raw)
+    if type(raw) ~= "string" or raw == "" then
+        raw = addon.Dashboard_GetDefaultDashboardFontPath()
+    end
+    if addon.ResolveFontPath then
+        local p = addon.ResolveFontPath(raw)
+        if type(p) == "string" and p ~= "" then
+            return p
+        end
+    end
+    return raw
+end
+
+--- @return number
+function addon.Dashboard_GetDashboardFontSizeOffset()
+    if not addon.GetDB then return 0 end
+    return tonumber(addon.GetDB("dashboardFontSizeOffset", 0)) or 0
+end
+
+--- @param base number Author-facing pixel size before user offset.
+--- @return number
+function addon.Dashboard_EffectiveDashboardFontSize(base)
+    local off = addon.Dashboard_GetDashboardFontSizeOffset()
+    return math.max(DASHBOARD_TYPO_MIN_PX, math.floor((tonumber(base) or 12) + off + 0.5))
+end
+
+--- Outline for dashboard chrome after offset (matches prior large-text behaviour).
+--- @param effSize number
+--- @return string
+function addon.Dashboard_OutlineFlagsForSize(effSize)
+    return (effSize >= 14) and "OUTLINE" or ""
+end
+
+--- @param reg table|nil { fontStrings = {}, editBoxes = {} }
+--- @param fs FontString
+--- @param baseSize number Logical size (before offset); flags recomputed on apply unless overridden.
+--- @param flagsOrNil string|nil If set, used on create and on apply.
+--- @return nil
+function addon.Dashboard_RegisterTypographyFontString(reg, fs, baseSize, flagsOrNil)
+    if not reg or not reg.fontStrings or not fs or not baseSize then return end
+    reg.fontStrings[#reg.fontStrings + 1] = { fs = fs, base = baseSize, flags = flagsOrNil }
+end
+
+--- @param reg table|nil
+--- @param eb EditBox
+--- @param baseSize number
+--- @param flagsOrNil string|nil
+--- @return nil
+function addon.Dashboard_RegisterTypographyEditBox(reg, eb, baseSize, flagsOrNil)
+    if not reg or not reg.editBoxes or not eb or not baseSize then return end
+    reg.editBoxes[#reg.editBoxes + 1] = { eb = eb, base = baseSize, flags = flagsOrNil or "" }
+end
+
+--- Apply saved dashboard font + size offset to registered chrome, OptionsWidgets Def, patch notes, and visible option rows.
+--- @return nil
+function addon.ApplyDashboardTypography()
+    local dash = _G.HorizonSuiteDashboard
+    if not dash then return end
+
+    local rawPath = (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+    local path = addon.Dashboard_ResolveSavedDashboardFontPath(rawPath)
+    local off = addon.Dashboard_GetDashboardFontSizeOffset()
+
+    if _G.OptionsWidgets_SetDef then
+        _G.OptionsWidgets_SetDef({
+            FontPath = path,
+            LabelSize = math.max(DASHBOARD_TYPO_MIN_PX, 13 + off),
+            SectionSize = math.max(DASHBOARD_TYPO_MIN_PX, 11 + off),
+            HeaderSize = math.max(DASHBOARD_TYPO_MIN_PX, (addon.HEADER_SIZE or 16) + off),
+        })
+    end
+
+    local reg = dash._dashboardTypographyRefs
+    if reg and reg.fontStrings then
+        for _, e in ipairs(reg.fontStrings) do
+            local fs = e.fs
+            if fs and fs.SetFont then
+                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 12) + off + 0.5))
+                local fl = e.flags
+                if fl == nil then
+                    fl = addon.Dashboard_OutlineFlagsForSize(eff)
+                end
+                pcall(function()
+                    fs:SetFont(path, eff, fl)
+                end)
+            end
+        end
+    end
+    if reg and reg.editBoxes then
+        for _, e in ipairs(reg.editBoxes) do
+            local eb = e.eb
+            if eb and eb.SetFont then
+                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 13) + off + 0.5))
+                local fl = e.flags or ""
+                pcall(function()
+                    eb:SetFont(path, eff, fl)
+                end)
+            end
+        end
+    end
+
+    if dash._patchNotesTypoRefs then
+        for _, e in ipairs(dash._patchNotesTypoRefs) do
+            local fs = e.fs
+            if fs and fs.SetFont then
+                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 12) + off + 0.5))
+                local fl = e.flags
+                if fl == nil then
+                    fl = addon.Dashboard_OutlineFlagsForSize(eff)
+                end
+                pcall(function()
+                    fs:SetFont(path, eff, fl)
+                end)
+            end
+        end
+    end
+
+    if dash._layoutPatchNotesScroll then
+        dash._layoutPatchNotesScroll()
+    end
+
+    if dash._refreshDashboardDetailOptionFonts then
+        dash._refreshDashboardDetailOptionFonts()
+    end
+end
+
 --- @param parent Frame
 --- @param text string
 --- @param size number
@@ -48,19 +185,26 @@ end
 --- @param g number
 --- @param b number
 --- @param justify string|nil
+--- @param reg table|nil Optional typography registry from dashboard frame build.
 --- @return FontString
-function addon.Dashboard_MakeText(parent, text, size, r, g, b, justify)
+function addon.Dashboard_MakeText(parent, text, size, r, g, b, justify, reg)
+    local path = addon.Dashboard_ResolveSavedDashboardFontPath(
+        (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+    )
+    local eff = addon.Dashboard_EffectiveDashboardFontSize(size)
+    local flags = addon.Dashboard_OutlineFlagsForSize(eff)
     local fs = parent:CreateFontString(nil, "OVERLAY")
-    local font = size >= 14 and "Fonts\\FRIZQT__.TTF" or "Fonts\\ARIALN.TTF"
-    local flags = size >= 14 and "OUTLINE" or ""
-    fs:SetFont(font, size, flags)
+    pcall(function()
+        fs:SetFont(path, eff, flags)
+    end)
     fs:SetText(text)
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
+    addon.Dashboard_RegisterTypographyFontString(reg, fs, size, nil)
     return fs
 end
 
--- Welcome contributor / localization bodies may include Hangul or CJK; ARIALN and FRIZQT omit those glyphs on many enUS installs (tofu squares). 2002 is Blizzard's broad-coverage UI font.
+-- Welcome bodies may include CJK; user can pick Fonts\\2002.TTF (or similar) in dashboard font dropdown if needed.
 --- @param parent Frame
 --- @param text string
 --- @param size number
@@ -68,18 +212,26 @@ end
 --- @param g number
 --- @param b number
 --- @param justify string|nil
+--- @param reg table|nil
 --- @return FontString
-function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify)
+function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify, reg)
+    local path = addon.Dashboard_ResolveSavedDashboardFontPath(
+        (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+    )
+    local eff = addon.Dashboard_EffectiveDashboardFontSize(size)
     local fs = parent:CreateFontString(nil, "OVERLAY")
     local ok = pcall(function()
-        fs:SetFont("Fonts\\2002.TTF", size, "")
+        fs:SetFont(path, eff, "")
     end)
     if not ok then
-        fs:SetFont("Fonts\\ARIALN.TTF", size, "")
+        pcall(function()
+            fs:SetFont("Fonts\\ARIALN.TTF", eff, "")
+        end)
     end
     fs:SetText(text)
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
+    addon.Dashboard_RegisterTypographyFontString(reg, fs, size, "")
     return fs
 end
 

@@ -119,14 +119,15 @@ local function CreateQuestEntry(parent, index)
 
     local _S = addon.Scaled or function(v) return v end
     e.questTypeIcon = e:CreateTexture(nil, "ARTWORK")
-    e.questTypeIcon:SetSize(_S(addon.QUEST_TYPE_ICON_SIZE), _S(addon.QUEST_TYPE_ICON_SIZE))
+    local _qs0 = _S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or addon.QUEST_TYPE_ICON_SIZE)
+    e.questTypeIcon:SetSize(_qs0, _qs0)
     local iconRight = _S((addon.BAR_LEFT_OFFSET or 12) + 2)
     e.questTypeIcon:SetPoint("TOPRIGHT", e, "TOPLEFT", -iconRight, 0)
     e.questTypeIcon:Hide()
 
     -- Quest icon button: overlay for Classic mode left-click super-track. Positioned in Layout.
     -- Use OnMouseDown (not OnClick) to avoid double-handling: OnClick fires on mouse-up and would toggle again.
-    local iconSize = _S(addon.QUEST_TYPE_ICON_SIZE)
+    local iconSize = _S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or addon.QUEST_TYPE_ICON_SIZE)
     e.questIconBtn = CreateFrame("Button", nil, e)
     e.questIconBtn:SetSize(iconSize, iconSize)
     e.questIconBtn:SetPoint("TOPRIGHT", e, "TOPLEFT", -iconRight, 0)
@@ -739,11 +740,11 @@ local function ApplyDimensions(widthOverride)
         e.affixShadow:SetWidth(textW)
         e.affixText:SetWidth(textW)
         if e.questTypeIcon then
-            local qs = S(addon.QUEST_TYPE_ICON_SIZE)
+            local qs = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or addon.QUEST_TYPE_ICON_SIZE)
             e.questTypeIcon:SetSize(qs, qs)
         end
         if e.questIconBtn then
-            local qs = S(addon.QUEST_TYPE_ICON_SIZE)
+            local qs = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or addon.QUEST_TYPE_ICON_SIZE)
             e.questIconBtn:SetSize(qs, qs)
         end
         for j = 1, addon.MAX_OBJECTIVES do

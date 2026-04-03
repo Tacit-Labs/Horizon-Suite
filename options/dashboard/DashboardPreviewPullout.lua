@@ -79,7 +79,11 @@ end
 --- @return nil
 function DP.ApplyAccentColor(r, g, b) end
 
-local function GetDefaultFont()
+local function GetPulloutFontPath()
+    if addon.Dashboard_ResolveSavedDashboardFontPath and addon.GetDB then
+        local raw = addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath and addon.Dashboard_GetDefaultDashboardFontPath() or "Fonts\\FRIZQT__.TTF")
+        return addon.Dashboard_ResolveSavedDashboardFontPath(raw)
+    end
     if addon.GetDefaultFontPath then
         return addon.GetDefaultFontPath()
     end
@@ -145,7 +149,8 @@ local function EnsurePulloutBuilt()
     local dash    = dashRef or _G.HorizonSuiteDashboard
     local dashH   = (dash and dash:GetHeight() > 0 and dash:GetHeight()) or 720
     local dashLvl = (dash and dash:GetFrameLevel()) or 100
-    local fontPath = GetDefaultFont()
+    local fontPath = GetPulloutFontPath()
+    local reg = dash and dash._dashboardTypographyRefs
 
     pulloutFrame = CreateFrame("Frame", "HorizonSuiteDashboardPreviewPullout", UIParent, "BackdropTemplate")
     pulloutFrame:SetSize(260, dashH)
@@ -164,12 +169,28 @@ local function EnsurePulloutBuilt()
     pulloutHeaderBg:SetHeight(38)
 
     titleLabel = pulloutFrame:CreateFontString(nil, "OVERLAY")
-    titleLabel:SetFont(fontPath, 13, "OUTLINE")
+    do
+        local te = (addon.Dashboard_EffectiveDashboardFontSize and addon.Dashboard_EffectiveDashboardFontSize(13)) or 13
+        pcall(function()
+            titleLabel:SetFont(fontPath, te, "OUTLINE")
+        end)
+    end
+    if reg and addon.Dashboard_RegisterTypographyFontString then
+        addon.Dashboard_RegisterTypographyFontString(reg, titleLabel, 13, "OUTLINE")
+    end
     titleLabel:SetTextColor(0.65, 0.65, 0.70, 1.0)
     titleLabel:SetPoint("TOPLEFT", pulloutFrame, "TOPLEFT", 12, -12)
 
     subtitleLabel = pulloutFrame:CreateFontString(nil, "OVERLAY")
-    subtitleLabel:SetFont(fontPath, 11, "OUTLINE")
+    do
+        local se = (addon.Dashboard_EffectiveDashboardFontSize and addon.Dashboard_EffectiveDashboardFontSize(11)) or 11
+        pcall(function()
+            subtitleLabel:SetFont(fontPath, se, "OUTLINE")
+        end)
+    end
+    if reg and addon.Dashboard_RegisterTypographyFontString then
+        addon.Dashboard_RegisterTypographyFontString(reg, subtitleLabel, 11, "OUTLINE")
+    end
     subtitleLabel:SetTextColor(0.38, 0.38, 0.42, 1.0)
     subtitleLabel:SetPoint("TOPLEFT", pulloutFrame, "TOPLEFT", 12, -26)
 
@@ -178,7 +199,15 @@ local function EnsurePulloutBuilt()
     pulloutCloseBtn:SetPoint("TOPRIGHT", pulloutFrame, "TOPRIGHT", -8, -7)
     pulloutCloseBtn:SetFrameLevel(pulloutFrame:GetFrameLevel() + 2)
     local closeTex = pulloutCloseBtn:CreateFontString(nil, "OVERLAY")
-    closeTex:SetFont(fontPath, 16, "OUTLINE")
+    do
+        local ce = (addon.Dashboard_EffectiveDashboardFontSize and addon.Dashboard_EffectiveDashboardFontSize(16)) or 16
+        pcall(function()
+            closeTex:SetFont(fontPath, ce, "OUTLINE")
+        end)
+    end
+    if reg and addon.Dashboard_RegisterTypographyFontString then
+        addon.Dashboard_RegisterTypographyFontString(reg, closeTex, 16, "OUTLINE")
+    end
     closeTex:SetTextColor(0.50, 0.50, 0.55, 1)
     closeTex:SetText("×")
     closeTex:SetAllPoints(pulloutCloseBtn)
@@ -403,6 +432,10 @@ function DP.InitDashboard(dashFrame)
     end
 
     DP.SetActiveModuleKey(dashFrame.currentModuleKey)
+
+    if addon.ApplyDashboardTypography then
+        addon.ApplyDashboardTypography()
+    end
 end
 
 -- Backwards compatibility for Insight.* callers

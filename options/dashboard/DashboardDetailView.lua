@@ -1122,7 +1122,6 @@ function addon.DashboardDetailView_Init(env)
                     local CARD_GAP = 12
                     local CARD_H = 108
                     local CARD_PAD = 14
-                    local widgetFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
                     local widgetLabelColor = { 0.88, 0.88, 0.92 }
 
                     local allCards = {}
@@ -1155,7 +1154,15 @@ function addon.DashboardDetailView_Init(env)
                         card.accentBar = accentBar
 
                         local nameLabel = card:CreateFontString(nil, "OVERLAY")
-                        nameLabel:SetFont(widgetFontPath, 13, "OUTLINE")
+                        do
+                            local wp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                                (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                            )
+                            local we = addon.Dashboard_EffectiveDashboardFontSize(13)
+                            pcall(function()
+                                nameLabel:SetFont(wp, we, "OUTLINE")
+                            end)
+                        end
                         nameLabel:SetTextColor(widgetLabelColor[1], widgetLabelColor[2], widgetLabelColor[3])
                         nameLabel:SetText((labelBase and labelBase ~= "") and (string.gsub(labelBase, "(%a)([%w_']*)", function(a, b) return string.upper(a) .. string.lower(b) end)) or labelBase)
                         nameLabel:SetPoint("TOPLEFT", card, "TOPLEFT", 10, -8)
@@ -1515,6 +1522,12 @@ function addon.DashboardDetailView_Init(env)
         end
 
         UpdateDetailLayout()
+
+        f._refreshDashboardDetailOptionFonts = function()
+            for _, w in pairs(detailOptionFrames) do
+                if w and w.Refresh then w:Refresh() end
+            end
+        end
     end
 
     return {

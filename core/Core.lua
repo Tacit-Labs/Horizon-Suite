@@ -447,11 +447,16 @@ function addon.GetPresenceDiscoveryColor()
     return addon.PRESENCE_DISCOVERY_COLOR or { 0.4, 1, 0.5 }
 end
 
+function addon.GetEffectiveQuestIconSize()
+    return addon.GetDB("focusIconSize", addon.QUEST_TYPE_ICON_SIZE) or addon.QUEST_TYPE_ICON_SIZE
+end
+
 function addon.GetContentLeftOffset()
     -- Left gutter contains (optional) quest-type icon column.
     -- Quest item buttons live in the RIGHT gutter (shared with the LFG button).
     local showQuestIcons = addon.GetDB("showQuestTypeIcons", false)
-    local base = addon.PADDING + (showQuestIcons and addon.ICON_COLUMN_WIDTH or 0)
+    local iconWidth = addon.GetEffectiveQuestIconSize() + (addon.QUEST_TYPE_ICON_GAP or 4)
+    local base = addon.PADDING + (showQuestIcons and iconWidth or 0)
     return addon.Scaled(math.max(addon.PADDING, base))
 end
 
