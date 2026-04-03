@@ -1124,6 +1124,22 @@ function addon.EnsureDB()
     addon._ensureDBInProgress = true
     if addon.EnsureModulesDB then addon:EnsureModulesDB() end
     EnsureProfilesAndMigrateLegacy()
+    -- One-shot: old default dashboard bg was horizon/solid; new default is midnight — bump stored choices once.
+    do
+        local db = rawDB()
+        if not db._migratedDashboardBgDefaultToMidnight then
+            db.profiles = db.profiles or {}
+            for _, prof in pairs(db.profiles) do
+                if type(prof) == "table" then
+                    local t = prof.dashboardBackgroundTheme
+                    if t == "horizon" or t == "solid" then
+                        prof.dashboardBackgroundTheme = "midnight"
+                    end
+                end
+            end
+            db._migratedDashboardBgDefaultToMidnight = true
+        end
+    end
     -- One-time migration from legacy hideInCombat toggle.
     -- Check both the active profile and the root DB for the legacy key,
     -- then write the migrated value into the active profile where GetDB reads it.
