@@ -23,6 +23,8 @@ local function GetDashboardBgArtAlpha()
 end
 
 local DASHBOARD_BG_CROSSFADE_SEC = 0.4
+-- Theme id -> path under media/dashboard/ (SetTexture; PNG/JPEG per client support).
+-- Extra bundled art (e.g. Nightfae.jpg, Zin-Azshari.png) can be re-added to this table + DASHBOARD_BG_ORDER when exposed in options again.
 local DASHBOARD_BG_FILES = {
     midnight = "backgrounds\\Wow-Midnight.png",
 }
@@ -30,11 +32,18 @@ local DASHBOARD_BG_ORDER = { "horizon", "midnight", "talents" }
 addon.DashboardBackgroundThemeOrder = DASHBOARD_BG_ORDER
 
 local function NormalizeDashboardThemeId(themeId)
-    if themeId == "midnight" then
+    -- Dropdown temporarily omits extra art themes; map stored ids to Midnight.
+    if themeId == "teldrassil" or themeId == "nightfae" or themeId == "zinazshari" then
         return "midnight"
+    end
+    if themeId == "horizon" then
+        return "horizon"
     end
     if themeId == "talents" then
         return "talents"
+    end
+    if type(themeId) == "string" and DASHBOARD_BG_FILES[themeId] then
+        return themeId
     end
     return "horizon"
 end
@@ -124,13 +133,10 @@ local function ResolveDashboardBackgroundTarget(themeId)
     if themeId == "horizon" then
         return { kind = "clear", signature = "horizon" }
     end
-    if themeId == "midnight" then
-        local rel = DASHBOARD_BG_FILES.midnight
-        if not rel then
-            return { kind = "clear", signature = "horizon" }
-        end
+    local rel = type(themeId) == "string" and DASHBOARD_BG_FILES[themeId]
+    if type(rel) == "string" and rel ~= "" then
         local path = DASHBOARD_BG_MEDIA_PATH .. rel
-        return { kind = "texture", path = path, signature = "midnight:" .. path }
+        return { kind = "texture", path = path, signature = themeId .. ":" .. path }
     end
     if themeId == "talents" then
         local atlas = GetDashboardTalentBackgroundAtlas()

@@ -1171,7 +1171,7 @@ local OptionCategories = {
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND"] or "Dashboard background",
-                desc = L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"] or "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization.",
+                desc = L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"] or "Background style for the module dashboard window (Axis). Minimalistic is flat; bundled themes use full-bleed art; Specialisation (auto) uses the in-game talent UI background for your current specialization.",
                 dbKey = "dashboardBackgroundTheme",
                 searchable = true,
                 options = dashboardBackgroundDropdownOptions,
@@ -1179,6 +1179,9 @@ local OptionCategories = {
                     local v = getDB("dashboardBackgroundTheme", "midnight")
                     if v == "solid" then
                         v = "horizon"
+                    end
+                    if v == "teldrassil" or v == "nightfae" or v == "zinazshari" then
+                        v = "midnight"
                     end
                     local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
                     for _, id in ipairs(order) do
