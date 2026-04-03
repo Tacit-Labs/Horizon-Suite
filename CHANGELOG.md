@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.8.1] – 2026-04-03
+
+### 🔧 Improvements
+
+- **(Axis)** Dashboard Welcome tab is driven by a configurable feed and a dedicated view, so announcements and sections are easier to maintain and extend
+- **(Focus)** Bar left and Pill left active-quest highlights place the quest type icon beside the highlight bar and align quest titles without extra left padding when icons are shown
+
+---
+
 ## [4.8.0] – 2026-04-03
 
 ### ✨ New Features

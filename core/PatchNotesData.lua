@@ -15,6 +15,17 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.8.1"] = {
+        date = "2026-04-03",
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: dashboard Welcome tab is built from a configurable feed and dedicated view so sections are easier to maintain and extend",
+                "Focus: bar left and pill left highlights place quest type icons beside the bar and remove extra title padding when icons are shown",
+            },
+        },
+    },
+
     ["4.8.0"] = {
         date = "2026-04-03",
         {
