@@ -15,6 +15,26 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.8.2"] = {
+        date = "2026-04-03",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: tracker rows — transmog appearances (map, menu, waypoints), better quest completion from clicks, optional WoWhead tooltip line",
+                "Insight: grouped thousands for long numbers in tooltips and UI text (shared with Focus)",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: optional gold/green X/Y objective progress colours while in progress or complete",
+                "Focus: coloured progress mode also tints the slash between counts for one consistent token",
+                "Axis: dashboard background defaults to Midnight; old flat choices migrate once; flat style labelled Minimalistic",
+                "Axis: Night Fae and Zin-Azshari background art bundled; legacy theme ids map to Midnight",
+            },
+        },
+    },
+
     ["4.8.1"] = {
         date = "2026-04-03",
         {
