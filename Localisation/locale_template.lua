@@ -86,13 +86,15 @@ L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                                     = " (New!)
 L["DASH_WELCOME_TAB"]                                                 = "Welcome"
 L["DASH_WELCOME_TITLE"]                                               = "Welcome to Horizon Suite"
 L["DASH_WELCOME_HEAD_SUB"]                                            = "Credits, community, and where to find help"
-L["DASH_WELCOME_INTRO"]                                               = [=[Welcome to Horizon Suite — modular UI for your tracker, notifications, and more, built so you only run what you want. Turn features on or off under |cffaaaaaaAxis → Modules|r, take the |cffaaaaaaQuick Start|r tour, and see what is new in |cffaaaaaaPatch Notes|r each release.]=]
-L["DASH_WELCOME_PATH"]                                                = "%s → %s → %s"
+L["DASH_WELCOME_INTRO"]                                               = [=[Welcome to Horizon Suite — modular UI for your tracker, notifications, and more, built so you only run what you want. Turn features on or off under |cffaaaaaaAxis > Modules|r, take the |cffaaaaaaQuick Start|r tour, and see what is new in |cffaaaaaaPatch Notes|r each release.]=]
+L["DASH_WELCOME_PATH"]                                                = "%s > %s > %s"
+L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]                         = "Blizzard+ click profile"
+L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                            = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
 L["DASH_WELCOME_COMING_SOON_TITLE"]                                   = "Coming Soon"
 L["DASH_WELCOME_COMING_SOON_TAGLINE"]                                 = "New welcome experiences are on the way."
 L["DASH_WELCOME_COMING_SOON_BODY"]                                    = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
 L["DASH_WELCOME_CLASS_ICONS_HEADING"]                                 = "New: Horizon class icons"
-L["DASH_WELCOME_CLASS_ICONS_LEAD"]                                    = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r under |cffaaaaaaAxis → Global Toggles|r (Class icon style).]=]
+L["DASH_WELCOME_CLASS_ICONS_LEAD"]                                    = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r under |cffaaaaaaAxis > Global Toggles|r (Class icon style).]=]
 L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"]                           = [=[Thank you, Boofuls, for commissioning this art and helping bring these icons to everyone.]=]
 L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"]                          = "• Created by "
 L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                             = "Gabriel C"
@@ -1726,6 +1728,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

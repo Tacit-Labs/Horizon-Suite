@@ -113,6 +113,8 @@ options/dashboard/DashboardBackground.lua
 options/dashboard/DashboardContext.lua
 options/dashboard/DashboardSidebar.lua
 options/dashboard/DashboardDetailView.lua
+options/dashboard/DashboardWelcomeFeedData.lua
+options/dashboard/DashboardWelcomeView.lua
 options/dashboard/DashboardHomeWelcome.lua
 options/dashboard/DashboardModuleGuide.lua
 options/dashboard/DashboardPreviewPullout.lua

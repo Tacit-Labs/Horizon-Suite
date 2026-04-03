@@ -1117,13 +1117,8 @@ local function PopulateEntry(entry, questData, groupKey)
             local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
             local iconTitleGap = S(6)
             if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-                local barLeft = S(addon.BAR_LEFT_OFFSET or 12)
-                local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-                local padAfterBar = S(6)
-                -- Icon is TOPRIGHT-anchored: its right edge is at iconAnchorX from entry TOPLEFT.
-                -- Title needs to start after that right edge plus a small gap.
-                local iconAnchorX = -barLeft + barW + padAfterBar
-                extraTitlePad = math.max(0, iconAnchorX + iconTitleGap)
+                -- Icon is left of bar; bar is left of entry (negative x).
+                -- Text starts at entry TOPLEFT — no indent needed to clear icon or bar.
             else
                 extraTitlePad = iconW + iconTitleGap
             end
