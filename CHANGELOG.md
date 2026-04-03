@@ -10,6 +10,22 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.7.0] – 2026-04-03
+
+### ✨ New Features
+
+- **(Focus)** Tracked transmog appearances in the tracker — Horizon and classic click behaviour, stable super-track, optional map/TomTom and dressing room
+- **(Insight)** Custom class icons from files in the addon media folder
+
+### 🔧 Improvements
+
+- **(Insight)** Tooltip pipeline and shared display tweaks
+- **(Focus)** Section headers and category order use localized UI labels
+- **(Axis)** BLP class icons, dashboard welcome polish, and community footer updates
+- **(Axis)** Dashboard footer — intrinsic wordmark sizing, optimized textures, mixed-script welcome font
+
+---
+
 ## [4.6.1] – 2026-04-02
 
 ### 🔧 Improvements

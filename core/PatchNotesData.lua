@@ -15,6 +15,26 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.7.0"] = {
+        date = "2026-04-03",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: tracked transmog appearances in the tracker with Horizon and classic clicks (super-track, dressing room, map/TomTom when enabled)",
+                "Insight: custom class icons from the addon media folder",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Insight: tooltip pipeline and shared display tweaks",
+                "Focus: section headers and category order use localized UI labels",
+                "Axis: BLP class icons, dashboard welcome polish, and community footer updates",
+                "Axis: dashboard footer intrinsic wordmark sizing, optimized textures, mixed-script welcome font",
+            },
+        },
+    },
+
     ["4.6.1"] = {
         date = "2026-04-02",
         {
