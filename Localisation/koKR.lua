@@ -906,6 +906,16 @@ L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzar
 L["OPTIONS_FOCUS_SHARE_PARTY"]                                        = "파티에 공유"
 L["OPTIONS_FOCUS_ABANDON_QUEST"]                                      = "퀘스트 포기"
 L["OPTIONS_FOCUS_STOP_TRACKING"]                                      = "추적 중지"
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_ACHIEVEMENT"]                        = "Open achievement"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_ENDEAVOR"]                           = "Open endeavor"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_RECIPE"]                             = "Open recipe"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_DECOR_CATALOG"]                      = "Open in catalog"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_PREVIEW_DECOR"]                           = "Preview decor"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_SHOW_DECOR_MAP"]                          = "Show on map"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"]                      = "Open Traveler's Log"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_SET_RARE_WAYPOINT"]                       = "Set waypoint"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_CONTEXT_CLEAR_RARE_FOCUS"]                        = "Clear map focus"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_TRACKED_CONTENT_CANNOT_SHARE"]                    = "This entry cannot be shared with the party."  -- NEEDS TRANSLATION
 L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"]                                = "이 퀘스트는 공유할 수 없습니다."
 L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"]                       = "이 퀘스트를 공유하려면 파티에 참여해야 합니다."
 L["OPTIONS_FOCUS_LEFT_CLICK_OPENS_QUEST_MAP_RIGHT"]                   = "활성화 시 좌클릭으로 퀘스트 지도 열기, 우클릭으로 공유/포기 메뉴 표시(블리자드 방식). 비활성화 시 좌클릭으로 추적, 우클릭으로 추적 해제; Ctrl+우클릭으로 파티에 공유."
@@ -1725,6 +1735,7 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

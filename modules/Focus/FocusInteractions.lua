@@ -391,6 +391,415 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- Tracked non-quest rows (Blizzard+): same GetQuestClickAction as quests.
+-- ---------------------------------------------------------------------------
+
+--- @param entry Frame
+--- @return string|nil kind ach|endeavor|decor|advguide|recipe|rare
+local function ResolveTrackedContentKind(entry)
+    if not entry or not entry.entryKey or type(entry.entryKey) ~= "string" then return nil end
+    if entry.entryKey:match("^ach:%d+$") and entry.achievementID then return "ach" end
+    if entry.entryKey:match("^endeavor:%d+$") and entry.endeavorID then return "endeavor" end
+    if entry.entryKey:match("^decor:%d+$") and entry.decorID then return "decor" end
+    if entry.entryKey:match("^advguide:") and entry.adventureGuideID then return "advguide" end
+    if entry.isRecipe and entry.recipeID then return "recipe" end
+    local hasVig = entry.entryKey:match("^vignette:(.+)$")
+    local hasRare = entry.entryKey:match("^rare:(%d+)$")
+    local isRareOrRareLoot = entry.isRare or entry.isRareLoot or entry.category == "RARE" or entry.category == "RARE_LOOT"
+    if (hasVig or hasRare) and isRareOrRareLoot then return "rare" end
+    return nil
+end
+
+local function OpenAchievementEntry(entry)
+    if entry.achievementID and addon.OpenAchievementToAchievement then
+        addon.OpenAchievementToAchievement(entry.achievementID)
+    end
+end
+
+local function UntrackAchievementEntry(entry)
+    if not entry.achievementID then return end
+    local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Achievement
+    local stopType = Enum and Enum.ContentTrackingStopType and Enum.ContentTrackingStopType.Manual
+    if trackType and stopType and C_ContentTracking and C_ContentTracking.StopTracking then
+        pcall(C_ContentTracking.StopTracking, trackType, entry.achievementID, stopType)
+    elseif RemoveTrackedAchievement then
+        RemoveTrackedAchievement(entry.achievementID)
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function OpenEndeavorEntry(entry)
+    if not entry.endeavorID then return end
+    if HousingFramesUtil and HousingFramesUtil.OpenFrameToTaskID then
+        pcall(HousingFramesUtil.OpenFrameToTaskID, entry.endeavorID)
+    elseif ToggleHousingDashboard then
+        ToggleHousingDashboard()
+    elseif HousingFrame and HousingFrame.Show then
+        if HousingFrame:IsShown() then HousingFrame:Hide() else HousingFrame:Show() end
+    end
+end
+
+local function UntrackEndeavorEntry(entry)
+    if not entry.endeavorID then return end
+    if C_NeighborhoodInitiative and C_NeighborhoodInitiative.RemoveTrackedInitiativeTask then
+        pcall(C_NeighborhoodInitiative.RemoveTrackedInitiativeTask, entry.endeavorID)
+    elseif C_Endeavors and C_Endeavors.StopTracking then
+        pcall(C_Endeavors.StopTracking, entry.endeavorID)
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function OpenRecipeEntry(entry)
+    if not entry.recipeID then return end
+    if C_AddOns and C_AddOns.LoadAddOn then
+        pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
+    end
+    if ProfessionsUtil and ProfessionsUtil.OpenProfessionFrameToRecipe then
+        pcall(ProfessionsUtil.OpenProfessionFrameToRecipe, entry.recipeID)
+    elseif C_TradeSkillUI and C_TradeSkillUI.OpenRecipe then
+        pcall(C_TradeSkillUI.OpenRecipe, entry.recipeID)
+    end
+end
+
+local function UntrackRecipeEntry(entry)
+    if not entry.recipeID then return end
+    if C_AddOns and C_AddOns.LoadAddOn then
+        pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
+    end
+    if C_TradeSkillUI and C_TradeSkillUI.SetRecipeTracked then
+        local isRecraft = (entry.recipeIsRecraft == true)
+        pcall(C_TradeSkillUI.SetRecipeTracked, entry.recipeID, false, isRecraft)
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function OpenAdventureGuideEntry(_entry)
+    if ToggleEncounterJournal then
+        ToggleEncounterJournal()
+    end
+end
+
+local function UntrackAdventureGuideEntry(entry)
+    if not entry.adventureGuideID then return end
+    if C_PerksActivities and C_PerksActivities.RemoveTrackedPerksActivity then
+        pcall(C_PerksActivities.RemoveTrackedPerksActivity, entry.adventureGuideID)
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function DecorOpenMap(entry)
+    if not entry or not entry.decorID or InCombatLockdown() then return end
+    local trackTypeDecor = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Decor
+    if trackTypeDecor and ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
+        pcall(ContentTrackingUtil.OpenMapToTrackable, trackTypeDecor, entry.decorID)
+    end
+end
+
+local function DecorPreview(entry)
+    if not entry or not entry.decorID then return end
+    if HousingFramesUtil and HousingFramesUtil.PreviewHousingDecorID then
+        pcall(HousingFramesUtil.PreviewHousingDecorID, entry.decorID)
+    elseif ToggleHousingDashboard then
+        ToggleHousingDashboard()
+    elseif HousingFrame and HousingFrame.Show then
+        if HousingFrame:IsShown() then HousingFrame:Hide() else HousingFrame:Show() end
+    end
+end
+
+local function OpenDecorCatalogEntry(entry)
+    if not entry or not entry.decorID then return end
+    if not HousingDashboardFrame and C_AddOns and C_AddOns.LoadAddOn then
+        pcall(C_AddOns.LoadAddOn, "Blizzard_HousingDashboard")
+    end
+    local entryType = Enum and Enum.HousingCatalogEntryType and Enum.HousingCatalogEntryType.Decor
+    local ok, info = pcall(function()
+        if C_HousingCatalog and C_HousingCatalog.GetCatalogEntryInfoByRecordID and entryType then
+            return C_HousingCatalog.GetCatalogEntryInfoByRecordID(entryType, entry.decorID, true)
+        end
+    end)
+    if ok and info and HousingDashboardFrame and HousingDashboardFrame.SetTab and HousingDashboardFrame.catalogTab then
+        ShowUIPanel(HousingDashboardFrame)
+        HousingDashboardFrame:SetTab(HousingDashboardFrame.catalogTab)
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.5, function()
+                if HousingDashboardFrame and HousingDashboardFrame.CatalogContent and HousingDashboardFrame.CatalogContent.PreviewFrame then
+                    local pf = HousingDashboardFrame.CatalogContent.PreviewFrame
+                    if pf.PreviewCatalogEntryInfo then
+                        pcall(pf.PreviewCatalogEntryInfo, pf, info)
+                    end
+                    if pf.Show then pf:Show() end
+                end
+            end)
+        end
+    elseif ToggleHousingDashboard then
+        ToggleHousingDashboard()
+    elseif HousingFrame and HousingFrame.Show then
+        if HousingFrame:IsShown() then HousingFrame:Hide() else HousingFrame:Show() end
+    end
+end
+
+local function UntrackDecorEntry(entry)
+    if not entry or not entry.decorID then return end
+    local trackTypeDecor = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Decor
+    local stopType = Enum and Enum.ContentTrackingStopType and Enum.ContentTrackingStopType.Manual
+    if trackTypeDecor and stopType and C_ContentTracking and C_ContentTracking.StopTracking then
+        pcall(C_ContentTracking.StopTracking, trackTypeDecor, entry.decorID, stopType)
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function OpenRareWaypointEntry(entry)
+    if not entry then return end
+    if addon.GetDB("tomtomRareWaypoint", true) then
+        if addon.SetRareWaypoint then
+            addon.SetRareWaypoint(entry)
+        end
+    else
+        local vignetteGUID = entry.vignetteGUID or (entry.entryKey and entry.entryKey:match("^vignette:(.+)$"))
+        if vignetteGUID and C_SuperTrack and C_SuperTrack.SetSuperTrackedVignette then
+            C_SuperTrack.SetSuperTrackedVignette(vignetteGUID)
+        end
+    end
+    local wqtPanel = _G.WorldQuestTrackerScreenPanel
+    if wqtPanel and wqtPanel:IsShown() then
+        wqtPanel:Hide()
+    end
+end
+
+local function UntrackRareEntry(entry)
+    local vignetteGUID = entry and (entry.vignetteGUID or (entry.entryKey and entry.entryKey:match("^vignette:(.+)$")))
+    if vignetteGUID and C_SuperTrack and C_SuperTrack.GetSuperTrackedVignette and C_SuperTrack.SetSuperTrackedVignette then
+        if C_SuperTrack.GetSuperTrackedVignette() == vignetteGUID then
+            C_SuperTrack.SetSuperTrackedVignette(nil)
+        end
+    end
+    local wqtPanel = _G.WorldQuestTrackerScreenPanel
+    if wqtPanel and wqtPanel:IsShown() then
+        wqtPanel:Hide()
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function RunEasyMenuTracked(menuList, frameName, anchor)
+    if not menuList or #menuList == 0 then return end
+    if C_AddOns and C_AddOns.LoadAddOn then
+        pcall(C_AddOns.LoadAddOn, "Blizzard_UIDropDownMenu")
+    end
+    local menuFrame = _G[frameName]
+    if not menuFrame then
+        menuFrame = CreateFrame("Frame", frameName, UIParent, "UIDropDownMenuTemplate")
+        if not menuFrame then return end
+        _G[frameName] = menuFrame
+    end
+    local anchorFrame = anchor or UIParent
+    if EasyMenu then
+        if CloseDropDownMenus then CloseDropDownMenus() end
+        C_Timer.After(0, function()
+            EasyMenu(menuList, menuFrame, "cursor", 0, 0, "MENU")
+        end)
+    elseif UIDropDownMenu_Initialize and ToggleDropDownMenu and UIDropDownMenu_CreateInfo and UIDropDownMenu_AddButton then
+        local items = menuList
+        UIDropDownMenu_Initialize(menuFrame, function(_, level)
+            if not level or level ~= 1 then return end
+            for _, item in ipairs(items) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = item.text
+                info.notCheckable = true
+                info.func = item.func
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end, "MENU", 1, nil)
+        if CloseDropDownMenus then CloseDropDownMenus() end
+        C_Timer.After(0, function()
+            ToggleDropDownMenu(1, nil, menuFrame, anchorFrame, 0, 0)
+        end)
+    end
+end
+
+local function ShowTrackedAchievementContextMenu(entry, anchor)
+    local L = addon.L or {}
+    local aid = entry.achievementID
+    if not aid then return end
+    RunEasyMenuTracked({
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_ACHIEVEMENT"] or "Open achievement",
+            notCheckable = true,
+            func = function() OpenAchievementEntry(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            notCheckable = true,
+            func = function() UntrackAchievementEntry(entry) end,
+        },
+    }, "HorizonSuite_TrackedAchContextMenu", anchor)
+end
+
+local function ShowTrackedEndeavorContextMenu(entry, anchor)
+    local L = addon.L or {}
+    if not entry.endeavorID then return end
+    RunEasyMenuTracked({
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_ENDEAVOR"] or "Open endeavor",
+            notCheckable = true,
+            func = function() OpenEndeavorEntry(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            notCheckable = true,
+            func = function() UntrackEndeavorEntry(entry) end,
+        },
+    }, "HorizonSuite_TrackedEndeavorContextMenu", anchor)
+end
+
+local function ShowTrackedRecipeContextMenu(entry, anchor)
+    local L = addon.L or {}
+    if not entry.recipeID then return end
+    RunEasyMenuTracked({
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_RECIPE"] or "Open recipe",
+            notCheckable = true,
+            func = function() OpenRecipeEntry(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            notCheckable = true,
+            func = function() UntrackRecipeEntry(entry) end,
+        },
+    }, "HorizonSuite_TrackedRecipeContextMenu", anchor)
+end
+
+local function ShowTrackedDecorContextMenu(entry, anchor)
+    local L = addon.L or {}
+    if not entry.decorID then return end
+    RunEasyMenuTracked({
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_DECOR_CATALOG"] or "Open in catalog",
+            notCheckable = true,
+            func = function() OpenDecorCatalogEntry(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_PREVIEW_DECOR"] or "Preview decor",
+            notCheckable = true,
+            func = function() DecorPreview(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_SHOW_DECOR_MAP"] or "Show on map",
+            notCheckable = true,
+            func = function() DecorOpenMap(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            notCheckable = true,
+            func = function() UntrackDecorEntry(entry) end,
+        },
+    }, "HorizonSuite_TrackedDecorContextMenu", anchor)
+end
+
+local function ShowTrackedAdventureGuideContextMenu(entry, anchor)
+    local L = addon.L or {}
+    if not entry.adventureGuideID then return end
+    RunEasyMenuTracked({
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"] or "Open Traveler's Log",
+            notCheckable = true,
+            func = function() OpenAdventureGuideEntry(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            notCheckable = true,
+            func = function() UntrackAdventureGuideEntry(entry) end,
+        },
+    }, "HorizonSuite_TrackedAdvGuideContextMenu", anchor)
+end
+
+local function ShowTrackedRareContextMenu(entry, anchor)
+    local L = addon.L or {}
+    RunEasyMenuTracked({
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_SET_RARE_WAYPOINT"] or "Set waypoint",
+            notCheckable = true,
+            func = function() OpenRareWaypointEntry(entry) end,
+        },
+        {
+            text = L["OPTIONS_FOCUS_CONTEXT_CLEAR_RARE_FOCUS"] or "Clear map focus",
+            notCheckable = true,
+            func = function() UntrackRareEntry(entry) end,
+        },
+    }, "HorizonSuite_TrackedRareContextMenu", anchor)
+end
+
+--- Dispatch profile action for tracked non-quest rows (Blizzard+).
+--- @param action string
+--- @param kind string
+--- @param entry Frame
+local function ExecuteTrackedContentAction(action, kind, entry)
+    if action == "openQuestLog" then
+        if kind == "ach" then OpenAchievementEntry(entry)
+        elseif kind == "endeavor" then OpenEndeavorEntry(entry)
+        elseif kind == "recipe" then OpenRecipeEntry(entry)
+        elseif kind == "decor" then OpenDecorCatalogEntry(entry)
+        elseif kind == "advguide" then OpenAdventureGuideEntry(entry)
+        elseif kind == "rare" then OpenRareWaypointEntry(entry)
+        end
+    elseif action == "untrack" or action == "abandon" then
+        if kind == "ach" then UntrackAchievementEntry(entry)
+        elseif kind == "endeavor" then UntrackEndeavorEntry(entry)
+        elseif kind == "recipe" then UntrackRecipeEntry(entry)
+        elseif kind == "decor" then UntrackDecorEntry(entry)
+        elseif kind == "advguide" then UntrackAdventureGuideEntry(entry)
+        elseif kind == "rare" then UntrackRareEntry(entry)
+        end
+    elseif action == "contextMenu" then
+        if kind == "ach" then ShowTrackedAchievementContextMenu(entry, entry)
+        elseif kind == "endeavor" then ShowTrackedEndeavorContextMenu(entry, entry)
+        elseif kind == "recipe" then ShowTrackedRecipeContextMenu(entry, entry)
+        elseif kind == "decor" then ShowTrackedDecorContextMenu(entry, entry)
+        elseif kind == "advguide" then ShowTrackedAdventureGuideContextMenu(entry, entry)
+        elseif kind == "rare" then ShowTrackedRareContextMenu(entry, entry)
+        end
+    elseif action == "wowhear" then
+        local url = addon.GetWoWheadURL and addon.GetWoWheadURL(entry)
+        if url and type(url) == "string" and url ~= "" and addon.ShowURLCopyBox then
+            addon.ShowURLCopyBox(url)
+        end
+    elseif action == "chatLink" then
+        if ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
+            if kind == "ach" and entry.achievementID and GetAchievementLink then
+                local link = GetAchievementLink(entry.achievementID)
+                if link then ChatFrameUtil.InsertLink(link) end
+            elseif kind == "endeavor" and entry.endeavorID and C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetInitiativeTaskChatLink then
+                local ok, link = pcall(C_NeighborhoodInitiative.GetInitiativeTaskChatLink, entry.endeavorID)
+                if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link) end
+            elseif kind == "recipe" and entry.recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
+                local ok, info = pcall(C_TradeSkillUI.GetRecipeInfo, entry.recipeID)
+                if ok and info and type(info) == "table" and info.hyperlink then ChatFrameUtil.InsertLink(info.hyperlink) end
+            elseif kind == "advguide" and entry.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
+                local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, entry.adventureGuideID)
+                if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link) end
+            end
+        end
+    elseif action == "share" then
+        local printFn = addon.HSPrint or print
+        local L = addon.L or {}
+        printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_TRACKED_CONTENT_CANNOT_SHARE"] or "This entry cannot be shared.") .. "|r")
+    elseif action == "superTrack" then
+        if kind == "rare" then
+            OpenRareWaypointEntry(entry)
+        end
+    end
+end
+
+local function MaybeLogTrackedContentDispatch(buttonName, profile, clickModsTbl, action, kind, note)
+    if not (addon.focus and addon.focus.clickDispatchDebug) then return end
+    local printFn = addon.HSPrint or print
+    local combo = addon.focus.GetQuestClickComboKey and addon.focus.GetQuestClickComboKey(buttonName, clickModsTbl) or "?"
+    local prof = profile
+    if prof == nil then prof = addon.GetDB("focusClickProfile", "blizzardDefault") end
+    printFn(("[Horizon Focus click] profile=%s combo=%s action=%s trackedKind=%s %s"):format(
+        tostring(prof), tostring(combo), tostring(action), tostring(kind), note or ""))
+end
+
 --- Left-click on quest type icon: toggle super-track (classic mode, Blizzard+ profile, or row hit-test fallback).
 --- @param entry Frame pool entry
 --- @return nil
@@ -1106,6 +1515,31 @@ for i = 1, addon.POOL_SIZE do
                 end
             end
             if self.entryKey then
+                local trackedKind = ResolveTrackedContentKind(self)
+                if trackedKind and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
+                    if trackedKind == "decor" then
+                        if IsControlKeyDown() and not IsShiftKeyDown() and not IsAltKeyDown() then
+                            DecorOpenMap(self)
+                            return
+                        end
+                        if IsAltKeyDown() and not IsShiftKeyDown() and not IsControlKeyDown() then
+                            DecorPreview(self)
+                            return
+                        end
+                    end
+                    local profileTC = addon.GetDB("focusClickProfile", "blizzardDefault")
+                    clickMods.shift = IsShiftKeyDown()
+                    clickMods.ctrl = IsControlKeyDown()
+                    clickMods.alt = IsAltKeyDown()
+                    if addon.GetDB("requireCtrlForQuestClicks", false) and not clickMods.ctrl then
+                        MaybeLogTrackedContentDispatch("LeftButton", profileTC, clickMods, "(blocked: requireCtrl)", trackedKind, "")
+                        return
+                    end
+                    local actionTC = addon.focus.GetQuestClickAction("LeftButton", clickMods, profileTC)
+                    MaybeLogTrackedContentDispatch("LeftButton", profileTC, clickMods, actionTC, trackedKind, "")
+                    ExecuteTrackedContentAction(actionTC, trackedKind, self)
+                    return
+                end
                 local achID = self.entryKey:match("^ach:(%d+)$")
                 if achID and self.achievementID then
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
@@ -1272,6 +1706,21 @@ for i = 1, addon.POOL_SIZE do
                 return
             end
             if self.entryKey then
+                local trackedKindRight = ResolveTrackedContentKind(self)
+                if trackedKindRight and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
+                    local profileTCR = addon.GetDB("focusClickProfile", "blizzardDefault")
+                    clickMods.shift = IsShiftKeyDown()
+                    clickMods.ctrl = IsControlKeyDown()
+                    clickMods.alt = IsAltKeyDown()
+                    if addon.GetDB("requireCtrlForQuestClicks", false) and not clickMods.ctrl then
+                        MaybeLogTrackedContentDispatch("RightButton", profileTCR, clickMods, "(blocked: requireCtrl)", trackedKindRight, "")
+                        return
+                    end
+                    local actionTCR = addon.focus.GetQuestClickAction("RightButton", clickMods, profileTCR)
+                    MaybeLogTrackedContentDispatch("RightButton", profileTCR, clickMods, actionTCR, trackedKindRight, "")
+                    ExecuteTrackedContentAction(actionTCR, trackedKindRight, self)
+                    return
+                end
                 local achID = self.entryKey:match("^ach:(%d+)$")
                 if achID and self.achievementID then
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
