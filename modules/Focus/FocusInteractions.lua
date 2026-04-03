@@ -3,6 +3,7 @@
     Mouse scripts on pool entries (click, tooltip, scroll).
 ]]
 
+if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- INTERACTIONS
@@ -162,7 +163,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
 end
 
 -- ---------------------------------------------------------------------------
--- Tracked appearances (Horizon vs classic click behaviour)
+-- Tracked appearances: same profile / focusClick_* as quests; row actions use GetAppearanceClickAction (= GetQuestClickAction).
 -- ---------------------------------------------------------------------------
 
 local function GetAppearanceDressLink(entry)
@@ -199,14 +200,37 @@ local function AppearanceStopTracking(appearanceID)
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
-local function AppearanceOpenMapToTrackable(appearanceID)
-    if InCombatLockdown() then return end
+-- Open the world map for a tracked appearance: prefer C_ContentTracking map + C_Map.OpenWorldMap so the correct zone is shown.
+-- ContentTrackingUtil.OpenMapToTrackable alone can open the wrong map when called the same frame as SetSuperTrackedContent (Blizzard+ title click).
+--- @param appearanceID number
+--- @param deferOpen boolean|nil When true, run next frame (after super-track state updates).
+local function AppearanceOpenMapToTrackable(appearanceID, deferOpen)
+    if not appearanceID or appearanceID <= 0 then return end
     local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
-    if trackType and ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
-        pcall(ContentTrackingUtil.OpenMapToTrackable, trackType, appearanceID)
+    if not trackType then return end
+
+    local function runOpenMap()
+        if InCombatLockdown() then return end
+        local opened = false
+        if C_ContentTracking and C_ContentTracking.GetBestMapForTrackable and C_Map and C_Map.OpenWorldMap then
+            local okP, _, bestMapID = pcall(C_ContentTracking.GetBestMapForTrackable, trackType, appearanceID, false)
+            if okP and type(bestMapID) == "number" and bestMapID > 0 then
+                pcall(C_Map.OpenWorldMap, bestMapID)
+                opened = true
+            end
+        end
+        if not opened and ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
+            pcall(ContentTrackingUtil.OpenMapToTrackable, trackType, appearanceID)
+        end
+        if addon.SetAppearanceWaypoint then
+            addon.SetAppearanceWaypoint(appearanceID)
+        end
     end
-    if addon.SetAppearanceWaypoint then
-        addon.SetAppearanceWaypoint(appearanceID)
+
+    if deferOpen and C_Timer and C_Timer.After then
+        C_Timer.After(0, runOpenMap)
+    else
+        runOpenMap()
     end
 end
 
@@ -236,8 +260,8 @@ local function AppearanceToggleContentFocus(appearanceID)
             end
         end
         pcall(C_SuperTrack.SetSuperTrackedContent, trackType, appearanceID)
-        if addon.GetDB("useClassicClickBehaviour", false) then
-            AppearanceOpenMapToTrackable(appearanceID)
+        if addon.focus and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
+            AppearanceOpenMapToTrackable(appearanceID, true)
         end
         -- Horizon: do not SetAppearanceWaypoint here; same-frame TomTom/content-tracking APIs clear content super-track when a route exists. Use Shift+Left (AppearanceOpenMapToTrackable) for map + TomTom.
     end
@@ -315,7 +339,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
     end
 end
 
---- Classic: left-click on quest type icon (questIconBtn). Called from FocusEntryPool and row fallback.
+--- Left-click on quest type icon: toggle super-track (classic mode, Blizzard+ profile, or row hit-test fallback).
 --- @param entry Frame pool entry
 --- @return nil
 function addon.HandleClassicQuestIconMouseDown(entry)
@@ -374,32 +398,6 @@ function addon.HandleClassicAppearanceIconMouseDown(entry)
     end
     if IsControlKeyDown() then
         AppearanceOpenDressingRoom(entry)
-        return
-    end
-    AppearanceToggleContentFocus(id)
-end
-
---- @param entry Frame pool entry
-local function HandleAppearanceRowLeftClick(entry)
-    if not entry or not entry.appearanceID then return end
-    local id = entry.appearanceID
-    local useClassic = addon.GetDB("useClassicClickBehaviour", false)
-    if useClassic then
-        if entry.questIconBtn and entry.questIconBtn:IsVisible() and entry.questIconBtn:IsMouseOver() then
-            return
-        end
-        if IsControlKeyDown() then
-            AppearanceOpenDressingRoom(entry)
-            return
-        end
-        AppearanceOpenMapToTrackable(id)
-        return
-    end
-    -- Horizon: dressing room is Alt+Left on the pool entry (before WoWhead). Shift+Left is map there.
-    if IsControlKeyDown() then
-        if addon.OpenTrackedAppearanceInCollections then
-            addon.OpenTrackedAppearanceInCollections(id)
-        end
         return
     end
     AppearanceToggleContentFocus(id)
@@ -685,23 +683,300 @@ local function AppendDelveTooltipData(self, tooltip)
     end
 end
 
+-- ============================================================================
+-- QUEST ACTION DISPATCH
+-- Named action functions extracted from click handlers.
+-- Called by ExecuteQuestAction which is driven by addon.focus.GetQuestClickAction.
+-- ============================================================================
+
+-- Defer OpenQuestDetails when combat blocks the map / quest UI (silent no-op otherwise).
+local openQuestDetailsAfterCombatFrame
+
+local function QueueOpenQuestDetailsAfterCombat(questID)
+    if not questID or questID <= 0 then return end
+    if not addon.focus then return end
+    addon.focus.pendingQuestDetailsOpenID = questID
+    if not openQuestDetailsAfterCombatFrame then
+        openQuestDetailsAfterCombatFrame = CreateFrame("Frame")
+        openQuestDetailsAfterCombatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        openQuestDetailsAfterCombatFrame:SetScript("OnEvent", function(_, event)
+            if event ~= "PLAYER_REGEN_ENABLED" then return end
+            local qid = addon.focus and addon.focus.pendingQuestDetailsOpenID
+            if addon.focus then
+                addon.focus.pendingQuestDetailsOpenID = nil
+            end
+            if qid and qid > 0 and addon.OpenQuestDetails then
+                addon.OpenQuestDetails(qid)
+            end
+        end)
+    end
+end
+
+local QUEST_ACTIONS = {}
+
+QUEST_ACTIONS["superTrack"] = function(entry)
+    local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID)
+
+    -- Non-world quests not yet tracked: add to tracker and promote.
+    if not isWorldQuest and entry.isTracked == false then
+        local isAccepted = addon.IsQuestAccepted and addon.IsQuestAccepted(entry.questID) or false
+        if isAccepted then
+            if C_QuestLog.AddQuestWatch then C_QuestLog.AddQuestWatch(entry.questID) end
+            if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
+                C_SuperTrack.SetSuperTrackedQuestID(entry.questID)
+            end
+            if addon.GetDB("tomtomQuestWaypoint", false) then
+                SetQuestWaypoint(entry.questID, true)
+            end
+        else
+            if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
+                C_SuperTrack.SetSuperTrackedQuestID(entry.questID)
+            end
+        end
+        local wqtPanel = _G.WorldQuestTrackerScreenPanel
+        if wqtPanel and wqtPanel:IsShown() then wqtPanel:Hide() end
+        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        return
+    end
+
+    -- Toggle super-track on already-tracked quests.
+    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
+        local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
+        if currentFocused and currentFocused == entry.questID then
+            C_SuperTrack.SetSuperTrackedQuestID(0)
+            if addon.GetDB("tomtomQuestWaypoint", false) then ClearQuestWaypoint() end
+        else
+            C_SuperTrack.SetSuperTrackedQuestID(entry.questID)
+            if addon.GetDB("tomtomQuestWaypoint", false) then
+                SetQuestWaypoint(entry.questID, true)
+            end
+        end
+    end
+    local wqtPanel = _G.WorldQuestTrackerScreenPanel
+    if wqtPanel and wqtPanel:IsShown() then wqtPanel:Hide() end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+QUEST_ACTIONS["openQuestLog"] = function(entry)
+    local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID)
+    if isWorldQuest and C_QuestLog.AddWorldQuestWatch then
+        local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
+        if not requireCtrl or IsControlKeyDown() then
+            C_QuestLog.AddWorldQuestWatch(entry.questID)
+            if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        end
+    end
+    if InCombatLockdown() then
+        QueueOpenQuestDetailsAfterCombat(entry.questID)
+        local printFn = addon.HSPrint or print
+        local L = addon.L or {}
+        printFn("|cFF00CCFF" .. (L["OPTIONS_FOCUS_QUEST_DETAILS_AFTER_COMBAT"] or "Quest details will open when you leave combat.") .. "|r")
+        return
+    end
+    if addon.ToggleQuestDetails then
+        addon.ToggleQuestDetails(entry.questID)
+    elseif addon.OpenQuestDetails then
+        addon.OpenQuestDetails(entry.questID)
+    end
+end
+
+QUEST_ACTIONS["untrack"] = function(entry)
+    -- If focused, clear focus only; then untrack.
+    if C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.SetSuperTrackedQuestID then
+        local focusedQuestID = C_SuperTrack.GetSuperTrackedQuestID()
+        if focusedQuestID and focusedQuestID == entry.questID then
+            C_SuperTrack.SetSuperTrackedQuestID(0)
+            local wqtPanel = _G.WorldQuestTrackerScreenPanel
+            if wqtPanel and wqtPanel:IsShown() then wqtPanel:Hide() end
+            if addon.FullLayout then addon.ScheduleRefresh() end
+            return
+        end
+    end
+    local usePermanent = addon.GetDB("permanentlySuppressUntracked", false)
+    if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID) and addon.RemoveWorldQuestWatch then
+        addon.RemoveWorldQuestWatch(entry.questID)
+        if usePermanent then
+            local bl = addon.GetDB("permanentQuestBlacklist", nil)
+            if type(bl) ~= "table" then bl = {} end
+            bl[entry.questID] = true
+            addon.SetDB("permanentQuestBlacklist", bl)
+            if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
+        else
+            if not addon.focus.recentlyUntrackedWorldQuests then addon.focus.recentlyUntrackedWorldQuests = {} end
+            addon.focus.recentlyUntrackedWorldQuests[entry.questID] = true
+            if addon.GetDB("suppressUntrackedUntilReload", false) then
+                addon.SetDB("sessionSuppressedQuests", addon.focus.recentlyUntrackedWorldQuests)
+            end
+        end
+    elseif C_QuestLog.RemoveQuestWatch then
+        C_QuestLog.RemoveQuestWatch(entry.questID)
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+QUEST_ACTIONS["contextMenu"] = function(entry)
+    local name = (C_QuestLog and C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(entry.questID)) or "this quest"
+    ShowQuestContextMenu(entry.questID, name, entry)
+end
+
+QUEST_ACTIONS["share"] = function(entry)
+    local printFn = addon.HSPrint or print
+    local L = addon.L or {}
+    if C_QuestLog and C_QuestLog.IsPushableQuest and C_QuestLog.IsPushableQuest(entry.questID) then
+        local inGroup = (GetNumGroupMembers and GetNumGroupMembers() > 1) or (UnitInParty and UnitInParty("player"))
+        if inGroup and C_QuestLog.SetSelectedQuest and QuestLogPushQuest then
+            C_QuestLog.SetSelectedQuest(entry.questID)
+            QuestLogPushQuest()
+        else
+            printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"] or "You must be in a party to share this quest.") .. "|r")
+        end
+    else
+        printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"] or "This quest cannot be shared.") .. "|r")
+    end
+end
+
+QUEST_ACTIONS["abandon"] = function(entry)
+    local name = (C_QuestLog and C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(entry.questID)) or "this quest"
+    StaticPopup_Show("HORIZONSUITE_ABANDON_QUEST", name, nil, { questID = entry.questID })
+end
+
+QUEST_ACTIONS["wowhear"] = function(entry)
+    local url = addon.GetWoWheadURL and addon.GetWoWheadURL(entry)
+    if url and type(url) == "string" and url ~= "" then
+        if addon.ShowURLCopyBox then addon.ShowURLCopyBox(url) end
+    end
+end
+
+QUEST_ACTIONS["chatLink"] = function(entry)
+    if ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
+        if entry.questID and GetQuestLink then
+            local link = GetQuestLink(entry.questID)
+            if link then ChatFrameUtil.InsertLink(link) end
+        end
+    end
+end
+
+QUEST_ACTIONS["none"] = function(_) end
+
+-- ============================================================================
+-- APPEARANCE ROW ACTION DISPATCH (tracked transmog; driven by GetAppearanceClickAction)
+-- ============================================================================
+
+local APPEARANCE_ACTIONS = {}
+
+APPEARANCE_ACTIONS["superTrack"] = function(entry)
+    if entry.appearanceID then
+        AppearanceToggleContentFocus(entry.appearanceID)
+    end
+end
+
+-- "Open quest log" on appearance rows opens the map to the trackable (Blizzard+ row left; Horizon+ shift matches quest binding).
+APPEARANCE_ACTIONS["openQuestLog"] = function(entry)
+    if entry.appearanceID then
+        AppearanceOpenMapToTrackable(entry.appearanceID)
+    end
+end
+
+APPEARANCE_ACTIONS["untrack"] = function(entry)
+    local id = entry.appearanceID
+    if not id then return end
+    local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
+    if trackType and C_SuperTrack and C_SuperTrack.GetSuperTrackedContent then
+        local ok, curType, curId = pcall(C_SuperTrack.GetSuperTrackedContent)
+        if ok and curType == trackType and curId == id then
+            AppearanceClearFocusOnly()
+            return
+        end
+    end
+    AppearanceStopTracking(id)
+end
+
+APPEARANCE_ACTIONS["contextMenu"] = function(entry)
+    if entry.appearanceID then
+        ShowAppearanceContextMenu(entry.appearanceID, entry)
+    end
+end
+
+APPEARANCE_ACTIONS["share"] = function(_)
+    local printFn = addon.HSPrint or print
+    local L = addon.L or {}
+    printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_APPEARANCE_CANNOT_SHARE"] or "Appearances cannot be shared like quests.") .. "|r")
+end
+
+APPEARANCE_ACTIONS["abandon"] = function(entry)
+    if entry.appearanceID then
+        AppearanceStopTracking(entry.appearanceID)
+    end
+end
+
+APPEARANCE_ACTIONS["wowhear"] = function(entry)
+    local url = addon.GetWoWheadURL and addon.GetWoWheadURL(entry)
+    if url and type(url) == "string" and url ~= "" then
+        if addon.ShowURLCopyBox then addon.ShowURLCopyBox(url) end
+    end
+end
+
+APPEARANCE_ACTIONS["chatLink"] = function(entry)
+    if ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
+        local link = GetAppearanceDressLink(entry)
+        if link then ChatFrameUtil.InsertLink(link) end
+    end
+end
+
+APPEARANCE_ACTIONS["none"] = function(_) end
+
+--- Execute a named appearance-row action on a pool entry.
+--- @param action string
+--- @param entry Frame pool entry
+local function ExecuteAppearanceAction(action, entry)
+    local fn = action and APPEARANCE_ACTIONS[action]
+    if not fn then
+        fn = APPEARANCE_ACTIONS["none"]
+    end
+    fn(entry)
+end
+
+-- Log resolved click action when /h debug focus clickdebug is on.
+local function MaybeLogQuestClickDispatch(buttonName, profile, clickModsTbl, action, questID, note)
+    if not (addon.focus and addon.focus.clickDispatchDebug) then return end
+    local printFn = addon.HSPrint or print
+    local combo = addon.focus.GetQuestClickComboKey and addon.focus.GetQuestClickComboKey(buttonName, clickModsTbl) or "?"
+    local prof = profile
+    if prof == nil then prof = addon.GetDB("focusClickProfile", "horizonPlus") end
+    printFn(("[Horizon Focus click] profile=%s combo=%s action=%s questID=%s %s"):format(
+        tostring(prof), tostring(combo), tostring(action), tostring(questID), note or ""))
+end
+
+local function MaybeLogAppearanceClickDispatch(buttonName, profile, clickModsTbl, action, appearanceID, note)
+    if not (addon.focus and addon.focus.clickDispatchDebug) then return end
+    local printFn = addon.HSPrint or print
+    local combo = addon.focus.GetQuestClickComboKey and addon.focus.GetQuestClickComboKey(buttonName, clickModsTbl) or "?"
+    local prof = profile
+    if prof == nil then prof = addon.GetDB("focusClickProfile", "horizonPlus") end
+    printFn(("[Horizon Focus click] profile=%s combo=%s action=%s appearanceID=%s %s"):format(
+        tostring(prof), tostring(combo), tostring(action), tostring(appearanceID), note or ""))
+end
+
+--- Execute a named quest action on a pool entry.
+--- @param action string Action key (e.g. "superTrack", "untrack")
+--- @param entry Frame pool entry (self from OnMouseDown)
+local function ExecuteQuestAction(action, entry)
+    local fn = action and QUEST_ACTIONS[action]
+    if not fn then
+        fn = QUEST_ACTIONS["none"]
+    end
+    fn(entry)
+end
+
+-- Reused per click to avoid per-click table allocation.
+local clickMods = { shift = false, ctrl = false, alt = false }
+
 for i = 1, addon.POOL_SIZE do
     local e = pool[i]
     e:EnableMouse(true)
 
     e:SetScript("OnMouseDown", function(self, button)
         if button == "LeftButton" then
-            -- Tracked appearance: Shift+Left is map (Horizon) or untrack (Classic). Run before CHATLINK or Shift is consumed as chat-link.
-            if self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$") and IsShiftKeyDown() then
-                if not (self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver()) then
-                    if addon.GetDB("useClassicClickBehaviour", false) then
-                        AppearanceStopTracking(self.appearanceID)
-                    else
-                        AppearanceOpenMapToTrackable(self.appearanceID)
-                    end
-                end
-                return
-            end
             -- Shift+click to link in chat (native WoW behavior). Must run before any other click handling.
             if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
                 if self.questID and GetQuestLink then
@@ -724,10 +999,31 @@ for i = 1, addon.POOL_SIZE do
                     local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, self.adventureGuideID)
                     if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link); return end
                 end
+                if self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$") then
+                    local dressLink = GetAppearanceDressLink(self)
+                    if dressLink then ChatFrameUtil.InsertLink(dressLink); return end
+                end
             end
-            -- Horizon tracked appearance: Alt+Left opens dressing room (not WoWhead). Skip when Ctrl is held so Ctrl+Left still reaches Collections below.
-            if self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$") and IsAltKeyDown() and not IsControlKeyDown() and not addon.GetDB("useClassicClickBehaviour", false) then
-                AppearanceOpenDressingRoom(self)
+            -- Tracked appearance: same profile system as quests (Horizon+ / Blizzard+ / Custom); icon delegates when UseBlizzardStyleQuestIconClicks.
+            local isAppearanceRow = self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$")
+            if isAppearanceRow and addon.focus and addon.focus.GetAppearanceClickAction then
+                if addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
+                    if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
+                        if addon.HandleClassicAppearanceIconMouseDown then addon.HandleClassicAppearanceIconMouseDown(self) end
+                        return
+                    end
+                end
+                local profileAppearance = addon.GetDB("focusClickProfile", "horizonPlus")
+                clickMods.shift = IsShiftKeyDown()
+                clickMods.ctrl  = IsControlKeyDown()
+                clickMods.alt   = IsAltKeyDown()
+                if addon.GetDB("requireCtrlForQuestClicks", false) and not clickMods.ctrl then
+                    MaybeLogAppearanceClickDispatch("LeftButton", profileAppearance, clickMods, "(blocked: requireCtrl)", self.appearanceID, "")
+                    return
+                end
+                local actionAppearance = addon.focus.GetAppearanceClickAction("LeftButton", clickMods, profileAppearance)
+                MaybeLogAppearanceClickDispatch("LeftButton", profileAppearance, clickMods, actionAppearance, self.appearanceID, "")
+                ExecuteAppearanceAction(actionAppearance, self)
                 return
             end
             -- Alt+LeftClick: show WoWhead URL in the copy box so the user can Ctrl+C and paste in a browser.
@@ -811,11 +1107,6 @@ for i = 1, addon.POOL_SIZE do
                     end
                     return
                 end
-                local appearanceIDMatch = self.entryKey:match("^appearance:(%d+)$")
-                if appearanceIDMatch and self.appearanceID then
-                    HandleAppearanceRowLeftClick(self)
-                    return
-                end
                 local advMatch = self.entryKey:match("^advguide:")
                 if advMatch and self.adventureGuideID then
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
@@ -862,168 +1153,53 @@ for i = 1, addon.POOL_SIZE do
             end
             if not self.questID then return end
 
-            local useClassic = addon.GetDB("useClassicClickBehaviour", false)
-            if useClassic then
-                -- Shift+Left: unfocus and/or untrack (same as right-click in Modern mode).
-                if IsShiftKeyDown() then
-                    if C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.SetSuperTrackedQuestID then
-                        local focusedQuestID = C_SuperTrack.GetSuperTrackedQuestID()
-                        if focusedQuestID and focusedQuestID == self.questID then
-                            C_SuperTrack.SetSuperTrackedQuestID(0)
-                            if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
-                            local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                            if wqtPanel and wqtPanel:IsShown() then
-                                wqtPanel:Hide()
-                            end
-                            if addon.ScheduleRefresh then addon.ScheduleRefresh() end
-                            return
-                        end
-                    end
-                    local usePermanent = addon.GetDB("permanentlySuppressUntracked", false)
-                    if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(self.questID) and addon.RemoveWorldQuestWatch then
-                        addon.RemoveWorldQuestWatch(self.questID)
-                        if usePermanent then
-                            local bl = addon.GetDB("permanentQuestBlacklist", nil)
-                            if type(bl) ~= "table" then bl = {} end
-                            bl[self.questID] = true
-                            addon.SetDB("permanentQuestBlacklist", bl)
-                            if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
-                        else
-                            if not addon.focus.recentlyUntrackedWorldQuests then addon.focus.recentlyUntrackedWorldQuests = {} end
-                            addon.focus.recentlyUntrackedWorldQuests[self.questID] = true
-                            if addon.GetDB("suppressUntrackedUntilReload", false) then
-                                addon.SetDB("sessionSuppressedQuests", addon.focus.recentlyUntrackedWorldQuests)
-                            end
-                        end
-                    elseif C_QuestLog and C_QuestLog.RemoveQuestWatch then
-                        C_QuestLog.RemoveQuestWatch(self.questID)
-                    end
-                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
-                    return
-                end
-                -- If click was on the quest icon, handle super-track here (entry may receive click before child).
+            -- Classic icon click: delegate to icon handler (runs before all other quest logic).
+            local profile = addon.GetDB("focusClickProfile", "horizonPlus")
+            local isClassicProfile = (profile == "blizzardDefault")
+            if isClassicProfile then
                 if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
                     if addon.HandleClassicQuestIconMouseDown then
                         addon.HandleClassicQuestIconMouseDown(self)
                     end
                     return
                 end
-                -- Click-to-complete takes priority: auto-complete quests can be completed by left-click.
-                if not IsShiftKeyDown() then
-                    local needMod = addon.GetDB("requireModifierForClickToComplete", false)
-                    if (not needMod or IsControlKeyDown()) and self.isAutoComplete and TryCompleteQuestFromClick(self.questID) then
-                        return
-                    end
-                end
-                if addon.ToggleQuestDetails then
-                    addon.ToggleQuestDetails(self.questID)
-                elseif addon.OpenQuestDetails then
-                    addon.OpenQuestDetails(self.questID)
-                end
-                return
             end
 
-            local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-            local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(self.questID)
-
-            -- Plain Left (no Shift): try click-to-complete for auto-complete quests (Blizzard behavior).
+            -- Auto-complete always takes priority regardless of profile.
             if not IsShiftKeyDown() then
                 local needMod = addon.GetDB("requireModifierForClickToComplete", false)
-                local isAutoComplete = self.isAutoComplete
-                if (not needMod or IsControlKeyDown()) and isAutoComplete and TryCompleteQuestFromClick(self.questID) then
+                if (not needMod or IsControlKeyDown()) and self.isAutoComplete and TryCompleteQuestFromClick(self.questID) then
                     return
                 end
             end
 
-            -- Shift+Left: toggle quest log & map (open if closed, close if already showing this quest).
-            if IsShiftKeyDown() then
-                if isWorldQuest and C_QuestLog.AddWorldQuestWatch then
-                    -- With safety enabled, adding to watch for world quests requires Ctrl+Shift+Left.
-                    if not requireCtrl or IsControlKeyDown() then
-                        C_QuestLog.AddWorldQuestWatch(self.questID)
-                        addon.ScheduleRefresh()
-                    end
-                end
-                if addon.ToggleQuestDetails then
-                    addon.ToggleQuestDetails(self.questID)
-                elseif addon.OpenQuestDetails then
-                    addon.OpenQuestDetails(self.questID)
-                end
+            clickMods.shift = IsShiftKeyDown()
+            clickMods.ctrl  = IsControlKeyDown()
+            clickMods.alt   = IsAltKeyDown()
+            -- Safety guard: require Ctrl when option is on.
+            if addon.GetDB("requireCtrlForQuestClicks", false) and not clickMods.ctrl then
+                MaybeLogQuestClickDispatch("LeftButton", profile, clickMods, "(blocked: requireCtrl)", self.questID, "")
                 return
             end
-
-            -- Non-world quests that are not yet tracked or not yet accepted: handle appropriately.
-            if not isWorldQuest and self.isTracked == false then
-                if requireCtrl and not IsControlKeyDown() then
-                    -- Safety: ignore plain Left-click when Ctrl is required.
-                    return
-                end
-                -- Check if quest is accepted (IsOnQuest is authoritative for campaign/available entries)
-                local isAccepted = addon.IsQuestAccepted and addon.IsQuestAccepted(self.questID) or false
-                if isAccepted then
-                    -- Quest is accepted but not tracked: add to tracker and promote to super-tracked
-                    if C_QuestLog.AddQuestWatch then
-                        C_QuestLog.AddQuestWatch(self.questID)
-                    end
-                    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
-                        C_SuperTrack.SetSuperTrackedQuestID(self.questID)
-                    end
-                    if addon.GetDB("tomtomQuestWaypoint", false) then
-                        SetQuestWaypoint(self.questID, true)
-                    end
-                    local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                    if wqtPanel and wqtPanel:IsShown() then
-                        wqtPanel:Hide()
-                    end
-                else
-                    -- Quest not yet accepted: set waypoint to quest giver/start location
-                    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
-                        C_SuperTrack.SetSuperTrackedQuestID(self.questID)
-                        local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                        if wqtPanel and wqtPanel:IsShown() then
-                            wqtPanel:Hide()
-                        end
-                    end
-                end
-                addon.ScheduleRefresh()
-                return
-            end
-
-            -- Left (no modifier): focus (set as super-tracked quest).
-            -- If already focused, toggle focus off (clear super-track).
-            if requireCtrl and not IsControlKeyDown() then
-                -- Safety: ignore plain Left-click on quests when Ctrl is required.
-                return
-            end
-            if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID then
-                local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
-                if currentFocused and currentFocused == self.questID then
-                    C_SuperTrack.SetSuperTrackedQuestID(0)
-                    if addon.GetDB("tomtomQuestWaypoint", false) then
-                        ClearQuestWaypoint()
-                    end
-                    local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                    if wqtPanel and wqtPanel:IsShown() then
-                        wqtPanel:Hide()
-                    end
-                    if addon.FullLayout then
-                        addon.ScheduleRefresh()
-                    end
-                    return
-                end
-                C_SuperTrack.SetSuperTrackedQuestID(self.questID)
-                if addon.GetDB("tomtomQuestWaypoint", false) then
-                    SetQuestWaypoint(self.questID, true)
-                end
-                local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                if wqtPanel and wqtPanel:IsShown() then
-                    wqtPanel:Hide()
-                end
-            end
-            if addon.FullLayout then
-                addon.ScheduleRefresh()
-            end
+            local action = addon.focus.GetQuestClickAction("LeftButton", clickMods, profile)
+            MaybeLogQuestClickDispatch("LeftButton", profile, clickMods, action, self.questID, "")
+            ExecuteQuestAction(action, self)
         elseif button == "RightButton" then
+            local isAppearanceRowRight = self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$")
+            if isAppearanceRowRight and addon.focus and addon.focus.GetAppearanceClickAction then
+                local profileAppRight = addon.GetDB("focusClickProfile", "horizonPlus")
+                clickMods.shift = IsShiftKeyDown()
+                clickMods.ctrl  = IsControlKeyDown()
+                clickMods.alt   = IsAltKeyDown()
+                if addon.GetDB("requireCtrlForQuestClicks", false) and not clickMods.ctrl then
+                    MaybeLogAppearanceClickDispatch("RightButton", profileAppRight, clickMods, "(blocked: requireCtrl)", self.appearanceID, "")
+                    return
+                end
+                local actionAppRight = addon.focus.GetAppearanceClickAction("RightButton", clickMods, profileAppRight)
+                MaybeLogAppearanceClickDispatch("RightButton", profileAppRight, clickMods, actionAppRight, self.appearanceID, "")
+                ExecuteAppearanceAction(actionAppRight, self)
+                return
+            end
             if self.entryKey then
                 local achID = self.entryKey:match("^ach:(%d+)$")
                 if achID and self.achievementID then
@@ -1063,25 +1239,6 @@ for i = 1, addon.POOL_SIZE do
                     addon.ScheduleRefresh()
                     return
                 end
-                local appearanceIDMatch = self.entryKey:match("^appearance:(%d+)$")
-                if appearanceIDMatch and self.appearanceID then
-                    if addon.GetDB("useClassicClickBehaviour", false) then
-                        ShowAppearanceContextMenu(self.appearanceID, self)
-                    else
-                        local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
-                        if trackType and C_SuperTrack and C_SuperTrack.GetSuperTrackedContent then
-                            local ok, curType, curId = pcall(C_SuperTrack.GetSuperTrackedContent)
-                            if ok and curType == trackType and curId == self.appearanceID then
-                                AppearanceClearFocusOnly()
-                            else
-                                AppearanceStopTracking(self.appearanceID)
-                            end
-                        else
-                            AppearanceStopTracking(self.appearanceID)
-                        end
-                    end
-                    return
-                end
                 local advMatch = self.entryKey:match("^advguide:")
                 if advMatch and self.adventureGuideID then
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
@@ -1118,86 +1275,26 @@ for i = 1, addon.POOL_SIZE do
                 return
             end
             if self.questID then
-                -- Shift+Right: abandon quest with confirmation (non-world quests only). For world quests, untrack instead.
+                -- Shift+Right: abandon non-world quests unconditionally (destructive — kept outside profile system).
                 if IsShiftKeyDown() then
                     if not (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(self.questID)) then
-                        local questName = C_QuestLog.GetTitleForQuestID(self.questID) or "this quest"
+                        local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(self.questID)) or "this quest"
                         StaticPopup_Show("HORIZONSUITE_ABANDON_QUEST", questName, nil, { questID = self.questID })
                         return
                     end
                 end
 
-                local useClassic = addon.GetDB("useClassicClickBehaviour", false)
-                if useClassic then
-                    local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(self.questID)) or "this quest"
-                    ShowQuestContextMenu(self.questID, questName, self)
+                clickMods.shift = IsShiftKeyDown()
+                clickMods.ctrl  = IsControlKeyDown()
+                clickMods.alt   = IsAltKeyDown()
+                -- Safety guard: require Ctrl when option is on.
+                if addon.GetDB("requireCtrlForQuestClicks", false) and not clickMods.ctrl then
+                    MaybeLogQuestClickDispatch("RightButton", nil, clickMods, "(blocked: requireCtrl)", self.questID, "")
                     return
                 end
-
-                -- Ctrl+Right: share with party (when pushable and in group; classic mode off). If not shareable, no-op + feedback.
-                if IsControlKeyDown() then
-                    local printFn = addon.HSPrint or print
-                    local L = addon.L or {}
-                    if C_QuestLog and C_QuestLog.IsPushableQuest and C_QuestLog.IsPushableQuest(self.questID) then
-                        local inGroup = (GetNumGroupMembers and GetNumGroupMembers() > 1) or (UnitInParty and UnitInParty("player"))
-                        if inGroup and C_QuestLog.SetSelectedQuest and QuestLogPushQuest then
-                            C_QuestLog.SetSelectedQuest(self.questID)
-                            QuestLogPushQuest()
-                        else
-                            printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"] or "You must be in a party to share this quest.") .. "|r")
-                        end
-                    else
-                        printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"] or "This quest cannot be shared.") .. "|r")
-                    end
-                    return
-                end
-
-                local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                if requireCtrl and not IsControlKeyDown() then
-                    -- Safety: ignore plain Right-click on quests when Ctrl is required.
-                    return
-                end
-
-                -- Right (no modifier): if this quest is focused, unfocus only; otherwise untrack.
-                if C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.SetSuperTrackedQuestID then
-                    local focusedQuestID = C_SuperTrack.GetSuperTrackedQuestID()
-                    if focusedQuestID and focusedQuestID == self.questID then
-                        C_SuperTrack.SetSuperTrackedQuestID(0)
-                        local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                        if wqtPanel and wqtPanel:IsShown() then
-                            wqtPanel:Hide()
-                        end
-                        if addon.FullLayout then
-                            addon.ScheduleRefresh()
-                        end
-                        return
-                    end
-                end
-
-                local usePermanent = addon.GetDB("permanentlySuppressUntracked", false)
-                
-                if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(self.questID) and addon.RemoveWorldQuestWatch then
-                    addon.RemoveWorldQuestWatch(self.questID)
-                    -- Add to suppression: permanent or temporary
-                    if usePermanent then
-                        local bl = addon.GetDB("permanentQuestBlacklist", nil)
-                        if type(bl) ~= "table" then bl = {} end
-                        bl[self.questID] = true
-                        addon.SetDB("permanentQuestBlacklist", bl)
-                        -- Trigger blacklist grid refresh
-                        if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
-                    else
-                        if not addon.focus.recentlyUntrackedWorldQuests then addon.focus.recentlyUntrackedWorldQuests = {} end
-                        addon.focus.recentlyUntrackedWorldQuests[self.questID] = true
-                        -- Persist so suppress-until-reload survives actual reloads.
-                        if addon.GetDB("suppressUntrackedUntilReload", false) then
-                            addon.SetDB("sessionSuppressedQuests", addon.focus.recentlyUntrackedWorldQuests)
-                        end
-                    end
-                elseif C_QuestLog.RemoveQuestWatch then
-                    C_QuestLog.RemoveQuestWatch(self.questID)
-                end
-                addon.ScheduleRefresh()
+                local action = addon.focus.GetQuestClickAction("RightButton", clickMods)
+                MaybeLogQuestClickDispatch("RightButton", nil, clickMods, action, self.questID, "")
+                ExecuteQuestAction(action, self)
             end
         end
     end)

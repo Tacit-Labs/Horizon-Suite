@@ -137,20 +137,21 @@ local function CreateQuestEntry(parent, index)
         if button ~= "LeftButton" then return end
         local entry = self._ownerEntry
         if not entry then return end
-        if entry.isAppearance and entry.appearanceID and addon.GetDB("useClassicClickBehaviour", false) then
+        local useIconFocus = addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks()
+        if not useIconFocus then return end
+        if entry.isAppearance and entry.appearanceID then
             if addon.HandleClassicAppearanceIconMouseDown then
                 addon.HandleClassicAppearanceIconMouseDown(entry)
             end
             return
         end
-        if not addon.GetDB("useClassicClickBehaviour", false) then return end
         if addon.HandleClassicQuestIconMouseDown then
             addon.HandleClassicQuestIconMouseDown(entry)
         end
     end)
     e.questIconBtn:SetScript("OnEnter", function(self)
         local entry = self._ownerEntry
-        if addon.GetDB("focusShowTooltipOnHover", false) and entry and entry.questID and addon.GetDB("useClassicClickBehaviour", false) then
+        if addon.GetDB("focusShowTooltipOnHover", false) and entry and entry.questID and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:AddLine(T("Focus quest") or "Focus quest", 1, 1, 1)
             GameTooltip:AddLine(T("Click to super-track this quest.") or "Click to super-track this quest.", 0.7, 0.7, 0.7, true)

@@ -870,6 +870,33 @@ L["OPTIONS_FOCUS_CTRL_FOCUS_UNTRACK"]                                 = "Ctrl fo
 L["OPTIONS_FOCUS_CTRL_CLICK_COMPLETE"]                                = "Ctrl to click-complete"
 L["OPTIONS_FOCUS_CLASSIC_CLICK_BEHAVIOUR"]                            = "Use classic click behaviour"
 L["OPTIONS_FOCUS_CLASSIC_CLICKS"]                                     = "Classic clicks"
+-- === Focus Click Profiles ===
+L["OPTIONS_FOCUS_CLICK_PROFILE"]                                      = "Click profile"
+L["OPTIONS_FOCUS_CLICK_PROFILE_DESC"]                                 = "Pick a preset or Custom. Presets show each shortcut below (locked); choose Custom to change them."
+L["OPTIONS_FOCUS_PROFILE_HORIZON_PLUS"]                               = "Horizon+"
+L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzard+"
+L["OPTIONS_FOCUS_PROFILE_CUSTOM"]                                     = "Custom"
+L["OPTIONS_FOCUS_CLICK_COMBOS"]                                       = "Custom bindings"
+L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"]                         = "Fixed for this profile. Select Custom to edit shortcuts."
+L["OPTIONS_FOCUS_CLICK_SAFETY"]                                       = "Safety"
+L["OPTIONS_FOCUS_COMBO_LEFT"]                                         = "Left click"
+L["OPTIONS_FOCUS_COMBO_SHIFT_LEFT"]                                   = "Shift + Left click"
+L["OPTIONS_FOCUS_COMBO_CTRL_LEFT"]                                    = "Ctrl + Left click"
+L["OPTIONS_FOCUS_COMBO_ALT_LEFT"]                                     = "Alt + Left click"
+L["OPTIONS_FOCUS_COMBO_RIGHT"]                                        = "Right click"
+L["OPTIONS_FOCUS_COMBO_SHIFT_RIGHT"]                                  = "Shift + Right click"
+L["OPTIONS_FOCUS_COMBO_CTRL_RIGHT"]                                   = "Ctrl + Right click"
+L["OPTIONS_FOCUS_CLICK_ACTION_NONE"]                                  = "Do nothing"
+L["OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK"]                           = "Focus quest"
+L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open quest log"
+L["OPTIONS_FOCUS_CLICK_ACTION_UNTRACK"]                               = "Untrack"
+L["OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU"]                          = "Context menu"
+L["OPTIONS_FOCUS_CLICK_ACTION_SHARE"]                                 = "Share with party"
+L["OPTIONS_FOCUS_CLICK_ACTION_ABANDON"]                               = "Abandon quest"
+L["OPTIONS_FOCUS_CLICK_ACTION_WOWHEAD"]                               = "WoWhead URL"
+L["OPTIONS_FOCUS_CLICK_ACTION_CHAT_LINK"]                             = "Link in chat"
+L["OPTIONS_FOCUS_APPEARANCE_CANNOT_SHARE"]                            = "Appearances cannot be shared like quests."
+L["OPTIONS_FOCUS_QUEST_DETAILS_AFTER_COMBAT"]                         = "Quest details will open when you leave combat."
 L["OPTIONS_FOCUS_SHARE_PARTY"]                                        = "Share with party"
 L["OPTIONS_FOCUS_ABANDON_QUEST"]                                      = "Abandon quest"
 L["OPTIONS_FOCUS_STOP_TRACKING"]                                      = "Stop tracking"
@@ -1690,6 +1717,12 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
+
 
 
 

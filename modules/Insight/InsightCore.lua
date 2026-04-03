@@ -273,6 +273,30 @@ local function ShouldDeferStaleFadeOut(tt)
     return ok and over
 end
 
+-- UnitDocumentation: UnitExists uses SecretArguments AllowedWhenUntainted; from tainted addon code the
+-- return can be a secret boolean — never use it in `if`, `and`, `not`, or store via `pcall` + `and`.
+-- Returns plain true/false when known, or nil when the probe fails or cannot be evaluated safely.
+local function SafeUnitExistsKnown(unit)
+    if unit == nil then
+        return false
+    end
+    if type(unit) == "string" and unit == "" then
+        return false
+    end
+    local exists
+    local ok = pcall(function()
+        if UnitExists(unit) then
+            exists = true
+        else
+            exists = false
+        end
+    end)
+    if not ok then
+        return nil
+    end
+    return exists
+end
+
 animFrame:SetScript("OnUpdate", function(self, elapsed)
     local durIn = Insight.FADE_IN_DUR
     local durOut = Insight.FADE_OUT_DUR or durIn
@@ -406,12 +430,11 @@ local function SchedulePostInspectTooltipSafetyNet()
             if tt.GetUnit then
                 local okGt, uGt = pcall(tt.GetUnit, tt)
                 if okGt then
-                    local exOk, ex = pcall(UnitExists, uGt)
-                    gtHasUnit = exOk and ex
+                    gtHasUnit = (SafeUnitExistsKnown(uGt) == true)
                 end
             end
             if not tt._insightUnitTooltip and not gtHasUnit then return end
-            if UnitExists("mouseover") then return end
+            if SafeUnitExistsKnown("mouseover") ~= false then return end
             if ShouldDeferStaleFadeOut(tt) then return end
             if not IsTooltipInFadeOut(tt) then
                 DismissStaleUnitGameTooltip(tt)
@@ -442,8 +465,7 @@ local function HookGameTooltipAnimation()
         if self.GetUnit then
             local ok, u = pcall(self.GetUnit, self)
             if ok then
-                local exOk, ex = pcall(UnitExists, u)
-                hasUnit = exOk and ex
+                hasUnit = (SafeUnitExistsKnown(u) == true)
             end
         end
         if hasUnit then
@@ -504,13 +526,13 @@ local function HookGameTooltipAnimation()
         if not unitTip and self.GetUnit then
             local okU, u = pcall(self.GetUnit, self)
             if okU then
-                local exOk, ex = pcall(UnitExists, u)
-                unitTip = exOk and ex
+                unitTip = (SafeUnitExistsKnown(u) == true)
             end
         end
-        if unitTip and UnitExists("mouseover") then
+        local mouseExists = SafeUnitExistsKnown("mouseover")
+        if unitTip and mouseExists == true then
             staleMouseoverMissTicks = 0
-        elseif unitTip and not UnitExists("mouseover") then
+        elseif unitTip and mouseExists == false then
             if ShouldDeferStaleFadeOut(self) then
                 staleMouseoverMissTicks = 0
             else
@@ -521,6 +543,9 @@ local function HookGameTooltipAnimation()
                     end
                 end
             end
+        elseif unitTip and mouseExists == nil then
+            -- Unknown: do not accumulate stale-dismiss ticks (conservative).
+            staleMouseoverMissTicks = 0
         else
             staleMouseoverMissTicks = 0
         end
@@ -638,7 +663,7 @@ end
 -- Show() runs HookTooltipOnShow → ApplyBackdrop, which resets border to PANEL_BORDER.
 -- Process*Tooltip sets reaction/class border before Show(); re-apply after Show returns.
 local function ReapplyUnitTooltipBorder(tooltip, unit, isPlayer)
-    if not tooltip or not tooltip.SetBackdropBorderColor or not unit or not UnitExists(unit) then return end
+    if not tooltip or not tooltip.SetBackdropBorderColor or not unit or SafeUnitExistsKnown(unit) ~= true then return end
     if isPlayer then
         local classFile = select(2, UnitClass(unit))
         local classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
@@ -667,14 +692,11 @@ end
 local function ResolveTooltipUnitToken(tooltip)
     if tooltip and tooltip.GetUnit then
         local ok, u = pcall(tooltip.GetUnit, tooltip)
-        if ok then
-            local exOk, ex = pcall(UnitExists, u)
-            if exOk and ex then
-                return u
-            end
+        if ok and SafeUnitExistsKnown(u) == true then
+            return u
         end
     end
-    if UnitExists("mouseover") then
+    if SafeUnitExistsKnown("mouseover") == true then
         return "mouseover"
     end
     return nil
@@ -1130,10 +1152,9 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         local okGt, gtUnit = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
         local gtHasUnit = false
         if okGt then
-            local exOk, ex = pcall(UnitExists, gtUnit)
-            gtHasUnit = exOk and ex
+            gtHasUnit = (SafeUnitExistsKnown(gtUnit) == true)
         end
-        if not UnitExists("mouseover") and GameTooltip:IsShown()
+        if SafeUnitExistsKnown("mouseover") == false and GameTooltip:IsShown()
             and (GameTooltip._insightUnitTooltip or gtHasUnit) then
             if ShouldDeferStaleFadeOut(GameTooltip) then return end
             umuDismissGen = umuDismissGen + 1
@@ -1141,13 +1162,12 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
             local delay = GetUmuDismissDelaySeconds()
             local function runUmuDismiss()
                 if gen ~= umuDismissGen then return end
-                if UnitExists("mouseover") then return end
+                if SafeUnitExistsKnown("mouseover") ~= false then return end
                 if not GameTooltip:IsShown() then return end
                 local okGt2, gtUnit2 = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
                 local gtHasUnit2 = false
                 if okGt2 then
-                    local exOk2, ex2 = pcall(UnitExists, gtUnit2)
-                    gtHasUnit2 = exOk2 and ex2
+                    gtHasUnit2 = (SafeUnitExistsKnown(gtUnit2) == true)
                 end
                 if not (GameTooltip._insightUnitTooltip or gtHasUnit2) then return end
                 DismissStaleUnitGameTooltip(GameTooltip)
@@ -1168,7 +1188,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
     if event == "INSPECT_READY" then
         if not Insight.IsInsightEnabled() then return end
         if not guid then return end
-        if not UnitExists("mouseover") then return end
+        if SafeUnitExistsKnown("mouseover") ~= true then return end
         local mouseoverGuid = UnitGUID("mouseover")
         local okMatch, isMatch = pcall(function() return mouseoverGuid == guid end)
         if okMatch and isMatch then
@@ -1176,8 +1196,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
             local okRef, refU = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
             local refHasUnit = false
             if okRef then
-                local exOk, ex = pcall(UnitExists, refU)
-                refHasUnit = exOk and ex
+                refHasUnit = (SafeUnitExistsKnown(refU) == true)
             end
             if GameTooltip:IsShown()
                 and (GameTooltip._insightUnitTooltip or refHasUnit) then

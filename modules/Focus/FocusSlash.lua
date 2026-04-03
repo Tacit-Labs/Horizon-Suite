@@ -126,7 +126,7 @@ local function ShowFocusDebugHelp()
     HSPrint("  devmode - Show Blizzard tracker alongside Focus for comparison")
     HSPrint("  wqdebug, nearbydebug, headercountdebug, groupdebug")
     HSPrint("  delvedebug, mplusaffixdebug, mplusdebug, endeavordebug, achievementdebug")
-    HSPrint("  recipedebug, unaccepted, clicktodebug, profiledebug")
+    HSPrint("  recipedebug, unaccepted, clicktodebug, clickdebug, profiledebug")
 end
 
 -- ============================================================================
@@ -867,6 +867,10 @@ local function HandleFocusDebugSlash(msg)
             local _, profileKey = addon.GetActiveProfile()
             HSPrint("GetActiveProfile() key: " .. tostring(profileKey))
         end
+
+    elseif cmd == "clickdebug" then
+        addon.focus.clickDispatchDebug = not addon.focus.clickDispatchDebug
+        HSPrint("Focus click dispatch debug: " .. (addon.focus.clickDispatchDebug and "|cff00ff00ON|r (quest row clicks print profile/combo/action)" or "|cffff0000OFF|r"))
 
     elseif cmd == "clicktodebug" then
         HSPrint("|cFF00CCFF--- Click-to-complete debug ---|r")
