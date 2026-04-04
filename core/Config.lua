@@ -15,7 +15,9 @@ addon.TITLE_SIZE      = 13
 addon.OBJ_SIZE        = 11
 
 addon.POOL_SIZE       = 50
-addon.MAX_OBJECTIVES  = 7
+-- Objective lines per tracker row (FontString pool). Recipes can exceed the old cap of 7 when
+-- choice-slot headers + variants, optional/finishing sections, and prefix lines (craft count, quality) stack.
+addon.MAX_OBJECTIVES  = 16
 
 addon.PANEL_WIDTH     = 260
 addon.PANEL_X         = -40

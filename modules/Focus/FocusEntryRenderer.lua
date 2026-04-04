@@ -365,6 +365,16 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             end
         end
 
+        -- Recipe: DB toggles hide entire optional/finishing sections (headers + rows).
+        if oData and questData.isRecipe then
+            if not addon.GetDB("showOptionalReagents", true) and (oData.isOptionalReagent or oData.isOptionalHeader) then
+                oData = nil
+            end
+            if not addon.GetDB("showFinishingReagents", true) and (oData.isFinishingReagent or oData.isFinishingHeader) then
+                oData = nil
+            end
+        end
+
         -- Skip optional/finishing reagents when their section is collapsed.
         if oData and oData.isOptionalReagent and optCollapsed then oData = nil end
         if oData and oData.isFinishingReagent and finCollapsed then oData = nil end
@@ -459,7 +469,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj._hsAlpha = alpha
             obj._hsItemQuality = oData.itemQuality
             local useObjColor = objColor
-            if questData.isRecipe and addon.GetDB("recipeRarityColors", false) and oData.itemQuality then
+            if questData.isRecipe and addon.GetDB("recipeRarityColors", true) and oData.itemQuality then
                 local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[oData.itemQuality]
                 if qc then useObjColor = { qc.r, qc.g, qc.b } end
             end
@@ -1152,7 +1162,7 @@ local function PopulateEntry(entry, questData, groupKey)
         if questData.objectives then
             for _, obj in ipairs(questData.objectives) do
                 if not obj.isSectionHeader and not obj.isChoiceHeader
-                   and not obj.isChoiceVariant and not obj.isCraftableCount
+                   and not obj.isCraftableCount
                    and not obj.isQualityInfo and not obj.isRequirement
                    and not obj.currencyID
                    and type(obj.text) == "string" and obj.text ~= ""
@@ -1451,7 +1461,7 @@ local function PopulateEntry(entry, questData, groupKey)
     elseif addon.ShouldApplySuperTrackQuestDim(questData) then
         c = addon.ApplyDimColor(c)
     end
-    if questData.isRecipe and addon.GetDB("recipeRarityColors", false) and questData.outputQuality then
+    if questData.isRecipe and addon.GetDB("recipeRarityColors", true) and questData.outputQuality then
         local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[questData.outputQuality]
         if qc then c = { qc.r, qc.g, qc.b } end
     end

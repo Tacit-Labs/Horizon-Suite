@@ -1394,7 +1394,7 @@ function addon.ApplyFocusColors()
                     titleColor = addon.ApplyDimColor(titleColor)
                     dimAlpha = addon.GetDimAlpha()
                 end
-                if entry.isRecipe and addon.GetDB("recipeRarityColors", false) and entry.outputQuality then
+                if entry.isRecipe and addon.GetDB("recipeRarityColors", true) and entry.outputQuality then
                     local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[entry.outputQuality]
                     if qc then titleColor = { qc.r, qc.g, qc.b } end
                 end
@@ -1432,7 +1432,7 @@ function addon.ApplyFocusColors()
                         local isFinished = obj._hsFinished == true
                         local useTick = isFinished and addon.GetDB("useTickForCompletedObjectives", false) and not entry.isComplete
                         local targetColor = objColor
-                        if entry.isRecipe and addon.GetDB("recipeRarityColors", false) and obj._hsItemQuality then
+                        if entry.isRecipe and addon.GetDB("recipeRarityColors", true) and obj._hsItemQuality then
                             local qc = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[obj._hsItemQuality]
                             if qc then targetColor = { qc.r, qc.g, qc.b } end
                         end
