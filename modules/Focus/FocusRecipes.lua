@@ -13,6 +13,7 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 local REAGENT_TYPE_MODIFYING = (Enum and Enum.CraftingReagentType and Enum.CraftingReagentType.Modifying) or 0
 local REAGENT_TYPE_BASIC     = (Enum and Enum.CraftingReagentType and Enum.CraftingReagentType.Basic) or 1
 local REAGENT_TYPE_FINISHING = (Enum and Enum.CraftingReagentType and Enum.CraftingReagentType.Finishing) or 2
+local REAGENT_TYPE_AUTOMATIC = (Enum and Enum.CraftingReagentType and Enum.CraftingReagentType.Automatic) or 3
 
 -- ============================================================================
 -- ITEM RESOLUTION HELPER
@@ -309,60 +310,84 @@ local function BuildChoiceSlot(slot, recipeID, slotIdx)
     }
 end
 
---- Build reagent objectives for a recipe (shopping list: owned vs required).
--- @param recipeID number Recipe spell ID
--- @param isRecraft boolean
--- @return table Array of objective tables
-local function BuildRecipeObjectives(recipeID, isRecraft)
-    local objectives = {}
-    if not addon.GetDB("showRecipeReagents", true) then return objectives end
-    if not C_TradeSkillUI or not C_TradeSkillUI.GetRecipeSchematic then return objectives end
-
-    local ok, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, isRecraft, nil)
-    if not ok or not schematic or type(schematic) ~= "table" or not schematic.reagentSlotSchematics then
-        return objectives
+--- Compact mat list: Basic slots only, first reagent per slot (retail shopping-style, cf. Auctionator).
+-- @param schematic table Recipe schematic from GetRecipeSchematic
+-- @param objectives table Array to append deduped rows into
+local function BuildRecipeObjectivesMinimal(schematic, objectives)
+    local requiredRaw = {}
+    for _, slot in ipairs(schematic.reagentSlotSchematics) do
+        if slot.hiddenInCraftingForm == true then
+            -- skip
+        elseif slot.reagentType ~= REAGENT_TYPE_BASIC then
+            -- skip Modifying, Finishing, Automatic
+        else
+            local reagents = slot.reagents
+            if reagents and type(reagents) == "table" and #reagents > 0 then
+                local r1 = reagents[1]
+                local qtyRequired = slot.quantityRequired or 1
+                if r1 then
+                    local itemID = r1.itemID
+                    if type(itemID) == "number" and itemID > 0 then
+                        local entry = CollectItemReagent(itemID, qtyRequired)
+                        if entry then requiredRaw[#requiredRaw + 1] = entry end
+                    elseif type(r1.currencyID) == "number" and r1.currencyID > 0 then
+                        local entry = CollectCurrencyReagent(r1.currencyID, qtyRequired)
+                        if entry then requiredRaw[#requiredRaw + 1] = entry end
+                    end
+                end
+            end
+        end
     end
+    DedupeAndAppend(requiredRaw, objectives, nil, nil)
+end
 
-    local optionalHeader = (addon.L and addon.L["FOCUS_OPTIONAL_REAGENTS"]) or "Optional reagents"
-    local finishingHeader = (addon.L and addon.L["FOCUS_FINISHING_REAGENTS"]) or "Finishing reagents"
-    local showOptional = addon.GetDB("showOptionalReagents", true)
-    local showFinishing = addon.GetDB("showFinishingReagents", true)
+--- Full schematic breakdown: all reagent types, choice groups, optional/finishing sections.
+-- @param recipeID number
+-- @param isRecraft boolean
+-- @param schematic table
+-- @return table objectives array
+local function BuildRecipeObjectivesFull(recipeID, isRecraft, schematic)
+    local objectives = {}
     local showChoiceSlots = addon.GetDB("showChoiceSlots", true)
 
+    -- Route into buckets; optional/finishing visibility is gated in the renderer.
     local requiredRaw, optionalRaw, finishingRaw, choiceSlots = {}, {}, {}, {}
 
     for slotIdx, slot in ipairs(schematic.reagentSlotSchematics) do
-        local reagentType = slot.reagentType
-        local reagents = slot.reagents
-        local qtyRequired = slot.quantityRequired or 1
-        if reagents and type(reagents) == "table" then
-            if IsChoiceSlot(slot) then
-                local cs = BuildChoiceSlot(slot, recipeID, slotIdx)
-                if cs then choiceSlots[#choiceSlots + 1] = cs end
-            elseif reagentType == REAGENT_TYPE_BASIC or reagentType == REAGENT_TYPE_MODIFYING or reagentType == REAGENT_TYPE_FINISHING then
-                local target
-                if reagentType == REAGENT_TYPE_FINISHING then target = finishingRaw
-                elseif reagentType == REAGENT_TYPE_MODIFYING then target = optionalRaw
-                else target = requiredRaw end
-
-                for _, reagent in ipairs(reagents) do
-                    local itemID = reagent and reagent.itemID
-                    if type(itemID) == "number" and itemID > 0 then
-                        local entry = CollectItemReagent(itemID, qtyRequired)
-                        if entry then target[#target + 1] = entry end
-                    elseif reagent and type(reagent.currencyID) == "number" and reagent.currencyID > 0 then
-                        local entry = CollectCurrencyReagent(reagent.currencyID, qtyRequired)
-                        if entry then target[#target + 1] = entry end
+        if slot.hiddenInCraftingForm == true then
+            -- skip hidden slots
+        else
+            local reagentType = slot.reagentType
+            local reagents = slot.reagents
+            local qtyRequired = slot.quantityRequired or 1
+            if reagents and type(reagents) == "table" then
+                if IsChoiceSlot(slot) then
+                    local cs = BuildChoiceSlot(slot, recipeID, slotIdx)
+                    if cs then choiceSlots[#choiceSlots + 1] = cs end
+                elseif reagentType == REAGENT_TYPE_BASIC or reagentType == REAGENT_TYPE_MODIFYING or reagentType == REAGENT_TYPE_FINISHING or reagentType == REAGENT_TYPE_AUTOMATIC then
+                    local target
+                    if reagentType == REAGENT_TYPE_FINISHING then
+                        target = finishingRaw
+                    elseif reagentType == REAGENT_TYPE_BASIC or reagentType == REAGENT_TYPE_MODIFYING or reagentType == REAGENT_TYPE_AUTOMATIC then
+                        target = (slot.required == false) and optionalRaw or requiredRaw
+                    end
+                    for _, reagent in ipairs(reagents) do
+                        local itemID = reagent and reagent.itemID
+                        if type(itemID) == "number" and itemID > 0 then
+                            local entry = CollectItemReagent(itemID, qtyRequired)
+                            if entry then target[#target + 1] = entry end
+                        elseif reagent and type(reagent.currencyID) == "number" and reagent.currencyID > 0 then
+                            local entry = CollectCurrencyReagent(reagent.currencyID, qtyRequired)
+                            if entry then target[#target + 1] = entry end
+                        end
                     end
                 end
             end
         end
     end
 
-    -- Required reagents first
     DedupeAndAppend(requiredRaw, objectives, nil, nil)
 
-    -- Choice slots: collapsible headers with variants, or flat list
     for _, cs in ipairs(choiceSlots) do
         if showChoiceSlots then
             objectives[#objectives + 1] = {
@@ -390,14 +415,36 @@ local function BuildRecipeObjectives(recipeID, isRecraft)
         end
     end
 
-    -- Optional and finishing sections
-    if showOptional and #optionalRaw > 0 then
-        DedupeAndAppend(optionalRaw, objectives, optionalHeader, "optional")
+    local L = addon.L
+    if #optionalRaw > 0 then
+        DedupeAndAppend(optionalRaw, objectives, (L and L["FOCUS_OPTIONAL_REAGENTS"]) or "Optional reagents", "optional")
     end
-    if showFinishing and #finishingRaw > 0 then
-        DedupeAndAppend(finishingRaw, objectives, finishingHeader, "finishing")
+    if #finishingRaw > 0 then
+        DedupeAndAppend(finishingRaw, objectives, (L and L["FOCUS_FINISHING_REAGENTS"]) or "Finishing reagents", "finishing")
     end
 
+    return objectives
+end
+
+--- Build reagent objectives for a recipe (shopping list: owned vs required).
+-- @param recipeID number Recipe spell ID
+-- @param isRecraft boolean
+-- @return table Array of objective tables
+local function BuildRecipeObjectives(recipeID, isRecraft)
+    local objectives = {}
+    if not addon.GetDB("showRecipeReagents", true) then return objectives end
+    if not C_TradeSkillUI or not C_TradeSkillUI.GetRecipeSchematic then return objectives end
+
+    local ok, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, isRecraft, nil)
+    if not ok or not schematic or type(schematic) ~= "table" or not schematic.reagentSlotSchematics then
+        return objectives
+    end
+
+    if addon.GetDB("recipeReagentsFullDetail", false) then
+        return BuildRecipeObjectivesFull(recipeID, isRecraft, schematic)
+    end
+
+    BuildRecipeObjectivesMinimal(schematic, objectives)
     return objectives
 end
 
@@ -529,10 +576,9 @@ local function BuildCacheKey(idList)
     -- Include option flags so toggling an option invalidates the cache.
     parts[#parts + 1] = addon.GetDB("showRecipeReagents", true) and "R1" or "R0"
     parts[#parts + 1] = addon.GetDB("showRecipeRequirements", false) and "Q1" or "Q0"
-    parts[#parts + 1] = addon.GetDB("showCraftableCount", false) and "C1" or "C0"
+    parts[#parts + 1] = addon.GetDB("showCraftableCount", true) and "C1" or "C0"
     parts[#parts + 1] = addon.GetDB("showRecipeQualityInfo", false) and "I1" or "I0"
-    parts[#parts + 1] = addon.GetDB("showOptionalReagents", true) and "O1" or "O0"
-    parts[#parts + 1] = addon.GetDB("showFinishingReagents", true) and "F1" or "F0"
+    parts[#parts + 1] = addon.GetDB("recipeReagentsFullDetail", false) and "D1" or "D0"
     parts[#parts + 1] = addon.GetDB("showChoiceSlots", true) and "S1" or "S0"
     return table.concat(parts, ";")
 end
@@ -596,7 +642,7 @@ local function ReadTrackedRecipes()
 
     local recipeColor = (addon.GetQuestColor and addon.GetQuestColor("RECIPE")) or (addon.QUEST_COLORS and addon.QUEST_COLORS.RECIPE) or { 0.55, 0.75, 0.45 }
     local showRequirements = addon.GetDB("showRecipeRequirements", false)
-    local showCraftableCount = addon.GetDB("showCraftableCount", false)
+    local showCraftableCount = addon.GetDB("showCraftableCount", true)
     local showQualityInfo = addon.GetDB("showRecipeQualityInfo", false)
 
     for _, item in ipairs(idList) do
@@ -720,20 +766,52 @@ local function DebugRecipeReagents(recipeID)
             local name = GetRecipeDisplayInfo(rid)
             HSPrint("  Recipe " .. rid .. (isRecraft and " (recraft)" or "") .. ": " .. tostring(name))
 
-            -- Count reagents by type
-            local counts = { required = 0, optional = 0, finishing = 0, choice = 0 }
-            for _, slot in ipairs(schematic.reagentSlotSchematics) do
-                if IsChoiceSlot(slot) then
+            -- Count reagents by type; print each slot reagentType for verification (e.g. Automatic vs Modifying).
+            local counts = { required = 0, optional = 0, finishing = 0, choice = 0, automatic = 0 }
+            local function ReagentTypeLabel(t)
+                if t == REAGENT_TYPE_MODIFYING then return "Modifying"
+                elseif t == REAGENT_TYPE_BASIC then return "Basic"
+                elseif t == REAGENT_TYPE_FINISHING then return "Finishing"
+                elseif t == REAGENT_TYPE_AUTOMATIC then return "Automatic"
+                end
+                return "other"
+            end
+            local function DataSlotTypeLabel(d)
+                if d == (Enum and Enum.TradeskillSlotDataType and Enum.TradeskillSlotDataType.Reagent) then return "Reagent"
+                elseif d == (Enum and Enum.TradeskillSlotDataType and Enum.TradeskillSlotDataType.ModifiedReagent) then return "ModifiedReagent"
+                elseif d == (Enum and Enum.TradeskillSlotDataType and Enum.TradeskillSlotDataType.Currency) then return "Currency"
+                end
+                return tostring(d)
+            end
+            for si, slot in ipairs(schematic.reagentSlotSchematics) do
+                local nReag = #(slot.reagents or {})
+                local isChoice = IsChoiceSlot(slot)
+                HSPrint(string.format(
+                    "    slot %d: reagentType=%s (%s) dataSlotType=%s qtyReq=%s reagents=%d choice=%s required=%s",
+                    si,
+                    tostring(slot.reagentType),
+                    ReagentTypeLabel(slot.reagentType),
+                    DataSlotTypeLabel(slot.dataSlotType),
+                    tostring(slot.quantityRequired),
+                    nReag,
+                    tostring(isChoice),
+                    tostring(slot.required)
+                ))
+                if isChoice then
                     counts.choice = counts.choice + 1
                 elseif slot.reagentType == REAGENT_TYPE_BASIC then
-                    counts.required = counts.required + #(slot.reagents or {})
+                    counts.required = counts.required + nReag
                 elseif slot.reagentType == REAGENT_TYPE_MODIFYING then
-                    counts.optional = counts.optional + #(slot.reagents or {})
+                    counts.optional = counts.optional + nReag
                 elseif slot.reagentType == REAGENT_TYPE_FINISHING then
-                    counts.finishing = counts.finishing + #(slot.reagents or {})
+                    counts.finishing = counts.finishing + nReag
+                elseif slot.reagentType == REAGENT_TYPE_AUTOMATIC then
+                    counts.automatic = counts.automatic + nReag
+                    if slot.required == true then counts.required = counts.required + nReag
+                    else counts.optional = counts.optional + nReag end
                 end
             end
-            HSPrint("    Slots: required=" .. counts.required .. " optional=" .. counts.optional .. " choice=" .. counts.choice .. " finishing=" .. counts.finishing)
+            HSPrint("    Slots: required=" .. counts.required .. " optional=" .. counts.optional .. " choice=" .. counts.choice .. " finishing=" .. counts.finishing .. " automatic=" .. counts.automatic)
 
             -- Built objectives with flags
             local objectives = BuildRecipeObjectives(rid, isRecraft)

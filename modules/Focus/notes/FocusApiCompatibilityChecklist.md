@@ -58,8 +58,8 @@ These APIs are called by Focus but have **no dedicated generated docs file** in 
 | **ShowQuestComplete** (global) | FocusInteractions | Blizzard function; used for click-to-complete on auto-complete quests. Guard with existence check. |
 | **GetFactionInfoByID** (global) | FocusDelvesBlock | Standard WoW API; returns faction name from factionID. Used for delve season faction in tooltip. |
 | **GetCVarTableValue** (global) | FocusDelves | Table CVar access; used for lastSelectedTieredEntranceTier (per-delve tier). May not exist in older clients; guard with existence check. |
-| **C_TradeSkillUI** | FocusRecipes, FocusInteractions | GetRecipesTracked, GetRecipeSchematic, GetRecipeRequirements, GetRecipeInfo, GetProfessionInfoByRecipeID, GetCraftableCount, GetRecipeQualityItemIDs, GetRecipeOutputItemData. TradeSkillUIDocumentation.lua exists. |
-| **ProfessionsUtil** | FocusInteractions | OpenProfessionFrameToRecipe (opens profession frame + navigates to recipe; works when window closed). Provided by Blizzard_Professions addon; load via C_AddOns.LoadAddOn before first use. Fallback: C_TradeSkillUI.OpenRecipe when profession window already open. |
+| **C_TradeSkillUI** | FocusRecipes, FocusInteractions | GetRecipesTracked, GetRecipeSchematic, GetRecipeRequirements, GetRecipeInfo, GetProfessionInfoByRecipeID, GetProfessionSkillLineID, GetCraftableCount, GetRecipeQualityItemIDs, GetRecipeOutputItemData, OpenTradeSkill, OpenRecipe, SetRecipeTracked. TradeSkillUIDocumentation.lua exists. |
+| **ProfessionsUtil** | FocusInteractions | Primary: `_G.InspectRecipeFrame:Open(recipeID)` after `LoadAddOn("Blizzard_Professions")` — Blizzard `InspectRecipeMixin:Open` (standalone recipe inspect UI). Second click on same recipe: if frame visible and `SchematicForm:IsCurrentRecipe(recipeID)`, `HideUIPanel(InspectRecipeFrame)`. Skipped opening in combat; pcall on error. Fallback: OpenProfessionFrameToRecipe; then OpenTradeSkill + OpenRecipe. Context menus capture recipeID/isRecraft—pool entries clear on recycle. |
 
 ---
 

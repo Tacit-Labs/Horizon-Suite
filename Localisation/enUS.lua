@@ -898,6 +898,7 @@ L["OPTIONS_FOCUS_COMBO_SHIFT_RIGHT"]                                  = "Shift +
 L["OPTIONS_FOCUS_COMBO_CTRL_RIGHT"]                                   = "Ctrl + Right click"
 L["OPTIONS_FOCUS_CLICK_ACTION_NONE"]                                  = "Do nothing"
 L["OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK"]                           = "Focus quest"
+L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_PROFESSION"]                       = "Open profession or quest details"
 L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open quest log"
 L["OPTIONS_FOCUS_CLICK_ACTION_UNTRACK"]                               = "Untrack"
 L["OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU"]                          = "Context menu"
@@ -1608,6 +1609,8 @@ L["OPTIONS_CORE_SUBZONE_NAME_WITHIN_SAME_ZONE"]                       = "Only sh
 L["OPTIONS_CORE_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"]                  = "Opacity of focused quest highlight (0–100%)."
 L["OPTIONS_CORE_OPACITY_OF_UNFOCUSED_ENTRIES"]                        = "Opacity of unfocused entries."
 L["FOCUS_OPTIONAL_REAGENTS"]                                          = "Optional reagents"
+L["FOCUS_RECIPE_REAGENTS_FULL_DETAIL"]                                = "Full reagent detail"
+L["FOCUS_RECIPE_REAGENTS_FULL_DETAIL_DESC"]                           = "List every schematic slot: optional and finishing sections, choice groups with all variants, and non-Basic reagents. When off, only Basic slots use the first reagent per slot (compact shopping-style list)."
 L["OPTIONS_CORE_OPTIONS_BUTTON"]                                      = "Options button"
 L["OPTIONS_CORE_ORGANIZE_HIDE_TRACKED_ENTRIES_YOUR_PREFERENCE"]       = "Organize and hide tracked entries to your preference."
 L["OPTIONS_CORE_OVERRIDE_FONT_PER_ELEMENT"]                           = "Override font per element."
@@ -1739,6 +1742,10 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
 
 
 

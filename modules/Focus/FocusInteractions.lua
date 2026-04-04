@@ -450,28 +450,101 @@ local function UntrackEndeavorEntry(entry)
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
-local function OpenRecipeEntry(entry)
-    if not entry.recipeID then return end
+-- If InspectRecipeFrame is open on this recipe, hide it (second click on the same Focus row). Uses SchematicForm:IsCurrentRecipe.
+local function TryCloseInspectRecipeFrameForRecipe(recipeID)
+    local inspectFrame = _G.InspectRecipeFrame
+    if not inspectFrame or not inspectFrame.IsShown or not inspectFrame:IsShown() then return false end
+    local schematic = inspectFrame.SchematicForm
+    if not schematic or not schematic.IsCurrentRecipe then return false end
+    local ok, isSame = pcall(function()
+        return schematic:IsCurrentRecipe(recipeID)
+    end)
+    if not ok or not isSame then return false end
+    if HideUIPanel then
+        pcall(HideUIPanel, inspectFrame)
+    elseif inspectFrame.Hide then
+        pcall(inspectFrame.Hide, inspectFrame)
+    end
+    return true
+end
+
+-- Open tracked recipe: prefer Blizzard's standalone InspectRecipeFrame (see Blizzard_ProfessionsInspectRecipe.lua InspectRecipeMixin:Open).
+-- Menu paths must pass recipeID (pool entries recycle and clear fields).
+local function OpenRecipeByID(recipeID, isRecraft)
+    if not recipeID or type(recipeID) ~= "number" or recipeID <= 0 then return end
+    isRecraft = (isRecraft == true)
     if C_AddOns and C_AddOns.LoadAddOn then
         pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
     end
-    if ProfessionsUtil and ProfessionsUtil.OpenProfessionFrameToRecipe then
-        pcall(ProfessionsUtil.OpenProfessionFrameToRecipe, entry.recipeID)
-    elseif C_TradeSkillUI and C_TradeSkillUI.OpenRecipe then
-        pcall(C_TradeSkillUI.OpenRecipe, entry.recipeID)
+
+    if TryCloseInspectRecipeFrameForRecipe(recipeID) then
+        return
+    end
+
+    -- Standalone recipe panel (RegisterUIPanel); ShowUIPanel may not run during combat lockdown.
+    if not InCombatLockdown() then
+        local inspectFrame = _G.InspectRecipeFrame
+        if inspectFrame and type(inspectFrame.Open) == "function" then
+            -- pcall: Open uses C_TradeSkillUI data; can error on invalid or unloaded recipe.
+            local inspectOk = pcall(function()
+                inspectFrame:Open(recipeID)
+            end)
+            if inspectOk then
+                return
+            end
+        end
+    end
+
+    local hasProfessionsUtil = ProfessionsUtil and ProfessionsUtil.OpenProfessionFrameToRecipe
+    if hasProfessionsUtil then
+        if isRecraft then
+            pcall(ProfessionsUtil.OpenProfessionFrameToRecipe, recipeID, true)
+        else
+            pcall(ProfessionsUtil.OpenProfessionFrameToRecipe, recipeID)
+        end
+    elseif C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoByRecipeID and C_TradeSkillUI.GetProfessionSkillLineID and C_TradeSkillUI.OpenTradeSkill then
+        -- No ProfessionsUtil: open the correct tradeskill (e.g. Jewelcrafting) so OpenRecipe / inspect pane can show.
+        local ok, profInfo = pcall(C_TradeSkillUI.GetProfessionInfoByRecipeID, recipeID)
+        if ok and type(profInfo) == "table" and profInfo.profession then
+            local ok2, skillLineID = pcall(C_TradeSkillUI.GetProfessionSkillLineID, profInfo.profession)
+            if ok2 and type(skillLineID) == "number" and skillLineID > 0 then
+                pcall(C_TradeSkillUI.OpenTradeSkill, skillLineID)
+            end
+        end
+    end
+
+    local function fireOpenRecipe()
+        if C_TradeSkillUI and C_TradeSkillUI.OpenRecipe then
+            pcall(C_TradeSkillUI.OpenRecipe, recipeID)
+        end
+    end
+    fireOpenRecipe()
+    -- Next frame: profession frame may not accept OpenRecipe until after layout (InspectRecipe / details pane).
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0, fireOpenRecipe)
     end
 end
 
-local function UntrackRecipeEntry(entry)
-    if not entry.recipeID then return end
+local function OpenRecipeEntry(entry)
+    if not entry or not entry.recipeID then return end
+    OpenRecipeByID(entry.recipeID, entry.recipeIsRecraft == true)
+end
+
+local function UntrackRecipeByID(recipeID, isRecraft)
+    if not recipeID or type(recipeID) ~= "number" or recipeID <= 0 then return end
+    isRecraft = (isRecraft == true)
     if C_AddOns and C_AddOns.LoadAddOn then
         pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
     end
     if C_TradeSkillUI and C_TradeSkillUI.SetRecipeTracked then
-        local isRecraft = (entry.recipeIsRecraft == true)
-        pcall(C_TradeSkillUI.SetRecipeTracked, entry.recipeID, false, isRecraft)
+        pcall(C_TradeSkillUI.SetRecipeTracked, recipeID, false, isRecraft)
     end
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+local function UntrackRecipeEntry(entry)
+    if not entry or not entry.recipeID then return end
+    UntrackRecipeByID(entry.recipeID, entry.recipeIsRecraft == true)
 end
 
 local function OpenAdventureGuideEntry(_entry)
@@ -655,16 +728,19 @@ end
 local function ShowTrackedRecipeContextMenu(entry, anchor)
     local L = addon.L or {}
     if not entry.recipeID then return end
+    -- Copy IDs now: pool entry may be cleared before the menu item runs.
+    local recipeID = entry.recipeID
+    local isRecraft = entry.recipeIsRecraft == true
     RunEasyMenuTracked({
         {
             text = L["OPTIONS_FOCUS_CONTEXT_OPEN_RECIPE"] or "Open recipe",
             notCheckable = true,
-            func = function() OpenRecipeEntry(entry) end,
+            func = function() OpenRecipeByID(recipeID, isRecraft) end,
         },
         {
             text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
-            func = function() UntrackRecipeEntry(entry) end,
+            func = function() UntrackRecipeByID(recipeID, isRecraft) end,
         },
     }, "HorizonSuite_TrackedRecipeContextMenu", anchor)
 end
@@ -734,7 +810,7 @@ end
 --- @param kind string
 --- @param entry Frame
 local function ExecuteTrackedContentAction(action, kind, entry)
-    if action == "openQuestLog" then
+    if action == "openQuestLog" or action == "openProfession" then
         if kind == "ach" then OpenAchievementEntry(entry)
         elseif kind == "endeavor" then OpenEndeavorEntry(entry)
         elseif kind == "recipe" then OpenRecipeEntry(entry)
@@ -1255,6 +1331,8 @@ QUEST_ACTIONS["openQuestLog"] = function(entry)
     end
 end
 
+QUEST_ACTIONS["openProfession"] = QUEST_ACTIONS["openQuestLog"]
+
 QUEST_ACTIONS["untrack"] = function(entry)
     -- If focused, clear focus only; then untrack.
     if C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.SetSuperTrackedQuestID then
@@ -1351,6 +1429,8 @@ APPEARANCE_ACTIONS["openQuestLog"] = function(entry)
         ToggleAppearanceMapToTrackable(entry.appearanceID)
     end
 end
+
+APPEARANCE_ACTIONS["openProfession"] = APPEARANCE_ACTIONS["openQuestLog"]
 
 APPEARANCE_ACTIONS["untrack"] = function(entry)
     local id = entry.appearanceID
@@ -1625,17 +1705,7 @@ for i = 1, addon.POOL_SIZE do
                 if self.isRecipe and self.recipeID then
                     local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
                     if requireCtrl and not IsControlKeyDown() then return end
-                    local recipeID = self.recipeID
-                    -- ProfessionsUtil opens profession frame + navigates to recipe (works when closed)
-                    if C_AddOns and C_AddOns.LoadAddOn then
-                        pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
-                    end
-                    if ProfessionsUtil and ProfessionsUtil.OpenProfessionFrameToRecipe then
-                        pcall(ProfessionsUtil.OpenProfessionFrameToRecipe, recipeID)
-                    elseif C_TradeSkillUI and C_TradeSkillUI.OpenRecipe then
-                        -- Fallback: only works when profession window is already open
-                        pcall(C_TradeSkillUI.OpenRecipe, recipeID)
-                    end
+                    OpenRecipeByID(self.recipeID, self.recipeIsRecraft == true)
                     return
                 end
                 local vignetteGUID = self.entryKey:match("^vignette:(.+)$")

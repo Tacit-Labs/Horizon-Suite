@@ -18,6 +18,7 @@ local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = true
 local ACTION_LABELS = {
     none           = "OPTIONS_FOCUS_CLICK_ACTION_NONE",
     superTrack     = "OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK",
+    openProfession = "OPTIONS_FOCUS_CLICK_ACTION_OPEN_PROFESSION",
     openQuestLog   = "OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG",
     untrack        = "OPTIONS_FOCUS_CLICK_ACTION_UNTRACK",
     contextMenu    = "OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU",
@@ -32,8 +33,8 @@ local ACTION_LABELS = {
 -- ============================================================================
 
 local COMBO_OPTIONS = {
-    left       = { "superTrack", "openQuestLog", "none" },
-    shiftLeft  = { "openQuestLog", "untrack", "chatLink", "none" },
+    left       = { "superTrack", "openProfession", "openQuestLog", "none" },
+    shiftLeft  = { "openProfession", "openQuestLog", "untrack", "chatLink", "none" },
     ctrlLeft   = { "share", "none" },
     altLeft    = { "wowhear", "chatLink", "none" },
     right      = { "untrack", "contextMenu", "none" },
@@ -65,7 +66,7 @@ local PROFILES = {
     -- Current Horizon behaviour.
     horizonPlus = {
         left       = "superTrack",
-        shiftLeft  = "openQuestLog",
+        shiftLeft  = "openProfession",
         ctrlLeft   = "share",
         altLeft    = "wowhear",
         right      = "untrack",
@@ -74,7 +75,7 @@ local PROFILES = {
     },
     -- Blizzard-style baseline plus Horizon tweaks (Blizzard+); Ctrl+click share removed — share lives elsewhere.
     blizzardDefault = {
-        left       = "openQuestLog",
+        left       = "openProfession",
         shiftLeft  = "untrack",
         ctrlLeft   = "none",
         altLeft    = "wowhear",
