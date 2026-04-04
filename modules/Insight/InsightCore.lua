@@ -275,14 +275,9 @@ end
 
 -- UnitDocumentation: UnitExists uses SecretArguments AllowedWhenUntainted; from tainted addon code the
 -- return can be a secret boolean — never use it in `if`, `and`, `not`, or store via `pcall` + `and`.
+-- Do not compare or type-check `unit` before pcall: GetUnit may yield a secret token (Midnight).
 -- Returns plain true/false when known, or nil when the probe fails or cannot be evaluated safely.
 local function SafeUnitExistsKnown(unit)
-    if unit == nil then
-        return false
-    end
-    if type(unit) == "string" and unit == "" then
-        return false
-    end
     local exists
     local ok = pcall(function()
         if UnitExists(unit) then
