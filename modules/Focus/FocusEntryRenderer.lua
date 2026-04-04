@@ -22,6 +22,47 @@ local function IsAHOpen()
         or (AuctionFrame and AuctionFrame:IsShown())
 end
 
+-- Caller ID for Auctionator.API.v1 (must match other HorizonSuite Auctionator calls).
+local AUCTIONATOR_CALLER_ID = "HorizonSuite"
+
+--- Encode one shopping-list line for CreateShoppingList: advanced search string with quantity when supported.
+--- Falls back to plain name if ConvertToSearchString is missing or errors (older Auctionator).
+--- @param searchString string Item name
+--- @param quantity number Desired stack / buy count (at least 1)
+--- @param itemQuality number|nil Optional Enum.ItemQuality for Auctionator filters
+--- @return string
+local function EncodeAuctionatorShoppingListItem(searchString, quantity, itemQuality)
+    if type(searchString) ~= "string" or searchString == "" then
+        return searchString
+    end
+    local qty = quantity
+    if type(qty) ~= "number" or qty < 1 then
+        qty = 1
+    end
+    qty = math.max(1, math.floor(qty))
+
+    local conv = Auctionator and Auctionator.API and Auctionator.API.v1
+        and Auctionator.API.v1.ConvertToSearchString
+    if type(conv) ~= "function" then
+        return searchString
+    end
+
+    local term = {
+        searchString = searchString,
+        isExact = true,
+        quantity = qty,
+    }
+    if type(itemQuality) == "number" and itemQuality >= 0 then
+        term.quality = itemQuality
+    end
+
+    local ok, encoded = pcall(conv, AUCTIONATOR_CALLER_ID, term)
+    if ok and type(encoded) == "string" and encoded ~= "" then
+        return encoded
+    end
+    return searchString
+end
+
 --- True if text contains the localized "abundance held" phrase (case-insensitive). Used for Abundance scenario.
 local function isAbundanceHeld(text)
     if not text or type(text) ~= "string" then return false end
@@ -1150,14 +1191,14 @@ local function PopulateEntry(entry, questData, groupKey)
     local textWidth = addon.GetPanelWidth() - S(addon.PADDING) - leftOffset - S(addon.CONTENT_RIGHT_PADDING or 0)
     local titleLeftOffset = 0
 
-    -- Collect item names for Auctionator AH search (recipe entries only).
-    -- Includes the crafted item itself followed by each required reagent.
+    -- Collect shopping-list lines for Auctionator (recipe entries only).
+    -- Reconstituted advanced strings include quantity; plain names if ConvertToSearchString unavailable.
     if questData.isRecipe and entry.ahBtn then
         local terms, seen = {}, {}
         -- Crafted item first (recipe title == output item name in WoW).
         if type(questData.title) == "string" and questData.title ~= "" then
             seen[questData.title] = true
-            terms[#terms + 1] = questData.title
+            terms[#terms + 1] = EncodeAuctionatorShoppingListItem(questData.title, 1)
         end
         if questData.objectives then
             for _, obj in ipairs(questData.objectives) do
@@ -1169,7 +1210,8 @@ local function PopulateEntry(entry, questData, groupKey)
                    and (obj.numRequired or 0) > 0 then
                     if not seen[obj.text] then
                         seen[obj.text] = true
-                        terms[#terms + 1] = obj.text
+                        local qty = math.max(1, math.floor(obj.numRequired or 1))
+                        terms[#terms + 1] = EncodeAuctionatorShoppingListItem(obj.text, qty, obj.itemQuality)
                     end
                 end
             end
