@@ -173,7 +173,10 @@ end
 -- ============================================================================
 
 --- Deduplicate reagents by name (quality-tier variants share a name but have distinct itemIDs).
--- Merges owned counts and keeps the highest-quality itemID for display.
+-- Merges owned counts and keeps the highest **item rarity** itemID for display.
+-- Note: two crafting tiers can share a display name and the same Enum.ItemQuality; we only
+-- upgrade by itemQuality here, so the surviving itemID may not match the tier you want for
+-- Auctionator (see FocusEntryRenderer BuildAuctionatorShoppingParts / ResolveReagentCraftingTier).
 -- @param raw table Array of { name, itemID, link, owned, qtyRequired, itemQuality[, currencyID] }
 -- @return table Array of deduplicated entries in original order
 local function DedupeByName(raw)

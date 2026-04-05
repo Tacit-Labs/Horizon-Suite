@@ -1698,8 +1698,12 @@ L["OPTIONS_CORE_GROUPING"]                                            = "Gruppie
 -- L["OPTIONS_CORE_QUALITY_TIER_PIPS_RECIPES_SUPPORT_QUALITI"]        = "Show quality tier pips for recipes that support qualities."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_REAGENT_SHOPPING_LIST_RECIPE"]                     = "Show reagent shopping list for each recipe."  -- NEEDS TRANSLATION
 -- L["FOCUS_AH_SEARCH_TITLE"]                                         = "Search Auction House"  -- NEEDS TRANSLATION
--- L["FOCUS_AH_SEARCH_TOOLTIP"]                                       = "Left-click: search for one craft worth of reagents.\nRight-click: enter how many crafts to multiply quantities.\nThe Auction House must be open."  -- NEEDS TRANSLATION
--- L["FOCUS_AH_CRAFT_COUNT_POPUP_TEXT"]                               = "How many crafts? Shopping list quantities are multiplied (1–999)."  -- NEEDS TRANSLATION
+L["FOCUS_AH_SEARCH_TOOLTIP"]                                          = "Left-click: search for one craft worth of reagents.\nRight-click: enter how many crafts to multiply quantities.\nThe Auction House must be open."
+-- L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"]                                = "Auction House shopping list"  -- NEEDS TRANSLATION
+-- L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"]                               = "Number of crafts to buy materials for (1–999). List quantities are multiplied by this."  -- NEEDS TRANSLATION
+L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Crafting tier 1, 2, or 3 for every Auctionator row, or leave empty to use each item’s tier."
+-- L["FOCUS_AH_CRAFT_TIER_ANY"]                                       = "Any tier"  -- NEEDS TRANSLATION
+-- L["FOCUS_AH_CRAFT_TIER_N"]                                         = "Tier %d"  -- NEEDS TRANSLATION
 -- L["FOCUS_AH_CRAFT_COUNT_INVALID"]                                  = "Enter a whole number from 1 to 999."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_RECENT_PROGRESS_TOP"]                              = "Show recent progress at the top."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]            = "Show recipe icon next to title. Requires quest type icons in Display."  -- NEEDS TRANSLATION
@@ -1765,6 +1769,13 @@ L["OPTIONS_CORE_SORTING_FILTERING"]                                   = "Sortier
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
+
+
+
+
+
 
 
 

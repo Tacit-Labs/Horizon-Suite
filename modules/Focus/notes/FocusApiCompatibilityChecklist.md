@@ -79,6 +79,15 @@ Per `focus-coding-style.mdc`:
 
 ---
 
+## Verify in-game (not in Blizzard_APIDocumentationGenerated)
+
+| Integration | Notes |
+|-------------|--------|
+| **Auctionator** `API.v1.ConvertToSearchString` / shopping `term.tier` | Third-party; no generated doc. Horizon sends crafting tier **1–5** from Blizzard APIs and the craft dialog. Re-verify after major Auctionator or profession patches if tier searches misbehave. |
+| **Atlas** `Professions-Icon-Quality-Tier1-Small` … `Tier5-Small` | UI assets; `C_Texture.GetAtlasInfo` guards tier menu rows in `FocusAuctionCraftDialog.lua`. If Blizzard renames atlases, update atlas strings there. |
+
+---
+
 ## Quick links
 
 - [Blizzard_APIDocumentationGenerated (live)](https://github.com/Gethe/wow-ui-source/tree/live/Interface/AddOns/Blizzard_APIDocumentationGenerated)
