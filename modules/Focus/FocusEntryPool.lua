@@ -235,9 +235,10 @@ local function CreateQuestEntry(parent, index)
         self:SetAlpha(1)
         self.icon:SetAlpha(1)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
+        local L = addon.L
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("Search Auction House", 1, 1, 1)
-        GameTooltip:AddLine("Click to search for required reagents in the Auction House.\nThe Auction House must be open.", 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TITLE"]) or "Search Auction House", 1, 1, 1)
+        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]) or "Left-click: search for one craft worth of reagents.\nRight-click: enter how many crafts to multiply quantities.\nThe Auction House must be open.", 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     e.ahBtn:SetScript("OnLeave", function(self)
@@ -245,29 +246,18 @@ local function CreateQuestEntry(parent, index)
         self.icon:SetAlpha(1)
         if GameTooltip:GetOwner() == self then GameTooltip:Hide() end
     end)
-    e.ahBtn:SetScript("OnClick", function(self)
+    e.ahBtn:SetScript("OnClick", function(self, button)
         local entry = self._ownerEntry
-        local terms = entry and entry._ahSearchTerms
-        if not terms or #terms == 0 then return end
-        if not (Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.CreateShoppingList) then return end
-        -- Button is only shown when AH is open, but guard here too as a safety net.
-        if not ((AuctionHouseFrame and AuctionHouseFrame:IsShown()) or (AuctionFrame and AuctionFrame:IsShown())) then return end
-        local recipeName = "Horizon - " .. (entry._ahRecipeName or "Recipe")
-        pcall(function()
-            -- Create/update the permanent named shopping list.
-            Auctionator.API.v1.CreateShoppingList("HorizonSuite", recipeName, terms)
-            -- Switch to the Shopping tab.
-            if AuctionatorTabs_Shopping then AuctionatorTabs_Shopping:Click() end
-            -- Fire ListSearchRequested on the permanent list to trigger the actual search.
-            local list = Auctionator.Shopping.ListManager:GetByName(recipeName)
-            if list and Auctionator.EventBus and Auctionator.Shopping.Tab and Auctionator.Shopping.Tab.Events then
-                local src = {}
-                Auctionator.EventBus
-                    :RegisterSource(src, "HorizonSuite AH search")
-                    :Fire(src, Auctionator.Shopping.Tab.Events.ListSearchRequested, list)
-                    :UnregisterSource(src)
+        if not entry or not entry._ahShoppingParts or #entry._ahShoppingParts == 0 then return end
+        if button == "RightButton" then
+            if StaticPopup_Show then
+                StaticPopup_Show("HORIZONSUITE_AH_CRAFT_COUNT", nil, nil, { entry = entry })
             end
-        end)
+            return
+        end
+        if addon.RunAuctionatorRecipeSearchFromEntry then
+            addon.RunAuctionatorRecipeSearchFromEntry(entry, 1)
+        end
     end)
     e.ahBtn:Hide()
 
