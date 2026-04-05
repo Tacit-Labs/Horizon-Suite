@@ -40,6 +40,10 @@ This is the only function the rest of the Focus module calls for achievements. F
 
 6. **Guard: show completed** – Respect the "show completed achievements" option. If this achievement is complete and the user has that option off, we skip adding it (guard clause: only add when we're allowed to show it).
 
-7. **Build entry** – Resolve icon (number or string texture) and get the criteria list + counts from GetAchievementCriteria. When exactly one criterion has numeric progress (quantity/reqQuantity with reqQuantity > 1), add `numericQuantity` and `numericRequired` to the entry so the title shows e.g. "Collect 300 decors (50/300)" instead of "(0/1)". Build one entry table in the shape the tracker expects: entryKey (unique), achievementID, title, objectives, color, category, and all the standard flags (isComplete, isTracked, etc.). zoneName and isNearby are always nil/false for achievements.
+7. **Build objectives** – Resolve icon (number or string texture) and get the criteria list + counts from GetAchievementCriteria. When exactly one criterion has numeric progress (quantity/reqQuantity with reqQuantity > 1), add `numericQuantity` and `numericRequired` to the entry so the title can show e.g. "(50/300)" without duplicating progress in the objective line (description may replace redundant criterion text).
 
-8. **Return** – Return the full array. FullLayout will iterate this and call PopulateEntry for each.
+8. **Description fallback** – If no criterion rows remain after filtering (e.g. hidden-criteria achievements like "Not So Fast"), but `GetAchievementInfo` returned a non-empty description, add a single objective row `{ text = description, finished = isComplete }` so the tracker shows body text under the title.
+
+9. **Achievement progress bar flag** – Set `achievementProgressBarEligible` when there is exactly one objective row, it is not finished, and progress is **not** binary X/1: require `numRequired > 1` for numeric bars, or `percent` only when `numRequired` is nil or `> 1`. One-step (0/1) criteria get no bar. **Title:** `FocusEntryRenderer` omits `(X/1)` on achievement titles when `total == 1`. For multi-step numeric criteria (`numRequired > 1`), `percent` is filled on that row so the bar can use the arithmetic path.
+
+10. **Return** – Return the full array. FullLayout will iterate this and call PopulateEntry for each.

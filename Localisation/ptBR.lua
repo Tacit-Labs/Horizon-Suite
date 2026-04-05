@@ -205,6 +205,9 @@ L["OPTIONS_FOCUS_WORLD_QUESTS"]                                       = "Missõe
 L["OPTIONS_FOCUS_FLOATING_QUEST_ITEM"]                                = "Item de Missão Flutuante"
 L["OPTIONS_FOCUS_MYTHIC"]                                             = "Mítica+"
 L["OPTIONS_FOCUS_ACHIEVEMENTS"]                                       = "Conquistas"
+-- L["OPTIONS_FOCUS_ACHIEVEMENT_PROGRESS_BARS"]                       = "Achievement progress bars"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_ACHIEVEMENT_PROGRESS_BARS_DESC"]                  = "Show a progress bar under tracked achievements that report numeric criteria (including 0/1 and X/Y). Independent of Quest Progress Bars."  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_ACHIEVEMENT_PROGRESS_BARS_TIP"]                   = "Uses the same bar colors, texture, and font as other Focus progress bars when those options are visible."  -- NEEDS TRANSLATION
 L["OPTIONS_FOCUS_ENDEAVORS"]                                          = "Empreendimentos"
 L["OPTIONS_FOCUS_DECOR"]                                              = "Decoração"
 -- L["OPTIONS_FOCUS_APPEARANCES"]                                     = "Appearances"  -- NEEDS TRANSLATION
@@ -1741,6 +1744,7 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

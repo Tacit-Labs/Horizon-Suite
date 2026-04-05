@@ -206,6 +206,9 @@ L["OPTIONS_FOCUS_WORLD_QUESTS"]                                       = "World q
 L["OPTIONS_FOCUS_FLOATING_QUEST_ITEM"]                                = "Floating quest item"
 L["OPTIONS_FOCUS_MYTHIC"]                                             = "Mythic+"
 L["OPTIONS_FOCUS_ACHIEVEMENTS"]                                       = "ACHIEVEMENTS"
+L["OPTIONS_FOCUS_ACHIEVEMENT_PROGRESS_BARS"]                          = "Achievement progress bars"
+L["OPTIONS_FOCUS_ACHIEVEMENT_PROGRESS_BARS_DESC"]                     = "Show a progress bar under tracked achievements that report numeric criteria (including 0/1 and X/Y). Independent of Quest Progress Bars."
+L["OPTIONS_FOCUS_ACHIEVEMENT_PROGRESS_BARS_TIP"]                      = "Uses the same bar colors, texture, and font as other Focus progress bars when those options are visible."
 L["OPTIONS_FOCUS_ENDEAVORS"]                                          = "ENDEAVORS"
 L["OPTIONS_FOCUS_DECOR"]                                              = "Decor"
 L["OPTIONS_FOCUS_APPEARANCES"]                                        = "Appearances"
@@ -1742,6 +1745,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

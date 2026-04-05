@@ -91,6 +91,10 @@ local function FormatProgressPair(nf, nr)
 end
 
 local function IsProgressBarEnabled(questData)
+    -- Achievements use showAchievementProgressBars + provider flag, not quest/scenario toggles.
+    if questData.isAchievement then
+        return false
+    end
     local isScenario = questData.category == "SCENARIO"
         or questData.category == "DELVES"
         or questData.category == "DUNGEON"
@@ -101,6 +105,30 @@ local function IsProgressBarEnabled(questData)
     else
         return addon.GetDB("showProgressBarQuests", true)
     end
+end
+
+-- Objective index and bar values for achievement rows when showAchievementProgressBars is on.
+--- @return number|nil objIdx
+--- @return number|nil nf
+--- @return number|nil nr
+--- @return number|nil percent Percent-only bar when nr is nil or nr>1; nil for arithmetic bar (nr>1 uses nf/nr).
+local function SelectAchievementProgressBarState(questData)
+    if not questData.isAchievement then return nil, nil, nil, nil end
+    if not (addon.GetDB and addon.GetDB("showAchievementProgressBars", false)) then return nil, nil, nil, nil end
+    if not questData.achievementProgressBarEligible then return nil, nil, nil, nil end
+    if questData.isAbundanceScenario then return nil, nil, nil, nil end
+    if not questData.objectives or #questData.objectives ~= 1 then return nil, nil, nil, nil end
+    local o = questData.objectives[1]
+    if not o or o.finished then return nil, nil, nil, nil end
+    local nf, nr = o.numFulfilled, o.numRequired
+    -- Only multi-step X/Y (nr > 1) or percent without a binary (nr==1) criterion.
+    if nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 1 then
+        return 1, nf, nr, nil
+    end
+    if o.percent ~= nil and type(o.percent) == "number" and (nr == nil or nr > 1) then
+        return 1, nil, nil, o.percent
+    end
+    return nil, nil, nil, nil
 end
 
 -- Inline color for in-progress X/Y (one span covers digits and slash).
@@ -367,6 +395,14 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             progressBarNr = barNr
             progressBarPercent = barPct
         end
+    end
+
+    local achIdx, achNf, achNr, achPct = SelectAchievementProgressBarState(questData)
+    if achIdx then
+        progressBarObjIdx = achIdx
+        progressBarNf = achNf
+        progressBarNr = achNr
+        progressBarPercent = achPct
     end
 
     -- When the progress bar is active, flag the questData so the title renderer
@@ -1175,6 +1211,9 @@ local function PopulateEntry(entry, questData, groupKey)
             questData._progressBarActive = true
         end
     end
+    if SelectAchievementProgressBarState(questData) then
+        questData._progressBarActive = true
+    end
 
     local hasItem = (questData.itemTexture and questData.itemLink) and true or false
     local showItemBtn = hasItem and addon.GetDB("showQuestItemButtons", false)
@@ -1394,7 +1433,10 @@ local function PopulateEntry(entry, questData, groupKey)
             for _, o in ipairs(questData.objectives) do if o.finished then done = done + 1 end end
         end
         if done and total then
-            displayTitle = ("%s (%s)"):format(displayTitle, FormatProgressPair(done, total))
+            -- Achievements: omit (0/1)-style title; single-step criteria are obvious from the description line.
+            if not (questData.isAchievement and type(total) == "number" and total == 1) then
+                displayTitle = ("%s (%s)"):format(displayTitle, FormatProgressPair(done, total))
+            end
         end
     end
 

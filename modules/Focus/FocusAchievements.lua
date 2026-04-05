@@ -175,6 +175,36 @@ local function ReadTrackedAchievements()
                         end
                     end
                 end
+
+                -- No criteria rows (or all filtered): still show achievement description when present.
+                if #objectives == 0 and description and type(description) == "string" and description ~= "" then
+                    objectives[1] = { text = description, finished = isComplete }
+                end
+
+                -- Single unfinished row with multi-step numeric or non-binary percent: eligible for achievement progress bar.
+                -- Skip X/1 (one-step) criteria: no bar; title sanitisation hides (0/1) in FocusEntryRenderer.
+                local achievementProgressBarEligible = false
+                if #objectives == 1 then
+                    local o = objectives[1]
+                    if o and not o.finished then
+                        local nf, nr = o.numFulfilled, o.numRequired
+                        if nf ~= nil and nr ~= nil and type(nf) == "number" and type(nr) == "number" and nr > 1 then
+                            achievementProgressBarEligible = true
+                        elseif o.percent ~= nil and type(o.percent) == "number" and (nr == nil or nr > 1) then
+                            achievementProgressBarEligible = true
+                        end
+                    end
+                end
+
+                -- Normalize percent for multi-step criteria so the renderer bar can use it without quest progressBarTypeFilter.
+                if #objectives == 1 then
+                    local o = objectives[1]
+                    if o and o.percent == nil and o.numFulfilled ~= nil and o.numRequired ~= nil
+                        and type(o.numFulfilled) == "number" and type(o.numRequired) == "number" and o.numRequired > 1 then
+                        o.percent = math.floor(100 * math.min(o.numFulfilled, o.numRequired) / o.numRequired)
+                    end
+                end
+
                 out[#out + 1] = {
                     entryKey        = "ach:" .. tostring(achievementID),
                     achievementID   = achievementID,
@@ -196,6 +226,7 @@ local function ReadTrackedAchievements()
                     isAchievement   = true,
                     isTracked       = true,
                     achievementIcon = achievementIcon,
+                    achievementProgressBarEligible = achievementProgressBarEligible,
                 }
             end
         end
