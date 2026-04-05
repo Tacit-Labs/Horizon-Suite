@@ -15,6 +15,29 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.9.0"] = {
+        date = "2026-04-05",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: Auctionator craft dialog from the tracker includes a crafting tier menu (1–5)",
+                "Focus: right-click auction house recipe search from the tracker can multiply reagent quantities by your craft count",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: auction craft dialog scales with your UI scale and Cancel/OK layout is clearer",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: tooltip handling no longer spams Lua errors when the game restricts certain boolean checks",
+            },
+        },
+    },
+
     ["4.8.6"] = {
         date = "2026-04-05",
         {

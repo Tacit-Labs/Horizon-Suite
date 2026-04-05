@@ -10,6 +10,23 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.9.0] – 2026-04-05
+
+### ✨ New Features
+
+- **(Focus)** Auctionator craft dialog from the tracker includes a crafting tier menu (1–5)
+- **(Focus)** Right-click auction house recipe search from the tracker can multiply reagent quantities by your craft count
+
+### 🔧 Improvements
+
+- **(Focus)** Auction craft dialog scales with your UI scale and Cancel/OK layout is clearer
+
+### 🐛 Fixes
+
+- **(Insight)** Tooltip handling no longer spams Lua errors when the game restricts certain boolean checks (e.g. Mythic+)
+
+---
+
 ## [4.8.6] – 2026-04-05
 
 ### 🐛 Fixes
