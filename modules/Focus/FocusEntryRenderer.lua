@@ -5,6 +5,45 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
+-- Middle dot between delve affix names; rendered in default game FontStrings (affixSepSegs), not the user title font.
+local DELVE_AFFIX_SEPARATOR_TEXT = "  ·  "
+
+--- Apply font to a delve affix FontString with FRIZQT fallbacks if the path fails to load.
+--- @param fs FontString|nil
+--- @param path string|nil
+--- @param size number
+--- @param flags string|nil
+--- @return boolean
+local function SetDelveAffixFont(fs, path, size, flags)
+    if not fs or not fs.SetFont then return false end
+    if path and path ~= "" and fs:SetFont(path, size, flags) then return true end
+    local fb = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+    if fs:SetFont(fb, size, flags) then return true end
+    return fs:SetFont("Fonts\\FRIZQT__.TTF", size, flags)
+end
+
+--- Hide and clear all delve affix name/separator segments.
+--- @param entry Frame|nil
+--- @return nil
+local function HideDelveAffixRow(entry)
+    if not entry or not entry.affixNameSegs or not entry.affixSepSegs then return end
+    local maxN = addon.DELVE_AFFIX_MAX_NAMES or 8
+    for ai = 1, maxN do
+        local seg = entry.affixNameSegs[ai]
+        seg.text:SetText("")
+        seg.shadow:SetText("")
+        seg.text:Hide()
+        seg.shadow:Hide()
+    end
+    for si = 1, maxN - 1 do
+        local seg = entry.affixSepSegs[si]
+        seg.text:SetText("")
+        seg.shadow:SetText("")
+        seg.text:Hide()
+        seg.shadow:Hide()
+    end
+end
+
 --- Returns true when Auctionator's v1 CreateShoppingList API is available.
 -- Result is cached after the first positive hit so we don't re-walk globals every render pass.
 local _auctionatorAvailable = nil
@@ -1154,7 +1193,15 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
     if questData.isSuperTracked and highlightStyle == "glow" then
         entry.titleShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
         entry.zoneShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
-        if entry.affixShadow then entry.affixShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
+        if entry.affixNameSegs then
+            local maxN = addon.DELVE_AFFIX_MAX_NAMES or 8
+            for ai = 1, maxN do
+                entry.affixNameSegs[ai].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
+            end
+            for si = 1, maxN - 1 do
+                entry.affixSepSegs[si].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
+            end
+        end
         if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
         for j = 1, addon.MAX_OBJECTIVES do
             entry.objectives[j].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
@@ -1162,7 +1209,15 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
     else
         entry.titleShadow:SetTextColor(0, 0, 0, shadowA)
         entry.zoneShadow:SetTextColor(0, 0, 0, shadowA)
-        if entry.affixShadow then entry.affixShadow:SetTextColor(0, 0, 0, shadowA) end
+        if entry.affixNameSegs then
+            local maxN = addon.DELVE_AFFIX_MAX_NAMES or 8
+            for ai = 1, maxN do
+                entry.affixNameSegs[ai].shadow:SetTextColor(0, 0, 0, shadowA)
+            end
+            for si = 1, maxN - 1 do
+                entry.affixSepSegs[si].shadow:SetTextColor(0, 0, 0, shadowA)
+            end
+        end
         if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(0, 0, 0, shadowA) end
         for j = 1, addon.MAX_OBJECTIVES do
             entry.objectives[j].shadow:SetTextColor(0, 0, 0, shadowA)
@@ -1700,12 +1755,15 @@ local function PopulateEntry(entry, questData, groupKey)
     end
 
     -- Delve affixes: show on first Delve entry or scenario main.
+    -- Name segments use the user's font; middle-dot separators use the default game font (glyph coverage).
     local showAffixesInEntry = questData.category == "DELVES"
         and (questData.categoryIndex == 1 or questData.isScenarioMain)
         and addon.GetDB("showDelveAffixes", true)
         and addon.GetDelvesAffixes
-    local affixStr = ""
-    if showAffixesInEntry and addon.GetDelvesAffixes then
+    local affixParts = nil
+    if not showAffixesInEntry then
+        entry.tierSpellID = nil
+    elseif addon.GetDelvesAffixes and entry.affixNameSegs and entry.affixSepSegs then
         local affixes, tierSpellID = addon.GetDelvesAffixes()
         entry.tierSpellID = tierSpellID
         if affixes and #affixes > 0 then
@@ -1714,38 +1772,120 @@ local function PopulateEntry(entry, questData, groupKey)
                 if a.name and a.name ~= "" then parts[#parts + 1] = a.name end
             end
             if #parts > 0 then
-                affixStr = table.concat(parts, "  ·  ")
+                affixParts = parts
                 entry.affixData = affixes
+            else
+                entry.affixData = nil
             end
+        else
+            entry.affixData = nil
         end
     end
-    if affixStr ~= "" and entry.affixText then
+    local maxAffixNames = addon.DELVE_AFFIX_MAX_NAMES or 8
+    if affixParts and #affixParts > 0 then
+        local n = math.min(#affixParts, maxAffixNames)
         local rawFont = addon.GetDB("fontPath", (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF")
         local fontPath = (addon.ResolveFontPath and addon.ResolveFontPath(rawFont)) or rawFont
         local fontOutline = addon.GetDB("fontOutline", "OUTLINE")
         local affixSize = S(math.max(10, math.min(16, tonumber(addon.GetDB("mplusAffixSize", 12)) or 12)))
-        entry.affixText:SetWidth(textWidth)
-        entry.affixText:SetFont(fontPath, affixSize, fontOutline)
-        entry.affixText:SetText(affixStr)
-        entry.affixText:SetTextColor(0.78, 0.85, 0.88, 1)
-        entry.affixText:ClearAllPoints()
-        if prevAnchor == entry.titleText then
-            entry.affixText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
-        else
-            entry.affixText:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -titleToContentSpacing)
+        local sepRaw = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+        local sepPath = (addon.ResolveFontPath and addon.ResolveFontPath(sepRaw)) or sepRaw
+        local affixR, affixG, affixB = 0.78, 0.85, 0.88
+        local wrapGap = S(2)
+        -- Flow name and separator segments with line wrap at textWidth (segment boundaries only).
+        local cells = {}
+        for i = 1, n do
+            cells[#cells + 1] = { kind = "name", idx = i, str = affixParts[i] }
+            if i < n then
+                cells[#cells + 1] = { kind = "sep", idx = i }
+            end
         end
-        entry.affixText:Show()
-        if entry.affixShadow then
-            entry.affixShadow:SetWidth(textWidth)
-            entry.affixShadow:Show()
+        local lineFirst = nil
+        local prevFs = nil
+        -- Sum segment widths on the current line (GetRight/GetLeft are often nil before layout).
+        local lineUsedWidth = 0
+        -- Sum vertical space for wrapped affix rows (GetTop/GetBottom often wrong for layout height).
+        local affixContentH = 0
+        local lineMaxH = 0
+        for c = 1, #cells do
+            local cell = cells[c]
+            local fs, sh, str, pathForSeg
+            if cell.kind == "name" then
+                local nSeg = entry.affixNameSegs[cell.idx]
+                fs, sh = nSeg.text, nSeg.shadow
+                str = cell.str
+                pathForSeg = fontPath
+            else
+                local sSeg = entry.affixSepSegs[cell.idx]
+                fs, sh = sSeg.text, sSeg.shadow
+                str = DELVE_AFFIX_SEPARATOR_TEXT
+                pathForSeg = sepPath
+            end
+            SetDelveAffixFont(fs, pathForSeg, affixSize, fontOutline)
+            SetDelveAffixFont(sh, pathForSeg, affixSize, fontOutline)
+            fs:SetText(str)
+            sh:SetText(str)
+            fs:SetTextColor(affixR, affixG, affixB, 1)
+            local w = fs:GetStringWidth() or 0
+            local wrap = false
+            if lineFirst and lineUsedWidth + w > textWidth then
+                wrap = true
+            end
+            if wrap then
+                affixContentH = affixContentH + lineMaxH + wrapGap
+                lineMaxH = 0
+            end
+            fs:ClearAllPoints()
+            if not lineFirst then
+                if prevAnchor == entry.titleText then
+                    fs:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
+                else
+                    fs:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                end
+                lineFirst = fs
+                prevFs = fs
+                lineUsedWidth = w
+            elseif wrap then
+                fs:SetPoint("TOPLEFT", lineFirst, "BOTTOMLEFT", 0, -wrapGap)
+                lineFirst = fs
+                prevFs = fs
+                lineUsedWidth = w
+            else
+                fs:SetPoint("LEFT", prevFs, "RIGHT", 0, 0)
+                prevFs = fs
+                lineUsedWidth = lineUsedWidth + w
+            end
+            sh:Show()
+            fs:Show()
+            local nh = fs:GetStringHeight()
+            if not nh or nh < 1 then
+                nh = math.max(8, affixSize + 2)
+            end
+            if lineMaxH < nh then
+                lineMaxH = nh
+            end
         end
-        local affixH = entry.affixText:GetStringHeight()
+        for ai = n + 1, maxAffixNames do
+            local seg = entry.affixNameSegs[ai]
+            seg.text:SetText("")
+            seg.shadow:SetText("")
+            seg.text:Hide()
+            seg.shadow:Hide()
+        end
+        for si = n, maxAffixNames - 1 do
+            local seg = entry.affixSepSegs[si]
+            seg.text:SetText("")
+            seg.shadow:SetText("")
+            seg.text:Hide()
+            seg.shadow:Hide()
+        end
+        local affixH = affixContentH + lineMaxH
         if not affixH or affixH < 1 then affixH = addon.ZONE_SIZE + 2 end
         totalH = totalH + titleToContentSpacing + affixH
-        prevAnchor = entry.affixText
+        -- Objectives must anchor below the last affix fragment, not the first (wrapped rows).
+        prevAnchor = prevFs or entry.affixText
     else
-        entry.affixText:Hide()
-        entry.affixShadow:Hide()
+        HideDelveAffixRow(entry)
         entry.affixData = nil
     end
 
