@@ -964,6 +964,62 @@ StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSU
     hideOnEscape = true,
 }
 
+StaticPopupDialogs["HORIZONSUITE_AH_CRAFT_COUNT"] = StaticPopupDialogs["HORIZONSUITE_AH_CRAFT_COUNT"] or {
+    text = (addon.L and addon.L["FOCUS_AH_CRAFT_COUNT_POPUP_TEXT"])
+        or "How many crafts? Shopping list quantities are multiplied (1–999).",
+    button1 = OKAY or _G.OKAY,
+    button2 = CANCEL or _G.CANCEL,
+    hasEditBox = true,
+    maxLetters = 4,
+    editBoxWidth = 120,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+    OnShow = function(self)
+        local eb = self.editBox or self.EditBox
+        if eb then
+            eb:SetNumeric(true)
+            eb:SetText("1")
+            eb:SetFocus()
+            eb:HighlightText()
+        end
+    end,
+    OnAccept = function(self)
+        local data = self.data
+        local entry = data and data.entry
+        local eb = self.editBox or self.EditBox
+        local text = eb and eb:GetText() or ""
+        local n = tonumber(text)
+        local maxN = addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX or 999
+        if not n or n < 1 or n > maxN or n ~= math.floor(n) then
+            if addon.HSPrint then
+                local L = addon.L
+                local msg = (L and L["FOCUS_AH_CRAFT_COUNT_INVALID"]) or ("Enter a whole number from 1 to " .. tostring(maxN) .. ".")
+                addon.HSPrint(msg)
+            end
+            return
+        end
+        if addon.RunAuctionatorRecipeSearchFromEntry then
+            addon.RunAuctionatorRecipeSearchFromEntry(entry, n)
+        end
+    end,
+    EditBoxOnEnterPressed = function(self)
+        local parent = self:GetParent()
+        if parent then
+            local btn = parent.button1 or (parent.Buttons and parent.Buttons[1])
+            if btn then btn:Click() end
+        end
+    end,
+    EditBoxOnEscapePressed = function(self)
+        local parent = self:GetParent()
+        if parent then
+            local btn = parent.button2 or (parent.Buttons and parent.Buttons[2])
+            if btn then btn:Click() end
+        end
+    end,
+}
+
 -- ============================================================================
 -- QUEST WAYPOINT (TomTom / native)
 -- ============================================================================

@@ -103,6 +103,83 @@ local function EncodeAuctionatorShoppingListItem(searchString, quantity, itemQua
     return searchString
 end
 
+-- Max crafts for Auctionator shopping-list multiply (right-click AH button).
+addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX = 999
+
+--- Build base shopping rows for Auctionator (one craft): output line + reagents.
+--- @param questData table Recipe entry from aggregator
+--- @return table Array of { text, baseQty, itemQuality }
+local function BuildAuctionatorShoppingParts(questData)
+    local parts, seen = {}, {}
+    if type(questData.title) == "string" and questData.title ~= "" then
+        seen[questData.title] = true
+        parts[#parts + 1] = { text = questData.title, baseQty = 1, itemQuality = nil }
+    end
+    if questData.objectives then
+        for _, obj in ipairs(questData.objectives) do
+            if not obj.isSectionHeader and not obj.isChoiceHeader
+               and not obj.isCraftableCount
+               and not obj.isQualityInfo and not obj.isRequirement
+               and not obj.currencyID
+               and type(obj.text) == "string" and obj.text ~= ""
+               and (obj.numRequired or 0) > 0 then
+                if not seen[obj.text] then
+                    seen[obj.text] = true
+                    local qty = math.max(1, math.floor(obj.numRequired or 1))
+                    parts[#parts + 1] = { text = obj.text, baseQty = qty, itemQuality = obj.itemQuality }
+                end
+            end
+        end
+    end
+    return parts
+end
+
+--- Encode Auctionator shopping list strings from base parts and craft multiplier.
+--- @param parts table
+--- @param craftCount number
+--- @return table
+local function EncodeAuctionatorTermsFromParts(parts, craftCount)
+    local mult = craftCount
+    if type(mult) ~= "number" or mult < 1 then mult = 1 end
+    mult = math.min(addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX, math.floor(mult))
+    local terms = {}
+    for _, p in ipairs(parts) do
+        local base = math.max(1, math.floor(p.baseQty or 1))
+        terms[#terms + 1] = EncodeAuctionatorShoppingListItem(p.text, base * mult, p.itemQuality)
+    end
+    return terms
+end
+
+--- Send recipe reagents to Auctionator as a shopping list (quantities multiplied by craftCount).
+--- @param entry table Pool entry with _ahShoppingParts and _ahRecipeName
+--- @param craftCount number Per-craft quantities are multiplied by this (clamped to 1..AH_AUCTIONATOR_CRAFT_COUNT_MAX).
+--- @return nil
+function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount)
+    if not entry then return end
+    local parts = entry._ahShoppingParts
+    if not parts or #parts == 0 then return end
+    if not (Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.CreateShoppingList) then return end
+    if not ((AuctionHouseFrame and AuctionHouseFrame:IsShown()) or (AuctionFrame and AuctionFrame:IsShown())) then return end
+    local mult = craftCount
+    if type(mult) ~= "number" or mult < 1 then mult = 1 end
+    mult = math.min(addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX, math.floor(mult))
+    local terms = EncodeAuctionatorTermsFromParts(parts, mult)
+    if #terms == 0 then return end
+    local recipeName = "Horizon - " .. (entry._ahRecipeName or "Recipe")
+    pcall(function()
+        Auctionator.API.v1.CreateShoppingList(AUCTIONATOR_CALLER_ID, recipeName, terms)
+        if AuctionatorTabs_Shopping then AuctionatorTabs_Shopping:Click() end
+        local list = Auctionator.Shopping and Auctionator.Shopping.ListManager and Auctionator.Shopping.ListManager:GetByName(recipeName)
+        if list and Auctionator.EventBus and Auctionator.Shopping.Tab and Auctionator.Shopping.Tab.Events then
+            local src = {}
+            Auctionator.EventBus
+                :RegisterSource(src, "HorizonSuite AH search")
+                :Fire(src, Auctionator.Shopping.Tab.Events.ListSearchRequested, list)
+                :UnregisterSource(src)
+        end
+    end)
+end
+
 --- True if text contains the localized "abundance held" phrase (case-insensitive). Used for Abundance scenario.
 local function isAbundanceHeld(text)
     if not text or type(text) ~= "string" then return false end
@@ -1303,32 +1380,16 @@ local function PopulateEntry(entry, questData, groupKey)
     local titleLeftOffset = 0
 
     -- Collect shopping-list lines for Auctionator (recipe entries only).
-    -- Reconstituted advanced strings include quantity; plain names if ConvertToSearchString unavailable.
+    -- _ahShoppingParts = per-craft quantities; RunAuctionatorRecipeSearchFromEntry multiplies by craft count.
     if questData.isRecipe and entry.ahBtn then
-        local terms, seen = {}, {}
-        -- Crafted item first (recipe title == output item name in WoW).
-        if type(questData.title) == "string" and questData.title ~= "" then
-            seen[questData.title] = true
-            terms[#terms + 1] = EncodeAuctionatorShoppingListItem(questData.title, 1)
-        end
-        if questData.objectives then
-            for _, obj in ipairs(questData.objectives) do
-                if not obj.isSectionHeader and not obj.isChoiceHeader
-                   and not obj.isCraftableCount
-                   and not obj.isQualityInfo and not obj.isRequirement
-                   and not obj.currencyID
-                   and type(obj.text) == "string" and obj.text ~= ""
-                   and (obj.numRequired or 0) > 0 then
-                    if not seen[obj.text] then
-                        seen[obj.text] = true
-                        local qty = math.max(1, math.floor(obj.numRequired or 1))
-                        terms[#terms + 1] = EncodeAuctionatorShoppingListItem(obj.text, qty, obj.itemQuality)
-                    end
-                end
-            end
-        end
-        entry._ahSearchTerms = terms
-        entry._ahRecipeName  = questData.title
+        local parts = BuildAuctionatorShoppingParts(questData)
+        entry._ahShoppingParts = parts
+        entry._ahRecipeName = questData.title
+        entry._ahSearchTerms = EncodeAuctionatorTermsFromParts(parts, 1)
+    else
+        entry._ahShoppingParts = nil
+        entry._ahSearchTerms = nil
+        entry._ahRecipeName = nil
     end
 
     -- Right-side gutter: auto-adjusting column that holds the LFG group button
