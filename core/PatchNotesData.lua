@@ -15,6 +15,17 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.8.5"] = {
+        date = "2026-04-05",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: optional Events in Zone bucket — turn off under Sorting & Filtering to hide nearby unaccepted and zone-event quests from the tracker",
+                "Axis: more dashboard background themes, compressed art, Teldrassil preset migrates to burning Teldrassil for existing profiles",
+            },
+        },
+    },
+
     ["4.8.4"] = {
         date = "2026-04-05",
         {
