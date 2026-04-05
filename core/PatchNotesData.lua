@@ -15,6 +15,22 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.8.6"] = {
+        date = "2026-04-05",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Delves section only includes Delve-tagged log quests in a delve, not every nearby quest",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: long objectives wrap correctly after zone or affix rows; wrapped affix lines keep objectives aligned on the left under the full block",
+            },
+        },
+    },
+
     ["4.8.5"] = {
         date = "2026-04-05",
         {

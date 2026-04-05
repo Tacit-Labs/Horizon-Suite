@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.8.6] – 2026-04-05
+
+### 🐛 Fixes
+
+- **(Focus)** Delves section only picks up Delve-tagged quests from your log while you’re in a delve, instead of treating every nearby quest as Delve content
+
+### 🔧 Improvements
+
+- **(Focus)** Long objective lines wrap within the tracker after zone or affix rows, and wrapped affix names keep the first objective left-aligned under the full affix block
+
+---
+
 ## [4.8.5] – 2026-04-05
 
 ### 🔧 Improvements
