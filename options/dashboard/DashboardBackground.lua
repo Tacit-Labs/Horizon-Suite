@@ -24,18 +24,29 @@ end
 
 local DASHBOARD_BG_CROSSFADE_SEC = 0.4
 -- Theme id -> path under media/dashboard/ (SetTexture; PNG/JPEG per client support).
--- Extra bundled art (e.g. Nightfae.jpg, Zin-Azshari.png) can be re-added to this table + DASHBOARD_BG_ORDER when exposed in options again.
 local DASHBOARD_BG_FILES = {
-    midnight = "backgrounds\\Wow-Midnight.png",
+    midnight = "backgrounds\\Wow-Midnight.jpg",
+    teldrassil = "backgrounds\\Teldrassil.jpg",
+    nightfae = "backgrounds\\Nightfae.jpg",
+    zinazshari = "backgrounds\\Zin-Azshari.jpg",
+    illidan = "backgrounds\\Illidan.jpg",
+    lichking = "backgrounds\\LichKing.jpg",
+    tbcanniversary = "backgrounds\\TBCAnniversary.jpg",
 }
-local DASHBOARD_BG_ORDER = { "horizon", "midnight", "talents" }
+local DASHBOARD_BG_ORDER = {
+    "horizon",
+    "midnight",
+    "teldrassil",
+    "nightfae",
+    "zinazshari",
+    "illidan",
+    "lichking",
+    "tbcanniversary",
+    "talents",
+}
 addon.DashboardBackgroundThemeOrder = DASHBOARD_BG_ORDER
 
 local function NormalizeDashboardThemeId(themeId)
-    -- Dropdown temporarily omits extra art themes; map stored ids to Midnight.
-    if themeId == "teldrassil" or themeId == "nightfae" or themeId == "zinazshari" then
-        return "midnight"
-    end
     if themeId == "horizon" then
         return "horizon"
     end

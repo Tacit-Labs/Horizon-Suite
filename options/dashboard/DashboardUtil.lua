@@ -42,6 +42,9 @@ function addon.Dashboard_IsAxisCategoryKey(catKey)
 end
 
 local DASHBOARD_TYPO_MIN_PX = 8
+local DASHBOARD_TEXT_SHADOW_OFFSET_X = 1
+local DASHBOARD_TEXT_SHADOW_OFFSET_Y = -1
+local DASHBOARD_TEXT_SHADOW_ALPHA_MAX = 0.85
 
 --- Default font when dashboardFontPath is unset (matches Focus/options widget default).
 --- @return string
@@ -78,31 +81,109 @@ function addon.Dashboard_EffectiveDashboardFontSize(base)
     return math.max(DASHBOARD_TYPO_MIN_PX, math.floor((tonumber(base) or 12) + off + 0.5))
 end
 
---- Outline for dashboard chrome after offset (matches prior large-text behaviour).
+--- Saved outline level: 0 off, 1 OUTLINE, 2 THICKOUTLINE (migrates legacy boolean).
+--- @return integer 0–2
+function addon.Dashboard_GetTextOutlineLevel()
+    if not addon.GetDB then return 1 end
+    local v = addon.GetDB("dashboardTextOutline", 1)
+    if v == true then return 1 end
+    if v == false then return 0 end
+    local n = tonumber(v)
+    if not n then return 1 end
+    return math.max(0, math.min(2, math.floor(n + 0.5)))
+end
+
+--- Saved shadow strength 0–100 (opacity %; migrates legacy boolean on=true → 65).
+--- @return integer 0–100
+function addon.Dashboard_GetTextShadowStrength()
+    if not addon.GetDB then return 0 end
+    local v = addon.GetDB("dashboardTextShadow", 0)
+    if v == true then return 65 end
+    if v == false then return 0 end
+    local n = tonumber(v)
+    if not n then return 0 end
+    return math.max(0, math.min(100, math.floor(n + 0.5)))
+end
+
+--- Whether any outline is applied (level > 0).
+--- @return boolean
+function addon.Dashboard_ShouldUseTextOutline()
+    return addon.Dashboard_GetTextOutlineLevel() > 0
+end
+
+--- Whether shadow is visible (strength > 0).
+--- @return boolean
+function addon.Dashboard_ShouldUseTextShadow()
+    return addon.Dashboard_GetTextShadowStrength() > 0
+end
+
+--- Font outline flags for widget-style dashboard chrome from outline level.
+--- @return string
+function addon.Dashboard_GetWidgetOutlineFlags()
+    local lev = addon.Dashboard_GetTextOutlineLevel()
+    if lev >= 2 then
+        return "THICKOUTLINE"
+    end
+    if lev >= 1 then
+        return "OUTLINE"
+    end
+    return ""
+end
+
+--- Outline for dashboard chrome after offset (≥14px when level > 0; thick at level 2).
 --- @param effSize number
 --- @return string
 function addon.Dashboard_OutlineFlagsForSize(effSize)
-    return (effSize >= 14) and "OUTLINE" or ""
+    local lev = addon.Dashboard_GetTextOutlineLevel()
+    if lev <= 0 then
+        return ""
+    end
+    if effSize < 14 then
+        return ""
+    end
+    if lev >= 2 then
+        return "THICKOUTLINE"
+    end
+    return "OUTLINE"
+end
+
+--- Apply or clear drop shadow from strength 0–100 (no-op for non–FontString types).
+--- @param fs FontString|nil
+--- @return nil
+function addon.Dashboard_ApplyTextShadow(fs)
+    if not fs or not fs.SetShadowOffset then return end
+    if fs.GetObjectType and fs:GetObjectType() ~= "FontString" then return end
+    local strength = addon.Dashboard_GetTextShadowStrength()
+    if strength <= 0 then
+        fs:SetShadowColor(0, 0, 0, 0)
+        fs:SetShadowOffset(0, 0)
+    else
+        local a = (strength / 100) * DASHBOARD_TEXT_SHADOW_ALPHA_MAX
+        fs:SetShadowColor(0, 0, 0, a)
+        fs:SetShadowOffset(DASHBOARD_TEXT_SHADOW_OFFSET_X, DASHBOARD_TEXT_SHADOW_OFFSET_Y)
+    end
 end
 
 --- @param reg table|nil { fontStrings = {}, editBoxes = {} }
 --- @param fs FontString
 --- @param baseSize number Logical size (before offset); flags recomputed on apply unless overridden.
---- @param flagsOrNil string|nil If set, used on create and on apply.
+--- @param flagsOrNil string|nil If set, used on create and on apply (unless widgetChrome).
+--- @param widgetChrome boolean|nil When true, apply uses Dashboard_GetWidgetOutlineFlags() instead of flags/size rule.
 --- @return nil
-function addon.Dashboard_RegisterTypographyFontString(reg, fs, baseSize, flagsOrNil)
+function addon.Dashboard_RegisterTypographyFontString(reg, fs, baseSize, flagsOrNil, widgetChrome)
     if not reg or not reg.fontStrings or not fs or not baseSize then return end
-    reg.fontStrings[#reg.fontStrings + 1] = { fs = fs, base = baseSize, flags = flagsOrNil }
+    reg.fontStrings[#reg.fontStrings + 1] = { fs = fs, base = baseSize, flags = flagsOrNil, widgetChrome = widgetChrome and true or nil }
 end
 
 --- @param reg table|nil
 --- @param eb EditBox
 --- @param baseSize number
---- @param flagsOrNil string|nil
+--- @param flagsOrNil string|nil Ignored when widgetChrome is true.
+--- @param widgetChrome boolean|nil Use Dashboard_GetWidgetOutlineFlags() on apply.
 --- @return nil
-function addon.Dashboard_RegisterTypographyEditBox(reg, eb, baseSize, flagsOrNil)
+function addon.Dashboard_RegisterTypographyEditBox(reg, eb, baseSize, flagsOrNil, widgetChrome)
     if not reg or not reg.editBoxes or not eb or not baseSize then return end
-    reg.editBoxes[#reg.editBoxes + 1] = { eb = eb, base = baseSize, flags = flagsOrNil or "" }
+    reg.editBoxes[#reg.editBoxes + 1] = { eb = eb, base = baseSize, flags = flagsOrNil, widgetChrome = widgetChrome and true or nil }
 end
 
 --- Apply saved dashboard font + size offset to registered chrome, OptionsWidgets Def, patch notes, and visible option rows.
@@ -115,12 +196,16 @@ function addon.ApplyDashboardTypography()
     local path = addon.Dashboard_ResolveSavedDashboardFontPath(rawPath)
     local off = addon.Dashboard_GetDashboardFontSizeOffset()
 
+    local widgetFlags = addon.Dashboard_GetWidgetOutlineFlags()
+    local widgetShadow = addon.Dashboard_ShouldUseTextShadow()
     if _G.OptionsWidgets_SetDef then
         _G.OptionsWidgets_SetDef({
             FontPath = path,
             LabelSize = math.max(DASHBOARD_TYPO_MIN_PX, 13 + off),
             SectionSize = math.max(DASHBOARD_TYPO_MIN_PX, 11 + off),
             HeaderSize = math.max(DASHBOARD_TYPO_MIN_PX, (addon.HEADER_SIZE or 16) + off),
+            WidgetFontFlags = widgetFlags,
+            WidgetTextShadow = widgetShadow,
         })
     end
 
@@ -130,13 +215,18 @@ function addon.ApplyDashboardTypography()
             local fs = e.fs
             if fs and fs.SetFont then
                 local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 12) + off + 0.5))
-                local fl = e.flags
-                if fl == nil then
+                local fl
+                if e.widgetChrome then
+                    fl = widgetFlags
+                elseif e.flags ~= nil then
+                    fl = e.flags
+                else
                     fl = addon.Dashboard_OutlineFlagsForSize(eff)
                 end
                 pcall(function()
                     fs:SetFont(path, eff, fl)
                 end)
+                addon.Dashboard_ApplyTextShadow(fs)
             end
         end
     end
@@ -145,7 +235,7 @@ function addon.ApplyDashboardTypography()
             local eb = e.eb
             if eb and eb.SetFont then
                 local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 13) + off + 0.5))
-                local fl = e.flags or ""
+                local fl = e.widgetChrome and widgetFlags or (e.flags or "")
                 pcall(function()
                     eb:SetFont(path, eff, fl)
                 end)
@@ -158,13 +248,18 @@ function addon.ApplyDashboardTypography()
             local fs = e.fs
             if fs and fs.SetFont then
                 local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 12) + off + 0.5))
-                local fl = e.flags
-                if fl == nil then
+                local fl
+                if e.widgetChrome then
+                    fl = widgetFlags
+                elseif e.flags ~= nil then
+                    fl = e.flags
+                else
                     fl = addon.Dashboard_OutlineFlagsForSize(eff)
                 end
                 pcall(function()
                     fs:SetFont(path, eff, fl)
                 end)
+                addon.Dashboard_ApplyTextShadow(fs)
             end
         end
     end
@@ -197,6 +292,7 @@ function addon.Dashboard_MakeText(parent, text, size, r, g, b, justify, reg)
     pcall(function()
         fs:SetFont(path, eff, flags)
     end)
+    addon.Dashboard_ApplyTextShadow(fs)
     fs:SetText(text)
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
@@ -232,6 +328,7 @@ function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b,
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
     addon.Dashboard_RegisterTypographyFontString(reg, fs, size, "")
+    addon.Dashboard_ApplyTextShadow(fs)
     return fs
 end
 

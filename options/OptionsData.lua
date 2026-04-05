@@ -379,6 +379,8 @@ local DASHBOARD_BACKGROUND_KEYS = {
 local DASHBOARD_TYPOGRAPHY_KEYS = {
     dashboardFontPath = true,
     dashboardFontSizeOffset = true,
+    dashboardTextOutline = true,
+    dashboardTextShadow = true,
 }
 
 function OptionsData_GetDB(key, default)
@@ -1159,6 +1161,18 @@ local OptionCategories = {
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"] or "Minimalistic"
                     elseif id == "midnight" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"] or "Midnight"
+                    elseif id == "teldrassil" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL"] or "Teldrassil"
+                    elseif id == "nightfae" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"] or "Night Fae"
+                    elseif id == "zinazshari" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"] or "Zin-Azshari"
+                    elseif id == "illidan" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"] or "Illidan"
+                    elseif id == "lichking" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_LICH_KING"] or "The Lich King"
+                    elseif id == "tbcanniversary" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"] or "TBC Anniversary"
                     elseif id == "talents" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"] or "Specialisation (auto)"
                     else
@@ -1179,9 +1193,6 @@ local OptionCategories = {
                     local v = getDB("dashboardBackgroundTheme", "midnight")
                     if v == "solid" then
                         v = "horizon"
-                    end
-                    if v == "teldrassil" or v == "nightfae" or v == "zinazshari" then
-                        v = "midnight"
                     end
                     local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
                     for _, id in ipairs(order) do
@@ -1207,6 +1218,12 @@ local OptionCategories = {
                 refreshIds = { "dashboardBackgroundOpacity" },
             }
             opts[#opts + 1] = { type = "section", name = L["DASHBOARD_TYPO_SECTION"] or "Dashboard text" }
+            local dashboardTypoRefreshIds = {
+                "dashboardFontPath",
+                "dashboardFontSizeOffset",
+                "dashboardTextOutline",
+                "dashboardTextShadow",
+            }
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["DASHBOARD_TYPO_FONT"] or "Dashboard font",
@@ -1218,7 +1235,7 @@ local OptionCategories = {
                 set = function(v) setDB("dashboardFontPath", v) end,
                 displayFn = addon.GetFontNameForPath,
                 fontPreviewInList = true,
-                refreshIds = { "dashboardFontPath", "dashboardFontSizeOffset" },
+                refreshIds = dashboardTypoRefreshIds,
             }
             opts[#opts + 1] = {
                 type = "slider",
@@ -1230,7 +1247,51 @@ local OptionCategories = {
                 step = 1,
                 get = function() return getDB("dashboardFontSizeOffset", 0) end,
                 set = function(v) setDB("dashboardFontSizeOffset", math.max(-4, math.min(4, math.floor((tonumber(v) or 0) + 0.5)))) end,
-                refreshIds = { "dashboardFontPath", "dashboardFontSizeOffset" },
+                refreshIds = dashboardTypoRefreshIds,
+            }
+            opts[#opts + 1] = {
+                type = "slider",
+                name = L["DASHBOARD_TYPO_OUTLINE"] or "Dashboard text outline",
+                desc = L["DASHBOARD_TYPO_OUTLINE_DESC"] or "0 = none, 1 = standard outline, 2 = thick outline.",
+                dbKey = "dashboardTextOutline",
+                min = 0,
+                max = 2,
+                step = 1,
+                get = function()
+                    if addon.Dashboard_GetTextOutlineLevel then
+                        return addon.Dashboard_GetTextOutlineLevel()
+                    end
+                    local v = getDB("dashboardTextOutline", 1)
+                    if v == true then return 1 end
+                    if v == false then return 0 end
+                    return math.max(0, math.min(2, math.floor((tonumber(v) or 1) + 0.5)))
+                end,
+                set = function(v)
+                    setDB("dashboardTextOutline", math.max(0, math.min(2, math.floor((tonumber(v) or 0) + 0.5))))
+                end,
+                refreshIds = dashboardTypoRefreshIds,
+            }
+            opts[#opts + 1] = {
+                type = "slider",
+                name = L["DASHBOARD_TYPO_SHADOW"] or "Dashboard text shadow",
+                desc = L["DASHBOARD_TYPO_SHADOW_DESC"] or "Drop shadow strength for dashboard text (0–100%). Higher is darker; 0 is off.",
+                dbKey = "dashboardTextShadow",
+                min = 0,
+                max = 100,
+                step = 1,
+                get = function()
+                    if addon.Dashboard_GetTextShadowStrength then
+                        return addon.Dashboard_GetTextShadowStrength()
+                    end
+                    local v = getDB("dashboardTextShadow", 0)
+                    if v == true then return 65 end
+                    if v == false then return 0 end
+                    return math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5)))
+                end,
+                set = function(v)
+                    setDB("dashboardTextShadow", math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5))))
+                end,
+                refreshIds = dashboardTypoRefreshIds,
             }
             opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PATCH_NOTES_SECTION"] or "Patch notes" }
             opts[#opts + 1] = {

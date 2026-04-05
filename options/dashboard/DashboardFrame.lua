@@ -365,11 +365,12 @@ function addon.Dashboard_BuildMainFrame()
                     (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
                 )
                 local se = addon.Dashboard_EffectiveDashboardFontSize(14)
+                local wf = addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags() or "OUTLINE"
                 pcall(function()
-                    searchBox:SetFont(sp, se, "")
+                    searchBox:SetFont(sp, se, wf)
                 end)
             end
-            addon.Dashboard_RegisterTypographyEditBox(typoRefs, searchBox, 14, "")
+            addon.Dashboard_RegisterTypographyEditBox(typoRefs, searchBox, 14, nil, true)
             searchBox:SetTextInsets(48, 15, 0, 0)
             searchBox:SetAutoFocus(false)
             searchBox:SetFrameLevel(f:GetFrameLevel() + 5)
@@ -496,6 +497,9 @@ function addon.Dashboard_BuildMainFrame()
                 pcall(function()
                     pnClHdrTxt:SetFont(pp, pe, "")
                 end)
+                if addon.Dashboard_ApplyTextShadow then
+                    addon.Dashboard_ApplyTextShadow(pnClHdrTxt)
+                end
             end
             addon.Dashboard_RegisterTypographyFontString(typoRefs, pnClHdrTxt, 12, "")
             pnClHdrTxt:SetPoint("CENTER", pnChangelogHeaderBtn, "CENTER", 0, 0)
@@ -653,15 +657,29 @@ function addon.Dashboard_BuildMainFrame()
                 wipe(dashAccentRefs.patchNotesRules)
                 wipe(f._patchNotesTypoRefs)
 
-                local function ApplyPatchNoteFontString(fs, base, flags)
+                local function ApplyPatchNoteFontString(fs, base, flagsOrNil, widgetChrome)
                     local path = addon.Dashboard_ResolveSavedDashboardFontPath(
                         (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
                     )
                     local eff = addon.Dashboard_EffectiveDashboardFontSize(base)
+                    local fl
+                    if widgetChrome and addon.Dashboard_GetWidgetOutlineFlags then
+                        fl = addon.Dashboard_GetWidgetOutlineFlags()
+                    else
+                        fl = flagsOrNil or ""
+                    end
                     pcall(function()
-                        fs:SetFont(path, eff, flags or "")
+                        fs:SetFont(path, eff, fl)
                     end)
-                    tinsert(f._patchNotesTypoRefs, { fs = fs, base = base, flags = flags })
+                    if addon.Dashboard_ApplyTextShadow then
+                        addon.Dashboard_ApplyTextShadow(fs)
+                    end
+                    tinsert(f._patchNotesTypoRefs, {
+                        fs = fs,
+                        base = base,
+                        flags = widgetChrome and nil or flagsOrNil,
+                        widgetChrome = widgetChrome and true or nil,
+                    })
                 end
 
                 -- Inner container parented to pnContent (scroll child stays fixed)
@@ -721,7 +739,7 @@ function addon.Dashboard_BuildMainFrame()
 
                             -- Version header (optional date from PatchNotesData matches CHANGELOG)
                             local vHdr = inner:CreateFontString(nil, "OVERLAY")
-                            ApplyPatchNoteFontString(vHdr, 14, "OUTLINE")
+                            ApplyPatchNoteFontString(vHdr, 14, nil, true)
                             vHdr:SetJustifyH("LEFT")
                             local noteDate = notes.date
                             if type(noteDate) == "string" and noteDate ~= "" then
@@ -739,7 +757,7 @@ function addon.Dashboard_BuildMainFrame()
                                 if si > 1 then tinsert(items, { type = "gap", h = PN_SECTION_GAP }) end
 
                                 local lbl = inner:CreateFontString(nil, "OVERLAY")
-                                ApplyPatchNoteFontString(lbl, 10, "OUTLINE")
+                                ApplyPatchNoteFontString(lbl, 10, nil, true)
                                 lbl:SetWidth(cW)
                                 lbl:SetJustifyH("LEFT")
                                 lbl:SetText(sec.section:upper())
@@ -907,11 +925,15 @@ function addon.Dashboard_BuildMainFrame()
                     (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
                 )
                 local ce = addon.Dashboard_EffectiveDashboardFontSize(16)
+                local wf = addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags() or "OUTLINE"
                 pcall(function()
-                    closeTxt:SetFont(cp, ce, "OUTLINE")
+                    closeTxt:SetFont(cp, ce, wf)
                 end)
+                if addon.Dashboard_ApplyTextShadow then
+                    addon.Dashboard_ApplyTextShadow(closeTxt)
+                end
             end
-            addon.Dashboard_RegisterTypographyFontString(typoRefs, closeTxt, 16, "OUTLINE")
+            addon.Dashboard_RegisterTypographyFontString(typoRefs, closeTxt, 16, nil, true)
             closeTxt:SetPoint("CENTER", 0, 0)
             closeTxt:SetText("\195\151")
             closeTxt:SetTextColor(0.5, 0.5, 0.55)
@@ -1224,12 +1246,15 @@ function addon.Dashboard_BuildMainFrame()
                                 (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
                             )
                             local he1 = addon.Dashboard_EffectiveDashboardFontSize(11)
-                            local he2 = addon.Dashboard_EffectiveDashboardFontSize(12)
+                            local wf = addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags() or "OUTLINE"
                             pcall(function()
-                                chevron:SetFont(hp, he1, "OUTLINE")
+                                chevron:SetFont(hp, he1, wf)
                             end)
+                            if addon.Dashboard_ApplyTextShadow then
+                                addon.Dashboard_ApplyTextShadow(chevron)
+                            end
                         end
-                        addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, "OUTLINE")
+                        addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, nil, true)
                         chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
                         chevron:SetTextColor(0.55, 0.55, 0.65, 1)
                         header.chevron = chevron
@@ -1239,11 +1264,15 @@ function addon.Dashboard_BuildMainFrame()
                                 (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
                             )
                             local he2 = addon.Dashboard_EffectiveDashboardFontSize(12)
+                            local wf = addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags() or "OUTLINE"
                             pcall(function()
-                                headerLabel:SetFont(hp, he2, "OUTLINE")
+                                headerLabel:SetFont(hp, he2, wf)
                             end)
+                            if addon.Dashboard_ApplyTextShadow then
+                                addon.Dashboard_ApplyTextShadow(headerLabel)
+                            end
                         end
-                        addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, "OUTLINE")
+                        addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, nil, true)
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
                         local headerLabelText = (g.label or ""):upper()

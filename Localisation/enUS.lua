@@ -827,11 +827,15 @@ L["OPTIONS_FOCUS_CLASS_COLORS"]                                       = "Class c
 L["OPTIONS_FOCUS_TINT_DASHBOARD_ACCENTS_DIVIDERS_HIGHLIGHTS"]         = "Tint dashboard accents, dividers, and highlights with your class colour."
 L["OPTIONS_FOCUS_THEME"]                                              = "Theme"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND"]                               = "Dashboard background"
-L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"]       = "Background style for the module dashboard window (Axis). Minimalistic is flat; Midnight uses bundled full-bleed art; Specialisation (auto) uses the in-game talent UI background for your current specialization."
+L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"]       = "Background style for the module dashboard window (Axis). Minimalistic is flat; themed presets use bundled full-bleed art; Specialisation (auto) uses the in-game talent UI background for your current specialization."
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"]                  = "Minimalistic"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"]                      = "Midnight"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL"]                    = "Teldrassil"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"]                      = "Night Fae"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"]                   = "Zin-Azshari"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"]                       = "Illidan"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_LICH_KING"]                     = "The Lich King"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"]               = "TBC Anniversary"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"]                 = "Specialisation (auto)"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"]                       = "Dashboard background opacity"
 L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"]             = "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."
@@ -840,6 +844,10 @@ L["DASHBOARD_TYPO_FONT"]                                              = "Dashboa
 L["DASHBOARD_TYPO_FONT_DESC"]                                         = "Font for the Axis settings window (sidebar, search, and option rows). Separate from the Focus tracker font. For CJK or mixed-script welcome text, pick a broad-coverage font (e.g. 2002) if needed."
 L["DASHBOARD_TYPO_SIZE"]                                              = "Dashboard text size"
 L["DASHBOARD_TYPO_SIZE_DESC"]                                         = "Nudge all dashboard text larger or smaller (−4 to +4), similar to Focus global font offset."
+L["DASHBOARD_TYPO_OUTLINE"]                                           = "Dashboard text outline"
+L["DASHBOARD_TYPO_OUTLINE_DESC"]                                      = "0 = no outline, 1 = standard outline, 2 = thick outline. Applies to Axis dashboard text and option rows."
+L["DASHBOARD_TYPO_SHADOW"]                                            = "Dashboard text shadow"
+L["DASHBOARD_TYPO_SHADOW_DESC"]                                       = "Drop shadow strength (0–100%). Higher makes the shadow more visible; 0 turns it off."
 L["OPTIONS_FOCUS_BACKDROP_OPACITY"]                                   = "Backdrop opacity"
 L["OPTIONS_FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Panel background opacity (0–1)."
 L["OPTIONS_FOCUS_BORDER"]                                             = "Show border"
@@ -1745,6 +1753,9 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
 
 
 
