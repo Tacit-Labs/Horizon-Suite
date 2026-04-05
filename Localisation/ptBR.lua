@@ -829,12 +829,18 @@ L["OPTIONS_FOCUS_RESET_MYTHIC_TYPOGRAPHY"]                            = "Redefin
 L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"]       = "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"]               = "Minimalistic"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"]                   = "Midnight"  -- NEEDS TRANSLATION
--- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL"]                 = "Teldrassil"  -- NEEDS TRANSLATION
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"]              = "Teldrassil (burning)"
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"]                   = "Night Fae"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD"]                 = "Ardenweald"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"]                = "Zin-Azshari"  -- NEEDS TRANSLATION
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_SURAMAR_GARDEN"]                = "Suramar garden"
+-- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_QUELTHALAS"]                 = "Quel'Thalas"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TWILIGHT_VINEYARDS"]         = "Twilight Vineyards"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZUL_AMAN"]                   = "Zul'Aman"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"]                    = "Illidan"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_LICH_KING"]                  = "The Lich King"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"]            = "TBC Anniversary"  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_BELEDARS_LIGHT"]             = "Beledar's Light"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"]              = "Specialisation (auto)"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"]                    = "Dashboard background opacity"  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"]          = "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."  -- NEEDS TRANSLATION
@@ -876,6 +882,9 @@ L["OPTIONS_FOCUS_CATEGORY_ORDER"]                                     = "Ordem d
 -- L["OPTIONS_FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                      = "Show quests with recent progress at the top."  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_SECONDS_OF_RECENT_PROGRESS_CURRENT_QUEST"]        = "Seconds of recent progress to show in Current Quest (30–120)."  -- NEEDS TRANSLATION
 -- L["OPTIONS_FOCUS_QUESTS_YOU_MADE_PROGRESS_LAST_MINUTE"]            = "Quests you made progress on in the last minute appear in a dedicated section."  -- NEEDS TRANSLATION
+-- L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE"]                             = "Events in Zone section"  -- NEEDS TRANSLATION
+L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_DESC"]                           = "Show the Events in Zone section for nearby unaccepted quests and zone event quests."
+L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_TIP"]                            = "When off, those quests appear in their normal categories instead."
 L["OPTIONS_FOCUS_CATEGORY_ORDER"]                                     = "Ordem das categorias de Foco"
 L["OPTIONS_FOCUS_DRAG_REORDER_CATEGORIES_DELVES_SCENARIO_EVENT"]      = "Arraste para reordenar categorias. Delves e EVENTOS DE CENÁRIO permanecem primeiro."
 -- L["OPTIONS_FOCUS_DRAG_REORDER_DELVES_SCENARIOS_STAY_FIRST"]        = "Drag to reorder. Delves and Scenarios stay first."  -- NEEDS TRANSLATION
@@ -1752,6 +1761,11 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
+
+
+
+
 
 
 

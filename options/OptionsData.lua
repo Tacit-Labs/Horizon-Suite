@@ -1161,18 +1161,30 @@ local OptionCategories = {
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"] or "Minimalistic"
                     elseif id == "midnight" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"] or "Midnight"
-                    elseif id == "teldrassil" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL"] or "Teldrassil"
+                    elseif id == "teldrassilburns" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"] or "Teldrassil"
                     elseif id == "nightfae" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"] or "Night Fae"
+                    elseif id == "ardenweald" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD"] or "Ardenweald"
                     elseif id == "zinazshari" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"] or "Zin-Azshari"
+                    elseif id == "suramargarden" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_SURAMAR_GARDEN"] or "Suramar Garden"
+                    elseif id == "quelthalas" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_QUELTHALAS"] or "Quel'Thalas"
+                    elseif id == "twilightvineyards" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TWILIGHT_VINEYARDS"] or "Twilight Vineyards"
+                    elseif id == "zulaman" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZUL_AMAN"] or "Zul'Aman"
                     elseif id == "illidan" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"] or "Illidan"
                     elseif id == "lichking" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_LICH_KING"] or "The Lich King"
                     elseif id == "tbcanniversary" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"] or "TBC Anniversary"
+                    elseif id == "beledarslight" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_BELEDARS_LIGHT"] or "Beledar's Light"
                     elseif id == "talents" then
                         label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"] or "Specialisation (auto)"
                     else
@@ -1193,6 +1205,9 @@ local OptionCategories = {
                     local v = getDB("dashboardBackgroundTheme", "midnight")
                     if v == "solid" then
                         v = "horizon"
+                    end
+                    if v == "teldrassil" then
+                        v = "teldrassilburns"
                     end
                     local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
                     for _, id in ipairs(order) do
@@ -1699,6 +1714,7 @@ local OptionCategories = {
             { type = "toggle", name = L["OPTIONS_FOCUS_CURRENT_QUEST_CATEGORY"], desc = L["OPTIONS_CORE_RECENT_PROGRESS_TOP"], tooltip = L["OPTIONS_FOCUS_QUESTS_YOU_MADE_PROGRESS_LAST_MINUTE"], dbKey = "showCurrentQuestCategory", get = function() return getDB("showCurrentQuestCategory", true) end, set = function(v) setDB("showCurrentQuestCategory", v) end, refreshIds = { "currentQuestWindowSec" } },
             { type = "slider", name = L["OPTIONS_FOCUS_CURRENT_QUEST_WINDOW"], desc = L["OPTIONS_CORE_SECONDS_OF_RECENT_PROGRESS"], dbKey = "currentQuestWindowSec", min = 30, max = 120, get = function() return math.max(30, math.min(120, tonumber(getDB("currentQuestWindowSec", 60)) or 60)) end, set = function(v) setDB("currentQuestWindowSec", math.max(30, math.min(120, v))) end, visibleWhen = function() return getDB("showCurrentQuestCategory", true) end, id = "currentQuestWindowSec" },
             { type = "toggle", name = L["OPTIONS_CORE_CURRENT_ZONE_GROUP"], desc = L["OPTIONS_CORE_DEDICATED_SECTION_ZONE_QUESTS"], dbKey = "showNearbyGroup", get = function() return getDB("showNearbyGroup", true) end, set = function(v) setDB("showNearbyGroup", v) end, tooltip = L["OPTIONS_CORE_ZONE_QUESTS_APPEAR_THEIR_NORMAL_CATEGORY"], refreshIds = { "nearbyCompleteToBottom" } },
+            { type = "toggle", name = L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE"], desc = L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_DESC"], dbKey = "showEventsInZone", id = "showEventsInZone", get = function() return getDB("showEventsInZone", true) end, set = function(v) setDB("showEventsInZone", v) end, tooltip = L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_TIP"] },
             { type = "toggle", name = L["OPTIONS_CORE_READY_TURN_BOTTOM"], desc = L["OPTIONS_CORE_MOVE_COMPLETED_QUESTS_BOTTOM_OF_CURRENT"], dbKey = "nearbyCompleteToBottom", get = function() return getDB("nearbyCompleteToBottom", true) end, set = function(v) setDB("nearbyCompleteToBottom", v); OptionsData_NotifyMainAddon() end, visibleWhen = function() return getDB("showNearbyGroup", true) end },
             { type = "toggle", name = L["OPTIONS_CORE_READY_TURN_GROUP"], desc = L["OPTIONS_CORE_DEDICATED_SECTION_COMPLETED_QUESTS"], dbKey = "showCompleteGroup", get = function() return getDB("showCompleteGroup", true) end, set = function(v) setDB("showCompleteGroup", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["OPTIONS_CORE_COMPLETED_QUESTS_STAY_THEIR_ORIGINAL_CATEGO"], refreshIds = { "keepCampaignInCategory", "keepImportantInCategory" } },
             { type = "toggle", name = L["OPTIONS_CORE_KEEP_CAMPAIGN_CATEGORY"], desc = L["OPTIONS_CORE_KEEP_CAMPAIGN_READY_TURN"], dbKey = "keepCampaignInCategory", get = function() return getDB("keepCampaignInCategory", false) end, set = function(v) setDB("keepCampaignInCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["OPTIONS_CORE_THEY_MOVE_COMPLETE_SECTION"], visibleWhen = function() return getDB("showCompleteGroup", true) end, id = "keepCampaignInCategory" },
