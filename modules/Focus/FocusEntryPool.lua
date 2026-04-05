@@ -250,8 +250,8 @@ local function CreateQuestEntry(parent, index)
         local entry = self._ownerEntry
         if not entry or not entry._ahShoppingParts or #entry._ahShoppingParts == 0 then return end
         if button == "RightButton" then
-            if addon.ShowFocusAuctionCraftDialog then
-                addon.ShowFocusAuctionCraftDialog(entry)
+            if addon.focus.ShowAuctionCraftDialog then
+                addon.focus.ShowAuctionCraftDialog(entry)
             elseif StaticPopup_Show then
                 StaticPopup_Show("HORIZONSUITE_AH_CRAFT_COUNT", nil, nil, { entry = entry })
             end

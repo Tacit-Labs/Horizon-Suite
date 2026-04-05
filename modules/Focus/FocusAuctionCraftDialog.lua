@@ -10,26 +10,26 @@
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
-local AH_CRAFT_W = 420
-local AH_CRAFT_PAD = 16
-local AH_CRAFT_ACCENT_H = 3
-local AH_CRAFT_TITLE_H = 54
+local AH_CRAFT_W        = addon.Scaled(420)
+local AH_CRAFT_PAD      = addon.Scaled(16)
+local AH_CRAFT_ACCENT_H = addon.Scaled(3)
+local AH_CRAFT_TITLE_H  = addon.Scaled(54)
 local AH_CRAFT_RULE_COL = { 0.13, 0.13, 0.17, 1 }
-local AH_CRAFT_BG_COL = { 0.06, 0.06, 0.08, 0.97 }
+local AH_CRAFT_BG_COL   = { 0.06, 0.06, 0.08, 0.97 }
 local AH_CRAFT_EDGE_COL = { 0.2, 0.2, 0.26, 0.95 }
-local AH_CRAFT_HINT_H = 14
-local AH_CRAFT_EDIT_H = 28
-local AH_CRAFT_BTN_H = 26
-local AH_CRAFT_BTN_W = 100
+local AH_CRAFT_HINT_H   = addon.Scaled(14)
+local AH_CRAFT_EDIT_H   = addon.Scaled(28)
+local AH_CRAFT_BTN_H    = addon.Scaled(26)
+local AH_CRAFT_BTN_W    = addon.Scaled(100)
 local AH_CRAFT_F_HEAD = "Fonts\\FRIZQT__.TTF"
 local AH_CRAFT_F_BODY = "Fonts\\ARIALN.TTF"
 
 -- Crafting quality tiers (reagent / output); must match AUCTIONATOR_TIER_MAX in FocusEntryRenderer.lua.
-local AH_TIER_MAX = 5
-local AH_TIER_MENU_ROW_H = 26
-local AH_TIER_MENU_PAD = 4
-local AH_TIER_MENU_W = 236
-local AH_TIER_BTN_W = 220
+local AH_TIER_MAX        = 5
+local AH_TIER_MENU_ROW_H = addon.Scaled(26)
+local AH_TIER_MENU_PAD   = addon.Scaled(4)
+local AH_TIER_MENU_W     = addon.Scaled(236)
+local AH_TIER_BTN_W      = addon.Scaled(220)
 
 local ahCraftFrame
 
@@ -59,6 +59,24 @@ local DROPDOWN_ARROW_ATLASES = {
     "voicechat-channellist-arrow-down",
 }
 
+-- Set tier atlas on icon and repoint label relative to whether the icon is visible.
+local function ApplyTierIconAndLabel(icon, lbl, parent, tierVal, leftPad, rightPad)
+    local atlas = TierQualityAtlas(tierVal)
+    if TierAtlasExists(atlas) then
+        icon:SetAtlas(atlas)
+        icon:Show()
+    else
+        icon:Hide()
+    end
+    lbl:ClearAllPoints()
+    if icon:IsShown() then
+        lbl:SetPoint("LEFT", icon, "RIGHT", addon.Scaled(6), 0)
+    else
+        lbl:SetPoint("LEFT", parent, "LEFT", leftPad, 0)
+    end
+    lbl:SetPoint("RIGHT", parent, "RIGHT", rightPad, 0)
+end
+
 local function ApplyDropdownArrowTexture(tex)
     for _, a in ipairs(DROPDOWN_ARROW_ATLASES) do
         if TierAtlasExists(a) then
@@ -69,68 +87,20 @@ local function ApplyDropdownArrowTexture(tex)
     return false
 end
 
--- Edit box chrome: same as UrlCopyDialog (Design QUEST_ITEM bg + 1px borders).
-local function SkinEditLikeUrlCopy(eb, width, height)
+-- Design QUEST_ITEM bg + 1-px border chrome, shared by edit boxes and the tier button.
+local function ApplyQuestItemSkin(frame, width, height)
     local Design = addon.Design
-    local ebBg = Design and Design.QUEST_ITEM_BG or { 0.12, 0.12, 0.15, 0.95 }
-    local ebBorder = Design and Design.QUEST_ITEM_BORDER or { 0.30, 0.32, 0.38, 0.6 }
-    eb:SetSize(width, height)
-    eb:SetFont(AH_CRAFT_F_BODY, 11, "")
-    eb:SetAutoFocus(false)
-    eb:SetTextInsets(8, 8, 0, 0)
-    eb:SetTextColor(0.9, 0.9, 0.92, 1)
-    if eb._hsEbBg then eb._hsEbBg:Show() else
-        local ebBgTex = eb:CreateTexture(nil, "BACKGROUND")
-        ebBgTex:SetAllPoints()
-        ebBgTex:SetColorTexture(ebBg[1], ebBg[2], ebBg[3], ebBg[4] or 1)
-        eb._hsEbBg = ebBgTex
-    end
-    local function edge(tex, setPts)
-        tex:SetColorTexture(ebBorder[1], ebBorder[2], ebBorder[3], ebBorder[4] or 1)
-        setPts(tex)
-    end
-    if not eb._hsEbL then
-        eb._hsEbL = eb:CreateTexture(nil, "BORDER")
-        eb._hsEbR = eb:CreateTexture(nil, "BORDER")
-        eb._hsEbT = eb:CreateTexture(nil, "BORDER")
-        eb._hsEbB = eb:CreateTexture(nil, "BORDER")
-    end
-    edge(eb._hsEbL, function(t)
-        t:SetWidth(1)
-        t:SetPoint("TOPLEFT", 0, 1)
-        t:SetPoint("BOTTOMLEFT", 0, -1)
-    end)
-    edge(eb._hsEbR, function(t)
-        t:SetWidth(1)
-        t:SetPoint("TOPRIGHT", 0, 1)
-        t:SetPoint("BOTTOMRIGHT", 0, -1)
-    end)
-    edge(eb._hsEbT, function(t)
-        t:SetHeight(1)
-        t:SetPoint("TOPLEFT", 0, 0)
-        t:SetPoint("TOPRIGHT", 0, 0)
-    end)
-    edge(eb._hsEbB, function(t)
-        t:SetHeight(1)
-        t:SetPoint("BOTTOMLEFT", 0, 0)
-        t:SetPoint("BOTTOMRIGHT", 0, 0)
-    end)
-end
-
--- Same border treatment as edit boxes, for Buttons / Frames (tier picker).
-local function SkinFrameLikeQuestItem(frame, width, height)
-    local Design = addon.Design
-    local ebBg = Design and Design.QUEST_ITEM_BG or { 0.12, 0.12, 0.15, 0.95 }
-    local ebBorder = Design and Design.QUEST_ITEM_BORDER or { 0.30, 0.32, 0.38, 0.6 }
+    local bg     = Design and Design.QUEST_ITEM_BG     or { 0.12, 0.12, 0.15, 0.95 }
+    local border = Design and Design.QUEST_ITEM_BORDER or { 0.30, 0.32, 0.38, 0.6 }
     frame:SetSize(width, height)
     if frame._hsEbBg then frame._hsEbBg:Show() else
-        local ebBgTex = frame:CreateTexture(nil, "BACKGROUND")
-        ebBgTex:SetAllPoints()
-        ebBgTex:SetColorTexture(ebBg[1], ebBg[2], ebBg[3], ebBg[4] or 1)
-        frame._hsEbBg = ebBgTex
+        local t = frame:CreateTexture(nil, "BACKGROUND")
+        t:SetAllPoints()
+        t:SetColorTexture(bg[1], bg[2], bg[3], bg[4] or 1)
+        frame._hsEbBg = t
     end
     local function edge(tex, setPts)
-        tex:SetColorTexture(ebBorder[1], ebBorder[2], ebBorder[3], ebBorder[4] or 1)
+        tex:SetColorTexture(border[1], border[2], border[3], border[4] or 1)
         setPts(tex)
     end
     if not frame._hsEbL then
@@ -139,26 +109,19 @@ local function SkinFrameLikeQuestItem(frame, width, height)
         frame._hsEbT = frame:CreateTexture(nil, "BORDER")
         frame._hsEbB = frame:CreateTexture(nil, "BORDER")
     end
-    edge(frame._hsEbL, function(t)
-        t:SetWidth(1)
-        t:SetPoint("TOPLEFT", 0, 1)
-        t:SetPoint("BOTTOMLEFT", 0, -1)
-    end)
-    edge(frame._hsEbR, function(t)
-        t:SetWidth(1)
-        t:SetPoint("TOPRIGHT", 0, 1)
-        t:SetPoint("BOTTOMRIGHT", 0, -1)
-    end)
-    edge(frame._hsEbT, function(t)
-        t:SetHeight(1)
-        t:SetPoint("TOPLEFT", 0, 0)
-        t:SetPoint("TOPRIGHT", 0, 0)
-    end)
-    edge(frame._hsEbB, function(t)
-        t:SetHeight(1)
-        t:SetPoint("BOTTOMLEFT", 0, 0)
-        t:SetPoint("BOTTOMRIGHT", 0, 0)
-    end)
+    edge(frame._hsEbL, function(t) t:SetWidth(1);  t:SetPoint("TOPLEFT",    0,  1); t:SetPoint("BOTTOMLEFT",  0, -1) end)
+    edge(frame._hsEbR, function(t) t:SetWidth(1);  t:SetPoint("TOPRIGHT",   0,  1); t:SetPoint("BOTTOMRIGHT", 0, -1) end)
+    edge(frame._hsEbT, function(t) t:SetHeight(1); t:SetPoint("TOPLEFT",    0,  0); t:SetPoint("TOPRIGHT",    0,  0) end)
+    edge(frame._hsEbB, function(t) t:SetHeight(1); t:SetPoint("BOTTOMLEFT", 0,  0); t:SetPoint("BOTTOMRIGHT", 0,  0) end)
+end
+
+-- Edit box chrome: same as UrlCopyDialog (ApplyQuestItemSkin + font/input setup).
+local function SkinEditLikeUrlCopy(eb, width, height)
+    ApplyQuestItemSkin(eb, width, height)
+    eb:SetFont(AH_CRAFT_F_BODY, 11, "")
+    eb:SetAutoFocus(false)
+    eb:SetTextInsets(addon.Scaled(8), addon.Scaled(8), 0, 0)
+    eb:SetTextColor(0.9, 0.9, 0.92, 1)
 end
 
 local function MakeHintLabel(parent, anchorTo, anchorFrom, offsetX, offsetY)
@@ -205,14 +168,14 @@ local function EnsureAhCraftFrame()
 
     local bodyTop = AH_CRAFT_TITLE_H + AH_CRAFT_PAD
     -- hint + edit + gap + hint + tier button + gap + buttons
-    local bodyH = (AH_CRAFT_HINT_H + 4 + AH_CRAFT_EDIT_H + 10)
-        + (AH_CRAFT_HINT_H + 4 + AH_CRAFT_EDIT_H + 16)
+    local bodyH = (AH_CRAFT_HINT_H + addon.Scaled(4) + AH_CRAFT_EDIT_H + addon.Scaled(10))
+        + (AH_CRAFT_HINT_H + addon.Scaled(4) + AH_CRAFT_EDIT_H + addon.Scaled(16))
         + AH_CRAFT_PAD + AH_CRAFT_BTN_H + AH_CRAFT_PAD
     local fH = bodyTop + bodyH
 
     local f = CreateFrame("Frame", "HorizonSuiteFocusAuctionCraftDlg", UIParent, "BackdropTemplate")
     f:SetSize(AH_CRAFT_W, fH)
-    f:SetPoint("CENTER", 0, 30)
+    f:SetPoint("CENTER", 0, addon.Scaled(30))
     f:SetFrameStrata("DIALOG")
     f:SetToplevel(true)
     f:SetMovable(true)
@@ -255,19 +218,19 @@ local function EnsureAhCraftFrame()
 
     local suiteLbl = dragZone:CreateFontString(nil, "OVERLAY")
     suiteLbl:SetFont(AH_CRAFT_F_HEAD, 13, "OUTLINE")
-    suiteLbl:SetPoint("TOPLEFT", dragZone, "TOPLEFT", AH_CRAFT_PAD, -(AH_CRAFT_ACCENT_H + 10))
+    suiteLbl:SetPoint("TOPLEFT", dragZone, "TOPLEFT", AH_CRAFT_PAD, -(AH_CRAFT_ACCENT_H + addon.Scaled(10)))
     suiteLbl:SetText("HORIZON SUITE")
     suiteLbl:SetTextColor(0.88, 0.88, 0.92, 1)
 
     local subtitleLbl = dragZone:CreateFontString(nil, "OVERLAY")
     subtitleLbl:SetFont(AH_CRAFT_F_BODY, 10, "")
-    subtitleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -3)
+    subtitleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -addon.Scaled(3))
     subtitleLbl:SetTextColor(ar, ag, ab, 1)
     f.subtitleLbl = subtitleLbl
 
     local closeBtn = CreateFrame("Button", nil, dragZone)
-    closeBtn:SetSize(28, 28)
-    closeBtn:SetPoint("TOPRIGHT", dragZone, "TOPRIGHT", -4, -(AH_CRAFT_ACCENT_H + 8))
+    closeBtn:SetSize(addon.Scaled(28), addon.Scaled(28))
+    closeBtn:SetPoint("TOPRIGHT", dragZone, "TOPRIGHT", -addon.Scaled(4), -(AH_CRAFT_ACCENT_H + addon.Scaled(8)))
     local closeBg = closeBtn:CreateTexture(nil, "BACKGROUND")
     closeBg:SetAllPoints()
     closeBg:SetColorTexture(1, 0.3, 0.3, 0)
@@ -296,37 +259,37 @@ local function EnsureAhCraftFrame()
     f.hintCraft = hintCraft
 
     local ebCraft = CreateFrame("EditBox", nil, f)
-    SkinEditLikeUrlCopy(ebCraft, 120, AH_CRAFT_EDIT_H)
-    ebCraft:SetPoint("TOPLEFT", hintCraft, "BOTTOMLEFT", 0, -4)
+    SkinEditLikeUrlCopy(ebCraft, addon.Scaled(120), AH_CRAFT_EDIT_H)
+    ebCraft:SetPoint("TOPLEFT", hintCraft, "BOTTOMLEFT", 0, -addon.Scaled(4))
     ebCraft:SetNumeric(true)
     ebCraft:SetMaxLetters(4)
     ebCraft:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     f.ebCraft = ebCraft
 
-    local hintTier = MakeHintLabel(f, ebCraft, "BOTTOMLEFT", 0, -10)
+    local hintTier = MakeHintLabel(f, ebCraft, "BOTTOMLEFT", 0, -addon.Scaled(10))
     f.hintTier = hintTier
 
     local tierBtn = CreateFrame("Button", nil, f)
-    SkinFrameLikeQuestItem(tierBtn, AH_TIER_BTN_W, AH_CRAFT_EDIT_H)
-    tierBtn:SetPoint("TOPLEFT", hintTier, "BOTTOMLEFT", 0, -4)
+    ApplyQuestItemSkin(tierBtn, AH_TIER_BTN_W, AH_CRAFT_EDIT_H)
+    tierBtn:SetPoint("TOPLEFT", hintTier, "BOTTOMLEFT", 0, -addon.Scaled(4))
     tierBtn:RegisterForClicks("LeftButtonUp")
     tierBtn.icon = tierBtn:CreateTexture(nil, "ARTWORK")
-    tierBtn.icon:SetSize(20, 20)
-    tierBtn.icon:SetPoint("LEFT", 8, 0)
+    tierBtn.icon:SetSize(addon.Scaled(20), addon.Scaled(20))
+    tierBtn.icon:SetPoint("LEFT", addon.Scaled(8), 0)
     tierBtn.label = tierBtn:CreateFontString(nil, "OVERLAY")
     tierBtn.label:SetFont(AH_CRAFT_F_BODY, 11, "")
     tierBtn.label:SetJustifyH("LEFT")
-    tierBtn.label:SetPoint("LEFT", tierBtn.icon, "RIGHT", 6, 0)
-    tierBtn.label:SetPoint("RIGHT", tierBtn, "RIGHT", -26, 0)
+    tierBtn.label:SetPoint("LEFT", tierBtn.icon, "RIGHT", addon.Scaled(6), 0)
+    tierBtn.label:SetPoint("RIGHT", tierBtn, "RIGHT", -addon.Scaled(26), 0)
     tierBtn.label:SetTextColor(0.9, 0.9, 0.92, 1)
     tierBtn.chevTex = tierBtn:CreateTexture(nil, "OVERLAY")
-    tierBtn.chevTex:SetSize(14, 14)
-    tierBtn.chevTex:SetPoint("RIGHT", -6, 0)
+    tierBtn.chevTex:SetSize(addon.Scaled(14), addon.Scaled(14))
+    tierBtn.chevTex:SetPoint("RIGHT", -addon.Scaled(6), 0)
     if not ApplyDropdownArrowTexture(tierBtn.chevTex) then
         tierBtn.chevTex:Hide()
         tierBtn.chev = tierBtn:CreateFontString(nil, "OVERLAY")
         tierBtn.chev:SetFont(AH_CRAFT_F_HEAD, 11, "")
-        tierBtn.chev:SetPoint("RIGHT", -8, 0)
+        tierBtn.chev:SetPoint("RIGHT", -addon.Scaled(8), 0)
         tierBtn.chev:SetText("v")
         tierBtn.chev:SetTextColor(0.55, 0.55, 0.62, 1)
     end
@@ -406,25 +369,12 @@ local function EnsureAhCraftFrame()
         if type(t) ~= "number" or t < 1 or t > AH_TIER_MAX then
             f.tierBtn.icon:Hide()
             f.tierBtn.label:ClearAllPoints()
-            f.tierBtn.label:SetPoint("LEFT", f.tierBtn, "LEFT", 12, 0)
-            f.tierBtn.label:SetPoint("RIGHT", f.tierBtn, "RIGHT", -28, 0)
+            f.tierBtn.label:SetPoint("LEFT", f.tierBtn, "LEFT", addon.Scaled(12), 0)
+            f.tierBtn.label:SetPoint("RIGHT", f.tierBtn, "RIGHT", -addon.Scaled(28), 0)
             f.tierBtn.label:SetText(tierRowLabel(L, nil))
             return
         end
-        local atlas = TierQualityAtlas(t)
-        if TierAtlasExists(atlas) then
-            f.tierBtn.icon:SetAtlas(atlas)
-            f.tierBtn.icon:Show()
-        else
-            f.tierBtn.icon:Hide()
-        end
-        f.tierBtn.label:ClearAllPoints()
-        if f.tierBtn.icon:IsShown() then
-            f.tierBtn.label:SetPoint("LEFT", f.tierBtn.icon, "RIGHT", 6, 0)
-        else
-            f.tierBtn.label:SetPoint("LEFT", f.tierBtn, "LEFT", 12, 0)
-        end
-        f.tierBtn.label:SetPoint("RIGHT", f.tierBtn, "RIGHT", -28, 0)
+        ApplyTierIconAndLabel(f.tierBtn.icon, f.tierBtn.label, f.tierBtn, t, addon.Scaled(12), -addon.Scaled(28))
         f.tierBtn.label:SetText(tierRowLabel(L, t))
     end
     f.RefreshTierButtonDisplay = refreshTierButtonDisplay
@@ -443,13 +393,13 @@ local function EnsureAhCraftFrame()
         row:SetScript("OnEnter", function() hi:Show() end)
         row:SetScript("OnLeave", function() hi:Hide() end)
         row.icon = row:CreateTexture(nil, "ARTWORK")
-        row.icon:SetSize(20, 20)
-        row.icon:SetPoint("LEFT", 6, 0)
+        row.icon:SetSize(addon.Scaled(20), addon.Scaled(20))
+        row.icon:SetPoint("LEFT", addon.Scaled(6), 0)
         row.lbl = row:CreateFontString(nil, "OVERLAY")
         row.lbl:SetFont(AH_CRAFT_F_BODY, 11, "")
         row.lbl:SetJustifyH("LEFT")
-        row.lbl:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
-        row.lbl:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+        row.lbl:SetPoint("LEFT", row.icon, "RIGHT", addon.Scaled(6), 0)
+        row.lbl:SetPoint("RIGHT", row, "RIGHT", -addon.Scaled(8), 0)
         row.lbl:SetTextColor(0.9, 0.9, 0.92, 1)
         row:SetScript("OnClick", function()
             f.selectedCraftingTier = tierVal
@@ -466,27 +416,15 @@ local function EnsureAhCraftFrame()
             local row = f.tierMenuRows[idx + 1]
             if row then
                 local tierVal = (idx == 0) and nil or idx
-                row.lbl:SetText(tierRowLabel(L, tierVal))
-                row.lbl:ClearAllPoints()
                 if tierVal == nil then
                     row.icon:Hide()
-                    row.lbl:SetPoint("LEFT", row, "LEFT", 10, 0)
-                    row.lbl:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+                    row.lbl:ClearAllPoints()
+                    row.lbl:SetPoint("LEFT", row, "LEFT", addon.Scaled(10), 0)
+                    row.lbl:SetPoint("RIGHT", row, "RIGHT", -addon.Scaled(8), 0)
                 else
-                    local atlas = TierQualityAtlas(tierVal)
-                    if TierAtlasExists(atlas) then
-                        row.icon:SetAtlas(atlas)
-                        row.icon:Show()
-                    else
-                        row.icon:Hide()
-                    end
-                    if row.icon:IsShown() then
-                        row.lbl:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
-                    else
-                        row.lbl:SetPoint("LEFT", row, "LEFT", 10, 0)
-                    end
-                    row.lbl:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+                    ApplyTierIconAndLabel(row.icon, row.lbl, row, tierVal, addon.Scaled(10), -addon.Scaled(8))
                 end
+                row.lbl:SetText(tierRowLabel(L, tierVal))
             end
         end
     end
@@ -500,7 +438,7 @@ local function EnsureAhCraftFrame()
         end
         syncTierMenuLabels()
         f.tierPopup:ClearAllPoints()
-        f.tierPopup:SetPoint("TOPLEFT", tierBtn, "BOTTOMLEFT", 0, -2)
+        f.tierPopup:SetPoint("TOPLEFT", tierBtn, "BOTTOMLEFT", 0, -addon.Scaled(2))
         f.tierPopup:Raise()
         -- Catcher below dialog frame so in-dialog clicks hit the window; outside hits catcher.
         f.tierCatcher:SetFrameStrata(f:GetFrameStrata())
@@ -513,9 +451,7 @@ local function EnsureAhCraftFrame()
     local function DoAccept()
         local entry = f._entry
         if not entry then return end
-        if f.CloseTierMenu and f.tierPopup and f.tierPopup:IsShown() then
-            f.CloseTierMenu()
-        end
+        CloseTierMenu()
         local L = addon.L
         local text = f.ebCraft:GetText() or ""
         local n = tonumber(text)
@@ -542,18 +478,16 @@ local function EnsureAhCraftFrame()
 
     f.btnOk = MakeChromeButton(f, _G.OKAY or "OK", f, "BOTTOMRIGHT", -AH_CRAFT_PAD, AH_CRAFT_PAD, DoAccept)
     f.btnCancel = MakeChromeButton(f, _G.CANCEL or "Cancel", f, "BOTTOMRIGHT", -AH_CRAFT_PAD, AH_CRAFT_PAD, function()
-        if f.CloseTierMenu then f.CloseTierMenu() end
+        CloseTierMenu()
         f:Hide()
     end)
-    -- Was SetPoint(LEFT, ok, LEFT, -10) — stacked both buttons on the same edge (double box + text).
     f.btnCancel:ClearAllPoints()
-    f.btnCancel:SetSize(AH_CRAFT_BTN_W, AH_CRAFT_BTN_H)
-    f.btnCancel:SetPoint("BOTTOMRIGHT", f.btnOk, "BOTTOMLEFT", -14, 0)
+    f.btnCancel:SetPoint("BOTTOMRIGHT", f.btnOk, "BOTTOMLEFT", -addon.Scaled(14), 0)
 
     ebCraft:SetScript("OnEnterPressed", function() DoAccept() end)
 
     f:SetScript("OnHide", function()
-        if f.CloseTierMenu then f.CloseTierMenu() end
+        CloseTierMenu()
     end)
 
     ahCraftFrame = f
@@ -563,7 +497,7 @@ end
 --- Open the Horizon-styled Auctionator craft / filter dialog (UrlCopy-style chrome).
 --- @param entry table Pool entry with _ahShoppingParts
 --- @return nil
-function addon.ShowFocusAuctionCraftDialog(entry)
+function addon.focus.ShowAuctionCraftDialog(entry)
     if not entry then return end
     local f = EnsureAhCraftFrame()
     local L = addon.L
@@ -578,30 +512,25 @@ function addon.ShowFocusAuctionCraftDialog(entry)
     f.hintTier:SetText((L and L["FOCUS_AH_CRAFT_HINT_TIER"])
         or "Optional crafting tier on every row. Leave as Any for no quality or tier filters.")
 
-    if f.SyncTierMenuLabels then f.SyncTierMenuLabels() end
+    f.SyncTierMenuLabels()
 
     f._entry = entry
     f.ebCraft:SetText("1")
     f.selectedCraftingTier = nil
-    if f.RefreshTierButtonDisplay then f.RefreshTierButtonDisplay() end
-    if f.CloseTierMenu then f.CloseTierMenu() end
+    f.RefreshTierButtonDisplay()
+    f.CloseTierMenu()
     f:Show()
-    if C_Timer and C_Timer.After then
-        C_Timer.After(0, function()
-            if f:IsShown() and f.ebCraft then
-                f.ebCraft:SetFocus()
-                f.ebCraft:HighlightText()
-            end
-        end)
-    else
-        f.ebCraft:SetFocus()
-        f.ebCraft:HighlightText()
-    end
+    C_Timer.After(0, function()
+        if f:IsShown() and f.ebCraft then
+            f.ebCraft:SetFocus()
+            f.ebCraft:HighlightText()
+        end
+    end)
 end
 
 --- Refresh accent strip / subtitle when dashboard class colour changes (dialog visible).
 --- @return nil
-function addon.ApplyFocusAuctionCraftDialogAccent()
+function addon.focus.ApplyAuctionCraftDialogAccent()
     if not ahCraftFrame or not ahCraftFrame:IsShown() then return end
     local ar, ag, ab = GetAccentRGB()
     if ahCraftFrame.accentStrip then
