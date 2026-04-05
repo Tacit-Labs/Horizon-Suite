@@ -15,6 +15,17 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.8.4"] = {
+        date = "2026-04-05",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: delve affix names keep your font; separators use the game font to avoid missing glyphs with decorative typefaces",
+                "Focus: long delve affix lines wrap and objectives align under the full affix block",
+            },
+        },
+    },
+
     ["4.8.3"] = {
         date = "2026-04-05",
         {

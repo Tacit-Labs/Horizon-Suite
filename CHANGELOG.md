@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.8.4] – 2026-04-05
+
+### 🔧 Improvements
+
+- **(Focus)** Delve affix names keep your tracker font; middle-dot separators use the game font so narrow fonts no longer show missing glyphs between modifiers
+- **(Focus)** Long delve affix lists wrap within the tracker width and objectives sit below the full affix block instead of overlapping
+
+---
+
 ## [4.8.3] – 2026-04-05
 
 ### 🔧 Improvements
