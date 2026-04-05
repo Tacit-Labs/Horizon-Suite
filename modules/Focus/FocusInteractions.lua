@@ -964,7 +964,7 @@ StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSU
     hideOnEscape = true,
 }
 
--- Auctionator craft dialog: addon.ShowFocusAuctionCraftDialog (FocusAuctionCraftDialog.lua), same chrome as UrlCopyDialog.
+-- Auctionator craft dialog: addon.focus.ShowAuctionCraftDialog (FocusAuctionCraftDialog.lua), same chrome as UrlCopyDialog.
 
 -- ============================================================================
 -- QUEST WAYPOINT (TomTom / native)
