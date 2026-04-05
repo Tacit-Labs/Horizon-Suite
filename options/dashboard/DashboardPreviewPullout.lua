@@ -171,12 +171,16 @@ local function EnsurePulloutBuilt()
     titleLabel = pulloutFrame:CreateFontString(nil, "OVERLAY")
     do
         local te = (addon.Dashboard_EffectiveDashboardFontSize and addon.Dashboard_EffectiveDashboardFontSize(13)) or 13
+        local wf = (addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags()) or "OUTLINE"
         pcall(function()
-            titleLabel:SetFont(fontPath, te, "OUTLINE")
+            titleLabel:SetFont(fontPath, te, wf)
         end)
+        if addon.Dashboard_ApplyTextShadow then
+            addon.Dashboard_ApplyTextShadow(titleLabel)
+        end
     end
     if reg and addon.Dashboard_RegisterTypographyFontString then
-        addon.Dashboard_RegisterTypographyFontString(reg, titleLabel, 13, "OUTLINE")
+        addon.Dashboard_RegisterTypographyFontString(reg, titleLabel, 13, nil, true)
     end
     titleLabel:SetTextColor(0.65, 0.65, 0.70, 1.0)
     titleLabel:SetPoint("TOPLEFT", pulloutFrame, "TOPLEFT", 12, -12)
@@ -184,12 +188,16 @@ local function EnsurePulloutBuilt()
     subtitleLabel = pulloutFrame:CreateFontString(nil, "OVERLAY")
     do
         local se = (addon.Dashboard_EffectiveDashboardFontSize and addon.Dashboard_EffectiveDashboardFontSize(11)) or 11
+        local wf = (addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags()) or "OUTLINE"
         pcall(function()
-            subtitleLabel:SetFont(fontPath, se, "OUTLINE")
+            subtitleLabel:SetFont(fontPath, se, wf)
         end)
+        if addon.Dashboard_ApplyTextShadow then
+            addon.Dashboard_ApplyTextShadow(subtitleLabel)
+        end
     end
     if reg and addon.Dashboard_RegisterTypographyFontString then
-        addon.Dashboard_RegisterTypographyFontString(reg, subtitleLabel, 11, "OUTLINE")
+        addon.Dashboard_RegisterTypographyFontString(reg, subtitleLabel, 11, nil, true)
     end
     subtitleLabel:SetTextColor(0.38, 0.38, 0.42, 1.0)
     subtitleLabel:SetPoint("TOPLEFT", pulloutFrame, "TOPLEFT", 12, -26)
@@ -201,12 +209,16 @@ local function EnsurePulloutBuilt()
     local closeTex = pulloutCloseBtn:CreateFontString(nil, "OVERLAY")
     do
         local ce = (addon.Dashboard_EffectiveDashboardFontSize and addon.Dashboard_EffectiveDashboardFontSize(16)) or 16
+        local wf = (addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags()) or "OUTLINE"
         pcall(function()
-            closeTex:SetFont(fontPath, ce, "OUTLINE")
+            closeTex:SetFont(fontPath, ce, wf)
         end)
+        if addon.Dashboard_ApplyTextShadow then
+            addon.Dashboard_ApplyTextShadow(closeTex)
+        end
     end
     if reg and addon.Dashboard_RegisterTypographyFontString then
-        addon.Dashboard_RegisterTypographyFontString(reg, closeTex, 16, "OUTLINE")
+        addon.Dashboard_RegisterTypographyFontString(reg, closeTex, 16, nil, true)
     end
     closeTex:SetTextColor(0.50, 0.50, 0.55, 1)
     closeTex:SetText("×")

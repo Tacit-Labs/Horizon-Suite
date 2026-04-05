@@ -1140,19 +1140,6 @@ function addon.EnsureDB()
             db._migratedDashboardBgDefaultToMidnight = true
         end
     end
-    -- Dashboard bg: extra art themes hidden from dropdown for now; normalize stored ids to Midnight (idempotent).
-    do
-        local db = rawDB()
-        db.profiles = db.profiles or {}
-        for _, prof in pairs(db.profiles) do
-            if type(prof) == "table" then
-                local t = prof.dashboardBackgroundTheme
-                if t == "teldrassil" or t == "nightfae" or t == "zinazshari" then
-                    prof.dashboardBackgroundTheme = "midnight"
-                end
-            end
-        end
-    end
     -- One-time migration from legacy hideInCombat toggle.
     -- Check both the active profile and the root DB for the legacy key,
     -- then write the migrated value into the active profile where GetDB reads it.

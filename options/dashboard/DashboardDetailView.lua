@@ -1159,9 +1159,17 @@ function addon.DashboardDetailView_Init(env)
                                 (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
                             )
                             local we = addon.Dashboard_EffectiveDashboardFontSize(13)
+                            local wf = addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags() or "OUTLINE"
                             pcall(function()
-                                nameLabel:SetFont(wp, we, "OUTLINE")
+                                nameLabel:SetFont(wp, we, wf)
                             end)
+                            if addon.Dashboard_ApplyTextShadow then
+                                addon.Dashboard_ApplyTextShadow(nameLabel)
+                            end
+                        end
+                        local typoReg = f._dashboardTypographyRefs
+                        if typoReg and addon.Dashboard_RegisterTypographyFontString then
+                            addon.Dashboard_RegisterTypographyFontString(typoReg, nameLabel, 13, nil, true)
                         end
                         nameLabel:SetTextColor(widgetLabelColor[1], widgetLabelColor[2], widgetLabelColor[3])
                         nameLabel:SetText((labelBase and labelBase ~= "") and (string.gsub(labelBase, "(%a)([%w_']*)", function(a, b) return string.upper(a) .. string.lower(b) end)) or labelBase)
