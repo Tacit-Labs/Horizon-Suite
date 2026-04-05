@@ -10,6 +10,22 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.8.3] – 2026-04-05
+
+### 🔧 Improvements
+
+- **(Focus)** Tracked achievement rows in the tracker with optional progress bars and description fallback
+- **(Focus)** Recipe tooltips use a compact reagent list by default, with an option for full schematic detail
+- **(Focus)** Auctionator shopping lists built from recipes include quantities
+- **(Focus)** Quest level next to titles no longer relies on a separate “remove L” toggle
+- **(Axis)** Dashboard JPG background bundles, expanded themes, updated options and locales
+
+### 🐛 Fixes
+
+- **(Insight)** Unit tooltips no longer error when hovering certain targets (secret unit token)
+
+---
+
 ## [4.8.2] – 2026-04-03
 
 ### ✨ New Features

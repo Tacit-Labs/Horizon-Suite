@@ -15,6 +15,26 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.8.3"] = {
+        date = "2026-04-05",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: tracked achievement rows with optional progress bars and description fallback",
+                "Focus: compact recipe reagent list by default with optional full schematic detail",
+                "Focus: Auctionator shopping lists from recipes include quantities",
+                "Focus: quest level display without a separate remove-L toggle",
+                "Axis: dashboard JPG backgrounds, expanded themes, options and locales",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: unit tooltips no longer error on some targets (secret unit token)",
+            },
+        },
+    },
+
     ["4.8.2"] = {
         date = "2026-04-03",
         {
