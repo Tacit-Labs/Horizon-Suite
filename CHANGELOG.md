@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.8.5] – 2026-04-05
+
+### 🔧 Improvements
+
+- **(Focus)** Optional Events in Zone content — turn off under Sorting & Filtering → Grouping to hide nearby unaccepted and zone-event quests from the tracker
+- **(Axis)** More dashboard background themes, smaller JPG bundles, Teldrassil preset becomes a burning Teldrassil image with automatic migration for existing profiles
+
+---
+
 ## [4.8.4] – 2026-04-05
 
 ### 🔧 Improvements
