@@ -15,6 +15,10 @@ end
 local pool      = {}
 local activeMap = {}
 
+-- Delve affix row: one FontString pair per name (user font) + one pair per " · " separator (default game font).
+local DELVE_AFFIX_MAX_NAMES = 8
+addon.DELVE_AFFIX_MAX_NAMES = DELVE_AFFIX_MAX_NAMES
+
 local function CreateQuestEntry(parent, index)
     local e = CreateFrame("Frame", nil, parent)
     local _S = addon.Scaled or function(v) return v end
@@ -307,18 +311,39 @@ local function CreateQuestEntry(parent, index)
     e.zoneText:Hide()
     e.zoneShadow:Hide()
 
-    e.affixShadow = e:CreateFontString(nil, "BORDER")
-    e.affixShadow:SetFontObject(addon.ZoneFont)
-    e.affixShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
-    e.affixShadow:SetJustifyH("LEFT")
+    e.affixNameSegs = {}
+    for ai = 1, DELVE_AFFIX_MAX_NAMES do
+        local nShadow = e:CreateFontString(nil, "BORDER")
+        nShadow:SetFontObject(addon.ZoneFont)
+        nShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
+        nShadow:SetJustifyH("LEFT")
+        local nText = e:CreateFontString(nil, "OVERLAY")
+        nText:SetFontObject(addon.ZoneFont)
+        nText:SetTextColor(0.78, 0.85, 0.88, 1)
+        nText:SetJustifyH("LEFT")
+        nShadow:SetPoint("CENTER", nText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+        nText:Hide()
+        nShadow:Hide()
+        e.affixNameSegs[ai] = { text = nText, shadow = nShadow }
+    end
+    e.affixText = e.affixNameSegs[1].text
+    e.affixShadow = e.affixNameSegs[1].shadow
 
-    e.affixText = e:CreateFontString(nil, "OVERLAY")
-    e.affixText:SetFontObject(addon.ZoneFont)
-    e.affixText:SetTextColor(0.78, 0.85, 0.88, 1)
-    e.affixText:SetJustifyH("LEFT")
-    e.affixShadow:SetPoint("CENTER", e.affixText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
-    e.affixText:Hide()
-    e.affixShadow:Hide()
+    e.affixSepSegs = {}
+    for si = 1, DELVE_AFFIX_MAX_NAMES - 1 do
+        local sShadow = e:CreateFontString(nil, "BORDER")
+        sShadow:SetFontObject(addon.ZoneFont)
+        sShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
+        sShadow:SetJustifyH("LEFT")
+        local sText = e:CreateFontString(nil, "OVERLAY")
+        sText:SetFontObject(addon.ZoneFont)
+        sText:SetTextColor(0.78, 0.85, 0.88, 1)
+        sText:SetJustifyH("LEFT")
+        sShadow:SetPoint("CENTER", sText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+        sText:Hide()
+        sShadow:Hide()
+        e.affixSepSegs[si] = { text = sText, shadow = sShadow }
+    end
 
     e.objectives = {}
     for j = 1, addon.MAX_OBJECTIVES do
@@ -686,8 +711,20 @@ local function ApplyTypography()
         e.titleShadow:SetPoint("CENTER", e.titleText, "CENTER", shadowOx, shadowOy)
         e.zoneShadow:SetTextColor(0, 0, 0, shadowA)
         e.zoneShadow:SetPoint("CENTER", e.zoneText, "CENTER", shadowOx, shadowOy)
-        e.affixShadow:SetTextColor(0, 0, 0, shadowA)
-        e.affixShadow:SetPoint("CENTER", e.affixText, "CENTER", shadowOx, shadowOy)
+        if e.affixNameSegs then
+            for ai = 1, DELVE_AFFIX_MAX_NAMES do
+                local seg = e.affixNameSegs[ai]
+                seg.shadow:SetTextColor(0, 0, 0, shadowA)
+                seg.shadow:SetPoint("CENTER", seg.text, "CENTER", shadowOx, shadowOy)
+            end
+        end
+        if e.affixSepSegs then
+            for si = 1, DELVE_AFFIX_MAX_NAMES - 1 do
+                local seg = e.affixSepSegs[si]
+                seg.shadow:SetTextColor(0, 0, 0, shadowA)
+                seg.shadow:SetPoint("CENTER", seg.text, "CENTER", shadowOx, shadowOy)
+            end
+        end
         if e.delveLivesShadow and e.delveLivesText then
             e.delveLivesShadow:SetPoint("CENTER", e.delveLivesText, "CENTER", shadowOx, shadowOy)
         end
@@ -737,8 +774,6 @@ local function ApplyDimensions(widthOverride)
         e:SetSize(contentW, 20)
         e.titleShadow:SetWidth(textW)
         e.titleText:SetWidth(textW)
-        e.affixShadow:SetWidth(textW)
-        e.affixText:SetWidth(textW)
         if e.questTypeIcon then
             local qs = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or addon.QUEST_TYPE_ICON_SIZE)
             e.questTypeIcon:SetSize(qs, qs)
@@ -841,8 +876,24 @@ local function ClearEntry(entry, full)
         if entry.lfgBtn then entry.lfgBtn:Hide() end
         if entry.questIconBtn then entry.questIconBtn:Hide() end
         if entry.trackBar then entry.trackBar:Hide() end
-        if entry.affixText then entry.affixText:Hide() end
-        if entry.affixShadow then entry.affixShadow:Hide() end
+        if entry.affixNameSegs then
+            for ai = 1, DELVE_AFFIX_MAX_NAMES do
+                local seg = entry.affixNameSegs[ai]
+                seg.text:SetText("")
+                seg.shadow:SetText("")
+                seg.text:Hide()
+                seg.shadow:Hide()
+            end
+        end
+        if entry.affixSepSegs then
+            for si = 1, DELVE_AFFIX_MAX_NAMES - 1 do
+                local seg = entry.affixSepSegs[si]
+                seg.text:SetText("")
+                seg.shadow:SetText("")
+                seg.text:Hide()
+                seg.shadow:Hide()
+            end
+        end
         if entry.wqTimerText then entry.wqTimerText:Hide() end
         if entry.inlineTimerText then entry.inlineTimerText:Hide() end
         if entry.delveLivesText then entry.delveLivesText:Hide() end
