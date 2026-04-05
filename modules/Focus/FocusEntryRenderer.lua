@@ -27,6 +27,7 @@ end
 --- @return nil
 local function HideDelveAffixRow(entry)
     if not entry or not entry.affixNameSegs or not entry.affixSepSegs then return end
+    entry._affixBlockHeight = nil
     local maxN = addon.DELVE_AFFIX_MAX_NAMES or 8
     for ai = 1, maxN do
         local seg = entry.affixNameSegs[ai]
@@ -498,8 +499,14 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         -- Auto-complete quests: always show "Quest Complete / Click to complete" block, overwriting objectives.
         if oData and questData.isComplete and (questData.isAutoComplete and true or false) then oData = nil end
 
-        obj.text:SetWidth(objTextWidth)
-        obj.shadow:SetWidth(objTextWidth)
+        -- First objective row is anchored with OBJ_EXTRA_LEFT_PAD; narrow SetWidth by the same amount so text wraps inside the panel.
+        local leftPadThisRow = (shownObjs == 0) and OBJ_EXTRA_LEFT_PAD or 0
+        local rowObjWidth = objTextWidth
+        if leftPadThisRow > 0 then
+            rowObjWidth = math.max(1, objTextWidth - leftPadThisRow)
+        end
+        obj.text:SetWidth(rowObjWidth)
+        obj.shadow:SetWidth(rowObjWidth)
 
         if oData then
             -- Abundance: hide widget objectives inline; the wqProgress bar displays them instead.
@@ -604,9 +611,14 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             -- First objective gets inset from title; subsequent objectives align with it.
             -- When prevAnchor is titleText, use effectiveTitleRowH so objectives sit below inline timer (world quests, etc.).
             -- Use titleGap (title-to-content) for first objective below title; objSpacing for subsequent.
-            local leftPad = (shownObjs == 0) and OBJ_EXTRA_LEFT_PAD or 0
+            local leftPad = leftPadThisRow
             local gapForThisObj = (shownObjs == 0 and prevAnchor == entry.titleText) and titleGap or objSpacing
-            if shownObjs == 0 and prevAnchor == entry.titleText and effectiveTitleRowH then
+            local affixH = entry._affixBlockHeight
+            if shownObjs == 0 and entry.affixText and prevAnchor == entry.affixText
+                and type(affixH) == "number" and affixH > 0 then
+                -- Anchor from left edge of affix block; prevFs would be the last segment (wrong X when affixes wrap).
+                obj.text:SetPoint("TOPLEFT", entry.affixText, "TOPLEFT", leftPad, -affixH - gapForThisObj)
+            elseif shownObjs == 0 and prevAnchor == entry.titleText and effectiveTitleRowH then
                 obj.text:SetPoint("TOPLEFT", prevAnchor, "TOPLEFT", leftPad, -effectiveTitleRowH - gapForThisObj)
             else
                 obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", leftPad, -gapForThisObj)
@@ -652,8 +664,8 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             local pctVal = progressBarPercent or oData.percent
             if thisObjHasBar and nf and nr and type(nf) == "number" and type(nr) == "number" and nr > 1 then
                 -- Arithmetic (x/10): use nf/nr for fraction and "X/Y (Z%)" label
-                local barW = objTextWidth - leftPad
-                if barW < 20 then barW = objTextWidth end
+                local barW = rowObjWidth
+                if barW < 20 then barW = math.max(1, objTextWidth) end
                 local fraction = math.min(nf / nr, 1)
                 local fillW = math.max(1, barW * fraction)
 
@@ -683,8 +695,8 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 prevAnchor = obj.progressBarBg
             elseif thisObjHasBar and pctVal ~= nil and type(pctVal) == "number" then
                 -- Percent-only: use percent/100 for fraction and "Z%" label
-                local barW = objTextWidth - leftPad
-                if barW < 20 then barW = objTextWidth end
+                local barW = rowObjWidth
+                if barW < 20 then barW = math.max(1, objTextWidth) end
                 local fraction = math.min(math.max(0, pctVal / 100), 1)
                 local fillW = math.max(1, barW * fraction)
 
@@ -742,6 +754,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             or (addon.GetDB("objectivePrefixStyle", "none") == "numbers" and ("1. " .. readyToTurnIn)
                 or addon.GetDB("objectivePrefixStyle", "none") == "hyphens" and ("- " .. readyToTurnIn)
                 or readyToTurnIn)
+        local completeRowW = math.max(1, objTextWidth - OBJ_EXTRA_LEFT_PAD)
+        obj.text:SetWidth(completeRowW)
+        obj.shadow:SetWidth(completeRowW)
         obj.text:SetText(firstLineText)
         obj.shadow:SetText(firstLineText)
         obj._hsFinished = true
@@ -760,6 +775,8 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         if isAutoComplete then
             local obj2 = entry.objectives[2]
             local clickText = _G.QUEST_WATCH_CLICK_TO_COMPLETE or "(click to complete)"
+            obj2.text:SetWidth(objTextWidth)
+            obj2.shadow:SetWidth(objTextWidth)
             obj2.text:SetText(clickText)
             obj2.shadow:SetText(clickText)
             obj2._hsFinished = true
@@ -1763,6 +1780,7 @@ local function PopulateEntry(entry, questData, groupKey)
     local affixParts = nil
     if not showAffixesInEntry then
         entry.tierSpellID = nil
+        entry._affixBlockHeight = nil
     elseif addon.GetDelvesAffixes and entry.affixNameSegs and entry.affixSepSegs then
         local affixes, tierSpellID = addon.GetDelvesAffixes()
         entry.tierSpellID = tierSpellID
@@ -1882,8 +1900,9 @@ local function PopulateEntry(entry, questData, groupKey)
         local affixH = affixContentH + lineMaxH
         if not affixH or affixH < 1 then affixH = addon.ZONE_SIZE + 2 end
         totalH = totalH + titleToContentSpacing + affixH
-        -- Objectives must anchor below the last affix fragment, not the first (wrapped rows).
-        prevAnchor = prevFs or entry.affixText
+        entry._affixBlockHeight = affixH
+        -- ApplyObjectives anchors from affixText TOPLEFT + _affixBlockHeight (not prevFs — wrong X when affixes wrap).
+        prevAnchor = entry.affixText
     else
         HideDelveAffixRow(entry)
         entry.affixData = nil

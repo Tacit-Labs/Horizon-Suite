@@ -819,6 +819,7 @@ local function ClearEntry(entry, full)
     entry.outputQuality = nil
     entry.affixData  = nil
     entry.tierSpellID = nil
+    entry._affixBlockHeight = nil
     entry.itemLink   = nil
     if entry.itemBtn then entry.itemBtn._itemLink = nil end
     entry.vignetteGUID  = nil
