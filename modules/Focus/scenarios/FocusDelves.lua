@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Focus - Delve Provider
-    ScenarioHeaderDelvesWidget (tierText, currencies, spells), C_PartyInfo.IsDelveInProgress.
+    ScenarioHeaderDelvesWidget (tierText, currencies, spells), C_PartyInfo.IsDelveInProgress, C_QuestLog.GetQuestTagInfo (QuestTag.Delve).
     Lives remaining: parsed from widget currencies (per-slot textEnabledState or numeric text).
 ]]
 
@@ -185,7 +185,21 @@ local function BuildAffixesFromSeasonFallback()
     return affixes
 end
 
---- Returns nearby quests on the delve map when in a Delve. Only adds quests whose map matches player map.
+--- True when the quest log tags the quest as Delve (Enum.QuestTag.Delve / C_QuestLog.GetQuestTagInfo).
+--- pcall: GetQuestTagInfo can throw on invalid questID.
+--- @param questID number
+--- @return boolean
+local function QuestLogQuestHasDelveTag(questID)
+    if type(questID) ~= "number" or questID <= 0 then return false end
+    if not (C_QuestLog and C_QuestLog.GetQuestTagInfo) then return false end
+    if not (Enum and Enum.QuestTag and Enum.QuestTag.Delve ~= nil) then return false end
+    local ok, tagInfo = pcall(C_QuestLog.GetQuestTagInfo, questID)
+    if not ok or type(tagInfo) ~= "table" or type(tagInfo.tagID) ~= "number" then return false end
+    return tagInfo.tagID == Enum.QuestTag.Delve
+end
+
+--- Nearby Delve-tagged log quests while in an active Delve on a dungeon/micro map.
+--- Scenario / widget-driven delve UI comes from ReadScenarioEntries; this list is only Delve-tagged quests.
 local function CollectDelveQuests(ctx)
     if not addon.IsDelveActive() then return {} end
     local playerMapID = (C_Map and C_Map.GetBestMapForUnit) and C_Map.GetBestMapForUnit("player") or nil
@@ -200,12 +214,13 @@ local function CollectDelveQuests(ctx)
     for questID, _ in pairs(nearbySet) do
         if not seen[questID] and not addon.IsQuestWorldQuest(questID) then
             if not (C_QuestLog.IsQuestCalling and C_QuestLog.IsQuestCalling(questID)) then
-                -- Only show quests the player actually has in their log
-                local logIdx = C_QuestLog.GetLogIndexForQuestID(questID)
-                if logIdx then
-                    local info = C_QuestLog.GetInfo and C_QuestLog.GetInfo(logIdx)
-                    if info and not info.isHidden then
-                        out[#out + 1] = { questID = questID, opts = { isTracked = false, forceCategory = "DELVES" } }
+                if QuestLogQuestHasDelveTag(questID) then
+                    local logIdx = C_QuestLog.GetLogIndexForQuestID(questID)
+                    if logIdx then
+                        local info = C_QuestLog.GetInfo and C_QuestLog.GetInfo(logIdx)
+                        if info and not info.isHidden then
+                            out[#out + 1] = { questID = questID, opts = { isTracked = false, forceCategory = "DELVES" } }
+                        end
                     end
                 end
             end
