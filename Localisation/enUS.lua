@@ -830,12 +830,18 @@ L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND"]                               = "Dashboa
 L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"]       = "Background style for the module dashboard window (Axis). Minimalistic is flat; themed presets use bundled full-bleed art; Specialisation (auto) uses the in-game talent UI background for your current specialization."
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"]                  = "Minimalistic"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"]                      = "Midnight"
-L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL"]                    = "Teldrassil"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"]              = "Teldrassil"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"]                      = "Night Fae"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD"]                    = "Ardenweald"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"]                   = "Zin-Azshari"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_SURAMAR_GARDEN"]                = "Suramar Garden"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_QUELTHALAS"]                    = "Quel'Thalas"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TWILIGHT_VINEYARDS"]            = "Twilight Vineyards"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZUL_AMAN"]                      = "Zul'Aman"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"]                       = "Illidan"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_LICH_KING"]                     = "The Lich King"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"]               = "TBC Anniversary"
+L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_BELEDARS_LIGHT"]                = "Beledar's Light"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"]                 = "Specialisation (auto)"
 L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"]                       = "Dashboard background opacity"
 L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"]             = "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through."
@@ -877,6 +883,9 @@ L["OPTIONS_FOCUS_CURRENT_QUEST_WINDOW"]                               = "Current
 L["OPTIONS_FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                         = "Show quests with recent progress at the top."
 L["OPTIONS_FOCUS_SECONDS_OF_RECENT_PROGRESS_CURRENT_QUEST"]           = "Seconds of recent progress to show in Current Quest (30–120)."
 L["OPTIONS_FOCUS_QUESTS_YOU_MADE_PROGRESS_LAST_MINUTE"]               = "Quests you made progress on in the last minute appear in a dedicated section."
+L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE"]                                = "Events in Zone section"
+L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_DESC"]                           = "List nearby unaccepted quests and zone event quests in the Events in Zone section."
+L["OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_TIP"]                            = "When off, those quests are hidden from the tracker (similar to turning off world quests for content you have not accepted)."
 L["OPTIONS_FOCUS_CATEGORY_ORDER"]                                     = "Focus category order"
 L["OPTIONS_FOCUS_DRAG_REORDER_CATEGORIES_DELVES_SCENARIO_EVENT"]      = "Drag to reorder categories. DELVES and SCENARIO EVENTS stay first."
 L["OPTIONS_FOCUS_DRAG_REORDER_DELVES_SCENARIOS_STAY_FIRST"]           = "Drag to reorder. Delves and Scenarios stay first."
@@ -1753,6 +1762,11 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
 
 
 

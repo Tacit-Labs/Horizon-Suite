@@ -1140,6 +1140,19 @@ function addon.EnsureDB()
             db._migratedDashboardBgDefaultToMidnight = true
         end
     end
+    -- One-shot: Teldrassil.jpg preset removed; map stored id to teldrassilburns (TeldrassilBurns.jpg).
+    do
+        local db = rawDB()
+        if not db._migratedDashboardBgTeldrassilToBurns then
+            db.profiles = db.profiles or {}
+            for _, prof in pairs(db.profiles) do
+                if type(prof) == "table" and prof.dashboardBackgroundTheme == "teldrassil" then
+                    prof.dashboardBackgroundTheme = "teldrassilburns"
+                end
+            end
+            db._migratedDashboardBgTeldrassilToBurns = true
+        end
+    end
     -- One-time migration from legacy hideInCombat toggle.
     -- Check both the active profile and the root DB for the legacy key,
     -- then write the migrated value into the active profile where GetDB reads it.

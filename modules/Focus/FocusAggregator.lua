@@ -175,6 +175,7 @@ local function SortAndGroupQuests(quests)
     local keepCampaignInCat = addon.GetDB("keepCampaignInCategory", false)
     local keepImportantInCat = addon.GetDB("keepImportantInCategory", false)
     local showCurrent = addon.GetDB("showCurrentQuestCategory", true) and groups["CURRENT"]
+    local showEventsInZone = addon.GetDB("showEventsInZone", true)
     local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
     local scenarioActive = false
     if addon.ReadScenarioEntries then
@@ -202,8 +203,11 @@ local function SortAndGroupQuests(quests)
             end
         elseif (q.category == "WORLD" or q.category == "CALLING") and q.isInQuestArea and groups["CURRENT_EVENT"] then
             groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
-        elseif isEventInPlayerZone and groups["AVAILABLE"] then
-            groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
+        elseif isEventInPlayerZone then
+            -- When off, omit entirely (do not fall through to other categories)—same as hiding this bucket.
+            if showEventsInZone and groups["AVAILABLE"] then
+                groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
+            end
         elseif q.isComplete and showComplete
             and not (q.category == "CAMPAIGN" and keepCampaignInCat)
             and not (q.category == "IMPORTANT" and keepImportantInCat) then
@@ -248,7 +252,9 @@ local function SortAndGroupQuests(quests)
         elseif q.category == "PREY" then
             groups["PREY"][#groups["PREY"] + 1] = q
         elseif q.isNearby and not q.isAccepted then
-            groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
+            if showEventsInZone and groups["AVAILABLE"] then
+                groups["AVAILABLE"][#groups["AVAILABLE"] + 1] = q
+            end
         elseif q.isNearby and q.isAccepted then
             if addon.GetDB("showNearbyGroup", true) then
                 groups["NEARBY"][#groups["NEARBY"] + 1] = q

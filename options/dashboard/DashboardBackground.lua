@@ -26,22 +26,34 @@ local DASHBOARD_BG_CROSSFADE_SEC = 0.4
 -- Theme id -> path under media/dashboard/ (SetTexture; PNG/JPEG per client support).
 local DASHBOARD_BG_FILES = {
     midnight = "backgrounds\\Wow-Midnight.jpg",
-    teldrassil = "backgrounds\\Teldrassil.jpg",
+    teldrassilburns = "backgrounds\\TeldrassilBurns.jpg",
     nightfae = "backgrounds\\Nightfae.jpg",
+    ardenweald = "backgrounds\\Ardenweald.jpg",
     zinazshari = "backgrounds\\Zin-Azshari.jpg",
+    suramargarden = "backgrounds\\SuramarGarden.jpg",
+    quelthalas = "backgrounds\\QuelThalas.jpg",
+    twilightvineyards = "backgrounds\\TwilightVineyards.jpg",
+    zulaman = "backgrounds\\ZulAman.jpg",
     illidan = "backgrounds\\Illidan.jpg",
-    lichking = "backgrounds\\LichKing.jpg",
     tbcanniversary = "backgrounds\\TBCAnniversary.jpg",
+    lichking = "backgrounds\\LichKing.jpg",
+    beledarslight = "backgrounds\\BeledarsLight.jpg",
 }
 local DASHBOARD_BG_ORDER = {
     "horizon",
     "midnight",
-    "teldrassil",
+    "teldrassilburns",
+    "quelthalas",
     "nightfae",
+    "ardenweald",
     "zinazshari",
+    "suramargarden",
+    "twilightvineyards",
+    "zulaman",
     "illidan",
-    "lichking",
     "tbcanniversary",
+    "lichking",
+    "beledarslight",
     "talents",
 }
 addon.DashboardBackgroundThemeOrder = DASHBOARD_BG_ORDER
@@ -52,6 +64,10 @@ local function NormalizeDashboardThemeId(themeId)
     end
     if themeId == "talents" then
         return "talents"
+    end
+    -- Legacy id when Teldrassil.jpg was a separate preset; same art folder as TeldrassilBurns.jpg.
+    if themeId == "teldrassil" then
+        return "teldrassilburns"
     end
     if type(themeId) == "string" and DASHBOARD_BG_FILES[themeId] then
         return themeId
