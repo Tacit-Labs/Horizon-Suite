@@ -238,7 +238,7 @@ local function CreateQuestEntry(parent, index)
         local L = addon.L
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TITLE"]) or "Search Auction House", 1, 1, 1)
-        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]) or "Left-click: search for one craft worth of reagents.\nRight-click: enter how many crafts to multiply quantities.\nThe Auction House must be open.", 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]) or "Left-click: one craft with quality and tier when supported.\nRight-click: craft count and tier menu (1–5, or Any for no filters).\nThe Auction House must be open.", 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     e.ahBtn:SetScript("OnLeave", function(self)
@@ -250,7 +250,9 @@ local function CreateQuestEntry(parent, index)
         local entry = self._ownerEntry
         if not entry or not entry._ahShoppingParts or #entry._ahShoppingParts == 0 then return end
         if button == "RightButton" then
-            if StaticPopup_Show then
+            if addon.ShowFocusAuctionCraftDialog then
+                addon.ShowFocusAuctionCraftDialog(entry)
+            elseif StaticPopup_Show then
                 StaticPopup_Show("HORIZONSUITE_AH_CRAFT_COUNT", nil, nil, { entry = entry })
             end
             return

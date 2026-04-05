@@ -51,6 +51,7 @@ modules/Focus/FocusAppearances.lua
 modules/Focus/FocusRecipes.lua
 modules/Focus/FocusAdventureGuide.lua
 modules/Focus/FocusAggregator.lua
+modules/Focus/FocusAuctionCraftDialog.lua
 modules/Focus/FocusEntryPool.lua
 modules/Focus/FocusEntryRenderer.lua
 modules/Focus/FocusSectionHeaders.lua

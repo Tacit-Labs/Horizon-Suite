@@ -65,13 +65,88 @@ end
 -- Caller ID for Auctionator.API.v1 (must match other HorizonSuite Auctionator calls).
 local AUCTIONATOR_CALLER_ID = "HorizonSuite"
 
+-- Auctionator advanced search: tier is crafting reagent / output tier 1–5 (retail crafting quality), not item rarity.
+local AUCTIONATOR_TIER_MIN = 1
+local AUCTIONATOR_TIER_MAX = 5
+
+--- Normalize a Blizzard crafting tier to values Auctionator accepts (1–5); otherwise nil.
+--- @param n number|nil
+--- @return number|nil
+local function NormalizeAuctionatorTier(n)
+    if type(n) ~= "number" then return nil end
+    local t = math.floor(n)
+    if t >= AUCTIONATOR_TIER_MIN and t <= AUCTIONATOR_TIER_MAX then return t end
+    return nil
+end
+
+--- Crafting tier for a reagent item (gem tiers, etc.) via C_TradeSkillUI.
+--- @param itemID number
+--- @return number|nil tier 1–5 or nil
+local function ResolveReagentCraftingTier(itemID)
+    if type(itemID) ~= "number" or itemID < 1 then return nil end
+    if not (Item and Item.CreateFromItemID and C_TradeSkillUI and C_TradeSkillUI.GetItemReagentQualityByItemInfo) then
+        return nil
+    end
+    local item = Item:CreateFromItemID(itemID)
+    if not item then return nil end
+    local ok, tier = pcall(C_TradeSkillUI.GetItemReagentQualityByItemInfo, item)
+    return NormalizeAuctionatorTier((ok and tier) or nil)
+end
+
+--- Resolve recipe output item ID for Auctionator metadata (quality + crafted tier on title row).
+--- @param recipeID number
+--- @param isRecraft boolean
+--- @return number|nil outputItemID
+local function GetRecipeOutputItemIDForAuctionator(recipeID, isRecraft)
+    if type(recipeID) ~= "number" or recipeID < 1 then return nil end
+    if C_TradeSkillUI and C_TradeSkillUI.GetRecipeSchematic then
+        local ok, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, isRecraft, nil)
+        if ok and schematic and type(schematic) == "table" then
+            local oid = schematic.outputItemID
+            if type(oid) == "number" and oid > 0 then return oid end
+        end
+    end
+    if C_TradeSkillUI and C_TradeSkillUI.GetRecipeOutputItemData then
+        local ok, outputInfo = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID, nil, nil, nil, nil)
+        if ok and outputInfo and type(outputInfo) == "table" then
+            local id = outputInfo.itemID or outputInfo.outputItemID
+            if type(id) == "number" and id > 0 then return id end
+        end
+    end
+    return nil
+end
+
+--- Item rarity (Enum.ItemQuality) and crafted output tier for an item ID.
+--- @param itemID number
+--- @return number|nil itemQuality, number|nil craftedTier
+local function GetItemQualityAndCraftedTier(itemID)
+    if type(itemID) ~= "number" or itemID < 1 then return nil, nil end
+    local itemQuality
+    if C_Item and C_Item.GetItemInfo then
+        local ok, _, _, q = pcall(C_Item.GetItemInfo, itemID)
+        if ok and type(q) == "number" and q >= 0 then itemQuality = q end
+    end
+    local craftedTier
+    if Item and Item.CreateFromItemID and C_TradeSkillUI and C_TradeSkillUI.GetItemCraftedQualityByItemInfo then
+        local item = Item:CreateFromItemID(itemID)
+        if item then
+            local ok2, cq = pcall(C_TradeSkillUI.GetItemCraftedQualityByItemInfo, item)
+            craftedTier = NormalizeAuctionatorTier((ok2 and cq) or nil)
+        end
+    end
+    return itemQuality, craftedTier
+end
+
 --- Encode one shopping-list line for CreateShoppingList: advanced search string with quantity when supported.
 --- Falls back to plain name if ConvertToSearchString is missing or errors (older Auctionator).
 --- @param searchString string Item name
 --- @param quantity number Desired stack / buy count (at least 1)
 --- @param itemQuality number|nil Optional Enum.ItemQuality for Auctionator filters
+--- @param craftingTier number|nil Optional crafting tier 1–5 (reagent / output tier in Auctionator)
+--- @param useItemQuality boolean|nil If false, omit term.quality
+--- @param useCraftingTier boolean|nil If false, omit term.tier
 --- @return string
-local function EncodeAuctionatorShoppingListItem(searchString, quantity, itemQuality)
+local function EncodeAuctionatorShoppingListItem(searchString, quantity, itemQuality, craftingTier, useItemQuality, useCraftingTier)
     if type(searchString) ~= "string" or searchString == "" then
         return searchString
     end
@@ -87,13 +162,22 @@ local function EncodeAuctionatorShoppingListItem(searchString, quantity, itemQua
         return searchString
     end
 
+    local applyQ = useItemQuality ~= false
+    local applyT = useCraftingTier ~= false
+
     local term = {
         searchString = searchString,
         isExact = true,
         quantity = qty,
     }
-    if type(itemQuality) == "number" and itemQuality >= 0 then
+    if applyQ and type(itemQuality) == "number" and itemQuality >= 0 then
         term.quality = itemQuality
+    end
+    if applyT then
+        local t = NormalizeAuctionatorTier(craftingTier)
+        if t then
+            term.tier = t
+        end
     end
 
     local ok, encoded = pcall(conv, AUCTIONATOR_CALLER_ID, term)
@@ -108,12 +192,26 @@ addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX = 999
 
 --- Build base shopping rows for Auctionator (one craft): output line + reagents.
 --- @param questData table Recipe entry from aggregator
---- @return table Array of { text, baseQty, itemQuality }
+--- @return table Array of { text, baseQty, itemQuality, craftingTier }
 local function BuildAuctionatorShoppingParts(questData)
     local parts, seen = {}, {}
+
+    local titleQuality, titleTier = nil, nil
+    if questData.isRecipe and type(questData.recipeID) == "number" and questData.recipeID > 0 then
+        local outID = GetRecipeOutputItemIDForAuctionator(questData.recipeID, questData.recipeIsRecraft == true)
+        if outID then
+            titleQuality, titleTier = GetItemQualityAndCraftedTier(outID)
+        end
+    end
+
     if type(questData.title) == "string" and questData.title ~= "" then
         seen[questData.title] = true
-        parts[#parts + 1] = { text = questData.title, baseQty = 1, itemQuality = nil }
+        parts[#parts + 1] = {
+            text          = questData.title,
+            baseQty       = 1,
+            itemQuality   = titleQuality,
+            craftingTier  = titleTier,
+        }
     end
     if questData.objectives then
         for _, obj in ipairs(questData.objectives) do
@@ -126,7 +224,13 @@ local function BuildAuctionatorShoppingParts(questData)
                 if not seen[obj.text] then
                     seen[obj.text] = true
                     local qty = math.max(1, math.floor(obj.numRequired or 1))
-                    parts[#parts + 1] = { text = obj.text, baseQty = qty, itemQuality = obj.itemQuality }
+                    local cq = ResolveReagentCraftingTier(obj.itemID)
+                    parts[#parts + 1] = {
+                        text          = obj.text,
+                        baseQty       = qty,
+                        itemQuality   = obj.itemQuality,
+                        craftingTier  = cq,
+                    }
                 end
             end
         end
@@ -137,24 +241,41 @@ end
 --- Encode Auctionator shopping list strings from base parts and craft multiplier.
 --- @param parts table
 --- @param craftCount number
+--- @param useItemQuality boolean|nil default true
+--- @param useCraftingTier boolean|nil default true
+--- @param forceCraftingTier number|nil When 1–5 and useCraftingTier, use this tier on every row instead of each part's craftingTier.
 --- @return table
-local function EncodeAuctionatorTermsFromParts(parts, craftCount)
+local function EncodeAuctionatorTermsFromParts(parts, craftCount, useItemQuality, useCraftingTier, forceCraftingTier)
     local mult = craftCount
     if type(mult) ~= "number" or mult < 1 then mult = 1 end
     mult = math.min(addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX, math.floor(mult))
+    local forced = NormalizeAuctionatorTier(forceCraftingTier)
     local terms = {}
     for _, p in ipairs(parts) do
         local base = math.max(1, math.floor(p.baseQty or 1))
-        terms[#terms + 1] = EncodeAuctionatorShoppingListItem(p.text, base * mult, p.itemQuality)
+        local tierForRow = p.craftingTier
+        if useCraftingTier and forced then
+            tierForRow = forced
+        end
+        terms[#terms + 1] = EncodeAuctionatorShoppingListItem(
+            p.text,
+            base * mult,
+            p.itemQuality,
+            tierForRow,
+            useItemQuality,
+            useCraftingTier
+        )
     end
     return terms
 end
 
 --- Send recipe reagents to Auctionator as a shopping list (quantities multiplied by craftCount).
+--- Encodes item rarity (quality) and crafting tier (1–5) per row when opts allow and data exists.
 --- @param entry table Pool entry with _ahShoppingParts and _ahRecipeName
 --- @param craftCount number Per-craft quantities are multiplied by this (clamped to 1..AH_AUCTIONATOR_CRAFT_COUNT_MAX).
+--- @param opts table|nil Optional: opts.useItemQuality, opts.useCraftingTier (default true each); opts.forceCraftingTier 1–5 overrides per-row tier when tier matching is on.
 --- @return nil
-function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount)
+function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount, opts)
     if not entry then return end
     local parts = entry._ahShoppingParts
     if not parts or #parts == 0 then return end
@@ -163,7 +284,14 @@ function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount)
     local mult = craftCount
     if type(mult) ~= "number" or mult < 1 then mult = 1 end
     mult = math.min(addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX, math.floor(mult))
-    local terms = EncodeAuctionatorTermsFromParts(parts, mult)
+    local useIQ, useCT = true, true
+    local forceTier = nil
+    if type(opts) == "table" then
+        if opts.useItemQuality == false then useIQ = false end
+        if opts.useCraftingTier == false then useCT = false end
+        forceTier = opts.forceCraftingTier
+    end
+    local terms = EncodeAuctionatorTermsFromParts(parts, mult, useIQ, useCT, forceTier)
     if #terms == 0 then return end
     local recipeName = "Horizon - " .. (entry._ahRecipeName or "Recipe")
     pcall(function()
@@ -1385,7 +1513,7 @@ local function PopulateEntry(entry, questData, groupKey)
         local parts = BuildAuctionatorShoppingParts(questData)
         entry._ahShoppingParts = parts
         entry._ahRecipeName = questData.title
-        entry._ahSearchTerms = EncodeAuctionatorTermsFromParts(parts, 1)
+        entry._ahSearchTerms = EncodeAuctionatorTermsFromParts(parts, 1, true, true, nil)
     else
         entry._ahShoppingParts = nil
         entry._ahSearchTerms = nil

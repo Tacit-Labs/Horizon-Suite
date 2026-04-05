@@ -1699,8 +1699,12 @@ L["OPTIONS_CORE_OPTIONAL_REAGENT_SLOTS"]                              = "Show op
 L["OPTIONS_CORE_QUALITY_TIER_PIPS_RECIPES_SUPPORT_QUALITI"]           = "Show quality tier pips for recipes that support qualities."
 L["OPTIONS_CORE_REAGENT_SHOPPING_LIST_RECIPE"]                        = "Show reagent shopping list for each recipe."
 L["FOCUS_AH_SEARCH_TITLE"]                                            = "Search Auction House"
-L["FOCUS_AH_SEARCH_TOOLTIP"]                                          = "Left-click: search for one craft worth of reagents.\nRight-click: enter how many crafts to multiply quantities.\nThe Auction House must be open."
-L["FOCUS_AH_CRAFT_COUNT_POPUP_TEXT"]                                  = "How many crafts? Shopping list quantities are multiplied (1–999)."
+L["FOCUS_AH_SEARCH_TOOLTIP"]                                          = "Left-click: search for one craft worth of reagents (item quality and crafting tier when Auctionator supports them).\nRight-click: craft count and optional crafting tier (menu, 1–5) — choose Any for no quality or tier filters on the list.\nThe Auction House must be open."
+L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"]                                   = "Auction House shopping list"
+L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"]                                  = "Number of crafts to buy materials for (1–999). List quantities are multiplied by this."
+L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Optional crafting tier (1–5) on every row. Choose Any for no item-quality or tier filters (widest search)."
+L["FOCUS_AH_CRAFT_TIER_ANY"]                                          = "Any tier"
+L["FOCUS_AH_CRAFT_TIER_N"]                                            = "Tier %d"
 L["FOCUS_AH_CRAFT_COUNT_INVALID"]                                     = "Enter a whole number from 1 to 999."
 L["OPTIONS_CORE_RECENT_PROGRESS_TOP"]                                 = "Show recent progress at the top."
 L["OPTIONS_CORE_RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]               = "Show recipe icon next to title. Requires quest type icons in Display."
@@ -1766,6 +1770,13 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
+
+
 
 
 

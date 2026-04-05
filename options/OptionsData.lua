@@ -445,6 +445,7 @@ function OptionsData_SetDB(key, value)
             if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             if addon.ApplyPatchNotesAccent then addon.ApplyPatchNotesAccent() end
             if addon.ApplyURLCopyBoxAccent then addon.ApplyURLCopyBoxAccent() end
+            if addon.ApplyFocusAuctionCraftDialogAccent then addon.ApplyFocusAuctionCraftDialogAccent() end
         end
         if key == "classColorVista" and addon.Vista and addon.Vista.ApplyColors then
             addon.Vista.ApplyColors()
