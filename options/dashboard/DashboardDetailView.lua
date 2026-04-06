@@ -906,7 +906,7 @@ function addon.DashboardDetailView_Init(env)
                 end
                 
                 -- Store the option identifier to track its parent card
-                local optId = opt.dbKey or (opt.type == "presencePreview" and "presencePreview") or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
+                local optId = opt.dbKey or (opt.type == "presencePreview" and "presencePreview") or (opt.type == "moduleReloadPrompt" and "_module_reload_prompt") or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
                 currentCard.optionIds[optId] = true
 
                 local widget
@@ -983,6 +983,25 @@ function addon.DashboardDetailView_Init(env)
                         end
                     end
                     widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, onClick, { tooltip = opt.tooltip })
+                elseif opt.type == "moduleReloadPrompt" then
+                    local container = CreateFrame("Frame", nil, currentCard.settingsContainer)
+                    local hint = MakeText(container, L["OPTIONS_MODULE_RELOAD_HINT"] or "Reload the interface to finish applying module changes.", 12, 0.65, 0.68, 0.75, "LEFT")
+                    hint:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+                    hint:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+                    hint:SetWordWrap(true)
+                    local reloadBtn = _G.OptionsWidgets_CreateButton(container, L["OPTIONS_MODULE_RELOAD_BUTTON"] or "Reload UI", function()
+                        ReloadUI()
+                    end, { width = 130, height = 24 })
+                    reloadBtn:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -10)
+                    local function syncModuleReloadPromptHeight()
+                        local hh = hint:GetStringHeight() or 14
+                        container:SetHeight(math.max(56, hh + 10 + 24 + 8))
+                    end
+                    syncModuleReloadPromptHeight()
+                    if C_Timer and C_Timer.After then
+                        C_Timer.After(0, syncModuleReloadPromptHeight)
+                    end
+                    widget = container
                 elseif opt.type == "editbox" then
                     if _G.OptionsWidgets_CreateEditBox then
                         widget = _G.OptionsWidgets_CreateEditBox(currentCard.settingsContainer, opt.labelText or opt.name, g, s, {
@@ -1499,7 +1518,7 @@ function addon.DashboardDetailView_Init(env)
                     tinsert(currentCard.widgetList, {
                         frame = widget,
                         isHeader = isHeader,
-                        visibleWhen = opt.visibleWhen,
+                        visibleWhen = (opt.type == "moduleReloadPrompt" and function() return addon._moduleReloadRecommended end) or opt.visibleWhen,
                     })
 
                     if opt.visibleWhen and type(opt.visibleWhen) == "function" and widget.Refresh then
@@ -1519,6 +1538,13 @@ function addon.DashboardDetailView_Init(env)
         end
 
         UpdateDetailLayout()
+
+        f._dashboardRelayoutDetailCards = function()
+            for _, card in ipairs(currentDetailCards) do
+                RelayoutCard(card)
+            end
+            UpdateDetailLayout()
+        end
 
         f._refreshDashboardDetailOptionFonts = function()
             for _, w in pairs(detailOptionFrames) do

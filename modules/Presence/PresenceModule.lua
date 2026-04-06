@@ -36,6 +36,6 @@ addon:RegisterModule("presence", {
             if addon.Presence.RestoreAlerts then addon.Presence.RestoreAlerts() end
             if addon.Presence.HideAndClear then addon.Presence.HideAndClear() end
         end
-        ReloadUI()
+        -- Reload is handled by addon:SetModuleEnabled (immediate or user-chosen when dashboard defers).
     end,
 })

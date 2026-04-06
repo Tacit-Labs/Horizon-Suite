@@ -71,6 +71,8 @@ L["OPTIONS_FOCUS_DRAG_RESIZE"]                                        = "Glisser
 L["OPTIONS_AXIS_PROFILES"]                                            = "Profils"
 -- L["OPTIONS_AXIS_MODULES"]                                          = "Modules"  -- NEEDS TRANSLATION
 -- L["OPTIONS_AXIS_MODULE_TOGGLES"]                                   = "Module Toggles"  -- NEEDS TRANSLATION
+-- L["OPTIONS_MODULE_RELOAD_HINT"]                                    = "Reload the interface to finish applying module changes."  -- NEEDS TRANSLATION
+-- L["OPTIONS_MODULE_RELOAD_BUTTON"]                                  = "Reload UI"  -- NEEDS TRANSLATION
 
 -- =====================================================================
 -- options/dashboard/HomeWelcome.lua — First-run welcome
@@ -1771,6 +1773,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

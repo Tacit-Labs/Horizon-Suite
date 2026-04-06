@@ -3790,7 +3790,7 @@ function Vista.Disable()
     HideAllProxyButtons()
     DestroyDrawerButton()
     if not InCombatLockdown() then proxy.SetParent(Minimap, MinimapCluster) end
-    ReloadUI()
+    -- Reload is handled by addon:SetModuleEnabled (immediate or user-chosen when dashboard defers).
 end
 
 function Vista.CollectButtons()

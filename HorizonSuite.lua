@@ -145,9 +145,21 @@ function addon:DisableModule(key)
 end
 
 --- Set module enabled state (convenience for toggles).
-function addon:SetModuleEnabled(key, enabled)
+--- @param key string Module key
+--- @param enabled boolean
+--- @param opts table|nil Optional; opts.deferReload skips ReloadUI until the user reloads (e.g. dashboard module toggles).
+function addon:SetModuleEnabled(key, enabled, opts)
     if enabled then self:EnableModule(key) else self:DisableModule(key) end
+    -- Set before Dashboard_Refresh: relayout reads _moduleReloadRecommended in visibleWhen for the reload prompt.
+    if opts and opts.deferReload then
+        self._moduleReloadRecommended = true
+    else
+        self._moduleReloadRecommended = false
+    end
     if self.Dashboard_Refresh then self.Dashboard_Refresh() end
+    if opts and opts.deferReload then
+        return
+    end
     ReloadUI()
 end
 
