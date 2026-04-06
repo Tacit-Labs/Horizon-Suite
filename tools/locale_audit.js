@@ -3,7 +3,7 @@
  * Locale coverage vs Localisation/enUS.lua.
  *
  * "Translated" = active L["key"] assignment whose string differs from enUS (real locale text).
- * Fallback via __index (commented NEEDS TRANSLATION or identical copy) counts as not translated.
+ * Fallback via __index (commented stub or identical copy) counts as not translated.
  *
  * Usage:
  *   node tools/locale_audit.js

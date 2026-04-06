@@ -17,7 +17,7 @@ Scripts for **localisation** maintenance and project administration. Run from th
 
 | Script | Command | When |
 |--------|---------|------|
-| Sync locale files to `enUS` order | `node tools/restructure_locales.js` | Rewrites `enUS.lua` format (no per-key `-- Context:`; no blank lines between keys; pads spaces so `=` and values align in one column from the longest `L["KEY"]`), then regenerates other locales; strips assignments that duplicate enUS (comment + `NEEDS TRANSLATION` so runtime uses `__index` fallback) |
+| Sync locale files to `enUS` order | `node tools/restructure_locales.js` | Rewrites `enUS.lua` format (no per-key `-- Context:`; no blank lines between keys; pads spaces so `=` and values align in one column from the longest `L["KEY"]`), then regenerates other locales; strips assignments that duplicate enUS (commented-out `-- L["KEY"] = …` so runtime uses `__index` fallback) |
 | Coverage check | `node tools/locale_audit.js --strict` | Before merge requests (same as CI `locale-check`); strict = every key has a row; coverage counts only strings that differ from enUS |
 | Optional key metadata | `node tools/locale_validate.js <locale> <KEY>` or `… --all-unvalidated` | Reviewer workflow |
 

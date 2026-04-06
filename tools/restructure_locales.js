@@ -3,7 +3,7 @@
  * Sync Localisation/{locale}.lua to match Localisation/enUS.lua key order and sections.
  * Normalizes enUS first (removes per-key `-- Context:` lines; drops blank lines between keys;
  * aligns `=` and values in a fixed column from max `L["KEY"]` width).
- * Untranslated keys become commented lines with NEEDS TRANSLATION.
+ * Untranslated keys become commented-out assignments (leading `--` only; runtime falls back to enUS).
  * Assignments whose string equals enUS are treated as untranslated (comment only) so
  * locales fall back via __index to enUS — no duplicate English to maintain.
  * Regenerates Localisation/locale_template.lua for new translators.
@@ -27,6 +27,11 @@ const LOC = path.join(ROOT, 'Localisation');
 const enUSPath = path.join(LOC, 'enUS.lua');
 
 const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'ruRU', 'esES', 'zhCN'];
+
+/** Normalize decoded locale text for comparison with enUS (legacy marker inside strings). */
+function localeCompareString(s) {
+    return s.replace(/\s*-- NEEDS TRANSLATION/g, '');
+}
 
 function readStandardFont(localePath) {
     if (!fs.existsSync(localePath)) return 'UNIT_NAME_FONT';
@@ -64,14 +69,13 @@ function generateLocaleFile(localeCode, entries, translated, standardFont, maxLh
             const enStr = decodedStringFromLuaRhs(e.valueRaw);
             if (rhs !== undefined) {
                 const locStr = decodedStringFromLuaRhs(rhs);
-                if (locStr === enStr) {
+                if (localeCompareString(locStr) === enStr) {
                     lines.push(
                         formatLocaleAssignment({
                             symKey: e.symKey,
                             rhsRaw: e.valueRaw,
                             commented: true,
                             maxLhsLen,
-                            needsTranslation: true,
                         }),
                     );
                 } else {
@@ -91,7 +95,6 @@ function generateLocaleFile(localeCode, entries, translated, standardFont, maxLh
                         rhsRaw: e.valueRaw,
                         commented: true,
                         maxLhsLen,
-                        needsTranslation: true,
                     }),
                 );
             }
