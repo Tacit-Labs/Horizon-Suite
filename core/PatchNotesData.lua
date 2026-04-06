@@ -15,6 +15,25 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.9.3"] = {
+        date = "2026-04-06",
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: dashboard body text size, outline dropdown, and shadow toggle (migrates older keys)",
+                "Axis: option widget fonts refresh when dashboard typography changes",
+                "Axis: home tiles — class-colour hover ring; clearer preview and coming-soon states",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Axis: settings search stays visible when opening a module after Welcome or Quick Start",
+                "Focus: omit tracked quests whose title or objectives contain [DNT] placeholders",
+            },
+        },
+    },
+
     ["4.9.2"] = {
         date = "2026-04-06",
         {

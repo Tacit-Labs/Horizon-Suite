@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.9.3] – 2026-04-06
+
+### 🔧 Improvements
+
+- **(Axis)** Dashboard typography: body text size in pixels, outline style dropdown, and text shadow toggle, with migration from older offset/outline/shadow keys
+- **(Axis)** Option widgets pick up font flag changes when dashboard typography is updated
+- **(Axis)** Home module tiles: class-coloured hover ring and clearer preview and coming-soon idle and hover states
+
+### 🐛 Fixes
+
+- **(Axis)** Settings search bar stays visible when you open a module after Welcome or Quick Start
+- **(Focus)** Tracked quests that use `[DNT]` placeholder titles or objectives are left out of the tracker
+
+---
+
 ## [4.9.2] – 2026-04-06
 
 ### 🔧 Improvements
