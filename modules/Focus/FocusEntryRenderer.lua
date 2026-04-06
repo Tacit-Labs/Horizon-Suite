@@ -1494,7 +1494,7 @@ local function PopulateEntry(entry, questData, groupKey)
 
     local hasItem = (questData.itemTexture and questData.itemLink) and true or false
     local showItemBtn = hasItem and addon.GetDB("showQuestItemButtons", false)
-    local showQuestIcons = addon.GetDB("showQuestTypeIcons", false)
+    local showQuestIcons = addon.GetDB("showQuestTypeIcons", true)
     local showAchievementIcons = addon.GetDB("showAchievementIcons", true)
     local showDecorIcons = addon.GetDB("showDecorIcons", true)
     local showAppearanceIcons = addon.GetDB("showAppearanceIcons", true)

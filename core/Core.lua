@@ -454,7 +454,7 @@ end
 function addon.GetContentLeftOffset()
     -- Left gutter contains (optional) quest-type icon column.
     -- Quest item buttons live in the RIGHT gutter (shared with the LFG button).
-    local showQuestIcons = addon.GetDB("showQuestTypeIcons", false)
+    local showQuestIcons = addon.GetDB("showQuestTypeIcons", true)
     local iconWidth = addon.GetEffectiveQuestIconSize() + (addon.QUEST_TYPE_ICON_GAP or 4)
     local base = addon.PADDING + (showQuestIcons and iconWidth or 0)
     return addon.Scaled(math.max(addon.PADDING, base))
@@ -1151,6 +1151,19 @@ function addon.EnsureDB()
                 end
             end
             db._migratedDashboardBgTeldrassilToBurns = true
+        end
+    end
+    -- One-shot: quest type icons default on (Blizzard+ icon click); flip every stored profile once.
+    do
+        local db = rawDB()
+        if not db._migratedShowQuestTypeIconsDefaultOn then
+            db.profiles = db.profiles or {}
+            for _, prof in pairs(db.profiles) do
+                if type(prof) == "table" then
+                    prof.showQuestTypeIcons = true
+                end
+            end
+            db._migratedShowQuestTypeIconsDefaultOn = true
         end
     end
     -- One-time migration from legacy hideInCombat toggle.

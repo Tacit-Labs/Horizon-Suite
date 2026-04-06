@@ -1026,7 +1026,7 @@ local function FullLayout()
     -- order left-to-right is: [icon] [2px gap] [bar] [text].
     -- Only shift the entry right enough that the icon's left edge stays on-screen.
     local iconModePad = 0
-    if addon.GetDB("showQuestTypeIcons", false) then
+    if addon.GetDB("showQuestTypeIcons", true) then
         local hs = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
         if hs == "bar-left" or hs == "pill-left" then
             local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
@@ -1159,7 +1159,7 @@ local function FullLayout()
                     -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.
                     if entry.questTypeIcon then
                         entry.questTypeIcon:ClearAllPoints()
-                        local showIcons = addon.GetDB("showQuestTypeIcons", false)
+                        local showIcons = addon.GetDB("showQuestTypeIcons", true)
                         if showIcons then
                             -- Place icon to the right of the supertracked highlight bar so the bar is always leftmost.
                             local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
