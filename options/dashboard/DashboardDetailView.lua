@@ -507,6 +507,9 @@ function addon.DashboardDetailView_Init(env)
             if mk == "insight" and addon.Insight and addon.Insight.SetDashboardPreviewMode then
                 addon.Insight.SetDashboardPreviewMode("global")
             end
+            -- SetSidebarState above ran before subCategoryView was shown; ApplySidebarState uses
+            -- subCategoryView:IsShown() to prefer the module header over the first sub-row.
+            SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = CLEAR })
         elseif not skipDetailBuild then
             -- Only 1 category (or none), go straight to details
             ClearDetailCards()
