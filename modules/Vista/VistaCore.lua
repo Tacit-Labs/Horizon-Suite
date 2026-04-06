@@ -47,6 +47,9 @@ local DEFAULT_RELPOINT = "TOPRIGHT"
 local DEFAULT_X        = -20
 local DEFAULT_Y        = -20
 
+-- Saved difficulty overlay positions from builds before difficulty anchored to Minimap (not zone text) are invalid.
+local VISTA_DIFF_LAYOUT_VERSION = 2
+
 -- Sentinel value meaning "use the global font" for per-element font pickers
 local FONT_USE_GLOBAL = "__global__"
 
@@ -156,15 +159,18 @@ do
     G.CoordVerticalPos = function() return vpos("vistaCoordVerticalPos") end
     G.TimeVerticalPos  = function() return vpos("vistaTimeVerticalPos")  end
     G.PerfVerticalPos  = function() return vpos("vistaPerfVerticalPos")  end
+    G.DiffVerticalPos  = function() return vpos("vistaDiffVerticalPos")  end
 
     -- Anchors
     G.ZoneAnchors  = function() if G.ZoneVerticalPos()=="top"  then return "BOTTOM","TOP"         end return "TOP","BOTTOM"         end
     G.CoordAnchors = function() if G.CoordVerticalPos()=="top" then return "BOTTOMRIGHT","TOPRIGHT" end return "TOPRIGHT","BOTTOMRIGHT" end
     G.TimeAnchors  = function() if G.TimeVerticalPos()=="top"  then return "BOTTOMLEFT","TOPLEFT"  end return "TOPLEFT","BOTTOMLEFT"  end
     G.PerfAnchors  = function() if G.PerfVerticalPos()=="top"  then return "BOTTOMRIGHT","TOPRIGHT" end return "TOPRIGHT","BOTTOMRIGHT" end
+    G.DiffAnchors  = function() if G.DiffVerticalPos()=="top"  then return "BOTTOM","TOP"         end return "TOP","BOTTOM"         end
 
     -- Saved drag offsets
     local DEFAULT_Y_BOTTOM, DEFAULT_Y_TOP = -6, 6
+    local DEFAULT_DIFF_Y_BOTTOM, DEFAULT_DIFF_Y_TOP = -28, 28
     G.ElemX      = function(k,d) return tonumber(DB("vistaEX_"..k, d)) or d end
     G.ElemY      = function(k,d) return tonumber(DB("vistaEY_"..k, d)) or d end
     G.ElemLocked = function(k)   return DB("vistaLocked_"..k, false) end
@@ -176,6 +182,8 @@ do
     G.TimeOffsetY  = function() local c=G.ElemY("time", nil);  if c~=nil then return c end return G.TimeVerticalPos()=="top"  and DEFAULT_Y_TOP or DEFAULT_Y_BOTTOM end
     G.PerfOffsetX  = function() return G.ElemX("perf",  0) end
     G.PerfOffsetY  = function() local c=G.ElemY("perf", nil);  if c~=nil then return c end return G.PerfVerticalPos()=="top" and DEFAULT_Y_TOP or -22 end
+    G.DiffOffsetX  = function() return G.ElemX("diff",  0) end
+    G.DiffOffsetY  = function() local c=G.ElemY("diff", nil);  if c~=nil then return c end return G.DiffVerticalPos()=="top" and DEFAULT_DIFF_Y_TOP or DEFAULT_DIFF_Y_BOTTOM end
 
     -- Button modes
     G.ButtonMode          = function() return DB("vistaButtonMode",         BTN_MODE_RIGHTCLICK) end
@@ -771,9 +779,10 @@ local function CreateDecor()
     -- ---- Difficulty text (in a draggable container) ----
     local diffContainer = CreateFrame("Frame", nil, decor)
     diffContainer:SetSize(GetMapSize(), 20)
-    diffContainer:SetPoint("TOP", zoneText, "BOTTOM", 0, -2)
+    local dAp, dRp = G.DiffAnchors()
+    diffContainer:SetPoint(dAp, Minimap, dRp, G.DiffOffsetX(), G.DiffOffsetY())
     diffContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(diffContainer, "diff", "diff", "diff", function() return "TOP", "BOTTOM" end, zoneText)
+    MakeDraggable(diffContainer, "diff", "diff", "diff", G.DiffAnchors, Minimap)
 
     diffShadow = diffContainer:CreateFontString(nil, "BORDER")
     diffShadow:SetFont(G.DiffFont(), G.DiffSize(), "OUTLINE")
@@ -3354,7 +3363,7 @@ local VISTA_OPTION_KEYS_SKIP_MINIMAP_COLLECT = {
     vistaShowZoneText = true, vistaShowCoordText = true, vistaShowTimeText = true, vistaShowPerfText = true,
     vistaTimeUseLocal = true, vistaTime24Hour = true,
     vistaZoneDisplayMode = true,
-    vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true,
+    vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true, vistaDiffVerticalPos = true,
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
     vistaEX_zone = true, vistaEY_zone = true,
@@ -3485,10 +3494,9 @@ local function ApplyOptions_Texts(sz)
         diffText:SetFont(fp, fs, "OUTLINE"); diffShadow:SetFont(fp, fs, "OUTLINE")
         diffText:SetWidth(sz); diffShadow:SetWidth(sz)
         decor._diffContainer:SetWidth(sz)
-        if not DB("vistaEX_diff", nil) then
-            decor._diffContainer:ClearAllPoints()
-            decor._diffContainer:SetPoint("TOP", decor._zoneContainer, "BOTTOM", 0, -2)
-        end
+        local dAp, dRp = G.DiffAnchors()
+        decor._diffContainer:ClearAllPoints()
+        decor._diffContainer:SetPoint(dAp, Minimap, dRp, G.DiffOffsetX(), G.DiffOffsetY())
         UpdateDifficultyText()
     end
     if collectorBar then
@@ -3623,6 +3631,16 @@ end
 
 function Vista.Init()
     if not Minimap or not MinimapCluster then return end
+
+    -- Difficulty text used to save offsets relative to zone text; re-anchor to Minimap once per profile.
+    do
+        local ver = tonumber(DB("vistaDiffLayoutVersion", 0)) or 0
+        if ver < VISTA_DIFF_LAYOUT_VERSION then
+            SetDB("vistaEX_diff", nil)
+            SetDB("vistaEY_diff", nil)
+            SetDB("vistaDiffLayoutVersion", VISTA_DIFF_LAYOUT_VERSION)
+        end
+    end
 
     proxy.SetFrameStrata(Minimap, "LOW")
     proxy.SetFrameLevel(Minimap, 2)

@@ -73,7 +73,7 @@ A minimap that fits your UI — not the other way around.
 
 - **Square or circular** — Pick your shape. Drag it anywhere, lock it in place, resize from 100–400 px. Optional auto zoom-out after zooming.
 - **Zone text, coordinates, time, and FPS/latency** — Each element has its own font, size, and colour; show or hide individually. Click the clock to open the stopwatch.
-- **Instance info** — Difficulty name and Mythic+ keystone level shown automatically inside instances.
+- **Instance info** — Difficulty name and Mythic+ keystone level shown automatically inside instances. Place it above or below the minimap separately from zone text; drag to adjust like other overlays.
 - **Addon button collector** — Minimap buttons from other addons grouped into a mouseover bar, right-click panel, or floating drawer. Per-addon filter so you show only what you want.
 - **Built-in controls** — Tracking and calendar buttons. Show always or on mouseover. Draggable, resizable, lockable. Unlock the mail icon to reposition it too.
 - **Mail and queue** — New mail and group queue indicators appear automatically when relevant.

@@ -1376,6 +1376,8 @@ L["OPTIONS_VISTA_TEXT_CANNOT_DRAGGED"]                                = "启用�
 -- L["OPTIONS_VISTA_PLACE_FPS_LATENCY_TEXT_ABOVE_BELOW"]              = "Place the FPS/latency text above or below the minimap."  -- NEEDS TRANSLATION
 -- L["OPTIONS_VISTA_LOCK_PERFORMANCE_TEXT_POSITION"]                  = "Lock performance text position"  -- NEEDS TRANSLATION
 -- L["OPTIONS_VISTA_FPS_LATENCY_TEXT_CANNOT_DRAGGED"]                 = "When on, the FPS/latency text cannot be dragged."  -- NEEDS TRANSLATION
+-- L["OPTIONS_VISTA_DIFFICULTY_TEXT_POSITION"]                        = "Difficulty text position"  -- NEEDS TRANSLATION
+-- L["OPTIONS_VISTA_PLACE_DIFFICULTY_TEXT_ABOVE_BELOW"]               = "Place the instance difficulty text above or below the minimap. It is positioned independently of zone text."  -- NEEDS TRANSLATION
 L["OPTIONS_VISTA_LOCK_DIFFICULTY_TEXT_POSITION"]                      = "锁定难度文本位置"
 L["OPTIONS_VISTA_DIFFICULTY_TEXT_CANNOT_DRAGGED"]                     = "启用时难度文本无法拖动"
 L["OPTIONS_VISTA_BUTTON_POSITIONS"]                                   = "按钮位置"
@@ -1769,6 +1771,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"  -- NEEDS TRANSLATION
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."  -- NEEDS TRANSLATION
+
 
 
 

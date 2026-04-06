@@ -1381,6 +1381,8 @@ L["OPTIONS_VISTA_PERFORMANCE_TEXT_POSITION"]                          = "Perform
 L["OPTIONS_VISTA_PLACE_FPS_LATENCY_TEXT_ABOVE_BELOW"]                 = "Place the FPS/latency text above or below the minimap."
 L["OPTIONS_VISTA_LOCK_PERFORMANCE_TEXT_POSITION"]                     = "Lock performance text position"
 L["OPTIONS_VISTA_FPS_LATENCY_TEXT_CANNOT_DRAGGED"]                    = "When on, the FPS/latency text cannot be dragged."
+L["OPTIONS_VISTA_DIFFICULTY_TEXT_POSITION"]                           = "Difficulty text position"
+L["OPTIONS_VISTA_PLACE_DIFFICULTY_TEXT_ABOVE_BELOW"]                  = "Place the instance difficulty text above or below the minimap. It is positioned independently of zone text."
 L["OPTIONS_VISTA_LOCK_DIFFICULTY_TEXT_POSITION"]                      = "Lock difficulty text position"
 L["OPTIONS_VISTA_DIFFICULTY_TEXT_CANNOT_DRAGGED"]                     = "When on, the difficulty text cannot be dragged."
 L["OPTIONS_VISTA_BUTTON_POSITIONS"]                                   = "Button Positions"
@@ -1774,6 +1776,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

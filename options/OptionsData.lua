@@ -241,7 +241,7 @@ local VISTA_KEYS = {
     vistaShowZoneText = true, vistaShowCoordText = true, vistaShowTimeText = true,     vistaShowPerfText = true,
     vistaTimeUseLocal = true, vistaTime24Hour = true,
     vistaZoneDisplayMode = true,
-    vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true,
+    vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true, vistaDiffVerticalPos = true,
     vistaShowDefaultMinimapButtons = true,  -- legacy key kept for compatibility
     vistaLock = true,
     vistaPoint = true, vistaRelPoint = true, vistaX = true, vistaY = true,
@@ -2485,6 +2485,20 @@ local OptionCategories = {
               get = function() return getDB("vistaLocked_perf", true) end,
               set = function(v) setDB("vistaLocked_perf", v) end,
               disabled = function() return not getDB("vistaShowPerfText", false) end },
+            { type = "dropdown", name = L["OPTIONS_VISTA_DIFFICULTY_TEXT_POSITION"] or "Difficulty text position",
+              desc = L["OPTIONS_VISTA_PLACE_DIFFICULTY_TEXT_ABOVE_BELOW"] or "Place the instance difficulty text above or below the minimap.",
+              dbKey = "vistaDiffVerticalPos",
+              options = function() return { { L["OPTIONS_FOCUS_TOP"] or "Top", "top" }, { L["OPTIONS_FOCUS_BOTTOM"] or "Bottom", "bottom" } } end,
+              get = function() return getDB("vistaDiffVerticalPos", "bottom") or "bottom" end,
+              set = function(v)
+                  setDB("vistaDiffVerticalPos", v)
+                  setDB("vistaEX_diff", nil); setDB("vistaEY_diff", nil)
+              end },
+            { type = "toggle", name = L["OPTIONS_VISTA_LOCK_DIFFICULTY_TEXT_POSITION"] or "Lock difficulty text position",
+              desc = L["OPTIONS_VISTA_DIFFICULTY_TEXT_CANNOT_DRAGGED"] or "When on, the difficulty text cannot be dragged.",
+              dbKey = "vistaLocked_diff",
+              get = function() return getDB("vistaLocked_diff", false) end,
+              set = function(v) setDB("vistaLocked_diff", v) end },
             { type = "section", name = L["OPTIONS_VISTA_BUTTON_POSITIONS"] or "Button Positions" },
             { type = "header", name = L["OPTIONS_VISTA_DRAG_BUTTONS_REPOSITION_LOCK_PREVENT_MOVE"] or "Drag buttons to reposition them. Lock to prevent movement." },
             { type = "button", name = L["OPTIONS_VISTA_RESET_OVERLAY_POSITIONS"] or "Reset overlay positions to defaults",
