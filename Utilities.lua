@@ -360,7 +360,7 @@ end
 --- Apply text case from DB option. Returns text in upper, lower, or proper (title) case based on dbKey.
 -- @param text string or nil
 -- @param dbKey string DB key (e.g. "headerTextCase"); values "upper", "lower", or "proper"
--- @param default string optional default when key is not set (e.g. "upper" for header, "proper" for title)
+-- @param default string optional default when key is not set (e.g. "upper" for objectives header, "proper" for titles)
 -- @return string
 function addon.ApplyTextCase(text, dbKey, default)
     if not text or type(text) ~= "string" or text == "" then return text end
