@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.9.1] – 2026-04-06
+
+### 🔧 Improvements
+
+- **(Axis)** German (deDE) options and dashboard strings updated from a contributor export — many new or revised translations (appearances, click actions, context menu, backgrounds, Presence options); all locale files aligned with English key order via restructure
+
+---
+
 ## [4.9.0] – 2026-04-05
 
 ### ✨ New Features
