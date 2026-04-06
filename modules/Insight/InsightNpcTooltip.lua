@@ -21,7 +21,15 @@ local function ShowNpcIcons()       return addon.GetDB("insightNpcShowIcons",   
 --- @return boolean true if processed (caller should finalize)
 function Insight.ProcessNpcTooltip(unit, tooltip)
     if not Insight.IsInsightEnabled() or not tooltip then return false end
-    if UnitIsPlayer(unit) then return false end
+    local isUnitPlayer = false
+    pcall(function()
+        if UnitIsPlayer(unit) then
+            isUnitPlayer = true
+        else
+            isUnitPlayer = false
+        end
+    end)
+    if isUnitPlayer then return false end
 
     local reaction = UnitReaction(unit, "player")
     local c = (reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction]) and FACTION_BAR_COLORS[reaction] or nil

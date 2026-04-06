@@ -80,8 +80,13 @@ local function CacheInspect(guid, unit)
 end
 
 local function RequestInspect(unit)
-    if not UnitIsPlayer(unit) then return end
-    if not CanInspect(unit) then return end
+    local allowInspect = false
+    pcall(function()
+        if not UnitIsPlayer(unit) then return end
+        if not CanInspect(unit) then return end
+        allowInspect = true
+    end)
+    if not allowInspect then return end
     local now = GetTime()
     if now - lastInspect < INSPECT_THROTTLE then return end
     lastInspect = now
@@ -193,8 +198,15 @@ function Insight.AddStatusBadgesBlock(tooltip, unit, guid)
         if C_FriendList and C_FriendList.IsFriend and guid and C_FriendList.IsFriend(guid) then
             badges[#badges + 1] = "|cff55ff55[Friend]|r"
         end
-        local ok, isTargeting = pcall(UnitIsUnit, "mouseoverTarget", "player")
-        if ok and isTargeting then
+        local targetingYou = false
+        pcall(function()
+            if UnitIsUnit("mouseoverTarget", "player") then
+                targetingYou = true
+            else
+                targetingYou = false
+            end
+        end)
+        if targetingYou then
             badges[#badges + 1] = "|cffff4466[Targeting You]|r"
         end
     end)
@@ -234,8 +246,18 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
                 tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(cached.ilvl), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
             end)
         end
-    elseif not UnitIsUnit(unit, "player") then
-        RequestInspect(unit)
+    else
+        local isSelf = false
+        pcall(function()
+            if UnitIsUnit(unit, "player") then
+                isSelf = true
+            else
+                isSelf = false
+            end
+        end)
+        if not isSelf then
+            RequestInspect(unit)
+        end
     end
 end
 
@@ -274,7 +296,15 @@ end
 --- @return boolean true if processed
 function Insight.ProcessPlayerTooltip(unit, tooltip)
     if not Insight.IsInsightEnabled() or not tooltip then return false end
-    if not UnitIsPlayer(unit) then return false end
+    local isUnitPlayer = false
+    pcall(function()
+        if UnitIsPlayer(unit) then
+            isUnitPlayer = true
+        else
+            isUnitPlayer = false
+        end
+    end)
+    if not isUnitPlayer then return false end
 
     local guid     = UnitGUID(unit)
     local className, classFile, classColor, guildName, guildRankName
@@ -294,7 +324,15 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     local cached = guid and inspectCache[guid]
 
     -- Self-unit: populate inspect cache directly
-    if not cached and UnitIsUnit(unit, "player") then
+    local isSelfUnit = false
+    pcall(function()
+        if UnitIsUnit(unit, "player") then
+            isSelfUnit = true
+        else
+            isSelfUnit = false
+        end
+    end)
+    if not cached and isSelfUnit then
         local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
         if specID and specID > 0 then
             local _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)

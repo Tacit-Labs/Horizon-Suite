@@ -201,9 +201,6 @@ local function SyncFadeOutDurationFromDB()
     s = math.floor(s / 0.05 + 0.5) * 0.05
     Insight.FADE_OUT_DUR = s
 end
--- Expand GameTooltip hit box slightly so cursor gaps between anchor and tooltip do not count as "stale".
-local STALE_MOUSEOVER_PADDING        = 4
-
 local function GetTooltipItemLink(tooltip)
     if not tooltip then return nil end
     if tooltip.GetItem then
@@ -260,30 +257,18 @@ local function IsTooltipInFadeOut(tooltip)
     return d and d.state == FADE_STATE_FADEOUT
 end
 
--- After pcall(ok, value), normalize API booleans that may be "secret" on Midnight (no truthiness on raw return).
-local function PlainTrueIf(ok, v)
-    return ok == true and v == true
+-- Branch only on hook-maintained literals. IsShown/IsMouseOver returns can be secret booleans on Midnight:
+-- do not truth-test or compare them — even `v == true` errors. Use OnShow/OnHide and OnEnter/OnLeave + EnableMouse.
+local function TooltipPlainShown(tt)
+    return tt and tt._insightPlainShown == true
 end
 
--- Frame visibility may be a secret boolean; never branch on raw IsShown() return.
-local function FrameShownPlain(frame)
-    if not frame or not frame.IsShown then return false end
-    local ok, shown = pcall(frame.IsShown, frame)
-    return PlainTrueIf(ok, shown)
-end
-
--- True when the cursor is over the tooltip (with padding); do not treat as stale "no mouseover".
--- Cursor anchor mode positions GameTooltip at the mouse, so IsMouseOver is almost always true and would block stale fade forever — defer only in fixed mode.
--- pcall: IsMouseOver can be restricted around secret anchoring per API docs.
--- Return value is always a plain boolean (safe for if/and/not at call sites).
+-- Fixed anchor only: defer stale dismiss while the mouse is over the tooltip (OnEnter/OnLeave on GameTooltip).
 local function ShouldDeferStaleFadeOut(tt)
     if GetAnchorMode() == "cursor" then
         return false
     end
-    if not tt or not tt.IsMouseOver then return false end
-    local p = STALE_MOUSEOVER_PADDING
-    local ok, over = pcall(tt.IsMouseOver, tt, p, p, p, p)
-    return PlainTrueIf(ok, over)
+    return tt and tt._insightPlainMouseOverTooltip == true
 end
 
 -- UnitDocumentation: UnitExists uses SecretArguments AllowedWhenUntainted; from tainted addon code the
@@ -328,7 +313,7 @@ animFrame:SetScript("OnUpdate", function(self, elapsed)
         elseif d.state == FADE_STATE_FADEOUT then
             d.elapsed = d.elapsed + elapsed
             if durOut <= 0 then
-                if tt and FrameShownPlain(tt) then
+                if tt and TooltipPlainShown(tt) then
                     tt:Hide()
                 end
                 toRemove[#toRemove + 1] = tt
@@ -338,7 +323,7 @@ animFrame:SetScript("OnUpdate", function(self, elapsed)
                 if tt.SetAlpha then tt:SetAlpha(alpha) end
                 d.lastAppliedAlpha = alpha
                 if progress >= 1 then
-                    if tt and FrameShownPlain(tt) then
+                    if tt and TooltipPlainShown(tt) then
                         tt:Hide()
                     end
                     toRemove[#toRemove + 1] = tt
@@ -390,7 +375,7 @@ local function DismissStaleUnitGameTooltip(tooltip)
         if tooltip == GameTooltip then
             staleMouseoverMissTicks = 0
         end
-        if FrameShownPlain(tooltip) then
+        if TooltipPlainShown(tooltip) then
             tooltip:Hide()
         end
     else
@@ -433,7 +418,7 @@ local function SchedulePostInspectTooltipSafetyNet()
             if waveGen ~= postInspectSafetyGen then return end
             if not Insight.IsInsightEnabled() then return end
             local tt = GameTooltip
-            if not tt or not FrameShownPlain(tt) then return end
+            if not tt or not TooltipPlainShown(tt) then return end
             local gtHasUnit = false
             if tt.GetUnit then
                 local okGt, uGt = pcall(tt.GetUnit, tt)
@@ -453,6 +438,7 @@ end
 
 local function HookGameTooltipAnimation()
     GameTooltip:HookScript("OnShow", function(self)
+        self._insightPlainShown = true
         if not Insight.IsInsightEnabled() then return end
         -- New show cancels a stale fade-out (e.g. user hovered something else mid-fade).
         CancelTooltipFadeOutIfNeeded(self)
@@ -505,6 +491,8 @@ local function HookGameTooltipAnimation()
         StartFadeIn(self)
     end)
     GameTooltip:HookScript("OnHide", function(self)
+        self._insightPlainShown = false
+        self._insightPlainMouseOverTooltip = false
         tooltipFadeData[self] = nil
         lastTooltipItemLinkByTT[self] = nil
         if not HasActiveTooltipFadeDriver() then
@@ -523,7 +511,7 @@ local function HookGameTooltipAnimation()
     end)
     GameTooltip:HookScript("OnUpdate", function(self, elapsed)
         if not Insight.IsInsightEnabled() then return end
-        if GetAnchorMode() == "cursor" and FrameShownPlain(self) then
+        if GetAnchorMode() == "cursor" and TooltipPlainShown(self) then
             MoveGameTooltipToCursor(self)
         end
         staleCheckElapsed = staleCheckElapsed + elapsed
@@ -558,12 +546,23 @@ local function HookGameTooltipAnimation()
             staleMouseoverMissTicks = 0
         end
     end)
+    -- Stale-dismiss deferral needs mouse hit-testing without calling IsMouseOver (secret boolean).
+    if GameTooltip.EnableMouse then
+        GameTooltip:EnableMouse(true)
+    end
+    GameTooltip:HookScript("OnEnter", function(self)
+        self._insightPlainMouseOverTooltip = true
+    end)
+    GameTooltip:HookScript("OnLeave", function(self)
+        self._insightPlainMouseOverTooltip = false
+    end)
 end
 
 -- Fade-in for ItemRef, shopping, and embedded tooltips (GameTooltip uses HookGameTooltipAnimation).
 local function HookStyledTooltipFade(tt)
     if not tt then return end
     tt:HookScript("OnShow", function(self)
+        self._insightPlainShown = true
         if not Insight.IsInsightEnabled() then return end
         CancelTooltipFadeOutIfNeeded(self)
         -- Comparison tooltips are repositioned by Blizzard on every Show(); fade-in
@@ -587,6 +586,7 @@ local function HookStyledTooltipFade(tt)
         StartFadeIn(self)
     end)
     tt:HookScript("OnHide", function(self)
+        self._insightPlainShown = false
         lastTooltipItemLinkByTT[self] = nil
         tooltipFadeData[self] = nil
         self:SetAlpha(1)
@@ -718,13 +718,20 @@ local function ProcessUnitTooltip(tooltip)
     CancelTooltipFadeOutIfNeeded(tooltip)
 
     -- If Blizzard already showed the tooltip, a second Show() re-runs OnShow (backdrop, fade) and flashes.
-    local alreadyVisible = FrameShownPlain(tooltip)
+    local alreadyVisible = TooltipPlainShown(tooltip)
 
     tooltip._insightItemMetadata = nil
     tooltip._insightUnitTooltip  = true
     if tooltip._insightLineTags then wipe(tooltip._insightLineTags) end
-    local okPl, pl = pcall(UnitIsPlayer, unit)
-    local isPlayer = PlainTrueIf(okPl, pl)
+    -- Never compare UnitIsPlayer return; assign plain literals inside pcall only.
+    local isPlayer = false
+    pcall(function()
+        if UnitIsPlayer(unit) then
+            isPlayer = true
+        else
+            isPlayer = false
+        end
+    end)
     tooltip._insightTooltipType = isPlayer and "player" or "npc"
 
     StripHealthAndPowerText(tooltip)
@@ -764,7 +771,7 @@ end
 
 local function OnItemTooltip(tooltip, data)
     if not Insight.IsInsightEnabled() then return end
-    if tooltip and FrameShownPlain(tooltip) then
+    if tooltip and TooltipPlainShown(tooltip) then
         CancelTooltipFadeOutIfNeeded(tooltip)
     end
 
@@ -819,6 +826,12 @@ anchorFrame:RegisterForDrag("LeftButton")
 anchorFrame:SetClampedToScreen(true)
 anchorFrame:SetFrameStrata("DIALOG")
 anchorFrame:Hide()
+anchorFrame:HookScript("OnShow", function(self)
+    self._insightPlainShown = true
+end)
+anchorFrame:HookScript("OnHide", function(self)
+    self._insightPlainShown = false
+end)
 
 local anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
 anchorLabel:SetFont(Insight.FONT_PATH, Insight.Scaled(Insight.BODY_SIZE), "OUTLINE")
@@ -865,7 +878,7 @@ local function HideAnchorFrame()
 end
 
 local function ApplyLiveBackdropColor(tooltip)
-    if not tooltip or not FrameShownPlain(tooltip) or not tooltip.SetBackdropColor then return end
+    if not tooltip or not TooltipPlainShown(tooltip) or not tooltip.SetBackdropColor then return end
     local r, g, b, a = Insight.GetBackdropColor()
     tooltip:SetBackdropColor(r, g, b, a)
 end
@@ -919,7 +932,11 @@ local function CreateMockTooltipFrame(parent)
     function mock:ClearLines()
         for i = 1, MAX_PREVIEW_LINES do
             local fs = _G[MOCK_NAME .. "TextLeft" .. i]
-            if fs then fs:SetText(""); fs:Hide() end
+            if fs then
+                fs:SetText("")
+                fs:Hide()
+                fs._insightPlainLineShown = false
+            end
         end
         self._lineCount      = 0
         self._insightLineTags = {}
@@ -934,6 +951,7 @@ local function CreateMockTooltipFrame(parent)
             fs:SetText(text or "")
             fs:SetTextColor(r or 1, g or 1, b or 1, 1)
             fs:Show()
+            fs._insightPlainLineShown = true
         end
     end
 
@@ -944,7 +962,7 @@ local function CreateMockTooltipFrame(parent)
         local yOffset = -PREVIEW_PAD_TOP
         for i = 1, self._lineCount do
             local fs = _G[MOCK_NAME .. "TextLeft" .. i]
-            if fs and FrameShownPlain(fs) then
+            if fs and fs._insightPlainLineShown then
                 fs:ClearAllPoints()
                 fs:SetWidth(innerW)
                 fs:SetPoint("TOPLEFT", self, "TOPLEFT", PREVIEW_PAD_SIDE, yOffset)
@@ -1023,7 +1041,7 @@ end
 
 --- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
 function Insight.ToggleAnchorFrame()
-    if FrameShownPlain(anchorFrame) then
+    if TooltipPlainShown(anchorFrame) then
         HideAnchorFrame()
         Insight.Print("Horizon Insight: Anchor hidden. Position saved.")
     else
@@ -1033,7 +1051,7 @@ end
 
 function Insight.ApplyInsightOptions()
     SyncFadeOutDurationFromDB()
-    if FrameShownPlain(anchorFrame) then
+    if TooltipPlainShown(anchorFrame) then
         Insight.ApplyStoredAnchor(anchorFrame)
         ApplyLiveBackdropColor(anchorFrame)
     end
@@ -1163,7 +1181,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         if okGt then
             gtHasUnit = (SafeUnitExistsKnown(gtUnit) == true)
         end
-        if SafeUnitExistsKnown("mouseover") == false and FrameShownPlain(GameTooltip)
+        if SafeUnitExistsKnown("mouseover") == false and TooltipPlainShown(GameTooltip)
             and (GameTooltip._insightUnitTooltip or gtHasUnit) then
             if ShouldDeferStaleFadeOut(GameTooltip) then return end
             umuDismissGen = umuDismissGen + 1
@@ -1172,7 +1190,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
             local function runUmuDismiss()
                 if gen ~= umuDismissGen then return end
                 if SafeUnitExistsKnown("mouseover") ~= false then return end
-                if not FrameShownPlain(GameTooltip) then return end
+                if not TooltipPlainShown(GameTooltip) then return end
                 local okGt2, gtUnit2 = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
                 local gtHasUnit2 = false
                 if okGt2 then
@@ -1199,15 +1217,22 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         if not guid then return end
         if SafeUnitExistsKnown("mouseover") ~= true then return end
         local mouseoverGuid = UnitGUID("mouseover")
-        local okMatch, isMatch = pcall(function() return mouseoverGuid == guid end)
-        if okMatch and isMatch == true then
+        local guidMatches = false
+        pcall(function()
+            if mouseoverGuid == guid then
+                guidMatches = true
+            else
+                guidMatches = false
+            end
+        end)
+        if guidMatches then
             Insight.CacheInspect(guid, "mouseover")
             local okRef, refU = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
             local refHasUnit = false
             if okRef then
                 refHasUnit = (SafeUnitExistsKnown(refU) == true)
             end
-            if FrameShownPlain(GameTooltip)
+            if TooltipPlainShown(GameTooltip)
                 and (GameTooltip._insightUnitTooltip or refHasUnit) then
                 -- Rebuild while visible; avoid restarting fade from a second OnShow.
                 suppressFadeIn = true
@@ -1242,7 +1267,7 @@ local function HandleInsightSlash(msg)
         end
 
     elseif cmd == "move" then
-        if FrameShownPlain(anchorFrame) then
+        if TooltipPlainShown(anchorFrame) then
             HideAnchorFrame()
             Insight.Print("Horizon Insight: Anchor hidden. Position saved.")
         else
@@ -1264,7 +1289,7 @@ local function HandleInsightSlash(msg)
         GameTooltip:Show()
         -- Defer so we run after OnShow/ApplyBackdrop; otherwise backdrop overwrites border color.
         C_Timer.After(0, function()
-            if FrameShownPlain(GameTooltip) then
+            if TooltipPlainShown(GameTooltip) then
                 GameTooltip:SetBackdropBorderColor(0.77, 0.12, 0.23, 0.60)
             end
         end)
@@ -1304,8 +1329,13 @@ local function HandleInsightDebugSlash(msg)
         local source = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
         local isRondo = false
         if C_AddOns and C_AddOns.IsAddOnLoaded then
-            local ok, r = pcall(C_AddOns.IsAddOnLoaded, "RondoMedia")
-            isRondo = PlainTrueIf(ok, r)
+            pcall(function()
+                if C_AddOns.IsAddOnLoaded("RondoMedia") then
+                    isRondo = true
+                else
+                    isRondo = false
+                end
+            end)
         end
         local rondo = addon.CLASS_ICON_RONDO_NAMES
         local displayName = rondo and rondo["WARRIOR"] or "Warrior"
