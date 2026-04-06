@@ -15,6 +15,16 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.9.1"] = {
+        date = "2026-04-06",
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: German (deDE) options and dashboard text refreshed from a contributor export, with locale files restructured to match English key order",
+            },
+        },
+    },
+
     ["4.9.0"] = {
         date = "2026-04-05",
         {
