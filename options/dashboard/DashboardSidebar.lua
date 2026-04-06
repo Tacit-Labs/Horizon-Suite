@@ -210,6 +210,9 @@ function addon.DashboardSidebar_CreateChrome(p)
             prev.btnBg:SetColorTexture(0, 0, 0, 0)
             if prev._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
                 addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(prev, prev.label, prev.icon, false)
+            elseif prev.chevron then
+                prev.label:SetTextColor(0.55, 0.55, 0.65, 1)
+                prev.chevron:SetTextColor(0.55, 0.55, 0.65, 1)
             else
                 prev.label:SetTextColor(0.65, 0.65, 0.7)
                 if prev.icon then prev.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
@@ -225,6 +228,9 @@ function addon.DashboardSidebar_CreateChrome(p)
             else
                 btn.label:SetTextColor(1, 1, 1)
                 if btn.icon then btn.icon:SetVertexColor(1, 1, 1, 1) end
+                if btn.chevron then
+                    btn.chevron:SetTextColor(1, 1, 1, 1)
+                end
             end
             btn.accentBar:Show()
         end

@@ -351,8 +351,6 @@ function addon.Dashboard_BuildMainFrame()
             local CLEAR = sb.CLEAR
             local HEADER_ROW_HEIGHT = sb.HEADER_ROW_HEIGHT
             local SIDEBAR_TOP_PAD = sb.SIDEBAR_TOP_PAD
-            local COLLAPSE_ANIM_DUR = sb.COLLAPSE_ANIM_DUR
-            local easeOut = sb.easeOut
             local TAB_ROW_HEIGHT = sb.TAB_ROW_HEIGHT
             local SIDEBAR_WHATSNEW_RESERVE = sb.SIDEBAR_WHATSNEW_RESERVE
             local SIDEBAR_CONTENT_X_INSET = sb.SIDEBAR_CONTENT_X_INSET
@@ -361,7 +359,6 @@ function addon.Dashboard_BuildMainFrame()
             LayoutDashboardSidebarUnderHeader = sb.layoutUnderHeader
 
             local SetSidebarState
-            local RequestGroupToggle
 
             -- Header
             local head = MakeText(f, "Horizon Suite", 24, 1, 1, 1, "CENTER")
@@ -1225,7 +1222,7 @@ function addon.Dashboard_BuildMainFrame()
                         local cat = addon.OptionCategories[catIdx]
                         local iconKey = categoryIcons[cat.key] or "INV_Misc_Question_01"
                         local btn = CreateSidebarButton(sidebarScrollContent, cat.name, iconKey, function()
-                            f.OpenModule(cat.name, cat.moduleKey)
+                            f.OpenModule(cat.name, cat.moduleKey or mk)
                         end)
                         btn:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
                         lastSidebarRow = btn
@@ -1247,10 +1244,18 @@ function addon.Dashboard_BuildMainFrame()
                         yOff = yOff + HEADER_ROW_HEIGHT
                         header.groupKey = mk
                         g.header = header
-                        header.hoverBg = header:CreateTexture(nil, "BACKGROUND")
-                        header.hoverBg:SetAllPoints(header)
-                        header.hoverBg:SetColorTexture(1, 1, 1, 0.03)
-                        header.hoverBg:Hide()
+                        local headerBtnBg = header:CreateTexture(nil, "BACKGROUND")
+                        headerBtnBg:SetAllPoints()
+                        headerBtnBg:SetColorTexture(0, 0, 0, 0)
+                        header.btnBg = headerBtnBg
+                        local headerAccent = header:CreateTexture(nil, "ARTWORK")
+                        headerAccent:SetSize(3, 22)
+                        headerAccent:SetPoint("LEFT", header, "LEFT", 4, 0)
+                        local har, hag, hab = GetAccentColor()
+                        headerAccent:SetColorTexture(har, hag, hab, 1)
+                        headerAccent:Hide()
+                        header.accentBar = headerAccent
+                        tinsert(dashAccentRefs.sidebarBars, headerAccent)
                         local chevron = header:CreateFontString(nil, "OVERLAY")
                         do
                             local hp = addon.Dashboard_ResolveSavedDashboardFontPath(
@@ -1292,6 +1297,7 @@ function addon.Dashboard_BuildMainFrame()
                         end
                         headerLabel:SetText(headerLabelText)
                         header.headerLabel = headerLabel
+                        header.label = headerLabel
 
                         local tabsContainer = CreateFrame("Frame", nil, sidebarScrollContent)
                         tabsContainer:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
@@ -1324,17 +1330,21 @@ function addon.Dashboard_BuildMainFrame()
                         tinsert(sidebarRows, g.row)
 
                         header:SetScript("OnClick", function()
-                            RequestGroupToggle(mk)
+                            f.OpenModule(modName, mk)
                         end)
                         header:SetScript("OnEnter", function()
-                            header.hoverBg:Show()
-                            headerLabel:SetTextColor(0.8, 0.8, 0.85, 1)
-                            chevron:SetTextColor(0.8, 0.8, 0.85, 1)
+                            if header ~= dashSession.activeSidebarBtn then
+                                headerBtnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
+                                headerLabel:SetTextColor(0.8, 0.8, 0.85, 1)
+                                chevron:SetTextColor(0.8, 0.8, 0.85, 1)
+                            end
                         end)
                         header:SetScript("OnLeave", function()
-                            header.hoverBg:Hide()
-                            headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
-                            chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                            if header ~= dashSession.activeSidebarBtn then
+                                headerBtnBg:SetColorTexture(0, 0, 0, 0)
+                                headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
+                                chevron:SetTextColor(0.55, 0.55, 0.65, 1)
+                            end
                         end)
                         chevron:SetText(GetGroupCollapsed(mk) and "+" or "-")
 
@@ -1401,7 +1411,7 @@ function addon.Dashboard_BuildMainFrame()
 
             --- Apply sidebarState to UI: active button, expanded groups, spacers.
             local function ApplySidebarState()
-                local targetMk = sidebarState.view ~= "dashboard" and sidebarState.activeModuleKey or nil
+                local targetMk = sidebarState.activeModuleKey
                 for _, mk in ipairs(groupOrder) do
                     local g = groups[mk]
                     if g and g.tabsContainer and g.fullHeight then
@@ -1431,16 +1441,27 @@ function addon.Dashboard_BuildMainFrame()
                 elseif sidebarState.view == "module" or sidebarState.view == "category" then
                     local mk = sidebarState.activeModuleKey or "modules"
                     local wantCatIdx = sidebarState.activeCategoryIndex
-                    for _, sb in ipairs(sidebarButtons) do
-                        if sb.sidebarCategoryIndex then
-                            local sbMk = sb.sidebarModuleKey or "modules"
-                            if sbMk == mk then
-                                if wantCatIdx and sb.sidebarCategoryIndex == wantCatIdx then
-                                    activeBtn = sb
-                                    break
-                                elseif not wantCatIdx then
-                                    activeBtn = sb
-                                    break
+                    local picked = false
+                    -- Module landing (category tiles): highlight the group header, not the first sub-row.
+                    if sidebarState.view == "module" and not wantCatIdx and subCategoryView:IsShown() then
+                        local g = groups[mk]
+                        if g and g.header and g.header.accentBar then
+                            activeBtn = g.header
+                            picked = true
+                        end
+                    end
+                    if not picked then
+                        for _, sb in ipairs(sidebarButtons) do
+                            if sb.sidebarCategoryIndex then
+                                local sbMk = sb.sidebarModuleKey or "modules"
+                                if sbMk == mk then
+                                    if wantCatIdx and sb.sidebarCategoryIndex == wantCatIdx then
+                                        activeBtn = sb
+                                        break
+                                    elseif not wantCatIdx then
+                                        activeBtn = sb
+                                        break
+                                    end
                                 end
                             end
                         end
@@ -1520,46 +1541,6 @@ function addon.Dashboard_BuildMainFrame()
                 RefreshSidebar()
                 if sidebarState.view == "dashboard" and sidebarState.activeModuleKey and not ShouldShowModuleOnDashboard(sidebarState.activeModuleKey) then
                     f.ShowDashboard()
-                end
-            end
-
-            --- Toggle a group's collapse state (user header click). Persists and animates.
-            RequestGroupToggle = function(mk)
-                local g = groups[mk]
-                if not g or not g.tabsContainer or not g.fullHeight then return end
-                local collapsed = not GetGroupCollapsed(mk)
-                SetGroupCollapsed(mk, collapsed)
-                if g.header and g.header.chevron then g.header.chevron:SetText(collapsed and "+" or "-") end
-                local fromH = g.tabsContainer:GetHeight()
-                local toH = collapsed and 0 or g.fullHeight
-                if fromH ~= toH then
-                    g.tabsContainer.animStart = GetTime()
-                    g.tabsContainer.animFrom = fromH
-                    g.tabsContainer.animTo = toH
-                    g.tabsContainer:SetScript("OnUpdate", function(self)
-                        local elapsed = GetTime() - self.animStart
-                        local t = math.min(elapsed / COLLAPSE_ANIM_DUR, 1)
-                        local h = self.animFrom + (self.animTo - self.animFrom) * easeOut(t)
-                        self:SetHeight(math.max(0, h))
-                        if g.header and g.header.updateSpacer then g.header.updateSpacer() end
-                        LayoutSidebar()
-                        if t >= 1 then
-                            self:SetScript("OnUpdate", nil)
-                            if collapsed then
-                                SetGroupChildrenShown(g, false)
-                            else
-                                SetGroupChildrenShown(g, true)
-                            end
-                        end
-                    end)
-                else
-                    if collapsed then
-                        SetGroupChildrenShown(g, false)
-                    else
-                        SetGroupChildrenShown(g, true)
-                    end
-                    if g.header and g.header.updateSpacer then g.header.updateSpacer() end
-                    LayoutSidebar()
                 end
             end
 
