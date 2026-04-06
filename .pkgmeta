@@ -5,7 +5,7 @@ manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown
 
-# Exclude CI, config, and dev scripts from the packaged addon
+# Exclude CI, config, dev scripts, and marketing media under docs/ from the packaged addon
 ignore:
   - HorizonSuiteBeta.toc
   - options/Mockups.lua
@@ -13,7 +13,7 @@ ignore:
   - .gitignore
   - .pkgmeta
   - scripts
-  - docs
+  - docs # screenshots/GIFs for listings; not shipped in Curse/Wago zips
   - notes
   - "modules/*/notes"
   - pipeline.md
