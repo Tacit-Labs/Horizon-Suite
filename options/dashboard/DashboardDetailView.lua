@@ -131,7 +131,7 @@ function addon.DashboardDetailView_Init(env)
             f.OpenModule(modName, effectiveMk, true)
 
             local options = type(targetCat.options) == "function" and targetCat.options() or targetCat.options
-            f.OpenCategoryDetail(modName, entry.categoryName, options)
+            f.OpenCategoryDetail(modName, entry.categoryName, options, true)
 
             -- Find and expand the relevant accordion card
             C_Timer.After(0.1, function()
@@ -389,7 +389,8 @@ function addon.DashboardDetailView_Init(env)
         return tile
     end
 
-    f.OpenCategoryDetail = function(modName, catName, options)
+    --- @param skipEntranceCascade boolean|nil When true, skip staggered card entrance (search navigation expands accordions and must not snapshot pre-expand Y positions).
+    f.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
         if searchBox then searchBox:ClearFocus() end
 
         local matchedModuleKey = f.currentModuleKey or "modules"
@@ -432,21 +433,23 @@ function addon.DashboardDetailView_Init(env)
 
         f.BuildAccordionDetail(catName, options)
 
-        -- Cascade effect (faster per UX feedback)
-        for i, card in ipairs(currentDetailCards) do
-            card:SetAlpha(0)
-            local _, _, _, xVal, yVal = card:GetPoint()
-            if yVal then
-                card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
-                if C_Timer and C_Timer.After then
-                    C_Timer.After(i * 0.05, function()
-                        if card:IsShown() then
-                            card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                            UIFrameFadeIn(card, 0.2, 0, 1)
-                        end
-                    end)
-                else
-                    card:SetAlpha(1)
+        if not skipEntranceCascade then
+            -- Cascade effect (faster per UX feedback)
+            for i, card in ipairs(currentDetailCards) do
+                card:SetAlpha(0)
+                local _, _, _, xVal, yVal = card:GetPoint()
+                if yVal then
+                    card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
+                    if C_Timer and C_Timer.After then
+                        C_Timer.After(i * 0.05, function()
+                            if card:IsShown() then
+                                card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
+                                UIFrameFadeIn(card, 0.2, 0, 1)
+                            end
+                        end)
+                    else
+                        card:SetAlpha(1)
+                    end
                 end
             end
         end
