@@ -15,6 +15,27 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.9.2"] = {
+        date = "2026-04-06",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: quest type icons on by default for existing profiles (migration)",
+                "Focus: header text case default matches tracker uppercase",
+                "Axis: sidebar module row opens that module and highlights its header; Home and subcategory card chrome aligned; Quick Start path glyphs fixed; batched module toggles use one deferred reload",
+                "Insight: hook-sourced tooltip flags avoid unsafe secret boolean checks on Midnight",
+                "Vista: difficulty text anchored to the minimap, independent of zone text",
+                "Localization: plain commented locale stubs and safer multiline restructure output",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Axis: dashboard options search accordion no longer overlaps after jump-to-match",
+            },
+        },
+    },
+
     ["4.9.1"] = {
         date = "2026-04-06",
         {
