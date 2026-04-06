@@ -412,7 +412,11 @@ local function ReadTrackedQuests()
 
         local baseCategory = (category == "COMPLETE") and addon.GetQuestBaseCategory(questID) or nil
         local title = C_QuestLog.GetTitleForQuestID(questID) or UNKNOWN_TITLE_PLACEHOLDER
+        if title:find("%[DNT%]") then return end
         local objectives = C_QuestLog.GetQuestObjectives(questID) or {}
+        for _, obj in ipairs(objectives) do
+            if obj.text and obj.text:find("%[DNT%]") then return end
+        end
 
         -- Compute isInQuestArea for WORLD/CALLING when provider did not set it.
         local isInQuestArea = opts.isInQuestArea

@@ -85,6 +85,11 @@ function addon.DashboardHomeWelcome_Init(env)
         tBg:SetAllPoints()
         tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal)
 
+        -- Class-colour ring on hover only (idle invisible)
+        local hoverBorder = tile:CreateTexture(nil, "BORDER")
+        hoverBorder:SetAllPoints()
+        hoverBorder:SetColorTexture(0, 0, 0, 0)
+
         local homeCardDivider = tile:CreateTexture(nil, "ARTWORK")
         homeCardDivider:SetHeight(1)
         homeCardDivider:SetPoint("BOTTOMLEFT", 20, 0)
@@ -122,6 +127,8 @@ function addon.DashboardHomeWelcome_Init(env)
             tile.previewBadge = csBadge
         end
 
+        local isPreviewOrSoon = moduleKey and (PREVIEW_MODULE_KEYS[moduleKey] or COMING_SOON_MODULE_KEYS[moduleKey])
+
         tile._isSkeleton = false
 
         --- Apply disabled-module (skeleton) or normal idle chrome for this Home tile.
@@ -132,6 +139,7 @@ function addon.DashboardHomeWelcome_Init(env)
             if tile._isSkeleton then
                 tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal * DASH_HOME_SKELETON_BG_ALPHA_MULT)
                 homeCardDivider:SetColorTexture(0.14, 0.15, 0.17, 0.22)
+                hoverBorder:SetColorTexture(0, 0, 0, 0)
                 if ic.SetDesaturated then ic:SetDesaturated(true) end
                 ic:SetVertexColor(0.5, 0.52, 0.56, 0.68)
                 lbl:SetTextColor(0.44, 0.46, 0.49)
@@ -143,11 +151,21 @@ function addon.DashboardHomeWelcome_Init(env)
                 tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal)
                 local rr, rg, rb = GetAccentColor()
                 homeCardDivider:SetColorTexture(rr, rg, rb, 0.2)
-                if ic.SetDesaturated then ic:SetDesaturated(false) end
-                ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
+                hoverBorder:SetColorTexture(0, 0, 0, 0)
+                if isPreviewOrSoon then
+                    if ic.SetDesaturated then ic:SetDesaturated(true) end
+                    ic:SetVertexColor(0.62, 0.64, 0.68, 0.82)
+                else
+                    if ic.SetDesaturated then ic:SetDesaturated(false) end
+                    ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
+                end
                 lbl:SetTextColor(tile._moduleLabelR, tile._moduleLabelG, tile._moduleLabelB)
                 if tile.previewBadge then
-                    tile.previewBadge:SetTextColor(34/255, 139/255, 34/255, 1)
+                    if moduleKey and COMING_SOON_MODULE_KEYS[moduleKey] then
+                        tile.previewBadge:SetTextColor(0.55, 0.70, 0.90, 1)
+                    else
+                        tile.previewBadge:SetTextColor(34/255, 139/255, 34/255, 1)
+                    end
                 end
                 tileDivider:SetColorTexture(0.20, 0.21, 0.26, 0.28)
             end
@@ -180,8 +198,10 @@ function addon.DashboardHomeWelcome_Init(env)
         tile.ApplyDashboardTileLayout(tile, tileH)
 
         tile:SetScript("OnEnter", function()
+            local ar, ag, ab = GetAccentColor()
             if tile._isSkeleton then
                 tBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, fillANormal * DASH_HOME_SKELETON_BG_ALPHA_MULT)
+                hoverBorder:SetColorTexture(ar, ag, ab, 0.35)
                 ic:SetVertexColor(0.58, 0.60, 0.64, 0.82)
                 lbl:SetTextColor(0.55, 0.57, 0.60)
                 if tile.previewBadge then
@@ -189,6 +209,24 @@ function addon.DashboardHomeWelcome_Init(env)
                 end
             else
                 tBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, fillANormal)
+                hoverBorder:SetColorTexture(ar, ag, ab, 0.55)
+                homeCardDivider:SetColorTexture(ar, ag, ab, 0.45)
+                if isPreviewOrSoon then
+                    if ic.SetDesaturated then ic:SetDesaturated(true) end
+                    ic:SetVertexColor(0.58, 0.60, 0.64, 0.82)
+                    lbl:SetTextColor(0.55, 0.57, 0.60)
+                    if tile.previewBadge then
+                        if moduleKey and COMING_SOON_MODULE_KEYS[moduleKey] then
+                            tile.previewBadge:SetTextColor(0.50, 0.65, 0.88, 0.9)
+                        else
+                            tile.previewBadge:SetTextColor(0.38, 0.65, 0.40, 0.9)
+                        end
+                    end
+                else
+                    if ic.SetDesaturated then ic:SetDesaturated(false) end
+                    ic:SetVertexColor(1, 1, 1, 1)
+                    lbl:SetTextColor(1, 1, 1)
+                end
             end
         end)
         tile:SetScript("OnLeave", function()

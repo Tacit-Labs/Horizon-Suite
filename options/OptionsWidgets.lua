@@ -94,12 +94,33 @@ local SetTextColor = addon.SetTextColor or function(obj, color)
 end
 
 local DEFAULT_FALLBACK_FONT = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+
+-- Registry of widget FontStrings that were set with nil flags (i.e. defer to Def.WidgetFontFlags).
+-- Populated by SetSafeFont; consumed by OptionsWidgets_RefreshFonts.
+local widgetFontRegistry = {}
+
+--- Re-apply current Def font path and WidgetFontFlags to all registered widget FontStrings.
+--- Call after OptionsWidgets_SetDef changes WidgetFontFlags or FontPath.
+function _G.OptionsWidgets_RefreshFonts()
+    local path = Def.FontPath or DEFAULT_FALLBACK_FONT
+    local flags = Def.WidgetFontFlags or "OUTLINE"
+    for _, e in ipairs(widgetFontRegistry) do
+        local fs = e.fs
+        if fs and fs.SetFont then
+            pcall(function() fs:SetFont(path, e.size, flags) end)
+            if addon.Dashboard_ApplyTextShadow then addon.Dashboard_ApplyTextShadow(fs) end
+        end
+    end
+end
+
 local function SetSafeFont(fs, path, size, flags)
     if not fs then return false end
     path = path or Def.FontPath or DEFAULT_FALLBACK_FONT
     local effFlags = flags
     if effFlags == nil then
         effFlags = Def.WidgetFontFlags or "OUTLINE"
+        -- Register so OptionsWidgets_RefreshFonts can re-apply when WidgetFontFlags changes.
+        widgetFontRegistry[#widgetFontRegistry + 1] = { fs = fs, size = size }
     end
     local ok = fs:SetFont(path, size, effFlags)
     if not ok then

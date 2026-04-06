@@ -439,7 +439,10 @@ function addon.DashboardDetailView_Init(env)
     end
 
     f.OpenModule = function(name, moduleKey, skipDetailBuild)
-        if searchBox then searchBox:ClearFocus() end
+        if searchBox then
+            searchBox:ClearFocus()
+            searchBox:Show()
+        end
 
         local mk = moduleKey or "modules"
         f.currentModuleKey = mk
