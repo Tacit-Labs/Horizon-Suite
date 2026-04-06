@@ -9,15 +9,13 @@ addon.DashboardConstants = {
     -- Interior fills: lower so tiles/sidebar do not read as opaque slabs over the softened backdrop.
     CHILD_PANEL_ALPHA = 0.72,
     CONTENT_CARD_ALPHA_MULT = 0.78,
-    -- Home module tiles: polish + bento Axis (same width as others; height = stacked rows + gap).
+    -- Home module tiles: bento Axis (same width as others; height = stacked rows + gap). Fill matches subcategory/accordion cards (SectionCard × CONTENT_CARD_ALPHA_MULT); HOME_TILE_BG_ALPHA_MULT for optional tuning.
     HOME_TILE_W = 190,
     HOME_TILE_H = 160,
     HOME_TILE_GAP = 15,
     HOME_TILE_COLS = 4,
-    HOME_TILE_BG_ALPHA_MULT = 0.82,
-    HOME_TILE_BORDER_ALPHA_MULT = 0.88,
+    HOME_TILE_BG_ALPHA_MULT = 1.0,
     HOME_SKELETON_BG_ALPHA_MULT = 0.58,
-    HOME_SKELETON_BORDER_ALPHA_MULT = 0.62,
     -- Dashboard window (16:9). Author full-bleed PNG backgrounds at this size (or 2×, e.g. 2560×1440).
     FRAME_W = 1280,
     FRAME_H = 720,

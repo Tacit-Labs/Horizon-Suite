@@ -298,6 +298,7 @@ function addon.DashboardDetailView_Init(env)
         end
         wipe(currentSubTiles)
         wipe(dashAccentRefs.subcatAccents)
+        wipe(dashAccentRefs.subcatDividers)
     end
 
     -- Match options section-card transparency (OptionsWidgets SectionCardBg / SectionCardBorder)
@@ -323,36 +324,29 @@ function addon.DashboardDetailView_Init(env)
         local col = (index-1) % 2
         tile:SetPoint("TOPLEFT", parent, "TOPLEFT", TILE_PAD + (col * TILE_STRIDE), 0 + (row * -130))
 
-        -- Background
+        -- Chrome aligned with CreateAccordionCard: full-bleed fill, left accent, bottom divider (no frame border)
         local tBg = tile:CreateTexture(nil, "BACKGROUND")
-        tBg:SetPoint("TOPLEFT", 1, -1)
-        tBg:SetPoint("BOTTOMRIGHT", -1, 1)
+        tBg:SetAllPoints()
         tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
 
-        -- Border
-        local border = tile:CreateTexture(nil, "BORDER")
-        border:SetAllPoints()
-        border:SetColorTexture(SBd[1], SBd[2], SBd[3], SBd[4])
+        local divider = tile:CreateTexture(nil, "ARTWORK")
+        divider:SetHeight(1)
+        divider:SetPoint("BOTTOMLEFT", 20, 0)
+        divider:SetPoint("BOTTOMRIGHT", -20, 0)
+        local cdr, cdg, cdb = GetAccentColor()
+        divider:SetColorTexture(cdr, cdg, cdb, 0.2)
+        tinsert(dashAccentRefs.subcatDividers, divider)
 
-        -- Top accent highlight (hidden by default)
-        local topAccent = tile:CreateTexture(nil, "ARTWORK")
-        topAccent:SetHeight(2)
-        topAccent:SetPoint("TOPLEFT", 1, -1)
-        topAccent:SetPoint("TOPRIGHT", -1, -1)
-        topAccent:SetColorTexture(1, 1, 1, 0)
-
-        -- Accent
         local accent = tile:CreateTexture(nil, "ARTWORK")
-        accent:SetSize(4, 60)
-        accent:SetPoint("LEFT", 0, 0)
+        accent:SetSize(3, 24)
+        accent:SetPoint("TOPLEFT", 20, -18)
         local ar, ag, ab = GetAccentColor()
         accent:SetColorTexture(ar, ag, ab, 1)
-        accent:Hide()
         tinsert(dashAccentRefs.subcatAccents, accent)
 
-        -- Label
+        -- Label (x matches accordion title inset)
         local lbl = MakeText(tile, name, 18, 0.9, 0.9, 0.95, "LEFT")
-        lbl:SetPoint("TOPLEFT", 28, -22)
+        lbl:SetPoint("TOPLEFT", 35, -22)
         
         -- Collect subset of option names for description
         local descStr = desc or ("Configure and customize settings related to " .. name:lower() .. ".")
@@ -366,21 +360,10 @@ function addon.DashboardDetailView_Init(env)
         descLbl:SetJustifyV("TOP")
 
         tile:SetScript("OnEnter", function()
-            -- Keep fill = collapsed accordion idle (no header-hover tint)
-            local ar, ag, ab = GetAccentColor()
-            border:SetColorTexture(ar, ag, ab, 0.6)
-            lbl:SetTextColor(1, 1, 1)
-            descLbl:SetTextColor(0.75, 0.8, 0.85)
-            accent:SetColorTexture(ar, ag, ab, 1)
-            accent:Show()
-            topAccent:SetColorTexture(ar, ag, ab, 0.3)
+            tBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, SBgA)
         end)
         tile:SetScript("OnLeave", function()
-            border:SetColorTexture(SBd[1], SBd[2], SBd[3], SBd[4])
-            lbl:SetTextColor(0.9, 0.9, 0.95)
-            descLbl:SetTextColor(0.55, 0.6, 0.65)
-            accent:Hide()
-            topAccent:SetColorTexture(1, 1, 1, 0)
+            tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
         end)
         tile:SetScript("OnClick", function()
             f.OpenCategoryDetail(modName, name, options)

@@ -32,18 +32,14 @@ function addon.DashboardHomeWelcome_Init(env)
     local DASH_HOME_TILE_GAP = env.DASH_HOME_TILE_GAP
     local DASH_HOME_TILE_COLS = env.DASH_HOME_TILE_COLS
     local DASH_HOME_TILE_BG_ALPHA_MULT = env.DASH_HOME_TILE_BG_ALPHA_MULT
-    local DASH_HOME_TILE_BORDER_ALPHA_MULT = env.DASH_HOME_TILE_BORDER_ALPHA_MULT
     local DASH_HOME_SKELETON_BG_ALPHA_MULT = env.DASH_HOME_SKELETON_BG_ALPHA_MULT
-    local DASH_HOME_SKELETON_BORDER_ALPHA_MULT = env.DASH_HOME_SKELETON_BORDER_ALPHA_MULT
     local DASHBOARD_CONTENT_CARD_ALPHA_MULT = env.DASHBOARD_CONTENT_CARD_ALPHA_MULT
     local detailNav = env.detailNav
 
     local WDef = addon.OptionsWidgetsDef
     local SBg = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
-    local SBd = (WDef and WDef.SectionCardBorder) or { 0.18, 0.2, 0.24, 0.35 }
     local SBgA = SBg[4] * DASHBOARD_CONTENT_CARD_ALPHA_MULT
     local SBgHoverR, SBgHoverG, SBgHoverB = 0.11, 0.11, 0.13
-    local SBgExpandedR, SBgExpandedG, SBgExpandedB = 0.10, 0.10, 0.12
 
     -- Icons by moduleKey so localized tile titles still resolve art.
     local dashboardTileIconByKey = {
@@ -79,54 +75,23 @@ function addon.DashboardHomeWelcome_Init(env)
         local tile = CreateFrame("Button", nil, parent)
         tile.moduleKey = moduleKey
         local tw, th = DashboardTileSizeForKey(moduleKey)
-        local isAxis = moduleKey == "axis"
         tile:SetSize(tw, th)
 
         local tileH = th
-        local fillA = SBgA * DASH_HOME_TILE_BG_ALPHA_MULT
-        local borderA = SBd[4] * DASH_HOME_TILE_BORDER_ALPHA_MULT
+        local fillANormal = SBgA * DASH_HOME_TILE_BG_ALPHA_MULT
 
-        -- Background (softer than section cards)
-        local tBg = tile:CreateTexture(nil, "BACKGROUND", nil, -8)
-        tBg:SetPoint("TOPLEFT", 2, -2)
-        tBg:SetPoint("BOTTOMRIGHT", -2, 2)
-        tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillA)
+        -- Card chrome: full bleed fill + bottom rule (no left accent bar on Home — subcategory/detail keep theirs)
+        local tBg = tile:CreateTexture(nil, "BACKGROUND")
+        tBg:SetAllPoints()
+        tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal)
 
-        -- Top sheen (gradient when supported)
-        local sheen = tile:CreateTexture(nil, "BACKGROUND", nil, -7)
-        sheen:SetPoint("TOPLEFT", tBg, "TOPLEFT", 0, 0)
-        sheen:SetPoint("TOPRIGHT", tBg, "TOPRIGHT", 0, 0)
-        sheen:SetHeight(math.min(56, math.floor(tileH * 0.38)))
-        if sheen.SetGradient and CreateColor then
-            sheen:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.09), CreateColor(0.04, 0.05, 0.08, 0))
-        else
-            sheen:SetColorTexture(1, 1, 1, 0.04)
-        end
-
-        -- Outer border
-        local border = tile:CreateTexture(nil, "BORDER")
-        border:SetAllPoints()
-        border:SetColorTexture(SBd[1], SBd[2], SBd[3], borderA)
-
-        -- Inner hairline (top edge — lifts card off flat fill)
-        local innerTop = tile:CreateTexture(nil, "ARTWORK", nil, -8)
-        innerTop:SetHeight(1)
-        innerTop:SetPoint("TOPLEFT", tBg, "TOPLEFT", 1, -1)
-        innerTop:SetPoint("TOPRIGHT", tBg, "TOPRIGHT", -1, -1)
-        innerTop:SetColorTexture(1, 1, 1, 0.11)
-
-        -- Axis: subtle class-accent rail (idle)
-        local axisRail = nil
-        if isAxis then
-            axisRail = tile:CreateTexture(nil, "ARTWORK", nil, -7)
-            axisRail:SetWidth(3)
-            axisRail:SetPoint("TOPLEFT", tBg, "TOPLEFT", 0, 0)
-            axisRail:SetPoint("BOTTOMLEFT", tBg, "BOTTOMLEFT", 0, 0)
-            local rr, rg, rb = GetAccentColor()
-            axisRail:SetColorTexture(rr, rg, rb, 0.35)
-            tile.axisRail = axisRail
-            tinsert(dashAccentRefs.dashboardAxisRails, axisRail)
-        end
+        local homeCardDivider = tile:CreateTexture(nil, "ARTWORK")
+        homeCardDivider:SetHeight(1)
+        homeCardDivider:SetPoint("BOTTOMLEFT", 20, 0)
+        homeCardDivider:SetPoint("BOTTOMRIGHT", -20, 0)
+        local ddr, ddg, ddb = GetAccentColor()
+        homeCardDivider:SetColorTexture(ddr, ddg, ddb, 0.2)
+        tinsert(dashAccentRefs.homeTileDividers, homeCardDivider)
 
         local iconPath = dashboardTileIconByKey[moduleKey] or categoryIcons[name] or "INV_Misc_Question_01"
         local ic = tile:CreateTexture(nil, "ARTWORK")
@@ -157,16 +122,6 @@ function addon.DashboardHomeWelcome_Init(env)
             tile.previewBadge = csBadge
         end
 
-        local bottomGlow = tile:CreateTexture(nil, "ARTWORK")
-        bottomGlow:SetHeight(2)
-        bottomGlow:SetPoint("BOTTOMLEFT", 1, 1)
-        bottomGlow:SetPoint("BOTTOMRIGHT", -1, 1)
-        bottomGlow:SetColorTexture(1, 1, 1, 0)
-
-        local fillANormal = SBgA * DASH_HOME_TILE_BG_ALPHA_MULT
-        local borderANormal = SBd[4] * DASH_HOME_TILE_BORDER_ALPHA_MULT
-        tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB = SBd[1], SBd[2], SBd[3]
-        tile._dashBorderIdleA = borderANormal
         tile._isSkeleton = false
 
         --- Apply disabled-module (skeleton) or normal idle chrome for this Home tile.
@@ -176,9 +131,7 @@ function addon.DashboardHomeWelcome_Init(env)
             tile._isSkeleton = skeleton and true or false
             if tile._isSkeleton then
                 tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal * DASH_HOME_SKELETON_BG_ALPHA_MULT)
-                border:SetColorTexture(SBd[1], SBd[2], SBd[3], borderANormal * DASH_HOME_SKELETON_BORDER_ALPHA_MULT)
-                tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB = SBd[1], SBd[2], SBd[3]
-                tile._dashBorderIdleA = borderANormal * DASH_HOME_SKELETON_BORDER_ALPHA_MULT
+                homeCardDivider:SetColorTexture(0.14, 0.15, 0.17, 0.22)
                 if ic.SetDesaturated then ic:SetDesaturated(true) end
                 ic:SetVertexColor(0.5, 0.52, 0.56, 0.68)
                 lbl:SetTextColor(0.44, 0.46, 0.49)
@@ -186,22 +139,10 @@ function addon.DashboardHomeWelcome_Init(env)
                     tile.previewBadge:SetTextColor(0.32, 0.58, 0.34, 0.8)
                 end
                 tileDivider:SetColorTexture(0.14, 0.15, 0.17, 0.22)
-                innerTop:SetColorTexture(1, 1, 1, 0.04)
-                if sheen.SetGradient and CreateColor then
-                    sheen:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.03), CreateColor(0.04, 0.05, 0.08, 0))
-                else
-                    sheen:SetColorTexture(1, 1, 1, 0.015)
-                end
-                bottomGlow:SetColorTexture(1, 1, 1, 0)
-                if tile.axisRail then
-                    local rr, rg, rb = GetAccentColor()
-                    tile.axisRail:SetColorTexture(rr, rg, rb, 0.22)
-                end
             else
                 tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal)
-                border:SetColorTexture(SBd[1], SBd[2], SBd[3], borderANormal)
-                tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB = SBd[1], SBd[2], SBd[3]
-                tile._dashBorderIdleA = borderANormal
+                local rr, rg, rb = GetAccentColor()
+                homeCardDivider:SetColorTexture(rr, rg, rb, 0.2)
                 if ic.SetDesaturated then ic:SetDesaturated(false) end
                 ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
                 lbl:SetTextColor(tile._moduleLabelR, tile._moduleLabelG, tile._moduleLabelB)
@@ -209,17 +150,6 @@ function addon.DashboardHomeWelcome_Init(env)
                     tile.previewBadge:SetTextColor(34/255, 139/255, 34/255, 1)
                 end
                 tileDivider:SetColorTexture(0.20, 0.21, 0.26, 0.28)
-                innerTop:SetColorTexture(1, 1, 1, 0.11)
-                if sheen.SetGradient and CreateColor then
-                    sheen:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.09), CreateColor(0.04, 0.05, 0.08, 0))
-                else
-                    sheen:SetColorTexture(1, 1, 1, 0.04)
-                end
-                bottomGlow:SetColorTexture(1, 1, 1, 0)
-                if tile.axisRail then
-                    local rr, rg, rb = GetAccentColor()
-                    tile.axisRail:SetColorTexture(rr, rg, rb, 0.35)
-                end
             end
         end
 
@@ -246,34 +176,19 @@ function addon.DashboardHomeWelcome_Init(env)
                 lbl:ClearAllPoints()
                 lbl:SetPoint("BOTTOM", tile, "BOTTOM", 0, 19)
             end
-            sheen:SetHeight(math.min(axis and 100 or 56, math.floor(h * (axis and 0.32 or 0.38))))
         end
         tile.ApplyDashboardTileLayout(tile, tileH)
 
         tile:SetScript("OnEnter", function()
             if tile._isSkeleton then
-                border:SetColorTexture(tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB, math.min(1, tile._dashBorderIdleA * 1.2))
+                tBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, fillANormal * DASH_HOME_SKELETON_BG_ALPHA_MULT)
                 ic:SetVertexColor(0.58, 0.60, 0.64, 0.82)
                 lbl:SetTextColor(0.55, 0.57, 0.60)
-                bottomGlow:SetColorTexture(tile._dashBorderIdleR, tile._dashBorderIdleG, tile._dashBorderIdleB, 0.22)
-                innerTop:SetColorTexture(1, 1, 1, 0.07)
                 if tile.previewBadge then
                     tile.previewBadge:SetTextColor(0.38, 0.65, 0.40, 0.9)
                 end
-                if tile.axisRail then
-                    local ar, ag, ab = GetAccentColor()
-                    tile.axisRail:SetColorTexture(ar, ag, ab, 0.35)
-                end
             else
-                local ar, ag, ab = GetAccentColor()
-                border:SetColorTexture(ar, ag, ab, 0.55)
-                ic:SetVertexColor(1, 1, 1, 1)
-                lbl:SetTextColor(1, 1, 1)
-                bottomGlow:SetColorTexture(ar, ag, ab, 0.48)
-                innerTop:SetColorTexture(1, 1, 1, 0.16)
-                if tile.axisRail then
-                    tile.axisRail:SetColorTexture(ar, ag, ab, 0.55)
-                end
+                tBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, fillANormal)
             end
         end)
         tile:SetScript("OnLeave", function()
