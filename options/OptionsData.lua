@@ -767,10 +767,369 @@ local function getActiveQuestHighlight()
 end
 
 -- ---------------------------------------------------------------------------
--- OptionCategories: … Presence …, Insight (Global / Player / NPC / Item), Vista …, Cache
+-- OptionCategories: Axis hub first (Modules, Global Toggles, Profiles), then per-module tabs
+-- (Focus, Presence, …), Insight (Global / Player / NPC / Item), Vista …, Cache
 -- ---------------------------------------------------------------------------
 
 local OptionCategories = {
+    {
+        key = "Modules",
+        name = L["OPTIONS_AXIS_MODULES"],
+        moduleKey = nil,
+        options = (function()
+            local previewSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+            local function setModuleFromOptions(moduleKey, v)
+                local dash = _G.HorizonSuiteDashboard
+                local defer = dash and dash:IsShown()
+                addon:SetModuleEnabled(moduleKey, v, defer and { deferReload = true } or nil)
+            end
+            local opts = {
+                { type = "section", name = L["OPTIONS_AXIS_MODULE_TOGGLES"] or "Module Toggles" },
+                { type = "toggle", name = BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) setModuleFromOptions("focus", v) end },
+                { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
+                { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) setModuleFromOptions("vista", v) end },
+                { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) setModuleFromOptions("insight", v) end },
+                { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
+                { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
+                { type = "moduleReloadPrompt" },
+            }
+            opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
+            -- Defer setDB to next frame so CreateToggleSwitch can start the thumb slide before OptionsData_SetDB runs (matches dashboard note: heavy work in set() fights the pill animation).
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, function()
+                        setDB("hideMinimapButton", not v)
+                        if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                    end)
+                else
+                    setDB("hideMinimapButton", not v)
+                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                end
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"] or "Fade until minimap hover", desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"] or "When on, the icon stays hidden until you move the cursor over the minimap. When off, it stays visible.", dbKey = "minimapButtonShowOnlyOnMinimapHover", get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", true) end, set = function(v)
+                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonShowOnlyOnMinimapHover", v) end) else setDB("minimapButtonShowOnlyOnMinimapHover", v) end
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
+                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonLocked", v) end) else setDB("minimapButtonLocked", v) end
+            end }
+            opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
+            return opts
+        end)(),
+    },
+    {
+        key = "GlobalToggles",
+        name = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Toggles",
+        desc = L["OPTIONS_AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] or "Suite-wide class colour tinting and UI scale (global or per module).",
+        moduleKey = nil,
+        options = function()
+            local opts = {}
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_THEME"] or "Theme" }
+            local function dashboardBackgroundDropdownOptions()
+                local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
+                local out = {}
+                for _, id in ipairs(order) do
+                    local label
+                    if id == "horizon" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"] or "Minimalistic"
+                    elseif id == "midnight" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"] or "Midnight"
+                    elseif id == "teldrassilburns" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"] or "Teldrassil"
+                    elseif id == "nightfae" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"] or "Night Fae"
+                    elseif id == "ardenweald" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD"] or "Ardenweald"
+                    elseif id == "zinazshari" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"] or "Zin-Azshari"
+                    elseif id == "suramargarden" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_SURAMAR_GARDEN"] or "Suramar Garden"
+                    elseif id == "quelthalas" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_QUELTHALAS"] or "Quel'Thalas"
+                    elseif id == "twilightvineyards" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TWILIGHT_VINEYARDS"] or "Twilight Vineyards"
+                    elseif id == "zulaman" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZUL_AMAN"] or "Zul'Aman"
+                    elseif id == "illidan" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"] or "Illidan"
+                    elseif id == "lichking" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_LICH_KING"] or "The Lich King"
+                    elseif id == "tbcanniversary" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"] or "TBC Anniversary"
+                    elseif id == "beledarslight" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_BELEDARS_LIGHT"] or "Beledar's Light"
+                    elseif id == "talents" then
+                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"] or "Specialisation (auto)"
+                    else
+                        label = id
+                    end
+                    out[#out + 1] = { label, id }
+                end
+                return out
+            end
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND"] or "Dashboard background",
+                desc = L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"] or "Background style for the module dashboard window (Axis). Minimalistic is flat; bundled themes use full-bleed art; Specialisation (auto) uses the in-game talent UI background for your current specialization.",
+                dbKey = "dashboardBackgroundTheme",
+                searchable = true,
+                options = dashboardBackgroundDropdownOptions,
+                get = function()
+                    local v = getDB("dashboardBackgroundTheme", "midnight")
+                    if v == "solid" then
+                        v = "horizon"
+                    end
+                    if v == "teldrassil" then
+                        v = "teldrassilburns"
+                    end
+                    local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
+                    for _, id in ipairs(order) do
+                        if v == id then
+                            return v
+                        end
+                    end
+                    return "midnight"
+                end,
+                set = function(v) setDB("dashboardBackgroundTheme", v) end,
+                refreshIds = { "dashboardBackgroundTheme" },
+            }
+            opts[#opts + 1] = {
+                type = "slider", name = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"] or "Dashboard background opacity",
+                desc = L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"] or "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through.",
+                dbKey = "dashboardBackgroundOpacity", min = 50, max = 100, step = 1,
+                get = function()
+                    return math.floor((tonumber(getDB("dashboardBackgroundOpacity", 90)) or 90) + 0.5)
+                end,
+                set = function(v)
+                    setDB("dashboardBackgroundOpacity", math.max(50, math.min(100, v)))
+                end,
+                refreshIds = { "dashboardBackgroundOpacity" },
+            }
+            opts[#opts + 1] = { type = "section", name = L["DASHBOARD_TYPO_SECTION"] or "Dashboard text" }
+            local dashboardTypoRefreshIds = {
+                "dashboardFontPath",
+                "dashboardFontSizeOffset",
+                "dashboardTextOutline",
+                "dashboardTextShadow",
+            }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["DASHBOARD_TYPO_FONT"] or "Dashboard font",
+                desc = L["DASHBOARD_TYPO_FONT_DESC"] or "Font for the Axis settings window (sidebar, search, options list). Independent of the Focus tracker font.",
+                dbKey = "dashboardFontPath",
+                searchable = true,
+                options = GetDashboardFontDropdownOptions,
+                get = function() return getDB("dashboardFontPath", defaultDashboardFontPath) end,
+                set = function(v) setDB("dashboardFontPath", v) end,
+                displayFn = addon.GetFontNameForPath,
+                fontPreviewInList = true,
+                refreshIds = dashboardTypoRefreshIds,
+            }
+            opts[#opts + 1] = {
+                type = "slider",
+                name = L["DASHBOARD_TYPO_SIZE"] or "Dashboard text size",
+                desc = L["DASHBOARD_TYPO_SIZE_DESC"] or "Nudge all dashboard text larger or smaller (same idea as Focus global font offset).",
+                dbKey = "dashboardFontSizeOffset",
+                min = -4,
+                max = 4,
+                step = 1,
+                get = function() return getDB("dashboardFontSizeOffset", 0) end,
+                set = function(v) setDB("dashboardFontSizeOffset", math.max(-4, math.min(4, math.floor((tonumber(v) or 0) + 0.5)))) end,
+                refreshIds = dashboardTypoRefreshIds,
+            }
+            opts[#opts + 1] = {
+                type = "slider",
+                name = L["DASHBOARD_TYPO_OUTLINE"] or "Dashboard text outline",
+                desc = L["DASHBOARD_TYPO_OUTLINE_DESC"] or "0 = none, 1 = standard outline, 2 = thick outline.",
+                dbKey = "dashboardTextOutline",
+                min = 0,
+                max = 2,
+                step = 1,
+                get = function()
+                    if addon.Dashboard_GetTextOutlineLevel then
+                        return addon.Dashboard_GetTextOutlineLevel()
+                    end
+                    local v = getDB("dashboardTextOutline", 1)
+                    if v == true then return 1 end
+                    if v == false then return 0 end
+                    return math.max(0, math.min(2, math.floor((tonumber(v) or 1) + 0.5)))
+                end,
+                set = function(v)
+                    setDB("dashboardTextOutline", math.max(0, math.min(2, math.floor((tonumber(v) or 0) + 0.5))))
+                end,
+                refreshIds = dashboardTypoRefreshIds,
+            }
+            opts[#opts + 1] = {
+                type = "slider",
+                name = L["DASHBOARD_TYPO_SHADOW"] or "Dashboard text shadow",
+                desc = L["DASHBOARD_TYPO_SHADOW_DESC"] or "Drop shadow strength for dashboard text (0–100%). Higher is darker; 0 is off.",
+                dbKey = "dashboardTextShadow",
+                min = 0,
+                max = 100,
+                step = 1,
+                get = function()
+                    if addon.Dashboard_GetTextShadowStrength then
+                        return addon.Dashboard_GetTextShadowStrength()
+                    end
+                    local v = getDB("dashboardTextShadow", 0)
+                    if v == true then return 65 end
+                    if v == false then return 0 end
+                    return math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5)))
+                end,
+                set = function(v)
+                    setDB("dashboardTextShadow", math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5))))
+                end,
+                refreshIds = dashboardTypoRefreshIds,
+            }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PATCH_NOTES_SECTION"] or "Patch notes" }
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"] or "Show Patch Notes automatically after an update",
+                desc = L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"] or "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes.",
+                dbKey = "autoShowPatchNotesOnLogin",
+                get = function() return getDB("autoShowPatchNotesOnLogin", true) end,
+                set = function(v) setDB("autoShowPatchNotesOnLogin", v) end,
+            }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_CLASS_COLOURS"] or "Class Colours" }
+            local classColorKeys = {
+                "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
+                "classColorFocus", "classColorPresence", "classColorCache",
+            }
+            -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
+            local classColorAllRefreshIds = { "_classColorAll" }
+            for _, k in ipairs(classColorKeys) do
+                classColorAllRefreshIds[#classColorAllRefreshIds + 1] = k
+            end
+            classColorAllRefreshIds[#classColorAllRefreshIds + 1] = "dashboardClassIconSource"
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["OPTIONS_FOCUS_ENABLE_CLASS_COLOURS"] or "Enable all class colours",
+                desc = L["OPTIONS_FOCUS_TOGGLE_CLASS_COLOURS_MODULES"] or "Toggle class colours on or off for all modules at once.",
+                dbKey = "_classColorAll",
+                refreshIds = classColorAllRefreshIds,
+                get = function()
+                    for _, k in ipairs(classColorKeys) do
+                        if not getDB(k, false) then return false end
+                    end
+                    return true
+                end,
+                set = function(v)
+                    for _, k in ipairs(classColorKeys) do
+                        addon.SetDB(k, v)
+                    end
+                    if addon.ApplyAllClassColorConsumers then addon.ApplyAllClassColorConsumers() end
+                    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                end,
+            }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_FOCUS_DASHBOARD"], desc = L["OPTIONS_FOCUS_TINT_DASHBOARD_ACCENTS_DIVIDERS_HIGHLIGHTS"] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll", "dashboardClassIconSource" } }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["OPTIONS_CORE_DASHBOARD_CLASS_ICON_STYLE"] or "Dashboard class icon style",
+                desc = L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"] or "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons.",
+                tooltip = L["OPTIONS_AXIS_CLASS_ICON_SOURCES_TOOLTIP"],
+                dbKey = "dashboardClassIconSource",
+                options = {
+                    { L["OPTIONS_AXIS_CUSTOM_CLASS_ICONS_LABEL"] or "Horizon", "custom" },
+                    { L["OPTIONS_AXIS_DEFAULT"] or "Default", "default" },
+                    { "RondoMedia", "rondomedia" },
+                },
+                get = function() return getDB("dashboardClassIconSource", "custom") end,
+                set = function(v) setDB("dashboardClassIconSource", v) end,
+                visibleWhen = function() return getDB("classColorDashboard", false) end,
+                refreshIds = { "_classColorAll" },
+            }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["OPTIONS_FOCUS_TINT_FOCUS_HEADER_TITLE_CATEGORY_SECTION"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["OPTIONS_FOCUS_TINT_PRESENCE_TOAST_TITLE_DIVIDER_YOUR"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("vista"), desc = L["OPTIONS_FOCUS_TINT_VISTA_MINIMAP_ADDON_BAR_PANEL"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["OPTIONS_FOCUS_CLASS_COLOUR_PLAYER_TOOLTIP_NAME_CLASS"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["OPTIONS_FOCUS_TINT_CACHE_LOOT_ICON_GLOW_EDIT"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["OPTIONS_FOCUS_TINT_CHARACTER_NAME_ESSENCE_SHEET_YO"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_SCALING"] }
+            local function refreshAllScaling()
+                if addon.ApplyTypography then addon.ApplyTypography() end
+                if addon.ApplyDimensions then addon.ApplyDimensions() end
+                if addon.ApplyMplusTypography then addon.ApplyMplusTypography() end
+                if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+                if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
+                if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+                local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
+                if fullLayout and not InCombatLockdown() then fullLayout() end
+            end
+            local scalingDebounceTimers = {}
+            local SCALE_DEBOUNCE = 0.15
+            local function debouncedRefresh(key, applyFn)
+                if scalingDebounceTimers[key] then
+                    scalingDebounceTimers[key]:Cancel()
+                    scalingDebounceTimers[key] = nil
+                end
+                scalingDebounceTimers[key] = C_Timer.NewTimer(SCALE_DEBOUNCE, function()
+                    scalingDebounceTimers[key] = nil
+                    applyFn()
+                end)
+            end
+            local function isPerModule() return getDB("perModuleScaling", false) end
+            local function isNotPerModule() return not isPerModule() end
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_AXIS_GLOBAL_UI_SCALE"], desc = L["OPTIONS_CORE_SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["OPTIONS_AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
+                disabled = isPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("globalUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    local scale = math.max(50, math.min(200, v)) / 100
+                    setDB("globalUIScale", scale)
+                    debouncedRefresh("global", refreshAllScaling)
+                end }
+            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_PER_MODULE_SCALING"], desc = L["OPTIONS_CORE_SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["OPTIONS_AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
+                setDB("perModuleScaling", v)
+                refreshAllScaling()
+                if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+            end }
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_FOCUS_SCALE"], desc = L["OPTIONS_AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
+                disabled = isNotPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("focusUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("focus", refreshAllScaling)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_PRESENCE_SCALE"], desc = L["OPTIONS_AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
+                disabled = isNotPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("presenceUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("presence", function()
+                        if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+                    end)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_VISTA_SCALE"], desc = L["OPTIONS_AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
+                disabled = isNotPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("vistaUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("vista", function()
+                        if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
+                    end)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_INSIGHT_SCALE"], desc = L["OPTIONS_AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
+                disabled = isNotPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_CACHE_SCALE"], desc = L["OPTIONS_AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
+                disabled = isNotPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("cacheUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("cache", function()
+                        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+                    end)
+                end }
+            return opts
+        end,
+    },
     {
         key = "Profiles",
         name = L["OPTIONS_AXIS_PROFILES"] or "Profiles",
@@ -1144,364 +1503,6 @@ local OptionCategories = {
 
                 return opts
         end,
-    },
-    {
-        key = "GlobalToggles",
-        name = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Toggles",
-        desc = L["OPTIONS_AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] or "Suite-wide class colour tinting and UI scale (global or per module).",
-        moduleKey = nil,
-        options = function()
-            local opts = {}
-            opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_THEME"] or "Theme" }
-            local function dashboardBackgroundDropdownOptions()
-                local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
-                local out = {}
-                for _, id in ipairs(order) do
-                    local label
-                    if id == "horizon" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"] or "Minimalistic"
-                    elseif id == "midnight" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"] or "Midnight"
-                    elseif id == "teldrassilburns" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"] or "Teldrassil"
-                    elseif id == "nightfae" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"] or "Night Fae"
-                    elseif id == "ardenweald" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD"] or "Ardenweald"
-                    elseif id == "zinazshari" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"] or "Zin-Azshari"
-                    elseif id == "suramargarden" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_SURAMAR_GARDEN"] or "Suramar Garden"
-                    elseif id == "quelthalas" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_QUELTHALAS"] or "Quel'Thalas"
-                    elseif id == "twilightvineyards" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TWILIGHT_VINEYARDS"] or "Twilight Vineyards"
-                    elseif id == "zulaman" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ZUL_AMAN"] or "Zul'Aman"
-                    elseif id == "illidan" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_ILLIDAN"] or "Illidan"
-                    elseif id == "lichking" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_LICH_KING"] or "The Lich King"
-                    elseif id == "tbcanniversary" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_TBC_ANNIVERSARY"] or "TBC Anniversary"
-                    elseif id == "beledarslight" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_BELEDARS_LIGHT"] or "Beledar's Light"
-                    elseif id == "talents" then
-                        label = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_CLASS_TALENTS"] or "Specialisation (auto)"
-                    else
-                        label = id
-                    end
-                    out[#out + 1] = { label, id }
-                end
-                return out
-            end
-            opts[#opts + 1] = {
-                type = "dropdown",
-                name = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND"] or "Dashboard background",
-                desc = L["OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI"] or "Background style for the module dashboard window (Axis). Minimalistic is flat; bundled themes use full-bleed art; Specialisation (auto) uses the in-game talent UI background for your current specialization.",
-                dbKey = "dashboardBackgroundTheme",
-                searchable = true,
-                options = dashboardBackgroundDropdownOptions,
-                get = function()
-                    local v = getDB("dashboardBackgroundTheme", "midnight")
-                    if v == "solid" then
-                        v = "horizon"
-                    end
-                    if v == "teldrassil" then
-                        v = "teldrassilburns"
-                    end
-                    local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
-                    for _, id in ipairs(order) do
-                        if v == id then
-                            return v
-                        end
-                    end
-                    return "midnight"
-                end,
-                set = function(v) setDB("dashboardBackgroundTheme", v) end,
-                refreshIds = { "dashboardBackgroundTheme" },
-            }
-            opts[#opts + 1] = {
-                type = "slider", name = L["OPTIONS_FOCUS_DASHBOARD_BACKGROUND_OPACITY"] or "Dashboard background opacity",
-                desc = L["OPTIONS_FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"] or "Adjust the opacity of the dashboard background (50–100%). Lower values let more of the game world show through.",
-                dbKey = "dashboardBackgroundOpacity", min = 50, max = 100, step = 1,
-                get = function()
-                    return math.floor((tonumber(getDB("dashboardBackgroundOpacity", 90)) or 90) + 0.5)
-                end,
-                set = function(v)
-                    setDB("dashboardBackgroundOpacity", math.max(50, math.min(100, v)))
-                end,
-                refreshIds = { "dashboardBackgroundOpacity" },
-            }
-            opts[#opts + 1] = { type = "section", name = L["DASHBOARD_TYPO_SECTION"] or "Dashboard text" }
-            local dashboardTypoRefreshIds = {
-                "dashboardFontPath",
-                "dashboardFontSizeOffset",
-                "dashboardTextOutline",
-                "dashboardTextShadow",
-            }
-            opts[#opts + 1] = {
-                type = "dropdown",
-                name = L["DASHBOARD_TYPO_FONT"] or "Dashboard font",
-                desc = L["DASHBOARD_TYPO_FONT_DESC"] or "Font for the Axis settings window (sidebar, search, options list). Independent of the Focus tracker font.",
-                dbKey = "dashboardFontPath",
-                searchable = true,
-                options = GetDashboardFontDropdownOptions,
-                get = function() return getDB("dashboardFontPath", defaultDashboardFontPath) end,
-                set = function(v) setDB("dashboardFontPath", v) end,
-                displayFn = addon.GetFontNameForPath,
-                fontPreviewInList = true,
-                refreshIds = dashboardTypoRefreshIds,
-            }
-            opts[#opts + 1] = {
-                type = "slider",
-                name = L["DASHBOARD_TYPO_SIZE"] or "Dashboard text size",
-                desc = L["DASHBOARD_TYPO_SIZE_DESC"] or "Nudge all dashboard text larger or smaller (same idea as Focus global font offset).",
-                dbKey = "dashboardFontSizeOffset",
-                min = -4,
-                max = 4,
-                step = 1,
-                get = function() return getDB("dashboardFontSizeOffset", 0) end,
-                set = function(v) setDB("dashboardFontSizeOffset", math.max(-4, math.min(4, math.floor((tonumber(v) or 0) + 0.5)))) end,
-                refreshIds = dashboardTypoRefreshIds,
-            }
-            opts[#opts + 1] = {
-                type = "slider",
-                name = L["DASHBOARD_TYPO_OUTLINE"] or "Dashboard text outline",
-                desc = L["DASHBOARD_TYPO_OUTLINE_DESC"] or "0 = none, 1 = standard outline, 2 = thick outline.",
-                dbKey = "dashboardTextOutline",
-                min = 0,
-                max = 2,
-                step = 1,
-                get = function()
-                    if addon.Dashboard_GetTextOutlineLevel then
-                        return addon.Dashboard_GetTextOutlineLevel()
-                    end
-                    local v = getDB("dashboardTextOutline", 1)
-                    if v == true then return 1 end
-                    if v == false then return 0 end
-                    return math.max(0, math.min(2, math.floor((tonumber(v) or 1) + 0.5)))
-                end,
-                set = function(v)
-                    setDB("dashboardTextOutline", math.max(0, math.min(2, math.floor((tonumber(v) or 0) + 0.5))))
-                end,
-                refreshIds = dashboardTypoRefreshIds,
-            }
-            opts[#opts + 1] = {
-                type = "slider",
-                name = L["DASHBOARD_TYPO_SHADOW"] or "Dashboard text shadow",
-                desc = L["DASHBOARD_TYPO_SHADOW_DESC"] or "Drop shadow strength for dashboard text (0–100%). Higher is darker; 0 is off.",
-                dbKey = "dashboardTextShadow",
-                min = 0,
-                max = 100,
-                step = 1,
-                get = function()
-                    if addon.Dashboard_GetTextShadowStrength then
-                        return addon.Dashboard_GetTextShadowStrength()
-                    end
-                    local v = getDB("dashboardTextShadow", 0)
-                    if v == true then return 65 end
-                    if v == false then return 0 end
-                    return math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5)))
-                end,
-                set = function(v)
-                    setDB("dashboardTextShadow", math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5))))
-                end,
-                refreshIds = dashboardTypoRefreshIds,
-            }
-            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PATCH_NOTES_SECTION"] or "Patch notes" }
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"] or "Show Patch Notes automatically after an update",
-                desc = L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"] or "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes.",
-                dbKey = "autoShowPatchNotesOnLogin",
-                get = function() return getDB("autoShowPatchNotesOnLogin", true) end,
-                set = function(v) setDB("autoShowPatchNotesOnLogin", v) end,
-            }
-            opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_CLASS_COLOURS"] or "Class Colours" }
-            local classColorKeys = {
-                "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
-                "classColorFocus", "classColorPresence", "classColorCache",
-            }
-            -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
-            local classColorAllRefreshIds = { "_classColorAll" }
-            for _, k in ipairs(classColorKeys) do
-                classColorAllRefreshIds[#classColorAllRefreshIds + 1] = k
-            end
-            classColorAllRefreshIds[#classColorAllRefreshIds + 1] = "dashboardClassIconSource"
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["OPTIONS_FOCUS_ENABLE_CLASS_COLOURS"] or "Enable all class colours",
-                desc = L["OPTIONS_FOCUS_TOGGLE_CLASS_COLOURS_MODULES"] or "Toggle class colours on or off for all modules at once.",
-                dbKey = "_classColorAll",
-                refreshIds = classColorAllRefreshIds,
-                get = function()
-                    for _, k in ipairs(classColorKeys) do
-                        if not getDB(k, false) then return false end
-                    end
-                    return true
-                end,
-                set = function(v)
-                    for _, k in ipairs(classColorKeys) do
-                        addon.SetDB(k, v)
-                    end
-                    if addon.ApplyAllClassColorConsumers then addon.ApplyAllClassColorConsumers() end
-                    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-                end,
-            }
-            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_FOCUS_DASHBOARD"], desc = L["OPTIONS_FOCUS_TINT_DASHBOARD_ACCENTS_DIVIDERS_HIGHLIGHTS"] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll", "dashboardClassIconSource" } }
-            opts[#opts + 1] = {
-                type = "dropdown",
-                name = L["OPTIONS_CORE_DASHBOARD_CLASS_ICON_STYLE"] or "Dashboard class icon style",
-                desc = L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"] or "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons.",
-                tooltip = L["OPTIONS_AXIS_CLASS_ICON_SOURCES_TOOLTIP"],
-                dbKey = "dashboardClassIconSource",
-                options = {
-                    { L["OPTIONS_AXIS_CUSTOM_CLASS_ICONS_LABEL"] or "Horizon", "custom" },
-                    { L["OPTIONS_AXIS_DEFAULT"] or "Default", "default" },
-                    { "RondoMedia", "rondomedia" },
-                },
-                get = function() return getDB("dashboardClassIconSource", "custom") end,
-                set = function(v) setDB("dashboardClassIconSource", v) end,
-                visibleWhen = function() return getDB("classColorDashboard", false) end,
-                refreshIds = { "_classColorAll" },
-            }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["OPTIONS_FOCUS_TINT_FOCUS_HEADER_TITLE_CATEGORY_SECTION"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["OPTIONS_FOCUS_TINT_PRESENCE_TOAST_TITLE_DIVIDER_YOUR"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("vista"), desc = L["OPTIONS_FOCUS_TINT_VISTA_MINIMAP_ADDON_BAR_PANEL"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["OPTIONS_FOCUS_CLASS_COLOUR_PLAYER_TOOLTIP_NAME_CLASS"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["OPTIONS_FOCUS_TINT_CACHE_LOOT_ICON_GLOW_EDIT"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["OPTIONS_FOCUS_TINT_CHARACTER_NAME_ESSENCE_SHEET_YO"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_SCALING"] }
-            local function refreshAllScaling()
-                if addon.ApplyTypography then addon.ApplyTypography() end
-                if addon.ApplyDimensions then addon.ApplyDimensions() end
-                if addon.ApplyMplusTypography then addon.ApplyMplusTypography() end
-                if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
-                if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
-                if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
-                local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
-                if fullLayout and not InCombatLockdown() then fullLayout() end
-            end
-            local scalingDebounceTimers = {}
-            local SCALE_DEBOUNCE = 0.15
-            local function debouncedRefresh(key, applyFn)
-                if scalingDebounceTimers[key] then
-                    scalingDebounceTimers[key]:Cancel()
-                    scalingDebounceTimers[key] = nil
-                end
-                scalingDebounceTimers[key] = C_Timer.NewTimer(SCALE_DEBOUNCE, function()
-                    scalingDebounceTimers[key] = nil
-                    applyFn()
-                end)
-            end
-            local function isPerModule() return getDB("perModuleScaling", false) end
-            local function isNotPerModule() return not isPerModule() end
-            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_AXIS_GLOBAL_UI_SCALE"], desc = L["OPTIONS_CORE_SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["OPTIONS_AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
-                disabled = isPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("globalUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    local scale = math.max(50, math.min(200, v)) / 100
-                    setDB("globalUIScale", scale)
-                    debouncedRefresh("global", refreshAllScaling)
-                end }
-            opts[#opts + 1] = { type = "toggle", name = L["OPTIONS_AXIS_PER_MODULE_SCALING"], desc = L["OPTIONS_CORE_SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["OPTIONS_AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
-                setDB("perModuleScaling", v)
-                refreshAllScaling()
-                if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-            end }
-            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_FOCUS_SCALE"], desc = L["OPTIONS_AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("focusUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("focus", refreshAllScaling)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_PRESENCE_SCALE"], desc = L["OPTIONS_AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("presenceUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("presence", function()
-                        if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
-                    end)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_VISTA_SCALE"], desc = L["OPTIONS_AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("vistaUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("vista", function()
-                        if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
-                    end)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_INSIGHT_SCALE"], desc = L["OPTIONS_AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["OPTIONS_CACHE_SCALE"], desc = L["OPTIONS_AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("cacheUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("cache", function()
-                        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
-                    end)
-                end }
-            return opts
-        end,
-    },
-    {
-        key = "Modules",
-        name = L["OPTIONS_AXIS_MODULES"],
-        moduleKey = nil,
-        options = (function()
-            local previewSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
-            local function setModuleFromOptions(moduleKey, v)
-                local dash = _G.HorizonSuiteDashboard
-                local defer = dash and dash:IsShown()
-                addon:SetModuleEnabled(moduleKey, v, defer and { deferReload = true } or nil)
-            end
-            local opts = {
-                { type = "section", name = L["OPTIONS_AXIS_MODULE_TOGGLES"] or "Module Toggles" },
-                { type = "toggle", name = BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) setModuleFromOptions("focus", v) end },
-                { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
-                { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) setModuleFromOptions("vista", v) end },
-                { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) setModuleFromOptions("insight", v) end },
-                { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
-                { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
-                { type = "moduleReloadPrompt" },
-            }
-            opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
-            -- Defer setDB to next frame so CreateToggleSwitch can start the thumb slide before OptionsData_SetDB runs (matches dashboard note: heavy work in set() fights the pill animation).
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
-                if C_Timer and C_Timer.After then
-                    C_Timer.After(0, function()
-                        setDB("hideMinimapButton", not v)
-                        if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
-                    end)
-                else
-                    setDB("hideMinimapButton", not v)
-                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
-                end
-            end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"] or "Fade until minimap hover", desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"] or "When on, the icon stays hidden until you move the cursor over the minimap. When off, it stays visible.", dbKey = "minimapButtonShowOnlyOnMinimapHover", get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", true) end, set = function(v)
-                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonShowOnlyOnMinimapHover", v) end) else setDB("minimapButtonShowOnlyOnMinimapHover", v) end
-            end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
-                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonLocked", v) end) else setDB("minimapButtonLocked", v) end
-            end }
-            opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
-            return opts
-        end)(),
     },
     {
         key = "Layout",
