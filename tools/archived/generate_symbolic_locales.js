@@ -311,7 +311,7 @@ function generateLocaleFile(localeCode, entriesWithSym, translatedMap) {
             if (rhs !== undefined) {
                 lines.push(`L["${sym}"] = ${rhs}`);
             } else {
-                lines.push(`-- L["${sym}"] = ${e.valueRaw}  -- NEEDS TRANSLATION`);
+                lines.push(`-- L["${sym}"] = ${e.valueRaw}`);
             }
         }
     }

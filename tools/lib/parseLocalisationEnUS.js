@@ -154,11 +154,11 @@ function computeMaxLhsLen(entries) {
 
 /**
  * One assignment line (or first line + multiline rhs) with aligned `=`.
- * @param {{ symKey: string, rhsRaw: string, commented: boolean, maxLhsLen: number, needsTranslation?: boolean }} opts
+ * @param {{ symKey: string, rhsRaw: string, commented: boolean, maxLhsLen: number }} opts
  * @returns {string}
  */
 function formatLocaleAssignment(opts) {
-    const { symKey, rhsRaw, commented, maxLhsLen, needsTranslation } = opts;
+    const { symKey, rhsRaw, commented, maxLhsLen } = opts;
     const lhs = localeLhs(symKey);
     const spActive = Math.max(LOCALE_LHS_PAD_MIN, maxLhsLen - lhs.length + 1);
     const padStub = Math.max(0, spActive - 3);
@@ -168,14 +168,14 @@ function formatLocaleAssignment(opts) {
     let firstLine;
     if (commented) {
         firstLine = `-- ${lhs}${' '.repeat(padStub)}= ${firstRhs}`;
-        if (needsTranslation) {
-            firstLine += '  -- NEEDS TRANSLATION';
-        }
     } else {
         firstLine = `${lhs}${' '.repeat(spActive)}= ${firstRhs}`;
     }
     if (restRhs.length === 0) {
         return firstLine;
+    }
+    if (commented) {
+        return firstLine + '\n' + restRhs.map((line) => `-- ${line}`).join('\n');
     }
     return firstLine + '\n' + restRhs.join('\n');
 }

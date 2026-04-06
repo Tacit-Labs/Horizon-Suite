@@ -7,7 +7,7 @@ Horizon Suite uses **symbolic keys** in `Localisation/*.lua` (e.g. `L["OPTIONS_F
 ## Finding work
 
 1. Clone the repo and open `Localisation/<yourLocale>.lua` (e.g. `frFR.lua`).
-2. Search for `NEEDS TRANSLATION` — those lines are commented stubs with the English value.
+2. Search for commented lines `-- L["…"]` — those are stubs with the English value (uncomment and translate the value).
 3. Or run **`node tools/locale_audit.js --missing`** from the repo root to list keys missing for each locale.
 
 ## Editing
@@ -43,7 +43,7 @@ Open a **merge request** on GitLab with your `Localisation/<locale>.lua` changes
 
 ```bash
 # Stubs still needing translation (commented assignments)
-rg "NEEDS TRANSLATION" Localisation/
+rg '^-- L\[' Localisation/
 
 # Find a key or section in the English source
 rg "YOUR_KEY_PREFIX" Localisation/enUS.lua
