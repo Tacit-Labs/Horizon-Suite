@@ -33,6 +33,6 @@ addon:RegisterModule("cache", {
             if addon.Cache.SetFrameVisible then addon.Cache.SetFrameVisible(false) end
             if addon.Cache.HideAnchorFrame then addon.Cache.HideAnchorFrame() end
         end
-        ReloadUI()
+        -- Reload is handled by addon:SetModuleEnabled (immediate or user-chosen when dashboard defers).
     end,
 })

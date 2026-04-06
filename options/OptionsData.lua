@@ -1465,14 +1465,20 @@ local OptionCategories = {
         moduleKey = nil,
         options = (function()
             local previewSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+            local function setModuleFromOptions(moduleKey, v)
+                local dash = _G.HorizonSuiteDashboard
+                local defer = dash and dash:IsShown()
+                addon:SetModuleEnabled(moduleKey, v, defer and { deferReload = true } or nil)
+            end
             local opts = {
                 { type = "section", name = L["OPTIONS_AXIS_MODULE_TOGGLES"] or "Module Toggles" },
-                { type = "toggle", name = BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) addon:SetModuleEnabled("focus", v) end },
-                { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) addon:SetModuleEnabled("presence", v) end },
-                { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) addon:SetModuleEnabled("vista", v) end },
-                { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) addon:SetModuleEnabled("insight", v) end },
-                { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) addon:SetModuleEnabled("cache", v) end },
-                { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) addon:SetModuleEnabled("essence", v) end },
+                { type = "toggle", name = BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) setModuleFromOptions("focus", v) end },
+                { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
+                { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) setModuleFromOptions("vista", v) end },
+                { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) setModuleFromOptions("insight", v) end },
+                { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
+                { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
+                { type = "moduleReloadPrompt" },
             }
             opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
             -- Defer setDB to next frame so CreateToggleSwitch can start the thumb slide before OptionsData_SetDB runs (matches dashboard note: heavy work in set() fights the pill animation).
@@ -3086,7 +3092,7 @@ function OptionsData_BuildSearchIndex()
         for _, opt in ipairs(catOpts) do
             if opt.type == "section" then
                 currentSection = type(opt.name) == "function" and opt.name() or opt.name or ""
-            elseif opt.type ~= "section" and opt.type ~= "header" then
+            elseif opt.type ~= "section" and opt.type ~= "header" and opt.type ~= "moduleReloadPrompt" then
                 local rawName = type(opt.name) == "function" and opt.name() or opt.name
                 local name = (rawName or ""):lower()
                 local desc = ((opt.desc or "") .. " " .. (opt.tooltip or "")):lower()

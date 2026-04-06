@@ -1542,6 +1542,9 @@ function addon.Dashboard_BuildMainFrame()
                 if sidebarState.view == "dashboard" and sidebarState.activeModuleKey and not ShouldShowModuleOnDashboard(sidebarState.activeModuleKey) then
                     f.ShowDashboard()
                 end
+                if f._dashboardRelayoutDetailCards then
+                    f._dashboardRelayoutDetailCards()
+                end
             end
 
             LayoutSidebar()
