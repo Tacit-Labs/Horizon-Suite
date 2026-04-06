@@ -129,8 +129,8 @@ L["DASH_GUIDE_HERO_TITLE"]                                            = "Getting
 L["DASH_GUIDE_HERO_TAGLINE"]                                          = "A modular UI toolkit for quests, notifications, the minimap, and more."
 L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from Quick Start under Welcome."
 L["DASH_GUIDE_QUICK_START_HEADING"]                                   = "Quick start"
-L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis → Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
-• Under |cffaaaaaaAxis → Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
+L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
+• Under |cffaaaaaaAxis > Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
 L["DASH_GUIDE_HORIZON_HEADING"]                                       = "What is Horizon Suite?"
 L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
 • Focus — Quest and content tracker: quests, world quests, scenarios, rares, achievements, and more in coloured sections.
@@ -145,7 +145,7 @@ L["DASH_GUIDE_MOD_FOCUS_BODY"]                                        = [=[Focus
 
 Sections only appear when they have something to show — for example Current (recent progress), Current zone, Ready to turn in, World / weekly / daily / Prey, campaign and special quests, delves and scenarios, rare bosses and loot, achievements and collections, and time-limited or zone events.
 
-Use Focus → Sorting & filtering to reorder sections, and Focus → Content to choose which types of content appear.]=]
+Use Focus > Sorting & filtering to reorder sections, and Focus > Content to choose which types of content appear.]=]
 L["DASH_GUIDE_PRESENCE_INTRO"]                                        = "Presence shows large, styled alerts for moments that used to be separate Blizzard popups — zone changes, quest progress, achievements, scenarios, and more. You can turn each type on or off and tune typography in Presence settings."
 L["DASH_GUIDE_PRESENCE_BODY"]                                         = [=[Typical Presence toasts include:
 
@@ -1772,6 +1772,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

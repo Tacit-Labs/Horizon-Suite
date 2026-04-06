@@ -26,9 +26,7 @@ local DASH_HOME_TILE_H = DC.HOME_TILE_H
 local DASH_HOME_TILE_GAP = DC.HOME_TILE_GAP
 local DASH_HOME_TILE_COLS = DC.HOME_TILE_COLS
 local DASH_HOME_TILE_BG_ALPHA_MULT = DC.HOME_TILE_BG_ALPHA_MULT
-local DASH_HOME_TILE_BORDER_ALPHA_MULT = DC.HOME_TILE_BORDER_ALPHA_MULT
 local DASH_HOME_SKELETON_BG_ALPHA_MULT = DC.HOME_SKELETON_BG_ALPHA_MULT
-local DASH_HOME_SKELETON_BORDER_ALPHA_MULT = DC.HOME_SKELETON_BORDER_ALPHA_MULT
 
 local function OptionCategoryKeyIsAxis(catKey)
     return addon.Dashboard_IsAxisCategoryKey(catKey)
@@ -156,6 +154,8 @@ function addon.Dashboard_BuildMainFrame()
             local dashAccentRefs = {
                 sidebarBars = {},
                 subcatAccents = {},
+                subcatDividers = {},
+                homeTileDividers = {},
                 cardAccents = {},
                 cardDividers = {},
                 dashboardAxisRails = {},
@@ -216,6 +216,19 @@ function addon.Dashboard_BuildMainFrame()
                 end
                 for _, acc in ipairs(dashAccentRefs.subcatAccents) do
                     if acc.SetColorTexture then acc:SetColorTexture(ar, ag, ab, 1) end
+                end
+                for _, div in ipairs(dashAccentRefs.subcatDividers) do
+                    if div.SetColorTexture then div:SetColorTexture(ar, ag, ab, 0.2) end
+                end
+                for _, div in ipairs(dashAccentRefs.homeTileDividers) do
+                    if div.SetColorTexture then
+                        local p = div:GetParent()
+                        if p and p._isSkeleton then
+                            div:SetColorTexture(0.14, 0.15, 0.17, 0.22)
+                        else
+                            div:SetColorTexture(ar, ag, ab, 0.2)
+                        end
+                    end
                 end
                 for _, acc in ipairs(dashAccentRefs.cardAccents) do
                     if acc.SetColorTexture then acc:SetColorTexture(ar, ag, ab, 1) end
@@ -1043,9 +1056,7 @@ function addon.Dashboard_BuildMainFrame()
                 DASH_HOME_TILE_GAP = DASH_HOME_TILE_GAP,
                 DASH_HOME_TILE_COLS = DASH_HOME_TILE_COLS,
                 DASH_HOME_TILE_BG_ALPHA_MULT = DASH_HOME_TILE_BG_ALPHA_MULT,
-                DASH_HOME_TILE_BORDER_ALPHA_MULT = DASH_HOME_TILE_BORDER_ALPHA_MULT,
                 DASH_HOME_SKELETON_BG_ALPHA_MULT = DASH_HOME_SKELETON_BG_ALPHA_MULT,
-                DASH_HOME_SKELETON_BORDER_ALPHA_MULT = DASH_HOME_SKELETON_BORDER_ALPHA_MULT,
                 DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
                 HideContextHeader = HideContextHeader,
                 setSidebarState = function(s) detailEnv.setSidebarState(s) end,
