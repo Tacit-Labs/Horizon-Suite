@@ -68,24 +68,37 @@ function addon.Dashboard_ResolveSavedDashboardFontPath(raw)
     return raw
 end
 
---- @return number
-function addon.Dashboard_GetDashboardFontSizeOffset()
-    if not addon.GetDB then return 0 end
-    return tonumber(addon.GetDB("dashboardFontSizeOffset", 0)) or 0
+--- Absolute body text size in pixels (default 13). Migrates legacy dashboardFontSizeOffset.
+--- @return integer
+function addon.Dashboard_GetBodySize()
+    if not addon.GetDB then return 13 end
+    local v = addon.GetDB("dashboardFontSize", nil)
+    if v ~= nil then
+        return math.max(DASHBOARD_TYPO_MIN_PX, math.floor((tonumber(v) or 13) + 0.5))
+    end
+    -- Back-compat: migrate from old offset key
+    local off = tonumber(addon.GetDB("dashboardFontSizeOffset", 0)) or 0
+    return math.max(DASHBOARD_TYPO_MIN_PX, 13 + math.floor(off + 0.5))
 end
 
---- @param base number Author-facing pixel size before user offset.
+--- Effective size for a given role, scaled relative to body size (13 = body).
+--- @param base number Author-facing pixel size where 13 represents body text.
 --- @return number
 function addon.Dashboard_EffectiveDashboardFontSize(base)
-    local off = addon.Dashboard_GetDashboardFontSizeOffset()
-    return math.max(DASHBOARD_TYPO_MIN_PX, math.floor((tonumber(base) or 12) + off + 0.5))
+    local body = addon.Dashboard_GetBodySize()
+    return math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((tonumber(base) or 13) - 13) + 0.5))
 end
 
---- Saved outline level: 0 off, 1 OUTLINE, 2 THICKOUTLINE (migrates legacy boolean).
+--- Saved outline level: 0 off, 1 OUTLINE, 2 THICKOUTLINE. Handles legacy booleans and new string values from dropdown.
 --- @return integer 0–2
 function addon.Dashboard_GetTextOutlineLevel()
     if not addon.GetDB then return 1 end
     local v = addon.GetDB("dashboardTextOutline", 1)
+    -- New string values from dropdown
+    if v == "" then return 0 end
+    if v == "OUTLINE" then return 1 end
+    if v == "THICKOUTLINE" then return 2 end
+    -- Legacy boolean migration
     if v == true then return 1 end
     if v == false then return 0 end
     local n = tonumber(v)
@@ -194,27 +207,28 @@ function addon.ApplyDashboardTypography()
 
     local rawPath = (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
     local path = addon.Dashboard_ResolveSavedDashboardFontPath(rawPath)
-    local off = addon.Dashboard_GetDashboardFontSizeOffset()
+    local body = addon.Dashboard_GetBodySize()
 
     local widgetFlags = addon.Dashboard_GetWidgetOutlineFlags()
     local widgetShadow = addon.Dashboard_ShouldUseTextShadow()
     if _G.OptionsWidgets_SetDef then
         _G.OptionsWidgets_SetDef({
             FontPath = path,
-            LabelSize = math.max(DASHBOARD_TYPO_MIN_PX, 13 + off),
-            SectionSize = math.max(DASHBOARD_TYPO_MIN_PX, 11 + off),
-            HeaderSize = math.max(DASHBOARD_TYPO_MIN_PX, (addon.HEADER_SIZE or 16) + off),
+            LabelSize = body,
+            SectionSize = math.max(DASHBOARD_TYPO_MIN_PX, body - 2),
+            HeaderSize = math.max(DASHBOARD_TYPO_MIN_PX, body + 3),
             WidgetFontFlags = widgetFlags,
             WidgetTextShadow = widgetShadow,
         })
     end
+    if _G.OptionsWidgets_RefreshFonts then _G.OptionsWidgets_RefreshFonts() end
 
     local reg = dash._dashboardTypographyRefs
     if reg and reg.fontStrings then
         for _, e in ipairs(reg.fontStrings) do
             local fs = e.fs
             if fs and fs.SetFont then
-                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 12) + off + 0.5))
+                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((e.base or 13) - 13) + 0.5))
                 local fl
                 if e.widgetChrome then
                     fl = widgetFlags
@@ -234,7 +248,7 @@ function addon.ApplyDashboardTypography()
         for _, e in ipairs(reg.editBoxes) do
             local eb = e.eb
             if eb and eb.SetFont then
-                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 13) + off + 0.5))
+                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((e.base or 13) - 13) + 0.5))
                 local fl = e.widgetChrome and widgetFlags or (e.flags or "")
                 pcall(function()
                     eb:SetFont(path, eff, fl)
@@ -247,7 +261,7 @@ function addon.ApplyDashboardTypography()
         for _, e in ipairs(dash._patchNotesTypoRefs) do
             local fs = e.fs
             if fs and fs.SetFont then
-                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor((e.base or 12) + off + 0.5))
+                local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((e.base or 13) - 13) + 0.5))
                 local fl
                 if e.widgetChrome then
                     fl = widgetFlags

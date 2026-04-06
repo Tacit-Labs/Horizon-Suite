@@ -378,7 +378,7 @@ local DASHBOARD_BACKGROUND_KEYS = {
 
 local DASHBOARD_TYPOGRAPHY_KEYS = {
     dashboardFontPath = true,
-    dashboardFontSizeOffset = true,
+    dashboardFontSize = true,
     dashboardTextOutline = true,
     dashboardTextShadow = true,
 }
@@ -907,7 +907,7 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "section", name = L["DASHBOARD_TYPO_SECTION"] or "Dashboard text" }
             local dashboardTypoRefreshIds = {
                 "dashboardFontPath",
-                "dashboardFontSizeOffset",
+                "dashboardFontSize",
                 "dashboardTextOutline",
                 "dashboardTextShadow",
             }
@@ -926,58 +926,53 @@ local OptionCategories = {
             }
             opts[#opts + 1] = {
                 type = "slider",
-                name = L["DASHBOARD_TYPO_SIZE"] or "Dashboard text size",
-                desc = L["DASHBOARD_TYPO_SIZE_DESC"] or "Nudge all dashboard text larger or smaller (same idea as Focus global font offset).",
-                dbKey = "dashboardFontSizeOffset",
-                min = -4,
-                max = 4,
+                name = L["DASHBOARD_TYPO_SIZE"] or "Body text size",
+                desc = L["DASHBOARD_TYPO_SIZE_DESC"] or "Size of body text in the Axis settings window. All other dashboard text scales proportionally.",
+                dbKey = "dashboardFontSize",
+                min = 10,
+                max = 18,
                 step = 1,
-                get = function() return getDB("dashboardFontSizeOffset", 0) end,
-                set = function(v) setDB("dashboardFontSizeOffset", math.max(-4, math.min(4, math.floor((tonumber(v) or 0) + 0.5)))) end,
+                get = function()
+                    if addon.Dashboard_GetBodySize then return addon.Dashboard_GetBodySize() end
+                    return getDB("dashboardFontSize", 13)
+                end,
+                set = function(v)
+                    setDB("dashboardFontSize", math.max(10, math.min(18, math.floor((tonumber(v) or 13) + 0.5))))
+                end,
                 refreshIds = dashboardTypoRefreshIds,
             }
             opts[#opts + 1] = {
-                type = "slider",
-                name = L["DASHBOARD_TYPO_OUTLINE"] or "Dashboard text outline",
-                desc = L["DASHBOARD_TYPO_OUTLINE_DESC"] or "0 = none, 1 = standard outline, 2 = thick outline.",
+                type = "dropdown",
+                name = L["DASHBOARD_TYPO_OUTLINE"] or "Text outline",
+                desc = L["DASHBOARD_TYPO_OUTLINE_DESC"] or "Outline style for dashboard text.",
                 dbKey = "dashboardTextOutline",
-                min = 0,
-                max = 2,
-                step = 1,
+                options = OUTLINE_OPTIONS,
                 get = function()
-                    if addon.Dashboard_GetTextOutlineLevel then
-                        return addon.Dashboard_GetTextOutlineLevel()
-                    end
                     local v = getDB("dashboardTextOutline", 1)
-                    if v == true then return 1 end
-                    if v == false then return 0 end
-                    return math.max(0, math.min(2, math.floor((tonumber(v) or 1) + 0.5)))
+                    if v == "" or v == "OUTLINE" or v == "THICKOUTLINE" then return v end
+                    if v == true then return "OUTLINE" end
+                    if v == false then return "" end
+                    local n = tonumber(v)
+                    if not n then return "OUTLINE" end
+                    n = math.max(0, math.min(2, math.floor(n + 0.5)))
+                    if n == 0 then return "" end
+                    if n == 2 then return "THICKOUTLINE" end
+                    return "OUTLINE"
                 end,
-                set = function(v)
-                    setDB("dashboardTextOutline", math.max(0, math.min(2, math.floor((tonumber(v) or 0) + 0.5))))
-                end,
+                set = function(v) setDB("dashboardTextOutline", v) end,
                 refreshIds = dashboardTypoRefreshIds,
             }
             opts[#opts + 1] = {
-                type = "slider",
-                name = L["DASHBOARD_TYPO_SHADOW"] or "Dashboard text shadow",
-                desc = L["DASHBOARD_TYPO_SHADOW_DESC"] or "Drop shadow strength for dashboard text (0–100%). Higher is darker; 0 is off.",
+                type = "toggle",
+                name = L["DASHBOARD_TYPO_SHADOW"] or "Text shadow",
+                desc = L["DASHBOARD_TYPO_SHADOW_DESC"] or "Add a drop shadow behind dashboard text to improve readability.",
                 dbKey = "dashboardTextShadow",
-                min = 0,
-                max = 100,
-                step = 1,
                 get = function()
-                    if addon.Dashboard_GetTextShadowStrength then
-                        return addon.Dashboard_GetTextShadowStrength()
-                    end
-                    local v = getDB("dashboardTextShadow", 0)
-                    if v == true then return 65 end
-                    if v == false then return 0 end
-                    return math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5)))
+                    local v = getDB("dashboardTextShadow", false)
+                    if type(v) == "number" then return v > 0 end
+                    return v == true
                 end,
-                set = function(v)
-                    setDB("dashboardTextShadow", math.max(0, math.min(100, math.floor((tonumber(v) or 0) + 0.5))))
-                end,
+                set = function(v) setDB("dashboardTextShadow", v) end,
                 refreshIds = dashboardTypoRefreshIds,
             }
             opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PATCH_NOTES_SECTION"] or "Patch notes" }
