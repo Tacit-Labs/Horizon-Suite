@@ -10,6 +10,25 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.9.2] – 2026-04-06
+
+### 🔧 Improvements
+
+- **(Focus)** Quest type icons are on by default for existing profiles (saved migration)
+- **(Focus)** Header text case option default matches the tracker’s uppercase style
+- **(Axis)** Dashboard sidebar: clicking a module row opens that module’s view and highlights its header
+- **(Axis)** Home and subcategory cards use aligned chrome; Quick Start path glyphs fixed
+- **(Axis)** Batching module on/off toggles applies a single deferred UI reload
+- **(Insight)** Tooltip flags use hook-sourced state to avoid unsafe Midnight secret boolean checks
+- **(Vista)** Difficulty text is anchored to the minimap, independent of the zone label
+- **(Localization)** Locale restructure uses plain commented stubs (no `NEEDS TRANSLATION` suffix); multiline commented stubs and tooling updated accordingly
+
+### 🐛 Fixes
+
+- **(Axis)** Dashboard options search: accordion rows no longer overlap after jumping to a match
+
+---
+
 ## [4.9.1] – 2026-04-06
 
 ### 🔧 Improvements
