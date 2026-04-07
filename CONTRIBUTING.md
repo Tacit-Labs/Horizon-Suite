@@ -6,5 +6,5 @@ See **[TRANSLATING.md](TRANSLATING.md)** for how to translate `Localisation/<loc
 
 ## Code
 
-- Follow existing module patterns and `CLAUDE.md` at the repo root.
+- Follow existing module patterns. During rebuild, archived Claude instructions live under **`.claude/claude-md-archive/`** (mirrored paths, e.g. `CLAUDE.md`, `modules/Focus/CLAUDE.md`). That tree is **gitignored** — local copy only, not on GitLab.
 - For new user-visible strings, add them to **`Localisation/enUS.lua`** under the appropriate section header, then run `node tools/restructure_locales.js` before committing.

@@ -48,6 +48,6 @@ After any bulk rename: `restructure_locales.js`, then `locale_audit.js --strict`
 
 ## See also
 
-- [Localisation/CLAUDE.md](../Localisation/CLAUDE.md) — contributor workflow for strings
+- [.claude/claude-md-archive/Localisation/CLAUDE.md](../.claude/claude-md-archive/Localisation/CLAUDE.md) — contributor workflow for strings (*archived during rebuild; gitignored*)
 - [TRANSLATING.md](../TRANSLATING.md) — translators
 - [archived/README.md](archived/README.md) — retired migration scripts

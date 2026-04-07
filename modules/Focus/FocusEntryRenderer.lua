@@ -969,7 +969,14 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         obj.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
         obj.text:ClearAllPoints()
         local gapForComplete = (prevAnchor == entry.titleText) and titleGap or objSpacing
-        obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", OBJ_EXTRA_LEFT_PAD, -gapForComplete)
+        local affixH = entry._affixBlockHeight
+        if entry.affixText and prevAnchor == entry.affixText and type(affixH) == "number" and affixH > 0 then
+            obj.text:SetPoint("TOPLEFT", entry.affixText, "TOPLEFT", OBJ_EXTRA_LEFT_PAD, -affixH - gapForComplete)
+        elseif prevAnchor == entry.titleText and effectiveTitleRowH then
+            obj.text:SetPoint("TOPLEFT", prevAnchor, "TOPLEFT", OBJ_EXTRA_LEFT_PAD, -effectiveTitleRowH - gapForComplete)
+        else
+            obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", OBJ_EXTRA_LEFT_PAD, -gapForComplete)
+        end
         obj.text:Show()
         obj.shadow:Show()
         local objH = obj.text:GetStringHeight()

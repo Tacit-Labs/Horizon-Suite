@@ -446,7 +446,11 @@ local function ReadTrackedQuests()
 
         local objectivesDoneCount, objectivesTotalCount
         local completedObjDisplay = addon.GetDB("questCompletedObjectiveDisplay", "off")
-        if completedObjDisplay == "hide" and #objectives > 0 then
+        -- Ready-to-turn-in fallback in FocusEntryRenderer needs shownObjs == 0; strip finished
+        -- objectives when hide always, or when fade and the quest is complete (same as hide for turn-in).
+        local isComplete = C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) or false
+        if #objectives > 0
+            and (completedObjDisplay == "hide" or (completedObjDisplay == "fade" and isComplete)) then
             objectivesDoneCount, objectivesTotalCount = 0, #objectives
             for _, o in ipairs(objectives) do
                 if o.finished then objectivesDoneCount = objectivesDoneCount + 1 end
@@ -458,7 +462,6 @@ local function ReadTrackedQuests()
             objectives = filtered
         end
         local color = addon.GetQuestColor(category)
-        local isComplete = C_QuestLog.IsComplete(questID)
         local isSuper = (questID == superTracked)
         local zoneName = addon.GetQuestZoneName(questID)
         if category == "PREY" and (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)) and (not zoneName or zoneName == "") then
