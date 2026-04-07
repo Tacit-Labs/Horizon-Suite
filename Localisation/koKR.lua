@@ -129,7 +129,7 @@ L["DASH_GUIDE_TAB"]                                                   = "Guide"
 -- L["DASH_GUIDE_HERO_TAGLINE"]                                       = "A modular UI toolkit for quests, notifications, the minimap, and more."
 L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
 -- L["DASH_GUIDE_QUICK_START_HEADING"]                                = "Quick start"
--- L["DASH_GUIDE_QUICK_START_BODY"]                                   = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
+L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
 -- • Under |cffaaaaaaAxis > Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
 -- L["DASH_GUIDE_HORIZON_HEADING"]                                    = "What is Horizon Suite?"
 L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
@@ -305,15 +305,20 @@ L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "툴팁 
 L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "툴팁 표시 위치: 커서 추적 또는 고정 위치."
 L["OPTIONS_AXIS_CURSOR"]                                              = "커서"
 L["OPTIONS_AXIS_FIXED"]                                               = "고정"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE"]                                   = "Cursor side"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_DESC"]                              = "Which side of the cursor the tooltip appears on."
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_CENTER"]                            = "Center"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_LEFT"]                              = "Left"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_RIGHT"]                             = "Right"
 L["OPTIONS_AXIS_ANCHOR_MOVE"]                                         = "이동용 상자 표시"
 -- L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"]                   = "Click to show or hide the anchor. Drag to set position, right-click to confirm."
 L["OPTIONS_AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_D"]            = "고정 툴팁 위치를 설정할 드래그 가능한 프레임을 표시합니다. 드래그한 후 우클릭하여 확인(고정)합니다."
 L["OPTIONS_AXIS_RESET_TOOLTIP_POSITION"]                              = "툴팁 위치 초기화"
 L["OPTIONS_AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "고정된 위치를 기본값으로 초기화합니다."
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"]                               = "Cursor offset X"
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                          = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"]                               = "Cursor offset Y"
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                          = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                             = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_COLOR"]                            = "툴팁 배경 색상"
 L["OPTIONS_AXIS_COLOR_OF_TOOLTIP_BACKGROUND"]                         = "툴팁 배경 색상."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"]                          = "툴팁 배경 불투명도"
@@ -1770,6 +1775,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

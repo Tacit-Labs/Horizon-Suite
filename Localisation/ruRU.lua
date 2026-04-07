@@ -129,7 +129,7 @@ L["DASH_GUIDE_TAB"]                                                   = "Guide"
 -- L["DASH_GUIDE_HERO_TAGLINE"]                                       = "A modular UI toolkit for quests, notifications, the minimap, and more."
 L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
 -- L["DASH_GUIDE_QUICK_START_HEADING"]                                = "Quick start"
--- L["DASH_GUIDE_QUICK_START_BODY"]                                   = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
+L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
 -- • Under |cffaaaaaaAxis > Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
 -- L["DASH_GUIDE_HORIZON_HEADING"]                                    = "What is Horizon Suite?"
 L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
@@ -305,15 +305,20 @@ L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Реж�
 L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "Где отображаются подсказки: следовать за курсором или фиксированная позиция."
 L["OPTIONS_AXIS_CURSOR"]                                              = "Курсор"
 L["OPTIONS_AXIS_FIXED"]                                               = "Фиксировано"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE"]                                   = "Cursor side"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_DESC"]                              = "Which side of the cursor the tooltip appears on."
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_CENTER"]                            = "Center"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_LEFT"]                              = "Left"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_RIGHT"]                             = "Right"
 L["OPTIONS_AXIS_ANCHOR_MOVE"]                                         = "Показать якорь для перемещения"
 -- L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"]                   = "Click to show or hide the anchor. Drag to set position, right-click to confirm."
 L["OPTIONS_AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_D"]            = "Показывает перетаскиваемый фрейм для фиксированной позиции. Перетащите и нажмите ПКМ для подтверждения."
 L["OPTIONS_AXIS_RESET_TOOLTIP_POSITION"]                              = "Сбросить позицию подсказок"
 L["OPTIONS_AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Сбросить фиксированную позицию по умолчанию."
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"]                               = "Cursor offset X"
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                          = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"]                               = "Cursor offset Y"
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                          = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                             = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_COLOR"]                            = "Цвет фона подсказок"
 L["OPTIONS_AXIS_COLOR_OF_TOOLTIP_BACKGROUND"]                         = "Цвет фона подсказок."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"]                          = "Прозрачность фона подсказок"
@@ -1770,6 +1775,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
