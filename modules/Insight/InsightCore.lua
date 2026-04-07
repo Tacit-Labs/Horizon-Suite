@@ -114,127 +114,13 @@ local function HookTooltipShowMethod(tooltip)
 end
 
 -- ============================================================================
--- ANIMATION (per-tooltip; supports GameTooltip + ItemRef/shopping/embedded concurrently)
+-- LIFECYCLE (no animation; just tracking)
 -- ============================================================================
-
-local FADE_STATE_FADEIN  = "fadein"
-local FADE_STATE_FADEOUT = "fadeout"
-
-local suppressFadeIn = false
--- Weak keys: tooltip frames; avoids retaining dead frames.
-local lastTooltipItemLinkByTT = setmetatable({}, { __mode = "k" })
--- [tooltip] = { state, elapsed, fadeInStartAlpha, fadeOutStartAlpha, lastAppliedAlpha }
-local tooltipFadeData         = setmetatable({}, { __mode = "k" })
-local toRemove                = {}  -- reused each OnUpdate tick; avoids per-tick allocation
-
--- Stale unit-tooltip dismiss: debounce from insightTooltipDismissGrace; fade length from insightTooltipFadeOutSec.
--- Race with Blizzard: if the client calls GameTooltip:Hide() before our dismiss runs, the tooltip "pops" with no custom fade.
-local staleCheckElapsed     = 0
-local staleMouseoverMissTicks = 0
-local umuDismissGen         = 0
-
-local function GetTooltipDismissGrace()
-    local raw = addon.GetDB("insightTooltipDismissGrace", "default")
-    if raw == "instant" then return "instant" end
-    if raw == "relaxed" then return "relaxed" end
-    return "default"
-end
-
-local function GetStaleCheckInterval()
-    if GetTooltipDismissGrace() == "instant" then
-        return 0.05
-    end
-    return 0.1
-end
-
-local function GetStaleMissThreshold()
-    local g = GetTooltipDismissGrace()
-    if g == "instant" then return 1 end
-    if g == "relaxed" then return 5 end
-    return 2
-end
-
-local function GetUmuDismissDelaySeconds()
-    if GetTooltipDismissGrace() == "relaxed" then
-        return 0.15
-    end
-    return 0
-end
-
-local function SyncFadeOutDurationFromDB()
-    local s = tonumber(addon.GetDB("insightTooltipFadeOutSec", 0.4)) or 0.4
-    s = math.max(0, math.min(0.8, s))
-    s = math.floor(s / 0.05 + 0.5) * 0.05
-    Insight.FADE_OUT_DUR = s
-end
-local function GetTooltipItemLink(tooltip)
-    if not tooltip then return nil end
-    if tooltip.GetItem then
-        local ok, _, itemLink = pcall(tooltip.GetItem, tooltip)
-        if ok and itemLink then return itemLink end
-    end
-    return tooltip._insightLastItemID
-end
-
--- Stable key for fade dedupe: same item may refresh with different full link strings.
-local function GetTooltipItemFadeKey(tooltip)
-    local raw = GetTooltipItemLink(tooltip)
-    if raw == nil then return nil end
-    if type(raw) == "number" then
-        return "item:" .. tostring(raw)
-    end
-    if type(raw) == "string" then
-        local itemId = raw:match("|Hitem:(%d+)")
-        if itemId then return "item:" .. itemId end
-        return raw
-    end
-    return nil
-end
-
-local animFrame = CreateFrame("Frame")
-animFrame:Hide()
-
-local function HasActiveTooltipFadeDriver()
-    for _, d in pairs(tooltipFadeData) do
-        if d.state == FADE_STATE_FADEIN or d.state == FADE_STATE_FADEOUT then
-            return true
-        end
-    end
-    return false
-end
-
-local function GetFadeData(tooltip)
-    local d = tooltipFadeData[tooltip]
-    if not d then
-        d = {
-            state = "idle",
-            elapsed = 0,
-            fadeInStartAlpha = 0,
-            fadeOutStartAlpha = 1,
-            lastAppliedAlpha = 1,
-        }
-        tooltipFadeData[tooltip] = d
-    end
-    return d
-end
-
-local function IsTooltipInFadeOut(tooltip)
-    local d = tooltipFadeData[tooltip]
-    return d and d.state == FADE_STATE_FADEOUT
-end
 
 -- Branch only on hook-maintained literals. IsShown/IsMouseOver returns can be secret booleans on Midnight:
 -- do not truth-test or compare them — even `v == true` errors. Use OnShow/OnHide and OnEnter/OnLeave + EnableMouse.
 local function TooltipPlainShown(tt)
     return tt and tt._insightPlainShown == true
-end
-
--- Fixed anchor only: defer stale dismiss while the mouse is over the tooltip (OnEnter/OnLeave on GameTooltip).
-local function ShouldDeferStaleFadeOut(tt)
-    if GetAnchorMode() == "cursor" then
-        return false
-    end
-    return tt and tt._insightPlainMouseOverTooltip == true
 end
 
 -- UnitDocumentation: UnitExists uses SecretArguments AllowedWhenUntainted; from tainted addon code the
@@ -256,171 +142,19 @@ local function SafeUnitExistsKnown(unit)
     return exists
 end
 
-animFrame:SetScript("OnUpdate", function(self, elapsed)
-    local durIn = Insight.FADE_IN_DUR
-    local durOut = Insight.FADE_OUT_DUR or durIn
-    wipe(toRemove)
-    for tt, d in pairs(tooltipFadeData) do
-        if d.state == FADE_STATE_FADEIN then
-            d.elapsed = d.elapsed + elapsed
-            local progress = math.min(d.elapsed / durIn, 1)
-            local alpha = d.fadeInStartAlpha + (1 - d.fadeInStartAlpha) * Insight.easeOut(progress)
-            if tt.SetAlpha then tt:SetAlpha(alpha) end
-            d.lastAppliedAlpha = alpha
-            if progress >= 1 then
-                if tt.SetAlpha then tt:SetAlpha(1) end
-                d.lastAppliedAlpha = 1
-                local fk = GetTooltipItemFadeKey(tt)
-                if fk then
-                    lastTooltipItemLinkByTT[tt] = fk
-                end
-                toRemove[#toRemove + 1] = tt
-            end
-        elseif d.state == FADE_STATE_FADEOUT then
-            d.elapsed = d.elapsed + elapsed
-            if durOut <= 0 then
-                if tt and TooltipPlainShown(tt) then
-                    tt:Hide()
-                end
-                toRemove[#toRemove + 1] = tt
-            else
-                local progress = math.min(d.elapsed / durOut, 1)
-                local alpha = d.fadeOutStartAlpha * (1 - Insight.easeOut(progress))
-                if tt.SetAlpha then tt:SetAlpha(alpha) end
-                d.lastAppliedAlpha = alpha
-                if progress >= 1 then
-                    if tt and TooltipPlainShown(tt) then
-                        tt:Hide()
-                    end
-                    toRemove[#toRemove + 1] = tt
-                end
-            end
-        end
-    end
-    for i = 1, #toRemove do
-        tooltipFadeData[toRemove[i]] = nil
-    end
-    if not HasActiveTooltipFadeDriver() then
-        self:Hide()
-    end
-end)
+local lastProcessedUnitGUID = nil
 
-local function StartFadeIn(tooltip)
-    if not tooltip then return end
-    local d = GetFadeData(tooltip)
-    d.state = FADE_STATE_FADEIN
-    d.elapsed = 0
-    d.fadeInStartAlpha = 0
-    d.lastAppliedAlpha = 0
-    tooltip:SetAlpha(0)
-    animFrame:Show()
-end
-
-local function StartFadeOutStale(tooltip)
-    if not tooltip then return end
-    local d = GetFadeData(tooltip)
-    d.state = FADE_STATE_FADEOUT
-    d.elapsed = 0
-    local startA = d.lastAppliedAlpha
-    if not startA or startA <= 0 then
-        startA = 1
-    end
-    d.fadeOutStartAlpha = startA
-    animFrame:Show()
-end
-
--- GameTooltip unit tip only: instant Hide when fade-out duration is 0, else fade (Insight.FADE_OUT_DUR from DB).
-local function DismissStaleUnitGameTooltip(tooltip)
-    if not tooltip then return end
-    if ShouldDeferStaleFadeOut(tooltip) then return end
-    if IsTooltipInFadeOut(tooltip) then return end
-    SyncFadeOutDurationFromDB()
-    local dur = Insight.FADE_OUT_DUR or 0
-    if dur <= 0 then
-        tooltipFadeData[tooltip] = nil
-        if tooltip == GameTooltip then
-            staleMouseoverMissTicks = 0
-        end
-        if TooltipPlainShown(tooltip) then
-            tooltip:Hide()
-        end
-    else
-        StartFadeOutStale(tooltip)
-    end
-end
-
--- TooltipDataProcessor can refresh unit tooltips without OnShow; cancel fade-out so anim does not Hide() mid-hover.
-local function CancelTooltipFadeOutIfNeeded(tooltip)
-    if not tooltip then return end
-    local d = tooltipFadeData[tooltip]
-    if not d or d.state ~= FADE_STATE_FADEOUT then return end
-    if tooltip == GameTooltip then
-        staleMouseoverMissTicks = 0
-    end
-    local startA = d.lastAppliedAlpha
-    if not startA or startA < 0 then
-        startA = 0
-    elseif startA > 1 then
-        startA = 1
-    end
-    d.fadeInStartAlpha = startA
-    d.elapsed = 0
-    d.state = FADE_STATE_FADEIN
-    tooltip:SetAlpha(startA)
-    d.lastAppliedAlpha = startA
-    animFrame:Show()
-end
-
--- Staggered checks after inspect refresh; catches delayed mouseover clearing when user moves off quickly.
-local postInspectSafetyGen = 0
-local POST_INSPECT_SAFETY_DELAYS = { 0, 0.1, 0.25, 0.5 }
-
-local function SchedulePostInspectTooltipSafetyNet()
-    if not (C_Timer and C_Timer.After) then return end
-    postInspectSafetyGen = postInspectSafetyGen + 1
-    local waveGen = postInspectSafetyGen
-    for _, delay in ipairs(POST_INSPECT_SAFETY_DELAYS) do
-        C_Timer.After(delay, function()
-            if waveGen ~= postInspectSafetyGen then return end
-            if not Insight.IsInsightEnabled() then return end
-            local tt = GameTooltip
-            if not tt or not TooltipPlainShown(tt) then return end
-            local gtHasUnit = false
-            if tt.GetUnit then
-                local okGt, uGt = pcall(tt.GetUnit, tt)
-                if okGt then
-                    gtHasUnit = (SafeUnitExistsKnown(uGt) == true)
-                end
-            end
-            if not tt._insightUnitTooltip and not gtHasUnit then return end
-            if SafeUnitExistsKnown("mouseover") ~= false then return end
-            if ShouldDeferStaleFadeOut(tt) then return end
-            if not IsTooltipInFadeOut(tt) then
-                DismissStaleUnitGameTooltip(tt)
-            end
-        end)
-    end
-end
-
-local function HookGameTooltipAnimation()
+local function HookGameTooltipLifecycle()
     GameTooltip:HookScript("OnShow", function(self)
         self._insightPlainShown = true
+        -- Reset per-show so re-hover of same unit always reprocesses.
+        lastProcessedUnitGUID = nil
+        self._insightStyled = nil
         if not Insight.IsInsightEnabled() then return end
-        -- New show cancels a stale fade-out (e.g. user hovered something else mid-fade).
-        CancelTooltipFadeOutIfNeeded(self)
-        -- Rapid re-show (AH browsing): skip fade-in to avoid alpha flash.
-        if self._insightLastHideTime and (GetTime() - self._insightLastHideTime) < 0.15 then
-            self._insightLastHideTime = nil
-            local fadeKey = GetTooltipItemFadeKey(self)
-            lastTooltipItemLinkByTT[self] = fadeKey
-            self:SetAlpha(1)
-            if not HasActiveTooltipFadeDriver() then
-                animFrame:Hide()
-            end
+        if addon.GetDB("insightHideTooltipsInCombat", false) and InCombatLockdown() then
+            self:Hide()
             return
         end
-        self._insightLastHideTime = nil
-        -- pcall: GetUnit can throw or return secret values on Midnight; do not compare or branch on the token string.
         local hasUnit = false
         if self.GetUnit then
             local ok, u = pcall(self.GetUnit, self)
@@ -432,129 +166,26 @@ local function HookGameTooltipAnimation()
             local fn = Insight.StripHealthAndPowerText
             if fn then fn() end
         end
-        if suppressFadeIn then
-            suppressFadeIn = false
-            tooltipFadeData[self] = nil
-            self:SetAlpha(1)
-            if not HasActiveTooltipFadeDriver() then
-                animFrame:Hide()
-            end
-            return
-        end
-        local fadeKey = GetTooltipItemFadeKey(self)
-        local last = lastTooltipItemLinkByTT[self]
-        -- Auction / WQ tooltips can refresh the same item with a different full link string.
-        if fadeKey and last == fadeKey then
-            return
-        end
-        -- Skip re-fade when tooltip is refreshed while already visible (e.g. AH price updates)
-        local d = tooltipFadeData[self]
-        if d and d.state == FADE_STATE_FADEIN then
-            lastTooltipItemLinkByTT[self] = fadeKey or last
-            return
-        end
-        lastTooltipItemLinkByTT[self] = fadeKey
-        StartFadeIn(self)
     end)
     GameTooltip:HookScript("OnHide", function(self)
         self._insightPlainShown = false
-        self._insightPlainMouseOverTooltip = false
-        tooltipFadeData[self] = nil
-        lastTooltipItemLinkByTT[self] = nil
-        if not HasActiveTooltipFadeDriver() then
-            animFrame:Hide()
-        end
-        staleCheckElapsed = 0
-        staleMouseoverMissTicks = 0
-        self:SetAlpha(1)
+        lastProcessedUnitGUID = nil
         self._insightItemQuality = nil
         self._insightUnitTooltip = nil
         self._insightTooltipType = nil
         self._insightStyled = nil
-        -- Timestamp for rapid re-show detection (AH browsing: Hide→Show within one frame).
+        if self._insightLineTags then wipe(self._insightLineTags) end
         self._insightLastHideTime = GetTime()
-    end)
-    GameTooltip:HookScript("OnUpdate", function(self, elapsed)
-        if not Insight.IsInsightEnabled() then return end
-        staleCheckElapsed = staleCheckElapsed + elapsed
-        local checkInt = GetStaleCheckInterval()
-        if staleCheckElapsed < checkInt then return end
-        staleCheckElapsed = 0
-        local unitTip = self._insightUnitTooltip
-        if not unitTip and self.GetUnit then
-            local okU, u = pcall(self.GetUnit, self)
-            if okU then
-                unitTip = (SafeUnitExistsKnown(u) == true)
-            end
-        end
-        local mouseExists = SafeUnitExistsKnown("mouseover")
-        if unitTip and mouseExists == true then
-            staleMouseoverMissTicks = 0
-        elseif unitTip and mouseExists == false then
-            if ShouldDeferStaleFadeOut(self) then
-                staleMouseoverMissTicks = 0
-            else
-                staleMouseoverMissTicks = staleMouseoverMissTicks + 1
-                if staleMouseoverMissTicks >= GetStaleMissThreshold() then
-                    if not IsTooltipInFadeOut(self) then
-                        DismissStaleUnitGameTooltip(self)
-                    end
-                end
-            end
-        elseif unitTip and mouseExists == nil then
-            -- Unknown: do not accumulate stale-dismiss ticks (conservative).
-            staleMouseoverMissTicks = 0
-        else
-            staleMouseoverMissTicks = 0
-        end
-    end)
-    -- Stale-dismiss deferral needs mouse hit-testing without calling IsMouseOver (secret boolean).
-    if GameTooltip.EnableMouse then
-        GameTooltip:EnableMouse(true)
-    end
-    GameTooltip:HookScript("OnEnter", function(self)
-        self._insightPlainMouseOverTooltip = true
-    end)
-    GameTooltip:HookScript("OnLeave", function(self)
-        self._insightPlainMouseOverTooltip = false
     end)
 end
 
--- Fade-in for ItemRef, shopping, and embedded tooltips (GameTooltip uses HookGameTooltipAnimation).
-local function HookStyledTooltipFade(tt)
+local function HookTooltipLifecycle(tt)
     if not tt then return end
     tt:HookScript("OnShow", function(self)
         self._insightPlainShown = true
-        if not Insight.IsInsightEnabled() then return end
-        CancelTooltipFadeOutIfNeeded(self)
-        -- Comparison tooltips are repositioned by Blizzard on every Show(); fade-in
-        -- resets alpha to 0 each time, causing visible flicker on minimap/world quest
-        -- tooltips. Let them appear at full alpha; borders and styling are unaffected.
-        if self == ShoppingTooltip1 or self == ShoppingTooltip2 then
-            self:SetAlpha(1)
-            return
-        end
-        local fadeKey = GetTooltipItemFadeKey(self)
-        local last = lastTooltipItemLinkByTT[self]
-        if fadeKey and last == fadeKey then
-            return
-        end
-        local d = tooltipFadeData[self]
-        if d and d.state == FADE_STATE_FADEIN then
-            lastTooltipItemLinkByTT[self] = fadeKey or last
-            return
-        end
-        lastTooltipItemLinkByTT[self] = fadeKey
-        StartFadeIn(self)
     end)
     tt:HookScript("OnHide", function(self)
         self._insightPlainShown = false
-        lastTooltipItemLinkByTT[self] = nil
-        tooltipFadeData[self] = nil
-        self:SetAlpha(1)
-        if not HasActiveTooltipFadeDriver() then
-            animFrame:Hide()
-        end
     end)
 end
 
@@ -599,25 +230,7 @@ Insight.StripHealthAndPowerText = StripHealthAndPowerText
 -- POSITIONING
 -- ============================================================================
 
-local function HookPositioning()
-    -- Delegate screen-edge clamping to the engine; avoids branching on secret positional values.
-    GameTooltip:SetClampedToScreen(true)
-    hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
-        if not Insight.IsInsightEnabled() then return end
-        if not tooltip or not tooltip.SetOwner then return end
-        if tooltip.IsForbidden and tooltip:IsForbidden() then return end
-        if parent and parent.IsForbidden and parent:IsForbidden() then return end
-        local mode = GetAnchorMode()
-        if mode == "fixed" then
-            tooltip:ClearAllPoints()
-            tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
-        else
-            local ox = tonumber(addon.GetDB("insightCursorOffsetX", 0)) or 0
-            local oy = tonumber(addon.GetDB("insightCursorOffsetY", 0)) or 0
-            tooltip:SetOwner(parent, "ANCHOR_CURSOR", ox, oy)
-        end
-    end)
-end
+-- Positioning is now handled by InsightCursorAnchor.lua
 
 local function HideHealthBar()
     local bar = GameTooltip.StatusBar
@@ -678,9 +291,7 @@ local function ProcessUnitTooltip(tooltip)
     local unit = ResolveTooltipUnitToken(tooltip)
     if not unit then return end
 
-    CancelTooltipFadeOutIfNeeded(tooltip)
-
-    -- If Blizzard already showed the tooltip, a second Show() re-runs OnShow (backdrop, fade) and flashes.
+    -- If Blizzard already showed the tooltip, a second Show() re-runs OnShow (backdrop) and flashes.
     local alreadyVisible = TooltipPlainShown(tooltip)
 
     tooltip._insightItemMetadata = nil
@@ -734,9 +345,6 @@ end
 
 local function OnItemTooltip(tooltip, data)
     if not Insight.IsInsightEnabled() then return end
-    if tooltip and TooltipPlainShown(tooltip) then
-        CancelTooltipFadeOutIfNeeded(tooltip)
-    end
 
     local itemID = data and data.id
     if not itemID then return end
@@ -756,8 +364,7 @@ local function OnItemTooltip(tooltip, data)
     end
 
     -- Comparison tooltips get quality borders (above) but no line enrichment:
-    -- adding lines triggers Blizzard to reposition them, re-firing Show() and
-    -- feeding the StartFadeIn flicker loop on World Quest / minimap tooltips.
+    -- adding lines triggers Blizzard to reposition them, re-firing Show() repeatedly.
     if tooltip == ShoppingTooltip1 or tooltip == ShoppingTooltip2 then return end
 
     tooltip._insightItemMetadata = true
@@ -770,6 +377,12 @@ end
 
 local function OnUnitTooltip(tooltip, data)
     if tooltip ~= GameTooltip or not Insight.IsInsightEnabled() then return end
+    local unit = ResolveTooltipUnitToken(tooltip)
+    if not unit then return end
+    local unitGUID = UnitGUID(unit)
+    -- Skip reprocessing if unit hasn't changed (prevents refresh flicker on repeated TooltipDataProcessor calls).
+    if unitGUID and unitGUID == lastProcessedUnitGUID then return end
+    lastProcessedUnitGUID = unitGUID
     ProcessUnitTooltip(tooltip)
 end
 
@@ -1013,7 +626,6 @@ function Insight.ToggleAnchorFrame()
 end
 
 function Insight.ApplyInsightOptions()
-    SyncFadeOutDurationFromDB()
     if TooltipPlainShown(anchorFrame) then
         Insight.ApplyStoredAnchor(anchorFrame)
         ApplyLiveBackdropColor(anchorFrame)
@@ -1047,24 +659,14 @@ function Insight.Init()
             HookTooltipOnShow(tt)
             HookTooltipShowMethod(tt)
             if tt ~= GameTooltip then
-                HookStyledTooltipFade(tt)
+                HookTooltipLifecycle(tt)
             end
         end
     end
 
-    -- Comparison tooltips inherit GameTooltip's alpha through the frame hierarchy.
-    -- When Insight fades GameTooltip in from alpha=0, the shopping panels visually
-    -- dim too. SetIgnoreParentAlpha(true) breaks that inheritance so they stay at 1.
-    if ShoppingTooltip1 and ShoppingTooltip1.SetIgnoreParentAlpha then
-        ShoppingTooltip1:SetIgnoreParentAlpha(true)
-    end
-    if ShoppingTooltip2 and ShoppingTooltip2.SetIgnoreParentAlpha then
-        ShoppingTooltip2:SetIgnoreParentAlpha(true)
-    end
-
-    HookGameTooltipAnimation()
+    HookGameTooltipLifecycle()
     HideHealthBar()
-    HookPositioning()
+    Insight.HookCursorAnchor()
 
     if TooltipDataProcessor and Enum and Enum.TooltipDataType then
         if Enum.TooltipDataType.Unit then
@@ -1105,7 +707,6 @@ function Insight.Init()
             end,
         })
     end
-    SyncFadeOutDurationFromDB()
 end
 
 function Insight.Disable()
@@ -1115,12 +716,6 @@ function Insight.Disable()
             Insight.RestoreNineSlice(tt)
             if tt.SetBackdrop then tt:SetBackdrop(nil) end
         end
-    end
-    if ShoppingTooltip1 and ShoppingTooltip1.SetIgnoreParentAlpha then
-        ShoppingTooltip1:SetIgnoreParentAlpha(false)
-    end
-    if ShoppingTooltip2 and ShoppingTooltip2.SetIgnoreParentAlpha then
-        ShoppingTooltip2:SetIgnoreParentAlpha(false)
     end
 end
 
@@ -1139,39 +734,15 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
     end
     if event == "UPDATE_MOUSEOVER_UNIT" then
         if not Insight.IsInsightEnabled() then return end
-        local okGt, gtUnit = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
-        local gtHasUnit = false
-        if okGt then
-            gtHasUnit = (SafeUnitExistsKnown(gtUnit) == true)
-        end
-        if SafeUnitExistsKnown("mouseover") == false and TooltipPlainShown(GameTooltip)
-            and (GameTooltip._insightUnitTooltip or gtHasUnit) then
-            if ShouldDeferStaleFadeOut(GameTooltip) then return end
-            umuDismissGen = umuDismissGen + 1
-            local gen = umuDismissGen
-            local delay = GetUmuDismissDelaySeconds()
-            local function runUmuDismiss()
-                if gen ~= umuDismissGen then return end
+        if SafeUnitExistsKnown("mouseover") == false
+            and TooltipPlainShown(GameTooltip)
+            and GameTooltip._insightUnitTooltip then
+            C_Timer.After(0, function()
                 if SafeUnitExistsKnown("mouseover") ~= false then return end
                 if not TooltipPlainShown(GameTooltip) then return end
-                local okGt2, gtUnit2 = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
-                local gtHasUnit2 = false
-                if okGt2 then
-                    gtHasUnit2 = (SafeUnitExistsKnown(gtUnit2) == true)
-                end
-                if not (GameTooltip._insightUnitTooltip or gtHasUnit2) then return end
-                DismissStaleUnitGameTooltip(GameTooltip)
-            end
-            -- Defer with C_Timer so we run after Blizzard's UMU handlers; may start fade before engine Hide().
-            if C_Timer and C_Timer.After then
-                if delay > 0 then
-                    C_Timer.After(delay, runUmuDismiss)
-                else
-                    C_Timer.After(0, runUmuDismiss)
-                end
-            else
-                runUmuDismiss()
-            end
+                if not GameTooltip._insightUnitTooltip then return end
+                GameTooltip:Hide()
+            end)
         end
         return
     end
@@ -1190,17 +761,15 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         end)
         if guidMatches then
             Insight.CacheInspect(guid, "mouseover")
-            local okRef, refU = GameTooltip.GetUnit and pcall(GameTooltip.GetUnit, GameTooltip)
-            local refHasUnit = false
-            if okRef then
-                refHasUnit = (SafeUnitExistsKnown(refU) == true)
-            end
-            if TooltipPlainShown(GameTooltip)
-                and (GameTooltip._insightUnitTooltip or refHasUnit) then
-                -- Rebuild while visible; avoid restarting fade from a second OnShow.
-                suppressFadeIn = true
+            if TooltipPlainShown(GameTooltip) and GameTooltip._insightUnitTooltip then
                 GameTooltip:SetUnit("mouseover")
-                SchedulePostInspectTooltipSafetyNet()
+                C_Timer.After(0.25, function()
+                    if not Insight.IsInsightEnabled() then return end
+                    if not TooltipPlainShown(GameTooltip) then return end
+                    if not GameTooltip._insightUnitTooltip then return end
+                    if SafeUnitExistsKnown("mouseover") ~= false then return end
+                    GameTooltip:Hide()
+                end)
             end
         end
         if Insight.PruneInspectCache then Insight.PruneInspectCache() end

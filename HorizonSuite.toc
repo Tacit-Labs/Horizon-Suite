@@ -98,6 +98,7 @@ modules/Insight/InsightShared.lua
 modules/Insight/InsightPlayerTooltip.lua
 modules/Insight/InsightNpcTooltip.lua
 modules/Insight/InsightItemTooltip.lua
+modules/Insight/InsightCursorAnchor.lua
 modules/Insight/InsightCore.lua
 modules/Insight/InsightModule.lua
 
