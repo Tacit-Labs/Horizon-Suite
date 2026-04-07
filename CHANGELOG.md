@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.9.4] – 2026-04-07
+
+### 🔧 Improvements
+
+- **(Insight)** NPC tooltips keep Blizzard’s subtitle on the second line when the custom level line is enabled — level moves to line three when the subtitle is real content, not the level row
+
+---
+
 ## [4.9.3] – 2026-04-06
 
 ### 🔧 Improvements
