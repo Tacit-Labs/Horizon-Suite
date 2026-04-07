@@ -5,13 +5,14 @@ manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown
 
-# Exclude CI, config, and dev scripts from the packaged addon
+# Exclude CI, config, and dev tooling from the packaged addon
 ignore:
   - options/Mockups.lua
   - .github
   - .gitignore
   - .pkgmeta
   - scripts
+  - tools
   - docs
   - notes
   - "modules/*/notes"

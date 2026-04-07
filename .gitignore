@@ -14,7 +14,8 @@ Thumbs.db
 
 # Local dev notes (not for version control)
 CLAUDE.md
-docs/plans/
+# Dev / listing assets (screenshots, GIFs, internal notes); also excluded from addon zips via .pkgmeta
+docs/
 
 
 # Generated release artifacts (local review only)
