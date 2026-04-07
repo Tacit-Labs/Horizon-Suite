@@ -177,11 +177,22 @@ function Insight.ForTooltipLines(tooltip, fn)
     end
 end
 
---- Safe get text from font string; returns "" on error (secret/taint).
+--- Safe get text from a font string as a plain Lua string (safe for string.* / :gsub).
+--- GetText can return a secret string on Midnight; that value must not be passed to string APIs from addon code.
+--- Returns "" on error, nil text, or if coercion fails.
+--- @param font table FontString|nil
+--- @return string
 function Insight.SafeGetFontText(font)
     if not font then return "" end
-    local ok, val = pcall(font.GetText, font)
-    return (ok and val) or ""
+    local ok, out = pcall(function()
+        local ok2, val = pcall(font.GetText, font)
+        if not ok2 or val == nil then
+            return ""
+        end
+        local ok3, plain = pcall(tostring, val)
+        return (ok3 and plain) or ""
+    end)
+    return (ok and out) or ""
 end
 
 --- Safely check if font string text equals any of the given values. Returns false on taint/secret string.

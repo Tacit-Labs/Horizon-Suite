@@ -17,8 +17,12 @@ local function ShowLevelLine()      return addon.GetDB("insightNpcShowLevelLine"
 local function ShowNpcIcons()       return addon.GetDB("insightNpcShowIcons",      true) end
 
 -- Strip |c…|r for heuristics only (same pattern as StripHealthAndPowerText).
+-- pcall: s may be a secret string (Midnight); (s or "") still uses s when truthy, so :gsub can error without this guard.
 local function StripTooltipColorCodes(s)
-    return (s or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    local ok, out = pcall(function()
+        return (s or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    end)
+    return (ok and out) or ""
 end
 
 -- True if `level` appears as a whole number in `stripped` (not a substring of a larger digit run).
