@@ -15,6 +15,16 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.9.4"] = {
+        date = "2026-04-07",
+        {
+            section = "Improvements",
+            bullets = {
+                "Insight: NPC subtitles stay visible when the custom level line is on (level on line three when line two is real subtitle text)",
+            },
+        },
+    },
+
     ["4.9.3"] = {
         date = "2026-04-06",
         {
