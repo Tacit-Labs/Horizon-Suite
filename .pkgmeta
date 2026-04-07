@@ -5,7 +5,8 @@ manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown
 
-# Exclude CI, config, dev scripts, and marketing media under docs/ from the packaged addon
+# Exclude CI, config, dev tooling, and marketing media from the packaged addon.
+# BigWigs release.sh does not strip inline # comments on ignore list lines; keep "- path" alone.
 ignore:
   - HorizonSuiteBeta.toc
   - options/Mockups.lua
@@ -13,7 +14,8 @@ ignore:
   - .gitignore
   - .pkgmeta
   - scripts
-  - docs # screenshots/GIFs for listings; not shipped in Curse/Wago zips
+  - tools
+  - docs
   - notes
   - "modules/*/notes"
   - pipeline.md
