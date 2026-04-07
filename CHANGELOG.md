@@ -10,6 +10,26 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.10.0] – 2026-04-08
+
+### ✨ New Features
+
+- **(Insight)** Tooltip anchoring — cursor-follow tooltips can appear to the **left**, **right**, or **center** of the cursor, with optional offsets when using left or right
+
+### 🔧 Improvements
+
+- **(Axis)** Release packages no longer include internal **docs** and **tools** folders after packager and ignore updates
+- **(Insight)** Item quality used for tooltip styling follows current item info data more reliably
+
+### 🐛 Fixes
+
+- **(Focus)** Quest-complete row no longer wipes the **inline countdown** on timed click-to-complete quests
+- **(Insight)** **World-cursor** NPC tooltips — fewer errors and sturdier default cursor anchoring
+- **(Insight)** **Player** tooltips keep custom styling when you move away and hover the same unit again
+- **(Insight)** **Unit** tooltips keep addon content when Blizzard refreshes the frame via SetUnit
+
+---
+
 ## [4.9.4] – 2026-04-07
 
 ### 🔧 Improvements
