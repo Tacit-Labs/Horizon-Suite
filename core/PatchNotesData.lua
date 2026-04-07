@@ -15,6 +15,32 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.10.0"] = {
+        date = "2026-04-08",
+        {
+            section = "New Features",
+            bullets = {
+                "Insight: cursor tooltips can anchor to the left, right, or center of the cursor, with optional offsets for left and right",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: release zip no longer ships docs and tools (pkgmeta and ignore updates)",
+                "Insight: item quality for tooltip chrome uses current item info data",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: quest-complete row keeps the inline timer on timed click-to-complete quests",
+                "Insight: world-cursor NPC tooltips — fewer errors and sturdier default cursor anchoring",
+                "Insight: player tooltips keep custom styling when re-hovering the same unit",
+                "Insight: unit tooltips keep addon lines after a Blizzard SetUnit refresh",
+            },
+        },
+    },
+
     ["4.9.4"] = {
         date = "2026-04-07",
         {
