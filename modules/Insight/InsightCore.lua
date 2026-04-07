@@ -177,6 +177,12 @@ local function HookGameTooltipLifecycle()
         if self._insightLineTags then wipe(self._insightLineTags) end
         self._insightLastHideTime = GetTime()
     end)
+    -- Reset dedup guard on every SetUnit so Blizzard periodic refreshes (nameplates,
+    -- target frames) always re-add our custom lines. _insightStyled is NOT cleared here
+    -- because backdrop/font styling persists and doesn't need reapplying per refresh.
+    hooksecurefunc(GameTooltip, "SetUnit", function(self)
+        lastProcessedUnitGUID = nil
+    end)
 end
 
 local function HookTooltipLifecycle(tt)
