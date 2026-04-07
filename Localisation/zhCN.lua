@@ -96,7 +96,7 @@ L["DASH_WELCOME_CLASS_ICONS_LEAD"]                                    = [=[We ha
 -- L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"]                       = "• Created by "
 -- L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                          = "Gabriel C"
 -- L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                             = "Contributors"
--- L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                = [=[Thanks to everyone who has contributed to Horizon Suite:
+L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 -- 
 -- • feanor21#2847 — Panoramuxa (Tarren Mill - EU) — Development
 -- • Marthix — Development
@@ -130,7 +130,7 @@ L["DASH_GUIDE_TAB"]                                                   = "Guide"
 -- L["DASH_GUIDE_HERO_TAGLINE"]                                       = "A modular UI toolkit for quests, notifications, the minimap, and more."
 L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
 -- L["DASH_GUIDE_QUICK_START_HEADING"]                                = "Quick start"
--- L["DASH_GUIDE_QUICK_START_BODY"]                                   = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
+L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
 -- • Under |cffaaaaaaAxis > Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
 -- L["DASH_GUIDE_HORIZON_HEADING"]                                    = "What is Horizon Suite?"
 L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
@@ -306,15 +306,20 @@ L["OPTIONS_AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "提示�
 L["OPTIONS_AXIS_WHERE_TOOLTIPS_APPEAR_FOLLOW_CURSOR_FIXED"]           = "提示显示位置：跟随光标或固定位置"
 L["OPTIONS_AXIS_CURSOR"]                                              = "光标"
 L["OPTIONS_AXIS_FIXED"]                                               = "固定"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE"]                                   = "Cursor side"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_DESC"]                              = "Which side of the cursor the tooltip appears on."
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_CENTER"]                            = "Center"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_LEFT"]                              = "Left"
+-- L["OPTIONS_INSIGHT_CURSOR_SIDE_RIGHT"]                             = "Right"
 L["OPTIONS_AXIS_ANCHOR_MOVE"]                                         = "显示锚点以移动"
 -- L["OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO"]                   = "Click to show or hide the anchor. Drag to set position, right-click to confirm."
 L["OPTIONS_AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_D"]            = "显示可拖动框架设置固定提示位置。拖动后右键确认"
 L["OPTIONS_AXIS_RESET_TOOLTIP_POSITION"]                              = "重置提示位置"
 L["OPTIONS_AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "固定位置重置为默认值"
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X"]                               = "Cursor offset X"
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                          = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
 -- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y"]                               = "Cursor offset Y"
--- L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                          = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["OPTIONS_INSIGHT_CURSOR_OFFSET_Y_DESC"]                             = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_COLOR"]                            = "提示框背景颜色"
 L["OPTIONS_AXIS_COLOR_OF_TOOLTIP_BACKGROUND"]                         = "提示框背景颜色."
 L["OPTIONS_AXIS_TOOLTIP_BACKGROUND_OPACITY"]                          = "提示框背景不透明度"
@@ -1771,6 +1776,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

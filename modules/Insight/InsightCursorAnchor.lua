@@ -1,6 +1,6 @@
 --[[
-    Horizon Suite - Insight Cursor Anchor (simplified, EnhanceQoL-inspired)
-    Minimal implementation: hook GameTooltip_SetDefaultAnchor and apply cursor or fixed positioning.
+    Horizon Suite - Insight Cursor Anchor
+    Hook GameTooltip_SetDefaultAnchor and apply cursor-side or fixed positioning.
     No per-frame updates, no manual line clearing, no state tracking.
 ]]
 
@@ -31,6 +31,18 @@ local function GetFixedY()
     return tonumber(addon.GetDB("insightFixedY", FIXED_Y)) or FIXED_Y
 end
 
+local function GetCursorSide()
+    return addon.GetDB("insightCursorSide", "center")
+end
+
+local function GetCursorOffsetX()
+    return tonumber(addon.GetDB("insightCursorOffsetX", 0)) or 0
+end
+
+local function GetCursorOffsetY()
+    return tonumber(addon.GetDB("insightCursorOffsetY", 0)) or 0
+end
+
 function Insight.HookCursorAnchor()
     GameTooltip:SetClampedToScreen(true)
     hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
@@ -40,10 +52,17 @@ function Insight.HookCursorAnchor()
         if parent and parent.IsForbidden and parent:IsForbidden() then return end
 
         local mode = GetAnchorMode()
-        if mode == "fixed" then
+        if mode == "cursor" then
+            local side = GetCursorSide()
+            if side == "left" then
+                tooltip:SetOwner(parent, "ANCHOR_CURSOR_LEFT", GetCursorOffsetX(), GetCursorOffsetY())
+            elseif side == "right" then
+                tooltip:SetOwner(parent, "ANCHOR_CURSOR_RIGHT", GetCursorOffsetX(), GetCursorOffsetY())
+            end
+            -- "center": let Blizzard handle ANCHOR_CURSOR natively
+        elseif mode == "fixed" then
             tooltip:ClearAllPoints()
             tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
         end
-        -- Cursor mode: let Blizzard handle ANCHOR_CURSOR natively (no SetOwner call to avoid clearing lines)
     end)
 end

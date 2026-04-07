@@ -356,7 +356,11 @@ local function OnItemTooltip(tooltip, data)
     if not itemID then return end
 
     -- Item identity: quality-colored border and separator tint
-    local quality = (data and data.quality) or (C_Item and C_Item.GetItemInfo and select(3, C_Item.GetItemInfo(itemID)))
+    local quality = data and data.quality
+    if not quality and C_Item and C_Item.GetItemInfo then
+        local info = C_Item.GetItemInfo(itemID)
+        quality = info and info.quality
+    end
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
         if r then
@@ -582,7 +586,8 @@ local function RefreshPullout()
     elseif mode == "item" then
         local id = Insight.DASHBOARD_PREVIEW_ITEM_ID or 168602
         if C_Item and C_Item.GetItemInfo then
-            local _, _, q = C_Item.GetItemInfo(id)
+            local info = C_Item.GetItemInfo(id)
+            local q = info and info.quality
             if q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q] then
                 local qc = ITEM_QUALITY_COLORS[q]
                 br, bg, bb = qc.r, qc.g, qc.b
