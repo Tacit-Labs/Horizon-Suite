@@ -49,4 +49,4 @@ rg '^-- L\[' Localisation/
 rg "YOUR_KEY_PREFIX" Localisation/enUS.lua
 ```
 
-See also [Localisation/CLAUDE.md](Localisation/CLAUDE.md) for the full developer workflow.
+See also [.claude/claude-md-archive/Localisation/CLAUDE.md](.claude/claude-md-archive/Localisation/CLAUDE.md) for the full developer workflow. (*Archived during rebuild; `.claude/` is gitignored — local copy only.*)
