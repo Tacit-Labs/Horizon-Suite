@@ -56,18 +56,28 @@ issuelog:
       for type in bugs features improvements ideas; do
         PAYLOAD=".release/discord-issuelog-payload-${type}.json"
         if [ -f "$PAYLOAD" ]; then
-          RESP=$(curl -s -w "\n%{http_code}" -X POST \
+          echo "Posting ${type} ($(wc -c < "$PAYLOAD") bytes)"
+          BODY_FILE=$(mktemp)
+          HTTP=$(curl -sS -o "$BODY_FILE" -w "%{http_code}" -X POST \
             "${DISCORD_WEBHOOK_ISSUELOG}?wait=true" \
             -H "Content-Type: application/json" \
             -d @"$PAYLOAD")
-          HTTP=$(echo "$RESP" | tail -1)
-          BODY=$(echo "$RESP" | sed '$d')
-          NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
+          if [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+            echo "Failed to post ${type} (HTTP ${HTTP}): $(tr -d '\r' < "$BODY_FILE" | head -c 1200)"
+            rm -f "$BODY_FILE" "$NEW_IDS"
+            exit 1
+          fi
+          if ! NEW_ID=$(tr -d '\r' < "$BODY_FILE" | jq -r '.id // empty'); then
+            echo "Failed to parse Discord JSON for ${type} (HTTP ${HTTP}): $(tr -d '\r' < "$BODY_FILE" | head -c 1200)"
+            rm -f "$BODY_FILE" "$NEW_IDS"
+            exit 1
+          fi
+          rm -f "$BODY_FILE"
           if [ -n "$NEW_ID" ]; then
             echo "$NEW_ID" >> "$NEW_IDS"
             echo "Posted ${type} message ${NEW_ID}"
           else
-            echo "Failed to post ${type} (HTTP ${HTTP}): $BODY"
+            echo "Failed to post ${type} (HTTP ${HTTP}, no message id in JSON response)"
             rm -f "$NEW_IDS"
             exit 1
           fi
@@ -112,18 +122,28 @@ locale-audit:
       fi
 
       # Post new message
-      RESP=$(curl -s -w "\n%{http_code}" -X POST \
+      echo "Posting locale audit ($(wc -c < .release/discord-locale-payload.json) bytes)"
+      BODY_FILE=$(mktemp)
+      HTTP=$(curl -sS -o "$BODY_FILE" -w "%{http_code}" -X POST \
         "${DISCORD_WEBHOOK_LOCALE}?wait=true" \
         -H "Content-Type: application/json" \
         -d @.release/discord-locale-payload.json)
-      HTTP=$(echo "$RESP" | tail -1)
-      BODY=$(echo "$RESP" | sed '$d')
-      NEW_ID=$(echo "$BODY" | jq -r '.id // empty')
+      if [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+        echo "Failed to post (HTTP ${HTTP}): $(tr -d '\r' < "$BODY_FILE" | head -c 1200)"
+        rm -f "$BODY_FILE"
+        exit 1
+      fi
+      if ! NEW_ID=$(tr -d '\r' < "$BODY_FILE" | jq -r '.id // empty'); then
+        echo "Failed to parse Discord JSON for locale audit (HTTP ${HTTP}): $(tr -d '\r' < "$BODY_FILE" | head -c 1200)"
+        rm -f "$BODY_FILE"
+        exit 1
+      fi
+      rm -f "$BODY_FILE"
       if [ -n "$NEW_ID" ]; then
         echo "$NEW_ID" > "$MSG_ID_FILE"
         echo "Posted locale audit message ${NEW_ID}"
       else
-        echo "Failed to post (HTTP ${HTTP}): $BODY"
+        echo "Failed to post locale audit (HTTP ${HTTP}, no message id in JSON response)"
         exit 1
       fi
 
