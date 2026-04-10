@@ -363,7 +363,7 @@ function addon.DashboardDetailView_Init(env)
         local tileW, tileStride = GetTileMetrics()
         local tile = CreateFrame("Button", nil, parent)
         tile:SetSize(tileW, TILE_H)
-        
+
         local row = math.floor((index-1) / 2)
         local col = (index-1) % 2
         tile:SetPoint("TOPLEFT", parent, "TOPLEFT", TILE_PAD + (col * tileStride), 0 + (row * -TILE_ROW_STRIDE))
@@ -391,7 +391,7 @@ function addon.DashboardDetailView_Init(env)
         -- Label (x matches accordion title inset)
         local lbl = MakeText(tile, name, 18, 0.9, 0.9, 0.95, "LEFT")
         lbl:SetPoint("TOPLEFT", 35, -22)
-        
+
         -- Collect subset of option names for description
         local descStr = desc or ("Configure and customize settings related to " .. name:lower() .. ".")
 
@@ -537,7 +537,7 @@ function addon.DashboardDetailView_Init(env)
                 local options = type(cat.options) == "function" and cat.options() or cat.options
                 local tile = CreateSubCategoryTile(subCategoryContent, cat.name, i, options, modName, cat.desc)
                 tinsert(currentSubTiles, tile)
-                
+
                 local row = math.floor((i-1) / 2)
                 tileYOffset = math.max(tileYOffset, (row + 1) * TILE_ROW_STRIDE)
 
@@ -1595,6 +1595,13 @@ function addon.DashboardDetailView_Init(env)
         UpdateDetailLayout()
 
         f._dashboardRelayoutDetailCards = function()
+            -- detailScroll is inset 40px on each side from detailView, so its effective
+            -- width = detailView:GetWidth() - 80.  Update detailContent to match so all
+            -- cards (and their widgets) cascade to the correct width via RIGHT anchors.
+            local newW = detailView:GetWidth() - 80
+            if newW > 0 then
+                detailContent:SetWidth(newW)
+            end
             for _, card in ipairs(currentDetailCards) do
                 RelayoutCard(card)
             end
