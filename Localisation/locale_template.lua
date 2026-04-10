@@ -136,7 +136,7 @@ L["DASH_WELCOME_CTA_MODULES"]                                         = "Open Ax
 L["DASH_WELCOME_CTA_PATCH_NOTES"]                                     = "Open Patch Notes"
 L["DASH_WELCOME_CTA_NEWS"]                                            = "Open News"
 L["DASH_WELCOME_ACTION_MODULES_TITLE"]                                = "Pick your modules"
-L["DASH_WELCOME_ACTION_MODULES_BODY"]                                 = "Get started by using the Axis menu to select modules. Once selected, press the reload button to apply your selections."
+L["DASH_WELCOME_ACTION_MODULES_BODY"]                                 = "Open |cffaaaaaaAxis > Modules|r to choose what Horizon loads—the tracker, notifications, tooltips, and the rest each toggle independently. Keep only the pieces you use, then press the reload button to apply your setup."
 L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                                = "See what's changed"
 L["DASH_WELCOME_ACTION_UPDATES_BODY"]                                 = "Something feels different about your favorite module? Check the Patch Notes menu to keep up to date with improvements, bug fixes, and module changes."
 L["DASH_WELCOME_ACTION_NEWS_TITLE"]                                   = "Explore highlights"
@@ -1850,6 +1850,8 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

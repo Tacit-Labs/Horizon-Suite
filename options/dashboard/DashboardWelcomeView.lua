@@ -79,6 +79,10 @@ function addon.DashboardWelcomeView_Init(env)
     local NEWS_FEATURED_MIN_ART_W = 220
     local NEWS_GRID_TWO_COL_MIN_W = 760
     local NEWS_GRID_GAP = 16
+    local NEWS_BADGE_EYEBROW_GAP = 10
+    local NEWS_FEATURED_META_BOTTOM_INSET = 10
+    local NEWS_FEATURED_META_GAP_ABOVE = 10
+    local NEWS_FEATURED_BODY_BEFORE_FOOTER_GAP = 8
     local NEWS_CARD_MIN_H = 220
     local NEWS_ICON_STRIP_GAP = 4
     local NEWS_MEDIA_WRAP_MIN_W = 180
@@ -764,7 +768,7 @@ function addon.DashboardWelcomeView_Init(env)
             local bodyFs = MakeDashboardWelcomeMixedScriptText(hero, "", 13, 0.70, 0.73, 0.79, "LEFT")
             bodyFs:SetWordWrap(true)
             bodyFs:SetSpacing(4)
-            local metaFs = MakeText(hero, "", 11, 0.47, 0.52, 0.58, "LEFT")
+            local metaFs = MakeText(hero, "", 10, 0.47, 0.52, 0.58, "LEFT")
             local artFrame = CreateFrame("Frame", nil, hero)
             artFrame:SetClipsChildren(true)
             local artBg = artFrame:CreateTexture(nil, "BACKGROUND")
@@ -1413,12 +1417,13 @@ function addon.DashboardWelcomeView_Init(env)
 
                     local badgeText = L[entry.badgeKey] or ""
                     local ctaText = L[entry.ctaLabelKey] or ""
+                    local metaStr = L[entry.metaKey] or ""
                     pool.eyebrowFs:SetText(L[entry.eyebrowKey] or "")
                     UpdateNewsBadge(pool.badgeBg, pool.badgeFs, badgeText)
                     pool.titleFs:SetText(L[entry.titleKey] or "")
                     pool.taglineFs:SetText(L[entry.taglineKey] or "")
                     pool.bodyFs:SetText(L[entry.bodyKey] or "")
-                    pool.metaFs:SetText(L[entry.metaKey] or "")
+                    pool.metaFs:SetText(metaStr)
                     pool.ctaBtn:SetScript("OnClick", function() DispatchNewsAction(entry) end)
                     pool.ctaBtn:SetLabel(ctaText)
                     if ctaText ~= "" then pool.ctaBtn:Show() else pool.ctaBtn:Hide() end
@@ -1450,11 +1455,7 @@ function addon.DashboardWelcomeView_Init(env)
                     pool.bodyFs:SetWidth(textColW)
                     pool.bodyFs:ClearAllPoints()
                     pool.bodyFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
-                    textY = textY + pool.bodyFs:GetHeight() + 14
-                    pool.metaFs:SetWidth(textColW)
-                    pool.metaFs:ClearAllPoints()
-                    pool.metaFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
-                    textY = textY + pool.metaFs:GetHeight() + 16
+                    textY = textY + pool.bodyFs:GetHeight() + NEWS_FEATURED_BODY_BEFORE_FOOTER_GAP
 
                     if ctaText ~= "" then
                         pool.ctaBtn:ClearAllPoints()
@@ -1462,7 +1463,18 @@ function addon.DashboardWelcomeView_Init(env)
                         textY = textY + pool.ctaBtn:GetHeight()
                     end
 
-                    local heroH = textY + pad
+                    local metaBottomBand = 0
+                    if metaStr ~= "" then
+                        pool.metaFs:SetWidth(textColW)
+                        pool.metaFs:Show()
+                        metaBottomBand = NEWS_FEATURED_META_GAP_ABOVE
+                            + (pool.metaFs:GetHeight() or 12)
+                            + NEWS_FEATURED_META_BOTTOM_INSET
+                    else
+                        pool.metaFs:Hide()
+                    end
+
+                    local heroH = textY + (metaBottomBand > 0 and metaBottomBand or pad)
                     if hasArt then
                         local artBoxH = pool.artFrame:GetHeight() or artH
                         pool.artFrame:ClearAllPoints()
@@ -1473,6 +1485,10 @@ function addon.DashboardWelcomeView_Init(env)
                     end
 
                     hero:SetHeight(math.max(230, heroH))
+                    if metaStr ~= "" then
+                        pool.metaFs:ClearAllPoints()
+                        pool.metaFs:SetPoint("BOTTOMLEFT", hero, "BOTTOMLEFT", textX, NEWS_FEATURED_META_BOTTOM_INSET)
+                    end
                     hero:Show()
                     y = y + hero:GetHeight() + 18
                 end
@@ -1574,10 +1590,15 @@ function addon.DashboardWelcomeView_Init(env)
                     pool.bodyFsOverflow:Hide()
                     pool.eyebrowFs:ClearAllPoints()
                     pool.eyebrowFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
-                    pool.eyebrowFs:SetWidth(copyW)
+                    local eyebrowW = copyW
+                    if badgeText ~= "" then
+                        local badgeW = pool.badgeBg:GetWidth() or 0
+                        eyebrowW = math.max(1, copyW - badgeW - NEWS_BADGE_EYEBROW_GAP)
+                    end
+                    pool.eyebrowFs:SetWidth(eyebrowW)
                     if badgeText ~= "" then
                         pool.badgeBg:ClearAllPoints()
-                        pool.badgeBg:SetPoint("LEFT", pool.eyebrowFs, "RIGHT", 10, 0)
+                        pool.badgeBg:SetPoint("LEFT", pool.eyebrowFs, "RIGHT", NEWS_BADGE_EYEBROW_GAP, 0)
                         pool.badgeFs:ClearAllPoints()
                         pool.badgeFs:SetPoint("CENTER", pool.badgeBg, "CENTER", 0, 0)
                     end
