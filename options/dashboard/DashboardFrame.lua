@@ -19,6 +19,10 @@ local DASH_HEAD_TITLE_Y = DC.HEAD_TITLE_Y
 local DASH_HEAD_SUBTITLE_Y = DC.HEAD_SUBTITLE_Y
 local DASH_SEARCH_Y = DC.SEARCH_Y
 local DASH_SEARCH_BOX_H = DC.SEARCH_BOX_H
+local DASH_SEARCH_SHELL_EXTRA_H = DC.SEARCH_SHELL_EXTRA_H or 6
+local DASH_SEARCH_BAR_TOP_NUDGE = DC.SEARCH_BAR_TOP_NUDGE or 3
+local DASH_SCROLL_GAP_BELOW_SEARCH = DC.SCROLL_GAP_BELOW_SEARCH or 16
+local DASH_SEARCH_BAR_MAX_W = DC.SEARCH_BAR_MAX_W or 640
 local DASHBOARD_CHILD_PANEL_ALPHA = DC.CHILD_PANEL_ALPHA
 local DASHBOARD_CONTENT_CARD_ALPHA_MULT = DC.CONTENT_CARD_ALPHA_MULT
 local DASH_HOME_TILE_W = DC.HOME_TILE_W
@@ -374,10 +378,42 @@ function addon.Dashboard_BuildMainFrame()
             local headSub = MakeText(f, "Select a module to configure", 13, 0.5, 0.5, 0.5, "CENTER")
             headSub:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_HEAD_SUBTITLE_Y)
 
-            -- Search Bar
-            local searchBox = CreateFrame("EditBox", nil, f)
-            searchBox:SetSize(500, DASH_SEARCH_BOX_H)
-            searchBox:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_SEARCH_Y)
+            -- Content geometry (needed before search bar width and scroll offsets).
+            local viewWidth = DASHBOARD_FRAME_W - SIDEBAR_WIDTH - 10
+            local viewCenterX = CONTENT_OFFSET / 2
+            local contentWidth = viewWidth - 80
+            local viewTopInset = (DASHBOARD_FRAME_H - DASHBOARD_VIEW_H) / 2
+            -- Match real search shell geometry so scroll tops sit below the bar with SCROLL_GAP_BELOW_SEARCH.
+            local searchShellTotalH = DASH_SEARCH_BOX_H + DASH_SEARCH_SHELL_EXTRA_H
+            local dashScrollTopOffset = -(math.abs(DASH_SEARCH_Y) + DASH_SEARCH_BAR_TOP_NUDGE + searchShellTotalH + DASH_SCROLL_GAP_BELOW_SEARCH - viewTopInset)
+            local dashTitleX = CONTENT_OFFSET + 40
+
+            -- Search bar: card-style shell (aligned with options SectionCard tokens) + clear control.
+            local WDef = addon.OptionsWidgetsDef
+            local SCardBg = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
+            local SCardBd = (WDef and WDef.SectionCardBorder) or { 0.18, 0.2, 0.24, 0.35 }
+            local searchBarW = math.min(DASH_SEARCH_BAR_MAX_W, math.max(280, contentWidth))
+            local SEARCH_BAR_BACKDROP = {
+                bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                tile = true,
+                tileSize = 16,
+                edgeSize = 12,
+                insets = { left = 3, right = 3, top = 3, bottom = 3 },
+            }
+            local searchBarShell = CreateFrame("Frame", nil, f, "BackdropTemplate")
+            searchBarShell:SetSize(searchBarW, DASH_SEARCH_BOX_H + DASH_SEARCH_SHELL_EXTRA_H)
+            searchBarShell:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_SEARCH_Y - DASH_SEARCH_BAR_TOP_NUDGE)
+            searchBarShell:SetBackdrop(SEARCH_BAR_BACKDROP)
+            searchBarShell:SetBackdropColor(SCardBg[1], SCardBg[2], SCardBg[3], SCardBg[4] * DASHBOARD_CONTENT_CARD_ALPHA_MULT)
+            searchBarShell:SetBackdropBorderColor(SCardBd[1], SCardBd[2], SCardBd[3], SCardBd[4])
+            searchBarShell:SetFrameLevel(f:GetFrameLevel() + 5)
+            searchBarShell:Hide()
+            f.searchBarShell = searchBarShell
+
+            local searchBox = CreateFrame("EditBox", nil, searchBarShell)
+            searchBox:SetPoint("TOPLEFT", searchBarShell, "TOPLEFT", 4, -4)
+            searchBox:SetPoint("BOTTOMRIGHT", searchBarShell, "BOTTOMRIGHT", -36, 4)
             do
                 local sp = addon.Dashboard_ResolveSavedDashboardFontPath(
                     (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
@@ -389,60 +425,99 @@ function addon.Dashboard_BuildMainFrame()
                 end)
             end
             addon.Dashboard_RegisterTypographyEditBox(typoRefs, searchBox, 14, nil, true)
-            searchBox:SetTextInsets(48, 15, 0, 0)
+            searchBox:SetTextInsets(36, 6, 0, 0)
             searchBox:SetAutoFocus(false)
-            searchBox:SetFrameLevel(f:GetFrameLevel() + 5)
-            
-            local sbBorder = searchBox:CreateTexture(nil, "BACKGROUND")
-            sbBorder:SetPoint("TOPLEFT", -1, 1)
-            sbBorder:SetPoint("BOTTOMRIGHT", 1, -1)
-            sbBorder:SetColorTexture(0.18, 0.18, 0.22, 0.6)
 
-            local sbBg = searchBox:CreateTexture(nil, "BORDER")
-            sbBg:SetAllPoints()
-            sbBg:SetColorTexture(0.10, 0.10, 0.13, DASHBOARD_CHILD_PANEL_ALPHA)
-            
-            local sbPlaceholder = MakeText(searchBox, "Search settings...", 14, 0.45, 0.45, 0.5, "LEFT")
-            sbPlaceholder:SetPoint("LEFT", 48, 0)
-            
+            local sbPlaceholder = MakeText(searchBox, L["DASH_SEARCH_PLACEHOLDER"] or "Search settings...", 14, 0.45, 0.45, 0.5, "LEFT")
+            sbPlaceholder:SetPoint("LEFT", 36, 0)
+
             local sbIcon = searchBox:CreateTexture(nil, "ARTWORK")
-            sbIcon:SetSize(20, 20)
-            sbIcon:SetPoint("LEFT", 16, 0)
-            sbIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_02")
-            sbIcon:SetVertexColor(0.45, 0.45, 0.5, 1)
+            sbIcon:SetSize(16, 16)
+            sbIcon:SetPoint("LEFT", 12, 0)
+            sbIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_03")
+            sbIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            sbIcon:SetVertexColor(0.5, 0.52, 0.58, 1)
 
-            searchBox:SetScript("OnEditFocusGained", function(self)
-                local ar, ag, ab = GetAccentColor()
-                sbBorder:SetColorTexture(ar, ag, ab, 1)
-                sbPlaceholder:Hide()
-                sbIcon:SetVertexColor(0.8, 0.8, 0.8, 1)
-            end)
-            searchBox:SetScript("OnEditFocusLost", function(self)
-                sbBorder:SetColorTexture(0.2, 0.2, 0.25, 1)
-                if self:GetText() == "" then
-                    sbPlaceholder:Show()
-                    sbIcon:SetVertexColor(0.5, 0.5, 0.5, 1)
+            local searchClearBtn = CreateFrame("Button", nil, searchBarShell)
+            searchClearBtn:SetSize(22, 22)
+            searchClearBtn:SetPoint("RIGHT", searchBarShell, "RIGHT", -8, 0)
+            searchClearBtn:SetFrameLevel(searchBarShell:GetFrameLevel() + 2)
+            searchClearBtn:Hide()
+            local searchClearTxt = searchClearBtn:CreateFontString(nil, "OVERLAY")
+            do
+                local cp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                    (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                )
+                local ce = addon.Dashboard_EffectiveDashboardFontSize(12)
+                pcall(function()
+                    searchClearTxt:SetFont(cp, ce, "")
+                end)
+                if addon.Dashboard_ApplyTextShadow then
+                    addon.Dashboard_ApplyTextShadow(searchClearTxt)
                 end
+            end
+            searchClearTxt:SetPoint("CENTER", searchClearBtn, "CENTER", 0, 0)
+            searchClearTxt:SetText("×")
+            searchClearTxt:SetTextColor(0.5, 0.52, 0.58, 1)
+            searchClearBtn:SetScript("OnEnter", function()
+                searchClearTxt:SetTextColor(0.92, 0.94, 0.98, 1)
             end)
-            searchBox:SetScript("OnTextChanged", function(self)
-                if self:GetText() == "" and not self:HasFocus() then
-                     sbPlaceholder:Show()
-                else
-                     sbPlaceholder:Hide()
-                end
-                if f.OnSearchTextChanged then f.OnSearchTextChanged(self:GetText()) end
+            searchClearBtn:SetScript("OnLeave", function()
+                searchClearTxt:SetTextColor(0.5, 0.52, 0.58, 1)
             end)
-            searchBox:SetScript("OnEscapePressed", function(self) 
-                self:ClearFocus() 
-                self:SetText("")
+            searchClearBtn:SetScript("OnClick", function()
+                searchBox:SetText("")
+                sbPlaceholder:Show()
+                searchClearBtn:Hide()
+                if f.OnSearchTextChanged then f.OnSearchTextChanged("") end
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
             end)
 
+            local function UpdateSearchBarBorderFocused(focused)
+                local ar, ag, ab = GetAccentColor()
+                if focused then
+                    searchBarShell:SetBackdropBorderColor(ar, ag, ab, 0.95)
+                    sbIcon:SetVertexColor(0.85, 0.88, 0.92, 1)
+                else
+                    searchBarShell:SetBackdropBorderColor(SCardBd[1], SCardBd[2], SCardBd[3], SCardBd[4])
+                    if searchBox:GetText() == "" then
+                        sbIcon:SetVertexColor(0.5, 0.52, 0.58, 1)
+                    end
+                end
+            end
 
-            -- Search Dropdown UI
+            searchBox:SetScript("OnEditFocusGained", function()
+                UpdateSearchBarBorderFocused(true)
+                sbPlaceholder:Hide()
+            end)
+            searchBox:SetScript("OnEditFocusLost", function(self)
+                UpdateSearchBarBorderFocused(false)
+                if self:GetText() == "" then
+                    sbPlaceholder:Show()
+                end
+            end)
+            searchBox:SetScript("OnTextChanged", function(self)
+                local t = self:GetText()
+                if t == "" and not self:HasFocus() then
+                    sbPlaceholder:Show()
+                else
+                    sbPlaceholder:Hide()
+                end
+                searchClearBtn:SetShown(t ~= "")
+                if f.OnSearchTextChanged then f.OnSearchTextChanged(t) end
+            end)
+            searchBox:SetScript("OnEscapePressed", function(self)
+                self:ClearFocus()
+                self:SetText("")
+                sbPlaceholder:Show()
+                searchClearBtn:Hide()
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+            end)
+
+            -- Search results surface (flyout under bar in module views; embedded in Search page).
             local searchDropdown = CreateFrame("Frame", nil, f, "BackdropTemplate")
             searchDropdown:SetSize(600, 300)
-            searchDropdown:SetPoint("TOPLEFT", searchBox, "BOTTOMLEFT", 0, -5)
+            searchDropdown:SetPoint("TOPLEFT", searchBarShell, "BOTTOMLEFT", 0, -6)
             searchDropdown:SetFrameLevel(f:GetFrameLevel() + 10)
             searchDropdown:SetBackdrop({
                 bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -475,17 +550,58 @@ function addon.Dashboard_BuildMainFrame()
             f.HideSearchDropdown = function()
                 searchDropdown:Hide()
                 searchDropdownCatch:Hide()
+                if f.searchEmptyHint and f.searchView and f.searchView:IsShown() then
+                    local q = searchBox and searchBox:GetText() and searchBox:GetText():trim() or ""
+                    if q == "" or #q < 2 then
+                        f.searchEmptyHint:Show()
+                    end
+                end
             end
 
-            -- Views (offset right to accommodate sidebar)
-            local viewWidth = DASHBOARD_FRAME_W - SIDEBAR_WIDTH - 10
-            local viewCenterX = CONTENT_OFFSET / 2
-            local contentWidth = viewWidth - 80  -- scroll frame uses 40px inset on each side
-            local viewTopInset = (DASHBOARD_FRAME_H - DASHBOARD_VIEW_H) / 2
-            -- Scroll tops sit just below the search box (same visual band as Home), in each view's local coords.
-            local dashScrollTopOffset = -(math.abs(DASH_SEARCH_Y) + DASH_SEARCH_BOX_H + 8 - viewTopInset)
-            local dashTitleX = CONTENT_OFFSET + 40
+            -- Dock search results: flyout under bar (module/settings) vs embedded panel (Search page).
+            f.DockSearchDropdownForModule = function()
+                if not searchDropdown or not searchBarShell then return end
+                searchDropdown:SetParent(f)
+                searchDropdown:ClearAllPoints()
+                searchDropdown:SetSize(600, 300)
+                searchDropdown:SetPoint("TOPLEFT", searchBarShell, "BOTTOMLEFT", 0, -6)
+                searchDropdown:SetFrameLevel(f:GetFrameLevel() + 10)
+                local w = searchDropdown:GetWidth() or 600
+                searchDropdownContent:SetWidth(math.max(1, w - 24))
+            end
 
+            f.DockSearchDropdownForSearchView = function()
+                if not searchDropdown or not f.searchView then return end
+                searchDropdown:SetParent(f.searchView)
+                searchDropdown:ClearAllPoints()
+                searchDropdown:SetPoint("TOPLEFT", f.searchView, "TOPLEFT", 40, dashScrollTopOffset)
+                searchDropdown:SetPoint("BOTTOMRIGHT", f.searchView, "BOTTOMRIGHT", -40, 40)
+                searchDropdown:SetFrameLevel(f.searchView:GetFrameLevel() + 5)
+                local w = searchDropdown:GetWidth() or 1
+                searchDropdownContent:SetWidth(math.max(1, w - 24))
+            end
+
+            local searchView = CreateFrame("Frame", nil, f)
+            searchView:SetSize(viewWidth, DASHBOARD_VIEW_H)
+            searchView:SetPoint("CENTER", viewCenterX, 0)
+            searchView:Hide()
+            f.searchView = searchView
+
+            local searchEmptyHint = MakeText(searchView, L["DASH_SEARCH_EMPTY_HINT"] or "", 14, 0.48, 0.5, 0.56, "CENTER")
+            searchEmptyHint:SetPoint("TOP", searchView, "TOP", 0, dashScrollTopOffset - 24)
+            searchEmptyHint:SetWidth(math.max(200, contentWidth - 48))
+            searchEmptyHint:SetWordWrap(true)
+            searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"] or "Type at least two characters to search settings, modules, and options.")
+            searchEmptyHint:Hide()
+            f.searchEmptyHint = searchEmptyHint
+
+            searchView:SetScript("OnSizeChanged", function()
+                if searchView:IsShown() and f.DockSearchDropdownForSearchView then
+                    f.DockSearchDropdownForSearchView()
+                end
+            end)
+
+            -- Views (viewWidth / contentWidth / dashScrollTopOffset defined above with search bar)
             local detailTitle = MakeText(f, "MODULE SETTINGS", 18, 1, 1, 1, "LEFT")
             detailTitle:SetPoint("TOPLEFT", f, "TOPLEFT", dashTitleX, DASH_HEAD_TITLE_Y)
             detailTitle:Hide()
@@ -899,6 +1015,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                searchView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
                 HideContextHeader()
@@ -917,6 +1034,9 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                searchView:Hide()
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+                if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
                 dashboardView:SetAlpha(0)
                 dashboardView:Show()
                 UIFrameFadeIn(dashboardView, 0.2, 0, 1)
@@ -925,7 +1045,7 @@ function addon.Dashboard_BuildMainFrame()
                     headSub:Show()
                     headSub:SetText(L["DASH_HOME_HEAD_SUB"] or "Enable and configure your modules")
                 end
-                searchBox:Hide()
+                if searchBarShell then searchBarShell:Hide() end
                 f.currentModuleKey = nil
                 SetSidebarState({ view = "dashboard", activeModuleKey = "axis", activeCategoryIndex = CLEAR })
                 if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
@@ -1027,6 +1147,9 @@ function addon.Dashboard_BuildMainFrame()
                 DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
                 CLEAR = CLEAR,
                 searchBox = searchBox,
+                searchBarShell = searchBarShell,
+                searchView = searchView,
+                searchEmptyHint = searchEmptyHint,
                 searchDropdown = searchDropdown,
                 searchDropdownScroll = searchDropdownScroll,
                 searchDropdownContent = searchDropdownContent,
@@ -1102,6 +1225,7 @@ function addon.Dashboard_BuildMainFrame()
                 setSidebarState = function(s) detailEnv.setSidebarState(s) end,
                 CLEAR = CLEAR,
                 searchBox = searchBox,
+                searchBarShell = searchBarShell,
                 head = head,
                 headSub = headSub,
                 detailNav = detailApi,
@@ -1128,6 +1252,7 @@ function addon.Dashboard_BuildMainFrame()
                 setSidebarState = function(s) detailEnv.setSidebarState(s) end,
                 CLEAR = CLEAR,
                 searchBox = searchBox,
+                searchBarShell = searchBarShell,
                 head = head,
                 headSub = headSub,
                 DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
@@ -1151,6 +1276,7 @@ function addon.Dashboard_BuildMainFrame()
                 dashboardView:Hide()
                 welcomeView:Hide()
                 guideView:Hide()
+                searchView:Hide()
                 newsView:Hide()
                 patchNotesView:SetAlpha(0)
                 patchNotesView:Show()
@@ -1160,7 +1286,9 @@ function addon.Dashboard_BuildMainFrame()
                     headSub:Show()
                     headSub:SetText(L["DASH_PATCH_NOTES_HEAD_SUB"] or "Release history and recent changes")
                 end
-                if searchBox then searchBox:Hide() end
+                if searchBarShell then searchBarShell:Hide() end
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+                if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
 
                 local gm = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
                 local ver = (gm and gm(addon.ADDON_NAME or "HorizonSuite", "Version")) or ""
@@ -1198,6 +1326,7 @@ function addon.Dashboard_BuildMainFrame()
                 welcomeView:Hide()
                 patchNotesView:Hide()
                 guideView:Hide()
+                searchView:Hide()
                 newsView:SetAlpha(0)
                 newsView:Show()
                 UIFrameFadeIn(newsView, 0.2, 0, 1)
@@ -1206,9 +1335,53 @@ function addon.Dashboard_BuildMainFrame()
                     headSub:Show()
                     headSub:SetText(L["DASH_NEWS_HEAD_SUB"] or "Latest updates & community highlights")
                 end
-                if searchBox then searchBox:Hide() end
+                if searchBarShell then searchBarShell:Hide() end
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+                if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
                 f.currentModuleKey = nil
                 SetSidebarState({ view = "news", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(nil)
+                end
+                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+            end
+
+            --- Dedicated Search page: sidebar entry; embedded results panel under the search bar.
+            f.ShowSearch = function()
+                pnChangelogHeaderBtn:Hide()
+                HideContextHeader()
+                detailView:Hide()
+                subCategoryView:Hide()
+                dashboardView:Hide()
+                welcomeView:Hide()
+                guideView:Hide()
+                patchNotesView:Hide()
+                newsView:Hide()
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+                if searchBox then
+                    searchBox:SetText("")
+                    searchBox:ClearFocus()
+                end
+                if searchClearBtn then searchClearBtn:Hide() end
+                if sbPlaceholder then sbPlaceholder:Show() end
+                CrossfadeTo(searchView)
+                if head then head:Show() end
+                if headSub then
+                    headSub:Show()
+                    headSub:SetText(L["DASH_SEARCH_HEAD_SUB"] or "Find any setting quickly")
+                end
+                if searchBarShell then searchBarShell:Show() end
+                if f.searchEmptyHint then
+                    f.searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"] or "Type at least two characters to search settings, modules, and options.")
+                    f.searchEmptyHint:Show()
+                end
+                if f.DockSearchDropdownForSearchView then f.DockSearchDropdownForSearchView() end
+                detailTitle:Hide()
+                detailTitleUnderline:Hide()
+                backBtn:Hide()
+                subBackBtn:Hide()
+                f.currentModuleKey = nil
+                SetSidebarState({ view = "search", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
                 if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
                     addon.DashboardPreview.SetActiveModuleKey(nil)
                 end
@@ -1268,19 +1441,24 @@ function addon.Dashboard_BuildMainFrame()
             lastSidebarRow = newsBtn
             yOff = yOff + TAB_ROW_HEIGHT
 
-            -- Patch Notes (pinned to bottom of sidebar)
+            -- Patch Notes (pinned bottom) + Search (pinned above Patch Notes)
             local whatsNewBase = L["DASH_WHATS_NEW"] or "What's New"
             local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, "INV_Scroll_05", function()
                 if addon.PatchNotes_MarkWhatsNewSidebarClicked then
                     addon.PatchNotes_MarkWhatsNewSidebarClicked()
                 end
                 if f.ShowPatchNotes then f.ShowPatchNotes() end
-            end)
+            end, 0)
             whatsNewBtn._whatsNewBaseText = whatsNewBase
             whatsNewBtn._patchNotesSidebarRowStyle = true
             whatsNewBtn._sidebarViewGetter = function() return sidebarState.view end
             f.whatsnewSidebarBtn = whatsNewBtn
-            -- Note: NOT inserted into sidebarButtons or sidebarRows (pinned button)
+
+            local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"] or "Search", "INV_Misc_Spyglass_03", function()
+                if f.ShowSearch then f.ShowSearch() end
+            end, TAB_ROW_HEIGHT)
+            f.searchSidebarBtn = searchSidebarBtn
+            -- Note: pinned buttons NOT in sidebarButtons or sidebarRows
 
             -- Separator (anchored to sep row; reflows with RefreshSidebar)
             yOff = yOff + 9
@@ -1514,6 +1692,8 @@ function addon.Dashboard_BuildMainFrame()
                     activeBtn = f.welcomeSidebarBtn
                 elseif sidebarState.view == "news" and f.newsSidebarBtn then
                     activeBtn = f.newsSidebarBtn
+                elseif sidebarState.view == "search" and f.searchSidebarBtn then
+                    activeBtn = f.searchSidebarBtn
                 elseif sidebarState.view == "whatsnew" and f.whatsnewSidebarBtn then
                     activeBtn = f.whatsnewSidebarBtn
                 elseif sidebarState.view == "dashboard" then

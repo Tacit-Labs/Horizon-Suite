@@ -90,6 +90,11 @@ L["DASH_PATCH_NOTES_HEAD_SUB"]                                        = "Release
 L["DASH_PATCH_NOTES_EMPTY"]                                           = "No notes available."
 L["DASH_WELCOME_TAB"]                                                 = "Welcome"
 L["DASH_NEWS_TAB"]                                                    = "News"
+L["DASH_SEARCH_TAB"]                                                  = "Search"
+L["DASH_SEARCH_HEAD_SUB"]                                             = "Find any setting quickly"
+L["DASH_SEARCH_PLACEHOLDER"]                                          = "Search settings..."
+L["DASH_SEARCH_EMPTY_HINT"]                                           = "Type at least two characters to search settings, modules, and options."
+L["DASH_SEARCH_NO_RESULTS"]                                           = "No matching settings. Try different words."
 L["DASH_NEWS_HEAD_SUB"]                                               = "Latest updates & community highlights"
 L["DASH_NEWS_BADGE_NEW"]                                              = "New"
 L["DASH_NEWS_BADGE_HIGHLIGHT"]                                        = "Highlight"
@@ -1842,6 +1847,9 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
 
 
 
