@@ -7,7 +7,7 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 --- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
---- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashAccentRefs,
+--- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
 --- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
 --- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
 --- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
@@ -23,6 +23,7 @@ function addon.DashboardDetailView_Init(env)
     local subCategoryView = env.subCategoryView
     local contentWidth = env.contentWidth
     local dashScrollTopOffset = env.dashScrollTopOffset
+    local dashScrollTopOffsetModule = env.dashScrollTopOffsetModule or env.dashScrollTopOffset
     local dashAccentRefs = env.dashAccentRefs
     local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
@@ -47,7 +48,7 @@ function addon.DashboardDetailView_Init(env)
     local function ShowSubcategoryHeader() env.showSubcategoryHeader() end
 
     local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
-    subCategoryScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
+    subCategoryScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
     subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
     subCategoryScroll.ScrollBar:Hide()
     subCategoryScroll.ScrollBar:ClearAllPoints()
@@ -60,7 +61,7 @@ function addon.DashboardDetailView_Init(env)
 
     -- Detail Card Container (Scrollable)
     local detailScroll = CreateFrame("ScrollFrame", nil, detailView, "UIPanelScrollFrameTemplate")
-    detailScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
+    detailScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
     detailScroll:SetPoint("BOTTOMRIGHT", -40, 40)
     detailScroll.ScrollBar:Hide()
     detailScroll.ScrollBar:ClearAllPoints()
@@ -371,6 +372,7 @@ function addon.DashboardDetailView_Init(env)
     end
 
     f.FilterBySearch = function(query)
+        if f.UpdateSearchModuleFilterLabel then f.UpdateSearchModuleFilterLabel() end
         local searchQuery = query and query:trim():lower() or ""
         if searchQuery == "" or #searchQuery < 2 then
             f.HideSearchDropdown()
@@ -568,16 +570,10 @@ function addon.DashboardDetailView_Init(env)
     end
 
     f.OpenModule = function(name, moduleKey, skipDetailBuild)
-        if searchBox then
-            searchBox:ClearFocus()
-            searchBox:Show()
-        end
-        if searchBarShell then
-            searchBarShell:Show()
-        end
-        if f.DockSearchDropdownForModule then
-            f.DockSearchDropdownForModule()
-        end
+        if searchBox then searchBox:ClearFocus() end
+        if searchBarShell then searchBarShell:Hide() end
+        if f.HideSearchModuleFilterMenu then f.HideSearchModuleFilterMenu() end
+        if f.HideSearchDropdown then f.HideSearchDropdown() end
 
         local mk = moduleKey or "modules"
         f.currentModuleKey = mk
