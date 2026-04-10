@@ -69,6 +69,17 @@ local ALL_COMBO_ACTION_KEYS = {
     "none",
 }
 
+-- Icon button uses a smaller curated list than full Custom row combos.
+local ICON_ACTION_KEYS = {
+    "superTrack",
+    "openDetails",
+    "contextMenu",
+    "untrack",
+    "wowhear",
+    "chatLink",
+    "none",
+}
+
 -- Default per-combo action for the "Custom" profile falls back to Horizon+.
 
 -- ============================================================================
@@ -130,6 +141,22 @@ local function NormalizeQuestClickAction(action)
     return action
 end
 
+--- Normalize stored icon action to a valid supported action key.
+--- @param action any
+--- @return string
+local function NormalizeIconClickAction(action)
+    action = NormalizeQuestClickAction(action)
+    if type(action) ~= "string" or not ACTION_LABELS[action] then
+        return "superTrack"
+    end
+    for _, actionKey in ipairs(ICON_ACTION_KEYS) do
+        if actionKey == action then
+            return action
+        end
+    end
+    return "superTrack"
+end
+
 --- If DB/profile returned an unknown action, fall back to preset default for this combo.
 --- @param action any
 --- @param comboKey string
@@ -161,6 +188,12 @@ function addon.focus.UseBlizzardStyleQuestIconClicks()
     if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then return true end
     if addon.GetDB("useClassicClickBehaviour", false) then return true end
     return addon.GetDB("focusClickProfile", "blizzardDefault") == "blizzardDefault"
+end
+
+--- True when the dedicated quest/appearance icon button should be shown and clickable.
+--- @return boolean
+function addon.focus.UseFocusIconClickButton()
+    return addon.GetDB("focusIconClickAction", "superTrack") ~= "none"
 end
 
 --- Return the action name for a quest-row click.
@@ -230,6 +263,19 @@ local function GetAllComboActionOptions()
     return result
 end
 
+--- Curated icon-button actions shared by quest and appearance icons.
+--- @return table Array of { displayLabel, actionKey }.
+local function GetIconActionOptions()
+    local result = {}
+    local L = addon.L
+    for _, actionKey in ipairs(ICON_ACTION_KEYS) do
+        local labelKey = ACTION_LABELS[actionKey]
+        local label = (L and labelKey and L[labelKey]) or actionKey
+        result[#result + 1] = { label, actionKey }
+    end
+    return result
+end
+
 -- ============================================================================
 -- Export table (read by OptionsData.lua after this file loads).
 -- ============================================================================
@@ -237,9 +283,11 @@ end
 addon.focus.clickConfig = {
     GetComboOptions            = GetComboOptions,
     GetAllComboActionOptions   = GetAllComboActionOptions,
+    GetIconActionOptions       = GetIconActionOptions,
     COMBO_KEYS                 = COMBO_KEYS,
     PROFILES                   = PROFILES,
     NormalizeAction            = NormalizeQuestClickAction,
+    NormalizeIconAction        = NormalizeIconClickAction,
     profilesLockedToBlizzard   = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD,
 }
 
