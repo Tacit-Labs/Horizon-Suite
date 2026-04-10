@@ -482,7 +482,6 @@ function addon.DashboardHomeWelcome_Init(env)
         newsEnv.feedData        = envAddon.DashboardNewsFeed
         newsEnv.targetViewName  = "news"
         newsEnv.headSubKey      = "DASH_NEWS_HEAD_SUB"
-        newsEnv.communityFooter = false
         envAddon.DashboardWelcomeView_Init(newsEnv)
     end
 

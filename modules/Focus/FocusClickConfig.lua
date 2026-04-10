@@ -80,7 +80,7 @@ local ICON_ACTION_KEYS = {
     "none",
 }
 
--- Default per-combo action for the "Custom" profile falls back to Horizon+.
+-- Default per-combo action for the "Custom" profile falls back to Blizzard+ (PROFILES.blizzardDefault).
 
 -- ============================================================================
 -- Built-in profiles.
@@ -160,11 +160,19 @@ end
 --- If DB/profile returned an unknown action, fall back to preset default for this combo.
 --- @param action any
 --- @param comboKey string
+--- @param profile string focusClickProfile value (e.g. custom, blizzardDefault, horizonPlus)
 --- @return string
-local function SanitizeQuestClickAction(action, comboKey)
+local function SanitizeQuestClickAction(action, comboKey, profile)
     action = NormalizeQuestClickAction(action)
     if type(action) ~= "string" or action == "" or not ACTION_LABELS[action] then
-        local preset = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD and PROFILES.blizzardDefault or PROFILES.horizonPlus
+        local preset
+        if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then
+            preset = PROFILES.blizzardDefault
+        elseif profile == "custom" then
+            preset = PROFILES.blizzardDefault
+        else
+            preset = PROFILES[profile] or PROFILES.horizonPlus
+        end
         return preset[comboKey] or "none"
     end
     return action
@@ -212,14 +220,14 @@ function addon.focus.GetQuestClickAction(button, mods, profile)
     local raw
     if profile == "custom" then
         local dbKey   = "focusClick_" .. comboKey
-        local default = (PROFILES["horizonPlus"][comboKey] or "none")
+        local default = (PROFILES.blizzardDefault[comboKey] or "none")
         raw = addon.GetDB(dbKey, default)
     else
         local t = PROFILES[profile] or PROFILES["horizonPlus"]
         raw = t[comboKey] or "none"
     end
 
-    return SanitizeQuestClickAction(raw, comboKey)
+    return SanitizeQuestClickAction(raw, comboKey, profile)
 end
 
 --- Same resolution as GetQuestClickAction (shared PROFILES and focusClick_*); appearance row handling differs only in ExecuteAppearanceAction.

@@ -14,6 +14,7 @@ Thumbs.db
 *.sublime-*
 
 # Local dev notes (not for version control)
+AGENTS.md
 CLAUDE.md
 # Dev / listing assets (screenshots, GIFs, internal notes); also excluded from addon zips via .pkgmeta
 docs/

@@ -104,8 +104,6 @@ addon.DashboardNewsFeed = {
         artWidth = 64,
         artHeight = 64,
         artFit = "contain",
-        ctaLabelKey = "DASH_NEWS_CTA_OPEN_FOCUS",
-        ctaAction = { type = "module", moduleKey = "focus" },
     },
     {
         id = "coming_soon",

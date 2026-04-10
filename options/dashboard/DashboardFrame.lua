@@ -803,22 +803,41 @@ function addon.Dashboard_BuildMainFrame()
                 searchDropdownContent:SetWidth(math.max(1, w - 24))
             end
 
-            f.DockSearchDropdownForSearchView = function()
-                if not searchDropdown or not f.searchView then return end
-                searchDropdown:SetParent(f.searchView)
-                searchDropdown:ClearAllPoints()
-                searchDropdown:SetPoint("TOPLEFT", f.searchView, "TOPLEFT", 40, dashScrollTopOffset)
-                searchDropdown:SetPoint("BOTTOMRIGHT", f.searchView, "BOTTOMRIGHT", -40, 40)
-                searchDropdown:SetFrameLevel(f.searchView:GetFrameLevel() + 5)
-                local w = searchDropdown:GetWidth() or 1
-                searchDropdownContent:SetWidth(math.max(1, w - 24))
-            end
-
             local searchView = CreateFrame("Frame", nil, f)
             searchView:SetSize(viewWidth, DASHBOARD_VIEW_H)
             searchView:SetPoint("CENTER", viewCenterX, 0)
             searchView:Hide()
             f.searchView = searchView
+
+            local SEARCH_SCROLL_ABOVE_COMMUNITY_FOOTER = (DC.COMMUNITY_FOOTER_SCROLL_GAP) or 24
+            local searchCommunityFooterPanel = CreateFrame("Frame", nil, searchView)
+            searchCommunityFooterPanel:SetFrameLevel(searchView:GetFrameLevel() + 10)
+            local searchCommunityFooterObj = addon.Dashboard_CreateCommunityFooter(searchCommunityFooterPanel, {
+                L = L,
+                GetAccentColor = GetAccentColor,
+                MakeText = MakeText,
+                addon = addon,
+            })
+            tinsert(dashAccentRefs.communityFooterTopRules, searchCommunityFooterObj.footerTopRule)
+            local function LayoutSearchCommunityFooter()
+                local rawW = searchView:GetWidth() or 0
+                local w = math.max(280, rawW - 40)
+                searchCommunityFooterObj.layout(w, 0, searchView)
+            end
+            LayoutSearchCommunityFooter()
+
+            f.DockSearchDropdownForSearchView = function()
+                if not searchDropdown or not f.searchView then return end
+                LayoutSearchCommunityFooter()
+                searchDropdown:SetParent(f.searchView)
+                searchDropdown:ClearAllPoints()
+                searchDropdown:SetPoint("TOPLEFT", f.searchView, "TOPLEFT", 40, dashScrollTopOffset)
+                searchDropdown:SetPoint("BOTTOMLEFT", searchCommunityFooterPanel, "TOPLEFT", 20, SEARCH_SCROLL_ABOVE_COMMUNITY_FOOTER)
+                searchDropdown:SetPoint("BOTTOMRIGHT", searchCommunityFooterPanel, "TOPRIGHT", -20, SEARCH_SCROLL_ABOVE_COMMUNITY_FOOTER)
+                searchDropdown:SetFrameLevel(f.searchView:GetFrameLevel() + 5)
+                local w = searchDropdown:GetWidth() or 1
+                searchDropdownContent:SetWidth(math.max(1, w - 24))
+            end
 
             local searchEmptyHint = MakeText(searchView, L["DASH_SEARCH_EMPTY_HINT"] or "", 14, 0.48, 0.5, 0.56, "CENTER")
             searchEmptyHint:SetPoint("TOP", searchView, "TOP", 0, dashScrollTopOffset - 24)
@@ -829,6 +848,7 @@ function addon.Dashboard_BuildMainFrame()
             f.searchEmptyHint = searchEmptyHint
 
             searchView:SetScript("OnSizeChanged", function()
+                LayoutSearchCommunityFooter()
                 if searchView:IsShown() and f.DockSearchDropdownForSearchView then
                     f.DockSearchDropdownForSearchView()
                 end
