@@ -387,9 +387,12 @@ function addon.Dashboard_BuildMainFrame()
             local viewCenterX = CONTENT_OFFSET / 2
             local contentWidth = viewWidth - 80
             local viewTopInset = (DASHBOARD_FRAME_H - DASHBOARD_VIEW_H) / 2
-            -- Match real search shell geometry so scroll tops sit below the bar with SCROLL_GAP_BELOW_SEARCH.
+            -- Match real search shell geometry so scroll tops sit below the bar with SCROLL_GAP_BELOW_SEARCH (Search page only).
             local searchShellTotalH = DASH_SEARCH_BOX_H + DASH_SEARCH_SHELL_EXTRA_H
-            local dashScrollTopOffset = -(math.abs(DASH_SEARCH_Y) + DASH_SEARCH_BAR_TOP_NUDGE + searchShellTotalH + DASH_SCROLL_GAP_BELOW_SEARCH - viewTopInset)
+            local searchBandBelowHeader = searchShellTotalH + DASH_SCROLL_GAP_BELOW_SEARCH
+            local dashScrollTopOffset = -(math.abs(DASH_SEARCH_Y) + DASH_SEARCH_BAR_TOP_NUDGE + searchBandBelowHeader - viewTopInset)
+            -- Module / category views omit the search bar; reclaim vertical space for scroll content.
+            local dashScrollTopOffsetModule = dashScrollTopOffset + searchBandBelowHeader
             local dashTitleX = CONTENT_OFFSET + 40
 
             -- Search bar: card-style shell (aligned with options SectionCard tokens) + clear control.
@@ -486,10 +489,27 @@ function addon.Dashboard_BuildMainFrame()
             searchFilterDivider:SetWidth(1)
             searchFilterDivider:SetColorTexture(SCardBd[1], SCardBd[2], SCardBd[3], 0.45)
 
+            -- Plain Button without template textures shows a white square on some clients; clear normal/highlight/pushed art.
+            local function ClearButtonTemplateArt(btn)
+                local tex = "Interface\\Buttons\\WHITE8X8"
+                btn:SetNormalTexture(tex)
+                btn:SetHighlightTexture(tex)
+                btn:SetPushedTexture(tex)
+                btn:SetDisabledTexture(tex)
+                local function zeroAlpha(t)
+                    if t and t.SetVertexColor then t:SetVertexColor(0, 0, 0, 0) end
+                end
+                zeroAlpha(btn:GetNormalTexture())
+                zeroAlpha(btn:GetHighlightTexture())
+                zeroAlpha(btn:GetPushedTexture())
+                zeroAlpha(btn:GetDisabledTexture())
+            end
+
             local searchModuleFilterBtn = CreateFrame("Button", nil, searchBarShell)
             searchModuleFilterBtn:SetSize(SEARCH_FILTER_BTN_W, 22)
             searchModuleFilterBtn:SetPoint("RIGHT", searchClearBtn, "LEFT", -4, 0)
             searchModuleFilterBtn:SetFrameLevel(searchBarShell:GetFrameLevel() + 2)
+            ClearButtonTemplateArt(searchModuleFilterBtn)
             local searchModuleFilterLabel = searchModuleFilterBtn:CreateFontString(nil, "OVERLAY")
             do
                 local fp = addon.Dashboard_ResolveSavedDashboardFontPath(
@@ -518,20 +538,31 @@ function addon.Dashboard_BuildMainFrame()
                 end)
             end
             searchModuleFilterChev:SetPoint("RIGHT", searchModuleFilterBtn, "RIGHT", -4, 0)
-            searchModuleFilterChev:SetText("▾")
+            -- ASCII chevron: Unicode ▾ renders as a square with many dashboard fonts.
+            searchModuleFilterChev:SetText("v")
             searchModuleFilterChev:SetTextColor(0.5, 0.52, 0.58, 1)
 
             searchFilterDivider:SetPoint("TOPRIGHT", searchModuleFilterBtn, "TOPLEFT", -6, 2)
             searchFilterDivider:SetPoint("BOTTOMRIGHT", searchModuleFilterBtn, "BOTTOMLEFT", -6, -2)
 
+            local function SearchFilterMenuIncludeModuleKey(mk)
+                if mk == "axis" then return true end
+                return addon.IsModuleEnabled and addon:IsModuleEnabled(mk)
+            end
+
             local function UpdateSearchModuleFilterLabel()
                 local fk = f.dashboardSearchModuleFilter or "all"
+                if fk ~= "all" and fk ~= "axis" and not SearchFilterMenuIncludeModuleKey(fk) then
+                    f.dashboardSearchModuleFilter = "all"
+                    fk = "all"
+                end
                 if fk == "all" then
                     searchModuleFilterLabel:SetText(L["DASH_SEARCH_FILTER_ALL"] or "All")
                 else
                     searchModuleFilterLabel:SetText(moduleLabels[fk] or fk)
                 end
             end
+            f.UpdateSearchModuleFilterLabel = UpdateSearchModuleFilterLabel
             UpdateSearchModuleFilterLabel()
 
             searchModuleFilterBtn:SetScript("OnEnter", function()
@@ -581,6 +612,13 @@ function addon.Dashboard_BuildMainFrame()
             end)
 
             local function BuildAndShowSearchModuleFilterMenu()
+                local filterBefore = f.dashboardSearchModuleFilter or "all"
+                UpdateSearchModuleFilterLabel()
+                local filterAfter = f.dashboardSearchModuleFilter or "all"
+                if filterBefore ~= filterAfter and f.FilterBySearch and searchBox then
+                    f.FilterBySearch(searchBox:GetText())
+                end
+
                 local groups = {}
                 for _, cat in ipairs(addon.OptionCategories or {}) do
                     local mk = OptionCategoryKeyIsAxis(cat.key) and "axis" or (cat.moduleKey or "modules")
@@ -589,7 +627,7 @@ function addon.Dashboard_BuildMainFrame()
 
                 local moduleEntries = {}
                 for _, mk in ipairs(SEARCH_MODULE_FILTER_GROUP_ORDER) do
-                    if groups[mk] and groups[mk] > 0 then
+                    if groups[mk] and groups[mk] > 0 and SearchFilterMenuIncludeModuleKey(mk) then
                         moduleEntries[#moduleEntries + 1] = { key = mk, label = moduleLabels[mk] or mk }
                     end
                 end
@@ -608,6 +646,7 @@ function addon.Dashboard_BuildMainFrame()
                         row:SetHeight(SEARCH_MODULE_FILTER_ROW_H)
                         row:SetPoint("LEFT", searchModuleFilterMenu, "LEFT", 6, 0)
                         row:SetPoint("RIGHT", searchModuleFilterMenu, "RIGHT", -6, 0)
+                        ClearButtonTemplateArt(row)
                         local hi = row:CreateTexture(nil, "BACKGROUND")
                         hi:SetAllPoints(row)
                         hi:SetColorTexture(1, 1, 1, 0.06)
@@ -1332,6 +1371,7 @@ function addon.Dashboard_BuildMainFrame()
                 subCategoryView = subCategoryView,
                 contentWidth = contentWidth,
                 dashScrollTopOffset = dashScrollTopOffset,
+                dashScrollTopOffsetModule = dashScrollTopOffsetModule,
                 dashAccentRefs = dashAccentRefs,
                 GetAccentColor = GetAccentColor,
                 MakeText = MakeText,
@@ -2019,6 +2059,7 @@ function addon.Dashboard_BuildMainFrame()
         addon.DashboardCtx.layout = {
             contentWidth = contentWidth,
             dashScrollTopOffset = dashScrollTopOffset,
+            dashScrollTopOffsetModule = dashScrollTopOffsetModule,
             viewWidth = viewWidth,
             viewCenterX = viewCenterX,
             dashTitleX = dashTitleX,
