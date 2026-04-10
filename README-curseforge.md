@@ -136,7 +136,7 @@ Every module shares the same design foundations, so they feel like one cohesive 
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
 4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
-5. **Welcome** gives a quick overview of each module. **Quick Start** walks through Focus sections, Presence notifications, and each module in detail. **Home** shows module tiles. Under **Axis** use **Global Toggles** for class colours and UI scale, or **Modules** to toggle modules on/off and control the minimap button.
+5. **Welcome** gives a quick overview of each module. **Quick Start** walks through Focus sections, Presence notifications, and each module in detail. **Search** in the sidebar (above **Patch Notes**) opens a dedicated page to find any setting by name. **Home** shows module tiles. Under **Axis** use **Global Toggles** for class colours and UI scale, or **Modules** to toggle modules on/off and control the minimap button.
 
 ---
 

@@ -55,7 +55,7 @@ function addon.DashboardWelcomeView_Init(env)
     local HideContextHeader = env.HideContextHeader
     local SetSidebarState = env.setSidebarState
     local CLEAR = env.CLEAR
-    local searchBox = env.searchBox
+    local searchBarShell = env.searchBarShell
     local head = env.head
     local headSub = env.headSub
     local DASHBOARD_CONTENT_CARD_ALPHA_MULT = env.DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1
@@ -1986,6 +1986,7 @@ function addon.DashboardWelcomeView_Init(env)
             if f.guideView then f.guideView:Hide() end
             patchNotesView:Hide()
             if env.newsView then env.newsView:Hide() end
+            if f.searchView then f.searchView:Hide() end
             welcomeView:SetAlpha(0)
             welcomeView:Show()
             UIFrameFadeIn(welcomeView, 0.2, 0, 1)
@@ -1994,7 +1995,9 @@ function addon.DashboardWelcomeView_Init(env)
                 headSub:Show()
                 headSub:SetText(L[headSubKey] or L["DASH_WELCOME_HEAD_SUB"] or "Credits, community, and where to find help")
             end
-            if searchBox then searchBox:Hide() end
+            if searchBarShell then searchBarShell:Hide() end
+            if f.HideSearchDropdown then f.HideSearchDropdown() end
+            if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
             f.currentModuleKey = nil
             SetSidebarState({ view = "welcome", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
             if addonRef.DashboardPreview and addonRef.DashboardPreview.SetActiveModuleKey then

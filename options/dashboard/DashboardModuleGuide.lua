@@ -52,7 +52,7 @@ function addon.DashboardModuleGuide_Init(env)
     local HideContextHeader = env.HideContextHeader
     local SetSidebarState = env.setSidebarState
     local CLEAR = env.CLEAR
-    local searchBox = env.searchBox
+    local searchBarShell = env.searchBarShell
     local head = env.head
     local headSub = env.headSub
     local PREVIEW_MODULE_KEYS = env.PREVIEW_MODULE_KEYS or {}
@@ -514,7 +514,10 @@ function addon.DashboardModuleGuide_Init(env)
                 headSub:Show()
                 headSub:SetText(L["DASH_GUIDE_HEAD_SUB"] or "What each part of Horizon does")
             end
-            if searchBox then searchBox:Hide() end
+            if f.searchView then f.searchView:Hide() end
+            if searchBarShell then searchBarShell:Hide() end
+            if f.HideSearchDropdown then f.HideSearchDropdown() end
+            if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
             f.currentModuleKey = nil
             SetSidebarState({ view = "guide", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
             if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
