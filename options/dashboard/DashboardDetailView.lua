@@ -368,7 +368,16 @@ function addon.DashboardDetailView_Init(env)
 
     local function SearchEntryPassesModuleFilter(entry)
         local fk = f.dashboardSearchModuleFilter or "all"
-        if fk == "all" then return true end
+        if fk == "all" then
+            if OptionCategoryKeyIsAxis(entry.categoryKey) then
+                return true
+            end
+            local mk = entry.moduleKey
+            if not mk or mk == "" then
+                return true
+            end
+            return addon.IsModuleEnabled and addon:IsModuleEnabled(mk)
+        end
         if fk == "axis" then return OptionCategoryKeyIsAxis(entry.categoryKey) end
         return entry.moduleKey == fk
     end
