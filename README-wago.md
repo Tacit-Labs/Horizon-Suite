@@ -116,6 +116,7 @@ Thanks to everyone who has contributed to Horizon Suite:
 
 - **feanor21#2847 — Panoramuxa (Tarren Mill -EU)** — Development
 - Boofuls — Moderator
+- Diva — Innovator
 - **RondoFerrari** — [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) — Class icons in Insight tooltips and optional Dashboard header icon when class colours are on (optional)
 - **Aishuu** — French localization (frFR)
 - **아즈샤라-두녘** — Korean localization (koKR)

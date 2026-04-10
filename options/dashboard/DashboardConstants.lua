@@ -26,6 +26,14 @@ addon.DashboardConstants = {
     SEARCH_BOX_H = 36,
     -- Welcome + Module Guide: visible space between scroll content and Community & Support block.
     COMMUNITY_FOOTER_SCROLL_GAP = 24,
+    -- Home module toggle cards (replaces tile grid)
+    HOME_TOGGLE_CARD_H = 88,
+    HOME_TOGGLE_CARD_GAP = 10,
+    HOME_TOGGLE_PILL_W = 44,
+    HOME_TOGGLE_PILL_H = 24,
+    HOME_TOGGLE_PILL_THUMB = 18,
+    HOME_TOGGLE_ICON_SIZE = 36,
+    HOME_RELOAD_BANNER_H = 52,
 }
 
 local C = addon.DashboardConstants

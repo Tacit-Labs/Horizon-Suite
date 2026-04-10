@@ -88,7 +88,7 @@ function addon.DashboardSidebar_CreateChrome(p)
     end)
 
     local TAB_ROW_HEIGHT = 38
-    local SIDEBAR_WHATSNEW_RESERVE = TAB_ROW_HEIGHT + 8
+    local SIDEBAR_WHATSNEW_RESERVE = TAB_ROW_HEIGHT
 
     local function layoutUnderHeader()
         logoSep:ClearAllPoints()
@@ -138,6 +138,33 @@ function addon.DashboardSidebar_CreateChrome(p)
     local COLLAPSE_ANIM_DUR = 0.18
     local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
+    -- Separator texture above the pinned bottom button (anchored to sidebar)
+    local pinnedSep = sidebar:CreateTexture(nil, "ARTWORK")
+    pinnedSep:SetHeight(1)
+    pinnedSep:SetColorTexture(0.15, 0.15, 0.2, 1)
+    pinnedSep:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, SIDEBAR_WHATSNEW_RESERVE)
+    pinnedSep:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, SIDEBAR_WHATSNEW_RESERVE)
+
+    -- iconSpec: string = Interface\Icons\<name>, or { atlas = "AtlasName", useAtlasSize = bool?, fallback = "IconFileName" } for SetAtlas
+    local function ApplySidebarButtonIconTexture(tex, iconSpec)
+        if type(iconSpec) == "table" and iconSpec.atlas and tex.SetAtlas then
+            local atlas = iconSpec.atlas
+            local gi = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+            if C_Texture and C_Texture.GetAtlasInfo and not gi and type(iconSpec.fallback) == "string" then
+                tex:SetAtlas(nil)
+                tex:SetTexture("Interface\\Icons\\" .. iconSpec.fallback)
+            else
+                tex:SetTexture(nil)
+                pcall(function()
+                    tex:SetAtlas(atlas, iconSpec.useAtlasSize)
+                end)
+            end
+        elseif type(iconSpec) == "string" then
+            if tex.SetAtlas then tex:SetAtlas(nil) end
+            tex:SetTexture("Interface\\Icons\\" .. iconSpec)
+        end
+    end
+
     local function CreateSidebarButton(parent, label, iconName, onClick, indentPx, noHover)
         indentPx = indentPx or 0
         parent = parent or sidebarScrollContent
@@ -162,7 +189,7 @@ function addon.DashboardSidebar_CreateChrome(p)
             local ic = btn:CreateTexture(nil, "ARTWORK")
             ic:SetSize(16, 16)
             ic:SetPoint("LEFT", indentPx + 14, 0)
-            ic:SetTexture("Interface\\Icons\\" .. iconName)
+            ApplySidebarButtonIconTexture(ic, iconName)
             ic:SetVertexColor(0.6, 0.6, 0.65, 1)
             btn.icon = ic
         end
@@ -197,6 +224,70 @@ function addon.DashboardSidebar_CreateChrome(p)
                 end
             end)
         end
+        btn:SetScript("OnClick", function()
+            if onClick then onClick() end
+        end)
+
+        return btn
+    end
+
+    local function CreateBottomPinnedButton(label, iconName, onClick)
+        local btn = CreateFrame("Button", nil, sidebar)
+        btn:SetSize(SIDEBAR_WIDTH - 1, TAB_ROW_HEIGHT)
+        btn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, 0)
+        btn:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, 0)
+
+        local btnBg = btn:CreateTexture(nil, "BACKGROUND")
+        btnBg:SetAllPoints()
+        btnBg:SetColorTexture(0, 0, 0, 0)
+        btn.btnBg = btnBg
+
+        local accentBar = btn:CreateTexture(nil, "ARTWORK")
+        accentBar:SetSize(3, 22)
+        accentBar:SetPoint("LEFT", 4, 0)
+        local sar, sag, sab = GetAccentColor()
+        accentBar:SetColorTexture(sar, sag, sab, 1)
+        accentBar:Hide()
+        btn.accentBar = accentBar
+        tinsert(dashAccentRefs.sidebarBars, accentBar)
+
+        if iconName then
+            local ic = btn:CreateTexture(nil, "ARTWORK")
+            ic:SetSize(16, 16)
+            ic:SetPoint("LEFT", 14, 0)
+            ApplySidebarButtonIconTexture(ic, iconName)
+            ic:SetVertexColor(0.6, 0.6, 0.65, 1)
+            btn.icon = ic
+        end
+
+        local lbl = MakeText(btn, label, 11, 0.65, 0.65, 0.7, "LEFT")
+        lbl:SetPoint("LEFT", iconName and 36 or 14, 0)
+        lbl:SetPoint("RIGHT", -8, 0)
+        lbl:SetWordWrap(false)
+        btn.label = lbl
+
+        btn:SetScript("OnEnter", function()
+            if btn ~= dashSession.activeSidebarBtn then
+                btnBg:SetColorTexture(0.1, 0.1, 0.12, DASHBOARD_CHILD_PANEL_ALPHA)
+                if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+                    addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, true)
+                else
+                    lbl:SetTextColor(0.9, 0.9, 0.95)
+                    if btn.icon then btn.icon:SetVertexColor(0.9, 0.9, 0.95, 1) end
+                end
+            end
+        end)
+        btn:SetScript("OnLeave", function()
+            if btn ~= dashSession.activeSidebarBtn then
+                btnBg:SetColorTexture(0, 0, 0, 0)
+                if btn._patchNotesSidebarRowStyle and addon.PatchNotes_ApplyWhatsNewSidebarRowStyle then
+                    addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, btn.icon, false)
+                else
+                    lbl:SetTextColor(0.65, 0.65, 0.7)
+                    if btn.icon then btn.icon:SetVertexColor(0.6, 0.6, 0.65, 1) end
+                end
+            end
+        end)
         btn:SetScript("OnClick", function()
             if onClick then onClick() end
         end)
@@ -257,6 +348,7 @@ function addon.DashboardSidebar_CreateChrome(p)
         TAB_ROW_HEIGHT = TAB_ROW_HEIGHT,
         SIDEBAR_WHATSNEW_RESERVE = SIDEBAR_WHATSNEW_RESERVE,
         CreateSidebarButton = CreateSidebarButton,
+        CreateBottomPinnedButton = CreateBottomPinnedButton,
         SetActiveSidebarButton = SetActiveSidebarButton,
         layoutUnderHeader = layoutUnderHeader,
     }
