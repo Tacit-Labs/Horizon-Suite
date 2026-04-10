@@ -313,16 +313,60 @@ function addon.DashboardDetailView_Init(env)
     -- Helper: Create Subcategory Tile
     local TILE_PAD = 10
     local TILE_GAP = 10
-    local TILE_W = math.floor((contentWidth - TILE_PAD * 2 - TILE_GAP) / 2)
-    local TILE_STRIDE = TILE_W + TILE_GAP
+    local TILE_H   = 110
+    local TILE_ROW_STRIDE = 130
+
+    -- Scroll frame is anchored TOPLEFT+40 / BOTTOMRIGHT-40 from subCategoryView,
+    -- so its effective width = viewWidth - 80.  We derive it from the view instead
+    -- of calling subCategoryScroll:GetWidth() because anchor-sized frames haven't
+    -- completed their layout pass when OnSizeChanged fires, so GetWidth() would
+    -- return the stale pre-resize value.
+    -- SCROLL_INSET must match the anchor offsets on subCategoryScroll (40px each side).
+    -- Defined in DashboardConstants as SUBCATEGORY_SCROLL_INSET for single-source-of-truth.
+    local DC_const = addon.DashboardConstants
+    local SCROLL_INSET = DC_const and DC_const.SUBCATEGORY_SCROLL_INSET or 80
+
+    local function GetTileMetrics()
+        local viewW = subCategoryView:GetWidth()
+        if not viewW or viewW < 100 then viewW = contentWidth + SCROLL_INSET end
+        local scrollW = viewW - SCROLL_INSET
+        local tW = math.floor((scrollW - TILE_PAD * 2 - TILE_GAP) / 2)
+        return tW, tW + TILE_GAP, scrollW
+    end
+
+    -- Reposition and resize all live tiles to match the current scroll width.
+    -- Also keeps subCategoryContent width in sync so the scroll child never
+    -- drifts out of step with the scroll frame after a resize.
+    local function LayoutSubTiles()
+        if #currentSubTiles == 0 then return end
+        local tileW, tileStride, scrollW = GetTileMetrics()
+        subCategoryContent:SetWidth(scrollW)
+        local tileYOffset = 0
+        for i, tile in ipairs(currentSubTiles) do
+            local row = math.floor((i - 1) / 2)
+            local col = (i - 1) % 2
+            tile:SetWidth(tileW)
+            tile:ClearAllPoints()
+            tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", TILE_PAD + (col * tileStride), row * -TILE_ROW_STRIDE)
+            tileYOffset = math.max(tileYOffset, (row + 1) * TILE_ROW_STRIDE)
+        end
+        subCategoryContent:SetHeight(math.max(1, tileYOffset))
+    end
+
+    subCategoryView:SetScript("OnSizeChanged", function()
+        if subCategoryView:IsShown() then
+            LayoutSubTiles()
+        end
+    end)
 
     local function CreateSubCategoryTile(parent, name, index, options, modName, desc)
+        local tileW, tileStride = GetTileMetrics()
         local tile = CreateFrame("Button", nil, parent)
-        tile:SetSize(TILE_W, 110)
+        tile:SetSize(tileW, TILE_H)
         
         local row = math.floor((index-1) / 2)
         local col = (index-1) % 2
-        tile:SetPoint("TOPLEFT", parent, "TOPLEFT", TILE_PAD + (col * TILE_STRIDE), 0 + (row * -130))
+        tile:SetPoint("TOPLEFT", parent, "TOPLEFT", TILE_PAD + (col * tileStride), 0 + (row * -TILE_ROW_STRIDE))
 
         -- Chrome aligned with CreateAccordionCard: full-bleed fill, left accent, bottom divider (no frame border)
         local tBg = tile:CreateTexture(nil, "BACKGROUND")
@@ -495,7 +539,7 @@ function addon.DashboardDetailView_Init(env)
                 tinsert(currentSubTiles, tile)
                 
                 local row = math.floor((i-1) / 2)
-                tileYOffset = math.max(tileYOffset, (row + 1) * 130)
+                tileYOffset = math.max(tileYOffset, (row + 1) * TILE_ROW_STRIDE)
 
                 -- Staggered Cascade Entrance (faster per UX feedback)
                 tile:SetAlpha(0)
