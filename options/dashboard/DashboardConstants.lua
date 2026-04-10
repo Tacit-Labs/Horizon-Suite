@@ -1,5 +1,9 @@
 --[[
     Horizon Suite - Dashboard layout constants (shared by dashboard UI files).
+
+    NATIVE_W / NATIVE_H are the canonical 16:9 design dimensions.
+    All pixel values produced by GetLayoutConstants() are relative to those
+    dimensions and scaled by the caller-supplied ratio.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -16,9 +20,12 @@ addon.DashboardConstants = {
     HOME_TILE_COLS = 4,
     HOME_TILE_BG_ALPHA_MULT = 1.0,
     HOME_SKELETON_BG_ALPHA_MULT = 0.58,
-    -- Dashboard window (16:9). Author full-bleed PNG backgrounds at this size (or 2×, e.g. 2560×1440).
-    FRAME_W = 1280,
-    FRAME_H = 720,
+    -- Dashboard window canonical design size (16:9).
+    -- Author full-bleed PNG backgrounds at this size (or 2×: 2560×1440).
+    NATIVE_W = 1280,
+    NATIVE_H = 720,
+    FRAME_W   = 1280,   -- kept for back-compat; always equals NATIVE_W
+    FRAME_H   = 720,    -- kept for back-compat; always equals NATIVE_H
     -- Main content header band (anchors to dashboard frame TOP).
     HEAD_TITLE_Y = -30,
     HEAD_SUBTITLE_Y = -58,
@@ -34,7 +41,55 @@ addon.DashboardConstants = {
     HOME_TOGGLE_PILL_THUMB = 18,
     HOME_TOGGLE_ICON_SIZE = 36,
     HOME_RELOAD_BANNER_H = 52,
+    -- Sidebar native dimensions (always fixed; sidebar does not scale with dashboard ratio)
+    SIDEBAR_NATIVE_W        = 160,
+    SIDEBAR_CONTENT_X_INSET = 15,
+    -- Subcategory scroll frame inset (40px left + 40px right from subCategoryView)
+    -- Keep in sync with the TOPLEFT/BOTTOMRIGHT anchor offsets on subCategoryScroll.
+    SUBCATEGORY_SCROLL_INSET = 80,
 }
 
-local C = addon.DashboardConstants
-C.VIEW_H = C.FRAME_H - 20
+local DC = addon.DashboardConstants
+DC.VIEW_H = DC.FRAME_H - 20
+
+-- ---------------------------------------------------------------------------
+-- DC.Scaled(value, ratio) — scale a native-pixel value by a resize ratio.
+-- ratio defaults to 1.0 when omitted.
+-- ---------------------------------------------------------------------------
+function DC.Scaled(value, ratio)
+    ratio = ratio or 1.0
+    return value * ratio
+end
+
+-- ---------------------------------------------------------------------------
+-- DC.GetLayoutConstants(ratio) — returns a table of all frame-level pixel
+-- values scaled by ratio.  Consumers should call this once per resize event
+-- and read fields rather than calling individual helpers per-pixel.
+-- ---------------------------------------------------------------------------
+function DC.GetLayoutConstants(ratio)
+    ratio = ratio or 1.0
+    local nw = DC.NATIVE_W * ratio
+    local nh = DC.NATIVE_H * ratio
+    local sw = DC.SIDEBAR_NATIVE_W  -- sidebar is fixed-size; does not scale with ratio
+    local contentOffset = sw + 10
+    local viewWidth     = nw - sw - 10
+    local viewH         = nh - 20
+    local viewCenterX   = contentOffset / 2
+    local contentWidth  = viewWidth - 80
+    local dashTitleX    = contentOffset + 40
+    local viewTopInset  = (nh - viewH) / 2
+    local scrollTopOff  = -(math.abs(DC.SEARCH_Y) + DC.SEARCH_BOX_H + 8 - viewTopInset)
+    return {
+        ratio          = ratio,
+        frameW         = nw,
+        frameH         = nh,
+        viewH          = viewH,
+        sidebarW       = sw,
+        contentOffset  = contentOffset,
+        viewWidth      = viewWidth,
+        viewCenterX    = viewCenterX,
+        contentWidth   = contentWidth,
+        dashTitleX     = dashTitleX,
+        dashScrollTopOffset = scrollTopOff,
+    }
+end
