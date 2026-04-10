@@ -96,6 +96,92 @@ function addon.DashboardWelcomeView_Init(env)
     local WELCOME_ACTION_CARD_FOOTER_GAP = 10
     local WELCOME_ACTION_CARD_FOOTER_BOTTOM_INSET = 18
 
+    --- Place supporter name labels in a wrapping flow with stagger (tag-cloud style).
+    --- Uses per-label _supporterGapAfter and _supporterStagger set at create time.
+    --- @param host Frame
+    --- @param maxWidth number
+    --- @param entryList table Array of { name = string }
+    --- @param tagLabels table
+    --- @return nil
+    local function LayoutSupporterTagFlow(host, maxWidth, entryList, tagLabels)
+        if not host or not entryList or not tagLabels then return end
+        local gapY = 10
+        local x = 0
+        local y = 0
+        local rowH = 0
+        for j = 1, #tagLabels do
+            if j > #entryList and tagLabels[j] then
+                tagLabels[j]:Hide()
+            end
+        end
+        for i = 1, #entryList do
+            local fs = tagLabels[i]
+            if not fs then break end
+            fs:Show()
+            local w = fs:GetStringWidth() or 0
+            local gapAfter = fs._supporterGapAfter or 10
+            if x > 0 and (x + w) > maxWidth then
+                y = y + rowH + gapY
+                x = 0
+                rowH = 0
+            end
+            local stagger = fs._supporterStagger or 0
+            fs:ClearAllPoints()
+            fs:SetPoint("TOPLEFT", host, "TOPLEFT", x, -(y + stagger))
+            local fh = fs:GetHeight() or 12
+            rowH = math.max(rowH, fh + stagger)
+            x = x + w + gapAfter
+        end
+        host:SetHeight(math.max(1, y + rowH))
+    end
+
+    -- WoW class tokens (English, uppercase) for RAID_CLASS_COLORS / C_ClassColor.GetClassColor.
+    local SUPPORTER_CLASS_FALLBACK_ORDER = {
+        "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT",
+        "SHAMAN", "MAGE", "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER",
+    }
+
+    --- @param entry table
+    --- @return table|nil Array of { name = string, classFile = string|nil }
+    local function ResolveSupporterList(entry)
+        if not entry then return nil end
+        if entry.supporterEntries and #entry.supporterEntries > 0 then
+            return entry.supporterEntries
+        end
+        if entry.supporterNames and #entry.supporterNames > 0 then
+            local t = {}
+            for i, nm in ipairs(entry.supporterNames) do
+                t[i] = {
+                    name = nm,
+                    classFile = SUPPORTER_CLASS_FALLBACK_ORDER[((i - 1) % #SUPPORTER_CLASS_FALLBACK_ORDER) + 1],
+                }
+            end
+            return t
+        end
+        return nil
+    end
+
+    --- @param classFile string|nil
+    --- @return number, number, number
+    local function GetSupporterClassRGB(classFile)
+        if type(classFile) ~= "string" or classFile == "" then
+            return 0.62, 0.66, 0.74
+        end
+        if C_ClassColor and C_ClassColor.GetClassColor then
+            local ok, cc = pcall(function()
+                return C_ClassColor.GetClassColor(classFile)
+            end)
+            if ok and cc and type(cc.r) == "number" then
+                return cc.r, cc.g, cc.b
+            end
+        end
+        local rc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+        if rc and type(rc.r) == "number" then
+            return rc.r, rc.g, rc.b
+        end
+        return 0.62, 0.66, 0.74
+    end
+
     local function ShowCopyURL(label, url)
         if addonRef.ShowURLCopyBox then
             addonRef.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
@@ -442,7 +528,22 @@ function addon.DashboardWelcomeView_Init(env)
         local id = entry.id
         local kind = entry.kind
         if welcomeBlockPool[id] then
-            return welcomeBlockPool[id]
+            local cached = welcomeBlockPool[id]
+            if kind == "welcome_support_card" then
+                local supList = ResolveSupporterList(entry)
+                local needsTagFlow = supList and #supList > 0
+                local hasTagFlow = cached.tagHost and cached.tagLabels
+                if needsTagFlow and not hasTagFlow then
+                    if cached.root then
+                        cached.root:Hide()
+                    end
+                    welcomeBlockPool[id] = nil
+                else
+                    return cached
+                end
+            else
+                return cached
+            end
         end
 
         if kind == "static_header" then
@@ -579,12 +680,45 @@ function addon.DashboardWelcomeView_Init(env)
             bodyFs:SetSpacing(3)
             local ctaBtn = CreateNewsCTAButton(card, false)
 
+            local tagHost, tagLabels
+            local supporterList = ResolveSupporterList(entry)
+            if supporterList and #supporterList > 0 then
+                tagHost = CreateFrame("Frame", nil, card)
+                tagHost:SetFrameLevel((card:GetFrameLevel() or 0) + 2)
+                tagHost:EnableMouse(false)
+                tagLabels = {}
+                local sizes = { 10, 12, 15, 18 }
+                for j = 1, #supporterList do
+                    local row = supporterList[j]
+                    local nm = type(row) == "string" and row or (row.name or "")
+                    local cf = type(row) == "table" and row.classFile or nil
+                    if not cf or cf == "" then
+                        cf = SUPPORTER_CLASS_FALLBACK_ORDER[((j - 1) % #SUPPORTER_CLASS_FALLBACK_ORDER) + 1]
+                    end
+                    local seed = j * 17
+                    for k = 1, #nm do
+                        seed = seed + string.byte(nm, k)
+                    end
+                    local sz = sizes[((seed + j) % 4) + 1]
+                    local r, g, b = GetSupporterClassRGB(cf)
+                    local fs = MakeText(tagHost, nm, sz, r, g, b, "LEFT")
+                    if fs.EnableMouse then
+                        fs:EnableMouse(false)
+                    end
+                    fs._supporterGapAfter = 8 + (seed % 9)
+                    fs._supporterStagger = (seed * 3) % 6
+                    tagLabels[j] = fs
+                end
+            end
+
             welcomeBlockPool[id] = {
                 kind = kind,
                 root = card,
                 titleFs = titleFs,
                 bodyFs = bodyFs,
                 ctaBtn = ctaBtn,
+                tagHost = tagHost,
+                tagLabels = tagLabels,
                 entry = entry,
             }
             return welcomeBlockPool[id]
@@ -1162,7 +1296,6 @@ function addon.DashboardWelcomeView_Init(env)
                         local textW = cardW - pad * 2
 
                         pool.titleFs:SetText(L[entry.titleKey] or "")
-                        pool.bodyFs:SetText(L[entry.bodyKey] or "")
                         pool.ctaBtn:SetLabel(L[entry.ctaLabelKey] or "")
                         pool.ctaBtn:SetScript("OnClick", function()
                             DispatchNewsAction(entry)
@@ -1180,10 +1313,44 @@ function addon.DashboardWelcomeView_Init(env)
                         pool.titleFs:ClearAllPoints()
                         pool.titleFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
                         local yt = pad + pool.titleFs:GetHeight() + 8
-                        pool.bodyFs:SetWidth(textW)
-                        pool.bodyFs:ClearAllPoints()
-                        pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
-                        yt = yt + pool.bodyFs:GetHeight()
+
+                        local supporterListLayout = ResolveSupporterList(entry)
+                        if pool.tagHost and pool.tagLabels and supporterListLayout and #supporterListLayout > 0 then
+                            local intro = L[entry.bodyKey] or ""
+                            pool.bodyFs:SetText(intro)
+                            pool.bodyFs:SetWidth(textW)
+                            pool.bodyFs:ClearAllPoints()
+                            pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                            if intro:find("%S") then
+                                pool.bodyFs:Show()
+                                if pool.bodyFs.EnableMouse then
+                                    pool.bodyFs:EnableMouse(false)
+                                end
+                                yt = yt + pool.bodyFs:GetHeight() + 10
+                            else
+                                pool.bodyFs:Hide()
+                            end
+                            local nSup = #supporterListLayout
+                            local tagFlowW = textW
+                            if nSup >= 4 then
+                                tagFlowW = math.min(textW, math.max(168, math.floor(textW * 0.68)))
+                            end
+                            if nSup >= 5 then
+                                tagFlowW = math.min(tagFlowW, 280)
+                            end
+                            pool.tagHost:SetWidth(tagFlowW)
+                            pool.tagHost:ClearAllPoints()
+                            pool.tagHost:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                            LayoutSupporterTagFlow(pool.tagHost, tagFlowW, supporterListLayout, pool.tagLabels)
+                            yt = yt + pool.tagHost:GetHeight()
+                        else
+                            pool.bodyFs:Show()
+                            pool.bodyFs:SetText(L[entry.bodyKey] or "")
+                            pool.bodyFs:SetWidth(textW)
+                            pool.bodyFs:ClearAllPoints()
+                            pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                            yt = yt + pool.bodyFs:GetHeight()
+                        end
                         if entry.ctaAction and entry.ctaLabelKey then
                             yt = yt + 14
                             pool.ctaBtn:ClearAllPoints()
