@@ -13,7 +13,7 @@ if not addon then return end
 --- searchDropdownContent, searchDropdownCatch, setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
 --- setSidebarState may be replaced on env after sidebar init (stub no-op until then).
 --- @param env table
---- @return table { NavigateToOption = function, NavigateToModuleToggles = function }
+--- @return table NavigateToOption, NavigateToModuleToggles, NavigateToDashboardBackground, NavigateToAxisHome, NavigateToClassColourTinting
 function addon.DashboardDetailView_Init(env)
     local f = env.f
     local addon = env.addon
@@ -173,6 +173,72 @@ function addon.DashboardDetailView_Init(env)
                 categoryKey = "Modules",
                 categoryName = modulesName,
                 optionId = "_module_focus",
+            }
+        end
+        NavigateToOption(entryFound)
+    end
+
+    --- Open Axis → Global Settings with the Theme accordion expanded (Dashboard background control).
+    --- @return nil
+    local function NavigateToDashboardBackground()
+        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
+        local entryFound
+        for _, e in ipairs(idx) do
+            if e.categoryKey == "GlobalToggles" and e.optionId == "dashboardBackgroundTheme" then
+                entryFound = e
+                break
+            end
+        end
+        if not entryFound then
+            local catName = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            for _, cat in ipairs(addon.OptionCategories) do
+                if cat.key == "GlobalToggles" then
+                    catName = type(cat.name) == "function" and cat.name() or cat.name or catName
+                    break
+                end
+            end
+            entryFound = {
+                categoryKey = "GlobalToggles",
+                categoryName = catName,
+                optionId = "dashboardBackgroundTheme",
+            }
+        end
+        NavigateToOption(entryFound)
+    end
+
+    --- Open Axis module category tiles (Profiles, Modules, Global Settings, …).
+    --- @return nil
+    local function NavigateToAxisHome()
+        local axisName = moduleLabels["axis"] or "Axis"
+        if addon.Dashboard_BrandModule then
+            axisName = addon.Dashboard_BrandModule("axis") or axisName
+        end
+        f.OpenModule(axisName, "axis", true)
+    end
+
+    --- Open Axis → Global Settings with the Class Colours accordion expanded (suite-wide tint toggles).
+    --- @return nil
+    local function NavigateToClassColourTinting()
+        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
+        local entryFound
+        for _, e in ipairs(idx) do
+            if e.categoryKey == "GlobalToggles" and e.optionId == "_classColorAll" then
+                entryFound = e
+                break
+            end
+        end
+        if not entryFound then
+            local catName = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            for _, cat in ipairs(addon.OptionCategories) do
+                if cat.key == "GlobalToggles" then
+                    catName = type(cat.name) == "function" and cat.name() or cat.name or catName
+                    break
+                end
+            end
+            entryFound = {
+                categoryKey = "GlobalToggles",
+                categoryName = catName,
+                optionId = "_classColorAll",
             }
         end
         NavigateToOption(entryFound)
@@ -1567,5 +1633,8 @@ function addon.DashboardDetailView_Init(env)
     return {
         NavigateToOption = NavigateToOption,
         NavigateToModuleToggles = NavigateToModuleToggles,
+        NavigateToDashboardBackground = NavigateToDashboardBackground,
+        NavigateToAxisHome = NavigateToAxisHome,
+        NavigateToClassColourTinting = NavigateToClassColourTinting,
     }
 end

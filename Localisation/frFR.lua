@@ -71,6 +71,7 @@ L["OPTIONS_FOCUS_DRAG_RESIZE"]                                        = "Glisser
 L["OPTIONS_AXIS_PROFILES"]                                            = "Profils"
 -- L["OPTIONS_AXIS_MODULES"]                                          = "Modules"
 -- L["OPTIONS_AXIS_MODULE_TOGGLES"]                                   = "Module Toggles"
+-- L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"]                        = "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
 -- L["OPTIONS_MODULE_RELOAD_HINT"]                                    = "Reload the interface to finish applying module changes."
 -- L["OPTIONS_MODULE_RELOAD_BUTTON"]                                  = "Reload UI"
 
@@ -127,8 +128,7 @@ L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                                = "Catch u
 L["DASH_WELCOME_ACTION_UPDATES_BODY"]                                 = "Patch Notes and News are the fastest way to see new presets, art, polish passes, and module changes between releases."
 L["DASH_WELCOME_ACTION_NEWS_TITLE"]                                   = "See the editorial update feed"
 L["DASH_WELCOME_ACTION_NEWS_BODY"]                                    = "Open News for featured stories, roadmap notes, art highlights, and smaller curated updates in one place."
--- L["DASH_WELCOME_LEARN_TITLE"]                                      = "Learn the Suite"
--- L["DASH_WELCOME_LEARN_BODY"]                                       = "Use this section as the guided overview of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
+L["DASH_WELCOME_LEARN_BODY"]                                          = "Use this section as the guided overview of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
 L["DASH_WELCOME_PATH"]                                                = "%s → %s → %s"
 -- L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]                      = "Blizzard+ click profile"
 -- L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                         = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
@@ -152,6 +152,15 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thank
 • 아즈샤라-두녘 — Korean localisation (koKR)
 • Linho-Gallywix — Brazilian Portuguese localisation (ptBR)
 • allmoon — Chinese localisation (zhCN)]=]
+-- L["DASH_WELCOME_SUPPORTERS_HEADING"]                               = "Supporters"
+-- L["DASH_WELCOME_SUPPORTERS_BODY"]                                  = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.
+-- 
+-- • Diva
+-- • Feralus
+-- • Jarvis
+-- • Savs
+-- • Vukolak
+-- • Boofuls]=]
 -- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                            = "Localisations"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The options panel is localised for:
 
@@ -172,12 +181,10 @@ Contributions for additional locales are welcome via Discord.]=]
 L["DASH_GUIDE_TAB"]                                                   = "Guide"
 -- L["DASH_GUIDE_HEAD_SUB"]                                           = "What each part of Horizon does"
 -- L["DASH_GUIDE_HERO_TITLE"]                                         = "Getting started with Horizon Suite"
--- L["DASH_GUIDE_HERO_TAGLINE"]                                       = "A modular UI toolkit for quests, notifications, the minimap, and more."
+L["DASH_GUIDE_HERO_TAGLINE"]                                          = "A modular UI toolkit for quests, notifications, the minimap, and more."
 L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
--- L["DASH_GUIDE_QUICK_START_HEADING"]                                = "Quick start"
-L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
--- • Under |cffaaaaaaAxis > Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
--- L["DASH_GUIDE_HORIZON_HEADING"]                                    = "What is Horizon Suite?"
+-- L["DASH_GUIDE_HERO_THEME_PROMPT"]                                  = [=[Under |cffaaaaaaAxis > Global Settings|r, set |cff73b4ff|Hhsdash:classcolours|hclass-colour tinting|h|r for the dashboard and modules, and pick a |cff73b4ff|Hhsdash:theme|hDashboard theme|h|r.]=]
+L["DASH_GUIDE_HORIZON_HEADING"]                                       = "What is Horizon Suite?"
 L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
 • Focus — Quest and content tracker: quests, world quests, scenarios, rares, achievements, and more in coloured sections.
 • Presence — Large cinematic toasts for zones, quests, scenarios, achievements, level up, and similar moments.
@@ -186,7 +193,7 @@ L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• A
 • Cache — Loot toasts and bag presentation.
 • Essence — Character sheet with 3D model, item level, stats, and gear grid.
 • Meridian — Coming soon.]=]
--- L["DASH_GUIDE_MOD_AXIS_BODY"]                                      = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Toggles for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
+L["DASH_GUIDE_MOD_AXIS_BODY"]                                         = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Toggles for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
 L["DASH_GUIDE_MOD_FOCUS_BODY"]                                        = [=[Focus replaces the default objective list with a flexible tracker. Tracked quests, world quests, scenarios, rares, achievements, endeavors, decor, recipes, and more are grouped into coloured section headers so you can scan quickly.
 Sections only appear when they have something to show — for example Current (recent progress), Current zone, Ready to turn in, World / weekly / daily / Prey, campaign and special quests, delves and scenarios, rare bosses and loot, achievements and collections, and time-limited or zone events.
 
@@ -203,15 +210,15 @@ L["DASH_GUIDE_PRESENCE_BODY"]                                         = [=[Typic
 -- L["DASH_GUIDE_MOD_INSIGHT_BODY"]                                   = "Insight extends Blizzard tooltips for players, NPCs, and items — class and faction colouring, spec and icon lines, optional Mythic+ score, item level, mount collection hints, and cleaner separators. Each tooltip type has its own category under Insight."
 -- L["DASH_GUIDE_MOD_CACHE_BODY"]                                     = "Cache handles loot feedback: styled loot toasts for items, money, currency, and reputation, plus options that tie into how rewards are shown. Enable it when you want Horizon’s presentation instead of the default loot popups."
 -- L["DASH_GUIDE_MOD_ESSENCE_BODY"]                                   = "Essence is an optional character sheet: 3D model, item level, primary stats, and a gear grid so you can review your equipment at a glance. Open Essence in the sidebar to adjust layout and visibility."
--- L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                                  = "Coming soon."
--- L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                            = "Core settings hub: profiles, modules, and global toggles."
+L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                                     = "Coming soon."
+L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                               = "Core settings hub: profiles, modules, and global toggles."
 -- L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"]                    = "Objective tracker for quests, world quests, rares, achievements, scenarios."
 -- L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"]                              = "Zone text and notifications."
 -- L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"]                          = "Minimap with zone text, coords, time, and button collector."
 -- L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"]                       = "Tooltips with class colors, spec, and faction icons."
 -- L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]                         = "Loot toasts for items, money, currency, reputation, and bag overhaul."
 -- L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"]                         = "Custom character sheet with 3D model, item level, stats, and gear grid."
--- L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                        = "Coming soon."
+L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                           = "Coming soon."
 -- L["DASH_WELCOME_COMMUNITY_HEADING"]                                = "Community & Support"
 -- L["DASH_DISCORD"]                                                  = "Discord"
 -- L["DASH_KO_FI"]                                                    = "Ko-fi"
@@ -1830,6 +1837,13 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
+
+
 
 
 

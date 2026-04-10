@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Dashboard home module toggle hub.
-    Each module (Focus, Presence, Vista, Insight, Cache, Essence) gets a full-width card
+    Each module (Focus, Presence, Vista, Insight, Cache, Essence) gets a full-width card of uniform height
     with an animated pill toggle to enable/disable it. Card click navigates to settings.
     Wired from DashboardFrame.lua via addon.DashboardHomeWelcome_Init(env).
 ]]
@@ -18,15 +18,18 @@ function addon.DashboardHomeWelcome_Init(env)
     local envAddon = env.addon
     local L = env.L
     local dashboardView = env.dashboardView
+    local contentWidth = env.contentWidth
+    local dashScrollTopOffset = env.dashScrollTopOffset or -130
     local dashAccentRefs = env.dashAccentRefs
     local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
     local moduleLabels = env.moduleLabels
+    local PREVIEW_MODULE_KEYS = env.PREVIEW_MODULE_KEYS or {}
     local DASHBOARD_CONTENT_CARD_ALPHA_MULT = env.DASHBOARD_CONTENT_CARD_ALPHA_MULT
 
     local C = envAddon.DashboardConstants or {}
-    local CARD_H     = C.HOME_TOGGLE_CARD_H     or 96
-    local CARD_GAP   = C.HOME_TOGGLE_CARD_GAP   or 10
+    local CARD_H   = C.HOME_TOGGLE_CARD_H   or 88
+    local CARD_GAP = C.HOME_TOGGLE_CARD_GAP or 8
     local PILL_W     = C.HOME_TOGGLE_PILL_W     or 44
     local PILL_H     = C.HOME_TOGGLE_PILL_H     or 24
     local PILL_THUMB = C.HOME_TOGGLE_PILL_THUMB or 18
@@ -66,8 +69,24 @@ function addon.DashboardHomeWelcome_Init(env)
         essence  = L["DASH_HOME_MOD_ESSENCE_SHORT"]  or "Character panel with 3D model, item level, and gear.",
     }
 
-    local CARD_X_INSET = 40
-    local CARD_TOP_Y   = -110
+    -- Horizontal inset is on the scroll frame (match detail/subcategory); cards align to scroll content left.
+    local CARD_TOP_PAD = 8
+    local HOME_SCROLL_BOTTOM_INSET = 40
+    local HOME_CONTENT_BOTTOM_PAD = 16
+
+    local homeScroll = CreateFrame("ScrollFrame", nil, dashboardView, "UIPanelScrollFrameTemplate")
+    homeScroll:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 2)
+    homeScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
+    homeScroll:SetPoint("BOTTOMRIGHT", -40, HOME_SCROLL_BOTTOM_INSET)
+    homeScroll.ScrollBar:Hide()
+    homeScroll.ScrollBar:ClearAllPoints()
+
+    local homeContent = CreateFrame("Frame", nil, homeScroll)
+    homeContent:SetSize(contentWidth or math.max(200, (dashboardView:GetWidth() or 800) - 80), 1)
+    homeScroll:SetScrollChild(homeContent)
+    if addon.Dashboard_ApplySmoothScroll then
+        addon.Dashboard_ApplySmoothScroll(homeScroll, homeContent, 60, true)
+    end
 
     local function EaseInOutCubic(t)
         if t < 0.5 then
@@ -77,7 +96,7 @@ function addon.DashboardHomeWelcome_Init(env)
         return 0.5 * f2 * f2 * f2 + 1
     end
 
-    local reloadBanner = CreateFrame("Frame", nil, dashboardView)
+    local reloadBanner = CreateFrame("Frame", nil, homeContent)
     reloadBanner:SetHeight(BANNER_H)
     reloadBanner:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 5)
     reloadBanner:Hide()
@@ -115,9 +134,29 @@ function addon.DashboardHomeWelcome_Init(env)
     local function MakeToggleCard(parent, moduleKey)
         local mc = MODULE_COLORS[moduleKey] or { 0.6, 0.6, 0.7 }
         local mr, mg, mb = mc[1], mc[2], mc[3]
+        local isPreviewModule = PREVIEW_MODULE_KEYS[moduleKey] and true or false
+        local previewTitleSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+        local previewDisclaimer = L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"] or "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
+        -- Disclaimer line: distinct from body copy (enabled / disabled module tint)
+        local PREVIEW_DISC_ON_R, PREVIEW_DISC_ON_G, PREVIEW_DISC_ON_B = 0.94, 0.62, 0.32
+        local PREVIEW_DISC_OFF_R, PREVIEW_DISC_OFF_G, PREVIEW_DISC_OFF_B = 0.50, 0.38, 0.26
+
+        -- Fixed text bands so every row uses CARD_H.
+        -- topInset is always derived from the non-preview stack so all rows start at the same Y.
+        -- The disclaimer (preview only) flows below and is clipped by the card boundary.
+        local TITLE_LINE_H = 16
+        local GAP_TITLE_DESC = 3
+        local DESC_AREA_H = 24
+        local GAP_DESC_DISC = 3
+        local DISC_AREA_H = 30
+        local DISC_FONT_SIZE = 10
+        local baseStackH = TITLE_LINE_H + GAP_TITLE_DESC + DESC_AREA_H
+        local blockH = math.max(ICON_SIZE, baseStackH)
+        local topInset = math.floor(math.max(5, (CARD_H - blockH) / 2 + 0.5))
 
         local card = CreateFrame("Button", nil, parent)
         card:SetHeight(CARD_H)
+        card:SetClipsChildren(true)
 
         local cardBg = card:CreateTexture(nil, "BACKGROUND")
         cardBg:SetAllPoints()
@@ -158,23 +197,38 @@ function addon.DashboardHomeWelcome_Init(env)
 
         local iconTex = card:CreateTexture(nil, "ARTWORK")
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)
-        iconTex:SetPoint("LEFT", 18, 0)
+        iconTex:SetPoint("TOPLEFT", card, "TOPLEFT", 18, -topInset)
         iconTex:SetTexture("Interface\\Icons\\" .. (MODULE_ICONS[moduleKey] or "INV_Misc_Question_01"))
         card.iconTex = iconTex
 
         local modName = (moduleLabels and moduleLabels[moduleKey]) or (moduleKey:sub(1, 1):upper() .. moduleKey:sub(2))
+        local titleText = modName:upper() .. (isPreviewModule and previewTitleSuffix or "")
 
-        local nameLbl = MakeText(card, modName:upper(), 14, mr, mg, mb, "LEFT")
-        nameLbl:SetPoint("TOPLEFT", iconTex, "TOPRIGHT", 14, -13)
+        local nameLbl = MakeText(card, titleText, 14, mr, mg, mb, "LEFT")
+        nameLbl:SetPoint("TOPLEFT", iconTex, "TOPRIGHT", 10, 0)
         nameLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
+        nameLbl:SetHeight(TITLE_LINE_H)
         nameLbl:SetWordWrap(false)
         card.nameLbl = nameLbl
 
         local descLbl = MakeText(card, MODULE_DESCS[moduleKey] or "", 11, 0.55, 0.57, 0.62, "LEFT")
-        descLbl:SetPoint("TOPLEFT", nameLbl, "BOTTOMLEFT", 0, -8)
+        descLbl:SetPoint("TOPLEFT", nameLbl, "BOTTOMLEFT", 0, -GAP_TITLE_DESC)
         descLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
-        descLbl:SetWordWrap(false)
+        descLbl:SetHeight(DESC_AREA_H)
+        descLbl:SetWordWrap(true)
+        descLbl:SetJustifyV("TOP")
         card.descLbl = descLbl
+
+        local previewDisclaimerLbl = nil
+        if isPreviewModule then
+            previewDisclaimerLbl = MakeText(card, previewDisclaimer, DISC_FONT_SIZE, PREVIEW_DISC_ON_R, PREVIEW_DISC_ON_G, PREVIEW_DISC_ON_B, "LEFT")
+            previewDisclaimerLbl:SetPoint("TOPLEFT", descLbl, "BOTTOMLEFT", 0, -GAP_DESC_DISC)
+            previewDisclaimerLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
+            previewDisclaimerLbl:SetHeight(DISC_AREA_H)
+            previewDisclaimerLbl:SetWordWrap(true)
+            previewDisclaimerLbl:SetJustifyV("TOP")
+            card.previewDisclaimerLbl = previewDisclaimerLbl
+        end
 
         local pillBtn = CreateFrame("Button", nil, card)
         pillBtn:SetSize(PILL_W, PILL_H)
@@ -281,6 +335,15 @@ function addon.DashboardHomeWelcome_Init(env)
                 iconTex:SetVertexColor(1, 1, 1, hovered and 0.98 or 0.92)
                 nameLbl:SetTextColor(mr, mg, mb)
                 descLbl:SetTextColor(0.62, 0.64, 0.69)
+                if previewDisclaimerLbl then
+                    local dr, dg, db = PREVIEW_DISC_ON_R, PREVIEW_DISC_ON_G, PREVIEW_DISC_ON_B
+                    if hovered then
+                        dr = math.min(1, dr + 0.04)
+                        dg = math.min(1, dg + 0.04)
+                        db = math.min(1, db + 0.06)
+                    end
+                    previewDisclaimerLbl:SetTextColor(dr, dg, db)
+                end
                 chevron:SetTextColor(mr, mg, mb, hovered and 0.70 or 0.42)
             else
                 accentRail:SetColorTexture(mr, mg, mb, 0.30)
@@ -290,6 +353,9 @@ function addon.DashboardHomeWelcome_Init(env)
                 iconTex:SetVertexColor(0.50, 0.52, 0.56, 0.72)
                 nameLbl:SetTextColor(0.44, 0.46, 0.50)
                 descLbl:SetTextColor(0.36, 0.38, 0.42)
+                if previewDisclaimerLbl then
+                    previewDisclaimerLbl:SetTextColor(PREVIEW_DISC_OFF_R, PREVIEW_DISC_OFF_G, PREVIEW_DISC_OFF_B)
+                end
                 chevron:SetTextColor(0.36, 0.38, 0.42, hovered and 0.62 or 0.40)
             end
 
@@ -355,27 +421,32 @@ function addon.DashboardHomeWelcome_Init(env)
     end
 
     for _, mk in ipairs(MODULE_ORDER) do
-        local card = MakeToggleCard(dashboardView, mk)
+        local card = MakeToggleCard(homeContent, mk)
         tinsert(toggleCards, { key = mk, card = card })
     end
 
     local function LayoutToggleCards()
-        local viewW = dashboardView:GetWidth() or 0
-        local cardW = math.max(200, viewW - CARD_X_INSET * 2)
-        local y = CARD_TOP_Y
+        local viewW = homeScroll:GetWidth() or homeContent:GetWidth() or 0
+        local cardW = math.max(200, viewW)
+        homeContent:SetWidth(cardW)
+        local y = CARD_TOP_PAD
 
         for _, entry in ipairs(toggleCards) do
             local card = entry.card
             card:SetWidth(cardW)
             card:ClearAllPoints()
-            card:SetPoint("TOPLEFT", dashboardView, "TOPLEFT", CARD_X_INSET, y)
+            card:SetPoint("TOPLEFT", homeContent, "TOPLEFT", 0, -y)
             card:Show()
-            y = y - CARD_H - CARD_GAP
+            y = y + card:GetHeight() + CARD_GAP
         end
 
         reloadBanner:SetWidth(cardW)
         reloadBanner:ClearAllPoints()
-        reloadBanner:SetPoint("TOPLEFT", dashboardView, "TOPLEFT", CARD_X_INSET, y - 8)
+        reloadBanner:SetPoint("TOPLEFT", homeContent, "TOPLEFT", 0, -y - 8)
+
+        -- Pixels from content top through reload banner + bottom padding
+        local contentH = math.max(1, y + 8 + BANNER_H + HOME_CONTENT_BOTTOM_PAD)
+        homeContent:SetHeight(contentH)
     end
 
     local function RefreshHomeToggleCards()
@@ -392,8 +463,8 @@ function addon.DashboardHomeWelcome_Init(env)
         LayoutToggleCards()
     end
 
-    dashboardView:SetScript("OnSizeChanged", function()
-        if dashboardView:IsShown() then
+    homeScroll:SetScript("OnSizeChanged", function()
+        if homeScroll:IsShown() then
             LayoutToggleCards()
         end
     end)
