@@ -171,6 +171,7 @@ function addon.Dashboard_BuildMainFrame()
                 logoSep = nil,
                 logoText = nil,
                 searchDropBorder = nil,
+                searchFilterDropBorder = nil,
                 welcomeAccentStrip = nil,
                 guideHeroRail = nil,
                 communityFooterTopRules = {},
@@ -255,6 +256,9 @@ function addon.Dashboard_BuildMainFrame()
                 end
                 if dashAccentRefs.searchDropBorder and dashAccentRefs.searchDropBorder.SetBackdropBorderColor then
                     dashAccentRefs.searchDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
+                end
+                if dashAccentRefs.searchFilterDropBorder and dashAccentRefs.searchFilterDropBorder.SetBackdropBorderColor then
+                    dashAccentRefs.searchFilterDropBorder:SetBackdropBorderColor(ar, ag, ab, 0.5)
                 end
                 if dashAccentRefs.welcomeAccentStrip and dashAccentRefs.welcomeAccentStrip.SetColorTexture then
                     dashAccentRefs.welcomeAccentStrip:SetColorTexture(ar, ag, ab, 0.5)
@@ -410,10 +414,15 @@ function addon.Dashboard_BuildMainFrame()
             searchBarShell:SetFrameLevel(f:GetFrameLevel() + 5)
             searchBarShell:Hide()
             f.searchBarShell = searchBarShell
+            f.dashboardSearchModuleFilter = "all"
+
+            -- Right chrome: clear (×) + module filter; search field stops before this strip.
+            local SEARCH_FILTER_BTN_W = 84
+            local SEARCH_RIGHT_CHROME_W = 8 + 22 + 4 + SEARCH_FILTER_BTN_W + 4
 
             local searchBox = CreateFrame("EditBox", nil, searchBarShell)
             searchBox:SetPoint("TOPLEFT", searchBarShell, "TOPLEFT", 4, -4)
-            searchBox:SetPoint("BOTTOMRIGHT", searchBarShell, "BOTTOMRIGHT", -36, 4)
+            searchBox:SetPoint("BOTTOMRIGHT", searchBarShell, "BOTTOMRIGHT", -SEARCH_RIGHT_CHROME_W, 4)
             do
                 local sp = addon.Dashboard_ResolveSavedDashboardFontPath(
                     (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
@@ -473,6 +482,189 @@ function addon.Dashboard_BuildMainFrame()
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
             end)
 
+            local searchFilterDivider = searchBarShell:CreateTexture(nil, "ARTWORK")
+            searchFilterDivider:SetWidth(1)
+            searchFilterDivider:SetColorTexture(SCardBd[1], SCardBd[2], SCardBd[3], 0.45)
+
+            local searchModuleFilterBtn = CreateFrame("Button", nil, searchBarShell)
+            searchModuleFilterBtn:SetSize(SEARCH_FILTER_BTN_W, 22)
+            searchModuleFilterBtn:SetPoint("RIGHT", searchClearBtn, "LEFT", -4, 0)
+            searchModuleFilterBtn:SetFrameLevel(searchBarShell:GetFrameLevel() + 2)
+            local searchModuleFilterLabel = searchModuleFilterBtn:CreateFontString(nil, "OVERLAY")
+            do
+                local fp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                    (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                )
+                local fe = addon.Dashboard_EffectiveDashboardFontSize(11)
+                pcall(function()
+                    searchModuleFilterLabel:SetFont(fp, fe, "")
+                end)
+                if addon.Dashboard_ApplyTextShadow then
+                    addon.Dashboard_ApplyTextShadow(searchModuleFilterLabel)
+                end
+            end
+            searchModuleFilterLabel:SetPoint("LEFT", searchModuleFilterBtn, "LEFT", 4, 0)
+            searchModuleFilterLabel:SetPoint("RIGHT", searchModuleFilterBtn, "RIGHT", -14, 0)
+            searchModuleFilterLabel:SetJustifyH("LEFT")
+            searchModuleFilterLabel:SetTextColor(0.65, 0.67, 0.72, 1)
+            local searchModuleFilterChev = searchModuleFilterBtn:CreateFontString(nil, "OVERLAY")
+            do
+                local fp = addon.Dashboard_ResolveSavedDashboardFontPath(
+                    (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+                )
+                local fe = addon.Dashboard_EffectiveDashboardFontSize(10)
+                pcall(function()
+                    searchModuleFilterChev:SetFont(fp, fe, "")
+                end)
+            end
+            searchModuleFilterChev:SetPoint("RIGHT", searchModuleFilterBtn, "RIGHT", -4, 0)
+            searchModuleFilterChev:SetText("▾")
+            searchModuleFilterChev:SetTextColor(0.5, 0.52, 0.58, 1)
+
+            searchFilterDivider:SetPoint("TOPRIGHT", searchModuleFilterBtn, "TOPLEFT", -6, 2)
+            searchFilterDivider:SetPoint("BOTTOMRIGHT", searchModuleFilterBtn, "BOTTOMLEFT", -6, -2)
+
+            local function UpdateSearchModuleFilterLabel()
+                local fk = f.dashboardSearchModuleFilter or "all"
+                if fk == "all" then
+                    searchModuleFilterLabel:SetText(L["DASH_SEARCH_FILTER_ALL"] or "All")
+                else
+                    searchModuleFilterLabel:SetText(moduleLabels[fk] or fk)
+                end
+            end
+            UpdateSearchModuleFilterLabel()
+
+            searchModuleFilterBtn:SetScript("OnEnter", function()
+                searchModuleFilterLabel:SetTextColor(0.88, 0.9, 0.94, 1)
+                searchModuleFilterChev:SetTextColor(0.75, 0.78, 0.85, 1)
+                GameTooltip:SetOwner(searchModuleFilterBtn, "ANCHOR_RIGHT")
+                GameTooltip:SetText(L["DASH_SEARCH_FILTER_TOOLTIP"] or "Limit search to one module", nil, nil, nil, nil, true)
+                GameTooltip:Show()
+            end)
+            searchModuleFilterBtn:SetScript("OnLeave", function()
+                searchModuleFilterLabel:SetTextColor(0.65, 0.67, 0.72, 1)
+                searchModuleFilterChev:SetTextColor(0.5, 0.52, 0.58, 1)
+                GameTooltip:Hide()
+            end)
+
+            local searchModuleFilterMenuRows = {}
+            local SEARCH_MODULE_FILTER_ROW_H = 28
+            local SEARCH_MODULE_FILTER_GROUP_ORDER = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
+
+            local searchModuleFilterMenu = CreateFrame("Frame", nil, f, "BackdropTemplate")
+            searchModuleFilterMenu:SetFrameLevel(f:GetFrameLevel() + 12)
+            searchModuleFilterMenu:SetBackdrop({
+                bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                edgeSize = 12,
+                insets = { left = 3, right = 3, top = 3, bottom = 3 },
+            })
+            searchModuleFilterMenu:SetBackdropColor(0.08, 0.08, 0.09, DASHBOARD_CHILD_PANEL_ALPHA)
+            local fmbr, fmbg, fmbb = GetAccentColor()
+            searchModuleFilterMenu:SetBackdropBorderColor(fmbr, fmbg, fmbb, 0.5)
+            searchModuleFilterMenu:Hide()
+            dashAccentRefs.searchFilterDropBorder = searchModuleFilterMenu
+
+            local searchModuleFilterCatch = CreateFrame("Button", nil, f)
+            searchModuleFilterCatch:SetAllPoints(f)
+            searchModuleFilterCatch:SetFrameLevel(f:GetFrameLevel() + 11)
+            searchModuleFilterCatch:Hide()
+
+            local function HideSearchModuleFilterMenu()
+                searchModuleFilterMenu:Hide()
+                searchModuleFilterCatch:Hide()
+            end
+            f.HideSearchModuleFilterMenu = HideSearchModuleFilterMenu
+
+            searchModuleFilterCatch:SetScript("OnClick", function()
+                HideSearchModuleFilterMenu()
+            end)
+
+            local function BuildAndShowSearchModuleFilterMenu()
+                local groups = {}
+                for _, cat in ipairs(addon.OptionCategories or {}) do
+                    local mk = OptionCategoryKeyIsAxis(cat.key) and "axis" or (cat.moduleKey or "modules")
+                    groups[mk] = (groups[mk] or 0) + 1
+                end
+
+                local moduleEntries = {}
+                for _, mk in ipairs(SEARCH_MODULE_FILTER_GROUP_ORDER) do
+                    if groups[mk] and groups[mk] > 0 then
+                        moduleEntries[#moduleEntries + 1] = { key = mk, label = moduleLabels[mk] or mk }
+                    end
+                end
+                table.sort(moduleEntries, function(a, b)
+                    return (a.label or ""):lower() < (b.label or ""):lower()
+                end)
+                local entries = { { key = "all", label = L["DASH_SEARCH_FILTER_ALL"] or "All" } }
+                for _, e in ipairs(moduleEntries) do
+                    entries[#entries + 1] = e
+                end
+
+                local n = #entries
+                for i = 1, n do
+                    if not searchModuleFilterMenuRows[i] then
+                        local row = CreateFrame("Button", nil, searchModuleFilterMenu)
+                        row:SetHeight(SEARCH_MODULE_FILTER_ROW_H)
+                        row:SetPoint("LEFT", searchModuleFilterMenu, "LEFT", 6, 0)
+                        row:SetPoint("RIGHT", searchModuleFilterMenu, "RIGHT", -6, 0)
+                        local hi = row:CreateTexture(nil, "BACKGROUND")
+                        hi:SetAllPoints(row)
+                        hi:SetColorTexture(1, 1, 1, 0.06)
+                        hi:Hide()
+                        local rl = MakeText(row, "", 12, 0.88, 0.9, 0.93, "LEFT")
+                        rl:SetPoint("LEFT", 8, 0)
+                        rl:SetPoint("RIGHT", -8, 0)
+                        row:SetScript("OnEnter", function()
+                            local har, hag, hab = GetAccentColor()
+                            hi:SetColorTexture(har, hag, hab, 0.1)
+                            hi:Show()
+                        end)
+                        row:SetScript("OnLeave", function()
+                            hi:Hide()
+                        end)
+                        searchModuleFilterMenuRows[i] = { btn = row, label = rl }
+                    end
+                    local row = searchModuleFilterMenuRows[i]
+                    local e = entries[i]
+                    row.label:SetText(e.label)
+                    row.btn:ClearAllPoints()
+                    row.btn:SetHeight(SEARCH_MODULE_FILTER_ROW_H)
+                    row.btn:SetPoint("LEFT", searchModuleFilterMenu, "LEFT", 6, 0)
+                    row.btn:SetPoint("RIGHT", searchModuleFilterMenu, "RIGHT", -6, 0)
+                    row.btn:SetPoint("TOP", searchModuleFilterMenu, "TOP", 0, -6 - (i - 1) * SEARCH_MODULE_FILTER_ROW_H)
+                    row.btn:SetScript("OnClick", function()
+                        f.dashboardSearchModuleFilter = e.key
+                        UpdateSearchModuleFilterLabel()
+                        HideSearchModuleFilterMenu()
+                        if f.FilterBySearch and searchBox then
+                            f.FilterBySearch(searchBox:GetText())
+                        end
+                    end)
+                    row.btn:Show()
+                end
+                for j = n + 1, #searchModuleFilterMenuRows do
+                    searchModuleFilterMenuRows[j].btn:Hide()
+                end
+
+                local mw = math.max(SEARCH_FILTER_BTN_W + 24, 188)
+                local mh = 12 + n * SEARCH_MODULE_FILTER_ROW_H + 6
+                searchModuleFilterMenu:SetSize(mw, mh)
+                searchModuleFilterMenu:ClearAllPoints()
+                searchModuleFilterMenu:SetPoint("TOPLEFT", searchModuleFilterBtn, "BOTTOMLEFT", 0, -4)
+                searchModuleFilterMenu:Show()
+                searchModuleFilterCatch:SetFrameLevel(searchModuleFilterMenu:GetFrameLevel() - 1)
+                searchModuleFilterCatch:Show()
+            end
+
+            searchModuleFilterBtn:SetScript("OnClick", function()
+                if searchModuleFilterMenu:IsShown() then
+                    HideSearchModuleFilterMenu()
+                else
+                    BuildAndShowSearchModuleFilterMenu()
+                end
+            end)
+
             local function UpdateSearchBarBorderFocused(focused)
                 local ar, ag, ab = GetAccentColor()
                 if focused then
@@ -511,6 +703,7 @@ function addon.Dashboard_BuildMainFrame()
                 self:SetText("")
                 sbPlaceholder:Show()
                 searchClearBtn:Hide()
+                if f.HideSearchModuleFilterMenu then f.HideSearchModuleFilterMenu() end
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
             end)
 
@@ -548,6 +741,7 @@ function addon.Dashboard_BuildMainFrame()
             end)
 
             f.HideSearchDropdown = function()
+                if f.HideSearchModuleFilterMenu then f.HideSearchModuleFilterMenu() end
                 searchDropdown:Hide()
                 searchDropdownCatch:Hide()
                 if f.searchEmptyHint and f.searchView and f.searchView:IsShown() then
