@@ -1052,6 +1052,22 @@ function addon.Dashboard_BuildMainFrame()
                 pnScroll:SetVerticalScroll(0)
             end
 
+            -- Updates widths of all patch notes items without rebuilding content.
+            -- Must be called before _layoutPatchNotesScroll so word-wrap heights are correct.
+            f._relayoutPatchNotesWidths = function(newW)
+                if f._pnContent then
+                    f._pnContent:SetWidth(newW)
+                    if f._pnContent._inner then
+                        f._pnContent._inner:SetWidth(newW)
+                    end
+                end
+                local items = f._patchNotesLayoutItems
+                if not items then return end
+                for _, item in ipairs(items) do
+                    if item.onResize then item.onResize(newW) end
+                end
+            end
+
             local pnBuiltVersion = nil
 
             local function BuildPatchNotesContent(currentVersion)
@@ -1094,6 +1110,7 @@ function addon.Dashboard_BuildMainFrame()
                 inner:SetHeight(1)
                 inner:SetPoint("TOPLEFT", pnContent, "TOPLEFT", 0, 0)
                 pnContent._inner = inner
+                f._pnContent = pnContent
 
                 local items = {}
                 local ar, ag, ab = GetAccentColor()
@@ -1127,7 +1144,7 @@ function addon.Dashboard_BuildMainFrame()
                     lbl:SetJustifyH("CENTER")
                     lbl:SetText(L["DASH_PATCH_NOTES_EMPTY"] or "No notes available.")
                     lbl:SetTextColor(unpack(PN_MUTED_COL))
-                    tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 0 })
+                    tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 0, onResize = function(w) lbl:SetWidth(w) end })
                 else
                     for vi, ver in ipairs(versions) do
                         local notes = addon.PATCH_NOTES[ver]
@@ -1139,7 +1156,7 @@ function addon.Dashboard_BuildMainFrame()
                                 sep:SetSize(cW, 1)
                                 sep:SetColorTexture(ar, ag, ab, 0.15)
                                 tinsert(dashAccentRefs.patchNotesRules, sep)
-                                tinsert(items, { type = "tex", tex = sep, gap = 18 })
+                                tinsert(items, { type = "tex", tex = sep, gap = 18, onResize = function(w) sep:SetWidth(w) end })
                             end
 
                             -- Version header (optional date from PatchNotesData matches CHANGELOG)
@@ -1168,7 +1185,7 @@ function addon.Dashboard_BuildMainFrame()
                                 lbl:SetText(sec.section:upper())
                                 lbl:SetTextColor(ar, ag, ab)
                                 tinsert(dashAccentRefs.patchNotesSectionLabels, lbl)
-                                tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 9 })
+                                tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 9, onResize = function(w) lbl:SetWidth(w) end })
 
                                 for _, bullet in ipairs(sec.bullets) do
                                     local txt = inner:CreateFontString(nil, "OVERLAY")
@@ -1180,7 +1197,7 @@ function addon.Dashboard_BuildMainFrame()
                                     txt:SetText("|cFF"..hex.."\226\128\148|r  "..coloredBullet)
                                     txt:SetTextColor(unpack(PN_BODY_COL))
                                     tinsert(dashAccentRefs.patchNotesBullets, { fs = txt, bullet = bullet, coloredBullet = coloredBullet })
-                                    tinsert(items, { type = "fs", fs = txt, x = PN_BULLET_X, gap = PN_LINE_GAP })
+                                    tinsert(items, { type = "fs", fs = txt, x = PN_BULLET_X, gap = PN_LINE_GAP, onResize = function(w) txt:SetWidth(w - PN_BULLET_X) end })
                                 end
                             end
                         end
@@ -2198,6 +2215,16 @@ function addon.Dashboard_BuildMainFrame()
                 -- 9. Detail cards reflow (skipped during live drag — runs on DragStop)
                 if not skipHeavy and f._dashboardRelayoutDetailCards then
                     f._dashboardRelayoutDetailCards()
+                end
+
+                -- 10. Patch notes content reflow (skipped during live drag — runs on DragStop)
+                if not skipHeavy then
+                    if f._relayoutPatchNotesWidths then
+                        f._relayoutPatchNotesWidths(lc.contentWidth)
+                    end
+                    if f._layoutPatchNotesScroll then
+                        f._layoutPatchNotesScroll()
+                    end
                 end
             end
 
