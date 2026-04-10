@@ -231,6 +231,7 @@ L["DASH_HOME_MOD_VISTA_SHORT"]                                        = "Custom 
 L["DASH_HOME_MOD_INSIGHT_SHORT"]                                      = "Cinematic tooltips with class colors, spec, and faction."
 L["DASH_HOME_MOD_CACHE_SHORT"]                                        = "Loot, currency, and reputation toasts."
 L["DASH_HOME_MOD_ESSENCE_SHORT"]                                      = "Character panel with 3D model, item level, and gear."
+L["DASH_RESIZE_TOOLTIP"]                                              = "Drag to resize\nRight-click to reset"
 L["DASH_HOME_RELOAD_PROMPT"]                                          = "Reload to apply module changes."
 L["DASH_RELOAD_UI"]                                                   = "Reload UI"
 L["DASH_LAYOUT"]                                                      = "Layout"
