@@ -259,6 +259,8 @@ function addon.DashboardDetailView_Init(env)
             return
         end
 
+        if f.HideSearchModuleFilterMenu then f.HideSearchModuleFilterMenu() end
+
         local embedded = searchView and searchView:IsShown()
         local maxRows = embedded and 80 or 12
 
@@ -355,6 +357,19 @@ function addon.DashboardDetailView_Init(env)
         end
     end
 
+    local function SearchEntryPassesModuleFilter(entry)
+        local fk = f.dashboardSearchModuleFilter or "all"
+        if fk == "all" then return true end
+        if fk == "axis" then return OptionCategoryKeyIsAxis(entry.categoryKey) end
+        return entry.moduleKey == fk
+    end
+
+    local function SearchFilterDisplayLabel(filterKey)
+        if not filterKey or filterKey == "all" then return "" end
+        if filterKey == "axis" then return moduleLabels.axis or "Axis" end
+        return moduleLabels[filterKey] or filterKey
+    end
+
     f.FilterBySearch = function(query)
         local searchQuery = query and query:trim():lower() or ""
         if searchQuery == "" or #searchQuery < 2 then
@@ -369,7 +384,7 @@ function addon.DashboardDetailView_Init(env)
         local index = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
         local matches = {}
         for _, entry in ipairs(index) do
-            if entry.searchText and entry.searchText:find(searchQuery, 1, true) then
+            if entry.searchText and entry.searchText:find(searchQuery, 1, true) and SearchEntryPassesModuleFilter(entry) then
                 matches[#matches + 1] = entry
             end
         end
@@ -377,7 +392,13 @@ function addon.DashboardDetailView_Init(env)
         if #matches == 0 then
             f.HideSearchDropdown()
             if searchView and searchView:IsShown() and searchEmptyHint then
-                searchEmptyHint:SetText(L["DASH_SEARCH_NO_RESULTS"] or "No matching settings. Try different words.")
+                local fk = f.dashboardSearchModuleFilter or "all"
+                if fk ~= "all" then
+                    local modLab = SearchFilterDisplayLabel(fk)
+                    searchEmptyHint:SetText(string.format(L["DASH_SEARCH_NO_RESULTS_IN_MODULE"] or "No matches in %s. Try All modules or different words.", modLab))
+                else
+                    searchEmptyHint:SetText(L["DASH_SEARCH_NO_RESULTS"] or "No matching settings. Try different words.")
+                end
                 searchEmptyHint:Show()
             end
             return
