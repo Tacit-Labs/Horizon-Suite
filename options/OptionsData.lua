@@ -52,6 +52,7 @@ local FOCUS_CLICK_KEYS = {
     focusClick_right      = true,
     focusClick_shiftRight = true,
     focusClick_ctrlRight  = true,
+    focusClick_altRight   = true,
 }
 
 local INSIGHT_KEYS = {
@@ -570,11 +571,17 @@ local function getDB(k, d) return addon.GetDB(k, d) end
 local function setDB(k, v) return OptionsData_SetDB(k, v) end
 
 --- Returns dropdown options for a given combo key, delegating to FocusClickConfig.
+--- Custom profile uses the full action list on every combo; presets use curated COMBO_OPTIONS.
 --- @param comboKey string e.g. "left", "shiftLeft"
 --- @return table { {label, value}, ... }
 local function GetComboActionOptions(comboKey)
-    if addon.focus and addon.focus.clickConfig and addon.focus.clickConfig.GetComboOptions then
-        return addon.focus.clickConfig.GetComboOptions(comboKey)
+    local cfg = addon.focus and addon.focus.clickConfig
+    if not cfg then return {} end
+    if getDB("focusClickProfile", "blizzardDefault") == "custom" and cfg.GetAllComboActionOptions then
+        return cfg.GetAllComboActionOptions()
+    end
+    if cfg.GetComboOptions then
+        return cfg.GetComboOptions(comboKey)
     end
     return {}
 end
@@ -586,14 +593,19 @@ end
 --- @return string
 local function GetEffectiveFocusClickAction(comboKey, dbKey, fallback)
     local prof = getDB("focusClickProfile", "blizzardDefault")
-    if prof == "custom" then
-        return getDB(dbKey, fallback)
-    end
     local cfg = addon.focus and addon.focus.clickConfig
+    local normalizeAction = cfg and cfg.NormalizeAction
+    if prof == "custom" then
+        local raw = getDB(dbKey, fallback)
+        return normalizeAction and normalizeAction(raw) or raw
+    end
     local profiles = cfg and cfg.PROFILES
     if not profiles then return fallback end
     local t = profiles[prof] or profiles.blizzardDefault
     local v = t and t[comboKey]
+    if normalizeAction then
+        v = normalizeAction(v)
+    end
     if type(v) == "string" and v ~= "" then return v end
     return fallback
 end
@@ -1784,15 +1796,15 @@ local OptionCategories = {
                 end,
                 refreshIds = {
                     "focusClick_left", "focusClick_shiftLeft", "focusClick_ctrlLeft", "focusClick_altLeft",
-                    "focusClick_right", "focusClick_shiftRight", "focusClick_ctrlRight",
+                    "focusClick_right", "focusClick_shiftRight", "focusClick_ctrlRight", "focusClick_altRight",
                 },
             },
             {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_LEFT"],
                 dbKey       = "focusClick_left",
-                options     = GetComboActionOptions("left"),
-                get         = function() return GetEffectiveFocusClickAction("left", "focusClick_left", "openProfession") end,
+                options     = function() return GetComboActionOptions("left") end,
+                get         = function() return GetEffectiveFocusClickAction("left", "focusClick_left", "superTrack") end,
                 set         = function(v) setDB("focusClick_left", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1801,8 +1813,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_SHIFT_LEFT"],
                 dbKey       = "focusClick_shiftLeft",
-                options     = GetComboActionOptions("shiftLeft"),
-                get         = function() return GetEffectiveFocusClickAction("shiftLeft", "focusClick_shiftLeft", "untrack") end,
+                options     = function() return GetComboActionOptions("shiftLeft") end,
+                get         = function() return GetEffectiveFocusClickAction("shiftLeft", "focusClick_shiftLeft", "openDetails") end,
                 set         = function(v) setDB("focusClick_shiftLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1811,8 +1823,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_CTRL_LEFT"],
                 dbKey       = "focusClick_ctrlLeft",
-                options     = GetComboActionOptions("ctrlLeft"),
-                get         = function() return GetEffectiveFocusClickAction("ctrlLeft", "focusClick_ctrlLeft", "none") end,
+                options     = function() return GetComboActionOptions("ctrlLeft") end,
+                get         = function() return GetEffectiveFocusClickAction("ctrlLeft", "focusClick_ctrlLeft", "share") end,
                 set         = function(v) setDB("focusClick_ctrlLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1821,7 +1833,7 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_ALT_LEFT"],
                 dbKey       = "focusClick_altLeft",
-                options     = GetComboActionOptions("altLeft"),
+                options     = function() return GetComboActionOptions("altLeft") end,
                 get         = function() return GetEffectiveFocusClickAction("altLeft", "focusClick_altLeft", "wowhear") end,
                 set         = function(v) setDB("focusClick_altLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
@@ -1831,8 +1843,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_RIGHT"],
                 dbKey       = "focusClick_right",
-                options     = GetComboActionOptions("right"),
-                get         = function() return GetEffectiveFocusClickAction("right", "focusClick_right", "contextMenu") end,
+                options     = function() return GetComboActionOptions("right") end,
+                get         = function() return GetEffectiveFocusClickAction("right", "focusClick_right", "untrack") end,
                 set         = function(v) setDB("focusClick_right", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1841,7 +1853,7 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_SHIFT_RIGHT"],
                 dbKey       = "focusClick_shiftRight",
-                options     = GetComboActionOptions("shiftRight"),
+                options     = function() return GetComboActionOptions("shiftRight") end,
                 get         = function() return GetEffectiveFocusClickAction("shiftRight", "focusClick_shiftRight", "abandon") end,
                 set         = function(v) setDB("focusClick_shiftRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
@@ -1851,9 +1863,19 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_CTRL_RIGHT"],
                 dbKey       = "focusClick_ctrlRight",
-                options     = GetComboActionOptions("ctrlRight"),
-                get         = function() return GetEffectiveFocusClickAction("ctrlRight", "focusClick_ctrlRight", "none") end,
+                options     = function() return GetComboActionOptions("ctrlRight") end,
+                get         = function() return GetEffectiveFocusClickAction("ctrlRight", "focusClick_ctrlRight", "contextMenu") end,
                 set         = function(v) setDB("focusClick_ctrlRight", v) end,
+                disabled    = FocusClickPresetCombosLocked,
+                tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+            },
+            {
+                type        = "dropdown",
+                name        = L["OPTIONS_FOCUS_COMBO_ALT_RIGHT"],
+                dbKey       = "focusClick_altRight",
+                options     = function() return GetComboActionOptions("altRight") end,
+                get         = function() return GetEffectiveFocusClickAction("altRight", "focusClick_altRight", "none") end,
+                set         = function(v) setDB("focusClick_altRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
             },

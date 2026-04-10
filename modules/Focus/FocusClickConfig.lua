@@ -8,8 +8,7 @@ if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- When true: only blizzardDefault is active; Horizon+ and Custom are hidden and DB is normalized.
--- Set false when those presets are ready to ship again.
-local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = true
+local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = false
 
 -- ============================================================================
 -- Action registry: maps action keys to localization keys for dropdown labels.
@@ -18,8 +17,7 @@ local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = true
 local ACTION_LABELS = {
     none           = "OPTIONS_FOCUS_CLICK_ACTION_NONE",
     superTrack     = "OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK",
-    openProfession = "OPTIONS_FOCUS_CLICK_ACTION_OPEN_PROFESSION",
-    openQuestLog   = "OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG",
+    openDetails    = "OPTIONS_FOCUS_CLICK_ACTION_OPEN_DETAILS",
     untrack        = "OPTIONS_FOCUS_CLICK_ACTION_UNTRACK",
     contextMenu    = "OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU",
     share          = "OPTIONS_FOCUS_CLICK_ACTION_SHARE",
@@ -33,13 +31,14 @@ local ACTION_LABELS = {
 -- ============================================================================
 
 local COMBO_OPTIONS = {
-    left       = { "superTrack", "openProfession", "openQuestLog", "none" },
-    shiftLeft  = { "openProfession", "openQuestLog", "untrack", "chatLink", "none" },
+    left       = { "superTrack", "openDetails", "none" },
+    shiftLeft  = { "openDetails", "untrack", "chatLink", "none" },
     ctrlLeft   = { "share", "none" },
     altLeft    = { "wowhear", "chatLink", "none" },
     right      = { "untrack", "contextMenu", "none" },
     shiftRight = { "abandon", "untrack", "none" },
     ctrlRight  = { "share", "contextMenu", "none" },
+    altRight   = { "contextMenu", "wowhear", "chatLink", "none" },
 }
 
 -- ============================================================================
@@ -54,6 +53,20 @@ local COMBO_KEYS = {
     "right",
     "shiftRight",
     "ctrlRight",
+    "altRight",
+}
+
+-- Every action in ACTION_LABELS; used for Custom profile dropdowns (full list per combo).
+local ALL_COMBO_ACTION_KEYS = {
+    "superTrack",
+    "openDetails",
+    "untrack",
+    "contextMenu",
+    "share",
+    "abandon",
+    "wowhear",
+    "chatLink",
+    "none",
 }
 
 -- Default per-combo action for the "Custom" profile falls back to Horizon+.
@@ -63,25 +76,27 @@ local COMBO_KEYS = {
 -- ============================================================================
 
 local PROFILES = {
-    -- Current Horizon behaviour.
+    -- Horizon+: super-track first, quest log on Shift+left, plain right untrack; Ctrl+right opens context menu as escape hatch.
     horizonPlus = {
         left       = "superTrack",
-        shiftLeft  = "openProfession",
+        shiftLeft  = "openDetails",
         ctrlLeft   = "share",
         altLeft    = "wowhear",
         right      = "untrack",
         shiftRight = "abandon",
-        ctrlRight  = "none",
+        ctrlRight  = "contextMenu",
+        altRight   = "none",
     },
     -- Blizzard-style baseline plus Horizon tweaks (Blizzard+); Ctrl+click share removed — share lives elsewhere.
     blizzardDefault = {
-        left       = "openProfession",
+        left       = "openDetails",
         shiftLeft  = "untrack",
         ctrlLeft   = "none",
         altLeft    = "wowhear",
         right      = "contextMenu",
         shiftRight = "abandon",
         ctrlRight  = "none",
+        altRight   = "none",
     },
     -- "custom" profile has no entry here; it reads per-combo DB keys.
 }
@@ -93,7 +108,7 @@ local PROFILES = {
 --- Build the combo key string from button + modifiers.
 --- @param button string "LeftButton" | "RightButton"
 --- @param mods table { shift=bool, ctrl=bool, alt=bool }
---- @return string e.g. "shiftLeft", "right", "ctrlRight"
+--- @return string e.g. "shiftLeft", "right", "ctrlRight", "altRight"
 local function ResolveComboKey(button, mods)
     local prefix = mods.shift and "shift" or mods.ctrl and "ctrl" or mods.alt and "alt" or ""
     if prefix == "" then
@@ -105,11 +120,22 @@ local function ResolveComboKey(button, mods)
     return prefix .. side
 end
 
+--- Normalize legacy action keys to the current canonical action names.
+--- @param action any
+--- @return any
+local function NormalizeQuestClickAction(action)
+    if action == "openQuestLog" or action == "openProfession" then
+        return "openDetails"
+    end
+    return action
+end
+
 --- If DB/profile returned an unknown action, fall back to preset default for this combo.
 --- @param action any
 --- @param comboKey string
 --- @return string
 local function SanitizeQuestClickAction(action, comboKey)
+    action = NormalizeQuestClickAction(action)
     if type(action) ~= "string" or action == "" or not ACTION_LABELS[action] then
         local preset = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD and PROFILES.blizzardDefault or PROFILES.horizonPlus
         return preset[comboKey] or "none"
@@ -173,7 +199,7 @@ function addon.focus.GetAppearanceClickAction(button, mods, profile)
 end
 
 -- ============================================================================
--- Exported: combo options builder (used by OptionsData.lua at load time).
+-- Exported: combo options builder (used by OptionsData.lua; presets vs Custom full list).
 -- ============================================================================
 
 --- Return a dropdown options table for a given combo key.
@@ -191,15 +217,30 @@ local function GetComboOptions(comboKey)
     return result
 end
 
+--- Full action list for Custom profile (same options on every combo dropdown).
+--- @return table Array of { displayLabel, actionKey }.
+local function GetAllComboActionOptions()
+    local result = {}
+    local L = addon.L
+    for _, actionKey in ipairs(ALL_COMBO_ACTION_KEYS) do
+        local labelKey = ACTION_LABELS[actionKey]
+        local label = (L and labelKey and L[labelKey]) or actionKey
+        result[#result + 1] = { label, actionKey }
+    end
+    return result
+end
+
 -- ============================================================================
 -- Export table (read by OptionsData.lua after this file loads).
 -- ============================================================================
 
 addon.focus.clickConfig = {
-    GetComboOptions          = GetComboOptions,
-    COMBO_KEYS               = COMBO_KEYS,
-    PROFILES                 = PROFILES,
-    profilesLockedToBlizzard = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD,
+    GetComboOptions            = GetComboOptions,
+    GetAllComboActionOptions   = GetAllComboActionOptions,
+    COMBO_KEYS                 = COMBO_KEYS,
+    PROFILES                   = PROFILES,
+    NormalizeAction            = NormalizeQuestClickAction,
+    profilesLockedToBlizzard   = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD,
 }
 
 -- ============================================================================
