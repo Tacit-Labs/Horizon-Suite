@@ -114,19 +114,19 @@ L["DASH_FULL_CHANGELOG"]                                              = "Full ch
 L["DASH_WELCOME_HEAD_SUB"]                                            = "What each module does and where to turn them on"
 L["DASH_WELCOME_INTRO"]                                               = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
 -- L["DASH_WELCOME_HERO_EYEBROW"]                                     = "Welcome"
--- L["DASH_WELCOME_HERO_TITLE"]                                       = "A modular UI suite that lets you keep only the parts you want."
--- L["DASH_WELCOME_HERO_TAGLINE"]                                     = "Tune Horizon around your tracker, notifications, minimap, tooltips, and character UI without committing to one giant overhaul."
--- L["DASH_WELCOME_HERO_BODY"]                                        = "Start by choosing the modules you actually want to run, then use the guide below to understand where everything lives. Patch Notes and News stay close by whenever you want a fast catch-up on what changed."
+L["DASH_WELCOME_HERO_TITLE"]                                          = "A modular UI suite that lets you keep only the parts you want."
+L["DASH_WELCOME_HERO_TAGLINE"]                                        = "Tune Horizon around your tracker, notifications, minimap, tooltips, and character UI without committing to one giant overhaul."
+L["DASH_WELCOME_HERO_BODY"]                                           = "Start by choosing the modules you actually want to run, then use the guide below to understand where everything lives. Patch Notes and News stay close by whenever you want a fast catch-up on what changed."
 -- L["DASH_WELCOME_START_HERE"]                                       = "Start Here"
--- L["DASH_WELCOME_CTA_MODULES"]                                      = "Open Modules"
+L["DASH_WELCOME_CTA_MODULES"]                                         = "Open Modules"
 -- L["DASH_WELCOME_CTA_PATCH_NOTES"]                                  = "Open Patch Notes"
 -- L["DASH_WELCOME_CTA_NEWS"]                                         = "Open News"
--- L["DASH_WELCOME_ACTION_MODULES_TITLE"]                             = "Choose the parts of Horizon you want"
--- L["DASH_WELCOME_ACTION_MODULES_BODY"]                              = "Use the dashboard home to turn modules on or off, then reload when you are ready to apply larger setup changes."
--- L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                             = "Catch up on what changed"
--- L["DASH_WELCOME_ACTION_UPDATES_BODY"]                              = "Patch Notes and News are the fastest way to see new presets, art, polish passes, and module changes between releases."
--- L["DASH_WELCOME_ACTION_NEWS_TITLE"]                                = "See the editorial update feed"
--- L["DASH_WELCOME_ACTION_NEWS_BODY"]                                 = "Open News for featured stories, roadmap notes, art highlights, and smaller curated updates in one place."
+L["DASH_WELCOME_ACTION_MODULES_TITLE"]                                = "Choose the parts of Horizon you want"
+L["DASH_WELCOME_ACTION_MODULES_BODY"]                                 = "Use the dashboard home to turn modules on or off, then reload when you are ready to apply larger setup changes."
+L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                                = "Catch up on what changed"
+L["DASH_WELCOME_ACTION_UPDATES_BODY"]                                 = "Patch Notes and News are the fastest way to see new presets, art, polish passes, and module changes between releases."
+L["DASH_WELCOME_ACTION_NEWS_TITLE"]                                   = "See the editorial update feed"
+L["DASH_WELCOME_ACTION_NEWS_BODY"]                                    = "Open News for featured stories, roadmap notes, art highlights, and smaller curated updates in one place."
 -- L["DASH_WELCOME_LEARN_TITLE"]                                      = "Learn the Suite"
 -- L["DASH_WELCOME_LEARN_BODY"]                                       = "Use this section as the guided overview of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
 L["DASH_WELCOME_PATH"]                                                = "%s → %s → %s"
@@ -1830,6 +1830,8 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

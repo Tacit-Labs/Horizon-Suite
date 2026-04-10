@@ -320,7 +320,14 @@ function addon.Dashboard_BuildMainFrame()
 
             f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
             f:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+            f:RegisterEvent("PLAYER_REGEN_ENABLED")
             f:SetScript("OnEvent", function(self, event)
+                if event == "PLAYER_REGEN_ENABLED" then
+                    if self:IsShown() and self._dashboardApplyKeyboardPropagation then
+                        self._dashboardApplyKeyboardPropagation()
+                    end
+                    return
+                end
                 if event == "PLAYER_SPECIALIZATION_CHANGED" or event == "ACTIVE_TALENT_GROUP_CHANGED" then
                     if self:IsShown() and addon.ApplyDashboardBackground then
                         addon.ApplyDashboardBackground()
@@ -967,15 +974,37 @@ function addon.Dashboard_BuildMainFrame()
             end)
             closeBtn:SetScript("OnClick", function() f:Hide() end)
 
-            -- Key Handling (Escape to Close)
-            f:SetPropagateKeyboardInput(true)
+            -- Escape to close. SetPropagateKeyboardInput / EnableKeyboard are protected — calling them
+            -- during Dashboard_BuildMainFrame from a secure path (e.g. minimap click) causes ADDON_ACTION_BLOCKED.
+            local function DashboardApplyKeyboardPropagation()
+                if not f or f:IsForbidden() then return end
+                if InCombatLockdown() then return end
+                pcall(function()
+                    if f.EnableKeyboard then
+                        f:EnableKeyboard(true)
+                    end
+                    f:SetPropagateKeyboardInput(true)
+                end)
+            end
+
+            f._dashboardApplyKeyboardPropagation = DashboardApplyKeyboardPropagation
+
             f:SetScript("OnKeyDown", function(self, key)
                 if key == "ESCAPE" then
-                    self:SetPropagateKeyboardInput(false)
+                    pcall(function()
+                        self:SetPropagateKeyboardInput(false)
+                    end)
                     self:Hide()
                 else
-                    self:SetPropagateKeyboardInput(true)
+                    pcall(function()
+                        self:SetPropagateKeyboardInput(true)
+                    end)
                 end
+            end)
+
+            C_Timer.After(0, DashboardApplyKeyboardPropagation)
+            f:HookScript("OnShow", function()
+                C_Timer.After(0, DashboardApplyKeyboardPropagation)
             end)
 
 

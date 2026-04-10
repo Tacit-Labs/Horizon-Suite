@@ -2,6 +2,8 @@
     Horizon Suite - Dashboard Welcome feed definitions (ordered news-reel items).
     Higher `sort` appears first after layout. Edit this file to add/reorder announcements.
     Locale strings use keys in Localisation/enUS.lua (titleKey, bodyKey, etc.).
+    For welcome_action_card, `icon` may be an icon file name (string) or a table
+    { atlas = "AtlasName", fallback = "INV_File" } (same pattern as dashboard sidebar buttons).
 ]]
 
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
@@ -14,7 +16,6 @@ addon.DashboardWelcomeFeed = {
         id = "welcome_hero",
         kind = "welcome_hero",
         sort = 10000,
-        eyebrowKey = "DASH_WELCOME_HERO_EYEBROW",
         titleKey = "DASH_WELCOME_HERO_TITLE",
         taglineKey = "DASH_WELCOME_HERO_TAGLINE",
         bodyKey = "DASH_WELCOME_HERO_BODY",
@@ -30,24 +31,24 @@ addon.DashboardWelcomeFeed = {
         ctaAction = { type = "dashboard" },
     },
     {
-        id = "start_here_updates",
+        id = "start_here_news",
         kind = "welcome_action_card",
         sort = 800,
+        titleKey = "DASH_WELCOME_ACTION_NEWS_TITLE",
+        bodyKey = "DASH_WELCOME_ACTION_NEWS_BODY",
+        ctaLabelKey = "DASH_WELCOME_CTA_NEWS",
+        icon = { atlas = "Quest-Campaign-Available", fallback = "INV_Misc_StarFall_Blue" },
+        ctaAction = { type = "news" },
+    },
+    {
+        id = "start_here_updates",
+        kind = "welcome_action_card",
+        sort = 750,
         titleKey = "DASH_WELCOME_ACTION_UPDATES_TITLE",
         bodyKey = "DASH_WELCOME_ACTION_UPDATES_BODY",
         ctaLabelKey = "DASH_WELCOME_CTA_PATCH_NOTES",
         icon = "INV_Scroll_05",
         ctaAction = { type = "patch_notes" },
-    },
-    {
-        id = "start_here_news",
-        kind = "welcome_action_card",
-        sort = 750,
-        titleKey = "DASH_WELCOME_ACTION_NEWS_TITLE",
-        bodyKey = "DASH_WELCOME_ACTION_NEWS_BODY",
-        ctaLabelKey = "DASH_WELCOME_CTA_NEWS",
-        icon = "INV_Misc_Head_Dragon_Black",
-        ctaAction = { type = "news" },
     },
     {
         id = "learn_suite",
