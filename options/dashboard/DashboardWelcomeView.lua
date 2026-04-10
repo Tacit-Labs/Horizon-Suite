@@ -97,6 +97,7 @@ function addon.DashboardWelcomeView_Init(env)
     local NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET = 10
     local NEWS_CARD_EDITORIAL_FOOTER_AREA_H = 40
     local NEWS_CARD_EDITORIAL_FOOTER_GAP_ABOVE = 12
+    local NEWS_CARD_SECONDARY_BLOCK_GAP = 18
     local WELCOME_ACTION_GRID_GAP = 16
     local WELCOME_SUPPORT_GRID_GAP = 16
     local WELCOME_ACTION_CARD_MIN_H = 148
@@ -868,6 +869,10 @@ function addon.DashboardWelcomeView_Init(env)
             local bodyFsOverflow = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.66, 0.69, 0.75, "LEFT")
             bodyFsOverflow:SetWordWrap(true)
             bodyFsOverflow:SetSpacing(4)
+            local secondaryTitleFs = MakeText(card, "", 16, 0.97, 0.98, 1, "LEFT")
+            local secondaryBodyFs = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.66, 0.69, 0.75, "LEFT")
+            secondaryBodyFs:SetWordWrap(true)
+            secondaryBodyFs:SetSpacing(4)
             local metaFs = MakeText(card, "", 11, 0.47, 0.52, 0.58, "LEFT")
             local artFrame = CreateFrame("Frame", nil, card)
             artFrame:SetClipsChildren(true)
@@ -904,6 +909,8 @@ function addon.DashboardWelcomeView_Init(env)
                 titleFs = titleFs,
                 bodyFs = bodyFs,
                 bodyFsOverflow = bodyFsOverflow,
+                secondaryTitleFs = secondaryTitleFs,
+                secondaryBodyFs = secondaryBodyFs,
                 metaFs = metaFs,
                 artFrame = artFrame,
                 artBg = artBg,
@@ -1727,6 +1734,38 @@ function addon.DashboardWelcomeView_Init(env)
                     pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
                     pool.bodyFs:SetText(fullBodyText)
                     textY = textY + pool.bodyFs:GetHeight() + 12
+
+                    local secTitle = (entry.secondaryTitleKey and L[entry.secondaryTitleKey]) or ""
+                    local secBody = (entry.secondaryBodyKey and L[entry.secondaryBodyKey]) or ""
+                    if secTitle ~= "" and pool.secondaryTitleFs and pool.secondaryBodyFs then
+                        textY = textY + NEWS_CARD_SECONDARY_BLOCK_GAP
+                        pool.secondaryTitleFs:SetText(secTitle)
+                        pool.secondaryTitleFs:SetWidth(copyW)
+                        pool.secondaryTitleFs:ClearAllPoints()
+                        pool.secondaryTitleFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                        pool.secondaryTitleFs:Show()
+                        textY = textY + pool.secondaryTitleFs:GetHeight() + 8
+                        if secBody ~= "" then
+                            pool.secondaryBodyFs:SetText(secBody)
+                            pool.secondaryBodyFs:SetWidth(copyW)
+                            pool.secondaryBodyFs:ClearAllPoints()
+                            pool.secondaryBodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                            pool.secondaryBodyFs:Show()
+                            textY = textY + pool.secondaryBodyFs:GetHeight() + 12
+                        else
+                            pool.secondaryBodyFs:SetText("")
+                            pool.secondaryBodyFs:Hide()
+                        end
+                    else
+                        if pool.secondaryTitleFs then
+                            pool.secondaryTitleFs:SetText("")
+                            pool.secondaryTitleFs:Hide()
+                        end
+                        if pool.secondaryBodyFs then
+                            pool.secondaryBodyFs:SetText("")
+                            pool.secondaryBodyFs:Hide()
+                        end
+                    end
 
                     if showStrip then
                         pool.classIconsStrip:ClearAllPoints()

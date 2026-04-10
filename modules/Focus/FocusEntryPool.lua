@@ -111,9 +111,12 @@ local function CreateQuestEntry(parent, index)
         if not entry or not entry.questID then return end
         local logIndex = C_QuestLog.GetLogIndexForQuestID(entry.questID)
         if not logIndex then return end
-        if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() then
+        if IsModifiedClick("CHATLINK") then
             local link = GetQuestLogSpecialItemInfo(logIndex)
-            if link and ChatFrameUtil.InsertLink then
+            if not link then return end
+            if addon.FocusInsertLinkIntoChat then
+                addon.FocusInsertLinkIntoChat(link)
+            elseif ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
                 ChatFrameUtil.InsertLink(link)
             end
         end

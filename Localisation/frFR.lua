@@ -103,7 +103,7 @@ L["DASH_FULL_CHANGELOG"]                                              = "Full ch
 -- L["DASH_NEWS_CTA_OPEN_FOCUS"]                                      = "Open Focus settings"
 -- L["DASH_NEWS_CTA_VIEW_ARTIST"]                                     = "View artist link"
 -- L["DASH_NEWS_CTA_OPEN_PATCH_NOTES"]                                = "Open Patch Notes"
--- L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                             = "News hub • Editorial layout"
+L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                                = "News hub • Editorial layout"
 -- L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                               = "Patch notes"
 -- L["DASH_NEWS_CTA_OPEN_GUIDE"]                                      = "Open Quick Start"
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_TITLE"]                              = "Blizzard+ is now the default click profile"
@@ -115,6 +115,8 @@ L["DASH_NEWS_CLASS_ICONS_BODY"]                                       = "Switch 
 L["DASH_NEWS_CLASS_ICONS_META"]                                       = "Axis • Global Toggles • Art by Gabriel C"
 L["DASH_NEWS_COMING_SOON_TITLE"]                                      = "More curated updates will land here next"
 L["DASH_NEWS_COMING_SOON_BODY"]                                       = "This space is now structured for featured stories, release highlights, and smaller follow-up cards. Until the next round of updates lands, Patch Notes remains the fastest way to catch every change."
+-- L["DASH_NEWS_HANDHELD_TITLE"]                                      = "Handheld support in the works"
+-- L["DASH_NEWS_HANDHELD_BODY"]                                       = "We're planning better support for smaller screens and handheld play—resize-friendly layouts, sensible defaults when the UI is scaled down, and fewer cramped panels. Details will land in |cffaaaaaaPatch Notes|r as pieces ship."
 -- L["DASH_NEWS_COMING_SOON_META"]                                    = "News hub • Editorial layout • Curated in addon"
 -- L["DASH_NEWS_QUICK_START_TITLE"]                                   = "Need the quick tour again?"
 -- L["DASH_NEWS_QUICK_START_BODY"]                                    = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
@@ -580,6 +582,8 @@ L["OPTIONS_FOCUS_WOWHEAD_LINK_TOOLTIPS"]                              = "Affiche
 L["OPTIONS_FOCUS_A_TOOLTIP_SHOWN_ADD_A_LINK"]                         = "Quand l'infobulle est affichée, ajoute un lien vers la page WoWhead de la quête, du haut fait, ou du PNJ."
 -- L["OPTIONS_FOCUS_VIEW_WOWHEAD"]                                    = "View on WoWhead"
 L["OPTIONS_FOCUS_WOWHEAD_ALT_CLICK_HINT"]                             = "Alt+click row to copy"
+-- L["OPTIONS_FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]                     = " · "
+-- L["OPTIONS_FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]                   = "Configure in Focus options"
 -- L["OPTIONS_FOCUS_COPY_LINK"]                                       = "Copy link"
 -- L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]                     = "Copy the URL below (Ctrl+C) and paste in your browser."
 L["OPTIONS_FOCUS_OBJECTIVE_NUMBERS"]                                  = "Afficher les numéros d'objectifs"
@@ -1004,6 +1008,7 @@ L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open qu
 -- L["OPTIONS_FOCUS_QUEST_DETAILS_AFTER_COMBAT"]                      = "Quest details will open when you leave combat."
 L["OPTIONS_FOCUS_SHARE_PARTY"]                                        = "Partager avec le groupe"
 L["OPTIONS_FOCUS_ABANDON_QUEST"]                                      = "Abandonner la quête"
+-- L["OPTIONS_FOCUS_CONTEXT_FOCUS_QUEST"]                             = "Focus quest"
 L["OPTIONS_FOCUS_STOP_TRACKING"]                                      = "Arrêter le suivi"
 -- L["OPTIONS_FOCUS_CONTEXT_OPEN_ACHIEVEMENT"]                        = "Open achievement"
 -- L["OPTIONS_FOCUS_CONTEXT_OPEN_ENDEAVOR"]                           = "Open endeavor"
@@ -1846,6 +1851,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

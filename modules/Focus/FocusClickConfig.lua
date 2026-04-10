@@ -76,7 +76,6 @@ local ICON_ACTION_KEYS = {
     "contextMenu",
     "untrack",
     "wowhear",
-    "chatLink",
     "none",
 }
 
@@ -237,6 +236,53 @@ end
 --- @return string action key
 function addon.focus.GetAppearanceClickAction(button, mods, profile)
     return addon.focus.GetQuestClickAction(button, mods, profile)
+end
+
+-- Combo key → (button, mods) for resolving actions without a live mouse event.
+local COMBO_MOUSE = {
+    left       = { "LeftButton",  { shift = false, ctrl = false, alt = false } },
+    shiftLeft  = { "LeftButton",  { shift = true,  ctrl = false, alt = false } },
+    ctrlLeft   = { "LeftButton",  { shift = false, ctrl = true,  alt = false } },
+    altLeft    = { "LeftButton",  { shift = false, ctrl = false, alt = true  } },
+    right      = { "RightButton", { shift = false, ctrl = false, alt = false } },
+    shiftRight = { "RightButton", { shift = true,  ctrl = false, alt = false } },
+    ctrlRight  = { "RightButton", { shift = false, ctrl = true,  alt = false } },
+    altRight   = { "RightButton", { shift = false, ctrl = false, alt = true  } },
+}
+
+local COMBO_LABEL_KEYS = {
+    left       = "OPTIONS_FOCUS_COMBO_LEFT",
+    shiftLeft  = "OPTIONS_FOCUS_COMBO_SHIFT_LEFT",
+    ctrlLeft   = "OPTIONS_FOCUS_COMBO_CTRL_LEFT",
+    altLeft    = "OPTIONS_FOCUS_COMBO_ALT_LEFT",
+    right      = "OPTIONS_FOCUS_COMBO_RIGHT",
+    shiftRight = "OPTIONS_FOCUS_COMBO_SHIFT_RIGHT",
+    ctrlRight  = "OPTIONS_FOCUS_COMBO_CTRL_RIGHT",
+    altRight   = "OPTIONS_FOCUS_COMBO_ALT_RIGHT",
+}
+
+--- Localized description of which click combo(s) run the WoWhead action (for tooltips).
+--- @param profile string|nil Optional; defaults to current focusClickProfile from DB.
+--- @return string Empty when no combo is bound to WoWhead.
+function addon.focus.GetWoWheadClickBindingHint(profile)
+    local parts = {}
+    local L = addon.L
+    for _, comboKey in ipairs(COMBO_KEYS) do
+        local mouse = COMBO_MOUSE[comboKey]
+        if mouse then
+            local action = addon.focus.GetQuestClickAction(mouse[1], mouse[2], profile)
+            if action == "wowhear" then
+                local lk = COMBO_LABEL_KEYS[comboKey]
+                local label = (L and lk and L[lk]) or comboKey
+                parts[#parts + 1] = label
+            end
+        end
+    end
+    if #parts == 0 then
+        return ""
+    end
+    local sep = (L and L["OPTIONS_FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]) or " · "
+    return table.concat(parts, sep)
 end
 
 -- ============================================================================
