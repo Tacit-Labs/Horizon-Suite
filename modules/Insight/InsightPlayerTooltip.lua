@@ -56,6 +56,35 @@ function Insight.PruneInspectCache()
     end
 end
 
+-- Midnight: UnitGUID and cache keys must not be truth-tested or compared outside pcall (secret string).
+local function GetInspectCachedForUnit(unit)
+    local cached = nil
+    pcall(function()
+        local g = UnitGUID(unit)
+        cached = inspectCache[g]
+    end)
+    return cached
+end
+
+-- Populate inspect cache for the player unit; all GUID/cache access stays inside pcall.
+local function TrySeedSelfInspectCache(unit)
+    pcall(function()
+        local g = UnitGUID(unit)
+        local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
+        if not specID or specID <= 0 then return end
+        local _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
+        local _, equipped = GetAverageItemLevel()
+        if not specName then return end
+        inspectCache[g] = {
+            specName = specName,
+            specIcon = specIcon,
+            role     = role,
+            ilvl     = (equipped and equipped > 0) and equipped or nil,
+            time     = GetTime(),
+        }
+    end)
+end
+
 local function CacheInspect(guid, unit)
     local specID = GetInspectSpecialization(unit)
     if not specID or specID <= 0 then return end
@@ -185,7 +214,9 @@ function Insight.AddPvPBlock(tooltip, unit, _sepR, _sepG, _sepB)
 end
 
 --- Add status badges block to tooltip.
-function Insight.AddStatusBadgesBlock(tooltip, unit, guid)
+--- @param tooltip table GameTooltip
+--- @param unit string Unit token (e.g. "mouseover")
+function Insight.AddStatusBadgesBlock(tooltip, unit)
     if not ShowStatusBadges() then return end
     local badges = {}
     pcall(function()
@@ -195,8 +226,19 @@ function Insight.AddStatusBadgesBlock(tooltip, unit, guid)
         if UnitIsPVP(unit)           then badges[#badges + 1] = "|cffff8c00[PvP]|r"         end
         if UnitInRaid(unit)          then badges[#badges + 1] = "|cff88ddff[Raid]|r"
         elseif UnitInParty(unit)     then badges[#badges + 1] = "|cff88ddff[Party]|r"       end
-        if C_FriendList and C_FriendList.IsFriend and guid and C_FriendList.IsFriend(guid) then
-            badges[#badges + 1] = "|cff55ff55[Friend]|r"
+        if C_FriendList and C_FriendList.IsFriend then
+            local isFriend = false
+            pcall(function()
+                local g = UnitGUID(unit)
+                if C_FriendList.IsFriend(g) then
+                    isFriend = true
+                else
+                    isFriend = false
+                end
+            end)
+            if isFriend then
+                badges[#badges + 1] = "|cff55ff55[Friend]|r"
+            end
         end
         local targetingYou = false
         pcall(function()
@@ -306,7 +348,6 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end)
     if not isUnitPlayer then return false end
 
-    local guid     = UnitGUID(unit)
     local className, classFile, classColor, guildName, guildRankName
     pcall(function()
         className, classFile = UnitClass(unit)
@@ -321,7 +362,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     local sepG = (classColor and classColor.g) or Insight.SEP_COLOR[2]
     local sepB = (classColor and classColor.b) or Insight.SEP_COLOR[3]
     Insight.sepR, Insight.sepG, Insight.sepB = sepR, sepG, sepB
-    local cached = guid and inspectCache[guid]
+    local cached = GetInspectCachedForUnit(unit)
 
     -- Self-unit: populate inspect cache directly
     local isSelfUnit = false
@@ -333,21 +374,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
     end)
     if not cached and isSelfUnit then
-        local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
-        if specID and specID > 0 then
-            local _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
-            local _, equipped = GetAverageItemLevel()
-            if specName then
-                inspectCache[guid] = {
-                    specName = specName,
-                    specIcon = specIcon,
-                    role     = role,
-                    ilvl     = (equipped and equipped > 0) and equipped or nil,
-                    time     = GetTime(),
-                }
-                cached = inspectCache[guid]
-            end
-        end
+        TrySeedSelfInspectCache(unit)
+        cached = GetInspectCachedForUnit(unit)
     end
 
     -- 1. Name line: faction icon + name (with character title when ShowCharacterTitle; title in gold, name in faction/class color)
@@ -373,31 +401,54 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             nameB = (fc and fc[3]) or (classColor and classColor.b) or 1
         end
         if ShowCharacterTitle() then
-            local ok, pvpName, baseName = pcall(function()
-                return UnitPVPName(unit), UnitName(unit)
-            end)
-            if ok and pvpName and baseName and pvpName ~= baseName then
+            -- Midnight: never compare or string-op Unit* name returns outside pcall (secret strings).
+            pcall(function()
+                local pvpName, baseName = UnitPVPName(unit), UnitName(unit)
+                local namesDiffer = false
+                pcall(function()
+                    namesDiffer = (pvpName ~= baseName)
+                end)
+                if not namesDiffer then return end
                 local idx = pvpName:find(baseName, 1, true)
-                if idx and idx > 1 then
-                    local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
-                    local namePart  = GetUnitName(unit, true) or baseName
-                    local tc = addon.GetDB("insightTitleColor", nil)
-                    if not (tc and type(tc) == "table" and tc[1] and tc[2] and tc[3]) then
-                        local r = addon.GetDB("insightTitleColorR", nil)
-                        local g = addon.GetDB("insightTitleColorG", nil)
-                        local b = addon.GetDB("insightTitleColorB", nil)
-                        tc = (r and g and b) and { r, g, b } or Insight.TITLE_COLOR
+                if not idx or idx <= 1 then return end
+                local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
+                local namePart = ""
+                pcall(function()
+                    local okB, sb = pcall(tostring, baseName)
+                    if okB and type(sb) == "string" then
+                        namePart = sb
                     end
-                    local titleHex = string.format("%02x%02x%02x",
-                        math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
-                    local nameHex  = string.format("%02x%02x%02x",
-                        math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
-                    displayText = "|cff" .. titleHex .. titlePart .. "|r |cff" .. nameHex .. namePart .. "|r"
+                end)
+                pcall(function()
+                    local n = GetUnitName(unit, true)
+                    local okT, s = pcall(tostring, n)
+                    if okT and type(s) == "string" and s ~= "" then
+                        namePart = s
+                    end
+                end)
+                local tc = addon.GetDB("insightTitleColor", nil)
+                if not (tc and type(tc) == "table" and tc[1] and tc[2] and tc[3]) then
+                    local r = addon.GetDB("insightTitleColorR", nil)
+                    local g = addon.GetDB("insightTitleColorG", nil)
+                    local b = addon.GetDB("insightTitleColorB", nil)
+                    tc = (r and g and b) and { r, g, b } or Insight.TITLE_COLOR
                 end
-            end
+                local titleHex = string.format("%02x%02x%02x",
+                    math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
+                local nameHex  = string.format("%02x%02x%02x",
+                    math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
+                displayText = "|cff" .. titleHex .. titlePart .. "|r |cff" .. nameHex .. namePart .. "|r"
+            end)
         end
         if not displayText then
-            displayText = GetUnitName(unit, true) or Insight.SafeGetFontText(nameLeft) or ""
+            displayText = Insight.SafeGetFontText(nameLeft) or ""
+            pcall(function()
+                local n = GetUnitName(unit, true)
+                local okT, s = pcall(tostring, n)
+                if okT and type(s) == "string" and s ~= "" then
+                    displayText = s
+                end
+            end)
             nameLeft:SetTextColor(nameR, nameG, nameB)
         end
         nameLeft:SetText(icon .. displayText)
@@ -464,7 +515,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end)
 
     -- 4. Status badges (part of identity section)
-    Insight.AddStatusBadgesBlock(tooltip, unit, guid)
+    Insight.AddStatusBadgesBlock(tooltip, unit)
 
     -- Separator: identity block → PvP block (only when PvP will add content)
     if PvPHasContent(unit) then

@@ -142,13 +142,11 @@ local function SafeUnitExistsKnown(unit)
     return exists
 end
 
-local lastProcessedUnitGUID = nil
-
 local function HookGameTooltipLifecycle()
     GameTooltip:HookScript("OnShow", function(self)
         self._insightPlainShown = true
         -- Reset per-show so re-hover of same unit always reprocesses.
-        lastProcessedUnitGUID = nil
+        self._insightUnitTooltipDedup = nil
         self._insightStyled = nil
         if not Insight.IsInsightEnabled() then return end
         if addon.GetDB("insightHideTooltipsInCombat", false) and InCombatLockdown() then
@@ -169,7 +167,7 @@ local function HookGameTooltipLifecycle()
     end)
     GameTooltip:HookScript("OnHide", function(self)
         self._insightPlainShown = false
-        lastProcessedUnitGUID = nil
+        self._insightUnitTooltipDedup = nil
         self._insightItemQuality = nil
         self._insightUnitTooltip = nil
         self._insightTooltipType = nil
@@ -181,7 +179,7 @@ local function HookGameTooltipLifecycle()
     -- target frames) always re-add our custom lines. _insightStyled is NOT cleared here
     -- because backdrop/font styling persists and doesn't need reapplying per refresh.
     hooksecurefunc(GameTooltip, "SetUnit", function(self)
-        lastProcessedUnitGUID = nil
+        self._insightUnitTooltipDedup = nil
     end)
 end
 
@@ -389,10 +387,9 @@ local function OnUnitTooltip(tooltip, data)
     if tooltip ~= GameTooltip or not Insight.IsInsightEnabled() then return end
     local unit = ResolveTooltipUnitToken(tooltip)
     if not unit then return end
-    local unitGUID = UnitGUID(unit)
-    -- Skip reprocessing if unit hasn't changed (prevents refresh flicker on repeated TooltipDataProcessor calls).
-    if unitGUID and unitGUID == lastProcessedUnitGUID then return end
-    lastProcessedUnitGUID = unitGUID
+    -- Midnight: never compare UnitGUID from tainted paths (secret string). Dedupe via hook-owned flag instead.
+    if tooltip._insightUnitTooltipDedup == true then return end
+    tooltip._insightUnitTooltipDedup = true
     ProcessUnitTooltip(tooltip)
 end
 
