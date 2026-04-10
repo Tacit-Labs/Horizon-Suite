@@ -33,10 +33,20 @@ local function OptionCategoryKeyIsAxis(catKey)
 end
 
 function addon.Dashboard_BuildMainFrame()
+            -- Read saved resize ratio FIRST — needed for initial SetSize and sidebar width.
+            -- Accessed via raw _G[DB_NAME] (not profile-routed GetDB) because it is a root key.
+            local _initRatio = (function()
+                local db = _G[addon.DB_NAME]
+                local r = db and tonumber(db.dashboardSizeRatio)
+                if r and r >= 0.5 and r <= 2.0 then return r end
+                return 1.0
+            end)()
+
     local f = CreateFrame("Frame", "HorizonSuiteDashboard", UIParent, "BackdropTemplate")
             -- Shared by ApplyDashboardClassColor (before sidebar exists) and sidebar selection.
             local dashSession = { activeSidebarBtn = nil }
-            f:SetSize(DASHBOARD_FRAME_W, DASHBOARD_FRAME_H)
+            -- Size is driven by the saved ratio; default 1280×720 at ratio 1.0.
+            f:SetSize(DC.NATIVE_W * _initRatio, DC.NATIVE_H * _initRatio)
             f:SetPoint("CENTER")
             f:SetFrameStrata("HIGH")
             f:SetToplevel(true)
@@ -369,7 +379,9 @@ function addon.Dashboard_BuildMainFrame()
 
             -- Search Bar
             local searchBox = CreateFrame("EditBox", nil, f)
-            searchBox:SetSize(500, DASH_SEARCH_BOX_H)
+            local _initViewW = DC.NATIVE_W * _initRatio - DC.SIDEBAR_NATIVE_W - 10
+            local _initSearchW = math.max(300, math.floor(_initViewW * 0.65))
+            searchBox:SetSize(_initSearchW, DASH_SEARCH_BOX_H)
             searchBox:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_SEARCH_Y)
             do
                 local sp = addon.Dashboard_ResolveSavedDashboardFontPath(
@@ -470,14 +482,15 @@ function addon.Dashboard_BuildMainFrame()
                 searchDropdownCatch:Hide()
             end
 
-            -- Views (offset right to accommodate sidebar)
-            local viewWidth = DASHBOARD_FRAME_W - SIDEBAR_WIDTH - 10
-            local viewCenterX = CONTENT_OFFSET / 2
-            local contentWidth = viewWidth - 80  -- scroll frame uses 40px inset on each side
-            local viewTopInset = (DASHBOARD_FRAME_H - DASHBOARD_VIEW_H) / 2
-            -- Scroll tops sit just below the search box (same visual band as Home), in each view's local coords.
-            local dashScrollTopOffset = -(math.abs(DASH_SEARCH_Y) + DASH_SEARCH_BOX_H + 8 - viewTopInset)
-            local dashTitleX = CONTENT_OFFSET + 40
+            -- Views (offset right to accommodate sidebar).
+            -- All pixel values are derived from _initRatio-scaled DC constants so the frame
+            -- is already at the correct size if a ratio was saved in DB.
+            local _lc0       = DC.GetLayoutConstants(_initRatio)
+            local viewWidth  = _lc0.viewWidth
+            local viewCenterX= _lc0.viewCenterX
+            local contentWidth= _lc0.contentWidth
+            local dashScrollTopOffset = _lc0.dashScrollTopOffset
+            local dashTitleX = _lc0.dashTitleX
 
             local detailTitle = MakeText(f, "MODULE SETTINGS", 18, 1, 1, 1, "LEFT")
             detailTitle:SetPoint("TOPLEFT", f, "TOPLEFT", dashTitleX, DASH_HEAD_TITLE_Y)
@@ -1606,6 +1619,258 @@ function addon.Dashboard_BuildMainFrame()
 
             LayoutSidebar()
             RefreshSidebar()
+
+            -- ==================================================================
+            -- RESIZE GRABBER + Dashboard_CommitResize
+            -- ==================================================================
+
+            -- All view sub-frames that must be resized together.
+            local _resizeViews = {
+                dashboardView, detailView, subCategoryView,
+                welcomeView, guideView, patchNotesView, newsView,
+            }
+
+            --- Resize + reflow the dashboard to a new size ratio without navigating.
+            --- ratio: 0.5 – 2.0 (1.0 = native 1280×720)
+            --- skipHeavy: when true, skips typography walk and detail card reflow (used during
+            ---   live drag to reduce per-frame cost; always false on DragStop and panel open).
+            --- @param ratio number
+            --- @param skipHeavy boolean|nil
+            local function Dashboard_CommitResize(ratio, skipHeavy)
+                ratio = math.max(0.5, math.min(2.0, ratio or 1.0))
+
+                local lc = DC.GetLayoutConstants(ratio)
+                local newW = lc.frameW
+                local newH = lc.frameH
+
+                -- 1. Frame size
+                f:SetSize(newW, newH)
+
+                -- 2. All view sub-frames
+                for _, v in ipairs(_resizeViews) do
+                    v:SetSize(lc.viewWidth, lc.viewH)
+                    v:ClearAllPoints()
+                    v:SetPoint("CENTER", f, "CENTER", lc.viewCenterX, 0)
+                end
+
+                -- 3. Sidebar width — fixed; does not scale with the dashboard ratio
+                sidebar:SetWidth(DC.SIDEBAR_NATIVE_W)
+
+                -- 4. Content scroll widths and header text re-anchors
+                if detailTitleUnderline then
+                    detailTitleUnderline:SetWidth(math.max(1, lc.viewWidth - 80))
+                end
+                if head then
+                    head:ClearAllPoints()
+                    head:SetPoint("TOP", lc.contentOffset / 2, DASH_HEAD_TITLE_Y)
+                end
+                if headSub then
+                    headSub:ClearAllPoints()
+                    headSub:SetPoint("TOP", lc.contentOffset / 2, DASH_HEAD_SUBTITLE_Y)
+                end
+                if searchBox then
+                    local searchW = math.max(300, math.floor(lc.viewWidth * 0.65))
+                    searchBox:SetWidth(searchW)
+                    searchBox:ClearAllPoints()
+                    searchBox:SetPoint("TOP", lc.contentOffset / 2, DASH_SEARCH_Y)
+                end
+                if searchDropdown then
+                    local searchW = math.max(300, math.floor(lc.viewWidth * 0.65))
+                    searchDropdown:SetWidth(searchW)
+                    if searchDropdownContent then
+                        searchDropdownContent:SetWidth(searchW - 30)
+                    end
+                end
+                if detailTitle then
+                    detailTitle:ClearAllPoints()
+                    detailTitle:SetPoint("TOPLEFT", f, "TOPLEFT", lc.dashTitleX, DASH_HEAD_TITLE_Y)
+                end
+
+                -- 5. Reflow toggle cards and tile grids: dashboardView OnSizeChanged handles them.
+                --    Trigger by letting the view report its new width.
+                dashboardView:SetWidth(lc.viewWidth)
+
+                -- 5b. Reflow welcome-style views (welcome, news).
+                -- OnSizeChanged can fire while anchors are mid-swap in the loop above,
+                -- causing welcomeBg:GetWidth() to return 0 and content to snap to
+                -- the 280px minimum.  Call _layoutWelcomeContent directly now that
+                -- all SetSize/SetPoint calls are settled.
+                for _, v in ipairs(_resizeViews) do
+                    if v._layoutWelcomeContent and v:IsShown() then
+                        v._layoutWelcomeContent()
+                    end
+                end
+
+                -- 6. Reposition and resize grabber (defined below; forward-ref via f._resizeGrabber)
+                local grabber = f._resizeGrabber
+                if grabber then
+                    grabber:ClearAllPoints()
+                    grabber:SetSize(22, 22)
+                    grabber:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2)
+                end
+
+                -- 7. Update DashboardCtx.layout
+                if addon.DashboardCtx then
+                    addon.DashboardCtx.frame = f
+                    addon.DashboardCtx.layout = {
+                        contentWidth      = lc.contentWidth,
+                        dashScrollTopOffset = lc.dashScrollTopOffset,
+                        viewWidth         = lc.viewWidth,
+                        viewCenterX       = lc.viewCenterX,
+                        dashTitleX        = lc.dashTitleX,
+                    }
+                end
+
+                -- 8. Typography (skipped during live drag — runs on DragStop)
+                if not skipHeavy and addon.ApplyDashboardTypography then
+                    addon.ApplyDashboardTypography()
+                end
+
+                -- 9. Detail cards reflow (skipped during live drag — runs on DragStop)
+                if not skipHeavy and f._dashboardRelayoutDetailCards then
+                    f._dashboardRelayoutDetailCards()
+                end
+            end
+
+            f.Dashboard_CommitResize = Dashboard_CommitResize
+
+            -- ------------------------------------------------------------------
+            -- Grabber button — bottom-right corner drag handle
+            -- Strata: HIGH at frameLevel+5.  NEVER TOOLTIP strata.
+            -- ------------------------------------------------------------------
+            local grabber = CreateFrame("Button", nil, f)
+            grabber:SetSize(22, 22)
+            grabber:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2)
+            grabber:SetFrameStrata("HIGH")
+            grabber:SetFrameLevel(f:GetFrameLevel() + 5)
+            grabber:RegisterForDrag("LeftButton")
+            grabber:EnableMouse(true)
+            f._resizeGrabber = grabber
+
+            -- Traditional resize grip: three parallel diagonal lines pointing toward the corner.
+            -- Lines run at 45° from upper-left to lower-right (toward the bottom-right corner).
+            local _gripLines = {}
+            local function makeGripLine(x1, y1, x2, y2)
+                local ln = grabber:CreateLine(nil, "OVERLAY")
+                ln:SetThickness(1.5)
+                ln:SetColorTexture(0.6, 0.6, 0.75, 0.6)
+                ln:SetStartPoint("BOTTOMRIGHT", grabber, x1, y1)
+                ln:SetEndPoint("BOTTOMRIGHT", grabber, x2, y2)
+                _gripLines[#_gripLines + 1] = ln
+            end
+            makeGripLine(-2, 8,  -8,  2)    -- inner line (nearest corner)
+            makeGripLine(-2, 14, -14, 2)    -- middle line
+            makeGripLine(-2, 20, -20, 2)    -- outer line
+
+            local function setGripAlpha(a)
+                for i = 1, #_gripLines do
+                    _gripLines[i]:SetColorTexture(0.6, 0.6, 0.75, a)
+                end
+            end
+
+            -- Drag state
+            local _dragPinX, _dragPinY   -- frame TOPLEFT in UIParent-space at DragStart
+            local _dragActive  = false
+            local _lastReflow  = 0       -- throttle: GetTime() of last reflow during drag
+
+            grabber:SetScript("OnDragStart", function(self)
+                if InCombatLockdown() then return end
+                local fl = f:GetLeft()
+                local ft = f:GetTop()
+                if not fl or not ft then return end  -- frame not yet laid out; abort
+
+                -- Pin the anchor to TOPLEFT so SetSize grows bottom-right only.
+                -- The top-left corner stays perfectly still throughout the drag.
+                f:ClearAllPoints()
+                f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", fl, ft)
+
+                _dragPinX   = fl
+                _dragPinY   = ft
+                _dragActive = true
+                _lastReflow = 0
+                setGripAlpha(1.0)
+            end)
+
+            grabber:SetScript("OnDragStop", function(self)
+                if not _dragActive then return end
+                _dragActive = false
+
+                -- Final ratio from cursor position at release.
+                local uiScale = UIParent:GetEffectiveScale()
+                local cx      = select(1, GetCursorPosition())
+                local curX    = cx / uiScale
+                local targetW = math.max(640, curX - _dragPinX)
+                local ratio   = math.max(0.5, math.min(2.0, targetW / DC.NATIVE_W))
+
+                -- Auto-shrink: clamp so the frame fits within UIParent.
+                local maxW = UIParent:GetWidth()
+                local maxH = UIParent:GetHeight()
+                if maxW and maxW > 0 then ratio = math.min(ratio, maxW / DC.NATIVE_W) end
+                if maxH and maxH > 0 then ratio = math.min(ratio, maxH / DC.NATIVE_H) end
+                ratio = math.max(0.5, ratio)
+
+                -- Persist to DB (root-level keys, raw access).
+                local db = _G[addon.DB_NAME]
+                if db then
+                    db.dashboardSizeRatio = ratio
+                    db.dashboardTopLeftX  = _dragPinX
+                    db.dashboardTopLeftY  = _dragPinY
+                end
+
+                Dashboard_CommitResize(ratio)
+                setGripAlpha(0.6)
+            end)
+
+            grabber:SetScript("OnUpdate", function(self)
+                if not _dragActive then return end
+
+                -- Throttle reflow to ~20 Hz to keep the drag smooth without
+                -- hammering layout every frame.
+                local now = GetTime()
+                if now - _lastReflow < 0.05 then return end
+                _lastReflow = now
+
+                -- Target width = distance from the pinned left edge to the cursor.
+                -- No SetScale; the frame is TOPLEFT-anchored so SetSize inside
+                -- CommitResize grows it right and down with no anchor drift.
+                -- Frame is always 16:9; height is derived from ratio, not cursor Y.
+                local uiScale = UIParent:GetEffectiveScale()
+                local cx      = select(1, GetCursorPosition())
+                local curX    = cx / uiScale
+                local targetW = math.max(640, curX - _dragPinX)
+                local ratio   = math.max(0.5, math.min(2.0, targetW / DC.NATIVE_W))
+
+                -- skipHeavy=true: skip font walk + detail card reflow during live drag.
+                -- Both are applied in full on DragStop.
+                Dashboard_CommitResize(ratio, true)
+            end)
+
+            grabber:SetScript("OnEnter", function(self)
+                if not _dragActive then setGripAlpha(0.9) end
+                GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+                GameTooltip:SetText(addon.L["DASH_RESIZE_TOOLTIP"], 1, 1, 1, 1)
+                GameTooltip:Show()
+            end)
+
+            grabber:SetScript("OnLeave", function(self)
+                if not _dragActive then setGripAlpha(0.6) end
+                GameTooltip:Hide()
+            end)
+
+            grabber:SetScript("OnMouseUp", function(self, button)
+                if button ~= "RightButton" then return end
+                if InCombatLockdown() then return end
+                -- Reset to native 1.0 ratio, centered.
+                f:ClearAllPoints()
+                f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+                local db = _G[addon.DB_NAME]
+                if db then
+                    db.dashboardSizeRatio = nil
+                    db.dashboardTopLeftX  = nil
+                    db.dashboardTopLeftY  = nil
+                end
+                Dashboard_CommitResize(1.0)
+            end)
 
     if addon.DashboardCtx then
         addon.DashboardCtx.frame = f
