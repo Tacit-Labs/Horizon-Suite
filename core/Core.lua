@@ -723,6 +723,11 @@ EnsureProfilesAndMigrateLegacy = function()
         optionsPanelHeight = true,
         optionsGroupCollapsed = true,
 
+        -- Dashboard resize state (root-level: not per-profile, per-character, or migrated)
+        dashboardSizeRatio = true,
+        dashboardTopLeftX  = true,
+        dashboardTopLeftY  = true,
+
         modules = true,
 
         profiles = true,
