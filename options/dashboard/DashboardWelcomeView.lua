@@ -80,14 +80,18 @@ function addon.DashboardWelcomeView_Init(env)
     local NEWS_GRID_TWO_COL_MIN_W = 760
     local NEWS_GRID_GAP = 16
     local NEWS_BADGE_EYEBROW_GAP = 10
-    local NEWS_FEATURED_META_BOTTOM_INSET = 10
-    local NEWS_FEATURED_META_GAP_ABOVE = 10
     local NEWS_FEATURED_BODY_BEFORE_FOOTER_GAP = 8
     local NEWS_CARD_MIN_H = 220
     local NEWS_ICON_STRIP_GAP = 4
+    local CLASS_ICON_STRIP_ROW_COUNT = 3
+    local CLASS_ICON_STRIP_ROW_VGAP = 10
+    local CLASS_ICON_STRIP_MAX_PX = 128
     local NEWS_MEDIA_WRAP_MIN_W = 180
     local NEWS_MEDIA_WRAP_MAX_W = 240
     local NEWS_MEDIA_WRAP_H = 156
+    -- Tall or wide art: grow the slot height from intrinsic aspect (cap keeps cards on-screen).
+    local NEWS_MEDIA_STACK_MAX_H = 380
+    local NEWS_MEDIA_SPLIT_MAX_H = 320
     local NEWS_MEDIA_SPLIT_COL_GAP = 14
     local NEWS_MEDIA_SPLIT_MIN_LEFT_W = 140
     local NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET = 10
@@ -267,6 +271,15 @@ function addon.DashboardWelcomeView_Init(env)
             scale = math.min(scale, 1)
         end
         return math.max(1, math.floor(nw * scale + 0.5)), math.max(1, math.floor(nh * scale + 0.5))
+    end
+
+    -- Pick a clip box height so contain-fit preserves aspect (portrait needs more height than NEWS_MEDIA_WRAP_H).
+    local function NewsMediaClipBoxHeight(boxW, entry, tex, minH, maxH)
+        if not boxW or boxW < 1 then return minH end
+        local iw, ih = ResolveNewsArtIntrinsicSize(entry, tex, 16 / 9)
+        if not iw or not ih or iw < 1 or ih < 1 then return minH end
+        local ideal = math.floor(boxW * ih / iw + 0.5)
+        return math.min(maxH, math.max(minH, ideal))
     end
 
     local function DispatchNewsAction(entry)
@@ -545,6 +558,11 @@ function addon.DashboardWelcomeView_Init(env)
                 else
                     return cached
                 end
+            elseif kind == "news_featured" and not cached.editorialFooterRow then
+                if cached.root then
+                    cached.root:Hide()
+                end
+                welcomeBlockPool[id] = nil
             else
                 return cached
             end
@@ -778,6 +796,11 @@ function addon.DashboardWelcomeView_Init(env)
             art:SetTexCoord(0, 1, 0, 1)
             local ctaBtn = CreateNewsCTAButton(hero, true)
 
+            local editorialFooterRow = CreateFrame("Frame", nil, hero)
+            editorialFooterRow:SetFrameLevel((hero:GetFrameLevel() or 0) + 4)
+            local editorialFooterPrefixFs = MakeText(editorialFooterRow, "", 11, 0.47, 0.52, 0.58, "LEFT")
+            local editorialFooterLinkBtn = CreateNewsCTAButton(editorialFooterRow, false)
+
             welcomeBlockPool[id] = {
                 kind = kind,
                 root = hero,
@@ -795,6 +818,9 @@ function addon.DashboardWelcomeView_Init(env)
                 artBg = artBg,
                 art = art,
                 ctaBtn = ctaBtn,
+                editorialFooterRow = editorialFooterRow,
+                editorialFooterPrefixFs = editorialFooterPrefixFs,
+                editorialFooterLinkBtn = editorialFooterLinkBtn,
                 entry = entry,
             }
             return welcomeBlockPool[id]
@@ -1060,32 +1086,95 @@ function addon.DashboardWelcomeView_Init(env)
         badgeFs:Show()
     end
 
-    local function LayoutNewsClassStrip(strip, width)
+    -- News + welcome hero: wrap class icons across N rows (e.g. 3) so each row has fewer tiles and icons read much larger.
+    local function LayoutDashboardClassIconStrip(strip, width, opts)
+        opts = opts or {}
+        local topTexInset = tonumber(opts.topTexInset) or 0
+        local bottomPad = tonumber(opts.bottomPad) or 4
         if not strip or not strip.textures then return 0 end
         local nStrip = #WELCOME_CLASS_ICON_STRIP_ORDER
         if nStrip <= 0 then
             strip:Hide()
             return 0
         end
-        local iconPx = math.max(8, math.floor((width - (nStrip - 1) * NEWS_ICON_STRIP_GAP) / nStrip))
-        strip:SetSize(width, iconPx + 4)
-        for i = 1, nStrip do
-            local tex = strip.textures[i]
-            if tex then
-                local cf = WELCOME_CLASS_ICON_STRIP_ORDER[i]
-                if addonRef.ResolveClassIconDisplay then
-                    local disp = addonRef.ResolveClassIconDisplay(cf, "custom")
-                    if disp and disp.kind == "file" and disp.path then
-                        tex:SetTexture(disp.path)
+        local w = math.max(120, width or 0)
+        local nRows = math.max(1, math.floor(tonumber(opts.numRows) or CLASS_ICON_STRIP_ROW_COUNT))
+        local rowVGap = math.max(4, tonumber(opts.rowVGap) or CLASS_ICON_STRIP_ROW_VGAP)
+        local minEdgeGap = 8
+        local base = math.floor(nStrip / nRows)
+        local extra = nStrip % nRows
+        local rowCounts = {}
+        for r = 1, nRows do
+            rowCounts[r] = base + (r <= extra and 1 or 0)
+        end
+        local iconPx = CLASS_ICON_STRIP_MAX_PX
+        for r = 1, nRows do
+            local k = rowCounts[r]
+            if k > 0 then
+                local cap = math.floor((w - (k + 1) * minEdgeGap) / k)
+                if cap < iconPx then
+                    iconPx = cap
+                end
+            end
+        end
+        if iconPx < 24 then
+            minEdgeGap = 4
+            iconPx = CLASS_ICON_STRIP_MAX_PX
+            for r = 1, nRows do
+                local k = rowCounts[r]
+                if k > 0 then
+                    local cap = math.floor((w - (k + 1) * minEdgeGap) / k)
+                    if cap < iconPx then
+                        iconPx = cap
                     end
                 end
-                tex:SetSize(iconPx, iconPx)
-                tex:ClearAllPoints()
-                tex:SetPoint("TOPLEFT", strip, "TOPLEFT", (i - 1) * (iconPx + NEWS_ICON_STRIP_GAP), 0)
+            end
+        end
+        iconPx = math.max(16, math.min(CLASS_ICON_STRIP_MAX_PX, iconPx))
+        local stripH = topTexInset + nRows * iconPx + (nRows - 1) * rowVGap + bottomPad
+        strip:SetSize(w, stripH)
+        local idx = 0
+        local yTop = topTexInset
+        for r = 1, nRows do
+            local k = rowCounts[r]
+            local gapEach = (w - k * iconPx) / (k + 1)
+            for j = 1, k do
+                idx = idx + 1
+                local tex = strip.textures[idx]
+                if tex then
+                    local cf = WELCOME_CLASS_ICON_STRIP_ORDER[idx]
+                    if addonRef.ResolveClassIconDisplay then
+                        local disp = addonRef.ResolveClassIconDisplay(cf, "custom")
+                        if disp and disp.kind == "file" and disp.path then
+                            tex:SetTexture(disp.path)
+                        end
+                    end
+                    tex:SetSize(iconPx, iconPx)
+                    tex:ClearAllPoints()
+                    tex:SetPoint(
+                        "TOPLEFT",
+                        strip,
+                        "TOPLEFT",
+                        gapEach + (j - 1) * (iconPx + gapEach),
+                        -yTop
+                    )
+                    tex:Show()
+                end
+            end
+            yTop = yTop + iconPx + rowVGap
+        end
+        for i = idx + 1, #strip.textures do
+            local tex = strip.textures[i]
+            if tex then
+                tex:Hide()
             end
         end
         strip:Show()
-        return iconPx + 4
+        return stripH
+    end
+
+    local function LayoutNewsClassStrip(strip, width)
+        return LayoutDashboardClassIconStrip(strip, width, { topTexInset = 0, bottomPad = 4 })
     end
 
     LayoutWelcomeContent = function()
@@ -1463,18 +1552,11 @@ function addon.DashboardWelcomeView_Init(env)
                         textY = textY + pool.ctaBtn:GetHeight()
                     end
 
-                    local metaBottomBand = 0
-                    if metaStr ~= "" then
-                        pool.metaFs:SetWidth(textColW)
-                        pool.metaFs:Show()
-                        metaBottomBand = NEWS_FEATURED_META_GAP_ABOVE
-                            + (pool.metaFs:GetHeight() or 12)
-                            + NEWS_FEATURED_META_BOTTOM_INSET
-                    else
-                        pool.metaFs:Hide()
-                    end
-
-                    local heroH = textY + (metaBottomBand > 0 and metaBottomBand or pad)
+                    pool.metaFs:Hide()
+                    local footerReserve = NEWS_CARD_EDITORIAL_FOOTER_GAP_ABOVE
+                        + NEWS_CARD_EDITORIAL_FOOTER_AREA_H
+                        + NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET
+                    local heroH = textY + footerReserve
                     if hasArt then
                         local artBoxH = pool.artFrame:GetHeight() or artH
                         pool.artFrame:ClearAllPoints()
@@ -1485,9 +1567,28 @@ function addon.DashboardWelcomeView_Init(env)
                     end
 
                     hero:SetHeight(math.max(230, heroH))
-                    if metaStr ~= "" then
-                        pool.metaFs:ClearAllPoints()
-                        pool.metaFs:SetPoint("BOTTOMLEFT", hero, "BOTTOMLEFT", textX, NEWS_FEATURED_META_BOTTOM_INSET)
+
+                    local eRow = pool.editorialFooterRow
+                    local ePrefix = pool.editorialFooterPrefixFs
+                    local eLink = pool.editorialFooterLinkBtn
+                    if eRow and ePrefix and eLink then
+                        ePrefix:SetText(metaStr ~= "" and metaStr or (L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"] or ""))
+                        eLink:SetLabel(L["DASH_NEWS_EDITORIAL_FOOTER_LINK"] or "Patch notes")
+                        eLink:SetScript("OnClick", function()
+                            if f.ShowPatchNotes then f.ShowPatchNotes() end
+                        end)
+                        local rowW = w - 2 * pad
+                        local linkW = eLink:GetWidth()
+                        ePrefix:SetWidth(math.max(60, rowW - linkW - 10))
+                        ePrefix:ClearAllPoints()
+                        ePrefix:SetPoint("BOTTOMLEFT", eRow, "BOTTOMLEFT", 0, 0)
+                        eLink:ClearAllPoints()
+                        eLink:SetPoint("LEFT", ePrefix, "RIGHT", 6, 0)
+                        local fh = math.max(ePrefix:GetHeight(), eLink:GetHeight()) + 4
+                        eRow:SetSize(rowW, fh)
+                        eRow:ClearAllPoints()
+                        eRow:SetPoint("BOTTOMLEFT", hero, "BOTTOMLEFT", pad, NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET)
+                        eRow:Show()
                     end
                     hero:Show()
                     y = y + hero:GetHeight() + 18
@@ -1557,14 +1658,27 @@ function addon.DashboardWelcomeView_Init(env)
                         local artBoxH = 96
                         if useMediaSplit then
                             artBoxW = artColW
-                            artBoxH = artBoxHForSplit
+                            artBoxH = NewsMediaClipBoxHeight(
+                                artColW,
+                                entry,
+                                pool.art,
+                                NEWS_MEDIA_WRAP_H,
+                                NEWS_MEDIA_SPLIT_MAX_H
+                            )
+                            artBoxHForSplit = artBoxH
                             pool._newsMediaSplitLayout = true
                             pool.artFrame:SetSize(artBoxW, artBoxH)
                             pool.artFrame:ClearAllPoints()
                             pool.artFrame:SetPoint("TOPRIGHT", card, "TOPRIGHT", -pad, -pad)
                         elseif useMediaStacked then
                             artBoxW = textW
-                            artBoxH = NEWS_MEDIA_WRAP_H
+                            artBoxH = NewsMediaClipBoxHeight(
+                                textW,
+                                entry,
+                                pool.art,
+                                NEWS_MEDIA_WRAP_H,
+                                NEWS_MEDIA_STACK_MAX_H
+                            )
                             pool.artFrame:SetSize(artBoxW, artBoxH)
                             pool.artFrame:ClearAllPoints()
                             pool.artFrame:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
@@ -1802,29 +1916,14 @@ function addon.DashboardWelcomeView_Init(env)
                     local rowH = math.max(pool.classIconsCreatedPrefixFs:GetHeight(), pool.classIconsArtistBtn:GetHeight())
                     pool.classIconsCreatedRow:SetHeight(math.max(rowH, 1))
                     cyt = cyt + rowH + 6
-                    local nStrip = #WELCOME_CLASS_ICON_STRIP_ORDER
-                    local stripGap = 4
                     local maxStripW = classTextW
-                    local iconPx = math.max(8, math.floor((maxStripW - (nStrip - 1) * stripGap) / nStrip))
                     pool.classIconsStrip:ClearAllPoints()
                     pool.classIconsStrip:SetPoint("TOPLEFT", hero, "TOPLEFT", classHeroPad, -cyt)
-                    pool.classIconsStrip:SetSize(maxStripW, iconPx + 6)
-                    for i = 1, nStrip do
-                        local tex = pool.classIconsStrip.textures[i]
-                        if tex then
-                            local cf = WELCOME_CLASS_ICON_STRIP_ORDER[i]
-                            if addonRef.ResolveClassIconDisplay then
-                                local disp = addonRef.ResolveClassIconDisplay(cf, "custom")
-                                if disp and disp.kind == "file" and disp.path then
-                                    tex:SetTexture(disp.path)
-                                end
-                            end
-                            tex:SetSize(iconPx, iconPx)
-                            tex:ClearAllPoints()
-                            tex:SetPoint("TOPLEFT", pool.classIconsStrip, "TOPLEFT", (i - 1) * (iconPx + stripGap), -2)
-                        end
-                    end
-                    local stripH = iconPx + 10
+                    local stripH = LayoutDashboardClassIconStrip(
+                        pool.classIconsStrip,
+                        maxStripW,
+                        { topTexInset = 2, bottomPad = 8 }
+                    )
                     cyt = cyt + stripH
                     hero:SetHeight(math.max(cyt + classHeroPad, 1))
                     pool.classIconsAccent:SetPoint("BOTTOMLEFT", hero, "BOTTOMLEFT", 14, 14)

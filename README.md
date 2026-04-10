@@ -28,7 +28,7 @@ Focus - Objective Tracker
 - **Show only on mouseover** – Fade the tracker when not hovering; move the mouse over it to reveal.
 - **Mythic+ and Delves** – Banner for keystone info, timer, and affixes. Delve objectives in the standard layout.
 - **Countdown timers by section** – With **Show timer** on, toggle countdowns separately for **Scenarios**, **World Quests**, and **Dailies / Weeklies** (other timed quest log entries use the same switch as dailies and weeklies).
-- **Click profile** – Under Focus → Interactions, pick **Blizzard+** (default, Blizzard-style row clicks), **Horizon+** (super-track on left, quest log on Shift+left, untrack on right, Ctrl+right for the full context menu), or **Custom** to assign each modifier combo yourself. Optional **classic click behaviour** still adjusts icon-style clicks where enabled.
+- **Click profile** – Under Focus → Click Options, pick **Blizzard+** (default, Blizzard-style row clicks), **Horizon+** (super-track on left, quest log on Shift+left, untrack on right, Ctrl+right for the full context menu), or **Custom** to assign each modifier combo yourself. Optional **classic click behaviour** still adjusts icon-style clicks where enabled.
 
 ## 🎬 Presence (Zone Text & Notifications)
 
