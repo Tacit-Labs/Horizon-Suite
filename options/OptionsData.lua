@@ -45,6 +45,7 @@ local CACHE_KEYS = {
 
 local FOCUS_CLICK_KEYS = {
     focusClickProfile     = true,
+    focusIconClickAction  = true,
     focusClick_left       = true,
     focusClick_shiftLeft  = true,
     focusClick_ctrlLeft   = true,
@@ -586,6 +587,16 @@ local function GetComboActionOptions(comboKey)
     return {}
 end
 
+--- Returns dropdown options for the shared quest/appearance icon click action.
+--- @return table { {label, value}, ... }
+local function GetIconClickActionOptions()
+    local cfg = addon.focus and addon.focus.clickConfig
+    if cfg and cfg.GetIconActionOptions then
+        return cfg.GetIconActionOptions()
+    end
+    return {}
+end
+
 --- Resolved action for options UI: per-combo DB when Custom; else built-in preset (Horizon+ / Blizzard).
 --- @param comboKey string
 --- @param dbKey string
@@ -608,6 +619,19 @@ local function GetEffectiveFocusClickAction(comboKey, dbKey, fallback)
     end
     if type(v) == "string" and v ~= "" then return v end
     return fallback
+end
+
+--- Resolved icon click action for options UI: fixed default for presets, DB-backed for Custom.
+--- @return string
+local function GetEffectiveFocusIconClickAction()
+    local prof = getDB("focusClickProfile", "blizzardDefault")
+    if prof ~= "custom" then
+        return "superTrack"
+    end
+    local cfg = addon.focus and addon.focus.clickConfig
+    local normalizeAction = cfg and cfg.NormalizeIconAction
+    local raw = getDB("focusIconClickAction", "superTrack")
+    return normalizeAction and normalizeAction(raw) or raw
 end
 
 --- When true, per-combo dropdowns are read-only (preset profile selected).
@@ -1796,8 +1820,19 @@ local OptionCategories = {
                 end,
                 refreshIds = {
                     "focusClick_left", "focusClick_shiftLeft", "focusClick_ctrlLeft", "focusClick_altLeft",
-                    "focusClick_right", "focusClick_shiftRight", "focusClick_ctrlRight", "focusClick_altRight",
+                    "focusClick_right", "focusClick_shiftRight", "focusClick_ctrlRight", "focusClick_altRight", "focusIconClickAction",
                 },
+            },
+            {
+                type    = "dropdown",
+                name    = L["OPTIONS_FOCUS_ICON_CLICK_ACTION"],
+                desc    = L["OPTIONS_FOCUS_ICON_CLICK_ACTION_DESC"],
+                dbKey   = "focusIconClickAction",
+                options = GetIconClickActionOptions,
+                get     = function() return GetEffectiveFocusIconClickAction() end,
+                set     = function(v) setDB("focusIconClickAction", v) end,
+                disabled = FocusClickPresetCombosLocked,
+                tooltip  = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
             },
             {
                 type        = "dropdown",

@@ -961,6 +961,8 @@ L["OPTIONS_FOCUS_CLASSIC_CLICKS"]                                     = "Klassis
 -- === Focus Click Profiles ===
 L["OPTIONS_FOCUS_CLICK_PROFILE"]                                      = "Mausklickprofil"
 L["OPTIONS_FOCUS_CLICK_PROFILE_DESC"]                                 = "Choose how mouse clicks on tracker entries behave."
+L["OPTIONS_FOCUS_ICON_CLICK_ACTION"]                                  = "Quest/appearance icon click"
+L["OPTIONS_FOCUS_ICON_CLICK_ACTION_DESC"]                             = "Choose what happens when you click the quest or appearance icon itself, when that icon click behavior is shown."
 -- L["OPTIONS_FOCUS_PROFILE_HORIZON_PLUS"]                            = "Horizon+"
 L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzard-Standard"
 L["OPTIONS_FOCUS_PROFILE_CUSTOM"]                                     = "Angepasst"
@@ -1833,6 +1835,8 @@ L["OPTIONS_CORE_X_Y_OBJECTIVES_LIKE_PERCENT_OBJECTIVES"]              = "X/Y: ob
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

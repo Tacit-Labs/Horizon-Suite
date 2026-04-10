@@ -872,11 +872,37 @@ local function MaybeLogTrackedContentDispatch(buttonName, profile, clickModsTbl,
         tostring(prof), tostring(combo), tostring(action), tostring(kind), note or ""))
 end
 
---- Left-click on quest type icon: toggle super-track (classic mode, Blizzard+ profile, or row hit-test fallback).
+local QUEST_ACTIONS = {}
+local APPEARANCE_ACTIONS = {}
+
+--- Shared icon-click action, separate from row click combos.
+--- @return string
+local function GetFocusIconClickAction()
+    local profile = addon.GetDB("focusClickProfile", "blizzardDefault")
+    if profile ~= "custom" then
+        return "superTrack"
+    end
+    local cfg = addon.focus and addon.focus.clickConfig
+    local normalize = cfg and cfg.NormalizeIconAction
+    local raw = addon.GetDB("focusIconClickAction", "superTrack")
+    if normalize then
+        return normalize(raw)
+    end
+    return (type(raw) == "string" and raw ~= "") and raw or "superTrack"
+end
+
+--- Execute the configured quest-icon action.
 --- @param entry Frame pool entry
 --- @return nil
-function addon.HandleClassicQuestIconMouseDown(entry)
+local function HandleQuestIconAction(entry)
     if not entry or not entry.questID then return end
+
+    local action = GetFocusIconClickAction()
+    if action ~= "superTrack" then
+        local fn = QUEST_ACTIONS[action] or QUEST_ACTIONS["none"]
+        fn(entry)
+        return
+    end
 
     local now = (GetTimePreciseSec and GetTimePreciseSec()) or GetTime()
     local lastClick = entry._classicQuestIconClickAt
@@ -905,35 +931,35 @@ function addon.HandleClassicQuestIconMouseDown(entry)
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
---- Classic: left-click on appearance type icon (questIconBtn). Called from FocusEntryPool.
+--- Execute the configured appearance-icon action.
 --- @param entry Frame pool entry
-function addon.HandleClassicAppearanceIconMouseDown(entry)
+local function HandleAppearanceIconAction(entry)
     if not entry or not entry.appearanceID then return end
-    local id = entry.appearanceID
-    if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
-        local link = GetAppearanceDressLink(entry)
-        if link then
-            ChatFrameUtil.InsertLink(link)
-            if addon.ScheduleRefresh then addon.ScheduleRefresh() end
-            return
-        end
-    end
-    if IsAltKeyDown() then
-        local url = addon.GetWoWheadURL(entry)
-        if url and type(url) == "string" and url ~= "" then
-            if addon.ShowURLCopyBox then addon.ShowURLCopyBox(url) end
-            return
-        end
-    end
-    if IsShiftKeyDown() then
-        AppearanceStopTracking(id)
+    local action = GetFocusIconClickAction()
+    local fn = APPEARANCE_ACTIONS[action] or APPEARANCE_ACTIONS["none"]
+    fn(entry)
+end
+
+--- Execute the configured icon action for quest or appearance rows.
+--- @param entry Frame pool entry
+function addon.HandleFocusIconMouseDown(entry)
+    if not entry then return end
+    if entry.isAppearance and entry.appearanceID then
+        HandleAppearanceIconAction(entry)
         return
     end
-    if IsControlKeyDown() then
-        AppearanceOpenDressingRoom(entry)
-        return
+    if entry.questID then
+        HandleQuestIconAction(entry)
     end
-    AppearanceToggleContentFocus(id)
+end
+
+-- Backward-compatible wrappers while icon behavior is moving to a shared setting.
+function addon.HandleClassicQuestIconMouseDown(entry)
+    HandleQuestIconAction(entry)
+end
+
+function addon.HandleClassicAppearanceIconMouseDown(entry)
+    HandleAppearanceIconAction(entry)
 end
 
 StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] or {
@@ -1261,8 +1287,6 @@ local function QueueOpenQuestDetailsAfterCombat(questID)
     end
 end
 
-local QUEST_ACTIONS = {}
-
 QUEST_ACTIONS["superTrack"] = function(entry)
     local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID)
 
@@ -1414,8 +1438,6 @@ QUEST_ACTIONS["none"] = function(_) end
 -- APPEARANCE ROW ACTION DISPATCH (tracked transmog; driven by GetAppearanceClickAction)
 -- ============================================================================
 
-local APPEARANCE_ACTIONS = {}
-
 APPEARANCE_ACTIONS["superTrack"] = function(entry)
     if entry.appearanceID then
         AppearanceToggleContentFocus(entry.appearanceID)
@@ -1562,14 +1584,9 @@ for i = 1, addon.POOL_SIZE do
             -- Tracked appearance: same profile system as quests (Horizon+ / Blizzard+ / Custom); icon delegates when UseBlizzardStyleQuestIconClicks.
             local isAppearanceRow = self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$")
             if isAppearanceRow and addon.focus and addon.focus.GetAppearanceClickAction then
-                if addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
+                if addon.focus.UseFocusIconClickButton and addon.focus.UseFocusIconClickButton() then
                     if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
-                        if addon.HandleClassicAppearanceIconMouseDown then addon.HandleClassicAppearanceIconMouseDown(self) end
-                        return
-                    end
-                    -- Ctrl+left on row body: match icon behaviour (dressing room); icon handler only runs when over questIconBtn.
-                    if IsControlKeyDown() and not IsShiftKeyDown() and not IsAltKeyDown() then
-                        AppearanceOpenDressingRoom(self)
+                        if addon.HandleFocusIconMouseDown then addon.HandleFocusIconMouseDown(self) end
                         return
                     end
                 end
@@ -1613,14 +1630,11 @@ for i = 1, addon.POOL_SIZE do
             end
             if not self.questID then return end
 
-            -- Classic icon click: delegate to icon handler (runs before all other quest logic).
+            -- Icon click: delegate to the shared icon handler (runs before all other quest logic).
             local profile = addon.GetDB("focusClickProfile", "blizzardDefault")
-            local isClassicProfile = (profile == "blizzardDefault")
-            if isClassicProfile then
+            if addon.focus.UseFocusIconClickButton and addon.focus.UseFocusIconClickButton() then
                 if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
-                    if addon.HandleClassicQuestIconMouseDown then
-                        addon.HandleClassicQuestIconMouseDown(self)
-                    end
+                    if addon.HandleFocusIconMouseDown then addon.HandleFocusIconMouseDown(self) end
                     return
                 end
             end
