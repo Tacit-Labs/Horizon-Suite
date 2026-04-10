@@ -1594,6 +1594,14 @@ function addon.Dashboard_BuildMainFrame()
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
 
                 pnChangelogHeaderBtn:Show()
+
+                -- Hide centered head/headSub when the frame is too narrow; the flanking
+                -- detailTitle and pnChangelogHeaderBtn overlap them below 800px.
+                if f:GetWidth() < 850 then
+                    if head    then head:Hide()    end
+                    if headSub then headSub:Hide() end
+                end
+
                 LayoutPatchNotesFooter()
                 if C_Timer and C_Timer.After then
                     C_Timer.After(0, LayoutPatchNotesFooter)
@@ -2150,6 +2158,17 @@ function addon.Dashboard_BuildMainFrame()
                 if headSub then
                     headSub:ClearAllPoints()
                     headSub:SetPoint("TOP", lc.contentOffset / 2, DASH_HEAD_SUBTITLE_Y)
+                end
+                -- Patch notes: detailTitle (left) and pnChangelogHeaderBtn (right) overlap
+                -- the centered head/headSub below 800px.  Hide them when that narrow.
+                if pnChangelogHeaderBtn and pnChangelogHeaderBtn:IsShown() then
+                    if lc.frameW < 850 then
+                        if head    then head:Hide()    end
+                        if headSub then headSub:Hide() end
+                    else
+                        if head    then head:Show() end
+                        if headSub then headSub:Show() end
+                    end
                 end
                 if f.searchBarShell then
                     local searchW = math.min(DASH_SEARCH_BAR_MAX_W, math.max(300, math.floor(lc.viewWidth * 0.65)))
