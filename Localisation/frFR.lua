@@ -100,7 +100,7 @@ L["DASH_FULL_CHANGELOG"]                                              = "Full ch
 -- L["DASH_NEWS_CTA_OPEN_GUIDE"]                                      = "Open Quick Start"
 -- L["DASH_NEWS_FOCUS_CLICK_PROFILE_TITLE"]                           = "Blizzard+ is now the default click profile"
 -- L["DASH_NEWS_FOCUS_CLICK_PROFILE_TAGLINE"]                         = "Focus now lands closer to Blizzard muscle memory while keeping Horizon's convenience options close by."
--- L["DASH_NEWS_FOCUS_CLICK_PROFILE_BODY"]                            = "The updated preset gives quest rows a cleaner default interaction model. If you want to tune it, head into Focus > Interactions to review the profile today and keep an eye out for Horizon+ and deeper Custom shortcuts next."
+L["DASH_NEWS_FOCUS_CLICK_PROFILE_BODY"]                               = "The updated preset gives quest rows a cleaner default interaction model. If you want to tune it, head into Focus > Interactions to review the profile today and keep an eye out for Horizon+ and deeper Custom shortcuts next."
 -- L["DASH_NEWS_FOCUS_CLICK_PROFILE_META"]                            = "Focus • Interaction preset • Available now"
 -- L["DASH_NEWS_CLASS_ICONS_TITLE"]                                   = "A full Horizon class icon set is now bundled"
 -- L["DASH_NEWS_CLASS_ICONS_BODY"]                                    = "Switch Class icon style to Horizon under Axis > Global Toggles to use the new set across the suite. The dashboard now surfaces the full strip here so the update reads like a release, not a footnote."
@@ -131,7 +131,7 @@ L["DASH_WELCOME_ACTION_NEWS_BODY"]                                    = "Open Ne
 L["DASH_WELCOME_LEARN_BODY"]                                          = "Use this section as the guided overview of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
 L["DASH_WELCOME_PATH"]                                                = "%s → %s → %s"
 -- L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]                      = "Blizzard+ click profile"
--- L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                         = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
+L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                            = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
 -- L["DASH_WELCOME_COMING_SOON_TITLE"]                                = "Coming Soon"
 -- L["DASH_WELCOME_COMING_SOON_TAGLINE"]                              = "New welcome experiences are on the way."
 -- L["DASH_WELCOME_COMING_SOON_BODY"]                                 = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
@@ -974,10 +974,12 @@ L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzar
 -- L["OPTIONS_FOCUS_COMBO_RIGHT"]                                     = "Right click"
 -- L["OPTIONS_FOCUS_COMBO_SHIFT_RIGHT"]                               = "Shift + Right click"
 -- L["OPTIONS_FOCUS_COMBO_CTRL_RIGHT"]                                = "Ctrl + Right click"
+-- L["OPTIONS_FOCUS_COMBO_ALT_RIGHT"]                                 = "Alt + Right click"
 -- L["OPTIONS_FOCUS_CLICK_ACTION_NONE"]                               = "Do nothing"
 -- L["OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK"]                        = "Focus quest"
--- L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_PROFESSION"]                    = "Open profession or quest details"
--- L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                     = "Open quest log"
+-- L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_DETAILS"]                       = "Open relevant details"
+L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_PROFESSION"]                       = "Open profession or quest details"
+L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open quest log"
 -- L["OPTIONS_FOCUS_CLICK_ACTION_UNTRACK"]                            = "Untrack"
 -- L["OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU"]                       = "Context menu"
 -- L["OPTIONS_FOCUS_CLICK_ACTION_SHARE"]                              = "Share with party"
@@ -1830,6 +1832,8 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                         = "Craftin
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
 
 
 

@@ -28,7 +28,7 @@
 - **Show only on mouseover** – Fade the tracker when not hovering; move the mouse over it to reveal.
 - **Mythic+ and Delves** – Banner for keystone info, timer, and affixes. Delve objectives in the standard layout.
 - **Countdown timers by section** – With **Show timer** on, toggle countdowns separately for **Scenarios**, **World Quests**, and **Dailies / Weeklies** (other timed quest log entries use the same switch as dailies and weeklies).
-- **Classic click behaviour** – Optional toggle: left-click opens the quest map, right-click shows share/abandon menu. When off, Shift+Left opens or closes quest details; Ctrl+Right shares the quest with your party.
+- **Click profile** – Under Focus → Interactions, pick **Blizzard+** (default), **Horizon+** (super-track first, Custom for per-combo shortcuts), or **Custom**. Optional **classic click behaviour** still adjusts icon-style clicks where enabled.
 
 ## 🎬 Presence (Zone Text & Notifications)
 
