@@ -51,13 +51,6 @@ addon.DashboardWelcomeFeed = {
         ctaAction = { type = "patch_notes" },
     },
     {
-        id = "learn_suite",
-        kind = "welcome_section_header",
-        sort = 700,
-        titleKey = "DASH_WELCOME_LEARN_TITLE",
-        introKey = "DASH_WELCOME_LEARN_BODY",
-    },
-    {
         id = "module_guide_section",
         kind = "module_guide_section",
         sort = 650,
@@ -68,6 +61,13 @@ addon.DashboardWelcomeFeed = {
         sort = 300,
         titleKey = "DASH_WELCOME_CONTRIBUTORS_HEADING",
         bodyKey = "DASH_WELCOME_CONTRIBUTORS_BODY",
+    },
+    {
+        id = "supporters",
+        kind = "welcome_support_card",
+        sort = 200,
+        titleKey = "DASH_WELCOME_SUPPORTERS_HEADING",
+        bodyKey = "DASH_WELCOME_SUPPORTERS_BODY",
     },
     {
         id = "localisations",

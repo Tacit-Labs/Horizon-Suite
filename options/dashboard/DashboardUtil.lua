@@ -342,7 +342,7 @@ end
 --- @param g number
 --- @param b number
 --- @param justify string|nil
---- @param reg table|nil
+--- @param reg table|nil Optional typography registry from dashboard frame build.
 --- @return FontString
 function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify, reg)
     local path = addon.Dashboard_ResolveSavedDashboardFontPath(

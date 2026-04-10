@@ -1037,6 +1037,9 @@ function addon.Dashboard_BuildMainFrame()
                 showSubcategoryHeader = ShowSubcategoryHeader,
             }
             local detailApi = addon.DashboardDetailView_Init(detailEnv)
+            f.NavigateToDashboardBackground = detailApi.NavigateToDashboardBackground
+            f.NavigateToAxisHome = detailApi.NavigateToAxisHome
+            f.NavigateToClassColourTinting = detailApi.NavigateToClassColourTinting
 
             backBtn:SetScript("OnClick", function()
                 if f.currentModuleKey then
@@ -1070,6 +1073,7 @@ function addon.Dashboard_BuildMainFrame()
                 f = f,
                 addon = addon,
                 L = L,
+                contentWidth = contentWidth,
                 dashboardView = dashboardView,
                 welcomeView = welcomeView,
                 newsView = newsView,

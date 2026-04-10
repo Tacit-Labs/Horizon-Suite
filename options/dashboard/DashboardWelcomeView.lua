@@ -71,6 +71,7 @@ function addon.DashboardWelcomeView_Init(env)
     local WELCOME_ACC_HEAD_H = 48
     local WELCOME_SCROLL_BODY_X_INSET = 0
     local WELCOME_SCROLL_ABOVE_FOOTER_GAP = (addonRef.DashboardConstants and addonRef.DashboardConstants.COMMUNITY_FOOTER_SCROLL_GAP) or 24
+    local WELCOME_LEARN_SECTION_PEEK_PX = 96
     local SCROLL_TO_BG_INSET = 20
     local WELCOME_COMING_SOON_GIF_MAX_H = 132
     local WELCOME_COMING_SOON_TWO_COL_MIN_W = 440
@@ -311,38 +312,13 @@ function addon.DashboardWelcomeView_Init(env)
             end
         end)
 
-        card.anim = card:CreateAnimationGroup()
-        local sizeAnim = card.anim:CreateAnimation("Animation")
-        sizeAnim:SetDuration(0.15)
-        sizeAnim:SetSmoothing("IN_OUT")
-
-        card.anim:SetScript("OnUpdate", function()
-            local progress = sizeAnim:GetSmoothProgress()
-            local startH = card.expanded and card.collapsedHeight or (card.fullHeight or WELCOME_ACC_HEAD_H)
-            local endH = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
-            local curH = startH + (endH - startH) * progress
-            card:SetHeight(curH)
-            if card.expanded then
-                sc:SetAlpha(progress)
-            else
-                sc:SetAlpha(1 - progress)
-            end
-            if onLayout then onLayout() end
-        end)
-
-        card.anim:SetScript("OnFinished", function()
-            local finalH = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
-            card:SetHeight(finalH)
-            sc:SetAlpha(card.expanded and 1 or 0)
-            updateExpandedVisuals()
-            if onLayout then onLayout() end
-        end)
-
         headerBtn:SetScript("OnClick", function()
-            if card.anim:IsPlaying() then return end
             card.expanded = not card.expanded
             updateExpandedVisuals()
-            card.anim:Play()
+            local h = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
+            card:SetHeight(h)
+            sc:SetAlpha(card.expanded and 1 or 0)
+            if onLayout then onLayout() end
         end)
 
         if card.expanded then
@@ -589,11 +565,12 @@ function addon.DashboardWelcomeView_Init(env)
             bg:SetAllPoints()
             bg:SetColorTexture(0.08, 0.09, 0.11, SBgA)
 
+            -- Top accent bar (same treatment as welcome_action_card) so the row reads as one grid.
             local accent = card:CreateTexture(nil, "ARTWORK")
-            accent:SetWidth(3)
+            accent:SetHeight(3)
             accent:SetPoint("TOPLEFT", 0, 0)
-            accent:SetPoint("BOTTOMLEFT", 0, 0)
-            accent:SetColorTexture(war, wag, wab, 1)
+            accent:SetPoint("TOPRIGHT", 0, 0)
+            accent:SetColorTexture(war, wag, wab, 0.70)
             tinsert(dashAccentRefs.cardAccents, accent)
 
             local titleFs = MakeText(card, "", 14, 0.96, 0.98, 1, "LEFT")
@@ -979,6 +956,7 @@ function addon.DashboardWelcomeView_Init(env)
         local viewW = welcomeView:GetWidth() or 0
         local wFooter = math.max(280, viewW - 40)
         local innerPad = 28
+        local learnSectionTopY = nil
 
         if footerObj and footerObj.layout then
             footerObj.layout(wFooter, 0, welcomeView)
@@ -1004,16 +982,12 @@ function addon.DashboardWelcomeView_Init(env)
         local activeIds = {}
 
         if targetViewName == "welcome" then
-            local heroEntry, learnEntry = nil, nil
+            local heroEntry = nil
             local actionEntries, supportEntries = {}, {}
             for i = 1, #feed do
                 local entry = feed[i]
                 if entry.kind == "welcome_hero" then
                     heroEntry = entry
-                elseif entry.kind == "welcome_section_header" then
-                    if entry.id == "learn_suite" then
-                        learnEntry = entry
-                    end
                 elseif entry.kind == "welcome_action_card" then
                     actionEntries[#actionEntries + 1] = entry
                 elseif entry.kind == "welcome_support_card" then
@@ -1165,26 +1139,8 @@ function addon.DashboardWelcomeView_Init(env)
                 y = rowY + 8
             end
 
-            if learnEntry then
-                local pool = EnsureWelcomeBlock(learnEntry)
-                if pool then
-                    activeIds[learnEntry.id] = true
-                    pool.titleFs:SetText(L[learnEntry.titleKey] or "")
-                    pool.introFs:SetText(L[learnEntry.introKey] or "")
-                    pool.titleFs:SetWidth(w)
-                    pool.titleFs:ClearAllPoints()
-                    pool.titleFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-                    y = y + pool.titleFs:GetHeight() + 6
-                    pool.introFs:SetWidth(w)
-                    pool.introFs:ClearAllPoints()
-                    pool.introFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-                    y = y + pool.introFs:GetHeight() + 12
-                    pool.titleFs:Show()
-                    pool.introFs:Show()
-                end
-            end
-
             if addonRef.DashboardModuleGuide_LayoutEmbedded then
+                learnSectionTopY = y
                 y = addonRef.DashboardModuleGuide_LayoutEmbedded(w, y, innerPad) or y
                 y = y + 16
             end
@@ -1203,7 +1159,7 @@ function addon.DashboardWelcomeView_Init(env)
                         if col == 0 then rowH = 0 end
                         local card = pool.root
                         local pad = 22
-                        local textW = cardW - pad * 2 - 8
+                        local textW = cardW - pad * 2
 
                         pool.titleFs:SetText(L[entry.titleKey] or "")
                         pool.bodyFs:SetText(L[entry.bodyKey] or "")
@@ -1783,12 +1739,10 @@ function addon.DashboardWelcomeView_Init(env)
                     bodyFs:SetPoint("TOPRIGHT", card.settingsContainer, "TOPRIGHT", -innerPad, -10)
                     local bodyH = bodyFs:GetHeight()
                     card.fullHeight = WELCOME_ACC_HEAD_H + 10 + bodyH + 14
-                    if not card.anim:IsPlaying() then
-                        if card.expanded then
-                            card:SetHeight(card.fullHeight)
-                        else
-                            card:SetHeight(card.collapsedHeight)
-                        end
+                    if card.expanded then
+                        card:SetHeight(card.fullHeight)
+                    else
+                        card:SetHeight(card.collapsedHeight)
                     end
                     card:SetWidth(w)
                     card:ClearAllPoints()
@@ -1825,6 +1779,16 @@ function addon.DashboardWelcomeView_Init(env)
         local contentH = content:GetHeight() or 0
         local maxScroll = math.max(0, contentH - viewH)
         local curScroll = welcomeScroll:GetVerticalScroll() or 0
+
+        if targetViewName == "welcome" and learnSectionTopY and f and not f._welcomeLearnPeekApplied and maxScroll > 0 and viewH > 80 then
+            local targetPeekScroll = learnSectionTopY - viewH + WELCOME_LEARN_SECTION_PEEK_PX
+            targetPeekScroll = math.max(0, math.min(maxScroll, targetPeekScroll))
+            welcomeScroll:SetVerticalScroll(targetPeekScroll)
+            welcomeScroll.targetScroll = nil
+            f._welcomeLearnPeekApplied = true
+            curScroll = targetPeekScroll
+        end
+
         if curScroll > maxScroll then
             welcomeScroll:SetVerticalScroll(maxScroll)
             welcomeScroll.targetScroll = nil

@@ -69,6 +69,8 @@ function addon.DashboardModuleGuide_Init(env)
     local GUIDE_BG_TOP_NUDGE = 50
     local GUIDE_CONTENT_TOP_PAD = 6
     local GUIDE_ACC_HEAD_H = 48
+    -- Match DashboardDetailView CreateAccordionCard (options accordion).
+    local GUIDE_ACC_ANIM_DURATION = 0.15
     local SCROLL_BODY_X_INSET = 0
     local HERO_TOP_PAD = 0
     local SCROLL_ABOVE_FOOTER_GAP = (addon.DashboardConstants and addon.DashboardConstants.COMMUNITY_FOOTER_SCROLL_GAP) or 24
@@ -221,9 +223,10 @@ function addon.DashboardModuleGuide_Init(env)
             end
         end)
 
+        -- Same height + body alpha easing as DashboardDetailView CreateAccordionCard.
         card.anim = card:CreateAnimationGroup()
         local sizeAnim = card.anim:CreateAnimation("Animation")
-        sizeAnim:SetDuration(0.15)
+        sizeAnim:SetDuration(GUIDE_ACC_ANIM_DURATION)
         sizeAnim:SetSmoothing("IN_OUT")
 
         card.anim:SetScript("OnUpdate", function()
@@ -268,35 +271,60 @@ function addon.DashboardModuleGuide_Init(env)
 
     local heroTitle = MakeText(heroCard, L["DASH_GUIDE_HERO_TITLE"] or "Getting started", 22, 1, 1, 1, "LEFT")
     local heroTag = MakeText(heroCard, L["DASH_GUIDE_HERO_TAGLINE"] or "", 14, 0.78, 0.80, 0.85, "LEFT")
+    local heroOverview = MakeDashboardWelcomeMixedScriptText(heroCard, L["DASH_WELCOME_LEARN_BODY"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
+    heroOverview:SetWordWrap(true)
+    heroOverview:SetSpacing(4)
     local heroIntro = MakeDashboardWelcomeMixedScriptText(heroCard, L["DASH_GUIDE_HERO_INTRO"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
     heroIntro:SetWordWrap(true)
     heroIntro:SetSpacing(4)
 
-    local doLayout  -- assigned below; routes to LayoutGuideContent (standalone) or welcomeView re-layout (embedded)
-    local LayoutGuideContent
-    local quickHeading = MakeText(content, (L["DASH_GUIDE_QUICK_START_HEADING"] or "Quick start"):upper(), 13, 0.9, 0.9, 0.95, "LEFT")
-    local quickBody = MakeDashboardWelcomeMixedScriptText(content, L["DASH_GUIDE_QUICK_START_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
-    quickBody:SetWordWrap(true)
-    quickBody:SetSpacing(4)
+    -- Class-colour + dashboard theme prompt; SetHyperlinksEnabled on the Frame (not the FontString) enables cursor + OnHyperlinkClick.
+    local heroThemeLinkHost = CreateFrame("Frame", nil, heroCard)
+    heroThemeLinkHost:SetFrameLevel((heroCard:GetFrameLevel() or 0) + 2)
+    heroThemeLinkHost:EnableMouse(true)
+    heroThemeLinkHost:SetHyperlinksEnabled(true)
+    heroThemeLinkHost:SetScript("OnHyperlinkClick", function(_, linkData, _, button)
+        if button ~= "LeftButton" then return end
+        if type(linkData) ~= "string" then return end
+        if linkData == "hsdash:axis" and f.NavigateToAxisHome then
+            f.NavigateToAxisHome()
+        elseif linkData == "hsdash:theme" and f.NavigateToDashboardBackground then
+            f.NavigateToDashboardBackground()
+        elseif linkData == "hsdash:classcolours" and f.NavigateToClassColourTinting then
+            f.NavigateToClassColourTinting()
+        end
+    end)
+    local heroThemePrompt = MakeDashboardWelcomeMixedScriptText(heroThemeLinkHost, "", 13, 0.62, 0.65, 0.70, "LEFT")
+    heroThemePrompt:SetWordWrap(true)
+    heroThemePrompt:SetSpacing(4)
 
-    local horizonCard = CreateGuideAccordionCard(content, L["DASH_GUIDE_HORIZON_HEADING"] or "What is Horizon Suite?", false, doLayout)
+    local doLayout  -- assigned below; routes to LayoutGuideContent (standalone) or welcomeView re-layout (embedded)
+    -- Cards are created before doLayout exists; indirection so accordion clicks always invoke the real layout.
+    local accordionLayoutSink = { fn = nil }
+    local function RunAccordionLayout()
+        local fn = accordionLayoutSink.fn
+        if fn then fn() end
+    end
+    local LayoutGuideContent
+
+    local horizonCard = CreateGuideAccordionCard(content, L["DASH_GUIDE_HORIZON_HEADING"] or "Introduction to Modules", false, RunAccordionLayout)
     local horizonBullets = ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or ""))
     local horizonBulletsFs = MakeDashboardWelcomeMixedScriptText(horizonCard.settingsContainer, horizonBullets, 12, 0.62, 0.65, 0.70, "LEFT")
     horizonBulletsFs:SetWordWrap(true)
     horizonBulletsFs:SetSpacing(5)
 
     -- Per-module detail accordions (order matches bullet list)
-    local axisCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("axis"), false, doLayout)
+    local axisCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("axis"), false, RunAccordionLayout)
     local axisBody = MakeDashboardWelcomeMixedScriptText(axisCard.settingsContainer, L["DASH_GUIDE_MOD_AXIS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     axisBody:SetWordWrap(true)
     axisBody:SetSpacing(4)
 
-    local focusCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("focus"), false, doLayout)
+    local focusCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("focus"), false, RunAccordionLayout)
     local focusBody = MakeDashboardWelcomeMixedScriptText(focusCard.settingsContainer, L["DASH_GUIDE_MOD_FOCUS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     focusBody:SetWordWrap(true)
     focusBody:SetSpacing(4)
 
-    local presenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("presence"), false, doLayout)
+    local presenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("presence"), false, RunAccordionLayout)
     local presenceIntro = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_INTRO"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     presenceIntro:SetWordWrap(true)
     presenceIntro:SetSpacing(4)
@@ -307,27 +335,27 @@ function addon.DashboardModuleGuide_Init(env)
     presenceBlizzard:SetWordWrap(true)
     presenceBlizzard:SetSpacing(4)
 
-    local vistaCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("vista"), false, doLayout)
+    local vistaCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("vista"), false, RunAccordionLayout)
     local vistaBody = MakeDashboardWelcomeMixedScriptText(vistaCard.settingsContainer, L["DASH_GUIDE_MOD_VISTA_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     vistaBody:SetWordWrap(true)
     vistaBody:SetSpacing(4)
 
-    local insightCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("insight"), false, doLayout)
+    local insightCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("insight"), false, RunAccordionLayout)
     local insightBody = MakeDashboardWelcomeMixedScriptText(insightCard.settingsContainer, L["DASH_GUIDE_MOD_INSIGHT_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     insightBody:SetWordWrap(true)
     insightBody:SetSpacing(4)
 
-    local cacheCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("cache"), false, doLayout)
+    local cacheCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("cache"), false, RunAccordionLayout)
     local cacheBody = MakeDashboardWelcomeMixedScriptText(cacheCard.settingsContainer, L["DASH_GUIDE_MOD_CACHE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     cacheBody:SetWordWrap(true)
     cacheBody:SetSpacing(4)
 
-    local essenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("essence"), false, doLayout)
+    local essenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("essence"), false, RunAccordionLayout)
     local essenceBody = MakeDashboardWelcomeMixedScriptText(essenceCard.settingsContainer, L["DASH_GUIDE_MOD_ESSENCE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     essenceBody:SetWordWrap(true)
     essenceBody:SetSpacing(4)
 
-    local meridianCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("meridian"), false, doLayout)
+    local meridianCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("meridian"), false, RunAccordionLayout)
     local meridianBody = MakeDashboardWelcomeMixedScriptText(meridianCard.settingsContainer, L["DASH_GUIDE_MOD_MERIDIAN_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     meridianBody:SetWordWrap(true)
     meridianBody:SetSpacing(4)
@@ -344,7 +372,8 @@ function addon.DashboardModuleGuide_Init(env)
             end
             by = by + extraGapAfterBodies
             card.fullHeight = GUIDE_ACC_HEAD_H + by
-            if not card.anim:IsPlaying() then
+            -- During expand/collapse animation the card owns height; do not snap (matches DetailView + UpdateDetailLayout).
+            if not (card.anim and card.anim:IsPlaying()) then
                 card:SetHeight(card.expanded and card.fullHeight or card.collapsedHeight)
             end
             card:SetWidth(w)
@@ -364,7 +393,7 @@ function addon.DashboardModuleGuide_Init(env)
         return y
     end
 
-    local function layoutGuideHeroAndQuick(w, startY)
+    local function layoutGuideHero(w, startY)
         horizonBulletsFs:SetText(ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or "")))
         local y = startY
 
@@ -374,27 +403,49 @@ function addon.DashboardModuleGuide_Init(env)
         heroTitle:SetWidth(w)
         heroTitle:ClearAllPoints()
         heroTitle:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, 0)
-        local yt = heroTitle:GetHeight() + 8
-        heroTag:SetWidth(w)
-        heroTag:ClearAllPoints()
-        heroTag:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
-        yt = yt + heroTag:GetHeight() + 10
+        local yt = heroTitle:GetHeight() + 10
+
+        local themeText = L["DASH_GUIDE_HERO_THEME_PROMPT"] or ""
+        heroThemePrompt:SetText(themeText)
+        if themeText ~= "" then
+            heroThemePrompt:SetWidth(w)
+            heroThemePrompt:ClearAllPoints()
+            heroThemePrompt:SetPoint("TOPLEFT", heroThemeLinkHost, "TOPLEFT", 0, 0)
+            heroThemeLinkHost:SetWidth(w)
+            heroThemeLinkHost:SetHeight(math.max(heroThemePrompt:GetHeight(), 1))
+            heroThemeLinkHost:ClearAllPoints()
+            heroThemeLinkHost:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
+            heroThemeLinkHost:Show()
+            heroThemePrompt:Show()
+            yt = yt + heroThemeLinkHost:GetHeight() + 12
+        else
+            heroThemePrompt:SetText("")
+            heroThemeLinkHost:Hide()
+        end
+
+        local tagText = L["DASH_GUIDE_HERO_TAGLINE"] or ""
+        if tagText ~= "" then
+            heroTag:SetText(tagText)
+            heroTag:SetWidth(w)
+            heroTag:ClearAllPoints()
+            heroTag:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
+            heroTag:Show()
+            yt = yt + heroTag:GetHeight() + 10
+        else
+            heroTag:SetText("")
+            heroTag:Hide()
+        end
+        heroOverview:SetText(L["DASH_WELCOME_LEARN_BODY"] or "")
+        heroOverview:SetWidth(w)
+        heroOverview:ClearAllPoints()
+        heroOverview:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
+        yt = yt + heroOverview:GetHeight() + 12
         heroIntro:SetWidth(w)
         heroIntro:ClearAllPoints()
         heroIntro:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
         yt = yt + heroIntro:GetHeight() + 18
         heroCard:SetHeight(math.max(yt, 100))
         y = y + heroCard:GetHeight() + 20
-
-        quickHeading:SetText((L["DASH_GUIDE_QUICK_START_HEADING"] or "Quick start"):upper())
-        quickHeading:SetWidth(math.max(40, w))
-        quickHeading:ClearAllPoints()
-        quickHeading:SetPoint("TOPLEFT", content, "TOPLEFT", SCROLL_BODY_X_INSET, -y)
-        y = y + quickHeading:GetHeight() + 10
-        quickBody:SetWidth(math.max(40, w))
-        quickBody:ClearAllPoints()
-        quickBody:SetPoint("TOPLEFT", content, "TOPLEFT", SCROLL_BODY_X_INSET, -y)
-        y = y + quickBody:GetHeight() + 20
         return y
     end
 
@@ -417,7 +468,7 @@ function addon.DashboardModuleGuide_Init(env)
             guideScroll:SetPoint("TOPRIGHT", guideBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
             guideScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, SCROLL_ABOVE_FOOTER_GAP)
 
-            local y = layoutGuideHeroAndQuick(w,HERO_TOP_PAD)
+            local y = layoutGuideHero(w, HERO_TOP_PAD)
             y = doLayoutAccordionCards(w, innerPad, y)
             y = y + 8
             content:SetHeight(math.max(y + 8, 1))
@@ -435,6 +486,7 @@ function addon.DashboardModuleGuide_Init(env)
             end
         end
         doLayout = LayoutGuideContent
+        accordionLayoutSink.fn = doLayout
 
         guideView:SetScript("OnShow", function()
             LayoutGuideContent()
@@ -475,7 +527,7 @@ function addon.DashboardModuleGuide_Init(env)
         -- LayoutWelcomeContent calls this after positioning feed items; returns updated y.
         addon.DashboardModuleGuide_LayoutEmbedded = function(w, startY, innerPad)
             innerPad = innerPad or 28
-            local y = layoutGuideHeroAndQuick(w,startY)
+            local y = layoutGuideHero(w, startY)
             y = doLayoutAccordionCards(w, innerPad, y)
             y = y + 8
             return y
@@ -485,5 +537,6 @@ function addon.DashboardModuleGuide_Init(env)
                 welcomeView._layoutWelcomeContent()
             end
         end
+        accordionLayoutSink.fn = doLayout
     end
 end
