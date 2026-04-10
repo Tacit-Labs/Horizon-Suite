@@ -103,18 +103,20 @@ L["DASH_NEWS_HEAD_SUB"]                                               = "Neueste
 -- L["DASH_NEWS_CTA_OPEN_FOCUS"]                                      = "Open Focus settings"
 -- L["DASH_NEWS_CTA_VIEW_ARTIST"]                                     = "View artist link"
 -- L["DASH_NEWS_CTA_OPEN_PATCH_NOTES"]                                = "Open Patch Notes"
--- L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                             = "News hub • Editorial layout"
+L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                                = "News hub • Editorial layout"
 -- L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                               = "Patch notes"
 -- L["DASH_NEWS_CTA_OPEN_GUIDE"]                                      = "Open Quick Start"
--- L["DASH_NEWS_FOCUS_CLICK_PROFILE_TITLE"]                           = "Blizzard+ is now the default click profile"
--- L["DASH_NEWS_FOCUS_CLICK_PROFILE_TAGLINE"]                         = "Focus now lands closer to Blizzard muscle memory while keeping Horizon's convenience options close by."
+L["DASH_NEWS_FOCUS_CLICK_PROFILE_TITLE"]                              = "Blizzard+ is now the default click profile"
+L["DASH_NEWS_FOCUS_CLICK_PROFILE_TAGLINE"]                            = "Focus now lands closer to Blizzard muscle memory while keeping Horizon's convenience options close by."
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_BODY"]                               = "The updated preset gives quest rows a cleaner default interaction model. If you want to tune it, head into Focus > Interactions to review the profile today and keep an eye out for Horizon+ and deeper Custom shortcuts next."
--- L["DASH_NEWS_FOCUS_CLICK_PROFILE_META"]                            = "Focus • Interaction preset • Available now"
+L["DASH_NEWS_FOCUS_CLICK_PROFILE_META"]                               = "Focus • Interaction preset • Available now"
 -- L["DASH_NEWS_CLASS_ICONS_TITLE"]                                   = "A full Horizon class icon set is now bundled"
--- L["DASH_NEWS_CLASS_ICONS_BODY"]                                    = "Switch Class icon style to Horizon under Axis > Global Toggles to use the new set across the suite. The dashboard now surfaces the full strip here so the update reads like a release, not a footnote."
--- L["DASH_NEWS_CLASS_ICONS_META"]                                    = "Axis • Global Toggles • Art by Gabriel C"
--- L["DASH_NEWS_COMING_SOON_TITLE"]                                   = "More curated updates will land here next"
--- L["DASH_NEWS_COMING_SOON_BODY"]                                    = "This space is now structured for featured stories, release highlights, and smaller follow-up cards. Until the next round of updates lands, Patch Notes remains the fastest way to catch every change."
+L["DASH_NEWS_CLASS_ICONS_BODY"]                                       = "Switch Class icon style to Horizon under Axis > Global Toggles to use the new set across the suite. The dashboard now surfaces the full strip here so the update reads like a release, not a footnote."
+L["DASH_NEWS_CLASS_ICONS_META"]                                       = "Axis • Global Toggles • Art by Gabriel C"
+L["DASH_NEWS_COMING_SOON_TITLE"]                                      = "More curated updates will land here next"
+L["DASH_NEWS_COMING_SOON_BODY"]                                       = "This space is now structured for featured stories, release highlights, and smaller follow-up cards. Until the next round of updates lands, Patch Notes remains the fastest way to catch every change."
+-- L["DASH_NEWS_HANDHELD_TITLE"]                                      = "Handheld support in the works"
+-- L["DASH_NEWS_HANDHELD_BODY"]                                       = "We're planning better support for smaller screens and handheld play—resize-friendly layouts, sensible defaults when the UI is scaled down, and fewer cramped panels. Details will land in |cffaaaaaaPatch Notes|r as pieces ship."
 -- L["DASH_NEWS_COMING_SOON_META"]                                    = "News hub • Editorial layout • Curated in addon"
 -- L["DASH_NEWS_QUICK_START_TITLE"]                                   = "Need the quick tour again?"
 -- L["DASH_NEWS_QUICK_START_BODY"]                                    = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
@@ -244,6 +246,7 @@ L["DASH_DISPLAY"]                                                     = "Anzeige
 L["DASH_FEATURES"]                                                    = "Funktionen"
 L["DASH_TYPOGRAPHY"]                                                  = "Typografie"
 L["DASH_APPEARANCE"]                                                  = "Design"
+-- L["DASH_CLICK_OPTIONS"]                                            = "Click Options"
 L["DASH_COLORS"]                                                      = "Farben"
 L["DASH_ORGANIZATION"]                                                = "Organisation"
 
@@ -293,6 +296,9 @@ L["OPTIONS_FOCUS_DELVES"]                                             = "Tiefen"
 L["OPTIONS_FOCUS_DELVES_DUNGEONS"]                                    = "Tiefen & Verliese"
 L["OPTIONS_FOCUS_DELVE_COMPLETE"]                                     = "Tiefe abgeschlossen"
 L["OPTIONS_FOCUS_INTERACTIONS"]                                       = "Interaktionen"
+-- L["OPTIONS_FOCUS_APPEARANCE_TAB_DESC"]                             = "Tracker panel look, fading, and list layout (header, sections, entries, timers, emphasis)."
+-- L["OPTIONS_FOCUS_CLICK_OPTIONS_TAB_DESC"]                          = "Click profile, per-combo actions, and optional safety toggles for the tracker."
+-- L["OPTIONS_FOCUS_INTERACTIONS_TAB_DESC"]                           = "Configure quest tracking rules and TomTom integration."
 L["OPTIONS_FOCUS_TRACKING"]                                           = "Verfolgung"
 L["OPTIONS_FOCUS_SCENARIO_BAR"]                                       = "Szenarioleiste"
 
@@ -577,6 +583,8 @@ L["OPTIONS_FOCUS_WOWHEAD_LINK_TOOLTIPS"]                              = "Wowhead
 L["OPTIONS_FOCUS_A_TOOLTIP_SHOWN_ADD_A_LINK"]                         = "Wenn ein Tooltip angezeigt wird, füge einen Link hinzu, über den die Quest, der Erfolg oder der NPC auf WoWhead geöffnet werden kann."
 L["OPTIONS_FOCUS_VIEW_WOWHEAD"]                                       = "Auf Wowhead anzeigen"
 L["OPTIONS_FOCUS_WOWHEAD_ALT_CLICK_HINT"]                             = "Alt + Klick für Link"
+-- L["OPTIONS_FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]                     = " · "
+L["OPTIONS_FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]                      = "In den Focus-Optionen festlegen"
 L["OPTIONS_FOCUS_COPY_LINK"]                                          = "Link kopieren"
 L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]                        = "Kopiere die folgende URL (Strg + C) und füge sie in deinem Browser ein."
 L["OPTIONS_FOCUS_OBJECTIVE_NUMBERS"]                                  = "Zahlen für Ziele anzeigen"
@@ -1001,6 +1009,7 @@ L["OPTIONS_FOCUS_APPEARANCE_CANNOT_SHARE"]                            = "Vorlage
 L["OPTIONS_FOCUS_QUEST_DETAILS_AFTER_COMBAT"]                         = "Quest-Details werden nach dem Kampf geöffnet."
 L["OPTIONS_FOCUS_SHARE_PARTY"]                                        = "Mit Gruppe teilen"
 L["OPTIONS_FOCUS_ABANDON_QUEST"]                                      = "Quest abbrechen"
+L["OPTIONS_FOCUS_CONTEXT_FOCUS_QUEST"]                                = "Quest fokussieren"
 L["OPTIONS_FOCUS_STOP_TRACKING"]                                      = "Entfolgen"
 L["OPTIONS_FOCUS_CONTEXT_OPEN_ACHIEVEMENT"]                           = "Erfolg anzeigen"
 L["OPTIONS_FOCUS_CONTEXT_OPEN_ENDEAVOR"]                              = "Unterfangen anzeigen"
@@ -1595,7 +1604,7 @@ L["OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO"]       = "Blizzar
 -- L["OPTIONS_CORE_COMING_SOON"]                                      = "Coming Soon"
 -- L["OPTIONS_CORE_COMPLETED_BOSS_STYLE"]                             = "Completed boss style"
 -- L["OPTIONS_CORE_COMPLETED_COUNT"]                                  = "Completed count"
--- L["OPTIONS_CORE_CONFIGURE_CLICK_BEHAVIORS_TRACKING_RULES_TOMTOM"]  = "Configure click behaviors, tracking rules, and TomTom integration."
+L["OPTIONS_CORE_CONFIGURE_CLICK_BEHAVIORS_TRACKING_RULES_TOMTOM"]     = "Configure click behaviors, tracking rules, and TomTom integration."
 -- L["OPTIONS_CORE_CONFIGURE_MINIMAP_S_SHAPE_SIZE_POSITION"]          = "Configure the minimap's shape, size, position, and text overlays."
 -- L["OPTIONS_CORE_CONTESTED_ZONE_COLOR"]                             = "Contested zone color"
 -- L["OPTIONS_CORE_CONTROL_TRACKER_VISIBILITY_WITHIN_DUNGEONS_RAIDS"] = "Control tracker visibility within dungeons, raids, and PvP."
@@ -1843,6 +1852,12 @@ L["OPTIONS_CORE_X_Y_OBJECTIVES_LIKE_PERCENT_OBJECTIVES"]              = "X/Y: ob
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
+
 
 
 

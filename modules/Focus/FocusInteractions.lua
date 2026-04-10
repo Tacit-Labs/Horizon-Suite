@@ -11,6 +11,8 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local pool = addon.pool
 local CLASSIC_ICON_CLICK_DEBOUNCE = 0.05
+-- Set to QUEST_ACTIONS["superTrack"] after that function is defined; quest context menu uses it.
+local SuperTrackQuestFromMenuEntry
 
 --- Append a WoWhead link line to GameTooltip when option is on and entry has a known URL.
 --- @param entry table Pool entry (self) with questID, achievementID, and/or creatureID
@@ -19,7 +21,10 @@ local function AppendWoWheadLineToTooltip(entry)
     local url = addon.GetWoWheadURL(entry)
     if not url then return end
     local text = (addon.L and addon.L["OPTIONS_FOCUS_VIEW_WOWHEAD"]) or "View on WoWhead"
-    local hint = (addon.L and addon.L["OPTIONS_FOCUS_WOWHEAD_ALT_CLICK_HINT"]) or "Alt + Click"
+    local hint = addon.focus.GetWoWheadClickBindingHint and addon.focus.GetWoWheadClickBindingHint() or ""
+    if hint == "" then
+        hint = (addon.L and addon.L["OPTIONS_FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]) or "Configure in Focus options"
+    end
     local line = ("|cff00b4ff|Hurl:%s|h[%s]|h|r |cff888888(%s)|r"):format(url, text, hint)
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine(line, 0.4, 0.7, 1)
@@ -78,7 +83,7 @@ local function TryCompleteQuestFromClick(questID)
     return false
 end
 
---- Show share/abandon context menu for a quest (classic click mode).
+--- Show share / focus / abandon / stop-tracking context menu for a quest.
 --- Always shows at least one actionable item; mimics Blizzard behaviour.
 --- @param questID number
 --- @param questName string
@@ -99,6 +104,19 @@ local function ShowQuestContextMenu(questID, questName, anchor)
                 end,
             }
         end
+    end
+    if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
+        local qid = questID
+        local trackedState = anchor and anchor.isTracked
+        menuList[#menuList + 1] = {
+            text = L["OPTIONS_FOCUS_CONTEXT_FOCUS_QUEST"] or "Focus quest",
+            notCheckable = true,
+            func = function()
+                if SuperTrackQuestFromMenuEntry then
+                    SuperTrackQuestFromMenuEntry({ questID = qid, isTracked = trackedState })
+                end
+            end,
+        }
     end
     if C_QuestLog and C_QuestLog.CanAbandonQuest and C_QuestLog.CanAbandonQuest(questID) then
         menuList[#menuList + 1] = {
@@ -805,6 +823,52 @@ local function ShowTrackedRareContextMenu(entry, anchor)
     }, "HorizonSuite_TrackedRareContextMenu", anchor)
 end
 
+-- Insert a chat hyperlink; opens the edit box when needed (clicks on the tracker clear chat focus first).
+--- @param link string|nil
+--- @return nil
+local function FocusInsertLinkIntoChat(link)
+    if not link or type(link) ~= "string" or link == "" then return end
+    if not ChatFrameUtil or not ChatFrameUtil.InsertLink then return end
+
+    local function tryInsert()
+        if ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() then
+            ChatFrameUtil.InsertLink(link)
+            return true
+        end
+        return false
+    end
+
+    if tryInsert() then return end
+
+    if ChatFrame_OpenChat then
+        local cf = _G.DEFAULT_CHAT_FRAME or _G.SELECTED_CHAT_FRAME
+        if cf then
+            pcall(ChatFrame_OpenChat, "", cf)
+        else
+            pcall(ChatFrame_OpenChat, "")
+        end
+    end
+
+    if tryInsert() then return end
+
+    if C_Timer and C_Timer.After then
+        local attempts = 0
+        local function retryInsert()
+            attempts = attempts + 1
+            if ChatFrameUtil.InsertLink and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() then
+                ChatFrameUtil.InsertLink(link)
+                return
+            end
+            if attempts < 5 then
+                C_Timer.After(0.05, retryInsert)
+            end
+        end
+        C_Timer.After(0, retryInsert)
+    end
+end
+
+addon.FocusInsertLinkIntoChat = FocusInsertLinkIntoChat
+
 --- Dispatch profile action for tracked non-quest rows (all profiles).
 --- @param action string
 --- @param kind string
@@ -840,20 +904,17 @@ local function ExecuteTrackedContentAction(action, kind, entry)
             addon.ShowURLCopyBox(url)
         end
     elseif action == "chatLink" then
-        if ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
-            if kind == "ach" and entry.achievementID and GetAchievementLink then
-                local link = GetAchievementLink(entry.achievementID)
-                if link then ChatFrameUtil.InsertLink(link) end
-            elseif kind == "endeavor" and entry.endeavorID and C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetInitiativeTaskChatLink then
-                local ok, link = pcall(C_NeighborhoodInitiative.GetInitiativeTaskChatLink, entry.endeavorID)
-                if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link) end
-            elseif kind == "recipe" and entry.recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
-                local ok, info = pcall(C_TradeSkillUI.GetRecipeInfo, entry.recipeID)
-                if ok and info and type(info) == "table" and info.hyperlink then ChatFrameUtil.InsertLink(info.hyperlink) end
-            elseif kind == "advguide" and entry.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
-                local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, entry.adventureGuideID)
-                if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link) end
-            end
+        if kind == "ach" and entry.achievementID and GetAchievementLink then
+            FocusInsertLinkIntoChat(GetAchievementLink(entry.achievementID))
+        elseif kind == "endeavor" and entry.endeavorID and C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetInitiativeTaskChatLink then
+            local ok, link = pcall(C_NeighborhoodInitiative.GetInitiativeTaskChatLink, entry.endeavorID)
+            if ok and link and type(link) == "string" and link ~= "" then FocusInsertLinkIntoChat(link) end
+        elseif kind == "recipe" and entry.recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
+            local ok, info = pcall(C_TradeSkillUI.GetRecipeInfo, entry.recipeID)
+            if ok and info and type(info) == "table" and info.hyperlink then FocusInsertLinkIntoChat(info.hyperlink) end
+        elseif kind == "advguide" and entry.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
+            local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, entry.adventureGuideID)
+            if ok and link and type(link) == "string" and link ~= "" then FocusInsertLinkIntoChat(link) end
         end
     elseif action == "share" then
         local printFn = addon.HSPrint or print
@@ -1330,6 +1391,8 @@ QUEST_ACTIONS["superTrack"] = function(entry)
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
+SuperTrackQuestFromMenuEntry = QUEST_ACTIONS["superTrack"]
+
 QUEST_ACTIONS["openDetails"] = function(entry)
     local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID)
     if isWorldQuest and C_QuestLog.AddWorldQuestWatch then
@@ -1424,11 +1487,8 @@ QUEST_ACTIONS["wowhear"] = function(entry)
 end
 
 QUEST_ACTIONS["chatLink"] = function(entry)
-    if ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
-        if entry.questID and GetQuestLink then
-            local link = GetQuestLink(entry.questID)
-            if link then ChatFrameUtil.InsertLink(link) end
-        end
+    if entry.questID and GetQuestLink then
+        FocusInsertLinkIntoChat(GetQuestLink(entry.questID))
     end
 end
 
@@ -1494,10 +1554,7 @@ APPEARANCE_ACTIONS["wowhear"] = function(entry)
 end
 
 APPEARANCE_ACTIONS["chatLink"] = function(entry)
-    if ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
-        local link = GetAppearanceDressLink(entry)
-        if link then ChatFrameUtil.InsertLink(link) end
-    end
+    FocusInsertLinkIntoChat(GetAppearanceDressLink(entry))
 end
 
 APPEARANCE_ACTIONS["none"] = function(_) end
@@ -1554,31 +1611,38 @@ for i = 1, addon.POOL_SIZE do
 
     e:SetScript("OnMouseDown", function(self, button)
         if button == "LeftButton" then
-            -- Shift+click to link in chat (native WoW behavior). Must run before any other click handling.
-            if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
-                if self.questID and GetQuestLink then
-                    local link = GetQuestLink(self.questID)
-                    if link then ChatFrameUtil.InsertLink(link); return end
-                end
-                if self.achievementID and GetAchievementLink then
-                    local link = GetAchievementLink(self.achievementID)
-                    if link then ChatFrameUtil.InsertLink(link); return end
-                end
-                if self.endeavorID and C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetInitiativeTaskChatLink then
-                    local ok, link = pcall(C_NeighborhoodInitiative.GetInitiativeTaskChatLink, self.endeavorID)
-                    if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link); return end
-                end
-                if self.recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
-                    local ok, info = pcall(C_TradeSkillUI.GetRecipeInfo, self.recipeID)
-                    if ok and info and type(info) == "table" and info.hyperlink then ChatFrameUtil.InsertLink(info.hyperlink); return end
-                end
-                if self.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
-                    local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, self.adventureGuideID)
-                    if ok and link and type(link) == "string" and link ~= "" then ChatFrameUtil.InsertLink(link); return end
-                end
-                if self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$") then
-                    local dressLink = GetAppearanceDressLink(self)
-                    if dressLink then ChatFrameUtil.InsertLink(dressLink); return end
+            -- Shift+click CHATLINK: only when the click profile maps this combo to Link in chat (not unconditional Blizzard bypass).
+            if IsModifiedClick("CHATLINK") and addon.focus and addon.focus.GetQuestClickAction then
+                local profileChat = addon.GetDB("focusClickProfile", "blizzardDefault")
+                clickMods.shift = IsShiftKeyDown()
+                clickMods.ctrl  = IsControlKeyDown()
+                clickMods.alt   = IsAltKeyDown()
+                local wantChatLink = addon.focus.GetQuestClickAction("LeftButton", clickMods, profileChat) == "chatLink"
+                if wantChatLink and not (addon.GetDB("requireCtrlForQuestClicks", false) and not clickMods.ctrl) then
+                    if self.questID and GetQuestLink then
+                        local link = GetQuestLink(self.questID)
+                        if link then FocusInsertLinkIntoChat(link); return end
+                    end
+                    if self.achievementID and GetAchievementLink then
+                        local link = GetAchievementLink(self.achievementID)
+                        if link then FocusInsertLinkIntoChat(link); return end
+                    end
+                    if self.endeavorID and C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetInitiativeTaskChatLink then
+                        local ok, link = pcall(C_NeighborhoodInitiative.GetInitiativeTaskChatLink, self.endeavorID)
+                        if ok and link and type(link) == "string" and link ~= "" then FocusInsertLinkIntoChat(link); return end
+                    end
+                    if self.recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
+                        local ok, info = pcall(C_TradeSkillUI.GetRecipeInfo, self.recipeID)
+                        if ok and info and type(info) == "table" and info.hyperlink then FocusInsertLinkIntoChat(info.hyperlink); return end
+                    end
+                    if self.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
+                        local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, self.adventureGuideID)
+                        if ok and link and type(link) == "string" and link ~= "" then FocusInsertLinkIntoChat(link); return end
+                    end
+                    if self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$") then
+                        local dressLink = GetAppearanceDressLink(self)
+                        if dressLink then FocusInsertLinkIntoChat(dressLink); return end
+                    end
                 end
             end
             -- Tracked appearance: same profile system as quests (Horizon+ / Blizzard+ / Custom); icon delegates when UseBlizzardStyleQuestIconClicks.
@@ -1602,14 +1666,6 @@ for i = 1, addon.POOL_SIZE do
                 MaybeLogAppearanceClickDispatch("LeftButton", profileAppearance, clickMods, actionAppearance, self.appearanceID, "")
                 ExecuteAppearanceAction(actionAppearance, self)
                 return
-            end
-            -- Alt+LeftClick: show WoWhead URL in the copy box so the user can Ctrl+C and paste in a browser.
-            if IsAltKeyDown() then
-                local url = addon.GetWoWheadURL(self)
-                if url and type(url) == "string" and url ~= "" then
-                    if addon.ShowURLCopyBox then addon.ShowURLCopyBox(url) end
-                    return
-                end
             end
             if self.entryKey then
                 local trackedKind = ResolveTrackedContentKind(self)
@@ -1692,15 +1748,6 @@ for i = 1, addon.POOL_SIZE do
                 end
             end
             if self.questID then
-                -- Shift+Right: abandon non-world quests unconditionally (destructive — kept outside profile system).
-                if IsShiftKeyDown() then
-                    if not (addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(self.questID)) then
-                        local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID and C_QuestLog.GetTitleForQuestID(self.questID)) or "this quest"
-                        StaticPopup_Show("HORIZONSUITE_ABANDON_QUEST", questName, nil, { questID = self.questID })
-                        return
-                    end
-                end
-
                 clickMods.shift = IsShiftKeyDown()
                 clickMods.ctrl  = IsControlKeyDown()
                 clickMods.alt   = IsAltKeyDown()
