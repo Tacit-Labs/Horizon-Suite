@@ -129,7 +129,7 @@ local function CreateQuestEntry(parent, index)
     e.questTypeIcon:SetPoint("TOPRIGHT", e, "TOPLEFT", -iconRight, 0)
     e.questTypeIcon:Hide()
 
-    -- Quest icon button: overlay for Classic mode left-click super-track. Positioned in Layout.
+    -- Quest icon button: overlay for the configured icon-click action. Positioned in Layout.
     -- Use OnMouseDown (not OnClick) to avoid double-handling: OnClick fires on mouse-up and would toggle again.
     local iconSize = _S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or addon.QUEST_TYPE_ICON_SIZE)
     e.questIconBtn = CreateFrame("Button", nil, e)
@@ -142,16 +142,10 @@ local function CreateQuestEntry(parent, index)
         if button ~= "LeftButton" then return end
         local entry = self._ownerEntry
         if not entry then return end
-        local useIconFocus = addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks()
+        local useIconFocus = addon.focus.UseFocusIconClickButton and addon.focus.UseFocusIconClickButton()
         if not useIconFocus then return end
-        if entry.isAppearance and entry.appearanceID then
-            if addon.HandleClassicAppearanceIconMouseDown then
-                addon.HandleClassicAppearanceIconMouseDown(entry)
-            end
-            return
-        end
-        if addon.HandleClassicQuestIconMouseDown then
-            addon.HandleClassicQuestIconMouseDown(entry)
+        if addon.HandleFocusIconMouseDown then
+            addon.HandleFocusIconMouseDown(entry)
         end
     end)
     e.questIconBtn:SetScript("OnEnter", function(self)

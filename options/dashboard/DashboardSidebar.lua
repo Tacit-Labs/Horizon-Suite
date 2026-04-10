@@ -139,7 +139,8 @@ function addon.DashboardSidebar_CreateChrome(p)
     end
 
     local TAB_ROW_HEIGHT = 38
-    local SIDEBAR_WHATSNEW_RESERVE = TAB_ROW_HEIGHT
+    -- Space for pinned bottom rows (Search + Patch Notes).
+    local SIDEBAR_WHATSNEW_RESERVE = TAB_ROW_HEIGHT * 2
 
     local function layoutUnderHeader()
         logoSep:ClearAllPoints()
@@ -189,7 +190,7 @@ function addon.DashboardSidebar_CreateChrome(p)
     local COLLAPSE_ANIM_DUR = 0.18
     local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
-    -- Separator texture above the pinned bottom button (anchored to sidebar)
+    -- Separator texture above the pinned bottom rows (anchored to sidebar)
     local pinnedSep = sidebar:CreateTexture(nil, "ARTWORK")
     pinnedSep:SetHeight(1)
     pinnedSep:SetColorTexture(0.15, 0.15, 0.2, 1)
@@ -282,11 +283,13 @@ function addon.DashboardSidebar_CreateChrome(p)
         return btn
     end
 
-    local function CreateBottomPinnedButton(label, iconName, onClick)
+    --- @param yFromBottom number|nil Pixels up from sidebar bottom (stack rows: Patch Notes 0, row above TAB_ROW_HEIGHT).
+    local function CreateBottomPinnedButton(label, iconName, onClick, yFromBottom)
+        yFromBottom = yFromBottom or 0
         local btn = CreateFrame("Button", nil, sidebar)
         btn:SetSize(SIDEBAR_WIDTH - 1, TAB_ROW_HEIGHT)
-        btn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, 0)
-        btn:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, 0)
+        btn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, yFromBottom)
+        btn:SetPoint("BOTTOMRIGHT", sidebar, "BOTTOMRIGHT", -1, yFromBottom)
 
         local btnBg = btn:CreateTexture(nil, "BACKGROUND")
         btnBg:SetAllPoints()

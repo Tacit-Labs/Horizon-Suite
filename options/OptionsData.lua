@@ -45,6 +45,7 @@ local CACHE_KEYS = {
 
 local FOCUS_CLICK_KEYS = {
     focusClickProfile     = true,
+    focusIconClickAction  = true,
     focusClick_left       = true,
     focusClick_shiftLeft  = true,
     focusClick_ctrlLeft   = true,
@@ -52,6 +53,7 @@ local FOCUS_CLICK_KEYS = {
     focusClick_right      = true,
     focusClick_shiftRight = true,
     focusClick_ctrlRight  = true,
+    focusClick_altRight   = true,
 }
 
 local INSIGHT_KEYS = {
@@ -570,32 +572,68 @@ local function getDB(k, d) return addon.GetDB(k, d) end
 local function setDB(k, v) return OptionsData_SetDB(k, v) end
 
 --- Returns dropdown options for a given combo key, delegating to FocusClickConfig.
+--- Custom profile uses the full action list on every combo; presets use curated COMBO_OPTIONS.
 --- @param comboKey string e.g. "left", "shiftLeft"
 --- @return table { {label, value}, ... }
 local function GetComboActionOptions(comboKey)
-    if addon.focus and addon.focus.clickConfig and addon.focus.clickConfig.GetComboOptions then
-        return addon.focus.clickConfig.GetComboOptions(comboKey)
+    local cfg = addon.focus and addon.focus.clickConfig
+    if not cfg then return {} end
+    if getDB("focusClickProfile", "blizzardDefault") == "custom" and cfg.GetAllComboActionOptions then
+        return cfg.GetAllComboActionOptions()
+    end
+    if cfg.GetComboOptions then
+        return cfg.GetComboOptions(comboKey)
     end
     return {}
 end
 
---- Resolved action for options UI: per-combo DB when Custom; else built-in preset (Horizon+ / Blizzard).
---- @param comboKey string
---- @param dbKey string
---- @param fallback string
---- @return string
-local function GetEffectiveFocusClickAction(comboKey, dbKey, fallback)
-    local prof = getDB("focusClickProfile", "blizzardDefault")
-    if prof == "custom" then
-        return getDB(dbKey, fallback)
-    end
+--- Returns dropdown options for the shared quest/appearance icon click action.
+--- @return table { {label, value}, ... }
+local function GetIconClickActionOptions()
     local cfg = addon.focus and addon.focus.clickConfig
+    if cfg and cfg.GetIconActionOptions then
+        return cfg.GetIconActionOptions()
+    end
+    return {}
+end
+
+--- Resolved action for options UI: per-combo DB when Custom (defaults match Blizzard+); else built-in preset.
+--- @param comboKey string
+--- @param dbKey string SavedVariables key e.g. focusClick_left
+--- @return string
+local function GetEffectiveFocusClickAction(comboKey, dbKey)
+    local prof = getDB("focusClickProfile", "blizzardDefault")
+    local cfg = addon.focus and addon.focus.clickConfig
+    local normalizeAction = cfg and cfg.NormalizeAction
     local profiles = cfg and cfg.PROFILES
-    if not profiles then return fallback end
+    local blizz = profiles and profiles.blizzardDefault
+    local customDefault = (blizz and blizz[comboKey]) or "none"
+
+    if prof == "custom" then
+        local raw = getDB(dbKey, customDefault)
+        return normalizeAction and normalizeAction(raw) or raw
+    end
+    if not profiles then return customDefault end
     local t = profiles[prof] or profiles.blizzardDefault
     local v = t and t[comboKey]
+    if normalizeAction then
+        v = normalizeAction(v)
+    end
     if type(v) == "string" and v ~= "" then return v end
-    return fallback
+    return (t and t[comboKey]) or customDefault
+end
+
+--- Resolved icon click action for options UI: fixed default for presets, DB-backed for Custom.
+--- @return string
+local function GetEffectiveFocusIconClickAction()
+    local prof = getDB("focusClickProfile", "blizzardDefault")
+    if prof ~= "custom" then
+        return "superTrack"
+    end
+    local cfg = addon.focus and addon.focus.clickConfig
+    local normalizeAction = cfg and cfg.NormalizeIconAction
+    local raw = getDB("focusIconClickAction", "superTrack")
+    return normalizeAction and normalizeAction(raw) or raw
 end
 
 --- When true, per-combo dropdowns are read-only (preset profile selected).
@@ -777,6 +815,7 @@ local OptionCategories = {
         moduleKey = nil,
         options = (function()
             local previewSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+            local previewDescSuffix = "\n\n" .. (L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"] or "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality.")
             local function setModuleFromOptions(moduleKey, v)
                 local dash = _G.HorizonSuiteDashboard
                 local defer = dash and dash:IsShown()
@@ -788,8 +827,8 @@ local OptionCategories = {
                 { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
                 { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) setModuleFromOptions("vista", v) end },
                 { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) setModuleFromOptions("insight", v) end },
-                { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"], dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
-                { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = "Custom character sheet with 3D model, item level, stats, and gear grid.", dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
+                { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = (L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"] or "") .. previewDescSuffix, dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
+                { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = (L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] or "Custom character sheet with 3D model, item level, stats, and gear grid.") .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
                 { type = "moduleReloadPrompt" },
             }
             opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
@@ -1783,15 +1822,26 @@ local OptionCategories = {
                 end,
                 refreshIds = {
                     "focusClick_left", "focusClick_shiftLeft", "focusClick_ctrlLeft", "focusClick_altLeft",
-                    "focusClick_right", "focusClick_shiftRight", "focusClick_ctrlRight",
+                    "focusClick_right", "focusClick_shiftRight", "focusClick_ctrlRight", "focusClick_altRight", "focusIconClickAction",
                 },
+            },
+            {
+                type    = "dropdown",
+                name    = L["OPTIONS_FOCUS_ICON_CLICK_ACTION"],
+                desc    = L["OPTIONS_FOCUS_ICON_CLICK_ACTION_DESC"],
+                dbKey   = "focusIconClickAction",
+                options = GetIconClickActionOptions,
+                get     = function() return GetEffectiveFocusIconClickAction() end,
+                set     = function(v) setDB("focusIconClickAction", v) end,
+                disabled = FocusClickPresetCombosLocked,
+                tooltip  = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
             },
             {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_LEFT"],
                 dbKey       = "focusClick_left",
-                options     = GetComboActionOptions("left"),
-                get         = function() return GetEffectiveFocusClickAction("left", "focusClick_left", "openProfession") end,
+                options     = function() return GetComboActionOptions("left") end,
+                get         = function() return GetEffectiveFocusClickAction("left", "focusClick_left") end,
                 set         = function(v) setDB("focusClick_left", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1800,8 +1850,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_SHIFT_LEFT"],
                 dbKey       = "focusClick_shiftLeft",
-                options     = GetComboActionOptions("shiftLeft"),
-                get         = function() return GetEffectiveFocusClickAction("shiftLeft", "focusClick_shiftLeft", "untrack") end,
+                options     = function() return GetComboActionOptions("shiftLeft") end,
+                get         = function() return GetEffectiveFocusClickAction("shiftLeft", "focusClick_shiftLeft") end,
                 set         = function(v) setDB("focusClick_shiftLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1810,8 +1860,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_CTRL_LEFT"],
                 dbKey       = "focusClick_ctrlLeft",
-                options     = GetComboActionOptions("ctrlLeft"),
-                get         = function() return GetEffectiveFocusClickAction("ctrlLeft", "focusClick_ctrlLeft", "none") end,
+                options     = function() return GetComboActionOptions("ctrlLeft") end,
+                get         = function() return GetEffectiveFocusClickAction("ctrlLeft", "focusClick_ctrlLeft") end,
                 set         = function(v) setDB("focusClick_ctrlLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1820,8 +1870,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_ALT_LEFT"],
                 dbKey       = "focusClick_altLeft",
-                options     = GetComboActionOptions("altLeft"),
-                get         = function() return GetEffectiveFocusClickAction("altLeft", "focusClick_altLeft", "wowhear") end,
+                options     = function() return GetComboActionOptions("altLeft") end,
+                get         = function() return GetEffectiveFocusClickAction("altLeft", "focusClick_altLeft") end,
                 set         = function(v) setDB("focusClick_altLeft", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1830,8 +1880,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_RIGHT"],
                 dbKey       = "focusClick_right",
-                options     = GetComboActionOptions("right"),
-                get         = function() return GetEffectiveFocusClickAction("right", "focusClick_right", "contextMenu") end,
+                options     = function() return GetComboActionOptions("right") end,
+                get         = function() return GetEffectiveFocusClickAction("right", "focusClick_right") end,
                 set         = function(v) setDB("focusClick_right", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1840,8 +1890,8 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_SHIFT_RIGHT"],
                 dbKey       = "focusClick_shiftRight",
-                options     = GetComboActionOptions("shiftRight"),
-                get         = function() return GetEffectiveFocusClickAction("shiftRight", "focusClick_shiftRight", "abandon") end,
+                options     = function() return GetComboActionOptions("shiftRight") end,
+                get         = function() return GetEffectiveFocusClickAction("shiftRight", "focusClick_shiftRight") end,
                 set         = function(v) setDB("focusClick_shiftRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
@@ -1850,9 +1900,19 @@ local OptionCategories = {
                 type        = "dropdown",
                 name        = L["OPTIONS_FOCUS_COMBO_CTRL_RIGHT"],
                 dbKey       = "focusClick_ctrlRight",
-                options     = GetComboActionOptions("ctrlRight"),
-                get         = function() return GetEffectiveFocusClickAction("ctrlRight", "focusClick_ctrlRight", "none") end,
+                options     = function() return GetComboActionOptions("ctrlRight") end,
+                get         = function() return GetEffectiveFocusClickAction("ctrlRight", "focusClick_ctrlRight") end,
                 set         = function(v) setDB("focusClick_ctrlRight", v) end,
+                disabled    = FocusClickPresetCombosLocked,
+                tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
+            },
+            {
+                type        = "dropdown",
+                name        = L["OPTIONS_FOCUS_COMBO_ALT_RIGHT"],
+                dbKey       = "focusClick_altRight",
+                options     = function() return GetComboActionOptions("altRight") end,
+                get         = function() return GetEffectiveFocusClickAction("altRight", "focusClick_altRight") end,
+                set         = function(v) setDB("focusClick_altRight", v) end,
                 disabled    = FocusClickPresetCombosLocked,
                 tooltip     = L["OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"],
             },
@@ -3067,7 +3127,110 @@ local OptionCategories = {
 -- ---------------------------------------------------------------------------
 -- Search index: flatten all options for search (name + desc + section)
 -- Includes optionId, sectionName, categoryIndex for navigation.
+-- Match uses word tokens (alphanumeric runs) with prefix matching; see OptionsData_SearchEntryScore.
 -- ---------------------------------------------------------------------------
+
+local function TokenizeSearchCorpus(str)
+    local t = {}
+    if not str or str == "" then return t end
+    local lower = str:lower()
+    for word in string.gmatch(lower, "%w+") do
+        t[#t + 1] = word
+    end
+    return t
+end
+
+local function ParseSearchQueryTerms(query)
+    local terms = {}
+    if not query or query == "" then return terms end
+    local q = query:lower()
+    q = q:gsub("^%s+", ""):gsub("%s+$", "")
+    for word in string.gmatch(q, "%w+") do
+        terms[#terms + 1] = word
+    end
+    return terms
+end
+
+-- Best score for one query term against a token list (exact word or whole-token prefix if term length >= 2).
+local function TermScoreAgainstTokens(term, tokens, exactScore, prefixScore)
+    local best = 0
+    if not tokens then return 0 end
+    for i = 1, #tokens do
+        local w = tokens[i]
+        if w == term then
+            if exactScore > best then best = exactScore end
+        elseif #term >= 2 and #w >= #term and string.sub(w, 1, #term) == term then
+            if prefixScore > best then best = prefixScore end
+        end
+    end
+    return best
+end
+
+--- Score an index entry for a lowercased search string; nil if no match.
+--- Multi-word queries require every term to match some token (AND). Higher = better (name > section > category > module > option id > desc).
+--- @param entry table Row from OptionsData_BuildSearchIndex()
+--- @param queryLower string Trimmed, lowercased query
+--- @return number|nil
+function OptionsData_SearchEntryScore(entry, queryLower)
+    if not entry or not queryLower or queryLower == "" then return nil end
+    local terms = ParseSearchQueryTerms(queryLower)
+    if #terms == 0 then return nil end
+    local total = 0
+    for ti = 1, #terms do
+        local term = terms[ti]
+        local best = 0
+        local function bump(tokens, exactPts, prefixPts)
+            local s = TermScoreAgainstTokens(term, tokens, exactPts, prefixPts)
+            if s > best then best = s end
+        end
+        bump(entry.searchTokensName, 1000, 700)
+        bump(entry.searchTokensSection, 400, 280)
+        bump(entry.searchTokensCategory, 350, 240)
+        bump(entry.searchTokensModule, 300, 200)
+        bump(entry.searchTokensOptionId, 180, 120)
+        bump(entry.searchTokensDesc, 150, 100)
+        if best == 0 then return nil end
+        total = total + best
+    end
+    return total
+end
+
+local function StripSearchDisplayFormatting(s)
+    if s == nil then return "" end
+    s = tostring(s)
+    s = s:gsub("|c%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    s = s:gsub("|n", " ")
+    s = s:gsub("|T[^|]-|t", "")
+    return s
+end
+
+local function NormalizeSearchDisplayWhitespace(s)
+    s = s:gsub("%s+", " ")
+    return s:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+--- Plain-text option description and tooltip for search dropdown rows (why this matched).
+--- @param opt table Option definition from OptionCategories
+--- @param maxLen number|nil Max characters before "..." (default 140)
+--- @return string
+function OptionsData_SearchResultDetailText(opt, maxLen)
+    if not opt then return "" end
+    maxLen = maxLen or 140
+    local rawD = type(opt.desc) == "function" and opt.desc() or opt.desc
+    local rawT = type(opt.tooltip) == "function" and opt.tooltip() or opt.tooltip
+    local d = NormalizeSearchDisplayWhitespace(StripSearchDisplayFormatting(rawD))
+    local t = NormalizeSearchDisplayWhitespace(StripSearchDisplayFormatting(rawT))
+    local combined
+    if d ~= "" and t ~= "" and t ~= d then
+        combined = d .. " · " .. t
+    elseif d ~= "" then
+        combined = d
+    else
+        combined = t
+    end
+    if #combined <= maxLen then return combined end
+    return string.sub(combined, 1, maxLen - 3) .. "..."
+end
 
 function OptionsData_BuildSearchIndex()
     local index = {}
@@ -3081,6 +3244,9 @@ function OptionsData_BuildSearchIndex()
         else
             moduleLabel = BrandModule(moduleKey) or L["OPTIONS_AXIS_MODULES"]
         end
+        local catNameRaw = type(cat.name) == "function" and cat.name() or cat.name
+        local catNameStr = tostring(catNameRaw or "")
+        local catNameLower = catNameStr:lower()
         local catOpts = type(cat.options) == "function" and cat.options() or cat.options
         for _, opt in ipairs(catOpts) do
             if opt.type == "section" then
@@ -3090,8 +3256,10 @@ function OptionsData_BuildSearchIndex()
                 local name = (rawName or ""):lower()
                 local desc = ((opt.desc or "") .. " " .. (opt.tooltip or "")):lower()
                 local sectionLower = (currentSection or ""):lower()
-                local searchText = name .. " " .. desc .. " " .. sectionLower .. " " .. (moduleLabel or ""):lower()
+                local moduleLower = (moduleLabel or ""):lower()
+                local searchText = name .. " " .. desc .. " " .. sectionLower .. " " .. moduleLower
                 local optionId = opt.dbKey or (cat.key .. "_" .. (rawName or ""):gsub("%s+", "_"))
+                local idForTokens = tostring(optionId or ""):lower():gsub("_+", " ")
                 index[#index + 1] = {
                     categoryKey = cat.key,
                     categoryName = cat.name,
@@ -3102,6 +3270,12 @@ function OptionsData_BuildSearchIndex()
                     option = opt,
                     optionId = optionId,
                     searchText = searchText,
+                    searchTokensName = TokenizeSearchCorpus(name),
+                    searchTokensDesc = TokenizeSearchCorpus(desc),
+                    searchTokensSection = TokenizeSearchCorpus(sectionLower),
+                    searchTokensModule = TokenizeSearchCorpus(moduleLower),
+                    searchTokensCategory = TokenizeSearchCorpus(catNameLower),
+                    searchTokensOptionId = TokenizeSearchCorpus(idForTokens),
                 }
             end
         end
@@ -3125,6 +3299,8 @@ addon.OptionsData_SetUpdateFontsRef = OptionsData_SetUpdateFontsRef
 addon.GetPresencePreviewDropdownOptions = GetPresencePreviewDropdownOptions
 addon.OptionCategories = getVisibleCategories()
 addon.OptionsData_BuildSearchIndex = OptionsData_BuildSearchIndex
+addon.OptionsData_SearchEntryScore = OptionsData_SearchEntryScore
+addon.OptionsData_SearchResultDetailText = OptionsData_SearchResultDetailText
 addon.COLOR_KEYS_ORDER = COLOR_KEYS_ORDER
 addon.ZONE_COLOR_DEFAULT = ZONE_COLOR_DEFAULT
 addon.OBJ_COLOR_DEFAULT = OBJ_COLOR_DEFAULT

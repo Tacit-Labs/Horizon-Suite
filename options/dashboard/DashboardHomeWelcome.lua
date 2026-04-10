@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Dashboard home module toggle hub.
-    Each module (Focus, Presence, Vista, Insight, Cache, Essence) gets a full-width card
+    Each module (Focus, Presence, Vista, Insight, Cache, Essence) gets a full-width card of uniform height
     with an animated pill toggle to enable/disable it. Card click navigates to settings.
     Wired from DashboardFrame.lua via addon.DashboardHomeWelcome_Init(env).
 ]]
@@ -18,15 +18,18 @@ function addon.DashboardHomeWelcome_Init(env)
     local envAddon = env.addon
     local L = env.L
     local dashboardView = env.dashboardView
+    local contentWidth = env.contentWidth
+    local dashScrollTopOffset = env.dashScrollTopOffset or -130
     local dashAccentRefs = env.dashAccentRefs
     local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
     local moduleLabels = env.moduleLabels
+    local PREVIEW_MODULE_KEYS = env.PREVIEW_MODULE_KEYS or {}
     local DASHBOARD_CONTENT_CARD_ALPHA_MULT = env.DASHBOARD_CONTENT_CARD_ALPHA_MULT
 
     local C = envAddon.DashboardConstants or {}
-    local CARD_H     = C.HOME_TOGGLE_CARD_H     or 96
-    local CARD_GAP   = C.HOME_TOGGLE_CARD_GAP   or 10
+    local CARD_H   = C.HOME_TOGGLE_CARD_H   or 88
+    local CARD_GAP = C.HOME_TOGGLE_CARD_GAP or 8
     local PILL_W     = C.HOME_TOGGLE_PILL_W     or 44
     local PILL_H     = C.HOME_TOGGLE_PILL_H     or 24
     local PILL_THUMB = C.HOME_TOGGLE_PILL_THUMB or 18
@@ -66,8 +69,24 @@ function addon.DashboardHomeWelcome_Init(env)
         essence  = L["DASH_HOME_MOD_ESSENCE_SHORT"]  or "Character panel with 3D model, item level, and gear.",
     }
 
-    local CARD_X_INSET = 40
-    local CARD_TOP_Y   = -110
+    -- Horizontal inset is on the scroll frame (match detail/subcategory); cards align to scroll content left.
+    local CARD_TOP_PAD = 8
+    local HOME_SCROLL_BOTTOM_INSET = 40
+    local HOME_CONTENT_BOTTOM_PAD = 16
+
+    local homeScroll = CreateFrame("ScrollFrame", nil, dashboardView, "UIPanelScrollFrameTemplate")
+    homeScroll:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 2)
+    homeScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
+    homeScroll:SetPoint("BOTTOMRIGHT", -40, HOME_SCROLL_BOTTOM_INSET)
+    homeScroll.ScrollBar:Hide()
+    homeScroll.ScrollBar:ClearAllPoints()
+
+    local homeContent = CreateFrame("Frame", nil, homeScroll)
+    homeContent:SetSize(contentWidth or math.max(200, (dashboardView:GetWidth() or 800) - 80), 1)
+    homeScroll:SetScrollChild(homeContent)
+    if addon.Dashboard_ApplySmoothScroll then
+        addon.Dashboard_ApplySmoothScroll(homeScroll, homeContent, 60, true)
+    end
 
     local function EaseInOutCubic(t)
         if t < 0.5 then
@@ -77,25 +96,9 @@ function addon.DashboardHomeWelcome_Init(env)
         return 0.5 * f2 * f2 * f2 + 1
     end
 
-    -- Scroll container so cards never overflow the view frame.
-    -- Starts at CARD_TOP_Y (below the header band) and fills to the view bottom.
-    local cardScroll = CreateFrame("ScrollFrame", nil, dashboardView, "UIPanelScrollFrameTemplate")
-    cardScroll:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 2)
-    cardScroll:SetPoint("TOPLEFT",     dashboardView, "TOPLEFT",      0, CARD_TOP_Y)
-    cardScroll:SetPoint("BOTTOMRIGHT", dashboardView, "BOTTOMRIGHT", -40, 0)
-    cardScroll.ScrollBar:Hide()
-    cardScroll.ScrollBar:ClearAllPoints()
-
-    local cardContent = CreateFrame("Frame", nil, cardScroll)
-    cardContent:SetSize(400, 1)
-    cardScroll:SetScrollChild(cardContent)
-    if envAddon.Dashboard_ApplySmoothScroll then
-        envAddon.Dashboard_ApplySmoothScroll(cardScroll, cardContent, 60, true)
-    end
-
     -- Reload banner is anchored to dashboardView (outside the scroll area) so it is
     -- always visible at the top of the card list regardless of scroll position.
-    -- LayoutToggleCards shifts cardScroll down when the banner is shown.
+    -- LayoutToggleCards shifts homeScroll down when the banner is shown.
     local reloadBanner = CreateFrame("Frame", nil, dashboardView)
     reloadBanner:SetHeight(BANNER_H)
     reloadBanner:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 10)
@@ -135,9 +138,29 @@ function addon.DashboardHomeWelcome_Init(env)
     local function MakeToggleCard(parent, moduleKey)
         local mc = MODULE_COLORS[moduleKey] or { 0.6, 0.6, 0.7 }
         local mr, mg, mb = mc[1], mc[2], mc[3]
+        local isPreviewModule = PREVIEW_MODULE_KEYS[moduleKey] and true or false
+        local previewTitleSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+        local previewDisclaimer = L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"] or "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
+        -- Disclaimer line: distinct from body copy (enabled / disabled module tint)
+        local PREVIEW_DISC_ON_R, PREVIEW_DISC_ON_G, PREVIEW_DISC_ON_B = 0.94, 0.62, 0.32
+        local PREVIEW_DISC_OFF_R, PREVIEW_DISC_OFF_G, PREVIEW_DISC_OFF_B = 0.50, 0.38, 0.26
+
+        -- Fixed text bands so every row uses CARD_H.
+        -- topInset is always derived from the non-preview stack so all rows start at the same Y.
+        -- The disclaimer (preview only) flows below and is clipped by the card boundary.
+        local TITLE_LINE_H = 16
+        local GAP_TITLE_DESC = 3
+        local DESC_AREA_H = 24
+        local GAP_DESC_DISC = 3
+        local DISC_AREA_H = 30
+        local DISC_FONT_SIZE = 10
+        local baseStackH = TITLE_LINE_H + GAP_TITLE_DESC + DESC_AREA_H
+        local blockH = math.max(ICON_SIZE, baseStackH)
+        local topInset = math.floor(math.max(5, (CARD_H - blockH) / 2 + 0.5))
 
         local card = CreateFrame("Button", nil, parent)
         card:SetHeight(CARD_H)
+        card:SetClipsChildren(true)
 
         local cardBg = card:CreateTexture(nil, "BACKGROUND")
         cardBg:SetAllPoints()
@@ -178,23 +201,38 @@ function addon.DashboardHomeWelcome_Init(env)
 
         local iconTex = card:CreateTexture(nil, "ARTWORK")
         iconTex:SetSize(ICON_SIZE, ICON_SIZE)
-        iconTex:SetPoint("LEFT", 18, 0)
+        iconTex:SetPoint("TOPLEFT", card, "TOPLEFT", 18, -topInset)
         iconTex:SetTexture("Interface\\Icons\\" .. (MODULE_ICONS[moduleKey] or "INV_Misc_Question_01"))
         card.iconTex = iconTex
 
         local modName = (moduleLabels and moduleLabels[moduleKey]) or (moduleKey:sub(1, 1):upper() .. moduleKey:sub(2))
+        local titleText = modName:upper() .. (isPreviewModule and previewTitleSuffix or "")
 
-        local nameLbl = MakeText(card, modName:upper(), 14, mr, mg, mb, "LEFT")
-        nameLbl:SetPoint("TOPLEFT", iconTex, "TOPRIGHT", 14, -13)
+        local nameLbl = MakeText(card, titleText, 14, mr, mg, mb, "LEFT")
+        nameLbl:SetPoint("TOPLEFT", iconTex, "TOPRIGHT", 10, 0)
         nameLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
+        nameLbl:SetHeight(TITLE_LINE_H)
         nameLbl:SetWordWrap(false)
         card.nameLbl = nameLbl
 
         local descLbl = MakeText(card, MODULE_DESCS[moduleKey] or "", 11, 0.55, 0.57, 0.62, "LEFT")
-        descLbl:SetPoint("TOPLEFT", nameLbl, "BOTTOMLEFT", 0, -8)
+        descLbl:SetPoint("TOPLEFT", nameLbl, "BOTTOMLEFT", 0, -GAP_TITLE_DESC)
         descLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
-        descLbl:SetWordWrap(false)
+        descLbl:SetHeight(DESC_AREA_H)
+        descLbl:SetWordWrap(true)
+        descLbl:SetJustifyV("TOP")
         card.descLbl = descLbl
+
+        local previewDisclaimerLbl = nil
+        if isPreviewModule then
+            previewDisclaimerLbl = MakeText(card, previewDisclaimer, DISC_FONT_SIZE, PREVIEW_DISC_ON_R, PREVIEW_DISC_ON_G, PREVIEW_DISC_ON_B, "LEFT")
+            previewDisclaimerLbl:SetPoint("TOPLEFT", descLbl, "BOTTOMLEFT", 0, -GAP_DESC_DISC)
+            previewDisclaimerLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
+            previewDisclaimerLbl:SetHeight(DISC_AREA_H)
+            previewDisclaimerLbl:SetWordWrap(true)
+            previewDisclaimerLbl:SetJustifyV("TOP")
+            card.previewDisclaimerLbl = previewDisclaimerLbl
+        end
 
         local pillBtn = CreateFrame("Button", nil, card)
         pillBtn:SetSize(PILL_W, PILL_H)
@@ -301,6 +339,15 @@ function addon.DashboardHomeWelcome_Init(env)
                 iconTex:SetVertexColor(1, 1, 1, hovered and 0.98 or 0.92)
                 nameLbl:SetTextColor(mr, mg, mb)
                 descLbl:SetTextColor(0.62, 0.64, 0.69)
+                if previewDisclaimerLbl then
+                    local dr, dg, db = PREVIEW_DISC_ON_R, PREVIEW_DISC_ON_G, PREVIEW_DISC_ON_B
+                    if hovered then
+                        dr = math.min(1, dr + 0.04)
+                        dg = math.min(1, dg + 0.04)
+                        db = math.min(1, db + 0.06)
+                    end
+                    previewDisclaimerLbl:SetTextColor(dr, dg, db)
+                end
                 chevron:SetTextColor(mr, mg, mb, hovered and 0.70 or 0.42)
             else
                 accentRail:SetColorTexture(mr, mg, mb, 0.30)
@@ -310,6 +357,9 @@ function addon.DashboardHomeWelcome_Init(env)
                 iconTex:SetVertexColor(0.50, 0.52, 0.56, 0.72)
                 nameLbl:SetTextColor(0.44, 0.46, 0.50)
                 descLbl:SetTextColor(0.36, 0.38, 0.42)
+                if previewDisclaimerLbl then
+                    previewDisclaimerLbl:SetTextColor(PREVIEW_DISC_OFF_R, PREVIEW_DISC_OFF_G, PREVIEW_DISC_OFF_B)
+                end
                 chevron:SetTextColor(0.36, 0.38, 0.42, hovered and 0.62 or 0.40)
             end
 
@@ -377,49 +427,43 @@ function addon.DashboardHomeWelcome_Init(env)
     end
 
     for _, mk in ipairs(MODULE_ORDER) do
-        local card = MakeToggleCard(cardContent, mk)
+        local card = MakeToggleCard(homeContent, mk)
         tinsert(toggleCards, { key = mk, card = card })
     end
 
     LayoutToggleCards = function()
-        local viewW = dashboardView:GetWidth() or 0
-        local cardW = math.max(200, viewW - CARD_X_INSET * 2)
-
-        -- Keep cardContent width in sync with the view so text wraps correctly.
-        cardContent:SetWidth(cardW)
+        local viewW = homeScroll:GetWidth() or homeContent:GetWidth() or 0
+        local cardW = math.max(200, viewW)
+        homeContent:SetWidth(cardW)
 
         -- Reload banner lives outside the scroll frame (parented to dashboardView).
-        -- When visible it occupies a fixed strip just below the header band; we shift
-        -- cardScroll down by BANNER_H + 4 to make room.  When hidden, cardScroll sits
-        -- at CARD_TOP_Y as normal.
+        -- When visible it occupies a fixed strip just above the scroll content; we
+        -- shift homeScroll down by BANNER_H + 4 to make room.
         local bannerShown = reloadBanner:IsShown()
-        local cardScrollTopY = bannerShown and (CARD_TOP_Y - BANNER_H - 4) or CARD_TOP_Y
+        local scrollTopY = bannerShown and (dashScrollTopOffset - BANNER_H - 4) or dashScrollTopOffset
 
-        cardScroll:ClearAllPoints()
-        cardScroll:SetPoint("TOPLEFT",     dashboardView, "TOPLEFT",      0, cardScrollTopY)
-        cardScroll:SetPoint("BOTTOMRIGHT", dashboardView, "BOTTOMRIGHT", -40, 0)
+        homeScroll:ClearAllPoints()
+        homeScroll:SetPoint("TOPLEFT",     dashboardView, "TOPLEFT",      40, scrollTopY)
+        homeScroll:SetPoint("BOTTOMRIGHT", dashboardView, "BOTTOMRIGHT", -40, HOME_SCROLL_BOTTOM_INSET)
 
-        -- Banner anchored at the top of the card area (above cardScroll when visible).
         reloadBanner:SetWidth(cardW)
         reloadBanner:ClearAllPoints()
-        reloadBanner:SetPoint("TOPLEFT", dashboardView, "TOPLEFT", CARD_X_INSET, CARD_TOP_Y)
+        reloadBanner:SetPoint("TOPLEFT", dashboardView, "TOPLEFT", 40, dashScrollTopOffset)
 
-        -- Cards are positioned inside cardContent starting at y=0.
-        -- The CARD_TOP_Y gap from the header is handled by the scroll frame offset above.
-        local y = 0
+        local y = CARD_TOP_PAD
 
         for _, entry in ipairs(toggleCards) do
             local card = entry.card
             card:SetWidth(cardW)
             card:ClearAllPoints()
-            card:SetPoint("TOPLEFT", cardContent, "TOPLEFT", CARD_X_INSET, y)
+            card:SetPoint("TOPLEFT", homeContent, "TOPLEFT", 0, -y)
             card:Show()
-            y = y - CARD_H - CARD_GAP
+            y = y + card:GetHeight() + CARD_GAP
         end
 
         -- Set content height so the scroll frame knows how far it can scroll.
-        local totalH = math.abs(y) + CARD_GAP + 16
-        cardContent:SetHeight(math.max(1, totalH))
+        local contentH = math.max(1, y + HOME_CONTENT_BOTTOM_PAD)
+        homeContent:SetHeight(contentH)
     end
 
     local function RefreshHomeToggleCards()
@@ -436,8 +480,8 @@ function addon.DashboardHomeWelcome_Init(env)
         LayoutToggleCards()
     end
 
-    dashboardView:SetScript("OnSizeChanged", function()
-        if dashboardView:IsShown() then
+    homeScroll:SetScript("OnSizeChanged", function()
+        if homeScroll:IsShown() then
             LayoutToggleCards()
         end
     end)
@@ -455,7 +499,6 @@ function addon.DashboardHomeWelcome_Init(env)
         newsEnv.feedData        = envAddon.DashboardNewsFeed
         newsEnv.targetViewName  = "news"
         newsEnv.headSubKey      = "DASH_NEWS_HEAD_SUB"
-        newsEnv.communityFooter = false
         envAddon.DashboardWelcomeView_Init(newsEnv)
     end
 

@@ -55,7 +55,7 @@ function addon.DashboardWelcomeView_Init(env)
     local HideContextHeader = env.HideContextHeader
     local SetSidebarState = env.setSidebarState
     local CLEAR = env.CLEAR
-    local searchBox = env.searchBox
+    local searchBarShell = env.searchBarShell
     local head = env.head
     local headSub = env.headSub
     local DASHBOARD_CONTENT_CARD_ALPHA_MULT = env.DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1
@@ -71,6 +71,7 @@ function addon.DashboardWelcomeView_Init(env)
     local WELCOME_ACC_HEAD_H = 48
     local WELCOME_SCROLL_BODY_X_INSET = 0
     local WELCOME_SCROLL_ABOVE_FOOTER_GAP = (addonRef.DashboardConstants and addonRef.DashboardConstants.COMMUNITY_FOOTER_SCROLL_GAP) or 24
+    local WELCOME_LEARN_SECTION_PEEK_PX = 96
     local SCROLL_TO_BG_INSET = 20
     local WELCOME_COMING_SOON_GIF_MAX_H = 132
     local WELCOME_COMING_SOON_TWO_COL_MIN_W = 440
@@ -78,6 +79,10 @@ function addon.DashboardWelcomeView_Init(env)
     local NEWS_FEATURED_MIN_ART_W = 220
     local NEWS_GRID_TWO_COL_MIN_W = 760
     local NEWS_GRID_GAP = 16
+    local NEWS_BADGE_EYEBROW_GAP = 10
+    local NEWS_FEATURED_META_BOTTOM_INSET = 10
+    local NEWS_FEATURED_META_GAP_ABOVE = 10
+    local NEWS_FEATURED_BODY_BEFORE_FOOTER_GAP = 8
     local NEWS_CARD_MIN_H = 220
     local NEWS_ICON_STRIP_GAP = 4
     local NEWS_MEDIA_WRAP_MIN_W = 180
@@ -90,7 +95,96 @@ function addon.DashboardWelcomeView_Init(env)
     local NEWS_CARD_EDITORIAL_FOOTER_GAP_ABOVE = 12
     local WELCOME_ACTION_GRID_GAP = 16
     local WELCOME_SUPPORT_GRID_GAP = 16
-    local WELCOME_ACTION_CARD_MIN_H = 168
+    local WELCOME_ACTION_CARD_MIN_H = 148
+    local WELCOME_ACTION_CARD_CTA_H = 18
+    local WELCOME_ACTION_CARD_FOOTER_GAP = 10
+    local WELCOME_ACTION_CARD_FOOTER_BOTTOM_INSET = 18
+
+    --- Place supporter name labels in a wrapping flow with stagger (tag-cloud style).
+    --- Uses per-label _supporterGapAfter and _supporterStagger set at create time.
+    --- @param host Frame
+    --- @param maxWidth number
+    --- @param entryList table Array of { name = string }
+    --- @param tagLabels table
+    --- @return nil
+    local function LayoutSupporterTagFlow(host, maxWidth, entryList, tagLabels)
+        if not host or not entryList or not tagLabels then return end
+        local gapY = 10
+        local x = 0
+        local y = 0
+        local rowH = 0
+        for j = 1, #tagLabels do
+            if j > #entryList and tagLabels[j] then
+                tagLabels[j]:Hide()
+            end
+        end
+        for i = 1, #entryList do
+            local fs = tagLabels[i]
+            if not fs then break end
+            fs:Show()
+            local w = fs:GetStringWidth() or 0
+            local gapAfter = fs._supporterGapAfter or 10
+            if x > 0 and (x + w) > maxWidth then
+                y = y + rowH + gapY
+                x = 0
+                rowH = 0
+            end
+            local stagger = fs._supporterStagger or 0
+            fs:ClearAllPoints()
+            fs:SetPoint("TOPLEFT", host, "TOPLEFT", x, -(y + stagger))
+            local fh = fs:GetHeight() or 12
+            rowH = math.max(rowH, fh + stagger)
+            x = x + w + gapAfter
+        end
+        host:SetHeight(math.max(1, y + rowH))
+    end
+
+    -- WoW class tokens (English, uppercase) for RAID_CLASS_COLORS / C_ClassColor.GetClassColor.
+    local SUPPORTER_CLASS_FALLBACK_ORDER = {
+        "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT",
+        "SHAMAN", "MAGE", "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER",
+    }
+
+    --- @param entry table
+    --- @return table|nil Array of { name = string, classFile = string|nil }
+    local function ResolveSupporterList(entry)
+        if not entry then return nil end
+        if entry.supporterEntries and #entry.supporterEntries > 0 then
+            return entry.supporterEntries
+        end
+        if entry.supporterNames and #entry.supporterNames > 0 then
+            local t = {}
+            for i, nm in ipairs(entry.supporterNames) do
+                t[i] = {
+                    name = nm,
+                    classFile = SUPPORTER_CLASS_FALLBACK_ORDER[((i - 1) % #SUPPORTER_CLASS_FALLBACK_ORDER) + 1],
+                }
+            end
+            return t
+        end
+        return nil
+    end
+
+    --- @param classFile string|nil
+    --- @return number, number, number
+    local function GetSupporterClassRGB(classFile)
+        if type(classFile) ~= "string" or classFile == "" then
+            return 0.62, 0.66, 0.74
+        end
+        if C_ClassColor and C_ClassColor.GetClassColor then
+            local ok, cc = pcall(function()
+                return C_ClassColor.GetClassColor(classFile)
+            end)
+            if ok and cc and type(cc.r) == "number" then
+                return cc.r, cc.g, cc.b
+            end
+        end
+        local rc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+        if rc and type(rc.r) == "number" then
+            return rc.r, rc.g, rc.b
+        end
+        return 0.62, 0.66, 0.74
+    end
 
     local function ShowCopyURL(label, url)
         if addonRef.ShowURLCopyBox then
@@ -110,6 +204,33 @@ function addon.DashboardWelcomeView_Init(env)
             return "Interface\\Icons\\" .. entry.icon
         end
         return nil
+    end
+
+    -- Icon file string, or { atlas, fallback } to match DashboardSidebar ApplySidebarButtonIconTexture.
+    local function ApplyWelcomeActionCardIcon(tex, entry)
+        if not tex or not entry then return false end
+        local icon = entry.icon
+        if type(icon) == "table" and icon.atlas and tex.SetAtlas then
+            local atlas = icon.atlas
+            local gi = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+            if C_Texture and C_Texture.GetAtlasInfo and not gi and type(icon.fallback) == "string" then
+                if tex.SetAtlas then tex:SetAtlas(nil) end
+                tex:SetTexture("Interface\\Icons\\" .. icon.fallback)
+            else
+                tex:SetTexture(nil)
+                pcall(function()
+                    tex:SetAtlas(atlas, false)
+                end)
+            end
+            return true
+        end
+        local path = ResolveNewsTexturePath(entry)
+        if path then
+            if tex.SetAtlas then tex:SetAtlas(nil) end
+            tex:SetTexture(path)
+            return true
+        end
+        return false
     end
 
     local function ResolveNewsArtIntrinsicSize(entry, tex, fallbackRatio)
@@ -281,38 +402,13 @@ function addon.DashboardWelcomeView_Init(env)
             end
         end)
 
-        card.anim = card:CreateAnimationGroup()
-        local sizeAnim = card.anim:CreateAnimation("Animation")
-        sizeAnim:SetDuration(0.15)
-        sizeAnim:SetSmoothing("IN_OUT")
-
-        card.anim:SetScript("OnUpdate", function()
-            local progress = sizeAnim:GetSmoothProgress()
-            local startH = card.expanded and card.collapsedHeight or (card.fullHeight or WELCOME_ACC_HEAD_H)
-            local endH = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
-            local curH = startH + (endH - startH) * progress
-            card:SetHeight(curH)
-            if card.expanded then
-                sc:SetAlpha(progress)
-            else
-                sc:SetAlpha(1 - progress)
-            end
-            if onLayout then onLayout() end
-        end)
-
-        card.anim:SetScript("OnFinished", function()
-            local finalH = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
-            card:SetHeight(finalH)
-            sc:SetAlpha(card.expanded and 1 or 0)
-            updateExpandedVisuals()
-            if onLayout then onLayout() end
-        end)
-
         headerBtn:SetScript("OnClick", function()
-            if card.anim:IsPlaying() then return end
             card.expanded = not card.expanded
             updateExpandedVisuals()
-            card.anim:Play()
+            local h = card.expanded and (card.fullHeight or WELCOME_ACC_HEAD_H) or card.collapsedHeight
+            card:SetHeight(h)
+            sc:SetAlpha(card.expanded and 1 or 0)
+            if onLayout then onLayout() end
         end)
 
         if card.expanded then
@@ -436,7 +532,22 @@ function addon.DashboardWelcomeView_Init(env)
         local id = entry.id
         local kind = entry.kind
         if welcomeBlockPool[id] then
-            return welcomeBlockPool[id]
+            local cached = welcomeBlockPool[id]
+            if kind == "welcome_support_card" then
+                local supList = ResolveSupporterList(entry)
+                local needsTagFlow = supList and #supList > 0
+                local hasTagFlow = cached.tagHost and cached.tagLabels
+                if needsTagFlow and not hasTagFlow then
+                    if cached.root then
+                        cached.root:Hide()
+                    end
+                    welcomeBlockPool[id] = nil
+                else
+                    return cached
+                end
+            else
+                return cached
+            end
         end
 
         if kind == "static_header" then
@@ -464,10 +575,10 @@ function addon.DashboardWelcomeView_Init(env)
             topGlow:SetColorTexture(0, 0, 0, 0)
 
             local accent = hero:CreateTexture(nil, "ARTWORK")
-            accent:SetWidth(4)
+            accent:SetHeight(3)
             accent:SetPoint("TOPLEFT", 0, 0)
-            accent:SetPoint("BOTTOMLEFT", 0, 0)
-            accent:SetColorTexture(war, wag, wab, 1)
+            accent:SetPoint("TOPRIGHT", 0, 0)
+            accent:SetColorTexture(war, wag, wab, 0.70)
             tinsert(dashAccentRefs.cardAccents, accent)
 
             local bottomRule = hero:CreateTexture(nil, "ARTWORK")
@@ -531,8 +642,8 @@ function addon.DashboardWelcomeView_Init(env)
             local icon = card:CreateTexture(nil, "ARTWORK", nil, 1)
             icon:SetTexCoord(0, 1, 0, 1)
             local eyebrowFs = MakeText(card, "", 10, 0.56, 0.75, 0.92, "LEFT")
-            local titleFs = MakeText(card, "", 16, 0.97, 0.98, 1, "LEFT")
-            local bodyFs = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.66, 0.69, 0.75, "LEFT")
+            local titleFs = MakeText(card, "", 16, 0.97, 0.98, 1, "CENTER")
+            local bodyFs = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.66, 0.69, 0.75, "CENTER")
             bodyFs:SetWordWrap(true)
             bodyFs:SetSpacing(4)
             local ctaBtn = CreateNewsCTAButton(card, false)
@@ -559,11 +670,12 @@ function addon.DashboardWelcomeView_Init(env)
             bg:SetAllPoints()
             bg:SetColorTexture(0.08, 0.09, 0.11, SBgA)
 
+            -- Top accent bar (same treatment as welcome_action_card) so the row reads as one grid.
             local accent = card:CreateTexture(nil, "ARTWORK")
-            accent:SetWidth(3)
+            accent:SetHeight(3)
             accent:SetPoint("TOPLEFT", 0, 0)
-            accent:SetPoint("BOTTOMLEFT", 0, 0)
-            accent:SetColorTexture(war, wag, wab, 1)
+            accent:SetPoint("TOPRIGHT", 0, 0)
+            accent:SetColorTexture(war, wag, wab, 0.70)
             tinsert(dashAccentRefs.cardAccents, accent)
 
             local titleFs = MakeText(card, "", 14, 0.96, 0.98, 1, "LEFT")
@@ -572,12 +684,45 @@ function addon.DashboardWelcomeView_Init(env)
             bodyFs:SetSpacing(3)
             local ctaBtn = CreateNewsCTAButton(card, false)
 
+            local tagHost, tagLabels
+            local supporterList = ResolveSupporterList(entry)
+            if supporterList and #supporterList > 0 then
+                tagHost = CreateFrame("Frame", nil, card)
+                tagHost:SetFrameLevel((card:GetFrameLevel() or 0) + 2)
+                tagHost:EnableMouse(false)
+                tagLabels = {}
+                local sizes = { 10, 12, 15, 18 }
+                for j = 1, #supporterList do
+                    local row = supporterList[j]
+                    local nm = type(row) == "string" and row or (row.name or "")
+                    local cf = type(row) == "table" and row.classFile or nil
+                    if not cf or cf == "" then
+                        cf = SUPPORTER_CLASS_FALLBACK_ORDER[((j - 1) % #SUPPORTER_CLASS_FALLBACK_ORDER) + 1]
+                    end
+                    local seed = j * 17
+                    for k = 1, #nm do
+                        seed = seed + string.byte(nm, k)
+                    end
+                    local sz = sizes[((seed + j) % 4) + 1]
+                    local r, g, b = GetSupporterClassRGB(cf)
+                    local fs = MakeText(tagHost, nm, sz, r, g, b, "LEFT")
+                    if fs.EnableMouse then
+                        fs:EnableMouse(false)
+                    end
+                    fs._supporterGapAfter = 8 + (seed % 9)
+                    fs._supporterStagger = (seed * 3) % 6
+                    tagLabels[j] = fs
+                end
+            end
+
             welcomeBlockPool[id] = {
                 kind = kind,
                 root = card,
                 titleFs = titleFs,
                 bodyFs = bodyFs,
                 ctaBtn = ctaBtn,
+                tagHost = tagHost,
+                tagLabels = tagLabels,
                 entry = entry,
             }
             return welcomeBlockPool[id]
@@ -623,7 +768,7 @@ function addon.DashboardWelcomeView_Init(env)
             local bodyFs = MakeDashboardWelcomeMixedScriptText(hero, "", 13, 0.70, 0.73, 0.79, "LEFT")
             bodyFs:SetWordWrap(true)
             bodyFs:SetSpacing(4)
-            local metaFs = MakeText(hero, "", 11, 0.47, 0.52, 0.58, "LEFT")
+            local metaFs = MakeText(hero, "", 10, 0.47, 0.52, 0.58, "LEFT")
             local artFrame = CreateFrame("Frame", nil, hero)
             artFrame:SetClipsChildren(true)
             local artBg = artFrame:CreateTexture(nil, "BACKGROUND")
@@ -949,6 +1094,7 @@ function addon.DashboardWelcomeView_Init(env)
         local viewW = welcomeView:GetWidth() or 0
         local wFooter = math.max(280, viewW - 40)
         local innerPad = 28
+        local learnSectionTopY = nil
 
         if footerObj and footerObj.layout then
             footerObj.layout(wFooter, 0, welcomeView)
@@ -974,16 +1120,12 @@ function addon.DashboardWelcomeView_Init(env)
         local activeIds = {}
 
         if targetViewName == "welcome" then
-            local heroEntry, learnEntry = nil, nil
+            local heroEntry = nil
             local actionEntries, supportEntries = {}, {}
             for i = 1, #feed do
                 local entry = feed[i]
                 if entry.kind == "welcome_hero" then
                     heroEntry = entry
-                elseif entry.kind == "welcome_section_header" then
-                    if entry.id == "learn_suite" then
-                        learnEntry = entry
-                    end
                 elseif entry.kind == "welcome_action_card" then
                     actionEntries[#actionEntries + 1] = entry
                 elseif entry.kind == "welcome_support_card" then
@@ -996,9 +1138,17 @@ function addon.DashboardWelcomeView_Init(env)
                 if pool then
                     activeIds[heroEntry.id] = true
                     local hero = pool.root
-                    local pad = 30
+                    local pad = 22
                     local textW = w - pad * 2
-                    pool.eyebrowFs:SetText(L[heroEntry.eyebrowKey] or "")
+                    local eyebrowKey = heroEntry.eyebrowKey
+                    local eyebrowText = (eyebrowKey and L[eyebrowKey]) or ""
+                    if eyebrowText ~= "" then
+                        pool.eyebrowFs:SetText(eyebrowText)
+                        pool.eyebrowFs:Show()
+                    else
+                        pool.eyebrowFs:SetText("")
+                        pool.eyebrowFs:Hide()
+                    end
                     pool.titleFs:SetText(L[heroEntry.titleKey] or "")
                     pool.taglineFs:SetText(L[heroEntry.taglineKey] or "")
                     pool.bodyFs:SetText(L[heroEntry.bodyKey] or "")
@@ -1008,26 +1158,28 @@ function addon.DashboardWelcomeView_Init(env)
                     hero:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
 
                     local yt = pad
-                    pool.eyebrowFs:SetWidth(textW)
-                    pool.eyebrowFs:ClearAllPoints()
-                    pool.eyebrowFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
-                    yt = yt + pool.eyebrowFs:GetHeight() + 10
+                    if eyebrowText ~= "" then
+                        pool.eyebrowFs:SetWidth(textW)
+                        pool.eyebrowFs:ClearAllPoints()
+                        pool.eyebrowFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
+                        yt = yt + pool.eyebrowFs:GetHeight() + 8
+                    end
                     pool.titleFs:SetWidth(textW)
                     pool.titleFs:ClearAllPoints()
                     pool.titleFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
-                    yt = yt + pool.titleFs:GetHeight() + 8
+                    yt = yt + pool.titleFs:GetHeight() + 6
                     pool.taglineFs:SetWidth(textW)
                     pool.taglineFs:ClearAllPoints()
                     pool.taglineFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
-                    yt = yt + pool.taglineFs:GetHeight() + 12
+                    yt = yt + pool.taglineFs:GetHeight() + 18
                     pool.bodyFs:SetWidth(textW)
                     pool.bodyFs:ClearAllPoints()
                     pool.bodyFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
                     yt = yt + pool.bodyFs:GetHeight()
 
-                    hero:SetHeight(math.max(240, yt + pad))
+                    hero:SetHeight(yt + pad)
                     hero:Show()
-                    y = y + hero:GetHeight() + 20
+                    y = y + hero:GetHeight() + 16
                 end
             end
 
@@ -1035,102 +1187,98 @@ function addon.DashboardWelcomeView_Init(env)
                 local cols = (w >= 780) and 3 or ((w >= 560) and 2 or 1)
                 local cardW = math.floor((w - (cols - 1) * WELCOME_ACTION_GRID_GAP) / cols)
                 local rowY = y
-                local rowH = 0
-                for i = 1, #actionEntries do
-                    local entry = actionEntries[i]
-                    local pool = EnsureWelcomeBlock(entry)
-                    if pool then
-                        activeIds[entry.id] = true
-                        local col = (i - 1) % cols
-                        if col == 0 then rowH = 0 end
-                        local card = pool.root
-                        local pad = 22
-                        local textW = cardW - pad * 2
-                        local iconPath = ResolveNewsTexturePath(entry)
+                local pad = 22
+                local textW = cardW - pad * 2
+                local nAction = #actionEntries
 
-                        card:SetWidth(cardW)
-                        card:ClearAllPoints()
-                        card:SetPoint("TOPLEFT", content, "TOPLEFT", col * (cardW + WELCOME_ACTION_GRID_GAP), -rowY)
+                local function MeasureAndLayoutWelcomeActionCard(entry, pool, card, colIndex, rowYLocal)
+                    activeIds[entry.id] = true
+                    local hasIcon = ApplyWelcomeActionCardIcon(pool.icon, entry)
 
-                        if iconPath then
-                            pool.icon:SetTexture(iconPath)
-                            pool.icon:SetSize(34, 34)
-                            pool.icon:ClearAllPoints()
-                            pool.icon:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
-                            pool.icon:Show()
-                        else
-                            pool.icon:Hide()
+                    card:SetWidth(cardW)
+                    card:ClearAllPoints()
+                    card:SetPoint("TOPLEFT", content, "TOPLEFT", colIndex * (cardW + WELCOME_ACTION_GRID_GAP), -rowYLocal)
+
+                    if hasIcon then
+                        pool.icon:SetSize(34, 34)
+                        pool.icon:ClearAllPoints()
+                        pool.icon:SetPoint("TOP", card, "TOP", 0, -pad)
+                        pool.icon:Show()
+                    else
+                        pool.icon:Hide()
+                    end
+
+                    local eyebrowText = (entry.eyebrowKey and L[entry.eyebrowKey]) or ""
+                    pool.eyebrowFs:SetText(eyebrowText)
+                    pool.titleFs:SetText(L[entry.titleKey] or "")
+                    pool.bodyFs:SetText(L[entry.bodyKey] or "")
+                    pool.ctaBtn:SetLabel(L[entry.ctaLabelKey] or "")
+                    pool.ctaBtn:SetScript("OnClick", function() DispatchNewsAction(entry) end)
+
+                    local titleTopY = pad
+                    if hasIcon then
+                        titleTopY = pad + 34 + 8
+                    end
+                    if eyebrowText ~= "" then
+                        pool.eyebrowFs:Show()
+                        pool.eyebrowFs:SetWidth(textW)
+                        pool.eyebrowFs:ClearAllPoints()
+                        if pool.eyebrowFs.SetJustifyH then
+                            pool.eyebrowFs:SetJustifyH("CENTER")
                         end
+                        pool.eyebrowFs:SetPoint("TOP", card, "TOP", 0, -titleTopY)
+                        titleTopY = titleTopY + pool.eyebrowFs:GetHeight() + 6
+                    else
+                        pool.eyebrowFs:Hide()
+                    end
+                    pool.titleFs:SetWidth(textW)
+                    pool.titleFs:ClearAllPoints()
+                    pool.titleFs:SetPoint("TOP", card, "TOP", 0, -titleTopY)
+                    local yt = titleTopY + pool.titleFs:GetHeight() + 8
+                    pool.bodyFs:SetWidth(textW)
+                    pool.bodyFs:ClearAllPoints()
+                    pool.bodyFs:SetPoint("TOP", card, "TOP", 0, -yt)
+                    local contentBottom = yt + pool.bodyFs:GetHeight()
+                    local naturalH = contentBottom
+                        + WELCOME_ACTION_CARD_FOOTER_GAP
+                        + WELCOME_ACTION_CARD_CTA_H
+                        + WELCOME_ACTION_CARD_FOOTER_BOTTOM_INSET
+                    pool.ctaBtn:Show()
+                    return math.max(WELCOME_ACTION_CARD_MIN_H, naturalH)
+                end
 
-                        local eyebrowText = (entry.eyebrowKey and L[entry.eyebrowKey]) or ""
-                        pool.eyebrowFs:SetText(eyebrowText)
-                        pool.titleFs:SetText(L[entry.titleKey] or "")
-                        pool.bodyFs:SetText(L[entry.bodyKey] or "")
-                        pool.ctaBtn:SetLabel(L[entry.ctaLabelKey] or "")
-                        pool.ctaBtn:SetScript("OnClick", function() DispatchNewsAction(entry) end)
-
-                        local titleTopY = pad
-                        if iconPath then
-                            titleTopY = pad + 34 + 8
-                        end
-                        if eyebrowText ~= "" then
-                            pool.eyebrowFs:Show()
-                            if iconPath then
-                                pool.eyebrowFs:SetWidth(textW - 46)
-                                pool.eyebrowFs:ClearAllPoints()
-                                pool.eyebrowFs:SetPoint("TOPLEFT", pool.icon, "TOPRIGHT", 12, -1)
-                            else
-                                pool.eyebrowFs:SetWidth(textW)
-                                pool.eyebrowFs:ClearAllPoints()
-                                pool.eyebrowFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
-                                titleTopY = pad + pool.eyebrowFs:GetHeight() + 8
-                            end
-                        else
-                            pool.eyebrowFs:Hide()
-                        end
-                        pool.titleFs:SetWidth(textW)
-                        pool.titleFs:ClearAllPoints()
-                        pool.titleFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -titleTopY)
-                        local yt = titleTopY + pool.titleFs:GetHeight() + 8
-                        pool.bodyFs:SetWidth(textW)
-                        pool.bodyFs:ClearAllPoints()
-                        pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
-                        yt = yt + pool.bodyFs:GetHeight() + 14
-                        pool.ctaBtn:ClearAllPoints()
-                        pool.ctaBtn:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
-                        pool.ctaBtn:Show()
-                        local cardH = math.max(WELCOME_ACTION_CARD_MIN_H, yt + pool.ctaBtn:GetHeight() + pad)
-                        card:SetHeight(cardH)
-                        card:Show()
-                        rowH = math.max(rowH, cardH)
-                        if col == cols - 1 or i == #actionEntries then
-                            rowY = rowY + rowH + WELCOME_ACTION_GRID_GAP
+                local rowStart = 1
+                while rowStart <= nAction do
+                    local rowEnd = math.min(rowStart + cols - 1, nAction)
+                    local rowMax = WELCOME_ACTION_CARD_MIN_H
+                    for j = rowStart, rowEnd do
+                        local entry = actionEntries[j]
+                        local pool = EnsureWelcomeBlock(entry)
+                        if pool then
+                            local colIndex = j - rowStart
+                            local h = MeasureAndLayoutWelcomeActionCard(entry, pool, pool.root, colIndex, rowY)
+                            rowMax = math.max(rowMax, h)
                         end
                     end
+                    for j = rowStart, rowEnd do
+                        local entry = actionEntries[j]
+                        local pool = EnsureWelcomeBlock(entry)
+                        if pool then
+                            local card = pool.root
+                            card:SetHeight(rowMax)
+                            pool.ctaBtn:ClearAllPoints()
+                            pool.ctaBtn:SetPoint("BOTTOM", card, "BOTTOM", 0, WELCOME_ACTION_CARD_FOOTER_BOTTOM_INSET)
+                            card:Show()
+                        end
+                    end
+                    rowY = rowY + rowMax + WELCOME_ACTION_GRID_GAP
+                    rowStart = rowEnd + 1
                 end
                 y = rowY + 8
             end
 
-            if learnEntry then
-                local pool = EnsureWelcomeBlock(learnEntry)
-                if pool then
-                    activeIds[learnEntry.id] = true
-                    pool.titleFs:SetText(L[learnEntry.titleKey] or "")
-                    pool.introFs:SetText(L[learnEntry.introKey] or "")
-                    pool.titleFs:SetWidth(w)
-                    pool.titleFs:ClearAllPoints()
-                    pool.titleFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-                    y = y + pool.titleFs:GetHeight() + 6
-                    pool.introFs:SetWidth(w)
-                    pool.introFs:ClearAllPoints()
-                    pool.introFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-                    y = y + pool.introFs:GetHeight() + 12
-                    pool.titleFs:Show()
-                    pool.introFs:Show()
-                end
-            end
-
             if addonRef.DashboardModuleGuide_LayoutEmbedded then
+                learnSectionTopY = y
                 y = addonRef.DashboardModuleGuide_LayoutEmbedded(w, y, innerPad) or y
                 y = y + 16
             end
@@ -1149,10 +1297,9 @@ function addon.DashboardWelcomeView_Init(env)
                         if col == 0 then rowH = 0 end
                         local card = pool.root
                         local pad = 22
-                        local textW = cardW - pad * 2 - 8
+                        local textW = cardW - pad * 2
 
                         pool.titleFs:SetText(L[entry.titleKey] or "")
-                        pool.bodyFs:SetText(L[entry.bodyKey] or "")
                         pool.ctaBtn:SetLabel(L[entry.ctaLabelKey] or "")
                         pool.ctaBtn:SetScript("OnClick", function()
                             DispatchNewsAction(entry)
@@ -1170,10 +1317,44 @@ function addon.DashboardWelcomeView_Init(env)
                         pool.titleFs:ClearAllPoints()
                         pool.titleFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
                         local yt = pad + pool.titleFs:GetHeight() + 8
-                        pool.bodyFs:SetWidth(textW)
-                        pool.bodyFs:ClearAllPoints()
-                        pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
-                        yt = yt + pool.bodyFs:GetHeight()
+
+                        local supporterListLayout = ResolveSupporterList(entry)
+                        if pool.tagHost and pool.tagLabels and supporterListLayout and #supporterListLayout > 0 then
+                            local intro = L[entry.bodyKey] or ""
+                            pool.bodyFs:SetText(intro)
+                            pool.bodyFs:SetWidth(textW)
+                            pool.bodyFs:ClearAllPoints()
+                            pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                            if intro:find("%S") then
+                                pool.bodyFs:Show()
+                                if pool.bodyFs.EnableMouse then
+                                    pool.bodyFs:EnableMouse(false)
+                                end
+                                yt = yt + pool.bodyFs:GetHeight() + 10
+                            else
+                                pool.bodyFs:Hide()
+                            end
+                            local nSup = #supporterListLayout
+                            local tagFlowW = textW
+                            if nSup >= 4 then
+                                tagFlowW = math.min(textW, math.max(168, math.floor(textW * 0.68)))
+                            end
+                            if nSup >= 5 then
+                                tagFlowW = math.min(tagFlowW, 280)
+                            end
+                            pool.tagHost:SetWidth(tagFlowW)
+                            pool.tagHost:ClearAllPoints()
+                            pool.tagHost:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                            LayoutSupporterTagFlow(pool.tagHost, tagFlowW, supporterListLayout, pool.tagLabels)
+                            yt = yt + pool.tagHost:GetHeight()
+                        else
+                            pool.bodyFs:Show()
+                            pool.bodyFs:SetText(L[entry.bodyKey] or "")
+                            pool.bodyFs:SetWidth(textW)
+                            pool.bodyFs:ClearAllPoints()
+                            pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                            yt = yt + pool.bodyFs:GetHeight()
+                        end
                         if entry.ctaAction and entry.ctaLabelKey then
                             yt = yt + 14
                             pool.ctaBtn:ClearAllPoints()
@@ -1236,12 +1417,13 @@ function addon.DashboardWelcomeView_Init(env)
 
                     local badgeText = L[entry.badgeKey] or ""
                     local ctaText = L[entry.ctaLabelKey] or ""
+                    local metaStr = L[entry.metaKey] or ""
                     pool.eyebrowFs:SetText(L[entry.eyebrowKey] or "")
                     UpdateNewsBadge(pool.badgeBg, pool.badgeFs, badgeText)
                     pool.titleFs:SetText(L[entry.titleKey] or "")
                     pool.taglineFs:SetText(L[entry.taglineKey] or "")
                     pool.bodyFs:SetText(L[entry.bodyKey] or "")
-                    pool.metaFs:SetText(L[entry.metaKey] or "")
+                    pool.metaFs:SetText(metaStr)
                     pool.ctaBtn:SetScript("OnClick", function() DispatchNewsAction(entry) end)
                     pool.ctaBtn:SetLabel(ctaText)
                     if ctaText ~= "" then pool.ctaBtn:Show() else pool.ctaBtn:Hide() end
@@ -1273,11 +1455,7 @@ function addon.DashboardWelcomeView_Init(env)
                     pool.bodyFs:SetWidth(textColW)
                     pool.bodyFs:ClearAllPoints()
                     pool.bodyFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
-                    textY = textY + pool.bodyFs:GetHeight() + 14
-                    pool.metaFs:SetWidth(textColW)
-                    pool.metaFs:ClearAllPoints()
-                    pool.metaFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
-                    textY = textY + pool.metaFs:GetHeight() + 16
+                    textY = textY + pool.bodyFs:GetHeight() + NEWS_FEATURED_BODY_BEFORE_FOOTER_GAP
 
                     if ctaText ~= "" then
                         pool.ctaBtn:ClearAllPoints()
@@ -1285,7 +1463,18 @@ function addon.DashboardWelcomeView_Init(env)
                         textY = textY + pool.ctaBtn:GetHeight()
                     end
 
-                    local heroH = textY + pad
+                    local metaBottomBand = 0
+                    if metaStr ~= "" then
+                        pool.metaFs:SetWidth(textColW)
+                        pool.metaFs:Show()
+                        metaBottomBand = NEWS_FEATURED_META_GAP_ABOVE
+                            + (pool.metaFs:GetHeight() or 12)
+                            + NEWS_FEATURED_META_BOTTOM_INSET
+                    else
+                        pool.metaFs:Hide()
+                    end
+
+                    local heroH = textY + (metaBottomBand > 0 and metaBottomBand or pad)
                     if hasArt then
                         local artBoxH = pool.artFrame:GetHeight() or artH
                         pool.artFrame:ClearAllPoints()
@@ -1296,6 +1485,10 @@ function addon.DashboardWelcomeView_Init(env)
                     end
 
                     hero:SetHeight(math.max(230, heroH))
+                    if metaStr ~= "" then
+                        pool.metaFs:ClearAllPoints()
+                        pool.metaFs:SetPoint("BOTTOMLEFT", hero, "BOTTOMLEFT", textX, NEWS_FEATURED_META_BOTTOM_INSET)
+                    end
                     hero:Show()
                     y = y + hero:GetHeight() + 18
                 end
@@ -1397,10 +1590,15 @@ function addon.DashboardWelcomeView_Init(env)
                     pool.bodyFsOverflow:Hide()
                     pool.eyebrowFs:ClearAllPoints()
                     pool.eyebrowFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
-                    pool.eyebrowFs:SetWidth(copyW)
+                    local eyebrowW = copyW
+                    if badgeText ~= "" then
+                        local badgeW = pool.badgeBg:GetWidth() or 0
+                        eyebrowW = math.max(1, copyW - badgeW - NEWS_BADGE_EYEBROW_GAP)
+                    end
+                    pool.eyebrowFs:SetWidth(eyebrowW)
                     if badgeText ~= "" then
                         pool.badgeBg:ClearAllPoints()
-                        pool.badgeBg:SetPoint("LEFT", pool.eyebrowFs, "RIGHT", 10, 0)
+                        pool.badgeBg:SetPoint("LEFT", pool.eyebrowFs, "RIGHT", NEWS_BADGE_EYEBROW_GAP, 0)
                         pool.badgeFs:ClearAllPoints()
                         pool.badgeFs:SetPoint("CENTER", pool.badgeBg, "CENTER", 0, 0)
                     end
@@ -1729,12 +1927,10 @@ function addon.DashboardWelcomeView_Init(env)
                     bodyFs:SetPoint("TOPRIGHT", card.settingsContainer, "TOPRIGHT", -innerPad, -10)
                     local bodyH = bodyFs:GetHeight()
                     card.fullHeight = WELCOME_ACC_HEAD_H + 10 + bodyH + 14
-                    if not card.anim:IsPlaying() then
-                        if card.expanded then
-                            card:SetHeight(card.fullHeight)
-                        else
-                            card:SetHeight(card.collapsedHeight)
-                        end
+                    if card.expanded then
+                        card:SetHeight(card.fullHeight)
+                    else
+                        card:SetHeight(card.collapsedHeight)
                     end
                     card:SetWidth(w)
                     card:ClearAllPoints()
@@ -1771,6 +1967,16 @@ function addon.DashboardWelcomeView_Init(env)
         local contentH = content:GetHeight() or 0
         local maxScroll = math.max(0, contentH - viewH)
         local curScroll = welcomeScroll:GetVerticalScroll() or 0
+
+        if targetViewName == "welcome" and learnSectionTopY and f and not f._welcomeLearnPeekApplied and maxScroll > 0 and viewH > 80 then
+            local targetPeekScroll = learnSectionTopY - viewH + WELCOME_LEARN_SECTION_PEEK_PX
+            targetPeekScroll = math.max(0, math.min(maxScroll, targetPeekScroll))
+            welcomeScroll:SetVerticalScroll(targetPeekScroll)
+            welcomeScroll.targetScroll = nil
+            f._welcomeLearnPeekApplied = true
+            curScroll = targetPeekScroll
+        end
+
         if curScroll > maxScroll then
             welcomeScroll:SetVerticalScroll(maxScroll)
             welcomeScroll.targetScroll = nil
@@ -1801,6 +2007,7 @@ function addon.DashboardWelcomeView_Init(env)
             if f.guideView then f.guideView:Hide() end
             patchNotesView:Hide()
             if env.newsView then env.newsView:Hide() end
+            if f.searchView then f.searchView:Hide() end
             welcomeView:SetAlpha(0)
             welcomeView:Show()
             UIFrameFadeIn(welcomeView, 0.2, 0, 1)
@@ -1809,7 +2016,9 @@ function addon.DashboardWelcomeView_Init(env)
                 headSub:Show()
                 headSub:SetText(L[headSubKey] or L["DASH_WELCOME_HEAD_SUB"] or "Credits, community, and where to find help")
             end
-            if searchBox then searchBox:Hide() end
+            if searchBarShell then searchBarShell:Hide() end
+            if f.HideSearchDropdown then f.HideSearchDropdown() end
+            if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
             f.currentModuleKey = nil
             SetSidebarState({ view = "welcome", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
             if addonRef.DashboardPreview and addonRef.DashboardPreview.SetActiveModuleKey then

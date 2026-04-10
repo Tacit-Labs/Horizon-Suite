@@ -2348,7 +2348,7 @@ local searchQuery = ""
 local searchDebounceTimer = nil
 local SEARCH_DEBOUNCE_MS = 180
 local SEARCH_DROPDOWN_MAX_HEIGHT = 240
-local SEARCH_DROPDOWN_ROW_HEIGHT = 34
+local SEARCH_DROPDOWN_ROW_HEIGHT = 50
 
 local function NavigateToOption(entry)
     if not entry or not entry.optionId then return end
@@ -2469,6 +2469,12 @@ local function ShowSearchResults(matches)
             b.label:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 12, "OUTLINE")
             b.label:SetPoint("TOPLEFT", b.subLabel, "BOTTOMLEFT", 0, -1)
             b.label:SetJustifyH("LEFT")
+            b.descLine = b:CreateFontString(nil, "OVERLAY")
+            b.descLine:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", (Def.SectionSize or 10) - 1, "OUTLINE")
+            b.descLine:SetPoint("TOPLEFT", b.label, "BOTTOMLEFT", 0, -2)
+            b.descLine:SetPoint("RIGHT", b, "RIGHT", -8, 0)
+            b.descLine:SetJustifyH("LEFT")
+            SetTextColor(b.descLine, { 0.48, 0.52, 0.58, 1 })
             local hi = b:CreateTexture(nil, "BACKGROUND")
             hi:SetAllPoints(b)
             hi:SetColorTexture(1, 1, 1, 0.08)
@@ -2477,11 +2483,13 @@ local function ShowSearchResults(matches)
                 hi:Show()
                 SetTextColor(b.label, Def.TextColorHighlight)
                 SetTextColor(b.subLabel, Def.TextColorSection)
+                if b.descLine then SetTextColor(b.descLine, { 0.62, 0.66, 0.74, 1 }) end
             end)
             b:SetScript("OnLeave", function()
                 hi:Hide()
                 SetTextColor(b.label, Def.TextColorLabel)
                 SetTextColor(b.subLabel, Def.TextColorSection)
+                if b.descLine then SetTextColor(b.descLine, { 0.48, 0.52, 0.58, 1 }) end
             end)
             searchDropdownButtons[i] = { btn = b, hi = hi }
         end
@@ -2497,6 +2505,9 @@ local function ShowSearchResults(matches)
         local optionName = tostring(rawName or "")
         row.btn.subLabel:SetText(breadcrumb or "")
         row.btn.label:SetText(optionName)
+        local detailFn = addon.OptionsData_SearchResultDetailText
+        local detailText = (detailFn and m.option and detailFn(m.option, 130)) or ""
+        if row.btn.descLine then row.btn.descLine:SetText(detailText) end
         row.btn.entry = m
         row.btn:SetPoint("TOP", searchDropdownContent, "TOP", 0, -(i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT)
         row.btn:SetScript("OnClick", function()
@@ -2533,11 +2544,23 @@ local function FilterBySearch(query)
         return
     end
     local index = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
-    local matches = {}
+    local scoreFn = addon.OptionsData_SearchEntryScore
+    local scored = {}
     for _, entry in ipairs(index) do
-        if entry.searchText and entry.searchText:find(searchQuery, 1, true) then
-            matches[#matches + 1] = entry
+        local sc = scoreFn and scoreFn(entry, searchQuery) or nil
+        if sc then
+            scored[#scored + 1] = { entry = entry, score = sc }
         end
+    end
+    table.sort(scored, function(a, b)
+        if a.score ~= b.score then
+            return a.score > b.score
+        end
+        return tostring(a.entry.optionId or "") < tostring(b.entry.optionId or "")
+    end)
+    local matches = {}
+    for i = 1, #scored do
+        matches[i] = scored[i].entry
     end
     ShowSearchResults(matches)
 end
@@ -2592,6 +2615,7 @@ function updateOptionsPanelFonts()
         if row.btn then
             if row.btn.label then row.btn.label:SetFont(path, Def.LabelSize or 12, "OUTLINE") end
             if row.btn.subLabel then row.btn.subLabel:SetFont(path, Def.SectionSize or 10, "OUTLINE") end
+            if row.btn.descLine then row.btn.descLine:SetFont(path, math.max(8, (Def.SectionSize or 10) - 1), "OUTLINE") end
         end
     end
 end

@@ -244,7 +244,7 @@ local function AppearanceOpenMapToTrackable(appearanceID, deferOpen)
 end
 
 --- Toggle world map for a tracked appearance: close if already open from this row (same ID), else open.
---- Mirrors addon.ToggleQuestDetails / openQuestLog quest behaviour.
+--- Mirrors addon.ToggleQuestDetails / openDetails quest behaviour.
 --- @param appearanceID number
 local function ToggleAppearanceMapToTrackable(appearanceID)
     if not appearanceID or appearanceID <= 0 then return end
@@ -392,7 +392,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
 end
 
 -- ---------------------------------------------------------------------------
--- Tracked non-quest rows (Blizzard+): same GetQuestClickAction as quests.
+-- Tracked non-quest rows: right-click always uses GetQuestClickAction + ExecuteTrackedContentAction (all profiles).
 -- ---------------------------------------------------------------------------
 
 --- @param entry Frame
@@ -805,12 +805,12 @@ local function ShowTrackedRareContextMenu(entry, anchor)
     }, "HorizonSuite_TrackedRareContextMenu", anchor)
 end
 
---- Dispatch profile action for tracked non-quest rows (Blizzard+).
+--- Dispatch profile action for tracked non-quest rows (all profiles).
 --- @param action string
 --- @param kind string
 --- @param entry Frame
 local function ExecuteTrackedContentAction(action, kind, entry)
-    if action == "openQuestLog" or action == "openProfession" then
+    if action == "openDetails" or action == "openQuestLog" or action == "openProfession" or action == "superTrack" then
         if kind == "ach" then OpenAchievementEntry(entry)
         elseif kind == "endeavor" then OpenEndeavorEntry(entry)
         elseif kind == "recipe" then OpenRecipeEntry(entry)
@@ -859,10 +859,6 @@ local function ExecuteTrackedContentAction(action, kind, entry)
         local printFn = addon.HSPrint or print
         local L = addon.L or {}
         printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_TRACKED_CONTENT_CANNOT_SHARE"] or "This entry cannot be shared.") .. "|r")
-    elseif action == "superTrack" then
-        if kind == "rare" then
-            OpenRareWaypointEntry(entry)
-        end
     end
 end
 
@@ -876,11 +872,37 @@ local function MaybeLogTrackedContentDispatch(buttonName, profile, clickModsTbl,
         tostring(prof), tostring(combo), tostring(action), tostring(kind), note or ""))
 end
 
---- Left-click on quest type icon: toggle super-track (classic mode, Blizzard+ profile, or row hit-test fallback).
+local QUEST_ACTIONS = {}
+local APPEARANCE_ACTIONS = {}
+
+--- Shared icon-click action, separate from row click combos.
+--- @return string
+local function GetFocusIconClickAction()
+    local profile = addon.GetDB("focusClickProfile", "blizzardDefault")
+    if profile ~= "custom" then
+        return "superTrack"
+    end
+    local cfg = addon.focus and addon.focus.clickConfig
+    local normalize = cfg and cfg.NormalizeIconAction
+    local raw = addon.GetDB("focusIconClickAction", "superTrack")
+    if normalize then
+        return normalize(raw)
+    end
+    return (type(raw) == "string" and raw ~= "") and raw or "superTrack"
+end
+
+--- Execute the configured quest-icon action.
 --- @param entry Frame pool entry
 --- @return nil
-function addon.HandleClassicQuestIconMouseDown(entry)
+local function HandleQuestIconAction(entry)
     if not entry or not entry.questID then return end
+
+    local action = GetFocusIconClickAction()
+    if action ~= "superTrack" then
+        local fn = QUEST_ACTIONS[action] or QUEST_ACTIONS["none"]
+        fn(entry)
+        return
+    end
 
     local now = (GetTimePreciseSec and GetTimePreciseSec()) or GetTime()
     local lastClick = entry._classicQuestIconClickAt
@@ -909,35 +931,35 @@ function addon.HandleClassicQuestIconMouseDown(entry)
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
---- Classic: left-click on appearance type icon (questIconBtn). Called from FocusEntryPool.
+--- Execute the configured appearance-icon action.
 --- @param entry Frame pool entry
-function addon.HandleClassicAppearanceIconMouseDown(entry)
+local function HandleAppearanceIconAction(entry)
     if not entry or not entry.appearanceID then return end
-    local id = entry.appearanceID
-    if IsModifiedClick("CHATLINK") and ChatFrameUtil and ChatFrameUtil.GetActiveWindow and ChatFrameUtil.GetActiveWindow() and ChatFrameUtil.InsertLink then
-        local link = GetAppearanceDressLink(entry)
-        if link then
-            ChatFrameUtil.InsertLink(link)
-            if addon.ScheduleRefresh then addon.ScheduleRefresh() end
-            return
-        end
-    end
-    if IsAltKeyDown() then
-        local url = addon.GetWoWheadURL(entry)
-        if url and type(url) == "string" and url ~= "" then
-            if addon.ShowURLCopyBox then addon.ShowURLCopyBox(url) end
-            return
-        end
-    end
-    if IsShiftKeyDown() then
-        AppearanceStopTracking(id)
+    local action = GetFocusIconClickAction()
+    local fn = APPEARANCE_ACTIONS[action] or APPEARANCE_ACTIONS["none"]
+    fn(entry)
+end
+
+--- Execute the configured icon action for quest or appearance rows.
+--- @param entry Frame pool entry
+function addon.HandleFocusIconMouseDown(entry)
+    if not entry then return end
+    if entry.isAppearance and entry.appearanceID then
+        HandleAppearanceIconAction(entry)
         return
     end
-    if IsControlKeyDown() then
-        AppearanceOpenDressingRoom(entry)
-        return
+    if entry.questID then
+        HandleQuestIconAction(entry)
     end
-    AppearanceToggleContentFocus(id)
+end
+
+-- Backward-compatible wrappers while icon behavior is moving to a shared setting.
+function addon.HandleClassicQuestIconMouseDown(entry)
+    HandleQuestIconAction(entry)
+end
+
+function addon.HandleClassicAppearanceIconMouseDown(entry)
+    HandleAppearanceIconAction(entry)
 end
 
 StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] or {
@@ -1265,8 +1287,6 @@ local function QueueOpenQuestDetailsAfterCombat(questID)
     end
 end
 
-local QUEST_ACTIONS = {}
-
 QUEST_ACTIONS["superTrack"] = function(entry)
     local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID)
 
@@ -1310,7 +1330,7 @@ QUEST_ACTIONS["superTrack"] = function(entry)
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
-QUEST_ACTIONS["openQuestLog"] = function(entry)
+QUEST_ACTIONS["openDetails"] = function(entry)
     local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID)
     if isWorldQuest and C_QuestLog.AddWorldQuestWatch then
         local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
@@ -1333,7 +1353,8 @@ QUEST_ACTIONS["openQuestLog"] = function(entry)
     end
 end
 
-QUEST_ACTIONS["openProfession"] = QUEST_ACTIONS["openQuestLog"]
+QUEST_ACTIONS["openQuestLog"] = QUEST_ACTIONS["openDetails"]
+QUEST_ACTIONS["openProfession"] = QUEST_ACTIONS["openDetails"]
 
 QUEST_ACTIONS["untrack"] = function(entry)
     -- If focused, clear focus only; then untrack.
@@ -1417,22 +1438,21 @@ QUEST_ACTIONS["none"] = function(_) end
 -- APPEARANCE ROW ACTION DISPATCH (tracked transmog; driven by GetAppearanceClickAction)
 -- ============================================================================
 
-local APPEARANCE_ACTIONS = {}
-
 APPEARANCE_ACTIONS["superTrack"] = function(entry)
     if entry.appearanceID then
         AppearanceToggleContentFocus(entry.appearanceID)
     end
 end
 
--- "Open quest log" on appearance rows opens the map to the trackable (Blizzard+ row left; Horizon+ shift matches quest binding).
-APPEARANCE_ACTIONS["openQuestLog"] = function(entry)
+-- "Open details" on appearance rows opens the map to the trackable; the action picks the relevant UI for the row type.
+APPEARANCE_ACTIONS["openDetails"] = function(entry)
     if entry.appearanceID then
         ToggleAppearanceMapToTrackable(entry.appearanceID)
     end
 end
 
-APPEARANCE_ACTIONS["openProfession"] = APPEARANCE_ACTIONS["openQuestLog"]
+APPEARANCE_ACTIONS["openQuestLog"] = APPEARANCE_ACTIONS["openDetails"]
+APPEARANCE_ACTIONS["openProfession"] = APPEARANCE_ACTIONS["openDetails"]
 
 APPEARANCE_ACTIONS["untrack"] = function(entry)
     local id = entry.appearanceID
@@ -1564,14 +1584,9 @@ for i = 1, addon.POOL_SIZE do
             -- Tracked appearance: same profile system as quests (Horizon+ / Blizzard+ / Custom); icon delegates when UseBlizzardStyleQuestIconClicks.
             local isAppearanceRow = self.appearanceID and self.entryKey and self.entryKey:match("^appearance:%d+$")
             if isAppearanceRow and addon.focus and addon.focus.GetAppearanceClickAction then
-                if addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
+                if addon.focus.UseFocusIconClickButton and addon.focus.UseFocusIconClickButton() then
                     if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
-                        if addon.HandleClassicAppearanceIconMouseDown then addon.HandleClassicAppearanceIconMouseDown(self) end
-                        return
-                    end
-                    -- Ctrl+left on row body: match icon behaviour (dressing room); icon handler only runs when over questIconBtn.
-                    if IsControlKeyDown() and not IsShiftKeyDown() and not IsAltKeyDown() then
-                        AppearanceOpenDressingRoom(self)
+                        if addon.HandleFocusIconMouseDown then addon.HandleFocusIconMouseDown(self) end
                         return
                     end
                 end
@@ -1598,17 +1613,7 @@ for i = 1, addon.POOL_SIZE do
             end
             if self.entryKey then
                 local trackedKind = ResolveTrackedContentKind(self)
-                if trackedKind and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
-                    if trackedKind == "decor" then
-                        if IsControlKeyDown() and not IsShiftKeyDown() and not IsAltKeyDown() then
-                            DecorOpenMap(self)
-                            return
-                        end
-                        if IsAltKeyDown() and not IsShiftKeyDown() and not IsControlKeyDown() then
-                            DecorPreview(self)
-                            return
-                        end
-                    end
+                if trackedKind then
                     local profileTC = addon.GetDB("focusClickProfile", "blizzardDefault")
                     clickMods.shift = IsShiftKeyDown()
                     clickMods.ctrl = IsControlKeyDown()
@@ -1622,122 +1627,14 @@ for i = 1, addon.POOL_SIZE do
                     ExecuteTrackedContentAction(actionTC, trackedKind, self)
                     return
                 end
-                local achID = self.entryKey:match("^ach:(%d+)$")
-                if achID and self.achievementID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if addon.OpenAchievementToAchievement then
-                        addon.OpenAchievementToAchievement(self.achievementID)
-                    end
-                    return
-                end
-                local endID = self.entryKey:match("^endeavor:(%d+)$")
-                if endID and self.endeavorID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if HousingFramesUtil and HousingFramesUtil.OpenFrameToTaskID then
-                        pcall(HousingFramesUtil.OpenFrameToTaskID, self.endeavorID)
-                    elseif ToggleHousingDashboard then
-                        ToggleHousingDashboard()
-                    elseif HousingFrame and HousingFrame.Show then
-                        if HousingFrame:IsShown() then HousingFrame:Hide() else HousingFrame:Show() end
-                    end
-                    return
-                end
-                local decorID = self.entryKey:match("^decor:(%d+)$")
-                if decorID and self.decorID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if IsShiftKeyDown() then
-                        if InCombatLockdown() then return end
-                        local trackTypeDecor = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Decor) or 3
-                        if ContentTrackingUtil and ContentTrackingUtil.OpenMapToTrackable then
-                            pcall(ContentTrackingUtil.OpenMapToTrackable, trackTypeDecor, self.decorID)
-                        end
-                    elseif IsAltKeyDown() then
-                        if HousingFramesUtil and HousingFramesUtil.PreviewHousingDecorID then
-                            pcall(HousingFramesUtil.PreviewHousingDecorID, self.decorID)
-                        elseif ToggleHousingDashboard then
-                            ToggleHousingDashboard()
-                        elseif HousingFrame and HousingFrame.Show then
-                            if HousingFrame:IsShown() then HousingFrame:Hide() else HousingFrame:Show() end
-                        end
-                    else
-                        if not HousingDashboardFrame and C_AddOns and C_AddOns.LoadAddOn then
-                            pcall(C_AddOns.LoadAddOn, "Blizzard_HousingDashboard")
-                        end
-                        local entryType = (Enum and Enum.HousingCatalogEntryType and Enum.HousingCatalogEntryType.Decor) or 1
-                        local ok, info = pcall(function()
-                            if C_HousingCatalog and C_HousingCatalog.GetCatalogEntryInfoByRecordID then
-                                return C_HousingCatalog.GetCatalogEntryInfoByRecordID(entryType, self.decorID, true)
-                            end
-                        end)
-                        if ok and info and HousingDashboardFrame and HousingDashboardFrame.SetTab and HousingDashboardFrame.catalogTab then
-                            ShowUIPanel(HousingDashboardFrame)
-                            HousingDashboardFrame:SetTab(HousingDashboardFrame.catalogTab)
-                            if C_Timer and C_Timer.After then
-                                C_Timer.After(0.5, function()
-                                    if HousingDashboardFrame and HousingDashboardFrame.CatalogContent and HousingDashboardFrame.CatalogContent.PreviewFrame then
-                                        local pf = HousingDashboardFrame.CatalogContent.PreviewFrame
-                                        if pf.PreviewCatalogEntryInfo then
-                                            pcall(pf.PreviewCatalogEntryInfo, pf, info)
-                                        end
-                                        if pf.Show then pf:Show() end
-                                    end
-                                end)
-                            end
-                        elseif ToggleHousingDashboard then
-                            ToggleHousingDashboard()
-                        elseif HousingFrame and HousingFrame.Show then
-                            if HousingFrame:IsShown() then HousingFrame:Hide() else HousingFrame:Show() end
-                        end
-                    end
-                    return
-                end
-                local advMatch = self.entryKey:match("^advguide:")
-                if advMatch and self.adventureGuideID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    -- Open the Adventure Guide / Encounter Journal to the Traveler's Log tab
-                    if ToggleEncounterJournal then
-                        ToggleEncounterJournal()
-                    end
-                    return
-                end
-                if self.isRecipe and self.recipeID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    OpenRecipeByID(self.recipeID, self.recipeIsRecraft == true)
-                    return
-                end
-                local vignetteGUID = self.entryKey:match("^vignette:(.+)$")
-                local rareCreatureID = self.entryKey:match("^rare:(%d+)$")
-                local isRareOrRareLoot = self.isRare or self.isRareLoot or self.category == "RARE" or self.category == "RARE_LOOT"
-                if (vignetteGUID or rareCreatureID) and isRareOrRareLoot then
-                    if addon.GetDB("tomtomRareWaypoint", true) then
-                        if addon.SetRareWaypoint then
-                            addon.SetRareWaypoint(self)
-                        end
-                    elseif vignetteGUID and C_SuperTrack and C_SuperTrack.SetSuperTrackedVignette then
-                        C_SuperTrack.SetSuperTrackedVignette(vignetteGUID)
-                    end
-                    local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                    if wqtPanel and wqtPanel:IsShown() then
-                        wqtPanel:Hide()
-                    end
-                    return
-                end
             end
             if not self.questID then return end
 
-            -- Classic icon click: delegate to icon handler (runs before all other quest logic).
+            -- Icon click: delegate to the shared icon handler (runs before all other quest logic).
             local profile = addon.GetDB("focusClickProfile", "blizzardDefault")
-            local isClassicProfile = (profile == "blizzardDefault")
-            if isClassicProfile then
+            if addon.focus.UseFocusIconClickButton and addon.focus.UseFocusIconClickButton() then
                 if self.questIconBtn and self.questIconBtn:IsVisible() and self.questIconBtn:IsMouseOver() then
-                    if addon.HandleClassicQuestIconMouseDown then
-                        addon.HandleClassicQuestIconMouseDown(self)
-                    end
+                    if addon.HandleFocusIconMouseDown then addon.HandleFocusIconMouseDown(self) end
                     return
                 end
             end
@@ -1779,7 +1676,7 @@ for i = 1, addon.POOL_SIZE do
             end
             if self.entryKey then
                 local trackedKindRight = ResolveTrackedContentKind(self)
-                if trackedKindRight and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
+                if trackedKindRight then
                     local profileTCR = addon.GetDB("focusClickProfile", "blizzardDefault")
                     clickMods.shift = IsShiftKeyDown()
                     clickMods.ctrl = IsControlKeyDown()
@@ -1793,78 +1690,6 @@ for i = 1, addon.POOL_SIZE do
                     ExecuteTrackedContentAction(actionTCR, trackedKindRight, self)
                     return
                 end
-                local achID = self.entryKey:match("^ach:(%d+)$")
-                if achID and self.achievementID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    local trackType = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Achievement) or 2
-                    local stopType = (Enum and Enum.ContentTrackingStopType and Enum.ContentTrackingStopType.Manual) or 0
-                    if C_ContentTracking and C_ContentTracking.StopTracking then
-                        C_ContentTracking.StopTracking(trackType, self.achievementID, stopType)
-                    elseif RemoveTrackedAchievement then
-                        RemoveTrackedAchievement(self.achievementID)
-                    end
-                    addon.ScheduleRefresh()
-                    return
-                end
-                local endID = self.entryKey:match("^endeavor:(%d+)$")
-                if endID and self.endeavorID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if C_NeighborhoodInitiative and C_NeighborhoodInitiative.RemoveTrackedInitiativeTask then
-                        pcall(C_NeighborhoodInitiative.RemoveTrackedInitiativeTask, self.endeavorID)
-                    elseif C_Endeavors and C_Endeavors.StopTracking then
-                        pcall(C_Endeavors.StopTracking, self.endeavorID)
-                    end
-                    addon.ScheduleRefresh()
-                    return
-                end
-                local decorID = self.entryKey:match("^decor:(%d+)$")
-                if decorID and self.decorID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    local trackTypeDecor = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Decor) or 3
-                    local stopType = (Enum and Enum.ContentTrackingStopType and Enum.ContentTrackingStopType.Manual) or 0
-                    if C_ContentTracking and C_ContentTracking.StopTracking then
-                        pcall(C_ContentTracking.StopTracking, trackTypeDecor, self.decorID, stopType)
-                    end
-                    addon.ScheduleRefresh()
-                    return
-                end
-                local advMatch = self.entryKey:match("^advguide:")
-                if advMatch and self.adventureGuideID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if C_PerksActivities and C_PerksActivities.RemoveTrackedPerksActivity then
-                        pcall(C_PerksActivities.RemoveTrackedPerksActivity, self.adventureGuideID)
-                    end
-                    addon.ScheduleRefresh()
-                    return
-                end
-                local vignetteGUID = self.entryKey:match("^vignette:(.+)$")
-                if vignetteGUID and C_SuperTrack and C_SuperTrack.GetSuperTrackedVignette then
-                    if C_SuperTrack.GetSuperTrackedVignette() == vignetteGUID then
-                        C_SuperTrack.SetSuperTrackedVignette(nil)
-                        local wqtPanel = _G.WorldQuestTrackerScreenPanel
-                        if wqtPanel and wqtPanel:IsShown() then
-                            wqtPanel:Hide()
-                        end
-                    end
-                end
-                if self.isRecipe and self.recipeID then
-                    local requireCtrl = addon.GetDB("requireCtrlForQuestClicks", false)
-                    if requireCtrl and not IsControlKeyDown() then return end
-                    if C_AddOns and C_AddOns.LoadAddOn then
-                        pcall(C_AddOns.LoadAddOn, "Blizzard_Professions")
-                    end
-                    if C_TradeSkillUI and C_TradeSkillUI.SetRecipeTracked then
-                        local isRecraft = (self.recipeIsRecraft == true)
-                        pcall(C_TradeSkillUI.SetRecipeTracked, self.recipeID, false, isRecraft)
-                    end
-                    addon.ScheduleRefresh()
-                    return
-                end
-                return
             end
             if self.questID then
                 -- Shift+Right: abandon non-world quests unconditionally (destructive — kept outside profile system).

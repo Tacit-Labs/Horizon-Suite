@@ -7,13 +7,14 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 --- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
---- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashAccentRefs,
+--- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
 --- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
 --- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
---- searchDropdownContent, searchDropdownCatch, setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
+--- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
+--- setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
 --- setSidebarState may be replaced on env after sidebar init (stub no-op until then).
 --- @param env table
---- @return table { NavigateToOption = function, NavigateToModuleToggles = function }
+--- @return table NavigateToOption, NavigateToModuleToggles, NavigateToDashboardBackground, NavigateToAxisHome, NavigateToClassColourTinting
 function addon.DashboardDetailView_Init(env)
     local f = env.f
     local addon = env.addon
@@ -22,6 +23,7 @@ function addon.DashboardDetailView_Init(env)
     local subCategoryView = env.subCategoryView
     local contentWidth = env.contentWidth
     local dashScrollTopOffset = env.dashScrollTopOffset
+    local dashScrollTopOffsetModule = env.dashScrollTopOffsetModule or env.dashScrollTopOffset
     local dashAccentRefs = env.dashAccentRefs
     local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
@@ -35,6 +37,9 @@ function addon.DashboardDetailView_Init(env)
     local searchDropdownScroll = env.searchDropdownScroll
     local searchDropdownContent = env.searchDropdownContent
     local searchDropdownCatch = env.searchDropdownCatch
+    local searchBarShell = env.searchBarShell
+    local searchView = env.searchView
+    local searchEmptyHint = env.searchEmptyHint
 
     if not env.setSidebarState then env.setSidebarState = function() end end
     local function SetSidebarState(state) env.setSidebarState(state) end
@@ -43,7 +48,7 @@ function addon.DashboardDetailView_Init(env)
     local function ShowSubcategoryHeader() env.showSubcategoryHeader() end
 
     local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
-    subCategoryScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
+    subCategoryScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
     subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
     subCategoryScroll.ScrollBar:Hide()
     subCategoryScroll.ScrollBar:ClearAllPoints()
@@ -56,7 +61,7 @@ function addon.DashboardDetailView_Init(env)
 
     -- Detail Card Container (Scrollable)
     local detailScroll = CreateFrame("ScrollFrame", nil, detailView, "UIPanelScrollFrameTemplate")
-    detailScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffset)
+    detailScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
     detailScroll:SetPoint("BOTTOMRIGHT", -40, 40)
     detailScroll.ScrollBar:Hide()
     detailScroll.ScrollBar:ClearAllPoints()
@@ -82,12 +87,14 @@ function addon.DashboardDetailView_Init(env)
 
     -- Helper: Update Detail Layout
     local function UpdateDetailLayout()
+        local firstPad = (addon.DashboardConstants and addon.DashboardConstants.DETAIL_FIRST_BLOCK_TOP_PAD) or 0
         local yOffset = 0
-        for _, card in ipairs(currentDetailCards) do
+        for i, card in ipairs(currentDetailCards) do
             card:ClearAllPoints()
-            card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -yOffset)
+            local topExtra = (i == 1) and firstPad or 0
+            card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -(yOffset + topExtra))
             card:SetPoint("RIGHT", detailContent, "RIGHT", 0, 0)
-            yOffset = yOffset + card:GetHeight() + 15
+            yOffset = yOffset + topExtra + card:GetHeight() + 15
         end
         
         local newHeight = math.max(1, yOffset)
@@ -178,16 +185,88 @@ function addon.DashboardDetailView_Init(env)
         NavigateToOption(entryFound)
     end
 
+    --- Open Axis → Global Settings with the Theme accordion expanded (Dashboard background control).
+    --- @return nil
+    local function NavigateToDashboardBackground()
+        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
+        local entryFound
+        for _, e in ipairs(idx) do
+            if e.categoryKey == "GlobalToggles" and e.optionId == "dashboardBackgroundTheme" then
+                entryFound = e
+                break
+            end
+        end
+        if not entryFound then
+            local catName = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            for _, cat in ipairs(addon.OptionCategories) do
+                if cat.key == "GlobalToggles" then
+                    catName = type(cat.name) == "function" and cat.name() or cat.name or catName
+                    break
+                end
+            end
+            entryFound = {
+                categoryKey = "GlobalToggles",
+                categoryName = catName,
+                optionId = "dashboardBackgroundTheme",
+            }
+        end
+        NavigateToOption(entryFound)
+    end
+
+    --- Open Axis module category tiles (Profiles, Modules, Global Settings, …).
+    --- @return nil
+    local function NavigateToAxisHome()
+        local axisName = moduleLabels["axis"] or "Axis"
+        if addon.Dashboard_BrandModule then
+            axisName = addon.Dashboard_BrandModule("axis") or axisName
+        end
+        f.OpenModule(axisName, "axis", true)
+    end
+
+    --- Open Axis → Global Settings with the Class Colours accordion expanded (suite-wide tint toggles).
+    --- @return nil
+    local function NavigateToClassColourTinting()
+        local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
+        local entryFound
+        for _, e in ipairs(idx) do
+            if e.categoryKey == "GlobalToggles" and e.optionId == "_classColorAll" then
+                entryFound = e
+                break
+            end
+        end
+        if not entryFound then
+            local catName = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            for _, cat in ipairs(addon.OptionCategories) do
+                if cat.key == "GlobalToggles" then
+                    catName = type(cat.name) == "function" and cat.name() or cat.name or catName
+                    break
+                end
+            end
+            entryFound = {
+                categoryKey = "GlobalToggles",
+                categoryName = catName,
+                optionId = "_classColorAll",
+            }
+        end
+        NavigateToOption(entryFound)
+    end
+
     local searchDropdownButtons = {}
-    local SEARCH_DROPDOWN_ROW_HEIGHT = 38
+    local SEARCH_DROPDOWN_ROW_HEIGHT = 52
+    local detailFn = addon.OptionsData_SearchResultDetailText
 
     local function ShowSearchResults(matches)
         if not matches or #matches == 0 then
             f.HideSearchDropdown()
             return
         end
-        
-        local num = math.min(#matches, 12)
+
+        if f.HideSearchModuleFilterMenu then f.HideSearchModuleFilterMenu() end
+
+        local embedded = searchView and searchView:IsShown()
+        local maxRows = embedded and 80 or 12
+
+        local num = math.min(#matches, maxRows)
         for i = 1, num do
             if not searchDropdownButtons[i] then
                 local b = CreateFrame("Button", nil, searchDropdownContent)
@@ -200,6 +279,9 @@ function addon.DashboardDetailView_Init(env)
                 
                 b.label = MakeText(b, "", 12, 0.9, 0.9, 0.9, "LEFT")
                 b.label:SetPoint("TOPLEFT", b.subLabel, "BOTTOMLEFT", 0, -1)
+                b.descLine = MakeText(b, "", 9, 0.48, 0.52, 0.58, "LEFT")
+                b.descLine:SetPoint("TOPLEFT", b.label, "BOTTOMLEFT", 0, -2)
+                b.descLine:SetPoint("RIGHT", b, "RIGHT", -8, 0)
                 
                 local hi = b:CreateTexture(nil, "BACKGROUND")
                 hi:SetAllPoints(b)
@@ -211,10 +293,12 @@ function addon.DashboardDetailView_Init(env)
                     hi:SetColorTexture(har, hag, hab, 0.08)
                     hi:Show()
                     b.label:SetTextColor(1, 1, 1)
+                    if b.descLine then b.descLine:SetTextColor(0.62, 0.66, 0.74) end
                 end)
                 b:SetScript("OnLeave", function()
                     hi:Hide()
                     b.label:SetTextColor(0.9, 0.9, 0.9)
+                    if b.descLine then b.descLine:SetTextColor(0.48, 0.52, 0.58) end
                 end)
                 searchDropdownButtons[i] = { btn = b, hi = hi }
             end
@@ -233,11 +317,14 @@ function addon.DashboardDetailView_Init(env)
             
             row.btn.subLabel:SetText(breadcrumb or "")
             row.btn.label:SetText(optionName)
+            local detailText = (detailFn and m.option and detailFn(m.option, 130)) or ""
+            if row.btn.descLine then row.btn.descLine:SetText(detailText) end
             row.btn.entry = m
             row.btn:SetPoint("TOP", searchDropdownContent, "TOP", 0, -(i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT)
             row.btn:SetScript("OnClick", function()
                 NavigateToOption(row.btn.entry)
                 f.HideSearchDropdown()
+                if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
                 if searchBox then searchBox:ClearFocus() end
             end)
             row.btn:Show()
@@ -249,8 +336,14 @@ function addon.DashboardDetailView_Init(env)
         
         searchDropdownContent:SetHeight(num * SEARCH_DROPDOWN_ROW_HEIGHT)
         searchDropdownScroll:SetVerticalScroll(0)
+        local dw = searchDropdown:GetWidth() or 600
+        searchDropdownContent:SetWidth(math.max(1, dw - 24))
         searchDropdown:Show()
-        searchDropdownCatch:Show()
+        if embedded then
+            searchDropdownCatch:Hide()
+        else
+            searchDropdownCatch:Show()
+        end
     end
 
     local searchDebounceTimer
@@ -273,19 +366,70 @@ function addon.DashboardDetailView_Init(env)
         end
     end
 
+    local function SearchEntryPassesModuleFilter(entry)
+        local fk = f.dashboardSearchModuleFilter or "all"
+        if fk == "all" then return true end
+        if fk == "axis" then return OptionCategoryKeyIsAxis(entry.categoryKey) end
+        return entry.moduleKey == fk
+    end
+
+    local function SearchFilterDisplayLabel(filterKey)
+        if not filterKey or filterKey == "all" then return "" end
+        if filterKey == "axis" then return moduleLabels.axis or "Axis" end
+        return moduleLabels[filterKey] or filterKey
+    end
+
     f.FilterBySearch = function(query)
+        if f.UpdateSearchModuleFilterLabel then f.UpdateSearchModuleFilterLabel() end
         local searchQuery = query and query:trim():lower() or ""
         if searchQuery == "" or #searchQuery < 2 then
             f.HideSearchDropdown()
+            if searchView and searchView:IsShown() and searchEmptyHint then
+                searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"] or "Type at least two characters to search settings, modules, and options.")
+                searchEmptyHint:Show()
+            end
             return
         end
-        
+
         local index = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
-        local matches = {}
+        local scoreFn = addon.OptionsData_SearchEntryScore
+        local scored = {}
         for _, entry in ipairs(index) do
-            if entry.searchText and entry.searchText:find(searchQuery, 1, true) then
-                matches[#matches + 1] = entry
+            if SearchEntryPassesModuleFilter(entry) then
+                local sc = scoreFn and scoreFn(entry, searchQuery) or nil
+                if sc then
+                    scored[#scored + 1] = { entry = entry, score = sc }
+                end
             end
+        end
+        table.sort(scored, function(a, b)
+            if a.score ~= b.score then
+                return a.score > b.score
+            end
+            return tostring(a.entry.optionId or "") < tostring(b.entry.optionId or "")
+        end)
+        local matches = {}
+        for i = 1, #scored do
+            matches[i] = scored[i].entry
+        end
+
+        if #matches == 0 then
+            f.HideSearchDropdown()
+            if searchView and searchView:IsShown() and searchEmptyHint then
+                local fk = f.dashboardSearchModuleFilter or "all"
+                if fk ~= "all" then
+                    local modLab = SearchFilterDisplayLabel(fk)
+                    searchEmptyHint:SetText(string.format(L["DASH_SEARCH_NO_RESULTS_IN_MODULE"] or "No matches in %s. Try All modules or different words.", modLab))
+                else
+                    searchEmptyHint:SetText(L["DASH_SEARCH_NO_RESULTS"] or "No matching settings. Try different words.")
+                end
+                searchEmptyHint:Show()
+            end
+            return
+        end
+
+        if searchEmptyHint and searchView and searchView:IsShown() then
+            searchEmptyHint:Hide()
         end
         ShowSearchResults(matches)
     end
@@ -315,6 +459,7 @@ function addon.DashboardDetailView_Init(env)
     local TILE_GAP = 10
     local TILE_H   = 110
     local TILE_ROW_STRIDE = 130
+    local SUBCAT_TOP_PAD = (addon.DashboardConstants and addon.DashboardConstants.DETAIL_FIRST_BLOCK_TOP_PAD) or 0
 
     -- Scroll frame is anchored TOPLEFT+40 / BOTTOMRIGHT-40 from subCategoryView,
     -- so its effective width = viewWidth - 80.  We derive it from the view instead
@@ -347,8 +492,8 @@ function addon.DashboardDetailView_Init(env)
             local col = (i - 1) % 2
             tile:SetWidth(tileW)
             tile:ClearAllPoints()
-            tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", TILE_PAD + (col * tileStride), row * -TILE_ROW_STRIDE)
-            tileYOffset = math.max(tileYOffset, (row + 1) * TILE_ROW_STRIDE)
+            tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", TILE_PAD + (col * tileStride), -SUBCAT_TOP_PAD + (row * -TILE_ROW_STRIDE))
+            tileYOffset = math.max(tileYOffset, SUBCAT_TOP_PAD + (row + 1) * TILE_ROW_STRIDE)
         end
         subCategoryContent:SetHeight(math.max(1, tileYOffset))
     end
@@ -366,7 +511,7 @@ function addon.DashboardDetailView_Init(env)
 
         local row = math.floor((index-1) / 2)
         local col = (index-1) % 2
-        tile:SetPoint("TOPLEFT", parent, "TOPLEFT", TILE_PAD + (col * tileStride), 0 + (row * -TILE_ROW_STRIDE))
+        tile:SetPoint("TOPLEFT", parent, "TOPLEFT", TILE_PAD + (col * tileStride), -SUBCAT_TOP_PAD + (row * -TILE_ROW_STRIDE))
 
         -- Chrome aligned with CreateAccordionCard: full-bleed fill, left accent, bottom divider (no frame border)
         local tBg = tile:CreateTexture(nil, "BACKGROUND")
@@ -491,10 +636,10 @@ function addon.DashboardDetailView_Init(env)
     end
 
     f.OpenModule = function(name, moduleKey, skipDetailBuild)
-        if searchBox then
-            searchBox:ClearFocus()
-            searchBox:Show()
-        end
+        if searchBox then searchBox:ClearFocus() end
+        if searchBarShell then searchBarShell:Hide() end
+        if f.HideSearchModuleFilterMenu then f.HideSearchModuleFilterMenu() end
+        if f.HideSearchDropdown then f.HideSearchDropdown() end
 
         local mk = moduleKey or "modules"
         f.currentModuleKey = mk
@@ -539,7 +684,7 @@ function addon.DashboardDetailView_Init(env)
                 tinsert(currentSubTiles, tile)
 
                 local row = math.floor((i-1) / 2)
-                tileYOffset = math.max(tileYOffset, (row + 1) * TILE_ROW_STRIDE)
+                tileYOffset = math.max(tileYOffset, SUBCAT_TOP_PAD + (row + 1) * TILE_ROW_STRIDE)
 
                 -- Staggered Cascade Entrance (faster per UX feedback)
                 tile:SetAlpha(0)
@@ -1618,5 +1763,8 @@ function addon.DashboardDetailView_Init(env)
     return {
         NavigateToOption = NavigateToOption,
         NavigateToModuleToggles = NavigateToModuleToggles,
+        NavigateToDashboardBackground = NavigateToDashboardBackground,
+        NavigateToAxisHome = NavigateToAxisHome,
+        NavigateToClassColourTinting = NavigateToClassColourTinting,
     }
 end

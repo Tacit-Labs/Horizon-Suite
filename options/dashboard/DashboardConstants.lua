@@ -30,12 +30,21 @@ addon.DashboardConstants = {
     HEAD_TITLE_Y = -30,
     HEAD_SUBTITLE_Y = -58,
     SEARCH_Y = -88,
-    SEARCH_BOX_H = 36,
+    SEARCH_BOX_H = 38,
+    -- Vertical chrome: shell is SEARCH_BOX_H + SEARCH_SHELL_EXTRA_H; shell top = SEARCH_Y - SEARCH_BAR_TOP_NUDGE.
+    SEARCH_SHELL_EXTRA_H = 6,
+    SEARCH_BAR_TOP_NUDGE = 3,
+    -- Space from bottom of search shell to top of scroll content (detail tiles, first accordion, Home, etc.).
+    SCROLL_GAP_BELOW_SEARCH = 16,
+    -- Extra inset before the first accordion in module detail scroll (below search/title band).
+    DETAIL_FIRST_BLOCK_TOP_PAD = 10,
+    -- Cap width for the dashboard search field (content area may be narrower).
+    SEARCH_BAR_MAX_W = 640,
     -- Welcome + Module Guide: visible space between scroll content and Community & Support block.
     COMMUNITY_FOOTER_SCROLL_GAP = 24,
-    -- Home module toggle cards (replaces tile grid)
+    -- Home module toggle cards (replaces tile grid); one height for every row (preview disclaimer fits in fixed text bands).
     HOME_TOGGLE_CARD_H = 88,
-    HOME_TOGGLE_CARD_GAP = 10,
+    HOME_TOGGLE_CARD_GAP = 8,
     HOME_TOGGLE_PILL_W = 44,
     HOME_TOGGLE_PILL_H = 24,
     HOME_TOGGLE_PILL_THUMB = 18,

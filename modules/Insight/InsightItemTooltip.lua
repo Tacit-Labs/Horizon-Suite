@@ -44,6 +44,39 @@ local function IsTransmoggableItem(itemID)
     return true
 end
 
+-- Midnight: PlayerHasTransmogByItemInfo may return a secret boolean; only plain literals escape.
+local function GetTransmogKnownAndCollected(itemID)
+    local known = false
+    local collected = false
+    pcall(function()
+        local v = C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID)
+        local state = "unknown"
+        pcall(function()
+            if v == nil then
+                state = "nil"
+            elseif v == true then
+                state = "true"
+            elseif v == false then
+                state = "false"
+            else
+                state = "unknown"
+            end
+        end)
+        if state == "nil" then
+            known = false
+        elseif state == "true" then
+            known = true
+            collected = true
+        elseif state == "false" then
+            known = true
+            collected = false
+        else
+            known = false
+        end
+    end)
+    return known, collected
+end
+
 local function HasTransmogLine(tooltip)
     local hasLine = false
     Insight.ForTooltipLines(tooltip, function(_, left)
@@ -68,11 +101,11 @@ function Insight.AddAppearanceBlock(tooltip, itemID)
     if not IsTransmoggableItem(itemID) then return false end
     if HasTransmogLine(tooltip) then return false end
 
-    local hasTransmog = C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID)
-    if hasTransmog == nil then return false end
+    local known, collected = GetTransmogKnownAndCollected(itemID)
+    if not known then return false end
 
     Insight.TagLines(tooltip, "transmog", function()
-        if hasTransmog then
+        if collected then
             tooltip:AddLine(TRANSMOG_COLLECTED_TEXT, Insight.TRANSMOG_HAVE[1], Insight.TRANSMOG_HAVE[2], Insight.TRANSMOG_HAVE[3])
         else
             tooltip:AddLine(TRANSMOG_MISSING_TEXT, Insight.TRANSMOG_MISS[1], Insight.TRANSMOG_MISS[2], Insight.TRANSMOG_MISS[3])
@@ -90,9 +123,10 @@ end
 function Insight.ProcessItemTooltip(tooltip, itemID, quality)
     if not Insight.IsInsightEnabled() or not itemID then return false end
 
+    local transmogKnown = select(1, GetTransmogKnownAndCollected(itemID))
     local hasAppearance = ShowTransmog() and C_TransmogCollection
         and IsTransmoggableItem(itemID)
-        and C_TransmogCollection.PlayerHasTransmogByItemInfo(itemID) ~= nil
+        and transmogKnown
         and not HasTransmogLine(tooltip)
 
     if not hasAppearance then return false end

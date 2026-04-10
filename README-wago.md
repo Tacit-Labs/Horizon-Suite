@@ -28,7 +28,7 @@
 - **Show only on mouseover** – Fade the tracker when not hovering; move the mouse over it to reveal.
 - **Mythic+ and Delves** – Banner for keystone info, timer, and affixes. Delve objectives in the standard layout.
 - **Countdown timers by section** – With **Show timer** on, toggle countdowns separately for **Scenarios**, **World Quests**, and **Dailies / Weeklies** (other timed quest log entries use the same switch as dailies and weeklies).
-- **Classic click behaviour** – Optional toggle: left-click opens the quest map, right-click shows share/abandon menu. When off, Shift+Left opens or closes quest details; Ctrl+Right shares the quest with your party.
+- **Click profile** – Under Focus → Interactions, pick **Blizzard+** (default), **Horizon+** (super-track first, Custom for per-combo shortcuts), or **Custom**. Optional **classic click behaviour** still adjusts icon-style clicks where enabled.
 
 ## 🎬 Presence (Zone Text & Notifications)
 
@@ -98,7 +98,7 @@
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
 4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
-5. **Welcome** is the first sidebar item with a short overview of each module (Preview items are labelled); **Quick Start** (under Welcome) explains Focus sections, Presence notifications, and each module in more detail. **Home** shows module tiles. Under **Axis** use **Global Toggles** (class colours and UI scale) or **Modules** (module on/off and minimap button). After your first visit, the dashboard opens on **Home** by default; **Welcome** and **Quick Start** stay in the sidebar.
+5. **Welcome** is the first sidebar item with a short overview of each module (Preview items are labelled); **Quick Start** (under Welcome) explains Focus sections, Presence notifications, and each module in more detail. **Search** in the sidebar (above **Patch Notes**) opens a dedicated page to find any setting by name. **Home** shows module tiles. Under **Axis** use **Global Toggles** (class colours and UI scale) or **Modules** (module on/off and minimap button). After your first visit, the dashboard opens on **Home** by default; **Welcome** and **Quick Start** stay in the sidebar.
 
 [ko-fi](https://ko-fi.com/T6T71TX1Y1) **[Patreon](https://patreon.com/HorizonSuite?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)** | **[Discord](https://discord.gg/nFabdZmvSB)** — Bug reports, feature requests, and community.
 

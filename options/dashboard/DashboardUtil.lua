@@ -342,7 +342,7 @@ end
 --- @param g number
 --- @param b number
 --- @param justify string|nil
---- @param reg table|nil
+--- @param reg table|nil Optional typography registry from dashboard frame build.
 --- @return FontString
 function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify, reg)
     local path = addon.Dashboard_ResolveSavedDashboardFontPath(
@@ -476,7 +476,7 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
     footerTopRule:SetHeight(1)
     footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
 
-    local communityHdr = MakeText(parent, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "LEFT")
+    local communityHdr = MakeText(parent, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "CENTER")
 
     local function ShowCopyURL(label, url)
         if env.addon and env.addon.ShowURLCopyBox then

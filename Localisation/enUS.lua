@@ -72,6 +72,7 @@ L["OPTIONS_FOCUS_DRAG_RESIZE"]                                        = "Drag to
 L["OPTIONS_AXIS_PROFILES"]                                            = "Profiles"
 L["OPTIONS_AXIS_MODULES"]                                             = "Modules"
 L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Module Toggles"
+L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"]                           = "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
 L["OPTIONS_MODULE_RELOAD_HINT"]                                       = "Reload the interface to finish applying module changes."
 L["OPTIONS_MODULE_RELOAD_BUTTON"]                                     = "Reload UI"
 
@@ -85,6 +86,14 @@ L["DASH_PATCH_NOTES_HEAD_SUB"]                                        = "Release
 L["DASH_PATCH_NOTES_EMPTY"]                                           = "No notes available."
 L["DASH_WELCOME_TAB"]                                                 = "Welcome"
 L["DASH_NEWS_TAB"]                                                    = "News"
+L["DASH_SEARCH_TAB"]                                                  = "Search"
+L["DASH_SEARCH_HEAD_SUB"]                                             = "Find any setting quickly"
+L["DASH_SEARCH_PLACEHOLDER"]                                          = "Search settings..."
+L["DASH_SEARCH_EMPTY_HINT"]                                           = "Type at least two characters to search settings, modules, and options."
+L["DASH_SEARCH_NO_RESULTS"]                                           = "No matching settings. Try different words."
+L["DASH_SEARCH_FILTER_ALL"]                                           = "All"
+L["DASH_SEARCH_FILTER_TOOLTIP"]                                       = "Limit search to one module"
+L["DASH_SEARCH_NO_RESULTS_IN_MODULE"]                                 = "No matches in %s. Try All modules or different words."
 L["DASH_NEWS_HEAD_SUB"]                                               = "Latest updates & community highlights"
 L["DASH_NEWS_BADGE_NEW"]                                              = "New"
 L["DASH_NEWS_BADGE_HIGHLIGHT"]                                        = "Highlight"
@@ -100,7 +109,7 @@ L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                                  = "Patch n
 L["DASH_NEWS_CTA_OPEN_GUIDE"]                                         = "Open Quick Start"
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_TITLE"]                              = "Blizzard+ is now the default click profile"
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_TAGLINE"]                            = "Focus now lands closer to Blizzard muscle memory while keeping Horizon's convenience options close by."
-L["DASH_NEWS_FOCUS_CLICK_PROFILE_BODY"]                               = "The updated preset gives quest rows a cleaner default interaction model. If you want to tune it, head into Focus > Interactions to review the profile today and keep an eye out for Horizon+ and deeper Custom shortcuts next."
+L["DASH_NEWS_FOCUS_CLICK_PROFILE_BODY"]                               = "The updated preset gives quest rows a cleaner default interaction model. Open Focus > Interactions and use Click profile to choose Blizzard+, Horizon+ (super-track first, with Custom for per-combo shortcuts), or full Custom."
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_META"]                               = "Focus • Interaction preset • Available now"
 L["DASH_NEWS_CLASS_ICONS_TITLE"]                                      = "A full Horizon class icon set is now bundled"
 L["DASH_NEWS_CLASS_ICONS_BODY"]                                       = "Switch Class icon style to Horizon under Axis > Global Toggles to use the new set across the suite. The dashboard now surfaces the full strip here so the update reads like a release, not a footnote."
@@ -113,47 +122,48 @@ L["DASH_NEWS_QUICK_START_BODY"]                                       = "Quick S
 L["DASH_NEWS_QUICK_START_META"]                                       = "Guide • Onboarding • Always available"
 L["DASH_WELCOME_TITLE"]                                               = "Welcome to Horizon Suite"
 L["DASH_WELCOME_HEAD_SUB"]                                            = "Get oriented, choose your modules, and learn where to start"
-L["DASH_WELCOME_INTRO"]                                               = [=[Welcome to Horizon Suite — modular UI for your tracker, notifications, and more, built so you only run what you want. Turn features on or off under |cffaaaaaaAxis > Modules|r, take the |cffaaaaaaQuick Start|r tour, and see what is new in |cffaaaaaaPatch Notes|r each release.]=]
+L["DASH_WELCOME_INTRO"]                                               = [=[Welcome to Horizon Suite — modular UI for your tracker, notifications, and more, built so you only run what you want. Turn features on or off under |cffaaaaaaAxis > Modules|r, use the guided overview below, and see what is new in |cffaaaaaaPatch Notes|r each release.]=]
 L["DASH_WELCOME_HERO_EYEBROW"]                                        = "Welcome"
-L["DASH_WELCOME_HERO_TITLE"]                                          = "A modular UI suite that lets you keep only the parts you want."
-L["DASH_WELCOME_HERO_TAGLINE"]                                        = "Tune Horizon around your tracker, notifications, minimap, tooltips, and character UI without committing to one giant overhaul."
-L["DASH_WELCOME_HERO_BODY"]                                           = "Start by choosing the modules you actually want to run, then use the guide below to understand where everything lives. Patch Notes and News stay close by whenever you want a fast catch-up on what changed."
+L["DASH_WELCOME_HERO_TITLE"]                                          = "Craft your perfect UI, your way with Horizon Suite."
+L["DASH_WELCOME_HERO_TAGLINE"]                                        = "Shape Horizon around your playstyle with trackers, notifications, minimap, tooltips, and more without committing to a full UI overhaul."
+L["DASH_WELCOME_HERO_BODY"]                                           = "Start simple. Choose the modules you want, then follow the guided overview below to see where everything lives. Patch Notes and News are always nearby when you need a quick update."
 L["DASH_WELCOME_START_HERE"]                                          = "Start Here"
-L["DASH_WELCOME_CTA_MODULES"]                                         = "Open Modules"
+L["DASH_WELCOME_CTA_MODULES"]                                         = "Open Axis Modules"
 L["DASH_WELCOME_CTA_PATCH_NOTES"]                                     = "Open Patch Notes"
 L["DASH_WELCOME_CTA_NEWS"]                                            = "Open News"
-L["DASH_WELCOME_ACTION_MODULES_TITLE"]                                = "Choose the parts of Horizon you want"
-L["DASH_WELCOME_ACTION_MODULES_BODY"]                                 = "Use the dashboard home to turn modules on or off, then reload when you are ready to apply larger setup changes."
-L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                                = "Catch up on what changed"
-L["DASH_WELCOME_ACTION_UPDATES_BODY"]                                 = "Patch Notes and News are the fastest way to see new presets, art, polish passes, and module changes between releases."
-L["DASH_WELCOME_ACTION_NEWS_TITLE"]                                   = "See the editorial update feed"
-L["DASH_WELCOME_ACTION_NEWS_BODY"]                                    = "Open News for featured stories, roadmap notes, art highlights, and smaller curated updates in one place."
-L["DASH_WELCOME_LEARN_TITLE"]                                         = "Learn the Suite"
-L["DASH_WELCOME_LEARN_BODY"]                                          = "Use this section as the guided overview of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
+L["DASH_WELCOME_ACTION_MODULES_TITLE"]                                = "Pick your modules"
+L["DASH_WELCOME_ACTION_MODULES_BODY"]                                 = "Open |cffaaaaaaAxis > Modules|r to choose what Horizon loads—the tracker, notifications, tooltips, and the rest each toggle independently. Keep only the pieces you use, then press the reload button to apply your setup."
+L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                                = "See what's changed"
+L["DASH_WELCOME_ACTION_UPDATES_BODY"]                                 = "Something feels different about your favorite module? Check the Patch Notes menu to keep up to date with improvements, bug fixes, and module changes."
+L["DASH_WELCOME_ACTION_NEWS_TITLE"]                                   = "Explore highlights"
+L["DASH_WELCOME_ACTION_NEWS_BODY"]                                    = "Read about what's coming to Horizon Suite. Browse the News menu for featured updates, roadmap notes, community topics, and even critical issues. All in one place."
+L["DASH_WELCOME_LEARN_BODY"]                                          = "Use this section as the |cffffffffguided overview|r of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
 L["DASH_WELCOME_PATH"]                                                = "%s > %s > %s"
 L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]                         = "Blizzard+ click profile"
-L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                            = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
+L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                            = [=[Focus uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to switch to |cffffffffHorizon+|r (super-track first) or |cffffffffCustom|r to set each shortcut yourself.]=]
 L["DASH_WELCOME_COMING_SOON_TITLE"]                                   = "Coming Soon"
 L["DASH_WELCOME_COMING_SOON_TAGLINE"]                                 = "New welcome experiences are on the way."
 L["DASH_WELCOME_COMING_SOON_BODY"]                                    = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
 L["DASH_WELCOME_CLASS_ICONS_HEADING"]                                 = "New: Horizon class icons"
-L["DASH_WELCOME_CLASS_ICONS_LEAD"]                                    = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r under |cffaaaaaaAxis > Global Toggles|r (Class icon style).]=]
+L["DASH_WELCOME_CLASS_ICONS_LEAD"]                                    = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r under |cffaaaaaaAxis > Global Settings|r (Class icon style).]=]
 L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"]                           = [=[Thank you, Boofuls, for commissioning this art and helping bring these icons to everyone.]=]
 L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"]                          = "• Created by "
 L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                             = "Gabriel C"
 L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                                = "Contributors"
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
-• feanor21#2847 — Panoramuxa (Tarren Mill - EU) — Development
+• Feanor — Development
 • Marthix — Development
 • Swift — Coordinator
 • Boofuls — Moderator
 • Diva — Innovator
-• RondoFerrari — RondoMedia (CurseForge addon) — Class icons in Insight tooltips and optional Dashboard header icon when class colors are on (optional)
+• Rondo Media (CurseForge addon)
 • Aishuu — French localisation (frFR)
 • 아즈샤라-두녘 — Korean localisation (koKR)
 • Linho-Gallywix — Brazilian Portuguese localisation (ptBR)
 • allmoon — Chinese localisation (zhCN)]=]
+L["DASH_WELCOME_SUPPORTERS_HEADING"]                                  = "Supporters"
+L["DASH_WELCOME_SUPPORTERS_BODY"]                                     = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.]=]
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                               = "Localisations"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The addon UI is localised for:
 
@@ -174,13 +184,11 @@ See TRANSLATING.md in the repo for how to contribute. Additional locales are wel
 L["DASH_GUIDE_TAB"]                                                   = "Quick Start"
 L["DASH_GUIDE_HEAD_SUB"]                                              = "What each part of Horizon does"
 L["DASH_GUIDE_HERO_TITLE"]                                            = "Getting started with Horizon Suite"
-L["DASH_GUIDE_HERO_TAGLINE"]                                          = "A modular UI toolkit for quests, notifications, the minimap, and more."
-L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from Quick Start under Welcome."
-L["DASH_GUIDE_QUICK_START_HEADING"]                                   = "Quick start"
-L["DASH_GUIDE_QUICK_START_BODY"]                                      = [=[• Under |cffaaaaaaAxis > Modules|r in the sidebar, turn each module on or off. Changing modules applies after a |cffaaaaaaReload UI|r.
-• Under |cffaaaaaaAxis > Global Toggles|r, set class-colour tinting for the dashboard and modules, pick a |cffaaaaaaDashboard background|r preset, and adjust |cffaaaaaaUI scale|r (global or per module).]=]
-L["DASH_GUIDE_HORIZON_HEADING"]                                       = "What is Horizon Suite?"
-L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
+L["DASH_GUIDE_HERO_TAGLINE"]                                          = ""
+L["DASH_GUIDE_HERO_INTRO"]                                            = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This guided overview stays on the Welcome tab whenever you need it."
+L["DASH_GUIDE_HERO_THEME_PROMPT"]                                     = [=[Under |cffaaaaaaAxis > Global Settings|r, set |cff73b4ff|Hhsdash:classcolours|hclass-colour tinting|h|r for the dashboard and modules, and pick a |cff73b4ff|Hhsdash:theme|hDashboard theme|h|r.]=]
+L["DASH_GUIDE_HORIZON_HEADING"]                                       = "Introduction to Modules"
+L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• Axis — Profiles, module on/off, global settings, typography, and other suite-wide settings.
 • Focus — Quest and content tracker: quests, world quests, scenarios, rares, achievements, and more in coloured sections.
 • Presence — Large cinematic toasts for zones, quests, scenarios, achievements, level up, and similar moments.
 • Vista — Minimap chrome: zone text, coordinates, clock, and a collector for minimap buttons.
@@ -188,7 +196,7 @@ L["DASH_GUIDE_HORIZON_BULLETS"]                                       = [=[• A
 • Cache — Loot toasts and bag presentation.
 • Essence — Character sheet with 3D model, item level, stats, and gear grid.
 • Meridian — Reserved; no options yet (see tag).]=]
-L["DASH_GUIDE_MOD_AXIS_BODY"]                                         = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Toggles for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
+L["DASH_GUIDE_MOD_AXIS_BODY"]                                         = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Settings for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
 L["DASH_GUIDE_MOD_FOCUS_BODY"]                                        = [=[Focus replaces the default objective list with a flexible tracker. Tracked quests, world quests, scenarios, rares, achievements, endeavors, decor, recipes, and more are grouped into coloured section headers so you can scan quickly.
 
 Sections only appear when they have something to show — for example Current (recent progress), Current zone, Ready to turn in, World / weekly / daily / Prey, campaign and special quests, delves and scenarios, rare bosses and loot, achievements and collections, and time-limited or zone events.
@@ -207,15 +215,15 @@ L["DASH_GUIDE_MOD_VISTA_BODY"]                                        = "Vista w
 L["DASH_GUIDE_MOD_INSIGHT_BODY"]                                      = "Insight extends Blizzard tooltips for players, NPCs, and items — class and faction colouring, spec and icon lines, optional Mythic+ score, item level, mount collection hints, and cleaner separators. Each tooltip type has its own category under Insight."
 L["DASH_GUIDE_MOD_CACHE_BODY"]                                        = "Cache handles loot feedback: styled loot toasts for items, money, currency, and reputation, plus options that tie into how rewards are shown. Enable it when you want Horizon’s presentation instead of the default loot popups."
 L["DASH_GUIDE_MOD_ESSENCE_BODY"]                                      = "Essence is an optional character sheet: 3D model, item level, primary stats, and a gear grid so you can review your equipment at a glance. Open Essence in the sidebar to adjust layout and visibility."
-L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                                     = "Coming soon."
-L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                               = "Core settings hub: profiles, modules, and global toggles."
+L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                                     = [=[The exact feature set is still under wraps, so feel free to speculate what would feel right in Horizon. If you want to compare notes or help steer the idea, join |cffaaaaaaDiscord|r from the Community & Support links at the bottom of the dashboard and tell us what you would use it for.]=]
+L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                               = "Core settings hub: profiles, modules, and global settings."
 L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"]                       = "Objective tracker for quests, world quests, rares, achievements, scenarios."
 L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"]                                 = "Zone text and notifications."
 L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"]                             = "Minimap with zone text, coords, time, and button collector."
 L["DASH_TOOLTIPS_CLASS_COLORS_SPEC_FACTION"]                          = "Tooltips with class colors, spec, and faction icons."
 L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]                            = "Loot toasts for items, money, currency, reputation, and bag overhaul."
 L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"]                            = "Custom character sheet with 3D model, item level, stats, and gear grid."
-L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                           = "Coming soon."
+L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                           = "Compass-style waypoints and bearings for in-world guidance — in development."
 L["DASH_WELCOME_COMMUNITY_HEADING"]                                   = "Community & Support"
 L["DASH_DISCORD"]                                                     = "Discord"
 L["DASH_KO_FI"]                                                       = "Ko-fi"
@@ -338,7 +346,7 @@ L["OPTIONS_AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Cinemat
 L["OPTIONS_AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Cinematic square minimap with zone text, coordinates, time, and button collector."
 L["OPTIONS_AXIS_BETA"]                                                = "Beta"
 L["OPTIONS_AXIS_SCALING"]                                             = "Scaling"
-L["OPTIONS_AXIS_GLOBAL_TOGGLES"]                                      = "Global Toggles"
+L["OPTIONS_AXIS_GLOBAL_TOGGLES"]                                      = "Global Settings"
 L["OPTIONS_AXIS_PATCH_NOTES_SECTION"]                                 = "Patch notes"
 L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"]                      = "Show Patch Notes automatically after an update"
 L["OPTIONS_AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"]                 = "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes."
@@ -965,6 +973,8 @@ L["OPTIONS_FOCUS_CLASSIC_CLICKS"]                                     = "Classic
 -- === Focus Click Profiles ===
 L["OPTIONS_FOCUS_CLICK_PROFILE"]                                      = "Click profile"
 L["OPTIONS_FOCUS_CLICK_PROFILE_DESC"]                                 = "Pick a preset or Custom. Presets show each shortcut below (locked); choose Custom to change them."
+L["OPTIONS_FOCUS_ICON_CLICK_ACTION"]                                  = "Icon Left Click"
+L["OPTIONS_FOCUS_ICON_CLICK_ACTION_DESC"]                             = "Choose what happens when you left-click the quest or appearance icon itself, when that icon click behavior is shown."
 L["OPTIONS_FOCUS_PROFILE_HORIZON_PLUS"]                               = "Horizon+"
 L["OPTIONS_FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzard+"
 L["OPTIONS_FOCUS_PROFILE_CUSTOM"]                                     = "Custom"
@@ -979,10 +989,12 @@ L["OPTIONS_FOCUS_COMBO_ALT_LEFT"]                                     = "Alt + L
 L["OPTIONS_FOCUS_COMBO_RIGHT"]                                        = "Right click"
 L["OPTIONS_FOCUS_COMBO_SHIFT_RIGHT"]                                  = "Shift + Right click"
 L["OPTIONS_FOCUS_COMBO_CTRL_RIGHT"]                                   = "Ctrl + Right click"
+L["OPTIONS_FOCUS_COMBO_ALT_RIGHT"]                                    = "Alt + Right click"
 L["OPTIONS_FOCUS_CLICK_ACTION_NONE"]                                  = "Do nothing"
 L["OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK"]                           = "Focus quest"
-L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_PROFESSION"]                       = "Open profession or quest details"
-L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open quest log"
+L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_DETAILS"]                          = "Open relevant details"
+L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_PROFESSION"]                       = "Open relevant details"
+L["OPTIONS_FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open relevant details"
 L["OPTIONS_FOCUS_CLICK_ACTION_UNTRACK"]                               = "Untrack"
 L["OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU"]                          = "Context menu"
 L["OPTIONS_FOCUS_CLICK_ACTION_SHARE"]                                 = "Share with party"
@@ -1835,6 +1847,28 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

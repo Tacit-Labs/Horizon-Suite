@@ -44,7 +44,7 @@ Your tracker shouldn't need babysitting. Focus keeps up with you — surfacing n
 - **Combat-aware** — Show, fade, or hide in combat. Show or hide in dungeons/raids/BGs. Compact or super-minimal layouts. Show only on mouseover. Your call.
 - **Mythic+ and Delves** — Keystone info, affixes, timer, and delve objectives all in the standard layout.
 - **Countdown timers by section** — With **Show timer** on, toggle countdowns separately for **Scenarios**, **World Quests**, and **Dailies / Weeklies** (other timed quest log entries use the same switch as dailies and weeklies).
-- **Click your way** — Optional classic mode: left-click opens the quest map, right-click shows share/abandon. Or use Shift+Left for quest details and Ctrl+Right to share with your party.
+- **Click your way** — Under Focus → Interactions, choose **Blizzard+** (default), **Horizon+** (super-track first; Custom for your own combos), or **Custom**. Optional classic mode still tweaks icon-style clicks where enabled.
 - **Profiles** — Per-character, per-spec, or global. Create, copy, export, and share as text strings.
 
 ---
@@ -136,7 +136,7 @@ Every module shares the same design foundations, so they feel like one cohesive 
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
 4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
-5. **Welcome** gives a quick overview of each module. **Quick Start** walks through Focus sections, Presence notifications, and each module in detail. **Home** shows module tiles. Under **Axis** use **Global Toggles** for class colours and UI scale, or **Modules** to toggle modules on/off and control the minimap button.
+5. **Welcome** gives a quick overview of each module. **Quick Start** walks through Focus sections, Presence notifications, and each module in detail. **Search** in the sidebar (above **Patch Notes**) opens a dedicated page to find any setting by name. **Home** shows module tiles. Under **Axis** use **Global Toggles** for class colours and UI scale, or **Modules** to toggle modules on/off and control the minimap button.
 
 ---
 

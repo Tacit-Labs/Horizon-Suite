@@ -1644,9 +1644,9 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.questTypeIcon:Hide()
     end
 
-    -- Quest icon button: super-track on icon (legacy classic mode or Blizzard+ click profile).
+    -- Quest icon button: configurable icon-click action for quest and appearance rows.
     if entry.questIconBtn then
-        local iconFocus = addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks()
+        local iconFocus = addon.focus.UseFocusIconClickButton and addon.focus.UseFocusIconClickButton()
         local showQuestIcon = iconFocus and entry.questID and entry.questTypeIcon:IsShown()
         local showAppearanceIcon = iconFocus and (questData.isAppearance or questData.category == "APPEARANCE") and entry.questTypeIcon:IsShown()
         if showQuestIcon or showAppearanceIcon then
