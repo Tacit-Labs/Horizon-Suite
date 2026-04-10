@@ -252,7 +252,8 @@ function addon.DashboardDetailView_Init(env)
     end
 
     local searchDropdownButtons = {}
-    local SEARCH_DROPDOWN_ROW_HEIGHT = 38
+    local SEARCH_DROPDOWN_ROW_HEIGHT = 52
+    local detailFn = addon.OptionsData_SearchResultDetailText
 
     local function ShowSearchResults(matches)
         if not matches or #matches == 0 then
@@ -278,6 +279,9 @@ function addon.DashboardDetailView_Init(env)
                 
                 b.label = MakeText(b, "", 12, 0.9, 0.9, 0.9, "LEFT")
                 b.label:SetPoint("TOPLEFT", b.subLabel, "BOTTOMLEFT", 0, -1)
+                b.descLine = MakeText(b, "", 9, 0.48, 0.52, 0.58, "LEFT")
+                b.descLine:SetPoint("TOPLEFT", b.label, "BOTTOMLEFT", 0, -2)
+                b.descLine:SetPoint("RIGHT", b, "RIGHT", -8, 0)
                 
                 local hi = b:CreateTexture(nil, "BACKGROUND")
                 hi:SetAllPoints(b)
@@ -289,10 +293,12 @@ function addon.DashboardDetailView_Init(env)
                     hi:SetColorTexture(har, hag, hab, 0.08)
                     hi:Show()
                     b.label:SetTextColor(1, 1, 1)
+                    if b.descLine then b.descLine:SetTextColor(0.62, 0.66, 0.74) end
                 end)
                 b:SetScript("OnLeave", function()
                     hi:Hide()
                     b.label:SetTextColor(0.9, 0.9, 0.9)
+                    if b.descLine then b.descLine:SetTextColor(0.48, 0.52, 0.58) end
                 end)
                 searchDropdownButtons[i] = { btn = b, hi = hi }
             end
@@ -311,6 +317,8 @@ function addon.DashboardDetailView_Init(env)
             
             row.btn.subLabel:SetText(breadcrumb or "")
             row.btn.label:SetText(optionName)
+            local detailText = (detailFn and m.option and detailFn(m.option, 130)) or ""
+            if row.btn.descLine then row.btn.descLine:SetText(detailText) end
             row.btn.entry = m
             row.btn:SetPoint("TOP", searchDropdownContent, "TOP", 0, -(i - 1) * SEARCH_DROPDOWN_ROW_HEIGHT)
             row.btn:SetScript("OnClick", function()
@@ -384,11 +392,25 @@ function addon.DashboardDetailView_Init(env)
         end
 
         local index = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
-        local matches = {}
+        local scoreFn = addon.OptionsData_SearchEntryScore
+        local scored = {}
         for _, entry in ipairs(index) do
-            if entry.searchText and entry.searchText:find(searchQuery, 1, true) and SearchEntryPassesModuleFilter(entry) then
-                matches[#matches + 1] = entry
+            if SearchEntryPassesModuleFilter(entry) then
+                local sc = scoreFn and scoreFn(entry, searchQuery) or nil
+                if sc then
+                    scored[#scored + 1] = { entry = entry, score = sc }
+                end
             end
+        end
+        table.sort(scored, function(a, b)
+            if a.score ~= b.score then
+                return a.score > b.score
+            end
+            return tostring(a.entry.optionId or "") < tostring(b.entry.optionId or "")
+        end)
+        local matches = {}
+        for i = 1, #scored do
+            matches[i] = scored[i].entry
         end
 
         if #matches == 0 then
