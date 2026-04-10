@@ -10,6 +10,7 @@ Thumbs.db
 .vscode/
 .cursor/
 .claude/
+.codesight/
 *.sublime-*
 
 # Local dev notes (not for version control)
