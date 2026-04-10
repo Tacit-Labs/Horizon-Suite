@@ -68,6 +68,15 @@ addon.DashboardWelcomeFeed = {
         sort = 200,
         titleKey = "DASH_WELCOME_SUPPORTERS_HEADING",
         bodyKey = "DASH_WELCOME_SUPPORTERS_BODY",
+        -- { name, classFile } — classFile is WoW’s English class token (same as RAID_CLASS_COLORS keys), e.g. WARRIOR, DRUID.
+        supporterEntries = {
+            { name = "Diva", classFile = "PRIEST" },
+            { name = "Feralus", classFile = "DRUID" },
+            { name = "Jarvis", classFile = "MAGE" },
+            { name = "Savs", classFile = "SHAMAN" },
+            { name = "Vukolak", classFile = "WARLOCK" },
+            { name = "Boofuls", classFile = "PALADIN" },
+        },
     },
     {
         id = "localisations",

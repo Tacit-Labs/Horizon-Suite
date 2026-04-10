@@ -143,25 +143,18 @@ L["DASH_WELCOME_CLASS_ICONS_LEAD"]                                    = [=[We ha
 L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                                = "Beitragende"
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
-• feanor21#2847 — Panoramuxa (Tarren Mill - EU) — Entwicklung
+• Feanor — Entwicklung
 • Marthix — Entwicklung
 • Swift — Koordinator
 • Boofuls — Moderator
 • Diva — Innovator
-• RondoFerrari — RondoMedia (CurseForge addon) — Class icons in Insight tooltips and optional Dashboard header icon when class colors are on (optional)
+• Rondo Media (CurseForge addon)
 • Aishuu — Französische Lokalisierung (frFR)
 • 아즈샤라-두녘 — Koreanische Lokalisierung (koKR)
 • Linho-Gallywix — Brazilian Portuguese localisation (ptBR)
 • allmoon — Chinesische Lokalisierung (zhCN)]=]
 L["DASH_WELCOME_SUPPORTERS_HEADING"]                                  = "Unterstützer"
-L["DASH_WELCOME_SUPPORTERS_BODY"]                                     = [=[Vielen Dank an alle, die Horizon Suite über Ko-fi, Patreon und andere Wege unterstützen.
-
-• Diva
-• Feralus
-• Jarvis
-• Savs
-• Vukolak
-• Boofuls]=]
+L["DASH_WELCOME_SUPPORTERS_BODY"]                                     = [=[Vielen Dank an alle, die Horizon Suite über Ko-fi, Patreon und andere Wege unterstützen.]=]
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                               = "Lokalisierungen"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The options panel is localised for:
 
@@ -1838,6 +1831,9 @@ L["OPTIONS_CORE_X_Y_OBJECTIVES_LIKE_PERCENT_OBJECTIVES"]              = "X/Y: ob
 -- L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]               = "Zone name still appears when entering a new zone."
 -- L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                               = "Zone type coloring"
 -- L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]           = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
 
 
 

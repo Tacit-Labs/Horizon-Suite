@@ -144,25 +144,18 @@ L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                             = "Gabriel
 L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                                = "Contributors"
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                                   = [=[Thanks to everyone who has contributed to Horizon Suite:
 
-• feanor21#2847 — Panoramuxa (Tarren Mill - EU) — Development
+• Feanor — Development
 • Marthix — Development
 • Swift — Coordinator
 • Boofuls — Moderator
 • Diva — Innovator
-• RondoFerrari — RondoMedia (CurseForge addon) — Class icons in Insight tooltips and optional Dashboard header icon when class colors are on (optional)
+• Rondo Media (CurseForge addon)
 • Aishuu — French localisation (frFR)
 • 아즈샤라-두녘 — Korean localisation (koKR)
 • Linho-Gallywix — Brazilian Portuguese localisation (ptBR)
 • allmoon — Chinese localisation (zhCN)]=]
 L["DASH_WELCOME_SUPPORTERS_HEADING"]                                  = "Supporters"
-L["DASH_WELCOME_SUPPORTERS_BODY"]                                     = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.
-
-• Diva
-• Feralus
-• Jarvis
-• Savs
-• Vukolak
-• Boofuls]=]
+L["DASH_WELCOME_SUPPORTERS_BODY"]                                     = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.]=]
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                               = "Localisations"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                                  = [=[The addon UI is localised for:
 
@@ -1841,6 +1834,9 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
 
 
 
