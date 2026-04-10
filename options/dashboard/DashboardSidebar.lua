@@ -106,10 +106,15 @@ function addon.DashboardSidebar_CreateChrome(p)
         if frameH <= 0 then frameH = 1 end
         if contentH <= frameH then
             sbTrack:Hide()
+            -- Reset scroll position so content snaps back to top when the frame
+            -- grows large enough that scrolling is no longer needed.
+            if (sidebarScrollFrame:GetVerticalScroll() or 0) > 0 then
+                sidebarScrollFrame:SetVerticalScroll(0)
+            end
             return
         end
         sbTrack:Show()
-        local scroll    = sidebarScrollFrame:GetVerticalScroll() or 0
+        local scroll    = math.min(sidebarScrollFrame:GetVerticalScroll() or 0, contentH - frameH)
         local maxScroll = math.max(1, contentH - frameH)
         local trackH    = sbTrack:GetHeight() or frameH
         local thumbPct  = frameH / contentH
