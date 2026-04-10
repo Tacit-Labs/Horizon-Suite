@@ -2093,7 +2093,7 @@ function addon.Dashboard_BuildMainFrame()
             -- All view sub-frames that must be resized together.
             local _resizeViews = {
                 dashboardView, detailView, subCategoryView,
-                welcomeView, guideView, patchNotesView, newsView,
+                searchView, welcomeView, guideView, patchNotesView, newsView,
             }
 
             --- Resize + reflow the dashboard to a new size ratio without navigating.
@@ -2134,18 +2134,21 @@ function addon.Dashboard_BuildMainFrame()
                     headSub:ClearAllPoints()
                     headSub:SetPoint("TOP", lc.contentOffset / 2, DASH_HEAD_SUBTITLE_Y)
                 end
-                if searchBox then
-                    local searchW = math.max(300, math.floor(lc.viewWidth * 0.65))
-                    searchBox:SetWidth(searchW)
-                    searchBox:ClearAllPoints()
-                    searchBox:SetPoint("TOP", lc.contentOffset / 2, DASH_SEARCH_Y)
+                if f.searchBarShell then
+                    local searchW = math.min(DASH_SEARCH_BAR_MAX_W, math.max(300, math.floor(lc.viewWidth * 0.65)))
+                    f.searchBarShell:SetWidth(searchW)
+                    f.searchBarShell:ClearAllPoints()
+                    f.searchBarShell:SetPoint("TOP", lc.contentOffset / 2, DASH_SEARCH_Y - DASH_SEARCH_BAR_TOP_NUDGE)
                 end
                 if searchDropdown then
-                    local searchW = math.max(300, math.floor(lc.viewWidth * 0.65))
+                    local searchW = math.min(DASH_SEARCH_BAR_MAX_W, math.max(300, math.floor(lc.viewWidth * 0.65)))
                     searchDropdown:SetWidth(searchW)
                     if searchDropdownContent then
-                        searchDropdownContent:SetWidth(searchW - 30)
+                        searchDropdownContent:SetWidth(math.max(1, searchW - 24))
                     end
+                end
+                if searchEmptyHint then
+                    searchEmptyHint:SetWidth(math.max(200, lc.contentWidth - 48))
                 end
                 if detailTitle then
                     detailTitle:ClearAllPoints()
@@ -2202,13 +2205,15 @@ function addon.Dashboard_BuildMainFrame()
 
             -- ------------------------------------------------------------------
             -- Grabber button — bottom-right corner drag handle
-            -- Strata: HIGH at frameLevel+5.  NEVER TOOLTIP strata.
+            -- Must sit above all descendant content (footer panels are view:GetFrameLevel()+10,
+            -- so footer can reach f:GetFrameLevel()+11+).  Use +20 to clear any child stacking.
+            -- Strata: HIGH.  NEVER TOOLTIP strata.
             -- ------------------------------------------------------------------
             local grabber = CreateFrame("Button", nil, f)
             grabber:SetSize(22, 22)
             grabber:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2)
             grabber:SetFrameStrata("HIGH")
-            grabber:SetFrameLevel(f:GetFrameLevel() + 5)
+            grabber:SetFrameLevel(f:GetFrameLevel() + 20)
             grabber:RegisterForDrag("LeftButton")
             grabber:EnableMouse(true)
             f._resizeGrabber = grabber
