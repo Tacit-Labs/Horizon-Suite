@@ -94,8 +94,14 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     end)
     if isUnitPlayer then return false end
 
-    local reaction = UnitReaction(unit, "player")
-    local c = (reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction]) and FACTION_BAR_COLORS[reaction] or nil
+    -- Midnight: UnitReaction / UnitLevel / UnitClassification returns must not drive control flow outside pcall.
+    local c = nil
+    pcall(function()
+        local reaction = UnitReaction(unit, "player")
+        if reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction] then
+            c = FACTION_BAR_COLORS[reaction]
+        end
+    end)
     if c and ShowReactionBorder() then
         tooltip:SetBackdropBorderColor(c.r, c.g, c.b, 0.60)
     else
@@ -108,15 +114,39 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
         nameLeft:SetTextColor(c.r, c.g, c.b)
     end
 
-    if ShowLevelLine() then
-        local level = UnitLevel(unit)
-        local levelStr = (level and level >= 0) and tostring(level) or (ShowNpcIcons() and "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t" or "??")
+    local levelStr = (ShowNpcIcons() and "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t") or "??"
+    local unknownLevel = true
+    local levelForHeuristic = nil
+    local classStr = nil
+    local creatureType = nil
+    pcall(function()
+        local lev = UnitLevel(unit)
         local classification = UnitClassification(unit)
-        local classStr = (classification == "elite" and "Elite") or (classification == "rare" and "Rare") or (classification == "rareelite" and "Rare Elite") or (classification == "worldboss" and "World Boss") or (classification == "trivial" and "Trivial") or nil
-        local creatureType = nil
+        classStr = (classification == "elite" and "Elite") or (classification == "rare" and "Rare") or (classification == "rareelite" and "Rare Elite") or (classification == "worldboss" and "World Boss") or (classification == "trivial" and "Trivial") or nil
+        creatureType = UnitCreatureType(unit)
+        local nonNeg = false
         pcall(function()
-            creatureType = UnitCreatureType(unit)
+            if type(lev) == "number" and lev >= 0 then
+                nonNeg = true
+            end
         end)
+        if nonNeg then
+            levelForHeuristic = lev
+            unknownLevel = false
+            levelStr = tostring(lev)
+        else
+            levelForHeuristic = nil
+            pcall(function()
+                if type(lev) == "number" then
+                    levelForHeuristic = lev
+                end
+            end)
+            unknownLevel = true
+            levelStr = (ShowNpcIcons() and "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_8:14:14:0:0|t") or "??"
+        end
+    end)
+
+    if ShowLevelLine() then
         local parts = {}
         parts[#parts + 1] = "Level " .. levelStr
         if classStr then parts[#parts + 1] = classStr end
@@ -130,10 +160,9 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
             local lineLeft2 = ttName and _G[ttName .. "TextLeft2"]
             local captured = Insight.SafeGetFontText(lineLeft2)
             local stripped = StripTooltipColorCodes(captured):gsub("^%s+", ""):gsub("%s+$", "")
-            local unknownLevel = not (level and level >= 0)
             local isBlizzardLevel = false
             pcall(function()
-                isBlizzardLevel = LooksLikeBlizzardNpcLevelLine(stripped, level, creatureType, classStr, unknownLevel)
+                isBlizzardLevel = LooksLikeBlizzardNpcLevelLine(stripped, levelForHeuristic, creatureType, classStr, unknownLevel)
             end)
             local gray = 0.75
             if stripped == "" or isBlizzardLevel then
