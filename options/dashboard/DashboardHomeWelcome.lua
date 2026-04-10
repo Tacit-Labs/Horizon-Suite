@@ -1,5 +1,7 @@
 --[[
-    Horizon Suite - Dashboard home grid and module tiles; Welcome tab lives in DashboardWelcomeView.lua.
+    Horizon Suite - Dashboard home module toggle hub.
+    Each module (Focus, Presence, Vista, Insight, Cache, Essence) gets a full-width card
+    with an animated pill toggle to enable/disable it. Card click navigates to settings.
     Wired from DashboardFrame.lua via addon.DashboardHomeWelcome_Init(env).
 ]]
 
@@ -13,359 +15,407 @@ local tinsert = table.insert
 --- @return table { RefreshDashboardTiles = function }
 function addon.DashboardHomeWelcome_Init(env)
     local f = env.f
-    local addon = env.addon
+    local envAddon = env.addon
     local L = env.L
     local dashboardView = env.dashboardView
-    local dashScrollTopOffset = env.dashScrollTopOffset
     local dashAccentRefs = env.dashAccentRefs
     local GetAccentColor = env.GetAccentColor
     local MakeText = env.MakeText
-    local MakeDashboardWelcomeMixedScriptText = env.MakeDashboardWelcomeMixedScriptText
     local moduleLabels = env.moduleLabels
-    local categoryIcons = env.categoryIcons
-    local PREVIEW_MODULE_KEYS = env.PREVIEW_MODULE_KEYS
-    local COMING_SOON_MODULE_KEYS = env.COMING_SOON_MODULE_KEYS
-    local TILE_MODULE_LABEL_COLORS = env.TILE_MODULE_LABEL_COLORS
-    local ShouldShowModuleOnDashboard = env.ShouldShowModuleOnDashboard
-    local DASH_HOME_TILE_W = env.DASH_HOME_TILE_W
-    local DASH_HOME_TILE_H = env.DASH_HOME_TILE_H
-    local DASH_HOME_TILE_GAP = env.DASH_HOME_TILE_GAP
-    local DASH_HOME_TILE_COLS = env.DASH_HOME_TILE_COLS
-    local DASH_HOME_TILE_BG_ALPHA_MULT = env.DASH_HOME_TILE_BG_ALPHA_MULT
-    local DASH_HOME_SKELETON_BG_ALPHA_MULT = env.DASH_HOME_SKELETON_BG_ALPHA_MULT
     local DASHBOARD_CONTENT_CARD_ALPHA_MULT = env.DASHBOARD_CONTENT_CARD_ALPHA_MULT
-    local detailNav = env.detailNav
 
-    local WDef = addon.OptionsWidgetsDef
-    local SBg = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
-    local SBgA = SBg[4] * DASHBOARD_CONTENT_CARD_ALPHA_MULT
-    local SBgHoverR, SBgHoverG, SBgHoverB = 0.11, 0.11, 0.13
+    local C = envAddon.DashboardConstants or {}
+    local CARD_H     = C.HOME_TOGGLE_CARD_H     or 96
+    local CARD_GAP   = C.HOME_TOGGLE_CARD_GAP   or 10
+    local PILL_W     = C.HOME_TOGGLE_PILL_W     or 44
+    local PILL_H     = C.HOME_TOGGLE_PILL_H     or 24
+    local PILL_THUMB = C.HOME_TOGGLE_PILL_THUMB or 18
+    local ICON_SIZE  = C.HOME_TOGGLE_ICON_SIZE  or 38
+    local BANNER_H   = C.HOME_RELOAD_BANNER_H   or 52
 
-    -- Icons by moduleKey so localized tile titles still resolve art.
-    local dashboardTileIconByKey = {
-        axis = "INV_Misc_Wrench_01",
-        focus = "achievement_quests_completed_05",
-        presence = "vas_guildnamechange",
-        vista = "ability_hunter_pathfinding",
-        insight = "ui_profession_inscription",
-        cache = "INV_Misc_Coin_01",
-        essence = "achievement_character_human_male",
-        meridian = "ability_tracking",
+    local WDef = envAddon.OptionsWidgetsDef
+    local SBg  = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
+    local SBgA = SBg[4] * (DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1)
+
+    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "cache", "essence" }
+
+    local MODULE_COLORS = {
+        focus    = { 1.00, 0.82, 0.20 },
+        presence = { 0.20, 1.00, 0.87 },
+        vista    = { 0.70, 0.40, 1.00 },
+        insight  = { 1.00, 0.40, 0.70 },
+        cache    = { 0.20, 0.80, 0.40 },
+        essence  = { 0.86, 0.08, 0.24 },
     }
 
-    local function DashboardAxisBentoHeight()
-        return DASH_HOME_TILE_H * 3 + DASH_HOME_TILE_GAP * 2
+    local MODULE_ICONS = {
+        focus    = "achievement_quests_completed_05",
+        presence = "vas_guildnamechange",
+        vista    = "ability_hunter_pathfinding",
+        insight  = "ui_profession_inscription",
+        cache    = "INV_Misc_Coin_01",
+        essence  = "achievement_character_human_male",
+    }
+
+    local MODULE_DESCS = {
+        focus    = L["DASH_HOME_MOD_FOCUS_SHORT"]    or "Quest and achievement objective tracker.",
+        presence = L["DASH_HOME_MOD_PRESENCE_SHORT"] or "Cinematic zone text and notification toasts.",
+        vista    = L["DASH_HOME_MOD_VISTA_SHORT"]    or "Custom minimap with zone line, time, and addon buttons.",
+        insight  = L["DASH_HOME_MOD_INSIGHT_SHORT"]  or "Cinematic tooltips with class colors, spec, and faction.",
+        cache    = L["DASH_HOME_MOD_CACHE_SHORT"]    or "Loot, currency, and reputation toasts.",
+        essence  = L["DASH_HOME_MOD_ESSENCE_SHORT"]  or "Character panel with 3D model, item level, and gear.",
+    }
+
+    local CARD_X_INSET = 40
+    local CARD_TOP_Y   = -110
+
+    local function EaseInOutCubic(t)
+        if t < 0.5 then
+            return 4 * t * t * t
+        end
+        local f2 = ((2 * t) - 2)
+        return 0.5 * f2 * f2 * f2 + 1
     end
 
-    local function DashboardTileSizeForKey(mk)
-        if mk == "axis" then
-            return DASH_HOME_TILE_W, DashboardAxisBentoHeight()
+    local reloadBanner = CreateFrame("Frame", nil, dashboardView)
+    reloadBanner:SetHeight(BANNER_H)
+    reloadBanner:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 5)
+    reloadBanner:Hide()
+
+    local reloadBg = reloadBanner:CreateTexture(nil, "BACKGROUND")
+    reloadBg:SetAllPoints()
+    reloadBg:SetColorTexture(0.12, 0.10, 0.08, 0.85)
+
+    local reloadRail = reloadBanner:CreateTexture(nil, "ARTWORK")
+    reloadRail:SetWidth(3)
+    reloadRail:SetPoint("TOPLEFT", 0, 0)
+    reloadRail:SetPoint("BOTTOMLEFT", 0, 0)
+    reloadRail:SetColorTexture(0.90, 0.68, 0.20, 1)
+
+    local reloadText = MakeText(reloadBanner, L["DASH_HOME_RELOAD_PROMPT"] or "Reload to apply module changes.", 12, 0.90, 0.82, 0.55, "LEFT")
+    reloadText:SetPoint("LEFT", 18, 2)
+
+    local reloadBtn = CreateFrame("Button", nil, reloadBanner)
+    reloadBtn:SetSize(80, 24)
+    reloadBtn:SetPoint("RIGHT", -12, 0)
+
+    local reloadBtnBg = reloadBtn:CreateTexture(nil, "BACKGROUND")
+    reloadBtnBg:SetAllPoints()
+    reloadBtnBg:SetColorTexture(0.90, 0.68, 0.20, 0.22)
+
+    local reloadBtnLbl = MakeText(reloadBtn, L["DASH_RELOAD_UI"] or "Reload UI", 11, 0.95, 0.88, 0.60, "CENTER")
+    reloadBtnLbl:SetAllPoints()
+
+    reloadBtn:SetScript("OnClick", function() ReloadUI() end)
+    reloadBtn:SetScript("OnEnter", function() reloadBtnBg:SetColorTexture(0.90, 0.68, 0.20, 0.40) end)
+    reloadBtn:SetScript("OnLeave", function() reloadBtnBg:SetColorTexture(0.90, 0.68, 0.20, 0.22) end)
+
+    local toggleCards = {}
+
+    local function MakeToggleCard(parent, moduleKey)
+        local mc = MODULE_COLORS[moduleKey] or { 0.6, 0.6, 0.7 }
+        local mr, mg, mb = mc[1], mc[2], mc[3]
+
+        local card = CreateFrame("Button", nil, parent)
+        card:SetHeight(CARD_H)
+
+        local cardBg = card:CreateTexture(nil, "BACKGROUND")
+        cardBg:SetAllPoints()
+        cardBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+        card.cardBg = cardBg
+
+        local cardInner = card:CreateTexture(nil, "BORDER")
+        cardInner:SetPoint("TOPLEFT", 1, -1)
+        cardInner:SetPoint("BOTTOMRIGHT", -1, 1)
+        cardInner:SetColorTexture(1, 1, 1, 0.02)
+
+        local accentRail = card:CreateTexture(nil, "ARTWORK")
+        accentRail:SetWidth(4)
+        accentRail:SetPoint("TOPLEFT", 0, 0)
+        accentRail:SetPoint("BOTTOMLEFT", 0, 0)
+        accentRail:SetColorTexture(mr, mg, mb, 1)
+        card.accentRail = accentRail
+
+        local accentGlow = card:CreateTexture(nil, "ARTWORK")
+        accentGlow:SetWidth(12)
+        accentGlow:SetPoint("TOPLEFT", accentRail, "TOPRIGHT", 0, 0)
+        accentGlow:SetPoint("BOTTOMLEFT", accentRail, "BOTTOMRIGHT", 0, 0)
+        accentGlow:SetColorTexture(mr, mg, mb, 0.08)
+
+        local toggleWell = card:CreateTexture(nil, "ARTWORK")
+        toggleWell:SetPoint("TOPRIGHT", 0, 0)
+        toggleWell:SetPoint("BOTTOMRIGHT", 0, 0)
+        toggleWell:SetWidth(PILL_W + 40)
+        toggleWell:SetColorTexture(mr, mg, mb, 0.05)
+
+        local divider = card:CreateTexture(nil, "ARTWORK")
+        divider:SetHeight(1)
+        divider:SetPoint("BOTTOMLEFT", 0, 0)
+        divider:SetPoint("BOTTOMRIGHT", 0, 0)
+        local dar, dag, dab = GetAccentColor()
+        divider:SetColorTexture(dar, dag, dab, 0.15)
+        tinsert(dashAccentRefs.homeTileDividers, divider)
+
+        local iconTex = card:CreateTexture(nil, "ARTWORK")
+        iconTex:SetSize(ICON_SIZE, ICON_SIZE)
+        iconTex:SetPoint("LEFT", 18, 0)
+        iconTex:SetTexture("Interface\\Icons\\" .. (MODULE_ICONS[moduleKey] or "INV_Misc_Question_01"))
+        card.iconTex = iconTex
+
+        local modName = (moduleLabels and moduleLabels[moduleKey]) or (moduleKey:sub(1, 1):upper() .. moduleKey:sub(2))
+
+        local nameLbl = MakeText(card, modName:upper(), 14, mr, mg, mb, "LEFT")
+        nameLbl:SetPoint("TOPLEFT", iconTex, "TOPRIGHT", 14, -13)
+        nameLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
+        nameLbl:SetWordWrap(false)
+        card.nameLbl = nameLbl
+
+        local descLbl = MakeText(card, MODULE_DESCS[moduleKey] or "", 11, 0.55, 0.57, 0.62, "LEFT")
+        descLbl:SetPoint("TOPLEFT", nameLbl, "BOTTOMLEFT", 0, -8)
+        descLbl:SetPoint("RIGHT", -(PILL_W + 54), 0)
+        descLbl:SetWordWrap(false)
+        card.descLbl = descLbl
+
+        local pillBtn = CreateFrame("Button", nil, card)
+        pillBtn:SetSize(PILL_W, PILL_H)
+        pillBtn:SetPoint("RIGHT", -16, 0)
+        pillBtn:SetFrameLevel(card:GetFrameLevel() + 5)
+
+        local chevron = MakeText(card, ">", 14, 0.42, 0.45, 0.50, "CENTER")
+        chevron:SetPoint("RIGHT", pillBtn, "LEFT", -14, 0)
+        chevron:SetSize(10, 16)
+
+        local pillBg = pillBtn:CreateTexture(nil, "BACKGROUND")
+        pillBg:SetAllPoints()
+        pillBg:SetColorTexture(0.18, 0.18, 0.22, 0.9)
+
+        local pillBorder = pillBtn:CreateTexture(nil, "BORDER")
+        pillBorder:SetPoint("TOPLEFT", -1, 1)
+        pillBorder:SetPoint("BOTTOMRIGHT", 1, -1)
+        pillBorder:SetColorTexture(1, 1, 1, 0.07)
+
+        local pillGlow = pillBtn:CreateTexture(nil, "BORDER")
+        pillGlow:SetPoint("TOPLEFT", -3, 3)
+        pillGlow:SetPoint("BOTTOMRIGHT", 3, -3)
+        pillGlow:SetColorTexture(mr, mg, mb, 0.08)
+
+        local thumb = pillBtn:CreateTexture(nil, "ARTWORK")
+        thumb:SetSize(PILL_THUMB, PILL_THUMB)
+        thumb:SetTexture("Interface\\Buttons\\WHITE8X8")
+        thumb:SetVertexColor(1, 1, 1, 0.92)
+        thumb:SetPoint("LEFT", pillBtn, "LEFT", 3, 0)
+
+        local THUMB_OFF = 3
+        local THUMB_ON  = PILL_W - PILL_THUMB - 3
+
+        pillBtn._animTarget = 0
+        pillBtn._animStart = 0
+        pillBtn._animElapsed = 0
+        pillBtn._animDur = 0.20
+        pillBtn._animating = false
+        pillBtn._visualProgress = 0
+
+        local function ApplyPillProgress(progress)
+            pillBtn._visualProgress = progress
+            thumb:ClearAllPoints()
+            thumb:SetPoint("LEFT", pillBtn, "LEFT", THUMB_OFF + (THUMB_ON - THUMB_OFF) * progress, 0)
+
+            local r = 0.18 + (mr - 0.18) * progress
+            local g = 0.18 + (mg - 0.18) * progress
+            local b = 0.22 + (mb - 0.22) * progress
+            pillBg:SetColorTexture(r, g, b, 0.88 - (0.05 * progress))
+            pillBorder:SetColorTexture(1, 1, 1, 0.06 + (0.08 * progress))
+            pillGlow:SetColorTexture(mr, mg, mb, 0.04 + (0.16 * progress))
+            thumb:SetVertexColor(1, 1, 1, 0.90 + (0.07 * progress))
         end
-        return DASH_HOME_TILE_W, DASH_HOME_TILE_H
-    end
 
-    -- Copy-to-clipboard: same custom dialog as Patch Notes "Full changelog" (addon.ShowURLCopyBox in core/Core.lua)
-    local function ShowCopyURL(label, url)
-        if addon.ShowURLCopyBox then
-            addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
+        local function SetPillImmediate(on)
+            local t = on and 1 or 0
+            pillBtn._animTarget = t
+            pillBtn._animStart = t
+            pillBtn._animating = false
+            ApplyPillProgress(t)
         end
-    end
+        pillBtn.SetPillImmediate = SetPillImmediate
 
-    local function MakeTile(parent, name, icon, moduleKey)
-        local tile = CreateFrame("Button", nil, parent)
-        tile.moduleKey = moduleKey
-        local tw, th = DashboardTileSizeForKey(moduleKey)
-        tile:SetSize(tw, th)
-
-        local tileH = th
-        local fillANormal = SBgA * DASH_HOME_TILE_BG_ALPHA_MULT
-
-        -- Card chrome: full bleed fill + bottom rule (no left accent bar on Home — subcategory/detail keep theirs)
-        local tBg = tile:CreateTexture(nil, "BACKGROUND")
-        tBg:SetAllPoints()
-        tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal)
-
-        -- Class-colour ring on hover only (idle invisible)
-        local hoverBorder = tile:CreateTexture(nil, "BORDER")
-        hoverBorder:SetAllPoints()
-        hoverBorder:SetColorTexture(0, 0, 0, 0)
-
-        local homeCardDivider = tile:CreateTexture(nil, "ARTWORK")
-        homeCardDivider:SetHeight(1)
-        homeCardDivider:SetPoint("BOTTOMLEFT", 20, 0)
-        homeCardDivider:SetPoint("BOTTOMRIGHT", -20, 0)
-        local ddr, ddg, ddb = GetAccentColor()
-        homeCardDivider:SetColorTexture(ddr, ddg, ddb, 0.2)
-        tinsert(dashAccentRefs.homeTileDividers, homeCardDivider)
-
-        local iconPath = dashboardTileIconByKey[moduleKey] or categoryIcons[name] or "INV_Misc_Question_01"
-        local ic = tile:CreateTexture(nil, "ARTWORK")
-        ic:SetTexture("Interface\\Icons\\" .. iconPath)
-        ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
-
-        local tileDivider = tile:CreateTexture(nil, "ARTWORK")
-        tileDivider:SetHeight(1)
-        tileDivider:SetColorTexture(0.20, 0.21, 0.26, 0.28)
-
-        local lbl = MakeText(tile, name, 13, 0.80, 0.80, 0.85, "CENTER")
-        tile.label = lbl
-        local mc = TILE_MODULE_LABEL_COLORS[moduleKey]
-        tile._moduleLabelR = mc and mc[1] or 0.80
-        tile._moduleLabelG = mc and mc[2] or 0.80
-        tile._moduleLabelB = mc and mc[3] or 0.85
-        lbl:SetTextColor(tile._moduleLabelR, tile._moduleLabelG, tile._moduleLabelB)
-
-        if moduleKey and PREVIEW_MODULE_KEYS[moduleKey] then
-            local prevLabel = "(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")"
-            local prevBadge = MakeText(tile, prevLabel, 9, 34/255, 139/255, 34/255, "CENTER")
-            prevBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
-            tile.previewBadge = prevBadge
-        elseif moduleKey and COMING_SOON_MODULE_KEYS[moduleKey] then
-            local csLabel = "(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")"
-            local csBadge = MakeText(tile, csLabel, 9, 0.55, 0.70, 0.90, "CENTER")
-            csBadge:SetPoint("TOP", lbl, "BOTTOM", 0, -1)
-            tile.previewBadge = csBadge
-        end
-
-        local isPreviewOrSoon = moduleKey and (PREVIEW_MODULE_KEYS[moduleKey] or COMING_SOON_MODULE_KEYS[moduleKey])
-
-        tile._isSkeleton = false
-
-        --- Apply disabled-module (skeleton) or normal idle chrome for this Home tile.
-        --- @param skeleton boolean
-        --- @return nil
-        tile.SetDashboardSkeletonMode = function(_, skeleton)
-            tile._isSkeleton = skeleton and true or false
-            if tile._isSkeleton then
-                tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal * DASH_HOME_SKELETON_BG_ALPHA_MULT)
-                homeCardDivider:SetColorTexture(0.14, 0.15, 0.17, 0.22)
-                hoverBorder:SetColorTexture(0, 0, 0, 0)
-                if ic.SetDesaturated then ic:SetDesaturated(true) end
-                ic:SetVertexColor(0.5, 0.52, 0.56, 0.68)
-                lbl:SetTextColor(0.44, 0.46, 0.49)
-                if tile.previewBadge then
-                    tile.previewBadge:SetTextColor(0.32, 0.58, 0.34, 0.8)
-                end
-                tileDivider:SetColorTexture(0.14, 0.15, 0.17, 0.22)
-            else
-                tBg:SetColorTexture(SBg[1], SBg[2], SBg[3], fillANormal)
-                local rr, rg, rb = GetAccentColor()
-                homeCardDivider:SetColorTexture(rr, rg, rb, 0.2)
-                hoverBorder:SetColorTexture(0, 0, 0, 0)
-                if isPreviewOrSoon then
-                    if ic.SetDesaturated then ic:SetDesaturated(true) end
-                    ic:SetVertexColor(0.62, 0.64, 0.68, 0.82)
-                else
-                    if ic.SetDesaturated then ic:SetDesaturated(false) end
-                    ic:SetVertexColor(0.80, 0.80, 0.85, 0.82)
-                end
-                lbl:SetTextColor(tile._moduleLabelR, tile._moduleLabelG, tile._moduleLabelB)
-                if tile.previewBadge then
-                    if moduleKey and COMING_SOON_MODULE_KEYS[moduleKey] then
-                        tile.previewBadge:SetTextColor(0.55, 0.70, 0.90, 1)
-                    else
-                        tile.previewBadge:SetTextColor(34/255, 139/255, 34/255, 1)
-                    end
-                end
-                tileDivider:SetColorTexture(0.20, 0.21, 0.26, 0.28)
-            end
-        end
-
-        tile.ApplyDashboardTileLayout = function(_, h)
-            h = h or tile:GetHeight() or DASH_HOME_TILE_H
-            local axis = tile.moduleKey == "axis"
-            local icSize = axis and 72 or 54
-            ic:SetSize(icSize, icSize)
-            if axis then
-                -- Bento block: icon upper-middle, label band at bottom (same stack height as two small tiles).
-                ic:SetPoint("CENTER", tile, "CENTER", -4, 28)
-                tileDivider:ClearAllPoints()
-                tileDivider:SetPoint("LEFT", tile, "LEFT", 28, 0)
-                tileDivider:SetPoint("RIGHT", tile, "RIGHT", -28, 0)
-                tileDivider:SetPoint("BOTTOM", tile, "BOTTOM", 0, 46)
-                lbl:ClearAllPoints()
-                lbl:SetPoint("BOTTOM", tile, "BOTTOM", -6, 22)
-            else
-                ic:SetPoint("CENTER", tile, "CENTER", 0, 12)
-                tileDivider:ClearAllPoints()
-                tileDivider:SetPoint("LEFT", tile, "LEFT", 20, 0)
-                tileDivider:SetPoint("RIGHT", tile, "RIGHT", -22, 0)
-                tileDivider:SetPoint("BOTTOM", tile, "BOTTOM", 0, 42)
-                lbl:ClearAllPoints()
-                lbl:SetPoint("BOTTOM", tile, "BOTTOM", 0, 19)
-            end
-        end
-        tile.ApplyDashboardTileLayout(tile, tileH)
-
-        tile:SetScript("OnEnter", function()
-            local ar, ag, ab = GetAccentColor()
-            if tile._isSkeleton then
-                tBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, fillANormal * DASH_HOME_SKELETON_BG_ALPHA_MULT)
-                hoverBorder:SetColorTexture(ar, ag, ab, 0.35)
-                ic:SetVertexColor(0.58, 0.60, 0.64, 0.82)
-                lbl:SetTextColor(0.55, 0.57, 0.60)
-                if tile.previewBadge then
-                    tile.previewBadge:SetTextColor(0.38, 0.65, 0.40, 0.9)
-                end
-            else
-                tBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, fillANormal)
-                hoverBorder:SetColorTexture(ar, ag, ab, 0.55)
-                homeCardDivider:SetColorTexture(ar, ag, ab, 0.45)
-                if isPreviewOrSoon then
-                    if ic.SetDesaturated then ic:SetDesaturated(true) end
-                    ic:SetVertexColor(0.58, 0.60, 0.64, 0.82)
-                    lbl:SetTextColor(0.55, 0.57, 0.60)
-                    if tile.previewBadge then
-                        if moduleKey and COMING_SOON_MODULE_KEYS[moduleKey] then
-                            tile.previewBadge:SetTextColor(0.50, 0.65, 0.88, 0.9)
-                        else
-                            tile.previewBadge:SetTextColor(0.38, 0.65, 0.40, 0.9)
-                        end
-                    end
-                else
-                    if ic.SetDesaturated then ic:SetDesaturated(false) end
-                    ic:SetVertexColor(1, 1, 1, 1)
-                    lbl:SetTextColor(1, 1, 1)
-                end
+        pillBtn:SetScript("OnUpdate", function(self, elapsed)
+            if not self._animating then return end
+            self._animElapsed = self._animElapsed + elapsed
+            local rawT = math.min(1, self._animElapsed / self._animDur)
+            local t = EaseInOutCubic(rawT)
+            local curP = self._animStart + ((self._animTarget - self._animStart) * t)
+            ApplyPillProgress(curP)
+            if rawT >= 1 then
+                self._animating = false
+                SetPillImmediate(self._animTarget == 1)
             end
         end)
-        tile:SetScript("OnLeave", function()
-            if tile.SetDashboardSkeletonMode then
-                tile:SetDashboardSkeletonMode(tile._isSkeleton)
+
+        local function ApplyCardState(enabled)
+            local hovered = card._hovered
+            local bgR, bgG, bgB = SBg[1], SBg[2], SBg[3]
+            local bgA = SBgA
+
+            if enabled then
+                bgR, bgG, bgB = 0.10, 0.10, 0.12
+                bgA = math.min(1, SBgA + 0.02)
+            else
+                bgR, bgG, bgB = 0.07, 0.07, 0.09
+                bgA = math.max(0.70, SBgA - 0.05)
+            end
+
+            if hovered then
+                bgR = math.min(1, bgR + 0.015)
+                bgG = math.min(1, bgG + 0.015)
+                bgB = math.min(1, bgB + 0.02)
+            end
+
+            cardBg:SetColorTexture(bgR, bgG, bgB, bgA)
+            cardInner:SetColorTexture(1, 1, 1, hovered and 0.035 or 0.02)
+
+            if enabled then
+                accentRail:SetColorTexture(mr, mg, mb, 1)
+                accentGlow:SetColorTexture(mr, mg, mb, hovered and 0.14 or 0.10)
+                toggleWell:SetColorTexture(mr, mg, mb, hovered and 0.09 or 0.06)
+                if iconTex.SetDesaturated then iconTex:SetDesaturated(false) end
+                iconTex:SetVertexColor(1, 1, 1, hovered and 0.98 or 0.92)
+                nameLbl:SetTextColor(mr, mg, mb)
+                descLbl:SetTextColor(0.62, 0.64, 0.69)
+                chevron:SetTextColor(mr, mg, mb, hovered and 0.70 or 0.42)
+            else
+                accentRail:SetColorTexture(mr, mg, mb, 0.30)
+                accentGlow:SetColorTexture(mr, mg, mb, hovered and 0.06 or 0.04)
+                toggleWell:SetColorTexture(mr, mg, mb, hovered and 0.04 or 0.025)
+                if iconTex.SetDesaturated then iconTex:SetDesaturated(true) end
+                iconTex:SetVertexColor(0.50, 0.52, 0.56, 0.72)
+                nameLbl:SetTextColor(0.44, 0.46, 0.50)
+                descLbl:SetTextColor(0.36, 0.38, 0.42)
+                chevron:SetTextColor(0.36, 0.38, 0.42, hovered and 0.62 or 0.40)
+            end
+
+            card._enabledState = enabled
+        end
+
+        pillBtn:SetScript("OnClick", function()
+            local newOn = pillBtn._animTarget ~= 1
+            pillBtn._animStart = pillBtn._visualProgress or (pillBtn._animTarget == 1 and 1 or 0)
+            pillBtn._animElapsed = 0
+            pillBtn._animTarget = newOn and 1 or 0
+            pillBtn._animating = true
+
+            if envAddon.SetModuleEnabled then
+                envAddon:SetModuleEnabled(moduleKey, newOn, { deferReload = true })
+            end
+
+            if envAddon._moduleReloadRecommended then
+                if not reloadBanner:IsShown() then
+                    reloadBanner:SetAlpha(0)
+                    reloadBanner:Show()
+                end
+                UIFrameFadeIn(reloadBanner, 0.25, reloadBanner:GetAlpha(), 1)
+            end
+
+            if card.RefreshState then card:RefreshState(newOn, true) end
+        end)
+
+        card:SetScript("OnClick", function()
+            if f.OpenModule then
+                f.OpenModule(modName, moduleKey)
             end
         end)
-        tile:SetScript("OnClick", function()
-            if tile._isComingSoon then
-                ShowCopyURL(L["DASH_DISCORD"] or "Discord", "https://discord.gg/nFabdZmvSB")
-            elseif tile._isSkeleton then
-                detailNav.NavigateToModuleToggles()
-            else
-                f.OpenModule(name, moduleKey)
-            end
+
+        card:SetScript("OnEnter", function()
+            card._hovered = true
+            ApplyCardState(card._enabledState ~= false)
         end)
 
-        return tile
-    end
+        card:SetScript("OnLeave", function()
+            card._hovered = false
+            ApplyCardState(card._enabledState ~= false)
+        end)
 
-    -- Group logic (tiles and sidebar; refreshable for live module toggle updates)
-    local dashboardTilePool = {}
-    local function BuildMainTilesList()
-        local out = {}
-        local seen = {}
-        tinsert(out, { name = moduleLabels.axis or "Axis", moduleKey = "axis", isSkeleton = false })
-        tinsert(out, { name = moduleLabels.meridian or "Meridian", moduleKey = "meridian", isSkeleton = true, isComingSoon = true })
-        for _, cat in ipairs(addon.OptionCategories) do
-            local mk = cat.moduleKey
-            if mk and not seen[mk] then
-                seen[mk] = true
-                local enabled = ShouldShowModuleOnDashboard(mk)
-                tinsert(out, {
-                    name = moduleLabels[mk] or mk,
-                    moduleKey = mk,
-                    -- Disabled modules: same desaturated skeleton chrome + Module Toggles on click as preview modules.
-                    isSkeleton = not enabled,
-                })
-            end
-        end
-        table.sort(out, function(a, b) return a.name:lower() < b.name:lower() end)
-        return out
-    end
-
-    -- Bento: Axis occupies column 0 rows 0–1 (same width as other tiles, two rows tall); others fill remaining cells in row-major order.
-    local function RefreshDashboardTiles()
-        local mainTiles = BuildMainTilesList()
-        local TILE_W, TILE_H, TILE_GAP = DASH_HOME_TILE_W, DASH_HOME_TILE_H, DASH_HOME_TILE_GAP
-        local STRIDE = TILE_W + TILE_GAP
-        local COLS = DASH_HOME_TILE_COLS
-        local TOP_Y = -152
-
-        local gridOuterW = COLS * TILE_W + (COLS - 1) * TILE_GAP
-        local gridHalfW = gridOuterW / 2
-
-        local function CellCenterX(col)
-            return -gridHalfW + TILE_W / 2 + col * STRIDE
-        end
-
-        local function CellReservedForAxis(row, col)
-            return col == 0 and row <= 2
-        end
-
-        local axisInfo = nil
-        local others = {}
-        for _, info in ipairs(mainTiles) do
-            if info.moduleKey == "axis" then
-                axisInfo = info
-            else
-                others[#others + 1] = info
-            end
-        end
-
-        local slots = {}
-        local maxScanRows = math.max(12, math.ceil((#others + 2) / 3) + 6)
-        for row = 0, maxScanRows do
-            for col = 0, COLS - 1 do
-                if not CellReservedForAxis(row, col) then
-                    slots[#slots + 1] = { r = row, c = col }
-                    if #slots >= #others then
-                        break
-                    end
+        card.RefreshState = function(_, enabledOverride, preservePillAnimation)
+            local enabled = enabledOverride
+            if enabled == nil then
+                enabled = true
+                if envAddon.IsModuleEnabled then
+                    local v = envAddon:IsModuleEnabled(moduleKey)
+                    if v ~= nil then enabled = v end
                 end
             end
-            if #slots >= #others then
-                break
+
+            ApplyCardState(enabled)
+            if not preservePillAnimation then
+                SetPillImmediate(enabled)
             end
         end
 
-        local function PlaceTile(tileInfo, centerX, topY)
-            local tile = dashboardTilePool[tileInfo.moduleKey]
-            if not tile then
-                tile = MakeTile(dashboardView, tileInfo.name, nil, tileInfo.moduleKey)
-                dashboardTilePool[tileInfo.moduleKey] = tile
-            end
-            if tile.label then tile.label:SetText(tileInfo.name) end
-            local tw, th = DashboardTileSizeForKey(tileInfo.moduleKey)
-            tile:SetSize(tw, th)
-            if tile.ApplyDashboardTileLayout then
-                tile.ApplyDashboardTileLayout(tile, th)
-            end
-            tile:ClearAllPoints()
-            tile:SetPoint("TOP", dashboardView, "TOP", centerX, topY)
-            tile._isComingSoon = tileInfo.isComingSoon and true or false
-            if tile.SetDashboardSkeletonMode then
-                tile:SetDashboardSkeletonMode(tileInfo.isSkeleton and true or false)
-            end
-            tile:Show()
-        end
-
-        if axisInfo then
-            PlaceTile(axisInfo, CellCenterX(0), TOP_Y)
-        end
-
-        for i = 1, #others do
-            local slot = slots[i]
-            if slot then
-                local topY = TOP_Y - slot.r * (TILE_H + TILE_GAP)
-                PlaceTile(others[i], CellCenterX(slot.c), topY)
-            end
-        end
-
-        local inKeys = {}
-        if axisInfo then inKeys.axis = true end
-        for _, info in ipairs(others) do
-            inKeys[info.moduleKey] = true
-        end
-        for mk, tile in pairs(dashboardTilePool) do
-            if not inKeys[mk] then tile:Hide() end
-        end
+        card.pillBtn = pillBtn
+        return card
     end
 
-    RefreshDashboardTiles()
+    for _, mk in ipairs(MODULE_ORDER) do
+        local card = MakeToggleCard(dashboardView, mk)
+        tinsert(toggleCards, { key = mk, card = card })
+    end
 
-    if addon.DashboardWelcomeView_Init then
-        addon.DashboardWelcomeView_Init(env)
+    local function LayoutToggleCards()
+        local viewW = dashboardView:GetWidth() or 0
+        local cardW = math.max(200, viewW - CARD_X_INSET * 2)
+        local y = CARD_TOP_Y
+
+        for _, entry in ipairs(toggleCards) do
+            local card = entry.card
+            card:SetWidth(cardW)
+            card:ClearAllPoints()
+            card:SetPoint("TOPLEFT", dashboardView, "TOPLEFT", CARD_X_INSET, y)
+            card:Show()
+            y = y - CARD_H - CARD_GAP
+        end
+
+        reloadBanner:SetWidth(cardW)
+        reloadBanner:ClearAllPoints()
+        reloadBanner:SetPoint("TOPLEFT", dashboardView, "TOPLEFT", CARD_X_INSET, y - 8)
+    end
+
+    local function RefreshHomeToggleCards()
+        for _, entry in ipairs(toggleCards) do
+            if entry.card.RefreshState then
+                entry.card:RefreshState()
+            end
+        end
+
+        if not envAddon._moduleReloadRecommended then
+            reloadBanner:Hide()
+        end
+
+        LayoutToggleCards()
+    end
+
+    dashboardView:SetScript("OnSizeChanged", function()
+        if dashboardView:IsShown() then
+            LayoutToggleCards()
+        end
+    end)
+
+    RefreshHomeToggleCards()
+
+    if envAddon.DashboardWelcomeView_Init then
+        envAddon.DashboardWelcomeView_Init(env)
+    end
+
+    if envAddon.DashboardWelcomeView_Init and env.newsView then
+        local newsEnv = {}
+        for k, v in pairs(env) do newsEnv[k] = v end
+        newsEnv.targetView      = env.newsView
+        newsEnv.feedData        = envAddon.DashboardNewsFeed
+        newsEnv.targetViewName  = "news"
+        newsEnv.headSubKey      = "DASH_NEWS_HEAD_SUB"
+        newsEnv.communityFooter = false
+        envAddon.DashboardWelcomeView_Init(newsEnv)
     end
 
     return {
-        RefreshDashboardTiles = RefreshDashboardTiles,
+        RefreshDashboardTiles = RefreshHomeToggleCards,
     }
 end

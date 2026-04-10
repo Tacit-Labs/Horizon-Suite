@@ -42,6 +42,8 @@ function addon.Dashboard_IsAxisCategoryKey(catKey)
 end
 
 local DASHBOARD_TYPO_MIN_PX = 8
+-- Blizzard bundled font with Hangul/CJK coverage; FRIZQT and many custom fonts show tofu for contributor names.
+local DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT = "Fonts\\2002.TTF"
 local DASHBOARD_TEXT_SHADOW_OFFSET_X = 1
 local DASHBOARD_TEXT_SHADOW_OFFSET_Y = -1
 local DASHBOARD_TEXT_SHADOW_ALPHA_MAX = 0.85
@@ -182,10 +184,17 @@ end
 --- @param baseSize number Logical size (before offset); flags recomputed on apply unless overridden.
 --- @param flagsOrNil string|nil If set, used on create and on apply (unless widgetChrome).
 --- @param widgetChrome boolean|nil When true, apply uses Dashboard_GetWidgetOutlineFlags() instead of flags/size rule.
+--- @param extendedScriptFont boolean|nil When true, apply keeps Fonts\\2002.TTF (Hangul/CJK) instead of the user dashboard font.
 --- @return nil
-function addon.Dashboard_RegisterTypographyFontString(reg, fs, baseSize, flagsOrNil, widgetChrome)
+function addon.Dashboard_RegisterTypographyFontString(reg, fs, baseSize, flagsOrNil, widgetChrome, extendedScriptFont)
     if not reg or not reg.fontStrings or not fs or not baseSize then return end
-    reg.fontStrings[#reg.fontStrings + 1] = { fs = fs, base = baseSize, flags = flagsOrNil, widgetChrome = widgetChrome and true or nil }
+    reg.fontStrings[#reg.fontStrings + 1] = {
+        fs = fs,
+        base = baseSize,
+        flags = flagsOrNil,
+        widgetChrome = widgetChrome and true or nil,
+        extendedScriptFont = extendedScriptFont and true or nil,
+    }
 end
 
 --- @param reg table|nil
@@ -229,17 +238,28 @@ function addon.ApplyDashboardTypography()
             local fs = e.fs
             if fs and fs.SetFont then
                 local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((e.base or 13) - 13) + 0.5))
-                local fl
-                if e.widgetChrome then
-                    fl = widgetFlags
-                elseif e.flags ~= nil then
-                    fl = e.flags
+                if e.extendedScriptFont then
+                    local okExt = pcall(function()
+                        fs:SetFont(DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT, eff, "")
+                    end)
+                    if not okExt then
+                        pcall(function()
+                            fs:SetFont(path, eff, "")
+                        end)
+                    end
                 else
-                    fl = addon.Dashboard_OutlineFlagsForSize(eff)
+                    local fl
+                    if e.widgetChrome then
+                        fl = widgetFlags
+                    elseif e.flags ~= nil then
+                        fl = e.flags
+                    else
+                        fl = addon.Dashboard_OutlineFlagsForSize(eff)
+                    end
+                    pcall(function()
+                        fs:SetFont(path, eff, fl)
+                    end)
                 end
-                pcall(function()
-                    fs:SetFont(path, eff, fl)
-                end)
                 addon.Dashboard_ApplyTextShadow(fs)
             end
         end
@@ -314,7 +334,7 @@ function addon.Dashboard_MakeText(parent, text, size, r, g, b, justify, reg)
     return fs
 end
 
--- Welcome bodies may include CJK; user can pick Fonts\\2002.TTF (or similar) in dashboard font dropdown if needed.
+-- Welcome / guide bodies may include Hangul or CJK; always prefer Blizzard 2002 here so names render without tofu squares.
 --- @param parent Frame
 --- @param text string
 --- @param size number
@@ -331,8 +351,13 @@ function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b,
     local eff = addon.Dashboard_EffectiveDashboardFontSize(size)
     local fs = parent:CreateFontString(nil, "OVERLAY")
     local ok = pcall(function()
-        fs:SetFont(path, eff, "")
+        fs:SetFont(DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT, eff, "")
     end)
+    if not ok then
+        ok = pcall(function()
+            fs:SetFont(path, eff, "")
+        end)
+    end
     if not ok then
         pcall(function()
             fs:SetFont("Fonts\\ARIALN.TTF", eff, "")
@@ -341,7 +366,7 @@ function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b,
     fs:SetText(text)
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
-    addon.Dashboard_RegisterTypographyFontString(reg, fs, size, "")
+    addon.Dashboard_RegisterTypographyFontString(reg, fs, size, "", nil, true)
     addon.Dashboard_ApplyTextShadow(fs)
     return fs
 end

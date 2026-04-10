@@ -16,8 +16,8 @@ local WELCOME_CLASS_ICON_STRIP_ORDER = {
 }
 
 --- @return table
-local function GetSortedWelcomeFeed()
-    local src = addon.DashboardWelcomeFeed
+local function GetSortedFeed(feedData)
+    local src = feedData or addon.DashboardWelcomeFeed
     if not src or #src == 0 then
         return {}
     end
@@ -31,13 +31,18 @@ local function GetSortedWelcomeFeed()
     return t
 end
 
---- @param env table Same dashboard env as DashboardHomeWelcome_Init (frames, MakeText, L, …).
+--- @param env table Same dashboard env as DashboardHomeWelcome_Init (frames, MakeText, L, …), plus optional: targetView, feedData, targetViewName, headSubKey, communityFooter.
 --- @return nil
 function addon.DashboardWelcomeView_Init(env)
     local f = env.f
     local addonRef = env.addon
     local L = env.L
-    local welcomeView = env.welcomeView
+    local targetView = env.targetView or env.welcomeView
+    local feedData = env.feedData
+    local targetViewName = env.targetViewName or "welcome"
+    local headSubKey = env.headSubKey or "DASH_WELCOME_HEAD_SUB"
+    local createCommunityFooter = (env.communityFooter ~= false)
+    local welcomeView = targetView
     local detailView = env.detailView
     local subCategoryView = env.subCategoryView
     local dashboardView = env.dashboardView
@@ -70,10 +75,117 @@ function addon.DashboardWelcomeView_Init(env)
     local WELCOME_COMING_SOON_GIF_MAX_H = 132
     local WELCOME_COMING_SOON_TWO_COL_MIN_W = 440
     local WELCOME_COMING_SOON_GIF_COL_W = 200
+    local NEWS_FEATURED_MIN_ART_W = 220
+    local NEWS_GRID_TWO_COL_MIN_W = 760
+    local NEWS_GRID_GAP = 16
+    local NEWS_CARD_MIN_H = 220
+    local NEWS_ICON_STRIP_GAP = 4
+    local NEWS_MEDIA_WRAP_MIN_W = 180
+    local NEWS_MEDIA_WRAP_MAX_W = 240
+    local NEWS_MEDIA_WRAP_H = 156
+    local NEWS_MEDIA_SPLIT_COL_GAP = 14
+    local NEWS_MEDIA_SPLIT_MIN_LEFT_W = 140
+    local NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET = 10
+    local NEWS_CARD_EDITORIAL_FOOTER_AREA_H = 40
+    local NEWS_CARD_EDITORIAL_FOOTER_GAP_ABOVE = 12
+    local WELCOME_ACTION_GRID_GAP = 16
+    local WELCOME_SUPPORT_GRID_GAP = 16
+    local WELCOME_ACTION_CARD_MIN_H = 168
 
     local function ShowCopyURL(label, url)
         if addonRef.ShowURLCopyBox then
             addonRef.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
+        end
+    end
+
+    local function ResolveNewsTexturePath(entry)
+        if not entry then return nil end
+        if type(entry.artPath) == "string" and entry.artPath ~= "" then
+            return entry.artPath
+        end
+        if type(entry.icon) == "string" and entry.icon ~= "" then
+            if string.find(entry.icon, "\\", 1, true) or string.find(entry.icon, "/", 1, true) then
+                return entry.icon
+            end
+            return "Interface\\Icons\\" .. entry.icon
+        end
+        return nil
+    end
+
+    local function ResolveNewsArtIntrinsicSize(entry, tex, fallbackRatio)
+        if type(entry) == "table" then
+            local ew = tonumber(entry.artWidth)
+            local eh = tonumber(entry.artHeight)
+            if ew and eh and ew > 0 and eh > 0 then
+                return ew, eh
+            end
+            if entry.icon then
+                return 64, 64
+            end
+        end
+
+        local nw = tex and tex.GetTextureFileWidth and tex:GetTextureFileWidth() or 0
+        local nh = tex and tex.GetTextureFileHeight and tex:GetTextureFileHeight() or 0
+        if nw and nh and nw > 0 and nh > 0 then
+            return nw, nh
+        end
+
+        local ratio = tonumber(fallbackRatio) or (16 / 9)
+        ratio = math.max(0.25, math.min(4, ratio))
+        return ratio * 100, 100
+    end
+
+    local function ComputeNewsContainedSize(entry, tex, boxW, boxH, capScaleOne, fallbackRatio)
+        if not boxW or not boxH or boxW < 1 or boxH < 1 then
+            return 1, 1
+        end
+
+        local nw, nh = ResolveNewsArtIntrinsicSize(entry, tex, fallbackRatio)
+        local scale = math.min(boxW / nw, boxH / nh)
+        if capScaleOne then
+            scale = math.min(scale, 1)
+        end
+        return math.max(1, math.floor(nw * scale + 0.5)), math.max(1, math.floor(nh * scale + 0.5))
+    end
+
+    local function DispatchNewsAction(entry)
+        if not entry then return end
+        local action = entry.ctaAction
+        if type(action) ~= "table" then return end
+
+        if action.type == "module" then
+            local mk = action.moduleKey
+            if mk and f.OpenModule then
+                local modName = action.moduleName
+                    or (addonRef.Dashboard_BrandModule and addonRef.Dashboard_BrandModule(mk))
+                    or mk
+                f.OpenModule(modName, mk)
+            end
+            return
+        end
+
+        if action.type == "patch_notes" then
+            if f.ShowPatchNotes then f.ShowPatchNotes() end
+            return
+        end
+
+        if action.type == "guide" then
+            if f.ShowModuleGuide then f.ShowModuleGuide() end
+            return
+        end
+
+        if action.type == "dashboard" then
+            if f.ShowDashboard then f.ShowDashboard() end
+            return
+        end
+
+        if action.type == "news" then
+            if f.ShowNews then f.ShowNews() end
+            return
+        end
+
+        if action.type == "copy_url" and action.url then
+            ShowCopyURL(L[entry.ctaLabelKey] or L[entry.titleKey] or "Link", action.url)
         end
     end
 
@@ -93,6 +205,8 @@ function addon.DashboardWelcomeView_Init(env)
     content:SetSize(400, 1)
     welcomeScroll:SetScrollChild(content)
     addonRef.Dashboard_ApplySmoothScroll(welcomeScroll, content, 60, true)
+    -- Expose scroll content so DashboardModuleGuide_Init can parent embedded guide content here
+    welcomeView._scrollContent = content
 
     local welcomeBlockPool = {}
 
@@ -240,6 +354,62 @@ function addon.DashboardWelcomeView_Init(env)
         return btn
     end
 
+    local function CreateNewsCTAButton(parent, filled)
+        local btn = CreateFrame("Button", nil, parent)
+        btn:SetHeight(filled and 28 or 18)
+        btn:SetFrameLevel((parent:GetFrameLevel() or 0) + 3)
+
+        local bg = btn:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(0, 0, 0, 0)
+        btn._bg = bg
+        btn._filled = filled and true or false
+
+        local label = MakeText(btn, "", filled and 11 or 12, 0.72, 0.85, 0.95, "CENTER")
+        label:SetAllPoints()
+        btn._label = label
+
+        if filled then
+            bg:SetColorTexture(0.20, 0.80, 0.90, 0.20)
+        else
+            local underline = btn:CreateTexture(nil, "OVERLAY")
+            underline:SetHeight(1)
+            underline:SetPoint("BOTTOMLEFT", label, "BOTTOMLEFT", 0, -1)
+            underline:SetPoint("BOTTOMRIGHT", label, "BOTTOMRIGHT", 0, -1)
+            underline:SetColorTexture(0.45, 0.72, 0.95, 0.75)
+            underline:Hide()
+            btn._underline = underline
+        end
+
+        btn.SetLabel = function(self, text)
+            self._label:SetText(text or "")
+            local pad = self._filled and 24 or 2
+            local minW = self._filled and 120 or 40
+            self:SetWidth(math.max(minW, (self._label:GetStringWidth() or 0) + pad))
+        end
+
+        btn:SetScript("OnEnter", function(self)
+            if self._filled then
+                self._bg:SetColorTexture(0.20, 0.80, 0.90, 0.32)
+                self._label:SetTextColor(0.93, 0.98, 1, 1)
+            else
+                self._label:SetTextColor(0.86, 0.94, 1, 1)
+                if self._underline then self._underline:Show() end
+            end
+        end)
+        btn:SetScript("OnLeave", function(self)
+            if self._filled then
+                self._bg:SetColorTexture(0.20, 0.80, 0.90, 0.20)
+                self._label:SetTextColor(0.72, 0.85, 0.95, 1)
+            else
+                self._label:SetTextColor(0.72, 0.85, 0.95, 1)
+                if self._underline then self._underline:Hide() end
+            end
+        end)
+
+        return btn
+    end
+
     local function ComingSoonImageDisplaySize(tex, boxW, boxH, capScaleOne)
         if not tex or not boxW or not boxH or boxW < 1 or boxH < 1 then
             return math.max(1, boxW or 1), math.max(1, boxH or 1)
@@ -275,6 +445,305 @@ function addon.DashboardWelcomeView_Init(env)
             introFs:SetWordWrap(true)
             introFs:SetSpacing(4)
             welcomeBlockPool[id] = { kind = kind, titleFs = titleFs, introFs = introFs }
+            return welcomeBlockPool[id]
+        end
+
+        if kind == "welcome_hero" then
+            local hero = CreateFrame("Frame", nil, content)
+            hero:SetClipsChildren(true)
+            local war, wag, wab = GetAccentColor()
+
+            local bg = hero:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            bg:SetColorTexture(0.07, 0.08, 0.10, math.min(1, SBgA + 0.10))
+
+            local topGlow = hero:CreateTexture(nil, "ARTWORK")
+            topGlow:SetPoint("TOPLEFT", 0, 0)
+            topGlow:SetPoint("TOPRIGHT", 0, 0)
+            topGlow:SetHeight(92)
+            topGlow:SetColorTexture(0, 0, 0, 0)
+
+            local accent = hero:CreateTexture(nil, "ARTWORK")
+            accent:SetWidth(4)
+            accent:SetPoint("TOPLEFT", 0, 0)
+            accent:SetPoint("BOTTOMLEFT", 0, 0)
+            accent:SetColorTexture(war, wag, wab, 1)
+            tinsert(dashAccentRefs.cardAccents, accent)
+
+            local bottomRule = hero:CreateTexture(nil, "ARTWORK")
+            bottomRule:SetHeight(1)
+            bottomRule:SetPoint("BOTTOMLEFT", 22, 0)
+            bottomRule:SetPoint("BOTTOMRIGHT", -22, 0)
+            bottomRule:SetColorTexture(war, wag, wab, 0.16)
+            tinsert(dashAccentRefs.cardDividers, bottomRule)
+
+            local eyebrowFs = MakeText(hero, "", 11, 0.56, 0.75, 0.92, "LEFT")
+            local titleFs = MakeText(hero, "", 30, 0.98, 0.99, 1, "LEFT")
+            local taglineFs = MakeText(hero, "", 15, 0.78, 0.81, 0.87, "LEFT")
+            local bodyFs = MakeDashboardWelcomeMixedScriptText(hero, "", 13, 0.70, 0.73, 0.79, "LEFT")
+            bodyFs:SetWordWrap(true)
+            bodyFs:SetSpacing(4)
+
+            welcomeBlockPool[id] = {
+                kind = kind,
+                root = hero,
+                eyebrowFs = eyebrowFs,
+                titleFs = titleFs,
+                taglineFs = taglineFs,
+                bodyFs = bodyFs,
+                entry = entry,
+            }
+            return welcomeBlockPool[id]
+        end
+
+        if kind == "welcome_section_header" then
+            local titleFs = MakeText(content, "", 18, 0.98, 0.99, 1, "LEFT")
+            local introFs = MakeDashboardWelcomeMixedScriptText(content, "", 12, 0.60, 0.64, 0.70, "LEFT")
+            introFs:SetWordWrap(true)
+            introFs:SetSpacing(3)
+            welcomeBlockPool[id] = { kind = kind, titleFs = titleFs, introFs = introFs }
+            return welcomeBlockPool[id]
+        end
+
+        if kind == "welcome_action_card" then
+            local card = CreateFrame("Frame", nil, content)
+            card:SetClipsChildren(true)
+            local war, wag, wab = GetAccentColor()
+
+            local bg = card:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            bg:SetColorTexture(0.08, 0.09, 0.11, SBgA)
+
+            local accent = card:CreateTexture(nil, "ARTWORK")
+            accent:SetHeight(3)
+            accent:SetPoint("TOPLEFT", 0, 0)
+            accent:SetPoint("TOPRIGHT", 0, 0)
+            accent:SetColorTexture(war, wag, wab, 0.70)
+            tinsert(dashAccentRefs.cardAccents, accent)
+
+            local bottomRule = card:CreateTexture(nil, "ARTWORK")
+            bottomRule:SetHeight(1)
+            bottomRule:SetPoint("BOTTOMLEFT", 18, 0)
+            bottomRule:SetPoint("BOTTOMRIGHT", -18, 0)
+            bottomRule:SetColorTexture(war, wag, wab, 0.12)
+            tinsert(dashAccentRefs.cardDividers, bottomRule)
+
+            local icon = card:CreateTexture(nil, "ARTWORK", nil, 1)
+            icon:SetTexCoord(0, 1, 0, 1)
+            local eyebrowFs = MakeText(card, "", 10, 0.56, 0.75, 0.92, "LEFT")
+            local titleFs = MakeText(card, "", 16, 0.97, 0.98, 1, "LEFT")
+            local bodyFs = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.66, 0.69, 0.75, "LEFT")
+            bodyFs:SetWordWrap(true)
+            bodyFs:SetSpacing(4)
+            local ctaBtn = CreateNewsCTAButton(card, false)
+
+            welcomeBlockPool[id] = {
+                kind = kind,
+                root = card,
+                icon = icon,
+                eyebrowFs = eyebrowFs,
+                titleFs = titleFs,
+                bodyFs = bodyFs,
+                ctaBtn = ctaBtn,
+                entry = entry,
+            }
+            return welcomeBlockPool[id]
+        end
+
+        if kind == "welcome_support_card" then
+            local card = CreateFrame("Button", nil, content)
+            card:SetClipsChildren(true)
+            local war, wag, wab = GetAccentColor()
+
+            local bg = card:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            bg:SetColorTexture(0.08, 0.09, 0.11, SBgA)
+
+            local accent = card:CreateTexture(nil, "ARTWORK")
+            accent:SetWidth(3)
+            accent:SetPoint("TOPLEFT", 0, 0)
+            accent:SetPoint("BOTTOMLEFT", 0, 0)
+            accent:SetColorTexture(war, wag, wab, 1)
+            tinsert(dashAccentRefs.cardAccents, accent)
+
+            local titleFs = MakeText(card, "", 14, 0.96, 0.98, 1, "LEFT")
+            local bodyFs = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.64, 0.68, 0.74, "LEFT")
+            bodyFs:SetWordWrap(true)
+            bodyFs:SetSpacing(3)
+            local ctaBtn = CreateNewsCTAButton(card, false)
+
+            welcomeBlockPool[id] = {
+                kind = kind,
+                root = card,
+                titleFs = titleFs,
+                bodyFs = bodyFs,
+                ctaBtn = ctaBtn,
+                entry = entry,
+            }
+            return welcomeBlockPool[id]
+        end
+
+        if kind == "news_featured" then
+            local hero = CreateFrame("Frame", nil, content)
+            hero:SetClipsChildren(true)
+            local nar, nag, nab = GetAccentColor()
+
+            local bg = hero:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            bg:SetColorTexture(0.07, 0.08, 0.10, math.min(1, SBgA + 0.12))
+
+            local topGlow = hero:CreateTexture(nil, "ARTWORK")
+            topGlow:SetPoint("TOPLEFT", 0, 0)
+            topGlow:SetPoint("TOPRIGHT", 0, 0)
+            topGlow:SetHeight(86)
+            topGlow:SetColorTexture(0, 0, 0, 0)
+
+            local bottomRule = hero:CreateTexture(nil, "ARTWORK")
+            bottomRule:SetHeight(1)
+            bottomRule:SetPoint("BOTTOMLEFT", 22, 0)
+            bottomRule:SetPoint("BOTTOMRIGHT", -22, 0)
+            bottomRule:SetColorTexture(nar, nag, nab, 0.18)
+
+            local accent = hero:CreateTexture(nil, "ARTWORK")
+            accent:SetWidth(4)
+            accent:SetPoint("TOPLEFT", 0, 0)
+            accent:SetPoint("BOTTOMLEFT", 0, 0)
+            accent:SetColorTexture(nar, nag, nab, 1)
+            tinsert(dashAccentRefs.cardAccents, accent)
+            tinsert(dashAccentRefs.cardDividers, bottomRule)
+
+            local eyebrowFs = MakeText(hero, "", 11, 0.56, 0.75, 0.92, "LEFT")
+            local badgeBg = hero:CreateTexture(nil, "ARTWORK")
+            badgeBg:SetColorTexture(0.20, 0.80, 0.90, 0.18)
+            badgeBg:Hide()
+            local badgeFs = MakeText(hero, "", 10, 0.78, 0.91, 1, "CENTER")
+            badgeFs:Hide()
+            local titleFs = MakeText(hero, "", 28, 0.98, 0.99, 1, "LEFT")
+            local taglineFs = MakeText(hero, "", 15, 0.76, 0.80, 0.87, "LEFT")
+            local bodyFs = MakeDashboardWelcomeMixedScriptText(hero, "", 13, 0.70, 0.73, 0.79, "LEFT")
+            bodyFs:SetWordWrap(true)
+            bodyFs:SetSpacing(4)
+            local metaFs = MakeText(hero, "", 11, 0.47, 0.52, 0.58, "LEFT")
+            local artFrame = CreateFrame("Frame", nil, hero)
+            artFrame:SetClipsChildren(true)
+            local artBg = artFrame:CreateTexture(nil, "BACKGROUND")
+            artBg:SetAllPoints()
+            artBg:SetColorTexture(0, 0, 0, 0)
+            local art = hero:CreateTexture(nil, "ARTWORK", nil, 1)
+            art:SetTexCoord(0, 1, 0, 1)
+            local ctaBtn = CreateNewsCTAButton(hero, true)
+
+            welcomeBlockPool[id] = {
+                kind = kind,
+                root = hero,
+                topGlow = topGlow,
+                bottomRule = bottomRule,
+                accent = accent,
+                eyebrowFs = eyebrowFs,
+                badgeBg = badgeBg,
+                badgeFs = badgeFs,
+                titleFs = titleFs,
+                taglineFs = taglineFs,
+                bodyFs = bodyFs,
+                metaFs = metaFs,
+                artFrame = artFrame,
+                artBg = artBg,
+                art = art,
+                ctaBtn = ctaBtn,
+                entry = entry,
+            }
+            return welcomeBlockPool[id]
+        end
+
+        if kind == "news_card" then
+            local card = CreateFrame("Frame", nil, content)
+            card:SetClipsChildren(true)
+            local nar, nag, nab = GetAccentColor()
+
+            local bg = card:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            bg:SetColorTexture(0.08, 0.09, 0.11, SBgA)
+
+            local borderTop = card:CreateTexture(nil, "ARTWORK")
+            borderTop:SetHeight(1)
+            borderTop:SetPoint("TOPLEFT", 18, 0)
+            borderTop:SetPoint("TOPRIGHT", -18, 0)
+            borderTop:SetColorTexture(1, 1, 1, 0.03)
+
+            local borderBottom = card:CreateTexture(nil, "ARTWORK")
+            borderBottom:SetHeight(1)
+            borderBottom:SetPoint("BOTTOMLEFT", 18, 0)
+            borderBottom:SetPoint("BOTTOMRIGHT", -18, 0)
+            borderBottom:SetColorTexture(nar, nag, nab, 0.12)
+
+            local accent = card:CreateTexture(nil, "ARTWORK")
+            accent:SetHeight(3)
+            accent:SetPoint("TOPLEFT", 0, 0)
+            accent:SetPoint("TOPRIGHT", 0, 0)
+            accent:SetColorTexture(nar, nag, nab, 0.70)
+            tinsert(dashAccentRefs.cardAccents, accent)
+            tinsert(dashAccentRefs.cardDividers, borderBottom)
+
+            local eyebrowFs = MakeText(card, "", 10, 0.56, 0.75, 0.92, "LEFT")
+            local badgeBg = card:CreateTexture(nil, "ARTWORK")
+            badgeBg:SetColorTexture(0.20, 0.80, 0.90, 0.16)
+            badgeBg:Hide()
+            local badgeFs = MakeText(card, "", 10, 0.78, 0.91, 1, "CENTER")
+            badgeFs:Hide()
+            local titleFs = MakeText(card, "", 16, 0.97, 0.98, 1, "LEFT")
+            local bodyFs = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.66, 0.69, 0.75, "LEFT")
+            bodyFs:SetWordWrap(true)
+            bodyFs:SetSpacing(4)
+            local bodyFsOverflow = MakeDashboardWelcomeMixedScriptText(card, "", 12, 0.66, 0.69, 0.75, "LEFT")
+            bodyFsOverflow:SetWordWrap(true)
+            bodyFsOverflow:SetSpacing(4)
+            local metaFs = MakeText(card, "", 11, 0.47, 0.52, 0.58, "LEFT")
+            local artFrame = CreateFrame("Frame", nil, card)
+            artFrame:SetClipsChildren(true)
+            local artBg = artFrame:CreateTexture(nil, "BACKGROUND")
+            artBg:SetAllPoints()
+            artBg:SetColorTexture(0, 0, 0, 0)
+            local art = card:CreateTexture(nil, "ARTWORK", nil, 1)
+            art:SetTexCoord(0, 1, 0, 1)
+            local ctaBtn = CreateNewsCTAButton(card, false)
+
+            local classIconsStrip = CreateFrame("Frame", nil, card)
+            classIconsStrip:Hide()
+            classIconsStrip.textures = {}
+            for i = 1, #WELCOME_CLASS_ICON_STRIP_ORDER do
+                local tex = classIconsStrip:CreateTexture(nil, "ARTWORK", nil, 1)
+                tex:SetTexCoord(0, 1, 0, 1)
+                classIconsStrip.textures[i] = tex
+            end
+
+            local editorialFooterRow = CreateFrame("Frame", nil, card)
+            editorialFooterRow:SetFrameLevel((card:GetFrameLevel() or 0) + 4)
+            local editorialFooterPrefixFs = MakeText(editorialFooterRow, "", 11, 0.47, 0.52, 0.58, "LEFT")
+            local editorialFooterLinkBtn = CreateNewsCTAButton(editorialFooterRow, false)
+
+            welcomeBlockPool[id] = {
+                kind = kind,
+                root = card,
+                borderTop = borderTop,
+                borderBottom = borderBottom,
+                accent = accent,
+                eyebrowFs = eyebrowFs,
+                badgeBg = badgeBg,
+                badgeFs = badgeFs,
+                titleFs = titleFs,
+                bodyFs = bodyFs,
+                bodyFsOverflow = bodyFsOverflow,
+                metaFs = metaFs,
+                artFrame = artFrame,
+                artBg = artBg,
+                art = art,
+                ctaBtn = ctaBtn,
+                classIconsStrip = classIconsStrip,
+                editorialFooterRow = editorialFooterRow,
+                editorialFooterPrefixFs = editorialFooterPrefixFs,
+                editorialFooterLinkBtn = editorialFooterLinkBtn,
+                entry = entry,
+            }
             return welcomeBlockPool[id]
         end
 
@@ -419,13 +888,60 @@ function addon.DashboardWelcomeView_Init(env)
         return nil
     end
 
-    local footerObj = addonRef.Dashboard_CreateCommunityFooter(footerPanel, {
-        L = L,
-        GetAccentColor = GetAccentColor,
-        MakeText = MakeText,
-        addon = addonRef,
-    })
-    tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
+    local footerObj = nil
+    if createCommunityFooter then
+        footerObj = addonRef.Dashboard_CreateCommunityFooter(footerPanel, {
+            L = L,
+            GetAccentColor = GetAccentColor,
+            MakeText = MakeText,
+            addon = addonRef,
+        })
+        if footerObj and footerObj.footerTopRule then
+            tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
+        end
+    end
+
+    local function UpdateNewsBadge(badgeBg, badgeFs, text)
+        if not badgeBg or not badgeFs then return end
+        if type(text) ~= "string" or text == "" then
+            badgeBg:Hide()
+            badgeFs:Hide()
+            return
+        end
+        badgeFs:SetText(text)
+        local w = math.max(34, (badgeFs:GetStringWidth() or 0) + 18)
+        badgeBg:SetSize(w, 18)
+        badgeBg:Show()
+        badgeFs:Show()
+    end
+
+    local function LayoutNewsClassStrip(strip, width)
+        if not strip or not strip.textures then return 0 end
+        local nStrip = #WELCOME_CLASS_ICON_STRIP_ORDER
+        if nStrip <= 0 then
+            strip:Hide()
+            return 0
+        end
+        local iconPx = math.max(8, math.floor((width - (nStrip - 1) * NEWS_ICON_STRIP_GAP) / nStrip))
+        strip:SetSize(width, iconPx + 4)
+        for i = 1, nStrip do
+            local tex = strip.textures[i]
+            if tex then
+                local cf = WELCOME_CLASS_ICON_STRIP_ORDER[i]
+                if addonRef.ResolveClassIconDisplay then
+                    local disp = addonRef.ResolveClassIconDisplay(cf, "custom")
+                    if disp and disp.kind == "file" and disp.path then
+                        tex:SetTexture(disp.path)
+                    end
+                end
+                tex:SetSize(iconPx, iconPx)
+                tex:ClearAllPoints()
+                tex:SetPoint("TOPLEFT", strip, "TOPLEFT", (i - 1) * (iconPx + NEWS_ICON_STRIP_GAP), 0)
+            end
+        end
+        strip:Show()
+        return iconPx + 4
+    end
 
     LayoutWelcomeContent = function()
         local rawW = welcomeBg:GetWidth() or 0
@@ -434,21 +950,599 @@ function addon.DashboardWelcomeView_Init(env)
         local wFooter = math.max(280, viewW - 40)
         local innerPad = 28
 
-        footerObj.layout(wFooter, 0, welcomeView)
+        if footerObj and footerObj.layout then
+            footerObj.layout(wFooter, 0, welcomeView)
+        end
 
         welcomeScroll:ClearAllPoints()
         welcomeScroll:SetPoint("TOPLEFT", welcomeBg, "TOPLEFT", SCROLL_TO_BG_INSET, -WELCOME_CONTENT_TOP_PAD)
-        welcomeScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
+        if createCommunityFooter then
+            welcomeScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
+        else
+            welcomeScroll:SetPoint("BOTTOMLEFT", welcomeBg, "BOTTOMLEFT", SCROLL_TO_BG_INSET, 20)
+        end
         welcomeScroll:SetPoint("TOPRIGHT", welcomeBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -WELCOME_CONTENT_TOP_PAD)
-        welcomeScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
+        if createCommunityFooter then
+            welcomeScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, WELCOME_SCROLL_ABOVE_FOOTER_GAP)
+        else
+            welcomeScroll:SetPoint("BOTTOMRIGHT", welcomeBg, "BOTTOMRIGHT", -SCROLL_TO_BG_INSET, 20)
+        end
 
         content:SetWidth(w)
         local y = 0
-        local feed = GetSortedWelcomeFeed()
+        local feed = GetSortedFeed(feedData)
         local activeIds = {}
+
+        if targetViewName == "welcome" then
+            local heroEntry, learnEntry = nil, nil
+            local actionEntries, supportEntries = {}, {}
+            for i = 1, #feed do
+                local entry = feed[i]
+                if entry.kind == "welcome_hero" then
+                    heroEntry = entry
+                elseif entry.kind == "welcome_section_header" then
+                    if entry.id == "learn_suite" then
+                        learnEntry = entry
+                    end
+                elseif entry.kind == "welcome_action_card" then
+                    actionEntries[#actionEntries + 1] = entry
+                elseif entry.kind == "welcome_support_card" then
+                    supportEntries[#supportEntries + 1] = entry
+                end
+            end
+
+            if heroEntry then
+                local pool = EnsureWelcomeBlock(heroEntry)
+                if pool then
+                    activeIds[heroEntry.id] = true
+                    local hero = pool.root
+                    local pad = 30
+                    local textW = w - pad * 2
+                    pool.eyebrowFs:SetText(L[heroEntry.eyebrowKey] or "")
+                    pool.titleFs:SetText(L[heroEntry.titleKey] or "")
+                    pool.taglineFs:SetText(L[heroEntry.taglineKey] or "")
+                    pool.bodyFs:SetText(L[heroEntry.bodyKey] or "")
+
+                    hero:SetWidth(w)
+                    hero:ClearAllPoints()
+                    hero:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+
+                    local yt = pad
+                    pool.eyebrowFs:SetWidth(textW)
+                    pool.eyebrowFs:ClearAllPoints()
+                    pool.eyebrowFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
+                    yt = yt + pool.eyebrowFs:GetHeight() + 10
+                    pool.titleFs:SetWidth(textW)
+                    pool.titleFs:ClearAllPoints()
+                    pool.titleFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
+                    yt = yt + pool.titleFs:GetHeight() + 8
+                    pool.taglineFs:SetWidth(textW)
+                    pool.taglineFs:ClearAllPoints()
+                    pool.taglineFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
+                    yt = yt + pool.taglineFs:GetHeight() + 12
+                    pool.bodyFs:SetWidth(textW)
+                    pool.bodyFs:ClearAllPoints()
+                    pool.bodyFs:SetPoint("TOPLEFT", hero, "TOPLEFT", pad, -yt)
+                    yt = yt + pool.bodyFs:GetHeight()
+
+                    hero:SetHeight(math.max(240, yt + pad))
+                    hero:Show()
+                    y = y + hero:GetHeight() + 20
+                end
+            end
+
+            if #actionEntries > 0 then
+                local cols = (w >= 780) and 3 or ((w >= 560) and 2 or 1)
+                local cardW = math.floor((w - (cols - 1) * WELCOME_ACTION_GRID_GAP) / cols)
+                local rowY = y
+                local rowH = 0
+                for i = 1, #actionEntries do
+                    local entry = actionEntries[i]
+                    local pool = EnsureWelcomeBlock(entry)
+                    if pool then
+                        activeIds[entry.id] = true
+                        local col = (i - 1) % cols
+                        if col == 0 then rowH = 0 end
+                        local card = pool.root
+                        local pad = 22
+                        local textW = cardW - pad * 2
+                        local iconPath = ResolveNewsTexturePath(entry)
+
+                        card:SetWidth(cardW)
+                        card:ClearAllPoints()
+                        card:SetPoint("TOPLEFT", content, "TOPLEFT", col * (cardW + WELCOME_ACTION_GRID_GAP), -rowY)
+
+                        if iconPath then
+                            pool.icon:SetTexture(iconPath)
+                            pool.icon:SetSize(34, 34)
+                            pool.icon:ClearAllPoints()
+                            pool.icon:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
+                            pool.icon:Show()
+                        else
+                            pool.icon:Hide()
+                        end
+
+                        local eyebrowText = (entry.eyebrowKey and L[entry.eyebrowKey]) or ""
+                        pool.eyebrowFs:SetText(eyebrowText)
+                        pool.titleFs:SetText(L[entry.titleKey] or "")
+                        pool.bodyFs:SetText(L[entry.bodyKey] or "")
+                        pool.ctaBtn:SetLabel(L[entry.ctaLabelKey] or "")
+                        pool.ctaBtn:SetScript("OnClick", function() DispatchNewsAction(entry) end)
+
+                        local titleTopY = pad
+                        if iconPath then
+                            titleTopY = pad + 34 + 8
+                        end
+                        if eyebrowText ~= "" then
+                            pool.eyebrowFs:Show()
+                            if iconPath then
+                                pool.eyebrowFs:SetWidth(textW - 46)
+                                pool.eyebrowFs:ClearAllPoints()
+                                pool.eyebrowFs:SetPoint("TOPLEFT", pool.icon, "TOPRIGHT", 12, -1)
+                            else
+                                pool.eyebrowFs:SetWidth(textW)
+                                pool.eyebrowFs:ClearAllPoints()
+                                pool.eyebrowFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
+                                titleTopY = pad + pool.eyebrowFs:GetHeight() + 8
+                            end
+                        else
+                            pool.eyebrowFs:Hide()
+                        end
+                        pool.titleFs:SetWidth(textW)
+                        pool.titleFs:ClearAllPoints()
+                        pool.titleFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -titleTopY)
+                        local yt = titleTopY + pool.titleFs:GetHeight() + 8
+                        pool.bodyFs:SetWidth(textW)
+                        pool.bodyFs:ClearAllPoints()
+                        pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                        yt = yt + pool.bodyFs:GetHeight() + 14
+                        pool.ctaBtn:ClearAllPoints()
+                        pool.ctaBtn:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                        pool.ctaBtn:Show()
+                        local cardH = math.max(WELCOME_ACTION_CARD_MIN_H, yt + pool.ctaBtn:GetHeight() + pad)
+                        card:SetHeight(cardH)
+                        card:Show()
+                        rowH = math.max(rowH, cardH)
+                        if col == cols - 1 or i == #actionEntries then
+                            rowY = rowY + rowH + WELCOME_ACTION_GRID_GAP
+                        end
+                    end
+                end
+                y = rowY + 8
+            end
+
+            if learnEntry then
+                local pool = EnsureWelcomeBlock(learnEntry)
+                if pool then
+                    activeIds[learnEntry.id] = true
+                    pool.titleFs:SetText(L[learnEntry.titleKey] or "")
+                    pool.introFs:SetText(L[learnEntry.introKey] or "")
+                    pool.titleFs:SetWidth(w)
+                    pool.titleFs:ClearAllPoints()
+                    pool.titleFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + pool.titleFs:GetHeight() + 6
+                    pool.introFs:SetWidth(w)
+                    pool.introFs:ClearAllPoints()
+                    pool.introFs:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+                    y = y + pool.introFs:GetHeight() + 12
+                    pool.titleFs:Show()
+                    pool.introFs:Show()
+                end
+            end
+
+            if addonRef.DashboardModuleGuide_LayoutEmbedded then
+                y = addonRef.DashboardModuleGuide_LayoutEmbedded(w, y, innerPad) or y
+                y = y + 16
+            end
+
+            if #supportEntries > 0 then
+                local cols = (w >= 820) and 3 or ((w >= 560) and 2 or 1)
+                local cardW = math.floor((w - (cols - 1) * WELCOME_SUPPORT_GRID_GAP) / cols)
+                local rowY = y
+                local rowH = 0
+                for i = 1, #supportEntries do
+                    local entry = supportEntries[i]
+                    local pool = EnsureWelcomeBlock(entry)
+                    if pool then
+                        activeIds[entry.id] = true
+                        local col = (i - 1) % cols
+                        if col == 0 then rowH = 0 end
+                        local card = pool.root
+                        local pad = 22
+                        local textW = cardW - pad * 2 - 8
+
+                        pool.titleFs:SetText(L[entry.titleKey] or "")
+                        pool.bodyFs:SetText(L[entry.bodyKey] or "")
+                        pool.ctaBtn:SetLabel(L[entry.ctaLabelKey] or "")
+                        pool.ctaBtn:SetScript("OnClick", function()
+                            DispatchNewsAction(entry)
+                        end)
+                        card:SetScript("OnClick", function()
+                            if entry.ctaAction then
+                                DispatchNewsAction(entry)
+                            end
+                        end)
+
+                        card:SetWidth(cardW)
+                        card:ClearAllPoints()
+                        card:SetPoint("TOPLEFT", content, "TOPLEFT", col * (cardW + WELCOME_SUPPORT_GRID_GAP), -rowY)
+                        pool.titleFs:SetWidth(textW)
+                        pool.titleFs:ClearAllPoints()
+                        pool.titleFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
+                        local yt = pad + pool.titleFs:GetHeight() + 8
+                        pool.bodyFs:SetWidth(textW)
+                        pool.bodyFs:ClearAllPoints()
+                        pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                        yt = yt + pool.bodyFs:GetHeight()
+                        if entry.ctaAction and entry.ctaLabelKey then
+                            yt = yt + 14
+                            pool.ctaBtn:ClearAllPoints()
+                            pool.ctaBtn:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -yt)
+                            pool.ctaBtn:Show()
+                            yt = yt + pool.ctaBtn:GetHeight()
+                        else
+                            pool.ctaBtn:Hide()
+                        end
+                        local cardH = yt + pad
+                        card:SetHeight(math.max(140, cardH))
+                        card:Show()
+                        rowH = math.max(rowH, card:GetHeight())
+                        if col == cols - 1 or i == #supportEntries then
+                            rowY = rowY + rowH + WELCOME_SUPPORT_GRID_GAP
+                        end
+                    end
+                end
+                y = rowY
+            end
+        elseif targetViewName == "news" then
+            local featuredEntries = {}
+            local secondaryEntries = {}
+            for i = 1, #feed do
+                local entry = feed[i]
+                if entry.kind == "news_featured" then
+                    featuredEntries[#featuredEntries + 1] = entry
+                elseif entry.kind == "news_card" then
+                    secondaryEntries[#secondaryEntries + 1] = entry
+                end
+            end
+
+            for i = 1, #featuredEntries do
+                local entry = featuredEntries[i]
+                local pool = EnsureWelcomeBlock(entry)
+                if pool then
+                    activeIds[entry.id] = true
+                    local pad = 30
+                    local hero = pool.root
+                    local artPath = ResolveNewsTexturePath(entry)
+                    local hasArt = artPath and artPath ~= ""
+                    local textColW = w - pad * 2
+                    local artW, artH = 0, 0
+
+                    if hasArt then
+                        artW = math.max(NEWS_FEATURED_MIN_ART_W, math.floor(w * 0.28))
+                        artW = math.min(artW, math.max(NEWS_FEATURED_MIN_ART_W, w - pad * 2 - 280))
+                        pool.art:SetTexture(artPath)
+                        artW, artH = ComputeNewsContainedSize(entry, pool.art, artW, 176, true, 16 / 9)
+                        pool.art:SetSize(artW, artH)
+                        pool.art:Show()
+                        local artBoxW = math.max(NEWS_FEATURED_MIN_ART_W, artW)
+                        pool.artFrame:SetSize(artBoxW, 176)
+                        pool.artFrame:Show()
+                        textColW = math.max(220, w - pad * 2 - artBoxW - 24)
+                    else
+                        pool.artFrame:Hide()
+                        pool.art:Hide()
+                    end
+
+                    local badgeText = L[entry.badgeKey] or ""
+                    local ctaText = L[entry.ctaLabelKey] or ""
+                    pool.eyebrowFs:SetText(L[entry.eyebrowKey] or "")
+                    UpdateNewsBadge(pool.badgeBg, pool.badgeFs, badgeText)
+                    pool.titleFs:SetText(L[entry.titleKey] or "")
+                    pool.taglineFs:SetText(L[entry.taglineKey] or "")
+                    pool.bodyFs:SetText(L[entry.bodyKey] or "")
+                    pool.metaFs:SetText(L[entry.metaKey] or "")
+                    pool.ctaBtn:SetScript("OnClick", function() DispatchNewsAction(entry) end)
+                    pool.ctaBtn:SetLabel(ctaText)
+                    if ctaText ~= "" then pool.ctaBtn:Show() else pool.ctaBtn:Hide() end
+
+                    hero:SetWidth(w)
+                    hero:ClearAllPoints()
+                    hero:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+
+                    local textX = pad
+                    local textY = pad
+                    pool.eyebrowFs:ClearAllPoints()
+                    pool.eyebrowFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
+                    if badgeText ~= "" then
+                        pool.badgeBg:ClearAllPoints()
+                        pool.badgeBg:SetPoint("LEFT", pool.eyebrowFs, "RIGHT", 12, 0)
+                        pool.badgeFs:ClearAllPoints()
+                        pool.badgeFs:SetPoint("CENTER", pool.badgeBg, "CENTER", 0, 0)
+                    end
+
+                    textY = textY + pool.eyebrowFs:GetHeight() + 10
+                    pool.titleFs:SetWidth(textColW)
+                    pool.titleFs:ClearAllPoints()
+                    pool.titleFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
+                    textY = textY + pool.titleFs:GetHeight() + 8
+                    pool.taglineFs:SetWidth(textColW)
+                    pool.taglineFs:ClearAllPoints()
+                    pool.taglineFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
+                    textY = textY + pool.taglineFs:GetHeight() + 12
+                    pool.bodyFs:SetWidth(textColW)
+                    pool.bodyFs:ClearAllPoints()
+                    pool.bodyFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
+                    textY = textY + pool.bodyFs:GetHeight() + 14
+                    pool.metaFs:SetWidth(textColW)
+                    pool.metaFs:ClearAllPoints()
+                    pool.metaFs:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
+                    textY = textY + pool.metaFs:GetHeight() + 16
+
+                    if ctaText ~= "" then
+                        pool.ctaBtn:ClearAllPoints()
+                        pool.ctaBtn:SetPoint("TOPLEFT", hero, "TOPLEFT", textX, -textY)
+                        textY = textY + pool.ctaBtn:GetHeight()
+                    end
+
+                    local heroH = textY + pad
+                    if hasArt then
+                        local artBoxH = pool.artFrame:GetHeight() or artH
+                        pool.artFrame:ClearAllPoints()
+                        pool.artFrame:SetPoint("TOPRIGHT", hero, "TOPRIGHT", -pad, -pad)
+                        pool.art:ClearAllPoints()
+                        pool.art:SetPoint("CENTER", pool.artFrame, "CENTER", 0, 0)
+                        heroH = math.max(heroH, artBoxH + pad * 2)
+                    end
+
+                    hero:SetHeight(math.max(230, heroH))
+                    hero:Show()
+                    y = y + hero:GetHeight() + 18
+                end
+            end
+
+            local cols = (w >= NEWS_GRID_TWO_COL_MIN_W) and 2 or 1
+            local cardW = (cols == 2) and math.floor((w - NEWS_GRID_GAP) / 2) or w
+            local rowY = y
+            local rowH = 0
+            for i = 1, #secondaryEntries do
+                local entry = secondaryEntries[i]
+                local pool = EnsureWelcomeBlock(entry)
+                if pool then
+                    activeIds[entry.id] = true
+                    local col = (i - 1) % cols
+                    if col == 0 then rowH = 0 end
+
+                    local card = pool.root
+                    local pad = 22
+                    local artPath = ResolveNewsTexturePath(entry)
+                    local showArt = artPath and artPath ~= ""
+                    local showStrip = entry.showClassIconStrip and true or false
+                    local badgeText = L[entry.badgeKey] or ""
+                    local ctaText = L[entry.ctaLabelKey] or ""
+                    local leftX = col * (cardW + NEWS_GRID_GAP)
+                    local ctaInFooterOnly = (entry.id == "class_icons" or entry.id == "coming_soon")
+
+                    pool.eyebrowFs:SetText(L[entry.eyebrowKey] or "")
+                    UpdateNewsBadge(pool.badgeBg, pool.badgeFs, badgeText)
+                    pool.titleFs:SetText(L[entry.titleKey] or "")
+                    local fullBodyText = L[entry.bodyKey] or ""
+                    pool.bodyFs:SetText(fullBodyText)
+                    pool.bodyFsOverflow:SetText("")
+                    if ctaInFooterOnly then
+                        pool.ctaBtn:Hide()
+                    else
+                        pool.ctaBtn:SetScript("OnClick", function() DispatchNewsAction(entry) end)
+                        pool.ctaBtn:SetLabel(ctaText)
+                        if ctaText ~= "" then pool.ctaBtn:Show() else pool.ctaBtn:Hide() end
+                    end
+
+                    card:SetWidth(cardW)
+                    card:ClearAllPoints()
+                    card:SetPoint("TOPLEFT", content, "TOPLEFT", leftX, -rowY)
+
+                    pool._newsMediaSplitLayout = false
+                    pool._newsNaturalCardHeight = nil
+
+                    local textW = cardW - pad * 2
+                    local textY = pad
+                    local isMediaVariant = showArt and entry.variant == "media"
+                    local availForSplit = cardW - 2 * pad - NEWS_MEDIA_SPLIT_COL_GAP
+                    local artColW = math.max(
+                        NEWS_MEDIA_WRAP_MIN_W,
+                        math.min(NEWS_MEDIA_WRAP_MAX_W, math.floor(availForSplit * 0.48))
+                    )
+                    local leftColW = availForSplit - artColW
+                    local useMediaSplit = isMediaVariant and leftColW >= NEWS_MEDIA_SPLIT_MIN_LEFT_W
+                    local useMediaStacked = isMediaVariant and not useMediaSplit
+                    local copyW = useMediaSplit and leftColW or textW
+                    local artBoxHForSplit = NEWS_MEDIA_WRAP_H
+
+                    if showArt then
+                        pool.art:SetTexture(artPath)
+                        local artBoxW = textW
+                        local artBoxH = 96
+                        if useMediaSplit then
+                            artBoxW = artColW
+                            artBoxH = artBoxHForSplit
+                            pool._newsMediaSplitLayout = true
+                            pool.artFrame:SetSize(artBoxW, artBoxH)
+                            pool.artFrame:ClearAllPoints()
+                            pool.artFrame:SetPoint("TOPRIGHT", card, "TOPRIGHT", -pad, -pad)
+                        elseif useMediaStacked then
+                            artBoxW = textW
+                            artBoxH = NEWS_MEDIA_WRAP_H
+                            pool.artFrame:SetSize(artBoxW, artBoxH)
+                            pool.artFrame:ClearAllPoints()
+                            pool.artFrame:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
+                        else
+                            pool.artFrame:SetSize(artBoxW, artBoxH)
+                            pool.artFrame:ClearAllPoints()
+                            pool.artFrame:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -pad)
+                        end
+                        pool.artFrame:Show()
+                        local dispW, dispH = ComputeNewsContainedSize(entry, pool.art, artBoxW, artBoxH, true, 16 / 9)
+                        pool.art:SetSize(dispW, dispH)
+                        pool.art:ClearAllPoints()
+                        pool.art:SetPoint("CENTER", pool.artFrame, "CENTER", 0, 0)
+                        pool.art:Show()
+                        if not useMediaSplit then
+                            textY = textY + artBoxH + 14
+                        end
+                    else
+                        pool.artFrame:Hide()
+                        pool.art:Hide()
+                    end
+
+                    pool.bodyFsOverflow:Hide()
+                    pool.eyebrowFs:ClearAllPoints()
+                    pool.eyebrowFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                    pool.eyebrowFs:SetWidth(copyW)
+                    if badgeText ~= "" then
+                        pool.badgeBg:ClearAllPoints()
+                        pool.badgeBg:SetPoint("LEFT", pool.eyebrowFs, "RIGHT", 10, 0)
+                        pool.badgeFs:ClearAllPoints()
+                        pool.badgeFs:SetPoint("CENTER", pool.badgeBg, "CENTER", 0, 0)
+                    end
+
+                    textY = textY + pool.eyebrowFs:GetHeight() + 10
+                    pool.titleFs:SetWidth(copyW)
+                    pool.titleFs:ClearAllPoints()
+                    pool.titleFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                    textY = textY + pool.titleFs:GetHeight() + 8
+                    pool.bodyFs:SetWidth(copyW)
+                    pool.bodyFs:ClearAllPoints()
+                    pool.bodyFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                    pool.bodyFs:SetText(fullBodyText)
+                    textY = textY + pool.bodyFs:GetHeight() + 12
+
+                    if showStrip then
+                        pool.classIconsStrip:ClearAllPoints()
+                        pool.classIconsStrip:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                        textY = textY + LayoutNewsClassStrip(pool.classIconsStrip, copyW) + 12
+                    else
+                        pool.classIconsStrip:Hide()
+                    end
+
+                    local storyMeta = (entry.metaKey and L[entry.metaKey]) or ""
+                    local metaInFooterOnly = (entry.id == "class_icons")
+                    if metaInFooterOnly then
+                        pool.metaFs:SetText("")
+                        pool.metaFs:Hide()
+                    elseif storyMeta ~= "" then
+                        pool.metaFs:SetText(storyMeta)
+                        pool.metaFs:SetWidth(copyW)
+                        pool.metaFs:ClearAllPoints()
+                        pool.metaFs:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                        pool.metaFs:Show()
+                        textY = textY + pool.metaFs:GetHeight() + 12
+                    else
+                        pool.metaFs:SetText("")
+                        pool.metaFs:Hide()
+                    end
+
+                    if ctaText ~= "" and not ctaInFooterOnly then
+                        pool.ctaBtn:ClearAllPoints()
+                        pool.ctaBtn:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
+                        textY = textY + pool.ctaBtn:GetHeight()
+                    end
+
+                    local naturalContentBottom = textY
+                    if useMediaSplit then
+                        naturalContentBottom = math.max(textY, pad + artBoxHForSplit)
+                    end
+                    local footerReserve = NEWS_CARD_EDITORIAL_FOOTER_GAP_ABOVE
+                        + NEWS_CARD_EDITORIAL_FOOTER_AREA_H
+                        + NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET
+                    local cardH = math.max(NEWS_CARD_MIN_H, naturalContentBottom + footerReserve)
+                    pool._newsNaturalCardHeight = cardH
+                    pool._newsEditorialFooterReserve = footerReserve
+                    card:SetHeight(cardH)
+                    card:Show()
+
+                    local eRow = pool.editorialFooterRow
+                    local ePrefix = pool.editorialFooterPrefixFs
+                    local eLink = pool.editorialFooterLinkBtn
+                    if eRow and ePrefix and eLink then
+                        local rowEntry = entry
+                        if entry.id == "class_icons" then
+                            ePrefix:SetText(storyMeta)
+                            eLink:SetLabel(ctaText ~= "" and ctaText or (L["DASH_NEWS_CTA_VIEW_ARTIST"] or ""))
+                            eLink:SetScript("OnClick", function()
+                                DispatchNewsAction(rowEntry)
+                            end)
+                        else
+                            ePrefix:SetText(L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"] or "")
+                            eLink:SetLabel(L["DASH_NEWS_EDITORIAL_FOOTER_LINK"] or "Patch notes")
+                            eLink:SetScript("OnClick", function()
+                                if f.ShowPatchNotes then f.ShowPatchNotes() end
+                            end)
+                        end
+                        local rowW = cardW - 2 * pad
+                        local linkW = eLink:GetWidth()
+                        ePrefix:SetWidth(math.max(60, rowW - linkW - 10))
+                        ePrefix:ClearAllPoints()
+                        ePrefix:SetPoint("BOTTOMLEFT", eRow, "BOTTOMLEFT", 0, 0)
+                        eLink:ClearAllPoints()
+                        eLink:SetPoint("LEFT", ePrefix, "RIGHT", 6, 0)
+                        local fh = math.max(ePrefix:GetHeight(), eLink:GetHeight()) + 4
+                        eRow:SetSize(rowW, fh)
+                        eRow:ClearAllPoints()
+                        eRow:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", pad, NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET)
+                        eRow:Show()
+                    end
+
+                    rowH = math.max(rowH, cardH)
+
+                    if col == cols - 1 or i == #secondaryEntries then
+                        -- Match card heights within the row when multiple columns (news grid).
+                        if cols >= 2 then
+                            local j0 = i - col
+                            for j = j0, i do
+                                local rowEntry = secondaryEntries[j]
+                                local rowPool = EnsureWelcomeBlock(rowEntry)
+                                if rowPool and rowPool.root then
+                                    rowPool.root:SetHeight(rowH)
+                                    if rowPool._newsMediaSplitLayout then
+                                        local p = pad
+                                        local naturalH = rowPool._newsNaturalCardHeight or rowH
+                                        local af = rowPool.artFrame
+                                        if af and af:IsShown() then
+                                            local ah = af:GetHeight() or NEWS_MEDIA_WRAP_H
+                                            local footerR = rowPool._newsEditorialFooterReserve
+                                                or (NEWS_CARD_EDITORIAL_FOOTER_GAP_ABOVE
+                                                    + NEWS_CARD_EDITORIAL_FOOTER_AREA_H
+                                                    + NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET)
+                                            if rowH > naturalH + 0.5 then
+                                                local inner = rowH - 2 * p - footerR
+                                                local topOff = p + math.max(0, math.floor((inner - ah) / 2 + 0.5))
+                                                af:ClearAllPoints()
+                                                af:SetPoint("TOPRIGHT", rowPool.root, "TOPRIGHT", -p, -topOff)
+                                            else
+                                                af:ClearAllPoints()
+                                                af:SetPoint("TOPRIGHT", rowPool.root, "TOPRIGHT", -p, -p)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        rowY = rowY + rowH + NEWS_GRID_GAP
+                    end
+                end
+            end
+
+            y = rowY
+        else
 
         for fi = 1, #feed do
             local entry = feed[fi]
+            -- Sentinel: embed the module guide below the welcome feed items
+            if entry.kind == "module_guide_section" then
+                if addonRef.DashboardModuleGuide_LayoutEmbedded then
+                    y = addonRef.DashboardModuleGuide_LayoutEmbedded(w, y, innerPad) or y
+                end
+            else
             local pool = EnsureWelcomeBlock(entry)
             if pool then
                 activeIds[entry.id] = true
@@ -651,6 +1745,8 @@ function addon.DashboardWelcomeView_Init(env)
                     bodyFs:Show()
                 end
             end
+            end  -- else (not module_guide_section)
+        end
         end
 
         for pid, pool in pairs(welcomeBlockPool) do
@@ -681,6 +1777,9 @@ function addon.DashboardWelcomeView_Init(env)
         end
     end
 
+    -- Expose layout function so embedded guide (DashboardModuleGuide_Init) can trigger re-layout on accordion expand
+    welcomeView._layoutWelcomeContent = LayoutWelcomeContent
+
     welcomeView:SetScript("OnShow", function()
         LayoutWelcomeContent()
         if C_Timer and C_Timer.After then
@@ -692,28 +1791,31 @@ function addon.DashboardWelcomeView_Init(env)
         if welcomeView:IsShown() then LayoutWelcomeContent() end
     end)
 
-    f.ShowWelcome = function()
-        if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
-        HideContextHeader()
-        detailView:Hide()
-        subCategoryView:Hide()
-        dashboardView:Hide()
-        if f.guideView then f.guideView:Hide() end
-        patchNotesView:Hide()
-        welcomeView:SetAlpha(0)
-        welcomeView:Show()
-        UIFrameFadeIn(welcomeView, 0.2, 0, 1)
-        if head then head:Show() end
-        if headSub then
-            headSub:Show()
-            headSub:SetText(L["DASH_WELCOME_HEAD_SUB"] or "Credits, community, and where to find help")
+    if targetViewName == "welcome" then
+        f.ShowWelcome = function()
+            if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
+            HideContextHeader()
+            detailView:Hide()
+            subCategoryView:Hide()
+            dashboardView:Hide()
+            if f.guideView then f.guideView:Hide() end
+            patchNotesView:Hide()
+            if env.newsView then env.newsView:Hide() end
+            welcomeView:SetAlpha(0)
+            welcomeView:Show()
+            UIFrameFadeIn(welcomeView, 0.2, 0, 1)
+            if head then head:Show() end
+            if headSub then
+                headSub:Show()
+                headSub:SetText(L[headSubKey] or L["DASH_WELCOME_HEAD_SUB"] or "Credits, community, and where to find help")
+            end
+            if searchBox then searchBox:Hide() end
+            f.currentModuleKey = nil
+            SetSidebarState({ view = "welcome", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+            if addonRef.DashboardPreview and addonRef.DashboardPreview.SetActiveModuleKey then
+                addonRef.DashboardPreview.SetActiveModuleKey(nil)
+            end
+            if addonRef.ApplyDashboardClassColor then addonRef.ApplyDashboardClassColor() end
         end
-        if searchBox then searchBox:Hide() end
-        f.currentModuleKey = nil
-        SetSidebarState({ view = "welcome", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
-        if addonRef.DashboardPreview and addonRef.DashboardPreview.SetActiveModuleKey then
-            addonRef.DashboardPreview.SetActiveModuleKey(nil)
-        end
-        if addonRef.ApplyDashboardClassColor then addonRef.ApplyDashboardClassColor() end
     end
 end

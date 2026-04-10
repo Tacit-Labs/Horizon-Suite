@@ -372,6 +372,14 @@ function addon.DashboardDetailView_Init(env)
         return tile
     end
 
+    local function ShouldShowDashboardSubcategory(moduleKey, cat)
+        if not cat then return false end
+        if moduleKey == "axis" and cat.key == "Modules" then
+            return false
+        end
+        return true
+    end
+
     --- @param skipEntranceCascade boolean|nil When true, skip staggered card entrance (search navigation expands accordions and must not snapshot pre-expand Y positions).
     f.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
         if searchBox then searchBox:ClearFocus() end
@@ -462,7 +470,7 @@ function addon.DashboardDetailView_Init(env)
             elseif not moduleKey and cat.name == name then
                 match = true
             end
-            if match and cat.options then
+            if match and cat.options and ShouldShowDashboardSubcategory(moduleKey, cat) then
                 tinsert(cats, cat)
             end
         end

@@ -355,6 +355,7 @@ function addon.Dashboard_BuildMainFrame()
             local SIDEBAR_WHATSNEW_RESERVE = sb.SIDEBAR_WHATSNEW_RESERVE
             local SIDEBAR_CONTENT_X_INSET = sb.SIDEBAR_CONTENT_X_INSET
             local CreateSidebarButton = sb.CreateSidebarButton
+            local CreateBottomPinnedButton = sb.CreateBottomPinnedButton
             local SetActiveSidebarButton = sb.SetActiveSidebarButton
             LayoutDashboardSidebarUnderHeader = sb.layoutUnderHeader
 
@@ -562,6 +563,12 @@ function addon.Dashboard_BuildMainFrame()
             patchNotesView:Hide()
             f.patchNotesView = patchNotesView
 
+            local newsView = CreateFrame("Frame", nil, f)
+            newsView:SetSize(viewWidth, DASHBOARD_VIEW_H)
+            newsView:SetPoint("CENTER", viewCenterX, 0)
+            newsView:Hide()
+            f.newsView = newsView
+
             local PN_SCROLL_ABOVE_COMMUNITY_FOOTER = (DC.COMMUNITY_FOOTER_SCROLL_GAP) or 24
             local PN_BODY_COL  = { 0.72, 0.72, 0.76, 1 }
             local PN_MUTED_COL = { 0.52, 0.56, 0.62, 1 }
@@ -730,7 +737,7 @@ function addon.Dashboard_BuildMainFrame()
                     ApplyPatchNoteFontString(lbl, 12, "")
                     lbl:SetWidth(cW)
                     lbl:SetJustifyH("CENTER")
-                    lbl:SetText("No notes available.")
+                    lbl:SetText(L["DASH_PATCH_NOTES_EMPTY"] or "No notes available.")
                     lbl:SetTextColor(unpack(PN_MUTED_COL))
                     tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 0 })
                 else
@@ -884,6 +891,7 @@ function addon.Dashboard_BuildMainFrame()
                 welcomeView:Hide()
                 guideView:Hide()
                 patchNotesView:Hide()
+                newsView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
                 HideContextHeader()
@@ -901,17 +909,18 @@ function addon.Dashboard_BuildMainFrame()
                 welcomeView:Hide()
                 guideView:Hide()
                 patchNotesView:Hide()
+                newsView:Hide()
                 dashboardView:SetAlpha(0)
                 dashboardView:Show()
                 UIFrameFadeIn(dashboardView, 0.2, 0, 1)
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
-                    headSub:SetText("Select a module to configure")
+                    headSub:SetText(L["DASH_HOME_HEAD_SUB"] or "Enable and configure your modules")
                 end
-                searchBox:Show()
+                searchBox:Hide()
                 f.currentModuleKey = nil
-                SetSidebarState({ view = "dashboard", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                SetSidebarState({ view = "dashboard", activeModuleKey = "axis", activeCategoryIndex = CLEAR })
                 if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
                     addon.DashboardPreview.SetActiveModuleKey(nil)
                 end
@@ -1034,6 +1043,7 @@ function addon.Dashboard_BuildMainFrame()
                 L = L,
                 dashboardView = dashboardView,
                 welcomeView = welcomeView,
+                newsView = newsView,
                 detailView = detailView,
                 subCategoryView = subCategoryView,
                 patchNotesView = patchNotesView,
@@ -1090,6 +1100,9 @@ function addon.Dashboard_BuildMainFrame()
                 DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
                 PREVIEW_MODULE_KEYS = PREVIEW_MODULE_KEYS,
                 COMING_SOON_MODULE_KEYS = COMING_SOON_MODULE_KEYS,
+                -- Embedded mode: guide content rendered inside welcomeView scroll
+                guideEmbeddedInWelcome = true,
+                guideScrollContent = welcomeView._scrollContent,
             }
             if addon.DashboardModuleGuide_Init then
                 addon.DashboardModuleGuide_Init(guideEnv)
@@ -1105,13 +1118,14 @@ function addon.Dashboard_BuildMainFrame()
                 dashboardView:Hide()
                 welcomeView:Hide()
                 guideView:Hide()
+                newsView:Hide()
                 patchNotesView:SetAlpha(0)
                 patchNotesView:Show()
                 UIFrameFadeIn(patchNotesView, 0.2, 0, 1)
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
-                    headSub:SetText("Release history and recent changes")
+                    headSub:SetText(L["DASH_PATCH_NOTES_HEAD_SUB"] or "Release history and recent changes")
                 end
                 if searchBox then searchBox:Hide() end
 
@@ -1143,6 +1157,31 @@ function addon.Dashboard_BuildMainFrame()
                 end
             end
 
+            f.ShowNews = function()
+                HideContextHeader()
+                detailView:Hide()
+                subCategoryView:Hide()
+                dashboardView:Hide()
+                welcomeView:Hide()
+                patchNotesView:Hide()
+                guideView:Hide()
+                newsView:SetAlpha(0)
+                newsView:Show()
+                UIFrameFadeIn(newsView, 0.2, 0, 1)
+                if head then head:Show() end
+                if headSub then
+                    headSub:Show()
+                    headSub:SetText(L["DASH_NEWS_HEAD_SUB"] or "Latest updates & community highlights")
+                end
+                if searchBox then searchBox:Hide() end
+                f.currentModuleKey = nil
+                SetSidebarState({ view = "news", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(nil)
+                end
+                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+            end
+
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
             local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["OPTIONS_AXIS_MODULES"] or "Modules", ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["cache"] = addon.Dashboard_BrandModule("cache"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
@@ -1160,6 +1199,14 @@ function addon.Dashboard_BuildMainFrame()
             local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
             local sidebarRows = {}
 
+            local function ShouldShowDashboardSubcategory(mk, cat)
+                if not cat then return false end
+                if mk == "axis" and cat.key == "Modules" then
+                    return false
+                end
+                return true
+            end
+
             local lastSidebarRow = nil
             local yOff = 0
 
@@ -1174,27 +1221,33 @@ function addon.Dashboard_BuildMainFrame()
             lastSidebarRow = welcomeBtn
             yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
 
-            -- Quick Start (in-game module guide; scroll icon)
-            local guideBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_GUIDE_TAB"] or "Quick Start", "INV_Misc_ScrollUnrolled01", function()
-                if f.ShowModuleGuide then f.ShowModuleGuide() end
+            -- News (Blizzard atlas; same family as Focus campaign quest icon; fallback if atlas fails)
+            local newsBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_NEWS_TAB"] or "News", {
+                atlas = "Quest-Campaign-Available",
+                fallback = "INV_Misc_StarFall_Blue",
+            }, function()
+                if f.ShowNews then f.ShowNews() end
             end)
-            guideBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
-            f.guideSidebarBtn = guideBtn
-            tinsert(sidebarButtons, guideBtn)
-            tinsert(sidebarRows, { type = "guide", frame = guideBtn, bottom = guideBtn, offsetFromPrev = 0 })
-            lastSidebarRow = guideBtn
+            newsBtn:SetPoint("TOPLEFT", welcomeBtn, "BOTTOMLEFT", 0, 0)
+            f.newsSidebarBtn = newsBtn
+            tinsert(sidebarButtons, newsBtn)
+            tinsert(sidebarRows, { type = "news", frame = newsBtn, bottom = newsBtn, offsetFromPrev = 0 })
+            lastSidebarRow = newsBtn
             yOff = yOff + TAB_ROW_HEIGHT
 
-            -- Home
-            local homeBtn = CreateSidebarButton(sidebarScrollContent, "Home", "INV_Misc_Map_01", function()
-                f.ShowDashboard()
+            -- Patch Notes (pinned to bottom of sidebar)
+            local whatsNewBase = L["DASH_WHATS_NEW"] or "What's New"
+            local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, "INV_Scroll_05", function()
+                if addon.PatchNotes_MarkWhatsNewSidebarClicked then
+                    addon.PatchNotes_MarkWhatsNewSidebarClicked()
+                end
+                if f.ShowPatchNotes then f.ShowPatchNotes() end
             end)
-            homeBtn:SetPoint("TOPLEFT", guideBtn, "BOTTOMLEFT", 0, 0)
-            f.homeSidebarBtn = homeBtn
-            tinsert(sidebarButtons, homeBtn)
-            tinsert(sidebarRows, { type = "home", frame = homeBtn, bottom = homeBtn, offsetFromPrev = 0 })
-            lastSidebarRow = homeBtn
-            yOff = yOff + TAB_ROW_HEIGHT
+            whatsNewBtn._whatsNewBaseText = whatsNewBase
+            whatsNewBtn._patchNotesSidebarRowStyle = true
+            whatsNewBtn._sidebarViewGetter = function() return sidebarState.view end
+            f.whatsnewSidebarBtn = whatsNewBtn
+            -- Note: NOT inserted into sidebarButtons or sidebarRows (pinned button)
 
             -- Separator (anchored to sep row; reflows with RefreshSidebar)
             yOff = yOff + 9
@@ -1216,6 +1269,13 @@ function addon.Dashboard_BuildMainFrame()
                 else
                     local isStandalone = (mk == "modules" and #g.categories == 1)
                     local modName = MODULE_LABELS[mk] or mk
+                    local visibleCategoryCount = 0
+                    for _, catIdx in ipairs(g.categories) do
+                        local cat = addon.OptionCategories[catIdx]
+                        if ShouldShowDashboardSubcategory(mk, cat) then
+                            visibleCategoryCount = visibleCategoryCount + 1
+                        end
+                    end
 
                     if isStandalone then
                         local catIdx = g.categories[1]
@@ -1303,7 +1363,7 @@ function addon.Dashboard_BuildMainFrame()
                         tabsContainer:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
                         tabsContainer:SetWidth(SIDEBAR_WIDTH - 1)
                         tabsContainer:SetClipsChildren(true)
-                        local fullHeight = TAB_ROW_HEIGHT * #g.categories
+                        local fullHeight = TAB_ROW_HEIGHT * visibleCategoryCount
                         local startCollapsed = GetGroupCollapsed(mk)
                         tabsContainer:SetHeight(startCollapsed and 0 or fullHeight)
                         g.tabsContainer = tabsContainer
@@ -1330,7 +1390,11 @@ function addon.Dashboard_BuildMainFrame()
                         tinsert(sidebarRows, g.row)
 
                         header:SetScript("OnClick", function()
-                            f.OpenModule(modName, mk)
+                            if mk == "axis" then
+                                f.ShowDashboard()
+                            else
+                                f.OpenModule(modName, mk)
+                            end
                         end)
                         header:SetScript("OnEnter", function()
                             if header ~= dashSession.activeSidebarBtn then
@@ -1351,19 +1415,21 @@ function addon.Dashboard_BuildMainFrame()
                         local containerAnchor = tabsContainer
                         for _, catIdx in ipairs(g.categories) do
                             local cat = addon.OptionCategories[catIdx]
-                            local modLabel = moduleLabels[mk] or (cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey)) or modName
-                            local catMk = (mk == "axis") and "axis" or cat.moduleKey
-                            local btn = CreateSidebarButton(tabsContainer, cat.name, nil, function()
-                                f.OpenModule(modLabel, catMk, true)
-                                local options = type(cat.options) == "function" and cat.options() or cat.options
-                                f.OpenCategoryDetail(modLabel, cat.name, options)
-                            end, 12)
-                            btn:SetPoint("TOPLEFT", containerAnchor, (containerAnchor == tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
-                            containerAnchor = btn
-                            btn.sidebarModuleKey = catMk
-                            btn.sidebarName = cat.name
-                            btn.sidebarCategoryIndex = catIdx
-                            tinsert(sidebarButtons, btn)
+                            if ShouldShowDashboardSubcategory(mk, cat) then
+                                local modLabel = moduleLabels[mk] or (cat.moduleKey and (moduleLabels[cat.moduleKey] or cat.moduleKey)) or modName
+                                local catMk = (mk == "axis") and "axis" or cat.moduleKey
+                                local btn = CreateSidebarButton(tabsContainer, cat.name, nil, function()
+                                    f.OpenModule(modLabel, catMk, true)
+                                    local options = type(cat.options) == "function" and cat.options() or cat.options
+                                    f.OpenCategoryDetail(modLabel, cat.name, options)
+                                end, 12)
+                                btn:SetPoint("TOPLEFT", containerAnchor, (containerAnchor == tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
+                                containerAnchor = btn
+                                btn.sidebarModuleKey = catMk
+                                btn.sidebarName = cat.name
+                                btn.sidebarCategoryIndex = catIdx
+                                tinsert(sidebarButtons, btn)
+                            end
                         end
 
                         if startCollapsed then
@@ -1373,29 +1439,8 @@ function addon.Dashboard_BuildMainFrame()
                 end
             end
 
-            -- Patch Notes: pinned to sidebar bottom (outside scroll; see SIDEBAR_WHATSNEW_RESERVE)
-            do
-                local whatsNewBase = L["DASH_WHATS_NEW"] or "Patch Notes"
-                local wnBtn = CreateSidebarButton(sidebar, whatsNewBase, "INV_Scroll_05", function()
-                    if addon.PatchNotes_MarkWhatsNewSidebarClicked then
-                        addon.PatchNotes_MarkWhatsNewSidebarClicked()
-                    end
-                    if f.ShowPatchNotes then f.ShowPatchNotes() end
-                end)
-                -- Same inner width as sidebarScrollFrame (left inset + right -1); full SIDEBAR_WIDTH-1 would spill past the sidebar edge.
-                wnBtn:SetWidth(SIDEBAR_WIDTH - SIDEBAR_CONTENT_X_INSET - 1)
-                wnBtn:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", SIDEBAR_CONTENT_X_INSET, 10)
-                wnBtn:SetFrameLevel(sidebarScrollFrame:GetFrameLevel() + 1)
-                wnBtn._whatsNewBaseText = whatsNewBase
-                wnBtn._patchNotesSidebarRowStyle = true
-                wnBtn._sidebarViewGetter = function()
-                    return sidebarState.view
-                end
-                tinsert(sidebarButtons, wnBtn)
-                f.whatsnewSidebarBtn = wnBtn
-                if addon.PatchNotes_RefreshAttentionIndicators then
-                    addon.PatchNotes_RefreshAttentionIndicators()
-                end
+            if addon.PatchNotes_RefreshAttentionIndicators then
+                addon.PatchNotes_RefreshAttentionIndicators()
             end
 
             --- Reflow sidebar scroll content height from top to last row.
@@ -1431,13 +1476,25 @@ function addon.Dashboard_BuildMainFrame()
                         if g.header and g.header.updateSpacer then g.header.updateSpacer() end
                     end
                 end
-                local activeBtn = f.homeSidebarBtn or sidebarButtons[1]
+                local activeBtn = f.welcomeSidebarBtn or sidebarButtons[1]
                 if sidebarState.view == "welcome" and f.welcomeSidebarBtn then
                     activeBtn = f.welcomeSidebarBtn
-                elseif sidebarState.view == "guide" and f.guideSidebarBtn then
-                    activeBtn = f.guideSidebarBtn
+                elseif sidebarState.view == "news" and f.newsSidebarBtn then
+                    activeBtn = f.newsSidebarBtn
                 elseif sidebarState.view == "whatsnew" and f.whatsnewSidebarBtn then
                     activeBtn = f.whatsnewSidebarBtn
+                elseif sidebarState.view == "dashboard" then
+                    -- Home (module toggles): Axis hub context — expand group via activeModuleKey; highlight Axis header
+                    if sidebarState.activeModuleKey == "axis" then
+                        local gAxis = groups["axis"]
+                        if gAxis and gAxis.header then
+                            activeBtn = gAxis.header
+                        else
+                            activeBtn = nil
+                        end
+                    else
+                        activeBtn = nil
+                    end
                 elseif sidebarState.view == "module" or sidebarState.view == "category" then
                     local mk = sidebarState.activeModuleKey or "modules"
                     local wantCatIdx = sidebarState.activeCategoryIndex

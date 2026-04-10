@@ -121,34 +121,38 @@ function addon.DashboardModuleGuide_Init(env)
         return text
     end
 
-    local guideBg = guideView:CreateTexture(nil, "BACKGROUND")
-    guideBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + GUIDE_BG_TOP_NUDGE)
-    guideBg:SetPoint("BOTTOMRIGHT", guideView, "BOTTOMRIGHT", -28, 20)
+    local embeddedInWelcome = env.guideEmbeddedInWelcome and true or false
 
-    -- Footer: fixed below scroll (shared factory with Welcome)
-    local footerPanel = CreateFrame("Frame", nil, guideView)
-    footerPanel:SetFrameLevel((guideView:GetFrameLevel() or 0) + 10)
+    local guideBg, footerObj, footerPanel, guideScroll, content
+    if not embeddedInWelcome then
+        guideBg = guideView:CreateTexture(nil, "BACKGROUND")
+        guideBg:SetPoint("TOPLEFT", 28, dashScrollTopOffset + GUIDE_BG_TOP_NUDGE)
+        guideBg:SetPoint("BOTTOMRIGHT", guideView, "BOTTOMRIGHT", -28, 20)
 
-    local footerObj = addon.Dashboard_CreateCommunityFooter(footerPanel, {
-        L = L,
-        GetAccentColor = GetAccentColor,
-        MakeText = MakeText,
-        addon = addon,
-    })
-    tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
-    local footerTopRule = footerObj.footerTopRule
-    local communityHdr = footerObj.communityHdr
-    local footerLinkButtons = footerObj.footerLinkButtons
+        -- Footer: fixed below scroll (shared factory with Welcome)
+        footerPanel = CreateFrame("Frame", nil, guideView)
+        footerPanel:SetFrameLevel((guideView:GetFrameLevel() or 0) + 10)
 
-    local guideScroll = CreateFrame("ScrollFrame", nil, guideView, "UIPanelScrollFrameTemplate")
-    guideScroll:SetFrameLevel((guideView:GetFrameLevel() or 0) + 2)
-    guideScroll.ScrollBar:Hide()
-    guideScroll.ScrollBar:ClearAllPoints()
+        footerObj = addon.Dashboard_CreateCommunityFooter(footerPanel, {
+            L = L,
+            GetAccentColor = GetAccentColor,
+            MakeText = MakeText,
+            addon = addon,
+        })
+        tinsert(dashAccentRefs.communityFooterTopRules, footerObj.footerTopRule)
 
-    local content = CreateFrame("Frame", nil, guideScroll)
-    content:SetSize(400, 1)
-    guideScroll:SetScrollChild(content)
-    addon.Dashboard_ApplySmoothScroll(guideScroll, content, 60, true)
+        guideScroll = CreateFrame("ScrollFrame", nil, guideView, "UIPanelScrollFrameTemplate")
+        guideScroll:SetFrameLevel((guideView:GetFrameLevel() or 0) + 2)
+        guideScroll.ScrollBar:Hide()
+        guideScroll.ScrollBar:ClearAllPoints()
+
+        content = CreateFrame("Frame", nil, guideScroll)
+        content:SetSize(400, 1)
+        guideScroll:SetScrollChild(content)
+        addon.Dashboard_ApplySmoothScroll(guideScroll, content, 60, true)
+    else
+        content = env.guideScrollContent
+    end
 
     local function CreateGuideAccordionCard(parent, titleText, startExpanded, onLayout)
         local card = CreateFrame("Frame", nil, parent)
@@ -268,32 +272,31 @@ function addon.DashboardModuleGuide_Init(env)
     heroIntro:SetWordWrap(true)
     heroIntro:SetSpacing(4)
 
+    local doLayout  -- assigned below; routes to LayoutGuideContent (standalone) or welcomeView re-layout (embedded)
     local LayoutGuideContent
     local quickHeading = MakeText(content, (L["DASH_GUIDE_QUICK_START_HEADING"] or "Quick start"):upper(), 13, 0.9, 0.9, 0.95, "LEFT")
     local quickBody = MakeDashboardWelcomeMixedScriptText(content, L["DASH_GUIDE_QUICK_START_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     quickBody:SetWordWrap(true)
     quickBody:SetSpacing(4)
 
-    local horizonCard = CreateGuideAccordionCard(content, L["DASH_GUIDE_HORIZON_HEADING"] or "What is Horizon Suite?", false, function()
-        LayoutGuideContent()
-    end)
+    local horizonCard = CreateGuideAccordionCard(content, L["DASH_GUIDE_HORIZON_HEADING"] or "What is Horizon Suite?", false, doLayout)
     local horizonBullets = ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or ""))
     local horizonBulletsFs = MakeDashboardWelcomeMixedScriptText(horizonCard.settingsContainer, horizonBullets, 12, 0.62, 0.65, 0.70, "LEFT")
     horizonBulletsFs:SetWordWrap(true)
     horizonBulletsFs:SetSpacing(5)
 
     -- Per-module detail accordions (order matches bullet list)
-    local axisCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("axis"), false, function() LayoutGuideContent() end)
+    local axisCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("axis"), false, doLayout)
     local axisBody = MakeDashboardWelcomeMixedScriptText(axisCard.settingsContainer, L["DASH_GUIDE_MOD_AXIS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     axisBody:SetWordWrap(true)
     axisBody:SetSpacing(4)
 
-    local focusCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("focus"), false, function() LayoutGuideContent() end)
+    local focusCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("focus"), false, doLayout)
     local focusBody = MakeDashboardWelcomeMixedScriptText(focusCard.settingsContainer, L["DASH_GUIDE_MOD_FOCUS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     focusBody:SetWordWrap(true)
     focusBody:SetSpacing(4)
 
-    local presenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("presence"), false, function() LayoutGuideContent() end)
+    local presenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("presence"), false, doLayout)
     local presenceIntro = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_INTRO"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     presenceIntro:SetWordWrap(true)
     presenceIntro:SetSpacing(4)
@@ -304,58 +307,70 @@ function addon.DashboardModuleGuide_Init(env)
     presenceBlizzard:SetWordWrap(true)
     presenceBlizzard:SetSpacing(4)
 
-    local vistaCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("vista"), false, function() LayoutGuideContent() end)
+    local vistaCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("vista"), false, doLayout)
     local vistaBody = MakeDashboardWelcomeMixedScriptText(vistaCard.settingsContainer, L["DASH_GUIDE_MOD_VISTA_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     vistaBody:SetWordWrap(true)
     vistaBody:SetSpacing(4)
 
-    local insightCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("insight"), false, function() LayoutGuideContent() end)
+    local insightCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("insight"), false, doLayout)
     local insightBody = MakeDashboardWelcomeMixedScriptText(insightCard.settingsContainer, L["DASH_GUIDE_MOD_INSIGHT_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     insightBody:SetWordWrap(true)
     insightBody:SetSpacing(4)
 
-    local cacheCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("cache"), false, function() LayoutGuideContent() end)
+    local cacheCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("cache"), false, doLayout)
     local cacheBody = MakeDashboardWelcomeMixedScriptText(cacheCard.settingsContainer, L["DASH_GUIDE_MOD_CACHE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     cacheBody:SetWordWrap(true)
     cacheBody:SetSpacing(4)
 
-    local essenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("essence"), false, function() LayoutGuideContent() end)
+    local essenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("essence"), false, doLayout)
     local essenceBody = MakeDashboardWelcomeMixedScriptText(essenceCard.settingsContainer, L["DASH_GUIDE_MOD_ESSENCE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     essenceBody:SetWordWrap(true)
     essenceBody:SetSpacing(4)
 
-    local meridianCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("meridian"), false, function() LayoutGuideContent() end)
+    local meridianCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("meridian"), false, doLayout)
     local meridianBody = MakeDashboardWelcomeMixedScriptText(meridianCard.settingsContainer, L["DASH_GUIDE_MOD_MERIDIAN_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
     meridianBody:SetWordWrap(true)
     meridianBody:SetSpacing(4)
 
-    LayoutGuideContent = function()
-        local rawW = guideBg:GetWidth() or 0
-        local w = math.max(280, rawW - 40)
-        -- Match Patch Notes: footer anchors to full view + same width math so Community & Support block height matches.
-        local viewW = guideView:GetWidth() or 0
-        local wFooter = math.max(280, viewW - 40)
-        local innerPad = 28
+    local function doLayoutAccordionCards(w, innerPad, y)
+        local function layoutAccordionCard(card, bodyWidgets, extraGapAfterBodies)
+            extraGapAfterBodies = extraGapAfterBodies or 0
+            local by = 10
+            for _, fs in ipairs(bodyWidgets) do
+                fs:ClearAllPoints()
+                fs:SetWidth(w - innerPad * 2)
+                fs:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", innerPad, -by)
+                by = by + fs:GetHeight() + (extraGapAfterBodies > 0 and 8 or 6)
+            end
+            by = by + extraGapAfterBodies
+            card.fullHeight = GUIDE_ACC_HEAD_H + by
+            if not card.anim:IsPlaying() then
+                card:SetHeight(card.expanded and card.fullHeight or card.collapsedHeight)
+            end
+            card:SetWidth(w)
+            card:ClearAllPoints()
+            card:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+            y = y + card:GetHeight() + 8
+        end
+        layoutAccordionCard(horizonCard, { horizonBulletsFs }, 10)
+        layoutAccordionCard(axisCard, { axisBody }, 10)
+        layoutAccordionCard(focusCard, { focusBody }, 10)
+        layoutAccordionCard(presenceCard, { presenceIntro, presenceBody, presenceBlizzard }, 10)
+        layoutAccordionCard(vistaCard, { vistaBody }, 10)
+        layoutAccordionCard(insightCard, { insightBody }, 10)
+        layoutAccordionCard(cacheCard, { cacheBody }, 10)
+        layoutAccordionCard(essenceCard, { essenceBody }, 10)
+        layoutAccordionCard(meridianCard, { meridianBody }, 10)
+        return y
+    end
 
-        -- Footer layout (shared factory with Welcome)
-        footerObj.layout(wFooter, 0, guideView)
-
-        content:SetWidth(w)
-        guideScroll:ClearAllPoints()
-        guideScroll:SetPoint("TOPLEFT", guideBg, "TOPLEFT", SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
-        guideScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, SCROLL_ABOVE_FOOTER_GAP)
-        guideScroll:SetPoint("TOPRIGHT", guideBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
-        guideScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, SCROLL_ABOVE_FOOTER_GAP)
-
-        -- Refresh coloured bullets + Preview / Coming soon tags if locale or keys changed (rare)
+    local function layoutGuideHeroAndQuick(w, startY)
         horizonBulletsFs:SetText(ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or "")))
-
-        local y = HERO_TOP_PAD
+        local y = startY
 
         heroCard:SetWidth(w)
         heroCard:ClearAllPoints()
         heroCard:SetPoint("TOPLEFT", content, "TOPLEFT", SCROLL_BODY_X_INSET, -y)
-        -- First line at content top (0,0), same as Welcome titleFs — no extra top nudge.
         heroTitle:SetWidth(w)
         heroTitle:ClearAllPoints()
         heroTitle:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, 0)
@@ -380,85 +395,95 @@ function addon.DashboardModuleGuide_Init(env)
         quickBody:ClearAllPoints()
         quickBody:SetPoint("TOPLEFT", content, "TOPLEFT", SCROLL_BODY_X_INSET, -y)
         y = y + quickBody:GetHeight() + 20
-
-        local function layoutAccordionCard(card, bodyWidgets, extraGapAfterBodies)
-            extraGapAfterBodies = extraGapAfterBodies or 0
-            local by = 10
-            for _, fs in ipairs(bodyWidgets) do
-                fs:ClearAllPoints()
-                fs:SetWidth(w - innerPad * 2)
-                fs:SetPoint("TOPLEFT", card.settingsContainer, "TOPLEFT", innerPad, -by)
-                by = by + fs:GetHeight() + (extraGapAfterBodies > 0 and 8 or 6)
-            end
-            by = by + extraGapAfterBodies
-            card.fullHeight = GUIDE_ACC_HEAD_H + by
-            if not card.anim:IsPlaying() then
-                card:SetHeight(card.expanded and card.fullHeight or card.collapsedHeight)
-            end
-            card:SetWidth(w)
-            card:ClearAllPoints()
-            card:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-            y = y + card:GetHeight() + 8
-        end
-
-        layoutAccordionCard(horizonCard, { horizonBulletsFs }, 10)
-        layoutAccordionCard(axisCard, { axisBody }, 10)
-        layoutAccordionCard(focusCard, { focusBody }, 10)
-        layoutAccordionCard(presenceCard, { presenceIntro, presenceBody, presenceBlizzard }, 10)
-        layoutAccordionCard(vistaCard, { vistaBody }, 10)
-        layoutAccordionCard(insightCard, { insightBody }, 10)
-        layoutAccordionCard(cacheCard, { cacheBody }, 10)
-        layoutAccordionCard(essenceCard, { essenceBody }, 10)
-        layoutAccordionCard(meridianCard, { meridianBody }, 10)
-
-        y = y + 8
-        content:SetHeight(math.max(y + 8, 1))
-
-        if guideScroll.UpdateScrollChildRect then
-            guideScroll:UpdateScrollChildRect()
-        end
-        local viewH = guideScroll:GetHeight() or 0
-        local contentH = content:GetHeight() or 0
-        local maxScroll = math.max(0, contentH - viewH)
-        local curScroll = guideScroll:GetVerticalScroll() or 0
-        if curScroll > maxScroll then
-            guideScroll:SetVerticalScroll(maxScroll)
-            guideScroll.targetScroll = nil
-        end
+        return y
     end
 
-    guideView:SetScript("OnShow", function()
-        LayoutGuideContent()
-        if C_Timer and C_Timer.After then
-            C_Timer.After(0, LayoutGuideContent)
-        end
-    end)
-    guideView:SetScript("OnSizeChanged", function()
-        if guideView:IsShown() then LayoutGuideContent() end
-    end)
+    if not embeddedInWelcome then
+        LayoutGuideContent = function()
+            local rawW = guideBg:GetWidth() or 0
+            local w = math.max(280, rawW - 40)
+            -- Match Patch Notes: footer anchors to full view + same width math so Community & Support block height matches.
+            local viewW = guideView:GetWidth() or 0
+            local wFooter = math.max(280, viewW - 40)
+            local innerPad = 28
 
-    f.ShowModuleGuide = function()
-        if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
-        HideContextHeader()
-        detailView:Hide()
-        subCategoryView:Hide()
-        dashboardView:Hide()
-        welcomeView:Hide()
-        patchNotesView:Hide()
-        guideView:SetAlpha(0)
-        guideView:Show()
-        UIFrameFadeIn(guideView, 0.2, 0, 1)
-        if head then head:Show() end
-        if headSub then
-            headSub:Show()
-            headSub:SetText(L["DASH_GUIDE_HEAD_SUB"] or "What each part of Horizon does")
+            -- Footer layout (shared factory with Welcome)
+            footerObj.layout(wFooter, 0, guideView)
+
+            content:SetWidth(w)
+            guideScroll:ClearAllPoints()
+            guideScroll:SetPoint("TOPLEFT", guideBg, "TOPLEFT", SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
+            guideScroll:SetPoint("BOTTOMLEFT", footerPanel, "TOPLEFT", 0, SCROLL_ABOVE_FOOTER_GAP)
+            guideScroll:SetPoint("TOPRIGHT", guideBg, "TOPRIGHT", -SCROLL_TO_BG_INSET, -GUIDE_CONTENT_TOP_PAD)
+            guideScroll:SetPoint("BOTTOMRIGHT", footerPanel, "TOPRIGHT", 0, SCROLL_ABOVE_FOOTER_GAP)
+
+            local y = layoutGuideHeroAndQuick(w,HERO_TOP_PAD)
+            y = doLayoutAccordionCards(w, innerPad, y)
+            y = y + 8
+            content:SetHeight(math.max(y + 8, 1))
+
+            if guideScroll.UpdateScrollChildRect then
+                guideScroll:UpdateScrollChildRect()
+            end
+            local viewH = guideScroll:GetHeight() or 0
+            local contentH = content:GetHeight() or 0
+            local maxScroll = math.max(0, contentH - viewH)
+            local curScroll = guideScroll:GetVerticalScroll() or 0
+            if curScroll > maxScroll then
+                guideScroll:SetVerticalScroll(maxScroll)
+                guideScroll.targetScroll = nil
+            end
         end
-        if searchBox then searchBox:Hide() end
-        f.currentModuleKey = nil
-        SetSidebarState({ view = "guide", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
-        if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
-            addon.DashboardPreview.SetActiveModuleKey(nil)
+        doLayout = LayoutGuideContent
+
+        guideView:SetScript("OnShow", function()
+            LayoutGuideContent()
+            if C_Timer and C_Timer.After then
+                C_Timer.After(0, LayoutGuideContent)
+            end
+        end)
+        guideView:SetScript("OnSizeChanged", function()
+            if guideView:IsShown() then LayoutGuideContent() end
+        end)
+
+        f.ShowModuleGuide = function()
+            if f.pnChangelogHeaderBtn then f.pnChangelogHeaderBtn:Hide() end
+            HideContextHeader()
+            detailView:Hide()
+            subCategoryView:Hide()
+            dashboardView:Hide()
+            welcomeView:Hide()
+            patchNotesView:Hide()
+            guideView:SetAlpha(0)
+            guideView:Show()
+            UIFrameFadeIn(guideView, 0.2, 0, 1)
+            if head then head:Show() end
+            if headSub then
+                headSub:Show()
+                headSub:SetText(L["DASH_GUIDE_HEAD_SUB"] or "What each part of Horizon does")
+            end
+            if searchBox then searchBox:Hide() end
+            f.currentModuleKey = nil
+            SetSidebarState({ view = "guide", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+            if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                addon.DashboardPreview.SetActiveModuleKey(nil)
+            end
+            if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
         end
-        if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+    else
+        -- Embedded mode: guide content lives inside the Welcome tab scroll area.
+        -- LayoutWelcomeContent calls this after positioning feed items; returns updated y.
+        addon.DashboardModuleGuide_LayoutEmbedded = function(w, startY, innerPad)
+            innerPad = innerPad or 28
+            local y = layoutGuideHeroAndQuick(w,startY)
+            y = doLayoutAccordionCards(w, innerPad, y)
+            y = y + 8
+            return y
+        end
+        doLayout = function()
+            if welcomeView and welcomeView._layoutWelcomeContent then
+                welcomeView._layoutWelcomeContent()
+            end
+        end
     end
 end
