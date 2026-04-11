@@ -1410,6 +1410,11 @@ function addon.Dashboard_BuildMainFrame()
                         self:SetPropagateKeyboardInput(false)
                     end)
                     self:Hide()
+                elseif key == "F" and IsControlKeyDown() then
+                    pcall(function()
+                        self:SetPropagateKeyboardInput(false)
+                    end)
+                    if f.ShowSearch then f.ShowSearch() end
                 else
                     pcall(function()
                         self:SetPropagateKeyboardInput(true)
@@ -1690,6 +1695,7 @@ function addon.Dashboard_BuildMainFrame()
                     addon.DashboardPreview.SetActiveModuleKey(nil)
                 end
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+                C_Timer.After(0, function() if searchBox then searchBox:SetFocus() end end)
             end
 
             -- ===== POPULATE SIDEBAR =====
