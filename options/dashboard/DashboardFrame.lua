@@ -87,6 +87,19 @@ function addon.Dashboard_BuildMainFrame()
             end)
             dragBar:SetScript("OnDragStop", function()
                 f:StopMovingOrSizing()
+                -- Normalize anchor to TOPLEFT/BOTTOMLEFT and persist position so
+                -- reopening the dashboard restores the dragged location.
+                local fl = f:GetLeft()
+                local ft = f:GetTop()
+                if fl and ft then
+                    f:ClearAllPoints()
+                    f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", fl, ft)
+                    local db = _G[addon.DB_NAME]
+                    if db then
+                        db.dashboardTopLeftX = fl
+                        db.dashboardTopLeftY = ft
+                    end
+                end
             end)
             dragBar:SetScript("OnMouseUp", function(self, button)
                 if button ~= "LeftButton" then return end

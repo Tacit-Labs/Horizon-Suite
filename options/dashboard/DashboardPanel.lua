@@ -57,18 +57,21 @@ local function ApplyDashboardSizeFromDB(frame)
 
     -- Position
     frame:ClearAllPoints()
-    if pinX and pinY and ratio then
+    if pinX and pinY then
         -- Saved top-left; clamp all four edges so the frame is fully on-screen
         -- even after a screen resolution change or ratio adjustment.
-        local finalW = DC.NATIVE_W * ratio
-        local finalH = DC.NATIVE_H * ratio
+        -- Use ratio if saved; fall back to 1.0 (native size) for bounds math when
+        -- only position was saved (user moved but never resized).
+        local effectiveRatio = ratio or 1.0
+        local finalW = DC.NATIVE_W * effectiveRatio
+        local finalH = DC.NATIVE_H * effectiveRatio
         local pw = parentW or DC.NATIVE_W
         local ph = parentH or DC.NATIVE_H
-        -- Clamp right/bottom: frame must not extend past UIParent right or bottom.
-        -- Clamp left/top: frame must not start left of or above UIParent origin.
         -- Coordinates are relative to UIParent BOTTOMLEFT (X right, Y up).
+        -- safeX: left edge between 0 (screen left) and pw-finalW (right edge at screen right).
+        -- safeY: top edge between finalH (bottom edge at screen bottom) and ph (top edge at screen top).
         local safeX = math.max(0, math.min(pinX, pw - finalW))
-        local safeY = math.min(0, math.max(pinY, -(ph - finalH)))
+        local safeY = math.max(finalH, math.min(pinY, ph))
         frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", safeX, safeY)
     else
         frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
