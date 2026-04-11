@@ -692,6 +692,22 @@ function addon.ToggleQuestDetails(questID)
     if not questID or not C_QuestLog then return end
     if InCombatLockdown() then return end
 
+    -- World quests: GetSelectedQuest never matches a WQ, so handle toggle separately.
+    local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)
+    if isWorldQuest then
+        local worldMap = _G.WorldMapFrame
+        if worldMap and worldMap.IsShown and worldMap:IsShown() then
+            if HideUIPanel and type(HideUIPanel) == "function" then
+                pcall(HideUIPanel, worldMap)
+            else
+                pcall(function() worldMap:Hide() end)
+            end
+            return
+        end
+        addon.OpenQuestDetails(questID)
+        return
+    end
+
     local worldMap = _G.WorldMapFrame
     local mapShown = worldMap and worldMap.IsShown and worldMap:IsShown()
     if mapShown then
@@ -727,6 +743,20 @@ end
 function addon.OpenQuestDetails(questID)
     if not questID or not C_QuestLog then return end
     if InCombatLockdown() then return end
+
+    -- World quests: navigate to the quest's zone map, not the player's current zone.
+    local isWorldQuest = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID)
+    if isWorldQuest and C_TaskQuest and C_TaskQuest.GetQuestZoneID and C_Map and C_Map.OpenWorldMap then
+        local ok, zoneMapID = pcall(C_TaskQuest.GetQuestZoneID, questID)
+        if ok and zoneMapID and zoneMapID ~= 0 then
+            if C_Timer and C_Timer.After then
+                C_Timer.After(0, function() C_Map.OpenWorldMap(zoneMapID) end)
+            else
+                C_Map.OpenWorldMap(zoneMapID)
+            end
+            return
+        end
+    end
 
     if QuestMapFrame_OpenToQuestDetails then
         if C_Timer and C_Timer.After then
