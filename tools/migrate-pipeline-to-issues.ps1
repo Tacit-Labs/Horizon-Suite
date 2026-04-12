@@ -39,16 +39,21 @@ foreach ($line in $lines) {
     $tag = $Matches[1]
 
     # Extract priority
-    $priority = "Priority 2"
-    if ($line -match '\[P0\]') { $priority = "Priority 0" }
-    elseif ($line -match '\[P1\]') { $priority = "Priority 1" }
-    elseif ($line -match '\[P2\]') { $priority = "Priority 2" }
+    $priority = "[Status] Logged"
+    if ($line -match '\[P0\]') { $priority = "[Status] Logged" }
+    elseif ($line -match '\[P1\]') { $priority = "[Status] Logged" }
+    elseif ($line -match '\[P2\]') { $priority = "[Status] Logged" }
 
     # Extract module
     $module = $null
-    if ($line -match '`\[Focus\]`') { $module = "Focus" }
-    elseif ($line -match '`\[Presence\]`') { $module = "Presence" }
-    elseif ($line -match '`\[Vista\]`') { $module = "Vista" }
+    if ($line -match '`\[Focus\]`') { $module = "[Module] Focus" }
+    elseif ($line -match '`\[Presence\]`') { $module = "[Module] Presence" }
+    elseif ($line -match '`\[Vista\]`') { $module = "[Module] Vista" }
+    elseif ($line -match '`\[Cache\]`') { $module = "[Module] Cache" }
+    elseif ($line -match '`\[Essence\]`') { $module = "[Module] Essence" }
+    elseif ($line -match '`\[Insight\]`') { $module = "[Module] Insight" }
+    elseif ($line -match '`\[Flow\]`') { $module = "[Module] Flow" }
+    elseif ($line -match '`\[Axis\]`') { $module = "[Module] Axis" }
 
     # Extract title: strip tag, status, date, priority, module prefix
     $title = $line -replace '^\s*-\s*`(BUG|FEAT|IMPR|IDEA|MOD|DOC)` OPEN \d{4}-\d{2}-\d{2}\s*', ''
@@ -66,13 +71,13 @@ foreach ($line in $lines) {
 
     # Map tag to GitHub label
     $typeLabel = switch ($tag) {
-        "BUG" { "bug" }
-        "FEAT" { "feature" }
-        "MOD" { "feature" }
-        "IMPR" { "improvement" }
-        "IDEA" { "idea" }
-        "DOC" { "improvement" }
-        default { "feature" }
+        "BUG" { "[Enhancement] Improvement" }
+        "FEAT" { "[Enhancement] Feature" }
+        "MOD" { "[Enhancement] Feature" }
+        "IMPR" { "[Enhancement] Improvement" }
+        "IDEA" { "[Enhancement] Feature" }
+        "DOC" { "[Enhancement] Localization" }
+        default { "[Enhancement] Feature" }
     }
 
     $labelArgs = @($typeLabel, $priority)

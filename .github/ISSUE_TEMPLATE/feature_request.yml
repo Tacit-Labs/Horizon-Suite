@@ -1,17 +1,33 @@
 name: Feature request
 description: Suggest a new capability
 title: "[Feature]: "
-labels: ["feature"]
 body:
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Issue type (label)
+      description: These values match the GitLab label set used for Horizon Suite triage.
+      options:
+        - "[Enhancement] Feature"
+        - "[Enhancement] Improvement"
+        - "[Enhancement] Localization"
+    validations:
+      required: true
+
   - type: dropdown
     id: module
     attributes:
-      label: Module
-      description: Which part of Horizon Suite would this apply to?
+      label: Module (label)
+      description: Pick the closest module label.
       options:
-        - Focus (quest/objective tracker)
-        - Presence (notifications, zone text)
-        - Core (options, general)
+        - "[Module] Focus"
+        - "[Module] Presence"
+        - "[Module] Vista"
+        - "[Module] Cache"
+        - "[Module] Essence"
+        - "[Module] Insight"
+        - "[Module] Flow"
+        - "[Module] Axis"
     validations:
       required: true
 
