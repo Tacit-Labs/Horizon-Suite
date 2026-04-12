@@ -6,6 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Default GITHUB_TOKEN is read-only in many orgs; packager needs write to create releases and upload assets.
+permissions:
+  contents: write
+
 env:
   GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
   CF_API_KEY: ${{ secrets.CF_API_KEY }}
