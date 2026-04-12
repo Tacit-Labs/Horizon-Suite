@@ -831,26 +831,6 @@ local OptionCategories = {
                 { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = (L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] or "Custom character sheet with 3D model, item level, stats, and gear grid.") .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
                 { type = "moduleReloadPrompt" },
             }
-            opts[#opts + 1] = { type = "section", name = L["DASH_APPEARANCE"] or "Appearance" }
-            -- Defer setDB to next frame so CreateToggleSwitch can start the thumb slide before OptionsData_SetDB runs (matches dashboard note: heavy work in set() fights the pill animation).
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
-                if C_Timer and C_Timer.After then
-                    C_Timer.After(0, function()
-                        setDB("hideMinimapButton", not v)
-                        if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
-                    end)
-                else
-                    setDB("hideMinimapButton", not v)
-                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
-                end
-            end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"] or "Fade until minimap hover", desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"] or "When on, the icon stays hidden until you move the cursor over the minimap. When off, it stays visible.", dbKey = "minimapButtonShowOnlyOnMinimapHover", get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", true) end, set = function(v)
-                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonShowOnlyOnMinimapHover", v) end) else setDB("minimapButtonShowOnlyOnMinimapHover", v) end
-            end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
-                if C_Timer and C_Timer.After then C_Timer.After(0, function() setDB("minimapButtonLocked", v) end) else setDB("minimapButtonLocked", v) end
-            end }
-            opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             return opts
         end)(),
     },
@@ -1160,6 +1140,29 @@ local OptionCategories = {
                         if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
                     end)
                 end }
+            -- Standalone: button is on the minimap, not collected by Vista.
+            local function isMinimapStandalone()
+                return not getDB("hideMinimapButton", false)
+                    and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
+                             and getDB("vistaCollectHorizonMinimapButton", true))
+            end
+            opts[#opts + 1] = { type = "section", name = L["PRESENCE_MINIMAP_SECTION"] or "Minimap icon" }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
+                C_Timer.After(0, function()
+                    setDB("hideMinimapButton", not v)
+                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                end)
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"] or "Fade until minimap hover", desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"] or "When on, the icon stays hidden until you move the cursor over the minimap. When off, it stays visible.", dbKey = "minimapButtonShowOnlyOnMinimapHover", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", false) end, set = function(v)
+                C_Timer.After(0, function()
+                    setDB("minimapButtonShowOnlyOnMinimapHover", v)
+                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                end)
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
+                C_Timer.After(0, function() setDB("minimapButtonLocked", v) end)
+            end }
+            opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             return opts
         end,
     },

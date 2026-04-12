@@ -1279,6 +1279,7 @@ L["PRESENCE_OBJECTIVES"]                                              = "OBJECTI
 L["PRESENCE_OPTIONS"]                                                 = "Options"
 L["PRESENCE_OPEN_HORIZON_SUITE"]                                      = "Open Horizon Suite"
 L["PRESENCE_OPEN_FULL_HORIZON_SUITE_OPTIONS"]                         = "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."
+L["PRESENCE_MINIMAP_SECTION"]                                         = "Minimap icon"
 L["PRESENCE_SHOW_MINIMAP_ICON"]                                       = "Show minimap icon"
 L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"]                          = "Show a clickable icon on the minimap that opens the options panel."
 L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"]                 = "Fade until minimap hover"
@@ -1856,6 +1857,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

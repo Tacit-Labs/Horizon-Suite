@@ -15,6 +15,36 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.11.0"] = {
+        date = "2026-04-10",
+        {
+            section = "New Features",
+            bullets = {
+                "Axis: dashboard search page with pinned sidebar and layout polish",
+                "Axis: filter dashboard search results by module",
+                "Axis: welcome scrollable feed with detail wiring and locale strings",
+                "Focus: custom click profiles for the objective tracker — map your own modifier combos to each row, or choose Horizon+ for Horizon Suite's unified preset and row actions",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: overhaul welcome view, module guide, and home toggle cards",
+                "Axis: welcome refresh and minimap-open keyboard fix",
+                "Focus: unify objective tracker icon clicks with click profiles",
+                "Axis: settings search — ranked matches, visible descriptions, search only on Search page",
+                "Axis: All module filter omits settings for disabled modules (Axis options still shown)",
+                "Axis: news refresh and Focus click options aligned with Blizzard+ profile and Horizon+ bindings",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: unit and item tooltips avoid errors from Midnight secret-value APIs",
+            },
+        },
+    },
+
     ["4.10.0"] = {
         date = "2026-04-08",
         {
