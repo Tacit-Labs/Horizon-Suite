@@ -26,17 +26,24 @@ jobs:
             if (!openMatch) throw new Error('Could not find Open Items section');
             const lines = openMatch[1].split('\n').filter(l => /^\s*-\s*`(BUG|FEAT|IMPR|IDEA|MOD|DOC)`/.test(l));
 
-            const typeMap = { BUG: 'bug', FEAT: 'feature', MOD: 'feature', IMPR: 'improvement', IDEA: 'idea', DOC: 'improvement' };
-            const priorityMap = { P0: 'Priority 0', P1: 'Priority 1', P2: 'Priority 2' };
+            const typeMap = {
+              BUG: '[Enhancement] Improvement',
+              FEAT: '[Enhancement] Feature',
+              MOD: '[Enhancement] Feature',
+              IMPR: '[Enhancement] Improvement',
+              IDEA: '[Enhancement] Feature',
+              DOC: '[Enhancement] Localization',
+            };
+            const priorityMap = { P0: '[Status] Logged', P1: '[Status] Logged', P2: '[Status] Logged' };
 
             const pipelineItems = lines.map(line => {
               const tagMatch = line.match(/`(BUG|FEAT|IMPR|IDEA|MOD|DOC)`/);
               const priMatch = line.match(/\[(P[012])\]/);
-              const modMatch = line.match(/`\[(Focus|Presence|Vista)\]`/);
+              const modMatch = line.match(/`\[(Focus|Presence|Vista|Cache|Essence|Insight|Flow|Axis)\]`/);
               return {
                 type: typeMap[tagMatch ? tagMatch[1] : 'FEAT'],
-                priority: priMatch ? priorityMap[priMatch[1]] : 'Priority 2',
-                module: modMatch ? modMatch[1] : null,
+                priority: priMatch ? priorityMap[priMatch[1]] : '[Status] Logged',
+                module: modMatch ? `[Module] ${modMatch[1]}` : null,
               };
             });
 

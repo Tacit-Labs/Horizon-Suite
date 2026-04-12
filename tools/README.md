@@ -10,13 +10,16 @@ Scripts for **localisation** maintenance and project administration. Run from th
 | `locale-meta/` | Optional per-locale validation metadata (see `locale-meta/README.md`) |
 | `archived/` | **Historical** one-off migrations — do not use in normal workflow |
 | `color-palette-review.html` | Local HTML preview of the Focus colour palette for design review |
+| `gitlab_issue_dry_run.js` | Preview GitLab -> GitHub issue drafts without creating anything |
+| `gitlab-label-catalog.json` | GitLab-parity label catalog for GitHub (generated/updated by `gitlab_issue_dry_run.js`) |
 | `migrate-pipeline-to-issues.ps1` | Bulk-create GitHub Issues from `pipeline.md` Open Items (`gh` CLI) |
-| `setup-labels.ps1` | Create GitHub issue labels via `gh` CLI |
+| `setup-labels.ps1` | Create/update GitHub issue labels via `gh` CLI (reads `gitlab-label-catalog.json`) |
 
 ## Everyday commands
 
 | Script | Command | When |
 |--------|---------|------|
+| GitLab issue migration preview | `node tools/gitlab_issue_dry_run.js` | Before importing GitLab issues into GitHub; writes `tools/gitlab-issues-dry-run.json` and refreshes `tools/gitlab-label-catalog.json` |
 | Sync locale files to `enUS` order | `node tools/restructure_locales.js` | Rewrites `enUS.lua` format (no per-key `-- Context:`; no blank lines between keys; pads spaces so `=` and values align in one column from the longest `L["KEY"]`), then regenerates other locales; strips assignments that duplicate enUS (commented-out `-- L["KEY"] = …` so runtime uses `__index` fallback) |
 | Coverage check | `node tools/locale_audit.js --strict` | Before merge requests (same as CI `locale-check`); strict = every key has a row; coverage counts only strings that differ from enUS |
 | Optional key metadata | `node tools/locale_validate.js <locale> <KEY>` or `… --all-unvalidated` | Reviewer workflow |
