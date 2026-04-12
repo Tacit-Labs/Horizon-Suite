@@ -120,8 +120,8 @@ L["DASH_NEWS_CLASS_ICONS_BODY"]                                       = "The Hor
 L["DASH_NEWS_CLASS_ICONS_META"]                                       = "Axis • Global Settings • Class Colours • Art by Gabriel C"
 L["DASH_NEWS_COMING_SOON_TITLE"]                                      = "Edit Mode will be joining soon"
 L["DASH_NEWS_COMING_SOON_BODY"]                                       = "We're lining up Horizon Suite with WoW's Edit Mode so you can place and arrange addon frames next to the rest of your HUD. For everything that has already shipped, |cffaaaaaaPatch Notes|r still has the full list."
-L["DASH_NEWS_HANDHELD_TITLE"]                                         = "Handheld support in the works"
-L["DASH_NEWS_HANDHELD_BODY"]                                          = "We're planning better support for smaller screens and handheld play—resize-friendly layouts, sensible defaults when the UI is scaled down, and fewer cramped panels. Details will land in |cffaaaaaaPatch Notes|r as pieces ship."
+L["DASH_NEWS_HANDHELD_TITLE"]                                         = "Handheld device support"
+L["DASH_NEWS_HANDHELD_BODY"]                                          = "We're planning better support for smaller screens and handheld play: resize-friendly layouts, sensible defaults when the UI is scaled down, and fewer cramped panels. Details will land in |cffaaaaaaPatch Notes|r as pieces ship."
 L["DASH_NEWS_COMING_SOON_META"]                                       = "News hub • Editorial layout • Curated in addon"
 L["DASH_NEWS_QUICK_START_TITLE"]                                      = "Need the quick tour again?"
 L["DASH_NEWS_QUICK_START_BODY"]                                       = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
@@ -245,6 +245,7 @@ L["DASH_HOME_MOD_VISTA_SHORT"]                                        = "Custom 
 L["DASH_HOME_MOD_INSIGHT_SHORT"]                                      = "Cinematic tooltips with class colors, spec, and faction."
 L["DASH_HOME_MOD_CACHE_SHORT"]                                        = "Loot, currency, and reputation toasts."
 L["DASH_HOME_MOD_ESSENCE_SHORT"]                                      = "Character panel with 3D model, item level, and gear."
+L["DASH_RESIZE_TOOLTIP"]                                              = "Drag to resize\nRight-click to reset"
 L["DASH_HOME_RELOAD_PROMPT"]                                          = "Reload to apply module changes."
 L["DASH_RELOAD_UI"]                                                   = "Reload UI"
 L["DASH_LAYOUT"]                                                      = "Layout"
@@ -1282,6 +1283,7 @@ L["PRESENCE_OBJECTIVES"]                                              = "OBJECTI
 L["PRESENCE_OPTIONS"]                                                 = "Options"
 L["PRESENCE_OPEN_HORIZON_SUITE"]                                      = "Open Horizon Suite"
 L["PRESENCE_OPEN_FULL_HORIZON_SUITE_OPTIONS"]                         = "Open the full Horizon Suite options panel to configure Focus, Presence, Vista, and other modules."
+L["PRESENCE_MINIMAP_SECTION"]                                         = "Minimap icon"
 L["PRESENCE_SHOW_MINIMAP_ICON"]                                       = "Show minimap icon"
 L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"]                          = "Show a clickable icon on the minimap that opens the options panel."
 L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"]                 = "Fade until minimap hover"
@@ -1859,6 +1861,7 @@ L["OPTIONS_CORE_ZONE_LABELS"]                                         = "Zone la
 L["OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A"]                  = "Zone name still appears when entering a new zone."
 L["OPTIONS_CORE_ZONE_TYPE_COLORING"]                                  = "Zone type coloring"
 L["OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"]              = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

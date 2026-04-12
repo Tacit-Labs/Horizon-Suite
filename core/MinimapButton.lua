@@ -72,7 +72,7 @@ end
 
 local function MinimapHoverFadeEnabled()
     if not addon.GetDB then return true end
-    return addon.GetDB("minimapButtonShowOnlyOnMinimapHover", true)
+    return addon.GetDB("minimapButtonShowOnlyOnMinimapHover", false)
 end
 
 local function GetMinimapButtonPixelSize()

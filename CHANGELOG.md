@@ -10,6 +10,30 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.11.0] – 2026-04-10
+
+### ✨ New Features
+
+- **(Axis)** Dashboard **search page** with pinned sidebar entry and layout polish
+- **(Axis)** Dashboard search: **filter results by module**
+- **(Axis)** Welcome **scrollable feed** with detail wiring and locale strings
+- **(Focus)** **Custom click profiles** for the objective tracker — map your own modifier combos to each row, or choose **Horizon+** for Horizon Suite's unified preset and row actions
+
+### 🔧 Improvements
+
+- **(Axis)** Overhaul **welcome** view, module guide, and home toggle cards
+- **(Axis)** Welcome refresh and **minimap-open** keyboard fix
+- **(Focus)** Unify **objective tracker icon** clicks with click profiles
+- **(Axis)** **Settings search** — ranked matches, visible descriptions, and search bar only on the Search page
+- **(Axis)** **All** module filter omits settings for **disabled** modules (Axis options still appear)
+- **(Axis)** **News** refresh and copy aligned with Focus click options and Horizon+ / Blizzard+ defaults
+
+### 🐛 Fixes
+
+- **(Insight)** Unit and item tooltips avoid errors from **Midnight secret-value** API usage
+
+---
+
 ## [4.10.0] – 2026-04-08
 
 ### ✨ New Features
