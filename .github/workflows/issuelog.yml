@@ -45,6 +45,14 @@ jobs:
           MSG_ID_FILE=.release/discord-issuelog-message-id
           NEW_IDS=$(mktemp)
 
+          if [ -z "${WEBHOOK_URL:-}" ]; then
+            echo "::notice::Discord issuelog skipped: repository secret DISCORD_WEBHOOK_ISSUELOG is not set (or empty)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            rm -f "$NEW_IDS"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
           # Delete all previously cached messages (one ID per line)
           if [ -f "$MSG_ID_FILE" ]; then
             while IFS= read -r id || [ -n "$id" ]; do
@@ -94,14 +102,14 @@ jobs:
           echo "id=$(head -1 "$MSG_ID_FILE" 2>/dev/null || true)" >> $GITHUB_OUTPUT
 
       - name: Save message IDs to cache
-        if: steps.discord.outputs.id != ''
+        if: steps.discord.outputs.skip != 'true' && steps.discord.outputs.id != ''
         run: |
           gh cache delete issuelog-msg-id --repo "$GITHUB_REPOSITORY" || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Write cache
-        if: steps.discord.outputs.id != ''
+        if: steps.discord.outputs.skip != 'true' && steps.discord.outputs.id != ''
         uses: actions/cache/save@v4
         with:
           path: .release
