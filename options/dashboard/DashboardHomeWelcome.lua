@@ -96,9 +96,12 @@ function addon.DashboardHomeWelcome_Init(env)
         return 0.5 * f2 * f2 * f2 + 1
     end
 
-    local reloadBanner = CreateFrame("Frame", nil, homeContent)
+    -- Reload banner is anchored to dashboardView (outside the scroll area) so it is
+    -- always visible at the top of the card list regardless of scroll position.
+    -- LayoutToggleCards shifts homeScroll down when the banner is shown.
+    local reloadBanner = CreateFrame("Frame", nil, dashboardView)
     reloadBanner:SetHeight(BANNER_H)
-    reloadBanner:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 5)
+    reloadBanner:SetFrameLevel((dashboardView:GetFrameLevel() or 0) + 10)
     reloadBanner:Hide()
 
     local reloadBg = reloadBanner:CreateTexture(nil, "BACKGROUND")
@@ -130,6 +133,7 @@ function addon.DashboardHomeWelcome_Init(env)
     reloadBtn:SetScript("OnLeave", function() reloadBtnBg:SetColorTexture(0.90, 0.68, 0.20, 0.22) end)
 
     local toggleCards = {}
+    local LayoutToggleCards  -- forward declaration; assigned after MakeToggleCard
 
     local function MakeToggleCard(parent, moduleKey)
         local mc = MODULE_COLORS[moduleKey] or { 0.6, 0.6, 0.7 }
@@ -377,6 +381,8 @@ function addon.DashboardHomeWelcome_Init(env)
                 if not reloadBanner:IsShown() then
                     reloadBanner:SetAlpha(0)
                     reloadBanner:Show()
+                    -- Shift cardScroll down to make room for the banner above it.
+                    LayoutToggleCards()
                 end
                 UIFrameFadeIn(reloadBanner, 0.25, reloadBanner:GetAlpha(), 1)
             end
@@ -425,10 +431,25 @@ function addon.DashboardHomeWelcome_Init(env)
         tinsert(toggleCards, { key = mk, card = card })
     end
 
-    local function LayoutToggleCards()
+    LayoutToggleCards = function()
         local viewW = homeScroll:GetWidth() or homeContent:GetWidth() or 0
         local cardW = math.max(200, viewW)
         homeContent:SetWidth(cardW)
+
+        -- Reload banner lives outside the scroll frame (parented to dashboardView).
+        -- When visible it occupies a fixed strip just above the scroll content; we
+        -- shift homeScroll down by BANNER_H + 4 to make room.
+        local bannerShown = reloadBanner:IsShown()
+        local scrollTopY = bannerShown and (dashScrollTopOffset - BANNER_H - 4) or dashScrollTopOffset
+
+        homeScroll:ClearAllPoints()
+        homeScroll:SetPoint("TOPLEFT",     dashboardView, "TOPLEFT",      40, scrollTopY)
+        homeScroll:SetPoint("BOTTOMRIGHT", dashboardView, "BOTTOMRIGHT", -40, HOME_SCROLL_BOTTOM_INSET)
+
+        reloadBanner:SetWidth(cardW)
+        reloadBanner:ClearAllPoints()
+        reloadBanner:SetPoint("TOPLEFT", dashboardView, "TOPLEFT", 40, dashScrollTopOffset)
+
         local y = CARD_TOP_PAD
 
         for _, entry in ipairs(toggleCards) do
@@ -440,12 +461,8 @@ function addon.DashboardHomeWelcome_Init(env)
             y = y + card:GetHeight() + CARD_GAP
         end
 
-        reloadBanner:SetWidth(cardW)
-        reloadBanner:ClearAllPoints()
-        reloadBanner:SetPoint("TOPLEFT", homeContent, "TOPLEFT", 0, -y - 8)
-
-        -- Pixels from content top through reload banner + bottom padding
-        local contentH = math.max(1, y + 8 + BANNER_H + HOME_CONTENT_BOTTOM_PAD)
+        -- Set content height so the scroll frame knows how far it can scroll.
+        local contentH = math.max(1, y + HOME_CONTENT_BOTTOM_PAD)
         homeContent:SetHeight(contentH)
     end
 

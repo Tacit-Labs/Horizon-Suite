@@ -18,8 +18,11 @@ function addon.DashboardSidebar_CreateChrome(p)
     local refreshDashboardClassIcon = p.refreshDashboardClassIcon
 
     -- ===== SIDEBAR =====
-    local SIDEBAR_WIDTH = 160
-    local SIDEBAR_CONTENT_X_INSET = 15 -- logo separator + scroll list; bottom Patch Notes row uses same X as Welcome/Home
+    -- The sidebar is always built at the native fixed size regardless of the dashboard
+    -- resize ratio.  Dashboard_CommitResize also enforces this via DC.SIDEBAR_NATIVE_W.
+    local DC = addon.DashboardConstants
+    local SIDEBAR_WIDTH = DC and DC.SIDEBAR_NATIVE_W or 160
+    local SIDEBAR_CONTENT_X_INSET = DC and DC.SIDEBAR_CONTENT_X_INSET or 15
     local CONTENT_OFFSET = SIDEBAR_WIDTH + 10
 
     local sidebar = CreateFrame("Frame", nil, f)
@@ -81,11 +84,64 @@ function addon.DashboardSidebar_CreateChrome(p)
     sidebarScrollContent:SetHeight(1)
     sidebarScrollFrame:SetScrollChild(sidebarScrollContent)
     sidebarScrollFrame:EnableMouseWheel(true)
+
+    -- Custom scrollbar: 3px track parented to sidebar (not sidebarScrollFrame) so it
+    -- sits on top of the divider at the sidebar's outer right edge without eating into
+    -- button width.  Right edge aligns with sidebar.right; left edge is 3px inside.
+    -- Frame level above sidebar buttons so the thumb renders on top.
+    local sbTrack = CreateFrame("Frame", nil, sidebar)
+    sbTrack:SetFrameLevel((sidebar:GetFrameLevel() or 0) + 8)
+    sbTrack:SetWidth(3)
+    sbTrack:SetPoint("TOPRIGHT",    sidebarScrollFrame, "TOPRIGHT",    1, 0)
+    sbTrack:SetPoint("BOTTOMRIGHT", sidebarScrollFrame, "BOTTOMRIGHT", 1, 0)
+    sbTrack:Hide()
+
+    local sbThumb = sbTrack:CreateTexture(nil, "OVERLAY")
+    sbThumb:SetWidth(3)
+    sbThumb:SetColorTexture(1, 1, 1, 0.22)
+
+    local function UpdateSidebarScrollbar()
+        local frameH   = sidebarScrollFrame:GetHeight() or 1
+        local contentH = sidebarScrollContent:GetHeight() or 1
+        if frameH <= 0 then frameH = 1 end
+        if contentH <= frameH then
+            sbTrack:Hide()
+            -- Reset scroll position so content snaps back to top when the frame
+            -- grows large enough that scrolling is no longer needed.
+            if (sidebarScrollFrame:GetVerticalScroll() or 0) > 0 then
+                sidebarScrollFrame:SetVerticalScroll(0)
+            end
+            return
+        end
+        sbTrack:Show()
+        local scroll    = math.min(sidebarScrollFrame:GetVerticalScroll() or 0, contentH - frameH)
+        local maxScroll = math.max(1, contentH - frameH)
+        local trackH    = sbTrack:GetHeight() or frameH
+        local thumbPct  = frameH / contentH
+        local thumbH    = math.max(20, trackH * thumbPct)
+        local offset    = (scroll / maxScroll) * (trackH - thumbH)
+        sbThumb:ClearAllPoints()
+        sbThumb:SetHeight(thumbH)
+        sbThumb:SetPoint("TOP", sbTrack, "TOP", 0, -offset)
+    end
+
     sidebarScrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local cur = self:GetVerticalScroll() or 0
         local maxS = math.max(0, sidebarScrollContent:GetHeight() - self:GetHeight())
         self:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * 30)))
+        UpdateSidebarScrollbar()
     end)
+
+    if sidebarScrollFrame:GetScript("OnScrollRangeChanged") then
+        sidebarScrollFrame:HookScript("OnScrollRangeChanged", UpdateSidebarScrollbar)
+    else
+        sidebarScrollFrame:SetScript("OnScrollRangeChanged", UpdateSidebarScrollbar)
+    end
+    if sidebarScrollFrame:GetScript("OnVerticalScroll") then
+        sidebarScrollFrame:HookScript("OnVerticalScroll", UpdateSidebarScrollbar)
+    else
+        sidebarScrollFrame:SetScript("OnVerticalScroll", UpdateSidebarScrollbar)
+    end
 
     local TAB_ROW_HEIGHT = 38
     -- Space for pinned bottom rows (Search + Patch Notes).
