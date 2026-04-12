@@ -94,7 +94,7 @@
 
 **Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in Typography and statusbar textures for progress bars. If not installed, the font dropdown shows only Game Font and any custom path you enter; progress bars use Solid texture. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips and, when Dashboard class colours are on, for the Dashboard header class icon (Axis → Class Colours → Dashboard class icon style—separate from Insight).
 
-1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Crystilac93/Horizon-Suite/releases/latest) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Crystilac93/Horizon-Suite/releases/tag/beta))
+1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Tacit-Labs/Horizon-Suite/releases/latest) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Tacit-Labs/Horizon-Suite/releases/tag/beta))
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
 4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
@@ -106,7 +106,7 @@
 
 ## 🤝 Contributing
 
-**Issues** — [GitHub Issues](https://github.com/Crystilac93/Horizon-Suite/issues). Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are welcome.
+**Issues** — [GitHub Issues](https://github.com/Tacit-Labs/Horizon-Suite/issues). Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are welcome.
 
 ---
 

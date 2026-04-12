@@ -895,7 +895,7 @@ function addon.Dashboard_BuildMainFrame()
             dashAccentRefs.underline = detailTitleUnderline
 
             -- Patch Notes only: full changelog link (top-right of frame, aligned with title row).
-            local PN_CHANGELOG_URL = "https://github.com/Crystilac93/Horizon-Suite/blob/main/CHANGELOG.md"
+            local PN_CHANGELOG_URL = "https://github.com/Tacit-Labs/Horizon-Suite/blob/main/CHANGELOG.md"
             local pnChangelogHeaderBtn = CreateFrame("Button", nil, f)
             pnChangelogHeaderBtn:SetFrameLevel(f:GetFrameLevel() + 12)
             pnChangelogHeaderBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -48, DASH_HEAD_TITLE_Y)

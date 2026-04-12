@@ -132,7 +132,7 @@ Every module shares the same design foundations, so they feel like one cohesive 
 
 **Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) for expanded font choices and progress bar textures. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips and the Dashboard header icon when class colours are on.
 
-1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Crystilac93/Horizon-Suite/releases/latest) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Crystilac93/Horizon-Suite/releases/tag/beta))
+1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Tacit-Labs/Horizon-Suite/releases/latest) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Tacit-Labs/Horizon-Suite/releases/tag/beta))
 2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
 3. Enable **Horizon Suite** in your AddOn list.
 4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
@@ -145,7 +145,7 @@ Every module shares the same design foundations, so they feel like one cohesive 
 Horizon Suite is built with the community, not just for it. Feature requests and bug reports shape every update.
 
 **[Discord](https://discord.gg/nFabdZmvSB)** — The best place to get help, share feedback, or see what's coming next.
-**[GitHub Issues](https://github.com/Crystilac93/Horizon-Suite/issues)** — Bug reports and feature requests welcome. Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are also welcome.
+**[GitHub Issues](https://github.com/Tacit-Labs/Horizon-Suite/issues)** — Bug reports and feature requests welcome. Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are also welcome.
 **[Patreon](https://patreon.com/HorizonSuite)** | **[Ko-fi](https://ko-fi.com/T6T71TX1Y1)** — Support development and keep the lights on.
 
 ---

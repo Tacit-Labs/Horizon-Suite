@@ -87,8 +87,8 @@ const description = [
     '_meta v/u/r = validated / unvalidated / needs_review (tools/locale-meta/)_',
     '',
     '**Want to help translate?**',
-    '1. See [TRANSLATING.md](https://github.com/Crystilac93/Horizon-Suite/blob/main/TRANSLATING.md)',
-    '2. Use [locale_template.lua](https://github.com/Crystilac93/Horizon-Suite/blob/main/Localisation/locale_template.lua)',
+    '1. See [TRANSLATING.md](https://github.com/Tacit-Labs/Horizon-Suite/blob/main/TRANSLATING.md)',
+    '2. Use [locale_template.lua](https://github.com/Tacit-Labs/Horizon-Suite/blob/main/Localisation/locale_template.lua)',
     '3. Post your file in <#localisation-submission> for review!',
 ].join('\n');
 
