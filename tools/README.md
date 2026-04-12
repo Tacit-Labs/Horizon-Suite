@@ -39,7 +39,7 @@ After any bulk rename: `restructure_locales.js`, then `locale_audit.js --strict`
 
 ## CI / automation
 
-- `locale_audit.js --strict` — merge request pipeline (`.gitlab-ci.yml` → `locale-check`)
+- `locale_audit.js --strict` — run before opening a pull request; strict = every key has a row
 - `locale_audit_discord.js` — scheduled/manual Discord summary
 
 ## Orphan / consistency
