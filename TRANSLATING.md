@@ -37,7 +37,7 @@ node tools/locale_validate.js frFR --all-unvalidated
 
 ## Submitting
 
-Open a **merge request** on GitLab with your `Localisation/<locale>.lua` changes. Mention which keys you translated. Discord: project invite links are on the dashboard / README.
+Open a **pull request** on GitHub with your `Localisation/<locale>.lua` changes. Mention which keys you translated. Discord: project invite links are on the dashboard / README.
 
 ## Grep tips
 

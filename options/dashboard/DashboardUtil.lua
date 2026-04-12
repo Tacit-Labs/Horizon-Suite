@@ -14,7 +14,7 @@ local FOOTER_WORDMARK_INTRINSIC_PX = {
     [DASHBOARD_FOOTER_MEDIA .. "discord.tga"] = { w = 128, h = 19 },
     [DASHBOARD_FOOTER_MEDIA .. "kofi.tga"] = { w = 128, h = 35 },
     [DASHBOARD_FOOTER_MEDIA .. "patreon.tga"] = { w = 128, h = 29 },
-    [DASHBOARD_FOOTER_MEDIA .. "gitlab.tga"] = { w = 90, h = 21 },
+    [DASHBOARD_FOOTER_MEDIA .. "github.tga"] = { w = 90, h = 21 },
     [DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga"] = { w = 728, h = 150, maxVisualH = 22 },
     [DASHBOARD_FOOTER_MEDIA .. "wago.tga"] = { w = 128, h = 29 },
 }
@@ -467,7 +467,7 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
         { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.gg/nFabdZmvSB", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
         { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
         { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
-        { label = L["DASH_GITLAB"] or "GitLab", url = "https://gitlab.com/Crystilac/horizon-suite", icon = DASHBOARD_FOOTER_MEDIA .. "gitlab.tga" },
+        { label = L["DASH_GITLAB"] or "GitHub", url = "https://github.com/Crystilac93/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
         { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844", icon = DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga" },
         { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y", icon = DASHBOARD_FOOTER_MEDIA .. "wago.tga" },
     }
