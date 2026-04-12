@@ -10,6 +10,25 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.12.0] – 2026-04-12
+
+### ✨ New Features
+
+- **(Axis)** **Resizable dashboard** with a **corner grabber**, **saved size and position**, and shared **layout scaling** helpers
+- **(Axis)** **Ctrl+F** opens dashboard **search** from the options UI, and the search field is **focused** after you change **sidebar** sections
+
+### 🔧 Improvements
+
+- **(Axis)** **Handheld and narrow layouts** — patch notes and headers reflow without overlap, the **search bar** stays constrained, the **sidebar** scroll resets sensibly when content fits, and **accordions** / **two-column tiles** adapt on resize
+- **(Vista)** **Minimap button** visibility and related settings are grouped under **Vista** with other minimap UI options
+
+### 🐛 Fixes
+
+- **(Focus)** Tracked **world quests** open on the **correct zone map** instead of the wrong area view
+- **(Axis)** Dashboard layout stays **usable** on very **small** or **handheld-sized** windows — overlap, width, and resize **edge cases**
+
+---
+
 ## [4.11.0] – 2026-04-10
 
 ### ✨ New Features

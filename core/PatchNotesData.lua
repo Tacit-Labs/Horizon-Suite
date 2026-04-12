@@ -15,6 +15,31 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.12.0"] = {
+        date = "2026-04-12",
+        {
+            section = "New Features",
+            bullets = {
+                "Axis: resizable dashboard with corner grabber, saved size and position, and layout scaling helpers",
+                "Axis: Ctrl+F opens dashboard search from the options UI; search focuses after sidebar changes",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: handheld and narrow layouts — patch notes and headers reflow without overlap, constrained search bar, sensible sidebar scroll when content fits, accordions and two-column tiles adapt on resize",
+                "Vista: minimap button visibility and related settings grouped under Vista with other minimap UI options",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: tracked world quests open on the correct zone map instead of the wrong area view",
+                "Axis: dashboard layout stays usable on very small or handheld-sized windows (overlap, width, and resize edge cases)",
+            },
+        },
+    },
+
     ["4.11.0"] = {
         date = "2026-04-10",
         {
