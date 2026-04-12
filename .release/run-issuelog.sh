@@ -5,10 +5,27 @@ set -e
 # Output: .release/discord-issuelog-payload-{bugs,features,improvements,ideas}.json
 # One message per type; each message has its own 6000-char limit (avoids Discord total-embed limit).
 
-export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Crystilac93/Horizon-Suite}"
+export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Tacit-Labs/Horizon-Suite}"
 
-# Fetch all open issues (number, title, labels, body, url)
-ISSUES=$(gh issue list --state open --json number,title,labels,body,url --limit 100 2>/dev/null || echo "[]")
+# Fetch all open issues (paginated; default limit would miss issues past 100)
+ISSUES="[]"
+page=1
+while true; do
+  batch=$(gh issue list --state open --json number,title,labels,body,url --limit 100 --page "$page" 2>/dev/null || echo "[]")
+  cnt=$(echo "$batch" | jq 'length')
+  if [ "$cnt" -eq 0 ]; then
+    break
+  fi
+  ISSUES=$(jq -n --argjson acc "$ISSUES" --argjson b "$batch" '$acc + $b')
+  if [ "$cnt" -lt 100 ]; then
+    break
+  fi
+  page=$((page + 1))
+  if [ "$page" -gt 50 ]; then
+    echo "Warning: stopped pagination after 50 pages" >&2
+    break
+  fi
+done
 
 BUGS=""
 FEATURES=""
@@ -20,18 +37,30 @@ while IFS= read -r line; do
   title=$(echo "$line" | jq -r '.title')
   url=$(echo "$line" | jq -r '.url')
   labels=$(echo "$line" | jq -r '.labels[].name' | tr '\n' ' ')
+  labels_lc=$(echo "$labels" | tr '[:upper:]' '[:lower:]')
   body=$(echo "$line" | jq -r '.body // ""')
 
-  # Determine module tag
+  # Determine module tag (plain names or GitLab-parity [Module] … labels)
   module=""
-  [[ "$labels" =~ Focus ]]    && module="[Focus] "
-  [[ "$labels" =~ Presence ]] && module="[Presence] "
-  [[ "$labels" =~ Core ]]     && module="[Core] "
-  [[ "$labels" =~ Vista ]]    && module="[Vista] "
-  [[ "$labels" =~ Cache ]]    && module="[Cache] "
-  [[ "$labels" =~ Pulse ]]    && module="[Pulse] "
-  [[ "$labels" =~ Insight ]]  && module="[Insight] "
-  [[ "$labels" =~ Verse ]]    && module="[Verse] "
+  if [[ "$labels_lc" =~ \[module\]\ focus ]]; then module="[Focus] "
+  elif [[ "$labels_lc" =~ \[module\]\ presence ]]; then module="[Presence] "
+  elif [[ "$labels_lc" =~ \[module\]\ axis ]] || [[ "$labels_lc" =~ \[module\]\ core ]]; then module="[Core] "
+  elif [[ "$labels_lc" =~ \[module\]\ vista ]]; then module="[Vista] "
+  elif [[ "$labels_lc" =~ \[module\]\ cache ]]; then module="[Cache] "
+  elif [[ "$labels_lc" =~ \[module\]\ pulse ]]; then module="[Pulse] "
+  elif [[ "$labels_lc" =~ \[module\]\ insight ]]; then module="[Insight] "
+  elif [[ "$labels_lc" =~ \[module\]\ verse ]]; then module="[Verse] "
+  elif [[ "$labels_lc" =~ \[module\]\ essence ]]; then module="[Essence] "
+  elif [[ "$labels_lc" =~ \[module\]\ flow ]]; then module="[Flow] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])focus($|[[:space:]]) ]]; then module="[Focus] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])presence($|[[:space:]]) ]]; then module="[Presence] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])core($|[[:space:]]) ]]; then module="[Core] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])vista($|[[:space:]]) ]]; then module="[Vista] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])cache($|[[:space:]]) ]]; then module="[Cache] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])pulse($|[[:space:]]) ]]; then module="[Pulse] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])insight($|[[:space:]]) ]]; then module="[Insight] "
+  elif [[ "$labels_lc" =~ (^|[[:space:]])verse($|[[:space:]]) ]]; then module="[Verse] "
+  fi
 
   # Extract ### Description section from body (text between ### Description and next ###)
   desc=$(printf '%s' "$body" | awk '
@@ -55,14 +84,14 @@ while IFS= read -r line; do
     bullet="• ${module}[${title}](${url})"
   fi
 
-  # Route to bucket by type label
-  if [[ "$labels" =~ bug ]]; then
+  # Route to bucket: legacy GitHub labels (bug, feature, …) or GitLab-parity [Enhancement] …
+  if [[ "$labels_lc" =~ (^|[[:space:]])bug($|[[:space:]]) ]]; then
     BUGS="${BUGS}${bullet}"$'\n'
-  elif [[ "$labels" =~ feature ]]; then
+  elif [[ "$labels_lc" =~ \[enhancement\]\ feature ]] || [[ "$labels_lc" =~ (^|[[:space:]])feature($|[[:space:]]) ]]; then
     FEATURES="${FEATURES}${bullet}"$'\n'
-  elif [[ "$labels" =~ improvement ]]; then
+  elif [[ "$labels_lc" =~ \[enhancement\]\ improvement ]] || [[ "$labels_lc" =~ \[enhancement\]\ localization ]] || [[ "$labels_lc" =~ (^|[[:space:]])improvement($|[[:space:]]) ]]; then
     IMPROVEMENTS="${IMPROVEMENTS}${bullet}"$'\n'
-  elif [[ "$labels" =~ idea ]]; then
+  elif [[ "$labels_lc" =~ (^|[[:space:]])idea($|[[:space:]]) ]]; then
     IDEAS="${IDEAS}${bullet}"$'\n'
   fi
 

@@ -30,5 +30,6 @@ tools/pipeline-viewer.html
 tools/serve-pipeline.ps1
 tools/gitlab-issues-dry-run.json
 tools/gitlab-issues-dry-run-example.json
+tools/gitlab-issue-import-results.json
 /wowapi/
 assets\social
