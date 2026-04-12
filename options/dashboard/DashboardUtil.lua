@@ -467,7 +467,7 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
         { label = L["DASH_DISCORD"] or "Discord", url = "https://discord.gg/nFabdZmvSB", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
         { label = L["DASH_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
         { label = L["DASH_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
-        { label = L["DASH_GITLAB"] or "GitHub", url = "https://github.com/Crystilac93/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
+        { label = L["DASH_GITHUB"] or "GitHub", url = "https://github.com/Crystilac93/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
         { label = L["DASH_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844", icon = DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga" },
         { label = L["DASH_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y", icon = DASHBOARD_FOOTER_MEDIA .. "wago.tga" },
     }
