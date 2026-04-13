@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Crystilac93/Horizon-Suite}"
+export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Tacit-Labs/Horizon-Suite}"
 
 LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
 if [ -n "$LAST_TAG" ]; then
