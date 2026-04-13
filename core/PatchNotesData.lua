@@ -15,6 +15,17 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.12.1"] = {
+        date = "2026-04-13",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Warbound weekly quests now sort and track correctly; right-click to untrack no longer fails for Warbound weeklies.",
+                "Focus: Quest item button cooldowns now update properly while in combat.",
+            },
+        },
+    },
+
     ["4.12.0"] = {
         date = "2026-04-12",
         {

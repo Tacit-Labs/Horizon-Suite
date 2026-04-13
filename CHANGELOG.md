@@ -6,7 +6,16 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-<!-- Add new entries here -->
+<!-- Changelog entries are generated from closed GitHub Issues at release time. -->
+
+---
+
+## [4.12.1] – 2026-04-13
+
+### 🐛 Fixes
+
+- **(Focus)** Warbound weekly quests now sort and track correctly; right-click to untrack no longer fails for Warbound weeklies.
+- **(Focus)** Quest item button cooldowns now update properly while in combat.
 
 ---
 
