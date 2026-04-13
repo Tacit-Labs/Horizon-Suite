@@ -141,7 +141,23 @@ local function ShowQuestContextMenu(questID, questName, anchor)
             text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function()
-                if C_QuestLog and C_QuestLog.RemoveQuestWatch then C_QuestLog.RemoveQuestWatch(questID) end
+                if anchor and anchor.isTracked == false then
+                    -- Quest is accepted+nearby but not in the watch list (e.g. warbound weekly).
+                    -- RemoveQuestWatch is a no-op; suppress via the session/permanent list.
+                    local usePermanent = addon.GetDB("permanentlySuppressUntracked", false)
+                    if usePermanent then
+                        local bl = addon.GetDB("permanentQuestBlacklist", nil)
+                        if type(bl) ~= "table" then bl = {} end
+                        bl[questID] = true
+                        addon.SetDB("permanentQuestBlacklist", bl)
+                        if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
+                    else
+                        if not addon.focus.recentlyUntrackedWeekliesAndDailies then addon.focus.recentlyUntrackedWeekliesAndDailies = {} end
+                        addon.focus.recentlyUntrackedWeekliesAndDailies[questID] = true
+                    end
+                elseif C_QuestLog and C_QuestLog.RemoveQuestWatch then
+                    C_QuestLog.RemoveQuestWatch(questID)
+                end
                 addon.ScheduleRefresh()
             end,
         }
@@ -1446,6 +1462,19 @@ QUEST_ACTIONS["untrack"] = function(entry)
             if addon.GetDB("suppressUntrackedUntilReload", false) then
                 addon.SetDB("sessionSuppressedQuests", addon.focus.recentlyUntrackedWorldQuests)
             end
+        end
+    elseif entry.isTracked == false then
+        -- Quest is accepted and nearby but not in the watch list (e.g. warbound weekly).
+        -- C_QuestLog.RemoveQuestWatch is a no-op here; suppress via the session/permanent list.
+        if usePermanent then
+            local bl = addon.GetDB("permanentQuestBlacklist", nil)
+            if type(bl) ~= "table" then bl = {} end
+            bl[entry.questID] = true
+            addon.SetDB("permanentQuestBlacklist", bl)
+            if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
+        else
+            if not addon.focus.recentlyUntrackedWeekliesAndDailies then addon.focus.recentlyUntrackedWeekliesAndDailies = {} end
+            addon.focus.recentlyUntrackedWeekliesAndDailies[entry.questID] = true
         end
     elseif C_QuestLog.RemoveQuestWatch then
         C_QuestLog.RemoveQuestWatch(entry.questID)
