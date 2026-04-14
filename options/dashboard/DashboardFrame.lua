@@ -1717,6 +1717,8 @@ function addon.Dashboard_BuildMainFrame()
             f.dashboardSidebarGroups = groups
             local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
             local sidebarRows = {}
+            -- Extra height added to group headers when subtitle mode is active.
+            local SUBTITLE_EXTRA_H = 14
 
             local function ShouldShowDashboardSubcategory(mk, cat)
                 if not cat then return false end
@@ -1821,11 +1823,16 @@ function addon.Dashboard_BuildMainFrame()
                     else
                         -- Header row (clickable, collapsible)
                         local prevLastRow = lastSidebarRow
+                        local _bd = addon.BrandDisplay
+                        local _curMode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
+                        local _hasSubtitle = (_curMode == "subtitle") and _bd and _bd.descriptive and (_bd.descriptive[mk] ~= nil)
+                        local headerH = HEADER_ROW_HEIGHT + (_hasSubtitle and SUBTITLE_EXTRA_H or 0)
                         local header = CreateFrame("Button", nil, sidebarScrollContent)
-                        header:SetSize(SIDEBAR_WIDTH - 1, HEADER_ROW_HEIGHT)
+                        header:SetSize(SIDEBAR_WIDTH - 1, headerH)
+                        header.baseHeight = HEADER_ROW_HEIGHT
                         header:SetPoint("TOPLEFT", lastSidebarRow, "BOTTOMLEFT", 0, 0)
                         lastSidebarRow = header
-                        yOff = yOff + HEADER_ROW_HEIGHT
+                        yOff = yOff + headerH
                         header.groupKey = mk
                         g.header = header
                         local headerBtnBg = header:CreateTexture(nil, "BACKGROUND")
@@ -1855,7 +1862,8 @@ function addon.Dashboard_BuildMainFrame()
                             end
                         end
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, nil, true)
-                        chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
+                        -- TOP-anchored so it stays in the code-name row regardless of header height.
+                        chevron:SetPoint("TOPLEFT", header, "TOPLEFT", 8, -9)
                         chevron:SetTextColor(0.55, 0.55, 0.65, 1)
                         header.chevron = chevron
                         local headerLabel = header:CreateFontString(nil, "OVERLAY")
@@ -1873,9 +1881,22 @@ function addon.Dashboard_BuildMainFrame()
                             end
                         end
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, nil, true)
-                        headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
+                        headerLabel:SetPoint("TOPLEFT", chevron, "TOPRIGHT", 4, 0)
+                        headerLabel:SetWidth(SIDEBAR_WIDTH - SIDEBAR_CONTENT_X_INSET - 20)
+                        headerLabel:SetJustifyV("TOP")
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
-                        local headerLabelText = addon.FormatModuleNameForSidebar and addon.FormatModuleNameForSidebar(mk) or (g.label or ""):upper()
+                        -- Build label text: in subtitle mode the descriptor goes on a second line,
+                        -- muted and in mixed case so it reads as secondary to the code-name.
+                        local _codeName = (_bd and _bd.module and _bd.module[mk] or mk):upper()
+                        local headerLabelText
+                        if _curMode == "subtitle" and _hasSubtitle then
+                            local _desc = _bd.descriptive[mk]
+                            headerLabelText = _codeName .. "\n|cff505065" .. _desc .. "|r"
+                        elseif _curMode == "descriptive" then
+                            headerLabelText = (_bd and _bd.descriptive and _bd.descriptive[mk] or _codeName):upper()
+                        else
+                            headerLabelText = _codeName
+                        end
                         if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
@@ -2117,6 +2138,8 @@ function addon.Dashboard_BuildMainFrame()
                 end
             end
 
+            f.DashboardRefreshSidebar = RefreshSidebar
+
             --- Live refresh when modules are toggled (called from SetModuleEnabled).
             addon.Dashboard_Refresh = function()
                 if not f or not f:IsShown() then return end
@@ -2137,6 +2160,9 @@ function addon.Dashboard_BuildMainFrame()
             --- moduleNameDisplay setting changes. Home tiles and baked toggle labels update on reload.
             local MODULE_NAME_KEYS = { "axis", "focus", "presence", "vista", "insight", "cache", "essence", "meridian" }
             f.RefreshModuleDisplayNames = function()
+                local bd = addon.BrandDisplay
+                local mode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
+
                 -- Re-populate label caches in place so runtime closures pick up new values.
                 if f.dashboardModuleLabels then
                     for _, mk in ipairs(MODULE_NAME_KEYS) do
@@ -2148,19 +2174,31 @@ function addon.Dashboard_BuildMainFrame()
                         f.dashboardMODULE_LABELS[mk] = addon.GetModuleDisplayName(mk)
                     end
                 end
-                -- Update already-rendered sidebar group header labels.
+                -- Update already-rendered sidebar group header labels and heights.
                 if f.dashboardSidebarGroups then
                     for _, mk in ipairs(MODULE_NAME_KEYS) do
                         local g = f.dashboardSidebarGroups[mk]
                         if g and g.header and g.header.label then
-                            local txt = addon.FormatModuleNameForSidebar and addon.FormatModuleNameForSidebar(mk) or addon.GetModuleDisplayName(mk):upper()
+                            local codeName = (bd and bd.module and bd.module[mk] or mk):upper()
+                            local desc = bd and bd.descriptive and bd.descriptive[mk]
+                            local txt
+                            if mode == "subtitle" and desc then
+                                txt = codeName .. "\n|cff505065" .. desc .. "|r"
+                                g.header:SetHeight((g.header.baseHeight or HEADER_ROW_HEIGHT) + SUBTITLE_EXTRA_H)
+                            else
+                                txt = (mode == "descriptive" and desc) and desc:upper() or codeName
+                                g.header:SetHeight(g.header.baseHeight or HEADER_ROW_HEIGHT)
+                            end
                             if PREVIEW_MODULE_KEYS[mk] then
                                 txt = txt .. " |cff228b22(Preview)|r"
                             end
                             g.header.label:SetText(txt)
+                            if g.header.updateSpacer then g.header.updateSpacer() end
                         end
                     end
                 end
+                -- Relayout sidebar so scroll height accounts for any height changes above.
+                if f.DashboardRefreshSidebar then f.DashboardRefreshSidebar() end
                 -- Refresh the search filter label if one is currently shown.
                 if f.UpdateSearchModuleFilterLabel then
                     f.UpdateSearchModuleFilterLabel()

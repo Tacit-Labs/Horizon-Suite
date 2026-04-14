@@ -44,9 +44,9 @@ function addon.GetModuleDisplayName(moduleKey)
     return codeName
 end
 
---- Returns a sidebar-ready formatted string: code-name uppercased, subtitle descriptor in
---- a muted colour at original case to create visual hierarchy within a single fontstring.
---- WoW fontstrings cannot change font size inline, so colour contrast is used instead.
+--- Returns a single-line formatted string suitable for compact contexts (search filter, tooltips).
+--- In "subtitle" mode the descriptor is appended in muted colour separated by an en dash.
+--- The sidebar group headers use a two-line layout instead (see DashboardFrame.lua).
 --- @param moduleKey string|nil
 --- @return string
 function addon.FormatModuleNameForSidebar(moduleKey)
