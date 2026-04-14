@@ -9,8 +9,8 @@ if not _G[addon.DB_NAME] then _G[addon.DB_NAME] = {} end
 
 local L = addon.L
 local function BrandModule(moduleKey)
-    local bd = addon.BrandDisplay
-    local t = bd and bd.module
+    if addon.GetModuleDisplayName then return addon.GetModuleDisplayName(moduleKey) end
+    local t = addon.BrandDisplay and addon.BrandDisplay.module
     if not moduleKey or not t then return nil end
     return t[moduleKey]
 end
@@ -842,6 +842,26 @@ local OptionCategories = {
         moduleKey = nil,
         options = function()
             local opts = {}
+            opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_MODULE_NAME_DISPLAY"] or "Module name style" }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["OPTIONS_AXIS_MODULE_NAME_DISPLAY"] or "Module name style",
+                desc = L["OPTIONS_AXIS_MODULE_NAME_DISPLAY_DESC"] or "How module names appear in the settings panel navigation and search filter.",
+                dbKey = "moduleNameDisplay",
+                options = {
+                    { L["OPTIONS_AXIS_MODULE_NAME_HORIZON"]     or "Horizon",     "horizon"     },
+                    { L["OPTIONS_AXIS_MODULE_NAME_SUBTITLE"]    or "Subtitle",    "subtitle"    },
+                    { L["OPTIONS_AXIS_MODULE_NAME_DESCRIPTIVE"] or "Descriptive", "descriptive" },
+                },
+                get = function() return getDB("moduleNameDisplay", "horizon") end,
+                set = function(v)
+                    setDB("moduleNameDisplay", v)
+                    local dash = _G.HorizonSuiteDashboard
+                    if dash and dash.RefreshModuleDisplayNames then
+                        dash.RefreshModuleDisplayNames()
+                    end
+                end,
+            }
             opts[#opts + 1] = { type = "section", name = L["OPTIONS_FOCUS_THEME"] or "Theme" }
             local function dashboardBackgroundDropdownOptions()
                 local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }

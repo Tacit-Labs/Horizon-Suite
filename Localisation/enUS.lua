@@ -73,6 +73,11 @@ L["OPTIONS_AXIS_PROFILES"]                                            = "Profile
 L["OPTIONS_AXIS_MODULES"]                                             = "Modules"
 L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Module Toggles"
 L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"]                           = "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
+L["OPTIONS_AXIS_MODULE_NAME_DISPLAY"]                                 = "Module name style"
+L["OPTIONS_AXIS_MODULE_NAME_DISPLAY_DESC"]                            = "How module names appear in the settings panel navigation and search filter."
+L["OPTIONS_AXIS_MODULE_NAME_HORIZON"]                                 = "Horizon"
+L["OPTIONS_AXIS_MODULE_NAME_SUBTITLE"]                                = "Subtitle"
+L["OPTIONS_AXIS_MODULE_NAME_DESCRIPTIVE"]                             = "Descriptive"
 L["OPTIONS_MODULE_RELOAD_HINT"]                                       = "Reload the interface to finish applying module changes."
 L["OPTIONS_MODULE_RELOAD_BUTTON"]                                     = "Reload UI"
 

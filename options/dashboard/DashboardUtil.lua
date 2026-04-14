@@ -26,12 +26,29 @@ local FOOTER_LINK_MAX_VISUAL_H = 16
 local FOOTER_LINK_ICON_INSET = 4
 local FOOTER_LINK_GAP = 10
 
+--- Returns the display name for a module key based on the moduleNameDisplay DB setting.
+--- Modes: "horizon" (code-name only), "subtitle" (code-name – descriptor), "descriptive" (descriptor only).
+--- @param moduleKey string|nil
+--- @return string
+function addon.GetModuleDisplayName(moduleKey)
+    local bd = addon.BrandDisplay
+    if not bd or not moduleKey then return moduleKey or "" end
+    local codeName = (bd.module and bd.module[moduleKey]) or moduleKey
+    local mode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
+    if mode == "subtitle" then
+        local desc = bd.descriptive and bd.descriptive[moduleKey]
+        return desc and (codeName .. " \226\128\147 " .. desc) or codeName
+    elseif mode == "descriptive" then
+        return (bd.descriptive and bd.descriptive[moduleKey]) or codeName
+    end
+    return codeName
+end
+
 --- @param moduleKey string|nil
 --- @return string|nil
 function addon.Dashboard_BrandModule(moduleKey)
-    local t = addon.BrandDisplay and addon.BrandDisplay.module
-    if not moduleKey or not t then return nil end
-    return t[moduleKey]
+    if not moduleKey then return nil end
+    return addon.GetModuleDisplayName(moduleKey)
 end
 
 -- Categories shown under the Axis hub (dashboard + search); keep in sync with OptionCategories keys.

@@ -128,6 +128,7 @@ function addon.Dashboard_BuildMainFrame()
                 essence = addon.Dashboard_BrandModule("essence"),
                 meridian = addon.Dashboard_BrandModule("meridian"),
             }
+            f.dashboardModuleLabels = moduleLabels
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
             local PREVIEW_MODULE_KEYS = { cache = true, essence = true }
@@ -1701,6 +1702,7 @@ function addon.Dashboard_BuildMainFrame()
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
             local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["OPTIONS_AXIS_MODULES"] or "Modules", ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["cache"] = addon.Dashboard_BrandModule("cache"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
+            f.dashboardMODULE_LABELS = MODULE_LABELS
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
                 local mk
@@ -1712,6 +1714,7 @@ function addon.Dashboard_BuildMainFrame()
                 if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OPTIONS_FOCUS_OTHER"], categories = {} } end
                 tinsert(groups[mk].categories, i)
             end
+            f.dashboardSidebarGroups = groups
             local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
             local sidebarRows = {}
 
@@ -2129,6 +2132,40 @@ function addon.Dashboard_BuildMainFrame()
 
             LayoutSidebar()
             RefreshSidebar()
+
+            --- Live-refresh module display names in the sidebar and search filter when the
+            --- moduleNameDisplay setting changes. Home tiles and baked toggle labels update on reload.
+            local MODULE_NAME_KEYS = { "axis", "focus", "presence", "vista", "insight", "cache", "essence", "meridian" }
+            f.RefreshModuleDisplayNames = function()
+                -- Re-populate label caches in place so runtime closures pick up new values.
+                if f.dashboardModuleLabels then
+                    for _, mk in ipairs(MODULE_NAME_KEYS) do
+                        f.dashboardModuleLabels[mk] = addon.GetModuleDisplayName(mk)
+                    end
+                end
+                if f.dashboardMODULE_LABELS then
+                    for _, mk in ipairs(MODULE_NAME_KEYS) do
+                        f.dashboardMODULE_LABELS[mk] = addon.GetModuleDisplayName(mk)
+                    end
+                end
+                -- Update already-rendered sidebar group header labels.
+                if f.dashboardSidebarGroups then
+                    for _, mk in ipairs(MODULE_NAME_KEYS) do
+                        local g = f.dashboardSidebarGroups[mk]
+                        if g and g.header and g.header.label then
+                            local txt = addon.GetModuleDisplayName(mk):upper()
+                            if PREVIEW_MODULE_KEYS[mk] then
+                                txt = txt .. " |cff228b22(Preview)|r"
+                            end
+                            g.header.label:SetText(txt)
+                        end
+                    end
+                end
+                -- Refresh the search filter label if one is currently shown.
+                if f.UpdateSearchModuleFilterLabel then
+                    f.UpdateSearchModuleFilterLabel()
+                end
+            end
 
             -- ==================================================================
             -- RESIZE GRABBER + Dashboard_CommitResize
