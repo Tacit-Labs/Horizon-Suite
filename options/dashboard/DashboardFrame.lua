@@ -1884,8 +1884,7 @@ function addon.Dashboard_BuildMainFrame()
                             end
                         end
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, chevron, 11, nil, true)
-                        -- TOP-anchored so it stays in the code-name row regardless of header height.
-                        chevron:SetPoint("TOPLEFT", header, "TOPLEFT", 8, -9)
+                        chevron:SetPoint("LEFT", header, "LEFT", 8, 0)
                         chevron:SetTextColor(0.55, 0.55, 0.65, 1)
                         header.chevron = chevron
                         local headerLabel = header:CreateFontString(nil, "OVERLAY")
@@ -1903,9 +1902,12 @@ function addon.Dashboard_BuildMainFrame()
                             end
                         end
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, nil, true)
-                        headerLabel:SetPoint("TOPLEFT", chevron, "TOPRIGHT", 4, 0)
-                        headerLabel:SetWidth(SIDEBAR_WIDTH - SIDEBAR_CONTENT_X_INSET - 20)
-                        headerLabel:SetJustifyV("TOP")
+                        -- Use LEFT anchor (vertically centered to chevron) to match original single-line
+                        -- formatting. With multiline text (\n for subtitle), the fontstring expands
+                        -- symmetrically around the anchor, so both lines remain left-aligned and
+                        -- naturally centered in the taller header frame.
+                        headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
+                        headerLabel:SetJustifyH("LEFT")
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
                         if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
