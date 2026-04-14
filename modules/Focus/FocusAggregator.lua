@@ -612,8 +612,12 @@ local function ReadTrackedQuests()
         local explicitlyKept = (opts.isTracked == true) or (opts.isAutoAdded == false)
             or (superTracked and e.questID == superTracked)
 
+        -- Bypass the untrack blacklist when the player is physically inside the quest area
+        -- (must still appear as Current Event) or for BonusObjective event quests
+        -- (proximity-only; never belong in the World Quests section anyway).
+        local currentEventEligible = opts.isInQuestArea == true or opts.isEventQuest == true
         if not seen[e.questID]
-            and not isBlacklisted
+            and (not isBlacklisted or currentEventEligible)
             and not isCompleted
             and (showWorldQuests == true or explicitlyKept) then
              addQuest(e.questID, opts)

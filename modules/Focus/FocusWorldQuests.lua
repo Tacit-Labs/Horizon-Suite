@@ -405,7 +405,11 @@ local function GetWorldAndCallingQuestIDsToShow(nearbySet, taskQuestOnlySet)
         local recentlyUntracked = addon.focus.recentlyUntrackedWorldQuests
         local ids = {}
         for questID, _ in pairs(nearbySet) do
-            if not seen[questID] and (not recentlyUntracked or not recentlyUntracked[questID]) then
+            -- Allow through when in the quest area even if untracked: the quest still
+            -- belongs in Current Event when the player is physically inside it.
+            -- IsPlayerInQuestArea is only called when the quest is actually blacklisted
+            -- (short-circuit or), so the API cost is negligible.
+            if not seen[questID] and (not recentlyUntracked or not recentlyUntracked[questID] or IsPlayerInQuestArea(questID)) then
                 -- Gate *untracked* map-derived entries by current zone map.
                 -- Watch-list WQs are handled above and remain visible if active.
                 if not IsQuestOnPlayerZoneMap(questID) then
