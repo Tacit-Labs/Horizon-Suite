@@ -44,6 +44,29 @@ function addon.GetModuleDisplayName(moduleKey)
     return codeName
 end
 
+--- Returns a sidebar-ready formatted string: code-name uppercased, subtitle descriptor in
+--- a muted colour at original case to create visual hierarchy within a single fontstring.
+--- WoW fontstrings cannot change font size inline, so colour contrast is used instead.
+--- @param moduleKey string|nil
+--- @return string
+function addon.FormatModuleNameForSidebar(moduleKey)
+    local bd = addon.BrandDisplay
+    if not bd or not moduleKey then return (moduleKey or ""):upper() end
+    local codeName = (bd.module and bd.module[moduleKey] or moduleKey):upper()
+    local mode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
+    if mode == "subtitle" then
+        local desc = bd.descriptive and bd.descriptive[moduleKey]
+        if desc then
+            -- Muted grayish colour for the descriptor; kept in mixed case to further
+            -- differentiate from the uppercased code-name.
+            return codeName .. " |cff505065\226\128\147 " .. desc .. "|r"
+        end
+    elseif mode == "descriptive" then
+        return (bd.descriptive and bd.descriptive[moduleKey] or codeName):upper()
+    end
+    return codeName
+end
+
 --- @param moduleKey string|nil
 --- @return string|nil
 function addon.Dashboard_BrandModule(moduleKey)

@@ -1875,7 +1875,7 @@ function addon.Dashboard_BuildMainFrame()
                         addon.Dashboard_RegisterTypographyFontString(typoRefs, headerLabel, 12, nil, true)
                         headerLabel:SetPoint("LEFT", chevron, "RIGHT", 4, 0)
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
-                        local headerLabelText = (g.label or ""):upper()
+                        local headerLabelText = addon.FormatModuleNameForSidebar and addon.FormatModuleNameForSidebar(mk) or (g.label or ""):upper()
                         if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
@@ -2153,7 +2153,7 @@ function addon.Dashboard_BuildMainFrame()
                     for _, mk in ipairs(MODULE_NAME_KEYS) do
                         local g = f.dashboardSidebarGroups[mk]
                         if g and g.header and g.header.label then
-                            local txt = addon.GetModuleDisplayName(mk):upper()
+                            local txt = addon.FormatModuleNameForSidebar and addon.FormatModuleNameForSidebar(mk) or addon.GetModuleDisplayName(mk):upper()
                             if PREVIEW_MODULE_KEYS[mk] then
                                 txt = txt .. " |cff228b22(Preview)|r"
                             end
