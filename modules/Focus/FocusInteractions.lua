@@ -14,6 +14,30 @@ local CLASSIC_ICON_CLICK_DEBOUNCE = 0.05
 -- Set to QUEST_ACTIONS["superTrack"] after that function is defined; quest context menu uses it.
 local SuperTrackQuestFromMenuEntry
 
+--- Suppress a world quest from the Focus tracker.
+--- Calls RemoveWorldQuestWatch (handles watched WQs via QUEST_WATCH_LIST_CHANGED) and also writes
+--- directly to recentlyUntrackedWorldQuests, which handles in-zone-surfaced WQs that were never
+--- on the watch list and therefore produce no event when removed.
+--- @param questID number
+local function SuppressWorldQuestEntry(questID)
+    if not questID then return end
+    if addon.RemoveWorldQuestWatch then addon.RemoveWorldQuestWatch(questID) end
+    local usePermanent = addon.GetDB("permanentlySuppressUntracked", false)
+    if usePermanent then
+        local bl = addon.GetDB("permanentQuestBlacklist", nil)
+        if type(bl) ~= "table" then bl = {} end
+        bl[questID] = true
+        addon.SetDB("permanentQuestBlacklist", bl)
+        if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
+    else
+        if not addon.focus.recentlyUntrackedWorldQuests then addon.focus.recentlyUntrackedWorldQuests = {} end
+        addon.focus.recentlyUntrackedWorldQuests[questID] = true
+        if addon.GetDB("suppressUntrackedUntilReload", false) then
+            addon.SetDB("sessionSuppressedQuests", addon.focus.recentlyUntrackedWorldQuests)
+        end
+    end
+end
+
 --- Append a WoWhead link line to GameTooltip when option is on and entry has a known URL.
 --- @param entry table Pool entry (self) with questID, achievementID, and/or creatureID
 local function AppendWoWheadLineToTooltip(entry)
@@ -132,7 +156,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
             text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function()
-                if addon.RemoveWorldQuestWatch then addon.RemoveWorldQuestWatch(questID) end
+                SuppressWorldQuestEntry(questID)
                 addon.ScheduleRefresh()
             end,
         }
@@ -1448,21 +1472,8 @@ QUEST_ACTIONS["untrack"] = function(entry)
         end
     end
     local usePermanent = addon.GetDB("permanentlySuppressUntracked", false)
-    if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID) and addon.RemoveWorldQuestWatch then
-        addon.RemoveWorldQuestWatch(entry.questID)
-        if usePermanent then
-            local bl = addon.GetDB("permanentQuestBlacklist", nil)
-            if type(bl) ~= "table" then bl = {} end
-            bl[entry.questID] = true
-            addon.SetDB("permanentQuestBlacklist", bl)
-            if addon.RefreshBlacklistGrid then addon.RefreshBlacklistGrid() end
-        else
-            if not addon.focus.recentlyUntrackedWorldQuests then addon.focus.recentlyUntrackedWorldQuests = {} end
-            addon.focus.recentlyUntrackedWorldQuests[entry.questID] = true
-            if addon.GetDB("suppressUntrackedUntilReload", false) then
-                addon.SetDB("sessionSuppressedQuests", addon.focus.recentlyUntrackedWorldQuests)
-            end
-        end
+    if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(entry.questID) then
+        SuppressWorldQuestEntry(entry.questID)
     elseif entry.isTracked == false then
         -- Quest is accepted and nearby but not in the watch list (e.g. warbound weekly).
         -- C_QuestLog.RemoveQuestWatch is a no-op here; suppress via the session/permanent list.
