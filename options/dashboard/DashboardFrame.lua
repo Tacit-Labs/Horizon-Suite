@@ -2172,9 +2172,6 @@ function addon.Dashboard_BuildMainFrame()
             --- moduleNameDisplay setting changes. Home tiles and baked toggle labels update on reload.
             local MODULE_NAME_KEYS = { "axis", "focus", "presence", "vista", "insight", "cache", "essence", "meridian" }
             f.RefreshModuleDisplayNames = function()
-                local bd = addon.BrandDisplay
-                local mode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
-
                 -- Re-populate label caches in place so runtime closures pick up new values.
                 if f.dashboardModuleLabels then
                     for _, mk in ipairs(MODULE_NAME_KEYS) do
@@ -2187,23 +2184,17 @@ function addon.Dashboard_BuildMainFrame()
                     end
                 end
                 -- Update already-rendered sidebar group header labels and heights.
+                -- Delegate format/height computation to BuildSidebarGroupHeader so build/refresh
+                -- paths stay in sync if the format changes.
                 if f.dashboardSidebarGroups then
                     for _, mk in ipairs(MODULE_NAME_KEYS) do
                         local g = f.dashboardSidebarGroups[mk]
                         if g and g.header and g.header.label then
-                            local codeName = (bd and bd.module and bd.module[mk] or mk):upper()
-                            local desc = bd and bd.descriptive and bd.descriptive[mk]
-                            local txt
-                            if mode == "subtitle" and desc then
-                                txt = codeName .. "\n|cff505065" .. desc .. "|r"
-                                g.header:SetHeight((g.header.baseHeight or HEADER_ROW_HEIGHT) + SUBTITLE_EXTRA_H)
-                            else
-                                txt = (mode == "descriptive" and desc) and desc:upper() or codeName
-                                g.header:SetHeight(g.header.baseHeight or HEADER_ROW_HEIGHT)
-                            end
+                            local txt, h = BuildSidebarGroupHeader(mk)
                             if PREVIEW_MODULE_KEYS[mk] then
                                 txt = txt .. " |cff228b22(Preview)|r"
                             end
+                            g.header:SetHeight(h)
                             g.header.label:SetText(txt)
                             if g.header.updateSpacer then g.header.updateSpacer() end
                         end
