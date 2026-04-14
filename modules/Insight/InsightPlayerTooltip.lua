@@ -20,6 +20,7 @@ local MOUNT_OWN_ICON_BASE = 14
 
 local function ShowMount()            return addon.GetDB("insightShowMount",            true)  end
 local function ShowIlvl()             return addon.GetDB("insightShowIlvl",             true)  end
+local function ShowSpecRole()          return addon.GetDB("insightShowSpecRole",          true)  end
 local function ShowCharacterTitle()   return addon.GetDB("insightShowCharacterTitle",   true)  end
 local function ShowStatusBadges()     return addon.GetDB("insightShowStatusBadges",     true)  end
 local function ShowMythicScore()  return addon.GetDB("insightShowMythicScore",  true)  end
@@ -297,7 +298,7 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
                 isSelf = false
             end
         end)
-        if not isSelf then
+        if not isSelf and (ShowIlvl() or ShowSpecRole()) then
             RequestInspect(unit)
         end
     end
@@ -491,12 +492,12 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                     local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile)
                     if classIcon then
                         iconPrefix = classIcon
-                    elseif cached and cached.specIcon then
+                    elseif ShowSpecRole() and cached and cached.specIcon then
                         iconPrefix = "|T" .. cached.specIcon .. ":" .. lineIconPx .. ":" .. lineIconPx .. ":0:0|t "
                     end
                 end
                 local roleSuffix = ""
-                if cached and cached.role then
+                if ShowSpecRole() and cached and cached.role then
                     local rc = Insight.ROLE_COLORS[cached.role]
                     if rc then
                         local hex = string.format("%02x%02x%02x",

@@ -1303,5 +1303,7 @@
   "Zone labels": "OPTIONS_CORE_ZONE_LABELS",
   "Zone name still appears when entering a new zone.": "OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A",
   "Zone type coloring": "OPTIONS_CORE_ZONE_TYPE_COLORING",
-  "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives.": "OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T"
+  "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives.": "OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T",
+  "Spec icon & role": "OPTIONS_INSIGHT_SPEC_ROLE",
+  "Show the player's specialization icon and role after inspecting them. Disable to stop Insight from calling NotifyInspect on mouseover.": "OPTIONS_INSIGHT_SPEC_ROLE_DESC"
 }
