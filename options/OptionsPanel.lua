@@ -2069,6 +2069,7 @@ end
 -- Build sidebar grouped by moduleKey (Modules, Focus, Presence)
 -- Use "modules" as sentinel for nil (WoW Lua disallows nil as table index)
 local function BrandModule(k)
+    if addon.GetModuleDisplayName then return addon.GetModuleDisplayName(k) end
     local t = addon.BrandDisplay and addon.BrandDisplay.module
     return t and t[k] or nil
 end
