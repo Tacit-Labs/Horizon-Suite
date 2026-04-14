@@ -1720,6 +1720,31 @@ function addon.Dashboard_BuildMainFrame()
             -- Extra height added to group headers when subtitle mode is active.
             local SUBTITLE_EXTRA_H = 14
 
+            -- Returns (labelText, headerHeight) for a sidebar group header.
+            -- Extracted to a helper so its locals don't count against Dashboard_BuildMainFrame's
+            -- 200-local limit (Lua 5.1 enforces per-function, not per-block).
+            local function BuildSidebarGroupHeader(mk)
+                local bd = addon.BrandDisplay
+                local mode = (addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon")) or "horizon"
+                local codeName = (bd and bd.module and bd.module[mk] or mk):upper()
+                local labelText
+                local height = HEADER_ROW_HEIGHT
+                if mode == "subtitle" then
+                    local desc = bd and bd.descriptive and bd.descriptive[mk]
+                    if desc then
+                        labelText = codeName .. "\n|cff505065" .. desc .. "|r"
+                        height = HEADER_ROW_HEIGHT + SUBTITLE_EXTRA_H
+                    else
+                        labelText = codeName
+                    end
+                elseif mode == "descriptive" then
+                    labelText = (bd and bd.descriptive and bd.descriptive[mk] or codeName):upper()
+                else
+                    labelText = codeName
+                end
+                return labelText, height
+            end
+
             local function ShouldShowDashboardSubcategory(mk, cat)
                 if not cat then return false end
                 if mk == "axis" and cat.key == "Modules" then
@@ -1823,10 +1848,7 @@ function addon.Dashboard_BuildMainFrame()
                     else
                         -- Header row (clickable, collapsible)
                         local prevLastRow = lastSidebarRow
-                        local _bd = addon.BrandDisplay
-                        local _curMode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
-                        local _hasSubtitle = (_curMode == "subtitle") and _bd and _bd.descriptive and (_bd.descriptive[mk] ~= nil)
-                        local headerH = HEADER_ROW_HEIGHT + (_hasSubtitle and SUBTITLE_EXTRA_H or 0)
+                        local headerLabelText, headerH = BuildSidebarGroupHeader(mk)
                         local header = CreateFrame("Button", nil, sidebarScrollContent)
                         header:SetSize(SIDEBAR_WIDTH - 1, headerH)
                         header.baseHeight = HEADER_ROW_HEIGHT
@@ -1885,18 +1907,6 @@ function addon.Dashboard_BuildMainFrame()
                         headerLabel:SetWidth(SIDEBAR_WIDTH - SIDEBAR_CONTENT_X_INSET - 20)
                         headerLabel:SetJustifyV("TOP")
                         headerLabel:SetTextColor(0.55, 0.55, 0.65, 1)
-                        -- Build label text: in subtitle mode the descriptor goes on a second line,
-                        -- muted and in mixed case so it reads as secondary to the code-name.
-                        local _codeName = (_bd and _bd.module and _bd.module[mk] or mk):upper()
-                        local headerLabelText
-                        if _curMode == "subtitle" and _hasSubtitle then
-                            local _desc = _bd.descriptive[mk]
-                            headerLabelText = _codeName .. "\n|cff505065" .. _desc .. "|r"
-                        elseif _curMode == "descriptive" then
-                            headerLabelText = (_bd and _bd.descriptive and _bd.descriptive[mk] or _codeName):upper()
-                        else
-                            headerLabelText = _codeName
-                        end
                         if PREVIEW_MODULE_KEYS[mk] then
                             headerLabelText = headerLabelText .. " |cff228b22(Preview)|r"
                         end
