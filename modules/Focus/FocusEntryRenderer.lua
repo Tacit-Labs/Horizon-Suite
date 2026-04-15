@@ -558,8 +558,11 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     local objIndent = addon.GetObjIndent()
     -- Indentation now comes from the entry's padded title anchor; keep objective indent consistent.
 
-    -- Additional left padding for objectives only (not zone line), matching bar->icon gap when icons are enabled.
-    local OBJ_EXTRA_LEFT_PAD = S(14)
+    -- Additional inner-start padding for the first objective, matching bar->icon gap when
+    -- icons are enabled. In right-mode the icon/bar sit on the right side of the entry and
+    -- this pad would push objectives away from the shared right edge the user expects, so
+    -- it is disabled when right-aligned to keep all objectives flush with the title.
+    local OBJ_EXTRA_LEFT_PAD = addon.IsFocusRightAligned() and 0 or S(14)
 
     local objTextWidth = textWidth - objIndent
     if objTextWidth < 1 then objTextWidth = addon.GetPanelWidth() - S(addon.PADDING) * 2 - objIndent - S(addon.CONTENT_RIGHT_PADDING or 0) end
@@ -1763,6 +1766,9 @@ local function PopulateEntry(entry, questData, groupKey)
             entry.inlineTimerText:SetText(" (" .. entry._inlineTimerStr .. ")")
             local timerStrWidth = entry.inlineTimerText:GetStringWidth() or 0
             local tw = titleWidth or textWidth
+            local alignRight = addon.IsFocusRightAligned()
+            addon.ApplyAlignedJustify(entry.inlineTimerText)
+            if entry.inlineTimerShadow then addon.ApplyAlignedJustify(entry.inlineTimerShadow) end
             -- When timer doesn't fit beside title (or user chose inline-below), put it on its own line with full width
             local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetTitleToContentSpacing()
             local preferTimerBelow = (timerDisplayMode == "inline-below")
@@ -1772,11 +1778,17 @@ local function PopulateEntry(entry, questData, groupKey)
                 local remainingWidth = math.max(1, tw - sameLineStartX)
                 if preferTimerBelow or remainingWidth < timerStrWidth then
                     entry.inlineTimerText:SetWidth(tw)
-                    entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                    addon.AnchorBelowInnerStart(entry.inlineTimerText, entry.titleText, 0, -titleToContentSpacing)
                     entry._inlineTimerOnOwnLine = true
                 else
                     entry.inlineTimerText:SetWidth(remainingWidth)
-                    entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", sameLineStartX, 0)
+                    -- Inline same-row: in left-mode timer sits to the right of visible title; in
+                    -- right-mode it sits to the left of visible title (the trailing reading edge).
+                    if alignRight then
+                        entry.inlineTimerText:SetPoint("RIGHT", entry.titleText, "RIGHT", -sameLineStartX, 0)
+                    else
+                        entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", sameLineStartX, 0)
+                    end
                     entry._inlineTimerOnOwnLine = false
                 end
             else
@@ -1785,11 +1797,16 @@ local function PopulateEntry(entry, questData, groupKey)
                 local remainingWidth = math.max(1, tw - titleAnchorX - 2)
                 if preferTimerBelow or remainingWidth < timerStrWidth then
                     entry.inlineTimerText:SetWidth(tw)
-                    entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                    addon.AnchorBelowInnerStart(entry.inlineTimerText, entry.titleText, 0, -titleToContentSpacing)
                     entry._inlineTimerOnOwnLine = true
                 else
                     entry.inlineTimerText:SetWidth(remainingWidth)
-                    entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
+                    if alignRight then
+                        -- Timer's RIGHT edge sits just before title's visible text starts.
+                        entry.inlineTimerText:SetPoint("RIGHT", entry.titleText, "RIGHT", -(titleAnchorX + 2), 0)
+                    else
+                        entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
+                    end
                     entry._inlineTimerOnOwnLine = false
                 end
             end
@@ -2121,14 +2138,28 @@ local function PopulateEntry(entry, questData, groupKey)
     local trackBarW = (highlightStyle == "pill-left") and barW or S(2)
     if (highlightStyle == "bar-left" or highlightStyle == "bar-right" or highlightStyle == "pill-left") and entry.trackBar:IsShown() then
         entry.trackBar:ClearAllPoints()
+        local alignRight = addon.IsFocusRightAligned()
         if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
+            -- "bar-left" sits just outside the inner-start edge of the entry. That is the
+            -- left side in left-mode and the right side in right-mode.
             local barLeft = S(addon.BAR_LEFT_OFFSET or 12)
-            entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", -barLeft, 0)
-            entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", -barLeft + trackBarW, 0)
+            if alignRight then
+                entry.trackBar:SetPoint("TOPLEFT", entry, "TOPRIGHT", barLeft - trackBarW, 0)
+                entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", barLeft, 0)
+            else
+                entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", -barLeft, 0)
+                entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", -barLeft + trackBarW, 0)
+            end
         else
+            -- "bar-right" mirrors: sits just outside the inner-end edge.
             local barInsetRight = S(addon.ICON_COLUMN_WIDTH) - S(addon.PADDING) + S(4)
-            entry.trackBar:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -barInsetRight, 0)
-            entry.trackBar:SetPoint("BOTTOMLEFT", entry, "BOTTOMRIGHT", -barInsetRight - trackBarW, 0)
+            if alignRight then
+                entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", barInsetRight, 0)
+                entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", barInsetRight + trackBarW, 0)
+            else
+                entry.trackBar:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -barInsetRight, 0)
+                entry.trackBar:SetPoint("BOTTOMLEFT", entry, "BOTTOMRIGHT", -barInsetRight - trackBarW, 0)
+            end
         end
     end
 
