@@ -1164,26 +1164,38 @@ local function FullLayout()
                         entry:SetWidth(entryW)
                     end
 
-                    -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.
-                    -- The icon sits just *outside* the entry on the inner-start edge; in left-mode
-                    -- that is the left side, in right-mode the right side. AnchorOuterFromInnerStart
-                    -- handles the flip.
+                    -- Quest type icon placement:
+                    --  * Left-mode: icon sits OUTSIDE entry.left, in the scrollChild indent
+                    --    where entryX space reserves room.
+                    --  * Right-mode: the scrollChild has no equivalent reserved space on the
+                    --    right (entry.right is flush with the tracker's right edge, which is
+                    --    where LFG/item/ah buttons live). Anchoring outside entry.right would
+                    --    clip beyond the scrollFrame. So in right-mode we anchor the icon
+                    --    INSIDE the entry on the right edge; FocusEntryRenderer accounts for
+                    --    this by inset-shrinking the title when alignment is right.
                     if entry.questTypeIcon then
+                        entry.questTypeIcon:ClearAllPoints()
                         local showIcons = addon.GetDB("showQuestTypeIcons", true)
-                        local iconOffset
-                        if showIcons then
-                            local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-                            local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
-                            if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-                                -- Order on the inner-start side: [icon][2px][bar][text].
-                                iconOffset = barLeft + addon.Scaled(2)
+                        local alignRight = addon.IsFocusRightAligned()
+                        if alignRight then
+                            -- Inside the entry, top-right corner. 2px inset from the right edge
+                            -- keeps it clear of the entry border.
+                            entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -addon.Scaled(2), 0)
+                        else
+                            local iconOffset
+                            if showIcons then
+                                local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
+                                local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
+                                if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
+                                    iconOffset = barLeft + addon.Scaled(2)
+                                else
+                                    iconOffset = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
+                                end
                             else
                                 iconOffset = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
                             end
-                        else
-                            iconOffset = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
+                            entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconOffset, 0)
                         end
-                        addon.AnchorOuterFromInnerStart(entry.questTypeIcon, entry, iconOffset, 0)
                         -- Position questIconBtn over the icon for Classic mode super-track clicks.
                         if entry.questIconBtn then
                             entry.questIconBtn:ClearAllPoints()

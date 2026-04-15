@@ -1598,7 +1598,11 @@ local function PopulateEntry(entry, questData, groupKey)
             local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
             local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
             local iconTitleGap = S(6)
-            if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
+            if addon.IsFocusRightAligned() then
+                -- Right-mode: quest type icon lives INSIDE the entry at its right edge
+                -- (see FocusLayout). Title must inset from the right so it doesn't overlap.
+                extraTitlePad = iconW + iconTitleGap
+            elseif highlightStyle == "bar-left" or highlightStyle == "pill-left" then
                 -- Icon is left of bar; bar is left of entry (negative x).
                 -- Text starts at entry TOPLEFT — no indent needed to clear icon or bar.
             else
@@ -1735,7 +1739,14 @@ local function PopulateEntry(entry, questData, groupKey)
         if needSuffix then
             local iconKey = addon.GetDB("autoTrackIcon", "radar1")
             local iconPath = addon.GetRadarIconPath and addon.GetRadarIconPath(iconKey) or ("Interface\\AddOns\\HorizonSuite\\media\\" .. iconKey .. ".blp")
-            displayTitle = displayTitle .. " |T" .. iconPath .. ":0|t"
+            local iconMarkup = "|T" .. iconPath .. ":0|t"
+            if addon.IsFocusRightAligned() then
+                -- Right-mode: icon leads the title so it sits on the side opposite the
+                -- trailing text edge (mirror of the left-mode trailing-icon convention).
+                displayTitle = iconMarkup .. " " .. displayTitle
+            else
+                displayTitle = displayTitle .. " " .. iconMarkup
+            end
         end
     end
     displayTitle = addon.ApplyTextCase(displayTitle, "questTitleCase", "proper")
