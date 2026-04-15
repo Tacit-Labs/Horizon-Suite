@@ -27,9 +27,10 @@ REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 DATE_HUMAN=$(date -u +"%b %-d, %Y")
 
-# Horizon logo thumbnail: GitHub serves org avatars from this URL.
-# Swap for a dedicated asset later by editing this single constant.
-HORIZON_LOGO="https://github.com/Tacit-Labs.png"
+# Horizon logo thumbnail: served from the repo via raw.githubusercontent.
+# Swap for a different asset later by editing this single constant (bump a
+# ?v=N suffix if you overwrite the file in-place, since Discord caches by URL).
+HORIZON_LOGO="https://raw.githubusercontent.com/Tacit-Labs/Horizon-Suite/main/assets/social/issuelog-logo.png"
 AVATAR_URL="$HORIZON_LOGO"
 USERNAME="HorizonSuite Issue Bot"
 
