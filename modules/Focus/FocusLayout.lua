@@ -1165,29 +1165,25 @@ local function FullLayout()
                     end
 
                     -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.
+                    -- The icon sits just *outside* the entry on the inner-start edge; in left-mode
+                    -- that is the left side, in right-mode the right side. AnchorOuterFromInnerStart
+                    -- handles the flip.
                     if entry.questTypeIcon then
-                        entry.questTypeIcon:ClearAllPoints()
                         local showIcons = addon.GetDB("showQuestTypeIcons", true)
+                        local iconOffset
                         if showIcons then
-                            -- Place icon to the right of the supertracked highlight bar so the bar is always leftmost.
                             local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-                            local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
                             local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
-                            local padAfterBar = addon.Scaled(6)
-
                             if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-                                -- Icon TOPRIGHT is 2px left of bar start: order is [icon][2px][bar][text].
-                                entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -barLeft - addon.Scaled(2), 0)
+                                -- Order on the inner-start side: [icon][2px][bar][text].
+                                iconOffset = barLeft + addon.Scaled(2)
                             else
-                                -- Fallback to legacy off-to-the-left placement for non-left-bar styles.
-                                local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
-                                entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconRight, 0)
+                                iconOffset = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
                             end
                         else
-                            -- Icons off: keep the legacy off-to-the-left placement so text alignment remains unchanged.
-                            local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
-                            entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconRight, 0)
+                            iconOffset = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
                         end
+                        addon.AnchorOuterFromInnerStart(entry.questTypeIcon, entry, iconOffset, 0)
                         -- Position questIconBtn over the icon for Classic mode super-track clicks.
                         if entry.questIconBtn then
                             entry.questIconBtn:ClearAllPoints()

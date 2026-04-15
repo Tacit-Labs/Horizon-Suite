@@ -1096,6 +1096,17 @@ function addon.SetDB(key, value)
     profile[key] = value
 end
 
+--- Focus text alignment: "left" (default) or "right". Flips the Objectives header, section
+--- headers, quest titles, objective text, and progress bars to the opposite edge of the tracker.
+--- Renderer code should use the `addon.Anchor*` helpers in core/FocusAnchors.lua rather than
+--- branching on this value directly.
+--- @return string "left" | "right"
+function addon.GetFocusTextAlignment()
+    local v = addon.GetDB("focusTextAlignment", "left")
+    if v == "right" then return "right" end
+    return "left"
+end
+
 --- Resolves combat visibility mode, migrating from legacy hideInCombat if needed.
 --- @return string "show" | "fade" | "hide"
 function addon.GetCombatVisibility()
@@ -1258,10 +1269,13 @@ function addon.ApplyBorderVisibility()
     if addon.hsBorderR then addon.hsBorderR:SetShown(show) end
 end
 
+-- Objectives header (Focus tracker). Anchors are applied by
+-- addon.ApplyFocusHeaderAlignment() below so that the header responds to the
+-- focusTextAlignment option. Do not hardcode anchors at file-load time.
+
 local headerShadow = HS:CreateFontString(nil, "BORDER")
 headerShadow:SetFontObject(addon.HeaderFont)
 headerShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
-headerShadow:SetJustifyH("LEFT")
 headerShadow:SetText(addon.L["PRESENCE_OBJECTIVES"])
 
 local headerText = HS:CreateFontString(nil, "OVERLAY")
@@ -1270,10 +1284,7 @@ do
     local c = addon.GetHeaderColor()
     headerText:SetTextColor(c[1], c[2], c[3], 1)
 end
-headerText:SetJustifyH("LEFT")
-headerText:SetPoint("TOPLEFT", HS, "TOPLEFT", addon.PADDING, -addon.PADDING)
 headerText:SetText(addon.L["PRESENCE_OBJECTIVES"])
-headerShadow:SetPoint("CENTER", headerText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
 local countText = HS:CreateFontString(nil, "OVERLAY")
 countText:SetFontObject(addon.ObjFont)
@@ -1281,14 +1292,10 @@ do
     local ch = addon.GetHeaderChromeColor()
     countText:SetTextColor(ch[1], ch[2], ch[3], 1)
 end
-countText:SetJustifyH("RIGHT")
-countText:SetPoint("TOPRIGHT", HS, "TOPRIGHT", -addon.PADDING, -addon.PADDING - 3)
 
 local countShadow = HS:CreateFontString(nil, "BORDER")
 countShadow:SetFontObject(addon.ObjFont)
 countShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
-countShadow:SetJustifyH("RIGHT")
-countShadow:SetPoint("CENTER", countText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
 local chevron = HS:CreateFontString(nil, "OVERLAY")
 chevron:SetFontObject(addon.ObjFont)
@@ -1296,8 +1303,6 @@ do
     local ch = addon.GetHeaderChromeColor()
     chevron:SetTextColor(ch[1], ch[2], ch[3], 1)
 end
-chevron:SetJustifyH("RIGHT")
-chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
 chevron:SetText("-")
 
 local optionsBtn = CreateFrame("Button", nil, HS)
@@ -1307,18 +1312,75 @@ do
     local ch = addon.GetHeaderChromeColor()
     optionsLabel:SetTextColor(ch[1], ch[2], ch[3], 1)
 end
-optionsLabel:SetJustifyH("RIGHT")
 optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
 optionsBtn:SetSize(math.max(optionsLabel:GetStringWidth() + 4, 44), 20)
-optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
-optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
 
 local optionsShadow = optionsBtn:CreateFontString(nil, "BORDER")
 optionsShadow:SetFontObject(addon.ObjFont)
 optionsShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
-optionsShadow:SetJustifyH("RIGHT")
 optionsShadow:SetText(addon.L["PRESENCE_OPTIONS"])
-optionsShadow:SetPoint("CENTER", optionsLabel, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+
+--- Applies the current Focus text alignment to the tracker header row.
+--- Layout:
+---   left-mode : [Objectives .................. Options chevron count]
+---   right-mode: [count chevron Options .................. Objectives]
+--- The "chrome" cluster (options/chevron/count) always sits on the edge
+--- opposite the Objectives title so they never collide.
+---
+--- Call at initial load and from the focusTextAlignment option's set handler.
+--- addon.ApplyGrowUpHeaderPosition / addon.ApplyGrowUpLayout override the
+--- vertical anchor of headerText/countText for grow-up mode and so handle
+--- alignment themselves; this helper owns the top-anchored default.
+function addon.ApplyFocusHeaderAlignment()
+    local pad = addon.PADDING
+    local alignRight = addon.IsFocusRightAligned()
+
+    -- Objectives title on the inner-start edge.
+    addon.AnchorInnerStart(headerText, HS, pad, -pad)
+    addon.ApplyAlignedJustify(headerText)
+    addon.ApplyAlignedJustify(headerShadow)
+
+    -- Chrome cluster on the opposite edge. The chain (count → chevron → optionsBtn)
+    -- runs from the inner-end corner toward the inner-start corner in left-mode,
+    -- and mirrored in right-mode. Expressed explicitly because these elements form
+    -- a horizontal chain rather than a simple inner-start stack.
+    countText:ClearAllPoints()
+    chevron:ClearAllPoints()
+    optionsBtn:ClearAllPoints()
+    optionsLabel:ClearAllPoints()
+    if alignRight then
+        countText:SetPoint("TOPLEFT", HS, "TOPLEFT", pad, -pad - 3)
+        chevron:SetPoint("LEFT", countText, "RIGHT", 6, 0)
+        optionsBtn:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
+        optionsLabel:SetPoint("LEFT", optionsBtn, "LEFT", 2, 0)
+        countText:SetJustifyH("LEFT")
+        chevron:SetJustifyH("LEFT")
+        optionsLabel:SetJustifyH("LEFT")
+        countShadow:SetJustifyH("LEFT")
+        optionsShadow:SetJustifyH("LEFT")
+    else
+        countText:SetPoint("TOPRIGHT", HS, "TOPRIGHT", -pad, -pad - 3)
+        chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
+        optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+        optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
+        countText:SetJustifyH("RIGHT")
+        chevron:SetJustifyH("RIGHT")
+        optionsLabel:SetJustifyH("RIGHT")
+        countShadow:SetJustifyH("RIGHT")
+        optionsShadow:SetJustifyH("RIGHT")
+    end
+
+    -- Shadows re-centre on their anchors.
+    headerShadow:ClearAllPoints()
+    headerShadow:SetPoint("CENTER", headerText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+    countShadow:ClearAllPoints()
+    countShadow:SetPoint("CENTER", countText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+    optionsShadow:ClearAllPoints()
+    optionsShadow:SetPoint("CENTER", optionsLabel, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+end
+
+-- Apply initial alignment (default "left"). Re-run on option change.
+addon.ApplyFocusHeaderAlignment()
 
 -- Delayed tooltip hide: cancels if mouse re-enters within 0.15s (stops flicker when cursor briefly leaves)
 local optionsTooltipHideRequested = false
@@ -1898,14 +1960,23 @@ function addon.ApplyGrowUpHeaderPosition(offsetFromBottom)
     hb:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", 0, offsetFromBottom)
     hb:SetHeight(headerH)
 
+    -- Header elements anchored to the bottom edge, mirrored horizontally by alignment.
+    local alignRight = addon.IsFocusRightAligned()
     headerText:ClearAllPoints()
-    headerText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, offsetFromBottom + headerBottomY)
     countText:ClearAllPoints()
-    countText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, offsetFromBottom + headerBottomY + 3)
     chevron:ClearAllPoints()
-    chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
     optionsBtn:ClearAllPoints()
-    optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+    if alignRight then
+        headerText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, offsetFromBottom + headerBottomY)
+        countText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, offsetFromBottom + headerBottomY + 3)
+        chevron:SetPoint("LEFT", countText, "RIGHT", 6, 0)
+        optionsBtn:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
+    else
+        headerText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, offsetFromBottom + headerBottomY)
+        countText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, offsetFromBottom + headerBottomY + 3)
+        chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
+        optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+    end
 
     if not minimal then
         divider:ClearAllPoints()
@@ -1967,15 +2038,23 @@ function addon.ApplyGrowUpLayout()
             hb:SetHeight(headerH)
         end
 
-        -- headerText, countText, etc. anchored to bottom
+        -- headerText, countText, etc. anchored to bottom; alignment flips which edge.
+        local alignRight = addon.IsFocusRightAligned()
         headerText:ClearAllPoints()
-        headerText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, headerBottomY)
         countText:ClearAllPoints()
-        countText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, headerBottomY + 3)
         chevron:ClearAllPoints()
-        chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
         optionsBtn:ClearAllPoints()
-        optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+        if alignRight then
+            headerText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, headerBottomY)
+            countText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, headerBottomY + 3)
+            chevron:SetPoint("LEFT", countText, "RIGHT", 6, 0)
+            optionsBtn:SetPoint("LEFT", chevron, "RIGHT", 6, 0)
+        else
+            headerText:SetPoint("BOTTOMLEFT", HS, "BOTTOMLEFT", pad, headerBottomY)
+            countText:SetPoint("BOTTOMRIGHT", HS, "BOTTOMRIGHT", -pad, headerBottomY + 3)
+            chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
+            optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+        end
 
         -- Divider just above the header (between content and header)
         if not minimal then
@@ -1994,14 +2073,9 @@ function addon.ApplyGrowUpLayout()
             hb:SetHeight(headerH)
         end
 
-        headerText:ClearAllPoints()
-        headerText:SetPoint("TOPLEFT", HS, "TOPLEFT", pad, -pad)
-        countText:ClearAllPoints()
-        countText:SetPoint("TOPRIGHT", HS, "TOPRIGHT", -pad, -pad - 3)
-        chevron:ClearAllPoints()
-        chevron:SetPoint("RIGHT", countText, "LEFT", -6, 0)
-        optionsBtn:ClearAllPoints()
-        optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+        -- Default top-anchored header; delegate to the alignment helper (handles anchors,
+        -- justify, and shadows for both left and right modes in one place).
+        addon.ApplyFocusHeaderAlignment()
 
         if not minimal then
             divider:ClearAllPoints()

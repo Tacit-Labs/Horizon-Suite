@@ -498,11 +498,14 @@ local function ApplyHighlightStyle(entry, questData)
     local topPadding = (questData.isSuperTracked and highlightStyle == "bar-top") and barW or 0
     local bottomPadding = (questData.isSuperTracked and highlightStyle == "bar-bottom") and barW or 0
 
-    entry.titleText:ClearAllPoints()
-    -- Keep the pool's default left padding (1-space) and just apply topPadding.
-    local x, y = entry.titleText:GetPoint(1)
-    local xOff = (type(x) == "number") and x or 4
-    entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", xOff, -topPadding)
+    -- Keep the pool's default inner-start padding and just apply topPadding.
+    -- NOTE: read GetPoint *before* clearing; the old code read it after and always fell
+    -- through to the default 4px offset.
+    local _, _, _, x = entry.titleText:GetPoint(1)
+    local xOff = (type(x) == "number") and math.abs(x) or 4
+    addon.AnchorInnerStart(entry.titleText, entry, xOff, -topPadding)
+    addon.ApplyAlignedJustify(entry.titleText)
+    addon.ApplyAlignedJustify(entry.titleShadow)
     entry.titleShadow:ClearAllPoints()
     entry.titleShadow:SetPoint("CENTER", entry.titleText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
@@ -782,8 +785,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             local tickSize = math.max(10, (tonumber(addon.GetDB("objectiveFontSize", 11)) or 11) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
             if useTick and obj.tick then
                 obj.tick:SetSize(tickSize, tickSize)
-                obj.tick:ClearAllPoints()
-                obj.tick:SetPoint("RIGHT", obj.text, "LEFT", -4, 0)
+                -- Tick sits on the outer side of the visible text (left of text in left-mode,
+                -- right of text in right-mode).
+                addon.AnchorTickOuter(obj.tick, obj.text, 4)
                 obj.tick:Show()
             elseif obj.tick then
                 obj.tick:Hide()
@@ -812,21 +816,22 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], outA)
             end
 
-            obj.text:ClearAllPoints()
             -- First objective gets inset from title; subsequent objectives align with it.
-            -- When prevAnchor is titleText, use effectiveTitleRowH so objectives sit below inline timer (world quests, etc.).
+            -- When prevAnchor is titleText, use effectiveTitleRowH so objectives sit below inline timer.
             -- Use titleGap (title-to-content) for first objective below title; objSpacing for subsequent.
-            local leftPad = leftPadThisRow
+            local leftPad = leftPadThisRow  -- interpreted as "inner-start inset" (helper handles sign)
             local gapForThisObj = (shownObjs == 0 and prevAnchor == entry.titleText) and titleGap or objSpacing
             local affixH = entry._affixBlockHeight
+            addon.ApplyAlignedJustify(obj.text)
+            addon.ApplyAlignedJustify(obj.shadow)
             if shownObjs == 0 and entry.affixText and prevAnchor == entry.affixText
                 and type(affixH) == "number" and affixH > 0 then
-                -- Anchor from left edge of affix block; prevFs would be the last segment (wrong X when affixes wrap).
-                obj.text:SetPoint("TOPLEFT", entry.affixText, "TOPLEFT", leftPad, -affixH - gapForThisObj)
+                -- First objective attaches to the affix block's inner-start top edge.
+                addon.AnchorAtInnerStart(obj.text, entry.affixText, leftPad, -affixH - gapForThisObj)
             elseif shownObjs == 0 and prevAnchor == entry.titleText and effectiveTitleRowH then
-                obj.text:SetPoint("TOPLEFT", prevAnchor, "TOPLEFT", leftPad, -effectiveTitleRowH - gapForThisObj)
+                addon.AnchorAtInnerStart(obj.text, prevAnchor, leftPad, -effectiveTitleRowH - gapForThisObj)
             else
-                obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", leftPad, -gapForThisObj)
+                addon.AnchorBelowInnerStart(obj.text, prevAnchor, leftPad, -gapForThisObj)
             end
             obj.text:Show()
             obj.shadow:Show()
@@ -874,15 +879,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 local fraction = math.min(nf / nr, 1)
                 local fillW = math.max(1, barW * fraction)
 
-                obj.progressBarBg:ClearAllPoints()
-                obj.progressBarBg:SetPoint("TOPLEFT", obj.text, "BOTTOMLEFT", 0, -PROGRESS_BAR_SPACING)
+                -- Progress bar hugs the inner-start edge of obj.text and fills from that edge.
+                addon.AnchorBelowInnerStart(obj.progressBarBg, obj.text, 0, -PROGRESS_BAR_SPACING)
                 obj.progressBarBg:SetSize(barW, PROGRESS_BAR_HEIGHT)
                 obj.progressBarBg:SetColorTexture(0.15, 0.15, 0.18, 0.7)
                 obj.progressBarBg:Show()
 
-                obj.progressBarFill:ClearAllPoints()
-                obj.progressBarFill:SetPoint("TOPLEFT", obj.progressBarBg, "TOPLEFT", 0, 0)
-                obj.progressBarFill:SetPoint("BOTTOMLEFT", obj.progressBarBg, "BOTTOMLEFT", 0, 0)
+                addon.AnchorBarFill(obj.progressBarFill, obj.progressBarBg)
                 obj.progressBarFill:SetWidth(fillW)
                 addon.ApplyProgressBarFillTexture(obj.progressBarFill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
                 obj.progressBarFill:Show()
@@ -905,15 +908,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 local fraction = math.min(math.max(0, pctVal / 100), 1)
                 local fillW = math.max(1, barW * fraction)
 
-                obj.progressBarBg:ClearAllPoints()
-                obj.progressBarBg:SetPoint("TOPLEFT", obj.text, "BOTTOMLEFT", 0, -PROGRESS_BAR_SPACING)
+                -- Progress bar hugs the inner-start edge of obj.text and fills from that edge.
+                addon.AnchorBelowInnerStart(obj.progressBarBg, obj.text, 0, -PROGRESS_BAR_SPACING)
                 obj.progressBarBg:SetSize(barW, PROGRESS_BAR_HEIGHT)
                 obj.progressBarBg:SetColorTexture(0.15, 0.15, 0.18, 0.7)
                 obj.progressBarBg:Show()
 
-                obj.progressBarFill:ClearAllPoints()
-                obj.progressBarFill:SetPoint("TOPLEFT", obj.progressBarBg, "TOPLEFT", 0, 0)
-                obj.progressBarFill:SetPoint("BOTTOMLEFT", obj.progressBarBg, "BOTTOMLEFT", 0, 0)
+                addon.AnchorBarFill(obj.progressBarFill, obj.progressBarBg)
                 obj.progressBarFill:SetWidth(fillW)
                 addon.ApplyProgressBarFillTexture(obj.progressBarFill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
                 obj.progressBarFill:Show()
@@ -967,15 +968,16 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         obj._hsFinished = true
         obj._hsAlpha = 1
         obj.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
-        obj.text:ClearAllPoints()
+        addon.ApplyAlignedJustify(obj.text)
+        addon.ApplyAlignedJustify(obj.shadow)
         local gapForComplete = (prevAnchor == entry.titleText) and titleGap or objSpacing
         local affixH = entry._affixBlockHeight
         if entry.affixText and prevAnchor == entry.affixText and type(affixH) == "number" and affixH > 0 then
-            obj.text:SetPoint("TOPLEFT", entry.affixText, "TOPLEFT", OBJ_EXTRA_LEFT_PAD, -affixH - gapForComplete)
+            addon.AnchorAtInnerStart(obj.text, entry.affixText, OBJ_EXTRA_LEFT_PAD, -affixH - gapForComplete)
         elseif prevAnchor == entry.titleText and effectiveTitleRowH then
-            obj.text:SetPoint("TOPLEFT", prevAnchor, "TOPLEFT", OBJ_EXTRA_LEFT_PAD, -effectiveTitleRowH - gapForComplete)
+            addon.AnchorAtInnerStart(obj.text, prevAnchor, OBJ_EXTRA_LEFT_PAD, -effectiveTitleRowH - gapForComplete)
         else
-            obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", OBJ_EXTRA_LEFT_PAD, -gapForComplete)
+            addon.AnchorBelowInnerStart(obj.text, prevAnchor, OBJ_EXTRA_LEFT_PAD, -gapForComplete)
         end
         obj.text:Show()
         obj.shadow:Show()
@@ -994,8 +996,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj2._hsFinished = true
             obj2._hsAlpha = 1
             obj2.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
-            obj2.text:ClearAllPoints()
-            obj2.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -objSpacing)
+            addon.ApplyAlignedJustify(obj2.text)
+            addon.ApplyAlignedJustify(obj2.shadow)
+            addon.AnchorBelowInnerStart(obj2.text, prevAnchor, 0, -objSpacing)
             obj2.text:Show()
             obj2.shadow:Show()
             local obj2H = obj2.text:GetStringHeight()
@@ -1600,11 +1603,12 @@ local function PopulateEntry(entry, questData, groupKey)
             end
         end
 
-        -- Preserve any vertical padding already applied (e.g. bar-top highlight style)
-        local _, _, _, curX, curY = entry.titleText:GetPoint(1)
+        -- Preserve any vertical padding already applied (e.g. bar-top highlight style).
+        local _, _, _, _, curY = entry.titleText:GetPoint(1)
         curY = (type(curY) == "number") and curY or 0
-        entry.titleText:ClearAllPoints()
-        entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", basePad + extraTitlePad, curY)
+        addon.AnchorInnerStart(entry.titleText, entry, basePad + extraTitlePad, curY)
+        addon.ApplyAlignedJustify(entry.titleText)
+        addon.ApplyAlignedJustify(entry.titleShadow)
         entry.titleShadow:ClearAllPoints()
         entry.titleShadow:SetPoint("CENTER", entry.titleText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
         return extraTitlePad
@@ -1933,8 +1937,9 @@ local function PopulateEntry(entry, questData, groupKey)
             zoneColor = addon.ApplyDimColor(zoneColor)
         end
         entry.zoneText:SetTextColor(zoneColor[1], zoneColor[2], zoneColor[3], dimAlpha)
-        entry.zoneText:ClearAllPoints()
-        entry.zoneText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.AnchorAtInnerStart(entry.zoneText, entry.titleText, 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.ApplyAlignedJustify(entry.zoneText)
+        addon.ApplyAlignedJustify(entry.zoneShadow)
         entry.zoneText:Show()
         entry.zoneShadow:Show()
         local zoneH = entry.zoneText:GetStringHeight()
@@ -1954,8 +1959,9 @@ local function PopulateEntry(entry, questData, groupKey)
             stageColor = addon.ApplyDimColor(stageColor)
         end
         entry.zoneText:SetTextColor(stageColor[1], stageColor[2], stageColor[3], dimAlpha)
-        entry.zoneText:ClearAllPoints()
-        entry.zoneText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.AnchorAtInnerStart(entry.zoneText, entry.titleText, 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.ApplyAlignedJustify(entry.zoneText)
+        addon.ApplyAlignedJustify(entry.zoneShadow)
         entry.zoneText:Show()
         entry.zoneShadow:Show()
         local stageH = entry.zoneText:GetStringHeight()

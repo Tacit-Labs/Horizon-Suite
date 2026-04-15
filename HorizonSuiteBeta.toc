@@ -21,6 +21,7 @@ core/ClassIconMedia.lua
 media/MediaRegistry.lua
 core/Config.lua
 core/Core.lua
+core/FocusAnchors.lua
 core/UrlCopyDialog.lua
 core/ProfileIO.lua
 core/CoreSlash.lua
