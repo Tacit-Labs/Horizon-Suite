@@ -547,8 +547,16 @@ local function FullLayout()
                 local frameH = scrollFrame:GetHeight() or 0
                 local maxScr = math.max(totalContentH - frameH, 0)
                 local prevScroll = addon.focus.layout.scrollOffset or 0
-                local scrollOffset = math.min(prevScroll, maxScr)
+                local scrollOffset
+                if addon.GetDB("growUp", false) then
+                    -- Grow-up: preserve distance from the bottom so the Objectives header stays pinned.
+                    local bottomDist = addon.focus.layout.scrollBottomOffset or 0
+                    scrollOffset = math.max(0, maxScr - bottomDist)
+                else
+                    scrollOffset = math.min(prevScroll, maxScr)
+                end
                 addon.focus.layout.scrollOffset = scrollOffset
+                addon.focus.layout.scrollBottomOffset = math.max(0, maxScr - scrollOffset)
                 addon.ApplyScrollOffset(scrollOffset)
                 if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
                 local headerArea
@@ -1285,7 +1293,14 @@ local function FullLayout()
 
     local frameH = scrollFrame:GetHeight() or 0
     local maxScr = math.max(totalContentH - frameH, 0)
-    addon.focus.layout.scrollOffset = math.min(prevScroll, maxScr)
+    if addon.GetDB("growUp", false) then
+        -- Grow-up: preserve distance from the bottom so the Objectives header stays pinned.
+        local bottomDist = addon.focus.layout.scrollBottomOffset or 0
+        addon.focus.layout.scrollOffset = math.max(0, maxScr - bottomDist)
+    else
+        addon.focus.layout.scrollOffset = math.min(prevScroll, maxScr)
+    end
+    addon.focus.layout.scrollBottomOffset = math.max(0, maxScr - addon.focus.layout.scrollOffset)
     addon.ApplyScrollOffset(addon.focus.layout.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
 
