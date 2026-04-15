@@ -70,11 +70,11 @@ fi
 # --- Per-category accumulators ---
 # Each line is tab-separated: <module>\t<prio_rank>\t<age_days>\t<bullet>
 # Grouped by module at render time.
-BUGS=""; FEATURES=""; IMPROVEMENTS=""; IDEAS=""
+BUGS=""; FEATURES=""; IMPROVEMENTS=""; IDEAS=""; UNCATEGORIZED=""
 
-count_bugs=0; count_features=0; count_improvements=0; count_ideas=0
-stale_bugs=0; stale_features=0; stale_improvements=0; stale_ideas=0
-assigned_bugs=0; assigned_features=0; assigned_improvements=0; assigned_ideas=0
+count_bugs=0; count_features=0; count_improvements=0; count_ideas=0; count_uncategorized=0
+stale_bugs=0; stale_features=0; stale_improvements=0; stale_ideas=0; stale_uncategorized=0
+assigned_bugs=0; assigned_features=0; assigned_improvements=0; assigned_ideas=0; assigned_uncategorized=0
 
 declare -A MODULES
 
@@ -192,12 +192,22 @@ while IFS= read -r line; do
     count_ideas=$((count_ideas + 1))
     [ "$is_stale" -eq 1 ] && stale_ideas=$((stale_ideas + 1))
     [ -n "$assignee" ] && assigned_ideas=$((assigned_ideas + 1))
+  else
+    # Didn't match any category label — surface in the log so it can be
+    # triaged instead of silently dropped from the totals.
+    bucket="uncategorized"
+    UNCATEGORIZED="${UNCATEGORIZED}${sort_line}"$'\n'
+    count_uncategorized=$((count_uncategorized + 1))
+    [ "$is_stale" -eq 1 ] && stale_uncategorized=$((stale_uncategorized + 1))
+    [ -n "$assignee" ] && assigned_uncategorized=$((assigned_uncategorized + 1))
   fi
 
-  if [ -n "$bucket" ]; then
-    MODULES["$mod_key"]=$((${MODULES["$mod_key"]:-0} + 1))
+  MODULES["$mod_key"]=$((${MODULES["$mod_key"]:-0} + 1))
 
-    # Spotlight: pick the lowest prio_rank, tie-break by age_days desc
+  # Spotlight: pick the lowest prio_rank, tie-break by age_days desc.
+  # Uncategorized issues are excluded so the spotlight points at something
+  # actionable rather than an unlabeled triage item.
+  if [ "$bucket" != "uncategorized" ]; then
     if [ "$prio_rank" -lt "$spot_rank" ] || { [ "$prio_rank" -eq "$spot_rank" ] && [ "$age_days" -gt "$spot_age" ]; }; then
       spot_rank=$prio_rank
       spot_age=$age_days
@@ -216,13 +226,22 @@ COLOR_BUGS=15548997         # red
 COLOR_FEATURES=5763719      # green
 COLOR_IMPROVEMENTS=3447003  # blue
 COLOR_IDEAS=16776960        # yellow
+COLOR_UNCAT=9807270         # slate gray
 COLOR_HEALTH_GREEN=5763719
 COLOR_HEALTH_YELLOW=16776960
 COLOR_HEALTH_ORANGE=15105570
 COLOR_HEALTH_RED=15548997
 
 # --- Health color based on total open ---
-total=$((count_bugs + count_features + count_improvements + count_ideas))
+# `total` is the TRUE open-issue count (from the gh fetch). The per-bucket sum
+# may be lower if some issues carry no category label, so we sanity-check and
+# prefer the real count — anything that didn't match a category was routed to
+# `count_uncategorized` above.
+total="$open_total"
+bucket_sum=$((count_bugs + count_features + count_improvements + count_ideas + count_uncategorized))
+if [ "$bucket_sum" -ne "$total" ]; then
+  echo "Warning: bucket sum (${bucket_sum}) != open total (${total}); some issues may be missing" >&2
+fi
 if [ "$count_bugs" -ge 15 ] || [ "$total" -ge 80 ]; then
   health_color=$COLOR_HEALTH_RED
   health_label="🔴 Needs attention"
@@ -258,13 +277,18 @@ b_cells=$(cells_for "$count_bugs")
 f_cells=$(cells_for "$count_features")
 i_cells=$(cells_for "$count_improvements")
 d_cells=$(cells_for "$count_ideas")
+u_cells=$(cells_for "$count_uncategorized")
 
 # Pad labels so the progress bar lines up inside the code block (monospaced).
+# Uncategorized is only rendered when non-zero (keeps the normal view clean).
 progress_block=$(printf 'Bugs          %s %3d\nFeatures      %s %3d\nImprovements  %s %3d\nIdeas         %s %3d' \
   "$(make_bar "$b_cells" '█')" "$count_bugs" \
   "$(make_bar "$f_cells" '█')" "$count_features" \
   "$(make_bar "$i_cells" '█')" "$count_improvements" \
   "$(make_bar "$d_cells" '█')" "$count_ideas")
+if [ "$count_uncategorized" -gt 0 ]; then
+  progress_block="${progress_block}"$'\n'"$(printf 'Uncategorized %s %3d' "$(make_bar "$u_cells" '█')" "$count_uncategorized")"
+fi
 
 # --- Top modules (pill style) ---
 module_pills=""
@@ -518,6 +542,13 @@ fi
 if [ "$count_ideas" -gt 0 ]; then
   IDEAS_EMBEDS=$(build_category_embeds "💡 Ideas" "$COLOR_IDEAS" "$IDEAS" "$count_ideas" "$stale_ideas" "$assigned_ideas")
   write_payload .release/discord-issuelog-v2-payload-ideas.json "$IDEAS_EMBEDS"
+fi
+
+# --- Uncategorized (issues without a bug/feature/improvement/idea label) ---
+# Surfaced so triagers can label them; skipped when empty.
+if [ "$count_uncategorized" -gt 0 ]; then
+  UNCAT_EMBEDS=$(build_category_embeds "❓ Uncategorized" "$COLOR_UNCAT" "$UNCATEGORIZED" "$count_uncategorized" "$stale_uncategorized" "$assigned_uncategorized")
+  write_payload .release/discord-issuelog-v2-payload-uncategorized.json "$UNCAT_EMBEDS"
 fi
 
 # Show generated files (helpful when running locally / in CI logs)

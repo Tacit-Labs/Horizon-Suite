@@ -70,7 +70,7 @@ jobs:
           fi
 
           # Post in order: hero first, then categories.
-          for type in hero bugs features improvements ideas; do
+          for type in hero bugs features improvements ideas uncategorized; do
             PAYLOAD=".release/discord-issuelog-v2-payload-${type}.json"
             if [ -f "$PAYLOAD" ]; then
               echo "Posting ${type} ($(wc -c < "$PAYLOAD") bytes)"
