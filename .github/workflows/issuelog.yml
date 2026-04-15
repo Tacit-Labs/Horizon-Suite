@@ -2,9 +2,12 @@ name: Post Issue Log to Discord
 # Requires repository secret: DISCORD_WEBHOOK_ISSUELOG
 # Deletes old Discord message and posts a new one each run (triggers channel activity).
 # Message ID is persisted via GitHub Actions cache (delete-before-save to avoid immutability).
+# Scheduled daily at 13:17 UTC; also runs on issue events and manual dispatch.
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 13 * * *'   # daily @ 13:17 UTC
   issues:
     types: [opened, closed, edited, reopened]
 
