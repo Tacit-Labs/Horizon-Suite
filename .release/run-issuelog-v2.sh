@@ -14,8 +14,13 @@ set -e
 #
 # Design goals (see branch description):
 #   1. Visual polish   — logo thumbnail, health-colored hero, progress bar, pill tags
-#   2. Urgency signal  — spotlight + Critical/High vs Other split + stale/assigned counts
+#   2. Urgency signal  — spotlight + priority glyphs + stale/assigned counts
 #   3. Momentum        — weekly new / closed / net delta
+#
+# Category layout: bullets are grouped under module sub-headings in a single
+# embed description. When a description approaches the 4096-char cap we spill
+# into a continuation embed (Discord allows up to 10 embeds per message), so
+# every item is shown — no "… and N more" tail.
 
 export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Tacit-Labs/Horizon-Suite}"
 REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
@@ -63,10 +68,9 @@ else
 fi
 
 # --- Per-category accumulators ---
-BUGS_CRIT=""; BUGS_OTHER=""
-FEATURES_CRIT=""; FEATURES_OTHER=""
-IMPROVEMENTS_CRIT=""; IMPROVEMENTS_OTHER=""
-IDEAS_CRIT=""; IDEAS_OTHER=""
+# Each line is tab-separated: <module>\t<prio_rank>\t<age_days>\t<bullet>
+# Grouped by module at render time.
+BUGS=""; FEATURES=""; IMPROVEMENTS=""; IDEAS=""
 
 count_bugs=0; count_features=0; count_improvements=0; count_ideas=0
 stale_bugs=0; stale_features=0; stale_improvements=0; stale_ideas=0
@@ -113,8 +117,6 @@ while IFS= read -r line; do
   elif [[ "$labels_lc" =~ (^|[[:space:]])insight($|[[:space:]]) ]]; then module="Insight"
   elif [[ "$labels_lc" =~ (^|[[:space:]])verse($|[[:space:]]) ]]; then module="Verse"
   fi
-  module_pill=""
-  [ -n "$module" ] && module_pill="\`${module}\` "
 
   # Priority glyph + rank
   prio=""
@@ -157,44 +159,42 @@ while IFS= read -r line; do
     meta=" \`@${assignee}\`"
   fi
 
-  # Build the bullet — shorter than v1 since we split across fields and field
-  # value cap is 1024. Drop body excerpt; lean on title + module + meta.
-  bullet="• ${prio}${stale}${module_pill}[${title}](${url})${meta}"
+  # Build the bullet — module shown via sub-heading, so we drop it from the
+  # per-line pill. Title + priority glyph + stale marker + meta is enough.
+  bullet="• ${prio}${stale}[${title}](${url})${meta}"
 
-  sort_line=$(printf '%d\t%d\t%s' "$prio_rank" "$age_days" "$bullet")
-  critical=0
-  [ "$prio_rank" -le 1 ] && critical=1
+  # Group-by-module sort key. Render order within a module: priority asc, age desc.
+  mod_key="${module:-Other}"
+  sort_line=$(printf '%s\t%d\t%d\t%s' "$mod_key" "$prio_rank" "$age_days" "$bullet")
 
-  # Route to bucket
   bucket=""
   if [[ "$labels_lc" =~ (^|[[:space:]])bug($|[[:space:]]) ]]; then
     bucket="bugs"
-    if [ "$critical" -eq 1 ]; then BUGS_CRIT="${BUGS_CRIT}${sort_line}"$'\n'; else BUGS_OTHER="${BUGS_OTHER}${sort_line}"$'\n'; fi
+    BUGS="${BUGS}${sort_line}"$'\n'
     count_bugs=$((count_bugs + 1))
     [ "$is_stale" -eq 1 ] && stale_bugs=$((stale_bugs + 1))
     [ -n "$assignee" ] && assigned_bugs=$((assigned_bugs + 1))
   elif [[ "$labels_lc" =~ \[enhancement\]\ feature ]] || [[ "$labels_lc" =~ (^|[[:space:]])feature($|[[:space:]]) ]]; then
     bucket="features"
-    if [ "$critical" -eq 1 ]; then FEATURES_CRIT="${FEATURES_CRIT}${sort_line}"$'\n'; else FEATURES_OTHER="${FEATURES_OTHER}${sort_line}"$'\n'; fi
+    FEATURES="${FEATURES}${sort_line}"$'\n'
     count_features=$((count_features + 1))
     [ "$is_stale" -eq 1 ] && stale_features=$((stale_features + 1))
     [ -n "$assignee" ] && assigned_features=$((assigned_features + 1))
   elif [[ "$labels_lc" =~ \[enhancement\]\ improvement ]] || [[ "$labels_lc" =~ \[enhancement\]\ localization ]] || [[ "$labels_lc" =~ (^|[[:space:]])improvement($|[[:space:]]) ]]; then
     bucket="improvements"
-    if [ "$critical" -eq 1 ]; then IMPROVEMENTS_CRIT="${IMPROVEMENTS_CRIT}${sort_line}"$'\n'; else IMPROVEMENTS_OTHER="${IMPROVEMENTS_OTHER}${sort_line}"$'\n'; fi
+    IMPROVEMENTS="${IMPROVEMENTS}${sort_line}"$'\n'
     count_improvements=$((count_improvements + 1))
     [ "$is_stale" -eq 1 ] && stale_improvements=$((stale_improvements + 1))
     [ -n "$assignee" ] && assigned_improvements=$((assigned_improvements + 1))
   elif [[ "$labels_lc" =~ (^|[[:space:]])idea($|[[:space:]]) ]]; then
     bucket="ideas"
-    if [ "$critical" -eq 1 ]; then IDEAS_CRIT="${IDEAS_CRIT}${sort_line}"$'\n'; else IDEAS_OTHER="${IDEAS_OTHER}${sort_line}"$'\n'; fi
+    IDEAS="${IDEAS}${sort_line}"$'\n'
     count_ideas=$((count_ideas + 1))
     [ "$is_stale" -eq 1 ] && stale_ideas=$((stale_ideas + 1))
     [ -n "$assignee" ] && assigned_ideas=$((assigned_ideas + 1))
   fi
 
   if [ -n "$bucket" ]; then
-    mod_key="${module:-Other}"
     MODULES["$mod_key"]=$((${MODULES["$mod_key"]:-0} + 1))
 
     # Spotlight: pick the lowest prio_rank, tie-break by age_days desc
@@ -309,30 +309,22 @@ truncate_content() {
   printf '%s' "$content" | jq -Rs --argjson max "$max" 'if length > $max then .[0:$max-1] + "…" else . end'
 }
 
-# Build a field value from a sort-prefixed bucket chunk, capped at 1000 chars
-# (Discord field limit is 1024; leave slack for the "… and N more" tail).
-build_field_value() {
-  local raw="$1"
-  local total_in="$2"
-  local max=1000
-  local desc=""
-  local shown=0
-  local sorted
-  sorted=$(printf '%s' "$raw" | grep -v '^$' | sort -t$'\t' -k1,1n -k2,2rn | cut -f3-)
-  while IFS= read -r bullet; do
-    [ -z "$bullet" ] && continue
-    if [ $(( ${#desc} + ${#bullet} + 1 )) -gt "$max" ]; then
-      break
-    fi
-    desc="${desc}${bullet}"$'\n'
-    shown=$((shown + 1))
-  done <<< "$sorted"
-  local remaining=$((total_in - shown))
-  if [ "$remaining" -gt 0 ]; then
-    desc="${desc}• … and ${remaining} more"
-  fi
-  [ -z "$desc" ] && desc="_None_"
-  printf '%s' "$desc"
+# Module display emoji — keeps sub-headings compact and branded.
+module_emoji() {
+  case "$1" in
+    Focus)     printf '🎯' ;;
+    Presence)  printf '🎬' ;;
+    Vista)     printf '🗺️' ;;
+    Insight)   printf '🔍' ;;
+    Cache)     printf '🎒' ;;
+    Essence)   printf '📜' ;;
+    Flow)      printf '💬' ;;
+    Core)      printf '🧩' ;;
+    Pulse)     printf '❤️' ;;
+    Verse)     printf '🎨' ;;
+    Other)     printf '📦' ;;
+    *)         printf '📦' ;;
+  esac
 }
 
 write_payload() {
@@ -347,47 +339,144 @@ write_payload() {
   echo "Generated $outfile"
 }
 
-# Build one category embed: returns JSON for a single embed with fields.
-build_category_embed() {
+# Build a category's embed array — groups bullets under module sub-headings
+# and spills into continuation embeds (no title) so all items are shown.
+# Returns a JSON array of embed objects.
+build_category_embeds() {
   local title="$1"
   local color="$2"
-  local crit_raw="$3"
-  local other_raw="$4"
-  local total_in="$5"
-  local stale_in="$6"
-  local assigned_in="$7"
+  local raw="$3"
+  local total_in="$4"
+  local stale_in="$5"
+  local assigned_in="$6"
 
-  local crit_count=0
-  local other_count=0
-  crit_count=$(printf '%s' "$crit_raw" | grep -c '^.' || true)
-  other_count=$(printf '%s' "$other_raw" | grep -c '^.' || true)
+  # Footer text shared across the whole category (attached to the last embed).
+  local footer="${total_in} open"
+  [ "$stale_in" -gt 0 ] && footer="${footer} · ${stale_in} stale"
+  [ "$assigned_in" -gt 0 ] && footer="${footer} · ${assigned_in} assigned"
 
-  local crit_value other_value
-  crit_value=$(build_field_value "$crit_raw" "$crit_count")
-  other_value=$(build_field_value "$other_raw" "$other_count")
+  # Empty category → single placeholder embed.
+  if [ -z "$raw" ] || [ "$total_in" -eq 0 ]; then
+    jq -n \
+      --arg title "$title" \
+      --argjson color "$color" \
+      --arg desc "_No open issues in this category._" \
+      --arg footer "$footer" \
+      --arg ts "$TIMESTAMP" \
+      '[{title: $title, color: $color, description: $desc, footer: {text: $footer}, timestamp: $ts}]'
+    return
+  fi
 
-  local footer_parts=""
-  footer_parts="${total_in} open"
-  [ "$stale_in" -gt 0 ] && footer_parts="${footer_parts} · ${stale_in} stale"
-  [ "$assigned_in" -gt 0 ] && footer_parts="${footer_parts} · ${assigned_in} assigned"
+  # 1. Rank modules by count (desc); push "Other" to the end so unlabeled
+  #    issues don't dominate the layout.
+  local -A MOD_COUNT=()
+  while IFS=$'\t' read -r mod _ _ _; do
+    [ -z "$mod" ] && continue
+    MOD_COUNT["$mod"]=$((${MOD_COUNT["$mod"]:-0} + 1))
+  done < <(printf '%s' "$raw" | grep -v '^$')
 
-  jq -n \
-    --arg title "$title" \
-    --argjson color "$color" \
-    --arg crit "$crit_value" \
-    --arg other "$other_value" \
-    --arg footer "$footer_parts" \
-    --arg ts "$TIMESTAMP" \
-    '{
-      title: $title,
-      color: $color,
-      fields: [
-        {name: "🚨 Critical & High", value: $crit, inline: false},
-        {name: "📋 Other", value: $other, inline: false}
-      ],
-      footer: {text: $footer},
-      timestamp: $ts
-    }'
+  local mod_order
+  mod_order=$(
+    for key in "${!MOD_COUNT[@]}"; do
+      # sort key: 0 for real modules, 1 for Other → Other sinks to the bottom
+      local tier=0
+      [ "$key" = "Other" ] && tier=1
+      printf '%d\t%d\t%s\n' "$tier" "${MOD_COUNT[$key]}" "$key"
+    done | sort -t$'\t' -k1,1n -k2,2rn -k3,3 | cut -f3-
+  )
+
+  # 2. For each module, render its sub-heading + sorted bullets into one block.
+  #    Modules are kept atomic when possible: a block flows into the current
+  #    embed if it fits, otherwise starts a new continuation embed. If a single
+  #    module block exceeds the cap on its own, it's split mid-list.
+  local max=4000  # leaves slack under the 4096 hard cap
+  local embeds_json='[]'
+  local cur_desc=""
+  local first=1
+
+  flush_embed() {
+    local is_last="$1"
+    local embed
+    if [ "$first" -eq 1 ]; then
+      if [ "$is_last" -eq 1 ]; then
+        embed=$(jq -n --arg title "$title" --argjson color "$color" --arg desc "$cur_desc" --arg footer "$footer" --arg ts "$TIMESTAMP" \
+          '{title: $title, color: $color, description: $desc, footer: {text: $footer}, timestamp: $ts}')
+      else
+        embed=$(jq -n --arg title "$title" --argjson color "$color" --arg desc "$cur_desc" \
+          '{title: $title, color: $color, description: $desc}')
+      fi
+      first=0
+    else
+      if [ "$is_last" -eq 1 ]; then
+        embed=$(jq -n --argjson color "$color" --arg desc "$cur_desc" --arg footer "$footer" --arg ts "$TIMESTAMP" \
+          '{color: $color, description: $desc, footer: {text: $footer}, timestamp: $ts}')
+      else
+        embed=$(jq -n --argjson color "$color" --arg desc "$cur_desc" \
+          '{color: $color, description: $desc}')
+      fi
+    fi
+    embeds_json=$(jq -n --argjson arr "$embeds_json" --argjson e "$embed" '$arr + [$e]')
+    cur_desc=""
+  }
+
+  local mod
+  while IFS= read -r mod; do
+    [ -z "$mod" ] && continue
+    local emoji
+    emoji=$(module_emoji "$mod")
+    local count="${MOD_COUNT[$mod]}"
+    local header="**${emoji} ${mod}** · ${count}"$'\n'
+
+    # Extract this module's bullets, sorted by priority asc then age desc.
+    local bullets
+    bullets=$(printf '%s' "$raw" | grep -v '^$' | awk -F'\t' -v m="$mod" '$1==m' | sort -t$'\t' -k2,2n -k3,3rn | cut -f4-)
+
+    # Try to keep the whole module block together. Trailing blank line adds
+    # breathing room between modules in Discord's rendering.
+    local block="${header}${bullets}"$'\n\n'
+    if [ $(( ${#cur_desc} + ${#block} )) -le "$max" ]; then
+      cur_desc="${cur_desc}${block}"
+      continue
+    fi
+
+    # Block doesn't fit. Flush current embed (if non-empty), then try the block
+    # alone. If it still doesn't fit, emit the header + as many bullets as fit
+    # per continuation embed.
+    if [ -n "$cur_desc" ]; then
+      flush_embed 0
+    fi
+
+    if [ ${#block} -le "$max" ]; then
+      cur_desc="$block"
+      continue
+    fi
+
+    # Oversized module: header + bullets split across embeds.
+    cur_desc="$header"
+    while IFS= read -r b; do
+      [ -z "$b" ] && continue
+      local line="${b}"$'\n'
+      if [ $(( ${#cur_desc} + ${#line} )) -gt "$max" ]; then
+        flush_embed 0
+        # Repeat header as a "(cont.)" on continuation embeds.
+        cur_desc="**${emoji} ${mod}** · ${count} _(cont.)_"$'\n'"${line}"
+      else
+        cur_desc="${cur_desc}${line}"
+      fi
+    done <<< "$bullets"
+  done <<< "$mod_order"
+
+  [ -n "$cur_desc" ] && flush_embed 1
+
+  # Discord allows up to 10 embeds per message. In practice we rarely get
+  # close, but clamp defensively and warn if we do.
+  local n
+  n=$(jq 'length' <<< "$embeds_json")
+  if [ "$n" -gt 10 ]; then
+    echo "Warning: ${title} exceeded 10 embeds (${n}); truncating to 10" >&2
+    embeds_json=$(jq '.[0:10]' <<< "$embeds_json")
+  fi
+  printf '%s' "$embeds_json"
 }
 
 mkdir -p .release
@@ -410,25 +499,25 @@ HERO_EMBEDS=$(jq -n --argjson h "$HERO_EMBED" '[$h]')
 write_payload .release/discord-issuelog-v2-payload-hero.json "$HERO_EMBEDS"
 
 # --- Bugs (posted even when empty so readers see a "zero bugs" status) ---
-BUGS_EMBED=$(build_category_embed "🐛 Known Bugs" "$COLOR_BUGS" "$BUGS_CRIT" "$BUGS_OTHER" "$count_bugs" "$stale_bugs" "$assigned_bugs")
-write_payload .release/discord-issuelog-v2-payload-bugs.json "$(jq -n --argjson b "$BUGS_EMBED" '[$b]')"
+BUGS_EMBEDS=$(build_category_embeds "🐛 Known Bugs" "$COLOR_BUGS" "$BUGS" "$count_bugs" "$stale_bugs" "$assigned_bugs")
+write_payload .release/discord-issuelog-v2-payload-bugs.json "$BUGS_EMBEDS"
 
 # --- Features ---
 if [ "$count_features" -gt 0 ]; then
-  FEATURES_EMBED=$(build_category_embed "✨ Feature Requests" "$COLOR_FEATURES" "$FEATURES_CRIT" "$FEATURES_OTHER" "$count_features" "$stale_features" "$assigned_features")
-  write_payload .release/discord-issuelog-v2-payload-features.json "$(jq -n --argjson b "$FEATURES_EMBED" '[$b]')"
+  FEATURES_EMBEDS=$(build_category_embeds "✨ Feature Requests" "$COLOR_FEATURES" "$FEATURES" "$count_features" "$stale_features" "$assigned_features")
+  write_payload .release/discord-issuelog-v2-payload-features.json "$FEATURES_EMBEDS"
 fi
 
 # --- Improvements ---
 if [ "$count_improvements" -gt 0 ]; then
-  IMPROVEMENTS_EMBED=$(build_category_embed "🔧 Improvements" "$COLOR_IMPROVEMENTS" "$IMPROVEMENTS_CRIT" "$IMPROVEMENTS_OTHER" "$count_improvements" "$stale_improvements" "$assigned_improvements")
-  write_payload .release/discord-issuelog-v2-payload-improvements.json "$(jq -n --argjson b "$IMPROVEMENTS_EMBED" '[$b]')"
+  IMPROVEMENTS_EMBEDS=$(build_category_embeds "🔧 Improvements" "$COLOR_IMPROVEMENTS" "$IMPROVEMENTS" "$count_improvements" "$stale_improvements" "$assigned_improvements")
+  write_payload .release/discord-issuelog-v2-payload-improvements.json "$IMPROVEMENTS_EMBEDS"
 fi
 
 # --- Ideas ---
 if [ "$count_ideas" -gt 0 ]; then
-  IDEAS_EMBED=$(build_category_embed "💡 Ideas" "$COLOR_IDEAS" "$IDEAS_CRIT" "$IDEAS_OTHER" "$count_ideas" "$stale_ideas" "$assigned_ideas")
-  write_payload .release/discord-issuelog-v2-payload-ideas.json "$(jq -n --argjson b "$IDEAS_EMBED" '[$b]')"
+  IDEAS_EMBEDS=$(build_category_embeds "💡 Ideas" "$COLOR_IDEAS" "$IDEAS" "$count_ideas" "$stale_ideas" "$assigned_ideas")
+  write_payload .release/discord-issuelog-v2-payload-ideas.json "$IDEAS_EMBEDS"
 fi
 
 # Show generated files (helpful when running locally / in CI logs)
