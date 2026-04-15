@@ -7,25 +7,15 @@ set -e
 
 export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Tacit-Labs/Horizon-Suite}"
 
-# Fetch all open issues (paginated; default limit would miss issues past 100)
-ISSUES="[]"
-page=1
-while true; do
-  batch=$(gh issue list --state open --json number,title,labels,body,url,createdAt,updatedAt,assignees --limit 100 --page "$page" 2>/dev/null || echo "[]")
-  cnt=$(echo "$batch" | jq 'length')
-  if [ "$cnt" -eq 0 ]; then
-    break
-  fi
-  ISSUES=$(jq -n --argjson acc "$ISSUES" --argjson b "$batch" '$acc + $b')
-  if [ "$cnt" -lt 100 ]; then
-    break
-  fi
-  page=$((page + 1))
-  if [ "$page" -gt 50 ]; then
-    echo "Warning: stopped pagination after 50 pages" >&2
-    break
-  fi
-done
+# Fetch all open issues. `gh issue list` auto-paginates internally up to --limit;
+# there is no --page flag (using one silently returns empty and produces 0 counts).
+ISSUES=$(gh issue list --state open --json number,title,labels,body,url,createdAt,updatedAt,assignees --limit 1000 2>&1)
+if ! echo "$ISSUES" | jq empty >/dev/null 2>&1; then
+  echo "Error: gh issue list failed or returned non-JSON output:" >&2
+  echo "$ISSUES" | head -c 1200 >&2
+  exit 1
+fi
+echo "Fetched $(echo "$ISSUES" | jq 'length') open issue(s)"
 
 BUGS=""
 FEATURES=""
