@@ -15,6 +15,16 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.12.2"] = {
+        date = "2026-04-14",
+        {
+            section = "Improvements",
+            bullets = {
+                "Insight: Gate NotifyInspect on player tooltip options — disabling every Player Characters option fully stops inspect requests on mouseover, so other inspect-dependent addons are no longer interrupted. A new 'Spec icon & role' toggle controls the spec/role display and its inspect query.",
+            },
+        },
+    },
+
     ["4.12.1"] = {
         date = "2026-04-13",
         {

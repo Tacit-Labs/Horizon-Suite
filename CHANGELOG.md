@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.12.2] – 2026-04-14
+
+### 🔧 Improvements
+
+- **(Insight) Gate NotifyInspect on player tooltip options** — Disabling every option under Player Characters now fully stops Insight from sending inspect requests on player mouseover, so other inspect-dependent addons are no longer interrupted. A new "Spec icon & role" toggle controls the spec/role line and its inspect query.
+
+---
+
 ## [4.12.1] – 2026-04-13
 
 ### 🐛 Fixes
