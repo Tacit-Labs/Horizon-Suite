@@ -300,6 +300,19 @@ local function SortAndGroupQuests(quests)
             return {}
         end
     end
+
+    -- When Grow Upwards is on, the Objectives header is anchored at the bottom of the
+    -- panel. Reverse section order so the highest-priority section sits closest to the
+    -- header (matches grow-down's priority-next-to-header layout). Within-section entry
+    -- ordering is unchanged — only section envelopes are reordered.
+    if addon.GetDB("growUp", false) then
+        local reversed = {}
+        for i = #result, 1, -1 do
+            reversed[#reversed + 1] = result[i]
+        end
+        result = reversed
+    end
+
     return result
 end
 

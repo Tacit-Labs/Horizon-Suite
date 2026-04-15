@@ -1408,6 +1408,7 @@ addon.focus.layout = addon.focus.layout or {
     sectionIdx = 0,
 }
 addon.focus.layout.scrollOffset = 0
+addon.focus.layout.scrollBottomOffset = addon.focus.layout.scrollBottomOffset or 0
 
 local function ApplyScrollOffset(offset)
     scrollChild:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, offset)
@@ -1420,6 +1421,7 @@ local function HandleScroll(delta)
     local maxScr  = math.max(childH - frameH, 0)
     local lo = addon.focus.layout
     lo.scrollOffset = math.max(0, math.min(lo.scrollOffset - delta * addon.GetScaledScrollStep(), maxScr))
+    lo.scrollBottomOffset = math.max(0, maxScr - lo.scrollOffset)
     ApplyScrollOffset(lo.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
 end
@@ -1455,6 +1457,7 @@ arrowBottomFrame:SetScript("OnClick", function()
     local maxScr = math.max(childH - frameH, 0)
     local lo = addon.focus.layout
     lo.scrollOffset = maxScr
+    lo.scrollBottomOffset = 0
     ApplyScrollOffset(lo.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
 end)
@@ -1474,7 +1477,11 @@ arrowTopTex:SetAlpha(0.60)
 arrowTopTex:SetDesaturated(true)
 arrowTopFrame:SetScript("OnClick", function()
     local lo = addon.focus.layout
+    local childH = scrollChild:GetHeight() or 0
+    local frameH = scrollFrame:GetHeight() or 0
+    local maxScr = math.max(childH - frameH, 0)
     lo.scrollOffset = 0
+    lo.scrollBottomOffset = maxScr
     ApplyScrollOffset(0)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
 end)
