@@ -34,8 +34,8 @@ jobs:
       - name: Restore cached message IDs
         uses: actions/cache/restore@v4
         with:
-          path: .release
-          key: issuelog-msg-id
+          path: .release/discord-issuelog-message-id
+          key: issuelog-msg-id-v2
 
       - name: Generate issue log payloads
         run: bash .release/run-issuelog.sh
@@ -107,7 +107,7 @@ jobs:
       - name: Save message IDs to cache
         if: steps.discord.outputs.skip != 'true' && steps.discord.outputs.id != ''
         run: |
-          gh cache delete issuelog-msg-id --repo "$GITHUB_REPOSITORY" || true
+          gh cache delete issuelog-msg-id-v2 --repo "$GITHUB_REPOSITORY" || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -115,6 +115,6 @@ jobs:
         if: steps.discord.outputs.skip != 'true' && steps.discord.outputs.id != ''
         uses: actions/cache/save@v4
         with:
-          path: .release
-          key: issuelog-msg-id
+          path: .release/discord-issuelog-message-id
+          key: issuelog-msg-id-v2
 
