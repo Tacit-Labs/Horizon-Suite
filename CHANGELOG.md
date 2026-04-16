@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.12.4] – 2026-04-16
+
+### 🐛 Fixes
+
+- **(Insight)** Rolled back a recent change that was causing issues.
+
+---
+
 ## [4.12.3] – 2026-04-16
 
 ### 🔧 Improvements

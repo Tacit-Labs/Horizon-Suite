@@ -15,6 +15,16 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.12.4"] = {
+        date = "2026-04-16",
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: rolled back a recent change that was causing issues.",
+            },
+        },
+    },
+
     ["4.12.3"] = {
         date = "2026-04-16",
         {
