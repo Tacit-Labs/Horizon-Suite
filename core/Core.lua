@@ -418,6 +418,51 @@ function addon.ApplyAllClassColorConsumers()
     if addon.Cache and addon.Cache.ApplyCacheOptions then addon.Cache.ApplyCacheOptions() end
 end
 
+--- Sync db.modules[key].enabled from the active profile's modules map so the
+--- next ReloadUI starts with the new profile's module on/off state. Enable /
+--- teardown of modules in-memory requires a reload (OnInit/OnDisable are not
+--- idempotent across the full stack), so the reload prompt handles that step.
+local function SyncModulesFromActiveProfile()
+    if not addon.GetActiveProfile then return end
+    local profile = addon.GetActiveProfile()
+    if type(profile) ~= "table" then return end
+    local db = rawDB()
+    if not db then return end
+    db.modules = db.modules or {}
+    if type(profile.modules) ~= "table" then
+        -- Seed the profile from the current root db.modules so every profile owns
+        -- its module state going forward; avoids the next module toggle orphaning
+        -- previous state under the prior profile.
+        local seeded = {}
+        for mk, md in pairs(db.modules) do
+            if type(md) == "table" then
+                seeded[mk] = { enabled = md.enabled ~= false }
+            end
+        end
+        profile.modules = seeded
+        return
+    end
+    for mk, md in pairs(profile.modules) do
+        if type(md) == "table" then
+            db.modules[mk] = db.modules[mk] or {}
+            db.modules[mk].enabled = md.enabled and true or false
+        end
+    end
+end
+
+--- Called after any change to the effective active profile key (dropdown,
+--- global / per-spec toggle, create, copy, delete, import, spec change).
+--- Syncs db.modules from the new profile so SavedVariables records the
+--- correct module layout, then issues a ReloadUI so every module, cached
+--- frame, and OnInit path comes up against the new profile — identical to
+--- the Module Toggles reload flow and avoids the prior "swap requires
+--- extra clicks / reload prompt" workaround.
+--- @return nil
+function addon.OnActiveProfileChanged()
+    SyncModulesFromActiveProfile()
+    ReloadUI()
+end
+
 --- Returns the header bar height from DB or default, clamped to 18â€“48 px.
 --- @return number
 function addon.GetHeaderHeight()
@@ -898,8 +943,7 @@ function addon.TryDeleteProfileConfirmed(key)
     if addon.DeleteProfile and addon.DeleteProfile(key) then
         addon._profileDeleteKey = nil
         addon._profileCopyFrom = nil
-        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
         return true
     end
     return false
@@ -948,22 +992,20 @@ if StaticPopupDialogs then
             end
             -- TryCreateProfile switches active profile already.
             addon._profilePopupSourceKey = nil
-            if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-            if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
         end,
+        -- Enter in the edit box invokes OnAccept directly. Bypasses
+        -- parent.button1 resolution (which was closing the dialog without
+        -- creating in 12.0 StaticPopup) and the enterClicksFirstButton flag
+        -- (not honoured on this StaticPopup path in 12.0).
         EditBoxOnEnterPressed = function(self)
             local parent = self:GetParent()
-            if parent then
-                local btn = parent.button1 or (parent.Buttons and parent.Buttons[1])
-                if btn then btn:Click() end
+            if not parent or not parent.which then return end
+            local info = StaticPopupDialogs[parent.which]
+            if info and info.OnAccept then
+                info.OnAccept(parent, parent.data, parent.data2)
             end
-        end,
-        EditBoxOnEscapePressed = function(self)
-            local parent = self:GetParent()
-            if parent then
-                local btn = parent.button2 or (parent.Buttons and parent.Buttons[2])
-                if btn then btn:Click() end
-            end
+            if StaticPopup_Hide then StaticPopup_Hide(parent.which, parent.data) end
         end,
     }
 
@@ -1025,22 +1067,16 @@ if StaticPopupDialogs then
             addon._profileImportString = nil
             addon._profileImportValid = false
             if addon.HSPrint then addon.HSPrint("Imported profile: " .. tostring(result)) end
-            if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-            if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
         end,
         EditBoxOnEnterPressed = function(self)
             local parent = self:GetParent()
-            if parent then
-                local btn = parent.button1 or (parent.Buttons and parent.Buttons[1])
-                if btn then btn:Click() end
+            if not parent or not parent.which then return end
+            local info = StaticPopupDialogs[parent.which]
+            if info and info.OnAccept then
+                info.OnAccept(parent, parent.data, parent.data2)
             end
-        end,
-        EditBoxOnEscapePressed = function(self)
-            local parent = self:GetParent()
-            if parent then
-                local btn = parent.button2 or (parent.Buttons and parent.Buttons[2])
-                if btn then btn:Click() end
-            end
+            if StaticPopup_Hide then StaticPopup_Hide(parent.which, parent.data) end
         end,
     }
 
@@ -1069,10 +1105,7 @@ specChangeFrame:SetScript("OnEvent", function(_, event, unit)
     end
 
     C_Timer.After(0.1, function()
-        if addon.RestoreSavedPosition then addon.RestoreSavedPosition() end
-        if addon.UpdateResizeHandleVisibility then addon.UpdateResizeHandleVisibility() end
-        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
-        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
     end)
 end)
 

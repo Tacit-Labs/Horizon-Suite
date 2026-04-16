@@ -115,6 +115,18 @@ function addon:ForEachEnabledModule(cb)
     end
 end
 
+--- Persist a module's enabled state into the active profile so it follows the
+--- profile across switches / exports. Always assigns a fresh inner table to
+--- sever any shared refs from CreateProfile's shallow copy of the parent table.
+local function writeModuleEnabledToActiveProfile(key, enabled)
+    if type(key) ~= "string" or key == "" then return end
+    if not addon.GetActiveProfile then return end
+    local profile = addon.GetActiveProfile()
+    if type(profile) ~= "table" then return end
+    profile.modules = profile.modules or {}
+    profile.modules[key] = { enabled = enabled and true or false }
+end
+
 --- Enable a module. Loads DB, calls OnInit once, then OnEnable.
 function addon:EnableModule(key)
     local m = self.modules[key]
@@ -124,6 +136,7 @@ function addon:EnableModule(key)
     if not db.modules then db.modules = {} end
     if not db.modules[key] then db.modules[key] = {} end
     db.modules[key].enabled = true
+    writeModuleEnabledToActiveProfile(key, true)
     if not m.initialized and m.OnInit then
         m.OnInit(self)
         m.initialized = true
@@ -142,6 +155,7 @@ function addon:DisableModule(key)
     if db and db.modules and db.modules[key] then
         db.modules[key].enabled = false
     end
+    writeModuleEnabledToActiveProfile(key, false)
 end
 
 --- Set module enabled state (convenience for toggles).
@@ -193,6 +207,32 @@ function addon:EnsureModulesDB()
     -- Ensure essence exists for existing installs; disabled by default (beta)
     if not db.modules.essence then
         db.modules.essence = { enabled = false }
+    end
+
+    -- Module on/off follows the active profile: sync db.modules from the active
+    -- profile's modules map so ADDON_LOADED's initial enable-pass reflects the
+    -- profile. Profiles without a modules map are seeded from db.modules (so an
+    -- existing install doesn't lose its module state on first profile activation).
+    if addon.GetActiveProfile then
+        local profile = addon.GetActiveProfile()
+        if type(profile) == "table" then
+            if type(profile.modules) ~= "table" then
+                local seeded = {}
+                for mk, md in pairs(db.modules) do
+                    if type(md) == "table" then
+                        seeded[mk] = { enabled = md.enabled ~= false }
+                    end
+                end
+                profile.modules = seeded
+            else
+                for mk, md in pairs(profile.modules) do
+                    if type(md) == "table" then
+                        db.modules[mk] = db.modules[mk] or {}
+                        db.modules[mk].enabled = md.enabled and true or false
+                    end
+                end
+            end
+        end
     end
 end
 

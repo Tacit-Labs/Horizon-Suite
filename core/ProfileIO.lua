@@ -209,8 +209,20 @@ function addon.ImportProfile(name, dataString)
 
     db.profiles[finalName] = tbl
 
+    -- Activate the imported profile under whichever mode is active so the user sees
+    -- the imported state without needing to manually re-select it from the dropdown.
     local charKey = addon._GetCurrentCharacterProfileKey()
-    if charKey and charKey ~= "" then
+    if db.useGlobalProfile == true then
+        db.globalProfileKey = finalName
+    elseif db.usePerSpecProfiles == true then
+        local currentSpec = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID() or nil
+        if type(currentSpec) == "number" and currentSpec >= 1 and currentSpec <= 4 and addon.SetPerSpecProfileKey then
+            addon.SetPerSpecProfileKey(currentSpec, finalName)
+        elseif charKey and charKey ~= "" then
+            db.charProfileKeys = db.charProfileKeys or {}
+            db.charProfileKeys[charKey] = finalName
+        end
+    elseif charKey and charKey ~= "" then
         db.charProfileKeys = db.charProfileKeys or {}
         db.charProfileKeys[charKey] = finalName
     end

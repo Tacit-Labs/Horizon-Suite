@@ -2336,6 +2336,13 @@ function addon.ApplyOptionsClassColor()
     for _, r in ipairs(allRefreshers) do
         if r and r.Refresh then r:Refresh() end
     end
+    -- Dashboard detail widgets (Axis / module accordions) live in a separate
+    -- registry and are not in allRefreshers. Refresh them too so their track
+    -- fills pick up the new Def.TrackOn after a class-colour-affecting change.
+    local dash = _G.HorizonSuiteDashboard
+    if dash and dash._refreshDashboardDetailOptionFonts then
+        dash._refreshDashboardDetailOptionFonts()
+    end
 end
 -- Apply once on initial load (deferred so all widgets are built)
 C_Timer.After(0.1, function()
