@@ -1224,8 +1224,7 @@ local OptionCategories = {
                     if v and currentKey and addon.SetGlobalProfileKey then
                         addon.SetGlobalProfileKey(currentKey)
                     end
-                    OptionsData_NotifyMainAddon()
-                    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                    if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
                 end,
             }
 
@@ -1244,8 +1243,7 @@ local OptionCategories = {
                     set = function(v)
                         if addon.SetActiveProfileKey then addon.SetActiveProfileKey(v) end
                         addon._profileCopyFrom = nil
-                        OptionsData_NotifyMainAddon()
-                        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
                     end,
                 }
 
@@ -1284,8 +1282,7 @@ local OptionCategories = {
                             end
                         end
                         if addon.SetUsePerSpecProfiles then addon.SetUsePerSpecProfiles(v) end
-                        OptionsData_NotifyMainAddon()
-                        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
                     end,
                 }
 
@@ -1342,8 +1339,7 @@ local OptionCategories = {
                         end,
                         set = function(v)
                             if addon.SetPerSpecProfileKey then addon.SetPerSpecProfileKey(specIndex, v) end
-                            OptionsData_NotifyMainAddon()
-                            if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
                         end,
                     }
                 end
@@ -1453,8 +1449,7 @@ local OptionCategories = {
                         end
                         if addon.DeleteProfile and addon.DeleteProfile(k) then
                             addon._profileDeleteKey = nil
-                            OptionsData_NotifyMainAddon()
-                            if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
                         end
                     end,
                 }

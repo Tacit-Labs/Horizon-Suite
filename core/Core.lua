@@ -418,6 +418,30 @@ function addon.ApplyAllClassColorConsumers()
     if addon.Cache and addon.Cache.ApplyCacheOptions then addon.Cache.ApplyCacheOptions() end
 end
 
+--- Full refresh after the effective active profile key changes (dropdown, global /
+--- per-spec toggle, create, copy, delete, import, spec change). Restores positions
+--- and repaints every class-colour / accent / theme surface so the UI matches the
+--- new profile without a /reload or a Home-click.
+--- @return nil
+function addon.OnActiveProfileChanged()
+    if addon.RestoreSavedPosition then addon.RestoreSavedPosition() end
+    if addon.Cache and addon.Cache.RestoreSavedPosition then addon.Cache.RestoreSavedPosition() end
+    if addon.Essence and addon.Essence.ApplyPosition then addon.Essence.ApplyPosition() end
+    if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end
+    if addon.UpdateResizeHandleVisibility then addon.UpdateResizeHandleVisibility() end
+
+    if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
+    if addon.ApplyDashboardTypography then addon.ApplyDashboardTypography() end
+    if addon.ApplyAllClassColorConsumers then addon.ApplyAllClassColorConsumers() end
+    if addon.ApplyURLCopyBoxAccent then addon.ApplyURLCopyBoxAccent() end
+    if addon.focus and addon.focus.ApplyAuctionCraftDialogAccent then
+        addon.focus.ApplyAuctionCraftDialogAccent()
+    end
+
+    if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+end
+
 --- Returns the header bar height from DB or default, clamped to 18â€“48 px.
 --- @return number
 function addon.GetHeaderHeight()
@@ -898,8 +922,7 @@ function addon.TryDeleteProfileConfirmed(key)
     if addon.DeleteProfile and addon.DeleteProfile(key) then
         addon._profileDeleteKey = nil
         addon._profileCopyFrom = nil
-        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
         return true
     end
     return false
@@ -948,8 +971,7 @@ if StaticPopupDialogs then
             end
             -- TryCreateProfile switches active profile already.
             addon._profilePopupSourceKey = nil
-            if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-            if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
         end,
         EditBoxOnEnterPressed = function(self)
             local parent = self:GetParent()
@@ -1025,8 +1047,7 @@ if StaticPopupDialogs then
             addon._profileImportString = nil
             addon._profileImportValid = false
             if addon.HSPrint then addon.HSPrint("Imported profile: " .. tostring(result)) end
-            if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-            if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
         end,
         EditBoxOnEnterPressed = function(self)
             local parent = self:GetParent()
@@ -1069,10 +1090,7 @@ specChangeFrame:SetScript("OnEvent", function(_, event, unit)
     end
 
     C_Timer.After(0.1, function()
-        if addon.RestoreSavedPosition then addon.RestoreSavedPosition() end
-        if addon.UpdateResizeHandleVisibility then addon.UpdateResizeHandleVisibility() end
-        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
-        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
     end)
 end)
 
