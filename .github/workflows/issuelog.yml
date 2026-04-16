@@ -1,15 +1,15 @@
 name: Post Issue Log to Discord
-# Requires repository secret: DISCORD_WEBHOOK_ISSUELOG
-# Deletes old Discord message and posts a new one each run (triggers channel activity).
-# Message ID is persisted via GitHub Actions cache (delete-before-save to avoid immutability).
-# Scheduled daily at 13:17 UTC; also runs on issue events and manual dispatch.
+# Requires repository secret: DISCORD_WEBHOOK_ISSUELOG_V2
+# Posts the hero + category messages to Discord. Deletes old messages and
+# posts new ones each run (triggers channel activity).
+# Message IDs are persisted via GitHub Actions cache (delete-before-save
+# to avoid immutability). Scheduled daily at 13:17 UTC; also runs on manual
+# dispatch.
 
 on:
   workflow_dispatch:
   schedule:
     - cron: '17 13 * * *'   # daily @ 13:17 UTC
-  issues:
-    types: [opened, closed, edited, reopened]
 
 permissions:
   issues: read
@@ -35,7 +35,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .release/discord-issuelog-message-id
-          key: issuelog-msg-id-v2
+          key: issuelog-msg-ids
 
       - name: Generate issue log payloads
         run: bash .release/run-issuelog.sh
@@ -43,20 +43,21 @@ jobs:
       - name: Post or update Discord messages
         id: discord
         env:
-          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_ISSUELOG }}
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_ISSUELOG_V2 }}
         run: |
           MSG_ID_FILE=.release/discord-issuelog-message-id
           NEW_IDS=$(mktemp)
 
           if [ -z "${WEBHOOK_URL:-}" ]; then
-            echo "::notice::Discord issuelog skipped: repository secret DISCORD_WEBHOOK_ISSUELOG is not set (or empty)."
+            echo "::notice::Discord issuelog skipped: repository secret DISCORD_WEBHOOK_ISSUELOG_V2 is not set (or empty)."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             rm -f "$NEW_IDS"
             exit 0
           fi
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
-          # Delete all previously cached messages (one ID per line)
+          # Delete previously-cached messages (one ID per line).
+          # We delete-and-repost rather than edit so the post bumps the channel.
           if [ -f "$MSG_ID_FILE" ]; then
             while IFS= read -r id || [ -n "$id" ]; do
               id=$(echo "$id" | tr -d '[:space:]')
@@ -67,8 +68,8 @@ jobs:
             done < "$MSG_ID_FILE"
           fi
 
-          # Post each payload file in order; collect new message IDs
-          for type in bugs features improvements ideas; do
+          # Post in order: hero first, then categories.
+          for type in hero bugs features improvements ideas uncategorized; do
             PAYLOAD=".release/discord-issuelog-payload-${type}.json"
             if [ -f "$PAYLOAD" ]; then
               echo "Posting ${type} ($(wc -c < "$PAYLOAD") bytes)"
@@ -101,13 +102,12 @@ jobs:
 
           mv "$NEW_IDS" "$MSG_ID_FILE"
           echo "Cached $(wc -l < "$MSG_ID_FILE") message ID(s)"
-          # Output first ID for cache save condition
           echo "id=$(head -1 "$MSG_ID_FILE" 2>/dev/null || true)" >> $GITHUB_OUTPUT
 
-      - name: Save message IDs to cache
+      - name: Invalidate previous cache entry
         if: steps.discord.outputs.skip != 'true' && steps.discord.outputs.id != ''
         run: |
-          gh cache delete issuelog-msg-id-v2 --repo "$GITHUB_REPOSITORY" || true
+          gh cache delete issuelog-msg-ids --repo "$GITHUB_REPOSITORY" || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -116,5 +116,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .release/discord-issuelog-message-id
-          key: issuelog-msg-id-v2
-
+          key: issuelog-msg-ids
