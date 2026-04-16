@@ -34,11 +34,46 @@ HORIZON_LOGO="https://raw.githubusercontent.com/Tacit-Labs/Horizon-Suite/main/as
 AVATAR_URL="$HORIZON_LOGO"
 USERNAME="HorizonSuite Issue Bot"
 
-# --- Fetch open issues (auto-paginated) ---
-ISSUES=$(gh issue list --state open --json number,title,labels,body,url,createdAt,updatedAt,assignees --limit 1000 2>&1)
-if ! echo "$ISSUES" | jq empty >/dev/null 2>&1; then
-  echo "Error: gh issue list (open) failed or returned non-JSON:" >&2
-  echo "$ISSUES" | head -c 1200 >&2
+# --- Fetch open issues (auto-paginated via GraphQL) ---
+# GraphQL is required because the REST endpoint used by `gh issue list --json`
+# doesn't expose GitHub's Issue Types (Bug / Enhancement / ...). Issue type is
+# the primary signal for the Known Bugs bucket — label-only classification
+# silently drops every typed issue that isn't also tagged with a `bug` label.
+OWNER="${GITHUB_REPOSITORY%/*}"
+NAME="${GITHUB_REPOSITORY#*/}"
+ISSUES_RAW=$(gh api graphql --paginate \
+  -F owner="$OWNER" -F name="$NAME" \
+  -f query='
+query($owner: String!, $name: String!, $endCursor: String) {
+  repository(owner: $owner, name: $name) {
+    issues(first: 100, states: OPEN, after: $endCursor) {
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        number title url body createdAt updatedAt
+        labels(first: 30) { nodes { name } }
+        assignees(first: 5) { nodes { login } }
+        issueType { name }
+      }
+    }
+  }
+}' 2>&1)
+# Flatten pages (each `gh --paginate` response is its own JSON doc) into a
+# single array shaped like the old REST response, plus an `issueType` field.
+ISSUES=$(printf '%s' "$ISSUES_RAW" | jq -s '
+  [ .[].data.repository.issues.nodes[] | {
+      number, title, url, body, createdAt, updatedAt,
+      labels: [.labels.nodes[] | {name}],
+      assignees: [.assignees.nodes[] | {login}],
+      issueType: (.issueType.name // "")
+    } ]' 2>&1)
+if ! echo "$ISSUES" | jq -e 'type == "array"' >/dev/null 2>&1; then
+  echo "Error: GraphQL open-issues fetch failed or returned unexpected shape." >&2
+  echo "--- raw GraphQL output (first 1200 bytes) ---" >&2
+  printf '%s' "$ISSUES_RAW" | head -c 1200 >&2
+  echo "" >&2
+  echo "--- transform output (first 1200 bytes) ---" >&2
+  printf '%s' "$ISSUES" | head -c 1200 >&2
+  echo "" >&2
   exit 1
 fi
 open_total=$(echo "$ISSUES" | jq 'length')
@@ -96,6 +131,8 @@ while IFS= read -r line; do
   labels=$(echo "$line" | jq -r '.labels[].name' | tr '\n' ' ')
   labels_lc=$(echo "$labels" | tr '[:upper:]' '[:lower:]')
   body=$(echo "$line" | jq -r '.body // ""')
+  issue_type=$(echo "$line" | jq -r '.issueType // ""')
+  issue_type_lc=$(echo "$issue_type" | tr '[:upper:]' '[:lower:]')
 
   # Module tag (matches v1 detection)
   module=""
@@ -109,6 +146,7 @@ while IFS= read -r line; do
   elif [[ "$labels_lc" =~ \[module\]\ verse ]]; then module="Verse"
   elif [[ "$labels_lc" =~ \[module\]\ essence ]]; then module="Essence"
   elif [[ "$labels_lc" =~ \[module\]\ flow ]]; then module="Flow"
+  elif [[ "$labels_lc" =~ \[module\]\ meridian ]]; then module="Meridian"
   elif [[ "$labels_lc" =~ (^|[[:space:]])focus($|[[:space:]]) ]]; then module="Focus"
   elif [[ "$labels_lc" =~ (^|[[:space:]])presence($|[[:space:]]) ]]; then module="Presence"
   elif [[ "$labels_lc" =~ (^|[[:space:]])core($|[[:space:]]) ]]; then module="Core"
@@ -169,7 +207,13 @@ while IFS= read -r line; do
   sort_line=$(printf '%s\t%d\t%d\t%s' "$mod_key" "$prio_rank" "$age_days" "$bullet")
 
   bucket=""
-  if [[ "$labels_lc" =~ (^|[[:space:]])bug($|[[:space:]]) ]]; then
+  # Classification precedence:
+  #   1. GitHub Issue Type (Bug / Enhancement) — authoritative when set
+  #   2. Category labels — fallback for issues without a type
+  #   3. Uncategorized — surfaced so triagers can label them
+  # Localisation accepts both the British (`localisation`) and American
+  # (`localization`) spellings so a rename of the label doesn't break bucketing.
+  if [ "$issue_type_lc" = "bug" ] || [[ "$labels_lc" =~ (^|[[:space:]])bug($|[[:space:]]) ]]; then
     bucket="bugs"
     BUGS="${BUGS}${sort_line}"$'\n'
     count_bugs=$((count_bugs + 1))
@@ -181,12 +225,20 @@ while IFS= read -r line; do
     count_features=$((count_features + 1))
     [ "$is_stale" -eq 1 ] && stale_features=$((stale_features + 1))
     [ -n "$assignee" ] && assigned_features=$((assigned_features + 1))
-  elif [[ "$labels_lc" =~ \[enhancement\]\ improvement ]] || [[ "$labels_lc" =~ \[enhancement\]\ localization ]] || [[ "$labels_lc" =~ (^|[[:space:]])improvement($|[[:space:]]) ]]; then
+  elif [[ "$labels_lc" =~ \[enhancement\]\ improvement ]] || [[ "$labels_lc" =~ \[enhancement\]\ localisation ]] || [[ "$labels_lc" =~ \[enhancement\]\ localization ]] || [[ "$labels_lc" =~ (^|[[:space:]])improvement($|[[:space:]]) ]]; then
     bucket="improvements"
     IMPROVEMENTS="${IMPROVEMENTS}${sort_line}"$'\n'
     count_improvements=$((count_improvements + 1))
     [ "$is_stale" -eq 1 ] && stale_improvements=$((stale_improvements + 1))
     [ -n "$assignee" ] && assigned_improvements=$((assigned_improvements + 1))
+  elif [ "$issue_type_lc" = "enhancement" ]; then
+    # Typed as Enhancement but no feature/improvement sub-label — default to
+    # features so it still surfaces rather than falling to Uncategorized.
+    bucket="features"
+    FEATURES="${FEATURES}${sort_line}"$'\n'
+    count_features=$((count_features + 1))
+    [ "$is_stale" -eq 1 ] && stale_features=$((stale_features + 1))
+    [ -n "$assignee" ] && assigned_features=$((assigned_features + 1))
   elif [[ "$labels_lc" =~ (^|[[:space:]])idea($|[[:space:]]) ]]; then
     bucket="ideas"
     IDEAS="${IDEAS}${sort_line}"$'\n'
@@ -194,8 +246,6 @@ while IFS= read -r line; do
     [ "$is_stale" -eq 1 ] && stale_ideas=$((stale_ideas + 1))
     [ -n "$assignee" ] && assigned_ideas=$((assigned_ideas + 1))
   else
-    # Didn't match any category label — surface in the log so it can be
-    # triaged instead of silently dropped from the totals.
     bucket="uncategorized"
     UNCATEGORIZED="${UNCATEGORIZED}${sort_line}"$'\n'
     count_uncategorized=$((count_uncategorized + 1))
@@ -344,6 +394,7 @@ module_emoji() {
     Cache)     printf '🎒' ;;
     Essence)   printf '📜' ;;
     Flow)      printf '💬' ;;
+    Meridian)  printf '🧭' ;;
     Core)      printf '🧩' ;;
     Pulse)     printf '❤️' ;;
     Verse)     printf '🎨' ;;
