@@ -538,6 +538,12 @@ local function FullLayout()
                         sec:ClearAllPoints()
                         local x = addon.GetScaledPadding()
                         sec:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", x, yOff)
+                        -- Span to the visible tracker edge so section chevron+label land
+                        -- on the correct edge in both left- and right-alignment modes.
+                        local secW = addon.GetPanelWidth() - x - addon.GetScaledContentRightPadding()
+                        if secW > 0 then
+                            sec:SetWidth(secW)
+                        end
                         sec.finalX, sec.finalY = x, yOff
                         yOff = yOff - addon.GetSectionHeaderHeight() - addon.GetSectionToEntryGap()
                     end
@@ -1101,6 +1107,15 @@ local function FullLayout()
                 sec:ClearAllPoints()
                 local x = addon.GetScaledPadding()
                 sec:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", x, yOff)
+                -- Size the section frame to span the full visible tracker width so that
+                -- the chevron (anchored to the section's inner-start edge) sits at the
+                -- tracker's edge in both alignment modes.
+                local sfLeftInsetSec = (blockFrame and blockPos == "top") and addon.GetScaledPadding() or 0
+                local sfVisibleWSec = addon.GetPanelWidth() - sfLeftInsetSec
+                local secW = sfVisibleWSec - x - addon.GetScaledContentRightPadding()
+                if secW > 0 then
+                    sec:SetWidth(secW)
+                end
                 sec.finalX, sec.finalY = x, yOff
                 sec._scrollFadeSpacing = addon.GetSectionToEntryGap()
                 sec._scrollFadeLeadingGap = sectionGap
