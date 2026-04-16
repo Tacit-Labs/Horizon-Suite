@@ -15,6 +15,23 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.12.3"] = {
+        date = "2026-04-16",
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: module name style setting — Horizon (code-name only), Subtitle (e.g. 'Vista – Minimap'), or Descriptive (plain-language only). Applies across options navigation and headers.",
+                "Focus: with Grow Upwards enabled, section header priority order now flips so High priority sits closest to the Objectives header.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Current Event reappears for untracked World Quests when you enter their zone, without needing to re-track the quest.",
+            },
+        },
+    },
+
     ["4.12.2"] = {
         date = "2026-04-14",
         {

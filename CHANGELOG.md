@@ -10,6 +10,19 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.12.3] – 2026-04-16
+
+### 🔧 Improvements
+
+- **(Axis) Module name style** — New setting to control how module names appear: **Horizon** (code-name only, default), **Subtitle** (e.g. "Vista – Minimap"), or **Descriptive** (plain-language name only). Applies across options navigation and section headers.
+- **(Focus) Grow Upwards priority order** — With **Grow Upwards** enabled, section headers now visually flip so High priority sits closest to the Objectives header at the bottom, matching the reversed growth direction.
+
+### 🐛 Fixes
+
+- **(Focus)** Current Event now reappears for World Quests you have **untracked** when you enter their zone, so the in-area event banner works without needing to re-track the quest.
+
+---
+
 ## [4.12.2] – 2026-04-14
 
 ### 🔧 Improvements
