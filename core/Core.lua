@@ -968,7 +968,6 @@ if StaticPopupDialogs then
         timeout = 0,
         whileDead = true,
         hideOnEscape = true,
-        enterClicksFirstButton = true,
         preferredIndex = 3,
         OnShow = function(self)
             local eb = self.editBox or self.EditBox
@@ -994,6 +993,19 @@ if StaticPopupDialogs then
             -- TryCreateProfile switches active profile already.
             addon._profilePopupSourceKey = nil
             if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+        end,
+        -- Enter in the edit box invokes OnAccept directly. Bypasses
+        -- parent.button1 resolution (which was closing the dialog without
+        -- creating in 12.0 StaticPopup) and the enterClicksFirstButton flag
+        -- (not honoured on this StaticPopup path in 12.0).
+        EditBoxOnEnterPressed = function(self)
+            local parent = self:GetParent()
+            if not parent or not parent.which then return end
+            local info = StaticPopupDialogs[parent.which]
+            if info and info.OnAccept then
+                info.OnAccept(parent, parent.data, parent.data2)
+            end
+            if StaticPopup_Hide then StaticPopup_Hide(parent.which, parent.data) end
         end,
     }
 
@@ -1025,7 +1037,6 @@ if StaticPopupDialogs then
         timeout = 0,
         whileDead = true,
         hideOnEscape = true,
-        enterClicksFirstButton = true,
         preferredIndex = 3,
         OnShow = function(self)
             local eb = self.editBox or self.EditBox
@@ -1057,6 +1068,15 @@ if StaticPopupDialogs then
             addon._profileImportValid = false
             if addon.HSPrint then addon.HSPrint("Imported profile: " .. tostring(result)) end
             if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+        end,
+        EditBoxOnEnterPressed = function(self)
+            local parent = self:GetParent()
+            if not parent or not parent.which then return end
+            local info = StaticPopupDialogs[parent.which]
+            if info and info.OnAccept then
+                info.OnAccept(parent, parent.data, parent.data2)
+            end
+            if StaticPopup_Hide then StaticPopup_Hide(parent.which, parent.data) end
         end,
     }
 
