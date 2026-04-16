@@ -80,6 +80,7 @@ L["OPTIONS_AXIS_MODULE_NAME_SUBTITLE"]                                = "Subtitl
 L["OPTIONS_AXIS_MODULE_NAME_DESCRIPTIVE"]                             = "Descriptive"
 L["OPTIONS_MODULE_RELOAD_HINT"]                                       = "Reload the interface to finish applying module changes."
 L["OPTIONS_MODULE_RELOAD_BUTTON"]                                     = "Reload UI"
+L["OPTIONS_AXIS_PROFILE_RELOAD_HINT"]                                 = "Reload the interface to finish applying profile changes."
 
 -- =====================================================================
 -- options/dashboard/HomeWelcome.lua — First-run welcome

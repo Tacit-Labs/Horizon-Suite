@@ -421,7 +421,9 @@ end
 --- Full refresh after the effective active profile key changes (dropdown, global /
 --- per-spec toggle, create, copy, delete, import, spec change). Restores positions
 --- and repaints every class-colour / accent / theme surface so the UI matches the
---- new profile without a /reload or a Home-click.
+--- new profile without a /reload or a Home-click. Also flags a reload prompt so
+--- settings that only apply at load (module enables, initial geometry) can be
+--- picked up when the user is ready.
 --- @return nil
 function addon.OnActiveProfileChanged()
     if addon.RestoreSavedPosition then addon.RestoreSavedPosition() end
@@ -437,6 +439,9 @@ function addon.OnActiveProfileChanged()
     if addon.focus and addon.focus.ApplyAuctionCraftDialogAccent then
         addon.focus.ApplyAuctionCraftDialogAccent()
     end
+
+    addon._moduleReloadRecommended = true
+    if addon.Dashboard_Refresh then addon.Dashboard_Refresh() end
 
     if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end

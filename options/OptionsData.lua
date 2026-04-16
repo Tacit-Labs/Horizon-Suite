@@ -1210,6 +1210,12 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_PROFILES"] or "Profiles" }
 
             opts[#opts + 1] = {
+                type = "moduleReloadPrompt",
+                hint = L["OPTIONS_AXIS_PROFILE_RELOAD_HINT"]
+                    or "Reload the interface to finish applying profile changes.",
+            }
+
+            opts[#opts + 1] = {
                 type = "toggle",
                 name = L["OPTIONS_AXIS_GLOBAL_PROFILE"] or "Global profile",
                 desc = L["OPTIONS_AXIS_CHARACTERS_SAME_PROFILE"] or "All characters use the same profile.",
