@@ -34,3 +34,7 @@ tools/gitlab-issues-dry-run-example.json
 tools/gitlab-issue-import-results.json
 /wowapi/
 assets\social
+
+# Python bytecode
+__pycache__/
+*.pyc
