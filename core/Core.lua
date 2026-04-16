@@ -968,6 +968,7 @@ if StaticPopupDialogs then
         timeout = 0,
         whileDead = true,
         hideOnEscape = true,
+        enterClicksFirstButton = true,
         preferredIndex = 3,
         OnShow = function(self)
             local eb = self.editBox or self.EditBox
@@ -993,20 +994,6 @@ if StaticPopupDialogs then
             -- TryCreateProfile switches active profile already.
             addon._profilePopupSourceKey = nil
             if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
-        end,
-        EditBoxOnEnterPressed = function(self)
-            local parent = self:GetParent()
-            if parent then
-                local btn = parent.button1 or (parent.Buttons and parent.Buttons[1])
-                if btn then btn:Click() end
-            end
-        end,
-        EditBoxOnEscapePressed = function(self)
-            local parent = self:GetParent()
-            if parent then
-                local btn = parent.button2 or (parent.Buttons and parent.Buttons[2])
-                if btn then btn:Click() end
-            end
         end,
     }
 
@@ -1038,6 +1025,7 @@ if StaticPopupDialogs then
         timeout = 0,
         whileDead = true,
         hideOnEscape = true,
+        enterClicksFirstButton = true,
         preferredIndex = 3,
         OnShow = function(self)
             local eb = self.editBox or self.EditBox
@@ -1069,20 +1057,6 @@ if StaticPopupDialogs then
             addon._profileImportValid = false
             if addon.HSPrint then addon.HSPrint("Imported profile: " .. tostring(result)) end
             if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
-        end,
-        EditBoxOnEnterPressed = function(self)
-            local parent = self:GetParent()
-            if parent then
-                local btn = parent.button1 or (parent.Buttons and parent.Buttons[1])
-                if btn then btn:Click() end
-            end
-        end,
-        EditBoxOnEscapePressed = function(self)
-            local parent = self:GetParent()
-            if parent then
-                local btn = parent.button2 or (parent.Buttons and parent.Buttons[2])
-                if btn then btn:Click() end
-            end
         end,
     }
 
