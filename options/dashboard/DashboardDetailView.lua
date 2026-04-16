@@ -1194,8 +1194,7 @@ function addon.DashboardDetailView_Init(env)
                     widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, onClick, { tooltip = opt.tooltip })
                 elseif opt.type == "moduleReloadPrompt" then
                     local container = CreateFrame("Frame", nil, currentCard.settingsContainer)
-                    local hintText = opt.hint or L["OPTIONS_MODULE_RELOAD_HINT"] or "Reload the interface to finish applying module changes."
-                    local hint = MakeText(container, hintText, 12, 0.65, 0.68, 0.75, "LEFT")
+                    local hint = MakeText(container, L["OPTIONS_MODULE_RELOAD_HINT"] or "Reload the interface to finish applying module changes.", 12, 0.65, 0.68, 0.75, "LEFT")
                     hint:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
                     hint:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
                     hint:SetWordWrap(true)

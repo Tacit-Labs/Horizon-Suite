@@ -79,7 +79,6 @@ L["OPTIONS_AXIS_MODULE_TOGGLES"]                                      = "Module 
 L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"]                           = "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
 L["OPTIONS_MODULE_RELOAD_HINT"]                                       = "Reload the interface to finish applying module changes."
 L["OPTIONS_MODULE_RELOAD_BUTTON"]                                     = "Reload UI"
-L["OPTIONS_AXIS_PROFILE_RELOAD_HINT"]                                 = "Reload the interface to finish applying profile changes."
 
 -- =====================================================================
 -- options/dashboard/HomeWelcome.lua — First-run welcome

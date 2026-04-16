@@ -450,35 +450,17 @@ local function SyncModulesFromActiveProfile()
     end
 end
 
---- Full refresh after the effective active profile key changes (dropdown, global /
---- per-spec toggle, create, copy, delete, import, spec change). Restores positions
---- and repaints every class-colour / accent / theme surface so the UI matches the
---- new profile without a /reload or a Home-click. Also flags a reload prompt so
---- settings that only apply at load (module enables, initial geometry) can be
---- picked up when the user is ready.
+--- Called after any change to the effective active profile key (dropdown,
+--- global / per-spec toggle, create, copy, delete, import, spec change).
+--- Syncs db.modules from the new profile so SavedVariables records the
+--- correct module layout, then issues a ReloadUI so every module, cached
+--- frame, and OnInit path comes up against the new profile — identical to
+--- the Module Toggles reload flow and avoids the prior "swap requires
+--- extra clicks / reload prompt" workaround.
 --- @return nil
 function addon.OnActiveProfileChanged()
     SyncModulesFromActiveProfile()
-
-    if addon.RestoreSavedPosition then addon.RestoreSavedPosition() end
-    if addon.Cache and addon.Cache.RestoreSavedPosition then addon.Cache.RestoreSavedPosition() end
-    if addon.Essence and addon.Essence.ApplyPosition then addon.Essence.ApplyPosition() end
-    if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end
-    if addon.UpdateResizeHandleVisibility then addon.UpdateResizeHandleVisibility() end
-
-    if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
-    if addon.ApplyDashboardTypography then addon.ApplyDashboardTypography() end
-    if addon.ApplyAllClassColorConsumers then addon.ApplyAllClassColorConsumers() end
-    if addon.ApplyURLCopyBoxAccent then addon.ApplyURLCopyBoxAccent() end
-    if addon.focus and addon.focus.ApplyAuctionCraftDialogAccent then
-        addon.focus.ApplyAuctionCraftDialogAccent()
-    end
-
-    addon._moduleReloadRecommended = true
-    if addon.Dashboard_Refresh then addon.Dashboard_Refresh() end
-
-    if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
-    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+    ReloadUI()
 end
 
 --- Returns the header bar height from DB or default, clamped to 18â€“48 px.

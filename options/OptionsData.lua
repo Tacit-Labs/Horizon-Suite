@@ -1247,12 +1247,6 @@ local OptionCategories = {
                     end,
                 }
 
-                opts[#opts + 1] = {
-                    type = "moduleReloadPrompt",
-                    hint = L["OPTIONS_AXIS_PROFILE_RELOAD_HINT"]
-                        or "Reload the interface to finish applying profile changes.",
-                }
-
                 -- Section B: Per-spec switch + spec dropdowns
                 opts[#opts + 1] = { type = "section", name = L["OPTIONS_AXIS_SPECIALIZATION"] or "Specialization" }
 
