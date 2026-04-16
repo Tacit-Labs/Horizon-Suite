@@ -418,6 +418,38 @@ function addon.ApplyAllClassColorConsumers()
     if addon.Cache and addon.Cache.ApplyCacheOptions then addon.Cache.ApplyCacheOptions() end
 end
 
+--- Sync db.modules[key].enabled from the active profile's modules map so the
+--- next ReloadUI starts with the new profile's module on/off state. Enable /
+--- teardown of modules in-memory requires a reload (OnInit/OnDisable are not
+--- idempotent across the full stack), so the reload prompt handles that step.
+local function SyncModulesFromActiveProfile()
+    if not addon.GetActiveProfile then return end
+    local profile = addon.GetActiveProfile()
+    if type(profile) ~= "table" then return end
+    local db = rawDB()
+    if not db then return end
+    db.modules = db.modules or {}
+    if type(profile.modules) ~= "table" then
+        -- Seed the profile from the current root db.modules so every profile owns
+        -- its module state going forward; avoids the next module toggle orphaning
+        -- previous state under the prior profile.
+        local seeded = {}
+        for mk, md in pairs(db.modules) do
+            if type(md) == "table" then
+                seeded[mk] = { enabled = md.enabled ~= false }
+            end
+        end
+        profile.modules = seeded
+        return
+    end
+    for mk, md in pairs(profile.modules) do
+        if type(md) == "table" then
+            db.modules[mk] = db.modules[mk] or {}
+            db.modules[mk].enabled = md.enabled and true or false
+        end
+    end
+end
+
 --- Full refresh after the effective active profile key changes (dropdown, global /
 --- per-spec toggle, create, copy, delete, import, spec change). Restores positions
 --- and repaints every class-colour / accent / theme surface so the UI matches the
@@ -426,6 +458,8 @@ end
 --- picked up when the user is ready.
 --- @return nil
 function addon.OnActiveProfileChanged()
+    SyncModulesFromActiveProfile()
+
     if addon.RestoreSavedPosition then addon.RestoreSavedPosition() end
     if addon.Cache and addon.Cache.RestoreSavedPosition then addon.Cache.RestoreSavedPosition() end
     if addon.Essence and addon.Essence.ApplyPosition then addon.Essence.ApplyPosition() end
