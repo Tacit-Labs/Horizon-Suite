@@ -498,11 +498,14 @@ local function ApplyHighlightStyle(entry, questData)
     local topPadding = (questData.isSuperTracked and highlightStyle == "bar-top") and barW or 0
     local bottomPadding = (questData.isSuperTracked and highlightStyle == "bar-bottom") and barW or 0
 
-    entry.titleText:ClearAllPoints()
-    -- Keep the pool's default left padding (1-space) and just apply topPadding.
-    local x, y = entry.titleText:GetPoint(1)
-    local xOff = (type(x) == "number") and x or 4
-    entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", xOff, -topPadding)
+    -- Keep the pool's default inner-start padding and just apply topPadding.
+    -- NOTE: read GetPoint *before* clearing; the old code read it after and always fell
+    -- through to the default 4px offset.
+    local _, _, _, x = entry.titleText:GetPoint(1)
+    local xOff = (type(x) == "number") and math.abs(x) or 4
+    addon.AnchorInnerStart(entry.titleText, entry, xOff, -topPadding)
+    addon.ApplyAlignedJustify(entry.titleText)
+    addon.ApplyAlignedJustify(entry.titleShadow)
     entry.titleShadow:ClearAllPoints()
     entry.titleShadow:SetPoint("CENTER", entry.titleText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
@@ -555,8 +558,11 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     local objIndent = addon.GetObjIndent()
     -- Indentation now comes from the entry's padded title anchor; keep objective indent consistent.
 
-    -- Additional left padding for objectives only (not zone line), matching bar->icon gap when icons are enabled.
-    local OBJ_EXTRA_LEFT_PAD = S(14)
+    -- Additional inner-start padding for the first objective, matching bar->icon gap when
+    -- icons are enabled. In right-mode the icon/bar sit on the right side of the entry and
+    -- this pad would push objectives away from the shared right edge the user expects, so
+    -- it is disabled when right-aligned to keep all objectives flush with the title.
+    local OBJ_EXTRA_LEFT_PAD = addon.IsFocusRightAligned() and 0 or S(14)
 
     local objTextWidth = textWidth - objIndent
     if objTextWidth < 1 then objTextWidth = addon.GetPanelWidth() - S(addon.PADDING) * 2 - objIndent - S(addon.CONTENT_RIGHT_PADDING or 0) end
@@ -782,8 +788,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             local tickSize = math.max(10, (tonumber(addon.GetDB("objectiveFontSize", 11)) or 11) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
             if useTick and obj.tick then
                 obj.tick:SetSize(tickSize, tickSize)
-                obj.tick:ClearAllPoints()
-                obj.tick:SetPoint("RIGHT", obj.text, "LEFT", -4, 0)
+                -- Tick sits on the outer side of the visible text (left of text in left-mode,
+                -- right of text in right-mode).
+                addon.AnchorTickOuter(obj.tick, obj.text, 4)
                 obj.tick:Show()
             elseif obj.tick then
                 obj.tick:Hide()
@@ -812,21 +819,22 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 obj.text:SetTextColor(useObjColor[1], useObjColor[2], useObjColor[3], outA)
             end
 
-            obj.text:ClearAllPoints()
             -- First objective gets inset from title; subsequent objectives align with it.
-            -- When prevAnchor is titleText, use effectiveTitleRowH so objectives sit below inline timer (world quests, etc.).
+            -- When prevAnchor is titleText, use effectiveTitleRowH so objectives sit below inline timer.
             -- Use titleGap (title-to-content) for first objective below title; objSpacing for subsequent.
-            local leftPad = leftPadThisRow
+            local leftPad = leftPadThisRow  -- interpreted as "inner-start inset" (helper handles sign)
             local gapForThisObj = (shownObjs == 0 and prevAnchor == entry.titleText) and titleGap or objSpacing
             local affixH = entry._affixBlockHeight
+            addon.ApplyAlignedJustify(obj.text)
+            addon.ApplyAlignedJustify(obj.shadow)
             if shownObjs == 0 and entry.affixText and prevAnchor == entry.affixText
                 and type(affixH) == "number" and affixH > 0 then
-                -- Anchor from left edge of affix block; prevFs would be the last segment (wrong X when affixes wrap).
-                obj.text:SetPoint("TOPLEFT", entry.affixText, "TOPLEFT", leftPad, -affixH - gapForThisObj)
+                -- First objective attaches to the affix block's inner-start top edge.
+                addon.AnchorAtInnerStart(obj.text, entry.affixText, leftPad, -affixH - gapForThisObj)
             elseif shownObjs == 0 and prevAnchor == entry.titleText and effectiveTitleRowH then
-                obj.text:SetPoint("TOPLEFT", prevAnchor, "TOPLEFT", leftPad, -effectiveTitleRowH - gapForThisObj)
+                addon.AnchorAtInnerStart(obj.text, prevAnchor, leftPad, -effectiveTitleRowH - gapForThisObj)
             else
-                obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", leftPad, -gapForThisObj)
+                addon.AnchorBelowInnerStart(obj.text, prevAnchor, leftPad, -gapForThisObj)
             end
             obj.text:Show()
             obj.shadow:Show()
@@ -874,15 +882,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 local fraction = math.min(nf / nr, 1)
                 local fillW = math.max(1, barW * fraction)
 
-                obj.progressBarBg:ClearAllPoints()
-                obj.progressBarBg:SetPoint("TOPLEFT", obj.text, "BOTTOMLEFT", 0, -PROGRESS_BAR_SPACING)
+                -- Progress bar hugs the inner-start edge of obj.text and fills from that edge.
+                addon.AnchorBelowInnerStart(obj.progressBarBg, obj.text, 0, -PROGRESS_BAR_SPACING)
                 obj.progressBarBg:SetSize(barW, PROGRESS_BAR_HEIGHT)
                 obj.progressBarBg:SetColorTexture(0.15, 0.15, 0.18, 0.7)
                 obj.progressBarBg:Show()
 
-                obj.progressBarFill:ClearAllPoints()
-                obj.progressBarFill:SetPoint("TOPLEFT", obj.progressBarBg, "TOPLEFT", 0, 0)
-                obj.progressBarFill:SetPoint("BOTTOMLEFT", obj.progressBarBg, "BOTTOMLEFT", 0, 0)
+                addon.AnchorBarFill(obj.progressBarFill, obj.progressBarBg)
                 obj.progressBarFill:SetWidth(fillW)
                 addon.ApplyProgressBarFillTexture(obj.progressBarFill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
                 obj.progressBarFill:Show()
@@ -905,15 +911,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 local fraction = math.min(math.max(0, pctVal / 100), 1)
                 local fillW = math.max(1, barW * fraction)
 
-                obj.progressBarBg:ClearAllPoints()
-                obj.progressBarBg:SetPoint("TOPLEFT", obj.text, "BOTTOMLEFT", 0, -PROGRESS_BAR_SPACING)
+                -- Progress bar hugs the inner-start edge of obj.text and fills from that edge.
+                addon.AnchorBelowInnerStart(obj.progressBarBg, obj.text, 0, -PROGRESS_BAR_SPACING)
                 obj.progressBarBg:SetSize(barW, PROGRESS_BAR_HEIGHT)
                 obj.progressBarBg:SetColorTexture(0.15, 0.15, 0.18, 0.7)
                 obj.progressBarBg:Show()
 
-                obj.progressBarFill:ClearAllPoints()
-                obj.progressBarFill:SetPoint("TOPLEFT", obj.progressBarBg, "TOPLEFT", 0, 0)
-                obj.progressBarFill:SetPoint("BOTTOMLEFT", obj.progressBarBg, "BOTTOMLEFT", 0, 0)
+                addon.AnchorBarFill(obj.progressBarFill, obj.progressBarBg)
                 obj.progressBarFill:SetWidth(fillW)
                 addon.ApplyProgressBarFillTexture(obj.progressBarFill, progFillColor[1], progFillColor[2], progFillColor[3], progFillColor[4] or 0.85)
                 obj.progressBarFill:Show()
@@ -967,15 +971,16 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         obj._hsFinished = true
         obj._hsAlpha = 1
         obj.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
-        obj.text:ClearAllPoints()
+        addon.ApplyAlignedJustify(obj.text)
+        addon.ApplyAlignedJustify(obj.shadow)
         local gapForComplete = (prevAnchor == entry.titleText) and titleGap or objSpacing
         local affixH = entry._affixBlockHeight
         if entry.affixText and prevAnchor == entry.affixText and type(affixH) == "number" and affixH > 0 then
-            obj.text:SetPoint("TOPLEFT", entry.affixText, "TOPLEFT", OBJ_EXTRA_LEFT_PAD, -affixH - gapForComplete)
+            addon.AnchorAtInnerStart(obj.text, entry.affixText, OBJ_EXTRA_LEFT_PAD, -affixH - gapForComplete)
         elseif prevAnchor == entry.titleText and effectiveTitleRowH then
-            obj.text:SetPoint("TOPLEFT", prevAnchor, "TOPLEFT", OBJ_EXTRA_LEFT_PAD, -effectiveTitleRowH - gapForComplete)
+            addon.AnchorAtInnerStart(obj.text, prevAnchor, OBJ_EXTRA_LEFT_PAD, -effectiveTitleRowH - gapForComplete)
         else
-            obj.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", OBJ_EXTRA_LEFT_PAD, -gapForComplete)
+            addon.AnchorBelowInnerStart(obj.text, prevAnchor, OBJ_EXTRA_LEFT_PAD, -gapForComplete)
         end
         obj.text:Show()
         obj.shadow:Show()
@@ -994,8 +999,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj2._hsFinished = true
             obj2._hsAlpha = 1
             obj2.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
-            obj2.text:ClearAllPoints()
-            obj2.text:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -objSpacing)
+            addon.ApplyAlignedJustify(obj2.text)
+            addon.ApplyAlignedJustify(obj2.shadow)
+            addon.AnchorBelowInnerStart(obj2.text, prevAnchor, 0, -objSpacing)
             obj2.text:Show()
             obj2.shadow:Show()
             local obj2H = obj2.text:GetStringHeight()
@@ -1592,7 +1598,11 @@ local function PopulateEntry(entry, questData, groupKey)
             local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
             local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
             local iconTitleGap = S(6)
-            if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
+            if addon.IsFocusRightAligned() then
+                -- Right-mode: quest type icon lives INSIDE the entry at its right edge
+                -- (see FocusLayout). Title must inset from the right so it doesn't overlap.
+                extraTitlePad = iconW + iconTitleGap
+            elseif highlightStyle == "bar-left" or highlightStyle == "pill-left" then
                 -- Icon is left of bar; bar is left of entry (negative x).
                 -- Text starts at entry TOPLEFT — no indent needed to clear icon or bar.
             else
@@ -1600,11 +1610,12 @@ local function PopulateEntry(entry, questData, groupKey)
             end
         end
 
-        -- Preserve any vertical padding already applied (e.g. bar-top highlight style)
-        local _, _, _, curX, curY = entry.titleText:GetPoint(1)
+        -- Preserve any vertical padding already applied (e.g. bar-top highlight style).
+        local _, _, _, _, curY = entry.titleText:GetPoint(1)
         curY = (type(curY) == "number") and curY or 0
-        entry.titleText:ClearAllPoints()
-        entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", basePad + extraTitlePad, curY)
+        addon.AnchorInnerStart(entry.titleText, entry, basePad + extraTitlePad, curY)
+        addon.ApplyAlignedJustify(entry.titleText)
+        addon.ApplyAlignedJustify(entry.titleShadow)
         entry.titleShadow:ClearAllPoints()
         entry.titleShadow:SetPoint("CENTER", entry.titleText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
         return extraTitlePad
@@ -1728,7 +1739,14 @@ local function PopulateEntry(entry, questData, groupKey)
         if needSuffix then
             local iconKey = addon.GetDB("autoTrackIcon", "radar1")
             local iconPath = addon.GetRadarIconPath and addon.GetRadarIconPath(iconKey) or ("Interface\\AddOns\\HorizonSuite\\media\\" .. iconKey .. ".blp")
-            displayTitle = displayTitle .. " |T" .. iconPath .. ":0|t"
+            local iconMarkup = "|T" .. iconPath .. ":0|t"
+            if addon.IsFocusRightAligned() then
+                -- Right-mode: icon leads the title so it sits on the side opposite the
+                -- trailing text edge (mirror of the left-mode trailing-icon convention).
+                displayTitle = iconMarkup .. " " .. displayTitle
+            else
+                displayTitle = displayTitle .. " " .. iconMarkup
+            end
         end
     end
     displayTitle = addon.ApplyTextCase(displayTitle, "questTitleCase", "proper")
@@ -1759,6 +1777,9 @@ local function PopulateEntry(entry, questData, groupKey)
             entry.inlineTimerText:SetText(" (" .. entry._inlineTimerStr .. ")")
             local timerStrWidth = entry.inlineTimerText:GetStringWidth() or 0
             local tw = titleWidth or textWidth
+            local alignRight = addon.IsFocusRightAligned()
+            addon.ApplyAlignedJustify(entry.inlineTimerText)
+            if entry.inlineTimerShadow then addon.ApplyAlignedJustify(entry.inlineTimerShadow) end
             -- When timer doesn't fit beside title (or user chose inline-below), put it on its own line with full width
             local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetTitleToContentSpacing()
             local preferTimerBelow = (timerDisplayMode == "inline-below")
@@ -1768,11 +1789,17 @@ local function PopulateEntry(entry, questData, groupKey)
                 local remainingWidth = math.max(1, tw - sameLineStartX)
                 if preferTimerBelow or remainingWidth < timerStrWidth then
                     entry.inlineTimerText:SetWidth(tw)
-                    entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                    addon.AnchorBelowInnerStart(entry.inlineTimerText, entry.titleText, 0, -titleToContentSpacing)
                     entry._inlineTimerOnOwnLine = true
                 else
                     entry.inlineTimerText:SetWidth(remainingWidth)
-                    entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", sameLineStartX, 0)
+                    -- Inline same-row: in left-mode timer sits to the right of visible title; in
+                    -- right-mode it sits to the left of visible title (the trailing reading edge).
+                    if alignRight then
+                        entry.inlineTimerText:SetPoint("RIGHT", entry.titleText, "RIGHT", -sameLineStartX, 0)
+                    else
+                        entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", sameLineStartX, 0)
+                    end
                     entry._inlineTimerOnOwnLine = false
                 end
             else
@@ -1781,11 +1808,16 @@ local function PopulateEntry(entry, questData, groupKey)
                 local remainingWidth = math.max(1, tw - titleAnchorX - 2)
                 if preferTimerBelow or remainingWidth < timerStrWidth then
                     entry.inlineTimerText:SetWidth(tw)
-                    entry.inlineTimerText:SetPoint("TOPLEFT", entry.titleText, "BOTTOMLEFT", 0, -titleToContentSpacing)
+                    addon.AnchorBelowInnerStart(entry.inlineTimerText, entry.titleText, 0, -titleToContentSpacing)
                     entry._inlineTimerOnOwnLine = true
                 else
                     entry.inlineTimerText:SetWidth(remainingWidth)
-                    entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
+                    if alignRight then
+                        -- Timer's RIGHT edge sits just before title's visible text starts.
+                        entry.inlineTimerText:SetPoint("RIGHT", entry.titleText, "RIGHT", -(titleAnchorX + 2), 0)
+                    else
+                        entry.inlineTimerText:SetPoint("LEFT", entry.titleText, "LEFT", titleAnchorX + 2, 0)
+                    end
                     entry._inlineTimerOnOwnLine = false
                 end
             end
@@ -1933,8 +1965,9 @@ local function PopulateEntry(entry, questData, groupKey)
             zoneColor = addon.ApplyDimColor(zoneColor)
         end
         entry.zoneText:SetTextColor(zoneColor[1], zoneColor[2], zoneColor[3], dimAlpha)
-        entry.zoneText:ClearAllPoints()
-        entry.zoneText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.AnchorAtInnerStart(entry.zoneText, entry.titleText, 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.ApplyAlignedJustify(entry.zoneText)
+        addon.ApplyAlignedJustify(entry.zoneShadow)
         entry.zoneText:Show()
         entry.zoneShadow:Show()
         local zoneH = entry.zoneText:GetStringHeight()
@@ -1954,8 +1987,9 @@ local function PopulateEntry(entry, questData, groupKey)
             stageColor = addon.ApplyDimColor(stageColor)
         end
         entry.zoneText:SetTextColor(stageColor[1], stageColor[2], stageColor[3], dimAlpha)
-        entry.zoneText:ClearAllPoints()
-        entry.zoneText:SetPoint("TOPLEFT", entry.titleText, "TOPLEFT", 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.AnchorAtInnerStart(entry.zoneText, entry.titleText, 0, -effectiveTitleRowH - titleToContentSpacing)
+        addon.ApplyAlignedJustify(entry.zoneText)
+        addon.ApplyAlignedJustify(entry.zoneShadow)
         entry.zoneText:Show()
         entry.zoneShadow:Show()
         local stageH = entry.zoneText:GetStringHeight()
@@ -2115,14 +2149,28 @@ local function PopulateEntry(entry, questData, groupKey)
     local trackBarW = (highlightStyle == "pill-left") and barW or S(2)
     if (highlightStyle == "bar-left" or highlightStyle == "bar-right" or highlightStyle == "pill-left") and entry.trackBar:IsShown() then
         entry.trackBar:ClearAllPoints()
+        local alignRight = addon.IsFocusRightAligned()
         if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
+            -- "bar-left" sits just outside the inner-start edge of the entry. That is the
+            -- left side in left-mode and the right side in right-mode.
             local barLeft = S(addon.BAR_LEFT_OFFSET or 12)
-            entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", -barLeft, 0)
-            entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", -barLeft + trackBarW, 0)
+            if alignRight then
+                entry.trackBar:SetPoint("TOPLEFT", entry, "TOPRIGHT", barLeft - trackBarW, 0)
+                entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", barLeft, 0)
+            else
+                entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", -barLeft, 0)
+                entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", -barLeft + trackBarW, 0)
+            end
         else
+            -- "bar-right" mirrors: sits just outside the inner-end edge.
             local barInsetRight = S(addon.ICON_COLUMN_WIDTH) - S(addon.PADDING) + S(4)
-            entry.trackBar:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -barInsetRight, 0)
-            entry.trackBar:SetPoint("BOTTOMLEFT", entry, "BOTTOMRIGHT", -barInsetRight - trackBarW, 0)
+            if alignRight then
+                entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", barInsetRight, 0)
+                entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", barInsetRight + trackBarW, 0)
+            else
+                entry.trackBar:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -barInsetRight, 0)
+                entry.trackBar:SetPoint("BOTTOMLEFT", entry, "BOTTOMRIGHT", -barInsetRight - trackBarW, 0)
+            end
         end
     end
 

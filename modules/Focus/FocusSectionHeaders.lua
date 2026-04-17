@@ -63,12 +63,24 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     end
     s.shadow:SetTextColor(0, 0, 0, shadowAlpha)
 
-    -- Ensure a small visual gap between the chevron and the label text.
+    -- Small visual gap between the chevron and the label text. Both flip to the
+    -- inner-start edge together so the chevron stays on the outer side of the label.
     if s.chevron and s.text then
         local CHEVRON_GAP_PX = addon.SECTION_CHEVRON_GAP_PX or 4
+        local alignRight = addon.IsFocusRightAligned()
+        s.chevron:ClearAllPoints()
         s.text:ClearAllPoints()
         s.shadow:ClearAllPoints()
-        s.text:SetPoint("LEFT", s.chevron, "RIGHT", CHEVRON_GAP_PX, 0)
+        if alignRight then
+            s.chevron:SetPoint("BOTTOMRIGHT", s, "BOTTOMRIGHT", 0, 0)
+            s.text:SetPoint("RIGHT", s.chevron, "LEFT", -CHEVRON_GAP_PX, 0)
+        else
+            s.chevron:SetPoint("BOTTOMLEFT", s, "BOTTOMLEFT", 0, 0)
+            s.text:SetPoint("LEFT", s.chevron, "RIGHT", CHEVRON_GAP_PX, 0)
+        end
+        addon.ApplyAlignedJustify(s.chevron)
+        addon.ApplyAlignedJustify(s.text)
+        addon.ApplyAlignedJustify(s.shadow)
         s.shadow:SetPoint("CENTER", s.text, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
     end
 

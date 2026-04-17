@@ -572,6 +572,10 @@ L["OPTIONS_FOCUS_HEADER_COLOR"]                                       = "Header 
 L["OPTIONS_FOCUS_COLOR_OF_OBJECTIVES_HEADER_TEXT"]                    = "Color of the OBJECTIVES header text."
 L["OPTIONS_FOCUS_HEADER_HEIGHT"]                                      = "Header height"
 L["OPTIONS_FOCUS_HEIGHT_OF_HEADER_BAR_PIXELS"]                        = "Height of the header bar in pixels (18–48)."
+L["OPTIONS_FOCUS_TEXT_ALIGNMENT"]                                     = "Text alignment"
+L["OPTIONS_FOCUS_TEXT_ALIGNMENT_DESC"]                                = "Align Focus text (header, section labels, quest titles, objectives, progress bars) to the left or right edge of the tracker."
+L["OPTIONS_FOCUS_ALIGN_LEFT"]                                         = "Left"
+L["OPTIONS_FOCUS_ALIGN_RIGHT"]                                        = "Right"
 
 -- =====================================================================
 -- OptionsData.lua Display — List

@@ -20,6 +20,7 @@ Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua
 core/Config.lua
+core/FocusAnchors.lua
 core/Core.lua
 core/UrlCopyDialog.lua
 core/ProfileIO.lua

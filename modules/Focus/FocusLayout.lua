@@ -538,6 +538,12 @@ local function FullLayout()
                         sec:ClearAllPoints()
                         local x = addon.GetScaledPadding()
                         sec:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", x, yOff)
+                        -- Span to the visible tracker edge so section chevron+label land
+                        -- on the correct edge in both left- and right-alignment modes.
+                        local secW = addon.GetPanelWidth() - x - addon.GetScaledContentRightPadding()
+                        if secW > 0 then
+                            sec:SetWidth(secW)
+                        end
                         sec.finalX, sec.finalY = x, yOff
                         yOff = yOff - addon.GetSectionHeaderHeight() - addon.GetSectionToEntryGap()
                     end
@@ -1101,6 +1107,15 @@ local function FullLayout()
                 sec:ClearAllPoints()
                 local x = addon.GetScaledPadding()
                 sec:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", x, yOff)
+                -- Size the section frame to span the full visible tracker width so that
+                -- the chevron (anchored to the section's inner-start edge) sits at the
+                -- tracker's edge in both alignment modes.
+                local sfLeftInsetSec = (blockFrame and blockPos == "top") and addon.GetScaledPadding() or 0
+                local sfVisibleWSec = addon.GetPanelWidth() - sfLeftInsetSec
+                local secW = sfVisibleWSec - x - addon.GetScaledContentRightPadding()
+                if secW > 0 then
+                    sec:SetWidth(secW)
+                end
                 sec.finalX, sec.finalY = x, yOff
                 sec._scrollFadeSpacing = addon.GetSectionToEntryGap()
                 sec._scrollFadeLeadingGap = sectionGap
@@ -1164,29 +1179,37 @@ local function FullLayout()
                         entry:SetWidth(entryW)
                     end
 
-                    -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.
+                    -- Quest type icon placement:
+                    --  * Left-mode: icon sits OUTSIDE entry.left, in the scrollChild indent
+                    --    where entryX space reserves room.
+                    --  * Right-mode: the scrollChild has no equivalent reserved space on the
+                    --    right (entry.right is flush with the tracker's right edge, which is
+                    --    where LFG/item/ah buttons live). Anchoring outside entry.right would
+                    --    clip beyond the scrollFrame. So in right-mode we anchor the icon
+                    --    INSIDE the entry on the right edge; FocusEntryRenderer accounts for
+                    --    this by inset-shrinking the title when alignment is right.
                     if entry.questTypeIcon then
                         entry.questTypeIcon:ClearAllPoints()
                         local showIcons = addon.GetDB("showQuestTypeIcons", true)
-                        if showIcons then
-                            -- Place icon to the right of the supertracked highlight bar so the bar is always leftmost.
-                            local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-                            local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-                            local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
-                            local padAfterBar = addon.Scaled(6)
-
-                            if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-                                -- Icon TOPRIGHT is 2px left of bar start: order is [icon][2px][bar][text].
-                                entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -barLeft - addon.Scaled(2), 0)
-                            else
-                                -- Fallback to legacy off-to-the-left placement for non-left-bar styles.
-                                local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
-                                entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconRight, 0)
-                            end
+                        local alignRight = addon.IsFocusRightAligned()
+                        if alignRight then
+                            -- Inside the entry, top-right corner. 2px inset from the right edge
+                            -- keeps it clear of the entry border.
+                            entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -addon.Scaled(2), 0)
                         else
-                            -- Icons off: keep the legacy off-to-the-left placement so text alignment remains unchanged.
-                            local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
-                            entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconRight, 0)
+                            local iconOffset
+                            if showIcons then
+                                local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
+                                local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
+                                if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
+                                    iconOffset = barLeft + addon.Scaled(2)
+                                else
+                                    iconOffset = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
+                                end
+                            else
+                                iconOffset = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
+                            end
+                            entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconOffset, 0)
                         end
                         -- Position questIconBtn over the icon for Classic mode super-track clicks.
                         if entry.questIconBtn then
