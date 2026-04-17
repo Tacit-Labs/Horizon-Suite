@@ -633,8 +633,11 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             progressBarNf = barNf
             progressBarNr = barNr
             progressBarPercent = barPct
-        elseif barCount == 1 and questData.objectives and #questData.objectives == 1 then
-            -- Non-scenario: only show bar when exactly one objective total and it is eligible.
+        elseif barCount == 1 then
+            -- Non-scenario: show bar when exactly one objective is eligible under the current
+            -- filter. This covers single-objective quests and the multi-objective case where the
+            -- filter narrows eligibility to a single objective (e.g. percent_only with a mixed
+            -- [X/Y, %] quest picks the % objective's bar).
             progressBarObjIdx = barIdx
             progressBarNf = barNf
             progressBarNr = barNr
@@ -1495,7 +1498,7 @@ local function PopulateEntry(entry, questData, groupKey)
         local isScenarioEntry = questData.isScenarioMain or questData.isScenarioBonus
         if isScenarioEntry and barCount > 0 then
             questData._progressBarActive = true
-        elseif barCount == 1 and questData.objectives and #questData.objectives == 1 then
+        elseif barCount == 1 then
             questData._progressBarActive = true
         end
     end
