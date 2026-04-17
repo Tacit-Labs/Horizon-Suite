@@ -97,6 +97,7 @@ local function MatrixKey(category)
     if category == "ENDEAVOR" then return "ENDEAVORS" end
     if category == "DECOR" then return "DECOR" end
     if category == "APPEARANCE" then return "APPEARANCES" end
+    if category == "RECIPE" then return "RECIPES" end
     return category
 end
 
