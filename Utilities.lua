@@ -1192,6 +1192,10 @@ function addon.GetQuestBaseCategory(questID)
             if IsPreyQuest(questID) then return "PREY" end
             return "WEEKLY"
         end
+        if qc == Enum.QuestClassification.Meta then
+            if IsPreyQuest(questID) then return "PREY" end
+            return "WEEKLY"
+        end
         if qc == Enum.QuestClassification.Important then return "IMPORTANT" end
         if qc == Enum.QuestClassification.Legendary then return "LEGENDARY" end
     end
