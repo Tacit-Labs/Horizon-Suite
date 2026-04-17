@@ -1701,8 +1701,8 @@ local function PopulateEntry(entry, questData, groupKey)
             for _, o in ipairs(questData.objectives) do if o.finished then done = done + 1 end end
         end
         if done and total then
-            -- Achievements: omit (0/1)-style title; single-step criteria are obvious from the description line.
-            if not (questData.isAchievement and type(total) == "number" and total == 1) then
+            -- Omit (0/1)-style titles for any single-step quest, achievement, or endeavor — the progress pair is redundant when the objective row already conveys it.
+            if not (type(total) == "number" and total == 1) then
                 displayTitle = ("%s (%s)"):format(displayTitle, FormatProgressPair(done, total))
             end
         end
