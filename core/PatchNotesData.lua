@@ -15,6 +15,24 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.12.5"] = {
+        date = "2026-04-18",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: weekly meta quests now group under the Weekly section alongside other weekly-reset activities.",
+                "Focus: completed-count suffixes (e.g. 0/1, 1/1) no longer appear on single-objective quests.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: tracked recipe title and objective colours now follow the Axis Colors Recipes swatches instead of forcing the default sage-green.",
+                "Axis: profile switching now fully refreshes class colours, frame positions, and imported settings without requiring a reload.",
+            },
+        },
+    },
+
     ["4.12.4"] = {
         date = "2026-04-16",
         {

@@ -10,6 +10,20 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.12.5] – 2026-04-18
+
+### 🔧 Improvements
+
+- **(Focus) Meta quests under Weekly** — Weekly meta quests now group under the Weekly section alongside other weekly-reset activities.
+- **(Focus) Completed count tidier** — Completed-count suffixes (e.g. `0/1`, `1/1`) no longer appear on single-objective quests.
+
+### 🐛 Fixes
+
+- **(Focus)** Tracked recipe title and objective colours now follow the Axis Colors **Recipes** swatches instead of forcing the default sage-green.
+- **(Axis)** Profile switching now fully refreshes class colours, frame positions, and imported settings without requiring a reload.
+
+---
+
 ## [4.12.4] – 2026-04-16
 
 ### 🐛 Fixes
