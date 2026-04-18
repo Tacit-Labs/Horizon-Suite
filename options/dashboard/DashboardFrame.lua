@@ -1339,7 +1339,7 @@ function addon.Dashboard_BuildMainFrame()
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
-                    headSub:SetText(L["DASH_HOME_HEAD_SUB"] or "Enable and configure your modules")
+                    headSub:SetText(L["HOME_HEAD_SUB"] or "Enable and configure your modules")
                 end
                 if searchBarShell then searchBarShell:Hide() end
                 f.currentModuleKey = nil
@@ -1701,7 +1701,7 @@ function addon.Dashboard_BuildMainFrame()
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["OPTIONS_AXIS_MODULES"] or "Modules", ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["cache"] = addon.Dashboard_BrandModule("cache"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
+            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["MODULES"] or "Modules", ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["cache"] = addon.Dashboard_BrandModule("cache"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
             f.dashboardMODULE_LABELS = MODULE_LABELS
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
@@ -1711,7 +1711,7 @@ function addon.Dashboard_BuildMainFrame()
                 else
                     mk = cat.moduleKey or "modules"
                 end
-                if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OPTIONS_FOCUS_OTHER"], categories = {} } end
+                if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OTHER"], categories = {} } end
                 tinsert(groups[mk].categories, i)
             end
             f.dashboardSidebarGroups = groups

@@ -90,7 +90,7 @@ local function BuildURLCopyFrame()
     local subtitleLbl = dragZone:CreateFontString(nil, "OVERLAY")
     subtitleLbl:SetFont(URL_COPY_F_BODY, 10, "")
     subtitleLbl:SetPoint("TOPLEFT", suiteLbl, "BOTTOMLEFT", 0, -3)
-    subtitleLbl:SetText((addon.L and addon.L["OPTIONS_FOCUS_COPY_LINK"]) or "Copy link")
+    subtitleLbl:SetText((addon.L and addon.L["FOCUS_COPY_LINK"]) or "Copy link")
     subtitleLbl:SetTextColor(ar, ag, ab)
     f.subtitleLbl = subtitleLbl
 
@@ -127,7 +127,7 @@ local function BuildURLCopyFrame()
     hintLbl:SetPoint("RIGHT", f, "RIGHT", -URL_COPY_PAD, 0)
     hintLbl:SetWordWrap(true)
     hintLbl:SetNonSpaceWrap(false)
-    hintLbl:SetText((addon.L and addon.L["OPTIONS_FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]) or "Copy the URL below (Ctrl+C) and paste in your browser.")
+    hintLbl:SetText((addon.L and addon.L["FOCUS_COPY_URL_BELOW_CTRL_C_PASTE"]) or "Copy the URL below (Ctrl+C) and paste in your browser.")
     hintLbl:SetTextColor(0.42, 0.42, 0.50)
 
     local eb = CreateFrame("EditBox", nil, f)
@@ -190,7 +190,7 @@ end
 
 --- Show the URL copy box (same chrome as Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
 --- @param url string Full URL to display and copy
---- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["OPTIONS_FOCUS_COPY_LINK"]
+--- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["FOCUS_COPY_LINK"]
 function addon.ShowURLCopyBox(url, accentSubtitle)
     if not url or type(url) ~= "string" or url == "" then return end
     local f = BuildURLCopyFrame()
@@ -200,7 +200,7 @@ function addon.ShowURLCopyBox(url, accentSubtitle)
         f.accentStrip:SetColorTexture(ar, ag, ab, 1)
     end
     if f.subtitleLbl then
-        f.subtitleLbl:SetText(accentSubtitle or ((addon.L and addon.L["OPTIONS_FOCUS_COPY_LINK"]) or "Copy link"))
+        f.subtitleLbl:SetText(accentSubtitle or ((addon.L and addon.L["FOCUS_COPY_LINK"]) or "Copy link"))
         f.subtitleLbl:SetTextColor(ar, ag, ab)
     end
     f.editBox:SetText(url)

@@ -1,0 +1,392 @@
+#!/usr/bin/env node
+/**
+ * Build tools/locale-key-rename.json from Localisation/enUS.lua using the
+ * v2 rationalisation taxonomy (domain-first prefixes, UK spelling).
+ *
+ * Mechanical rules applied, longest match first, per old key:
+ *   1. Explicit OVERRIDES entry (handpicked) wins over any mechanical rule.
+ *   2. OPTIONS_<MOD>_*   -> <MOD>_*         for MOD in FOCUS PRESENCE VISTA INSIGHT AXIS.
+ *   3. DASH_HOME_*       -> HOME_*
+ *   4. H_PRESENCE_*      -> PRESENCE_H_*    (defensive; file already largely migrated)
+ *   5. Collapse <MOD>_<MOD>_ -> <MOD>_      for MOD in FOCUS PRESENCE VISTA INSIGHT.
+ *   6. Spelling inside key: COLOR->COLOUR, COLORS->COLOURS, ORGANIZATION->ORGANISATION,
+ *      CUSTOMIZE->CUSTOMISE, RECOGNIZE->RECOGNISE.
+ *
+ * OPTIONS_CORE_* is intentionally LEFT UNCHANGED — those 272 keys need manual
+ * per-key routing to their true domain (Focus / Vista / Presence / Dash / etc).
+ * That is a separate second-pass artefact.
+ *
+ * Collisions (stripped key already exists, or two old keys map to the same new
+ * key) are SKIPPED and written to tools/rationalisation-collisions.json for
+ * human review.
+ *
+ * Usage: node tools/build_rationalisation_rename.js
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..');
+const enUSPath = path.join(ROOT, 'Localisation', 'enUS.lua');
+const outPath = path.join(ROOT, 'tools', 'locale-key-rename.json');
+const collisionPath = path.join(ROOT, 'tools', 'rationalisation-collisions.json');
+
+const STRIP_MODULES = ['FOCUS', 'PRESENCE', 'VISTA', 'INSIGHT', 'AXIS'];
+
+/**
+ * Handpicked overrides from the user's rename log. These win over any
+ * mechanical rule. Keep this list alphabetised by OLD key for reviewability.
+ *
+ * Format: OLD_KEY -> NEW_KEY.
+ * If the OLD_KEY does not exist in enUS.lua, the entry is silently dropped
+ * (apply_locale_key_rename.js will simply not match it).
+ */
+const OVERRIDES = {
+    // --- Branding (NAME_* family) ---
+    'DASH_CURSEFORGE': 'NAME_CURSEFORGE',
+    'DASH_DISCORD': 'NAME_DISCORD',
+    'DASH_GITLAB': 'NAME_GITLAB',
+    'DASH_KO_FI': 'NAME_KO_FI',
+    'DASH_PATREON': 'NAME_PATREON',
+    'NAME_WAGO_IO': 'NAME_WAGO_IO',
+    'TOMTOM': 'NAME_TOMTOM',
+
+    // --- DASH -> HOME (the options Home tab) ---
+    // (DASH_HOME_* handled mechanically below)
+
+    // --- Dashboard spelling / rationalisation ---
+    'DASH_COLORS': 'DASH_COLOURS',
+    'DASH_ORGANIZATION': 'DASH_ORGANISATION',
+
+    // --- Focus: OPTIONS_FOCUS_* hand-picked shortenings from user's log ---
+    // Quest-type section headers (user wants no OPTIONS_FOCUS_ prefix)
+    'OPTIONS_FOCUS_QUEST_TYPES': 'QUEST_TYPES',
+    'OPTIONS_FOCUS_ELEMENT_OVERRIDES': 'ELEMENT_OVERRIDES',
+    'OPTIONS_FOCUS_PER_CATEGORY': 'PER_CATEGORY',
+    'OPTIONS_FOCUS_GROUPING_OVERRIDES': 'GROUPING_OVERRIDES',
+    'OPTIONS_FOCUS_SECTION_OVERRIDES': 'SECTION_OVERRIDES',
+    'OPTIONS_FOCUS_COLORS': 'OTHER_COLOURS',
+    'OPTIONS_FOCUS_SEARCH_FONTS': 'SEARCH_FONTS',
+
+    // Focus double-prefix collapse (OPTIONS_FOCUS_FOCUS_* -> FOCUS_*)
+    'OPTIONS_FOCUS_FOCUS_SECTION': 'FOCUS_SECTION',
+    'OPTIONS_FOCUS_FOCUS_TITLE': 'FOCUS_TITLE',
+    'OPTIONS_FOCUS_FOCUS_ZONE': 'FOCUS_ZONE',
+    'OPTIONS_FOCUS_FOCUS_OBJECTIVE': 'FOCUS_OBJECTIVE',
+    'OPTIONS_FOCUS_FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS': 'FOCUS_READY_TURN_IN_COLOURS_OVERRIDE',
+    'OPTIONS_FOCUS_FOCUS_READY_TURN_COLOURS_QUESTS': 'FOCUS_READY_TURN_IN_SECTION_COLOURS',
+    'OPTIONS_FOCUS_FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS': 'FOCUS_CURRENT_ZONE_COLOURS_OVERRIDE',
+    'OPTIONS_FOCUS_FOCUS_CURRENT_ZONE_COLOURS_QUESTS_SEC': 'FOCUS_CURRENT_ZONE_SECTION_COLOURS',
+    'OPTIONS_FOCUS_FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS': 'FOCUS_CURRENT_QUEST_COLOURS_OVERRIDE',
+    'OPTIONS_FOCUS_FOCUS_CURRENT_QUEST_COLOURS_QUESTS_SE': 'FOCUS_CURRENT_QUEST_SECTION_COLOURS',
+    'OPTIONS_FOCUS_FOCUS_DISTINCT_COLOR_COMPLETED_OBJECTIVES': 'FOCUS_COMPLETED_OBJECTIVES_COLOURS',
+    'OPTIONS_FOCUS_FOCUS_COMPLETED_OBJECTIVES_E_G_COLOR_B': 'FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE',
+    'OPTIONS_FOCUS_FOCUS_COMPLETED_OBJECTIVE': 'FOCUS_COMPLETED_OBJECTIVE',
+    'OPTIONS_FOCUS_FOCUS_DRAG_RESIZE': 'DRAG_TO_RESIZE',
+    'OPTIONS_FOCUS_FOCUS_SEARCH_SETTINGS': 'SEARCH_OPTIONS',
+
+    // Focus: truncated / bakes-English-into-key -> human target names
+    'OPTIONS_FOCUS_SECONDS_OF_RECENT_PROGRESS_CURRENT_QUEST': 'FOCUS_RECENT_QUEST_SECONDS',
+    'OPTIONS_FOCUS_QUESTS_YOU_MADE_PROGRESS_LAST_MINUTE': 'FOCUS_QUEST_PROGRESSION_SECTION',
+    'OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE': 'FOCUS_SHOW_ZONE_EVENTS',
+    'OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_DESC': 'FOCUS_SHOW_ZONE_EVENTS_DESC',
+    'OPTIONS_FOCUS_SHOW_EVENTS_IN_ZONE_TIP': 'FOCUS_SHOW_ZONE_EVENTS_TIP',
+    'OPTIONS_FOCUS_DRAG_REORDER_CATEGORIES_DELVES_SCENARIO_EVENT': 'FOCUS_CATEGORIES_REORDER_EXCEPT_DELVES_SCENARIOS',
+    'OPTIONS_FOCUS_DRAG_REORDER_DELVES_SCENARIOS_STAY_FIRST': 'FOCUS_CATEGORIES_REORDER_EXCEPT_DELVES_SCENARIOS_TIP',
+    'OPTIONS_FOCUS_ORDER_OF_ENTRIES_WITHIN_CATEGORY': 'FOCUS_ENTRY_NUMBER_IN_CATEGORY',
+    'OPTIONS_FOCUS_YOU_ACCEPT_A_QUEST_QUEST_LOG': 'FOCUS_AUTO_TRACK_ACCEPTED_QUESTS_TIP',
+    'OPTIONS_FOCUS_REQUIRE_CTRL_FOCUS_REMOVE': 'FOCUS_CTRL_FOCUS_REMOVE',
+    'OPTIONS_FOCUS_REQUIRE_CTRL_FOCUS_ADD_LEFT_UNFOCUS': 'FOCUS_CTRL_FOCUS_REMOVE_MOUSECLICK',
+    'OPTIONS_FOCUS_QUEST_CANNOT_SHARED': 'FOCUS_CANNOT_SHARE_QUEST',
+    'OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST': 'FOCUS_REQUIRE_PARTY_SHARE',
+    'OPTIONS_FOCUS_LEFT_CLICK_OPENS_QUEST_MAP_RIGHT': 'FOCUS_LEFT_CLICK_MAP_RIGHT_CLICK_ABANDON',
+    'OPTIONS_FOCUS_ENABLE_SLIDE_FADE_QUESTS': 'FOCUS_SLIDE_FADE_QUESTS',
+    'OPTIONS_FOCUS_FLASH_AN_OBJECTIVE_COMPLETES': 'FOCUS_FLASH_OBJECTIVE_COMPLETION',
+    'OPTIONS_FOCUS_NOTICEABLE_OBJECTIVE_COMPLETE_FLASH': 'FOCUS_OBJECTIVE_PROGRESS_FLASH_VISIBILITY',
+    'OPTIONS_FOCUS_FLASH_COLOR': 'FOCUS_FLASH_COLOUR',
+    'OPTIONS_FOCUS_COLOR_OF_OBJECTIVE_COMPLETE_FLASH': 'FOCUS_FLASH_COLOUR_DESC',
+    'OPTIONS_FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS_Z': 'FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS',
+    'OPTIONS_FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS_ZO': 'FOCUS_RIGHT_CLICK_UNTRACK_WORLD_QUESTS_TIP',
+    'OPTIONS_FOCUS_KEEP_CAMPAIGN_QUESTS_CATEGORY': 'FOCUS_KEEP_CAMPAIGN_CATEGORY',
+    'OPTIONS_FOCUS_CAMPAIGN_QUESTS_READY_TURN_RE': 'FOCUS_CAMPAIGN_READY_STAY',
+    'OPTIONS_FOCUS_IMPORTANT_QUESTS_READY_TURN_R': 'FOCUS_IMPORTANT_READY_STAY',
+
+    // Focus: dashboard-themed keys that actually belong to DASH
+    'OPTIONS_FOCUS_FRAME': 'DASH_FRAME',
+    'OPTIONS_FOCUS_THEME': 'DASH_THEME',
+    'OPTIONS_FOCUS_BACKGROUND_STYLE_MODULE_DASHBOARD_WINDOW_AXI': 'DASH_BACKGROUND',
+
+    // Dashboard class-colour matrix: each row has a short label ({MODULE}_CLASS_COLOURS,
+    // usually the module tab heading) and a long description for that row. The TINT_* keys
+    // are descriptions, so they become *_DESC variants. Avoids collision with module tab
+    // headings that already occupy {MODULE}_CLASS_COLOURS.
+    'OPTIONS_FOCUS_TOGGLE_CLASS_COLOURS_MODULES': 'DASH_CLASS_COLOURS_MODULES_GLOBAL',
+    'OPTIONS_FOCUS_TINT_FOCUS_HEADER_TITLE_CATEGORY_SECTION': 'FOCUS_CLASS_COLOURS_DESC',
+    'OPTIONS_FOCUS_TINT_PRESENCE_TOAST_TITLE_DIVIDER_YOUR': 'PRESENCE_CLASS_COLOURS_DESC',
+    'OPTIONS_FOCUS_TINT_VISTA_MINIMAP_ADDON_BAR_PANEL': 'VISTA_CLASS_COLOURS_DESC',
+    'OPTIONS_FOCUS_CLASS_COLOUR_PLAYER_TOOLTIP_NAME_CLASS': 'INSIGHT_CLASS_COLOURS_DESC',
+    'OPTIONS_FOCUS_TINT_CACHE_LOOT_ICON_GLOW_EDIT': 'CACHE_CLASS_COLOURS_DESC',
+    'OPTIONS_FOCUS_TINT_CHARACTER_NAME_ESSENCE_SHEET_YO': 'ESSENCE_CLASS_COLOURS_DESC',
+    'OPTIONS_FOCUS_TINT_DASHBOARD_ACCENTS_DIVIDERS_HIGHLIGHTS': 'AXIS_CLASS_COLOURS_DESC',
+
+    // Focus: typography / case
+    'OPTIONS_FOCUS_LOWER_CASE': 'FOCUS_TEXT_LOWER_CASE',
+    'OPTIONS_FOCUS_UPPER_CASE': 'FOCUS_TEXT_UPPER_CASE',
+    'OPTIONS_FOCUS_PROPER': 'FOCUS_TEXT_PROPER_CASE',
+
+    // Focus: Mythic+ position labels
+    'OPTIONS_FOCUS_TOP': 'FOCUS_MYTHICPLUS_POSITION_TOP',
+    'OPTIONS_FOCUS_BOTTOM': 'FOCUS_MYTHICPLUS_POSITION_BOTTOM',
+
+    // Focus: highlight style prefix (user wants FOCUS_HIGHLIGHT_*)
+    'OPTIONS_FOCUS_BAR_LEFT_EDGE': 'FOCUS_HIGHLIGHT_BAR_LEFT_EDGE',
+    'OPTIONS_FOCUS_BAR_RIGHT_EDGE': 'FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE',
+    'OPTIONS_FOCUS_BAR_TOP_EDGE': 'FOCUS_HIGHLIGHT_BAR_TOP_EDGE',
+    'OPTIONS_FOCUS_BAR_BOTTOM_EDGE': 'FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE',
+    'OPTIONS_FOCUS_OUTLINE_ONLY_STYLE': 'FOCUS_HIGHLIGHT_OUTLINE_ONLY',
+    'OPTIONS_FOCUS_SOFT_GLOW': 'FOCUS_HIGHLIGHT_SOFT_GLOW',
+    'OPTIONS_FOCUS_DUAL_EDGE_BARS': 'FOCUS_HIGHLIGHT_DUAL_EDGE_BARS',
+    'OPTIONS_FOCUS_PILL_LEFT_ACCENT': 'FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT',
+
+    // Focus: outline "none"
+    'OPTIONS_FOCUS_NONE': 'FOCUS_OUTLINE_NONE',
+
+    // Focus: TomTom integration
+    'OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_FOCUSING_A_QUEST': 'FOCUS_TOMTOM_QUEST_WAYPOINT_TIP',
+    'OPTIONS_FOCUS_A_TOMTOM_WAYPOINT_CLICKING_A_RARE': 'FOCUS_TOMTOM_WAYPOINT_RARE_CLICK',
+    'OPTIONS_FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE_S': 'FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE',
+    'OPTIONS_FOCUS_FIND_A_GROUP': 'FOCUS_FIND_GROUP',
+    'OPTIONS_FOCUS_CLICK_SEARCH_A_GROUP_QUEST': 'FOCUS_GROUP_QUEST_SEARCH_CLICK',
+
+    // Focus: reset buttons (user's log had RESET_QUEST_TYPES->RESET_OVERRIDES which collided
+    // with the real RESET_OVERRIDES; keep them as distinct mechanical strips)
+    'OPTIONS_FOCUS_RESET': 'FOCUS_RESET',
+
+    // Focus: dashboard background Quel'Thalas typo fix
+    'OPTIONS_FOCUS_DASHBOARD_BACKGROUND_QUELTHALAS': 'DASH_BACKGROUND_QUEL_THALAS',
+
+    // Focus: reload/module chrome (user wants these bare/shared)
+    'OPTIONS_FOCUS_MODULE_RELOAD_BUTTON': 'MODULE_RELOAD',
+    'DASH_RELOAD_UI': 'RELOAD_UI',
+
+    // Axis: fix truncation
+    'OPTIONS_AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITIO': 'AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION',
+    'OPTIONS_AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_D': 'AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_DESC',
+
+    // Axis: profiles/modules navigation (user wants bare)
+    'OPTIONS_AXIS_PROFILES': 'PROFILES',
+    'OPTIONS_AXIS_MODULES': 'MODULES',
+    'OPTIONS_AXIS_MODULE_TOGGLES': 'MODULE_TOGGLES',
+    'OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER': 'MODULE_PREVIEW_DISCLAIMER',
+    'OPTIONS_AXIS_MODULE_RELOAD_HINT': 'MODULE_RELOAD_HINT',
+
+    // Presence: toast option-toggles clash with toast titles of the same name.
+    // Use PRESENCE_SHOW_* for the checkbox labels (values are already "Show X" or the event name).
+    'OPTIONS_PRESENCE_ACHIEVEMENT_EARNED': 'PRESENCE_SHOW_ACHIEVEMENT_EARNED',
+    'OPTIONS_PRESENCE_QUEST_ACCEPTED': 'PRESENCE_SHOW_QUEST_ACCEPTED',
+    'OPTIONS_PRESENCE_WORLD_QUEST_ACCEPTED': 'PRESENCE_SHOW_WORLD_QUEST_ACCEPTED',
+    'OPTIONS_PRESENCE_SCENARIO_COMPLETE': 'PRESENCE_SHOW_SCENARIO_COMPLETE',
+    'OPTIONS_PRESENCE_RARE_DEFEATED': 'PRESENCE_SHOW_RARE_DEFEATED',
+    'OPTIONS_PRESENCE_QUEST_COMPLETE': 'PRESENCE_SHOW_QUEST_COMPLETE',
+    'OPTIONS_PRESENCE_WORLD_QUEST_COMPLETE': 'PRESENCE_SHOW_WORLD_QUEST_COMPLETE',
+
+    // Presence: spelling + shortening from user's log
+    'OPTIONS_PRESENCE_DISCOVERED_UNDER_ZONE_SUBZONE_ENTERING_A': 'PRESENCE_SHOW_DISCOVERED',
+    'OPTIONS_PRESENCE_SCALE_OF_PRESENCE_FRAME': 'PRESENCE_FRAME_SCALE_TIP',
+    'OPTIONS_PRESENCE_BOSS_EMOTE_COLOR': 'PRESENCE_BOSS_EMOTE_COLOUR',
+    'OPTIONS_PRESENCE_COLOR_OF_RAID_DUNGEON_BOSS_EMOTE': 'PRESENCE_COLOUR_RAID_DUNGEON_BOSS_EMOTE',
+    'OPTIONS_PRESENCE_DISCOVERY_LINE_COLOR': 'PRESENCE_DISCOVERY_LINE_COLOUR',
+    'OPTIONS_PRESENCE_COLOR_OF_DISCOVERED_LINE_UNDER_ZONE': 'PRESENCE_COLOUR_OF_DISCOVERED_LINE_UNDER_ZONE_TIP',
+    'OPTIONS_PRESENCE_NOTIFICATION_ACHIEVEMENT_CRITERIA_UPDATE_T': 'PRESENCE_NOTIFICATION_ACHIEVEMENT_CRITERIA_UPDATE',
+    'OPTIONS_PRESENCE_HIDES_OBJECTIVE_UPDATE_POPUPS_WHILE_A': 'PRESENCE_HIDE_DELVE_OBJECTIVE_UPDATE',
+    'OPTIONS_PRESENCE_MYTHIC_BOSS_EMOTES_ACHIEVEMENTS_LEV': 'PRESENCE_MYTHICPLUS_SHOW_BOSS_EMOTES_ACHIEVEMENTS_LEVELS',
+    'OPTIONS_PRESENCE_MULTIPLIER_LONG_NOTIFICATION_STAYS_S': 'PRESENCE_MULTIPLIER_LONG_NOTIFICATION_STAY',
+    'OPTIONS_PRESENCE_PLAY_SELECTED_TOAST_ANIMATION_INSIDE_PREVIE': 'PRESENCE_PLAY_SELECTED_TOAST_ANIMATION_INSIDE_PREVIEW',
+
+    // Vista: spelling + shortening from user's log
+    'OPTIONS_VISTA_MINIMAP': 'VISTA_DESC',
+    'OPTIONS_VISTA_MINIMAP_SIZE': 'VISTA_SIZE',
+    'OPTIONS_VISTA_ZONE': 'VISTA_SHOW_ZONE',
+    'OPTIONS_VISTA_SUBZONE': 'VISTA_SHOW_SUBZONE',
+    'OPTIONS_VISTA_BOTH': 'VISTA_SHOW_ZONE_AND_SUBZONE',
+    'OPTIONS_VISTA_DISPLAY_HOUR_FORMAT_E_G_INSTEAD': 'VISTA_DISPLAY_HOUR_FORMAT_24',
+    'OPTIONS_VISTA_LOCAL': 'VISTA_LOCAL_TIME',
+    'OPTIONS_VISTA_YOUR_LOCAL_SYSTEM': 'VISTA_LOCAL_TIME_TIP',
+    'OPTIONS_VISTA_A_BORDER_AROUND_MINIMAP': 'VISTA_BORDER_TIP',
+    'OPTIONS_VISTA_TURN_QUEUE_BUTTON_ANCHORING_ANOTHER_A': 'VISTA_TURN_QUEUE_BUTTON_ANCHORING_OFF_ADDON_CONFLICT',
+    'OPTIONS_VISTA_RIGHT': 'VISTA_BUTTONS_FILL_RIGHT',
+    'OPTIONS_VISTA_LEFT': 'VISTA_BUTTONS_FILL_LEFT',
+    'OPTIONS_VISTA_DOWN': 'VISTA_BUTTONS_FILL_DOWN',
+    'OPTIONS_VISTA_UP': 'VISTA_BUTTONS_FILL_UP',
+    'OPTIONS_VISTA_BACKDROP_COLOR': 'VISTA_BACKDROP_COLOUR',
+    'OPTIONS_VISTA_BACKGROUND_COLOR_OF_MOUSEOVER_BUTTON_BAR': 'VISTA_BACKGROUND_COLOUR_OF_MOUSEOVER_BUTTON_BAR',
+    'OPTIONS_VISTA_BAR_BORDER_COLOR': 'VISTA_BAR_BORDER_COLOUR',
+    'OPTIONS_VISTA_BAR_BACKGROUND_COLOR': 'VISTA_BAR_BACKGROUND_COLOUR',
+    'OPTIONS_VISTA_PANEL_BACKGROUND_COLOR': 'VISTA_PANEL_BACKGROUND_COLOUR',
+    'OPTIONS_VISTA_BUTTON_COMPLETELY_IGNORED_A': 'VISTA_BUTTON_COMPLETELY_IGNORED',
+
+    // Cross-module content labels (user wants TRACKER_*)
+    'OPTIONS_CORE_TRACKER_HEROIC_DUNGEONS_UNSET_MAS': 'TRACKER_HEROIC_DUNGEONS',
+    'OPTIONS_CORE_TRACKER_HEROIC_RAIDS_UNSET_MASTER': 'TRACKER_HEROIC_RAIDS',
+    'OPTIONS_CORE_TRACKER_LOOKING_RAID_UNSET_MA': 'TRACKER_LFR_RAID',
+    'OPTIONS_CORE_TRACKER_MYTHIC_DUNGEONS_UNSET_MAS': 'TRACKER_MYTHIC_DUNGEONS',
+    'OPTIONS_CORE_TRACKER_MYTHIC_RAIDS_UNSET_MASTER': 'TRACKER_MYTHIC_RAIDS',
+    'OPTIONS_CORE_TRACKER_NORMAL_DUNGEONS_UNSET_MAS': 'TRACKER_NORMAL_DUNGEONS',
+    'OPTIONS_CORE_TRACKER_NORMAL_RAIDS_UNSET_MASTER': 'TRACKER_NORMAL_RAIDS',
+    'OPTIONS_CORE_TRACKER_PARTY_DUNGEONS_MASTER_TOGGLE_DU': 'TRACKER_PARTY_DUNGEONS',
+    'OPTIONS_CORE_TRACKER_RAIDS_MASTER_TOGGLE_RAID_DIFFIC': 'TRACKER_RAIDS_ALL',
+
+    // Focus: label/description pair where description sits on an OPTIONS_CORE_ truncated key.
+    // Mechanical strip gives OPTIONS_FOCUS_DIM_UNFOCUSED_ENTRIES -> FOCUS_DIM_UNFOCUSED_ENTRIES
+    // (the label); the description becomes _DESC.
+    'OPTIONS_CORE_MUCH_DIM_FOCUSED_ENTRIES_DIMMING_FU': 'FOCUS_DIM_UNFOCUSED_ENTRIES_DESC',
+
+    // Focus: Americanised duplicate of FOCUS_CLASS_COLOURS — both map to the same key.
+    // NOTE: will produce two L["FOCUS_CLASS_COLOURS"] lines in enUS.lua; manually delete the
+    // duplicate (the American-spelled "Class colors" one) after applying the rename.
+    'OPTIONS_FOCUS_CLASS_COLORS': 'FOCUS_CLASS_COLOURS_DUPLICATE_DELETE_ME',
+
+    // Odd-ball truncation / mislocated ones
+    'OPTIONS_CORE_BAR_UNDER_NUMERIC_OBJECTIVES_E_G': 'FOCUS_BAR_UNDER_NUMERIC_OBJECTIVES',
+    'OPTIONS_CORE_BLIZZARD_DEFAULT_RONDOMEDIA_CLASS_ICON_DASHBO': 'DASH_CLASS_ICONS_RONDOMEDIA',
+    'OPTIONS_CORE_CUSTOMIZE_BORDERS_COLORS_POSITIONING_OF_SPECIFI': 'VISTA_CUSTOMISE_BORDERS_COLOURS_POSITIONING',
+    'OPTIONS_CORE_MANAGE_ORGANIZE_MINIMAP_ICONS_ADDONS_INT': 'VISTA_ICON_MANAGEMENT',
+    'OPTIONS_CORE_QUALITY_TIER_PIPS_RECIPES_SUPPORT_QUALITI': 'RECIPES_TIER_QUALITY_PIPS',
+    'OPTIONS_CORE_ZONE_NAME_STILL_APPEARS_ENTERING_A': 'ZONE_NAME_NEW_ZONE',
+    'OPTIONS_CORE_TINTERFACE_BUTTONS_UI_CHECKBOX_CHECK_T': 'FOCUS_COMPLETED_CHECKMARK',
+
+    // Presence: help / debug keys (user migrating H_PRESENCE_* -> PRESENCE_H_*)
+    // A few already-partly-migrated PRESENCE_H_PRESENCE_* entries get the double prefix collapsed:
+    'PRESENCE_H_PRESENCE_DEBUGTYPES_DUMP_NOTIFICATION': 'PRESENCE_H_DEBUGTYPES_DUMP_NOTIFICATION',
+    'PRESENCE_H_PRESENCE_PLAYING_DEMO_REEL_NOTIFICATION': 'PRESENCE_H_PLAYING_DEMO_REEL_NOTIFICATION',
+    'PRESENCE_H_PRESENCE_HELP_TEST_CURRENT': 'PRESENCE_H_HELP_TEST_CURRENT',
+    'PRESENCE_H_PRESENCE_ZONE_TEST_ZONE': 'PRESENCE_H_ZONE_TEST',
+    'PRESENCE_H_PRESENCE_SUBZONE_TEST_SUBZONE': 'PRESENCE_H_SUBZONE_TEST',
+    'PRESENCE_H_PRESENCE_DISCOVER_TEST_ZONE': 'PRESENCE_H_DISCOVER_TEST_ZONE',
+    'PRESENCE_H_PRESENCE_LEVEL_TEST_LEVEL': 'PRESENCE_H_LEVEL_TEST',
+    'PRESENCE_H_PRESENCE_BOSS_TEST_BOSS': 'PRESENCE_H_BOSS_TEST',
+    'PRESENCE_H_PRESENCE_ACH_TEST_ACHIEVEMENT': 'PRESENCE_H_ACHIEVEMENT_TEST',
+    'PRESENCE_H_PRESENCE_ACCEPT_TEST_QUEST': 'PRESENCE_H_ACCEPT_TEST_QUEST',
+    'PRESENCE_H_PRESENCE_WQACCEPT_TEST_WORLD': 'PRESENCE_H_WORLD_QUEST_ACCEPT_TEST',
+    'PRESENCE_H_PRESENCE_SCENARIO_TEST_SCENARIO': 'PRESENCE_H_SCENARIO_TEST',
+    'PRESENCE_H_PRESENCE_QUEST_TEST_QUEST': 'PRESENCE_H_QUEST_TEST_COMPLETE',
+    'PRESENCE_H_PRESENCE_WQ_TEST_WORLD': 'PRESENCE_H_WORLD_QUEST_TEST',
+    'PRESENCE_H_PRESENCE_UPDATE_TEST_QUEST': 'PRESENCE_H_QUEST_UPDATE_TEST',
+    'PRESENCE_H_PRESENCE_ACHPROGRESS_TEST_ACHIEVEMENT': 'PRESENCE_H_ACHIEVEMENT_PROGRESS_TEST',
+    'PRESENCE_H_PRESENCE_DEMO_REEL_TYPES': 'PRESENCE_H_DEMO_REEL_TYPES',
+    'PRESENCE_H_PRESENCE_DEBUG_DUMP_STATE': 'PRESENCE_H_DEBUG_DUMP_STATE',
+    'PRESENCE_H_PRESENCE_DEBUGLIVE_TOGGLE_LIVE': 'PRESENCE_H_DEBUGLIVE_TOGGLE_LIVE',
+    'PRESENCE_PRESENCE_TEST_COMMANDS': 'PRESENCE_TEST_COMMANDS',
+
+    // Generic OPTIONS_* strip (user's log)
+    'OPTIONS_FOCUS_COMBO_ALT_RIGHT': 'FOCUS_COMBO_ALT_RIGHT',
+    'OPTIONS_FOCUS_CLICK_COMBO_LOCKED_TOOLTIP': 'FOCUS_CLICK_COMBO_LOCKED_TOOLTIP',
+};
+
+function applySpellingFixes(key) {
+    return key
+        .replace(/_COLORS\b/g, '_COLOURS')
+        .replace(/_COLOR\b/g, '_COLOUR')
+        .replace(/COLORS_/g, 'COLOURS_')
+        .replace(/COLOR_/g, 'COLOUR_')
+        .replace(/_ORGANIZATION\b/g, '_ORGANISATION')
+        .replace(/ORGANIZATION_/g, 'ORGANISATION_')
+        .replace(/_CUSTOMIZE\b/g, '_CUSTOMISE')
+        .replace(/CUSTOMIZE_/g, 'CUSTOMISE_')
+        .replace(/_RECOGNIZE\b/g, '_RECOGNISE')
+        .replace(/RECOGNIZE_/g, 'RECOGNISE_');
+}
+
+function collapseDoublePrefix(key) {
+    for (const mod of ['FOCUS', 'PRESENCE', 'VISTA', 'INSIGHT']) {
+        const doubled = `${mod}_${mod}_`;
+        if (key.startsWith(doubled)) {
+            return mod + '_' + key.slice(doubled.length);
+        }
+    }
+    return key;
+}
+
+function computeNewKey(oldKey) {
+    if (Object.prototype.hasOwnProperty.call(OVERRIDES, oldKey)) {
+        return OVERRIDES[oldKey];
+    }
+    if (oldKey.startsWith('OPTIONS_CORE_')) {
+        return oldKey;
+    }
+    if (oldKey.startsWith('H_PRESENCE_')) {
+        return applySpellingFixes('PRESENCE_H_' + oldKey.slice('H_PRESENCE_'.length));
+    }
+    if (oldKey.startsWith('DASH_HOME_')) {
+        return applySpellingFixes('HOME_' + oldKey.slice('DASH_HOME_'.length));
+    }
+    for (const mod of STRIP_MODULES) {
+        const prefix = `OPTIONS_${mod}_`;
+        if (oldKey.startsWith(prefix)) {
+            const stripped = mod + '_' + oldKey.slice(prefix.length);
+            return applySpellingFixes(collapseDoublePrefix(stripped));
+        }
+    }
+    const spellingOnly = applySpellingFixes(oldKey);
+    return spellingOnly;
+}
+
+function main() {
+    const lines = fs.readFileSync(enUSPath, 'utf8').split(/\r?\n/);
+    const keys = new Set();
+    for (const line of lines) {
+        const m = line.match(/^L\["([^"]+)"\]\s*=/);
+        if (m) keys.add(m[1]);
+    }
+    console.log(`Parsed ${keys.size} keys from enUS.lua`);
+
+    const rename = {};
+    const collisions = [];
+
+    for (const oldKey of keys) {
+        const newKey = computeNewKey(oldKey);
+        if (newKey === oldKey) continue;
+        if (keys.has(newKey) && !Object.prototype.hasOwnProperty.call(OVERRIDES, oldKey)) {
+            collisions.push({
+                oldKey,
+                newKey,
+                reason: `new key already exists in enUS.lua (pre-existing key blocks mechanical rename)`,
+            });
+            continue;
+        }
+        rename[oldKey] = newKey;
+    }
+
+    const newToOld = new Map();
+    const droppedForCollision = [];
+    for (const [oldKey, newKey] of Object.entries(rename)) {
+        if (newToOld.has(newKey)) {
+            droppedForCollision.push({
+                oldKey,
+                newKey,
+                reason: `two old keys map to the same new key; first won: ${newToOld.get(newKey)}`,
+            });
+        } else {
+            newToOld.set(newKey, oldKey);
+        }
+    }
+    for (const { oldKey } of droppedForCollision) {
+        delete rename[oldKey];
+    }
+    collisions.push(...droppedForCollision);
+
+    fs.writeFileSync(outPath, JSON.stringify(rename, null, 2) + '\n', 'utf8');
+    fs.writeFileSync(collisionPath, JSON.stringify(collisions, null, 2) + '\n', 'utf8');
+
+    console.log(`Wrote ${outPath} with ${Object.keys(rename).length} renames`);
+    console.log(`Collisions skipped: ${collisions.length} (see ${collisionPath})`);
+
+    const byPrefix = {};
+    for (const oldKey of Object.keys(rename)) {
+        const p = oldKey.split('_').slice(0, 2).join('_');
+        byPrefix[p] = (byPrefix[p] || 0) + 1;
+    }
+    console.log('Renames by old prefix:', byPrefix);
+}
+
+main();

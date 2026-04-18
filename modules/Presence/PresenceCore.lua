@@ -1926,8 +1926,8 @@ local function CreatePreviewWidget(parent, opts)
     local previewData
     local dd = _G.OptionsWidgets_CreateCustomDropdown(
         container,
-        L["OPTIONS_PRESENCE_PREVIEW_TOAST_TYPE"] or "Preview toast type",
-        L["OPTIONS_PRESENCE_SELECT_A_TOAST_TYPE_PREVIEW"] or "Select a toast type to preview.",
+        L["PRESENCE_PREVIEW_TOAST_TYPE"] or "Preview toast type",
+        L["PRESENCE_SELECT_A_TOAST_TYPE_PREVIEW"] or "Select a toast type to preview.",
         dropdownOptsFn,
         getTypeName,
         function(v)
@@ -1947,24 +1947,24 @@ local function CreatePreviewWidget(parent, opts)
     local actionAnchor
     local animateBtn
     if _G.OptionsWidgets_CreateButton then
-        animateBtn = _G.OptionsWidgets_CreateButton(container, L["OPTIONS_PRESENCE_ANIMATE_PREVIEW"] or "Animate preview", function()
+        animateBtn = _G.OptionsWidgets_CreateButton(container, L["PRESENCE_ANIMATE_PREVIEW"] or "Animate preview", function()
             if previewData then
                 PlayAnimatedPreview(previewData, getTypeName())
             end
             notify()
-        end, { height = 22, width = 120, tooltip = L["OPTIONS_PRESENCE_PLAY_SELECTED_TOAST_ANIMATION_INSIDE_PREVIE"] or "Play the selected toast animation inside this preview window." })
+        end, { height = 22, width = 120, tooltip = L["PRESENCE_PLAY_SELECTED_TOAST_ANIMATION_INSIDE_PREVIEW"] or "Play the selected toast animation inside this preview window." })
         animateBtn:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -12)
         actionAnchor = animateBtn
     end
 
     local popoutBtn
     if showPopoutButton and _G.OptionsWidgets_CreateButton then
-        popoutBtn = _G.OptionsWidgets_CreateButton(container, L["OPTIONS_PRESENCE_OPEN_DETACHED_PREVIEW"] or "Open detached preview", function()
+        popoutBtn = _G.OptionsWidgets_CreateButton(container, L["PRESENCE_OPEN_DETACHED_PREVIEW"] or "Open detached preview", function()
             if addon.Presence and addon.Presence.TogglePreviewPopout then
                 addon.Presence.TogglePreviewPopout()
             end
             notify()
-        end, { height = 22, width = 170, tooltip = L["OPTIONS_PRESENCE_OPEN_A_MOVABLE_PREVIEW_WINDOW_STAYS"] or "Open a movable preview window that stays visible while you change other Presence settings." })
+        end, { height = 22, width = 170, tooltip = L["PRESENCE_OPEN_A_MOVABLE_PREVIEW_WINDOW_STAYS"] or "Open a movable preview window that stays visible while you change other Presence settings." })
         if animateBtn then
             popoutBtn:SetPoint("LEFT", animateBtn, "RIGHT", 8, 0)
             popoutBtn:SetPoint("TOP", animateBtn, "TOP", 0, 0)
@@ -2067,14 +2067,14 @@ local function ensurePreviewPopout()
     local title = header:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
     title:SetTextColor(1, 1, 1, 1)
-    title:SetText(L["OPTIONS_PRESENCE_DETACHED_PREVIEW"] or "Detached preview")
+    title:SetText(L["PRESENCE_DETACHED_PREVIEW"] or "Detached preview")
     title:SetPoint("LEFT", header, "LEFT", 12, 0)
 
     local subtitle = frame:CreateFontString(nil, "OVERLAY")
     subtitle:SetFont("Fonts\\ARIALN.TTF", 11, "")
     subtitle:SetTextColor(0.65, 0.7, 0.8, 1)
     subtitle:SetJustifyH("LEFT")
-    subtitle:SetText(L["OPTIONS_PRESENCE_KEEP_OPEN_WHILE_ADJUSTING_TYPOGRAPHY_COLORS"] or "Keep this open while adjusting Typography or Colors.")
+    subtitle:SetText(L["PRESENCE_KEEP_OPEN_WHILE_ADJUSTING_TYPOGRAPHY_COLOURS"] or "Keep this open while adjusting Typography or Colors.")
     subtitle:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -44)
     subtitle:SetPoint("RIGHT", frame, "RIGHT", -48, 0)
 

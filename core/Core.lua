@@ -1775,7 +1775,7 @@ resizeHandle:EnableMouse(true)
 resizeHandle:SetScript("OnEnter", function(self)
     if GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-        GameTooltip:SetText(addon.L["OPTIONS_FOCUS_DRAG_RESIZE"], nil, nil, nil, nil, true)
+        GameTooltip:SetText(addon.L["FOCUS_DRAG_RESIZE"], nil, nil, nil, nil, true)
         GameTooltip:Show()
     end
 end)

@@ -361,7 +361,7 @@ local function OnScenarioCompleted()
             subtitle = FixStaleZeroProgress(subtitle)
         end
         if category == "DELVES" then
-            local delveComplete = (L["OPTIONS_FOCUS_DELVE_COMPLETE"] and L["OPTIONS_FOCUS_DELVE_COMPLETE"] ~= "") and L["OPTIONS_FOCUS_DELVE_COMPLETE"] or "Delve Complete"
+            local delveComplete = (L["FOCUS_DELVE_COMPLETE"] and L["FOCUS_DELVE_COMPLETE"] ~= "") and L["FOCUS_DELVE_COMPLETE"] or "Delve Complete"
             title = delveComplete
             if not subtitle or subtitle == "" or subtitle == (L["PRESENCE_SCENARIO_COMPLETE"] or "Scenario Complete") then
                 local origTitle = lastScenarioTitle
