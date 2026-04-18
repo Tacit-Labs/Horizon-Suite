@@ -67,3 +67,42 @@ function Insight.HookCursorAnchor()
         end
     end)
 end
+
+-- Apply the user's Insight anchor mode to a tooltip being shown for a specific widget.
+-- Callers (e.g. Focus OnEnter handlers) that would otherwise call GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+-- route through this so cursor/fixed anchor settings are honoured.
+-- Falls back to the caller-supplied anchor (default "ANCHOR_RIGHT") when Insight is disabled or anchor
+-- mode is neither "cursor" nor "fixed".
+function Insight.ApplyAnchor(tooltip, owner, fallbackAnchor, fallbackOffX, fallbackOffY)
+    if not tooltip or not tooltip.SetOwner then return end
+    if not owner then return end
+    if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+    if owner.IsForbidden and owner:IsForbidden() then return end
+
+    fallbackAnchor = fallbackAnchor or "ANCHOR_RIGHT"
+    fallbackOffX = fallbackOffX or 0
+    fallbackOffY = fallbackOffY or 0
+
+    if not Insight.IsInsightEnabled() then
+        tooltip:SetOwner(owner, fallbackAnchor, fallbackOffX, fallbackOffY)
+        return
+    end
+
+    local mode = GetAnchorMode()
+    if mode == "cursor" then
+        local side = GetCursorSide()
+        if side == "left" then
+            tooltip:SetOwner(owner, "ANCHOR_CURSOR_LEFT", GetCursorOffsetX(), GetCursorOffsetY())
+        elseif side == "right" then
+            tooltip:SetOwner(owner, "ANCHOR_CURSOR_RIGHT", GetCursorOffsetX(), GetCursorOffsetY())
+        else
+            tooltip:SetOwner(owner, "ANCHOR_CURSOR", 0, 0)
+        end
+    elseif mode == "fixed" then
+        tooltip:SetOwner(owner, "ANCHOR_NONE")
+        tooltip:ClearAllPoints()
+        tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
+    else
+        tooltip:SetOwner(owner, fallbackAnchor, fallbackOffX, fallbackOffY)
+    end
+end
