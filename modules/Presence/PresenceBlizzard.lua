@@ -454,6 +454,48 @@ local function MaybeHideEventToastManager(self, isAbundance)
     end)
 end
 
+-- Diagnostic: hook ObjectiveTrackerTopBannerFrame / ObjectiveTrackerBonusBannerFrame
+-- PlayBanner so we can see whether Abundance completion fires through either
+-- banner pathway (as opposed to EventToastManagerFrame). Gated on
+-- debugEventToastLogging; off by default.
+local bannerDiagnosticHooked = false
+local function HookBannerDiagnostics()
+    if bannerDiagnosticHooked then return end
+    bannerDiagnosticHooked = true
+    local function hook(frame, frameName)
+        if not frame or not frame.PlayBanner then return end
+        pcall(function()
+            hooksecurefunc(frame, "PlayBanner", function(self, data)
+                if not debugEventToastLogging then return end
+                local p = addon.HSPrint or print
+                p(("|cFFFFD100[Presence:banner]|r %s:PlayBanner fired"):format(frameName))
+                DumpToastInfo(frameName .. ".PlayBanner.data", data)
+            end)
+        end)
+        pcall(function()
+            hooksecurefunc(frame, "Show", function(self)
+                if not debugEventToastLogging then return end
+                local p = addon.HSPrint or print
+                p(("|cFFFFD100[Presence:banner]|r %s:Show fired (alpha=%s, shown=%s)"):format(
+                    frameName, tostring(self:GetAlpha()), tostring(self:IsShown())))
+            end)
+        end)
+    end
+    hook(ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"], "ObjectiveTrackerTopBannerFrame")
+    hook(ObjectiveTrackerBonusBannerFrame or _G["ObjectiveTrackerBonusBannerFrame"], "ObjectiveTrackerBonusBannerFrame")
+    -- Also watch the widget top-center container; Abundance may route through widgets.
+    local widgetContainer = UIWidgetTopCenterContainerFrame or _G["UIWidgetTopCenterContainerFrame"]
+    if widgetContainer and widgetContainer.Show then
+        pcall(function()
+            hooksecurefunc(widgetContainer, "Show", function(self)
+                if not debugEventToastLogging then return end
+                local p = addon.HSPrint or print
+                p("|cFFFFD100[Presence:banner]|r UIWidgetTopCenterContainerFrame:Show fired")
+            end)
+        end)
+    end
+end
+
 HookEventToastManager = function()
     if eventToastHooked then return end
     local etm = EventToastManagerFrame or _G["EventToastManagerFrame"]
@@ -534,6 +576,7 @@ reloadGuardFrame:SetScript("OnEvent", function(self, event)
     if not addon:IsModuleEnabled("presence") then return end
     ApplyBlizzardSuppression()
     HookEventToastManager()
+    HookBannerDiagnostics()
     SweepSuppressedFrames()
     DrainAlertFrameQueue()
     StartReloadSweep()
