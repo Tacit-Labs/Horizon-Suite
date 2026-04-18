@@ -58,8 +58,9 @@ function Insight.HookCursorAnchor()
                 tooltip:SetOwner(parent, "ANCHOR_CURSOR_LEFT", GetCursorOffsetX(), GetCursorOffsetY())
             elseif side == "right" then
                 tooltip:SetOwner(parent, "ANCHOR_CURSOR_RIGHT", GetCursorOffsetX(), GetCursorOffsetY())
+            else
+                tooltip:SetOwner(parent, "ANCHOR_CURSOR", 0, 0)
             end
-            -- "center": let Blizzard handle ANCHOR_CURSOR natively
         elseif mode == "fixed" then
             tooltip:ClearAllPoints()
             tooltip:SetPoint(GetFixedPoint(), UIParent, GetFixedPoint(), GetFixedX(), GetFixedY())
