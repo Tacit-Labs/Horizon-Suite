@@ -281,7 +281,7 @@ function addon.focus.GetWoWheadClickBindingHint(profile)
     if #parts == 0 then
         return ""
     end
-    local sep = (L and L["OPTIONS_FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]) or " · "
+    local sep = (L and L["FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]) or " · "
     return table.concat(parts, sep)
 end
 

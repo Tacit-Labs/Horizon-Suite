@@ -201,7 +201,7 @@ addon.SectionFont:SetFont(addon.FONT_PATH, addon.SECTION_SIZE, "OUTLINE")
 addon.ProgressBarFont = CreateFont("HorizonSuiteProgressBarFont")
 addon.ProgressBarFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
--- Values are locale keys (L["UI_*"]) so tracker/options pick up translations; see Localisation/enUS.lua (Tracker section labels).
+-- Values are UI_* locale keys so tracker/options pick up translations; see Localisation/enUS.lua (Tracker section labels).
 addon.SECTION_LABELS = {
     CURRENT       = "UI_CURRENT_QUEST",
     CURRENT_EVENT = "UI_CURRENT_EVENT",

@@ -47,7 +47,7 @@ local function HandlePresenceSlash(msg)
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("ZONE_CHANGE") end
     elseif cmd == "all" then
         local L = addon.L or {}
-        HSPrint(L["PRESENCE_PRESENCE_PLAYING_DEMO_REEL_NOTIFICATION"])
+        HSPrint(L["PRESENCE_PLAYING_DEMO_REEL_NOTIFICATION"])
         local demos = {
             { "ZONE_CHANGE",         GetZoneText() or "Valdrakken",     GetSubZoneText() or "Thaldraszus" },
             { "SUBZONE_CHANGE",      GetZoneText() or "Valdrakken",     GetSubZoneText() or "The Seat of Aspects" },
@@ -71,22 +71,22 @@ local function HandlePresenceSlash(msg)
         end
     elseif cmd == "" or cmd == "help" then
         local L = addon.L or {}
-        HSPrint(L["PRESENCE_PRESENCE_TEST_COMMANDS"])
-        HSPrint(L["PRESENCE_H_PRESENCE_HELP_TEST_CURRENT"])
-        HSPrint(L["PRESENCE_H_PRESENCE_ZONE_TEST_ZONE"])
-        HSPrint(L["PRESENCE_H_PRESENCE_SUBZONE_TEST_SUBZONE"])
-        HSPrint(L["PRESENCE_H_PRESENCE_DISCOVER_TEST_ZONE"])
-        HSPrint(L["PRESENCE_H_PRESENCE_LEVEL_TEST_LEVEL"])
-        HSPrint(L["PRESENCE_H_PRESENCE_BOSS_TEST_BOSS"])
-        HSPrint(L["PRESENCE_H_PRESENCE_ACH_TEST_ACHIEVEMENT"])
-        HSPrint(L["PRESENCE_H_PRESENCE_ACCEPT_TEST_QUEST"])
-        HSPrint(L["PRESENCE_H_PRESENCE_WQACCEPT_TEST_WORLD"])
-        HSPrint(L["PRESENCE_H_PRESENCE_SCENARIO_TEST_SCENARIO"])
-        HSPrint(L["PRESENCE_H_PRESENCE_QUEST_TEST_QUEST"])
-        HSPrint(L["PRESENCE_H_PRESENCE_WQ_TEST_WORLD"])
-        HSPrint(L["PRESENCE_H_PRESENCE_UPDATE_TEST_QUEST"])
-        HSPrint(L["PRESENCE_H_PRESENCE_ACHPROGRESS_TEST_ACHIEVEMENT"])
-        HSPrint(L["PRESENCE_H_PRESENCE_DEMO_REEL_TYPES"])
+        HSPrint(L["PRESENCE_TEST_COMMANDS"])
+        HSPrint(L["PRESENCE_H_HELP_TEST_CURRENT"])
+        HSPrint(L["PRESENCE_H_ZONE_TEST"])
+        HSPrint(L["PRESENCE_H_SUBZONE_TEST"])
+        HSPrint(L["PRESENCE_H_DISCOVER_TEST_ZONE"])
+        HSPrint(L["PRESENCE_H_LEVEL_TEST"])
+        HSPrint(L["PRESENCE_H_BOSS_TEST"])
+        HSPrint(L["PRESENCE_H_ACHIEVEMENT_TEST"])
+        HSPrint(L["PRESENCE_H_ACCEPT_TEST_QUEST"])
+        HSPrint(L["PRESENCE_H_WORLD_QUEST_ACCEPT_TEST"])
+        HSPrint(L["PRESENCE_H_SCENARIO_TEST"])
+        HSPrint(L["PRESENCE_H_QUEST_TEST_COMPLETE"])
+        HSPrint(L["PRESENCE_H_WORLD_QUEST_TEST"])
+        HSPrint(L["PRESENCE_H_QUEST_UPDATE_TEST"])
+        HSPrint(L["PRESENCE_H_ACHIEVEMENT_PROGRESS_TEST"])
+        HSPrint(L["PRESENCE_H_DEMO_REEL_TYPES"])
         addon.Presence.QueueOrPlay("ZONE_CHANGE", GetZoneText() or "Unknown Zone", GetSubZoneText() or "")
     else
         return false

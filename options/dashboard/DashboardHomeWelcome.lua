@@ -61,12 +61,12 @@ function addon.DashboardHomeWelcome_Init(env)
     }
 
     local MODULE_DESCS = {
-        focus    = L["DASH_HOME_MOD_FOCUS_SHORT"]    or "Quest and achievement objective tracker.",
-        presence = L["DASH_HOME_MOD_PRESENCE_SHORT"] or "Cinematic zone text and notification toasts.",
-        vista    = L["DASH_HOME_MOD_VISTA_SHORT"]    or "Custom minimap with zone line, time, and addon buttons.",
-        insight  = L["DASH_HOME_MOD_INSIGHT_SHORT"]  or "Cinematic tooltips with class colors, spec, and faction.",
-        cache    = L["DASH_HOME_MOD_CACHE_SHORT"]    or "Loot, currency, and reputation toasts.",
-        essence  = L["DASH_HOME_MOD_ESSENCE_SHORT"]  or "Character panel with 3D model, item level, and gear.",
+        focus    = L["HOME_MOD_FOCUS_SHORT"]    or "Quest and achievement objective tracker.",
+        presence = L["HOME_MOD_PRESENCE_SHORT"] or "Cinematic zone text and notification toasts.",
+        vista    = L["HOME_MOD_VISTA_SHORT"]    or "Custom minimap with zone line, time, and addon buttons.",
+        insight  = L["HOME_MOD_INSIGHT_SHORT"]  or "Cinematic tooltips with class colors, spec, and faction.",
+        cache    = L["HOME_MOD_CACHE_SHORT"]    or "Loot, currency, and reputation toasts.",
+        essence  = L["HOME_MOD_ESSENCE_SHORT"]  or "Character panel with 3D model, item level, and gear.",
     }
 
     -- Horizontal inset is on the scroll frame (match detail/subcategory); cards align to scroll content left.
@@ -114,7 +114,7 @@ function addon.DashboardHomeWelcome_Init(env)
     reloadRail:SetPoint("BOTTOMLEFT", 0, 0)
     reloadRail:SetColorTexture(0.90, 0.68, 0.20, 1)
 
-    local reloadText = MakeText(reloadBanner, L["DASH_HOME_RELOAD_PROMPT"] or "Reload to apply module changes.", 12, 0.90, 0.82, 0.55, "LEFT")
+    local reloadText = MakeText(reloadBanner, L["HOME_RELOAD_PROMPT"] or "Reload to apply module changes.", 12, 0.90, 0.82, 0.55, "LEFT")
     reloadText:SetPoint("LEFT", 18, 2)
 
     local reloadBtn = CreateFrame("Button", nil, reloadBanner)
@@ -125,7 +125,7 @@ function addon.DashboardHomeWelcome_Init(env)
     reloadBtnBg:SetAllPoints()
     reloadBtnBg:SetColorTexture(0.90, 0.68, 0.20, 0.22)
 
-    local reloadBtnLbl = MakeText(reloadBtn, L["DASH_RELOAD_UI"] or "Reload UI", 11, 0.95, 0.88, 0.60, "CENTER")
+    local reloadBtnLbl = MakeText(reloadBtn, L["RELOAD_UI"] or "Reload UI", 11, 0.95, 0.88, 0.60, "CENTER")
     reloadBtnLbl:SetAllPoints()
 
     reloadBtn:SetScript("OnClick", function() ReloadUI() end)
@@ -139,8 +139,8 @@ function addon.DashboardHomeWelcome_Init(env)
         local mc = MODULE_COLORS[moduleKey] or { 0.6, 0.6, 0.7 }
         local mr, mg, mb = mc[1], mc[2], mc[3]
         local isPreviewModule = PREVIEW_MODULE_KEYS[moduleKey] and true or false
-        local previewTitleSuffix = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
-        local previewDisclaimer = L["OPTIONS_AXIS_MODULE_PREVIEW_DISCLAIMER"] or "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
+        local previewTitleSuffix = " |cff228b22(" .. (L["PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+        local previewDisclaimer = L["MODULE_PREVIEW_DISCLAIMER"] or "This module is currently in an early preview (alpha) state. Daily use is not advised due to bugs or unfinished functionality."
         -- Disclaimer line: distinct from body copy (enabled / disabled module tint)
         local PREVIEW_DISC_ON_R, PREVIEW_DISC_ON_G, PREVIEW_DISC_ON_B = 0.94, 0.62, 0.32
         local PREVIEW_DISC_OFF_R, PREVIEW_DISC_OFF_G, PREVIEW_DISC_OFF_B = 0.50, 0.38, 0.26

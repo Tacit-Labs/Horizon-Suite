@@ -165,8 +165,8 @@ function addon.DashboardDetailView_Init(env)
     --- Open Axis → Modules detail with the Module Toggles accordion expanded (same as Welcome “Open module toggles” link).
     --- @return nil
     local function NavigateToModuleToggles()
-        local togglesSection = L["OPTIONS_AXIS_MODULE_TOGGLES"] or "Module Toggles"
-        local modulesName = L["OPTIONS_AXIS_MODULES"] or "Modules"
+        local togglesSection = L["MODULE_TOGGLES"] or "Module Toggles"
+        local modulesName = L["MODULES"] or "Modules"
         local entryFound
         local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
         for _, e in ipairs(idx) do
@@ -197,7 +197,7 @@ function addon.DashboardDetailView_Init(env)
             end
         end
         if not entryFound then
-            local catName = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            local catName = L["AXIS_GLOBAL_TOGGLES"] or "Global Settings"
             for _, cat in ipairs(addon.OptionCategories) do
                 if cat.key == "GlobalToggles" then
                     catName = type(cat.name) == "function" and cat.name() or cat.name or catName
@@ -235,7 +235,7 @@ function addon.DashboardDetailView_Init(env)
             end
         end
         if not entryFound then
-            local catName = L["OPTIONS_AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            local catName = L["AXIS_GLOBAL_TOGGLES"] or "Global Settings"
             for _, cat in ipairs(addon.OptionCategories) do
                 if cat.key == "GlobalToggles" then
                     catName = type(cat.name) == "function" and cat.name() or cat.name or catName
@@ -547,7 +547,7 @@ function addon.DashboardDetailView_Init(env)
         lbl:SetPoint("TOPLEFT", 35, -22)
 
         -- Collect subset of option names for description
-        local descStr = desc or ("Configure and customize settings related to " .. name:lower() .. ".")
+        local descStr = desc or ("Configure and customise settings related to " .. name:lower() .. ".")
 
         -- Description Text
         local descLbl = MakeText(tile, descStr, 12, 0.55, 0.6, 0.65, "LEFT")
@@ -1194,11 +1194,11 @@ function addon.DashboardDetailView_Init(env)
                     widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, onClick, { tooltip = opt.tooltip })
                 elseif opt.type == "moduleReloadPrompt" then
                     local container = CreateFrame("Frame", nil, currentCard.settingsContainer)
-                    local hint = MakeText(container, L["OPTIONS_MODULE_RELOAD_HINT"] or "Reload the interface to finish applying module changes.", 12, 0.65, 0.68, 0.75, "LEFT")
+                    local hint = MakeText(container, L["MODULE_RELOAD_HINT"] or "Reload the interface to finish applying module changes.", 12, 0.65, 0.68, 0.75, "LEFT")
                     hint:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
                     hint:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
                     hint:SetWordWrap(true)
-                    local reloadBtn = _G.OptionsWidgets_CreateButton(container, L["OPTIONS_MODULE_RELOAD_BUTTON"] or "Reload UI", function()
+                    local reloadBtn = _G.OptionsWidgets_CreateButton(container, L["RELOAD_UI"] or "Reload UI", function()
                         ReloadUI()
                     end, { width = 130, height = 24 })
                     reloadBtn:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -10)
@@ -1247,7 +1247,7 @@ function addon.DashboardDetailView_Init(env)
                     local defaultMap = opt.defaultMap or addon.QUEST_COLORS or {}
                     local swatches = {}
                     
-                    local sub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["OPTIONS_FOCUS_QUEST_TYPES"])
+                    local sub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["QUEST_TYPES"])
                     sub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff)
                     yOff = yOff - 20
                     
@@ -1269,7 +1269,7 @@ function addon.DashboardDetailView_Init(env)
                         swatches[#swatches+1] = row
                     end
                     
-                    local resetBtn = _G.OptionsWidgets_CreateButton(cmContainer, L["OPTIONS_FOCUS_RESET_QUEST_TYPES"], function()
+                    local resetBtn = _G.OptionsWidgets_CreateButton(cmContainer, L["FOCUS_RESET_QUEST_TYPES"], function()
                         _G.OptionsData_SetDB(opt.dbKey, nil)
                         _G.OptionsData_SetDB("sectionColors", nil)
                         for _, sw in ipairs(swatches) do if sw.Refresh then sw:Refresh() end end
@@ -1278,7 +1278,7 @@ function addon.DashboardDetailView_Init(env)
                     resetBtn:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 10, yOff)
                     yOff = yOff - 30
 
-                    local overridesSub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["OPTIONS_FOCUS_ELEMENT_OVERRIDES"])
+                    local overridesSub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["ELEMENT_OVERRIDES"])
                     overridesSub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff - 10)
                     yOff = yOff - 30
                     
@@ -1294,7 +1294,7 @@ function addon.DashboardDetailView_Init(env)
                         overrideRows[#overrideRows+1] = row
                     end
                     
-                    local resetOv = _G.OptionsWidgets_CreateButton(cmContainer, L["OPTIONS_FOCUS_RESET_OVERRIDES"], function()
+                    local resetOv = _G.OptionsWidgets_CreateButton(cmContainer, L["FOCUS_RESET_OVERRIDES"], function()
                         for _, ov in ipairs(opt.overrides or {}) do _G.OptionsData_SetDB(ov.dbKey, nil) end
                         for _, r in ipairs(overrideRows) do if r.Refresh then r:Refresh() end end
                         if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
@@ -1393,7 +1393,7 @@ function addon.DashboardDetailView_Init(env)
                         nameLabel:SetPoint("TOPLEFT", card, "TOPLEFT", 10, -8)
                         nameLabel:SetJustifyH("LEFT")
 
-                        local resetBtn = _G.OptionsWidgets_CreateButton(card, L["OPTIONS_FOCUS_RESET"], function()
+                        local resetBtn = _G.OptionsWidgets_CreateButton(card, L["FOCUS_RESET"], function()
                             local m = getMatrix()
                             if m.categories and m.categories[key] then
                                 m.categories[key] = nil
@@ -1409,12 +1409,12 @@ function addon.DashboardDetailView_Init(env)
                         local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                         local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                        local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"]) or "Stage") or ((addon.L and addon.L["OPTIONS_FOCUS_ZONE"]) or "Zone")
+                        local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"]) or "Stage") or ((addon.L and addon.L["FOCUS_ZONE"]) or "Zone")
                         local catDefs = {
-                            { subKey = "section",   abbr = L["OPTIONS_FOCUS_SECTION"] or "Section",   full = "Section",   def = unifiedDef },
-                            { subKey = "title",     abbr = L["OPTIONS_FOCUS_TITLE"] or "Title",     full = "Title",     def = unifiedDef },
-                            { subKey = "zone",      abbr = (key == "SCENARIO") and (L["UI_STAGE"] or "Stage") or (L["OPTIONS_FOCUS_ZONE"] or "Zone"), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
-                            { subKey = "objective", abbr = L["OPTIONS_FOCUS_OBJECTIVE"] or "Objective", full = "Objective", def = unifiedDef },
+                            { subKey = "section",   abbr = L["FOCUS_SECTION"] or "Section",   full = "Section",   def = unifiedDef },
+                            { subKey = "title",     abbr = L["FOCUS_TITLE"] or "Title",     full = "Title",     def = unifiedDef },
+                            { subKey = "zone",      abbr = (key == "SCENARIO") and (L["UI_STAGE"] or "Stage") or (L["FOCUS_ZONE"] or "Zone"), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                            { subKey = "objective", abbr = L["FOCUS_OBJECTIVE"] or "Objective", full = "Objective", def = unifiedDef },
                         }
 
                         card.swatches = {}
@@ -1570,9 +1570,9 @@ function addon.DashboardDetailView_Init(env)
                     local GROUPING_OVERRIDE_KEYS = { CURRENT = true, NEARBY = true, COMPLETE = true }
                     local yOff = 0
 
-                    perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["OPTIONS_FOCUS_PER_CATEGORY"])
+                    perCatHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["PER_CATEGORY"])
                     perCatHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
-                    resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["OPTIONS_FOCUS_RESET_DEFAULTS"], function()
+                    resetAllBtn = _G.OptionsWidgets_CreateButton(cmfContainer, L["FOCUS_RESET_DEFAULTS"], function()
                         _G.OptionsData_SetDB(opt.dbKey, nil)
                         _G.OptionsData_SetDB("questColors", nil)
                         _G.OptionsData_SetDB("sectionColors", nil)
@@ -1603,11 +1603,11 @@ function addon.DashboardDetailView_Init(env)
                     yOff = yOff - gridH
 
                     yOff = yOff - 16
-                    goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["OPTIONS_FOCUS_SECTION_OVERRIDES"])
+                    goHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["SECTION_OVERRIDES"])
                     goHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
                     yOff = yOff - 28
 
-                    ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_READY_TURN_COLOURS_QUESTS"], function() return getOverride("useCompletedOverride") end, function(v)
+                    ovCompleted = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"], L["FOCUS_READY_TURN_COLOURS_QUESTS"], function() return getOverride("useCompletedOverride") end, function(v)
                         setOverride("useCompletedOverride", v)
                         local gf = overrideGroupMap["COMPLETE"]
                         if gf then gf:SetShown(v and true or false); LayoutAll() end
@@ -1616,7 +1616,7 @@ function addon.DashboardDetailView_Init(env)
                     ovCompleted:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
                     yOff = yOff - 40
 
-                    ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_CURRENT_ZONE_COLOURS_QUESTS_SEC"], function() return getOverride("useCurrentZoneOverride") end, function(v)
+                    ovCurrentZone = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"], L["FOCUS_CURRENT_ZONE_SECTION_COLOURS"], function() return getOverride("useCurrentZoneOverride") end, function(v)
                         setOverride("useCurrentZoneOverride", v)
                         local gf = overrideGroupMap["NEARBY"]
                         if gf then gf:SetShown(v and true or false); LayoutAll() end
@@ -1625,7 +1625,7 @@ function addon.DashboardDetailView_Init(env)
                     ovCurrentZone:SetPoint("RIGHT", cmfContainer, "RIGHT", -CARD_PAD, 0)
                     yOff = yOff - 40
 
-                    ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_CURRENT_QUEST_COLOURS_QUESTS_SE"], function() return getOverride("useCurrentQuestOverride") end, function(v)
+                    ovCurrentQuest = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"], L["FOCUS_CURRENT_QUEST_SECTION_COLOURS"], function() return getOverride("useCurrentQuestOverride") end, function(v)
                         setOverride("useCurrentQuestOverride", v)
                         local gf = overrideGroupMap["CURRENT"]
                         if gf then gf:SetShown(v and true or false); LayoutAll() end
@@ -1662,11 +1662,11 @@ function addon.DashboardDetailView_Init(env)
                     end
 
                     yOff = yOff - 16
-                    otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["OPTIONS_FOCUS_COLORS"])
+                    otherHdr = _G.OptionsWidgets_CreateSectionHeader(cmfContainer, L["OTHER_COLOURS"])
                     otherHdr:SetPoint("TOPLEFT", cmfContainer, "TOPLEFT", 0, yOff)
                     yOff = yOff - 28
 
-                    ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["OPTIONS_FOCUS_DISTINCT_COLOR_COMPLETED_OBJECTIVES"], L["OPTIONS_CORE_COMPLETED_OBJECTIVES_COLOR_BELOW"], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v)
+                    ovCompletedObj = _G.OptionsWidgets_CreateToggleSwitch(cmfContainer, L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"], L["COMPLETED_OBJECTIVES_COLOUR_BELOW"], function() return _G.OptionsData_GetDB("useCompletedObjectiveColor", true) end, function(v)
                         _G.OptionsData_SetDB("useCompletedObjectiveColor", v)
                         notifyFn()
                         if completedObjRow then completedObjRow:SetShown(v and true or false); LayoutAll() end
@@ -1676,10 +1676,10 @@ function addon.DashboardDetailView_Init(env)
                     yOff = yOff - 40
 
                     local otherDefs = {
-                        { dbKey = "highlightColor", label = L["OPTIONS_FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
-                        { dbKey = "completedObjectiveColor", label = L["OPTIONS_FOCUS_COMPLETED_OBJECTIVE"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
-                        { dbKey = "progressBarFillColor", label = L["OPTIONS_FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return _G.OptionsData_GetDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
-                        { dbKey = "progressBarTextColor", label = L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT"], def = { 0.95, 0.95, 0.95 } },
+                        { dbKey = "highlightColor", label = L["FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
+                        { dbKey = "completedObjectiveColor", label = L["FOCUS_COMPLETED_OBJECTIVE"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
+                        { dbKey = "progressBarFillColor", label = L["FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return _G.OptionsData_GetDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
+                        { dbKey = "progressBarTextColor", label = L["FOCUS_PROGRESS_BAR_TEXT"], def = { 0.95, 0.95, 0.95 } },
                     }
 
                     for _, od in ipairs(otherDefs) do

@@ -92,10 +92,10 @@ function addon.DashboardModuleGuide_Init(env)
     local function ModuleGuideSectionTitle(moduleKey)
         local base = (BrandMod(moduleKey) or ""):upper()
         if PREVIEW_MODULE_KEYS[moduleKey] then
-            return base .. " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+            return base .. " |cff228b22(" .. (L["PRESENCE_PREVIEW"] or "Preview") .. ")|r"
         end
         if COMING_SOON_MODULE_KEYS[moduleKey] then
-            return base .. " |cff8cb2e6(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")|r"
+            return base .. " |cff8cb2e6(" .. (L["COMING_SOON"] or "Coming Soon") .. ")|r"
         end
         return base
     end
@@ -105,8 +105,8 @@ function addon.DashboardModuleGuide_Init(env)
     --- @return string
     local function ApplyGuideBulletStatusTags(text)
         if type(text) ~= "string" or text == "" then return text end
-        local prevTag = " |cff228b22(" .. (L["OPTIONS_PRESENCE_PREVIEW"] or "Preview") .. ")|r"
-        local soonTag = " |cff8cb2e6(" .. (L["OPTIONS_CORE_COMING_SOON"] or "Coming Soon") .. ")|r"
+        local prevTag = " |cff228b22(" .. (L["PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+        local soonTag = " |cff8cb2e6(" .. (L["COMING_SOON"] or "Coming Soon") .. ")|r"
         for _, row in ipairs({
             { key = "cache", label = "Cache", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "essence", label = "Essence", tag = prevTag, when = PREVIEW_MODULE_KEYS },

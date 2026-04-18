@@ -1917,7 +1917,7 @@ local function PopulateEntry(entry, questData, groupKey)
     local playerZone = addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName() or nil
     local inCurrentZone = questData.isNearby or (questData.zoneName and playerZone and questData.zoneName:lower() == playerZone:lower())
     -- Prey activities: "Activity" is a semantic label, not a zone—always show it even when in-zone
-    local isActivityLabel = questData.zoneName and ((questData.zoneName == "Activity") or (addon.L and addon.L["OPTIONS_FOCUS_ACTIVITY"] and questData.zoneName == addon.L["OPTIONS_FOCUS_ACTIVITY"]))
+    local isActivityLabel = questData.zoneName and ((questData.zoneName == "Activity") or (addon.L and addon.L["FOCUS_ACTIVITY"] and questData.zoneName == addon.L["FOCUS_ACTIVITY"]))
     local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel)
     local shouldShowScenarioStage = questData.stageName and (questData.category == "SCENARIO" or questData.isScenarioMain)
         and (questData.title ~= questData.stageName)
