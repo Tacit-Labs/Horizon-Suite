@@ -39,6 +39,12 @@ local ZONE_TEXT_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED
 local eventToastSelectiveSuppressed = false
 local lastDisplayToastWasAbundance = false
 
+-- Diagnostic: when true, the DisplayToast hook dumps each toastInfo payload
+-- to chat. Toggle via /h debug presence debugtoasts. Used to identify the
+-- exact field shape for Abundance toasts so IsAbundanceEventToast can be
+-- tightened. Off by default.
+local debugEventToastLogging = false
+
 -- Fields on toastInfo / currentDisplayingToast.toastInfo that may carry user
 -- facing text. We scan each for the localized "Abundance" needle.
 local ABUNDANCE_TEXT_FIELDS = {
@@ -97,6 +103,42 @@ local function IsCurrentEventToastAbundance(manager)
         return true
     end
     return false
+end
+
+--- Diagnostic helper: dump every scalar field of a toastInfo table to chat.
+--- Guarded by debugEventToastLogging. Used to reverse-engineer the exact
+--- toast payload shape for Midnight Abundance toasts.
+--- @param label string
+--- @param info table|nil
+local function DumpToastInfo(label, info)
+    if not debugEventToastLogging then return end
+    local p = addon.HSPrint or print
+    if type(info) ~= "table" then
+        p(("|cFFFFD100[Presence:toasts]|r %s toastInfo=%s"):format(label, tostring(info)))
+        return
+    end
+    p(("|cFFFFD100[Presence:toasts]|r %s:"):format(label))
+    local count = 0
+    for k, v in pairs(info) do
+        local tv = type(v)
+        if tv == "string" or tv == "number" or tv == "boolean" then
+            p(("  %s (%s) = %s"):format(tostring(k), tv, tostring(v)))
+        elseif tv == "table" then
+            p(("  %s (table) = {...}"):format(tostring(k)))
+        else
+            p(("  %s (%s)"):format(tostring(k), tv))
+        end
+        count = count + 1
+    end
+    if count == 0 then p("  <empty table>") end
+end
+
+--- Exported: toggle toastInfo logging. Returns new state. Invoked via
+--- /h debug presence debugtoasts.
+--- @return boolean
+local function ToggleDebugEventToasts()
+    debugEventToastLogging = not debugEventToastLogging
+    return debugEventToastLogging
 end
 
 -- ============================================================================
@@ -423,6 +465,15 @@ HookEventToastManager = function()
             hooksecurefunc(etm, "DisplayToast", function(self, toastInfo)
                 local isAbundance = IsAbundanceEventToast(toastInfo) or IsCurrentEventToastAbundance(self)
                 lastDisplayToastWasAbundance = isAbundance
+                if debugEventToastLogging then
+                    DumpToastInfo("DisplayToast.arg", toastInfo)
+                    local current = self and self.currentDisplayingToast
+                    DumpToastInfo("DisplayToast.current.toastInfo", current and current.toastInfo)
+                    local p = addon.HSPrint or print
+                    p(("|cFFFFD100[Presence:toasts]|r isAbundance=%s  -> %s"):format(
+                        tostring(isAbundance),
+                        isAbundance and "PASSTHROUGH" or (eventToastSelectiveSuppressed and "HIDE" or "allow (selective=off)")))
+                end
                 MaybeHideEventToastManager(self, isAbundance)
             end)
         end)
@@ -499,3 +550,4 @@ addon.Presence.ReapplyZoneSuppression   = ReapplyZoneSuppression
 addon.Presence.DumpBlizzardSuppression = DumpBlizzardSuppression
 addon.Presence.KillWorldQuestBanner     = KillWorldQuestBanner
 addon.Presence.HookEventToastManager   = HookEventToastManager
+addon.Presence.ToggleDebugEventToasts  = ToggleDebugEventToasts
