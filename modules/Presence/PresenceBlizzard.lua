@@ -4,8 +4,13 @@
     Restore per-type when that type is toggled off (user gets default WoW).
     Restore all when Presence is disabled.
     Frames: ZoneTextFrame, SubZoneTextFrame, RaidBossEmoteFrame, LevelUpDisplay,
-    BossBanner, ObjectiveTrackerBonusBannerFrame, ObjectiveTrackerTopBannerFrame,
+    BossBanner, ObjectiveTrackerTopBannerFrame,
     EventToastManagerFrame, WorldQuestCompleteBannerFrame.
+
+    ObjectiveTrackerBonusBannerFrame is intentionally NOT suppressed: it carries
+    bonus objective banners and the Midnight Abundance / Prey information panel
+    and pickup toasts (issue #47). Presence does not yet have a custom toast for
+    Abundance, so we leave the native UI intact.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -157,9 +162,10 @@ local function ApplyBlizzardSuppression()
 
     -- Always suppress when Presence is on (no per-type mapping)
     KillBlizzardFrame(BossBanner)
-    KillBlizzardFrame(ObjectiveTrackerBonusBannerFrame)
     local topBannerFrame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"]
     if topBannerFrame then KillBlizzardFrame(topBannerFrame) end
+    -- Abundance / bonus objective banner (ObjectiveTrackerBonusBannerFrame)
+    -- is intentionally left alone; see file header.
 end
 
 --- Re-apply zone frame suppression. Call when zone events fire to ensure frames stay hidden after Blizzard may have shown them.
