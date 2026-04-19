@@ -152,7 +152,7 @@ local function WriteGradient(tooltip, fs, incomingText)
     local quality = tooltip._insightItemQuality
     if not quality or quality < 0 then return end
     if not Insight.IsInsightEnabled() then return end
-    if not addon.GetDB("insightItemNameGradient", true) then return end
+    if not addon.GetDB("insightItemNameGradient", false) then return end
 
     gradientReentry[fs] = true
     pcall(function()

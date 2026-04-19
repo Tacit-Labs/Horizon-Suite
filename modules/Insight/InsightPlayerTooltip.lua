@@ -414,7 +414,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             nameB = (fc and fc[3]) or (classColor and classColor.b) or 1
         end
         local useGradient = (nameMode == "class")
-            and addon.GetDB("insightPlayerNameGradient", true)
+            and addon.GetDB("insightPlayerNameGradient", false)
         if ShowCharacterTitle() then
             -- Midnight: never compare or string-op Unit* name returns outside pcall (secret strings).
             pcall(function()
@@ -576,7 +576,7 @@ function Insight.RenderTestTooltipContent(tooltip)
     local facIcon = showIcons and (Insight.FACTION_ICONS["Alliance"] or "") or ""
 
     local useGradient = (nameMode == "class")
-        and addon.GetDB("insightPlayerNameGradient", true)
+        and addon.GetDB("insightPlayerNameGradient", false)
 
     -- 1. Name line (character title optional — same as live)
     local nameSpan = FormatNameSpan("Horizonaut-Stormrage", nameR, nameG, nameB, useGradient)
