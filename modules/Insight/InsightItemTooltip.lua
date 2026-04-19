@@ -199,6 +199,64 @@ function Insight.ScheduleItemNameGradient(tooltip, quality)
 end
 
 -- ============================================================================
+-- SetText-level hook: stops the one-frame flash when Blizzard re-renders
+-- mid-display. hooksecurefunc on the FontString's SetText runs after every
+-- text write; if the tooltip is in item mode (quality cached) and the new
+-- text isn't already our gradient, re-wrap it in the same frame. Reentrancy
+-- guard prevents us recursing on our own SetText call.
+-- ============================================================================
+
+local gradientReentry = {}
+
+local function WrapFirstLineText(tooltip, fs, incomingText)
+    if not tooltip or not fs then return end
+    if gradientReentry[fs] then return end
+    local quality = tooltip._insightItemQuality
+    if not quality or quality < 0 then return end
+    if not Insight.IsInsightEnabled() then return end
+    if not addon.GetDB("insightItemNameGradient", true) then return end
+    local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
+    if not colors then return end
+
+    pcall(function()
+        local raw = incomingText
+        if type(raw) ~= "string" or raw == "" then
+            raw = fs:GetText()
+        end
+        if type(raw) ~= "string" or raw == "" then return end
+        local plain = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        if plain == "" then return end
+        local r, g, b = colors.r, colors.g, colors.b
+        local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
+        local r2 = math.min(1, r * 1.20 + 0.15)
+        local g2 = math.min(1, g * 1.20 + 0.15)
+        local b2 = math.min(1, b * 1.20 + 0.15)
+        local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
+        if gradient == raw then return end
+        gradientReentry[fs] = true
+        fs:SetText(gradient)
+        gradientReentry[fs] = nil
+    end)
+end
+
+--- Install a persistent hook on the tooltip's first-line FontString so any
+--- subsequent Blizzard-driven SetText is re-wrapped with our gradient in the
+--- same frame. Call once per tooltip in Init; idempotent via _insightGradientTextHooked.
+--- @param tooltip table GameTooltip-like frame
+function Insight.InstallItemNameGradientHook(tooltip)
+    if not tooltip or tooltip._insightGradientTextHooked then return end
+    if not tooltip.GetName then return end
+    local name = tooltip:GetName()
+    if not name then return end
+    local fs = _G[name .. "TextLeft1"]
+    if not fs or not fs.SetText then return end
+    tooltip._insightGradientTextHooked = true
+    hooksecurefunc(fs, "SetText", function(self, text)
+        WrapFirstLineText(tooltip, self, text)
+    end)
+end
+
+-- ============================================================================
 -- ITEM BLOCK BUILDERS
 -- ============================================================================
 

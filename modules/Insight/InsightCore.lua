@@ -381,7 +381,13 @@ local function OnItemTooltip(tooltip, data)
     end
 
     -- Gradient is width-neutral (no AddLine), safe for ShoppingTooltip1/2.
-    -- Scheduled for the next frame so we run after Blizzard's final text pass.
+    -- Apply sync now; the persistent SetText hook (InstallItemNameGradientHook)
+    -- re-wraps any Blizzard follow-up writes in the same frame, so no flash.
+    -- The deferred schedule is belt-and-braces for any post-Show() layout pass
+    -- that somehow bypasses our SetText hook.
+    if Insight.ApplyItemNameGradient then
+        Insight.ApplyItemNameGradient(tooltip, quality)
+    end
     if Insight.ScheduleItemNameGradient then
         Insight.ScheduleItemNameGradient(tooltip, quality)
     end
@@ -683,6 +689,9 @@ function Insight.Init()
             HookTooltipShowMethod(tt)
             if tt ~= GameTooltip then
                 HookTooltipLifecycle(tt)
+            end
+            if Insight.InstallItemNameGradientHook then
+                Insight.InstallItemNameGradientHook(tt)
             end
         end
     end
