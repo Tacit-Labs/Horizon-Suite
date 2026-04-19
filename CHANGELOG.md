@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.12.6] – 2026-04-19
+
+### 🔧 Improvements
+
+- **(Focus) Tooltip no longer covers the tracker** — Focus hover tooltips now pin to the outer edge of the Horizon panel so they never overlap the tracker, whether the panel is docked on the left or right side of the screen.
+- **(Insight) Dynamic Focus tooltips in Fixed mode** — New toggle keeps Focus tracker tooltips on the dynamic edge anchor even when all other Insight tooltips stay pinned to the fixed position.
+
+### 🐛 Fixes
+
+- **(Focus)** Focus hover tooltips (quests, rares, endeavors, recipes, LFG/AH buttons, floating quest item, M+ block) now honour the Insight anchor mode (Cursor / Fixed) instead of always anchoring right of the hovered widget.
+- **(Insight)** Cursor:Center anchor now correctly centres the tooltip at the cursor instead of switching to the Fixed anchor position.
+- **(Focus)** WoWhead click-combo hint now shows "Shift + Left click" and its variants instead of raw tokens like `shiftLeft`.
+
+---
+
 ## [4.12.5] – 2026-04-18
 
 ### 🔧 Improvements

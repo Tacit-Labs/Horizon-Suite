@@ -15,6 +15,25 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.12.6"] = {
+        date = "2026-04-19",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: hover tooltips now pin to the outer edge of the Horizon panel so they never cover the tracker, whether it's docked on the left or right side of the screen.",
+                "Insight: new toggle keeps Focus tracker tooltips on the dynamic edge anchor even when all other Insight tooltips are pinned to a fixed position.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: hover tooltips (quests, rares, endeavors, recipes, LFG/AH buttons, floating quest item, M+ block) now honour the Insight anchor mode (Cursor / Fixed) instead of always opening right of the hovered widget.",
+                "Insight: Cursor:Center anchor now correctly centres the tooltip at the cursor instead of using the Fixed anchor position.",
+                "Focus: WoWhead click-combo hint now shows 'Shift + Left click' etc. instead of raw tokens like 'shiftLeft'.",
+            },
+        },
+    },
+
     ["4.12.5"] = {
         date = "2026-04-18",
         {
