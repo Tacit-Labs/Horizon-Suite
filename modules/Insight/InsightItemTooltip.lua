@@ -114,16 +114,17 @@ local function Utf8Chars(s)
     return out
 end
 
--- TWW upgrade-track name → ItemQuality tier. Players identify gear by its
--- upgrade track (Veteran/Champion/…), not by the legacy base ItemQuality, so
--- the gradient follows that scheme when the track label is present.
+-- TWW upgrade-track name → ItemQuality tier. Mapping follows the Horizon
+-- colour scheme: Adventurer lifts to Rare, Veteran+ all land on Epic. Items
+-- without a detectable track default to Uncommon unless their base quality
+-- is already Epic+, in which case the base tier is preserved (see caller).
 local UPGRADE_TRACK_QUALITY = {
-    ["Explorer"]   = 1,
-    ["Adventurer"] = 2,
-    ["Veteran"]    = 3,
-    ["Champion"]   = 4,
-    ["Hero"]       = 5,
-    ["Myth"]       = 6,
+    ["Explorer"]   = 2, -- Uncommon
+    ["Adventurer"] = 3, -- Rare
+    ["Veteran"]    = 4, -- Epic
+    ["Champion"]   = 4, -- Epic
+    ["Hero"]       = 4, -- Epic
+    ["Myth"]       = 4, -- Epic
 }
 
 --- Scan tooltip lines for an "Upgrade Level: <Track>" label and return the

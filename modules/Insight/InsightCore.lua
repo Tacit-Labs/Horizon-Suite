@@ -354,14 +354,20 @@ local function OnItemTooltip(tooltip, data)
 
     -- Base quality: TDP data.quality first, falling back to the third return
     -- of C_Item.GetItemInfo (it's multi-return, not a table).
-    local quality = data.quality
-    if not quality and C_Item and C_Item.GetItemInfo then
+    local baseQuality = data.quality
+    if not baseQuality and C_Item and C_Item.GetItemInfo then
         local _, _, q = C_Item.GetItemInfo(itemID)
-        quality = q
+        baseQuality = q
     end
-    -- TWW upgrade-track tier (Veteran/Champion/…) wins over the legacy
-    -- ItemQuality — players read the track as the "real" rarity.
-    quality = Insight.DetectUpgradeTrackQuality(tooltip) or quality
+    -- Effective gradient quality:
+    --   1. Upgrade-track tier (Veteran/Champion/Hero/Myth → Epic, etc.)
+    --   2. Else preserve base quality if already Epic+ (keeps pre-TWW epics
+    --      and legendaries in their own tier)
+    --   3. Else default to Uncommon (trackless low-tier items gradient green)
+    local quality = Insight.DetectUpgradeTrackQuality(tooltip)
+    if not quality then
+        quality = (baseQuality and baseQuality >= 4) and baseQuality or 2
+    end
 
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
