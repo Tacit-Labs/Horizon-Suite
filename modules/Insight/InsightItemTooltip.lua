@@ -88,6 +88,60 @@ local function HasTransmogLine(tooltip)
 end
 
 -- ============================================================================
+-- QUALITY GRADIENT (item name first line)
+-- ============================================================================
+
+local function QualityGradientColors(quality)
+    if not quality or quality < 0 then return nil, nil end
+    if not ITEM_QUALITY_COLORS or not ITEM_QUALITY_COLORS[quality] then return nil, nil end
+    if not CreateColor then return nil, nil end
+    local c = ITEM_QUALITY_COLORS[quality]
+    local r, g, b = c.r, c.g, c.b
+    local sR, sG, sB = r * 0.70, g * 0.70, b * 0.70
+    local eR = math.min(1, r * 1.15 + 0.10)
+    local eG = math.min(1, g * 1.15 + 0.10)
+    local eB = math.min(1, b * 1.15 + 0.10)
+    return CreateColor(sR, sG, sB, 1), CreateColor(eR, eG, eB, 1)
+end
+
+local function ResetNameGradient(fs, quality)
+    if not fs or not fs._insightGradientApplied then return end
+    if fs.SetTextColor and quality and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
+        local c = ITEM_QUALITY_COLORS[quality]
+        pcall(fs.SetTextColor, fs, c.r, c.g, c.b)
+    end
+    fs._insightGradientApplied = nil
+end
+
+--- Apply a two-stop horizontal gradient to the tooltip's first text line,
+--- derived from the item quality colour. No-ops on tooltips without a GetName,
+--- on clients without FontString:SetGradient, or when the option is off.
+--- @param tooltip table GameTooltip-like frame (must expose GetName and have <name>TextLeft1 FontString)
+--- @param quality number|nil Item quality index (0..7)
+function Insight.ApplyItemNameGradient(tooltip, quality)
+    if not tooltip or not tooltip.GetName then return end
+    local name = tooltip:GetName()
+    if not name then return end
+    local fs = _G[name .. "TextLeft1"]
+    if not fs or not fs.SetGradient then return end
+
+    local enabled = Insight.IsInsightEnabled()
+        and addon.GetDB("insightItemNameGradient", true)
+    if not enabled or not quality or quality < 0 then
+        ResetNameGradient(fs, quality)
+        return
+    end
+
+    local startC, endC = QualityGradientColors(quality)
+    if not startC then
+        ResetNameGradient(fs, quality)
+        return
+    end
+    fs:SetGradient("HORIZONTAL", startC, endC)
+    fs._insightGradientApplied = true
+end
+
+-- ============================================================================
 -- ITEM BLOCK BUILDERS
 -- ============================================================================
 
@@ -167,6 +221,7 @@ function Insight.RenderItemPreviewContent(tooltip)
         qr, qg, qb = c.r, c.g, c.b
     end
     tooltip:AddLine(itemName, qr, qg, qb)
+    Insight.ApplyItemNameGradient(tooltip, quality)
     if itemLevel then
         tooltip:AddLine("Item Level " .. tostring(itemLevel), 1, 1, 1)
     end

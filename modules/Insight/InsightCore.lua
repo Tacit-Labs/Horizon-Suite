@@ -371,7 +371,12 @@ local function OnItemTooltip(tooltip, data)
         tooltip._insightItemQuality = nil
     end
 
-    -- Comparison tooltips get quality borders (above) but no line enrichment:
+    -- Gradient is width-neutral (no AddLine), safe for ShoppingTooltip1/2.
+    if Insight.ApplyItemNameGradient then
+        Insight.ApplyItemNameGradient(tooltip, quality)
+    end
+
+    -- Comparison tooltips get quality borders + name gradient (above) but no line enrichment:
     -- adding lines triggers Blizzard to reposition them, re-firing Show() repeatedly.
     if tooltip == ShoppingTooltip1 or tooltip == ShoppingTooltip2 then return end
 

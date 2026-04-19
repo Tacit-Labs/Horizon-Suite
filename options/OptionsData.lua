@@ -101,6 +101,7 @@ local INSIGHT_KEYS = {
     insightNpcBodySize          = true,
     -- Item tooltip
     insightItemQualityBorder    = true,
+    insightItemNameGradient     = true,
     insightItemSectionSpacing   = true,
     insightItemHeaderSize       = true,
     insightItemBodySize         = true,
@@ -2303,6 +2304,7 @@ local OptionCategories = {
             { type = "toggle", name = L["TRANSMOG_STATUS"] or "Transmog status", desc = L["AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
             { type = "section", name = L["INSIGHT_SECTION_ITEM_STYLING"] or "Item styling" },
             { type = "toggle", name = L["INSIGHT_ITEM_QUALITY_BORDER"] or "Quality border", desc = L["INSIGHT_ITEM_QUALITY_BORDER_DESC"] or "Tint the tooltip border to the item's quality colour (Uncommon green, Rare blue, Epic purple, etc.).", dbKey = "insightItemQualityBorder", get = function() return getDB("insightItemQualityBorder", true) end, set = function(v) setDB("insightItemQualityBorder", v) end },
+            { type = "toggle", name = L["INSIGHT_ITEM_NAME_GRADIENT"] or "Quality gradient name", desc = L["INSIGHT_ITEM_NAME_GRADIENT_DESC"] or "Render the item name as a two-stop gradient of its quality colour (Uncommon green, Rare blue, Epic purple, etc.).", dbKey = "insightItemNameGradient", get = function() return getDB("insightItemNameGradient", true) end, set = function(v) setDB("insightItemNameGradient", v) end },
             { type = "toggle", name = L["INSIGHT_ITEM_SECTION_SPACING"] or "Blank line before blocks", desc = L["INSIGHT_ITEM_SECTION_SPACING_DESC"] or "Insert a blank line before Insight blocks on item tooltips instead of a tinted separator line.", dbKey = "insightItemSectionSpacing", get = function() return getDB("insightItemSectionSpacing", false) end, set = function(v) setDB("insightItemSectionSpacing", v) end },
             { type = "section", name = L["FOCUS_FONT_SIZES"] or "Font sizes" },
             { type = "slider", name = L["FOCUS_HEADER_SIZE"] or "Header size", desc = L["FOCUS_HEADER_FONT_SIZE"] or "Header font size for item tooltips (item name line).",        dbKey = "insightItemHeaderSize", min = 8, max = 24, get = function() return getDB("insightItemHeaderSize", 14) end, set = function(v) setDB("insightItemHeaderSize", v) end },
