@@ -218,6 +218,10 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
     local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
     if not colors then return end
 
+    -- Reentrancy guard must always clear, even if the inner SetText errors
+    -- (e.g., a Midnight secret-string taint surfaces mid-processing). Keeping
+    -- the guard outside the pcall guarantees this.
+    gradientReentry[fs] = true
     pcall(function()
         local raw = incomingText
         if type(raw) ~= "string" or raw == "" then
@@ -233,10 +237,17 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
         local b2 = math.min(1, b * 1.20 + 0.15)
         local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
         if gradient == raw then return end
-        gradientReentry[fs] = true
         fs:SetText(gradient)
-        gradientReentry[fs] = nil
+        if Insight._gradientDebug then
+            local plainShort = plain:sub(1, 30)
+            Insight.Print(string.format(
+                "gradient: q=%d  plain=%q  start=%02x%02x%02x  end=%02x%02x%02x",
+                quality, plainShort,
+                math.floor(r1*255), math.floor(g1*255), math.floor(b1*255),
+                math.floor(r2*255), math.floor(g2*255), math.floor(b2*255)))
+        end
     end)
+    gradientReentry[fs] = nil
 end
 
 --- Install a persistent hook on the tooltip's first-line FontString so any

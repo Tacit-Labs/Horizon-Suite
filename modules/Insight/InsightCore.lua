@@ -885,6 +885,14 @@ local function HandleInsightSlash(msg)
             "   Text changed   : " .. tostring(changed),
         })
 
+    elseif cmd == "gradient debug on" or cmd == "graddbg on" then
+        Insight._gradientDebug = true
+        Insight.Print("Horizon Insight: gradient debug ON — hover items to see per-apply prints.")
+
+    elseif cmd == "gradient debug off" or cmd == "graddbg off" then
+        Insight._gradientDebug = false
+        Insight.Print("Horizon Insight: gradient debug OFF.")
+
     else
         Insight.PrintBlock({
             "Horizon Insight",
