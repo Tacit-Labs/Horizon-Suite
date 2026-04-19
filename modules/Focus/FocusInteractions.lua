@@ -9,6 +9,30 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 -- INTERACTIONS
 -- ============================================================================
 
+-- Anchor a GameTooltip for a Focus widget so it never covers the tracker.
+-- Picks ANCHOR_LEFT when the owner sits in the right half of the screen, ANCHOR_RIGHT otherwise.
+-- Delegates to Insight.ApplyAnchor when available so the user's cursor/fixed anchor preference
+-- still wins; falls back to plain SetOwner when Insight is disabled or not loaded.
+function addon.focus.AnchorTooltip(tooltip, owner)
+    if not tooltip or not tooltip.SetOwner then return end
+    if not owner then return end
+    if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+    if owner.IsForbidden and owner:IsForbidden() then return end
+
+    local anchor = "ANCHOR_RIGHT"
+    local cx = owner.GetCenter and owner:GetCenter()
+    local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
+    if cx and uiw > 0 and cx > uiw * 0.5 then
+        anchor = "ANCHOR_LEFT"
+    end
+
+    if addon.Insight and addon.Insight.ApplyAnchor then
+        addon.Insight.ApplyAnchor(tooltip, owner, anchor)
+    else
+        tooltip:SetOwner(owner, anchor)
+    end
+end
+
 local pool = addon.pool
 local CLASSIC_ICON_CLICK_DEBOUNCE = 0.05
 -- Set to QUEST_ACTIONS["superTrack"] after that function is defined; quest context menu uses it.
@@ -1823,11 +1847,7 @@ for i = 1, addon.POOL_SIZE do
         if not showTooltip then return end
         if self.creatureID then
             local link = ("unit:Creature-0-0-0-0-%d-0000000000"):format(self.creatureID)
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             pcall(GameTooltip.SetHyperlink, GameTooltip, link)
             local att = _G.AllTheThings
             if att and att.Modules and att.Modules.Tooltip then
@@ -1840,11 +1860,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.endeavorID then
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             GameTooltip:ClearLines()
             local endeavorColor = (addon.GetQuestColor and addon.GetQuestColor("ENDEAVOR")) or (addon.QUEST_COLORS and addon.QUEST_COLORS.ENDEAVOR) or { 0.45, 0.95, 0.75 }
             local ecR, ecG, ecB = endeavorColor[1], endeavorColor[2], endeavorColor[3]
@@ -1944,21 +1960,13 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.decorID then
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             GameTooltip:SetText(self.titleText:GetText() or "")
             GameTooltip:AddLine(("Decor #%d"):format(self.decorID), 0.7, 0.7, 0.7)
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.appearanceID then
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             local link = self.appearanceItemLink
             if link and type(link) == "string" and link ~= "" and GameTooltip.SetHyperlink then
                 local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
@@ -1973,11 +1981,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.achievementID and GetAchievementLink then
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             local link = GetAchievementLink(self.achievementID)
             if link then
                 pcall(GameTooltip.SetHyperlink, GameTooltip, link)
@@ -1987,11 +1991,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.questID then
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             pcall(GameTooltip.SetHyperlink, GameTooltip, "quest:" .. self.questID)
             addon.AddQuestRewardsToTooltip(GameTooltip, self.questID)
             addon.AddQuestPartyProgressToTooltip(GameTooltip, self.questID)
@@ -1999,11 +1999,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.entryKey then
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             GameTooltip:SetText(self.titleText:GetText() or "")
             AppendDelveTooltipData(self, GameTooltip)
             AppendWoWheadLineToTooltip(self)

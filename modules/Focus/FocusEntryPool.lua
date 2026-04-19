@@ -154,11 +154,7 @@ local function CreateQuestEntry(parent, index)
     e.questIconBtn:SetScript("OnEnter", function(self)
         local entry = self._ownerEntry
         if addon.GetDB("focusShowTooltipOnHover", false) and entry and entry.questID and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
-            if addon.Insight and addon.Insight.ApplyAnchor then
-                addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-            else
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            end
+            addon.focus.AnchorTooltip(GameTooltip, self)
             GameTooltip:AddLine(T("Focus quest") or "Focus quest", 1, 1, 1)
             GameTooltip:AddLine(T("Click to super-track this quest.") or "Click to super-track this quest.", 0.7, 0.7, 0.7, true)
             GameTooltip:Show()
@@ -202,11 +198,7 @@ local function CreateQuestEntry(parent, index)
         self:SetAlpha(1)
         self.icon:SetAlpha(1)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
-        if addon.Insight and addon.Insight.ApplyAnchor then
-            addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-        else
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        end
+        addon.focus.AnchorTooltip(GameTooltip, self)
         GameTooltip:AddLine(T("Find a Group"), 1, 1, 1)
         GameTooltip:AddLine(T("Click to search for a group for this quest."), 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
@@ -241,11 +233,7 @@ local function CreateQuestEntry(parent, index)
         self.icon:SetAlpha(1)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         local L = addon.L
-        if addon.Insight and addon.Insight.ApplyAnchor then
-            addon.Insight.ApplyAnchor(GameTooltip, self, "ANCHOR_RIGHT")
-        else
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        end
+        addon.focus.AnchorTooltip(GameTooltip, self)
         GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TITLE"]) or "Search Auction House", 1, 1, 1)
         GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]) or "Left-click: one craft with quality and tier when supported.\nRight-click: craft count and tier menu (1–5, or Any for no filters).\nThe Auction House must be open.", 0.7, 0.7, 0.7, true)
         GameTooltip:Show()

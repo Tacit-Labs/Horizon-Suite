@@ -549,11 +549,7 @@ local function ShowMplusTooltip()
     local data = GetMplusData()
     if not data or #data.affixes == 0 then return end
     local tt = GameTooltip
-    if addon.Insight and addon.Insight.ApplyAnchor then
-        addon.Insight.ApplyAnchor(tt, mplusBlock, "ANCHOR_RIGHT")
-    else
-        tt:SetOwner(mplusBlock, "ANCHOR_RIGHT")
-    end
+    addon.focus.AnchorTooltip(tt, mplusBlock)
     tt:ClearLines()
     for _, a in ipairs(data.affixes) do
         local title = a.name
