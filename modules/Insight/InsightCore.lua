@@ -388,13 +388,19 @@ local function OnItemTooltip(tooltip, data)
         itemName = n
         qualityInfo = q
     end
-    local quality = qualityTDP or qualityByID or qualityInfo
+    local baseQuality = qualityTDP or qualityByID or qualityInfo
+    -- Upgrade-track items in TWW should render in the *track* tier, not the
+    -- legacy base ItemQuality (e.g. Veteran green → blue). The detector reads
+    -- the "Upgrade Level: <Track>" line off the tooltip when present. If no
+    -- track is found we fall back to the base quality for legacy items.
+    local trackQuality = Insight.DetectUpgradeTrackQuality and Insight.DetectUpgradeTrackQuality(tooltip)
+    local quality = trackQuality or baseQuality
     if Insight._gradientDebug then
         local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
-        Insight.Print(string.format("gradient[tdp]: tt=%s id=%s name=%q  data.q=%s  byID=%s  info=%s  resolved=%s",
+        Insight.Print(string.format("gradient[tdp]: tt=%s id=%s name=%q  data.q=%s byID=%s info=%s track=%s  resolved=%s",
             ttName, tostring(itemID), tostring(itemName or "?"),
             tostring(qualityTDP), tostring(qualityByID), tostring(qualityInfo),
-            tostring(quality)))
+            tostring(trackQuality), tostring(quality)))
     end
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)

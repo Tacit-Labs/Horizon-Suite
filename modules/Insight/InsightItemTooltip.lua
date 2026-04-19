@@ -117,12 +117,62 @@ local function Utf8Chars(s)
     return out
 end
 
--- In TWW, items on an Upgrade Track (Veteran/Champion/Hero/Myth) render with
--- a display colour that can differ from their base ItemQuality. The base
--- quality stays low (e.g. Uncommon=2) but Blizzard wraps the name in a
--- higher-tier colour escape at display time. Parse that escape to derive the
--- *display* quality for our gradient so upgraded items don't gradient in the
--- wrong colour family.
+-- TWW upgrade track → ItemQuality tier. The base ItemQuality the API returns
+-- for an upgraded item is often lower than the track colour Blizzard paints
+-- in the UI (e.g. a Veteran gear piece may be base Uncommon but the player
+-- thinks of it as a "blue tier" item). Follow Blizzard's track convention:
+--   Explorer   → Common     (white)
+--   Adventurer → Uncommon   (green)
+--   Veteran    → Rare       (blue)
+--   Champion   → Epic       (purple)
+--   Hero       → Legendary  (orange)
+--   Myth       → Artifact   (gold)
+local UPGRADE_TRACK_QUALITY = {
+    ["Explorer"]   = 1,
+    ["Adventurer"] = 2,
+    ["Veteran"]    = 3,
+    ["Champion"]   = 4,
+    ["Hero"]       = 5,
+    ["Myth"]       = 6,
+}
+
+--- Look at the tooltip's lines for an upgrade-track label (e.g.
+--- "Upgrade Level: Veteran 3/6") and return the mapped ItemQuality tier,
+--- or nil if no track is present. Wrapped in pcall: line text can yield
+--- secret strings on Midnight for some tooltip sources. Exposed on Insight
+--- so InsightCore can use it to tint the quality border to the track colour.
+--- @param tooltip table GameTooltip-like frame
+--- @return number|nil ItemQuality index (1..6) or nil
+function Insight.DetectUpgradeTrackQuality(tooltip)
+    if not tooltip or not tooltip.NumLines or not tooltip.GetName then return nil end
+    local ttName = tooltip:GetName()
+    if not ttName then return nil end
+    local result
+    pcall(function()
+        local lines = tooltip:NumLines() or 0
+        for i = 1, math.min(lines, 12) do -- track label sits near the top
+            local left = _G[ttName .. "TextLeft" .. i]
+            if left and left.GetText then
+                local txt = left:GetText()
+                if type(txt) == "string" and txt ~= "" then
+                    for track, q in pairs(UPGRADE_TRACK_QUALITY) do
+                        if txt:find(track, 1, true) then
+                            result = q
+                            return
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    return result
+end
+local DetectUpgradeTrackQuality = Insight.DetectUpgradeTrackQuality
+
+-- In TWW, items on an Upgrade Track render with a display colour that can
+-- differ from their base ItemQuality. Parse the |cff escape at the start
+-- of the name to derive the display quality, as a secondary source after
+-- the upgrade-track label.
 local function ParseDisplayQualityFromEscape(text)
     if type(text) ~= "string" or text == "" then return nil end
     if not ITEM_QUALITY_COLORS then return nil end
@@ -193,11 +243,14 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
             end
             return
         end
-        -- Prefer the quality encoded in Blizzard's name-line |cff escape (reflects
-        -- display tier on upgrade-track items) over the base ItemQuality we were
-        -- handed. Fall back to the passed quality if we can't parse.
-        local displayQuality = ParseDisplayQualityFromEscape(raw) or quality
-        local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[displayQuality]
+        -- Priority for gradient quality: upgrade-track label > name-line |cff
+        -- escape > passed base ItemQuality. This matches Blizzard's TWW UI
+        -- convention (a Veteran green item gradients blue, a Champion in the
+        -- purple tier, etc.) rather than clinging to the legacy ItemQuality.
+        local trackQuality   = DetectUpgradeTrackQuality(tooltip)
+        local displayQuality = ParseDisplayQualityFromEscape(raw)
+        local effective      = trackQuality or displayQuality or quality
+        local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[effective]
         if not colors then return end
         local r, g, b = colors.r, colors.g, colors.b
         local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
@@ -211,8 +264,8 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
         local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
         if gradient == plain then return end
         if Insight._gradientDebug then
-            Insight.Print(string.format("gradient[sync]: tt=%s baseQ=%d displayQ=%d plain=%q",
-                name, quality, displayQuality, plain:sub(1, 30)))
+            Insight.Print(string.format("gradient[sync]: tt=%s baseQ=%d track=%s disp=%s eff=%d plain=%q",
+                name, quality, tostring(trackQuality), tostring(displayQuality), effective, plain:sub(1, 30)))
         end
         fs:SetText(gradient)
         -- Force vertex colour to white so per-character |cff escapes aren't
@@ -286,10 +339,12 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
         if type(raw) ~= "string" or raw == "" then return end
         local plain = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
         if plain == "" then return end
-        -- Display quality parsed from Blizzard's escape wraps upgrade-tier tints
-        -- correctly (base ItemQuality can lag behind the rendered colour).
-        local displayQuality = ParseDisplayQualityFromEscape(raw) or quality
-        local dispColors = (ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[displayQuality]) or colors
+        -- Same priority as ApplyItemNameGradient: upgrade track → name escape
+        -- → base quality. Ensures refreshed tooltips keep the same tier choice.
+        local trackQuality   = DetectUpgradeTrackQuality(tooltip)
+        local displayQuality = ParseDisplayQualityFromEscape(raw)
+        local effective      = trackQuality or displayQuality or quality
+        local dispColors = (ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[effective]) or colors
         local r, g, b = dispColors.r, dispColors.g, dispColors.b
         local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
         local r2 = math.min(1, r * 1.20 + 0.15)
@@ -300,8 +355,9 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
         if Insight._gradientDebug then
             local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
             Insight.Print(string.format(
-                "gradient[hook]: tt=%s baseQ=%d displayQ=%d plain=%q start=%02x%02x%02x end=%02x%02x%02x",
-                ttName, quality, displayQuality, plain:sub(1, 30),
+                "gradient[hook]: tt=%s baseQ=%d track=%s disp=%s eff=%d plain=%q start=%02x%02x%02x end=%02x%02x%02x",
+                ttName, quality, tostring(trackQuality), tostring(displayQuality),
+                effective, plain:sub(1, 30),
                 math.floor(r1*255), math.floor(g1*255), math.floor(b1*255),
                 math.floor(r2*255), math.floor(g2*255), math.floor(b2*255)))
         end
