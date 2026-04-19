@@ -140,8 +140,10 @@ end
 --- Rewrite the tooltip's first text line with a per-character gradient of the
 --- item quality colour (darker → brighter, left to right). No-op on tooltips
 --- without a GetName, when the option is off, or when quality is unknown.
---- Blizzard re-renders the line on the next data pass, so we simply skip
---- when disabled — no explicit revert path needed.
+--- Synchronous — apply right now. Callers driven by TDP / Show should usually
+--- use Insight.ScheduleItemNameGradient instead: Blizzard does a final layout
+--- text pass after both of those hooks, and running on the next frame is the
+--- only way to guarantee our text wins.
 --- @param tooltip table GameTooltip-like frame (must expose GetName and have <name>TextLeft1 FontString)
 --- @param quality number|nil Item quality index (0..7)
 function Insight.ApplyItemNameGradient(tooltip, quality)
@@ -172,6 +174,27 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
         local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
         if gradient == plain then return end
         fs:SetText(gradient)
+    end)
+end
+
+--- Deferred variant: apply the gradient on the next frame so we run after
+--- Blizzard's final layout/text pass. The token on tooltip._insightGradientPending
+--- collapses multiple schedule calls (TDP post-call + Show hook + SetBagItem
+--- internal show) into a single apply per display.
+--- @param tooltip table GameTooltip-like frame
+--- @param quality number|nil Item quality index
+function Insight.ScheduleItemNameGradient(tooltip, quality)
+    if not tooltip or not quality or quality < 0 then return end
+    if not C_Timer or not C_Timer.After then
+        Insight.ApplyItemNameGradient(tooltip, quality)
+        return
+    end
+    local token = (tooltip._insightGradientPending or 0) + 1
+    tooltip._insightGradientPending = token
+    C_Timer.After(0, function()
+        if tooltip._insightGradientPending ~= token then return end
+        tooltip._insightGradientPending = nil
+        Insight.ApplyItemNameGradient(tooltip, quality)
     end)
 end
 

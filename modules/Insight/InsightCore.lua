@@ -110,11 +110,11 @@ local function HookTooltipShowMethod(tooltip)
             self._insightTooltipType = "other"
         end
         Insight.StyleFonts(self)
-        -- Re-apply item name gradient after Show(): the TDP post-call can be
-        -- undone by later Blizzard line updates (padding, size recalculation,
-        -- comparison-tooltip repositioning), so this is the reliable site.
-        if self._insightItemQuality and Insight.ApplyItemNameGradient then
-            Insight.ApplyItemNameGradient(self, self._insightItemQuality)
+        -- Re-schedule item name gradient: the TDP post-call can be undone by
+        -- Blizzard's final layout/text pass after Show, so scheduling this for
+        -- the next frame is the only site that reliably wins.
+        if self._insightItemQuality and Insight.ScheduleItemNameGradient then
+            Insight.ScheduleItemNameGradient(self, self._insightItemQuality)
         end
     end)
 end
@@ -378,8 +378,9 @@ local function OnItemTooltip(tooltip, data)
     end
 
     -- Gradient is width-neutral (no AddLine), safe for ShoppingTooltip1/2.
-    if Insight.ApplyItemNameGradient then
-        Insight.ApplyItemNameGradient(tooltip, quality)
+    -- Scheduled for the next frame so we run after Blizzard's final text pass.
+    if Insight.ScheduleItemNameGradient then
+        Insight.ScheduleItemNameGradient(tooltip, quality)
     end
 
     -- Comparison tooltips get quality borders + name gradient (above) but no line enrichment:
