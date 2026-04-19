@@ -89,33 +89,59 @@ end
 
 -- ============================================================================
 -- QUALITY GRADIENT (item name first line)
+--
+-- Implementation note: FontString:SetGradient is blocked by the |cAARRGGBB
+-- escape codes that Blizzard bakes into the item name line, so the gradient
+-- is invisible in practice. Instead we strip the existing escapes and inject
+-- a per-character |cAARRGGBB colour span interpolated between two shades of
+-- the quality colour. Same technique used by Eltruism / Windtools.
 -- ============================================================================
 
-local function QualityGradientColors(quality)
-    if not quality or quality < 0 then return nil, nil end
-    if not ITEM_QUALITY_COLORS or not ITEM_QUALITY_COLORS[quality] then return nil, nil end
-    if not CreateColor then return nil, nil end
-    local c = ITEM_QUALITY_COLORS[quality]
-    local r, g, b = c.r, c.g, c.b
-    local sR, sG, sB = r * 0.70, g * 0.70, b * 0.70
-    local eR = math.min(1, r * 1.15 + 0.10)
-    local eG = math.min(1, g * 1.15 + 0.10)
-    local eB = math.min(1, b * 1.15 + 0.10)
-    return CreateColor(sR, sG, sB, 1), CreateColor(eR, eG, eB, 1)
-end
-
-local function ResetNameGradient(fs, quality)
-    if not fs or not fs._insightGradientApplied then return end
-    if fs.SetTextColor and quality and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
-        local c = ITEM_QUALITY_COLORS[quality]
-        pcall(fs.SetTextColor, fs, c.r, c.g, c.b)
+-- Iterate a UTF-8 byte string one character at a time (so multi-byte
+-- non-ASCII item names don't get shredded when we wrap each char in |c..|r).
+local function Utf8Chars(s)
+    local out = {}
+    local i, n = 1, #s
+    while i <= n do
+        local b = s:byte(i) or 0
+        local len
+        if b < 0x80 then len = 1
+        elseif b < 0xC0 then len = 1 -- stray continuation byte; emit as-is
+        elseif b < 0xE0 then len = 2
+        elseif b < 0xF0 then len = 3
+        else                   len = 4
+        end
+        out[#out + 1] = s:sub(i, i + len - 1)
+        i = i + len
     end
-    fs._insightGradientApplied = nil
+    return out
 end
 
---- Apply a two-stop horizontal gradient to the tooltip's first text line,
---- derived from the item quality colour. No-ops on tooltips without a GetName,
---- on clients without FontString:SetGradient, or when the option is off.
+local function BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
+    local chars = Utf8Chars(plain)
+    local n = #chars
+    if n == 0 then return plain end
+    local parts = {}
+    for i = 1, n do
+        local ch = chars[i]
+        if ch == " " or ch == "\t" or ch == "\n" then
+            parts[#parts + 1] = ch
+        else
+            local t = (n > 1) and ((i - 1) / (n - 1)) or 0
+            local r = math.floor((r1 + (r2 - r1) * t) * 255 + 0.5)
+            local g = math.floor((g1 + (g2 - g1) * t) * 255 + 0.5)
+            local b = math.floor((b1 + (b2 - b1) * t) * 255 + 0.5)
+            parts[#parts + 1] = string.format("|cff%02x%02x%02x%s|r", r, g, b, ch)
+        end
+    end
+    return table.concat(parts)
+end
+
+--- Rewrite the tooltip's first text line with a per-character gradient of the
+--- item quality colour (darker → brighter, left to right). No-op on tooltips
+--- without a GetName, when the option is off, or when quality is unknown.
+--- Blizzard re-renders the line on the next data pass, so we simply skip
+--- when disabled — no explicit revert path needed.
 --- @param tooltip table GameTooltip-like frame (must expose GetName and have <name>TextLeft1 FontString)
 --- @param quality number|nil Item quality index (0..7)
 function Insight.ApplyItemNameGradient(tooltip, quality)
@@ -123,22 +149,30 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
     local name = tooltip:GetName()
     if not name then return end
     local fs = _G[name .. "TextLeft1"]
-    if not fs or not fs.SetGradient then return end
+    if not fs or not fs.SetText or not fs.GetText then return end
 
-    local enabled = Insight.IsInsightEnabled()
-        and addon.GetDB("insightItemNameGradient", true)
-    if not enabled or not quality or quality < 0 then
-        ResetNameGradient(fs, quality)
-        return
-    end
+    if not Insight.IsInsightEnabled() then return end
+    if not addon.GetDB("insightItemNameGradient", true) then return end
+    if not quality or quality < 0 then return end
 
-    local startC, endC = QualityGradientColors(quality)
-    if not startC then
-        ResetNameGradient(fs, quality)
-        return
-    end
-    fs:SetGradient("HORIZONTAL", startC, endC)
-    fs._insightGradientApplied = true
+    local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
+    if not colors then return end
+    local r, g, b = colors.r, colors.g, colors.b
+    local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
+    local r2 = math.min(1, r * 1.20 + 0.15)
+    local g2 = math.min(1, g * 1.20 + 0.15)
+    local b2 = math.min(1, b * 1.20 + 0.15)
+
+    pcall(function()
+        local raw = fs:GetText()
+        if type(raw) ~= "string" or raw == "" then return end
+        -- Strip any existing Blizzard colour escapes, then re-wrap per character.
+        local plain = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        if plain == "" then return end
+        local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
+        if gradient == plain then return end
+        fs:SetText(gradient)
+    end)
 end
 
 -- ============================================================================
