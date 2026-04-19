@@ -373,20 +373,28 @@ local function OnItemTooltip(tooltip, data)
         return
     end
 
-    -- Item identity: quality-colored border and separator tint.
-    -- C_Item.GetItemInfo returns multiple values (not a table) — the third
-    -- return is itemQuality. Earlier single-assignment pattern silently
-    -- grabbed itemName, making quality nil and skipping border + gradient.
-    local quality = data and data.quality
-    local fromTDP = quality
-    if not quality and C_Item and C_Item.GetItemInfo then
-        local _, _, q = C_Item.GetItemInfo(itemID)
-        quality = q
+    -- Resolve item quality via three sources, in order of preference:
+    --   1. data.quality      — from TDP; not always populated (often nil)
+    --   2. C_Item.GetItemQualityByID(itemID) — modern scalar API
+    --   3. third return of C_Item.GetItemInfo(itemID) — multi-return legacy API
+    -- We prefer whichever is a number; the others are kept around purely for
+    -- diagnostic logging so we can cross-check when a quality looks wrong.
+    local qualityTDP  = data and data.quality
+    local qualityByID = (C_Item and C_Item.GetItemQualityByID) and C_Item.GetItemQualityByID(itemID) or nil
+    local qualityInfo = nil
+    local itemName = nil
+    if C_Item and C_Item.GetItemInfo then
+        local n, _, q = C_Item.GetItemInfo(itemID)
+        itemName = n
+        qualityInfo = q
     end
+    local quality = qualityTDP or qualityByID or qualityInfo
     if Insight._gradientDebug then
         local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
-        Insight.Print(string.format("gradient[tdp]: tt=%s itemID=%s data.quality=%s resolved=%s",
-            ttName, tostring(itemID), tostring(fromTDP), tostring(quality)))
+        Insight.Print(string.format("gradient[tdp]: tt=%s id=%s name=%q  data.q=%s  byID=%s  info=%s  resolved=%s",
+            ttName, tostring(itemID), tostring(itemName or "?"),
+            tostring(qualityTDP), tostring(qualityByID), tostring(qualityInfo),
+            tostring(quality)))
     end
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
