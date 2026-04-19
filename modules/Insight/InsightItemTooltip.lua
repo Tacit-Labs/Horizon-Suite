@@ -94,25 +94,8 @@ end
 -- bakes into item names, so we strip those escapes and re-emit the name as
 -- per-character |cAARRGGBB spans interpolated between a darker and brighter
 -- shade of the effective quality colour. Same technique as Eltruism.
+-- Generic UTF-8 iteration + gradient building lives in InsightShared.
 -- ============================================================================
-
-local function Utf8Chars(s)
-    local out = {}
-    local i, n = 1, #s
-    while i <= n do
-        local b = s:byte(i) or 0
-        local len
-        if     b < 0x80 then len = 1
-        elseif b < 0xC0 then len = 1 -- stray continuation byte; emit as-is
-        elseif b < 0xE0 then len = 2
-        elseif b < 0xF0 then len = 3
-        else                 len = 4
-        end
-        out[#out + 1] = s:sub(i, i + len - 1)
-        i = i + len
-    end
-    return out
-end
 
 -- TWW upgrade-track name → ItemQuality tier. Mapping follows the Horizon
 -- colour scheme: Adventurer lifts to Rare, Veteran+ all land on Epic. Items
@@ -150,39 +133,6 @@ function Insight.DetectUpgradeTrackQuality(tooltip)
     return result
 end
 
---- Build a two-stop horizontal gradient (darker → brighter) of the given
---- base RGB colour over `plain` text, as a single |cff…|r-escaped string.
---- Shared by the item-name gradient and the player-name gradient.
---- @param plain string Plain text to colour
---- @param r number Base red (0..1)
---- @param g number Base green (0..1)
---- @param b number Base blue (0..1)
---- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
-function Insight.BuildNameGradient(plain, r, g, b)
-    local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
-    local r2 = math.min(1, r * 1.20 + 0.15)
-    local g2 = math.min(1, g * 1.20 + 0.15)
-    local b2 = math.min(1, b * 1.20 + 0.15)
-
-    local chars = Utf8Chars(plain)
-    local n = #chars
-    if n == 0 then return plain end
-    local parts = {}
-    for i = 1, n do
-        local ch = chars[i]
-        if ch == " " or ch == "\t" or ch == "\n" then
-            parts[#parts + 1] = ch
-        else
-            local t = (n > 1) and ((i - 1) / (n - 1)) or 0
-            local cr = math.floor((r1 + (r2 - r1) * t) * 255 + 0.5)
-            local cg = math.floor((g1 + (g2 - g1) * t) * 255 + 0.5)
-            local cb = math.floor((b1 + (b2 - b1) * t) * 255 + 0.5)
-            parts[#parts + 1] = string.format("|cff%02x%02x%02x%s|r", cr, cg, cb, ch)
-        end
-    end
-    return table.concat(parts)
-end
-
 local function BuildGradientString(plain, quality)
     local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
     if not colors then return plain end
@@ -209,7 +159,7 @@ local function WriteGradient(tooltip, fs, incomingText)
         local raw = (type(incomingText) == "string" and incomingText ~= "")
             and incomingText or fs:GetText()
         if type(raw) ~= "string" or raw == "" then return end
-        local plain = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        local plain = Insight.StripColourEscapes(raw)
         if plain == "" then return end
         local gradient = BuildGradientString(plain, quality)
         if gradient == raw then return end
