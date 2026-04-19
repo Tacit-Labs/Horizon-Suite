@@ -21,7 +21,9 @@ function addon.focus.AnchorTooltip(tooltip, owner)
     if owner.IsForbidden and owner:IsForbidden() then return end
 
     local insightOn = addon.Insight and addon.Insight.IsInsightEnabled and addon.Insight.IsInsightEnabled()
-    if insightOn and addon.GetDB("insightAnchorMode", "cursor") == "fixed" and addon.Insight.ApplyAnchor then
+    local inFixedMode = insightOn and addon.GetDB("insightAnchorMode", "cursor") == "fixed"
+    local focusDynamicInFixed = addon.GetDB("insightFocusDynamicInFixed", false)
+    if inFixedMode and not focusDynamicInFixed and addon.Insight.ApplyAnchor then
         addon.Insight.ApplyAnchor(tooltip, owner)
         return
     end
