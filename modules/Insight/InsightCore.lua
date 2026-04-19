@@ -110,12 +110,6 @@ local function HookTooltipShowMethod(tooltip)
             self._insightTooltipType = "other"
         end
         Insight.StyleFonts(self)
-        -- Re-schedule item name gradient: the TDP post-call can be undone by
-        -- Blizzard's final layout/text pass after Show, so scheduling this for
-        -- the next frame is the only site that reliably wins.
-        if self._insightItemQuality and Insight.ScheduleItemNameGradient then
-            Insight.ScheduleItemNameGradient(self, self._insightItemQuality)
-        end
     end)
 end
 
@@ -354,54 +348,21 @@ local function ShowTransmog()
 end
 
 local function OnItemTooltip(tooltip, data)
-    if Insight._gradientDebug then
-        local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
-        local dataID = data and tostring(data.id) or "nil"
-        local dataQ  = data and tostring(data.quality) or "nil"
-        local typeID = data and tostring(data.type) or "nil"
-        Insight.Print(string.format("gradient[tdp-enter]: tt=%s id=%s quality=%s type=%s insightOn=%s",
-            ttName, dataID, dataQ, typeID, tostring(Insight.IsInsightEnabled())))
-    end
-
     if not Insight.IsInsightEnabled() then return end
-
     local itemID = data and data.id
-    if not itemID then
-        if Insight._gradientDebug then
-            Insight.Print("gradient[tdp]: bail — no data.id")
-        end
-        return
-    end
+    if not itemID then return end
 
-    -- Resolve item quality via three sources, in order of preference:
-    --   1. data.quality      — from TDP; not always populated (often nil)
-    --   2. C_Item.GetItemQualityByID(itemID) — modern scalar API
-    --   3. third return of C_Item.GetItemInfo(itemID) — multi-return legacy API
-    -- We prefer whichever is a number; the others are kept around purely for
-    -- diagnostic logging so we can cross-check when a quality looks wrong.
-    local qualityTDP  = data and data.quality
-    local qualityByID = (C_Item and C_Item.GetItemQualityByID) and C_Item.GetItemQualityByID(itemID) or nil
-    local qualityInfo = nil
-    local itemName = nil
-    if C_Item and C_Item.GetItemInfo then
-        local n, _, q = C_Item.GetItemInfo(itemID)
-        itemName = n
-        qualityInfo = q
+    -- Base quality: TDP data.quality first, falling back to the third return
+    -- of C_Item.GetItemInfo (it's multi-return, not a table).
+    local quality = data.quality
+    if not quality and C_Item and C_Item.GetItemInfo then
+        local _, _, q = C_Item.GetItemInfo(itemID)
+        quality = q
     end
-    local baseQuality = qualityTDP or qualityByID or qualityInfo
-    -- Upgrade-track items in TWW should render in the *track* tier, not the
-    -- legacy base ItemQuality (e.g. Veteran green → blue). The detector reads
-    -- the "Upgrade Level: <Track>" line off the tooltip when present. If no
-    -- track is found we fall back to the base quality for legacy items.
-    local trackQuality = Insight.DetectUpgradeTrackQuality and Insight.DetectUpgradeTrackQuality(tooltip)
-    local quality = trackQuality or baseQuality
-    if Insight._gradientDebug then
-        local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
-        Insight.Print(string.format("gradient[tdp]: tt=%s id=%s name=%q  data.q=%s byID=%s info=%s track=%s  resolved=%s",
-            ttName, tostring(itemID), tostring(itemName or "?"),
-            tostring(qualityTDP), tostring(qualityByID), tostring(qualityInfo),
-            tostring(trackQuality), tostring(quality)))
-    end
+    -- TWW upgrade-track tier (Veteran/Champion/…) wins over the legacy
+    -- ItemQuality — players read the track as the "real" rarity.
+    quality = Insight.DetectUpgradeTrackQuality(tooltip) or quality
+
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
         if r then
@@ -415,19 +376,10 @@ local function OnItemTooltip(tooltip, data)
     end
 
     -- Gradient is width-neutral (no AddLine), safe for ShoppingTooltip1/2.
-    -- Apply sync now; the persistent SetText hook (InstallItemNameGradientHook)
-    -- re-wraps any Blizzard follow-up writes in the same frame, so no flash.
-    -- The deferred schedule is belt-and-braces for any post-Show() layout pass
-    -- that somehow bypasses our SetText hook.
-    if Insight.ApplyItemNameGradient then
-        Insight.ApplyItemNameGradient(tooltip, quality)
-    end
-    if Insight.ScheduleItemNameGradient then
-        Insight.ScheduleItemNameGradient(tooltip, quality)
-    end
+    -- One sync apply seeds the title; InstallItemNameGradientHook keeps it
+    -- alive across Blizzard's later SetText / SetTextColor passes.
+    Insight.ApplyItemNameGradient(tooltip)
 
-    -- Comparison tooltips get quality borders + name gradient (above) but no line enrichment:
-    -- adding lines triggers Blizzard to reposition them, re-firing Show() repeatedly.
     if tooltip == ShoppingTooltip1 or tooltip == ShoppingTooltip2 then return end
 
     tooltip._insightItemMetadata = true
@@ -724,9 +676,7 @@ function Insight.Init()
             if tt ~= GameTooltip then
                 HookTooltipLifecycle(tt)
             end
-            if Insight.InstallItemNameGradientHook then
-                Insight.InstallItemNameGradientHook(tt)
-            end
+            Insight.InstallItemNameGradientHook(tt)
         end
     end
 
@@ -894,39 +844,6 @@ local function HandleInsightSlash(msg)
         end)
         Insight.Print("Horizon Insight: Test tooltip shown at cursor.")
 
-    elseif cmd == "gradient" then
-        -- Diagnostic: open an Epic sample tooltip, force-apply the gradient, and
-        -- print what happened. Use this to confirm the option is on, the helper
-        -- is wired, and whether the FontString text change is actually taking.
-        local sampleID = 168602 -- same itemID the dashboard preview uses
-        local enabled = addon.GetDB("insightItemNameGradient", true)
-        ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE")
-        ItemRefTooltip:SetHyperlink("item:" .. sampleID)
-        if not ItemRefTooltip:IsShown() then ItemRefTooltip:Show() end
-        local fs = _G["ItemRefTooltipTextLeft1"]
-        local before = (fs and fs.GetText and fs:GetText()) or "<no fs>"
-        if Insight.ApplyItemNameGradient then
-            Insight.ApplyItemNameGradient(ItemRefTooltip, 4)
-        end
-        local after = (fs and fs.GetText and fs:GetText()) or "<no fs>"
-        local changed = (before ~= after)
-        Insight.PrintBlock({
-            "Horizon Insight — gradient diagnostic",
-            "   Toggle         : " .. tostring(enabled),
-            "   Has helper     : " .. tostring(Insight.ApplyItemNameGradient ~= nil),
-            "   Before text    : " .. tostring(before):sub(1, 60),
-            "   After  text    : " .. tostring(after):sub(1, 80),
-            "   Text changed   : " .. tostring(changed),
-        })
-
-    elseif cmd == "gradient debug on" or cmd == "graddbg on" then
-        Insight._gradientDebug = true
-        Insight.Print("Horizon Insight: gradient debug ON — hover items to see per-apply prints.")
-
-    elseif cmd == "gradient debug off" or cmd == "graddbg off" then
-        Insight._gradientDebug = false
-        Insight.Print("Horizon Insight: gradient debug OFF.")
-
     else
         Insight.PrintBlock({
             "Horizon Insight",
@@ -935,7 +852,6 @@ local function HandleInsightSlash(msg)
             "  /insight move     Show draggable anchor to set fixed position",
             "  /insight resetpos Reset fixed position to default",
             "  /insight test     Show a sample styled tooltip",
-            "  /insight gradient Diagnostic: force a quality gradient on ItemRefTooltip",
         })
     end
 end
