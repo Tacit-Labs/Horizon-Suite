@@ -182,6 +182,11 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
             Insight.Print(string.format("gradient[sync]: tt=%s q=%d plain=%q", name, quality, plain:sub(1, 30)))
         end
         fs:SetText(gradient)
+        -- Force vertex colour to white so per-character |cff escapes aren't
+        -- dampened by the quality colour that Blizzard sets via SetTextColor.
+        if fs.SetTextColor then
+            pcall(fs.SetTextColor, fs, 1, 1, 1, 1)
+        end
     end)
 end
 
@@ -264,6 +269,9 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
                 math.floor(r2*255), math.floor(g2*255), math.floor(b2*255)))
         end
         fs:SetText(gradient)
+        if fs.SetTextColor then
+            pcall(fs.SetTextColor, fs, 1, 1, 1, 1)
+        end
     end)
     gradientReentry[fs] = nil
 end
@@ -290,6 +298,22 @@ function Insight.InstallItemNameGradientHook(tooltip)
     if fs.SetFormattedText then
         hooksecurefunc(fs, "SetFormattedText", function(self)
             WrapFirstLineText(tooltip, self, nil) -- let WrapFirstLineText re-read via GetText
+        end)
+    end
+    -- Blizzard also drives SetTextColor on the first line (quality tint).
+    -- That vertex colour dampens/overrides our per-character escape colours,
+    -- making the gradient render as a single flat quality tone. Hook it so we
+    -- can force white when the tooltip is in item mode. Guard on a separate
+    -- flag to avoid recursing on our own SetTextColor call.
+    if fs.SetTextColor and not fs._insightColorHooked then
+        fs._insightColorHooked = true
+        hooksecurefunc(fs, "SetTextColor", function(self, r, g, b, a)
+            if tooltip._insightItemQuality and not (r == 1 and g == 1 and b == 1) then
+                if gradientReentry[self] then return end
+                gradientReentry[self] = true
+                pcall(self.SetTextColor, self, 1, 1, 1, 1)
+                gradientReentry[self] = nil
+            end
         end)
     end
 end
