@@ -269,8 +269,9 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
 end
 
 --- Install a persistent hook on the tooltip's first-line FontString so any
---- subsequent Blizzard-driven SetText is re-wrapped with our gradient in the
---- same frame. Call once per tooltip in Init; idempotent via _insightGradientTextHooked.
+--- subsequent Blizzard-driven SetText / SetFormattedText is re-wrapped with
+--- our gradient in the same frame. Call once per tooltip in Init; idempotent
+--- via _insightGradientTextHooked.
 --- @param tooltip table GameTooltip-like frame
 function Insight.InstallItemNameGradientHook(tooltip)
     if not tooltip or tooltip._insightGradientTextHooked then return end
@@ -283,6 +284,14 @@ function Insight.InstallItemNameGradientHook(tooltip)
     hooksecurefunc(fs, "SetText", function(self, text)
         WrapFirstLineText(tooltip, self, text)
     end)
+    -- Some tooltip paths use SetFormattedText rather than SetText. Hook both so
+    -- any late Blizzard overwrite gets captured regardless of which method the
+    -- tooltip line uses.
+    if fs.SetFormattedText then
+        hooksecurefunc(fs, "SetFormattedText", function(self)
+            WrapFirstLineText(tooltip, self, nil) -- let WrapFirstLineText re-read via GetText
+        end)
+    end
 end
 
 -- ============================================================================
