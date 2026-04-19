@@ -117,6 +117,34 @@ local function Utf8Chars(s)
     return out
 end
 
+-- In TWW, items on an Upgrade Track (Veteran/Champion/Hero/Myth) render with
+-- a display colour that can differ from their base ItemQuality. The base
+-- quality stays low (e.g. Uncommon=2) but Blizzard wraps the name in a
+-- higher-tier colour escape at display time. Parse that escape to derive the
+-- *display* quality for our gradient so upgraded items don't gradient in the
+-- wrong colour family.
+local function ParseDisplayQualityFromEscape(text)
+    if type(text) ~= "string" or text == "" then return nil end
+    if not ITEM_QUALITY_COLORS then return nil end
+    local hex = text:match("|cff(%x%x%x%x%x%x)")
+    if not hex then return nil end
+    hex = hex:lower()
+    local r = (tonumber(hex:sub(1, 2), 16) or 0) / 255
+    local g = (tonumber(hex:sub(3, 4), 16) or 0) / 255
+    local b = (tonumber(hex:sub(5, 6), 16) or 0) / 255
+    local bestQ, bestDist = nil, 0.02 -- tight tolerance; Blizzard hexes are exact
+    for q, c in pairs(ITEM_QUALITY_COLORS) do
+        local d = math.abs((c.r or 0) - r)
+                + math.abs((c.g or 0) - g)
+                + math.abs((c.b or 0) - b)
+        if d < bestDist then
+            bestDist = d
+            bestQ = q
+        end
+    end
+    return bestQ
+end
+
 local function BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
     local chars = Utf8Chars(plain)
     local n = #chars
@@ -157,14 +185,6 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
     if not addon.GetDB("insightItemNameGradient", true) then return end
     if not quality or quality < 0 then return end
 
-    local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
-    if not colors then return end
-    local r, g, b = colors.r, colors.g, colors.b
-    local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
-    local r2 = math.min(1, r * 1.20 + 0.15)
-    local g2 = math.min(1, g * 1.20 + 0.15)
-    local b2 = math.min(1, b * 1.20 + 0.15)
-
     pcall(function()
         local raw = fs:GetText()
         if type(raw) ~= "string" or raw == "" then
@@ -173,13 +193,26 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
             end
             return
         end
+        -- Prefer the quality encoded in Blizzard's name-line |cff escape (reflects
+        -- display tier on upgrade-track items) over the base ItemQuality we were
+        -- handed. Fall back to the passed quality if we can't parse.
+        local displayQuality = ParseDisplayQualityFromEscape(raw) or quality
+        local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[displayQuality]
+        if not colors then return end
+        local r, g, b = colors.r, colors.g, colors.b
+        local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
+        local r2 = math.min(1, r * 1.20 + 0.15)
+        local g2 = math.min(1, g * 1.20 + 0.15)
+        local b2 = math.min(1, b * 1.20 + 0.15)
+
         -- Strip any existing Blizzard colour escapes, then re-wrap per character.
         local plain = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
         if plain == "" then return end
         local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
         if gradient == plain then return end
         if Insight._gradientDebug then
-            Insight.Print(string.format("gradient[sync]: tt=%s q=%d plain=%q", name, quality, plain:sub(1, 30)))
+            Insight.Print(string.format("gradient[sync]: tt=%s baseQ=%d displayQ=%d plain=%q",
+                name, quality, displayQuality, plain:sub(1, 30)))
         end
         fs:SetText(gradient)
         -- Force vertex colour to white so per-character |cff escapes aren't
@@ -253,7 +286,11 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
         if type(raw) ~= "string" or raw == "" then return end
         local plain = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
         if plain == "" then return end
-        local r, g, b = colors.r, colors.g, colors.b
+        -- Display quality parsed from Blizzard's escape wraps upgrade-tier tints
+        -- correctly (base ItemQuality can lag behind the rendered colour).
+        local displayQuality = ParseDisplayQualityFromEscape(raw) or quality
+        local dispColors = (ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[displayQuality]) or colors
+        local r, g, b = dispColors.r, dispColors.g, dispColors.b
         local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
         local r2 = math.min(1, r * 1.20 + 0.15)
         local g2 = math.min(1, g * 1.20 + 0.15)
@@ -263,8 +300,8 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
         if Insight._gradientDebug then
             local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
             Insight.Print(string.format(
-                "gradient[hook]: tt=%s q=%d plain=%q start=%02x%02x%02x end=%02x%02x%02x",
-                ttName, quality, plain:sub(1, 30),
+                "gradient[hook]: tt=%s baseQ=%d displayQ=%d plain=%q start=%02x%02x%02x end=%02x%02x%02x",
+                ttName, quality, displayQuality, plain:sub(1, 30),
                 math.floor(r1*255), math.floor(g1*255), math.floor(b1*255),
                 math.floor(r2*255), math.floor(g2*255), math.floor(b2*255)))
         end
