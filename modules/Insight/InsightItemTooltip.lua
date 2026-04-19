@@ -167,12 +167,20 @@ function Insight.ApplyItemNameGradient(tooltip, quality)
 
     pcall(function()
         local raw = fs:GetText()
-        if type(raw) ~= "string" or raw == "" then return end
+        if type(raw) ~= "string" or raw == "" then
+            if Insight._gradientDebug then
+                Insight.Print(string.format("gradient[sync]: no text on %s", name))
+            end
+            return
+        end
         -- Strip any existing Blizzard colour escapes, then re-wrap per character.
         local plain = raw:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
         if plain == "" then return end
         local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
         if gradient == plain then return end
+        if Insight._gradientDebug then
+            Insight.Print(string.format("gradient[sync]: tt=%s q=%d plain=%q", name, quality, plain:sub(1, 30)))
+        end
         fs:SetText(gradient)
     end)
 end
@@ -206,6 +214,10 @@ end
 -- guard prevents us recursing on our own SetText call.
 -- ============================================================================
 
+-- TEMP: default-on diagnostic so every apply prints to chat for triage.
+-- Toggle off with `/insight graddbg off` once we've traced the issue.
+Insight._gradientDebug = true
+
 local gradientReentry = {}
 
 local function WrapFirstLineText(tooltip, fs, incomingText)
@@ -237,15 +249,15 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
         local b2 = math.min(1, b * 1.20 + 0.15)
         local gradient = BuildGradientString(plain, r1, g1, b1, r2, g2, b2)
         if gradient == raw then return end
-        fs:SetText(gradient)
         if Insight._gradientDebug then
-            local plainShort = plain:sub(1, 30)
+            local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
             Insight.Print(string.format(
-                "gradient: q=%d  plain=%q  start=%02x%02x%02x  end=%02x%02x%02x",
-                quality, plainShort,
+                "gradient[hook]: tt=%s q=%d plain=%q start=%02x%02x%02x end=%02x%02x%02x",
+                ttName, quality, plain:sub(1, 30),
                 math.floor(r1*255), math.floor(g1*255), math.floor(b1*255),
                 math.floor(r2*255), math.floor(g2*255), math.floor(b2*255)))
         end
+        fs:SetText(gradient)
     end)
     gradientReentry[fs] = nil
 end

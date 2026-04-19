@@ -364,9 +364,15 @@ local function OnItemTooltip(tooltip, data)
     -- return is itemQuality. Earlier single-assignment pattern silently
     -- grabbed itemName, making quality nil and skipping border + gradient.
     local quality = data and data.quality
+    local fromTDP = quality
     if not quality and C_Item and C_Item.GetItemInfo then
         local _, _, q = C_Item.GetItemInfo(itemID)
         quality = q
+    end
+    if Insight._gradientDebug then
+        local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
+        Insight.Print(string.format("gradient[tdp]: tt=%s itemID=%s data.quality=%s resolved=%s",
+            ttName, tostring(itemID), tostring(fromTDP), tostring(quality)))
     end
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
