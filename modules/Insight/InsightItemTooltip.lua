@@ -150,10 +150,15 @@ function Insight.DetectUpgradeTrackQuality(tooltip)
     return result
 end
 
-local function BuildGradientString(plain, quality)
-    local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
-    if not colors then return plain end
-    local r, g, b = colors.r, colors.g, colors.b
+--- Build a two-stop horizontal gradient (darker → brighter) of the given
+--- base RGB colour over `plain` text, as a single |cff…|r-escaped string.
+--- Shared by the item-name gradient and the player-name gradient.
+--- @param plain string Plain text to colour
+--- @param r number Base red (0..1)
+--- @param g number Base green (0..1)
+--- @param b number Base blue (0..1)
+--- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
+function Insight.BuildNameGradient(plain, r, g, b)
     local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
     local r2 = math.min(1, r * 1.20 + 0.15)
     local g2 = math.min(1, g * 1.20 + 0.15)
@@ -176,6 +181,12 @@ local function BuildGradientString(plain, quality)
         end
     end
     return table.concat(parts)
+end
+
+local function BuildGradientString(plain, quality)
+    local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
+    if not colors then return plain end
+    return Insight.BuildNameGradient(plain, colors.r, colors.g, colors.b)
 end
 
 -- Reentrancy guard: our own SetText / SetTextColor calls trigger the same

@@ -401,6 +401,19 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             nameG = (fc and fc[2]) or (classColor and classColor.g) or 1
             nameB = (fc and fc[3]) or (classColor and classColor.b) or 1
         end
+        -- Gradient the name portion when the player opted for class colour —
+        -- same horizontal darker→brighter gradient used on item names.
+        local useGradient = (nameMode == "class")
+            and addon.GetDB("insightPlayerNameGradient", true)
+            and Insight.BuildNameGradient
+        local function colourName(plain)
+            if useGradient then
+                return Insight.BuildNameGradient(plain, nameR, nameG, nameB)
+            end
+            local hex = string.format("%02x%02x%02x",
+                math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
+            return "|cff" .. hex .. plain .. "|r"
+        end
         if ShowCharacterTitle() then
             -- Midnight: never compare or string-op Unit* name returns outside pcall (secret strings).
             pcall(function()
@@ -436,21 +449,32 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 end
                 local titleHex = string.format("%02x%02x%02x",
                     math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
-                local nameHex  = string.format("%02x%02x%02x",
-                    math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
-                displayText = "|cff" .. titleHex .. titlePart .. "|r |cff" .. nameHex .. namePart .. "|r"
+                displayText = "|cff" .. titleHex .. titlePart .. "|r " .. colourName(namePart)
             end)
         end
         if not displayText then
-            displayText = Insight.SafeGetFontText(nameLeft) or ""
+            local namePart
             pcall(function()
                 local n = GetUnitName(unit, true)
                 local okT, s = pcall(tostring, n)
                 if okT and type(s) == "string" and s ~= "" then
-                    displayText = s
+                    namePart = s
                 end
             end)
-            nameLeft:SetTextColor(nameR, nameG, nameB)
+            if not namePart or namePart == "" then
+                namePart = Insight.SafeGetFontText(nameLeft) or ""
+            end
+            if useGradient then
+                -- Strip any existing colour codes so our per-character escapes
+                -- aren't dampened by a stale Blizzard wrap, then force the
+                -- vertex colour to white so the gradient actually renders.
+                local plain = namePart:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+                displayText = Insight.BuildNameGradient(plain, nameR, nameG, nameB)
+                nameLeft:SetTextColor(1, 1, 1, 1)
+            else
+                displayText = namePart
+                nameLeft:SetTextColor(nameR, nameG, nameB)
+            end
         end
         nameLeft:SetText(icon .. displayText)
     end
@@ -550,8 +574,19 @@ function Insight.RenderTestTooltipContent(tooltip)
     if nameMode == "class" then
         nameR, nameG, nameB = testSepR, testSepG, testSepB
     end
-    local nameHex = string.format("%02x%02x%02x", math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
     local facIcon = showIcons and (Insight.FACTION_ICONS["Alliance"] or "") or ""
+
+    local useGradient = (nameMode == "class")
+        and addon.GetDB("insightPlayerNameGradient", true)
+        and Insight.BuildNameGradient
+    local function colourName(plain)
+        if useGradient then
+            return Insight.BuildNameGradient(plain, nameR, nameG, nameB)
+        end
+        local hex = string.format("%02x%02x%02x",
+            math.floor(nameR * 255), math.floor(nameG * 255), math.floor(nameB * 255))
+        return "|cff" .. hex .. plain .. "|r"
+    end
 
     -- 1. Name line (character title optional — same as live)
     if ShowCharacterTitle() then
@@ -564,9 +599,9 @@ function Insight.RenderTestTooltipContent(tooltip)
         end
         local titleHex = string.format("%02x%02x%02x",
             math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
-        tooltip:AddLine(facIcon .. "|cff" .. titleHex .. "Duelist|r |cff" .. nameHex .. "Horizonaut-Stormrage|r", nameR, nameG, nameB)
+        tooltip:AddLine(facIcon .. "|cff" .. titleHex .. "Duelist|r " .. colourName("Horizonaut-Stormrage"), nameR, nameG, nameB)
     else
-        tooltip:AddLine(facIcon .. "|cff" .. nameHex .. "Horizonaut-Stormrage|r", nameR, nameG, nameB)
+        tooltip:AddLine(facIcon .. colourName("Horizonaut-Stormrage"), nameR, nameG, nameB)
     end
 
     -- 2. Guild (rank line only when guild rank toggle on — live augments guild line)
