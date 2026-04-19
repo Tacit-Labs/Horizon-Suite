@@ -224,6 +224,12 @@ local function WrapFirstLineText(tooltip, fs, incomingText)
     if not tooltip or not fs then return end
     if gradientReentry[fs] then return end
     local quality = tooltip._insightItemQuality
+    if Insight._gradientDebug then
+        local ttName = (tooltip.GetName and tooltip:GetName()) or "?"
+        local preview = (type(incomingText) == "string" and incomingText or "?"):sub(1, 30)
+        Insight.Print(string.format("gradient[hook-fire]: tt=%s q=%s text=%q",
+            ttName, tostring(quality), preview))
+    end
     if not quality or quality < 0 then return end
     if not Insight.IsInsightEnabled() then return end
     if not addon.GetDB("insightItemNameGradient", true) then return end

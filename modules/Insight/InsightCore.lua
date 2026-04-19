@@ -354,10 +354,24 @@ local function ShowTransmog()
 end
 
 local function OnItemTooltip(tooltip, data)
+    if Insight._gradientDebug then
+        local ttName = (tooltip and tooltip.GetName and tooltip:GetName()) or "?"
+        local dataID = data and tostring(data.id) or "nil"
+        local dataQ  = data and tostring(data.quality) or "nil"
+        local typeID = data and tostring(data.type) or "nil"
+        Insight.Print(string.format("gradient[tdp-enter]: tt=%s id=%s quality=%s type=%s insightOn=%s",
+            ttName, dataID, dataQ, typeID, tostring(Insight.IsInsightEnabled())))
+    end
+
     if not Insight.IsInsightEnabled() then return end
 
     local itemID = data and data.id
-    if not itemID then return end
+    if not itemID then
+        if Insight._gradientDebug then
+            Insight.Print("gradient[tdp]: bail — no data.id")
+        end
+        return
+    end
 
     -- Item identity: quality-colored border and separator tint.
     -- C_Item.GetItemInfo returns multiple values (not a table) — the third
