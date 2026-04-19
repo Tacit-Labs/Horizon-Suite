@@ -110,6 +110,12 @@ local function HookTooltipShowMethod(tooltip)
             self._insightTooltipType = "other"
         end
         Insight.StyleFonts(self)
+        -- Re-apply item name gradient after Show(): the TDP post-call can be
+        -- undone by later Blizzard line updates (padding, size recalculation,
+        -- comparison-tooltip repositioning), so this is the reliable site.
+        if self._insightItemQuality and Insight.ApplyItemNameGradient then
+            Insight.ApplyItemNameGradient(self, self._insightItemQuality)
+        end
     end)
 end
 
@@ -841,6 +847,31 @@ local function HandleInsightSlash(msg)
         end)
         Insight.Print("Horizon Insight: Test tooltip shown at cursor.")
 
+    elseif cmd == "gradient" then
+        -- Diagnostic: open an Epic sample tooltip, force-apply the gradient, and
+        -- print what happened. Use this to confirm the option is on, the helper
+        -- is wired, and whether the FontString text change is actually taking.
+        local sampleID = 168602 -- same itemID the dashboard preview uses
+        local enabled = addon.GetDB("insightItemNameGradient", true)
+        ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE")
+        ItemRefTooltip:SetHyperlink("item:" .. sampleID)
+        if not ItemRefTooltip:IsShown() then ItemRefTooltip:Show() end
+        local fs = _G["ItemRefTooltipTextLeft1"]
+        local before = (fs and fs.GetText and fs:GetText()) or "<no fs>"
+        if Insight.ApplyItemNameGradient then
+            Insight.ApplyItemNameGradient(ItemRefTooltip, 4)
+        end
+        local after = (fs and fs.GetText and fs:GetText()) or "<no fs>"
+        local changed = (before ~= after)
+        Insight.PrintBlock({
+            "Horizon Insight — gradient diagnostic",
+            "   Toggle         : " .. tostring(enabled),
+            "   Has helper     : " .. tostring(Insight.ApplyItemNameGradient ~= nil),
+            "   Before text    : " .. tostring(before):sub(1, 60),
+            "   After  text    : " .. tostring(after):sub(1, 80),
+            "   Text changed   : " .. tostring(changed),
+        })
+
     else
         Insight.PrintBlock({
             "Horizon Insight",
@@ -849,6 +880,7 @@ local function HandleInsightSlash(msg)
             "  /insight move     Show draggable anchor to set fixed position",
             "  /insight resetpos Reset fixed position to default",
             "  /insight test     Show a sample styled tooltip",
+            "  /insight gradient Diagnostic: force a quality gradient on ItemRefTooltip",
         })
     end
 end
