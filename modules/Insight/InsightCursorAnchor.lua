@@ -73,7 +73,9 @@ end
 -- route through this so cursor/fixed anchor settings are honoured.
 -- Falls back to the caller-supplied anchor (default "ANCHOR_RIGHT") when Insight is disabled or anchor
 -- mode is neither "cursor" nor "fixed".
-function Insight.ApplyAnchor(tooltip, owner, fallbackAnchor, fallbackOffX, fallbackOffY)
+-- overrideCursorSide ("left" | "right" | "center"): forces the cursor side in cursor mode (used by
+-- Focus so its tooltips open away from the tracker regardless of the user's global cursor-side pref).
+function Insight.ApplyAnchor(tooltip, owner, fallbackAnchor, fallbackOffX, fallbackOffY, overrideCursorSide)
     if not tooltip or not tooltip.SetOwner then return end
     if not owner then return end
     if tooltip.IsForbidden and tooltip:IsForbidden() then return end
@@ -90,7 +92,7 @@ function Insight.ApplyAnchor(tooltip, owner, fallbackAnchor, fallbackOffX, fallb
 
     local mode = GetAnchorMode()
     if mode == "cursor" then
-        local side = GetCursorSide()
+        local side = overrideCursorSide or GetCursorSide()
         if side == "left" then
             tooltip:SetOwner(owner, "ANCHOR_CURSOR_LEFT", GetCursorOffsetX(), GetCursorOffsetY())
         elseif side == "right" then

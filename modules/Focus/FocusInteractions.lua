@@ -10,24 +10,25 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 -- ============================================================================
 
 -- Anchor a GameTooltip for a Focus widget so it never covers the tracker.
--- Picks ANCHOR_LEFT when the owner sits in the right half of the screen, ANCHOR_RIGHT otherwise.
--- Delegates to Insight.ApplyAnchor when available so the user's cursor/fixed anchor preference
--- still wins; falls back to plain SetOwner when Insight is disabled or not loaded.
+-- Picks ANCHOR_LEFT / "left" cursor side when the owner sits in the right half of the screen,
+-- and ANCHOR_RIGHT / "right" cursor side otherwise. Insight's fixed mode is not overridden since
+-- that position is user-chosen. Delegates to Insight.ApplyAnchor when available so cursor/fixed
+-- anchor modes still route through the shared helper; falls back to plain SetOwner when Insight
+-- is disabled or not loaded.
 function addon.focus.AnchorTooltip(tooltip, owner)
     if not tooltip or not tooltip.SetOwner then return end
     if not owner then return end
     if tooltip.IsForbidden and tooltip:IsForbidden() then return end
     if owner.IsForbidden and owner:IsForbidden() then return end
 
-    local anchor = "ANCHOR_RIGHT"
     local cx = owner.GetCenter and owner:GetCenter()
     local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
-    if cx and uiw > 0 and cx > uiw * 0.5 then
-        anchor = "ANCHOR_LEFT"
-    end
+    local ownerOnRight = cx and uiw > 0 and cx > uiw * 0.5
+    local anchor = ownerOnRight and "ANCHOR_LEFT" or "ANCHOR_RIGHT"
+    local cursorSide = ownerOnRight and "left" or "right"
 
     if addon.Insight and addon.Insight.ApplyAnchor then
-        addon.Insight.ApplyAnchor(tooltip, owner, anchor)
+        addon.Insight.ApplyAnchor(tooltip, owner, anchor, 0, 0, cursorSide)
     else
         tooltip:SetOwner(owner, anchor)
     end
