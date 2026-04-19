@@ -359,11 +359,14 @@ local function OnItemTooltip(tooltip, data)
     local itemID = data and data.id
     if not itemID then return end
 
-    -- Item identity: quality-colored border and separator tint
+    -- Item identity: quality-colored border and separator tint.
+    -- C_Item.GetItemInfo returns multiple values (not a table) — the third
+    -- return is itemQuality. Earlier single-assignment pattern silently
+    -- grabbed itemName, making quality nil and skipping border + gradient.
     local quality = data and data.quality
     if not quality and C_Item and C_Item.GetItemInfo then
-        local info = C_Item.GetItemInfo(itemID)
-        quality = info and info.quality
+        local _, _, q = C_Item.GetItemInfo(itemID)
+        quality = q
     end
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
