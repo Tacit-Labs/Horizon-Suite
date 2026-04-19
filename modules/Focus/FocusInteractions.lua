@@ -9,29 +9,48 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 -- INTERACTIONS
 -- ============================================================================
 
--- Anchor a GameTooltip for a Focus widget so it never covers the tracker.
--- Picks ANCHOR_LEFT / "left" cursor side when the owner sits in the right half of the screen,
--- and ANCHOR_RIGHT / "right" cursor side otherwise. Insight's fixed mode is not overridden since
--- that position is user-chosen. Delegates to Insight.ApplyAnchor when available so cursor/fixed
--- anchor modes still route through the shared helper; falls back to plain SetOwner when Insight
--- is disabled or not loaded.
+-- Anchor a GameTooltip for a Focus widget so it never covers the Horizon panel.
+-- Default / Insight-cursor / Insight-off: pins the tooltip to the outer edge of _G.HSFrame, on
+-- the side opposite the panel's screen position, vertically aligned with the hovered owner.
+-- Insight fixed mode: honoured as-is because the user has chosen an explicit screen position.
+-- Fallback when HSFrame is unavailable: ANCHOR_LEFT/RIGHT on the owner based on screen side.
 function addon.focus.AnchorTooltip(tooltip, owner)
     if not tooltip or not tooltip.SetOwner then return end
     if not owner then return end
     if tooltip.IsForbidden and tooltip:IsForbidden() then return end
     if owner.IsForbidden and owner:IsForbidden() then return end
 
+    local insightOn = addon.Insight and addon.Insight.IsInsightEnabled and addon.Insight.IsInsightEnabled()
+    if insightOn and addon.GetDB("insightAnchorMode", "cursor") == "fixed" and addon.Insight.ApplyAnchor then
+        addon.Insight.ApplyAnchor(tooltip, owner)
+        return
+    end
+
+    local hs = _G.HSFrame
+    if hs and hs.IsShown and hs:IsShown() and hs.GetLeft and hs:GetLeft() then
+        local hsCenterX = hs.GetCenter and hs:GetCenter()
+        local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
+        local panelOnRight = hsCenterX and uiw > 0 and hsCenterX > uiw * 0.5
+        local yOffset = 0
+        local ownerTop = owner.GetTop and owner:GetTop()
+        local hsTop = hs:GetTop()
+        if ownerTop and hsTop then
+            yOffset = ownerTop - hsTop
+        end
+        tooltip:SetOwner(owner, "ANCHOR_NONE")
+        tooltip:ClearAllPoints()
+        if panelOnRight then
+            tooltip:SetPoint("TOPRIGHT", hs, "TOPLEFT", -4, yOffset)
+        else
+            tooltip:SetPoint("TOPLEFT", hs, "TOPRIGHT", 4, yOffset)
+        end
+        return
+    end
+
     local cx = owner.GetCenter and owner:GetCenter()
     local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
     local ownerOnRight = cx and uiw > 0 and cx > uiw * 0.5
-    local anchor = ownerOnRight and "ANCHOR_LEFT" or "ANCHOR_RIGHT"
-    local cursorSide = ownerOnRight and "left" or "right"
-
-    if addon.Insight and addon.Insight.ApplyAnchor then
-        addon.Insight.ApplyAnchor(tooltip, owner, anchor, 0, 0, cursorSide)
-    else
-        tooltip:SetOwner(owner, anchor)
-    end
+    tooltip:SetOwner(owner, ownerOnRight and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
 end
 
 local pool = addon.pool
