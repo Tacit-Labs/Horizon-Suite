@@ -26,7 +26,7 @@ L["NAME_GITHUB"]                                              = "GitLab"
 -- L["NAME_CURSEFORGE"]                                       = "CurseForge"
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
-L["OTHER"]                                              = "Andere"
+L["OTHER"]                                                    = "Andere"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -400,6 +400,8 @@ L["AXIS_ANCHOR_MOVE"]                                         = "Anker zum Versc
 L["AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_DESC"]         = "Ziehbaren Rahmen zur festen Tooltip-Position anzeigen. Ziehen, dann Rechtsklick zum Bestätigen."
 L["AXIS_RESET_TOOLTIP_POSITION"]                              = "Tooltip-Position zurücksetzen"
 L["AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Feste Position auf Standard zurücksetzen."
+-- L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED"]                        = "Dynamic position for Focus tooltips"
+-- L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED_DESC"]                   = "When fixed anchor is on, Focus tracker tooltips still attach to the outer edge of the Horizon panel so they never cover the tracker."
 L["INSIGHT_CURSOR_OFFSET_X"]                                  = "Zeigerversatz X"
 L["INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
 L["INSIGHT_CURSOR_OFFSET_Y"]                                  = "Zeigerversatz Y"
@@ -1867,6 +1869,7 @@ L["X_Y_OBJECTIVES_LIKE_PERCENT_OBJECTIVES"]                   = "X/Y: objectives
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 -- L["ZONE_TYPE_COLOURING"]                                   = "Zone type colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

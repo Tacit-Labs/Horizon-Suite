@@ -251,14 +251,14 @@ local COMBO_MOUSE = {
 }
 
 local COMBO_LABEL_KEYS = {
-    left       = "OPTIONS_FOCUS_COMBO_LEFT",
-    shiftLeft  = "OPTIONS_FOCUS_COMBO_SHIFT_LEFT",
-    ctrlLeft   = "OPTIONS_FOCUS_COMBO_CTRL_LEFT",
-    altLeft    = "OPTIONS_FOCUS_COMBO_ALT_LEFT",
-    right      = "OPTIONS_FOCUS_COMBO_RIGHT",
-    shiftRight = "OPTIONS_FOCUS_COMBO_SHIFT_RIGHT",
-    ctrlRight  = "OPTIONS_FOCUS_COMBO_CTRL_RIGHT",
-    altRight   = "OPTIONS_FOCUS_COMBO_ALT_RIGHT",
+    left       = "FOCUS_COMBO_LEFT",
+    shiftLeft  = "FOCUS_COMBO_SHIFT_LEFT",
+    ctrlLeft   = "FOCUS_COMBO_CTRL_LEFT",
+    altLeft    = "FOCUS_COMBO_ALT_LEFT",
+    right      = "FOCUS_COMBO_RIGHT",
+    shiftRight = "FOCUS_COMBO_SHIFT_RIGHT",
+    ctrlRight  = "FOCUS_COMBO_CTRL_RIGHT",
+    altRight   = "FOCUS_COMBO_ALT_RIGHT",
 }
 
 --- Localized description of which click combo(s) run the WoWhead action (for tooltips).

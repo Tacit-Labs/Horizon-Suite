@@ -31,7 +31,7 @@ L["NAME_GITHUB"]                                              = "GitHub"
 L["NAME_CURSEFORGE"]                                          = "CurseForge"
 L["NAME_WAGO"]                                                = "Wago"
 L["NAME_TOMTOM"]                                              = "TomTom"
-L["OTHER"]                                              = "Other"
+L["OTHER"]                                                    = "Other"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -407,6 +407,8 @@ L["AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION"]                     = "Click to show o
 L["AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_DESC"]         = "Show draggable frame to set fixed tooltip position. Drag, then right-click to confirm."
 L["AXIS_RESET_TOOLTIP_POSITION"]                              = "Reset tooltip position"
 L["AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Reset fixed position to default."
+L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED"]                           = "Dynamic position for Focus tooltips"
+L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED_DESC"]                      = "When fixed anchor is on, Focus tracker tooltips still attach to the outer edge of the Horizon panel so they never cover the tracker."
 L["INSIGHT_CURSOR_OFFSET_X"]                                  = "Cursor offset X"
 L["INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the cursor anchor position."
 L["INSIGHT_CURSOR_OFFSET_Y"]                                  = "Cursor offset Y"
@@ -1874,6 +1876,7 @@ L["ZONE_LABELS"]                                              = "Zone labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone type colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

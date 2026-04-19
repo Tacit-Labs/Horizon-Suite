@@ -26,7 +26,7 @@ L["NAME_GITHUB"]                                              = "GitLab"
 -- L["NAME_CURSEFORGE"]                                       = "CurseForge"
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
-L["OTHER"]                                              = "Autres"
+L["OTHER"]                                                    = "Autres"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -399,6 +399,8 @@ L["AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION"]                     = "Cliquer pour mo
 L["AXIS_DRAGGABLE_FRAME_FIXED_TOOLTIP_POSITION_DESC"]         = "Affiche un cadre déplaçable pour définir la position fixe. Glisser, puis clic droit pour confirmer."
 L["AXIS_RESET_TOOLTIP_POSITION"]                              = "Réinitialiser la position des infobulles"
 L["AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Réinitialiser la position fixe par défaut."
+-- L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED"]                        = "Dynamic position for Focus tooltips"
+-- L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED_DESC"]                   = "When fixed anchor is on, Focus tracker tooltips still attach to the outer edge of the Horizon panel so they never cover the tracker."
 -- L["INSIGHT_CURSOR_OFFSET_X"]                               = "Cursor offset X"
 L["INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
 -- L["INSIGHT_CURSOR_OFFSET_Y"]                               = "Cursor offset Y"
@@ -1866,6 +1868,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                 = "Crafting tier 1
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 -- L["ZONE_TYPE_COLOURING"]                                   = "Zone type colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
