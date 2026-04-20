@@ -1524,6 +1524,8 @@ L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "Size of collect
 -- =====================================================================
 L["VISTA_COLLECT_HORIZON_MINIMAP"]                            = "Include Horizon minimap icon"
 L["VISTA_COLLECT_HORIZON_MINIMAP_DESC"]                       = "Put Horizon's own minimap icon in the managed addon bar, right-click panel, or drawer instead of leaving it on the minimap edge."
+L["VISTA_SORT_BUTTONS_ALPHA"]                                 = "Sort buttons alphabetically"
+L["VISTA_SORT_BUTTONS_ALPHA_DESC"]                            = "Sort collected addon minimap buttons alphabetically by name."
 L["VISTA_ADDON_BUTTONS"]                                      = "Addon Buttons"
 L["VISTA_MINIMAP_ADDON_BUTTONS"]                              = "Minimap Addon Buttons"
 L["VISTA_BUTTON_MANAGEMENT"]                                  = "Button Management"

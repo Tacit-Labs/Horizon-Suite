@@ -284,7 +284,7 @@ local VISTA_KEYS = {
     vistaBarBorderR = true, vistaBarBorderG = true, vistaBarBorderB = true, vistaBarBorderA = true,
     vistaRightClickLocked = true, vistaRightClickPanelX = true, vistaRightClickPanelY = true,
     vistaButtonMode = true, vistaHandleAddonButtons = true,
-    vistaCollectHorizonMinimapButton = true,
+    vistaCollectHorizonMinimapButton = true, vistaButtonSortAlpha = true,
     vistaDrawerButtonLocked = true, vistaButtonWhitelist = true,
     vistaMailBlink = true,
     -- Button sizes (separate per type)
@@ -2843,6 +2843,12 @@ local OptionCategories = {
                           setDB("vistaCollectHorizonMinimapButton", v)
                       end
                   end,
+                  disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
+                { type = "toggle", name = L["VISTA_SORT_BUTTONS_ALPHA"] or "Sort buttons alphabetically",
+                  desc = L["VISTA_SORT_BUTTONS_ALPHA_DESC"] or "Sort collected addon minimap buttons alphabetically by name.",
+                  dbKey = "vistaButtonSortAlpha",
+                  get = function() return getDB("vistaButtonSortAlpha", false) end,
+                  set = function(v) setDB("vistaButtonSortAlpha", v) end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
                 { type = "dropdown", name = L["VISTA_BUTTON_MODE"] or "Button mode",
                   desc = L["VISTA_ADDON_BUTTONS_PRESENTED_HOVER_BAR_BELOW"] or "How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.",

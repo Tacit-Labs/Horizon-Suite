@@ -191,6 +191,7 @@ do
     G.ButtonDrawerLocked  = function() return DB("vistaDrawerButtonLocked", false) end
     G.ButtonWhitelist     = function() return DB("vistaButtonWhitelist",    nil) end
     G.IsButtonManaged     = function(n) return DB("vistaButtonManaged_" .. n, true) end
+    G.ButtonSortAlpha     = function() return DB("vistaButtonSortAlpha",    false) end
     G.CoordPrecision        = function() return tonumber(DB("vistaCoordPrecision", 1)) or 1 end
     G.BtnLayoutCols         = function() return tonumber(DB("vistaBtnLayoutCols",  5)) or 5 end
     G.BtnLayoutDir          = function() return DB("vistaBtnLayoutDir", "right") end
@@ -3141,6 +3142,14 @@ local function CollectMinimapButtons()
                 SuppressButtonShow(btn)
             end
         end
+    end
+
+    if G.ButtonSortAlpha() then
+        table.sort(visible, function(a, b)
+            local na = (a.GetName and a:GetName()) or ""
+            local nb = (b.GetName and b:GetName()) or ""
+            return na:lower() < nb:lower()
+        end)
     end
 
     if mode == BTN_MODE_MOUSEOVER then
