@@ -2,17 +2,6 @@ name: File a Bug Report 🐛
 description: An unexpected problem or behaviour
 type: bug
 body:
-  - type: dropdown
-    id: issue_type
-    attributes:
-      label: Issue type (label)
-      description: These values match the GitLab label set used for Horizon Suite triage.
-      options:
-        - "[Enhancement] Improvement"
-        - "[Enhancement] Feature"
-        - "[Enhancement] Localization"
-    validations:
-      required: true
 
   - type: dropdown
     id: module
@@ -58,15 +47,6 @@ body:
       label: Expected vs Actual
       description: What did you expect? What happened instead?
       placeholder: Expected X, but Y happened.
-    validations:
-      required: false
-
-  - type: input
-    id: wow_version
-    attributes:
-      label: WoW version
-      description: Retail patch version (e.g. 10.2.7)
-      placeholder: 10.2.7
     validations:
       required: false
 
