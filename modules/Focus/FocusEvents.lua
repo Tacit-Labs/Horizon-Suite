@@ -91,6 +91,18 @@ local questUpdateDebounceTimer
 local NEARBY_POI_DEBOUNCE = 0.2
 local nearbyPoiDebounceTimer
 
+-- ZONE_CHANGED / ZONE_CHANGED_NEW_AREA / ZONE_CHANGED_INDOORS all fire during flight (often
+-- in bursts of 3-5 within a second as the player crosses subzones). The original handler ran
+-- an immediate ScheduleRefresh plus 0.4s/1.5s/2.5s late retries per event, which stacked into
+-- 12+ FullLayouts during a flight path. We now debounce the immediate refresh and keep a
+-- single set of cancellable late-retry timers that are restarted on each zone change — so
+-- retries fire once, after the last zone change in the burst settles.
+local ZONE_CHANGE_DEBOUNCE = 0.15
+local zoneChangeDebounceTimer
+local zoneLateRetry04Timer
+local zoneLateRetry15Timer
+local zoneLateRetry25Timer
+
 -- OnUpdate dirty flag breaks taint chain from event-driven C_QuestLog calls.
 local layoutDirtyFrame = CreateFrame("Frame")
 layoutDirtyFrame:Hide()
@@ -180,6 +192,60 @@ local function ScheduleNearbyPoiDebouncedRefresh()
         end)
     else
         C_Timer.After(NEARBY_POI_DEBOUNCE, function()
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    end
+end
+
+local RunMplusHeightTransitionCheck  -- forward declaration; defined below
+
+local function CancelZoneLateRetries()
+    if zoneLateRetry04Timer then zoneLateRetry04Timer:Cancel(); zoneLateRetry04Timer = nil end
+    if zoneLateRetry15Timer then zoneLateRetry15Timer:Cancel(); zoneLateRetry15Timer = nil end
+    if zoneLateRetry25Timer then zoneLateRetry25Timer:Cancel(); zoneLateRetry25Timer = nil end
+end
+
+-- Schedule the three late-retry refreshes after a zone change, cancelling any retries still
+-- pending from a previous zone change in the same burst. These retries catch late-updating
+-- APIs (map pin acquisition, WQ list propagation) after the zone settles.
+local function ScheduleZoneLateRetries()
+    CancelZoneLateRetries()
+    if not (C_Timer and C_Timer.NewTimer) then
+        C_Timer.After(0.4, function()
+            if not addon.focus.enabled then return end
+            if RunMplusHeightTransitionCheck then RunMplusHeightTransitionCheck() end
+            ScheduleRefresh()
+        end)
+        C_Timer.After(1.5, function() if addon.focus.enabled then ScheduleRefresh() end end)
+        C_Timer.After(2.5, function() if addon.focus.enabled then ScheduleRefresh() end end)
+        return
+    end
+    zoneLateRetry04Timer = C_Timer.NewTimer(0.4, function()
+        zoneLateRetry04Timer = nil
+        if not addon.focus.enabled then return end
+        if RunMplusHeightTransitionCheck then RunMplusHeightTransitionCheck() end
+        ScheduleRefresh()
+    end)
+    zoneLateRetry15Timer = C_Timer.NewTimer(1.5, function()
+        zoneLateRetry15Timer = nil
+        if addon.focus.enabled then ScheduleRefresh() end
+    end)
+    zoneLateRetry25Timer = C_Timer.NewTimer(2.5, function()
+        zoneLateRetry25Timer = nil
+        if addon.focus.enabled then ScheduleRefresh() end
+    end)
+end
+
+local function ScheduleZoneChangeDebouncedRefresh()
+    if not addon.focus.enabled then return end
+    if zoneChangeDebounceTimer then zoneChangeDebounceTimer:Cancel() end
+    if C_Timer and C_Timer.NewTimer then
+        zoneChangeDebounceTimer = C_Timer.NewTimer(ZONE_CHANGE_DEBOUNCE, function()
+            zoneChangeDebounceTimer = nil
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    else
+        C_Timer.After(ZONE_CHANGE_DEBOUNCE, function()
             if addon.focus.enabled then ScheduleRefresh() end
         end)
     end
@@ -475,7 +541,7 @@ end
 
 --- Handles M+ dungeon enter/exit: snapshot overworld height on enter, restore on exit.
 local MIN_SNAPSHOT_HEIGHT = 200
-local function RunMplusHeightTransitionCheck()
+RunMplusHeightTransitionCheck = function()
     if not addon.GetDB or not addon.IsInMythicDungeon then return end
     local inMplus = addon.IsInMythicDungeon()
     if addon.focus.wasInMplusDungeon and not inMplus then
@@ -521,16 +587,12 @@ local function OnZoneChanged(event)
         -- Clear the cached delve name so the next delve doesn't inherit a stale name.
         if addon.ClearDelveNameCache then addon.ClearDelveNameCache() end
     end
-    -- 2.5s delayed refresh for all zone events; catches late API updates when leaving event areas.
-    C_Timer.After(2.5, function() if addon.focus.enabled then ScheduleRefresh() end end)
     if addon.zoneTaskQuestCache then wipe(addon.zoneTaskQuestCache) end
-    ScheduleRefresh()
-    C_Timer.After(0.4, function()
-        if not addon.focus.enabled then return end
-        RunMplusHeightTransitionCheck()
-        ScheduleRefresh()
-    end)
-    C_Timer.After(1.5, function() if addon.focus.enabled then ScheduleRefresh() end end)
+    -- Debounced immediate refresh collapses flight-subzone bursts. Late-retry timers catch
+    -- late API updates (map pins, WQ propagation) and are cancelled-and-restarted on each
+    -- zone change so a flight path fires them once after the last zone settles, not per zone.
+    ScheduleZoneChangeDebouncedRefresh()
+    ScheduleZoneLateRetries()
 end
 
 local eventHandlers = {
