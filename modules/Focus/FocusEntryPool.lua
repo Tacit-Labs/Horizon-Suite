@@ -848,6 +848,9 @@ local function ClearEntry(entry, full)
     entry._lastEntryX     = nil
     entry._lastEntryY     = nil
     entry._lastEntryWidth = nil
+    -- Clear PopulateEntry's data signature so an entry re-acquired for a different quest
+    -- re-populates from scratch instead of hitting the same-signature fast-path.
+    entry._populateSig    = nil
     entry.hoverAnimState = nil
     entry.hoverAnimTime = nil
     entry._baseTitleColor = nil
