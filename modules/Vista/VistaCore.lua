@@ -3145,11 +3145,13 @@ local function CollectMinimapButtons()
     end
 
     if G.ButtonSortAlpha() then
-        table.sort(visible, function(a, b)
-            local na = (a.GetName and a:GetName()) or ""
-            local nb = (b.GetName and b:GetName()) or ""
-            return na:lower() < nb:lower()
-        end)
+        local function btnLabel(btn)
+            if btn.dataObject and type(btn.dataObject.title) == "string" and btn.dataObject.title ~= "" then
+                return btn.dataObject.title:lower()
+            end
+            return ((btn.GetName and btn:GetName()) or ""):lower()
+        end
+        table.sort(visible, function(a, b) return btnLabel(a) < btnLabel(b) end)
     end
 
     if mode == BTN_MODE_MOUSEOVER then
