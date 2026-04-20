@@ -1,6 +1,5 @@
 name: Make a Request💡
 description: A request, idea, or new functionality
-title: " "
 body:
   - type: dropdown
     id: issue_type
