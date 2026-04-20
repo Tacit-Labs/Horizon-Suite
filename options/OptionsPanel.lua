@@ -387,7 +387,7 @@ resizeHandle:SetFrameLevel(panel:GetFrameLevel() + 10)
 resizeHandle:SetScript("OnEnter", function(self)
     if GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-        GameTooltip:SetText(L["OPTIONS_FOCUS_DRAG_RESIZE"], nil, nil, nil, nil, true)
+        GameTooltip:SetText(L["FOCUS_DRAG_RESIZE"], nil, nil, nil, nil, true)
         GameTooltip:Show()
     end
 end)
@@ -1009,7 +1009,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
         elseif opt.type == "button" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
-            local btn = OptionsWidgets_CreateButton(cardContent, opt.name or L["OPTIONS_FOCUS_RESET"], function()
+            local btn = OptionsWidgets_CreateButton(cardContent, opt.name or L["FOCUS_RESET"], function()
                 if opt.onClick then opt.onClick() end
                 if opt.refreshIds and optionFrames then
                     for _, k in ipairs(opt.refreshIds) do
@@ -1133,14 +1133,14 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             if currentCard then FinalizeCard(currentCard) end
             local sectionKey = (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or "Colors"):gsub("%s+", "_"))
             currentCard = OptionsWidgets_CreateSectionCard(tab, anchor, sectionKey, GetCardCollapsed, SetCardCollapsed)
-            local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name or L["DASH_COLORS"], sectionKey, GetCardCollapsed, SetCardCollapsed)
+            local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name or L["DASH_COLOURS"], sectionKey, GetCardCollapsed, SetCardCollapsed)
             currentCard.contentAnchor = lbl
             currentCard.contentHeight = CardPadding + RowHeights.sectionLabel
             anchor = currentCard
             local cardContent = currentCard.contentContainer or currentCard
             local keys = opt.keys or addon.COLOR_KEYS_ORDER
             local defaultMap = opt.defaultMap or addon.QUEST_COLORS
-            local sub = OptionsWidgets_CreateSectionHeader(cardContent, L["OPTIONS_FOCUS_QUEST_TYPES"])
+            local sub = OptionsWidgets_CreateSectionHeader(cardContent, L["QUEST_TYPES"])
             sub:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -SectionGap)
             currentCard.contentAnchor = sub
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
@@ -1153,7 +1153,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 currentCard.contentHeight = currentCard.contentHeight + 4 + 24
                 swatches[#swatches+1] = row
             end
-            local resetBtn = OptionsWidgets_CreateButton(cardContent, L["OPTIONS_FOCUS_RESET_QUEST_TYPES"], function()
+            local resetBtn = OptionsWidgets_CreateButton(cardContent, L["FOCUS_RESET_QUEST_TYPES"], function()
                 setDB(opt.dbKey, nil)
                 setDB("sectionColors", nil)
                 for _, sw in ipairs(swatches) do if sw.Refresh then sw:Refresh() end end
@@ -1162,7 +1162,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             resetBtn:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -6)
             currentCard.contentAnchor = resetBtn
             currentCard.contentHeight = currentCard.contentHeight + 6 + 22
-            local overridesSub = OptionsWidgets_CreateSectionHeader(cardContent, L["OPTIONS_FOCUS_ELEMENT_OVERRIDES"])
+            local overridesSub = OptionsWidgets_CreateSectionHeader(cardContent, L["ELEMENT_OVERRIDES"])
             overridesSub:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -SectionGap)
             currentCard.contentAnchor = overridesSub
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
@@ -1175,7 +1175,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 currentCard.contentHeight = currentCard.contentHeight + 4 + 24
                 overrideRows[#overrideRows+1] = row
             end
-            local resetOv = OptionsWidgets_CreateButton(cardContent, L["OPTIONS_FOCUS_RESET_OVERRIDES"], function()
+            local resetOv = OptionsWidgets_CreateButton(cardContent, L["FOCUS_RESET_OVERRIDES"], function()
                 for _, ov in ipairs(opt.overrides or {}) do setDB(ov.dbKey, nil) end
                 for _, r in ipairs(overrideRows) do if r.Refresh then r:Refresh() end end
                 notifyMainAddon()
@@ -1291,7 +1291,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 nameLabel:SetJustifyH("LEFT")
 
                 -- Reset button (top-right)
-                local resetBtn = OptionsWidgets_CreateButton(container, L["OPTIONS_FOCUS_RESET"], function()
+                local resetBtn = OptionsWidgets_CreateButton(container, L["FOCUS_RESET"], function()
                     local m = getMatrix()
                     if m.categories and m.categories[key] then
                         m.categories[key] = nil
@@ -1308,7 +1308,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                 local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"]) or "Stage") or ((addon.L and addon.L["OPTIONS_FOCUS_ZONE"]) or "Zone")
+                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"]) or "Stage") or ((addon.L and addon.L["FOCUS_ZONE"]) or "Zone")
                 local catDefs = {
                     { subKey = "section",   abbr = "Sec",   full = "Section",   def = unifiedDef },
                     { subKey = "title",     abbr = "Title", full = "Title",     def = unifiedDef },
@@ -1356,7 +1356,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             -- ---------------------------------------------------------------
             local sectionKey = (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or "Colors"):gsub("%s+", "_"))
             currentCard = OptionsWidgets_CreateSectionCard(tab, anchor, sectionKey, GetCardCollapsed, SetCardCollapsed)
-            local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name or L["DASH_COLORS"], sectionKey, GetCardCollapsed, SetCardCollapsed)
+            local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name or L["DASH_COLOURS"], sectionKey, GetCardCollapsed, SetCardCollapsed)
             currentCard.contentAnchor = lbl
             currentCard.contentHeight = CardPadding + RowHeights.sectionLabel
             anchor = currentCard
@@ -1379,12 +1379,12 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             numPerCategoryGroups = #perCategoryOrder
 
             -- Per-category collapsible groups (excludes NEARBY and COMPLETE)
-            local catHdr = OptionsWidgets_CreateSectionHeader(cardContent, L["OPTIONS_FOCUS_PER_CATEGORY"])
+            local catHdr = OptionsWidgets_CreateSectionHeader(cardContent, L["PER_CATEGORY"])
             catHdr:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -SectionGap)
             currentCard.contentAnchor = catHdr
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
 
-            local resetAllBtn = OptionsWidgets_CreateButton(cardContent, L["OPTIONS_FOCUS_RESET_DEFAULTS"] or L["OPTIONS_FOCUS_RESET_TO_DEFAULTS"], function()
+            local resetAllBtn = OptionsWidgets_CreateButton(cardContent, L["FOCUS_RESET_DEFAULTS"] or L["FOCUS_RESET_TO_DEFAULTS"], function()
                 setDB(opt.dbKey, nil)
                 setDB("questColors", nil)
                 setDB("sectionColors", nil)
@@ -1443,7 +1443,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             div1:SetColorTexture(dc[1], dc[2], dc[3], dc[4] or 0.2)
 
             -- Grouping Overrides: toggles + NEARBY and COMPLETE collapsible groups
-            local goHdr = OptionsWidgets_CreateSectionHeader(cardContent, L["OPTIONS_FOCUS_GROUPING_OVERRIDES"])
+            local goHdr = OptionsWidgets_CreateSectionHeader(cardContent, L["GROUPING_OVERRIDES"])
             goHdr:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -SectionGap)
             currentCard.contentAnchor = goHdr
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
@@ -1457,7 +1457,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local overrideGroupMap = {}  -- populated after building groups
             local LayoutOverrideGrid  -- forward declaration for toggle callbacks
 
-            local ovCompleted = OptionsWidgets_CreateToggleSwitch(cardContent, L["OPTIONS_FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_READY_TURN_COLOURS_QUESTS"], function() return getOverride("useCompletedOverride") end, function(v)
+            local ovCompleted = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"], L["FOCUS_READY_TURN_COLOURS_QUESTS"], function() return getOverride("useCompletedOverride") end, function(v)
                 setOverride("useCompletedOverride", v)
                 local gf = overrideGroupMap["COMPLETE"]
                 if gf then gf:SetShown(v and true or false); LayoutOverrideGrid(); RecalcCardHeight() end
@@ -1467,7 +1467,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentAnchor = ovCompleted
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
 
-            local ovCurrentZone = OptionsWidgets_CreateToggleSwitch(cardContent, L["OPTIONS_FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_CURRENT_ZONE_COLOURS_QUESTS_SEC"], function() return getOverride("useCurrentZoneOverride") end, function(v)
+            local ovCurrentZone = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"], L["FOCUS_CURRENT_ZONE_SECTION_COLOURS"], function() return getOverride("useCurrentZoneOverride") end, function(v)
                 setOverride("useCurrentZoneOverride", v)
                 local gf = overrideGroupMap["NEARBY"]
                 if gf then gf:SetShown(v and true or false); LayoutOverrideGrid(); RecalcCardHeight() end
@@ -1477,7 +1477,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentAnchor = ovCurrentZone
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
 
-            local ovCurrentQuest = OptionsWidgets_CreateToggleSwitch(cardContent, L["OPTIONS_FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"], L["OPTIONS_FOCUS_CURRENT_QUEST_COLOURS_QUESTS_SE"], function() return getOverride("useCurrentQuestOverride") end, function(v)
+            local ovCurrentQuest = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"], L["FOCUS_CURRENT_QUEST_SECTION_COLOURS"], function() return getOverride("useCurrentQuestOverride") end, function(v)
                 setOverride("useCurrentQuestOverride", v)
                 local gf = overrideGroupMap["CURRENT"]
                 if gf then gf:SetShown(v and true or false); LayoutOverrideGrid(); RecalcCardHeight() end
@@ -1546,13 +1546,13 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             div2:SetColorTexture(dc[1], dc[2], dc[3], dc[4] or 0.2)
 
             -- Other global colours (always visible)
-            local otherHdr = OptionsWidgets_CreateSectionHeader(cardContent, L["OPTIONS_FOCUS_COLORS"])
+            local otherHdr = OptionsWidgets_CreateSectionHeader(cardContent, L["OTHER_COLOURS"])
             otherHdr:SetPoint("TOPLEFT", currentCard.contentAnchor, "BOTTOMLEFT", 0, -SectionGap)
             currentCard.contentAnchor = otherHdr
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
 
             local completedObjRow  -- forward reference for parent-child wiring
-            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["OPTIONS_FOCUS_DISTINCT_COLOR_COMPLETED_OBJECTIVES"], L["OPTIONS_FOCUS_COMPLETED_OBJECTIVES_E_G_COLOR_B"], function() return getDB("useCompletedObjectiveColor", true) end, function(v)
+            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"], L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"], function() return getDB("useCompletedObjectiveColor", true) end, function(v)
                 setDB("useCompletedObjectiveColor", v)
                 notifyMainAddon()
                 if completedObjRow then completedObjRow:SetShown(v and true or false); RecalcCardHeight() end
@@ -1563,10 +1563,10 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 38
 
             local otherDefs = {
-                { dbKey = "highlightColor", label = L["OPTIONS_FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
-                { dbKey = "completedObjectiveColor", label = L["OPTIONS_FOCUS_COMPLETED_OBJECTIVE"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
-                { dbKey = "progressBarFillColor", label = L["OPTIONS_FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
-                { dbKey = "progressBarTextColor", label = L["OPTIONS_FOCUS_PROGRESS_BAR_TEXT"], def = { 0.95, 0.95, 0.95 } },
+                { dbKey = "highlightColor", label = L["FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
+                { dbKey = "completedObjectiveColor", label = L["FOCUS_COMPLETED_OBJECTIVE"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
+                { dbKey = "progressBarFillColor", label = L["FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
+                { dbKey = "progressBarTextColor", label = L["FOCUS_PROGRESS_BAR_TEXT"], def = { 0.95, 0.95, 0.95 } },
             }
             for _, od in ipairs(otherDefs) do
                 local getTbl = function() return getDB(od.dbKey, nil) end
@@ -1599,7 +1599,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             if currentCard then FinalizeCard(currentCard) end
             local sectionKey = (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or "Blacklist"):gsub("%s+", "_"))
             currentCard = OptionsWidgets_CreateSectionCard(tab, anchor, sectionKey, GetCardCollapsed, SetCardCollapsed)
-            local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name or L["OPTIONS_FOCUS_BLACKLIST"], sectionKey, GetCardCollapsed, SetCardCollapsed)
+            local lbl = OptionsWidgets_CreateSectionHeader(currentCard, opt.name or L["FOCUS_BLACKLIST"], sectionKey, GetCardCollapsed, SetCardCollapsed)
             currentCard.contentAnchor = lbl
             currentCard.contentHeight = CardPadding + RowHeights.sectionLabel
             anchor = currentCard
@@ -2032,7 +2032,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 currentCard.contentHeight = currentCard.contentHeight + 4 + 24
                 swatches[#swatches+1] = row
             end
-            local resetBtn = OptionsWidgets_CreateButton(cardContent, L["OPTIONS_FOCUS_RESET_TO_DEFAULTS"], function()
+            local resetBtn = OptionsWidgets_CreateButton(cardContent, L["FOCUS_RESET_TO_DEFAULTS"], function()
                 setDB(opt.dbKey, nil)
                 setDB("sectionColors", nil)
                 for _, sw in ipairs(swatches) do if sw.Refresh then sw:Refresh() end end
@@ -2077,7 +2077,7 @@ local MODULE_LABELS = { ["modules"] = BrandModule("axis") or "Axis", ["focus"] =
 local groups = {}
 for i, cat in ipairs(addon.OptionCategories) do
     local mk = cat.moduleKey or "modules"
-    if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OPTIONS_FOCUS_OTHER"], categories = {} } end
+    if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OTHER"], categories = {} } end
     table.insert(groups[mk].categories, i)
 end
 local groupOrder = { "modules", "focus", "presence", "insight", "cache", "vista" }
@@ -2591,7 +2591,7 @@ local function OnSearchTextChanged(text)
     end
 end
 
-local searchInput = OptionsWidgets_CreateSearchInput(searchRow, OnSearchTextChanged, L["OPTIONS_FOCUS_SEARCH_SETTINGS"])
+local searchInput = OptionsWidgets_CreateSearchInput(searchRow, OnSearchTextChanged, L["FOCUS_SEARCH_SETTINGS"])
 searchInput.clearBtn:SetFrameLevel(searchInput.edit:GetFrameLevel() + 1)
 searchInput.edit:SetScript("OnEscapePressed", function()
     searchInput.edit:SetText("")

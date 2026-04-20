@@ -1,6 +1,8 @@
 # Translating Horizon Suite
 
-Horizon Suite uses **symbolic keys** in `Localisation/*.lua` (e.g. `L["OPTIONS_FOCUS"] = "…"`). English is the source file `Localisation/enUS.lua`. Other languages override only the keys they translate; missing keys show **English** in-game automatically.
+Horizon Suite uses **symbolic keys** in `Localisation/*.lua` (e.g. `L["FOCUS_SHOW_ZONE_EVENTS"] = "…"`). English is the source file `Localisation/enUS.lua`. Other languages override only the keys they translate; missing keys show **English** in-game automatically.
+
+Key naming follows a fixed taxonomy documented in [Localisation/TAXONOMY.md](Localisation/TAXONOMY.md) — domains (`FOCUS_`, `PRESENCE_`, `VISTA_`, `INSIGHT_`, `ESSENCE_`, `CACHE_`, `DASH_`, `HOME_`, `AXIS_`, `NAME_`, `TRACKER_`, `UI_`) plus optional subgroups. Translators don't need to memorise it, but the prefix tells you *where in the UI* a string shows up.
 
 **Product and module names** (e.g. *Horizon Suite*, *Focus*, *Presence*, *Vista*, *Insight*, *Cache*, *Axis*) are **not** locale keys — they are fixed in `addon.BrandDisplay` in code. In full sentences you translate, **keep those proper nouns in English** so they match the UI.
 
@@ -30,7 +32,7 @@ This keeps file order aligned with `enUS.lua` (run even if you only changed one 
 Reviewers can record approval in `tools/locale-meta/<locale>.json` (not loaded by WoW):
 
 ```bash
-node tools/locale_validate.js frFR OPTIONS_FOCUS
+node tools/locale_validate.js frFR FOCUS_SHOW_ZONE_EVENTS
 # or mark all non-validated keys that have a translation:
 node tools/locale_validate.js frFR --all-unvalidated
 ```

@@ -68,7 +68,7 @@ end
 dragAnchor:SetScript("OnEnter", function(self)
     anchorBg:SetColorTexture(0.35, 0.70, 1.0, 0.90)
     if addon.GetDB("focusShowTooltipOnHover", false) and GameTooltip then
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        addon.focus.AnchorTooltip(GameTooltip, self)
         GameTooltip:AddLine("Drag to move quest item button")
         GameTooltip:Show()
     end

@@ -36,7 +36,7 @@ local function StopColorCheck(announce)
 
     colorCheckState = nil
     if announce then
-        HSPrint("Color check stopped and original colors restored.")
+        HSPrint("Colour check stopped and original colours restored.")
     end
 end
 
@@ -470,11 +470,11 @@ local function HandleFocusSlash(msg)
             local step = colorCheckState.steps[colorCheckState.idx]
             if not step then
                 StopColorCheck(false)
-                HSPrint("Color check complete. Original colors restored.")
+                HSPrint("Colour check complete. Original colours restored.")
                 return
             end
             ApplyStep(step)
-            HSPrint(("Color check %d/%d: %s"):format(colorCheckState.idx, #colorCheckState.steps, step.name))
+            HSPrint(("Colour check %d/%d: %s"):format(colorCheckState.idx, #colorCheckState.steps, step.name))
             colorCheckState.idx = colorCheckState.idx + 1
         end
 
@@ -483,7 +483,7 @@ local function HandleFocusSlash(msg)
             colorCheckState.ticker = C_Timer.NewTicker(0.9, Advance, #steps)
         else
             StopColorCheck(false)
-            HSPrint("Color check unavailable (C_Timer not found).")
+            HSPrint("Colour check unavailable (C_Timer not found).")
         end
 
     else

@@ -9,6 +9,52 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 -- INTERACTIONS
 -- ============================================================================
 
+-- Anchor a GameTooltip for a Focus widget so it never covers the Horizon panel.
+-- Default / Insight-cursor / Insight-off: pins the tooltip to the outer edge of _G.HSFrame, on
+-- the side opposite the panel's screen position, vertically aligned with the hovered owner.
+-- Insight fixed mode: honoured as-is because the user has chosen an explicit screen position.
+-- Fallback when HSFrame is unavailable: ANCHOR_LEFT/RIGHT on the owner based on screen side.
+function addon.focus.AnchorTooltip(tooltip, owner)
+    if not tooltip or not tooltip.SetOwner then return end
+    if not owner then return end
+    if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+    if owner.IsForbidden and owner:IsForbidden() then return end
+
+    local insightOn = addon.Insight and addon.Insight.IsInsightEnabled and addon.Insight.IsInsightEnabled()
+    local inFixedMode = insightOn and addon.GetDB("insightAnchorMode", "cursor") == "fixed"
+    local focusDynamicInFixed = addon.GetDB("insightFocusDynamicInFixed", false)
+    if inFixedMode and not focusDynamicInFixed and addon.Insight.ApplyAnchor then
+        addon.Insight.ApplyAnchor(tooltip, owner)
+        return
+    end
+
+    local hs = _G.HSFrame
+    if hs and hs.IsShown and hs:IsShown() and hs.GetLeft and hs:GetLeft() then
+        local hsCenterX = hs.GetCenter and hs:GetCenter()
+        local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
+        local panelOnRight = hsCenterX and uiw > 0 and hsCenterX > uiw * 0.5
+        local yOffset = 0
+        local ownerTop = owner.GetTop and owner:GetTop()
+        local hsTop = hs:GetTop()
+        if ownerTop and hsTop then
+            yOffset = ownerTop - hsTop
+        end
+        tooltip:SetOwner(owner, "ANCHOR_NONE")
+        tooltip:ClearAllPoints()
+        if panelOnRight then
+            tooltip:SetPoint("TOPRIGHT", hs, "TOPLEFT", -4, yOffset)
+        else
+            tooltip:SetPoint("TOPLEFT", hs, "TOPRIGHT", 4, yOffset)
+        end
+        return
+    end
+
+    local cx = owner.GetCenter and owner:GetCenter()
+    local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
+    local ownerOnRight = cx and uiw > 0 and cx > uiw * 0.5
+    tooltip:SetOwner(owner, ownerOnRight and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
+end
+
 local pool = addon.pool
 local CLASSIC_ICON_CLICK_DEBOUNCE = 0.05
 -- Set to QUEST_ACTIONS["superTrack"] after that function is defined; quest context menu uses it.
@@ -44,10 +90,10 @@ local function AppendWoWheadLineToTooltip(entry)
     if not addon.GetDB("focusShowWoWheadLink", true) then return end
     local url = addon.GetWoWheadURL(entry)
     if not url then return end
-    local text = (addon.L and addon.L["OPTIONS_FOCUS_VIEW_WOWHEAD"]) or "View on WoWhead"
+    local text = (addon.L and addon.L["FOCUS_VIEW_WOWHEAD"]) or "View on WoWhead"
     local hint = addon.focus.GetWoWheadClickBindingHint and addon.focus.GetWoWheadClickBindingHint() or ""
     if hint == "" then
-        hint = (addon.L and addon.L["OPTIONS_FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]) or "Configure in Focus options"
+        hint = (addon.L and addon.L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]) or "Configure in Focus options"
     end
     local line = ("|cff00b4ff|Hurl:%s|h[%s]|h|r |cff888888(%s)|r"):format(url, text, hint)
     GameTooltip:AddLine(" ")
@@ -120,7 +166,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         local inGroup = (GetNumGroupMembers and GetNumGroupMembers() > 1) or (UnitInParty and UnitInParty("player"))
         if inGroup then
             menuList[#menuList + 1] = {
-                text = _G.SHARE_QUEST or L["OPTIONS_FOCUS_SHARE_PARTY"] or "Share with party",
+                text = _G.SHARE_QUEST or L["FOCUS_SHARE_PARTY"] or "Share with party",
                 notCheckable = true,
                 func = function()
                     if C_QuestLog and C_QuestLog.SetSelectedQuest then C_QuestLog.SetSelectedQuest(questID) end
@@ -133,7 +179,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         local qid = questID
         local trackedState = anchor and anchor.isTracked
         menuList[#menuList + 1] = {
-            text = L["OPTIONS_FOCUS_CONTEXT_FOCUS_QUEST"] or "Focus quest",
+            text = L["FOCUS_CONTEXT_FOCUS_QUEST"] or "Focus quest",
             notCheckable = true,
             func = function()
                 if SuperTrackQuestFromMenuEntry then
@@ -144,7 +190,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
     end
     if C_QuestLog and C_QuestLog.CanAbandonQuest and C_QuestLog.CanAbandonQuest(questID) then
         menuList[#menuList + 1] = {
-            text = _G.ABANDON_QUEST or L["OPTIONS_FOCUS_ABANDON_QUEST"] or "Abandon quest",
+            text = _G.ABANDON_QUEST or L["FOCUS_ABANDON_QUEST"] or "Abandon quest",
             notCheckable = true,
             func = function()
                 StaticPopup_Show("HORIZONSUITE_ABANDON_QUEST", questName or "this quest", nil, { questID = questID })
@@ -153,7 +199,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
     end
     if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
         menuList[#menuList + 1] = {
-            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function()
                 SuppressWorldQuestEntry(questID)
@@ -162,7 +208,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         }
     else
         menuList[#menuList + 1] = {
-            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function()
                 if anchor and anchor.isTracked == false then
@@ -389,7 +435,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
     local L = addon.L or {}
     local menuList = {
         {
-            text = L["OPTIONS_FOCUS_SHOW_APPEARANCE_WARDROBE"] or "Show wardrobe",
+            text = L["FOCUS_SHOW_APPEARANCE_WARDROBE"] or "Show wardrobe",
             notCheckable = true,
             func = function()
                 local entry = anchor
@@ -400,7 +446,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
             end,
         },
         {
-            text = L["OPTIONS_FOCUS_OPEN_APPEARANCES_COLLECTIONS"] or "Open Collections",
+            text = L["FOCUS_OPEN_APPEARANCES_COLLECTIONS"] or "Open Collections",
             notCheckable = true,
             func = function()
                 if addon.OpenTrackedAppearanceInCollections then
@@ -409,7 +455,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
             end,
         },
         {
-            text = L["OPTIONS_FOCUS_UNTRACK_APPEARANCE"] or "Untrack appearance",
+            text = L["FOCUS_UNTRACK_APPEARANCE"] or "Untrack appearance",
             notCheckable = true,
             func = function()
                 AppearanceStopTracking(appearanceID)
@@ -754,12 +800,12 @@ local function ShowTrackedAchievementContextMenu(entry, anchor)
     if not aid then return end
     RunEasyMenuTracked({
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_ACHIEVEMENT"] or "Open achievement",
+            text = L["FOCUS_CONTEXT_OPEN_ACHIEVEMENT"] or "Open achievement",
             notCheckable = true,
             func = function() OpenAchievementEntry(entry) end,
         },
         {
-            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function() UntrackAchievementEntry(entry) end,
         },
@@ -771,12 +817,12 @@ local function ShowTrackedEndeavorContextMenu(entry, anchor)
     if not entry.endeavorID then return end
     RunEasyMenuTracked({
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_ENDEAVOR"] or "Open endeavor",
+            text = L["FOCUS_CONTEXT_OPEN_ENDEAVOR"] or "Open endeavor",
             notCheckable = true,
             func = function() OpenEndeavorEntry(entry) end,
         },
         {
-            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function() UntrackEndeavorEntry(entry) end,
         },
@@ -791,12 +837,12 @@ local function ShowTrackedRecipeContextMenu(entry, anchor)
     local isRecraft = entry.recipeIsRecraft == true
     RunEasyMenuTracked({
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_RECIPE"] or "Open recipe",
+            text = L["FOCUS_CONTEXT_OPEN_RECIPE"] or "Open recipe",
             notCheckable = true,
             func = function() OpenRecipeByID(recipeID, isRecraft) end,
         },
         {
-            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function() UntrackRecipeByID(recipeID, isRecraft) end,
         },
@@ -808,22 +854,22 @@ local function ShowTrackedDecorContextMenu(entry, anchor)
     if not entry.decorID then return end
     RunEasyMenuTracked({
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_DECOR_CATALOG"] or "Open in catalog",
+            text = L["FOCUS_CONTEXT_OPEN_DECOR_CATALOG"] or "Open in catalog",
             notCheckable = true,
             func = function() OpenDecorCatalogEntry(entry) end,
         },
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_PREVIEW_DECOR"] or "Preview decor",
+            text = L["FOCUS_CONTEXT_PREVIEW_DECOR"] or "Preview decor",
             notCheckable = true,
             func = function() DecorPreview(entry) end,
         },
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_SHOW_DECOR_MAP"] or "Show on map",
+            text = L["FOCUS_CONTEXT_SHOW_DECOR_MAP"] or "Show on map",
             notCheckable = true,
             func = function() DecorOpenMap(entry) end,
         },
         {
-            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function() UntrackDecorEntry(entry) end,
         },
@@ -835,12 +881,12 @@ local function ShowTrackedAdventureGuideContextMenu(entry, anchor)
     if not entry.adventureGuideID then return end
     RunEasyMenuTracked({
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"] or "Open Traveler's Log",
+            text = L["FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"] or "Open Traveler's Log",
             notCheckable = true,
             func = function() OpenAdventureGuideEntry(entry) end,
         },
         {
-            text = L["OPTIONS_FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
             notCheckable = true,
             func = function() UntrackAdventureGuideEntry(entry) end,
         },
@@ -851,12 +897,12 @@ local function ShowTrackedRareContextMenu(entry, anchor)
     local L = addon.L or {}
     RunEasyMenuTracked({
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_SET_RARE_WAYPOINT"] or "Set waypoint",
+            text = L["FOCUS_CONTEXT_SET_RARE_WAYPOINT"] or "Set waypoint",
             notCheckable = true,
             func = function() OpenRareWaypointEntry(entry) end,
         },
         {
-            text = L["OPTIONS_FOCUS_CONTEXT_CLEAR_RARE_FOCUS"] or "Clear map focus",
+            text = L["FOCUS_CONTEXT_CLEAR_RARE_FOCUS"] or "Clear map focus",
             notCheckable = true,
             func = function() UntrackRareEntry(entry) end,
         },
@@ -959,7 +1005,7 @@ local function ExecuteTrackedContentAction(action, kind, entry)
     elseif action == "share" then
         local printFn = addon.HSPrint or print
         local L = addon.L or {}
-        printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_TRACKED_CONTENT_CANNOT_SHARE"] or "This entry cannot be shared.") .. "|r")
+        printFn("|cffffcc00" .. (L["FOCUS_TRACKED_CONTENT_CANNOT_SHARE"] or "This entry cannot be shared.") .. "|r")
     end
 end
 
@@ -1446,7 +1492,7 @@ QUEST_ACTIONS["openDetails"] = function(entry)
         QueueOpenQuestDetailsAfterCombat(entry.questID)
         local printFn = addon.HSPrint or print
         local L = addon.L or {}
-        printFn("|cFF00CCFF" .. (L["OPTIONS_FOCUS_QUEST_DETAILS_AFTER_COMBAT"] or "Quest details will open when you leave combat.") .. "|r")
+        printFn("|cFF00CCFF" .. (L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"] or "Quest details will open when you leave combat.") .. "|r")
         return
     end
     if addon.ToggleQuestDetails then
@@ -1507,10 +1553,10 @@ QUEST_ACTIONS["share"] = function(entry)
             C_QuestLog.SetSelectedQuest(entry.questID)
             QuestLogPushQuest()
         else
-            printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_YOU_MUST_A_PARTY_SHARE_QUEST"] or "You must be in a party to share this quest.") .. "|r")
+            printFn("|cffffcc00" .. (L["FOCUS_REQUIRE_PARTY_SHARE"] or "You must be in a party to share this quest.") .. "|r")
         end
     else
-        printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_QUEST_CANNOT_SHARED"] or "This quest cannot be shared.") .. "|r")
+        printFn("|cffffcc00" .. (L["FOCUS_CANNOT_SHARE_QUEST"] or "This quest cannot be shared.") .. "|r")
     end
 end
 
@@ -1577,7 +1623,7 @@ end
 APPEARANCE_ACTIONS["share"] = function(_)
     local printFn = addon.HSPrint or print
     local L = addon.L or {}
-    printFn("|cffffcc00" .. (L["OPTIONS_FOCUS_APPEARANCE_CANNOT_SHARE"] or "Appearances cannot be shared like quests.") .. "|r")
+    printFn("|cffffcc00" .. (L["FOCUS_APPEARANCE_CANNOT_SHARE"] or "Appearances cannot be shared like quests.") .. "|r")
 end
 
 APPEARANCE_ACTIONS["abandon"] = function(entry)
@@ -1823,7 +1869,7 @@ for i = 1, addon.POOL_SIZE do
         if not showTooltip then return end
         if self.creatureID then
             local link = ("unit:Creature-0-0-0-0-%d-0000000000"):format(self.creatureID)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            addon.focus.AnchorTooltip(GameTooltip, self)
             pcall(GameTooltip.SetHyperlink, GameTooltip, link)
             local att = _G.AllTheThings
             if att and att.Modules and att.Modules.Tooltip then
@@ -1836,7 +1882,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.endeavorID then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            addon.focus.AnchorTooltip(GameTooltip, self)
             GameTooltip:ClearLines()
             local endeavorColor = (addon.GetQuestColor and addon.GetQuestColor("ENDEAVOR")) or (addon.QUEST_COLORS and addon.QUEST_COLORS.ENDEAVOR) or { 0.45, 0.95, 0.75 }
             local ecR, ecG, ecB = endeavorColor[1], endeavorColor[2], endeavorColor[3]
@@ -1936,13 +1982,13 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.decorID then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            addon.focus.AnchorTooltip(GameTooltip, self)
             GameTooltip:SetText(self.titleText:GetText() or "")
             GameTooltip:AddLine(("Decor #%d"):format(self.decorID), 0.7, 0.7, 0.7)
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.appearanceID then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            addon.focus.AnchorTooltip(GameTooltip, self)
             local link = self.appearanceItemLink
             if link and type(link) == "string" and link ~= "" and GameTooltip.SetHyperlink then
                 local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
@@ -1957,7 +2003,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.achievementID and GetAchievementLink then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            addon.focus.AnchorTooltip(GameTooltip, self)
             local link = GetAchievementLink(self.achievementID)
             if link then
                 pcall(GameTooltip.SetHyperlink, GameTooltip, link)
@@ -1967,7 +2013,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.questID then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            addon.focus.AnchorTooltip(GameTooltip, self)
             pcall(GameTooltip.SetHyperlink, GameTooltip, "quest:" .. self.questID)
             addon.AddQuestRewardsToTooltip(GameTooltip, self.questID)
             addon.AddQuestPartyProgressToTooltip(GameTooltip, self.questID)
@@ -1975,7 +2021,7 @@ for i = 1, addon.POOL_SIZE do
             AppendWoWheadLineToTooltip(self)
             GameTooltip:Show()
         elseif self.entryKey then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            addon.focus.AnchorTooltip(GameTooltip, self)
             GameTooltip:SetText(self.titleText:GetText() or "")
             AppendDelveTooltipData(self, GameTooltip)
             AppendWoWheadLineToTooltip(self)

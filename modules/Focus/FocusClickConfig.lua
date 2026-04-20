@@ -15,15 +15,15 @@ local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = false
 -- ============================================================================
 
 local ACTION_LABELS = {
-    none           = "OPTIONS_FOCUS_CLICK_ACTION_NONE",
-    superTrack     = "OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK",
-    openDetails    = "OPTIONS_FOCUS_CLICK_ACTION_OPEN_DETAILS",
-    untrack        = "OPTIONS_FOCUS_CLICK_ACTION_UNTRACK",
-    contextMenu    = "OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU",
-    share          = "OPTIONS_FOCUS_CLICK_ACTION_SHARE",
-    abandon        = "OPTIONS_FOCUS_CLICK_ACTION_ABANDON",
-    wowhear        = "OPTIONS_FOCUS_CLICK_ACTION_WOWHEAD",
-    chatLink       = "OPTIONS_FOCUS_CLICK_ACTION_CHAT_LINK",
+    none           = "FOCUS_CLICK_ACTION_NONE",
+    superTrack     = "FOCUS_CLICK_ACTION_SUPER_TRACK",
+    openDetails    = "FOCUS_CLICK_ACTION_OPEN_DETAILS",
+    untrack        = "FOCUS_CLICK_ACTION_UNTRACK",
+    contextMenu    = "FOCUS_CLICK_ACTION_CONTEXT_MENU",
+    share          = "FOCUS_CLICK_ACTION_SHARE",
+    abandon        = "FOCUS_CLICK_ACTION_ABANDON",
+    wowhear        = "FOCUS_CLICK_ACTION_WOWHEAD",
+    chatLink       = "FOCUS_CLICK_ACTION_CHAT_LINK",
 }
 
 -- ============================================================================
@@ -251,14 +251,14 @@ local COMBO_MOUSE = {
 }
 
 local COMBO_LABEL_KEYS = {
-    left       = "OPTIONS_FOCUS_COMBO_LEFT",
-    shiftLeft  = "OPTIONS_FOCUS_COMBO_SHIFT_LEFT",
-    ctrlLeft   = "OPTIONS_FOCUS_COMBO_CTRL_LEFT",
-    altLeft    = "OPTIONS_FOCUS_COMBO_ALT_LEFT",
-    right      = "OPTIONS_FOCUS_COMBO_RIGHT",
-    shiftRight = "OPTIONS_FOCUS_COMBO_SHIFT_RIGHT",
-    ctrlRight  = "OPTIONS_FOCUS_COMBO_CTRL_RIGHT",
-    altRight   = "OPTIONS_FOCUS_COMBO_ALT_RIGHT",
+    left       = "FOCUS_COMBO_LEFT",
+    shiftLeft  = "FOCUS_COMBO_SHIFT_LEFT",
+    ctrlLeft   = "FOCUS_COMBO_CTRL_LEFT",
+    altLeft    = "FOCUS_COMBO_ALT_LEFT",
+    right      = "FOCUS_COMBO_RIGHT",
+    shiftRight = "FOCUS_COMBO_SHIFT_RIGHT",
+    ctrlRight  = "FOCUS_COMBO_CTRL_RIGHT",
+    altRight   = "FOCUS_COMBO_ALT_RIGHT",
 }
 
 --- Localized description of which click combo(s) run the WoWhead action (for tooltips).
@@ -281,7 +281,7 @@ function addon.focus.GetWoWheadClickBindingHint(profile)
     if #parts == 0 then
         return ""
     end
-    local sep = (L and L["OPTIONS_FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]) or " · "
+    local sep = (L and L["FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]) or " · "
     return table.concat(parts, sep)
 end
 
