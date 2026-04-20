@@ -1,5 +1,6 @@
 name: File a Bug Report 🐛
 description: An unexpected problem or behaviour
+type: bug
 body:
   - type: dropdown
     id: issue_type

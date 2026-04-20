@@ -1,5 +1,6 @@
 name: Make a Request💡
 description: A request, idea, or new functionality
+type: enhancement
 body:
   - type: dropdown
     id: issue_type
