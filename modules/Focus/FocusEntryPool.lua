@@ -843,6 +843,11 @@ local function ClearEntry(entry, full)
     entry.isGroupQuest   = nil
     entry.isAutoComplete = nil
     entry._inlineTimerBaseTitle, entry._inlineTimerStr, entry._inlineTimerDuration, entry._inlineTimerStartTime = nil, nil, nil, nil
+    -- Clear cached layout position so the next FullLayout re-applies SetPoint/SetWidth;
+    -- without this an entry re-acquired into a different slot would keep stale _lastEntry*.
+    entry._lastEntryX     = nil
+    entry._lastEntryY     = nil
+    entry._lastEntryWidth = nil
     entry.hoverAnimState = nil
     entry.hoverAnimTime = nil
     entry._baseTitleColor = nil

@@ -1154,14 +1154,21 @@ local function FullLayout()
                             SafeEntryFadeIn(entry, entryIndex - 1)
                         end
                     end
-                    entry:ClearAllPoints()
-                    entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
+                    -- Skip anchor churn when the entry's position hasn't changed since
+                    -- the previous FullLayout. Cleared in FocusEntryPool reset on pool-release.
+                    if entry._lastEntryX ~= entryX or entry._lastEntryY ~= yOff then
+                        entry:ClearAllPoints()
+                        entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
+                        entry._lastEntryX = entryX
+                        entry._lastEntryY = yOff
+                    end
 
                     local sfLeftInset = (blockFrame and blockPos == "top") and addon.GetScaledPadding() or 0
                     local sfVisibleW = addon.GetPanelWidth() - sfLeftInset
                     local entryW = sfVisibleW - entryX - addon.GetScaledContentRightPadding()
-                    if entryW > 0 then
+                    if entryW > 0 and entry._lastEntryWidth ~= entryW then
                         entry:SetWidth(entryW)
+                        entry._lastEntryWidth = entryW
                     end
 
                     -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.

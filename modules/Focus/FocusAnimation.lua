@@ -89,6 +89,27 @@ local function SetPanelHeight(h)
     HS:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", right - uiRight, topBefore - uiTop)
 end
 
+-- PLAYER_MAP_CHANGED can fire several times in quick succession during zone transitions
+-- (subzone → zone → continent). Coalesce the downstream ScheduleRefresh so we run a single
+-- FullLayout after the burst settles. Cache invalidation still happens synchronously so the
+-- next layout reads fresh data.
+local MAP_CHANGE_REFRESH_DEBOUNCE = 0.1
+local mapChangeRefreshTimer
+local function ScheduleMapChangeDebouncedRefresh()
+    if not addon.focus.enabled or not addon.ScheduleRefresh then return end
+    if mapChangeRefreshTimer then mapChangeRefreshTimer:Cancel() end
+    if C_Timer and C_Timer.NewTimer then
+        mapChangeRefreshTimer = C_Timer.NewTimer(MAP_CHANGE_REFRESH_DEBOUNCE, function()
+            mapChangeRefreshTimer = nil
+            if addon.focus.enabled and addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        end)
+    else
+        C_Timer.After(MAP_CHANGE_REFRESH_DEBOUNCE, function()
+            if addon.focus.enabled and addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        end)
+    end
+end
+
 --- Detects player map changes and invalidates zone task quest cache.
 --- Called on a timer; no params or return.
 local function RunMapCheck()
@@ -105,14 +126,14 @@ local function RunMapCheck()
         addon.focus.nearbyQuestCacheDirty = true
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
-        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        ScheduleMapChangeDebouncedRefresh()
     elseif rawMapID and rawMapID ~= addon.focus.lastPlayerMapID then
         -- rawMapID changed (e.g. left event area within same zone); invalidate nearby cache.
         addon.focus.lastPlayerMapID = rawMapID
         addon.focus.nearbyQuestCacheDirty = true
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
-        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        ScheduleMapChangeDebouncedRefresh()
     elseif not addon.focus.lastZoneMapID and zoneMapID then
         addon.focus.lastZoneMapID = zoneMapID
         addon.focus.lastPlayerMapID = rawMapID

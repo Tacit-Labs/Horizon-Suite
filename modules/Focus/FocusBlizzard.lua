@@ -6,7 +6,6 @@
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
-local WQT_SUPPRESSION_TICK_INTERVAL = 1.0
 local WQT_ADDON_LOAD_DELAY = 0.5
 local WQT_ADDON_ALREADY_LOADED_DELAY = 1
 
@@ -32,7 +31,31 @@ end
 
 local trackerSuppressed = false
 local wqtSuppressed = false
-local wqtSuppressionTicker = nil
+local wqtPanelOnShowHooked = false
+
+--- Hide the WQT panel if it's currently visible. Guarded against combat lockdown
+--- (Hide() on a protected frame during combat would taint).
+local function HideWQTPanelIfShown()
+    local wqtFrame = _G.WorldQuestTrackerScreenPanel
+    if wqtFrame and wqtFrame:IsShown() and not InCombatLockdown() then
+        wqtFrame:Hide()
+    end
+end
+
+--- Install a once-off OnShow hook on the WQT panel so it's re-hidden whenever WQT
+--- tries to show it. Replaces the previous 1s polling ticker.
+local function EnsureWQTPanelOnShowHook()
+    if wqtPanelOnShowHooked then return end
+    local wqtFrame = _G.WorldQuestTrackerScreenPanel
+    if not wqtFrame or not wqtFrame.HookScript then return end
+    wqtFrame:HookScript("OnShow", function()
+        if not addon.focus.enabled then return end
+        HideWQTPanelIfShown()
+    end)
+    wqtPanelOnShowHooked = true
+    -- Cover the case where the panel was already shown when we install the hook.
+    HideWQTPanelIfShown()
+end
 
 -- ============================================================================
 -- Public functions
@@ -52,25 +75,7 @@ local function TrySuppressTracker()
                 wqtSuppressed = true
             end
         end
-        if not wqtSuppressionTicker and addon.focus.enabled then
-            local wqtLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("WorldQuestTracker"))
-                or _G.WorldQuestTrackerAddon or _G.WorldQuestTrackerScreenPanel
-            if wqtLoaded then
-                wqtSuppressionTicker = C_Timer.NewTicker(WQT_SUPPRESSION_TICK_INTERVAL, function()
-                    if not addon.focus.enabled then
-                        if wqtSuppressionTicker then
-                            wqtSuppressionTicker:Cancel()
-                            wqtSuppressionTicker = nil
-                        end
-                        return
-                    end
-                    local wqtFrame = _G.WorldQuestTrackerScreenPanel
-                    if wqtFrame and wqtFrame:IsShown() and not InCombatLockdown() then
-                        wqtFrame:Hide()
-                    end
-                end)
-            end
-        end
+        if addon.focus.enabled then EnsureWQTPanelOnShowHook() end
         return
     end
     if trackerSuppressed then return end
@@ -85,33 +90,13 @@ local function TrySuppressTracker()
             wqtSuppressed = true
         end
     end
-    if not wqtSuppressionTicker and addon.focus.enabled then
-        local wqtLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("WorldQuestTracker"))
-            or _G.WorldQuestTrackerAddon or _G.WorldQuestTrackerScreenPanel
-        if wqtLoaded then
-            wqtSuppressionTicker = C_Timer.NewTicker(WQT_SUPPRESSION_TICK_INTERVAL, function()
-                if not addon.focus.enabled then
-                    if wqtSuppressionTicker then
-                        wqtSuppressionTicker:Cancel()
-                        wqtSuppressionTicker = nil
-                    end
-                    return
-                end
-                local wqtFrame = _G.WorldQuestTrackerScreenPanel
-                if wqtFrame and wqtFrame:IsShown() and not InCombatLockdown() then
-                    wqtFrame:Hide()
-                end
-            end)
-        end
-    end
+    if addon.focus.enabled then EnsureWQTPanelOnShowHook() end
 end
 
 --- Restore the default objective tracker and WQT panel when Focus is disabled.
 local function RestoreTracker()
-    if wqtSuppressionTicker then
-        wqtSuppressionTicker:Cancel()
-        wqtSuppressionTicker = nil
-    end
+    -- The WQT panel OnShow hook is left in place — it's a no-op when focus.enabled is false,
+    -- and HookScript doesn't support removal. Re-enabling Focus just re-arms the guard.
     if not trackerSuppressed then return end
     if ObjectiveTrackerFrame then
         -- pcall: frame methods can throw on protected or invalid frames.
@@ -184,9 +169,10 @@ local function HookWQTTracking()
             if wqtPanel and wqtPanel:IsShown() then
                 wqtPanel:Hide()
             end
+            -- One deferred refresh covers the WQT tracking propagation; the nested
+            -- FullLayout re-trigger was redundant with ScheduleRefresh's layout pass.
             C_Timer.After(0.1, function()
                 if addon.ScheduleRefresh then addon.ScheduleRefresh() end
-                if addon.FullLayout then C_Timer.After(0.2, addon.FullLayout) end
             end)
         end)
         wqtHooked = true

@@ -138,6 +138,9 @@ local function GetNearbyQuestIDs()
     end
 
     local showWQ = addon.GetDB("showWorldQuests", true)
+    -- Track which mapIDs have already been queried via GetTaskQuestsForMap so the quest-hub
+    -- fallback below cannot re-query a map already handled in the main loop.
+    local queriedTaskMaps = {}
 
     for _, checkMapID in ipairs(mapIDsToCheck) do
         -- C_QuestLog.GetQuestsOnMap: regular quest map pins (accepted quests with POI locations).
@@ -172,7 +175,8 @@ local function GetNearbyQuestIDs()
 
         -- C_TaskQuest.GetQuestsOnMap: authoritative source for active task/world quests.
         -- Only run when showWorldQuests is on; this is the expensive per-zone WQ scan.
-        if showWQ and addon.GetTaskQuestsForMap then
+        if showWQ and addon.GetTaskQuestsForMap and not queriedTaskMaps[checkMapID] then
+            queriedTaskMaps[checkMapID] = true
             local taskPOIs = addon.GetTaskQuestsForMap(checkMapID, checkMapID) or addon.GetTaskQuestsForMap(checkMapID)
             if taskPOIs then
                 for _, poi in ipairs(taskPOIs) do
@@ -196,7 +200,8 @@ local function GetNearbyQuestIDs()
                 local okInfo, poiInfo = pcall(C_AreaPoiInfo.GetAreaPOIInfo, ctx.zoneMapID, areaPoiID)
                 local linkedMapID = okInfo and poiInfo and poiInfo.linkedUiMapID or nil
                 -- If the hub links to a map and that map exposes task quests, query it.
-                if linkedMapID and addon.GetTaskQuestsForMap then
+                if linkedMapID and addon.GetTaskQuestsForMap and not queriedTaskMaps[linkedMapID] then
+                    queriedTaskMaps[linkedMapID] = true
                     local taskPOIs = addon.GetTaskQuestsForMap(linkedMapID, linkedMapID) or addon.GetTaskQuestsForMap(linkedMapID)
                     if taskPOIs then
                         for _, poi in ipairs(taskPOIs) do

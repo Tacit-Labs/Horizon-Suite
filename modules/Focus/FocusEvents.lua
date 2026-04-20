@@ -79,6 +79,18 @@ local updateWidgetDebounceTimer
 local SCENARIO_CRITERIA_DEBOUNCE = 0.12
 local scenarioCriteriaDebounceTimer
 
+-- Coalesce bursts of QUEST_WATCH_UPDATE / QUEST_LOG_UPDATE / UNIT_QUEST_LOG_CHANGED.
+-- These events fire on every objective tick; the flash check still runs immediately, only
+-- the FullLayout request is deferred so closely-spaced updates produce one layout pass.
+local QUEST_UPDATE_DEBOUNCE = 0.08
+local questUpdateDebounceTimer
+
+-- Coalesce bursts of AREA_POIS_UPDATED / TASK_PROGRESS_UPDATE. These events invalidate the
+-- nearby-WQ cache; debouncing the refresh prevents a full GetNearbyQuestIDs rebuild per event
+-- during a POI storm. The cache is marked dirty immediately so correctness is preserved.
+local NEARBY_POI_DEBOUNCE = 0.2
+local nearbyPoiDebounceTimer
+
 -- OnUpdate dirty flag breaks taint chain from event-driven C_QuestLog calls.
 local layoutDirtyFrame = CreateFrame("Frame")
 layoutDirtyFrame:Hide()
@@ -138,6 +150,36 @@ local function ScheduleScenarioCriteriaDebouncedRefresh()
         end)
     else
         C_Timer.After(SCENARIO_CRITERIA_DEBOUNCE, function()
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    end
+end
+
+local function ScheduleQuestUpdateDebouncedRefresh()
+    if not addon.focus.enabled then return end
+    if questUpdateDebounceTimer then questUpdateDebounceTimer:Cancel() end
+    if C_Timer and C_Timer.NewTimer then
+        questUpdateDebounceTimer = C_Timer.NewTimer(QUEST_UPDATE_DEBOUNCE, function()
+            questUpdateDebounceTimer = nil
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    else
+        C_Timer.After(QUEST_UPDATE_DEBOUNCE, function()
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    end
+end
+
+local function ScheduleNearbyPoiDebouncedRefresh()
+    if not addon.focus.enabled then return end
+    if nearbyPoiDebounceTimer then nearbyPoiDebounceTimer:Cancel() end
+    if C_Timer and C_Timer.NewTimer then
+        nearbyPoiDebounceTimer = C_Timer.NewTimer(NEARBY_POI_DEBOUNCE, function()
+            nearbyPoiDebounceTimer = nil
+            if addon.focus.enabled then ScheduleRefresh() end
+        end)
+    else
+        C_Timer.After(NEARBY_POI_DEBOUNCE, function()
             if addon.focus.enabled then ScheduleRefresh() end
         end)
     end
@@ -365,7 +407,7 @@ local function OnQuestWatchUpdate(questID)
     if questID then
         CheckQuestObjectiveChangeAndFlash(questID)
     end
-    ScheduleRefresh()
+    ScheduleQuestUpdateDebouncedRefresh()
 end
 
 local function OnQuestAccepted(questID)
@@ -395,7 +437,7 @@ end
 local function OnQuestLogUpdate()
     if not addon.focus.enabled then ScheduleRefresh(); return end
     CheckAllWatchedQuestChanges()
-    ScheduleRefresh()
+    ScheduleQuestUpdateDebouncedRefresh()
 end
 
 local function OnUnitQuestLogChanged(_, unitToken)
@@ -403,7 +445,7 @@ local function OnUnitQuestLogChanged(_, unitToken)
     if unitToken == "player" then
         CheckAllWatchedQuestChanges()
     end
-    ScheduleRefresh()
+    ScheduleQuestUpdateDebouncedRefresh()
 end
 
 local function OnQuestWatchListChanged(questID, added)
@@ -530,9 +572,8 @@ local eventHandlers = {
         addon.focus.nearbyQuestCacheDirty = true
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
-        C_Timer.After(0, function()
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
+        -- Debounced to coalesce POI storms (fires in bursts when zones spawn/despawn POIs).
+        ScheduleNearbyPoiDebouncedRefresh()
     end,
     QUEST_POI_UPDATE         = function() end,
     -- TASK_PROGRESS_UPDATE: fires when the player enters or leaves a WQ/task area (proximity).
@@ -543,7 +584,7 @@ local eventHandlers = {
         addon.focus.nearbyQuestCacheDirty = true
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
-        ScheduleRefresh()
+        ScheduleNearbyPoiDebouncedRefresh()
         C_Timer.After(0.5, function()
             if not addon.focus.enabled then return end
             addon.focus.nearbyQuestCacheDirty = true
