@@ -3,13 +3,13 @@ name: Post Issue Log to Discord
 # Posts the hero + category messages to Discord. Deletes old messages and
 # posts new ones each run (triggers channel activity).
 # Message IDs are persisted via GitHub Actions cache (delete-before-save
-# to avoid immutability). Scheduled daily at 13:17 UTC; also runs on manual
-# dispatch.
+# to avoid immutability). Scheduled daily at 05:00 UTC (06:00 London BST,
+# 05:00 London GMT); also runs on manual dispatch.
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 13 * * *'   # daily @ 13:17 UTC
+    - cron: '0 5 * * *'   # daily @ 05:00 UTC (06:00 BST / 05:00 GMT)
 
 permissions:
   issues: read
