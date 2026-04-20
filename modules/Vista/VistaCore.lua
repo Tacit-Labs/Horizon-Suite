@@ -3145,11 +3145,24 @@ local function CollectMinimapButtons()
     end
 
     if G.ButtonSortAlpha() then
+        -- Derive a friendly sort key:
+        --   1. LibDBIcon frames ("LibDBIcon10_<AddonName>") → addon name
+        --   2. LDB dataObject.label if present
+        --   3. Raw frame name with common minimap button suffixes stripped
         local function btnLabel(btn)
-            if btn.dataObject and type(btn.dataObject.title) == "string" and btn.dataObject.title ~= "" then
-                return btn.dataObject.title:lower()
+            local name = (btn.GetName and btn:GetName()) or ""
+            local ldb = name:match("^LibDBIcon%d*_(.+)$")
+            if ldb then return ldb:lower() end
+            if btn.dataObject and type(btn.dataObject.label) == "string" and btn.dataObject.label ~= "" then
+                return btn.dataObject.label:lower()
             end
-            return ((btn.GetName and btn:GetName()) or ""):lower()
+            local stripped = name
+            stripped = stripped:gsub("Mini[Mm]apButton$", "")
+            stripped = stripped:gsub("Mini[Mm]apIcon$", "")
+            stripped = stripped:gsub("MiniMap$", "")
+            stripped = stripped:gsub("Minimap$", "")
+            if stripped ~= "" then return stripped:lower() end
+            return name:lower()
         end
         table.sort(visible, function(a, b) return btnLabel(a) < btnLabel(b) end)
     end
