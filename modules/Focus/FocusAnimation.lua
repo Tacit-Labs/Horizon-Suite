@@ -123,16 +123,13 @@ local function RunMapCheck()
         addon.focus.lastZoneMapID = zoneMapID
         addon.focus.lastPlayerMapID = rawMapID
         if addon.zoneTaskQuestCache then wipe(addon.zoneTaskQuestCache) end
-        addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
+        -- Nearby WQ cache self-invalidates via the zoneMapID compare in GetNearbyQuestIDs.
         ScheduleMapChangeDebouncedRefresh()
     elseif rawMapID and rawMapID ~= addon.focus.lastPlayerMapID then
-        -- rawMapID changed (e.g. left event area within same zone); invalidate nearby cache.
+        -- rawMapID changed within the same zoneMapID (e.g. left event sub-area). The nearby
+        -- WQ cache is zone-scoped — mapIDsToQuery derives from zoneMapID — so the warm cache
+        -- is still valid. Not invalidating here was the single biggest flight-stutter win.
         addon.focus.lastPlayerMapID = rawMapID
-        addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
         ScheduleMapChangeDebouncedRefresh()
     elseif not addon.focus.lastZoneMapID and zoneMapID then
         addon.focus.lastZoneMapID = zoneMapID

@@ -1535,4 +1535,34 @@ end
 
 addon.GetPlayerCurrentZoneName = GetPlayerCurrentZoneName
 addon.AcquireEntry        = AcquireEntry
-addon.FullLayout          = FullLayout
+
+-- Opt-in FullLayout profiler. Off by default; toggle with `/hsperf`. When on, any FullLayout
+-- that takes longer than FOCUS_LAYOUT_SPIKE_MS is logged to chat so the user can attach real
+-- timing numbers to reported stutters. The wrapper is one branch when disabled so the steady-
+-- state cost is negligible.
+local FOCUS_LAYOUT_SPIKE_MS = 20
+addon.focus._layoutProfileEnabled = addon.focus._layoutProfileEnabled or false
+
+local function FullLayoutProfiled()
+    if not addon.focus._layoutProfileEnabled then return FullLayout() end
+    local t0 = (debugprofilestop and debugprofilestop()) or 0
+    FullLayout()
+    local elapsed = ((debugprofilestop and debugprofilestop()) or 0) - t0
+    if elapsed >= FOCUS_LAYOUT_SPIKE_MS and addon.HSPrint then
+        addon.HSPrint(("[focus] FullLayout: %.1f ms"):format(elapsed))
+    end
+end
+
+addon.FullLayout = FullLayoutProfiled
+
+-- /hsperf — toggles the FullLayout profiler. Registered here (not in FocusSlash) so the
+-- wrapper stays self-contained and the setup can be disabled by commenting out this block.
+SLASH_HSFOCUSPERF1 = "/hsperf"
+SlashCmdList.HSFOCUSPERF = function()
+    addon.focus._layoutProfileEnabled = not addon.focus._layoutProfileEnabled
+    if addon.HSPrint then
+        addon.HSPrint(("[focus] layout profiler %s (spike threshold %d ms)"):format(
+            addon.focus._layoutProfileEnabled and "ON" or "OFF",
+            FOCUS_LAYOUT_SPIKE_MS))
+    end
+end

@@ -565,10 +565,10 @@ local function OnZoneChanged(event)
     addon.focus.zoneJustChanged = true
     addon.focus.lastPlayerMapID = nil
     addon.focus.lastZoneMapID = nil
-    -- Invalidate the nearby WQ scan cache so the next layout re-scans for the new zone.
-    addon.focus.nearbyQuestCacheDirty = true
-    addon.focus.nearbyQuestCache = nil
-    addon.focus.nearbyTaskQuestCache = nil
+    -- Nearby WQ cache is gated on zoneMapID inside GetNearbyQuestIDs — if the zoneMapID
+    -- actually changes, the next call rebuilds; if it didn't (common during flight across
+    -- subzones of the same zone), the cache stays warm and the expensive multi-map scan is
+    -- skipped entirely.
     -- Clear Current Quest / Current Event transition memory from the previous zone; otherwise
     -- FullLayout treats rows as moving into CURRENT/CURRENT_EVENT, skips PopulateEntry, and returns
     -- early—wrong visuals until reload (see FocusLayout categoryChangeSkipKeys / category-change branch).

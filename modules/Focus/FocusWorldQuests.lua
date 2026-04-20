@@ -80,25 +80,36 @@ local function IsTaskQuestOnPlayerMaps(questID, mapIDSet)
 end
 
 --- Build sets of quest IDs visible on the player's current map(s) and from task/WQ APIs.
--- Results are cached until addon.focus.nearbyQuestCacheDirty is set (done on zone change).
+-- Cache invalidation:
+--   Fast path: cache is reusable when the player's zoneMapID matches the zoneMapID the cache
+--   was built for AND no "hard dirty" event fired since. Subzone / ZONE_CHANGED events during
+--   flight that don't actually change zoneMapID hit this path — the expensive multi-map scan
+--   is skipped entirely.
+--   Hard-dirty path: events that can change the nearby-task set without zoneMapID moving
+--   (TASK_PROGRESS_UPDATE, AREA_POIS_UPDATED, WQ accept/remove, SCENARIO_BONUS_VISIBILITY_UPDATE)
+--   set addon.focus.nearbyQuestCacheDirty = true and force a rebuild.
 -- When showWorldQuests is off the WQ map scan is skipped entirely; only bonus-objective task
 -- quests (non-WQ) are still included because they are zone-entered, not zone-scanned.
 -- @return table nearbySet Set of questID -> true for quests on player map or parent/children
 -- @return table taskQuestOnlySet Set of questID -> true for quests coming only from task/WQ map APIs
 local function GetNearbyQuestIDs()
-    -- Return cached result if the zone hasn't changed since the last scan.
-    if not addon.focus.nearbyQuestCacheDirty
-        and addon.focus.nearbyQuestCache
-        and addon.focus.nearbyTaskQuestCache then
+    -- Resolve map context up front so we can compare zoneMapID on the fast path.
+    local ctx = addon.ResolvePlayerMapContext and addon.ResolvePlayerMapContext("player") or nil
+    local currentZoneMapID = (ctx and ctx.zoneMapID) or -1
+
+    if addon.focus.nearbyQuestCache
+        and addon.focus.nearbyTaskQuestCache
+        and addon.focus.nearbyQuestCacheZoneID == currentZoneMapID
+        and not addon.focus.nearbyQuestCacheDirty then
         return addon.focus.nearbyQuestCache, addon.focus.nearbyTaskQuestCache
     end
     addon.focus.nearbyQuestCacheDirty = nil
+    addon.focus.nearbyQuestCacheZoneID = currentZoneMapID
     local nearbySet = {}
     local taskQuestOnlySet = {}
 
     -- Build mapIDsToCheck first so we can filter by current map.
     -- This prevents stale WQs from the previous zone (e.g. after hearth) from staying in the tracker.
-    local ctx = addon.ResolvePlayerMapContext and addon.ResolvePlayerMapContext("player") or nil
     local mapIDsToCheck = (ctx and ctx.mapIDsToQuery and #ctx.mapIDsToQuery > 0) and ctx.mapIDsToQuery or nil
     local mapIDSet = {}
     if mapIDsToCheck then
