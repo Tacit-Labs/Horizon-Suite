@@ -1541,11 +1541,11 @@ addon.AcquireEntry        = AcquireEntry
 -- expensive phase is visible in the log line itself (agg / group / render).
 local FOCUS_LAYOUT_SPIKE_MS = 20
 addon.focus._layoutProfileEnabled = addon.focus._layoutProfileEnabled or false
-addon.focus._layoutProfile = addon.focus._layoutProfile or { agg = 0, group = 0 }
+addon.focus._layoutProfile = addon.focus._layoutProfile or { agg = 0, group = 0, populate = 0, populateCount = 0 }
 
--- Wrap ReadTrackedQuests / SortAndGroupQuests so their elapsed time accrues to the per-
--- layout counters. Re-entrant calls (if any) don't double-count — the wrapper just records
--- total time spent, which is what we want.
+-- Wrap ReadTrackedQuests / SortAndGroupQuests / PopulateEntry so their elapsed time accrues
+-- to the per-layout counters. The populate counter is summed across every entry painted in
+-- the layout so we can see both total populate cost and per-entry cost in the log line.
 local function InstallPhaseTimers()
     if addon.focus._phaseTimersInstalled then return end
     addon.focus._phaseTimersInstalled = true
@@ -1573,20 +1573,34 @@ local function InstallPhaseTimers()
             return a, b, c, d
         end
     end
+    local origPopulate = addon.PopulateEntry
+    if origPopulate then
+        addon.PopulateEntry = function(...)
+            if not addon.focus._layoutProfileEnabled or not debugprofilestop then
+                return origPopulate(...)
+            end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origPopulate(...)
+            addon.focus._layoutProfile.populate = addon.focus._layoutProfile.populate + (debugprofilestop() - t0)
+            addon.focus._layoutProfile.populateCount = addon.focus._layoutProfile.populateCount + 1
+            return a, b, c, d
+        end
+    end
 end
 
 local function FullLayoutProfiled()
     if not addon.focus._layoutProfileEnabled then return FullLayout() end
     InstallPhaseTimers()
     local prof = addon.focus._layoutProfile
-    prof.agg, prof.group = 0, 0
+    prof.agg, prof.group, prof.populate, prof.populateCount = 0, 0, 0, 0
     local t0 = (debugprofilestop and debugprofilestop()) or 0
     FullLayout()
     local elapsed = ((debugprofilestop and debugprofilestop()) or 0) - t0
     if elapsed >= FOCUS_LAYOUT_SPIKE_MS and addon.HSPrint then
         local render = elapsed - prof.agg - prof.group
-        addon.HSPrint(("[focus] FullLayout: %.1f ms (agg=%.1f group=%.1f render=%.1f)"):format(
-            elapsed, prof.agg, prof.group, render))
+        local renderOther = render - prof.populate
+        addon.HSPrint(("[focus] FullLayout: %.1f ms (agg=%.1f group=%.1f render=%.1f [populate=%.1f/%d other=%.1f])"):format(
+            elapsed, prof.agg, prof.group, render, prof.populate, prof.populateCount, renderOther))
     end
 end
 
