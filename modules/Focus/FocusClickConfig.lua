@@ -15,15 +15,15 @@ local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = false
 -- ============================================================================
 
 local ACTION_LABELS = {
-    none           = "OPTIONS_FOCUS_CLICK_ACTION_NONE",
-    superTrack     = "OPTIONS_FOCUS_CLICK_ACTION_SUPER_TRACK",
-    openDetails    = "OPTIONS_FOCUS_CLICK_ACTION_OPEN_DETAILS",
-    untrack        = "OPTIONS_FOCUS_CLICK_ACTION_UNTRACK",
-    contextMenu    = "OPTIONS_FOCUS_CLICK_ACTION_CONTEXT_MENU",
-    share          = "OPTIONS_FOCUS_CLICK_ACTION_SHARE",
-    abandon        = "OPTIONS_FOCUS_CLICK_ACTION_ABANDON",
-    wowhear        = "OPTIONS_FOCUS_CLICK_ACTION_WOWHEAD",
-    chatLink       = "OPTIONS_FOCUS_CLICK_ACTION_CHAT_LINK",
+    none           = "FOCUS_CLICK_ACTION_NONE",
+    superTrack     = "FOCUS_CLICK_ACTION_SUPER_TRACK",
+    openDetails    = "FOCUS_CLICK_ACTION_OPEN_DETAILS",
+    untrack        = "FOCUS_CLICK_ACTION_UNTRACK",
+    contextMenu    = "FOCUS_CLICK_ACTION_CONTEXT_MENU",
+    share          = "FOCUS_CLICK_ACTION_SHARE",
+    abandon        = "FOCUS_CLICK_ACTION_ABANDON",
+    wowhear        = "FOCUS_CLICK_ACTION_WOWHEAD",
+    chatLink       = "FOCUS_CLICK_ACTION_CHAT_LINK",
 }
 
 -- ============================================================================
