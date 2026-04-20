@@ -29,6 +29,7 @@ core/ProfileIO.lua
 core/CoreSlash.lua
 core/PatchNotesData.lua
 core/PatchNotes.lua
+core/NewSettings.lua
 core/MinimapButton.lua
 
 modules/Focus/FocusState.lua
