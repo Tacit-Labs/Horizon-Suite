@@ -26,9 +26,7 @@ local RARES_BY_MAP = {
     },
 }
 
---- Classifies a vignette atlas name as rare ("rare") or treasure ("treasure"), else nil.
---- The lowercased atlas name is computed once; the original per-call IsNpc/IsTreasure
---- helpers each called :lower() separately, allocating a new string per vignette.
+--- Classifies a vignette atlas name as "rare", "treasure", or nil.
 local function ClassifyVignetteAtlas(atlasName)
     if not atlasName or atlasName == "" then return nil end
     local lower = atlasName:lower()
@@ -43,21 +41,13 @@ local function ClassifyVignetteAtlas(atlasName)
     return nil
 end
 
--- ----------------------------------------------------------------------------
--- SCAN CACHE
--- Rare + treasure lists are built in one shared vignette pass, then cached.
--- Invalidated on VIGNETTES_UPDATED (new rare/treasure spawned or despawned) and
--- on ZONE_CHANGED / PLAYER_ENTERING_WORLD (zone switch). The invalidation frame
--- fires regardless of focus.enabled so Presence (which also consumes these APIs)
--- sees fresh data even when the Focus module is disabled.
--- ----------------------------------------------------------------------------
-
+-- Scan cache: rare + treasure lists built in one vignette pass, invalidated by a dedicated
+-- event frame so Presence (which also calls GetRaresOnMap) sees fresh data when Focus is off.
 local scanCacheValid = false
 local scanCacheRares = nil
 local scanCacheTreasures = nil
 
--- Parent-map hierarchy cache for RARES_BY_MAP fallback lookups.
--- The previous code walked up to 20 parents on every call; we memoise per mapID.
+-- Parent-map hierarchy lookup, memoised per mapID.
 local mapLookupMapID = nil
 local mapLookupRares = nil
 local mapLookupZoneName = nil
@@ -99,9 +89,8 @@ local function ResolveMapRares(mapID)
     return rares, mapLookupZoneName
 end
 
---- Single shared vignette pass that populates both rare and treasure output lists.
---- Player mapID is resolved once per build (was previously per-vignette) and shared
---- with GetVignettePosition and the treasure zone-name lookup.
+--- One vignette pass that populates both rare and treasure lists. Player mapID is resolved
+--- once per build and shared across GetVignettePosition calls and the treasure zone lookup.
 local function BuildScan()
     local rareColor     = addon.GetQuestColor("RARE")
     local rareLootColor = (addon.GetQuestColor and addon.GetQuestColor("RARE_LOOT")) or addon.GetQuestColor("RARE")
@@ -119,8 +108,6 @@ local function BuildScan()
                 if vi and vi.name and vi.name ~= "" then
                     local kind = ClassifyVignetteAtlas(vi.atlasName)
                     if kind then
-                        -- Position lookup is shared between rare + treasure paths. GetVignettePosition
-                        -- requires a uiMapID, which we resolved once above.
                         local vX, vY
                         if mapID and C_VignetteInfo.GetVignettePosition then
                             local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID, mapID)
@@ -201,8 +188,7 @@ local function BuildScan()
         end
     end
 
-    -- Hardcoded RARES_BY_MAP fallback: only when the vignette pass found no rares.
-    -- Preserves the original precedence (vignette data wins over hardcoded list).
+    -- Vignette data wins over the hardcoded list; fall back only when no vignettes matched.
     if #rares == 0 and mapID then
         local mappedRares, zoneName = ResolveMapRares(mapID)
         if mappedRares then
@@ -252,8 +238,7 @@ end
 addon.GetRaresOnMap = GetRaresOnMap
 addon.GetTreasuresOnMap = GetTreasuresOnMap
 
--- Always-on invalidation frame. Runs regardless of focus.enabled so Presence, which
--- calls GetRaresOnMap independently, always sees a fresh scan after zone/vignette changes.
+-- Always-on: Presence calls GetRaresOnMap even when the Focus module is disabled.
 local invalidationFrame = CreateFrame("Frame")
 invalidationFrame:RegisterEvent("VIGNETTES_UPDATED")
 invalidationFrame:RegisterEvent("ZONE_CHANGED")
@@ -263,8 +248,6 @@ invalidationFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 invalidationFrame:SetScript("OnEvent", function(_, event)
     InvalidateScanCache()
     if event ~= "VIGNETTES_UPDATED" then
-        -- Zone boundary: the player's mapID may have changed, so the parent-map
-        -- hierarchy cache must also be invalidated.
         InvalidateMapLookup()
     end
 end)

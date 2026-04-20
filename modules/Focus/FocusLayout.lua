@@ -951,10 +951,8 @@ local function FullLayout()
                 addon.categoryChangeFadeOutCount = nil
                 addon.focus.categoryChange.slideUpStarts = categoryChangeSlideUpStartsNow
                 addon.focus.categoryChange.slideUpStartsSec = categoryChangeSlideUpStartsSecNow
-                -- Invalidate nearby cache so reflow picks up Events in Zone and other fresh data.
+                -- Force rebuild so reflow picks up Events in Zone and other fresh data.
                 addon.focus.nearbyQuestCacheDirty = true
-                addon.focus.nearbyQuestCache = nil
-                addon.focus.nearbyTaskQuestCache = nil
                 if addon.ScheduleRefresh then addon.ScheduleRefresh() end
             end
             -- Hide section headers for groups that are now empty so they don't linger during fade.
@@ -1536,62 +1534,52 @@ end
 addon.GetPlayerCurrentZoneName = GetPlayerCurrentZoneName
 addon.AcquireEntry        = AcquireEntry
 
--- Opt-in FullLayout profiler. Off by default; toggle with `/hsperf`. When on, any FullLayout
--- that takes longer than FOCUS_LAYOUT_SPIKE_MS is logged with a phase breakdown so the
--- expensive phase is visible in the log line itself (agg / group / render).
+-- Opt-in FullLayout profiler, toggled by /hsperf. Any layout above the spike threshold
+-- is logged with a phase breakdown (agg / group / render [populate]).
 local FOCUS_LAYOUT_SPIKE_MS = 20
-addon.focus._layoutProfileEnabled = addon.focus._layoutProfileEnabled or false
-addon.focus._layoutProfile = addon.focus._layoutProfile or { agg = 0, group = 0, populate = 0, populateCount = 0 }
+local profileEnabled = false
+local profileInstalled = false
+local prof = { agg = 0, group = 0, populate = 0, populateCount = 0 }
 
--- Wrap ReadTrackedQuests / SortAndGroupQuests / PopulateEntry so their elapsed time accrues
--- to the per-layout counters. The populate counter is summed across every entry painted in
--- the layout so we can see both total populate cost and per-entry cost in the log line.
 local function InstallPhaseTimers()
-    if addon.focus._phaseTimersInstalled then return end
-    addon.focus._phaseTimersInstalled = true
+    if profileInstalled then return end
+    profileInstalled = true
     local origRead = addon.ReadTrackedQuests
     if origRead then
         addon.ReadTrackedQuests = function(...)
-            if not addon.focus._layoutProfileEnabled or not debugprofilestop then
-                return origRead(...)
-            end
+            if not profileEnabled or not debugprofilestop then return origRead(...) end
             local t0 = debugprofilestop()
             local a, b, c, d = origRead(...)
-            addon.focus._layoutProfile.agg = addon.focus._layoutProfile.agg + (debugprofilestop() - t0)
+            prof.agg = prof.agg + (debugprofilestop() - t0)
             return a, b, c, d
         end
     end
     local origGroup = addon.SortAndGroupQuests
     if origGroup then
         addon.SortAndGroupQuests = function(...)
-            if not addon.focus._layoutProfileEnabled or not debugprofilestop then
-                return origGroup(...)
-            end
+            if not profileEnabled or not debugprofilestop then return origGroup(...) end
             local t0 = debugprofilestop()
             local a, b, c, d = origGroup(...)
-            addon.focus._layoutProfile.group = addon.focus._layoutProfile.group + (debugprofilestop() - t0)
+            prof.group = prof.group + (debugprofilestop() - t0)
             return a, b, c, d
         end
     end
     local origPopulate = addon.PopulateEntry
     if origPopulate then
         addon.PopulateEntry = function(...)
-            if not addon.focus._layoutProfileEnabled or not debugprofilestop then
-                return origPopulate(...)
-            end
+            if not profileEnabled or not debugprofilestop then return origPopulate(...) end
             local t0 = debugprofilestop()
             local a, b, c, d = origPopulate(...)
-            addon.focus._layoutProfile.populate = addon.focus._layoutProfile.populate + (debugprofilestop() - t0)
-            addon.focus._layoutProfile.populateCount = addon.focus._layoutProfile.populateCount + 1
+            prof.populate = prof.populate + (debugprofilestop() - t0)
+            prof.populateCount = prof.populateCount + 1
             return a, b, c, d
         end
     end
 end
 
 local function FullLayoutProfiled()
-    if not addon.focus._layoutProfileEnabled then return FullLayout() end
+    if not profileEnabled then return FullLayout() end
     InstallPhaseTimers()
-    local prof = addon.focus._layoutProfile
     prof.agg, prof.group, prof.populate, prof.populateCount = 0, 0, 0, 0
     local t0 = (debugprofilestop and debugprofilestop()) or 0
     FullLayout()
@@ -1606,14 +1594,11 @@ end
 
 addon.FullLayout = FullLayoutProfiled
 
--- /hsperf — toggles the FullLayout profiler. Registered here (not in FocusSlash) so the
--- wrapper stays self-contained and the setup can be disabled by commenting out this block.
 SLASH_HSFOCUSPERF1 = "/hsperf"
 SlashCmdList.HSFOCUSPERF = function()
-    addon.focus._layoutProfileEnabled = not addon.focus._layoutProfileEnabled
+    profileEnabled = not profileEnabled
     if addon.HSPrint then
         addon.HSPrint(("[focus] layout profiler %s (spike threshold %d ms)"):format(
-            addon.focus._layoutProfileEnabled and "ON" or "OFF",
-            FOCUS_LAYOUT_SPIKE_MS))
+            profileEnabled and "ON" or "OFF", FOCUS_LAYOUT_SPIKE_MS))
     end
 end

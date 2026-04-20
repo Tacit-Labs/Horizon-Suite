@@ -33,8 +33,7 @@ local trackerSuppressed = false
 local wqtSuppressed = false
 local wqtPanelOnShowHooked = false
 
---- Hide the WQT panel if it's currently visible. Guarded against combat lockdown
---- (Hide() on a protected frame during combat would taint).
+-- Skipped in combat: Hide() on a protected frame would taint.
 local function HideWQTPanelIfShown()
     local wqtFrame = _G.WorldQuestTrackerScreenPanel
     if wqtFrame and wqtFrame:IsShown() and not InCombatLockdown() then
@@ -42,8 +41,6 @@ local function HideWQTPanelIfShown()
     end
 end
 
---- Install a once-off OnShow hook on the WQT panel so it's re-hidden whenever WQT
---- tries to show it. Replaces the previous 1s polling ticker.
 local function EnsureWQTPanelOnShowHook()
     if wqtPanelOnShowHooked then return end
     local wqtFrame = _G.WorldQuestTrackerScreenPanel
@@ -53,7 +50,6 @@ local function EnsureWQTPanelOnShowHook()
         HideWQTPanelIfShown()
     end)
     wqtPanelOnShowHooked = true
-    -- Cover the case where the panel was already shown when we install the hook.
     HideWQTPanelIfShown()
 end
 
@@ -95,8 +91,7 @@ end
 
 --- Restore the default objective tracker and WQT panel when Focus is disabled.
 local function RestoreTracker()
-    -- The WQT panel OnShow hook is left in place — it's a no-op when focus.enabled is false,
-    -- and HookScript doesn't support removal. Re-enabling Focus just re-arms the guard.
+    -- WQT OnShow hook is left in place: HookScript can't be removed and it no-ops when disabled.
     if not trackerSuppressed then return end
     if ObjectiveTrackerFrame then
         -- pcall: frame methods can throw on protected or invalid frames.
@@ -169,8 +164,6 @@ local function HookWQTTracking()
             if wqtPanel and wqtPanel:IsShown() then
                 wqtPanel:Hide()
             end
-            -- One deferred refresh covers the WQT tracking propagation; the nested
-            -- FullLayout re-trigger was redundant with ScheduleRefresh's layout pass.
             C_Timer.After(0.1, function()
                 if addon.ScheduleRefresh then addon.ScheduleRefresh() end
             end)

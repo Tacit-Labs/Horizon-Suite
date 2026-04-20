@@ -89,10 +89,8 @@ local function SetPanelHeight(h)
     HS:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", right - uiRight, topBefore - uiTop)
 end
 
--- PLAYER_MAP_CHANGED can fire several times in quick succession during zone transitions
--- (subzone → zone → continent). Coalesce the downstream ScheduleRefresh so we run a single
--- FullLayout after the burst settles. Cache invalidation still happens synchronously so the
--- next layout reads fresh data.
+-- PLAYER_MAP_CHANGED fires in bursts during zone transitions; debounce collapses the burst
+-- into a single FullLayout after it settles.
 local MAP_CHANGE_REFRESH_DEBOUNCE = 0.1
 local mapChangeRefreshTimer
 local function ScheduleMapChangeDebouncedRefresh()
@@ -110,8 +108,7 @@ local function ScheduleMapChangeDebouncedRefresh()
     end
 end
 
---- Detects player map changes and invalidates zone task quest cache.
---- Called on a timer; no params or return.
+--- Tracks map changes; the WQ cache self-invalidates via zoneMapID compare in GetNearbyQuestIDs.
 local function RunMapCheck()
     if not addon.focus.enabled or not C_Map or not C_Map.GetBestMapForUnit then return end
 
@@ -123,12 +120,9 @@ local function RunMapCheck()
         addon.focus.lastZoneMapID = zoneMapID
         addon.focus.lastPlayerMapID = rawMapID
         if addon.zoneTaskQuestCache then wipe(addon.zoneTaskQuestCache) end
-        -- Nearby WQ cache self-invalidates via the zoneMapID compare in GetNearbyQuestIDs.
         ScheduleMapChangeDebouncedRefresh()
     elseif rawMapID and rawMapID ~= addon.focus.lastPlayerMapID then
-        -- rawMapID changed within the same zoneMapID (e.g. left event sub-area). The nearby
-        -- WQ cache is zone-scoped — mapIDsToQuery derives from zoneMapID — so the warm cache
-        -- is still valid. Not invalidating here was the single biggest flight-stutter win.
+        -- rawMapID changed within the same zoneMapID — WQ cache stays warm (zone-scoped).
         addon.focus.lastPlayerMapID = rawMapID
         ScheduleMapChangeDebouncedRefresh()
     elseif not addon.focus.lastZoneMapID and zoneMapID then

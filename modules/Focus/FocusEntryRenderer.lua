@@ -2266,16 +2266,8 @@ local function PopulateEntry(entry, questData, groupKey)
     return totalH
 end
 
--- PopulateEntry dominates the per-layout cost (~1.1ms per entry × 20-30 entries = 30ms+).
--- Most layouts during flight paint the same data twice because zone events fire repeatedly
--- with no actual quest-data change. We compute a compact signature from the questData fields
--- that drive the visible output, and when the signature matches the entry's last-painted
--- signature we skip the work entirely. The signature is ~30μs to compute, the saved
--- PopulateEntry call is ~1.1ms — net is a ~30× win per skipped entry.
---
--- Fields NOT in the signature (they don't affect PopulateEntry's output, OR they already
--- drive separate code paths): animState, position, hover/anim state, timer bar countdown
--- (handled by the scenario-bar ticker, not PopulateEntry).
+-- Signature of the questData fields that drive PopulateEntry's visible output. Changes to
+-- any visible-impact field must be reflected here or stale entries will render.
 local function BuildEntrySignature(qData, groupKey)
     if not qData then return nil end
     local key = qData.entryKey or qData.questID
@@ -2327,9 +2319,6 @@ local function PopulateEntryCached(entry, questData, groupKey)
     if not entry or not questData then return origPopulateEntry(entry, questData, groupKey) end
     local sig = BuildEntrySignature(questData, groupKey)
     if sig and entry._populateSig == sig then
-        -- Same data as the last paint of this entry — skip the heavy text / objective /
-        -- color / icon rebuild. entry.entryHeight and other fields from the last paint are
-        -- still valid because none of the data feeding them changed.
         return entry.entryHeight
     end
     local result = origPopulateEntry(entry, questData, groupKey)

@@ -316,18 +316,12 @@ local function SortAndGroupQuests(quests)
     return result
 end
 
---- Build the full list of quests by calling each provider and normalizing.
--- Cache for "does questID's parent-map chain reach zoneMapID?" — the expensive part of
--- IsQuestOnPlayerZoneMap / questMapMatchesPlayer. Both helpers were walking up to 10
--- parents per quest per FullLayout. Result is deterministic given (questID, zoneMapID),
--- so we memoise per zoneMapID and wipe when the player changes zone.
+-- Memoises the parent-map walk shared by IsQuestOnPlayerZoneMap / questMapMatchesPlayer.
+-- Invalidated when the player's zoneMapID changes.
 local questAncestorCacheZoneMapID = nil
 local questAncestorCache = {}
 local ANCESTOR_WALK_DEPTH = 10
 
---- True when questID's zoneMapID (or an ancestor within ANCESTOR_WALK_DEPTH parents) equals
---- zoneMapID. Results are cached until the player's zoneMapID changes. Returns false when the
---- APIs are unavailable or the quest's zoneMapID hasn't resolved yet (caller handles fallbacks).
 local function QuestAncestorMatchesZone(questID, zoneMapID)
     if not questID or not zoneMapID then return false end
     if questAncestorCacheZoneMapID ~= zoneMapID then
@@ -341,7 +335,7 @@ local function QuestAncestorMatchesZone(questID, zoneMapID)
     end
     local ok, qMapID = pcall(C_TaskQuest.GetQuestZoneID, questID)
     if not ok or not qMapID or qMapID == 0 then
-        -- qMapID not yet resolved; don't cache so we re-check next call once the API settles.
+        -- Leave uncached so we re-check after the API settles.
         return false
     end
     local checkID = qMapID

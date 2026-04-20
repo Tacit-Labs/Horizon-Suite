@@ -69,36 +69,13 @@ eventFrame:RegisterEvent("WORLD_MAP_OPEN")
 pcall(function() eventFrame:RegisterEvent("AUCTION_HOUSE_SHOW") end)
 pcall(function() eventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED") end)
 
-local VIGNETTE_DEBOUNCE = 0.5
-
--- UPDATE_UI_WIDGET fires in bursts in widget-heavy scenarios; debounce to avoid full layout per tick.
-local UPDATE_UI_WIDGET_DEBOUNCE = 0.2
-local updateWidgetDebounceTimer
-
--- Coalesce rapid scenario criteria / spell updates into a single deferred layout.
+local VIGNETTE_DEBOUNCE          = 0.5
+local UPDATE_UI_WIDGET_DEBOUNCE  = 0.2
 local SCENARIO_CRITERIA_DEBOUNCE = 0.12
-local scenarioCriteriaDebounceTimer
+local QUEST_UPDATE_DEBOUNCE      = 0.08
+local NEARBY_POI_DEBOUNCE        = 0.2
+local ZONE_CHANGE_DEBOUNCE       = 0.15
 
--- Coalesce bursts of QUEST_WATCH_UPDATE / QUEST_LOG_UPDATE / UNIT_QUEST_LOG_CHANGED.
--- These events fire on every objective tick; the flash check still runs immediately, only
--- the FullLayout request is deferred so closely-spaced updates produce one layout pass.
-local QUEST_UPDATE_DEBOUNCE = 0.08
-local questUpdateDebounceTimer
-
--- Coalesce bursts of AREA_POIS_UPDATED / TASK_PROGRESS_UPDATE. These events invalidate the
--- nearby-WQ cache; debouncing the refresh prevents a full GetNearbyQuestIDs rebuild per event
--- during a POI storm. The cache is marked dirty immediately so correctness is preserved.
-local NEARBY_POI_DEBOUNCE = 0.2
-local nearbyPoiDebounceTimer
-
--- ZONE_CHANGED / ZONE_CHANGED_NEW_AREA / ZONE_CHANGED_INDOORS all fire during flight (often
--- in bursts of 3-5 within a second as the player crosses subzones). The original handler ran
--- an immediate ScheduleRefresh plus 0.4s/1.5s/2.5s late retries per event, which stacked into
--- 12+ FullLayouts during a flight path. We now debounce the immediate refresh and keep a
--- single set of cancellable late-retry timers that are restarted on each zone change — so
--- retries fire once, after the last zone change in the burst settles.
-local ZONE_CHANGE_DEBOUNCE = 0.15
-local zoneChangeDebounceTimer
 local zoneLateRetry04Timer
 local zoneLateRetry15Timer
 local zoneLateRetry25Timer
@@ -123,78 +100,47 @@ end
 
 addon.ScheduleRefresh = ScheduleRefresh
 
-local vignetteDebounceTimer
-local function OnVignettesUpdated()
-    if not addon.focus.enabled then return end
-    if not addon.GetDB("showRareBosses", true) and not addon.GetDB("showRareLoot", false) then return end
-    if vignetteDebounceTimer then vignetteDebounceTimer:Cancel() end
-    if C_Timer and C_Timer.NewTimer then
-        vignetteDebounceTimer = C_Timer.NewTimer(VIGNETTE_DEBOUNCE, function()
-            vignetteDebounceTimer = nil
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    else
-        C_Timer.After(VIGNETTE_DEBOUNCE, function()
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
+-- Factory: returns a closure that, when called, starts (or restarts) a timer which fires
+-- ScheduleRefresh after `duration`. Each call site gets its own timer handle so different
+-- event classes debounce independently. Uses C_Timer.NewTimer when available (so we can
+-- cancel in-flight timers) and falls back to C_Timer.After for older clients.
+local function MakeDebouncedRefresh(duration)
+    local timer
+    return function()
+        if not addon.focus.enabled then return end
+        if timer then timer:Cancel() end
+        if C_Timer and C_Timer.NewTimer then
+            timer = C_Timer.NewTimer(duration, function()
+                timer = nil
+                if addon.focus.enabled then ScheduleRefresh() end
+            end)
+        else
+            C_Timer.After(duration, function()
+                if addon.focus.enabled then ScheduleRefresh() end
+            end)
+        end
     end
 end
 
+local ScheduleVignetteDebouncedRefresh         = MakeDebouncedRefresh(VIGNETTE_DEBOUNCE)
+local ScheduleScenarioCriteriaDebouncedRefresh = MakeDebouncedRefresh(SCENARIO_CRITERIA_DEBOUNCE)
+local ScheduleQuestUpdateDebouncedRefresh      = MakeDebouncedRefresh(QUEST_UPDATE_DEBOUNCE)
+local ScheduleNearbyPoiDebouncedRefresh        = MakeDebouncedRefresh(NEARBY_POI_DEBOUNCE)
+local ScheduleZoneChangeDebouncedRefresh       = MakeDebouncedRefresh(ZONE_CHANGE_DEBOUNCE)
+
+local function OnVignettesUpdated()
+    if not addon.focus.enabled then return end
+    if not addon.GetDB("showRareBosses", true) and not addon.GetDB("showRareLoot", false) then return end
+    ScheduleVignetteDebouncedRefresh()
+end
+
+local ScheduleUpdateUiWidgetDebouncedRefresh = MakeDebouncedRefresh(UPDATE_UI_WIDGET_DEBOUNCE)
 local function OnUpdateUiWidgetDebounced()
     if not addon.focus.enabled then return end
     if not ((addon.IsDelveActive and addon.IsDelveActive()) or (addon.IsScenarioActive and addon.IsScenarioActive())) then
         return
     end
-    if updateWidgetDebounceTimer then updateWidgetDebounceTimer:Cancel() end
-    updateWidgetDebounceTimer = C_Timer.After(UPDATE_UI_WIDGET_DEBOUNCE, function()
-        updateWidgetDebounceTimer = nil
-        if addon.focus.enabled then ScheduleRefresh() end
-    end)
-end
-
-local function ScheduleScenarioCriteriaDebouncedRefresh()
-    if not addon.focus.enabled then return end
-    if scenarioCriteriaDebounceTimer then scenarioCriteriaDebounceTimer:Cancel() end
-    if C_Timer and C_Timer.NewTimer then
-        scenarioCriteriaDebounceTimer = C_Timer.NewTimer(SCENARIO_CRITERIA_DEBOUNCE, function()
-            scenarioCriteriaDebounceTimer = nil
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    else
-        C_Timer.After(SCENARIO_CRITERIA_DEBOUNCE, function()
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    end
-end
-
-local function ScheduleQuestUpdateDebouncedRefresh()
-    if not addon.focus.enabled then return end
-    if questUpdateDebounceTimer then questUpdateDebounceTimer:Cancel() end
-    if C_Timer and C_Timer.NewTimer then
-        questUpdateDebounceTimer = C_Timer.NewTimer(QUEST_UPDATE_DEBOUNCE, function()
-            questUpdateDebounceTimer = nil
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    else
-        C_Timer.After(QUEST_UPDATE_DEBOUNCE, function()
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    end
-end
-
-local function ScheduleNearbyPoiDebouncedRefresh()
-    if not addon.focus.enabled then return end
-    if nearbyPoiDebounceTimer then nearbyPoiDebounceTimer:Cancel() end
-    if C_Timer and C_Timer.NewTimer then
-        nearbyPoiDebounceTimer = C_Timer.NewTimer(NEARBY_POI_DEBOUNCE, function()
-            nearbyPoiDebounceTimer = nil
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    else
-        C_Timer.After(NEARBY_POI_DEBOUNCE, function()
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    end
+    ScheduleUpdateUiWidgetDebouncedRefresh()
 end
 
 local RunMplusHeightTransitionCheck  -- forward declaration; defined below
@@ -205,9 +151,9 @@ local function CancelZoneLateRetries()
     if zoneLateRetry25Timer then zoneLateRetry25Timer:Cancel(); zoneLateRetry25Timer = nil end
 end
 
--- Schedule the three late-retry refreshes after a zone change, cancelling any retries still
--- pending from a previous zone change in the same burst. These retries catch late-updating
--- APIs (map pin acquisition, WQ list propagation) after the zone settles.
+-- Late retries catch APIs that lag after a zone change (map pins, WQ propagation). Timers
+-- are cancelled-and-restarted on each new zone event so a flight burst fires them once,
+-- after the last zone change settles, rather than once per zone change.
 local function ScheduleZoneLateRetries()
     CancelZoneLateRetries()
     if not (C_Timer and C_Timer.NewTimer) then
@@ -234,21 +180,6 @@ local function ScheduleZoneLateRetries()
         zoneLateRetry25Timer = nil
         if addon.focus.enabled then ScheduleRefresh() end
     end)
-end
-
-local function ScheduleZoneChangeDebouncedRefresh()
-    if not addon.focus.enabled then return end
-    if zoneChangeDebounceTimer then zoneChangeDebounceTimer:Cancel() end
-    if C_Timer and C_Timer.NewTimer then
-        zoneChangeDebounceTimer = C_Timer.NewTimer(ZONE_CHANGE_DEBOUNCE, function()
-            zoneChangeDebounceTimer = nil
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    else
-        C_Timer.After(ZONE_CHANGE_DEBOUNCE, function()
-            if addon.focus.enabled then ScheduleRefresh() end
-        end)
-    end
 end
 
 _G.HorizonSuite_ApplyTypography  = addon.ApplyTypography
@@ -426,10 +357,7 @@ end
 local function OnPlayerLoginOrEnteringWorld()
     if addon.focus.enabled then
         addon.focus.zoneJustChanged = true
-        -- Invalidate the nearby WQ scan cache so we scan fresh for the current zone.
         addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
         addon.TrySuppressTracker()
         ScheduleRefresh()
         C_Timer.After(0.4, function()
@@ -493,8 +421,6 @@ local function OnQuestAccepted(questID)
     end
     if isWQ and not addon.GetDB("showWorldQuests", true) then
         addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
     end
 
     ScheduleRefresh()
@@ -565,32 +491,22 @@ local function OnZoneChanged(event)
     addon.focus.zoneJustChanged = true
     addon.focus.lastPlayerMapID = nil
     addon.focus.lastZoneMapID = nil
-    -- Nearby WQ cache is gated on zoneMapID inside GetNearbyQuestIDs — if the zoneMapID
-    -- actually changes, the next call rebuilds; if it didn't (common during flight across
-    -- subzones of the same zone), the cache stays warm and the expensive multi-map scan is
-    -- skipped entirely.
-    -- Clear Current Quest / Current Event transition memory from the previous zone; otherwise
-    -- FullLayout treats rows as moving into CURRENT/CURRENT_EVENT, skips PopulateEntry, and returns
-    -- early—wrong visuals until reload (see FocusLayout categoryChangeSkipKeys / category-change branch).
+    -- Nearby WQ cache self-invalidates via zoneMapID compare in GetNearbyQuestIDs.
+    -- Without wiping prevGroupKey, FullLayout treats rows as moving into CURRENT/CURRENT_EVENT
+    -- and returns early, leaving stale visuals until reload.
     if addon.focus.categoryChange and addon.focus.categoryChange.prevGroupKey then
         wipe(addon.focus.categoryChange.prevGroupKey)
     end
-    -- Clear quest timer cache so zone-specific WQ timers get fresh anchors in the new zone.
     if addon.focus.questTimerCache then wipe(addon.focus.questTimerCache) end
     RunMplusHeightTransitionCheck()
-    -- Only clear right-click suppression on major area change (return to main zone), not on subzone change—unless option is "suppress until reload".
     if event == "ZONE_CHANGED_NEW_AREA" then
         if not addon.GetDB("suppressUntrackedUntilReload", false) then
             if addon.focus.recentlyUntrackedWorldQuests then wipe(addon.focus.recentlyUntrackedWorldQuests) end
             addon.SetDB("sessionSuppressedQuests", nil)
         end
-        -- Clear the cached delve name so the next delve doesn't inherit a stale name.
         if addon.ClearDelveNameCache then addon.ClearDelveNameCache() end
     end
     if addon.zoneTaskQuestCache then wipe(addon.zoneTaskQuestCache) end
-    -- Debounced immediate refresh collapses flight-subzone bursts. Late-retry timers catch
-    -- late API updates (map pins, WQ propagation) and are cancelled-and-restarted on each
-    -- zone change so a flight path fires them once after the last zone settles, not per zone.
     ScheduleZoneChangeDebouncedRefresh()
     ScheduleZoneLateRetries()
 end
@@ -611,8 +527,6 @@ local eventHandlers = {
                 or (C_QuestLog and C_QuestLog.IsWorldQuest and C_QuestLog.IsWorldQuest(questID))
             if isWQ then
                 addon.focus.nearbyQuestCacheDirty = true
-                addon.focus.nearbyQuestCache = nil
-                addon.focus.nearbyTaskQuestCache = nil
             end
         end
         ScheduleRefresh()
@@ -627,31 +541,20 @@ local eventHandlers = {
     VIGNETTE_MINIMAP_UPDATED = function() end,
     VIGNETTES_UPDATED        = OnVignettesUpdated,
     -- AREA_POIS_UPDATED: fires when zone events/POIs update (e.g. entering area with bonus objective).
-    -- Invalidate nearby cache so GetTasksTable/GetNearbyQuestIDs picks up newly available content.
-    -- Defer ScheduleRefresh to avoid taint chain with Blizzard map pin acquisition (SetPropagateMouseClicks).
     AREA_POIS_UPDATED        = function()
         if not addon.focus.enabled then return end
         addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
-        -- Debounced to coalesce POI storms (fires in bursts when zones spawn/despawn POIs).
         ScheduleNearbyPoiDebouncedRefresh()
     end,
     QUEST_POI_UPDATE         = function() end,
-    -- TASK_PROGRESS_UPDATE: fires when the player enters or leaves a WQ/task area (proximity).
-    -- Invalidate the WQ cache so the next layout picks up the newly-in-range or out-of-range quest.
-    -- Deferred 0.5s refresh catches leave scenarios where the API may lag.
+    -- 0.5s follow-up catches WQ-leave cases where C_TaskQuest.IsActive lags behind leaving the area.
     TASK_PROGRESS_UPDATE     = function()
         if not addon.focus.enabled then return end
         addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
         ScheduleNearbyPoiDebouncedRefresh()
         C_Timer.After(0.5, function()
             if not addon.focus.enabled then return end
             addon.focus.nearbyQuestCacheDirty = true
-            addon.focus.nearbyQuestCache = nil
-            addon.focus.nearbyTaskQuestCache = nil
             ScheduleRefresh()
         end)
     end,
@@ -679,13 +582,10 @@ local eventHandlers = {
         if addon.InvalidateScenarioEntriesCache then addon.InvalidateScenarioEntriesCache() end
         ScheduleRefresh()
     end,
-    -- Bonus objective became visible (e.g. entered zone/area). Invalidate nearby cache so GetTasksTable is re-read.
     SCENARIO_BONUS_VISIBILITY_UPDATE  = function()
         if not addon.focus.enabled then return end
         if addon.InvalidateScenarioEntriesCache then addon.InvalidateScenarioEntriesCache() end
         addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
         ScheduleRefresh()
     end,
     CRITERIA_COMPLETE        = function() ScheduleRefresh() end,
