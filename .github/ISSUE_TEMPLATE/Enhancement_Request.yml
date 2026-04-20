@@ -1,6 +1,6 @@
 name: Make a Request
-description: Suggest a new capability
-title: "[Feature]: "
+description: A request, idea, or new functionality
+title: " "
 body:
   - type: dropdown
     id: issue_type

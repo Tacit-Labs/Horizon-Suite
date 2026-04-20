@@ -1,6 +1,6 @@
 name: File a Bug Report
-description: Report a defect or broken behavior
-title: "[Bug]: "
+description: An unexpected problem or behaviour
+title: " "
 body:
   - type: dropdown
     id: issue_type
