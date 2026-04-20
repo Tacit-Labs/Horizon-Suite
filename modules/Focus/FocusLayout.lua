@@ -1537,19 +1537,56 @@ addon.GetPlayerCurrentZoneName = GetPlayerCurrentZoneName
 addon.AcquireEntry        = AcquireEntry
 
 -- Opt-in FullLayout profiler. Off by default; toggle with `/hsperf`. When on, any FullLayout
--- that takes longer than FOCUS_LAYOUT_SPIKE_MS is logged to chat so the user can attach real
--- timing numbers to reported stutters. The wrapper is one branch when disabled so the steady-
--- state cost is negligible.
+-- that takes longer than FOCUS_LAYOUT_SPIKE_MS is logged with a phase breakdown so the
+-- expensive phase is visible in the log line itself (agg / group / render).
 local FOCUS_LAYOUT_SPIKE_MS = 20
 addon.focus._layoutProfileEnabled = addon.focus._layoutProfileEnabled or false
+addon.focus._layoutProfile = addon.focus._layoutProfile or { agg = 0, group = 0 }
+
+-- Wrap ReadTrackedQuests / SortAndGroupQuests so their elapsed time accrues to the per-
+-- layout counters. Re-entrant calls (if any) don't double-count — the wrapper just records
+-- total time spent, which is what we want.
+local function InstallPhaseTimers()
+    if addon.focus._phaseTimersInstalled then return end
+    addon.focus._phaseTimersInstalled = true
+    local origRead = addon.ReadTrackedQuests
+    if origRead then
+        addon.ReadTrackedQuests = function(...)
+            if not addon.focus._layoutProfileEnabled or not debugprofilestop then
+                return origRead(...)
+            end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origRead(...)
+            addon.focus._layoutProfile.agg = addon.focus._layoutProfile.agg + (debugprofilestop() - t0)
+            return a, b, c, d
+        end
+    end
+    local origGroup = addon.SortAndGroupQuests
+    if origGroup then
+        addon.SortAndGroupQuests = function(...)
+            if not addon.focus._layoutProfileEnabled or not debugprofilestop then
+                return origGroup(...)
+            end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origGroup(...)
+            addon.focus._layoutProfile.group = addon.focus._layoutProfile.group + (debugprofilestop() - t0)
+            return a, b, c, d
+        end
+    end
+end
 
 local function FullLayoutProfiled()
     if not addon.focus._layoutProfileEnabled then return FullLayout() end
+    InstallPhaseTimers()
+    local prof = addon.focus._layoutProfile
+    prof.agg, prof.group = 0, 0
     local t0 = (debugprofilestop and debugprofilestop()) or 0
     FullLayout()
     local elapsed = ((debugprofilestop and debugprofilestop()) or 0) - t0
     if elapsed >= FOCUS_LAYOUT_SPIKE_MS and addon.HSPrint then
-        addon.HSPrint(("[focus] FullLayout: %.1f ms"):format(elapsed))
+        local render = elapsed - prof.agg - prof.group
+        addon.HSPrint(("[focus] FullLayout: %.1f ms (agg=%.1f group=%.1f render=%.1f)"):format(
+            elapsed, prof.agg, prof.group, render))
     end
 end
 
