@@ -1163,9 +1163,22 @@ local function HandleFocusDebugSlash(msg)
                     if C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
                         local ok, info = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
                         if ok and info and type(info) == "table" and ((info.headerText and info.headerText ~= "") or (info.tierText and info.tierText ~= "")) then
-                            HSPrint(("      ScenarioHeaderDelves: header=%q tier=%q tooltip=%q spells=%s"):format(
+                            HSPrint(("      ScenarioHeaderDelves: header=%q tier=%q tooltip=%q spells=%s currencies=%s"):format(
                                 ShortText(info.headerText, 50), ShortText(info.tierText, 20), ShortText(info.tooltip, 60),
-                                tostring(info.spells and #info.spells or 0)))
+                                tostring(info.spells and #info.spells or 0),
+                                tostring(info.currencies and #info.currencies or 0)))
+                            if type(info.currencies) == "table" then
+                                for ci, cur in ipairs(info.currencies) do
+                                    if type(cur) == "table" then
+                                        HSPrint(("        currency[%d]: text=%q icon=%s state=%s tooltip=%q"):format(
+                                            ci,
+                                            ShortText(cur.text, 20),
+                                            tostring(cur.iconFileID),
+                                            tostring(cur.textEnabledState),
+                                            ShortText(cur.tooltip, 40)))
+                                    end
+                                end
+                            end
                         end
                     end
                 end
