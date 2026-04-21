@@ -662,32 +662,42 @@ function addon.FormatDelveLivesHeartsForTitle(count, iconFileID)
     return iconSeg .. " " .. tostring(math.floor(count))
 end
 
---- Nemesis bonus-chest row: chest |T icon and remaining count, or green check when complete.
+--- Nemesis bonus-chest: one |T chest|t per remaining group (matches native discrete octagons), or one check per slot when complete.
 --- @param remaining number|nil Groups not yet cleared
 --- @param total number|nil Total groups when known (optional)
 --- @param iconFileID number|nil From widget currency or IconAndText
 --- @param isComplete boolean|nil All groups cleared (native UI shows a checkmark)
 --- @return string Rich text for FontString SetText; empty when nothing to show
 function addon.FormatDelveNemesisGroupsForTitle(remaining, total, iconFileID, isComplete)
+    local sz = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
+    local checkSeg = ("|TInterface\\RaidFrame\\ReadyCheck-Ready:%d:%d:0:-1|t"):format(sz, sz)
     if isComplete then
-        local sz = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
-        return ("|TInterface\\RaidFrame\\ReadyCheck-Ready:%d:%d:0:-1|t"):format(sz, sz)
+        local tc = 1
+        if type(total) == "number" and total >= 1 then
+            tc = math.min(math.floor(total), NEMESIS_GROUPS_MAX)
+        end
+        local parts = {}
+        for i = 1, tc do
+            parts[i] = checkSeg
+        end
+        return table.concat(parts, " ")
     end
     if type(remaining) ~= "number" or remaining < 1 then return "" end
-    local sz = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
     local iconSeg
     if type(iconFileID) == "number" and iconFileID > 0 then
         iconSeg = ("|T%d:%d:%d:0:-1|t"):format(iconFileID, sz, sz)
     else
-        -- Fallback: gold chest tone when widget did not provide an icon file id
+        -- Fallback: gold tone when widget did not provide an icon file id
         iconSeg = "|cffffcc55\226\150\161|r"
     end
-    local n = math.floor(remaining)
-    -- Show "r/t" only when there can be more than one group; "1/1" is redundant next to the chest icon.
-    if type(total) == "number" and total > 1 then
-        return iconSeg .. " " .. tostring(n) .. "/" .. tostring(math.floor(total))
+    local n = math.min(math.max(math.floor(remaining), 0), NEMESIS_GROUPS_MAX)
+    if n < 1 then return "" end
+    -- One chest texture per uncleared group (native shows separate octagons, not "2" in a single box).
+    local parts = {}
+    for i = 1, n do
+        parts[i] = iconSeg
     end
-    return iconSeg .. " " .. tostring(n)
+    return table.concat(parts, " ")
 end
 
 --- Debug snapshot for slash commands: whether widgets are readable + set IDs + delve header count.
