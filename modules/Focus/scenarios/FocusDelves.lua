@@ -710,6 +710,24 @@ function addon.FormatDelveLivesHeartsForTitle(count, iconFileID)
     return iconSeg .. " " .. tostring(math.floor(count))
 end
 
+--- Preferred Blizzard atlases for the bonus-chest indicator (first that resolves wins).
+--- `delves-bountifulchest-closed` is the native delves-header chest visual; the others are safe fallbacks.
+local NEMESIS_ATLAS_CANDIDATES = {
+    "delves-bountifulchest-closed",
+    "delves-bountifulchest",
+    "delves-chest-greatvault",
+    "delves-greatvault-chest",
+}
+
+local function ResolveNemesisAtlasName()
+    if not C_Texture or not C_Texture.GetAtlasInfo then return nil end
+    for _, name in ipairs(NEMESIS_ATLAS_CANDIDATES) do
+        local ok, info = pcall(C_Texture.GetAtlasInfo, name)
+        if ok and info then return name end
+    end
+    return nil
+end
+
 --- Nemesis bonus-chest: one |T chest|t per remaining group (matches native discrete octagons), or one check per slot when complete.
 --- @param remaining number|nil Groups not yet cleared
 --- @param total number|nil Total groups when known (optional)
@@ -732,10 +750,13 @@ function addon.FormatDelveNemesisGroupsForTitle(remaining, total, iconFileID, is
     end
     if type(remaining) ~= "number" or remaining < 1 then return "" end
     local iconSeg
-    if type(iconFileID) == "number" and iconFileID > 0 then
+    -- Prefer Blizzard's native delves-header chest atlas; fall back to the affix spell icon, then a glyph.
+    local atlasName = ResolveNemesisAtlasName()
+    if atlasName then
+        iconSeg = ("|A:%s:%d:%d|a"):format(atlasName, sz, sz)
+    elseif type(iconFileID) == "number" and iconFileID > 0 then
         iconSeg = ("|T%d:%d:%d:0:-1|t"):format(iconFileID, sz, sz)
     else
-        -- Fallback: gold tone when widget did not provide an icon file id
         iconSeg = "|cffffcc55\226\150\161|r"
     end
     local n = math.min(math.max(math.floor(remaining), 0), NEMESIS_GROUPS_MAX)
