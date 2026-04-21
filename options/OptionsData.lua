@@ -72,6 +72,7 @@ local INSIGHT_KEYS = {
     insightShowSpecRole         = true,
     insightShowCharacterTitle   = true,
     insightPlayerNameColor      = true,
+    insightPlayerNameGradient   = true,
     insightTitleColor           = true,
     insightTitleColorR          = true,
     insightTitleColorG          = true,
@@ -101,6 +102,7 @@ local INSIGHT_KEYS = {
     insightNpcBodySize          = true,
     -- Item tooltip
     insightItemQualityBorder    = true,
+    insightItemNameGradient     = true,
     insightItemSectionSpacing   = true,
     insightItemHeaderSize       = true,
     insightItemBodySize         = true,
@@ -282,7 +284,7 @@ local VISTA_KEYS = {
     vistaBarBorderR = true, vistaBarBorderG = true, vistaBarBorderB = true, vistaBarBorderA = true,
     vistaRightClickLocked = true, vistaRightClickPanelX = true, vistaRightClickPanelY = true,
     vistaButtonMode = true, vistaHandleAddonButtons = true,
-    vistaCollectHorizonMinimapButton = true,
+    vistaCollectHorizonMinimapButton = true, vistaButtonSortAlpha = true,
     vistaDrawerButtonLocked = true, vistaButtonWhitelist = true,
     vistaMailBlink = true,
     -- Button sizes (separate per type)
@@ -852,7 +854,7 @@ local OptionCategories = {
                 options = {
                     { L["AXIS_MODULE_NAME_HORIZON"]     or "Horizon",     "horizon"     },
                     { L["AXIS_MODULE_NAME_SUBTITLE"]    or "Subtitle",    "subtitle"    },
-                    { L["AXIS_MODULE_NAME_DESCRIPTIVE"] or "Descriptive", "descriptive" },
+                    { L["AXIS_MODULE_NAME_SIMPLE"] or "Simple", "simple" },
                 },
                 get = function() return getDB("moduleNameDisplay", "horizon") end,
                 set = function(v)
@@ -2251,7 +2253,8 @@ local OptionCategories = {
         dashboardPreviewMode = "player",
         options = {
             { type = "section", name = L["INSIGHT_SECTION_IDENTITY"] or "Identity" },
-            { type = "dropdown", name = L["INSIGHT_PLAYER_NAME_COLOUR"] or "Player name colour", desc = L["INSIGHT_PLAYER_NAME_COLOUR_DESC"] or "Colour for the player's name on the first tooltip line.", dbKey = "insightPlayerNameColor", options = { { L["INSIGHT_PLAYER_NAME_COLOUR_FACTION"] or "Faction", "faction" }, { L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"] or "Class", "class" } }, get = function() local v = getDB("insightPlayerNameColor", "faction"); return v == "class" and "class" or "faction" end, set = function(v) setDB("insightPlayerNameColor", v == "class" and "class" or "faction") end },
+            { type = "dropdown", name = L["INSIGHT_PLAYER_NAME_COLOUR"] or "Player name colour", desc = L["INSIGHT_PLAYER_NAME_COLOUR_DESC"] or "Colour for the player's name on the first tooltip line.", dbKey = "insightPlayerNameColor", options = { { L["INSIGHT_PLAYER_NAME_COLOUR_FACTION"] or "Faction", "faction" }, { L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"] or "Class", "class" } }, get = function() local v = getDB("insightPlayerNameColor", "faction"); return v == "class" and "class" or "faction" end, set = function(v) setDB("insightPlayerNameColor", v == "class" and "class" or "faction") end, refreshIds = { "insightPlayerNameGradient" } },
+            { type = "toggle", name = L["INSIGHT_PLAYER_NAME_GRADIENT"] or "Class colour gradient", desc = L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"] or "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class).", dbKey = "insightPlayerNameGradient", isNew = "4.12.6a", get = function() return getDB("insightPlayerNameGradient", false) end, set = function(v) setDB("insightPlayerNameGradient", v) end, visibleWhen = function() return getDB("insightPlayerNameColor", "faction") == "class" end },
             { type = "toggle", name = L["GUILD_RANK"] or "Guild rank", desc = L["AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
             { type = "toggle", name = L["AXIS_CHARACTER_TITLE"] or "Character title", desc = L["AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
             { type = "color", name = L["AXIS_TITLE_COLOUR"] or "Title color", desc = L["AXIS_COLOUR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"] or "Color of the character title in the player tooltip name line.", dbKey = "insightTitleColor", default = { 1.00, 0.82, 0.00 }, visibleWhen = function() return getDB("insightShowCharacterTitle", true) end },
@@ -2303,6 +2306,7 @@ local OptionCategories = {
             { type = "toggle", name = L["TRANSMOG_STATUS"] or "Transmog status", desc = L["AXIS_WHETHER_YOU_COLLECTED_APPEARANCE_OF_AN"] or "Show whether you have collected the appearance of an item you hover over.", dbKey = "insightShowTransmog", get = function() return getDB("insightShowTransmog", true) end, set = function(v) setDB("insightShowTransmog", v) end },
             { type = "section", name = L["INSIGHT_SECTION_ITEM_STYLING"] or "Item styling" },
             { type = "toggle", name = L["INSIGHT_ITEM_QUALITY_BORDER"] or "Quality border", desc = L["INSIGHT_ITEM_QUALITY_BORDER_DESC"] or "Tint the tooltip border to the item's quality colour (Uncommon green, Rare blue, Epic purple, etc.).", dbKey = "insightItemQualityBorder", get = function() return getDB("insightItemQualityBorder", true) end, set = function(v) setDB("insightItemQualityBorder", v) end },
+            { type = "toggle", name = L["INSIGHT_ITEM_NAME_GRADIENT"] or "Quality gradient name", desc = L["INSIGHT_ITEM_NAME_GRADIENT_DESC"] or "Render the item name as a two-stop gradient of its quality colour (Uncommon green, Rare blue, Epic purple, etc.).", dbKey = "insightItemNameGradient", isNew = "4.12.6a", get = function() return getDB("insightItemNameGradient", false) end, set = function(v) setDB("insightItemNameGradient", v) end },
             { type = "toggle", name = L["INSIGHT_ITEM_SECTION_SPACING"] or "Blank line before blocks", desc = L["INSIGHT_ITEM_SECTION_SPACING_DESC"] or "Insert a blank line before Insight blocks on item tooltips instead of a tinted separator line.", dbKey = "insightItemSectionSpacing", get = function() return getDB("insightItemSectionSpacing", false) end, set = function(v) setDB("insightItemSectionSpacing", v) end },
             { type = "section", name = L["FOCUS_FONT_SIZES"] or "Font sizes" },
             { type = "slider", name = L["FOCUS_HEADER_SIZE"] or "Header size", desc = L["FOCUS_HEADER_FONT_SIZE"] or "Header font size for item tooltips (item name line).",        dbKey = "insightItemHeaderSize", min = 8, max = 24, get = function() return getDB("insightItemHeaderSize", 14) end, set = function(v) setDB("insightItemHeaderSize", v) end },
@@ -2839,6 +2843,12 @@ local OptionCategories = {
                           setDB("vistaCollectHorizonMinimapButton", v)
                       end
                   end,
+                  disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
+                { type = "toggle", name = L["VISTA_SORT_BUTTONS_ALPHA"] or "Sort buttons alphabetically",
+                  desc = L["VISTA_SORT_BUTTONS_ALPHA_DESC"] or "Sort collected addon minimap buttons alphabetically by name.",
+                  dbKey = "vistaButtonSortAlpha",
+                  get = function() return getDB("vistaButtonSortAlpha", false) end,
+                  set = function(v) setDB("vistaButtonSortAlpha", v) end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
                 { type = "dropdown", name = L["VISTA_BUTTON_MODE"] or "Button mode",
                   desc = L["VISTA_ADDON_BUTTONS_PRESENTED_HOVER_BAR_BELOW"] or "How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.",

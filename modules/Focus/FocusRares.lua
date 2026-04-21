@@ -26,78 +26,159 @@ local RARES_BY_MAP = {
     },
 }
 
-local function IsNpcVignetteAtlas(atlasName)
-    if not atlasName or atlasName == "" then return false end
+--- Classifies a vignette atlas name as "rare", "treasure", or nil.
+local function ClassifyVignetteAtlas(atlasName)
+    if not atlasName or atlasName == "" then return nil end
     local lower = atlasName:lower()
-    if lower:find("loot") or lower:find("treasure") or lower:find("container") or lower:find("chest") or lower:find("object") then
-        return false
+    if lower:find("loot") or lower:find("treasure") or lower:find("container")
+        or lower:find("chest") or lower:find("object") then
+        return "treasure"
     end
-    if lower:find("rare") or lower:find("elite") or lower:find("npc") or lower:find("vignettekill") then
-        return true
+    if lower:find("rare") or lower:find("elite") or lower:find("npc")
+        or lower:find("vignettekill") then
+        return "rare"
     end
-    return false
+    return nil
 end
 
-local function IsTreasureVignetteAtlas(atlasName)
-    if not atlasName or atlasName == "" then return false end
-    local lower = atlasName:lower()
-    return lower:find("loot") or lower:find("treasure") or lower:find("container") or lower:find("chest") or lower:find("object")
+-- Scan cache: rare + treasure lists built in one vignette pass, invalidated by a dedicated
+-- event frame so Presence (which also calls GetRaresOnMap) sees fresh data when Focus is off.
+local scanCacheValid = false
+local scanCacheRares = nil
+local scanCacheTreasures = nil
+
+-- Parent-map hierarchy lookup, memoised per mapID.
+local mapLookupMapID = nil
+local mapLookupRares = nil
+local mapLookupZoneName = nil
+
+local function InvalidateScanCache()
+    scanCacheValid = false
 end
 
-local function GetRaresOnMap()
-    local out = {}
-    local rareColor = addon.GetQuestColor("RARE")
+local function InvalidateMapLookup()
+    mapLookupMapID = nil
+    mapLookupRares = nil
+    mapLookupZoneName = nil
+end
+
+addon.InvalidateRareScanCache = InvalidateScanCache
+
+--- Resolve RARES_BY_MAP entries for mapID, walking the parent-map hierarchy.
+--- Cached per-mapID; zone changes invalidate the cache.
+local function ResolveMapRares(mapID)
+    if not mapID then return nil, nil end
+    if mapLookupMapID == mapID then
+        return mapLookupRares, mapLookupZoneName
+    end
+    local rares = RARES_BY_MAP[mapID]
+    if not rares and C_Map and C_Map.GetMapInfo then
+        local current = mapID
+        for _ = 1, 20 do
+            local parentInfo = C_Map.GetMapInfo(current)
+            if not parentInfo or not parentInfo.parentMapID or parentInfo.parentMapID == 0 then break end
+            current = parentInfo.parentMapID
+            rares = RARES_BY_MAP[current]
+            if rares then break end
+        end
+    end
+    local info = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(mapID) or nil
+    mapLookupMapID = mapID
+    mapLookupRares = rares
+    mapLookupZoneName = info and info.name or nil
+    return rares, mapLookupZoneName
+end
+
+--- One vignette pass that populates both rare and treasure lists. Player mapID is resolved
+--- once per build and shared across GetVignettePosition calls and the treasure zone lookup.
+local function BuildScan()
+    local rareColor     = addon.GetQuestColor("RARE")
+    local rareLootColor = (addon.GetQuestColor and addon.GetQuestColor("RARE_LOOT")) or addon.GetQuestColor("RARE")
+
+    local rares, treasures = {}, {}
+    local mapID = (C_Map and C_Map.GetBestMapForUnit) and C_Map.GetBestMapForUnit("player") or nil
+    local treasureZoneName  -- lazy-populated once on first treasure hit
 
     if C_VignetteInfo and C_VignetteInfo.GetVignettes and C_VignetteInfo.GetVignetteInfo then
         local vignettes = C_VignetteInfo.GetVignettes()
         if vignettes then
-            local seen = {}
+            local seenRares, seenTreasures = {}, {}
             for _, vignetteGUID in ipairs(vignettes) do
                 local vi = C_VignetteInfo.GetVignetteInfo(vignetteGUID)
-                if vi and (vi.name and vi.name ~= "") then
-                    if IsNpcVignetteAtlas(vi.atlasName) then
-                        local creatureID = vi.npcID or vi.creatureID
-                        if not creatureID and vi.objectGUID then
-                            local _, _, _, _, _, id, _ = strsplit("-", vi.objectGUID)
-                            creatureID = tonumber(id)
+                if vi and vi.name and vi.name ~= "" then
+                    local kind = ClassifyVignetteAtlas(vi.atlasName)
+                    if kind then
+                        local vX, vY
+                        if mapID and C_VignetteInfo.GetVignettePosition then
+                            local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID, mapID)
+                            if ok and pos then
+                                vX = pos.x or (pos.GetXY and select(1, pos:GetXY()))
+                                vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
+                            end
                         end
-                        if creatureID then
-                            local dedupeKey = creatureID and ("c:" .. tostring(creatureID)) or ("n:" .. (vi.name or ""))
-                            if seen[dedupeKey] then
-                                -- skip duplicate (same creature from multiple vignette GUIDs)
-                            else
-                                seen[dedupeKey] = true
-                                -- Get vignette position for waypoint support. GetVignettePosition requires uiMapID.
-                                local vX, vY, vMapID
-                                if C_Map and C_Map.GetBestMapForUnit then
-                                    vMapID = C_Map.GetBestMapForUnit("player")
+
+                        if kind == "rare" then
+                            local creatureID = vi.npcID or vi.creatureID
+                            if not creatureID and vi.objectGUID then
+                                local _, _, _, _, _, id, _ = strsplit("-", vi.objectGUID)
+                                creatureID = tonumber(id)
+                            end
+                            if creatureID then
+                                local dedupeKey = "c:" .. tostring(creatureID)
+                                if not seenRares[dedupeKey] then
+                                    seenRares[dedupeKey] = true
+                                    rares[#rares + 1] = {
+                                        entryKey       = "vignette:" .. tostring(vignetteGUID),
+                                        questID        = nil,
+                                        title          = vi.name or "Unknown",
+                                        objectives     = {},
+                                        color          = rareColor,
+                                        category       = "RARE",
+                                        isComplete     = false,
+                                        isSuperTracked = false,
+                                        isNearby       = true,
+                                        zoneName       = nil,
+                                        itemLink       = nil,
+                                        itemTexture    = nil,
+                                        isRare         = true,
+                                        creatureID     = creatureID,
+                                        vignetteGUID   = vignetteGUID,
+                                        vignetteMapID  = mapID,
+                                        vignetteX      = vX,
+                                        vignetteY      = vY,
+                                    }
                                 end
-                                if vMapID and C_VignetteInfo.GetVignettePosition then
-                                    local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID, vMapID)
-                                    if ok and pos then
-                                        vX = pos.x or (pos.GetXY and select(1, pos:GetXY()))
-                                        vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
-                                    end
+                            end
+                        else -- treasure
+                            local dedupeKey = (mapID and vX and vY)
+                                and ("p:%s:%.2f:%.2f"):format(tostring(mapID), vX or 0, vY or 0)
+                                or (vi.vignetteID and ("v:" .. tostring(vi.vignetteID)) or ("n:" .. (vi.name or "")))
+                            if not seenTreasures[dedupeKey] then
+                                seenTreasures[dedupeKey] = true
+                                if not treasureZoneName and mapID and C_Map and C_Map.GetMapInfo then
+                                    local info = C_Map.GetMapInfo(mapID)
+                                    treasureZoneName = info and info.name or nil
                                 end
-                                out[#out + 1] = {
-                                    entryKey    = "vignette:" .. tostring(vignetteGUID),
-                                    questID     = nil,
-                                    title       = vi.name or "Unknown",
-                                    objectives  = {},
-                                    color       = rareColor,
-                                    category    = "RARE",
-                                    isComplete  = false,
+                                treasures[#treasures + 1] = {
+                                    entryKey       = "vignette:" .. tostring(vignetteGUID),
+                                    questID        = nil,
+                                    title          = vi.name or "Unknown",
+                                    objectives     = {},
+                                    color          = rareLootColor,
+                                    category       = "RARE_LOOT",
+                                    isComplete     = false,
                                     isSuperTracked = false,
-                                    isNearby    = true,
-                                    zoneName    = nil,
-                                    itemLink    = nil,
-                                    itemTexture = nil,
-                                    isRare      = true,
-                                    creatureID  = creatureID,
-                                    vignetteGUID = vignetteGUID,
-                                    vignetteMapID = vMapID,
-                                    vignetteX   = vX,
-                                    vignetteY   = vY,
+                                    isNearby       = true,
+                                    zoneName       = treasureZoneName,
+                                    itemLink       = nil,
+                                    itemTexture    = nil,
+                                    isRareLoot     = true,
+                                    vignetteGUID   = vignetteGUID,
+                                    vignetteID     = vi.vignetteID,
+                                    vignetteMapID  = mapID,
+                                    vignetteX      = vX,
+                                    vignetteY      = vY,
+                                    questTypeAtlas = vi.atlasName,
                                 }
                             end
                         end
@@ -105,119 +186,71 @@ local function GetRaresOnMap()
                 end
             end
         end
-        if #out > 0 then
-            return out
-        end
     end
 
-    if not C_Map or not C_Map.GetBestMapForUnit then return out end
-    local mapID = C_Map.GetBestMapForUnit("player")
-    if not mapID then return out end
-
-    local rares = RARES_BY_MAP[mapID]
-    if not rares and C_Map.GetMapInfo then
-        local current = mapID
-        for _ = 1, 20 do
-            local parentInfo = C_Map.GetMapInfo(current)
-            if not parentInfo or not parentInfo.parentMapID then break end
-            current = parentInfo.parentMapID
-            rares = RARES_BY_MAP[current]
-            if rares then break end
-        end
-    end
-    if not rares then return out end
-
-    local mapInfo = C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
-    local zoneName = mapInfo and mapInfo.name or nil
-    for _, t in ipairs(rares) do
-        local creatureID, name = t[1], t[2]
-        if creatureID and name then
-            out[#out + 1] = {
-                entryKey   = "rare:" .. tostring(creatureID),
-                questID    = nil,
-                title      = name,
-                objectives = {},
-                color      = rareColor,
-                category   = "RARE",
-                isComplete = false,
-                isSuperTracked = false,
-                isNearby   = true,
-                zoneName   = zoneName,
-                itemLink   = nil,
-                itemTexture = nil,
-                isRare     = true,
-                creatureID = creatureID,
-            }
-        end
-    end
-    return out
-end
-
-local function GetTreasuresOnMap()
-    local out = {}
-    local rareLootColor = addon.GetQuestColor and addon.GetQuestColor("RARE_LOOT") or addon.GetQuestColor("RARE")
-
-    if C_VignetteInfo and C_VignetteInfo.GetVignettes and C_VignetteInfo.GetVignetteInfo then
-        local vignettes = C_VignetteInfo.GetVignettes()
-        if vignettes then
-            local seen = {}
-            for _, vignetteGUID in ipairs(vignettes) do
-                local vi = C_VignetteInfo.GetVignetteInfo(vignetteGUID)
-                if vi and (vi.name and vi.name ~= "") and IsTreasureVignetteAtlas(vi.atlasName) then
-                    local vX, vY, vMapID
-                    if C_Map and C_Map.GetBestMapForUnit then
-                        vMapID = C_Map.GetBestMapForUnit("player")
-                    end
-                    if vMapID and C_VignetteInfo.GetVignettePosition then
-                        local ok, pos = pcall(C_VignetteInfo.GetVignettePosition, vignetteGUID, vMapID)
-                        if ok and pos then
-                            vX = pos.x or (pos.GetXY and select(1, pos:GetXY()))
-                            vY = pos.y or (pos.GetXY and select(2, pos:GetXY()))
-                        end
-                    end
-                    local dedupeKey = (vMapID and vX and vY)
-                        and ("p:%s:%.2f:%.2f"):format(tostring(vMapID), vX or 0, vY or 0)
-                        or (vi.vignetteID and ("v:" .. tostring(vi.vignetteID)) or ("n:" .. (vi.name or "")))
-                    if seen[dedupeKey] then
-                        -- skip duplicate (same treasure from multiple vignette GUIDs)
-                    else
-                        seen[dedupeKey] = true
-                    local zoneName
-                    if vMapID and C_Map and C_Map.GetMapInfo then
-                        local info = C_Map.GetMapInfo(vMapID)
-                        zoneName = info and info.name or nil
-                    end
-                    out[#out + 1] = {
-                        entryKey       = "vignette:" .. tostring(vignetteGUID),
+    -- Vignette data wins over the hardcoded list; fall back only when no vignettes matched.
+    if #rares == 0 and mapID then
+        local mappedRares, zoneName = ResolveMapRares(mapID)
+        if mappedRares then
+            for _, t in ipairs(mappedRares) do
+                local creatureID, name = t[1], t[2]
+                if creatureID and name then
+                    rares[#rares + 1] = {
+                        entryKey       = "rare:" .. tostring(creatureID),
                         questID        = nil,
-                        title          = vi.name or "Unknown",
+                        title          = name,
                         objectives     = {},
-                        color          = rareLootColor,
-                        category       = "RARE_LOOT",
+                        color          = rareColor,
+                        category       = "RARE",
                         isComplete     = false,
                         isSuperTracked = false,
                         isNearby       = true,
                         zoneName       = zoneName,
                         itemLink       = nil,
                         itemTexture    = nil,
-                        isRareLoot     = true,
-                        vignetteGUID   = vignetteGUID,
-                        vignetteID     = vi.vignetteID,
-                        vignetteMapID  = vMapID,
-                        vignetteX      = vX,
-                        vignetteY      = vY,
-                        questTypeAtlas = vi.atlasName,
+                        isRare         = true,
+                        creatureID     = creatureID,
                     }
-                    end
                 end
             end
         end
     end
-    return out
+
+    scanCacheRares     = rares
+    scanCacheTreasures = treasures
+    scanCacheValid     = true
+end
+
+local function EnsureScan()
+    if not scanCacheValid then BuildScan() end
+end
+
+local function GetRaresOnMap()
+    EnsureScan()
+    return scanCacheRares or {}
+end
+
+local function GetTreasuresOnMap()
+    EnsureScan()
+    return scanCacheTreasures or {}
 end
 
 addon.GetRaresOnMap = GetRaresOnMap
 addon.GetTreasuresOnMap = GetTreasuresOnMap
+
+-- Always-on: Presence calls GetRaresOnMap even when the Focus module is disabled.
+local invalidationFrame = CreateFrame("Frame")
+invalidationFrame:RegisterEvent("VIGNETTES_UPDATED")
+invalidationFrame:RegisterEvent("ZONE_CHANGED")
+invalidationFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+pcall(function() invalidationFrame:RegisterEvent("ZONE_CHANGED_INDOORS") end)
+invalidationFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+invalidationFrame:SetScript("OnEvent", function(_, event)
+    InvalidateScanCache()
+    if event ~= "VIGNETTES_UPDATED" then
+        InvalidateMapLookup()
+    end
+end)
 
 -- ============================================================================
 -- RARE BOSS WAYPOINT

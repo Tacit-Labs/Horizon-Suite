@@ -10,6 +10,17 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.13.0] – 2026-04-21
+
+### ✨ New Features
+- **(Insight) Gradient tooltip fonts** — Item tooltips render in quality-colour gradients; player character tooltips use class-colour gradients.
+
+### 🔧 Improvements
+- **(Focus)** Significant performance improvements — quest update events are debounced, rare and treasure vignette scans are consolidated and cached, and layout passes are skipped when position hasn't changed.
+- **(Vista)** Minimap button collector now offers alphabetical sorting for a more predictable button order.
+
+---
+
 ## [4.12.6] – 2026-04-19
 
 ### 🔧 Improvements
@@ -51,7 +62,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🔧 Improvements
 
-- **(Axis) Module name style** — New setting to control how module names appear: **Horizon** (code-name only, default), **Subtitle** (e.g. "Vista – Minimap"), or **Descriptive** (plain-language name only). Applies across options navigation and section headers.
+- **(Axis) Module name style** — New setting to control how module names appear: **Horizon** (code-name only, default), **Subtitle** (e.g. "Vista – Minimap"), or **Simple** (plain-language name only). Applies across options navigation and section headers.
 - **(Focus) Grow Upwards priority order** — With **Grow Upwards** enabled, section headers now visually flip so High priority sits closest to the Objectives header at the bottom, matching the reversed growth direction.
 
 ### 🐛 Fixes

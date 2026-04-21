@@ -88,6 +88,131 @@ local function HasTransmogLine(tooltip)
 end
 
 -- ============================================================================
+-- QUALITY GRADIENT (item name first line)
+--
+-- FontString:SetGradient is blocked by the |cAARRGGBB escape codes Blizzard
+-- bakes into item names, so we strip those escapes and re-emit the name as
+-- per-character |cAARRGGBB spans interpolated between a darker and brighter
+-- shade of the effective quality colour. Same technique as Eltruism.
+-- Generic UTF-8 iteration + gradient building lives in InsightShared.
+-- ============================================================================
+
+-- TWW upgrade-track name → ItemQuality tier. Mapping follows the Horizon
+-- colour scheme: Adventurer lifts to Rare, Veteran+ all land on Epic. Items
+-- without a detectable track default to Uncommon unless their base quality
+-- is already Epic+, in which case the base tier is preserved (see caller).
+local UPGRADE_TRACK_QUALITY = {
+    ["Explorer"]   = 2, -- Uncommon
+    ["Adventurer"] = 3, -- Rare
+    ["Veteran"]    = 4, -- Epic
+    ["Champion"]   = 4, -- Epic
+    ["Hero"]       = 4, -- Epic
+    ["Myth"]       = 4, -- Epic
+}
+
+--- Scan tooltip lines for an "Upgrade Level: <Track>" label and return the
+--- mapped ItemQuality tier, or nil if no track is present. Wrapped in pcall:
+--- line text may be a secret string on some Midnight tooltip sources.
+--- @param tooltip table GameTooltip-like frame
+--- @return number|nil ItemQuality index (1..6)
+function Insight.DetectUpgradeTrackQuality(tooltip)
+    local result
+    pcall(function()
+        Insight.ForTooltipLines(tooltip, function(_, left)
+            if result or not left then return end
+            local txt = left:GetText()
+            if type(txt) ~= "string" or txt == "" then return end
+            for track, q in pairs(UPGRADE_TRACK_QUALITY) do
+                if txt:find(track, 1, true) then
+                    result = q
+                    return
+                end
+            end
+        end)
+    end)
+    return result
+end
+
+local function BuildGradientString(plain, quality)
+    local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
+    if not colors then return plain end
+    return Insight.BuildNameGradient(plain, colors.r, colors.g, colors.b)
+end
+
+-- Reentrancy guard: our own SetText / SetTextColor calls trigger the same
+-- hooks we install below; without the guard the wrap logic would recurse.
+local gradientReentry = {}
+
+-- Core writer shared by the sync entry point and the persistent hook.
+-- Reads the current (or incoming) text, strips Blizzard escapes, rebuilds
+-- as a gradient of tooltip._insightItemQuality, and forces vertex-white so
+-- Blizzard's SetTextColor can't flatten the per-char escapes.
+local function WriteGradient(tooltip, fs, incomingText)
+    if gradientReentry[fs] then return end
+    local quality = tooltip._insightItemQuality
+    if not quality or quality < 0 then return end
+    if not Insight.IsInsightEnabled() then return end
+    if not addon.GetDB("insightItemNameGradient", false) then return end
+
+    gradientReentry[fs] = true
+    pcall(function()
+        local raw = (type(incomingText) == "string" and incomingText ~= "")
+            and incomingText or fs:GetText()
+        if type(raw) ~= "string" or raw == "" then return end
+        local plain = Insight.StripColourEscapes(raw)
+        if plain == "" then return end
+        local gradient = BuildGradientString(plain, quality)
+        if gradient == raw then return end
+        fs:SetText(gradient)
+        fs:SetTextColor(1, 1, 1, 1)
+    end)
+    gradientReentry[fs] = nil
+end
+
+--- Apply the gradient to the tooltip's name line immediately. Callers must
+--- have stashed the effective quality on tooltip._insightItemQuality first
+--- (OnItemTooltip does this, RenderItemPreviewContent does it too). The
+--- persistent hook keeps the gradient alive across later Blizzard writes.
+--- @param tooltip table GameTooltip-like frame with <name>TextLeft1 FontString
+function Insight.ApplyItemNameGradient(tooltip)
+    local name = tooltip:GetName()
+    if not name then return end
+    local fs = _G[name .. "TextLeft1"]
+    if not fs then return end
+    WriteGradient(tooltip, fs, nil)
+end
+
+--- Install the SetText / SetFormattedText / SetTextColor hooks on the
+--- tooltip's first-line FontString so any later Blizzard write (mid-display
+--- refresh, layout pass, comparison reposition) gets re-wrapped with our
+--- gradient in the same frame. Idempotent per-tooltip.
+--- @param tooltip table GameTooltip-like frame
+function Insight.InstallItemNameGradientHook(tooltip)
+    if tooltip._insightGradientTextHooked then return end
+    tooltip._insightGradientTextHooked = true
+    local fs = _G[tooltip:GetName() .. "TextLeft1"]
+    if not fs then return end
+
+    hooksecurefunc(fs, "SetText", function(self, text)
+        WriteGradient(tooltip, self, text)
+    end)
+    hooksecurefunc(fs, "SetFormattedText", function(self)
+        WriteGradient(tooltip, self, nil)
+    end)
+    -- Blizzard sets the name-line quality tint via SetTextColor; that vertex
+    -- colour multiplies with our per-character escapes and flattens the
+    -- gradient. Snap it back to white whenever the tooltip is in item mode.
+    hooksecurefunc(fs, "SetTextColor", function(self, r, g, b)
+        if not tooltip._insightItemQuality then return end
+        if r == 1 and g == 1 and b == 1 then return end
+        if gradientReentry[self] then return end
+        gradientReentry[self] = true
+        pcall(self.SetTextColor, self, 1, 1, 1, 1)
+        gradientReentry[self] = nil
+    end)
+end
+
+-- ============================================================================
 -- ITEM BLOCK BUILDERS
 -- ============================================================================
 
@@ -167,6 +292,8 @@ function Insight.RenderItemPreviewContent(tooltip)
         qr, qg, qb = c.r, c.g, c.b
     end
     tooltip:AddLine(itemName, qr, qg, qb)
+    tooltip._insightItemQuality = quality
+    Insight.ApplyItemNameGradient(tooltip)
     if itemLevel then
         tooltip:AddLine("Item Level " .. tostring(itemLevel), 1, 1, 1)
     end

@@ -90,19 +90,19 @@ addon.DashboardWelcomeFeed = {
 --- @type table[] News feed: roadmap, community & media content, announcements.
 addon.DashboardNewsFeed = {
     {
-        id = "focus_blizzard_plus_clicks",
+        id = "insight_gradient_tooltips",
         kind = "news_featured",
         variant = "featured",
         sort = 900,
         eyebrowKey = "DASH_NEWS_EYEBROW_FEATURE",
         badgeKey = "DASH_NEWS_BADGE_NEW",
-        titleKey = "DASH_NEWS_FOCUS_CLICK_PROFILE_TITLE",
-        taglineKey = "DASH_NEWS_FOCUS_CLICK_PROFILE_TAGLINE",
-        bodyKey = "DASH_NEWS_FOCUS_CLICK_PROFILE_BODY",
-        metaKey = "DASH_NEWS_FOCUS_CLICK_PROFILE_META",
-        icon = "achievement_quests_completed_05",
-        artWidth = 64,
-        artHeight = 64,
+        titleKey = "DASH_NEWS_GRADIENT_TOOLTIPS_TITLE",
+        taglineKey = "DASH_NEWS_GRADIENT_TOOLTIPS_TAGLINE",
+        bodyKey = "DASH_NEWS_GRADIENT_TOOLTIPS_BODY",
+        metaKey = "DASH_NEWS_GRADIENT_TOOLTIPS_META",
+        artPath = "Interface/AddOns/HorizonSuite/media/dashboard/seedpod.png",
+        artWidth = 381,
+        artHeight = 248,
         artFit = "contain",
     },
     {

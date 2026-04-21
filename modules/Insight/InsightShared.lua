@@ -164,6 +164,72 @@ end
 
 function Insight.easeOut(t) return 1 - (1 - t) * (1 - t) end
 
+--- Iterate a UTF-8 byte string one character at a time so multi-byte (CJK,
+--- accented) item and player names stay intact when we wrap each char in
+--- |cff…|r for gradients.
+--- @param s string
+--- @return table
+function Insight.Utf8Chars(s)
+    local out = {}
+    local i, n = 1, #s
+    while i <= n do
+        local b = s:byte(i) or 0
+        local len
+        if     b < 0x80 then len = 1
+        elseif b < 0xC0 then len = 1 -- stray continuation byte; emit as-is
+        elseif b < 0xE0 then len = 2
+        elseif b < 0xF0 then len = 3
+        else                 len = 4
+        end
+        out[#out + 1] = s:sub(i, i + len - 1)
+        i = i + len
+    end
+    return out
+end
+
+--- Strip Blizzard colour-escape sequences (`|cAARRGGBB…|r`) from a string.
+--- Used before re-wrapping text as a per-character gradient.
+--- @param text string
+--- @return string
+function Insight.StripColourEscapes(text)
+    if type(text) ~= "string" or text == "" then return "" end
+    return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+end
+
+--- Build a two-stop horizontal gradient (darker → brighter) of the given
+--- base RGB colour over `plain` text, as a single |cff…|r-escaped string.
+--- Shared by the item-name gradient (InsightItemTooltip) and the
+--- player-name gradient (InsightPlayerTooltip).
+--- @param plain string Plain text to colour
+--- @param r number Base red (0..1)
+--- @param g number Base green (0..1)
+--- @param b number Base blue (0..1)
+--- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
+function Insight.BuildNameGradient(plain, r, g, b)
+    local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
+    local r2 = math.min(1, r * 1.20 + 0.15)
+    local g2 = math.min(1, g * 1.20 + 0.15)
+    local b2 = math.min(1, b * 1.20 + 0.15)
+
+    local chars = Insight.Utf8Chars(plain)
+    local n = #chars
+    if n == 0 then return plain end
+    local parts = {}
+    for i = 1, n do
+        local ch = chars[i]
+        if ch == " " or ch == "\t" or ch == "\n" then
+            parts[#parts + 1] = ch
+        else
+            local t = (n > 1) and ((i - 1) / (n - 1)) or 0
+            local cr = math.floor((r1 + (r2 - r1) * t) * 255 + 0.5)
+            local cg = math.floor((g1 + (g2 - g1) * t) * 255 + 0.5)
+            local cb = math.floor((b1 + (b2 - b1) * t) * 255 + 0.5)
+            parts[#parts + 1] = string.format("|cff%02x%02x%02x%s|r", cr, cg, cb, ch)
+        end
+    end
+    return table.concat(parts)
+end
+
 --- Iterate over tooltip lines; fn(i, left, right) receives line index and font strings.
 function Insight.ForTooltipLines(tooltip, fn)
     if not tooltip then return end
