@@ -173,10 +173,14 @@ end
 -- ============================================================================
 
 --- Open the Collections Appearances (wardrobe) UI for a tracked appearance source ID.
---- Loads Blizzard_Collections, switches the journal to Appearances/Transmog, then calls
---- WardrobeCollectionFrame:GoToSource. Do not treat pcall success as “navigation done”:
---- GoToSource can no-op without error when the journal is wrong or layout is not ready, so we
---- always toggle the tab first and retry on short delays (same idea as Blizzard after tab change).
+--- Uses the canonical Blizzard flow from Blizzard_Wardrobe.lua:
+---     WardrobeCollectionFrame:GoToItem(sourceID)
+--- which internally calls SetTab(TAB_ITEMS), resolves the categoryID via
+--- C_TransmogCollection.GetAppearanceSourceInfo, builds a transmogLocation with
+--- TransmogUtil.GetTransmogLocation, and calls ItemsCollectionFrame:GoToSourceID.
+--- When GoToItem is missing we reproduce the same steps manually so we never silently
+--- land on the default slot (Head). Retries cover the frame/data lag between
+--- ToggleCollectionsJournal and the wardrobe being ready to scroll.
 --- @param itemModifiedAppearanceID number ID from content tracking (appearance source)
 --- @return nil
 local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
@@ -191,34 +195,41 @@ local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
         pcall(C_AddOns.LoadAddOn, "Blizzard_Collections")
     end
 
-    -- WardrobeCollectionFrame has two inner tabs (Items vs Sets). GoToSource only finds the slot
-    -- (Head / Shoulders / Chest / etc.) when the Items tab is active; if the journal is on Sets
-    -- the call silently no-ops and the user sees whatever category was last open (typically Head).
-    local function ensureItemsTab()
+    -- Manual fallback when WardrobeCollectionFrame:GoToItem is unavailable. Mirrors
+    -- WardrobeCollectionFrameMixin:GoToItem (Blizzard_Wardrobe.lua) step-for-step.
+    local function manualGoToSource()
         local frame = _G.WardrobeCollectionFrame
         if not frame then return end
-        -- Tab 1 = Items, Tab 2 = Sets. Modern Blizzard exposes the numeric const as `selectedCollectionTab`
-        -- or via WardrobeCollectionFrame.ITEMS_COLLECTION_TAB; fall back to 1 when the constant is absent.
         local itemsTabID = frame.ITEMS_COLLECTION_TAB or 1
         if type(frame.SetTab) == "function" then
             pcall(frame.SetTab, frame, itemsTabID)
         end
-        local itemsCollection = _G.WardrobeCollectionItemsCollectionFrame or frame.ItemsCollectionFrame
-        if itemsCollection and type(itemsCollection.Show) == "function" and not itemsCollection:IsShown() then
-            pcall(itemsCollection.Show, itemsCollection)
+        if not (C_TransmogCollection and C_TransmogCollection.GetAppearanceSourceInfo) then return end
+        local okInfo, categoryID = pcall(C_TransmogCollection.GetAppearanceSourceInfo, itemModifiedAppearanceID)
+        if not okInfo or type(categoryID) ~= "number" or categoryID <= 0 then return end
+        if not (CollectionWardrobeUtil and CollectionWardrobeUtil.GetSlotFromCategoryID) then return end
+        local okSlot, slot = pcall(CollectionWardrobeUtil.GetSlotFromCategoryID, categoryID)
+        if not okSlot or not slot then return end
+        if not (TransmogUtil and TransmogUtil.GetTransmogLocation) then return end
+        local tType = Enum and Enum.TransmogType and Enum.TransmogType.Appearance
+        local tMod  = Enum and Enum.TransmogModification and Enum.TransmogModification.Main
+        local okLoc, transmogLocation = pcall(TransmogUtil.GetTransmogLocation, slot, tType, tMod)
+        if not okLoc or not transmogLocation then return end
+        local items = frame.ItemsCollectionFrame or _G.WardrobeCollectionItemsCollectionFrame
+        if items and type(items.GoToSourceID) == "function" then
+            pcall(items.GoToSourceID, items, itemModifiedAppearanceID, transmogLocation)
         end
     end
 
     -- pcall only suppresses errors; it does not mean the list scrolled to the source.
     local function tryGoToSource()
-        if InCombatLockdown() then
+        if InCombatLockdown() then return end
+        local frame = _G.WardrobeCollectionFrame
+        if frame and type(frame.GoToItem) == "function" then
+            pcall(frame.GoToItem, frame, itemModifiedAppearanceID)
             return
         end
-        ensureItemsTab()
-        local frame = _G.WardrobeCollectionFrame
-        if frame and type(frame.GoToSource) == "function" then
-            pcall(frame.GoToSource, frame, itemModifiedAppearanceID)
-        end
+        manualGoToSource()
     end
 
     local tab = nil
@@ -234,8 +245,8 @@ local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
     end
 
     -- Multiple retry windows: the wardrobe's slot data can lag several frames behind the tab toggle,
-    -- so a single tryGoToSource often resolves to the default slot (Head) before the real source slot
-    -- is ready. 0 / 0.1 / 0.25 / 0.5 covers layout, data fetch, and first paint.
+    -- so a single call often resolves to the default slot (Head) before the real source slot is
+    -- ready. 0 / 0.1 / 0.25 / 0.5 covers layout, data fetch, and first paint.
     tryGoToSource()
     if C_Timer and C_Timer.After then
         C_Timer.After(0, tryGoToSource)
