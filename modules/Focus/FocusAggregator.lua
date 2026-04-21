@@ -316,42 +316,7 @@ local function SortAndGroupQuests(quests)
     return result
 end
 
--- Memoises the parent-map walk shared by IsQuestOnPlayerZoneMap / questMapMatchesPlayer.
--- Invalidated when the player's zoneMapID changes.
-local questAncestorCacheZoneMapID = nil
-local questAncestorCache = {}
-local ANCESTOR_WALK_DEPTH = 10
-
-local function QuestAncestorMatchesZone(questID, zoneMapID)
-    if not questID or not zoneMapID then return false end
-    if questAncestorCacheZoneMapID ~= zoneMapID then
-        wipe(questAncestorCache)
-        questAncestorCacheZoneMapID = zoneMapID
-    end
-    local cached = questAncestorCache[questID]
-    if cached ~= nil then return cached end
-    if not (C_TaskQuest and C_TaskQuest.GetQuestZoneID and C_Map and C_Map.GetMapInfo) then
-        return false
-    end
-    local ok, qMapID = pcall(C_TaskQuest.GetQuestZoneID, questID)
-    if not ok or not qMapID or qMapID == 0 then
-        -- Leave uncached so we re-check after the API settles.
-        return false
-    end
-    local checkID = qMapID
-    for _ = 1, ANCESTOR_WALK_DEPTH do
-        if checkID == zoneMapID then
-            questAncestorCache[questID] = true
-            return true
-        end
-        local info = C_Map.GetMapInfo(checkID)
-        if not info or not info.parentMapID or info.parentMapID == 0 then break end
-        checkID = info.parentMapID
-    end
-    questAncestorCache[questID] = false
-    return false
-end
-
+--- Build the full list of quests by calling each provider and normalizing.
 --- Respects filterByZone and test data. Merges Collect* providers and ReadScenarioEntries.
 --- @return table Array of normalized entry tables (see entry shape in FocusState.lua)
 local function ReadTrackedQuests()
@@ -390,12 +355,17 @@ local function ReadTrackedQuests()
         if not zoneMapID or not (C_TaskQuest and C_TaskQuest.GetQuestZoneID) or not (C_Map and C_Map.GetMapInfo) then
             return true
         end
-        -- Short-circuit: API unresolved for questID (matches old "return true" behaviour).
-        if C_TaskQuest.GetQuestZoneID then
-            local ok, qMapID = pcall(C_TaskQuest.GetQuestZoneID, questID)
-            if not ok or not qMapID or qMapID == 0 then return true end
+        local ok, qMapID = pcall(C_TaskQuest.GetQuestZoneID, questID)
+        if not ok or not qMapID or qMapID == 0 then
+            return true
         end
-        if QuestAncestorMatchesZone(questID, zoneMapID) then return true end
+        local checkID = qMapID
+        for _ = 1, 10 do
+            if checkID == zoneMapID then return true end
+            local info = C_Map.GetMapInfo(checkID)
+            if not info or not info.parentMapID or info.parentMapID == 0 then break end
+            checkID = info.parentMapID
+        end
         -- Fallback: name-based zone check for quests with non-geographic zone IDs (e.g. Prey).
         local zn = addon.GetQuestZoneName and addon.GetQuestZoneName(questID)
         if zn and playerZone and zn:lower() == playerZone:lower() then return true end
@@ -408,14 +378,24 @@ local function ReadTrackedQuests()
         if not questID or questID <= 0 then return false end
         if not zoneMapID or not C_TaskQuest or not C_TaskQuest.GetQuestZoneID or not C_Map or not C_Map.GetMapInfo then
             -- Fallback to legacy name-based filter when map APIs aren't available.
-            local playerZoneLocal = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
+            local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
             local zn = addon.GetQuestZoneName and addon.GetQuestZoneName(questID)
-            return (not zn) or (not playerZoneLocal) or zn:lower() == playerZoneLocal:lower()
+            return (not zn) or (not playerZone) or zn:lower() == playerZone:lower()
         end
-        -- Short-circuit: API unresolved for questID → don't hard-filter.
+
         local ok, qMapID = pcall(C_TaskQuest.GetQuestZoneID, questID)
-        if not ok or not qMapID or qMapID == 0 then return true end
-        if QuestAncestorMatchesZone(questID, zoneMapID) then return true end
+        if not ok or not qMapID or qMapID == 0 then
+            -- If task quest API can't resolve it, don't hard-filter it out.
+            return true
+        end
+
+        local checkID = qMapID
+        for _ = 1, 8 do
+            if checkID == zoneMapID then return true end
+            local info = C_Map.GetMapInfo(checkID)
+            if not info or not info.parentMapID or info.parentMapID == 0 then break end
+            checkID = info.parentMapID
+        end
         -- Fallback: name-based zone check for quests with non-geographic zone IDs (e.g. Prey).
         local zn = addon.GetQuestZoneName and addon.GetQuestZoneName(questID)
         if zn and playerZone and zn:lower() == playerZone:lower() then return true end
