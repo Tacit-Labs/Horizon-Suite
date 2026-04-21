@@ -939,6 +939,16 @@ local function HandleFocusDebugSlash(msg)
                 HSPrint("GetInstanceInfo: name=" .. tostring(name) .. " type=" .. tostring(instType) .. " diffID=" .. tostring(diffID) .. " diffName=" .. tostring(diffName))
             end
         end
+        if addon.GetDelveScenarioHeaderMetadata then
+            local meta = addon.GetDelveScenarioHeaderMetadata()
+            if meta then
+                HSPrint("GetDelveScenarioHeaderMetadata: nemesisHasData=" .. tostring(meta.nemesisHasData)
+                    .. " remaining=" .. tostring(meta.nemesisGroupsRemaining)
+                    .. " total=" .. tostring(meta.nemesisGroupsTotal)
+                    .. " complete=" .. tostring(meta.nemesisIsComplete)
+                    .. " iconFileID=" .. tostring(meta.nemesisIconFileID))
+            end
+        end
         if addon.GetDelvesAffixes then
             local affixes = addon.GetDelvesAffixes()
             if affixes and #affixes > 0 then

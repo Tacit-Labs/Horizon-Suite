@@ -1432,6 +1432,7 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
             end
         end
         if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
+        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha) end
         for j = 1, addon.MAX_OBJECTIVES do
             entry.objectives[j].shadow:SetTextColor(hc[1], hc[2], hc[3], glowAlpha)
         end
@@ -1448,6 +1449,7 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
             end
         end
         if entry.delveLivesShadow then entry.delveLivesShadow:SetTextColor(0, 0, 0, shadowA) end
+        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetTextColor(0, 0, 0, shadowA) end
         for j = 1, addon.MAX_OBJECTIVES do
             entry.objectives[j].shadow:SetTextColor(0, 0, 0, shadowA)
         end
@@ -1660,10 +1662,13 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.trackedFromOtherZoneIcon:Hide()
     end
 
-    -- Delve main row: reserve right strip for lives (hearts) on the same line as name + tier.
+    -- Delve main row: reserve right strip for lives (hearts) and Nemesis groups (chest) on the same line as name + tier.
     local delveLivesActive = false
     local delveLivesStr = ""
     local delveLivesReserve = 0
+    local delveGroupsActive = false
+    local delveGroupsStr = ""
+    local delveGroupsReserve = 0
     local titleLineWidth = titleWidth
     if entry.delveLivesText and addon.FormatDelveLivesHeartsForTitle
         and questData.category == "DELVES" and questData.isScenarioMain
@@ -1673,12 +1678,42 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.delveLivesText:SetFontObject(addon.TitleFont)
         entry.delveLivesText:SetText(delveLivesStr)
         delveLivesReserve = (entry.delveLivesText:GetStringWidth() or 0) + S(6)
-        titleLineWidth = math.max(1, titleWidth - delveLivesReserve)
     else
         if entry.delveLivesText then
             entry.delveLivesText:Hide()
             if entry.delveLivesShadow then entry.delveLivesShadow:Hide() end
         end
+    end
+    if entry.delveGroupsText and addon.FormatDelveNemesisGroupsForTitle
+        and questData.category == "DELVES" and questData.isScenarioMain
+        and questData.delveNemesisComplete == true then
+        delveGroupsActive = true
+        delveGroupsStr = addon.FormatDelveNemesisGroupsForTitle(nil, nil, questData.delveNemesisIconFileID, true)
+        entry.delveGroupsText:SetFontObject(addon.TitleFont)
+        entry.delveGroupsText:SetText(delveGroupsStr)
+        delveGroupsReserve = (entry.delveGroupsText:GetStringWidth() or 0) + S(6)
+    elseif entry.delveGroupsText and addon.FormatDelveNemesisGroupsForTitle
+        and questData.category == "DELVES" and questData.isScenarioMain
+        and type(questData.delveNemesisRemaining) == "number" and questData.delveNemesisRemaining >= 1 then
+        delveGroupsActive = true
+        delveGroupsStr = addon.FormatDelveNemesisGroupsForTitle(
+            questData.delveNemesisRemaining,
+            questData.delveNemesisTotal,
+            questData.delveNemesisIconFileID,
+            false
+        )
+        entry.delveGroupsText:SetFontObject(addon.TitleFont)
+        entry.delveGroupsText:SetText(delveGroupsStr)
+        delveGroupsReserve = (entry.delveGroupsText:GetStringWidth() or 0) + S(6)
+    else
+        if entry.delveGroupsText then
+            entry.delveGroupsText:Hide()
+            if entry.delveGroupsShadow then entry.delveGroupsShadow:Hide() end
+        end
+    end
+    local rightStrip = delveLivesReserve + delveGroupsReserve
+    if rightStrip > 0 then
+        titleLineWidth = math.max(1, titleWidth - rightStrip)
     end
 
     entry.titleText:SetWidth(titleLineWidth)
@@ -1751,6 +1786,20 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     end
 
+    if delveGroupsActive and entry.delveGroupsText then
+        entry.delveGroupsText:SetText(delveGroupsStr)
+        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetText(delveGroupsStr) end
+        entry.delveGroupsText:ClearAllPoints()
+        local anchor = (delveLivesActive and entry.delveLivesText) and entry.delveLivesText or entry.titleText
+        entry.delveGroupsText:SetPoint("TOPLEFT", anchor, "TOPRIGHT", S(4), 0)
+        entry.delveGroupsText:Show()
+        if entry.delveGroupsShadow then
+            entry.delveGroupsShadow:ClearAllPoints()
+            entry.delveGroupsShadow:SetPoint("CENTER", entry.delveGroupsText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+            entry.delveGroupsShadow:Show()
+        end
+    end
+
     if entry._inlineTimerStr then
         entry._inlineTimerBaseTitle = displayTitle
         if entry.inlineTimerText then
@@ -1762,9 +1811,17 @@ local function PopulateEntry(entry, questData, groupKey)
             -- When timer doesn't fit beside title (or user chose inline-below), put it on its own line with full width
             local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetTitleToContentSpacing()
             local preferTimerBelow = (timerDisplayMode == "inline-below")
-            if delveLivesActive and entry.delveLivesText then
-                local hw = entry.delveLivesText:GetStringWidth() or 0
-                local sameLineStartX = titleLineWidth + S(4) + hw + S(2)
+            local hasDelveTitleStrip = (delveLivesActive and entry.delveLivesText)
+                or (delveGroupsActive and entry.delveGroupsText)
+            if hasDelveTitleStrip then
+                local stripW = 0
+                if delveLivesActive and entry.delveLivesText then
+                    stripW = stripW + S(4) + (entry.delveLivesText:GetStringWidth() or 0)
+                end
+                if delveGroupsActive and entry.delveGroupsText then
+                    stripW = stripW + S(4) + (entry.delveGroupsText:GetStringWidth() or 0)
+                end
+                local sameLineStartX = titleLineWidth + stripW + S(2)
                 local remainingWidth = math.max(1, tw - sameLineStartX)
                 if preferTimerBelow or remainingWidth < timerStrWidth then
                     entry.inlineTimerText:SetWidth(tw)
@@ -1825,6 +1882,9 @@ local function PopulateEntry(entry, questData, groupKey)
         if delveLivesActive and entry.delveLivesText and entry.delveLivesText:IsShown() then
             entry.delveLivesText:SetTextColor(c[1], c[2], c[3], dimAlpha)
         end
+        if delveGroupsActive and entry.delveGroupsText and entry.delveGroupsText:IsShown() then
+            entry.delveGroupsText:SetTextColor(c[1], c[2], c[3], dimAlpha)
+        end
         entry._savedColor = nil
         if entry:IsMouseOver() then
             entry._savedColor = { c[1], c[2], c[3] }
@@ -1834,6 +1894,12 @@ local function PopulateEntry(entry, questData, groupKey)
                 math.min(c[3] * 1.25, 1), 1)
             if delveLivesActive and entry.delveLivesText and entry.delveLivesText:IsShown() then
                 entry.delveLivesText:SetTextColor(
+                    math.min(c[1] * 1.25, 1),
+                    math.min(c[2] * 1.25, 1),
+                    math.min(c[3] * 1.25, 1), 1)
+            end
+            if delveGroupsActive and entry.delveGroupsText and entry.delveGroupsText:IsShown() then
+                entry.delveGroupsText:SetTextColor(
                     math.min(c[1] * 1.25, 1),
                     math.min(c[2] * 1.25, 1),
                     math.min(c[3] * 1.25, 1), 1)
@@ -1896,6 +1962,10 @@ local function PopulateEntry(entry, questData, groupKey)
     if delveLivesActive and entry.delveLivesText and entry.delveLivesText:IsShown() then
         local dh = entry.delveLivesText:GetStringHeight() or 0
         if dh > 0 then effectiveTitleRowH = math.max(effectiveTitleRowH, dh) end
+    end
+    if delveGroupsActive and entry.delveGroupsText and entry.delveGroupsText:IsShown() then
+        local gh = entry.delveGroupsText:GetStringHeight() or 0
+        if gh > 0 then effectiveTitleRowH = math.max(effectiveTitleRowH, gh) end
     end
     if entry._inlineTimerStr and entry.inlineTimerText and entry.inlineTimerText:IsShown() then
         local timerH = entry.inlineTimerText:GetStringHeight() or 0
