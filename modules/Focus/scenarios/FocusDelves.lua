@@ -692,12 +692,8 @@ function addon.FormatDelveNemesisGroupsForTitle(remaining, total, iconFileID, is
     end
     local n = math.min(math.max(math.floor(remaining), 0), NEMESIS_GROUPS_MAX)
     if n < 1 then return "" end
-    -- One chest texture per uncleared group (native shows separate octagons, not "2" in a single box).
-    local parts = {}
-    for i = 1, n do
-        parts[i] = iconSeg
-    end
-    return table.concat(parts, " ")
+    -- Show chest icon + remaining count (matches native header: one chest + "N").
+    return iconSeg .. " " .. tostring(n)
 end
 
 --- Debug snapshot for slash commands: whether widgets are readable + set IDs + delve header count.
