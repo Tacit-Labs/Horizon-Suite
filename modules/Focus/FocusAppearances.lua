@@ -191,11 +191,30 @@ local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
         pcall(C_AddOns.LoadAddOn, "Blizzard_Collections")
     end
 
+    -- WardrobeCollectionFrame has two inner tabs (Items vs Sets). GoToSource only finds the slot
+    -- (Head / Shoulders / Chest / etc.) when the Items tab is active; if the journal is on Sets
+    -- the call silently no-ops and the user sees whatever category was last open (typically Head).
+    local function ensureItemsTab()
+        local frame = _G.WardrobeCollectionFrame
+        if not frame then return end
+        -- Tab 1 = Items, Tab 2 = Sets. Modern Blizzard exposes the numeric const as `selectedCollectionTab`
+        -- or via WardrobeCollectionFrame.ITEMS_COLLECTION_TAB; fall back to 1 when the constant is absent.
+        local itemsTabID = frame.ITEMS_COLLECTION_TAB or 1
+        if type(frame.SetTab) == "function" then
+            pcall(frame.SetTab, frame, itemsTabID)
+        end
+        local itemsCollection = _G.WardrobeCollectionItemsCollectionFrame or frame.ItemsCollectionFrame
+        if itemsCollection and type(itemsCollection.Show) == "function" and not itemsCollection:IsShown() then
+            pcall(itemsCollection.Show, itemsCollection)
+        end
+    end
+
     -- pcall only suppresses errors; it does not mean the list scrolled to the source.
     local function tryGoToSource()
         if InCombatLockdown() then
             return
         end
+        ensureItemsTab()
         local frame = _G.WardrobeCollectionFrame
         if frame and type(frame.GoToSource) == "function" then
             pcall(frame.GoToSource, frame, itemModifiedAppearanceID)
@@ -214,10 +233,15 @@ local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
         end
     end
 
+    -- Multiple retry windows: the wardrobe's slot data can lag several frames behind the tab toggle,
+    -- so a single tryGoToSource often resolves to the default slot (Head) before the real source slot
+    -- is ready. 0 / 0.1 / 0.25 / 0.5 covers layout, data fetch, and first paint.
     tryGoToSource()
     if C_Timer and C_Timer.After then
         C_Timer.After(0, tryGoToSource)
         C_Timer.After(0.1, tryGoToSource)
+        C_Timer.After(0.25, tryGoToSource)
+        C_Timer.After(0.5, tryGoToSource)
     end
 end
 
