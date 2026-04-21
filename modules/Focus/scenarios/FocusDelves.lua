@@ -715,9 +715,21 @@ end
 local NEMESIS_ATLAS_CANDIDATES = {
     "delves-bountifulchest-closed",
     "delves-bountifulchest",
-    "delves-chest-greatvault",
+    "delves-bountifulchest-open",
     "delves-greatvault-chest",
+    "delves-chest-greatvault",
+    "delves-chest",
+    "delves-bountiful",
+    "Delves-Bountiful-Chest",
+    "DelvesBountifulChest",
+    "ui-frame-delves-bountifulchest",
+    "ui-frame-bountifulchest",
+    "BountifulDelves-RewardChest",
+    "jailerstower-score-gem-4",
 }
+
+--- Last-resort chest fileID when no atlas resolves; classic gold/brown treasure chest (inv_misc_treasurechest_02).
+local NEMESIS_FALLBACK_CHEST_FILEID = 132594
 
 local function ResolveNemesisAtlasName()
     if not C_Texture or not C_Texture.GetAtlasInfo then return nil end
@@ -750,12 +762,15 @@ function addon.FormatDelveNemesisGroupsForTitle(remaining, total, iconFileID, is
     end
     if type(remaining) ~= "number" or remaining < 1 then return "" end
     local iconSeg
-    -- Prefer Blizzard's native delves-header chest atlas; fall back to the affix spell icon, then a glyph.
+    -- Prefer Blizzard's native delves-header chest atlas; fall back to a generic treasure-chest fileID,
+    -- then the affix spell icon (cropped to hide its 64x64 black border), then a glyph.
     local atlasName = ResolveNemesisAtlasName()
     if atlasName then
         iconSeg = ("|A:%s:%d:%d|a"):format(atlasName, sz, sz)
+    elseif type(NEMESIS_FALLBACK_CHEST_FILEID) == "number" and NEMESIS_FALLBACK_CHEST_FILEID > 0 then
+        iconSeg = ("|T%d:%d:%d:0:-1:64:64:5:59:5:59|t"):format(NEMESIS_FALLBACK_CHEST_FILEID, sz, sz)
     elseif type(iconFileID) == "number" and iconFileID > 0 then
-        iconSeg = ("|T%d:%d:%d:0:-1|t"):format(iconFileID, sz, sz)
+        iconSeg = ("|T%d:%d:%d:0:-1:64:64:5:59:5:59|t"):format(iconFileID, sz, sz)
     else
         iconSeg = "|cffffcc55\226\150\161|r"
     end
