@@ -312,6 +312,38 @@ local function ParseCurrencyRunNemesisLike(startIdx, endIdx, cur)
     return nil
 end
 
+--- Nemesis Strongbox / bonus-chest count is usually rendered as a stack badge on an affix spell icon.
+--- Primary source: widgetInfo.spells[i].stackDisplay (same field zQuestLog uses).
+--- Fallback: parse the spell description for "remaining[^%d]+(%d+)" (Blizzard formats the count into the description).
+--- @param widgetInfo table ScenarioHeaderDelves widget visualization info
+--- @return table|nil { remaining, total, isComplete, iconFileID, hasData }
+local function ParseNemesisFromDelveSpells(widgetInfo)
+    if not widgetInfo or type(widgetInfo.spells) ~= "table" or #widgetInfo.spells < 1 then return nil end
+    for _, sp in ipairs(widgetInfo.spells) do
+        if type(sp) == "table" and type(sp.spellID) == "number" and sp.spellID > 0 then
+            local stack = (type(sp.stackDisplay) == "number" and sp.stackDisplay) or 0
+            if stack <= 0 and C_Spell and C_Spell.GetSpellDescription then
+                local dOk, desc = pcall(C_Spell.GetSpellDescription, sp.spellID)
+                if dOk and type(desc) == "string" then
+                    local n = tonumber(desc:match("remaining[^%d]+(%d+)"))
+                    if n and n > 0 then stack = n end
+                end
+            end
+            if stack > 0 and stack <= NEMESIS_GROUPS_MAX then
+                local _, icon = GetSpellNameAndIcon(sp.spellID)
+                return {
+                    remaining  = stack,
+                    total      = nil,
+                    isComplete = false,
+                    iconFileID = (type(icon) == "number" and icon > 0) and icon or nil,
+                    hasData    = true,
+                }
+            end
+        end
+    end
+    return nil
+end
+
 --- Second+ icon run, or a single run that is not the same datum as lives (e.g. Nemesis-only row with one slot or chest icons).
 --- @param widgetInfo table
 --- @return table|nil
@@ -599,15 +631,29 @@ function addon.GetDelveScenarioHeaderMetadata()
     end
 
     local nemoCandidates = (allHeaders and #allHeaders > 0) and allHeaders or (widgetInfo and { widgetInfo } or {})
+    -- Preferred source: stackDisplay / "remaining: N" on an affix spell icon (same field zQuestLog uses).
     for _, wi in ipairs(nemoCandidates) do
-        local fromCur = ParseNemesisFromScenarioHeaderCurrencies(wi)
-        if fromCur and fromCur.hasData then
-            result.nemesisGroupsRemaining = fromCur.remaining
-            result.nemesisGroupsTotal = fromCur.total
-            result.nemesisIconFileID = fromCur.iconFileID
-            result.nemesisIsComplete = fromCur.isComplete
+        local fromSpells = ParseNemesisFromDelveSpells(wi)
+        if fromSpells and fromSpells.hasData then
+            result.nemesisGroupsRemaining = fromSpells.remaining
+            result.nemesisGroupsTotal = fromSpells.total
+            result.nemesisIconFileID = fromSpells.iconFileID
+            result.nemesisIsComplete = fromSpells.isComplete
             result.nemesisHasData = true
             break
+        end
+    end
+    if not result.nemesisHasData then
+        for _, wi in ipairs(nemoCandidates) do
+            local fromCur = ParseNemesisFromScenarioHeaderCurrencies(wi)
+            if fromCur and fromCur.hasData then
+                result.nemesisGroupsRemaining = fromCur.remaining
+                result.nemesisGroupsTotal = fromCur.total
+                result.nemesisIconFileID = fromCur.iconFileID
+                result.nemesisIsComplete = fromCur.isComplete
+                result.nemesisHasData = true
+                break
+            end
         end
     end
 

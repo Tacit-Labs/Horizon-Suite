@@ -1179,6 +1179,37 @@ local function HandleFocusDebugSlash(msg)
                                     end
                                 end
                             end
+                            if type(info.spells) == "table" then
+                                for si, sp in ipairs(info.spells) do
+                                    if type(sp) == "table" then
+                                        local sname = ""
+                                        if type(sp.spellID) == "number" and sp.spellID > 0 then
+                                            if C_Spell and C_Spell.GetSpellInfo then
+                                                local spOk, spi = pcall(C_Spell.GetSpellInfo, sp.spellID)
+                                                if spOk and spi and spi.name then sname = spi.name end
+                                            elseif GetSpellInfo then
+                                                sname = GetSpellInfo(sp.spellID) or ""
+                                            end
+                                        end
+                                        local descCount = ""
+                                        if (not sp.stackDisplay or sp.stackDisplay == 0)
+                                            and type(sp.spellID) == "number" and sp.spellID > 0
+                                            and C_Spell and C_Spell.GetSpellDescription then
+                                            local dOk, desc = pcall(C_Spell.GetSpellDescription, sp.spellID)
+                                            if dOk and type(desc) == "string" then
+                                                local n = desc:match("remaining[^%d]+(%d+)")
+                                                if n then descCount = " descRemaining=" .. n end
+                                            end
+                                        end
+                                        HSPrint(("        spell[%d]: id=%s name=%q stackDisplay=%s%s"):format(
+                                            si,
+                                            tostring(sp.spellID),
+                                            ShortText(sname, 30),
+                                            tostring(sp.stackDisplay),
+                                            descCount))
+                                    end
+                                end
+                            end
                         end
                     end
                 end
