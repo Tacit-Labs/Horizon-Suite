@@ -731,6 +731,10 @@ local NEMESIS_ATLAS_CANDIDATES = {
 --- Last-resort chest fileID when no atlas resolves; classic gold/brown treasure chest (inv_misc_treasurechest_02).
 local NEMESIS_FALLBACK_CHEST_FILEID = 132594
 
+--- Custom bundled Nemesis texture; overrides atlas / spell icon when present.
+--- File lives at Interface\AddOns\HorizonSuite\assets\icons\nemesis.tga (64x64 TGA).
+local NEMESIS_CUSTOM_TEXTURE_PATH = "Interface\\AddOns\\HorizonSuite\\assets\\icons\\nemesis"
+
 local function ResolveNemesisAtlasName()
     if not C_Texture or not C_Texture.GetAtlasInfo then return nil end
     for _, name in ipairs(NEMESIS_ATLAS_CANDIDATES) do
@@ -762,17 +766,21 @@ function addon.FormatDelveNemesisGroupsForTitle(remaining, total, iconFileID, is
     end
     if type(remaining) ~= "number" or remaining < 1 then return "" end
     local iconSeg
-    -- Prefer Blizzard's native delves-header chest atlas; fall back to a generic treasure-chest fileID,
-    -- then the affix spell icon (cropped to hide its 64x64 black border), then a glyph.
-    local atlasName = ResolveNemesisAtlasName()
-    if atlasName then
-        iconSeg = ("|A:%s:%d:%d|a"):format(atlasName, sz, sz)
-    elseif type(NEMESIS_FALLBACK_CHEST_FILEID) == "number" and NEMESIS_FALLBACK_CHEST_FILEID > 0 then
-        iconSeg = ("|T%d:%d:%d:0:-1:64:64:5:59:5:59|t"):format(NEMESIS_FALLBACK_CHEST_FILEID, sz, sz)
-    elseif type(iconFileID) == "number" and iconFileID > 0 then
-        iconSeg = ("|T%d:%d:%d:0:-1:64:64:5:59:5:59|t"):format(iconFileID, sz, sz)
+    -- Priority: bundled custom texture, then native delves atlas, then generic chest fileID,
+    -- then affix spell icon (cropped to hide its 64x64 black border), then a glyph.
+    if type(NEMESIS_CUSTOM_TEXTURE_PATH) == "string" and NEMESIS_CUSTOM_TEXTURE_PATH ~= "" then
+        iconSeg = ("|T%s:%d:%d:0:-1|t"):format(NEMESIS_CUSTOM_TEXTURE_PATH, sz, sz)
     else
-        iconSeg = "|cffffcc55\226\150\161|r"
+        local atlasName = ResolveNemesisAtlasName()
+        if atlasName then
+            iconSeg = ("|A:%s:%d:%d|a"):format(atlasName, sz, sz)
+        elseif type(NEMESIS_FALLBACK_CHEST_FILEID) == "number" and NEMESIS_FALLBACK_CHEST_FILEID > 0 then
+            iconSeg = ("|T%d:%d:%d:0:-1:64:64:5:59:5:59|t"):format(NEMESIS_FALLBACK_CHEST_FILEID, sz, sz)
+        elseif type(iconFileID) == "number" and iconFileID > 0 then
+            iconSeg = ("|T%d:%d:%d:0:-1:64:64:5:59:5:59|t"):format(iconFileID, sz, sz)
+        else
+            iconSeg = "|cffffcc55\226\150\161|r"
+        end
     end
     local n = math.min(math.max(math.floor(remaining), 0), NEMESIS_GROUPS_MAX)
     if n < 1 then return "" end
