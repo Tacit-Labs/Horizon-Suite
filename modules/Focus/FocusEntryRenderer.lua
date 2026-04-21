@@ -2266,4 +2266,64 @@ local function PopulateEntry(entry, questData, groupKey)
     return totalH
 end
 
-addon.PopulateEntry = PopulateEntry
+-- Signature of the questData fields that drive PopulateEntry's visible output. Changes to
+-- any visible-impact field must be reflected here or stale entries will render.
+local function BuildEntrySignature(qData, groupKey)
+    if not qData then return nil end
+    local key = qData.entryKey or qData.questID
+    if not key then return nil end
+    local parts = {
+        tostring(key),
+        tostring(groupKey or ""),
+        qData.title or "",
+        tostring(qData.category or ""),
+        tostring(qData.baseCategory or ""),
+        qData.zoneName or "",
+        qData.itemLink or "",
+        tostring(qData.itemTexture or ""),
+        tostring(qData.questLevel or ""),
+        qData.isComplete and "1" or "0",
+        qData.isSuperTracked and "1" or "0",
+        qData.isTracked and "1" or "0",
+        qData.isInQuestArea and "1" or "0",
+        qData.isNearby and "1" or "0",
+        qData.isEventQuest and "1" or "0",
+        qData.isAutoComplete and "1" or "0",
+        qData.isRare and "1" or "0",
+        qData.isRareLoot and "1" or "0",
+        qData.isDungeonQuest and "1" or "0",
+        qData.isRaidQuest and "1" or "0",
+        qData.isAutoAdded and "1" or "0",
+        qData.isRecipe and "1" or "0",
+        qData.isAppearance and "1" or "0",
+        tostring(qData.questTypeAtlas or ""),
+        tostring(qData.outputQuality or ""),
+        tostring(qData.tierSpellID or ""),
+    }
+    local objs = qData.objectives
+    if objs then
+        for i = 1, #objs do
+            local o = objs[i]
+            parts[#parts + 1] = (o.text or "") .. ":" ..
+                tostring(o.numFulfilled or "") .. "/" ..
+                tostring(o.numRequired or "") .. ":" ..
+                (o.finished and "1" or "0") .. ":" ..
+                tostring(o.percent or "")
+        end
+    end
+    return table.concat(parts, "|")
+end
+
+local origPopulateEntry = PopulateEntry
+local function PopulateEntryCached(entry, questData, groupKey)
+    if not entry or not questData then return origPopulateEntry(entry, questData, groupKey) end
+    local sig = BuildEntrySignature(questData, groupKey)
+    if sig and entry._populateSig == sig then
+        return entry.entryHeight
+    end
+    local result = origPopulateEntry(entry, questData, groupKey)
+    entry._populateSig = sig
+    return result
+end
+
+addon.PopulateEntry = PopulateEntryCached
