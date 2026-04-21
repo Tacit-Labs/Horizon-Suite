@@ -24,6 +24,7 @@ core/Core.lua
 core/UrlCopyDialog.lua
 core/ProfileIO.lua
 core/CoreSlash.lua
+core/NewSettings.lua
 core/MinimapButton.lua
 
 modules/Focus/FocusState.lua

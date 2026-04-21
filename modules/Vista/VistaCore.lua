@@ -191,6 +191,7 @@ do
     G.ButtonDrawerLocked  = function() return DB("vistaDrawerButtonLocked", false) end
     G.ButtonWhitelist     = function() return DB("vistaButtonWhitelist",    nil) end
     G.IsButtonManaged     = function(n) return DB("vistaButtonManaged_" .. n, true) end
+    G.ButtonSortAlpha     = function() return DB("vistaButtonSortAlpha",    false) end
     G.CoordPrecision        = function() return tonumber(DB("vistaCoordPrecision", 1)) or 1 end
     G.BtnLayoutCols         = function() return tonumber(DB("vistaBtnLayoutCols",  5)) or 5 end
     G.BtnLayoutDir          = function() return DB("vistaBtnLayoutDir", "right") end
@@ -3141,6 +3142,29 @@ local function CollectMinimapButtons()
                 SuppressButtonShow(btn)
             end
         end
+    end
+
+    if G.ButtonSortAlpha() then
+        -- Derive a friendly sort key:
+        --   1. LibDBIcon frames ("LibDBIcon10_<AddonName>") → addon name
+        --   2. LDB dataObject.label if present
+        --   3. Raw frame name with common minimap button suffixes stripped
+        local function btnLabel(btn)
+            local name = (btn.GetName and btn:GetName()) or ""
+            local ldb = name:match("^LibDBIcon%d*_(.+)$")
+            if ldb then return ldb:lower() end
+            if btn.dataObject and type(btn.dataObject.label) == "string" and btn.dataObject.label ~= "" then
+                return btn.dataObject.label:lower()
+            end
+            local stripped = name
+            stripped = stripped:gsub("Mini[Mm]apButton$", "")
+            stripped = stripped:gsub("Mini[Mm]apIcon$", "")
+            stripped = stripped:gsub("MiniMap$", "")
+            stripped = stripped:gsub("Minimap$", "")
+            if stripped ~= "" then return stripped:lower() end
+            return name:lower()
+        end
+        table.sort(visible, function(a, b) return btnLabel(a) < btnLabel(b) end)
     end
 
     if mode == BTN_MODE_MOUSEOVER then

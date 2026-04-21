@@ -89,8 +89,26 @@ local function SetPanelHeight(h)
     HS:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", right - uiRight, topBefore - uiTop)
 end
 
---- Detects player map changes and invalidates zone task quest cache.
---- Called on a timer; no params or return.
+-- PLAYER_MAP_CHANGED fires in bursts during zone transitions; debounce collapses the burst
+-- into a single FullLayout after it settles.
+local MAP_CHANGE_REFRESH_DEBOUNCE = 0.1
+local mapChangeRefreshTimer
+local function ScheduleMapChangeDebouncedRefresh()
+    if not addon.focus.enabled or not addon.ScheduleRefresh then return end
+    if mapChangeRefreshTimer then mapChangeRefreshTimer:Cancel() end
+    if C_Timer and C_Timer.NewTimer then
+        mapChangeRefreshTimer = C_Timer.NewTimer(MAP_CHANGE_REFRESH_DEBOUNCE, function()
+            mapChangeRefreshTimer = nil
+            if addon.focus.enabled and addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        end)
+    else
+        C_Timer.After(MAP_CHANGE_REFRESH_DEBOUNCE, function()
+            if addon.focus.enabled and addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        end)
+    end
+end
+
+--- Tracks map changes; the WQ cache self-invalidates via zoneMapID compare in GetNearbyQuestIDs.
 local function RunMapCheck()
     if not addon.focus.enabled or not C_Map or not C_Map.GetBestMapForUnit then return end
 
@@ -102,17 +120,11 @@ local function RunMapCheck()
         addon.focus.lastZoneMapID = zoneMapID
         addon.focus.lastPlayerMapID = rawMapID
         if addon.zoneTaskQuestCache then wipe(addon.zoneTaskQuestCache) end
-        addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
-        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        ScheduleMapChangeDebouncedRefresh()
     elseif rawMapID and rawMapID ~= addon.focus.lastPlayerMapID then
-        -- rawMapID changed (e.g. left event area within same zone); invalidate nearby cache.
+        -- rawMapID changed within the same zoneMapID — WQ cache stays warm (zone-scoped).
         addon.focus.lastPlayerMapID = rawMapID
-        addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
-        if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+        ScheduleMapChangeDebouncedRefresh()
     elseif not addon.focus.lastZoneMapID and zoneMapID then
         addon.focus.lastZoneMapID = zoneMapID
         addon.focus.lastPlayerMapID = rawMapID

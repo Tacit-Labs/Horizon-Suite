@@ -80,25 +80,30 @@ local function IsTaskQuestOnPlayerMaps(questID, mapIDSet)
 end
 
 --- Build sets of quest IDs visible on the player's current map(s) and from task/WQ APIs.
--- Results are cached until addon.focus.nearbyQuestCacheDirty is set (done on zone change).
--- When showWorldQuests is off the WQ map scan is skipped entirely; only bonus-objective task
--- quests (non-WQ) are still included because they are zone-entered, not zone-scanned.
+-- Fast path reuses the cached sets when the player's zoneMapID matches the one the cache
+-- was built for and no hard-dirty event fired. Hard-dirty events (TASK_PROGRESS_UPDATE,
+-- AREA_POIS_UPDATED, WQ accept/remove, SCENARIO_BONUS_VISIBILITY_UPDATE) set
+-- nearbyQuestCacheDirty and force a rebuild regardless of zoneMapID.
 -- @return table nearbySet Set of questID -> true for quests on player map or parent/children
 -- @return table taskQuestOnlySet Set of questID -> true for quests coming only from task/WQ map APIs
 local function GetNearbyQuestIDs()
-    -- Return cached result if the zone hasn't changed since the last scan.
-    if not addon.focus.nearbyQuestCacheDirty
+    local ctx = addon.ResolvePlayerMapContext and addon.ResolvePlayerMapContext("player") or nil
+    local currentZoneMapID = ctx and ctx.zoneMapID or nil
+
+    -- Only hit the fast path when we have a real zoneMapID; otherwise force rebuild so a
+    -- login/transition state with an unresolved context can't pin the cache on a sentinel.
+    if currentZoneMapID
         and addon.focus.nearbyQuestCache
-        and addon.focus.nearbyTaskQuestCache then
+        and addon.focus.nearbyTaskQuestCache
+        and addon.focus.nearbyQuestCacheZoneID == currentZoneMapID
+        and not addon.focus.nearbyQuestCacheDirty then
         return addon.focus.nearbyQuestCache, addon.focus.nearbyTaskQuestCache
     end
     addon.focus.nearbyQuestCacheDirty = nil
+    addon.focus.nearbyQuestCacheZoneID = currentZoneMapID
     local nearbySet = {}
     local taskQuestOnlySet = {}
 
-    -- Build mapIDsToCheck first so we can filter by current map.
-    -- This prevents stale WQs from the previous zone (e.g. after hearth) from staying in the tracker.
-    local ctx = addon.ResolvePlayerMapContext and addon.ResolvePlayerMapContext("player") or nil
     local mapIDsToCheck = (ctx and ctx.mapIDsToQuery and #ctx.mapIDsToQuery > 0) and ctx.mapIDsToQuery or nil
     local mapIDSet = {}
     if mapIDsToCheck then
@@ -138,6 +143,9 @@ local function GetNearbyQuestIDs()
     end
 
     local showWQ = addon.GetDB("showWorldQuests", true)
+    -- Track which mapIDs have already been queried via GetTaskQuestsForMap so the quest-hub
+    -- fallback below cannot re-query a map already handled in the main loop.
+    local queriedTaskMaps = {}
 
     for _, checkMapID in ipairs(mapIDsToCheck) do
         -- C_QuestLog.GetQuestsOnMap: regular quest map pins (accepted quests with POI locations).
@@ -172,7 +180,8 @@ local function GetNearbyQuestIDs()
 
         -- C_TaskQuest.GetQuestsOnMap: authoritative source for active task/world quests.
         -- Only run when showWorldQuests is on; this is the expensive per-zone WQ scan.
-        if showWQ and addon.GetTaskQuestsForMap then
+        if showWQ and addon.GetTaskQuestsForMap and not queriedTaskMaps[checkMapID] then
+            queriedTaskMaps[checkMapID] = true
             local taskPOIs = addon.GetTaskQuestsForMap(checkMapID, checkMapID) or addon.GetTaskQuestsForMap(checkMapID)
             if taskPOIs then
                 for _, poi in ipairs(taskPOIs) do
@@ -196,7 +205,8 @@ local function GetNearbyQuestIDs()
                 local okInfo, poiInfo = pcall(C_AreaPoiInfo.GetAreaPOIInfo, ctx.zoneMapID, areaPoiID)
                 local linkedMapID = okInfo and poiInfo and poiInfo.linkedUiMapID or nil
                 -- If the hub links to a map and that map exposes task quests, query it.
-                if linkedMapID and addon.GetTaskQuestsForMap then
+                if linkedMapID and addon.GetTaskQuestsForMap and not queriedTaskMaps[linkedMapID] then
+                    queriedTaskMaps[linkedMapID] = true
                     local taskPOIs = addon.GetTaskQuestsForMap(linkedMapID, linkedMapID) or addon.GetTaskQuestsForMap(linkedMapID)
                     if taskPOIs then
                         for _, poi in ipairs(taskPOIs) do
