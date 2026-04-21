@@ -929,9 +929,11 @@ local function HandleFocusDebugSlash(msg)
                 HSPrint("GetCVarTableValue(lastSelectedTieredEntranceTier, pdeID=" .. tostring(pdeID) .. "): " .. (vOk and tostring(tier) or ("error: " .. tostring(tier))))
             end
         end
-        if GetCVarNumberOrDefault then
-            local ok, cvarTier = pcall(GetCVarNumberOrDefault, "lastSelectedDelvesTier", 1)
-            HSPrint("GetCVarNumberOrDefault(lastSelectedDelvesTier, 1): " .. (ok and tostring(cvarTier) or ("error: " .. tostring(cvarTier))))
+        -- Midnight: GetCVarNumberOrDefault may throw (CvarUtil expects another signature); use GetCVar for debug.
+        if GetCVar then
+            local raw = GetCVar("lastSelectedDelvesTier")
+            local n = raw and tonumber(raw)
+            HSPrint("GetCVar(lastSelectedDelvesTier): " .. tostring(raw) .. (n and (" (number " .. tostring(n) .. ")") or ""))
         end
         if GetInstanceInfo then
             local ok, name, instType, diffID, diffName = pcall(GetInstanceInfo)

@@ -683,7 +683,8 @@ function addon.FormatDelveNemesisGroupsForTitle(remaining, total, iconFileID, is
         iconSeg = "|cffffcc55\226\150\161|r"
     end
     local n = math.floor(remaining)
-    if type(total) == "number" and total >= 1 then
+    -- Show "r/t" only when there can be more than one group; "1/1" is redundant next to the chest icon.
+    if type(total) == "number" and total > 1 then
         return iconSeg .. " " .. tostring(n) .. "/" .. tostring(math.floor(total))
     end
     return iconSeg .. " " .. tostring(n)
