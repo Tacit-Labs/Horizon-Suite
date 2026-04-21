@@ -199,7 +199,6 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[Das Konfigura
 
 Contributions for additional locales are welcome via Discord.]=]
 
-
 -- =====================================================================
 -- options/dashboard/ModuleGuide.lua — In-game module quick-start
 -- =====================================================================
