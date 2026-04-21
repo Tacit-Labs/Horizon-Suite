@@ -328,14 +328,16 @@ local function ParseNemesisFromScenarioHeaderCurrencies(widgetInfo)
         end
         return nil
     end
-    -- Single icon run: often Nemesis-only (one slot "3") or one row of chest slots — avoid duplicating the lives aggregate.
+    -- Single icon run: only trustworthy as Nemesis when there are multiple slots (a row of chest/octagon entries).
+    -- A lone currency is Blizzard's lives aggregate (e.g. text="5", tooltip="Total deaths: N"), never Nemesis.
     if #runs == 1 then
+        if #cur < 2 then return nil end
         local seg = runs[1]
         local parsed = ParseCurrencyRunNemesisLike(seg.startIdx, seg.endIdx, cur)
         if not parsed or not parsed.hasData then return nil end
+        -- If this single run matches the lives remaining exactly, it's the hearts row, not Nemesis.
         local livesRem = ParseDelveLivesRemaining(widgetInfo)
-        -- Same single-slot numeric is almost always the lives aggregate, not Nemesis.
-        if livesRem ~= nil and parsed.remaining == livesRem and parsed.total == nil and #cur == 1 then
+        if livesRem ~= nil and parsed.remaining == livesRem and (parsed.total == nil or parsed.total == #cur) then
             return nil
         end
         return parsed
