@@ -912,6 +912,21 @@ local function HandleFocusDebugSlash(msg)
 
     elseif cmd == "delvedebug" then
         HSPrint("|cFF00CCFF--- Delve / Tier debug (run inside a Delve) ---|r")
+        local function GetStepAndTrackerSetIDs()
+            local stepSetID, objSetID
+            if C_Scenario and C_Scenario.GetStepInfo then
+                local ok, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
+                if ok and t and type(t) == "table" and #t >= 12 then
+                    local ws = t[12]
+                    if type(ws) == "number" and ws ~= 0 then stepSetID = ws end
+                end
+            end
+            if C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+                local ok, s = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
+                if ok and type(s) == "number" then objSetID = s end
+            end
+            return stepSetID, objSetID
+        end
         if C_PartyInfo and C_PartyInfo.IsDelveInProgress then
             local ok, v = pcall(C_PartyInfo.IsDelveInProgress)
             HSPrint("IsDelveInProgress: " .. tostring(ok and v or (ok and "false") or ("error: " .. tostring(v))))
@@ -947,8 +962,7 @@ local function HandleFocusDebugSlash(msg)
                 HSPrint("GetDelveScenarioHeaderMetadata: nemesisHasData=" .. tostring(meta.nemesisHasData)
                     .. " remaining=" .. tostring(meta.nemesisGroupsRemaining)
                     .. " total=" .. tostring(meta.nemesisGroupsTotal)
-                    .. " complete=" .. tostring(meta.nemesisIsComplete)
-                    .. " iconFileID=" .. tostring(meta.nemesisIconFileID))
+                    .. " complete=" .. tostring(meta.nemesisIsComplete))
             end
         end
         if addon.GetDelveScenarioWidgetDebugSnapshot then
@@ -967,18 +981,7 @@ local function HandleFocusDebugSlash(msg)
             else
                 HSPrint("GetDelvesAffixes: nil or empty")
                 if C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
-                    local stepSetID, objSetID
-                    if C_Scenario and C_Scenario.GetStepInfo then
-                        local ok, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
-                        if ok and t and type(t) == "table" and #t >= 12 then
-                            local ws = t[12]
-                            if type(ws) == "number" and ws ~= 0 then stepSetID = ws end
-                        end
-                    end
-                    if C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
-                        local ok, s = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-                        if ok and s and type(s) == "number" then objSetID = s end
-                    end
+                    local stepSetID, objSetID = GetStepAndTrackerSetIDs()
                     HSPrint(("  widgetSetID: GetStepInfo=%s GetObjectiveTracker=%s"):format(
                         stepSetID and tostring(stepSetID) or "nil",
                         objSetID and tostring(objSetID) or "nil"))
@@ -1182,15 +1185,7 @@ local function HandleFocusDebugSlash(msg)
                             if type(info.spells) == "table" then
                                 for si, sp in ipairs(info.spells) do
                                     if type(sp) == "table" then
-                                        local sname = ""
-                                        if type(sp.spellID) == "number" and sp.spellID > 0 then
-                                            if C_Spell and C_Spell.GetSpellInfo then
-                                                local spOk, spi = pcall(C_Spell.GetSpellInfo, sp.spellID)
-                                                if spOk and spi and spi.name then sname = spi.name end
-                                            elseif GetSpellInfo then
-                                                sname = GetSpellInfo(sp.spellID) or ""
-                                            end
-                                        end
+                                        local sname = (addon.GetSpellNameAndIcon and addon.GetSpellNameAndIcon(sp.spellID)) or ""
                                         local descCount = ""
                                         if (not sp.stackDisplay or sp.stackDisplay == 0)
                                             and type(sp.spellID) == "number" and sp.spellID > 0
@@ -1215,18 +1210,7 @@ local function HandleFocusDebugSlash(msg)
                 end
             end
         end
-        local stepSetID, objSetID
-        if C_Scenario and C_Scenario.GetStepInfo then
-            local ok, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
-            if ok and t and type(t) == "table" and #t >= 12 then
-                local ws = t[12]
-                if type(ws) == "number" and ws ~= 0 then stepSetID = ws end
-            end
-        end
-        if C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
-            local ok, s = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-            if ok and s and type(s) == "number" then objSetID = s end
-        end
+        local stepSetID, objSetID = GetStepAndTrackerSetIDs()
         DumpWidgetSet("StepInfo", stepSetID)
         if objSetID ~= stepSetID then
             DumpWidgetSet("ObjectiveTracker", objSetID)

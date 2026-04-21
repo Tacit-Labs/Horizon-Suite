@@ -1688,7 +1688,7 @@ local function PopulateEntry(entry, questData, groupKey)
         and questData.category == "DELVES" and questData.isScenarioMain
         and questData.delveNemesisComplete == true then
         delveGroupsActive = true
-        delveGroupsStr = addon.FormatDelveNemesisGroupsForTitle(nil, nil, questData.delveNemesisIconFileID, true)
+        delveGroupsStr = addon.FormatDelveNemesisGroupsForTitle(nil, nil, true)
         entry.delveGroupsText:SetFontObject(addon.TitleFont)
         entry.delveGroupsText:SetText(delveGroupsStr)
         delveGroupsReserve = (entry.delveGroupsText:GetStringWidth() or 0) + S(6)
@@ -1699,7 +1699,6 @@ local function PopulateEntry(entry, questData, groupKey)
         delveGroupsStr = addon.FormatDelveNemesisGroupsForTitle(
             questData.delveNemesisRemaining,
             questData.delveNemesisTotal,
-            questData.delveNemesisIconFileID,
             false
         )
         entry.delveGroupsText:SetFontObject(addon.TitleFont)

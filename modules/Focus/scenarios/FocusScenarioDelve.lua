@@ -39,7 +39,8 @@ function DelveProvider:ReadEntries()
         end
     end
     -- Lives + life icon from ScenarioHeaderDelves widget (same pass as affixes); main row only.
-    -- Nemesis enemy groups / bonus chest: second currency row or sibling widgets — same main row.
+    -- Nemesis enemy groups / bonus chest count: affix spell stackDisplay / description first,
+    -- then currency runs, then sibling widgets in the same widget set.
     if addon.GetDelveScenarioHeaderMetadata then
         local meta = addon.GetDelveScenarioHeaderMetadata()
         if meta then
@@ -55,9 +56,6 @@ function DelveProvider:ReadEntries()
                         entry.delveNemesisRemaining = meta.nemesisGroupsRemaining
                         entry.delveNemesisTotal = meta.nemesisGroupsTotal
                         entry.delveNemesisComplete = meta.nemesisIsComplete
-                        if type(meta.nemesisIconFileID) == "number" and meta.nemesisIconFileID > 0 then
-                            entry.delveNemesisIconFileID = meta.nemesisIconFileID
-                        end
                     end
                     break
                 end
