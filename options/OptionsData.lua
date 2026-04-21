@@ -854,7 +854,7 @@ local OptionCategories = {
                 options = {
                     { L["AXIS_MODULE_NAME_HORIZON"]     or "Horizon",     "horizon"     },
                     { L["AXIS_MODULE_NAME_SUBTITLE"]    or "Subtitle",    "subtitle"    },
-                    { L["AXIS_MODULE_NAME_DESCRIPTIVE"] or "Descriptive", "descriptive" },
+                    { L["AXIS_MODULE_NAME_SIMPLE"] or "Simple", "simple" },
                 },
                 get = function() return getDB("moduleNameDisplay", "horizon") end,
                 set = function(v)

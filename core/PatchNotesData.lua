@@ -67,7 +67,7 @@ addon.PATCH_NOTES = {
         {
             section = "Improvements",
             bullets = {
-                "Axis: module name style setting — Horizon (code-name only), Subtitle (e.g. 'Vista – Minimap'), or Descriptive (plain-language only). Applies across options navigation and headers.",
+                "Axis: module name style setting — Horizon (code-name only), Subtitle (e.g. 'Vista – Minimap'), or Simple (plain-language only). Applies across options navigation and headers.",
                 "Focus: with Grow Upwards enabled, section header priority order now flips so High priority sits closest to the Objectives header.",
             },
         },

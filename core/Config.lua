@@ -627,8 +627,8 @@ addon.BrandDisplay = {
         essence = "Essence",
         meridian = "Meridian",
     },
-    -- Human-readable descriptions shown in "Subtitle" and "Descriptive" name modes.
-    descriptive = {
+    -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
+    simple = {
         axis     = "Settings",
         focus    = "Objective Tracker",
         presence = "Notifications",

@@ -91,7 +91,7 @@ L["MODULES"]                                                  = "기능"
 -- L["AXIS_MODULE_NAME_DISPLAY_DESC"]                         = "How module names appear in the settings panel navigation and search filter."
 -- L["AXIS_MODULE_NAME_HORIZON"]                              = "Horizon"
 -- L["AXIS_MODULE_NAME_SUBTITLE"]                             = "Subtitle"
--- L["AXIS_MODULE_NAME_DESCRIPTIVE"]                          = "Descriptive"
+-- L["AXIS_MODULE_NAME_SIMPLE"]                          = "Simple"
 -- L["MODULE_RELOAD_HINT"]                                    = "Reload the interface to finish applying module changes."
 -- L["RELOAD_UI"]                                             = "Reload UI"
 

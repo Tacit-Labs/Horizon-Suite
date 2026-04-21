@@ -1730,15 +1730,15 @@ function addon.Dashboard_BuildMainFrame()
                 local labelText
                 local height = HEADER_ROW_HEIGHT
                 if mode == "subtitle" then
-                    local desc = bd and bd.descriptive and bd.descriptive[mk]
+                    local desc = bd and bd.simple and bd.simple[mk]
                     if desc then
                         labelText = codeName .. "\n|cff505065" .. desc .. "|r"
                         height = HEADER_ROW_HEIGHT + SUBTITLE_EXTRA_H
                     else
                         labelText = codeName
                     end
-                elseif mode == "descriptive" then
-                    labelText = (bd and bd.descriptive and bd.descriptive[mk] or codeName):upper()
+                elseif mode == "simple" then
+                    labelText = (bd and bd.simple and bd.simple[mk] or codeName):upper()
                 else
                     labelText = codeName
                 end
