@@ -43,6 +43,7 @@ local function ShowCoreHelp()
     HSPrint("  /h notes             - Show latest patch notes")
     HSPrint("  /h devmode           - Toggle Dev Mode (show Blizzard tracker alongside Focus)")
     HSPrint("  /h focus [cmd]       - Tracker (toggle, collapse, test, ...)")
+    HSPrint("  /hfs delvedebug      - Delve / Nemesis widget debug (alias: /h debug focus delvedebug)")
     HSPrint("  /h scenario debug    - Scenario timer debug (diagnose missing timers)")
     HSPrint("  /h presence [cmd]    - Zone/notification tests")
     HSPrint("  /h vista [cmd]       - Minimap")
@@ -158,6 +159,27 @@ end
 SLASH_MODERNQUESTTRACKER1 = "/horizon"
 SLASH_MODERNQUESTTRACKER2 = "/h"
 SlashCmdList["MODERNQUESTTRACKER"] = OnSlashCommand
+
+-- Short alias for Focus delve diagnostics (many guides say /hfs — core commands are /h and /horizon).
+SLASH_HSFOCUSDEBUG1 = "/hfs"
+SlashCmdList["HSFOCUSDEBUG"] = function(msg)
+    local rest = strtrim(msg or "")
+    if rest == "" then
+        HSPrint("Usage: |cffffff00/hfs delvedebug|r — same as |cffffff00/h debug focus delvedebug|r")
+        return
+    end
+    local first = (rest:match("^(%S+)") or rest):lower()
+    if first == "delvedebug" or rest:lower():find("^delvedebug", 1, true) then
+        local debugHandler = addon.slashHandlersDebug and addon.slashHandlersDebug["focus"]
+        if debugHandler then
+            debugHandler("delvedebug")
+        else
+            HSPrint("Focus debug not available.")
+        end
+        return
+    end
+    HSPrint("Unknown /hfs command. Use |cffffff00/hfs delvedebug|r or |cffffff00/h debug focus delvedebug|r")
+end
 
 SLASH_HSEDIT1 = "/hedit"
 SlashCmdList["HSEDIT"] = function()

@@ -121,7 +121,7 @@ local function ShowFocusShortHelp()
 end
 
 local function ShowFocusDebugHelp()
-    HSPrint("Focus debug commands (/h debug focus [cmd]):")
+    HSPrint("Focus debug commands (/h debug focus [cmd] — or /hfs delvedebug for delve diagnostics):")
     HSPrint("  scendebug - Scenario timer debug (also: /h scenario debug)")
     HSPrint("  devmode - Show Blizzard tracker alongside Focus for comparison")
     HSPrint("  wqdebug, nearbydebug, headercountdebug, groupdebug")
@@ -948,6 +948,13 @@ local function HandleFocusDebugSlash(msg)
                     .. " complete=" .. tostring(meta.nemesisIsComplete)
                     .. " iconFileID=" .. tostring(meta.nemesisIconFileID))
             end
+        end
+        if addon.GetDelveScenarioWidgetDebugSnapshot then
+            local snap = addon.GetDelveScenarioWidgetDebugSnapshot()
+            HSPrint("Delve widgets: shouldRead=" .. tostring(snap.shouldRead)
+                .. " isDelveActive=" .. tostring(snap.isDelveActive)
+                .. " setIDs=[" .. tostring(snap.setIDs) .. "]"
+                .. " headerWidgets=" .. tostring(snap.headerCount))
         end
         if addon.GetDelvesAffixes then
             local affixes = addon.GetDelvesAffixes()
