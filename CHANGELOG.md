@@ -51,7 +51,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🔧 Improvements
 
-- **(Axis) Module name style** — New setting to control how module names appear: **Horizon** (code-name only, default), **Subtitle** (e.g. "Vista – Minimap"), or **Descriptive** (plain-language name only). Applies across options navigation and section headers.
+- **(Axis) Module name style** — New setting to control how module names appear: **Horizon** (code-name only, default), **Subtitle** (e.g. "Vista – Minimap"), or **Simple** (plain-language name only). Applies across options navigation and section headers.
 - **(Focus) Grow Upwards priority order** — With **Grow Upwards** enabled, section headers now visually flip so High priority sits closest to the Objectives header at the bottom, matching the reversed growth direction.
 
 ### 🐛 Fixes
