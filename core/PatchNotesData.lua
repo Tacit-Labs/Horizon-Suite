@@ -15,6 +15,23 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.13.0"] = {
+        date = "2026-04-21",
+        {
+            section = "New Features",
+            bullets = {
+                "Insight: Gradient tooltip fonts — item tooltips render in quality-colour gradients; player character tooltips use class-colour gradients.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: Significant performance improvements — quest update events are debounced, rare and treasure vignette scans are consolidated and cached, and layout passes are skipped when position hasn't changed.",
+                "Vista: Minimap button collector now offers alphabetical sorting for a more predictable button order.",
+            },
+        },
+    },
+
     ["4.12.6"] = {
         date = "2026-04-19",
         {

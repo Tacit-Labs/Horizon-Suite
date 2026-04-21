@@ -10,6 +10,17 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.13.0] – 2026-04-21
+
+### ✨ New Features
+- **(Insight) Gradient tooltip fonts** — Item tooltips render in quality-colour gradients; player character tooltips use class-colour gradients.
+
+### 🔧 Improvements
+- **(Focus)** Significant performance improvements — quest update events are debounced, rare and treasure vignette scans are consolidated and cached, and layout passes are skipped when position hasn't changed.
+- **(Vista)** Minimap button collector now offers alphabetical sorting for a more predictable button order.
+
+---
+
 ## [4.12.6] – 2026-04-19
 
 ### 🔧 Improvements
