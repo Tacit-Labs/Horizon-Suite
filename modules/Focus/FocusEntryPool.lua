@@ -843,6 +843,14 @@ local function ClearEntry(entry, full)
     entry.isGroupQuest   = nil
     entry.isAutoComplete = nil
     entry._inlineTimerBaseTitle, entry._inlineTimerStr, entry._inlineTimerDuration, entry._inlineTimerStartTime = nil, nil, nil, nil
+    -- Clear cached layout position so the next FullLayout re-applies SetPoint/SetWidth;
+    -- without this an entry re-acquired into a different slot would keep stale _lastEntry*.
+    entry._lastEntryX     = nil
+    entry._lastEntryY     = nil
+    entry._lastEntryWidth = nil
+    -- Clear PopulateEntry's data signature so an entry re-acquired for a different quest
+    -- re-populates from scratch instead of hitting the same-signature fast-path.
+    entry._populateSig    = nil
     entry.hoverAnimState = nil
     entry.hoverAnimTime = nil
     entry._baseTitleColor = nil

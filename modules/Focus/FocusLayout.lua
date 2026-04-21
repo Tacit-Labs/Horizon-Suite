@@ -951,10 +951,8 @@ local function FullLayout()
                 addon.categoryChangeFadeOutCount = nil
                 addon.focus.categoryChange.slideUpStarts = categoryChangeSlideUpStartsNow
                 addon.focus.categoryChange.slideUpStartsSec = categoryChangeSlideUpStartsSecNow
-                -- Invalidate nearby cache so reflow picks up Events in Zone and other fresh data.
+                -- Force rebuild so reflow picks up Events in Zone and other fresh data.
                 addon.focus.nearbyQuestCacheDirty = true
-                addon.focus.nearbyQuestCache = nil
-                addon.focus.nearbyTaskQuestCache = nil
                 if addon.ScheduleRefresh then addon.ScheduleRefresh() end
             end
             -- Hide section headers for groups that are now empty so they don't linger during fade.
@@ -1154,14 +1152,21 @@ local function FullLayout()
                             SafeEntryFadeIn(entry, entryIndex - 1)
                         end
                     end
-                    entry:ClearAllPoints()
-                    entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
+                    -- Skip anchor churn when the entry's position hasn't changed since
+                    -- the previous FullLayout. Cleared in FocusEntryPool reset on pool-release.
+                    if entry._lastEntryX ~= entryX or entry._lastEntryY ~= yOff then
+                        entry:ClearAllPoints()
+                        entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
+                        entry._lastEntryX = entryX
+                        entry._lastEntryY = yOff
+                    end
 
                     local sfLeftInset = (blockFrame and blockPos == "top") and addon.GetScaledPadding() or 0
                     local sfVisibleW = addon.GetPanelWidth() - sfLeftInset
                     local entryW = sfVisibleW - entryX - addon.GetScaledContentRightPadding()
-                    if entryW > 0 then
+                    if entryW > 0 and entry._lastEntryWidth ~= entryW then
                         entry:SetWidth(entryW)
+                        entry._lastEntryWidth = entryW
                     end
 
                     -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.
@@ -1528,4 +1533,72 @@ end
 
 addon.GetPlayerCurrentZoneName = GetPlayerCurrentZoneName
 addon.AcquireEntry        = AcquireEntry
-addon.FullLayout          = FullLayout
+
+-- Opt-in FullLayout profiler, toggled by /hsperf. Any layout above the spike threshold
+-- is logged with a phase breakdown (agg / group / render [populate]).
+local FOCUS_LAYOUT_SPIKE_MS = 20
+local profileEnabled = false
+local profileInstalled = false
+local prof = { agg = 0, group = 0, populate = 0, populateCount = 0 }
+
+local function InstallPhaseTimers()
+    if profileInstalled then return end
+    profileInstalled = true
+    local origRead = addon.ReadTrackedQuests
+    if origRead then
+        addon.ReadTrackedQuests = function(...)
+            if not profileEnabled or not debugprofilestop then return origRead(...) end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origRead(...)
+            prof.agg = prof.agg + (debugprofilestop() - t0)
+            return a, b, c, d
+        end
+    end
+    local origGroup = addon.SortAndGroupQuests
+    if origGroup then
+        addon.SortAndGroupQuests = function(...)
+            if not profileEnabled or not debugprofilestop then return origGroup(...) end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origGroup(...)
+            prof.group = prof.group + (debugprofilestop() - t0)
+            return a, b, c, d
+        end
+    end
+    local origPopulate = addon.PopulateEntry
+    if origPopulate then
+        addon.PopulateEntry = function(...)
+            if not profileEnabled or not debugprofilestop then return origPopulate(...) end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origPopulate(...)
+            prof.populate = prof.populate + (debugprofilestop() - t0)
+            prof.populateCount = prof.populateCount + 1
+            return a, b, c, d
+        end
+    end
+end
+
+local function FullLayoutProfiled()
+    if not profileEnabled then return FullLayout() end
+    InstallPhaseTimers()
+    prof.agg, prof.group, prof.populate, prof.populateCount = 0, 0, 0, 0
+    local t0 = (debugprofilestop and debugprofilestop()) or 0
+    FullLayout()
+    local elapsed = ((debugprofilestop and debugprofilestop()) or 0) - t0
+    if elapsed >= FOCUS_LAYOUT_SPIKE_MS and addon.HSPrint then
+        local render = elapsed - prof.agg - prof.group
+        local renderOther = render - prof.populate
+        addon.HSPrint(("[focus] FullLayout: %.1f ms (agg=%.1f group=%.1f render=%.1f [populate=%.1f/%d other=%.1f])"):format(
+            elapsed, prof.agg, prof.group, render, prof.populate, prof.populateCount, renderOther))
+    end
+end
+
+addon.FullLayout = FullLayoutProfiled
+
+SLASH_HSFOCUSPERF1 = "/hsperf"
+SlashCmdList.HSFOCUSPERF = function()
+    profileEnabled = not profileEnabled
+    if addon.HSPrint then
+        addon.HSPrint(("[focus] layout profiler %s (spike threshold %d ms)"):format(
+            profileEnabled and "ON" or "OFF", FOCUS_LAYOUT_SPIKE_MS))
+    end
+end
