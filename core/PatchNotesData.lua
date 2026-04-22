@@ -15,6 +15,22 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.14.0"] = {
+        date = "2026-04-22",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: Delve Nemesis groups indicator — while in a Delve, the main Focus row can show Nemesis enemy groups remaining (and the completed checkmark state).",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Blizzard+ Click Style — clicking a tracked line with the chat window open now shares the item to chat instead of untracking it, Ctrl+Left-click on collection items opens the preview/wardrobe, and Right-click → Open Collections navigates to the correct category and item.",
+            },
+        },
+    },
+
     ["4.13.0"] = {
         date = "2026-04-21",
         {
