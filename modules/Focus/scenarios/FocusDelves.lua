@@ -562,6 +562,9 @@ function addon.GetDelveScenarioHeaderMetadata()
 
     local function adopt(parsed)
         if not parsed then return false end
+        -- Blizzard widgets default to 0/disabled before server data arrives on initial load.
+        -- Suppress "complete" until we have seen at least one non-zero group count this run.
+        if parsed.isComplete and nemesisCache.seenMax == 0 then return false end
         result.nemesisGroupsRemaining = parsed.remaining
         result.nemesisGroupsTotal = parsed.total
         result.nemesisIsComplete = parsed.isComplete
