@@ -16,7 +16,21 @@ local NEMESIS_GROUPS_MAX = 30
 -- Per-scenario Nemesis cache. Blizzard removes the affix spell from the widget once all packs are
 -- cleared, so no parser can fire on completion; we remember the highest `remaining` we've seen this
 -- scenario and synthesize `isComplete = true` while the delve is still active.
-local nemesisCache = { key = nil, seenMax = 0, completed = false }
+-- `runLive` gates the "treat as complete" fallback: only true after we have seen at least one live
+-- group count this run, so a stale seenMax from a previous run (same map ID) cannot show the tick.
+local nemesisCache = { key = nil, seenMax = 0, completed = false, runLive = false }
+
+-- Zone transitions (including delve entry/exit) always invalidate the Nemesis cache.
+-- C_Map.GetBestMapForUnit returns the same ID for two runs of the same delve type, so the
+-- scenarioKey-based reset alone cannot distinguish "same run" from "fresh run, same delve".
+local nemesisCacheResetFrame = CreateFrame("Frame")
+nemesisCacheResetFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+nemesisCacheResetFrame:SetScript("OnEvent", function()
+    nemesisCache.key = nil
+    nemesisCache.seenMax = 0
+    nemesisCache.completed = false
+    nemesisCache.runLive = false
+end)
 
 --- Get spell name and icon; supports both legacy GetSpellInfo and C_Spell.GetSpellInfo.
 --- Exposed on addon so FocusSlash / tooltip helpers can share one implementation.
@@ -537,14 +551,14 @@ function addon.GetDelveScenarioHeaderMetadata()
     }
     if not ShouldReadDelveScenarioWidgets() then
         -- Left the delve: drop the completion cache so a re-entry starts clean.
-        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed = nil, 0, false
+        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed, nemesisCache.runLive = nil, 0, false, false
         return result
     end
 
     -- Per-scenario key; reset cache when the player changes delve.
     local scenarioKey = (C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")) or 0
     if scenarioKey ~= nemesisCache.key then
-        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed = scenarioKey, 0, false
+        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed, nemesisCache.runLive = scenarioKey, 0, false, false
     end
 
     local setIDs = GetAllDelveScenarioWidgetSetIDs()
@@ -562,9 +576,10 @@ function addon.GetDelveScenarioHeaderMetadata()
 
     local function adopt(parsed)
         if not parsed then return false end
-        -- Blizzard widgets default to 0/disabled before server data arrives on initial load.
-        -- Suppress "complete" until we have seen at least one non-zero group count this run.
-        if parsed.isComplete and nemesisCache.seenMax == 0 then return false end
+        -- Blizzard widgets default to 0/disabled before server data arrives on initial load,
+        -- which makes every fallback parser return { isComplete = true, remaining = 0 } spuriously.
+        -- Only trust "complete" once we have seen live group data (runLive) this run.
+        if parsed.isComplete and not nemesisCache.runLive then return false end
         result.nemesisGroupsRemaining = parsed.remaining
         result.nemesisGroupsTotal = parsed.total
         result.nemesisIsComplete = parsed.isComplete
@@ -590,14 +605,18 @@ function addon.GetDelveScenarioHeaderMetadata()
     -- Remember progress so we can render the completed state after Blizzard drops the affix spell.
     if result.nemesisHasData then
         local rem = result.nemesisGroupsRemaining
-        if type(rem) == "number" and rem > nemesisCache.seenMax then
-            nemesisCache.seenMax = rem
+        if type(rem) == "number" and rem > 0 then
+            -- Live, non-complete data: this is a real run with groups still remaining.
+            nemesisCache.runLive = true
+            if rem > nemesisCache.seenMax then
+                nemesisCache.seenMax = rem
+            end
         end
         if result.nemesisIsComplete or (type(rem) == "number" and rem <= 0) then
             nemesisCache.completed = true
         end
-    elseif nemesisCache.seenMax > 0 then
-        -- Data vanished mid-scenario but we saw Nemesis earlier — treat as complete.
+    elseif nemesisCache.runLive and nemesisCache.seenMax > 0 then
+        -- Data vanished mid-scenario but we saw live Nemesis data earlier — treat as complete.
         result.nemesisGroupsRemaining = 0
         result.nemesisGroupsTotal = nemesisCache.seenMax
         result.nemesisIsComplete = true
