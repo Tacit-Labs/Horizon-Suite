@@ -2,6 +2,7 @@
     Horizon Suite - Focus - Delve Provider
     ScenarioHeaderDelvesWidget (tierText, currencies, spells), C_PartyInfo.IsDelveInProgress, C_QuestLog.GetQuestTagInfo (QuestTag.Delve).
     Lives remaining: parsed from widget currencies (per-slot textEnabledState or numeric text).
+    Nemesis enemy groups priority: affix spell stackDisplay / description "remaining: N" -> currency runs -> FillUpFrames / DiscreteProgress / IconAndText / TextWithState siblings in the same widget set.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -9,8 +10,19 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 -- Scenario step widget set contains Delve header; Objective Tracker set may not when tracker is hidden.
 local WIDGET_TYPE_SCENARIO_HEADER_DELVES = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.ScenarioHeaderDelves) or 29
 
--- Get spell name and icon; supports both legacy GetSpellInfo and C_Spell.GetSpellInfo.
-local function GetSpellNameAndIcon(spellID)
+-- Sanity cap for Nemesis group counts (matches lives cap in ParseDelveLivesRemaining).
+local NEMESIS_GROUPS_MAX = 30
+
+-- Per-scenario Nemesis cache. Blizzard removes the affix spell from the widget once all packs are
+-- cleared, so no parser can fire on completion; we remember the highest `remaining` we've seen this
+-- scenario and synthesize `isComplete = true` while the delve is still active.
+local nemesisCache = { key = nil, seenMax = 0, completed = false }
+
+--- Get spell name and icon; supports both legacy GetSpellInfo and C_Spell.GetSpellInfo.
+--- Exposed on addon so FocusSlash / tooltip helpers can share one implementation.
+--- @param spellID number
+--- @return string|nil name, number|nil icon
+function addon.GetSpellNameAndIcon(spellID)
     if type(spellID) ~= "number" or spellID <= 0 then return nil, nil end
     if GetSpellInfo and type(GetSpellInfo) == "function" then
         local name, _, icon = GetSpellInfo(spellID)
@@ -24,46 +36,84 @@ local function GetSpellNameAndIcon(spellID)
     end
     return nil, nil
 end
+local GetSpellNameAndIcon = addon.GetSpellNameAndIcon
 
---- Find first visible ScenarioHeaderDelves widget info from scenario or objective-tracker set.
---- @return table|nil widgetInfo
-local function GetDelveHeaderWidgetInfo()
-    if not (C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo) then
-        return nil
+--- All distinct UI widget set IDs that can carry the delve header (step set and objective-tracker set often differ).
+--- @return number[]
+local function GetAllDelveScenarioWidgetSetIDs()
+    local ids = {}
+    local seen = {}
+    local function add(id)
+        if type(id) == "number" and id ~= 0 and not seen[id] then
+            seen[id] = true
+            ids[#ids + 1] = id
+        end
     end
-    local setID
     if C_Scenario and C_Scenario.GetStepInfo then
         local ok, t = pcall(function()
             return { C_Scenario.GetStepInfo() }
         end)
         if ok and t and type(t) == "table" and #t >= 12 then
-            local ws = t[12]
-            if type(ws) == "number" and ws ~= 0 then setID = ws end
+            add(t[12])
         end
     end
-    if not setID and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+    if C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
         local ok, objSet = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-        if ok and objSet and type(objSet) == "number" then setID = objSet end
+        if ok then add(objSet) end
     end
-    if not setID then return nil end
-    local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
-    if not wOk or type(widgets) ~= "table" then return nil end
+    return ids
+end
+
+--- Every visible ScenarioHeaderDelves widget across the given (or discovered) sets, deduped by widgetID.
+--- @param setIDs number[]|nil Optional hoisted list; discovered via GetAllDelveScenarioWidgetSetIDs when omitted.
+--- @return table[] array of widgetInfo
+local function CollectVisibleDelveHeaders(setIDs)
+    local out = {}
+    if not (C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo) then
+        return out
+    end
+    local seen = {}
     local WidgetShownState = Enum and Enum.WidgetShownState
-    for _, wInfo in pairs(widgets) do
-        local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
-            or (type(wInfo) == "number" and wInfo > 0) and wInfo
-        local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
-        if widgetID and (not wType or wType == WIDGET_TYPE_SCENARIO_HEADER_DELVES) then
-            local dOk, widgetInfo = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
-            if dOk and widgetInfo and type(widgetInfo) == "table" then
-                local hidden = WidgetShownState and (widgetInfo.shownState == WidgetShownState.Hidden)
-                if not hidden then
-                    return widgetInfo
+    for _, setID in ipairs(setIDs or GetAllDelveScenarioWidgetSetIDs()) do
+        local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+        if wOk and type(widgets) == "table" then
+            for _, wInfo in pairs(widgets) do
+                local widgetID = (wInfo and type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
+                    or (type(wInfo) == "number" and wInfo > 0) and wInfo
+                local wType = (wInfo and type(wInfo) == "table") and wInfo.widgetType
+                if widgetID and not seen[widgetID] and (not wType or wType == WIDGET_TYPE_SCENARIO_HEADER_DELVES) then
+                    local dOk, widgetInfo = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
+                    if dOk and widgetInfo and type(widgetInfo) == "table" then
+                        local hidden = WidgetShownState and (widgetInfo.shownState == WidgetShownState.Hidden)
+                        if not hidden then
+                            seen[widgetID] = true
+                            out[#out + 1] = widgetInfo
+                        end
+                    end
                 end
             end
         end
     end
-    return nil
+    return out
+end
+
+--- True when delve widgets should be read: active delve, or reward stage on micro (Delve) map only.
+--- (Map type 4 is also "Dungeon" for regular instances — do not read scenario widgets there or M+ can false-match Nemesis heuristics.)
+--- @return boolean
+local function ShouldReadDelveScenarioWidgets()
+    if addon.IsDelveActive() then return true end
+    if C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo then
+        local mapID = C_Map.GetBestMapForUnit("player")
+        local mapInfo = mapID and C_Map.GetMapInfo(mapID) or nil
+        local mapType = mapInfo and mapInfo.mapType
+        if mapType == 5 then
+            local ok, scenarioName = pcall(C_Scenario.GetInfo)
+            if ok and scenarioName and type(scenarioName) == "string" and scenarioName ~= "" then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 --- Remaining lives from ScenarioHeaderDelves currencies: Blizzard uses one row per life with textEnabledState, or a single numeric text.
@@ -124,6 +174,249 @@ local function GetDelveLivesIconFileID(widgetInfo)
         end
     end
     return first
+end
+
+--- Contiguous runs in `currencies` grouped by iconFileID (nil/missing treated as sentinel -1 per slot).
+--- @param cur table
+--- @return table runs { startIdx, endIdx, iconFileID }[]
+local function PartitionCurrencyRunsByIcon(cur)
+    local runs = {}
+    if type(cur) ~= "table" or #cur < 1 then return runs end
+    local i = 1
+    local n = #cur
+    while i <= n do
+        local c = cur[i]
+        local iconKey = (type(c) == "table" and type(c.iconFileID) == "number" and c.iconFileID > 0)
+            and c.iconFileID or -1
+        local startIdx = i
+        i = i + 1
+        while i <= n do
+            local c2 = cur[i]
+            local ik = (type(c2) == "table" and type(c2.iconFileID) == "number" and c2.iconFileID > 0)
+                and c2.iconFileID or -1
+            if ik ~= iconKey then break end
+            i = i + 1
+        end
+        local endIdx = i - 1
+        local iconFileID = (iconKey ~= -1) and iconKey or nil
+        runs[#runs + 1] = { startIdx = startIdx, endIdx = endIdx, iconFileID = iconFileID }
+    end
+    return runs
+end
+
+--- Parse Nemesis / Nemesis-chest row: per-slot textEnabledState (Disabled = group defeated) or single-slot number / cur/max.
+--- @param startIdx number
+--- @param endIdx number
+--- @param cur table currency array
+--- @return table|nil { remaining, total, isComplete, hasData }
+local function ParseCurrencyRunNemesisLike(startIdx, endIdx, cur)
+    if type(cur) ~= "table" or startIdx > endIdx then return nil end
+    local Disabled = Enum and Enum.WidgetEnabledState and Enum.WidgetEnabledState.Disabled
+    local sawState, remaining, total = false, 0, 0
+    for idx = startIdx, endIdx do
+        local c = cur[idx]
+        if type(c) == "table" and c.textEnabledState ~= nil and Disabled ~= nil then
+            sawState = true
+            total = total + 1
+            if c.textEnabledState ~= Disabled then
+                remaining = remaining + 1
+            end
+        end
+    end
+    if sawState and total > 0 then
+        return { remaining = remaining, total = total, isComplete = (remaining == 0), hasData = true }
+    end
+    if startIdx == endIdx then
+        local c = cur[startIdx]
+        if type(c) == "table" then
+            local t = type(c.text) == "string" and c.text or ""
+            local trimmed = t:match("^%s*(.-)%s*$") or ""
+            local num = tonumber(trimmed)
+            if num ~= nil and num >= 0 and num <= NEMESIS_GROUPS_MAX then
+                return { remaining = num, total = nil, isComplete = (num == 0), hasData = true }
+            end
+            local curG, maxG = trimmed:match("^(%d+)/(%d+)$")
+            if curG and maxG then
+                local a, b = tonumber(curG), tonumber(maxG)
+                if a ~= nil and b ~= nil and b >= 1 and b <= NEMESIS_GROUPS_MAX then
+                    return { remaining = a, total = b, isComplete = (a == 0), hasData = true }
+                end
+            end
+        end
+    end
+    return nil
+end
+
+--- Nemesis Strongbox / bonus-chest count is usually rendered as a stack badge on an affix spell icon.
+--- Primary source: widgetInfo.spells[i].stackDisplay (same field zQuestLog uses).
+--- Fallback: parse the spell description for "remaining[^%d]+(%d+)" (Blizzard formats the count into the description).
+--- @param widgetInfo table ScenarioHeaderDelves widget visualization info
+--- @return table|nil { remaining, total, isComplete, hasData }
+local function ParseNemesisFromDelveSpells(widgetInfo)
+    if not widgetInfo or type(widgetInfo.spells) ~= "table" or #widgetInfo.spells < 1 then return nil end
+    for _, sp in ipairs(widgetInfo.spells) do
+        if type(sp) == "table" and type(sp.spellID) == "number" and sp.spellID > 0 then
+            local stack = (type(sp.stackDisplay) == "number" and sp.stackDisplay) or 0
+            if stack <= 0 and C_Spell and C_Spell.GetSpellDescription then
+                local dOk, desc = pcall(C_Spell.GetSpellDescription, sp.spellID)
+                if dOk and type(desc) == "string" then
+                    local n = tonumber(desc:match("remaining[^%d]+(%d+)"))
+                    if n and n > 0 then stack = n end
+                end
+            end
+            if stack > 0 and stack <= NEMESIS_GROUPS_MAX then
+                return { remaining = stack, total = nil, isComplete = false, hasData = true }
+            end
+        end
+    end
+    return nil
+end
+
+--- Second+ icon run, or a single run that is not the same datum as lives (e.g. Nemesis-only row with one slot or chest icons).
+--- @param widgetInfo table
+--- @return table|nil
+local function ParseNemesisFromScenarioHeaderCurrencies(widgetInfo)
+    if not widgetInfo or type(widgetInfo.currencies) ~= "table" then return nil end
+    local cur = widgetInfo.currencies
+    if #cur < 1 then return nil end
+    local runs = PartitionCurrencyRunsByIcon(cur)
+    if #runs >= 2 then
+        for ri = 2, #runs do
+            local seg = runs[ri]
+            local parsed = ParseCurrencyRunNemesisLike(seg.startIdx, seg.endIdx, cur)
+            if parsed and parsed.hasData then return parsed end
+        end
+        return nil
+    end
+    -- Single icon run: only trustworthy as Nemesis when there are multiple slots (a row of chest/octagon entries).
+    -- A lone currency is Blizzard's lives aggregate (e.g. text="5", tooltip="Total deaths: N"), never Nemesis.
+    if #runs == 1 then
+        if #cur < 2 then return nil end
+        local seg = runs[1]
+        local parsed = ParseCurrencyRunNemesisLike(seg.startIdx, seg.endIdx, cur)
+        if not parsed or not parsed.hasData then return nil end
+        -- If this single run matches the lives remaining exactly, it's the hearts row, not Nemesis.
+        local livesRem = ParseDelveLivesRemaining(widgetInfo)
+        if livesRem ~= nil and parsed.remaining == livesRem and (parsed.total == nil or parsed.total == #cur) then
+            return nil
+        end
+        return parsed
+    end
+    return nil
+end
+
+-- Heuristic: tooltip text suggests Nemesis / bonus chest progress (avoid unrelated IconAndText numbers).
+local function TooltipLooksLikeNemesisGroups(tip, dtip)
+    local lower = ((tip or "") .. " " .. (dtip or "")):lower()
+    if lower:find("nemesis", 1, true) then return true end
+    if lower:find("enemy", 1, true) and lower:find("group", 1, true) then return true end
+    if lower:find("chest", 1, true) and (lower:find("bonus", 1, true) or lower:find("nemesis", 1, true)) then return true end
+    if lower:find("bountiful", 1, true) then return true end
+    if lower:find("pactsworn", 1, true) then return true end
+    if lower:find("wasteland", 1, true) then return true end
+    if lower:find("strongbox", 1, true) then return true end
+    if lower:find("coffer", 1, true) then return true end
+    return false
+end
+
+--- Fallback: other widgets in the delve scenario widget set (FillUpFrames, DiscreteProgress, IconAndText).
+--- @param setID number
+--- @return table|nil
+local function ScanDelveWidgetSetForNemesis(setID)
+    if not setID or not (C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID) then return nil end
+    local wOk, widgets = pcall(C_UIWidgetManager.GetAllWidgetsBySetID, setID)
+    if not wOk or type(widgets) ~= "table" then return nil end
+    local bestFill, bestDiscrete, bestIconText
+
+    for _, wInfo in pairs(widgets) do
+        local widgetID = (type(wInfo) == "table" and type(wInfo.widgetID) == "number") and wInfo.widgetID
+            or (type(wInfo) == "number" and wInfo > 0) and wInfo
+        local wType = type(wInfo) == "table" and wInfo.widgetType
+        if widgetID and (not wType or wType ~= WIDGET_TYPE_SCENARIO_HEADER_DELVES) then
+            if C_UIWidgetManager.GetFillUpFramesWidgetVisualizationInfo then
+                local ok, info = pcall(C_UIWidgetManager.GetFillUpFramesWidgetVisualizationInfo, widgetID)
+                if ok and info and type(info) == "table" and type(info.numTotalFrames) == "number"
+                    and info.numTotalFrames >= 1 and info.numTotalFrames <= NEMESIS_GROUPS_MAX then
+                    local full = type(info.numFullFrames) == "number" and info.numFullFrames or 0
+                    local total = info.numTotalFrames
+                    full = math.min(math.max(full, 0), total)
+                    local remaining = total - full
+                    bestFill = {
+                        remaining  = remaining,
+                        total      = total,
+                        isComplete = (remaining <= 0 and total > 0),
+                        hasData    = total > 0,
+                    }
+                end
+            end
+
+            if C_UIWidgetManager.GetDiscreteProgressStepsVisualizationInfo then
+                local ok, info = pcall(C_UIWidgetManager.GetDiscreteProgressStepsVisualizationInfo, widgetID)
+                if ok and info and type(info) == "table" and type(info.progressMax) == "number"
+                    and info.progressMax >= 1 and info.progressMax <= NEMESIS_GROUPS_MAX then
+                    local vmin = type(info.progressMin) == "number" and info.progressMin or 0
+                    local pv = type(info.progressVal) == "number" and info.progressVal or vmin
+                    local total = info.progressMax - vmin
+                    if total >= 1 then
+                        local completed = math.max(0, math.min(pv - vmin, total))
+                        local remaining = math.max(0, total - completed)
+                        local tip = TooltipLooksLikeNemesisGroups(info.tooltip, info.dynamicTooltip)
+                        if tip then
+                            bestDiscrete = {
+                                remaining  = remaining,
+                                total      = total,
+                                isComplete = (remaining <= 0 and total > 0),
+                                hasData    = true,
+                            }
+                        end
+                    end
+                end
+            end
+
+            if C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo then
+                local ok, info = pcall(C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo, widgetID)
+                if ok and info and type(info) == "table" and type(info.text) == "string" then
+                    local trimmed = info.text:match("^%s*(.-)%s*$") or ""
+                    local num = tonumber(trimmed)
+                    if num ~= nil and num >= 0 and num <= NEMESIS_GROUPS_MAX then
+                        local tipOk = TooltipLooksLikeNemesisGroups(info.tooltip, info.dynamicTooltip)
+                        if tipOk or num == 0 or (num >= 1 and num <= 15) then
+                            bestIconText = {
+                                remaining  = num,
+                                total      = nil,
+                                isComplete = (num == 0),
+                                hasData    = true,
+                            }
+                        end
+                    end
+                end
+            end
+
+            if not bestIconText and C_UIWidgetManager.GetTextWithStateWidgetVisualizationInfo then
+                local ok, info = pcall(C_UIWidgetManager.GetTextWithStateWidgetVisualizationInfo, widgetID)
+                if ok and info and type(info) == "table" and type(info.text) == "string" then
+                    local trimmed = info.text:match("^%s*(.-)%s*$") or ""
+                    local num = tonumber(trimmed)
+                    if num ~= nil and num >= 0 and num <= NEMESIS_GROUPS_MAX then
+                        local tipOk = TooltipLooksLikeNemesisGroups(info.tooltip, info.dynamicTooltip)
+                        if tipOk or num == 0 or (num >= 1 and num <= 15) then
+                            bestIconText = {
+                                remaining  = num,
+                                total      = nil,
+                                isComplete = (num == 0),
+                                hasData    = true,
+                            }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if bestFill and bestFill.hasData then return bestFill end
+    if bestDiscrete and bestDiscrete.hasData then return bestDiscrete end
+    if bestIconText and bestIconText.hasData then return bestIconText end
+    return nil
 end
 
 --- Build affix list and tier tooltip spell from delve header widget.
@@ -229,18 +522,34 @@ local function CollectDelveQuests(ctx)
     return out
 end
 
---- Single read of delve header widget: affixes, tier spell, lives, life icon. Safe when not in a delve.
---- @return table|nil { affixes, tierSpellID, livesRemaining, livesIconFileID } — affixes may be nil if empty
+--- Single read of delve header widget: affixes, tier spell, lives, life icon, Nemesis groups. Safe when not in a delve.
+--- @return table { affixes, tierSpellID, livesRemaining, livesIconFileID, nemesisGroupsRemaining, nemesisGroupsTotal, nemesisIsComplete, nemesisHasData }
 function addon.GetDelveScenarioHeaderMetadata()
     local result = {
-        affixes           = nil,
-        tierSpellID       = nil,
-        livesRemaining    = nil,
-        livesIconFileID   = nil,
+        affixes                = nil,
+        tierSpellID            = nil,
+        livesRemaining         = nil,
+        livesIconFileID        = nil,
+        nemesisGroupsRemaining = nil,
+        nemesisGroupsTotal     = nil,
+        nemesisIsComplete      = nil,
+        nemesisHasData         = false,
     }
-    if not addon.IsDelveActive() then return result end
+    if not ShouldReadDelveScenarioWidgets() then
+        -- Left the delve: drop the completion cache so a re-entry starts clean.
+        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed = nil, 0, false
+        return result
+    end
 
-    local widgetInfo = GetDelveHeaderWidgetInfo()
+    -- Per-scenario key; reset cache when the player changes delve.
+    local scenarioKey = (C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")) or 0
+    if scenarioKey ~= nemesisCache.key then
+        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed = scenarioKey, 0, false
+    end
+
+    local setIDs = GetAllDelveScenarioWidgetSetIDs()
+    local allHeaders = CollectVisibleDelveHeaders(setIDs)
+    local widgetInfo = allHeaders[1]
     if widgetInfo then
         result.livesRemaining = ParseDelveLivesRemaining(widgetInfo)
         result.livesIconFileID = GetDelveLivesIconFileID(widgetInfo)
@@ -249,6 +558,48 @@ function addon.GetDelveScenarioHeaderMetadata()
         if #affixes > 0 then
             result.affixes = affixes
         end
+    end
+
+    local function adopt(parsed)
+        if not parsed then return false end
+        result.nemesisGroupsRemaining = parsed.remaining
+        result.nemesisGroupsTotal = parsed.total
+        result.nemesisIsComplete = parsed.isComplete
+        result.nemesisHasData = true
+        return true
+    end
+
+    -- Priority: affix spell stackDisplay / "remaining: N" (zQuestLog pattern), then currency runs, then sibling widgets.
+    for _, wi in ipairs(allHeaders) do
+        if adopt(ParseNemesisFromDelveSpells(wi)) then break end
+    end
+    if not result.nemesisHasData then
+        for _, wi in ipairs(allHeaders) do
+            if adopt(ParseNemesisFromScenarioHeaderCurrencies(wi)) then break end
+        end
+    end
+    if not result.nemesisHasData then
+        for _, setID in ipairs(setIDs) do
+            if adopt(ScanDelveWidgetSetForNemesis(setID)) then break end
+        end
+    end
+
+    -- Remember progress so we can render the completed state after Blizzard drops the affix spell.
+    if result.nemesisHasData then
+        local rem = result.nemesisGroupsRemaining
+        if type(rem) == "number" and rem > nemesisCache.seenMax then
+            nemesisCache.seenMax = rem
+        end
+        if result.nemesisIsComplete or (type(rem) == "number" and rem <= 0) then
+            nemesisCache.completed = true
+        end
+    elseif nemesisCache.seenMax > 0 then
+        -- Data vanished mid-scenario but we saw Nemesis earlier — treat as complete.
+        result.nemesisGroupsRemaining = 0
+        result.nemesisGroupsTotal = nemesisCache.seenMax
+        result.nemesisIsComplete = true
+        result.nemesisHasData = true
+        nemesisCache.completed = true
     end
 
     if not result.affixes then
@@ -288,6 +639,42 @@ function addon.FormatDelveLivesHeartsForTitle(count, iconFileID)
         iconSeg = "|cffff5555\226\153\165|r"
     end
     return iconSeg .. " " .. tostring(math.floor(count))
+end
+
+--- Bundled Nemesis texture (Interface\AddOns\HorizonSuite\assets\icons\nemesis.tga, 64x64 TGA).
+local NEMESIS_CUSTOM_TEXTURE_PATH = "Interface\\AddOns\\HorizonSuite\\assets\\icons\\nemesis"
+
+--- Nemesis bonus-chest: bundled icon + remaining count, or a single ReadyCheck when complete.
+--- @param remaining number|nil Groups not yet cleared
+--- @param total number|nil Unused (kept for call-site compatibility)
+--- @param isComplete boolean|nil All groups cleared — renders a single green checkmark
+--- @return string Rich text for FontString SetText; empty when nothing to show
+function addon.FormatDelveNemesisGroupsForTitle(remaining, total, isComplete)
+    local sz = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
+    if isComplete then
+        return ("|TInterface\\RaidFrame\\ReadyCheck-Ready:%d:%d:0:-1|t"):format(sz, sz)
+    end
+    if type(remaining) ~= "number" or remaining < 1 then return "" end
+    local n = math.min(math.floor(remaining), NEMESIS_GROUPS_MAX)
+    if n < 1 then return "" end
+    return ("|T%s:%d:%d:0:-1|t %d"):format(NEMESIS_CUSTOM_TEXTURE_PATH, sz, sz, n)
+end
+
+--- Debug snapshot for slash commands: whether widgets are readable + set IDs + delve header count.
+--- @return table
+function addon.GetDelveScenarioWidgetDebugSnapshot()
+    local headers = CollectVisibleDelveHeaders()
+    local ids = GetAllDelveScenarioWidgetSetIDs()
+    local idStr = {}
+    for i, id in ipairs(ids) do
+        idStr[i] = tostring(id)
+    end
+    return {
+        shouldRead    = ShouldReadDelveScenarioWidgets(),
+        isDelveActive = addon.IsDelveActive(),
+        setIDs        = table.concat(idStr, ","),
+        headerCount   = #headers,
+    }
 end
 
 addon.CollectDelveQuests = CollectDelveQuests

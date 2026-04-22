@@ -121,7 +121,7 @@ local function ShowFocusShortHelp()
 end
 
 local function ShowFocusDebugHelp()
-    HSPrint("Focus debug commands (/h debug focus [cmd]):")
+    HSPrint("Focus debug commands (/h debug focus [cmd] — or /hfs delvedebug for delve diagnostics):")
     HSPrint("  scendebug - Scenario timer debug (also: /h scenario debug)")
     HSPrint("  devmode - Show Blizzard tracker alongside Focus for comparison")
     HSPrint("  wqdebug, nearbydebug, headercountdebug, groupdebug")
@@ -912,6 +912,21 @@ local function HandleFocusDebugSlash(msg)
 
     elseif cmd == "delvedebug" then
         HSPrint("|cFF00CCFF--- Delve / Tier debug (run inside a Delve) ---|r")
+        local function GetStepAndTrackerSetIDs()
+            local stepSetID, objSetID
+            if C_Scenario and C_Scenario.GetStepInfo then
+                local ok, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
+                if ok and t and type(t) == "table" and #t >= 12 then
+                    local ws = t[12]
+                    if type(ws) == "number" and ws ~= 0 then stepSetID = ws end
+                end
+            end
+            if C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
+                local ok, s = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
+                if ok and type(s) == "number" then objSetID = s end
+            end
+            return stepSetID, objSetID
+        end
         if C_PartyInfo and C_PartyInfo.IsDelveInProgress then
             local ok, v = pcall(C_PartyInfo.IsDelveInProgress)
             HSPrint("IsDelveInProgress: " .. tostring(ok and v or (ok and "false") or ("error: " .. tostring(v))))
@@ -929,15 +944,33 @@ local function HandleFocusDebugSlash(msg)
                 HSPrint("GetCVarTableValue(lastSelectedTieredEntranceTier, pdeID=" .. tostring(pdeID) .. "): " .. (vOk and tostring(tier) or ("error: " .. tostring(tier))))
             end
         end
-        if GetCVarNumberOrDefault then
-            local ok, cvarTier = pcall(GetCVarNumberOrDefault, "lastSelectedDelvesTier", 1)
-            HSPrint("GetCVarNumberOrDefault(lastSelectedDelvesTier, 1): " .. (ok and tostring(cvarTier) or ("error: " .. tostring(cvarTier))))
+        -- Midnight: GetCVarNumberOrDefault may throw (CvarUtil expects another signature); use GetCVar for debug.
+        if GetCVar then
+            local raw = GetCVar("lastSelectedDelvesTier")
+            local n = raw and tonumber(raw)
+            HSPrint("GetCVar(lastSelectedDelvesTier): " .. tostring(raw) .. (n and (" (number " .. tostring(n) .. ")") or ""))
         end
         if GetInstanceInfo then
             local ok, name, instType, diffID, diffName = pcall(GetInstanceInfo)
             if ok then
                 HSPrint("GetInstanceInfo: name=" .. tostring(name) .. " type=" .. tostring(instType) .. " diffID=" .. tostring(diffID) .. " diffName=" .. tostring(diffName))
             end
+        end
+        if addon.GetDelveScenarioHeaderMetadata then
+            local meta = addon.GetDelveScenarioHeaderMetadata()
+            if meta then
+                HSPrint("GetDelveScenarioHeaderMetadata: nemesisHasData=" .. tostring(meta.nemesisHasData)
+                    .. " remaining=" .. tostring(meta.nemesisGroupsRemaining)
+                    .. " total=" .. tostring(meta.nemesisGroupsTotal)
+                    .. " complete=" .. tostring(meta.nemesisIsComplete))
+            end
+        end
+        if addon.GetDelveScenarioWidgetDebugSnapshot then
+            local snap = addon.GetDelveScenarioWidgetDebugSnapshot()
+            HSPrint("Delve widgets: shouldRead=" .. tostring(snap.shouldRead)
+                .. " isDelveActive=" .. tostring(snap.isDelveActive)
+                .. " setIDs=[" .. tostring(snap.setIDs) .. "]"
+                .. " headerWidgets=" .. tostring(snap.headerCount))
         end
         if addon.GetDelvesAffixes then
             local affixes = addon.GetDelvesAffixes()
@@ -948,18 +981,7 @@ local function HandleFocusDebugSlash(msg)
             else
                 HSPrint("GetDelvesAffixes: nil or empty")
                 if C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
-                    local stepSetID, objSetID
-                    if C_Scenario and C_Scenario.GetStepInfo then
-                        local ok, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
-                        if ok and t and type(t) == "table" and #t >= 12 then
-                            local ws = t[12]
-                            if type(ws) == "number" and ws ~= 0 then stepSetID = ws end
-                        end
-                    end
-                    if C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
-                        local ok, s = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-                        if ok and s and type(s) == "number" then objSetID = s end
-                    end
+                    local stepSetID, objSetID = GetStepAndTrackerSetIDs()
                     HSPrint(("  widgetSetID: GetStepInfo=%s GetObjectiveTracker=%s"):format(
                         stepSetID and tostring(stepSetID) or "nil",
                         objSetID and tostring(objSetID) or "nil"))
@@ -1144,26 +1166,51 @@ local function HandleFocusDebugSlash(msg)
                     if C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo then
                         local ok, info = pcall(C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo, widgetID)
                         if ok and info and type(info) == "table" and ((info.headerText and info.headerText ~= "") or (info.tierText and info.tierText ~= "")) then
-                            HSPrint(("      ScenarioHeaderDelves: header=%q tier=%q tooltip=%q spells=%s"):format(
+                            HSPrint(("      ScenarioHeaderDelves: header=%q tier=%q tooltip=%q spells=%s currencies=%s"):format(
                                 ShortText(info.headerText, 50), ShortText(info.tierText, 20), ShortText(info.tooltip, 60),
-                                tostring(info.spells and #info.spells or 0)))
+                                tostring(info.spells and #info.spells or 0),
+                                tostring(info.currencies and #info.currencies or 0)))
+                            if type(info.currencies) == "table" then
+                                for ci, cur in ipairs(info.currencies) do
+                                    if type(cur) == "table" then
+                                        HSPrint(("        currency[%d]: text=%q icon=%s state=%s tooltip=%q"):format(
+                                            ci,
+                                            ShortText(cur.text, 20),
+                                            tostring(cur.iconFileID),
+                                            tostring(cur.textEnabledState),
+                                            ShortText(cur.tooltip, 40)))
+                                    end
+                                end
+                            end
+                            if type(info.spells) == "table" then
+                                for si, sp in ipairs(info.spells) do
+                                    if type(sp) == "table" then
+                                        local sname = (addon.GetSpellNameAndIcon and addon.GetSpellNameAndIcon(sp.spellID)) or ""
+                                        local descCount = ""
+                                        if (not sp.stackDisplay or sp.stackDisplay == 0)
+                                            and type(sp.spellID) == "number" and sp.spellID > 0
+                                            and C_Spell and C_Spell.GetSpellDescription then
+                                            local dOk, desc = pcall(C_Spell.GetSpellDescription, sp.spellID)
+                                            if dOk and type(desc) == "string" then
+                                                local n = desc:match("remaining[^%d]+(%d+)")
+                                                if n then descCount = " descRemaining=" .. n end
+                                            end
+                                        end
+                                        HSPrint(("        spell[%d]: id=%s name=%q stackDisplay=%s%s"):format(
+                                            si,
+                                            tostring(sp.spellID),
+                                            ShortText(sname, 30),
+                                            tostring(sp.stackDisplay),
+                                            descCount))
+                                    end
+                                end
+                            end
                         end
                     end
                 end
             end
         end
-        local stepSetID, objSetID
-        if C_Scenario and C_Scenario.GetStepInfo then
-            local ok, t = pcall(function() return { C_Scenario.GetStepInfo() } end)
-            if ok and t and type(t) == "table" and #t >= 12 then
-                local ws = t[12]
-                if type(ws) == "number" and ws ~= 0 then stepSetID = ws end
-            end
-        end
-        if C_UIWidgetManager and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID then
-            local ok, s = pcall(C_UIWidgetManager.GetObjectiveTrackerWidgetSetID)
-            if ok and s and type(s) == "number" then objSetID = s end
-        end
+        local stepSetID, objSetID = GetStepAndTrackerSetIDs()
         DumpWidgetSet("StepInfo", stepSetID)
         if objSetID ~= stepSetID then
             DumpWidgetSet("ObjectiveTracker", objSetID)
