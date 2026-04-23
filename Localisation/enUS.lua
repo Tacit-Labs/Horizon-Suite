@@ -684,9 +684,9 @@ L["FOCUS_RESET_SPACING"]                                      = "Reset Spacing"
 -- =====================================================================
 -- OptionsData.lua Display — Other
 -- =====================================================================
-L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "Show quest level"
-L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "Show quest level next to title."
-L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "Dim non-focused quests"
+L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "Show Quest Level"
+L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "Show Quest Level Next to Title."
+L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "Dim Non-Focused Quests"
 L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "Slightly dim title, zone, objectives, and section headers that are not focused."
 L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                              = "Dim Unfocused Entries"
 L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"]             = "Click a section header to expand that category."
