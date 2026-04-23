@@ -708,7 +708,7 @@ L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]                       = "New patch notes
 -- =====================================================================
 -- OptionsData.lua Features — World quests
 -- =====================================================================
-L["FOCUS_ZONE_WORLD_QUESTS"]                                  = "Show in-zone world quests"
+L["FOCUS_ZONE_WORLD_QUESTS"]                                  = "Show In-Zone World Quests"
 L["FOCUS_AUTO_ADD_WORLD_QUESTS_YOUR_CURRENT"]                 = "Auto-add world quests in your current zone. When off, only quests you've tracked or world quests you're in close proximity to appear (Blizzard default)."
 
 -- =====================================================================
