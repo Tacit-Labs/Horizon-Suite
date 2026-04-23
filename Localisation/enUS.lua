@@ -710,14 +710,14 @@ L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"]             = "Click a section
 -- =====================================================================
 -- Features — Rare bosses
 -- =====================================================================
-L["UI_SHOW_RARE_BOSSES"]                                      = "Show rare bosses"
+L["UI_SHOW_RARE_BOSSES"]                                      = "Show Rare Bosses"
 L["UI_RARE_BOSS_VIGNETTES_LIST"]                              = "Show rare boss vignettes in the list."
 L["UI_RARE_LOOT"]                                             = "Rare Loot"
 L["UI_TREASURE_ITEM_VIGNETTES_RARE_LOOT"]                     = "Show treasure and item vignettes in the Rare Loot list."
 L["UI_RARE_SOUND_VOLUME"]                                     = "Rare Sound Volume"
 L["UI_VOLUME_OF_RARE_ALERT_SOUND"]                            = "Volume of the rare alert sound (50–200%)."
 L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"]                        = "Boost or reduce the rare alert volume. 100% = normal; 150% = louder."
-L["UI_RARE_ADDED_SOUND"]                                      = "Rare added sound"
+L["UI_RARE_ADDED_SOUND"]                                      = "Rare Added Sound"
 L["UI_PLAY_A_SOUND_A_RARE"]                                   = "Play a sound when a rare is added."
 L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]                       = "New patch notes — open Axis and choose Patch Notes."
 
