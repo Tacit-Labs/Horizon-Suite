@@ -725,6 +725,7 @@ local function FullLayout()
         end
     end
     local toRemove = {}
+    local questRemoved = false
     for key, entry in pairs(activeMap) do
         if not currentIDs[key] then
             if onlyInstanceGroupShown and addon.ClearEntry then
@@ -733,6 +734,9 @@ local function FullLayout()
                 toRemove[#toRemove + 1] = { key = key, entry = entry }
             elseif entry.animState ~= "completing" and entry.animState ~= "fadeout" then
                 addon.SetEntryFadeOut(entry)
+                -- Trigger slide-up animation for remaining entries so they close the gap
+                -- smoothly (mirrors slide-down on quest-accept).
+                questRemoved = true
             end
             activeMap[key] = nil
         end
@@ -1294,8 +1298,12 @@ local function FullLayout()
     if useWQExpand and addon.ApplyGroupExpandSlideDown then
         addon.ApplyGroupExpandSlideDown()
     end
-    -- Slide existing entries that shifted downward to accommodate a newly-accepted quest.
-    if newEntryInserted and shouldAnimateQuestInsert then
+    -- Slide existing entries whose Y changed since the last layout:
+    --   * newEntryInserted → entries shift DOWN to make room for a new quest (slide-down).
+    --   * questRemoved     → entries shift UP to close the gap left by an abandoned/removed
+    --                        quest (slide-up, mirrors the slide-down choreography).
+    -- The slide animation interpolates slideUpStartY → finalY and handles both directions.
+    if (newEntryInserted or questRemoved) and shouldAnimateQuestInsert then
         if preInsertY and next(preInsertY) then
             for i = 1, addon.POOL_SIZE do
                 local e = pool[i]
