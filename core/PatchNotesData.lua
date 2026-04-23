@@ -15,6 +15,39 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.14.0"] = {
+        date = "2026-04-22",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: Delve Nemesis groups indicator — while in a Delve, the main Focus row can show Nemesis enemy groups remaining (and the completed checkmark state).",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Blizzard+ Click Style — clicking a tracked line with the chat window open now shares the item to chat instead of untracking it, Ctrl+Left-click on collection items opens the preview/wardrobe, and Right-click → Open Collections navigates to the correct category and item.",
+            },
+        },
+    },
+
+    ["4.13.0"] = {
+        date = "2026-04-21",
+        {
+            section = "New Features",
+            bullets = {
+                "Insight: Gradient tooltip fonts — item tooltips render in quality-colour gradients; player character tooltips use class-colour gradients.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: Significant performance improvements — quest update events are debounced, rare and treasure vignette scans are consolidated and cached, and layout passes are skipped when position hasn't changed.",
+                "Vista: Minimap button collector now offers alphabetical sorting for a more predictable button order.",
+            },
+        },
+    },
+
     ["4.12.6"] = {
         date = "2026-04-19",
         {
@@ -67,7 +100,7 @@ addon.PATCH_NOTES = {
         {
             section = "Improvements",
             bullets = {
-                "Axis: module name style setting — Horizon (code-name only), Subtitle (e.g. 'Vista – Minimap'), or Descriptive (plain-language only). Applies across options navigation and headers.",
+                "Axis: module name style setting — Horizon (code-name only), Subtitle (e.g. 'Vista – Minimap'), or Simple (plain-language only). Applies across options navigation and headers.",
                 "Focus: with Grow Upwards enabled, section header priority order now flips so High priority sits closest to the Objectives header.",
             },
         },

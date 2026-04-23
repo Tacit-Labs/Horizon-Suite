@@ -725,6 +725,7 @@ local function FullLayout()
         end
     end
     local toRemove = {}
+    local questRemoved = false
     for key, entry in pairs(activeMap) do
         if not currentIDs[key] then
             if onlyInstanceGroupShown and addon.ClearEntry then
@@ -733,6 +734,9 @@ local function FullLayout()
                 toRemove[#toRemove + 1] = { key = key, entry = entry }
             elseif entry.animState ~= "completing" and entry.animState ~= "fadeout" then
                 addon.SetEntryFadeOut(entry)
+                -- Trigger slide-up animation for remaining entries so they close the gap
+                -- smoothly (mirrors slide-down on quest-accept).
+                questRemoved = true
             end
             activeMap[key] = nil
         end
@@ -806,6 +810,39 @@ local function FullLayout()
     -- groups are collapsed so we can skip acquiring entries for them entirely.
     local pcegForAcquire = collapsedFallThrough and addon.focus.collapsed
         and addon.focus.collapse and addon.focus.collapse.panelCollapsedExpandedGroups
+    -- Snapshot Y positions of currently-active entries so we can animate existing entries
+    -- downward when a new quest is inserted above them. Guard: skip when another animation
+    -- path (WQ collapse, WQ expand, category-change reflow) already owns the choreography.
+    local shouldAnimateQuestInsert = addon.GetDB("animations", true)
+        and not useWQCollapse and not useWQExpand and not isCategoryChangeReflow
+    local preInsertY    = shouldAnimateQuestInsert and {} or nil
+    local preInsertYSec = shouldAnimateQuestInsert and {} or nil
+    -- Capture the current scrollOffset alongside the Y snapshot. In grow-up mode the
+    -- scrollOffset shifts to pin the Objectives header on content-height changes; that
+    -- shift visually cancels the scrollChild-local Y delta, so the slide animation must
+    -- subtract the scroll delta from its start Y to avoid an on-screen jump.
+    -- Capture unconditionally: the slide animation uses it (when shouldAnimateQuestInsert
+    -- is true), and the fadeout entries need it too for grow-up screen-position preservation.
+    local preInsertScrollOffset = addon.focus.layout.scrollOffset or 0
+    if preInsertY then
+        for k, e in pairs(activeMap) do
+            -- Only snapshot "active" entries. A "fadein" entry mid-animation already reads
+            -- finalY dynamically each tick, so displacing its finalY causes at most a
+            -- one-frame Y snap. Applying SetEntrySlideUp to a "fadein" entry would also
+            -- conflict with its horizontal slide (slideup uses finalX with no X offset).
+            if e and e.animState == "active" and e.finalY ~= nil then
+                preInsertY[k] = e.finalY
+            end
+        end
+        for i = 1, addon.SECTION_POOL_SIZE do
+            local s = sectionPool[i]
+            if s and s.active and s.groupKey and s.finalY ~= nil then
+                preInsertYSec[s.groupKey] = s.finalY
+            end
+        end
+    end
+    local newlyAcquiredKeys = {}
+    local newEntryInserted  = false
     for _, grp in ipairs(grouped) do
         -- Skip entry acquisition for groups that are collapsed during panel-collapsed fall-through.
         if pcegForAcquire and not pcegForAcquire[grp.key] then
@@ -819,6 +856,8 @@ local function FullLayout()
                     if entry then
                         SafeEntryFadeIn(entry, 0)
                         activeMap[key] = entry
+                        newlyAcquiredKeys[key] = true
+                        newEntryInserted = true
                     end
                 elseif entry.animState == "idle" and not entry.questID and not entry.entryKey then
                     -- Zombie entry left over from a group collapse: reset it for fadein.
@@ -875,7 +914,7 @@ local function FullLayout()
             addon.focus.promotion.prevDaily  = curPriority.DAILY  or {}
             for key in pairs(promotedKeys) do
                 local entry = activeMap[key]
-                if entry and (entry.animState == "active" or entry.animState == "fadein") and entry.finalX and entry.finalY then
+                if entry and entry.animState == "active" and entry.finalX and entry.finalY then
                     addon.SetEntryFadeOut(entry)
                     entry.promotionFadeOut = true
                     promotionFadeOutCount = promotionFadeOutCount + 1
@@ -951,10 +990,8 @@ local function FullLayout()
                 addon.categoryChangeFadeOutCount = nil
                 addon.focus.categoryChange.slideUpStarts = categoryChangeSlideUpStartsNow
                 addon.focus.categoryChange.slideUpStartsSec = categoryChangeSlideUpStartsSecNow
-                -- Invalidate nearby cache so reflow picks up Events in Zone and other fresh data.
+                -- Force rebuild so reflow picks up Events in Zone and other fresh data.
                 addon.focus.nearbyQuestCacheDirty = true
-                addon.focus.nearbyQuestCache = nil
-                addon.focus.nearbyTaskQuestCache = nil
                 if addon.ScheduleRefresh then addon.ScheduleRefresh() end
             end
             -- Hide section headers for groups that are now empty so they don't linger during fade.
@@ -1154,14 +1191,33 @@ local function FullLayout()
                             SafeEntryFadeIn(entry, entryIndex - 1)
                         end
                     end
-                    entry:ClearAllPoints()
-                    entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
+                    -- Skip anchor churn when the entry's position hasn't changed since
+                    -- the previous FullLayout. Cleared in FocusEntryPool reset on pool-release.
+                    if entry.animState == "fadein" then
+                        -- Fadein entry: always anchor at the slide-in offset so the animation
+                        -- engine starts from the correct position on every layout call.
+                        -- _lastEntryX/_lastEntryY are not cached so the final anchor is
+                        -- re-evaluated once the entry transitions to "active".
+                        -- Re-assert alpha=0 so the entry stays invisible between FullLayout calls
+                        -- that fire while the animation is still in progress; the animation engine
+                        -- restores the correct alpha on the very next OnUpdate tick.
+                        local slideInX = (addon.FOCUS_ANIM and addon.FOCUS_ANIM.slideInX) or 20
+                        entry:SetAlpha(0)
+                        entry:ClearAllPoints()
+                        entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX + slideInX, yOff)
+                    elseif entry._lastEntryX ~= entryX or entry._lastEntryY ~= yOff then
+                        entry:ClearAllPoints()
+                        entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
+                        entry._lastEntryX = entryX
+                        entry._lastEntryY = yOff
+                    end
 
                     local sfLeftInset = (blockFrame and blockPos == "top") and addon.GetScaledPadding() or 0
                     local sfVisibleW = addon.GetPanelWidth() - sfLeftInset
                     local entryW = sfVisibleW - entryX - addon.GetScaledContentRightPadding()
-                    if entryW > 0 then
+                    if entryW > 0 and entry._lastEntryWidth ~= entryW then
                         entry:SetWidth(entryW)
+                        entry._lastEntryWidth = entryW
                     end
 
                     -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.
@@ -1249,7 +1305,6 @@ local function FullLayout()
     if useWQExpand and addon.ApplyGroupExpandSlideDown then
         addon.ApplyGroupExpandSlideDown()
     end
-
     if isCategoryChangeReflow and addon.GetDB("animations", true) then
         addon.focus.categoryChange.slideUpRemaining = slideUpCount
         addon.focus.categoryChange.onSlideUpComplete = function()
@@ -1303,6 +1358,78 @@ local function FullLayout()
     addon.focus.layout.scrollBottomOffset = math.max(0, maxScr - addon.focus.layout.scrollOffset)
     addon.ApplyScrollOffset(addon.focus.layout.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
+
+    -- Fading-out entries are anchored to scrollChild at their last finalY but are no
+    -- longer in activeMap, so the placement loop doesn't reposition them. When
+    -- scrollOffset shifts (grow-up content shrink/grow, or a grow-down scroll clamp),
+    -- the fadeout entry rides along with scrollChild and visually slides onto its
+    -- neighbour. Offsetting finalY by the inverse of the scroll delta pins the
+    -- fadeout to its original on-screen position.
+    local fadeoutScrollDelta = (addon.focus.layout.scrollOffset or 0) - preInsertScrollOffset
+    if fadeoutScrollDelta ~= 0 then
+        for i = 1, addon.POOL_SIZE do
+            local e = pool[i]
+            if e and e.animState == "fadeout" and e.finalY ~= nil then
+                e.finalY = e.finalY - fadeoutScrollDelta
+            end
+        end
+    end
+
+    -- Slide existing entries whose Y changed since the last layout:
+    --   * newEntryInserted → entries shift DOWN to make room for a new quest (slide-down).
+    --   * questRemoved     → entries shift UP to close the gap left by an abandoned/removed
+    --                        quest (slide-up, mirrors the slide-down choreography).
+    -- The slide animation interpolates slideUpStartY → finalY and handles both directions.
+    --
+    -- Run this AFTER scrollOffset is applied so we can adjust the start Y by the scroll
+    -- delta: in grow-up mode, scrollOffset shifts to pin the bottom, which in screen space
+    -- already cancels the scrollChild-local Y change. Subtracting the delta from prevY
+    -- keeps the animation start at the correct on-screen position (a no-op in grow-up with
+    -- bottom-pinned content, a normal slide in grow-down or when scroll cannot compensate).
+    if (newEntryInserted or questRemoved) and shouldAnimateQuestInsert then
+        local scrollDelta = (addon.focus.layout.scrollOffset or 0) - preInsertScrollOffset
+        if preInsertY and next(preInsertY) then
+            for i = 1, addon.POOL_SIZE do
+                local e = pool[i]
+                if e and (e.questID or e.entryKey) and e.animState == "active" and e.finalY ~= nil then
+                    local ekey = e.questID or e.entryKey
+                    local prevY = preInsertY[ekey]
+                    if prevY then
+                        local startY = prevY - scrollDelta
+                        if startY ~= e.finalY then
+                            addon.SetEntrySlideUp(e, startY)
+                            -- Reset visual to animation start; the placement loop already set the
+                            -- anchor to finalY, so without this the anim engine would jump back.
+                            if e.finalX ~= nil then
+                                e:ClearAllPoints()
+                                e:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", e.finalX, startY)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if preInsertYSec and next(preInsertYSec) then
+            for i = 1, addon.SECTION_POOL_SIZE do
+                local s = sectionPool[i]
+                if s and s.active and s.groupKey and s.finalY ~= nil then
+                    local prevY = preInsertYSec[s.groupKey]
+                    if prevY then
+                        local startY = prevY - scrollDelta
+                        if startY ~= s.finalY then
+                            s.slideUpStartY  = startY
+                            s.slideUpAnimTime = 0
+                            -- Reset visual to animation start position.
+                            if s.finalX ~= nil then
+                                s:ClearAllPoints()
+                                s:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", s.finalX, startY)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 
     local headerArea
     if addon.GetDB("hideObjectivesHeader", false) then
@@ -1528,4 +1655,72 @@ end
 
 addon.GetPlayerCurrentZoneName = GetPlayerCurrentZoneName
 addon.AcquireEntry        = AcquireEntry
-addon.FullLayout          = FullLayout
+
+-- Opt-in FullLayout profiler, toggled by /hsperf. Any layout above the spike threshold
+-- is logged with a phase breakdown (agg / group / render [populate]).
+local FOCUS_LAYOUT_SPIKE_MS = 20
+local profileEnabled = false
+local profileInstalled = false
+local prof = { agg = 0, group = 0, populate = 0, populateCount = 0 }
+
+local function InstallPhaseTimers()
+    if profileInstalled then return end
+    profileInstalled = true
+    local origRead = addon.ReadTrackedQuests
+    if origRead then
+        addon.ReadTrackedQuests = function(...)
+            if not profileEnabled or not debugprofilestop then return origRead(...) end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origRead(...)
+            prof.agg = prof.agg + (debugprofilestop() - t0)
+            return a, b, c, d
+        end
+    end
+    local origGroup = addon.SortAndGroupQuests
+    if origGroup then
+        addon.SortAndGroupQuests = function(...)
+            if not profileEnabled or not debugprofilestop then return origGroup(...) end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origGroup(...)
+            prof.group = prof.group + (debugprofilestop() - t0)
+            return a, b, c, d
+        end
+    end
+    local origPopulate = addon.PopulateEntry
+    if origPopulate then
+        addon.PopulateEntry = function(...)
+            if not profileEnabled or not debugprofilestop then return origPopulate(...) end
+            local t0 = debugprofilestop()
+            local a, b, c, d = origPopulate(...)
+            prof.populate = prof.populate + (debugprofilestop() - t0)
+            prof.populateCount = prof.populateCount + 1
+            return a, b, c, d
+        end
+    end
+end
+
+local function FullLayoutProfiled()
+    if not profileEnabled then return FullLayout() end
+    InstallPhaseTimers()
+    prof.agg, prof.group, prof.populate, prof.populateCount = 0, 0, 0, 0
+    local t0 = (debugprofilestop and debugprofilestop()) or 0
+    FullLayout()
+    local elapsed = ((debugprofilestop and debugprofilestop()) or 0) - t0
+    if elapsed >= FOCUS_LAYOUT_SPIKE_MS and addon.HSPrint then
+        local render = elapsed - prof.agg - prof.group
+        local renderOther = render - prof.populate
+        addon.HSPrint(("[focus] FullLayout: %.1f ms (agg=%.1f group=%.1f render=%.1f [populate=%.1f/%d other=%.1f])"):format(
+            elapsed, prof.agg, prof.group, render, prof.populate, prof.populateCount, renderOther))
+    end
+end
+
+addon.FullLayout = FullLayoutProfiled
+
+SLASH_HSFOCUSPERF1 = "/hsperf"
+SlashCmdList.HSFOCUSPERF = function()
+    profileEnabled = not profileEnabled
+    if addon.HSPrint then
+        addon.HSPrint(("[focus] layout profiler %s (spike threshold %d ms)"):format(
+            profileEnabled and "ON" or "OFF", FOCUS_LAYOUT_SPIKE_MS))
+    end
+end

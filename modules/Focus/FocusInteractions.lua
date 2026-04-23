@@ -955,6 +955,57 @@ end
 
 addon.FocusInsertLinkIntoChat = FocusInsertLinkIntoChat
 
+--- True when a chat edit box is currently visible/active. Used so Shift+Click-with-chat-open behaves
+--- like native Blizzard (insert link) regardless of the profile's shiftLeft action (e.g. Blizzard+ untrack).
+--- @return boolean
+local function IsChatEditBoxActive()
+    if ChatFrameUtil and ChatFrameUtil.GetActiveWindow then
+        local ok, win = pcall(ChatFrameUtil.GetActiveWindow)
+        if ok and win then return true end
+    end
+    if ChatEdit_GetActiveWindow and type(ChatEdit_GetActiveWindow) == "function" then
+        local ok, win = pcall(ChatEdit_GetActiveWindow)
+        if ok and win then return true end
+    end
+    return false
+end
+
+--- Resolve a chat-share link for a Focus row based on its populated ID fields.
+--- Mirrors the priority of the existing CHATLINK branch so every row type shares the same link
+--- whether the click goes through the shift-chat-link path or the profile "chatLink" action.
+--- @param entry Frame Pool entry (self from OnMouseDown)
+--- @return string|nil
+local function ResolveFocusRowChatLink(entry)
+    if not entry then return nil end
+    if entry.questID and GetQuestLink then
+        local link = GetQuestLink(entry.questID)
+        if link and type(link) == "string" and link ~= "" then return link end
+    end
+    if entry.achievementID and GetAchievementLink then
+        local link = GetAchievementLink(entry.achievementID)
+        if link and type(link) == "string" and link ~= "" then return link end
+    end
+    if entry.endeavorID and C_NeighborhoodInitiative and C_NeighborhoodInitiative.GetInitiativeTaskChatLink then
+        local ok, link = pcall(C_NeighborhoodInitiative.GetInitiativeTaskChatLink, entry.endeavorID)
+        if ok and link and type(link) == "string" and link ~= "" then return link end
+    end
+    if entry.recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
+        local ok, info = pcall(C_TradeSkillUI.GetRecipeInfo, entry.recipeID)
+        if ok and info and type(info) == "table" and info.hyperlink and info.hyperlink ~= "" then
+            return info.hyperlink
+        end
+    end
+    if entry.adventureGuideID and C_PerksActivities and C_PerksActivities.GetPerksActivityChatLink then
+        local ok, link = pcall(C_PerksActivities.GetPerksActivityChatLink, entry.adventureGuideID)
+        if ok and link and type(link) == "string" and link ~= "" then return link end
+    end
+    if entry.appearanceID and entry.entryKey and entry.entryKey:match("^appearance:%d+$") then
+        local dress = GetAppearanceDressLink(entry)
+        if dress and type(dress) == "string" and dress ~= "" then return dress end
+    end
+    return nil
+end
+
 --- Dispatch profile action for tracked non-quest rows (all profiles).
 --- @param action string
 --- @param kind string
@@ -1006,6 +1057,12 @@ local function ExecuteTrackedContentAction(action, kind, entry)
         local printFn = addon.HSPrint or print
         local L = addon.L or {}
         printFn("|cffffcc00" .. (L["FOCUS_TRACKED_CONTENT_CANNOT_SHARE"] or "This entry cannot be shared.") .. "|r")
+    elseif action == "preview" then
+        -- Mirror native Ctrl+Click previews: decor opens the housing preview, recipes open the inspect frame.
+        -- Achievement / endeavor / advguide / rare have no standalone preview and fall through silently.
+        if kind == "decor" then DecorPreview(entry)
+        elseif kind == "recipe" then OpenRecipeEntry(entry)
+        end
     end
 end
 
@@ -1578,6 +1635,9 @@ QUEST_ACTIONS["chatLink"] = function(entry)
     end
 end
 
+-- Quest rows have no standalone preview; no-op keeps the dispatcher shape consistent with appearance/decor.
+QUEST_ACTIONS["preview"] = function(_) end
+
 QUEST_ACTIONS["none"] = function(_) end
 
 -- ============================================================================
@@ -1643,6 +1703,11 @@ APPEARANCE_ACTIONS["chatLink"] = function(entry)
     FocusInsertLinkIntoChat(GetAppearanceDressLink(entry))
 end
 
+-- Preview a tracked appearance in the dressing room (mirrors native Ctrl+Click on item links / wardrobe preview).
+APPEARANCE_ACTIONS["preview"] = function(entry)
+    AppearanceOpenDressingRoom(entry)
+end
+
 APPEARANCE_ACTIONS["none"] = function(_) end
 
 --- Execute a named appearance-row action on a pool entry.
@@ -1697,6 +1762,17 @@ for i = 1, addon.POOL_SIZE do
 
     e:SetScript("OnMouseDown", function(self, button)
         if button == "LeftButton" then
+            -- Chat-window-active short-circuit (native Blizzard behaviour): when the chat edit box is open
+            -- and the modifier matches CHATLINK (Shift by default), always insert a link regardless of the
+            -- current profile action. This prevents Blizzard+'s `shiftLeft -> untrack` from destroying the
+            -- row while the user is trying to paste its link into chat.
+            if IsModifiedClick("CHATLINK") and IsChatEditBoxActive() then
+                local shareLink = ResolveFocusRowChatLink(self)
+                if shareLink then
+                    FocusInsertLinkIntoChat(shareLink)
+                    return
+                end
+            end
             -- Shift+click CHATLINK: only when the click profile maps this combo to Link in chat (not unconditional Blizzard bypass).
             if IsModifiedClick("CHATLINK") and addon.focus and addon.focus.GetQuestClickAction then
                 local profileChat = addon.GetDB("focusClickProfile", "blizzardDefault")

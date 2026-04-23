@@ -223,7 +223,7 @@ function BaseProvider:BuildObjectiveFromCriteria(criteriaInfo)
 
     local dur, start = self:GetTimerInfo(criteriaInfo)
 
-    -- Boolean (0/1) objectives are descriptive — suppress bar data.
+    -- Boolean (0/1) objectives are simple — suppress bar data.
     if numRequired and numRequired <= 1 then
         percent = nil
     end

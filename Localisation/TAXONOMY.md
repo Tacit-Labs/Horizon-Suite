@@ -73,7 +73,7 @@ Adding a new subgroup is fine — extend the table and keep examples in alphabet
 | Suffix         | Meaning                                           | Example                           |
 |----------------|---------------------------------------------------|-----------------------------------|
 | *(none)*       | Primary label (button, checkbox, dropdown)        | `FOCUS_RESET`                     |
-| `_DESC`        | Descriptive body copy under the label             | `VISTA_CLASS_COLOURS_DESC`        |
+| `_DESC`        | Simple body copy under the label             | `VISTA_CLASS_COLOURS_DESC`        |
 | `_TIP`         | Tooltip on hover                                  | `FOCUS_SHOW_ZONE_EVENTS_TIP`      |
 | `_HELP`        | Slash-command help text                           | `PRESENCE_H_ZONE_TEST` *(legacy; prefer `_HELP`)* |
 | `_HINT`        | Inline placeholder / small print                  | `MODULE_RELOAD_HINT`              |

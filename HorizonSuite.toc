@@ -2,7 +2,7 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
-## Version: 4.12.6
+## Version: 4.14.0
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator
 ## IconTexture: Interface\AddOns\HorizonSuite\HorizonLogo
@@ -29,6 +29,7 @@ core/ProfileIO.lua
 core/CoreSlash.lua
 core/PatchNotesData.lua
 core/PatchNotes.lua
+core/NewSettings.lua
 core/MinimapButton.lua
 
 modules/Focus/FocusState.lua

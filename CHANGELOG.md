@@ -10,6 +10,29 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.14.0] – 2026-04-22
+
+### ✨ New Features
+
+- **(Focus) Delve Nemesis groups indicator** — While in a Delve, the main Focus row can show Nemesis enemy groups remaining (and the completed checkmark state).
+
+### 🐛 Fixes
+
+- **(Focus)** Blizzard+ Click Style: clicking a tracked line with the chat window open now shares the item to chat instead of untracking it, Ctrl+Left-click on collection items opens the preview/wardrobe window, and Right-click → Open Collections navigates to the correct category and item instead of the default first tab.
+
+---
+
+## [4.13.0] – 2026-04-21
+
+### ✨ New Features
+- **(Insight) Gradient tooltip fonts** — Item tooltips render in quality-colour gradients; player character tooltips use class-colour gradients.
+
+### 🔧 Improvements
+- **(Focus)** Significant performance improvements — quest update events are debounced, rare and treasure vignette scans are consolidated and cached, and layout passes are skipped when position hasn't changed.
+- **(Vista)** Minimap button collector now offers alphabetical sorting for a more predictable button order.
+
+---
+
 ## [4.12.6] – 2026-04-19
 
 ### 🔧 Improvements
@@ -51,7 +74,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🔧 Improvements
 
-- **(Axis) Module name style** — New setting to control how module names appear: **Horizon** (code-name only, default), **Subtitle** (e.g. "Vista – Minimap"), or **Descriptive** (plain-language name only). Applies across options navigation and section headers.
+- **(Axis) Module name style** — New setting to control how module names appear: **Horizon** (code-name only, default), **Subtitle** (e.g. "Vista – Minimap"), or **Simple** (plain-language name only). Applies across options navigation and section headers.
 - **(Focus) Grow Upwards priority order** — With **Grow Upwards** enabled, section headers now visually flip so High priority sits closest to the Objectives header at the bottom, matching the reversed growth direction.
 
 ### 🐛 Fixes

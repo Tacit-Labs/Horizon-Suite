@@ -1118,9 +1118,13 @@ function addon.DashboardDetailView_Init(env)
                 local optId = opt.dbKey or (opt.type == "presencePreview" and "presencePreview") or (opt.type == "moduleReloadPrompt" and "_module_reload_prompt") or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
                 currentCard.optionIds[optId] = true
 
+                -- Per-setting "(New!)" suffix: declared via `isNew = "<version>"`.
+                -- Display-only for now; ack-on-interaction is intentionally not wired.
+                local displayName = (addon.NewSettings_ResolveDisplayName and addon.NewSettings_ResolveDisplayName(opt, optId)) or opt.name
+
                 local widget
                 if opt.type == "binary" or opt.type == "toggle" then
-                    widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.disabled, opt.tooltip)
+                    widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.disabled, opt.tooltip)
                     if widget then
                         if opt.hidden and type(opt.hidden) == "function" then
                             local origRefresh = widget.Refresh
@@ -1133,7 +1137,7 @@ function addon.DashboardDetailView_Init(env)
                         if widget.Refresh then detailOptionFrames[optId] = widget end
                     end
                 elseif opt.type == "slider" then
-                    widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.min or 0, opt.max or 100, opt.disabled, opt.step or 1, opt.tooltip)
+                    widget = _G.OptionsWidgets_CreateSlider(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.min or 0, opt.max or 100, opt.disabled, opt.step or 1, opt.tooltip)
                     if widget then
                         if opt.hidden and type(opt.hidden) == "function" then
                             local origRefresh = widget.Refresh
@@ -1158,10 +1162,10 @@ function addon.DashboardDetailView_Init(env)
                             tooltip = resetBtn.tooltip,
                         }
                     end
-                    widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, opt.name, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList)
+                    widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "color" then
-                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, opt.name, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
+                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "presencePreview" then
                     local previewWidget = addon.Presence and addon.Presence.CreatePreviewWidget and addon.Presence.CreatePreviewWidget(currentCard.settingsContainer, {
@@ -1191,7 +1195,7 @@ function addon.DashboardDetailView_Init(env)
                             RefreshLinkedTargets(opt.refreshIds)
                         end
                     end
-                    widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, opt.name, onClick, { tooltip = opt.tooltip })
+                    widget = _G.OptionsWidgets_CreateButton(currentCard.settingsContainer, displayName, onClick, { tooltip = opt.tooltip })
                 elseif opt.type == "moduleReloadPrompt" then
                     local container = CreateFrame("Frame", nil, currentCard.settingsContainer)
                     local hint = MakeText(container, L["MODULE_RELOAD_HINT"] or "Reload the interface to finish applying module changes.", 12, 0.65, 0.68, 0.75, "LEFT")

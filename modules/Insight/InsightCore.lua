@@ -146,7 +146,7 @@ local function HookGameTooltipLifecycle()
     GameTooltip:HookScript("OnShow", function(self)
         self._insightPlainShown = true
         -- Reset per-show so re-hover of same unit always reprocesses.
-        self._insightUnitTooltipDedup = nil
+        self._insightUnitTooltipInstance = nil
         self._insightStyled = nil
         if not Insight.IsInsightEnabled() then return end
         if addon.GetDB("insightHideTooltipsInCombat", false) and InCombatLockdown() then
@@ -167,7 +167,7 @@ local function HookGameTooltipLifecycle()
     end)
     GameTooltip:HookScript("OnHide", function(self)
         self._insightPlainShown = false
-        self._insightUnitTooltipDedup = nil
+        self._insightUnitTooltipInstance = nil
         self._insightItemQuality = nil
         self._insightUnitTooltip = nil
         self._insightTooltipType = nil
@@ -175,11 +175,12 @@ local function HookGameTooltipLifecycle()
         if self._insightLineTags then wipe(self._insightLineTags) end
         self._insightLastHideTime = GetTime()
     end)
-    -- Reset dedup guard on every SetUnit so Blizzard periodic refreshes (nameplates,
-    -- target frames) always re-add our custom lines. _insightStyled is NOT cleared here
-    -- because backdrop/font styling persists and doesn't need reapplying per refresh.
+    -- Reset instance token on every SetUnit so Blizzard periodic refreshes
+    -- (nameplates, target frames) always re-process our custom lines even if
+    -- they reuse the same dataInstanceID. _insightStyled is NOT cleared here —
+    -- backdrop/font styling persists and doesn't need reapplying per refresh.
     hooksecurefunc(GameTooltip, "SetUnit", function(self)
-        self._insightUnitTooltipDedup = nil
+        self._insightUnitTooltipInstance = nil
     end)
 end
 
@@ -349,16 +350,21 @@ end
 
 local function OnItemTooltip(tooltip, data)
     if not Insight.IsInsightEnabled() then return end
-
     local itemID = data and data.id
     if not itemID then return end
 
-    -- Item identity: quality-colored border and separator tint
-    local quality = data and data.quality
-    if not quality and C_Item and C_Item.GetItemInfo then
-        local info = C_Item.GetItemInfo(itemID)
-        quality = info and info.quality
+    -- Base quality: TDP data.quality first, falling back to the third return
+    -- of C_Item.GetItemInfo (it's multi-return, not a table).
+    local baseQuality = data.quality
+    if not baseQuality and C_Item and C_Item.GetItemInfo then
+        local _, _, q = C_Item.GetItemInfo(itemID)
+        baseQuality = q
     end
+    -- Effective gradient quality:
+    --   1. Upgrade-track tier (Veteran/Champion/Hero/Myth → Epic, etc.) — gear only
+    --   2. Else fall through to the item's base quality as Blizzard reports it
+    local quality = Insight.DetectUpgradeTrackQuality(tooltip) or baseQuality
+
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
         if r then
@@ -371,8 +377,11 @@ local function OnItemTooltip(tooltip, data)
         tooltip._insightItemQuality = nil
     end
 
-    -- Comparison tooltips get quality borders (above) but no line enrichment:
-    -- adding lines triggers Blizzard to reposition them, re-firing Show() repeatedly.
+    -- Gradient is width-neutral (no AddLine), safe for ShoppingTooltip1/2.
+    -- One sync apply seeds the title; InstallItemNameGradientHook keeps it
+    -- alive across Blizzard's later SetText / SetTextColor passes.
+    Insight.ApplyItemNameGradient(tooltip)
+
     if tooltip == ShoppingTooltip1 or tooltip == ShoppingTooltip2 then return end
 
     tooltip._insightItemMetadata = true
@@ -387,9 +396,13 @@ local function OnUnitTooltip(tooltip, data)
     if tooltip ~= GameTooltip or not Insight.IsInsightEnabled() then return end
     local unit = ResolveTooltipUnitToken(tooltip)
     if not unit then return end
-    -- Midnight: never compare UnitGUID from tainted paths (secret string). Dedupe via hook-owned flag instead.
-    if tooltip._insightUnitTooltipDedup == true then return end
-    tooltip._insightUnitTooltipDedup = true
+    -- Dedupe by Blizzard's dataInstanceID (non-secret, bumps per tooltip display),
+    -- not a sticky boolean. A fade-out→re-hover transition can refresh the
+    -- tooltip contents without firing SetUnit/OnShow — the old boolean flag
+    -- stayed `true` and silently blocked re-processing for the new unit.
+    local instanceID = data and data.dataInstanceID
+    if instanceID and tooltip._insightUnitTooltipInstance == instanceID then return end
+    tooltip._insightUnitTooltipInstance = instanceID or true
     ProcessUnitTooltip(tooltip)
 end
 
@@ -669,6 +682,7 @@ function Insight.Init()
             if tt ~= GameTooltip then
                 HookTooltipLifecycle(tt)
             end
+            Insight.InstallItemNameGradientHook(tt)
         end
     end
 

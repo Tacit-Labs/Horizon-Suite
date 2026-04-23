@@ -1190,6 +1190,13 @@ function addon.GetQuestBaseCategory(questID)
         if qc == Enum.QuestClassification.Campaign then return "CAMPAIGN" end
         if qc == Enum.QuestClassification.Recurring then
             if IsPreyQuest(questID) then return "PREY" end
+            -- Recurring covers both daily and weekly quests; disambiguate via frequency.
+            local freq = addon.GetQuestFrequency(questID)
+            if freq == (Enum.QuestFrequency and Enum.QuestFrequency.Daily)
+                or freq == 1
+                or (LE_QUEST_FREQUENCY_DAILY and freq == LE_QUEST_FREQUENCY_DAILY) then
+                return "DAILY"
+            end
             return "WEEKLY"
         end
         if qc == Enum.QuestClassification.Meta then

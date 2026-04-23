@@ -27,7 +27,7 @@ local FOOTER_LINK_ICON_INSET = 4
 local FOOTER_LINK_GAP = 10
 
 --- Returns the display name for a module key based on the moduleNameDisplay DB setting.
---- Modes: "horizon" (code-name only), "subtitle" (code-name – descriptor), "descriptive" (descriptor only).
+--- Modes: "horizon" (code-name only), "subtitle" (code-name – descriptor), "simple" (descriptor only).
 --- @param moduleKey string|nil
 --- @return string
 function addon.GetModuleDisplayName(moduleKey)
@@ -36,10 +36,10 @@ function addon.GetModuleDisplayName(moduleKey)
     local codeName = (bd.module and bd.module[moduleKey]) or moduleKey
     local mode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
     if mode == "subtitle" then
-        local desc = bd.descriptive and bd.descriptive[moduleKey]
+        local desc = bd.simple and bd.simple[moduleKey]
         return desc and (codeName .. " \226\128\147 " .. desc) or codeName
-    elseif mode == "descriptive" then
-        return (bd.descriptive and bd.descriptive[moduleKey]) or codeName
+    elseif mode == "simple" then
+        return (bd.simple and bd.simple[moduleKey]) or codeName
     end
     return codeName
 end
@@ -55,14 +55,14 @@ function addon.FormatModuleNameForSidebar(moduleKey)
     local codeName = (bd.module and bd.module[moduleKey] or moduleKey):upper()
     local mode = addon.GetDB and addon.GetDB("moduleNameDisplay", "horizon") or "horizon"
     if mode == "subtitle" then
-        local desc = bd.descriptive and bd.descriptive[moduleKey]
+        local desc = bd.simple and bd.simple[moduleKey]
         if desc then
             -- Muted grayish colour for the descriptor; kept in mixed case to further
             -- differentiate from the uppercased code-name.
             return codeName .. " |cff505065\226\128\147 " .. desc .. "|r"
         end
-    elseif mode == "descriptive" then
-        return (bd.descriptive and bd.descriptive[moduleKey] or codeName):upper()
+    elseif mode == "simple" then
+        return (bd.simple and bd.simple[moduleKey] or codeName):upper()
     end
     return codeName
 end

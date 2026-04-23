@@ -96,7 +96,7 @@ L["AXIS_MODULE_NAME_DISPLAY"]                                 = "Module name sty
 L["AXIS_MODULE_NAME_DISPLAY_DESC"]                            = "How module names appear in the settings panel navigation and search filter."
 L["AXIS_MODULE_NAME_HORIZON"]                                 = "Horizon"
 L["AXIS_MODULE_NAME_SUBTITLE"]                                = "Subtitle"
-L["AXIS_MODULE_NAME_DESCRIPTIVE"]                             = "Descriptive"
+L["AXIS_MODULE_NAME_SIMPLE"]                             = "Simple"
 L["MODULE_RELOAD_HINT"]                                       = "Reload the interface to finish applying module changes."
 L["RELOAD_UI"]                                                = "Reload UI"
 
@@ -1030,6 +1030,7 @@ L["FOCUS_CLICK_ACTION_SHARE"]                                 = "Share with part
 L["FOCUS_CLICK_ACTION_ABANDON"]                               = "Abandon quest"
 L["FOCUS_CLICK_ACTION_WOWHEAD"]                               = "WoWhead URL"
 L["FOCUS_CLICK_ACTION_CHAT_LINK"]                             = "Link in chat"
+L["FOCUS_CLICK_ACTION_PREVIEW"]                               = "Preview"
 L["FOCUS_APPEARANCE_CANNOT_SHARE"]                            = "Appearances cannot be shared like quests."
 L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"]                         = "Quest details will open when you leave combat."
 L["FOCUS_SHARE_PARTY"]                                        = "Share with party"
@@ -1524,6 +1525,8 @@ L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "Size of collect
 -- =====================================================================
 L["VISTA_COLLECT_HORIZON_MINIMAP"]                            = "Include Horizon minimap icon"
 L["VISTA_COLLECT_HORIZON_MINIMAP_DESC"]                       = "Put Horizon's own minimap icon in the managed addon bar, right-click panel, or drawer instead of leaving it on the minimap edge."
+L["VISTA_SORT_BUTTONS_ALPHA"]                                 = "Sort buttons alphabetically"
+L["VISTA_SORT_BUTTONS_ALPHA_DESC"]                            = "Sort collected addon minimap buttons alphabetically by name."
 L["VISTA_ADDON_BUTTONS"]                                      = "Addon Buttons"
 L["VISTA_MINIMAP_ADDON_BUTTONS"]                              = "Minimap Addon Buttons"
 L["VISTA_BUTTON_MANAGEMENT"]                                  = "Button Management"
