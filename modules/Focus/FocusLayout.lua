@@ -817,6 +817,11 @@ local function FullLayout()
         and not useWQCollapse and not useWQExpand and not isCategoryChangeReflow
     local preInsertY    = shouldAnimateQuestInsert and {} or nil
     local preInsertYSec = shouldAnimateQuestInsert and {} or nil
+    -- Capture the current scrollOffset alongside the Y snapshot. In grow-up mode the
+    -- scrollOffset shifts to pin the Objectives header on content-height changes; that
+    -- shift visually cancels the scrollChild-local Y delta, so the slide animation must
+    -- subtract the scroll delta from its start Y to avoid an on-screen jump.
+    local preInsertScrollOffset = shouldAnimateQuestInsert and (addon.focus.layout.scrollOffset or 0) or 0
     if preInsertY then
         for k, e in pairs(activeMap) do
             -- Only snapshot "active" entries. A "fadein" entry mid-animation already reads
@@ -1298,49 +1303,6 @@ local function FullLayout()
     if useWQExpand and addon.ApplyGroupExpandSlideDown then
         addon.ApplyGroupExpandSlideDown()
     end
-    -- Slide existing entries whose Y changed since the last layout:
-    --   * newEntryInserted → entries shift DOWN to make room for a new quest (slide-down).
-    --   * questRemoved     → entries shift UP to close the gap left by an abandoned/removed
-    --                        quest (slide-up, mirrors the slide-down choreography).
-    -- The slide animation interpolates slideUpStartY → finalY and handles both directions.
-    if (newEntryInserted or questRemoved) and shouldAnimateQuestInsert then
-        if preInsertY and next(preInsertY) then
-            for i = 1, addon.POOL_SIZE do
-                local e = pool[i]
-                if e and (e.questID or e.entryKey) and e.animState == "active" and e.finalY ~= nil then
-                    local ekey = e.questID or e.entryKey
-                    local prevY = preInsertY[ekey]
-                    if prevY and prevY ~= e.finalY then
-                        addon.SetEntrySlideUp(e, prevY)
-                        -- Reset visual to animation start; the placement loop already set the
-                        -- anchor to finalY, so without this the anim engine would jump back.
-                        if e.finalX ~= nil then
-                            e:ClearAllPoints()
-                            e:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", e.finalX, prevY)
-                        end
-                    end
-                end
-            end
-        end
-        if preInsertYSec and next(preInsertYSec) then
-            for i = 1, addon.SECTION_POOL_SIZE do
-                local s = sectionPool[i]
-                if s and s.active and s.groupKey and s.finalY ~= nil then
-                    local prevY = preInsertYSec[s.groupKey]
-                    if prevY and prevY ~= s.finalY then
-                        s.slideUpStartY  = prevY
-                        s.slideUpAnimTime = 0
-                        -- Reset visual to animation start position.
-                        if s.finalX ~= nil then
-                            s:ClearAllPoints()
-                            s:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", s.finalX, prevY)
-                        end
-                    end
-                end
-            end
-        end
-    end
-
     if isCategoryChangeReflow and addon.GetDB("animations", true) then
         addon.focus.categoryChange.slideUpRemaining = slideUpCount
         addon.focus.categoryChange.onSlideUpComplete = function()
@@ -1394,6 +1356,62 @@ local function FullLayout()
     addon.focus.layout.scrollBottomOffset = math.max(0, maxScr - addon.focus.layout.scrollOffset)
     addon.ApplyScrollOffset(addon.focus.layout.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
+
+    -- Slide existing entries whose Y changed since the last layout:
+    --   * newEntryInserted → entries shift DOWN to make room for a new quest (slide-down).
+    --   * questRemoved     → entries shift UP to close the gap left by an abandoned/removed
+    --                        quest (slide-up, mirrors the slide-down choreography).
+    -- The slide animation interpolates slideUpStartY → finalY and handles both directions.
+    --
+    -- Run this AFTER scrollOffset is applied so we can adjust the start Y by the scroll
+    -- delta: in grow-up mode, scrollOffset shifts to pin the bottom, which in screen space
+    -- already cancels the scrollChild-local Y change. Subtracting the delta from prevY
+    -- keeps the animation start at the correct on-screen position (a no-op in grow-up with
+    -- bottom-pinned content, a normal slide in grow-down or when scroll cannot compensate).
+    if (newEntryInserted or questRemoved) and shouldAnimateQuestInsert then
+        local scrollDelta = (addon.focus.layout.scrollOffset or 0) - preInsertScrollOffset
+        if preInsertY and next(preInsertY) then
+            for i = 1, addon.POOL_SIZE do
+                local e = pool[i]
+                if e and (e.questID or e.entryKey) and e.animState == "active" and e.finalY ~= nil then
+                    local ekey = e.questID or e.entryKey
+                    local prevY = preInsertY[ekey]
+                    if prevY then
+                        local startY = prevY - scrollDelta
+                        if startY ~= e.finalY then
+                            addon.SetEntrySlideUp(e, startY)
+                            -- Reset visual to animation start; the placement loop already set the
+                            -- anchor to finalY, so without this the anim engine would jump back.
+                            if e.finalX ~= nil then
+                                e:ClearAllPoints()
+                                e:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", e.finalX, startY)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if preInsertYSec and next(preInsertYSec) then
+            for i = 1, addon.SECTION_POOL_SIZE do
+                local s = sectionPool[i]
+                if s and s.active and s.groupKey and s.finalY ~= nil then
+                    local prevY = preInsertYSec[s.groupKey]
+                    if prevY then
+                        local startY = prevY - scrollDelta
+                        if startY ~= s.finalY then
+                            s.slideUpStartY  = startY
+                            s.slideUpAnimTime = 0
+                            -- Reset visual to animation start position.
+                            if s.finalX ~= nil then
+                                s:ClearAllPoints()
+                                s:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", s.finalX, startY)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 
     local headerArea
     if addon.GetDB("hideObjectivesHeader", false) then
