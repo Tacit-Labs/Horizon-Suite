@@ -806,6 +806,28 @@ local function FullLayout()
     -- groups are collapsed so we can skip acquiring entries for them entirely.
     local pcegForAcquire = collapsedFallThrough and addon.focus.collapsed
         and addon.focus.collapse and addon.focus.collapse.panelCollapsedExpandedGroups
+    -- Snapshot Y positions of currently-active entries so we can animate existing entries
+    -- downward when a new quest is inserted above them. Guard: skip when another animation
+    -- path (WQ collapse, WQ expand, category-change reflow) already owns the choreography.
+    local shouldAnimateQuestInsert = addon.GetDB("animations", true)
+        and not useWQCollapse and not useWQExpand and not isCategoryChangeReflow
+    local preInsertY    = shouldAnimateQuestInsert and {} or nil
+    local preInsertYSec = shouldAnimateQuestInsert and {} or nil
+    if preInsertY then
+        for k, e in pairs(activeMap) do
+            if e and e.animState == "active" and e.finalY ~= nil then
+                preInsertY[k] = e.finalY
+            end
+        end
+        for i = 1, addon.SECTION_POOL_SIZE do
+            local s = sectionPool[i]
+            if s and s.active and s.groupKey and s.finalY ~= nil then
+                preInsertYSec[s.groupKey] = s.finalY
+            end
+        end
+    end
+    local newlyAcquiredKeys = {}
+    local newEntryInserted  = false
     for _, grp in ipairs(grouped) do
         -- Skip entry acquisition for groups that are collapsed during panel-collapsed fall-through.
         if pcegForAcquire and not pcegForAcquire[grp.key] then
@@ -819,6 +841,8 @@ local function FullLayout()
                     if entry then
                         SafeEntryFadeIn(entry, 0)
                         activeMap[key] = entry
+                        newlyAcquiredKeys[key] = true
+                        newEntryInserted = true
                     end
                 elseif entry.animState == "idle" and not entry.questID and not entry.entryKey then
                     -- Zombie entry left over from a group collapse: reset it for fadein.
@@ -1154,7 +1178,15 @@ local function FullLayout()
                     end
                     -- Skip anchor churn when the entry's position hasn't changed since
                     -- the previous FullLayout. Cleared in FocusEntryPool reset on pool-release.
-                    if entry._lastEntryX ~= entryX or entry._lastEntryY ~= yOff then
+                    if newlyAcquiredKeys[key] and entry.animState == "fadein" then
+                        -- New entry: start at the slide-in offset so the animation engine
+                        -- never has to jump position on its first tick.
+                        local slideInX = (addon.FOCUS_ANIM and addon.FOCUS_ANIM.slideInX) or 20
+                        entry:ClearAllPoints()
+                        entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX + slideInX, yOff)
+                        -- Do not cache entryX/_lastEntryY here; force re-evaluation on the
+                        -- next FullLayout so the final anchor is restored correctly.
+                    elseif entry._lastEntryX ~= entryX or entry._lastEntryY ~= yOff then
                         entry:ClearAllPoints()
                         entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
                         entry._lastEntryX = entryX
@@ -1253,6 +1285,33 @@ local function FullLayout()
     end
     if useWQExpand and addon.ApplyGroupExpandSlideDown then
         addon.ApplyGroupExpandSlideDown()
+    end
+    -- Slide existing entries that shifted downward to accommodate a newly-accepted quest.
+    if newEntryInserted and shouldAnimateQuestInsert then
+        if preInsertY and next(preInsertY) then
+            for i = 1, addon.POOL_SIZE do
+                local e = pool[i]
+                if e and (e.questID or e.entryKey) and e.animState == "active" and e.finalY ~= nil then
+                    local ekey = e.questID or e.entryKey
+                    local prevY = preInsertY[ekey]
+                    if prevY and prevY ~= e.finalY then
+                        addon.SetEntrySlideUp(e, prevY)
+                    end
+                end
+            end
+        end
+        if preInsertYSec and next(preInsertYSec) then
+            for i = 1, addon.SECTION_POOL_SIZE do
+                local s = sectionPool[i]
+                if s and s.active and s.groupKey and s.finalY ~= nil then
+                    local prevY = preInsertYSec[s.groupKey]
+                    if prevY and prevY ~= s.finalY then
+                        s.slideUpStartY  = prevY
+                        s.slideUpAnimTime = 0
+                    end
+                end
+            end
+        end
     end
 
     if isCategoryChangeReflow and addon.GetDB("animations", true) then
