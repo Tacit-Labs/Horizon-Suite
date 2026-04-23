@@ -903,7 +903,7 @@ local function FullLayout()
             addon.focus.promotion.prevDaily  = curPriority.DAILY  or {}
             for key in pairs(promotedKeys) do
                 local entry = activeMap[key]
-                if entry and (entry.animState == "active" or entry.animState == "fadein") and entry.finalX and entry.finalY then
+                if entry and entry.animState == "active" and entry.finalX and entry.finalY then
                     addon.SetEntryFadeOut(entry)
                     entry.promotionFadeOut = true
                     promotionFadeOutCount = promotionFadeOutCount + 1
@@ -1187,7 +1187,11 @@ local function FullLayout()
                         -- engine starts from the correct position on every layout call.
                         -- _lastEntryX/_lastEntryY are not cached so the final anchor is
                         -- re-evaluated once the entry transitions to "active".
+                        -- Re-assert alpha=0 so the entry stays invisible between FullLayout calls
+                        -- that fire while the animation is still in progress; the animation engine
+                        -- restores the correct alpha on the very next OnUpdate tick.
                         local slideInX = (addon.FOCUS_ANIM and addon.FOCUS_ANIM.slideInX) or 20
+                        entry:SetAlpha(0)
                         entry:ClearAllPoints()
                         entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX + slideInX, yOff)
                     elseif entry._lastEntryX ~= entryX or entry._lastEntryY ~= yOff then
