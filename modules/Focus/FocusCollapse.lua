@@ -228,6 +228,22 @@ local function StartGroupCollapse(groupKey)
     end
 end
 
+--- Cancels an in-progress group collapse animation. Removes the group from the collapse tracker
+--- and immediately clears any pool entries still animating out, so FullLayout() can run.
+--- @param groupKey string Category key (e.g. "NEARBY", "WEEKLY")
+local function CancelGroupCollapse(groupKey)
+    if not groupKey then return end
+    if addon.focus.collapse.groups then
+        addon.focus.collapse.groups[groupKey] = nil
+    end
+    for i = 1, addon.POOL_SIZE do
+        local e = pool[i]
+        if e.groupKey == groupKey and e.animState == "collapsing" then
+            addon.ClearEntry(e)
+        end
+    end
+end
+
 --- Same as StartGroupCollapse but visual-only: no FullLayout or SetCategoryCollapsed.
 --- @param groupKey string Category key
 local function StartGroupCollapseVisual(groupKey)
@@ -385,6 +401,7 @@ end
 
 addon.ToggleCollapse             = ToggleCollapse
 addon.StartGroupCollapse         = StartGroupCollapse
+addon.CancelGroupCollapse        = CancelGroupCollapse
 addon.StartGroupCollapseVisual   = StartGroupCollapseVisual
 addon.TriggerNearbyEntriesFadeIn = TriggerNearbyEntriesFadeIn
 addon.StartNearbyTurnOnTransition = StartNearbyTurnOnTransition
