@@ -238,6 +238,8 @@ local COLOR_LIVE_KEYS = {
 local VISTA_KEYS = {
     vistaMapSize = true,
     vistaCircular = true,
+    vistaShape = true,
+    vistaMapWidth = true,
     vistaBorderShow = true, vistaBorderWidth = true,
     vistaBorderColorR = true, vistaBorderColorG = true, vistaBorderColorB = true, vistaBorderColorA = true,
     vistaZoneFontPath = true, vistaZoneFontSize = true,
@@ -2365,12 +2367,12 @@ local OptionCategories = {
               dbKey = "vistaMapWidth", min = 100, max = 800,
               get = function() return math.max(100, math.min(800, tonumber(getDB("vistaMapWidth", 320)) or 320)) end,
               set = function(v) setDB("vistaMapWidth", math.max(100, math.min(800, v))) end,
-              disabled = function()
+              visibleWhen = function()
                   local s = getDB("vistaShape", nil)
                   if not (s == "circle" or s == "square" or s == "rectangle") then
                       s = getDB("vistaCircular", false) and "circle" or "square"
                   end
-                  return s ~= "rectangle"
+                  return s == "rectangle"
               end },
             { type = "section", name = L["AXIS_POSITION"] or "Position" },
             { type = "toggle", name = L["LOCK_MINIMAP"] or "Lock minimap",
