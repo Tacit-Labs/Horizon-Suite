@@ -821,7 +821,9 @@ local function FullLayout()
     -- scrollOffset shifts to pin the Objectives header on content-height changes; that
     -- shift visually cancels the scrollChild-local Y delta, so the slide animation must
     -- subtract the scroll delta from its start Y to avoid an on-screen jump.
-    local preInsertScrollOffset = shouldAnimateQuestInsert and (addon.focus.layout.scrollOffset or 0) or 0
+    -- Capture unconditionally: the slide animation uses it (when shouldAnimateQuestInsert
+    -- is true), and the fadeout entries need it too for grow-up screen-position preservation.
+    local preInsertScrollOffset = addon.focus.layout.scrollOffset or 0
     if preInsertY then
         for k, e in pairs(activeMap) do
             -- Only snapshot "active" entries. A "fadein" entry mid-animation already reads
@@ -1356,6 +1358,22 @@ local function FullLayout()
     addon.focus.layout.scrollBottomOffset = math.max(0, maxScr - addon.focus.layout.scrollOffset)
     addon.ApplyScrollOffset(addon.focus.layout.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
+
+    -- Fading-out entries are anchored to scrollChild at their last finalY but are no
+    -- longer in activeMap, so the placement loop doesn't reposition them. When
+    -- scrollOffset shifts (grow-up content shrink/grow, or a grow-down scroll clamp),
+    -- the fadeout entry rides along with scrollChild and visually slides onto its
+    -- neighbour. Offsetting finalY by the inverse of the scroll delta pins the
+    -- fadeout to its original on-screen position.
+    local fadeoutScrollDelta = (addon.focus.layout.scrollOffset or 0) - preInsertScrollOffset
+    if fadeoutScrollDelta ~= 0 then
+        for i = 1, addon.POOL_SIZE do
+            local e = pool[i]
+            if e and e.animState == "fadeout" and e.finalY ~= nil then
+                e.finalY = e.finalY - fadeoutScrollDelta
+            end
+        end
+    end
 
     -- Slide existing entries whose Y changed since the last layout:
     --   * newEntryInserted → entries shift DOWN to make room for a new quest (slide-down).
