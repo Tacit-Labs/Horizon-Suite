@@ -79,7 +79,7 @@ L["SEARCH_FONTS"]                                             = "Search Fonts...
 -- =====================================================================
 -- OptionsPanel.lua — Resize handle tooltip
 -- =====================================================================
-L["FOCUS_DRAG_RESIZE"]                                        = "Drag to resize"
+L["FOCUS_DRAG_RESIZE"]                                        = "Drag to Resize"
 
 -- =====================================================================
 -- OptionsData.lua Category names (sidebar)
