@@ -575,15 +575,15 @@ L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"]              = "Hide quests out
 -- =====================================================================
 -- OptionsData.lua Display — Header
 -- =====================================================================
-L["FOCUS_QUEST_COUNT"]                                        = "Show quest count"
-L["FOCUS_QUEST_COUNT_HEADER"]                                 = "Show quest count in header."
+L["FOCUS_QUEST_COUNT"]                                        = "Show Quest Count"
+L["FOCUS_QUEST_COUNT_HEADER"]                                 = "Show Quest Count in Header."
 L["FOCUS_HEADER_COUNT_FORMAT"]                                = "Header Count Format"
 L["FOCUS_TRACKED_LOG_LOG_MAX_SLOTS_TRACKED"]                  = "Tracked/in-log or in-log/max-slots. Tracked excludes world/live-in-zone quests."
-L["FOCUS_HEADER_DIVIDER"]                                     = "Show header divider"
-L["FOCUS_LINE_BELOW_HEADER"]                                  = "Show the line below the header."
+L["FOCUS_HEADER_DIVIDER"]                                     = "Show Header Divider"
+L["FOCUS_LINE_BELOW_HEADER"]                                  = "Show the Line Below the Header."
 L["FOCUS_HEADER_DIVIDER_COLOUR"]                              = "Header Divider Colour"
 L["FOCUS_COLOUR_OF_LINE_BELOW_HEADER"]                        = "Colour of the line below the header."
-L["FOCUS_SUPER_MINIMAL_MODE"]                                 = "Super-minimal mode"
+L["FOCUS_SUPER_MINIMAL_MODE"]                                 = "Super-Minimal Mode"
 L["FOCUS_HIDE_HEADER_A_PURE_TEXT_LIST"]                       = "Hide header for a pure text list."
 L["FOCUS_OPTIONS_BUTTON"]                                     = "Show Options Button"
 L["FOCUS_OPTIONS_BUTTON_TRACKER_HEADER"]                      = "Show the Options button in the tracker header."
