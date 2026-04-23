@@ -58,7 +58,7 @@ L["FOCUS_CURRENT_QUEST_OVERRIDES_BASE_COLOURS"]               = "Current Quest o
 L["FOCUS_CURRENT_QUEST_SECTION_COLOURS"]                      = "Current Quest uses its colours for quests in that section."
 L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"]               = "Use distinct colour for completed objectives"
 L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"]                = "When on, completed objectives (e.g. 1/1) use the colour below; when off, they use the same colour as incomplete objectives."
-L["FOCUS_COMPLETED_OBJECTIVE"]                                = "Completed objective"
+L["FOCUS_COMPLETED_OBJECTIVE"]                                = "Completed Objective"
 
 -- =====================================================================
 -- OptionsPanel.lua — Button labels
