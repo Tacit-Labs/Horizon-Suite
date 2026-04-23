@@ -2361,7 +2361,11 @@ local OptionCategories = {
                   if v == "circle" or v == "square" or v == "rectangle" then return v end
                   return getDB("vistaCircular", false) and "circle" or "square"
               end,
-              set = function(v) setDB("vistaShape", v) end },
+              set = function(v)
+                  setDB("vistaShape", v)
+                  if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+              end,
+              visibleWhen = function() return true end },
             { type = "slider", name = L["VISTA_RECTANGLE_WIDTH"] or "Rectangle width",
               desc = L["VISTA_WIDTH_OF_MINIMAP_PIXELS_DESC"] or "Width of the minimap in pixels (rectangle only, 100–800).",
               dbKey = "vistaMapWidth", min = 100, max = 800,
