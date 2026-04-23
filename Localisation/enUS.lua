@@ -73,8 +73,8 @@ L["FOCUS_RESET_DEFAULT"]                                      = "Reset to defaul
 -- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
-L["FOCUS_SEARCH_SETTINGS"]                                    = "Search settings..."
-L["SEARCH_FONTS"]                                             = "Search fonts..."
+L["FOCUS_SEARCH_SETTINGS"]                                    = "Search Settings..."
+L["SEARCH_FONTS"]                                             = "Search Fonts..."
 
 -- =====================================================================
 -- OptionsPanel.lua — Resize handle tooltip
