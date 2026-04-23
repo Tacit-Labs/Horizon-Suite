@@ -2,10 +2,9 @@
     Horizon Suite - Focus - Delve Provider
     ScenarioHeaderDelvesWidget (tierText, currencies, spells), C_PartyInfo.IsDelveInProgress, C_QuestLog.GetQuestTagInfo (QuestTag.Delve).
     Lives remaining: parsed from widget currencies (per-slot textEnabledState or numeric text).
-    Nemesis enemy groups: sole source is widgetInfo.spells[i].stackDisplay plus the
-        "remaining: N" description pattern (triggered via C_Spell.RequestLoadSpellData +
-        SPELL_DATA_LOAD_RESULT). The identified Nemesis spellID is cached for the run so
-        `stack == 0` on the same spell is a direct, unambiguous completion signal.
+    Nemesis enemy groups: sole source is the affix spell's `stackDisplay` with a
+        `"remaining: N"` description fallback. The post-completion tick comes from the
+        `nemesisCache` when Blizzard drops the affix spell from the widget.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -21,32 +20,7 @@ local NEMESIS_GROUPS_MAX = 30
 -- scenario and synthesize `isComplete = true` while the delve is still active.
 -- `runLive` gates the "treat as complete" fallback: only true after we have seen at least one live
 -- group count this run, so a stale seenMax from a previous run (same map ID) cannot show the tick.
--- `lastLiveRemaining` records the most recent live `remaining > 0` value we observed this
--- run. It gates `isComplete` acceptance: Blizzard can report stackDisplay=0 on the Nemesis
--- spell transiently during widget reload / delve entry / `/reload`, and the only reliable
--- "this is real completion" signal is that we already saw the natural final decrement
--- (remaining==1). `latchedRemaining` keeps the last known live count rendered across
--- transient data gaps so the banner doesn't flicker to nothing mid-run.
-local nemesisCache = {
-    key = nil, seenMax = 0, completed = false, runLive = false,
-    lastLiveRemaining = 0,
-    latchedRemaining = nil, latchedTotal = nil,
-    -- Identified Nemesis spellID for this run. Once set, the spells parser looks it up
-    -- directly so `stackDisplay == 0` on the same spell is a direct completion signal
-    -- (rather than inferred from fallback widgets, which can false-positive).
-    nemesisSpellID = nil,
-}
-
-local function ResetNemesisCache(key)
-    nemesisCache.key = key
-    nemesisCache.seenMax = 0
-    nemesisCache.completed = false
-    nemesisCache.runLive = false
-    nemesisCache.lastLiveRemaining = 0
-    nemesisCache.latchedRemaining = nil
-    nemesisCache.latchedTotal = nil
-    nemesisCache.nemesisSpellID = nil
-end
+local nemesisCache = { key = nil, seenMax = 0, completed = false, runLive = false }
 
 -- Zone transitions (including delve entry/exit) always invalidate the Nemesis cache.
 -- C_Map.GetBestMapForUnit returns the same ID for two runs of the same delve type, so the
@@ -54,7 +28,10 @@ end
 local nemesisCacheResetFrame = CreateFrame("Frame")
 nemesisCacheResetFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 nemesisCacheResetFrame:SetScript("OnEvent", function()
-    ResetNemesisCache(nil)
+    nemesisCache.key = nil
+    nemesisCache.seenMax = 0
+    nemesisCache.completed = false
+    nemesisCache.runLive = false
 end)
 
 --- Get spell name and icon; supports both legacy GetSpellInfo and C_Spell.GetSpellInfo.
@@ -215,85 +192,28 @@ local function GetDelveLivesIconFileID(widgetInfo)
     return first
 end
 
---- Nemesis Strongbox / bonus-chest count rendered as a stack badge on an affix spell icon.
---- Sole authoritative source: `widgetInfo.spells[i].stackDisplay`, with `C_Spell.GetSpellDescription`
---- "remaining: N" as a co-equal identifier (Blizzard formats the same count into the description,
---- and the description arrives asynchronously on initial delve entry).
----
---- The Nemesis spell keeps its slot in `spells` across the entire run; Blizzard decrements
---- `stackDisplay` as packs die and drops it to 0 on completion before the spell icon is
---- removed from the widget. Once we've identified which spellID is the Nemesis, we look
---- up that specific ID on every subsequent read — seeing it present with `stack == 0`
---- gives us a direct, zero-ambiguity completion signal (no inference from sibling widgets
---- that can fire false positives during initial widget reload).
----
---- `RequestLoadSpellData` triggers `SPELL_DATA_LOAD_RESULT` once the server returns the
---- description, which FocusEvents routes back to a refresh so the count appears as soon
---- as the description arrives instead of waiting for an unrelated widget tick.
+--- Nemesis Strongbox / bonus-chest count is usually rendered as a stack badge on an affix spell icon.
+--- Primary source: widgetInfo.spells[i].stackDisplay (same field zQuestLog uses).
+--- Fallback: parse the spell description for "remaining[^%d]+(%d+)" (Blizzard formats the count into the description).
 --- @param widgetInfo table ScenarioHeaderDelves widget visualization info
 --- @return table|nil { remaining, total, isComplete, hasData }
 local function ParseNemesisFromDelveSpells(widgetInfo)
     if not widgetInfo or type(widgetInfo.spells) ~= "table" or #widgetInfo.spells < 1 then return nil end
-
-    -- Trigger async description load for every affix spell. Cheap & idempotent; pairs with
-    -- FocusEvents' SPELL_DATA_LOAD_RESULT handler to re-read as descriptions arrive.
-    if C_Spell and C_Spell.RequestLoadSpellData then
-        for _, sp in ipairs(widgetInfo.spells) do
-            if type(sp) == "table" and type(sp.spellID) == "number" and sp.spellID > 0 then
-                pcall(C_Spell.RequestLoadSpellData, sp.spellID)
-            end
-        end
-    end
-
-    --- Extract the live count from a spell entry. Reads `stackDisplay` first, falls back
-    --- to the "remaining: N" pattern in the spell description (Blizzard uses a non-breaking
-    --- space between the label and the number, so `[^%d]+` is the correct separator class).
-    --- @param sp table One entry from widgetInfo.spells
-    --- @return number|nil stack
-    local function ReadStack(sp)
-        local stack = (type(sp.stackDisplay) == "number" and sp.stackDisplay) or nil
-        if (not stack or stack <= 0) and C_Spell and C_Spell.GetSpellDescription then
-            local dOk, desc = pcall(C_Spell.GetSpellDescription, sp.spellID)
-            if dOk and type(desc) == "string" then
-                local n = tonumber(desc:match("remaining[^%d]+(%d+)"))
-                if n and n >= 0 then stack = n end
-            end
-        end
-        return stack
-    end
-
-    -- Fast path: if we've already identified which spell is the Nemesis this run, look it
-    -- up directly. This is what lets stack==0 mean "complete" unambiguously.
-    local cachedID = nemesisCache.nemesisSpellID
-    if type(cachedID) == "number" and cachedID > 0 then
-        for _, sp in ipairs(widgetInfo.spells) do
-            if type(sp) == "table" and sp.spellID == cachedID then
-                local stack = ReadStack(sp) or 0
-                if stack > 0 and stack <= NEMESIS_GROUPS_MAX then
-                    return { remaining = stack, total = nil, isComplete = false, hasData = true }
-                end
-                -- Spell still present but stack dropped to 0: Blizzard's direct "complete" signal.
-                return { remaining = 0, total = nil, isComplete = true, hasData = true }
-            end
-        end
-        -- Cached ID vanished from the spell list — fall through to re-scan. If nothing
-        -- identifies as Nemesis in the new snapshot, GetDelveScenarioHeaderMetadata's
-        -- elseif block synthesizes completion once we've seen lastLiveRemaining<=1.
-    end
-
-    -- Discovery path: find a spell that identifies itself as the Nemesis. A spell counts
-    -- as Nemesis when either stackDisplay > 0 or the description carries the "remaining"
-    -- count. Once identified, cache its spellID so subsequent reads take the fast path.
     for _, sp in ipairs(widgetInfo.spells) do
         if type(sp) == "table" and type(sp.spellID) == "number" and sp.spellID > 0 then
-            local stack = ReadStack(sp)
-            if stack and stack > 0 and stack <= NEMESIS_GROUPS_MAX then
-                nemesisCache.nemesisSpellID = sp.spellID
+            local stack = (type(sp.stackDisplay) == "number" and sp.stackDisplay) or 0
+            if stack <= 0 and C_Spell and C_Spell.GetSpellDescription then
+                local dOk, desc = pcall(C_Spell.GetSpellDescription, sp.spellID)
+                if dOk and type(desc) == "string" then
+                    local n = tonumber(desc:match("remaining[^%d]+(%d+)"))
+                    if n and n > 0 then stack = n end
+                end
+            end
+            if stack > 0 and stack <= NEMESIS_GROUPS_MAX then
                 return { remaining = stack, total = nil, isComplete = false, hasData = true }
             end
         end
     end
-
     return nil
 end
 
@@ -415,18 +335,17 @@ function addon.GetDelveScenarioHeaderMetadata()
     }
     if not ShouldReadDelveScenarioWidgets() then
         -- Left the delve: drop the completion cache so a re-entry starts clean.
-        ResetNemesisCache(nil)
+        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed, nemesisCache.runLive = nil, 0, false, false
         return result
     end
 
     -- Per-scenario key; reset cache when the player changes delve.
     local scenarioKey = (C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")) or 0
     if scenarioKey ~= nemesisCache.key then
-        ResetNemesisCache(scenarioKey)
+        nemesisCache.key, nemesisCache.seenMax, nemesisCache.completed, nemesisCache.runLive = scenarioKey, 0, false, false
     end
 
-    local setIDs = GetAllDelveScenarioWidgetSetIDs()
-    local allHeaders = CollectVisibleDelveHeaders(setIDs)
+    local allHeaders = CollectVisibleDelveHeaders()
     local widgetInfo = allHeaders[1]
     if widgetInfo then
         result.livesRemaining = ParseDelveLivesRemaining(widgetInfo)
@@ -438,33 +357,12 @@ function addon.GetDelveScenarioHeaderMetadata()
         end
     end
 
-    local function AcceptCompletion()
-        -- Nemesis groups die one at a time, so the natural kill sequence always passes
-        -- through `remaining == 1` before the spell flips to 0 / is removed. We require
-        -- that step to have been observed live before accepting any isComplete signal.
-        --
-        -- An earlier version also accepted after a 1.5s "stability window" regardless of
-        -- last-live value, but that turned out to be the exact path that produced the
-        -- spurious tick on delve entry / `/reload`: during widget reload Blizzard can
-        -- report `stackDisplay = 0` on the Nemesis spell for several seconds before the
-        -- real value syncs, which trips the age threshold and synthesizes a false tick.
-        -- Requiring `lastLiveRemaining <= 1` is the only signal we can trust.
-        --
-        -- Trade-off: if the player AoEs multiple groups in one swing and the widget skips
-        -- the remaining==1 update (a refresh debounce window missing the intermediate
-        -- state), the tick won't render until the next delve run. That's a rare visual
-        -- miss vs. a repeated, visible false-positive — accept the miss.
-        if not nemesisCache.runLive then return false end
-        return (nemesisCache.lastLiveRemaining or 0) <= 1
-    end
-
     local function adopt(parsed)
         if not parsed then return false end
-        -- Reject isComplete unless AcceptCompletion agrees we've seen the natural
-        -- remaining==1 step live. Blizzard can report stackDisplay=0 on the Nemesis
-        -- spell transiently during widget reload, and without this gate we'd flip the
-        -- banner to the tick state on delve entry / `/reload`.
-        if parsed.isComplete and not AcceptCompletion() then return false end
+        -- Blizzard widgets default to 0/disabled before server data arrives on initial load,
+        -- which makes every fallback parser return { isComplete = true, remaining = 0 } spuriously.
+        -- Only trust "complete" once we have seen live group data (runLive) this run.
+        if parsed.isComplete and not nemesisCache.runLive then return false end
         result.nemesisGroupsRemaining = parsed.remaining
         result.nemesisGroupsTotal = parsed.total
         result.nemesisIsComplete = parsed.isComplete
@@ -472,11 +370,13 @@ function addon.GetDelveScenarioHeaderMetadata()
         return true
     end
 
-    -- Sole source: the affix spell in widgetInfo.spells (stackDisplay or the "remaining: N"
-    -- description). Earlier builds tried currency runs and sibling widget-set scans as
-    -- fallbacks, but those paths cannot distinguish Blizzard's transient "all slots
-    -- disabled" state on initial widget reload from a genuine completion, and were the
-    -- structural cause of the spurious-tick / delayed-count on initial delve entry.
+    -- Sole source: the affix spell in widgetInfo.spells (stackDisplay or the
+    -- description's "remaining: N" pattern). Earlier builds layered currency-run and
+    -- sibling-widget-scan fallbacks on top, but those were only added to paper over
+    -- what turned out to be a rendering-cache bug (PopulateEntryCached's signature
+    -- didn't cover this entry's dynamic widget data) — with that fixed upstream, the
+    -- primary spells parser catches every valid state without the fallbacks' cost and
+    -- false-positive risk.
     for _, wi in ipairs(allHeaders) do
         if adopt(ParseNemesisFromDelveSpells(wi)) then break end
     end
@@ -487,9 +387,6 @@ function addon.GetDelveScenarioHeaderMetadata()
         if type(rem) == "number" and rem > 0 then
             -- Live, non-complete data: this is a real run with groups still remaining.
             nemesisCache.runLive = true
-            nemesisCache.lastLiveRemaining = rem
-            nemesisCache.latchedRemaining = rem
-            nemesisCache.latchedTotal = result.nemesisGroupsTotal
             if rem > nemesisCache.seenMax then
                 nemesisCache.seenMax = rem
             end
@@ -498,22 +395,12 @@ function addon.GetDelveScenarioHeaderMetadata()
             nemesisCache.completed = true
         end
     elseif nemesisCache.runLive and nemesisCache.seenMax > 0 then
-        -- No parser adopted this read. Either the affix spell was removed (legit completion)
-        -- or Blizzard is transiently reloading widgets (initial entry, tracker hide/show).
-        -- AcceptCompletion gates the tick on lastLiveRemaining<=1 — the natural final step.
-        -- Otherwise keep rendering the latched live count so the banner doesn't flicker.
-        if AcceptCompletion() then
-            result.nemesisGroupsRemaining = 0
-            result.nemesisGroupsTotal = nemesisCache.seenMax
-            result.nemesisIsComplete = true
-            result.nemesisHasData = true
-            nemesisCache.completed = true
-        elseif type(nemesisCache.latchedRemaining) == "number" and nemesisCache.latchedRemaining > 0 then
-            result.nemesisGroupsRemaining = nemesisCache.latchedRemaining
-            result.nemesisGroupsTotal = nemesisCache.latchedTotal
-            result.nemesisIsComplete = false
-            result.nemesisHasData = true
-        end
+        -- Data vanished mid-scenario but we saw live Nemesis data earlier — treat as complete.
+        result.nemesisGroupsRemaining = 0
+        result.nemesisGroupsTotal = nemesisCache.seenMax
+        result.nemesisIsComplete = true
+        result.nemesisHasData = true
+        nemesisCache.completed = true
     end
 
     if not result.affixes then

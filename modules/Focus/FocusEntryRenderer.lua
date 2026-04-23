@@ -2384,8 +2384,39 @@ local function BuildEntrySignature(qData, groupKey)
 end
 
 local origPopulateEntry = PopulateEntry
+
+--- Some questData values are dynamic in ways `BuildEntrySignature` doesn't (and
+--- can't reasonably) fingerprint — notably Delve scenario-main data: the Nemesis
+--- chest count / checkmark are fetched inside `PopulateEntry` via the widget read
+--- in `FocusScenarioDelve`, which happens AFTER the signature is built, and the
+--- delve affix names are resolved inside `PopulateEntry` via `addon.GetDelvesAffixes()`
+--- rather than being attached to the entry beforehand.
+---
+--- Without this bypass, once a delve scenario-main entry is first drawn with
+--- incomplete widget data (common on initial delve entry — Blizzard populates the
+--- ScenarioHeaderDelves widget's spells array a few seconds after the entry shows),
+--- the signature stays identical across every subsequent refresh (ScheduleRefresh,
+--- UPDATE_UI_WIDGET, SCENARIO_UPDATE, etc.) and the cache short-circuits before the
+--- widget is re-read. The Nemesis badge and affix row then stay stuck until something
+--- perturbs a fingerprinted field — a life loss, a criteria change, a /reload, or a
+--- manual collapse/expand of the objective tracker.
+---
+--- Cost: one full populate per layout for the single scenario-main entry in a delve —
+--- layouts already run at single-digit Hz, so the overhead is immaterial.
+local function EntryBypassesPopulateCache(questData)
+    if questData.category == "DELVES" then return true end
+    if questData.isScenarioMain then return true end
+    return false
+end
+
 local function PopulateEntryCached(entry, questData, groupKey)
     if not entry or not questData then return origPopulateEntry(entry, questData, groupKey) end
+    if EntryBypassesPopulateCache(questData) then
+        -- Clear any stale signature on the pooled entry so a later non-bypassing
+        -- quest landing on the same slot doesn't hit a false cache hit.
+        entry._populateSig = nil
+        return origPopulateEntry(entry, questData, groupKey)
+    end
     local sig = BuildEntrySignature(questData, groupKey)
     if sig and entry._populateSig == sig then
         return entry.entryHeight
