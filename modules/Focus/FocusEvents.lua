@@ -352,24 +352,15 @@ local function OnPlayerRegenEnabled()
     end
 end
 
--- When entering a Delve/dungeon, APIs can lag by several seconds on the first session
--- entry after a relog: `C_PartyInfo.IsDelveInProgress` takes a moment to flip true, spell
--- descriptions for affix spells arrive asynchronously from the server, and `UPDATE_UI_WIDGET`
--- events that fire during that sync window get dropped by the IsDelveActive gate (since it
--- hasn't returned true yet). Event-driven refreshes alone therefore can't catch first-login
--- delve entry reliably. Multi-stage retries re-poll through the sync window regardless of
--- per-event gating; on subsequent entries (state cached) the first retry picks up data and
--- the later ones are cheap no-ops.
-local INSTANCE_ENTER_RETRY_DELAYS = { 0.2, 0.5, 1.0, 2.0, 4.0 }
-
+-- When entering a Delve/dungeon, APIs can lag by one frame.
+-- ACTIVE_DELVE_DATA_UPDATE, WALK_IN_DATA_UPDATE, and CHALLENGE_MODE_START
+-- fire at the exact right moment, so we just need a single short defer.
 local function OnInstanceEntered()
     if not addon.focus.enabled then return end
-    for _, delay in ipairs(INSTANCE_ENTER_RETRY_DELAYS) do
-        C_Timer.After(delay, function()
-            if not addon.focus.enabled then return end
-            ScheduleRefresh()
-        end)
-    end
+    C_Timer.After(0.2, function()
+        if not addon.focus.enabled then return end
+        ScheduleRefresh()
+    end)
 end
 
 local function OnPlayerLoginOrEnteringWorld()
