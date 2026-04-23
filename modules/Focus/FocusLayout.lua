@@ -1182,14 +1182,14 @@ local function FullLayout()
                     end
                     -- Skip anchor churn when the entry's position hasn't changed since
                     -- the previous FullLayout. Cleared in FocusEntryPool reset on pool-release.
-                    if newlyAcquiredKeys[key] and entry.animState == "fadein" then
-                        -- New entry: start at the slide-in offset so the animation engine
-                        -- never has to jump position on its first tick.
+                    if entry.animState == "fadein" then
+                        -- Fadein entry: always anchor at the slide-in offset so the animation
+                        -- engine starts from the correct position on every layout call.
+                        -- _lastEntryX/_lastEntryY are not cached so the final anchor is
+                        -- re-evaluated once the entry transitions to "active".
                         local slideInX = (addon.FOCUS_ANIM and addon.FOCUS_ANIM.slideInX) or 20
                         entry:ClearAllPoints()
                         entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX + slideInX, yOff)
-                        -- Do not cache entryX/_lastEntryY here; force re-evaluation on the
-                        -- next FullLayout so the final anchor is restored correctly.
                     elseif entry._lastEntryX ~= entryX or entry._lastEntryY ~= yOff then
                         entry:ClearAllPoints()
                         entry:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", entryX, yOff)
@@ -1300,6 +1300,12 @@ local function FullLayout()
                     local prevY = preInsertY[ekey]
                     if prevY and prevY ~= e.finalY then
                         addon.SetEntrySlideUp(e, prevY)
+                        -- Reset visual to animation start; the placement loop already set the
+                        -- anchor to finalY, so without this the anim engine would jump back.
+                        if e.finalX ~= nil then
+                            e:ClearAllPoints()
+                            e:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", e.finalX, prevY)
+                        end
                     end
                 end
             end
@@ -1312,6 +1318,11 @@ local function FullLayout()
                     if prevY and prevY ~= s.finalY then
                         s.slideUpStartY  = prevY
                         s.slideUpAnimTime = 0
+                        -- Reset visual to animation start position.
+                        if s.finalX ~= nil then
+                            s:ClearAllPoints()
+                            s:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", s.finalX, prevY)
+                        end
                     end
                 end
             end
