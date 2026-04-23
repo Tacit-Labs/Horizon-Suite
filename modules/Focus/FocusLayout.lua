@@ -815,6 +815,10 @@ local function FullLayout()
     local preInsertYSec = shouldAnimateQuestInsert and {} or nil
     if preInsertY then
         for k, e in pairs(activeMap) do
+            -- Only snapshot "active" entries. A "fadein" entry mid-animation already reads
+            -- finalY dynamically each tick, so displacing its finalY causes at most a
+            -- one-frame Y snap. Applying SetEntrySlideUp to a "fadein" entry would also
+            -- conflict with its horizontal slide (slideup uses finalX with no X offset).
             if e and e.animState == "active" and e.finalY ~= nil then
                 preInsertY[k] = e.finalY
             end
