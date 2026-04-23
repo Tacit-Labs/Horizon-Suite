@@ -2346,11 +2346,32 @@ local OptionCategories = {
               dbKey = "vistaMapSize", min = 100, max = 400,
               get = function() return math.max(100, math.min(400, tonumber(getDB("vistaMapSize", 200)) or 200)) end,
               set = function(v) setDB("vistaMapSize", math.max(100, math.min(400, v))) end },
-            { type = "toggle", name = L["VISTA_CIRCULAR_SHAPE"] or "Circular shape",
-              desc = L["VISTA_A_CIRCULAR_MINIMAP_INSTEAD_OF_SQUARE"] or "Use a circular minimap instead of square.",
-              dbKey = "vistaCircular",
-              get = function() return getDB("vistaCircular", false) end,
-              set = function(v) setDB("vistaCircular", v) end },
+            { type = "dropdown", name = L["VISTA_SHAPE"] or "Shape",
+              desc = L["VISTA_SHAPE_DESC"] or "Choose the minimap shape.",
+              dbKey = "vistaShape",
+              options = function() return {
+                  { L["VISTA_SHAPE_SQUARE"]    or "Square",    "square" },
+                  { L["VISTA_SHAPE_CIRCLE"]    or "Circle",    "circle" },
+                  { L["VISTA_SHAPE_RECTANGLE"] or "Rectangle", "rectangle" },
+              } end,
+              get = function()
+                  local v = getDB("vistaShape", nil)
+                  if v == "circle" or v == "square" or v == "rectangle" then return v end
+                  return getDB("vistaCircular", false) and "circle" or "square"
+              end,
+              set = function(v) setDB("vistaShape", v) end },
+            { type = "slider", name = L["VISTA_RECTANGLE_WIDTH"] or "Rectangle width",
+              desc = L["VISTA_WIDTH_OF_MINIMAP_PIXELS_DESC"] or "Width of the minimap in pixels (rectangle only, 100–800).",
+              dbKey = "vistaMapWidth", min = 100, max = 800,
+              get = function() return math.max(100, math.min(800, tonumber(getDB("vistaMapWidth", 320)) or 320)) end,
+              set = function(v) setDB("vistaMapWidth", math.max(100, math.min(800, v))) end,
+              disabled = function()
+                  local s = getDB("vistaShape", nil)
+                  if not (s == "circle" or s == "square" or s == "rectangle") then
+                      s = getDB("vistaCircular", false) and "circle" or "square"
+                  end
+                  return s ~= "rectangle"
+              end },
             { type = "section", name = L["AXIS_POSITION"] or "Position" },
             { type = "toggle", name = L["LOCK_MINIMAP"] or "Lock minimap",
               desc = L["VISTA_PREVENT_DRAGGING_MINIMAP"] or "Prevent dragging the minimap.",

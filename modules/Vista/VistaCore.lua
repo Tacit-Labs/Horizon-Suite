@@ -77,6 +77,19 @@ local function SetDB(key, value)
 end
 
 local function GetMapSize() return tonumber(DB("vistaMapSize", MAP_SIZE_DEFAULT)) or MAP_SIZE_DEFAULT end
+local function GetShape()
+    local s = DB("vistaShape", nil)
+    if s == "circle" or s == "square" or s == "rectangle" then return s end
+    -- Migration fallback: read the legacy boolean.
+    return DB("vistaCircular", false) and "circle" or "square"
+end
+local function GetMapHeight() return GetMapSize() end
+local function GetMapWidth()
+    if GetShape() == "rectangle" then
+        return math.max(100, math.min(800, tonumber(DB("vistaMapWidth", 320)) or 320))
+    end
+    return GetMapSize()
+end
 local function GetBorderShow()  return DB("vistaBorderShow", true) end
 local function GetBorderW()     return tonumber(DB("vistaBorderWidth", 1)) or 1 end
 -- Minimap border: DB stores full RGBA. With class colour on, use class RGB scaled by picker RGB (white = full class)
@@ -228,7 +241,8 @@ do
     G.RightClickPanelY      = function() return tonumber(DB("vistaRightClickPanelY", nil)) end
 
     -- Shape / mask
-    G.Circular    = function() return DB("vistaCircular", false) end
+    G.Shape       = GetShape
+    G.Circular    = function() return GetShape() == "circle" end
     G.MaskSquare   = MASK_SQUARE_V
     G.MaskCircular = MASK_CIRCULAR_V
 
@@ -557,9 +571,10 @@ local function SetupMinimap()
     local vy    = DB("vistaY",        nil)
     local scale = DB("vistaScale",    1.0)
 
-    local sz = GetMapSize()
-    local mapScale = sz / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
+    local h = GetMapHeight()
+    local w = GetMapWidth()
+    local mapScale = h / MINIMAP_BASE_SIZE
+    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / h), MINIMAP_BASE_SIZE)
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
 
     if pt then
@@ -606,7 +621,7 @@ local function ApplyBorderTextures()
         end
         -- Show/update the circular ring border
         if show then
-            local sz = GetMapSize()
+            local sz = GetMapHeight()
             circularBorderFrame:SetSize(sz + bw * 2, sz + bw * 2)
             circularBorderFrame:ClearAllPoints()
             circularBorderFrame:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
@@ -679,7 +694,7 @@ local function CreateDecor()
         circularBorderFrame:SetFrameStrata(Minimap:GetFrameStrata())
         circularBorderFrame:SetFrameLevel(math.max((Minimap:GetFrameLevel() or 1) - 1, 0))
         circularBorderFrame:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
-        circularBorderFrame:SetSize(GetMapSize(), GetMapSize())
+        circularBorderFrame:SetSize(GetMapHeight(), GetMapHeight())
         local cbt = circularBorderFrame:CreateTexture(nil, "OVERLAY")
         cbt:SetColorTexture(1, 1, 1, 1)
         cbt:SetAllPoints()
@@ -738,7 +753,7 @@ local function CreateDecor()
 
     -- ---- Zone text (in a draggable container) ----
     local zoneContainer = CreateFrame("Frame", nil, decor)
-    zoneContainer:SetSize(GetMapSize(), 20)
+    zoneContainer:SetSize(GetMapWidth(), 20)
     local zAp, zRp = G.ZoneAnchors()
     zoneContainer:SetPoint(zAp, Minimap, zRp, G.ZoneOffsetX(), G.ZoneOffsetY())
     zoneContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
@@ -779,7 +794,7 @@ local function CreateDecor()
 
     -- ---- Difficulty text (in a draggable container) ----
     local diffContainer = CreateFrame("Frame", nil, decor)
-    diffContainer:SetSize(GetMapSize(), 20)
+    diffContainer:SetSize(GetMapWidth(), 20)
     local dAp, dRp = G.DiffAnchors()
     diffContainer:SetPoint(dAp, Minimap, dRp, G.DiffOffsetX(), G.DiffOffsetY())
     diffContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
@@ -796,7 +811,7 @@ local function CreateDecor()
     diffText:SetTextColor(G.DiffColor())
     diffText:SetJustifyH("CENTER")
     diffText:SetAllPoints()
-    diffText:SetWidth(GetMapSize())
+    diffText:SetWidth(GetMapWidth())
     diffShadow:SetAllPoints(diffText)
 
     decor._diffContainer = diffContainer
@@ -3419,9 +3434,10 @@ end
 
 local function ApplyOptions_Minimap()
     Minimap:SetMovable(not DB("vistaLock", true))
-    local sz       = GetMapSize()
-    local mapScale = sz / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
+    local h        = GetMapHeight()
+    local w        = GetMapWidth()
+    local mapScale = h / MINIMAP_BASE_SIZE
+    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / h), MINIMAP_BASE_SIZE)
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
     pcall(function() local z = Minimap:GetZoom(); if z then Minimap:SetZoom(z) end end)
     local vistaScale  = DB("vistaScale", 1.0) or 1.0
@@ -3606,7 +3622,7 @@ end
 function Vista.ApplyOptions(changedKey)
     if not decor then return end
     ApplyOptions_Minimap()
-    ApplyOptions_Texts(GetMapSize())
+    ApplyOptions_Texts(GetMapWidth())
     ApplyOptions_Buttons(changedKey)
     if addon.MinimapButton_ApplyPosition then
         addon.MinimapButton_ApplyPosition()
