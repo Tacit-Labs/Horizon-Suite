@@ -184,6 +184,8 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
                 addon.focus.collapse.headerSlideTime = 0
                 if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
             end
+            -- Cancel any in-progress collapse animation so the FullLayout guard is not triggered.
+            if addon.CancelGroupCollapse then addon.CancelGroupCollapse(key) end
             addon.FullLayout()
             if addon.ApplyGroupExpandSlideDown then addon.ApplyGroupExpandSlideDown() end
         else
