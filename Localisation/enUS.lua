@@ -32,12 +32,12 @@ L["OTHER"]                                                    = "Other"
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
 -- =====================================================================
-L["QUEST_TYPES"]                                              = "Quest types"
-L["ELEMENT_OVERRIDES"]                                        = "Element overrides"
-L["PER_CATEGORY"]                                             = "Per category"
+L["QUEST_TYPES"]                                              = "Quest Types"
+L["ELEMENT_OVERRIDES"]                                        = "Element Overrides"
+L["PER_CATEGORY"]                                             = "Per Category"
 L["GROUPING_OVERRIDES"]                                       = "Grouping Overrides"
 L["SECTION_OVERRIDES"]                                        = "Section Overrides"
-L["OTHER_COLOURS"]                                            = "Other colours"
+L["OTHER_COLOURS"]                                            = "Other Colours"
 
 -- =====================================================================
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
