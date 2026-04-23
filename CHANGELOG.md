@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.14.0] – 2026-04-22
+
+### ✨ New Features
+
+- **(Focus) Delve Nemesis groups indicator** — While in a Delve, the main Focus row can show Nemesis enemy groups remaining (and the completed checkmark state).
+
+### 🐛 Fixes
+
+- **(Focus)** Blizzard+ Click Style: clicking a tracked line with the chat window open now shares the item to chat instead of untracking it, Ctrl+Left-click on collection items opens the preview/wardrobe window, and Right-click → Open Collections navigates to the correct category and item instead of the default first tab.
+
+---
+
 ## [4.13.0] – 2026-04-21
 
 ### ✨ New Features

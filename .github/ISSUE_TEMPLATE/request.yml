@@ -1,0 +1,36 @@
+# GitHub Documentation can be found at: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+name: Make a Request💡
+description: A request, idea, or new functionality.
+type: enhancement
+body:
+                    
+      - type: markdown
+        attributes:
+              value: "Please be clear and succinct, do not use whole sentences for the title."
+
+              
+      - type: textarea
+        id: current
+        attributes:
+              label: Lack of Current Function
+              placeholder: "Please write in the present tense without the use of first-person."
+
+      - type: textarea
+        id: expected
+        attributes:
+              label: Intended Function
+              placeholder: "Please write in the present tense without the use of first-person."
+              
+      - type: textarea
+        id: reproduce
+        attributes:
+              label: Use Cases
+              placeholder: "Please write in the present tense. You may use first-person if necessary."
+
+
+      - type: markdown
+        attributes:
+              value: "### <br> --- Don't forget labels! --- <br>"
+      - type: markdown
+        attributes:
+              value: "**Feature** or **Improvement** <br> **Module(s)** <br> **Priority**"

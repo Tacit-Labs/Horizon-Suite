@@ -1023,6 +1023,7 @@ L["FOCUS_CLICK_ACTION_SHARE"]                                 = "Mit Gruppe teil
 L["FOCUS_CLICK_ACTION_ABANDON"]                               = "Quest abbrechen"
 L["FOCUS_CLICK_ACTION_WOWHEAD"]                               = "Wowhead-Link"
 L["FOCUS_CLICK_ACTION_CHAT_LINK"]                             = "In Chat verlinken"
+L["FOCUS_CLICK_ACTION_PREVIEW"]                               = "Vorschau"
 L["FOCUS_APPEARANCE_CANNOT_SHARE"]                            = "Vorlagen können nicht wie Quests geteilt werden."
 L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"]                         = "Quest-Details werden nach dem Kampf geöffnet."
 L["FOCUS_SHARE_PARTY"]                                        = "Mit Gruppe teilen"

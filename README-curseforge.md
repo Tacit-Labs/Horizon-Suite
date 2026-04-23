@@ -145,7 +145,7 @@ Every module shares the same design foundations, so they feel like one cohesive 
 Horizon Suite is built with the community, not just for it. Feature requests and bug reports shape every update.
 
 **[Discord](https://discord.gg/nFabdZmvSB)** — The best place to get help, share feedback, or see what's coming next.
-**[GitHub Issues](https://github.com/Tacit-Labs/Horizon-Suite/issues)** — Bug reports and feature requests welcome. Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are also welcome.
+**[GitHub Issues](https://github.com/Tacit-Labs/Horizon-Suite/issues)** — The quickest place to get help or share feedback. Reports and requests can be directly filed [here](https://github.com/Tacit-Labs/Horizon-Suite/issues/new/choose). Reports from Discord, Reddit, or CurseForge are also welcome.
 **[Patreon](https://patreon.com/HorizonSuite)** | **[Ko-fi](https://ko-fi.com/T6T71TX1Y1)** — Support development and keep the lights on.
 
 ---

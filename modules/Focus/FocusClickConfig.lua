@@ -24,6 +24,7 @@ local ACTION_LABELS = {
     abandon        = "FOCUS_CLICK_ACTION_ABANDON",
     wowhear        = "FOCUS_CLICK_ACTION_WOWHEAD",
     chatLink       = "FOCUS_CLICK_ACTION_CHAT_LINK",
+    preview        = "FOCUS_CLICK_ACTION_PREVIEW",
 }
 
 -- ============================================================================
@@ -33,7 +34,7 @@ local ACTION_LABELS = {
 local COMBO_OPTIONS = {
     left       = { "superTrack", "openDetails", "none" },
     shiftLeft  = { "openDetails", "untrack", "chatLink", "none" },
-    ctrlLeft   = { "share", "none" },
+    ctrlLeft   = { "preview", "share", "none" },
     altLeft    = { "wowhear", "chatLink", "none" },
     right      = { "untrack", "contextMenu", "none" },
     shiftRight = { "abandon", "untrack", "none" },
@@ -66,6 +67,7 @@ local ALL_COMBO_ACTION_KEYS = {
     "abandon",
     "wowhear",
     "chatLink",
+    "preview",
     "none",
 }
 
@@ -97,11 +99,11 @@ local PROFILES = {
         ctrlRight  = "contextMenu",
         altRight   = "none",
     },
-    -- Blizzard-style baseline plus Horizon tweaks (Blizzard+); Ctrl+click share removed — share lives elsewhere.
+    -- Blizzard-style baseline plus Horizon tweaks (Blizzard+); Ctrl+click previews collection rows (dressing room / decor preview).
     blizzardDefault = {
         left       = "openDetails",
         shiftLeft  = "untrack",
-        ctrlLeft   = "none",
+        ctrlLeft   = "preview",
         altLeft    = "wowhear",
         right      = "contextMenu",
         shiftRight = "abandon",

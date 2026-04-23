@@ -1030,6 +1030,7 @@ L["FOCUS_CLICK_ACTION_SHARE"]                                 = "Share with part
 L["FOCUS_CLICK_ACTION_ABANDON"]                               = "Abandon quest"
 L["FOCUS_CLICK_ACTION_WOWHEAD"]                               = "WoWhead URL"
 L["FOCUS_CLICK_ACTION_CHAT_LINK"]                             = "Link in chat"
+L["FOCUS_CLICK_ACTION_PREVIEW"]                               = "Preview"
 L["FOCUS_APPEARANCE_CANNOT_SHARE"]                            = "Appearances cannot be shared like quests."
 L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"]                         = "Quest details will open when you leave combat."
 L["FOCUS_SHARE_PARTY"]                                        = "Share with party"
