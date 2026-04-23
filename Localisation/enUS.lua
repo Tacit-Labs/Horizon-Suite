@@ -677,12 +677,12 @@ L["FOCUS_APPEND_WORLD_QUESTS_WEEKLIES_DAILIES"]               = "Append ** to wo
 -- =====================================================================
 -- OptionsData.lua Display — Spacing
 -- =====================================================================
-L["FOCUS_COMPACT_MODE"]                                       = "Compact mode"
+L["FOCUS_COMPACT_MODE"]                                       = "Compact Mode"
 L["FOCUS_PRESET_SETS_ENTRY_OBJECTIVE_SPACING_P"]              = "Preset: sets entry and objective spacing to 4 and 1 px."
 L["FOCUS_SPACING_PRESET"]                                     = "Spacing Preset"
 L["FOCUS_PRESET_ENTRY_OBJECTIVE_SPACING_DEFAULT_P"]           = "Preset for entry and objective spacing: Default (8/2 px), Compact (4/1 px), Spaced (12/3 px), or Custom (use sliders)."
-L["FOCUS_COMPACT_VERSION"]                                    = "Compact version"
-L["FOCUS_SPACED_VERSION"]                                     = "Spaced version"
+L["FOCUS_COMPACT_VERSION"]                                    = "Compact Version"
+L["FOCUS_SPACED_VERSION"]                                     = "Spaced Version"
 L["FOCUS_SPACING_BETWEEN_QUEST_ENTRIES_PX"]                   = "Spacing between quest entries (px)"
 L["FOCUS_VERTICAL_GAP_BETWEEN_QUEST_ENTRIES"]                 = "Vertical gap between quest entries."
 L["FOCUS_SPACING_BEFORE_CATEGORY_HEADER_PX"]                  = "Spacing before category header (px)"
@@ -695,7 +695,7 @@ L["FOCUS_TITLE_CONTENT"]                                      = "Title to Conten
 L["FOCUS_VERTICAL_GAP_BETWEEN_QUEST_TITLE_OBJECTIVES"]        = "Vertical gap between quest title and objectives or zone below it."
 L["FOCUS_SPACING_BELOW_HEADER_PX"]                            = "Spacing below header (px)"
 L["FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVES_BAR_QUES"]           = "Vertical gap between the objectives bar and the quest list."
-L["FOCUS_RESET_SPACING"]                                      = "Reset spacing"
+L["FOCUS_RESET_SPACING"]                                      = "Reset Spacing"
 
 -- =====================================================================
 -- OptionsData.lua Display — Other
