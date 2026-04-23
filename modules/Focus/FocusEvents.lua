@@ -53,15 +53,6 @@ pcall(function() eventFrame:RegisterEvent("PERKS_ACTIVITIES_TRACKED_LIST_CHANGED
 pcall(function() eventFrame:RegisterEvent("ACTIVE_DELVE_DATA_UPDATE") end)
 pcall(function() eventFrame:RegisterEvent("WALK_IN_DATA_UPDATE") end)
 pcall(function() eventFrame:RegisterEvent("UPDATE_UI_WIDGET") end)
--- UPDATE_ALL_UI_WIDGETS fires when Blizzard wholesale-initializes a widget set (e.g. on
--- scenario entry). Individual UPDATE_UI_WIDGET events may not fire quickly enough on
--- initial delve load to catch the scenario header widget before Focus has built a stale
--- read; listening to the bulk signal lets the Nemesis banner pick up real data immediately.
-pcall(function() eventFrame:RegisterEvent("UPDATE_ALL_UI_WIDGETS") end)
--- SPELL_DATA_LOAD_RESULT fires asynchronously after C_Spell.RequestLoadSpellData once the
--- server returns the description. The Delve Nemesis affix embeds "remaining: N" in its
--- description; a refresh here catches the count the moment the description arrives.
-pcall(function() eventFrame:RegisterEvent("SPELL_DATA_LOAD_RESULT") end)
 pcall(function() eventFrame:RegisterEvent("INITIATIVE_TASKS_TRACKED_UPDATED") end)
 pcall(function() eventFrame:RegisterEvent("INITIATIVE_TASKS_TRACKED_LIST_CHANGED") end)
 pcall(function() eventFrame:RegisterEvent("TRACKING_TARGET_INFO_UPDATE") end)
@@ -614,21 +605,6 @@ local eventHandlers = {
     -- Replaces the recursive instance-state poll for the M+ case.
     CHALLENGE_MODE_START     = function() OnInstanceEntered() end,
     UPDATE_UI_WIDGET         = function() OnUpdateUiWidgetDebounced() end,
-    -- UPDATE_ALL_UI_WIDGETS: wholesale widget-set init. Refresh only when a scenario is
-    -- actually active (same gate as OnUpdateUiWidgetDebounced) to avoid overworld churn.
-    UPDATE_ALL_UI_WIDGETS    = function()
-        if not addon.focus.enabled then return end
-        if not ((addon.IsDelveActive and addon.IsDelveActive()) or (addon.IsScenarioActive and addon.IsScenarioActive())) then return end
-        ScheduleUpdateUiWidgetDebouncedRefresh()
-    end,
-    -- SPELL_DATA_LOAD_RESULT: async description-ready signal for affix spells (Delve Nemesis).
-    -- Only refresh if the delve/scenario is active; `success=false` never carries useful data.
-    SPELL_DATA_LOAD_RESULT   = function(_, _, success)
-        if success == false then return end
-        if not addon.focus.enabled then return end
-        if not ((addon.IsDelveActive and addon.IsDelveActive()) or (addon.IsScenarioActive and addon.IsScenarioActive())) then return end
-        ScheduleUpdateUiWidgetDebouncedRefresh()
-    end,
     INITIATIVE_TASKS_TRACKED_UPDATED = function() ScheduleRefresh() end,
     INITIATIVE_TASKS_TRACKED_LIST_CHANGED = function() ScheduleRefresh() end,
     TRACKING_TARGET_INFO_UPDATE = function() ScheduleRefresh() end,
