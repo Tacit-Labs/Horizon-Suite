@@ -20,6 +20,7 @@ end
 
 local TYPOGRAPHY_KEYS = {
     fontPath = true,
+    usePerElementFonts = true,
     titleFontPath = true,
     presenceTitleFontPath = true,
     presenceSubtitleFontPath = true,
