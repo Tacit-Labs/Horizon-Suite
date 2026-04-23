@@ -343,15 +343,22 @@ local function OnPlayerRegenEnabled()
     end
 end
 
--- When entering a Delve/dungeon, APIs can lag by one frame.
--- ACTIVE_DELVE_DATA_UPDATE, WALK_IN_DATA_UPDATE, and CHALLENGE_MODE_START
--- fire at the exact right moment, so we just need a single short defer.
+-- When entering a Delve/dungeon, ACTIVE_DELVE_DATA_UPDATE fires at the right moment
+-- but Blizzard's scenario-header widget data (notably the delve's affix spells) takes
+-- a further few hundred ms to populate. A short retry ladder catches the populate
+-- window without waiting on the next unrelated refresh trigger — visible impact is the
+-- Nemesis badge appearing ~0.5s after entry instead of ~1s+. Subsequent ScheduleRefresh
+-- calls coalesce via the pending flag so the ladder costs at most one extra layout.
+local INSTANCE_ENTER_RETRY_DELAYS = { 0.2, 0.5, 1.0 }
+
 local function OnInstanceEntered()
     if not addon.focus.enabled then return end
-    C_Timer.After(0.2, function()
-        if not addon.focus.enabled then return end
-        ScheduleRefresh()
-    end)
+    for _, delay in ipairs(INSTANCE_ENTER_RETRY_DELAYS) do
+        C_Timer.After(delay, function()
+            if not addon.focus.enabled then return end
+            ScheduleRefresh()
+        end)
+    end
 end
 
 local function OnPlayerLoginOrEnteringWorld()
