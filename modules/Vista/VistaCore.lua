@@ -582,7 +582,8 @@ local function SetupMinimap()
     Minimap:SetSize(internalW, internalH)
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
     if decor and decor._sqRef then
-        decor._sqRef:SetSize(h, h)
+        decor._sqRef:SetScale(h / MINIMAP_BASE_SIZE)
+        decor._sqRef:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
     end
 
     if pt then
@@ -686,13 +687,15 @@ local function CreateDecor()
     decor:SetAllPoints(Minimap)
     decor:SetFrameLevel(Minimap:GetFrameLevel() + 5)
 
-    -- Square reference frame: invisible, always sized to GetMapHeight x GetMapHeight in
-    -- screen pixels, centered on Minimap. Text containers anchor to this so their
-    -- position/spacing is identical between rectangle and square shapes. Ignores parent
-    -- scale so a wide rectangle's large SetScale doesn't blow text size or offsets up.
+    -- Square reference frame: invisible, mirrors what Minimap's scale chain would be
+    -- if the shape were always square at GetMapHeight. Text containers anchor to this
+    -- so their position/spacing/font-size match square exactly, regardless of the
+    -- actual shape. Ignores parent scale so a wide rectangle's large SetScale
+    -- doesn't bleed in.
     decor._sqRef = CreateFrame("Frame", nil, Minimap)
     decor._sqRef:SetIgnoreParentScale(true)
-    decor._sqRef:SetSize(GetMapHeight(), GetMapHeight())
+    decor._sqRef:SetScale(GetMapHeight() / MINIMAP_BASE_SIZE)
+    decor._sqRef:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
     decor._sqRef:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
 
     local function MakeBorderTex(name)
@@ -771,6 +774,7 @@ local function CreateDecor()
     -- ---- Zone text (in a draggable container) ----
     local zoneContainer = CreateFrame("Frame", nil, decor)
     zoneContainer:SetIgnoreParentScale(true)
+    zoneContainer:SetScale(GetMapHeight() / MINIMAP_BASE_SIZE)
     zoneContainer:SetSize(GetMapHeight(), 20)
     local zAp, zRp = G.ZoneAnchors()
     zoneContainer:SetPoint(zAp, decor._sqRef, zRp, G.ZoneOffsetX(), G.ZoneOffsetY())
@@ -813,6 +817,7 @@ local function CreateDecor()
     -- ---- Difficulty text (in a draggable container) ----
     local diffContainer = CreateFrame("Frame", nil, decor)
     diffContainer:SetIgnoreParentScale(true)
+    diffContainer:SetScale(GetMapHeight() / MINIMAP_BASE_SIZE)
     diffContainer:SetSize(GetMapHeight(), 20)
     local dAp, dRp = G.DiffAnchors()
     diffContainer:SetPoint(dAp, decor._sqRef, dRp, G.DiffOffsetX(), G.DiffOffsetY())
@@ -838,6 +843,7 @@ local function CreateDecor()
     -- ---- Coord text (in a draggable container) ----
     local coordContainer = CreateFrame("Frame", nil, decor)
     coordContainer:SetIgnoreParentScale(true)
+    coordContainer:SetScale(GetMapHeight() / MINIMAP_BASE_SIZE)
     coordContainer:SetSize(120, 16)
     local cAp, cRp = G.CoordAnchors()
     coordContainer:SetPoint(cAp, decor._sqRef, cRp, G.CoordOffsetX(), G.CoordOffsetY())
@@ -861,6 +867,7 @@ local function CreateDecor()
     local TIME_PAD = 4
     local timeContainer = CreateFrame("Button", nil, decor)
     timeContainer:SetIgnoreParentScale(true)
+    timeContainer:SetScale(GetMapHeight() / MINIMAP_BASE_SIZE)
     timeContainer:SetSize(60, 16)
     local tAp, tRp = G.TimeAnchors()
     timeContainer:SetPoint(tAp, decor._sqRef, tRp, G.TimeOffsetX(), G.TimeOffsetY())
@@ -928,6 +935,7 @@ local function CreateDecor()
     -- Numeric colours use addon.TIMER_URGENCY_COLORS; labels use G.PerfNumColor().
     local perfContainer = CreateFrame("Button", nil, decor)
     perfContainer:SetIgnoreParentScale(true)
+    perfContainer:SetScale(GetMapHeight() / MINIMAP_BASE_SIZE)
     perfContainer:SetSize(120, 16)
     local pAp, pRp = G.PerfAnchors()
     perfContainer:SetPoint(pAp, decor._sqRef, pRp, G.PerfOffsetX(), G.PerfOffsetY())
@@ -3466,7 +3474,8 @@ local function ApplyOptions_Minimap()
     Minimap:SetSize(internalW, internalH)
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
     if decor and decor._sqRef then
-        decor._sqRef:SetSize(h, h)
+        decor._sqRef:SetScale(h / MINIMAP_BASE_SIZE)
+        decor._sqRef:SetSize(MINIMAP_BASE_SIZE, MINIMAP_BASE_SIZE)
     end
     pcall(function() local z = Minimap:GetZoom(); if z then Minimap:SetZoom(z) end end)
     local vistaScale  = DB("vistaScale", 1.0) or 1.0
@@ -3496,6 +3505,15 @@ local function ApplyOptions_TextDraggableLocks()
 end
 
 local function ApplyOptions_Texts(sz)
+    -- Re-apply scale on each text container so font/offset rendering stays
+    -- equivalent to square mode, regardless of the current minimap shape.
+    local containerScale = sz / MINIMAP_BASE_SIZE
+    for _, c in ipairs({
+        decor._zoneContainer, decor._coordContainer, decor._timeContainer,
+        decor._perfContainer, decor._diffContainer,
+    }) do
+        if c then c:SetScale(containerScale) end
+    end
     if zoneText and decor._zoneContainer then
         local show = G.ShowZone()
         local fp, fs = G.ZoneFont(), G.ZoneSize()
