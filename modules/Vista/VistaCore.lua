@@ -1496,8 +1496,11 @@ local function SuppressBlizzardCraftingOrder()
     if not native then return end
     if not native._vistaCraftingOrderHooked then
         native._vistaCraftingOrderHooked = true
-        -- Seed initial visibility before we silence the frame.
-        Vista._craftingOrderVisible = native:IsShown() and true or false
+        -- Start hidden: the native frame's XML default is `shown=true`, so `IsShown()`
+        -- reads true until Blizzard's event-driven logic hides it. Seeding from that
+        -- initial state would flash the proxy on for every reload. Wait for Blizzard's
+        -- explicit Show call instead — a pending order will always fire Show.
+        Vista._craftingOrderVisible = false
         pcall(function() native:EnableMouse(false) end)
         pcall(function() native:SetAlpha(0) end)
         if hooksecurefunc then
@@ -1509,6 +1512,10 @@ local function SuppressBlizzardCraftingOrder()
                 end)
                 hooksecurefunc(native, "Hide", function(_)
                     Vista._craftingOrderVisible = false
+                    UpdateCraftingOrderIndicator()
+                end)
+                hooksecurefunc(native, "SetShown", function(_, shown)
+                    Vista._craftingOrderVisible = shown and true or false
                     UpdateCraftingOrderIndicator()
                 end)
             end)
