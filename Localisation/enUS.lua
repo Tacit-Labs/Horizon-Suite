@@ -771,8 +771,8 @@ L["FOCUS_CRITERIA_YOU_HAVEN_T_COMPLETED_TR"]                  = "Show only crite
 -- OptionsData.lua Features — Endeavors
 -- =====================================================================
 L["FOCUS_SHOW_ENDEAVORS"]                                     = "Show Endeavors"
-L["FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"]              = "Show tracked Endeavors (Player Housing) in the list."
-L["FOCUS_COMPLETED_ENDEAVORS"]                                = "Show completed endeavors"
+L["FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"]              = "Show Tracked Endeavors (Player Housing) in the list."
+L["FOCUS_COMPLETED_ENDEAVORS"]                                = "Show Completed Endeavors"
 L["FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"]                = "Include completed Endeavors in the tracker. When off, only in-progress tracked Endeavors are shown."
 
 -- =====================================================================
