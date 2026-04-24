@@ -1371,6 +1371,13 @@ L["VISTA_WIDTH_HEIGHT_OF_MINIMAP_PIXELS"]                     = "Width and heigh
 L["VISTA_CIRCULAR_MINIMAP"]                                   = "Circular minimap"
 L["VISTA_CIRCULAR_SHAPE"]                                     = "Circular shape"
 L["VISTA_A_CIRCULAR_MINIMAP_INSTEAD_OF_SQUARE"]               = "Use a circular minimap instead of square."
+L["VISTA_SHAPE"]                                              = "Shape"
+L["VISTA_SHAPE_DESC"]                                         = "Choose the minimap shape."
+L["VISTA_SHAPE_SQUARE"]                                       = "Square"
+L["VISTA_SHAPE_CIRCLE"]                                       = "Circle"
+L["VISTA_SHAPE_RECTANGLE"]                                    = "Rectangle"
+L["VISTA_RECTANGLE_WIDTH"]                                    = "Rectangle width"
+L["VISTA_WIDTH_OF_MINIMAP_PIXELS_DESC"]                       = "Width of the minimap in pixels (rectangle only, 100–800)."
 L["VISTA_LOCK_MINIMAP_POSITION"]                              = "Lock minimap position"
 L["VISTA_PREVENT_DRAGGING_MINIMAP"]                           = "Prevent dragging the minimap."
 L["VISTA_RESET_MINIMAP_POSITION"]                             = "Reset minimap position"
@@ -1883,6 +1890,7 @@ L["ZONE_LABELS"]                                              = "Zone labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone type colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
