@@ -742,13 +742,13 @@ L["FOCUS_GREEN_COLOUR"]                                       = "Green Colour"
 -- =====================================================================
 -- OptionsData.lua Features — Achievements
 -- =====================================================================
-L["PRESENCE_ACHIEVEMENTS"]                                    = "Show achievements"
-L["FOCUS_TRACKED_ACHIEVEMENTS_LIST"]                          = "Show tracked achievements in the list."
-L["FOCUS_COMPLETED_ACHIEVEMENTS"]                             = "Show completed achievements"
+L["PRESENCE_ACHIEVEMENTS"]                                    = "Show Achievements"
+L["FOCUS_TRACKED_ACHIEVEMENTS_LIST"]                          = "Show Tracked Achievements in the List."
+L["FOCUS_COMPLETED_ACHIEVEMENTS"]                             = "Show Completed Achievements"
 L["FOCUS_INCLUDE_COMPLETED_ACHIEVEMENTS_TRACKER_O"]           = "Include completed achievements in the tracker. When off, only in-progress tracked achievements are shown."
-L["FOCUS_ACHIEVEMENT_ICONS"]                                  = "Show achievement icons"
+L["FOCUS_ACHIEVEMENT_ICONS"]                                  = "Show Achievement Icons"
 L["FOCUS_ACHIEVEMENT_S_ICON_NEXT_TITLE_REQUI"]                = "Show each achievement's icon next to the title. Requires 'Show quest type icons' in Display."
-L["FOCUS_MISSING_REQUIREMENTS"]                               = "Only show missing requirements"
+L["FOCUS_MISSING_REQUIREMENTS"]                               = "Only Show Missing Requirements"
 L["FOCUS_CRITERIA_YOU_HAVEN_T_COMPLETED_TR"]                  = "Show only criteria you haven't completed for each tracked achievement. When off, all criteria are shown."
 
 -- =====================================================================
