@@ -380,6 +380,7 @@ local DASHBOARD_CLASS_ICON_KEYS = {
 local DASHBOARD_BACKGROUND_KEYS = {
     dashboardBackgroundTheme = true,
     dashboardBackgroundOpacity = true,
+    dashboardBackgroundClassOverride = true,
 }
 
 local DASHBOARD_TYPOGRAPHY_KEYS = {
@@ -841,15 +842,15 @@ local OptionCategories = {
     },
     {
         key = "GlobalToggles",
-        name = L["AXIS_GLOBAL_TOGGLES"] or "Global Toggles",
+        name = L["AXIS_GLOBAL_TOGGLES"] or "Global (Axis / Settings)",
         desc = L["AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] or "Suite-wide class colour tinting and UI scale (global or per module).",
         moduleKey = nil,
         options = function()
             local opts = {}
-            opts[#opts + 1] = { type = "section", name = L["AXIS_MODULE_NAME_DISPLAY"] or "Module name style" }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_DASHBOARD_SECTION"] or "Dashboard" }
             opts[#opts + 1] = {
                 type = "dropdown",
-                name = L["AXIS_MODULE_NAME_DISPLAY"] or "Module name style",
+                name = L["AXIS_MODULE_NAME_DISPLAY"] or "Module Name Style",
                 desc = L["AXIS_MODULE_NAME_DISPLAY_DESC"] or "How module names appear in the settings panel navigation and search filter.",
                 dbKey = "moduleNameDisplay",
                 options = {
@@ -866,7 +867,6 @@ local OptionCategories = {
                     end
                 end,
             }
-            opts[#opts + 1] = { type = "section", name = L["DASH_THEME"] or "Theme" }
             local function dashboardBackgroundDropdownOptions()
                 local order = addon.DashboardBackgroundThemeOrder or { "horizon", "midnight", "talents" }
                 local out = {}
@@ -947,7 +947,6 @@ local OptionCategories = {
                 end,
                 refreshIds = { "dashboardBackgroundOpacity" },
             }
-            opts[#opts + 1] = { type = "section", name = L["DASHBOARD_TYPO_SECTION"] or "Dashboard text" }
             local dashboardTypoRefreshIds = {
                 "dashboardFontPath",
                 "dashboardFontSize",
@@ -956,7 +955,7 @@ local OptionCategories = {
             }
             opts[#opts + 1] = {
                 type = "dropdown",
-                name = L["DASHBOARD_TYPO_FONT"] or "Dashboard font",
+                name = L["DASHBOARD_TYPO_FONT"] or "Dashboard Font",
                 desc = L["DASHBOARD_TYPO_FONT_DESC"] or "Font for the Axis settings window (sidebar, search, options list). Independent of the Focus tracker font.",
                 dbKey = "dashboardFontPath",
                 searchable = true,
@@ -969,7 +968,7 @@ local OptionCategories = {
             }
             opts[#opts + 1] = {
                 type = "slider",
-                name = L["DASHBOARD_TYPO_SIZE"] or "Body text size",
+                name = L["DASHBOARD_TYPO_SIZE"] or "Dashboard Text Size",
                 desc = L["DASHBOARD_TYPO_SIZE_DESC"] or "Size of body text in the Axis settings window. All other dashboard text scales proportionally.",
                 dbKey = "dashboardFontSize",
                 min = 10,
@@ -986,7 +985,7 @@ local OptionCategories = {
             }
             opts[#opts + 1] = {
                 type = "dropdown",
-                name = L["DASHBOARD_TYPO_OUTLINE"] or "Text outline",
+                name = L["DASHBOARD_TYPO_OUTLINE"] or "Dashboard Text Outline",
                 desc = L["DASHBOARD_TYPO_OUTLINE_DESC"] or "Outline style for dashboard text.",
                 dbKey = "dashboardTextOutline",
                 options = OUTLINE_OPTIONS,
@@ -1007,7 +1006,7 @@ local OptionCategories = {
             }
             opts[#opts + 1] = {
                 type = "toggle",
-                name = L["DASHBOARD_TYPO_SHADOW"] or "Text shadow",
+                name = L["DASHBOARD_TYPO_SHADOW"] or "Dashboard Text Shadow",
                 desc = L["DASHBOARD_TYPO_SHADOW_DESC"] or "Add a drop shadow behind dashboard text to improve readability.",
                 dbKey = "dashboardTextShadow",
                 get = function()
@@ -1018,70 +1017,16 @@ local OptionCategories = {
                 set = function(v) setDB("dashboardTextShadow", v) end,
                 refreshIds = dashboardTypoRefreshIds,
             }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_PATCH_NOTES_SECTION"] or "Patch notes" }
             opts[#opts + 1] = {
                 type = "toggle",
-                name = L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"] or "Show Patch Notes automatically after an update",
+                name = L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"] or "Show Patch Notes Popup After Update",
                 desc = L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"] or "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes.",
                 dbKey = "autoShowPatchNotesOnLogin",
                 get = function() return getDB("autoShowPatchNotesOnLogin", true) end,
                 set = function(v) setDB("autoShowPatchNotesOnLogin", v) end,
             }
-            opts[#opts + 1] = { type = "section", name = L["FOCUS_CLASS_COLOURS"] or "Class Colours" }
-            local classColorKeys = {
-                "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
-                "classColorFocus", "classColorPresence", "classColorCache",
-            }
-            -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
-            local classColorAllRefreshIds = { "_classColorAll" }
-            for _, k in ipairs(classColorKeys) do
-                classColorAllRefreshIds[#classColorAllRefreshIds + 1] = k
-            end
-            classColorAllRefreshIds[#classColorAllRefreshIds + 1] = "dashboardClassIconSource"
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["FOCUS_ENABLE_CLASS_COLOURS"] or "Enable all class colours",
-                desc = L["DASH_CLASS_COLOURS_MODULES_GLOBAL"] or "Toggle class colours on or off for all modules at once.",
-                dbKey = "_classColorAll",
-                refreshIds = classColorAllRefreshIds,
-                get = function()
-                    for _, k in ipairs(classColorKeys) do
-                        if not getDB(k, false) then return false end
-                    end
-                    return true
-                end,
-                set = function(v)
-                    for _, k in ipairs(classColorKeys) do
-                        addon.SetDB(k, v)
-                    end
-                    if addon.ApplyAllClassColorConsumers then addon.ApplyAllClassColorConsumers() end
-                    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-                end,
-            }
-            opts[#opts + 1] = { type = "toggle", name = L["FOCUS_DASHBOARD"], desc = L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll", "dashboardClassIconSource" } }
-            opts[#opts + 1] = {
-                type = "dropdown",
-                name = L["DASHBOARD_CLASS_ICON_STYLE"] or "Dashboard class icon style",
-                desc = L["DASH_CLASS_ICONS_RONDOMEDIA"] or "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons.",
-                tooltip = L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"],
-                dbKey = "dashboardClassIconSource",
-                options = {
-                    { L["AXIS_CUSTOM_CLASS_ICONS_LABEL"] or "Horizon", "custom" },
-                    { L["AXIS_DEFAULT"] or "Default", "default" },
-                    { "RondoMedia", "rondomedia" },
-                },
-                get = function() return getDB("dashboardClassIconSource", "custom") end,
-                set = function(v) setDB("dashboardClassIconSource", v) end,
-                visibleWhen = function() return getDB("classColorDashboard", false) end,
-                refreshIds = { "_classColorAll" },
-            }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_SCALING"] }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_MODULE_FONT_SECTION"] or "Global Module Font" }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] or "Global Scale" }
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
                 if addon.ApplyDimensions then addon.ApplyDimensions() end
@@ -1171,7 +1116,7 @@ local OptionCategories = {
                     and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
                              and getDB("vistaCollectHorizonMinimapButton", true))
             end
-            opts[#opts + 1] = { type = "section", name = L["PRESENCE_MINIMAP_SECTION"] or "Minimap icon" }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"] or "Minimap Icon" }
             opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
                 C_Timer.After(0, function()
                     setDB("hideMinimapButton", not v)
@@ -1188,6 +1133,71 @@ local OptionCategories = {
                 C_Timer.After(0, function() setDB("minimapButtonLocked", v) end)
             end }
             opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"] or "Class Theme" }
+            local classColorKeys = {
+                "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
+                "classColorFocus", "classColorPresence", "classColorCache",
+            }
+            -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
+            local classColorAllRefreshIds = { "_classColorAll" }
+            for _, k in ipairs(classColorKeys) do
+                classColorAllRefreshIds[#classColorAllRefreshIds + 1] = k
+            end
+            classColorAllRefreshIds[#classColorAllRefreshIds + 1] = "dashboardClassIconSource"
+            classColorAllRefreshIds[#classColorAllRefreshIds + 1] = "dashboardBackgroundClassOverride"
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["AXIS_GLOBAL_CLASS_THEME"] or "Global Class Theme",
+                desc = L["DASH_CLASS_COLOURS_MODULES_GLOBAL"] or "Toggle class colours on or off for all modules at once.",
+                dbKey = "_classColorAll",
+                refreshIds = classColorAllRefreshIds,
+                get = function()
+                    for _, k in ipairs(classColorKeys) do
+                        if not getDB(k, false) then return false end
+                    end
+                    return true
+                end,
+                set = function(v)
+                    for _, k in ipairs(classColorKeys) do
+                        addon.SetDB(k, v)
+                    end
+                    if addon.ApplyAllClassColorConsumers then addon.ApplyAllClassColorConsumers() end
+                    if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+                end,
+            }
+            opts[#opts + 1] = { type = "toggle", name = L["AXIS_CLASS_THEME_DASHBOARD"] or "Dashboard", desc = L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll", "dashboardClassIconSource", "dashboardBackgroundClassOverride" } }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["DASHBOARD_CLASS_ICON_STYLE"] or "Dashboard Class Icon Style",
+                desc = L["DASH_CLASS_ICONS_RONDOMEDIA"] or "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons.",
+                tooltip = L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"],
+                dbKey = "dashboardClassIconSource",
+                options = {
+                    { L["AXIS_CUSTOM_CLASS_ICONS_LABEL"] or "Horizon", "custom" },
+                    { L["AXIS_DEFAULT"] or "Default", "default" },
+                    { "RondoMedia", "rondomedia" },
+                },
+                get = function() return getDB("dashboardClassIconSource", "custom") end,
+                set = function(v) setDB("dashboardClassIconSource", v) end,
+                visibleWhen = function() return getDB("classColorDashboard", false) end,
+                refreshIds = { "_classColorAll" },
+            }
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE"] or "Override Background to Class Background",
+                desc = L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE_DESC"] or "Replace the Dashboard background with a class-themed background while Dashboard class colours are on.",
+                dbKey = "dashboardBackgroundClassOverride",
+                get = function() return getDB("dashboardBackgroundClassOverride", false) end,
+                set = function(v) setDB("dashboardBackgroundClassOverride", v) end,
+                visibleWhen = function() return getDB("classColorDashboard", false) end,
+                refreshIds = { "_classColorAll", "dashboardBackgroundTheme" },
+            }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             return opts
         end,
     },
