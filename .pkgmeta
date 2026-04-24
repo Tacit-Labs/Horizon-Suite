@@ -18,6 +18,8 @@ ignore:
   - docs
   - notes
   - "modules/*/notes"
+  - Localisation/TAXONOMY.md
+  - "Localisation/Global Strings -- Blizzard"
   - pipeline.md
   - .cursor
   - .claude
