@@ -375,6 +375,7 @@ local CLASS_COLOR_KEYS = {
 
 local DASHBOARD_CLASS_ICON_KEYS = {
     dashboardClassIconSource = true,
+    dashboardShowClassIcon = true,
 }
 
 local DASHBOARD_BACKGROUND_KEYS = {

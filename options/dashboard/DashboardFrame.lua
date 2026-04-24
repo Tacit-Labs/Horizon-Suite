@@ -208,7 +208,7 @@ function addon.Dashboard_BuildMainFrame()
             local function RefreshDashboardClassIcon()
                 local tex = dashAccentRefs.dashboardClassIcon
                 if not tex then return end
-                if not (addon.GetOptionsClassColor and addon.GetOptionsClassColor()) then
+                if not (addon.GetDB and addon.GetDB("dashboardShowClassIcon", false)) then
                     tex:Hide()
                     return
                 end
