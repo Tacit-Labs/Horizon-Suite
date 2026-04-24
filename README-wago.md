@@ -106,7 +106,7 @@
 
 ## 🤝 Contributing
 
-**Issues** — [GitHub Issues](https://github.com/Tacit-Labs/Horizon-Suite/issues). Use the Bug report or Feature request template. Reports from Discord, Reddit, or CurseForge are welcome.
+**Issues** — **[GitHub Issues](https://github.com/Tacit-Labs/Horizon-Suite/issues)**. Reports and requests can be directly filed [here](https://github.com/Tacit-Labs/Horizon-Suite/issues/new/choose). Reports from Discord, Reddit, or CurseForge are also welcome.
 
 ---
 

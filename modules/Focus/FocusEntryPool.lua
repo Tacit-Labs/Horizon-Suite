@@ -647,17 +647,26 @@ local function UpdateFontObjectsFromDB()
     local sectionSz  = math.max(8, (tonumber(addon.GetDB("sectionFontSize", 10)) or 10) + fontOffset)
 
     local GLOBAL_SENTINEL = "__global__"
+    local usePer = addon.GetDB("usePerElementFonts", false)
     local titleFontRaw   = addon.GetDB("titleFontPath", GLOBAL_SENTINEL)
     local zoneFontRaw    = addon.GetDB("zoneFontPath", GLOBAL_SENTINEL)
     local objFontRaw     = addon.GetDB("objectiveFontPath", GLOBAL_SENTINEL)
     local sectionFontRaw = addon.GetDB("sectionFontPath", GLOBAL_SENTINEL)
     local progBarFontRaw = addon.GetDB("progressBarFontPath", GLOBAL_SENTINEL)
 
-    local titleFont   = (titleFontRaw and titleFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(titleFontRaw) or titleFontRaw) or fontPath
-    local zoneFont    = (zoneFontRaw and zoneFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(zoneFontRaw) or zoneFontRaw) or fontPath
-    local objFont     = (objFontRaw and objFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(objFontRaw) or objFontRaw) or fontPath
-    local sectionFont = (sectionFontRaw and sectionFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(sectionFontRaw) or sectionFontRaw) or fontPath
-    local progBarFont = (progBarFontRaw and progBarFontRaw ~= GLOBAL_SENTINEL) and (addon.ResolveFontPath and addon.ResolveFontPath(progBarFontRaw) or progBarFontRaw) or fontPath
+    local function ResolvePer(raw)
+        if not usePer then return fontPath end
+        if raw and raw ~= GLOBAL_SENTINEL then
+            return addon.ResolveFontPath and addon.ResolveFontPath(raw) or raw
+        end
+        return fontPath
+    end
+
+    local titleFont   = ResolvePer(titleFontRaw)
+    local zoneFont    = ResolvePer(zoneFontRaw)
+    local objFont     = ResolvePer(objFontRaw)
+    local sectionFont = ResolvePer(sectionFontRaw)
+    local progBarFont = ResolvePer(progBarFontRaw)
     local progBarSz   = math.max(7, (tonumber(addon.GetDB("progressBarFontSize", 10)) or 10) + fontOffset)
 
     addon.FONT_PATH = fontPath
