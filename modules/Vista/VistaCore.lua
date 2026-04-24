@@ -577,8 +577,14 @@ local function SetupMinimap()
     -- world-tile renderer caching a larger size and bleeding into later shape changes.
     local maxAxis = math.max(w, h)
     local mapScale = maxAxis / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / maxAxis), MINIMAP_BASE_SIZE * (h / maxAxis))
+    local internalW = MINIMAP_BASE_SIZE * (w / maxAxis)
+    local internalH = MINIMAP_BASE_SIZE * (h / maxAxis)
+    Minimap:SetSize(internalW, internalH)
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
+    if decor and decor._sqRef then
+        local sq = math.min(internalW, internalH)
+        decor._sqRef:SetSize(sq, sq)
+    end
 
     if pt then
         proxy.ClearAllPoints(Minimap)
@@ -681,6 +687,13 @@ local function CreateDecor()
     decor:SetAllPoints(Minimap)
     decor:SetFrameLevel(Minimap:GetFrameLevel() + 5)
 
+    -- Square reference frame: invisible, always sized to GetMapHeight x GetMapHeight,
+    -- centered on Minimap. Text containers anchor to this so their position/spacing
+    -- is identical between rectangle and square shapes (rectangle only widens the map).
+    decor._sqRef = CreateFrame("Frame", nil, Minimap)
+    decor._sqRef:SetSize(GetMapHeight(), GetMapHeight())
+    decor._sqRef:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
+
     local function MakeBorderTex(name)
         local t = decor:CreateTexture(nil, "OVERLAY")
         borderTextures[name] = t
@@ -756,11 +769,11 @@ local function CreateDecor()
 
     -- ---- Zone text (in a draggable container) ----
     local zoneContainer = CreateFrame("Frame", nil, decor)
-    zoneContainer:SetSize(GetMapWidth(), 20)
+    zoneContainer:SetSize(GetMapHeight(), 20)
     local zAp, zRp = G.ZoneAnchors()
-    zoneContainer:SetPoint(zAp, Minimap, zRp, G.ZoneOffsetX(), G.ZoneOffsetY())
+    zoneContainer:SetPoint(zAp, decor._sqRef, zRp, G.ZoneOffsetX(), G.ZoneOffsetY())
     zoneContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(zoneContainer, "zone", "zone", "zone", G.ZoneAnchors, Minimap)
+    MakeDraggable(zoneContainer, "zone", "zone", "zone", G.ZoneAnchors, decor._sqRef)
 
     -- Primary line (zone name, or subzone in subzone-only mode)
     zoneShadow = zoneContainer:CreateFontString(nil, "BORDER")
@@ -797,11 +810,11 @@ local function CreateDecor()
 
     -- ---- Difficulty text (in a draggable container) ----
     local diffContainer = CreateFrame("Frame", nil, decor)
-    diffContainer:SetSize(GetMapWidth(), 20)
+    diffContainer:SetSize(GetMapHeight(), 20)
     local dAp, dRp = G.DiffAnchors()
-    diffContainer:SetPoint(dAp, Minimap, dRp, G.DiffOffsetX(), G.DiffOffsetY())
+    diffContainer:SetPoint(dAp, decor._sqRef, dRp, G.DiffOffsetX(), G.DiffOffsetY())
     diffContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(diffContainer, "diff", "diff", "diff", G.DiffAnchors, Minimap)
+    MakeDraggable(diffContainer, "diff", "diff", "diff", G.DiffAnchors, decor._sqRef)
 
     diffShadow = diffContainer:CreateFontString(nil, "BORDER")
     diffShadow:SetFont(G.DiffFont(), G.DiffSize(), "OUTLINE")
@@ -814,7 +827,7 @@ local function CreateDecor()
     diffText:SetTextColor(G.DiffColor())
     diffText:SetJustifyH("CENTER")
     diffText:SetAllPoints()
-    diffText:SetWidth(GetMapWidth())
+    diffText:SetWidth(GetMapHeight())
     diffShadow:SetAllPoints(diffText)
 
     decor._diffContainer = diffContainer
@@ -823,9 +836,9 @@ local function CreateDecor()
     local coordContainer = CreateFrame("Frame", nil, decor)
     coordContainer:SetSize(120, 16)
     local cAp, cRp = G.CoordAnchors()
-    coordContainer:SetPoint(cAp, Minimap, cRp, G.CoordOffsetX(), G.CoordOffsetY())
+    coordContainer:SetPoint(cAp, decor._sqRef, cRp, G.CoordOffsetX(), G.CoordOffsetY())
     coordContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(coordContainer, "coord", "coord", "coord", G.CoordAnchors, Minimap)
+    MakeDraggable(coordContainer, "coord", "coord", "coord", G.CoordAnchors, decor._sqRef)
 
     coordShadow = coordContainer:CreateFontString(nil, "BORDER")
     coordShadow:SetFont(G.CoordFont(), G.CoordSize(), "OUTLINE")
@@ -845,9 +858,9 @@ local function CreateDecor()
     local timeContainer = CreateFrame("Button", nil, decor)
     timeContainer:SetSize(60, 16)
     local tAp, tRp = G.TimeAnchors()
-    timeContainer:SetPoint(tAp, Minimap, tRp, G.TimeOffsetX(), G.TimeOffsetY())
+    timeContainer:SetPoint(tAp, decor._sqRef, tRp, G.TimeOffsetX(), G.TimeOffsetY())
     timeContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(timeContainer, "time", "time", "time", G.TimeAnchors, Minimap)
+    MakeDraggable(timeContainer, "time", "time", "time", G.TimeAnchors, decor._sqRef)
 
     timeShadow = timeContainer:CreateFontString(nil, "BORDER")
     timeShadow:SetFont(G.TimeFont(), G.TimeSize(), "OUTLINE")
@@ -911,9 +924,9 @@ local function CreateDecor()
     local perfContainer = CreateFrame("Button", nil, decor)
     perfContainer:SetSize(120, 16)
     local pAp, pRp = G.PerfAnchors()
-    perfContainer:SetPoint(pAp, Minimap, pRp, G.PerfOffsetX(), G.PerfOffsetY())
+    perfContainer:SetPoint(pAp, decor._sqRef, pRp, G.PerfOffsetX(), G.PerfOffsetY())
     perfContainer:SetFrameLevel(decor:GetFrameLevel() + 1)
-    MakeDraggable(perfContainer, "perf", "perf", "perf", G.PerfAnchors, Minimap)
+    MakeDraggable(perfContainer, "perf", "perf", "perf", G.PerfAnchors, decor._sqRef)
     if perfContainer.SetMouseMotionEnabled then
         perfContainer:SetMouseMotionEnabled(true)
     end
@@ -3442,8 +3455,14 @@ local function ApplyOptions_Minimap()
     -- See SetupMinimap for the SetSize <= BASE rationale.
     local maxAxis  = math.max(w, h)
     local mapScale = maxAxis / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / maxAxis), MINIMAP_BASE_SIZE * (h / maxAxis))
+    local internalW = MINIMAP_BASE_SIZE * (w / maxAxis)
+    local internalH = MINIMAP_BASE_SIZE * (h / maxAxis)
+    Minimap:SetSize(internalW, internalH)
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
+    if decor and decor._sqRef then
+        local sq = math.min(internalW, internalH)
+        decor._sqRef:SetSize(sq, sq)
+    end
     pcall(function() local z = Minimap:GetZoom(); if z then Minimap:SetZoom(z) end end)
     local vistaScale  = DB("vistaScale", 1.0) or 1.0
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
@@ -3487,7 +3506,7 @@ local function ApplyOptions_Texts(sz)
         decor._zoneContainer:SetShown(show);  decor._zoneContainer:SetWidth(sz)
         local ap, rp = G.ZoneAnchors()
         decor._zoneContainer:ClearAllPoints()
-        decor._zoneContainer:SetPoint(ap, Minimap, rp, G.ZoneOffsetX(), G.ZoneOffsetY())
+        decor._zoneContainer:SetPoint(ap, decor._sqRef, rp, G.ZoneOffsetX(), G.ZoneOffsetY())
         UpdateZoneText()
     end
     if coordText and decor._coordContainer then
@@ -3499,7 +3518,7 @@ local function ApplyOptions_Texts(sz)
         decor._coordContainer:SetShown(show)
         local ap, rp = G.CoordAnchors()
         decor._coordContainer:ClearAllPoints()
-        decor._coordContainer:SetPoint(ap, Minimap, rp, G.CoordOffsetX(), G.CoordOffsetY())
+        decor._coordContainer:SetPoint(ap, decor._sqRef, rp, G.CoordOffsetX(), G.CoordOffsetY())
     end
     if timeText and decor._timeContainer then
         local show = G.ShowTime()
@@ -3510,7 +3529,7 @@ local function ApplyOptions_Texts(sz)
         decor._timeContainer:SetShown(show)
         local ap, rp = G.TimeAnchors()
         decor._timeContainer:ClearAllPoints()
-        decor._timeContainer:SetPoint(ap, Minimap, rp, G.TimeOffsetX(), G.TimeOffsetY())
+        decor._timeContainer:SetPoint(ap, decor._sqRef, rp, G.TimeOffsetX(), G.TimeOffsetY())
     end
     if perf.num1 and decor._perfContainer then
         local show = G.ShowPerf()
@@ -3529,7 +3548,7 @@ local function ApplyOptions_Texts(sz)
         decor._perfContainer:SetShown(show)
         local ap, rp = G.PerfAnchors()
         decor._perfContainer:ClearAllPoints()
-        decor._perfContainer:SetPoint(ap, Minimap, rp, G.PerfOffsetX(), G.PerfOffsetY())
+        decor._perfContainer:SetPoint(ap, decor._sqRef, rp, G.PerfOffsetX(), G.PerfOffsetY())
         if Vista.ResizePerfContainer then
             Vista.ResizePerfContainer()
         end
@@ -3541,7 +3560,7 @@ local function ApplyOptions_Texts(sz)
         decor._diffContainer:SetWidth(sz)
         local dAp, dRp = G.DiffAnchors()
         decor._diffContainer:ClearAllPoints()
-        decor._diffContainer:SetPoint(dAp, Minimap, dRp, G.DiffOffsetX(), G.DiffOffsetY())
+        decor._diffContainer:SetPoint(dAp, decor._sqRef, dRp, G.DiffOffsetX(), G.DiffOffsetY())
         UpdateDifficultyText()
     end
     if collectorBar then
@@ -3627,7 +3646,7 @@ end
 function Vista.ApplyOptions(changedKey)
     if not decor then return end
     ApplyOptions_Minimap()
-    ApplyOptions_Texts(GetMapWidth())
+    ApplyOptions_Texts(GetMapHeight())
     ApplyOptions_Buttons(changedKey)
     if addon.MinimapButton_ApplyPosition then
         addon.MinimapButton_ApplyPosition()
