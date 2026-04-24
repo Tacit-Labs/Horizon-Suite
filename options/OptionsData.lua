@@ -1164,7 +1164,19 @@ local OptionCategories = {
                     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
                 end,
             }
-            opts[#opts + 1] = { type = "toggle", name = L["AXIS_CLASS_THEME_DASHBOARD"] or "Dashboard", desc = L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour.", dbKey = "classColorDashboard", get = function() return getDB("classColorDashboard", false) end, set = function(v) setDB("classColorDashboard", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["AXIS_CLASS_THEME_DASHBOARD"] or "Dashboard",
+                desc = L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour. Also toggles the Dashboard Class Icon and Override Background sub-options together; they can then be adjusted independently.",
+                dbKey = "classColorDashboard",
+                get = function() return getDB("classColorDashboard", false) end,
+                set = function(v)
+                    setDB("classColorDashboard", v)
+                    setDB("dashboardShowClassIcon", v)
+                    setDB("dashboardBackgroundClassOverride", v)
+                end,
+                refreshIds = { "_classColorAll", "dashboardShowClassIcon", "dashboardClassIconSource", "dashboardBackgroundClassOverride" },
+            }
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["AXIS_DASHBOARD_CLASS_ICON"] or "Dashboard Class Icon",

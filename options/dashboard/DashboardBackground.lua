@@ -311,6 +311,9 @@ function addon.ApplyDashboardBackground()
         return
     end
     local raw = (addon.GetDB and addon.GetDB("dashboardBackgroundTheme", "midnight")) or "midnight"
+    if addon.GetDB and addon.GetDB("dashboardBackgroundClassOverride", false) then
+        raw = "talents"
+    end
     local themeId = NormalizeDashboardThemeId(raw)
     local solid = dash._dashboardBgSolid
     if solid then
