@@ -1216,8 +1216,9 @@ local OptionCategories = {
             end
             opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"] or "Minimap Icon" }
             opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
+                -- Write DB synchronously so dependents' refreshIds see the new value immediately.
+                setDB("hideMinimapButton", not v)
                 C_Timer.After(0, function()
-                    setDB("hideMinimapButton", not v)
                     -- Vista may be collecting the icon into its bar/drawer; re-run collection so the proxy is dropped/re-added.
                     if addon.Vista and addon.Vista.ApplyOptions and addon.IsModuleEnabled and addon:IsModuleEnabled("vista") then
                         addon.Vista.ApplyOptions()
