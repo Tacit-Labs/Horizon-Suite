@@ -1522,6 +1522,8 @@ L["VISTA_LOCK_QUEUE_BUTTON"]                                  = "Lock Queue Butt
 L["VISTA_PREVENT_DRAGGING_QUEUE_STATUS_BUTTON"]               = "Prevent dragging the queue status button."
 L["VISTA_LOCK_MAIL_INDICATOR"]                                = "Lock Mail Indicator"
 L["VISTA_PREVENT_DRAGGING_MAIL_ICON"]                         = "Prevent dragging the mail icon."
+L["VISTA_LOCK_CRAFTING_ORDER_INDICATOR"]                      = "Lock Crafting Order Indicator"
+L["VISTA_PREVENT_DRAGGING_CRAFTING_ORDER_ICON"]               = "Prevent dragging the crafting order icon."
 L["VISTA_DISABLE_QUEUE_HANDLING"]                             = "Disable Queue Handling"
 L["VISTA_DISABLE_QUEUE_BUTTON_HANDLING"]                      = "Disable queue button handling"
 L["VISTA_TURN_QUEUE_BUTTON_ANCHORING_OFF_ADDON_CONFLICT"]     = "Turn off all queue button anchoring (use if another addon manages it)."
@@ -1537,6 +1539,8 @@ L["VISTA_ZOOM_BUTTON_SIZE"]                                   = "Zoom button siz
 L["VISTA_SIZE_OF_ZOOM_ZOOM_BUTTONS_PIXELS"]                   = "Size of the zoom in / zoom out buttons (pixels)."
 L["VISTA_MAIL_INDICATOR_SIZE"]                                = "Mail Indicator Size"
 L["VISTA_SIZE_OF_MAIL_ICON_PIXELS"]                           = "Size of the new mail icon (pixels)."
+L["VISTA_CRAFTING_ORDER_INDICATOR_SIZE"]                      = "Crafting Order Indicator Size"
+L["VISTA_SIZE_OF_CRAFTING_ORDER_ICON_PIXELS"]                 = "Size of the crafting order icon (pixels)."
 L["VISTA_ADDON_BUTTON_SIZE"]                                  = "Addon Button Size"
 L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "Size of collected addon minimap buttons (pixels)."
 
@@ -1595,6 +1599,9 @@ L["VISTA_DRAWER_CLOSE_DELAY"]                                 = "Drawer Close De
 L["VISTA_LONG_SECONDS_DRAWER_PANEL_STAYS_OPEN"]               = "How long (in seconds) the drawer panel stays open after clicking away. 0 = never auto-close (close only by clicking the drawer button again)."
 L["VISTA_MAIL_ICON_BLINK"]                                    = "Mail icon blink"
 L["VISTA_MAIL_ICON_PULSES_DRAW_ATTENTION"]                    = "When on, the mail icon pulses to draw attention. When off, it stays at full opacity."
+L["VISTA_CRAFTING_ORDER_ICON_PULSE"]                          = "Crafting Order Icon Pulse"
+L["VISTA_CRAFTING_ORDER_ICON_PULSES_DRAW_ATTENTION"]          = "When on, the crafting order icon pulses to draw attention. When off, it stays at full opacity."
+L["VISTA_CRAFTING_ORDER_TOOLTIP"]                             = "Personal Crafting Orders"
 L["VISTA_PANEL_APPEARANCE"]                                   = "Panel Appearance"
 L["VISTA_COLOURS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"]           = "Colours for the Drawer and Right-Click Button Panels."
 L["VISTA_PANEL_BG_COLOUR_LABEL"]                              = "Panel Background Colour"
@@ -1899,6 +1906,7 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

@@ -130,7 +130,7 @@ do
     local PANEL_BORDER_DEFAULT = { 0.3, 0.4, 0.6, 0.7 }
     local MASK_SQUARE_V   = "Interface\\ChatFrame\\ChatFrameBackground"
     local MASK_CIRCULAR_V = 186178
-    local BTN_DEFAULTS = { tracking=22, calendar=22, queue=22, mail=20, addon=26 }
+    local BTN_DEFAULTS = { tracking=22, calendar=22, queue=22, mail=20, craftingOrder=20, addon=26 }
 
     -- Font / size
     G.ZoneFont   = function() return ResolveFont("vistaZoneFontPath") end
@@ -203,6 +203,7 @@ do
     G.RightClickCloseDelay  = function() return tonumber(DB("vistaRightClickCloseDelay", 2.5)) or 2.5 end
     G.DrawerCloseDelay      = function() return tonumber(DB("vistaDrawerCloseDelay", 0)) or 0 end
     G.MailBlink             = function() return DB("vistaMailBlink", true) end
+    G.CraftingOrderBlink    = function() return DB("vistaCraftingOrderBlink", true) end
     G.BarBgColor            = function()
         local BAR_BG_DEFAULT = { 0.08, 0.08, 0.12, 0 }
         return tonumber(DB("vistaBarBgR", BAR_BG_DEFAULT[1])) or BAR_BG_DEFAULT[1],
@@ -243,6 +244,7 @@ do
     G.CalendarBtnSize = function() return tonumber(DB("vistaCalendarBtnSize", BTN_DEFAULTS.calendar)) or BTN_DEFAULTS.calendar end
     G.QueueBtnSize    = function() return tonumber(DB("vistaQueueBtnSize",    BTN_DEFAULTS.queue))    or BTN_DEFAULTS.queue    end
     G.MailIconSize    = function() return tonumber(DB("vistaMailIconSize",     BTN_DEFAULTS.mail))     or BTN_DEFAULTS.mail     end
+    G.CraftingOrderIconSize = function() return tonumber(DB("vistaCraftingOrderIconSize", BTN_DEFAULTS.craftingOrder)) or BTN_DEFAULTS.craftingOrder end
     G.AddonBtnSize    = function() return tonumber(DB("vistaAddonBtnSize",     BTN_DEFAULTS.addon))    or BTN_DEFAULTS.addon    end
     G.ProxyBtnSizeForKey = function(k)
         if k=="tracking" then return G.TrackingBtnSize()
@@ -392,9 +394,12 @@ do
         SuppressZoomButtons()
         pcall(function()
             if not MinimapCluster then return end
+            -- CraftingOrderIcon is intentionally NOT in this list: Vista keeps the
+            -- native frame alive but invisible (see SuppressBlizzardCraftingOrder)
+            -- so that our proxy can mirror its Show/Hide state and delegate clicks.
             local subFrameNames = {
                 "BorderTop", "Tracking", "ZoneTextButton",
-                "InstanceDifficulty", "MailFrame", "CraftingOrderIcon",
+                "InstanceDifficulty", "MailFrame",
                 "GuildInstanceDifficulty", "DungeonDifficulty",
                 "ZoomIn", "ZoomOut",
             }
@@ -446,7 +451,7 @@ local borderTextures = {}
 local zoneText, zoneShadow, diffText, diffShadow
 local coordText, coordShadow, timeText, timeShadow
 local perf = {}  -- { num1, num1Sh, lbl1, lbl1Sh, num2, num2Sh, lbl2, lbl2Sh } (consolidated to stay under 200 locals)
-local mailFrame, mailPulsing
+local mailFrame, mailPulsing, craftingOrderFrame, craftingOrderPulsing
 local collectorBar, barAnchor
 local collectedButtons, drawerPanelButtons = {}, {}
 local barAlpha, hoverTarget, hoverElapsed = 0, 0, 0
@@ -461,7 +466,7 @@ local drawerOpen = false
 local rightClickPanel, rightClickVisible = nil, false
 local defaultProxies = {}
 local queueAnchor  -- dedicated draggable anchor for QueueStatusButton
-local mailAnchor   -- dedicated draggable anchor for mail indicator
+local mailAnchor, craftingOrderAnchor  -- draggable anchors for mail + crafting-order indicators
 local vistaLastKnownZone, autoZoomTimer
 
 -- ============================================================================
@@ -1339,6 +1344,182 @@ local function SuppressBlizzardMail()
 end
 
 -- ============================================================================
+-- CRAFTING ORDER INDICATOR
+-- ============================================================================
+-- Mirrors the mail indicator pattern. Blizzard owns when `MinimapCluster.CraftingOrderIcon`
+-- (or the global `MiniMapCraftingOrderIcon`) becomes visible — we keep the native frame
+-- alive but alpha-0, hook its Show/Hide, and drive this proxy's visibility accordingly.
+
+local function GetNativeCraftingOrderIcon()
+    if MinimapCluster and MinimapCluster.CraftingOrderIcon then return MinimapCluster.CraftingOrderIcon end
+    return _G.MiniMapCraftingOrderIcon
+end
+
+local function RefreshCraftingOrderAnchor()
+    if not craftingOrderAnchor then return end
+    local locked = DB("vistaLocked_proxy_craftingOrder", true)
+    local visible = Vista._craftingOrderVisible and true or false
+
+    if visible then
+        craftingOrderAnchor:SetAlpha(1)
+        craftingOrderAnchor._border:Hide()
+        craftingOrderAnchor:Show()
+    elseif not locked then
+        craftingOrderAnchor:SetAlpha(1)
+        craftingOrderAnchor._border:Show()
+        craftingOrderAnchor:Show()
+    else
+        craftingOrderAnchor:SetAlpha(0)
+        craftingOrderAnchor._border:Hide()
+        craftingOrderAnchor:Hide()
+    end
+end
+
+local UpdateCraftingOrderIndicator  -- forward declaration for SuppressBlizzardCraftingOrder
+
+local function CreateCraftingOrderIndicator()
+    local coSz = G.CraftingOrderIconSize()
+    local anchorSz = coSz + MAIL_ANCHOR_PAD * 2
+
+    craftingOrderAnchor = CreateFrame("Frame", "HorizonSuiteVistaCraftingOrderAnchor", decor)
+    craftingOrderAnchor:SetSize(anchorSz, anchorSz)
+    craftingOrderAnchor:SetFrameLevel(decor:GetFrameLevel() + 2)
+    craftingOrderAnchor:SetClampedToScreen(true)
+    craftingOrderAnchor:SetMovable(true)
+    craftingOrderAnchor:EnableMouse(true)
+
+    -- Position: restore saved, else default below the mail indicator in the top-left corner.
+    local savedX = tonumber(DB("vistaEX_proxy_craftingOrder", nil))
+    local savedY = tonumber(DB("vistaEY_proxy_craftingOrder", nil))
+    if savedX and savedY then
+        craftingOrderAnchor:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+    else
+        local inset = VISTA_MINIMAP_CORNER_INSET
+        local mailStack = G.MailIconSize() + MAIL_ANCHOR_PAD * 2 + 2
+        craftingOrderAnchor:SetPoint("TOPLEFT", Minimap, "TOPLEFT", inset, -(inset + mailStack))
+    end
+
+    -- Drag handle border — shown when unlocked and icon not currently visible.
+    local border = craftingOrderAnchor:CreateTexture(nil, "OVERLAY")
+    border:SetAllPoints()
+    border:SetColorTexture(0.9, 0.6, 0.2, 0.5)
+    border:Hide()
+    craftingOrderAnchor._border = border
+
+    craftingOrderAnchor:RegisterForDrag("LeftButton")
+    craftingOrderAnchor:SetScript("OnDragStart", function(self)
+        if DB("vistaLocked_proxy_craftingOrder", true) then return end
+        if InCombatLockdown() then return end
+        self:StartMoving()
+    end)
+    craftingOrderAnchor:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local mx, my = Minimap:GetCenter()
+        local bx, by = self:GetCenter()
+        if not (mx and my and bx and by) then return end
+        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
+        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
+        local bScale  = (self:GetEffectiveScale()) or uiScale
+        local ox = (bx * bScale - mx * mmScale) / uiScale
+        local oy = (by * bScale - my * mmScale) / uiScale
+        SetDB("vistaEX_proxy_craftingOrder", ox)
+        SetDB("vistaEY_proxy_craftingOrder", oy)
+        self:ClearAllPoints()
+        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+    end)
+
+    -- Icon frame as child of anchor
+    craftingOrderFrame = CreateFrame("Button", nil, craftingOrderAnchor)
+    craftingOrderFrame:SetSize(coSz, coSz)
+    craftingOrderFrame:SetPoint("CENTER", craftingOrderAnchor, "CENTER")
+    craftingOrderFrame:SetFrameLevel(craftingOrderAnchor:GetFrameLevel() + 1)
+    craftingOrderFrame:Hide()
+
+    local icon = craftingOrderFrame:CreateTexture(nil, "ARTWORK")
+    icon:SetAllPoints()
+    -- Blizzard's own indicator uses the "Minimap-CraftingOrders" atlas; fall back to
+    -- a professions-themed icon on older/localised clients missing the atlas.
+    local atlasOK = pcall(function() icon:SetAtlas("Minimap-CraftingOrders") end)
+    if (not atlasOK) or ((icon:GetAtlas() or "") == "" and (icon:GetTexture() or "") == "") then
+        icon:SetTexture("Interface\\ICONS\\INV_Misc_Note_01")
+        icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    end
+    craftingOrderFrame.icon = icon
+
+    craftingOrderFrame:RegisterForClicks("AnyUp")
+    craftingOrderFrame:SetScript("OnClick", function(_, btn)
+        -- `:Click()` on the native frame opens the professions UI, which touches
+        -- protected state — don't dispatch it in combat or taint bleeds across.
+        if InCombatLockdown() then
+            if UIErrorsFrame and ERR_NOT_IN_COMBAT then
+                UIErrorsFrame:AddMessage(ERR_NOT_IN_COMBAT, 1, 0.1, 0.1)
+            end
+            return
+        end
+        pcall(function()
+            local native = GetNativeCraftingOrderIcon()
+            if native and native.Click then native:Click(btn) end
+        end)
+    end)
+
+    craftingOrderFrame:EnableMouse(true)
+    craftingOrderFrame:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText((addon.L and addon.L["VISTA_CRAFTING_ORDER_TOOLTIP"]) or "Personal Crafting Orders")
+        GameTooltip:Show()
+    end)
+    craftingOrderFrame:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    local pulseTime = 0
+    craftingOrderFrame:SetScript("OnUpdate", function(self, elapsed)
+        if not craftingOrderPulsing or not G.CraftingOrderBlink() then self.icon:SetAlpha(1); return end
+        pulseTime = pulseTime + elapsed
+        local t = (math.sin(pulseTime * PULSE_SPEED * math.pi * 2) + 1) / 2
+        self.icon:SetAlpha(PULSE_MIN + (PULSE_MAX - PULSE_MIN) * t)
+    end)
+
+    RefreshCraftingOrderAnchor()
+end
+
+UpdateCraftingOrderIndicator = function()
+    if not craftingOrderFrame then return end
+    if Vista._craftingOrderVisible then
+        craftingOrderFrame:Show(); craftingOrderPulsing = true
+    else
+        craftingOrderFrame:Hide(); craftingOrderPulsing = false
+    end
+    RefreshCraftingOrderAnchor()
+end
+
+local function SuppressBlizzardCraftingOrder()
+    local native = GetNativeCraftingOrderIcon()
+    if not native then return end
+    if not native._vistaCraftingOrderHooked then
+        native._vistaCraftingOrderHooked = true
+        -- Seed initial visibility before we silence the frame.
+        Vista._craftingOrderVisible = native:IsShown() and true or false
+        pcall(function() native:EnableMouse(false) end)
+        pcall(function() native:SetAlpha(0) end)
+        if hooksecurefunc then
+            pcall(function()
+                hooksecurefunc(native, "Show", function(self)
+                    self:SetAlpha(0)
+                    Vista._craftingOrderVisible = true
+                    UpdateCraftingOrderIndicator()
+                end)
+                hooksecurefunc(native, "Hide", function(_)
+                    Vista._craftingOrderVisible = false
+                    UpdateCraftingOrderIndicator()
+                end)
+            end)
+        end
+    else
+        -- Already hooked — just reassert alpha in case something reset it.
+        pcall(function() native:SetAlpha(0) end)
+    end
+end
+
+-- ============================================================================
 -- DEFAULT BUTTON PROXIES  (tracking, calendar/landing page)
 -- ============================================================================
 
@@ -1922,6 +2103,7 @@ do
         ["HorizonSuiteVistaDrawerBtn"]   = true,
         ["HorizonSuiteVistaQueueAnchor"] = true,
         ["HorizonSuiteVistaMailAnchor"]  = true,
+        ["HorizonSuiteVistaCraftingOrderAnchor"] = true,
         ["MinimapBackdrop"]              = true,
         ["MinimapCompassTexture"]        = true,
         ["MinimapBorder"]                = true,
@@ -3550,6 +3732,15 @@ local function ApplyOptions_Buttons(changedKey)
         mailAnchor:SetSize(mailSz + MAIL_ANCHOR_PAD * 2, mailSz + MAIL_ANCHOR_PAD * 2)
         RefreshMailAnchor()
     end
+    if craftingOrderFrame then
+        local coSz = G.CraftingOrderIconSize()
+        craftingOrderFrame:SetSize(coSz, coSz)
+    end
+    if craftingOrderAnchor then
+        local coSz = G.CraftingOrderIconSize()
+        craftingOrderAnchor:SetSize(coSz + MAIL_ANCHOR_PAD * 2, coSz + MAIL_ANCHOR_PAD * 2)
+        RefreshCraftingOrderAnchor()
+    end
     if queueAnchor and SyncQueueAnchorGeometry then
         SyncQueueAnchorGeometry()
     end
@@ -3708,14 +3899,17 @@ function Vista.Init()
     CreateDecor()
     SetupMinimap()
     CreateMailIndicator()
+    CreateCraftingOrderIndicator()
     CreateCollectorBar()
     SuppressBlizzardMail()
+    SuppressBlizzardCraftingOrder()
     CreateDefaultButtonProxies()
     CreateQueueAnchor()
 
     UpdateZoneText()
     UpdateDifficultyText()
     UpdateMailIndicator()
+    UpdateCraftingOrderIndicator()
     ScheduleAutoZoom()
 
     decor:SetScript("OnUpdate", OnHoverUpdate)
@@ -3778,14 +3972,16 @@ function Vista.Init()
             local function reStrip()
                 StripBlizzardChrome()
                 SuppressDefaultBlizzardButtons()
+                SuppressBlizzardCraftingOrder()
                 HookMinimapClusterChildrenShow()
             end
             reStrip()
             C_Timer.After(2.0, function()
                 reStrip()
                 CollectMinimapButtons()
+                UpdateCraftingOrderIndicator()
             end)
-            UpdateZoneText(); UpdateDifficultyText(); UpdateMailIndicator()
+            UpdateZoneText(); UpdateDifficultyText(); UpdateMailIndicator(); UpdateCraftingOrderIndicator()
         elseif event == "MINIMAP_UPDATE_ZOOM" then
             -- WoW sometimes re-shows zoom buttons after zoom level changes — keep them gone
             SuppressZoomButtons()
@@ -3934,6 +4130,7 @@ function Vista.ResetOverlayPositionsToDefaults()
         "vistaEX_proxy_calendar", "vistaEY_proxy_calendar",
         "vistaEX_proxy_queue", "vistaEY_proxy_queue",
         "vistaEX_proxy_mail", "vistaEY_proxy_mail",
+        "vistaEX_proxy_craftingOrder", "vistaEY_proxy_craftingOrder",
         "vistaEX_zoomIn", "vistaEY_zoomIn",
         "vistaEX_zoomOut", "vistaEY_zoomOut",
         "vistaMouseoverBarX", "vistaMouseoverBarY",
@@ -3968,6 +4165,10 @@ end
 
 function Vista.RefreshMailAnchor()
     RefreshMailAnchor()
+end
+
+function Vista.RefreshCraftingOrderAnchor()
+    RefreshCraftingOrderAnchor()
 end
 
 addon.Vista = Vista
