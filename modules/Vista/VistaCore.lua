@@ -573,8 +573,11 @@ local function SetupMinimap()
 
     local h = GetMapHeight()
     local w = GetMapWidth()
-    local mapScale = h / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / h), MINIMAP_BASE_SIZE)
+    -- Keep internal SetSize <= MINIMAP_BASE_SIZE on both axes to avoid Blizzard's
+    -- world-tile renderer caching a larger size and bleeding into later shape changes.
+    local maxAxis = math.max(w, h)
+    local mapScale = maxAxis / MINIMAP_BASE_SIZE
+    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / maxAxis), MINIMAP_BASE_SIZE * (h / maxAxis))
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
 
     if pt then
@@ -3436,8 +3439,10 @@ local function ApplyOptions_Minimap()
     Minimap:SetMovable(not DB("vistaLock", true))
     local h        = GetMapHeight()
     local w        = GetMapWidth()
-    local mapScale = h / MINIMAP_BASE_SIZE
-    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / h), MINIMAP_BASE_SIZE)
+    -- See SetupMinimap for the SetSize <= BASE rationale.
+    local maxAxis  = math.max(w, h)
+    local mapScale = maxAxis / MINIMAP_BASE_SIZE
+    Minimap:SetSize(MINIMAP_BASE_SIZE * (w / maxAxis), MINIMAP_BASE_SIZE * (h / maxAxis))
     Minimap:SetMaskTexture(G.Circular() and G.MaskCircular or G.MaskSquare)
     pcall(function() local z = Minimap:GetZoom(); if z then Minimap:SetZoom(z) end end)
     local vistaScale  = DB("vistaScale", 1.0) or 1.0
@@ -3842,7 +3847,7 @@ function Vista.ApplyScale()
     if not Minimap then return end
     local scale = DB("vistaScale", 1.0) or 1.0
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
-    local mapScale = GetMapSize() / MINIMAP_BASE_SIZE
+    local mapScale = math.max(GetMapWidth(), GetMapHeight()) / MINIMAP_BASE_SIZE
     proxy.SetScale(Minimap, scale * moduleScale * mapScale)
 end
 
