@@ -386,13 +386,13 @@ local function CreateQuestEntry(parent, index)
     end
 
     e.wqTimerText = e:CreateFontString(nil, "OVERLAY")
-    e.wqTimerText:SetFontObject(addon.ObjFont)
+    e.wqTimerText:SetFontObject(addon.TimerFont)
     e.wqTimerText:SetTextColor(1, 1, 1, 1)
     e.wqTimerText:SetJustifyH("LEFT")
     e.wqTimerText:Hide()
 
     e.inlineTimerText = e:CreateFontString(nil, "OVERLAY")
-    e.inlineTimerText:SetFontObject(addon.TitleFont)
+    e.inlineTimerText:SetFontObject(addon.TimerFont)
     e.inlineTimerText:SetJustifyH("LEFT")
     e.inlineTimerText:SetWordWrap(true)
     e.inlineTimerText:SetNonSpaceWrap(true)
@@ -653,6 +653,8 @@ local function UpdateFontObjectsFromDB()
     local objFontRaw     = addon.GetDB("objectiveFontPath", GLOBAL_SENTINEL)
     local sectionFontRaw = addon.GetDB("sectionFontPath", GLOBAL_SENTINEL)
     local progBarFontRaw = addon.GetDB("progressBarFontPath", GLOBAL_SENTINEL)
+    local timerFontRaw   = addon.GetDB("timerFontPath", GLOBAL_SENTINEL)
+    local optionsFontRaw = addon.GetDB("optionsFontPath", GLOBAL_SENTINEL)
 
     local function ResolvePer(raw)
         if not usePer then return fontPath end
@@ -667,7 +669,11 @@ local function UpdateFontObjectsFromDB()
     local objFont     = ResolvePer(objFontRaw)
     local sectionFont = ResolvePer(sectionFontRaw)
     local progBarFont = ResolvePer(progBarFontRaw)
+    local timerFont   = ResolvePer(timerFontRaw)
+    local optionsFont = ResolvePer(optionsFontRaw)
     local progBarSz   = math.max(7, (tonumber(addon.GetDB("progressBarFontSize", 10)) or 10) + fontOffset)
+    local timerSz     = math.max(8, (tonumber(addon.GetDB("timerFontSize", 13)) or 13) + fontOffset)
+    local optionsSz   = math.max(8, (tonumber(addon.GetDB("optionsFontSize", 11)) or 11) + fontOffset)
 
     addon.FONT_PATH = fontPath
     local S = addon.Scaled or function(v) return v end
@@ -678,6 +684,12 @@ local function UpdateFontObjectsFromDB()
     addon.SectionFont:SetFont(sectionFont, S(sectionSz), outline)
     if addon.ProgressBarFont then
         addon.ProgressBarFont:SetFont(progBarFont, S(progBarSz), outline)
+    end
+    if addon.TimerFont then
+        addon.TimerFont:SetFont(timerFont, S(timerSz), outline)
+    end
+    if addon.OptionsFont then
+        addon.OptionsFont:SetFont(optionsFont, S(optionsSz), outline)
     end
 end
 

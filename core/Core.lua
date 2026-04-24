@@ -1347,7 +1347,7 @@ chevron:SetText("-")
 
 local optionsBtn = CreateFrame("Button", nil, HS)
 local optionsLabel = optionsBtn:CreateFontString(nil, "OVERLAY")
-optionsLabel:SetFontObject(addon.ObjFont)
+optionsLabel:SetFontObject(addon.OptionsFont)
 do
     local ch = addon.GetHeaderChromeColor()
     optionsLabel:SetTextColor(ch[1], ch[2], ch[3], 1)
@@ -1359,7 +1359,7 @@ optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
 optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
 
 local optionsShadow = optionsBtn:CreateFontString(nil, "BORDER")
-optionsShadow:SetFontObject(addon.ObjFont)
+optionsShadow:SetFontObject(addon.OptionsFont)
 optionsShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
 optionsShadow:SetJustifyH("RIGHT")
 optionsShadow:SetText(addon.L["PRESENCE_OPTIONS"])

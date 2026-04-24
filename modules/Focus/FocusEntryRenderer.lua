@@ -1802,7 +1802,7 @@ local function PopulateEntry(entry, questData, groupKey)
     if entry._inlineTimerStr then
         entry._inlineTimerBaseTitle = displayTitle
         if entry.inlineTimerText then
-            entry.inlineTimerText:SetFontObject(addon.TitleFont)
+            entry.inlineTimerText:SetFontObject(addon.TimerFont)
             entry.inlineTimerText:ClearAllPoints()
             entry.inlineTimerText:SetText(" (" .. entry._inlineTimerStr .. ")")
             local timerStrWidth = entry.inlineTimerText:GetStringWidth() or 0
