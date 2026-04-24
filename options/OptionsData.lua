@@ -843,7 +843,7 @@ local OptionCategories = {
     },
     {
         key = "GlobalToggles",
-        name = L["AXIS_GLOBAL_TOGGLES"] or "Global",
+        name = L["AXIS_GLOBAL_TOGGLES"] or "Global Settings",
         desc = L["AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] or "Suite-wide class colour tinting and UI scale (global or per module).",
         moduleKey = nil,
         options = function()
@@ -1164,17 +1164,15 @@ local OptionCategories = {
                     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
                 end,
             }
+            local function isDashboardClassThemeOn() return getDB("dashboardClassTheme", false) end
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["AXIS_CLASS_THEME_DASHBOARD"] or "Dashboard",
-                desc = L["AXIS_CLASS_THEME_DASHBOARD_DESC"] or "Master toggle for Dashboard class theming. Flipping it on enables Class Colours, Dashboard Class Icon, and Override Background together; each sub-option can then be adjusted independently.",
-                dbKey = "_dashboardClassTheme",
-                get = function()
-                    return getDB("classColorDashboard", false)
-                        and getDB("dashboardShowClassIcon", false)
-                        and getDB("dashboardBackgroundClassOverride", false)
-                end,
+                desc = L["AXIS_CLASS_THEME_DASHBOARD_DESC"] or "Enables Dashboard class theming. Flipping it on turns on Class Colours, Dashboard Class Icon, and Override Background; each sub-option can then be adjusted independently while the master stays on.",
+                dbKey = "dashboardClassTheme",
+                get = isDashboardClassThemeOn,
                 set = function(v)
+                    setDB("dashboardClassTheme", v)
                     setDB("classColorDashboard", v)
                     setDB("dashboardShowClassIcon", v)
                     setDB("dashboardBackgroundClassOverride", v)
@@ -1188,7 +1186,8 @@ local OptionCategories = {
                 dbKey = "classColorDashboard",
                 get = function() return getDB("classColorDashboard", false) end,
                 set = function(v) setDB("classColorDashboard", v) end,
-                refreshIds = { "_classColorAll", "_dashboardClassTheme" },
+                visibleWhen = isDashboardClassThemeOn,
+                refreshIds = { "_classColorAll" },
             }
             opts[#opts + 1] = {
                 type = "toggle",
@@ -1197,7 +1196,8 @@ local OptionCategories = {
                 dbKey = "dashboardShowClassIcon",
                 get = function() return getDB("dashboardShowClassIcon", false) end,
                 set = function(v) setDB("dashboardShowClassIcon", v) end,
-                refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource", "_dashboardClassTheme" },
+                visibleWhen = isDashboardClassThemeOn,
+                refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource" },
             }
             opts[#opts + 1] = {
                 type = "dropdown",
@@ -1212,7 +1212,7 @@ local OptionCategories = {
                 },
                 get = function() return getDB("dashboardClassIconSource", "custom") end,
                 set = function(v) setDB("dashboardClassIconSource", v) end,
-                visibleWhen = function() return getDB("dashboardShowClassIcon", false) end,
+                visibleWhen = function() return isDashboardClassThemeOn() and getDB("dashboardShowClassIcon", false) end,
                 refreshIds = { "dashboardShowClassIcon" },
             }
             opts[#opts + 1] = {
@@ -1222,7 +1222,8 @@ local OptionCategories = {
                 dbKey = "dashboardBackgroundClassOverride",
                 get = function() return getDB("dashboardBackgroundClassOverride", false) end,
                 set = function(v) setDB("dashboardBackgroundClassOverride", v) end,
-                refreshIds = { "dashboardBackgroundTheme", "_dashboardClassTheme" },
+                visibleWhen = isDashboardClassThemeOn,
+                refreshIds = { "dashboardBackgroundTheme" },
             }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
