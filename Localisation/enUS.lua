@@ -788,7 +788,7 @@ L["FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-
 L["FOCUS_ADVENTURE_GUIDE"]                                    = "Adventure Guide"
 L["FOCUS_TRAVELER_S_LOG"]                                     = "Show Traveler's Log"
 L["FOCUS_TRACKED_TRAVELER_S_LOG_OBJECTIVES_SHIFT"]            = "Show tracked Traveler's Log objectives (Shift+click in Adventure Guide) in the list."
-L["FOCUS_AUTO_REMOVE_COMPLETED_ACTIVITIES"]                   = "Auto-remove completed activities"
+L["FOCUS_AUTO_REMOVE_COMPLETED_ACTIVITIES"]                   = "Auto-Remove Completed Activities"
 L["FOCUS_AUTOMATICALLY_STOP_TRACKING_TRAVELER_S_LOG"]         = "Automatically stop tracking Traveler's Log activities once they have been completed."
 
 -- =====================================================================
