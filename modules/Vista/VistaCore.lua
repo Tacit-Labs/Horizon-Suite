@@ -1985,9 +1985,12 @@ end
 local HORIZON_MINIMAP_BTN_NAME = "HorizonSuiteMinimapButton"
 
 -- INTERNAL_BLACKLIST normally skips Horizon's minimap button; opt-in collects it like other addons.
+-- hideMinimapButton is an absolute hide (Axis's "Show minimap icon") — honor it regardless of vistaCollectHorizonMinimapButton.
 local function HorizonMinimapIsInternallyExcluded(cName)
     if not cName or not INTERNAL_BLACKLIST[cName] then return false end
-    if cName == HORIZON_MINIMAP_BTN_NAME and DB("vistaCollectHorizonMinimapButton", true) then
+    if cName == HORIZON_MINIMAP_BTN_NAME
+        and DB("vistaCollectHorizonMinimapButton", true)
+        and not DB("hideMinimapButton", false) then
         return false
     end
     return true

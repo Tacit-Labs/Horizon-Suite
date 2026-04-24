@@ -540,33 +540,74 @@ local function RelayoutCard(card)
     if not card or not card.widgetList or not card.relayoutBaseAnchor then return end
     local headerH = card.headerHeight or (CardPadding + 24)
 
-    -- Cancel any in-flight animation
-    if card.relayoutAnim then
-        if card.relayoutAnim.toShow then
-            for _, entry in ipairs(card.relayoutAnim.toShow) do
+    -- If an animation is in flight, compute its converged visibility per entry
+    -- so we can tell whether the incoming request already matches where the
+    -- anim is heading. Multiple rapid Refresh() calls (e.g. a dependent toggle
+    -- that refreshes several widgets) otherwise cancel and restart the same
+    -- fade-in repeatedly, leaving widgets hidden or flickery.
+    local anim = card.relayoutAnim
+    local animShowSet, animHideSet
+    if anim then
+        if anim.toShow then
+            animShowSet = {}
+            for _, e in ipairs(anim.toShow) do animShowSet[e] = true end
+        end
+        if anim.toHide then
+            animHideSet = {}
+            for _, e in ipairs(anim.toHide) do animHideSet[e] = true end
+        end
+    end
+
+    -- Build target visibility and detect changes vs the (possibly in-flight) target
+    local toHide, toShow = {}, {}
+    for _, entry in ipairs(card.widgetList) do
+        if entry.visibleWhen then
+            local convergedVisible
+            if animShowSet and animShowSet[entry] then
+                convergedVisible = true
+            elseif animHideSet and animHideSet[entry] then
+                convergedVisible = false
+            else
+                convergedVisible = entry.frame:IsShown()
+            end
+            local targetVisible = entry.visibleWhen()
+            if convergedVisible and not targetVisible then
+                toHide[#toHide + 1] = entry
+            elseif not convergedVisible and targetVisible then
+                toShow[#toShow + 1] = entry
+            end
+        end
+    end
+
+    -- In-flight anim already converges to the requested target — let it finish.
+    if anim and #toHide == 0 and #toShow == 0 then return end
+
+    -- Course change needed: cancel the in-flight anim, then rebuild the delta
+    -- against the now-reverted state.
+    if anim then
+        if anim.toShow then
+            for _, entry in ipairs(anim.toShow) do
                 entry.frame:Hide()
                 entry.frame:SetAlpha(1)
             end
         end
-        if card.relayoutAnim.oldHeight then
-            card:SetHeight(card.relayoutAnim.oldHeight)
+        if anim.oldHeight then
+            card:SetHeight(anim.oldHeight)
         end
         card.relayoutAnim = nil
         if card.relayoutAnimFrame then
             card.relayoutAnimFrame:SetScript("OnUpdate", nil)
         end
-    end
-
-    -- Build target visibility and detect changes
-    local toHide, toShow = {}, {}
-    for _, entry in ipairs(card.widgetList) do
-        if entry.visibleWhen then
-            local wasVisible = entry.frame:IsShown()
-            local targetVisible = entry.visibleWhen()
-            if wasVisible and not targetVisible then
-                toHide[#toHide + 1] = entry
-            elseif not wasVisible and targetVisible then
-                toShow[#toShow + 1] = entry
+        toHide, toShow = {}, {}
+        for _, entry in ipairs(card.widgetList) do
+            if entry.visibleWhen then
+                local wasVisible = entry.frame:IsShown()
+                local targetVisible = entry.visibleWhen()
+                if wasVisible and not targetVisible then
+                    toHide[#toHide + 1] = entry
+                elseif not wasVisible and targetVisible then
+                    toShow[#toShow + 1] = entry
+                end
             end
         end
     end
@@ -1024,7 +1065,18 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             btn:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = btn
             currentCard.contentHeight = currentCard.contentHeight + OptionGap + 22
-            tinsert(currentCard.widgetList, { frame = btn, rowHeight = 22, visibleWhen = nil })
+            tinsert(currentCard.widgetList, { frame = btn, rowHeight = 22, visibleWhen = opt.visibleWhen })
+            if opt.visibleWhen then
+                local cardRef = currentCard
+                local origRefresh = btn.Refresh
+                btn.Refresh = function(self)
+                    if origRefresh then origRefresh(self) end
+                    RelayoutCard(cardRef)
+                end
+                local oid = opt.dbKey or (addon.OptionCategories[tabIndex].key .. "_" .. (opt.name or ""):gsub("%s+", "_"))
+                if optionFrames then optionFrames[oid] = { tabIndex = tabIndex, frame = btn } end
+                table.insert(refreshers, btn)
+            end
         elseif opt.type == "editbox" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
