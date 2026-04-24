@@ -1110,29 +1110,6 @@ local OptionCategories = {
                         if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
                     end)
                 end }
-            -- Standalone: button is on the minimap, not collected by Vista.
-            local function isMinimapStandalone()
-                return not getDB("hideMinimapButton", false)
-                    and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
-                             and getDB("vistaCollectHorizonMinimapButton", true))
-            end
-            opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"] or "Minimap Icon" }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
-                C_Timer.After(0, function()
-                    setDB("hideMinimapButton", not v)
-                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
-                end)
-            end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"] or "Fade until minimap hover", desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"] or "When on, the icon stays hidden until you move the cursor over the minimap. When off, it stays visible.", dbKey = "minimapButtonShowOnlyOnMinimapHover", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", false) end, set = function(v)
-                C_Timer.After(0, function()
-                    setDB("minimapButtonShowOnlyOnMinimapHover", v)
-                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
-                end)
-            end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
-                C_Timer.After(0, function() setDB("minimapButtonLocked", v) end)
-            end }
-            opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"] or "Class Theme" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
@@ -1230,6 +1207,29 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            -- Standalone: button is on the minimap, not collected by Vista.
+            local function isMinimapStandalone()
+                return not getDB("hideMinimapButton", false)
+                    and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
+                             and getDB("vistaCollectHorizonMinimapButton", true))
+            end
+            opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"] or "Minimap Icon" }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
+                C_Timer.After(0, function()
+                    setDB("hideMinimapButton", not v)
+                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                end)
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"] or "Fade until minimap hover", desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"] or "When on, the icon stays hidden until you move the cursor over the minimap. When off, it stays visible.", dbKey = "minimapButtonShowOnlyOnMinimapHover", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", false) end, set = function(v)
+                C_Timer.After(0, function()
+                    setDB("minimapButtonShowOnlyOnMinimapHover", v)
+                    if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
+                end)
+            end }
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
+                C_Timer.After(0, function() setDB("minimapButtonLocked", v) end)
+            end }
+            opts[#opts + 1] = { type = "button", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             return opts
         end,
     },
