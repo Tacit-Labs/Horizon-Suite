@@ -633,8 +633,11 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             progressBarNf = barNf
             progressBarNr = barNr
             progressBarPercent = barPct
-        elseif barCount == 1 and questData.objectives and #questData.objectives == 1 then
-            -- Non-scenario: only show bar when exactly one objective total and it is eligible.
+        elseif barCount == 1 then
+            -- Non-scenario: show bar when exactly one objective is eligible under the current
+            -- filter. This covers single-objective quests and the multi-objective case where the
+            -- filter narrows eligibility to a single objective (e.g. percent_only with a mixed
+            -- [X/Y, %] quest picks the % objective's bar).
             progressBarObjIdx = barIdx
             progressBarNf = barNf
             progressBarNr = barNr
@@ -1302,9 +1305,12 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         end
     end
 
-    -- Percent progress bar: find the first unfinished objective with percent that has numRequired > 1.
-    -- Skip objectives where numRequired <= 1 (single kills/loots don't need a bar).
-    -- Also skip if the objective progress bar system already handles this entry (avoid duplicates).
+    -- Percent progress bar: find the first unfinished objective with percent.
+    -- Eligible when arithmetic (numRequired > 1) or intrinsically percent-based
+    -- (progressbar type / weighted / text "N%") — the latter often carry
+    -- numRequired == 1 or nil on multi-objective quests and must not be filtered
+    -- out by the nr > 1 gate (that was the multi-objective percent bar bug).
+    -- Also skip if the objective progress bar system already handles this entry.
     -- Abundance: prefer the "abundance held" or "abundance bag" objective when present.
     local progressBarTypeFilter = addon.GetDB("progressBarTypeFilter", "percent_only")
     local firstPercent
@@ -1315,9 +1321,10 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
         for _, o in ipairs(questData.objectives or {}) do
             if o.percent ~= nil and not o.finished then
                 local nr = o.numRequired
-                if nr ~= nil and type(nr) == "number" and nr > 1 then
+                local intrinsic = IsIntrinsicallyPercentBased(o)
+                local hasArithmeticRequirement = (nr ~= nil and type(nr) == "number" and nr > 1)
+                if hasArithmeticRequirement or intrinsic then
                     local isPercentOnly = (progressBarTypeFilter == "percent_only")
-                    local intrinsic = IsIntrinsicallyPercentBased(o)
                     local hasArithmetic = (o.numFulfilled ~= nil and o.numRequired ~= nil and type(o.numRequired) == "number" and o.numRequired > 1)
                     if isPercentOnly and hasArithmetic and not intrinsic then
                         -- Skip: X/Y objective when percent_only
@@ -1493,7 +1500,7 @@ local function PopulateEntry(entry, questData, groupKey)
         local isScenarioEntry = questData.isScenarioMain or questData.isScenarioBonus
         if isScenarioEntry and barCount > 0 then
             questData._progressBarActive = true
-        elseif barCount == 1 and questData.objectives and #questData.objectives == 1 then
+        elseif barCount == 1 then
             questData._progressBarActive = true
         end
     end
