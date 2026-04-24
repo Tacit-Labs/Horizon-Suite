@@ -780,7 +780,7 @@ L["FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"]                = "Include complet
 -- =====================================================================
 L["FOCUS_SHOW_DECOR"]                                         = "Show Decor"
 L["FOCUS_TRACKED_HOUSING_DECOR_LIST"]                         = "Show tracked housing decor in the list."
-L["FOCUS_DECOR_ICONS"]                                        = "Show decor icons"
+L["FOCUS_DECOR_ICONS"]                                        = "Show Decor Icons"
 L["FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Show each decor item's icon next to the title. Requires 'Show quest type icons' in Display."
 
 -- =====================================================================
