@@ -943,7 +943,8 @@ function addon.TryDeleteProfileConfirmed(key)
     if addon.DeleteProfile and addon.DeleteProfile(key) then
         addon._profileDeleteKey = nil
         addon._profileCopyFrom = nil
-        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+        -- Active profile unchanged; refresh only the options panel so dropdowns update (no ReloadUI).
+        if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
         return true
     end
     return false

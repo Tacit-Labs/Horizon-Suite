@@ -1300,12 +1300,116 @@ local OptionCategories = {
                     end,
                 }
 
+                opts[#opts + 1] = {
+                    type = "button",
+                    name = L["DEFAULT"] or "New from Default",
+                    desc = L["AXIS_CREATES_A_PROFILE_DEFAULT_SETTINGS"] or "Creates a new profile with all default settings.",
+                    dbKey = "_profiles_create_new",
+                    onClick = function()
+                        if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup("Default") end
+                    end,
+                }
+
+                opts[#opts + 1] = {
+                    type = "dropdown",
+                    name = L["AXIS_COPY_PROFILE"] or "Copy from profile",
+                    desc = L["AXIS_SOURCE_PROFILE_COPYING"] or "Source profile for copying.",
+                    dbKey = "_profiles_copyFrom",
+                    options = profileDropdownOptions,
+                    get = function()
+                        local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
+                        local list = addon.ListProfiles and addon.ListProfiles() or {}
+                        if addon._profileCopyFrom and addon._profileCopyFrom ~= "" then
+                            for _, k in ipairs(list) do
+                                if k == addon._profileCopyFrom then return addon._profileCopyFrom end
+                            end
+                        end
+                        addon._profileCopyFrom = current
+                        return current
+                    end,
+                    set = function(v) addon._profileCopyFrom = v end,
+                }
+
+                opts[#opts + 1] = {
+                    type = "button",
+                    name = L["AXIS_COPY_SELECTED"] or "Copy from selected",
+                    desc = L["AXIS_CREATES_A_PROFILE_COPIED_SELECTED_SOURC"] or "Creates a new profile copied from the selected source profile.",
+                    dbKey = "_profiles_copy_selected",
+                    onClick = function()
+                        local src = addon._profileCopyFrom or (addon.GetActiveProfileKey and addon.GetActiveProfileKey())
+                        if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup(src) end
+                    end,
+                }
+
+                opts[#opts + 1] = {
+                    type = "dropdown",
+                    name = "|cffff4040!|r " .. (L["AXIS_DELETE_PROFILE"] or "Delete profile"),
+                    desc = L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"] or "Select a profile to delete (current and Default not shown).",
+                    dbKey = "_profiles_delete",
+                    options = function()
+                        local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
+                        local list = addon.ListProfiles and addon.ListProfiles() or {}
+                        local out = {}
+                        for _, k in ipairs(list) do
+                            if k ~= current and k ~= "Default" then out[#out + 1] = { k, k } end
+                        end
+                        return out
+                    end,
+                    get = function()
+                        local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
+                        local list = addon.ListProfiles and addon.ListProfiles() or {}
+                        local function exists(k)
+                            if not k or k == "" then return false end
+                            for _, kk in ipairs(list) do if kk == k then return true end end
+                            return false
+                        end
+                        if exists(addon._profileDeleteKey) and addon._profileDeleteKey ~= current and addon._profileDeleteKey ~= "Default" then
+                            return addon._profileDeleteKey
+                        end
+                        for _, k in ipairs(list) do
+                            if k ~= current and k ~= "Default" then
+                                addon._profileDeleteKey = k
+                                return k
+                            end
+                        end
+                        addon._profileDeleteKey = nil
+                        return ""
+                    end,
+                    set = function(v) addon._profileDeleteKey = v end,
+                }
+
+                opts[#opts + 1] = {
+                    type = "button",
+                    name = L["AXIS_DELETE_SELECTED_PROFILE"] or "Delete selected profile",
+                    desc = L["AXIS_DELETES_SELECTED_PROFILE"] or "Deletes the selected profile.",
+                    dbKey = "_profiles_delete_btn",
+                    onClick = function()
+                        local k = addon._profileDeleteKey
+                        if not k or k == "" then
+                            local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
+                            local list = addon.ListProfiles and addon.ListProfiles() or {}
+                            for _, kk in ipairs(list) do
+                                if kk ~= current then k = kk; addon._profileDeleteKey = kk; break end
+                            end
+                        end
+                        if not k or k == "" then return end
+                        if addon.ShowDeleteProfilePopup then
+                            addon.ShowDeleteProfilePopup(k)
+                            return
+                        end
+                        if addon.DeleteProfile and addon.DeleteProfile(k) then
+                            addon._profileDeleteKey = nil
+                            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+                        end
+                    end,
+                }
+
                 -- Section B: Per-spec switch + spec dropdowns
-                opts[#opts + 1] = { type = "section", name = L["AXIS_SPECIALIZATION"] or "Specialization" }
+                opts[#opts + 1] = { type = "section", name = L["AXIS_SPEC_PROFILES"] or "Spec Profiles" }
 
                 opts[#opts + 1] = {
                     type = "toggle",
-                    name = L["AXIS_PER_SPEC_PROFILES"] or "Per-spec profiles",
+                    name = L["AXIS_ENABLE"] or "Enable",
                     desc = L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"] or "Pick different profiles per spec.",
                     dbKey = "_profiles_usePerSpec",
                     disabled = function()
@@ -1321,7 +1425,7 @@ local OptionCategories = {
                         if v and addon.GetActiveProfileKey and addon.SetPerSpecProfileKey then
                             local baseKey = addon.GetActiveProfileKey()
                             if baseKey then
-                                local currentSpec = PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID() or nil
+                                local currentSpec = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID() or nil
                                 for si = 1, 4 do
                                     if si == currentSpec then
                                         addon.SetPerSpecProfileKey(si, baseKey)
@@ -1397,116 +1501,7 @@ local OptionCategories = {
                     }
                 end
 
-                -- Section C: Create / Copy profile
-                opts[#opts + 1] = { type = "section", name = L["AXIS_CREATE"] or "Create" }
-
-                opts[#opts + 1] = {
-                    type = "button",
-                    name = L["DEFAULT"] or "New from Default",
-                    desc = L["AXIS_CREATES_A_PROFILE_DEFAULT_SETTINGS"] or "Creates a new profile with all default settings.",
-                    dbKey = "_profiles_create_new",
-                    onClick = function()
-                        if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup("Default") end
-                    end,
-                }
-
-                opts[#opts + 1] = {
-                    type = "dropdown",
-                    name = L["AXIS_COPY_PROFILE"] or "Copy from profile",
-                    desc = L["AXIS_SOURCE_PROFILE_COPYING"] or "Source profile for copying.",
-                    dbKey = "_profiles_copyFrom",
-                    options = profileDropdownOptions,
-                    get = function()
-                        local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
-                        local list = addon.ListProfiles and addon.ListProfiles() or {}
-                        if addon._profileCopyFrom and addon._profileCopyFrom ~= "" then
-                            for _, k in ipairs(list) do
-                                if k == addon._profileCopyFrom then return addon._profileCopyFrom end
-                            end
-                        end
-                        addon._profileCopyFrom = current
-                        return current
-                    end,
-                    set = function(v) addon._profileCopyFrom = v end,
-                }
-
-                opts[#opts + 1] = {
-                    type = "button",
-                    name = L["AXIS_COPY_SELECTED"] or "Copy from selected",
-                    desc = L["AXIS_CREATES_A_PROFILE_COPIED_SELECTED_SOURC"] or "Creates a new profile copied from the selected source profile.",
-                    dbKey = "_profiles_copy_selected",
-                    onClick = function()
-                        local src = addon._profileCopyFrom or (addon.GetActiveProfileKey and addon.GetActiveProfileKey())
-                        if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup(src) end
-                    end,
-                }
-
-                -- Section D: Delete profile
-                opts[#opts + 1] = { type = "section", name = L["AXIS_DELETE"] or "Delete" }
-
-                opts[#opts + 1] = {
-                    type = "dropdown",
-                    name = L["AXIS_DELETE_PROFILE"] or "Delete profile",
-                    desc = L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"] or "Select a profile to delete (current and Default not shown).",
-                    dbKey = "_profiles_delete",
-                    options = function()
-                        local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
-                        local list = addon.ListProfiles and addon.ListProfiles() or {}
-                        local out = {}
-                        for _, k in ipairs(list) do
-                            if k ~= current and k ~= "Default" then out[#out + 1] = { k, k } end
-                        end
-                        return out
-                    end,
-                    get = function()
-                        local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
-                        local list = addon.ListProfiles and addon.ListProfiles() or {}
-                        local function exists(k)
-                            if not k or k == "" then return false end
-                            for _, kk in ipairs(list) do if kk == k then return true end end
-                            return false
-                        end
-                        if exists(addon._profileDeleteKey) and addon._profileDeleteKey ~= current and addon._profileDeleteKey ~= "Default" then
-                            return addon._profileDeleteKey
-                        end
-                        for _, k in ipairs(list) do
-                            if k ~= current and k ~= "Default" then
-                                addon._profileDeleteKey = k
-                                return k
-                            end
-                        end
-                        addon._profileDeleteKey = nil
-                        return ""
-                    end,
-                    set = function(v) addon._profileDeleteKey = v end,
-                }
-
-                opts[#opts + 1] = {
-                    type = "button",
-                    name = L["AXIS_DELETE_SELECTED_PROFILE"] or "Delete selected profile",
-                    desc = L["AXIS_DELETES_SELECTED_PROFILE"] or "Deletes the selected profile.",
-                    dbKey = "_profiles_delete_btn",
-                    onClick = function()
-                        local k = addon._profileDeleteKey
-                        if not k or k == "" then
-                            local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
-                            local list = addon.ListProfiles and addon.ListProfiles() or {}
-                            for _, kk in ipairs(list) do
-                                if kk ~= current then k = kk; addon._profileDeleteKey = kk; break end
-                            end
-                        end
-                        if not k or k == "" then return end
-                        if addon.ShowDeleteProfilePopup then
-                            addon.ShowDeleteProfilePopup(k)
-                            return
-                        end
-                        if addon.DeleteProfile and addon.DeleteProfile(k) then
-                            addon._profileDeleteKey = nil
-                            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
-                        end
-                    end,
-                }
-
+                -- Section C: Sharing (export / import)
                 opts[#opts + 1] = { type = "section", name = L["AXIS_SHARING"] or "Sharing" }
 
                 opts[#opts + 1] = {
