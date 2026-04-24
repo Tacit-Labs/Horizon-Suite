@@ -1026,90 +1026,6 @@ local OptionCategories = {
                 get = function() return getDB("autoShowPatchNotesOnLogin", true) end,
                 set = function(v) setDB("autoShowPatchNotesOnLogin", v) end,
             }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_MODULE_FONT_SECTION"] or "Global Module Font" }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] or "Global Scale" }
-            local function refreshAllScaling()
-                if addon.ApplyTypography then addon.ApplyTypography() end
-                if addon.ApplyDimensions then addon.ApplyDimensions() end
-                if addon.ApplyMplusTypography then addon.ApplyMplusTypography() end
-                if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
-                if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
-                if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
-                local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
-                if fullLayout and not InCombatLockdown() then fullLayout() end
-            end
-            local scalingDebounceTimers = {}
-            local SCALE_DEBOUNCE = 0.15
-            local function debouncedRefresh(key, applyFn)
-                if scalingDebounceTimers[key] then
-                    scalingDebounceTimers[key]:Cancel()
-                    scalingDebounceTimers[key] = nil
-                end
-                scalingDebounceTimers[key] = C_Timer.NewTimer(SCALE_DEBOUNCE, function()
-                    scalingDebounceTimers[key] = nil
-                    applyFn()
-                end)
-            end
-            local function isPerModule() return getDB("perModuleScaling", false) end
-            opts[#opts + 1] = { type = "slider", name = L["AXIS_GLOBAL_UI_SCALE"], desc = L["SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
-                disabled = isPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("globalUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    local scale = math.max(50, math.min(200, v)) / 100
-                    setDB("globalUIScale", scale)
-                    debouncedRefresh("global", refreshAllScaling)
-                end }
-            opts[#opts + 1] = { type = "toggle", name = L["AXIS_PER_MODULE_SCALING"], desc = L["SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
-                setDB("perModuleScaling", v)
-                refreshAllScaling()
-                if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
-            end }
-            opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("focusUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("focus", refreshAllScaling)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["PRESENCE_SCALE"], desc = L["AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("presenceUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("presence", function()
-                        if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
-                    end)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["VISTA_SCALE"], desc = L["AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("vistaUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("vista", function()
-                        if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
-                    end)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["INSIGHT_SCALE"], desc = L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
-                end }
-            opts[#opts + 1] = { type = "slider", name = L["CACHE_SCALE"], desc = L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
-                visibleWhen = isPerModule,
-                get = function()
-                    return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
-                end, set = function(v)
-                    setDB("cacheUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("cache", function()
-                        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
-                    end)
-                end }
             opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"] or "Class Theme" }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
@@ -1207,6 +1123,90 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_MODULE_FONT_SECTION"] or "Global Module Font" }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] or "Global Scale" }
+            local function refreshAllScaling()
+                if addon.ApplyTypography then addon.ApplyTypography() end
+                if addon.ApplyDimensions then addon.ApplyDimensions() end
+                if addon.ApplyMplusTypography then addon.ApplyMplusTypography() end
+                if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+                if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
+                if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+                local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
+                if fullLayout and not InCombatLockdown() then fullLayout() end
+            end
+            local scalingDebounceTimers = {}
+            local SCALE_DEBOUNCE = 0.15
+            local function debouncedRefresh(key, applyFn)
+                if scalingDebounceTimers[key] then
+                    scalingDebounceTimers[key]:Cancel()
+                    scalingDebounceTimers[key] = nil
+                end
+                scalingDebounceTimers[key] = C_Timer.NewTimer(SCALE_DEBOUNCE, function()
+                    scalingDebounceTimers[key] = nil
+                    applyFn()
+                end)
+            end
+            local function isPerModule() return getDB("perModuleScaling", false) end
+            opts[#opts + 1] = { type = "slider", name = L["AXIS_GLOBAL_UI_SCALE"], desc = L["SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
+                disabled = isPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("globalUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    local scale = math.max(50, math.min(200, v)) / 100
+                    setDB("globalUIScale", scale)
+                    debouncedRefresh("global", refreshAllScaling)
+                end }
+            opts[#opts + 1] = { type = "toggle", name = L["AXIS_PER_MODULE_SCALING"], desc = L["SEPARATE_SCALE_SLIDER_PER_MODULE"], dbKey = "perModuleScaling", tooltip = L["AXIS_OVERRIDES_GLOBAL_SCALE_INDIVIDUAL_SLIDERS_F"], get = function() return isPerModule() end, set = function(v)
+                setDB("perModuleScaling", v)
+                refreshAllScaling()
+                if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
+            end }
+            opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
+                visibleWhen = isPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("focusUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("focus", refreshAllScaling)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["PRESENCE_SCALE"], desc = L["AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
+                visibleWhen = isPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("presenceUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("presence", function()
+                        if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+                    end)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["VISTA_SCALE"], desc = L["AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
+                visibleWhen = isPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("vistaUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("vista", function()
+                        if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
+                    end)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["INSIGHT_SCALE"], desc = L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
+                visibleWhen = isPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
+                end }
+            opts[#opts + 1] = { type = "slider", name = L["CACHE_SCALE"], desc = L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
+                visibleWhen = isPerModule,
+                get = function()
+                    return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
+                end, set = function(v)
+                    setDB("cacheUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("cache", function()
+                        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+                    end)
+                end }
             -- Standalone: button is on the minimap, not collected by Vista.
             local function isMinimapStandalone()
                 return not getDB("hideMinimapButton", false)
