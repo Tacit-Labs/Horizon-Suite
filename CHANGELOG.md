@@ -10,6 +10,33 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.15.0] – 2026-04-24
+
+### ✨ New Features
+
+- **(Axis) Settings overhaul — Axis first** — Start of a broader Horizon settings and Dashboard overhaul. Axis is the first module to land with a reorganised, more consistent options layout; other modules will follow in subsequent releases.
+
+### 🔧 Improvements
+
+- **(Axis) Staged Reload UI for profile changes** — Toggling Global profile, switching the current profile, enabling Spec Profiles, or picking a per-spec profile now stages a single "Reload UI" prompt (matching the Modules pattern) instead of reloading on every click. Dependent widgets update their enabled state live.
+- **(Axis) Dashboard class-colour controls** — New master toggle gates the Dashboard's class-colour treatments, with sub-toggles for the class-colour background override and the class icon so each can be turned on independently.
+- **(Focus) Independent Timer and Options fonts** — Timer Text and Options Text are no longer tied to the Title/Objective fonts and can be styled independently.
+- **(Vista) Crafting Orders minimap indicator** — Adds Crafting Orders support to the Vista minimap with the same appearance and triggering conditions as the Blizzard default.
+- **(Vista) Unlocked icons render semi-transparent** — Vista minimap icons now display semi-transparent when unlocked, providing a clear visual cue that they're in a movable state.
+- **(Localisation)** Updated German (deDE) translations from a Discord submission.
+- **(Localisation)** Options name labels now use headline-style capitalisation across the panel.
+
+### 🐛 Fixes
+
+- **(Focus)** Daily recurring quests now appear in their own Daily section instead of being grouped under Weekly.
+- **(Focus)** Collapsing then quickly re-expanding a category no longer leaves a blank space with no quests rendered.
+- **(Focus)** Accepting a quest now animates in smoothly instead of popping the slot open and flashing into position.
+- **(Focus)** Disabling a per-element font toggle now reverts that element to the global font immediately.
+- **(Vista)** Crafting Orders indicator now repairs correctly and honours the unified minimap drag positioning.
+- **(Axis)** Toggling the minimap icon now saves immediately so the setting survives an instant reload.
+
+---
+
 ## [4.14.0] – 2026-04-22
 
 ### ✨ New Features

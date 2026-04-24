@@ -15,6 +15,39 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.15.0"] = {
+        date = "2026-04-24",
+        {
+            section = "New Features",
+            bullets = {
+                "Axis: settings overhaul begins — start of a broader Horizon settings and Dashboard overhaul. Axis is the first module to land with a reorganised, more consistent options layout; other modules will follow in subsequent releases.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: staged Reload UI for profile changes — profile toggles and dropdowns now queue a single reload prompt instead of reloading on every click, matching the Modules pattern.",
+                "Axis: Dashboard class-colour controls — new master toggle gates the Dashboard's class-colour treatments, with sub-toggles for the class-colour background and class icon.",
+                "Focus: Timer Text and Options Text fonts are now independent of the Title and Objective font settings.",
+                "Vista: Crafting Orders minimap indicator — adds Crafting Orders support on the Vista minimap with the same trigger conditions as the default UI.",
+                "Vista: unlocked minimap icons now render semi-transparent for a clear visual cue when they're in a movable state.",
+                "Localisation: updated German (deDE) translations from a Discord submission.",
+                "Localisation: options name labels now use headline-style capitalisation across the panel.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: daily recurring quests now appear in their own Daily section instead of being grouped under Weekly.",
+                "Focus: collapsing then quickly re-expanding a category no longer leaves a blank space with no quests rendered.",
+                "Focus: accepting a quest now animates in smoothly instead of popping the slot open and flashing into position.",
+                "Focus: disabling a per-element font toggle now reverts that element to the global font immediately.",
+                "Vista: Crafting Orders indicator now repairs correctly and honours the unified minimap drag positioning.",
+                "Axis: toggling the minimap icon now saves immediately so the setting survives an instant reload.",
+            },
+        },
+    },
+
     ["4.14.0"] = {
         date = "2026-04-22",
         {
