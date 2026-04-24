@@ -726,18 +726,18 @@ L["FOCUS_CURRENT_ZONE_FIRST"]                                 = "Current Zone Fi
 -- =====================================================================
 -- OptionsData.lua Features — Mythic+
 -- =====================================================================
-L["FOCUS_MYTHIC_BLOCK"]                                       = "Show Mythic+ block"
+L["FOCUS_MYTHIC_BLOCK"]                                       = "Show Mythic+ Block"
 L["FOCUS_TIMER_COMPLETION_AFFIXES_MYTHIC_DUNGEONS"]           = "Show timer, completion %, and affixes in Mythic+ dungeons."
-L["FOCUS_M_BLOCK_POSITION"]                                   = "M+ block position"
+L["FOCUS_M_BLOCK_POSITION"]                                   = "M+ Block Position"
 L["FOCUS_POSITION_OF_MYTHIC_BLOCK_RELATIVE_QUEST"]            = "Position of the Mythic+ block relative to the quest list."
-L["FOCUS_AFFIX_ICONS"]                                        = "Show affix icons"
+L["FOCUS_AFFIX_ICONS"]                                        = "Show Affix Icons"
 L["FOCUS_AFFIX_ICONS_NEXT_MODIFIER_NAMES_M"]                  = "Show affix icons next to modifier names in the M+ block."
 L["FOCUS_AFFIX_DESCRIPTIONS_TOOLTIP"]                         = "Show affix descriptions in tooltip"
 L["FOCUS_AFFIX_DESCRIPTIONS_HOVERING_M_BLO"]                  = "Show affix descriptions when hovering over the M+ block."
-L["FOCUS_M_COMPLETED_BOSS_DISPLAY"]                           = "M+ completed boss display"
+L["FOCUS_M_COMPLETED_BOSS_DISPLAY"]                           = "M+ Completed Boss Display"
 L["FOCUS_DEFEATED_BOSSES_CHECKMARK_ICON_GREEN"]               = "How to show defeated bosses: checkmark icon or green colour."
 L["FOCUS_CHECKMARK"]                                          = "Checkmark"
-L["FOCUS_GREEN_COLOUR"]                                       = "Green colour"
+L["FOCUS_GREEN_COLOUR"]                                       = "Green Colour"
 
 -- =====================================================================
 -- OptionsData.lua Features — Achievements
