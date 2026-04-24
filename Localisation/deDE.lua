@@ -88,11 +88,12 @@ L["MODULES"]                                                  = "Module"
 L["MODULE_TOGGLES"]                                           = "Modulsteuerung"
 L["MODULE_PREVIEW_DISCLAIMER"]                                = "Dieses Modul befindet sich in einem frühen Vorschaustatus (Alpha). Von der täglichen Nutzung ist wegen möglicher Fehler und unvollständiger Funktionalität abzuraten."
 L["AXIS_MODULE_NAME_DISPLAY"]                                 = "Stil der Modulbezeichnungen"
-L["AXIS_MODULE_NAME_DISPLAY_DESC"]                            = "How module names appear in the settings panel navigation and search filter."
+L["AXIS_MODULE_NAME_DISPLAY_DESC"]                            = "Modulbezeichnungen im Einstellungsfenster und Suchfilter."
 L["AXIS_MODULE_NAME_HORIZON"]                                 = "Horizon"
 L["AXIS_MODULE_NAME_SUBTITLE"]                                = "Untertitel"
--- L["AXIS_MODULE_NAME_SIMPLE"]                               = "Simple"
+L["AXIS_MODULE_NAME_SIMPLE"]                                  = "Schlicht"
 L["MODULE_RELOAD_HINT"]                                       = "Lädt das Interface neu, um Moduländerungen anzwuwenden."
+-- L["PROFILE_RELOAD_HINT"]                                   = "Reload the interface to finish applying profile changes."
 L["RELOAD_UI"]                                                = "UI neuladen"
 
 -- =====================================================================
@@ -108,7 +109,7 @@ L["DASH_NEWS_TAB"]                                            = "Neuigkeiten"
 L["DASH_SEARCH_TAB"]                                          = "Durchsuchen"
 L["DASH_SEARCH_HEAD_SUB"]                                     = "Einstellungen schnell finden"
 L["DASH_SEARCH_PLACEHOLDER"]                                  = "Einstellungen durchsuchen..."
-L["DASH_SEARCH_EMPTY_HINT"]                                   = "Type at least two characters to search settings, modules, and options."
+L["DASH_SEARCH_EMPTY_HINT"]                                   = "Mindestens zwei Zeichen eingeben, um Einstellungen, Module und Optionen zu durchsuchen."
 L["DASH_SEARCH_NO_RESULTS"]                                   = "Keine Übereinstimmungen gefunden. Versuche es mit anderen Begriffen."
 L["DASH_SEARCH_FILTER_ALL"]                                   = "Alle"
 L["DASH_SEARCH_FILTER_TOOLTIP"]                               = "Suche auf ein Modul beschränken."
@@ -130,10 +131,10 @@ L["DASH_NEWS_FOCUS_CLICK_PROFILE_TITLE"]                      = "Blizzard+ ist n
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_TAGLINE"]                    = "Focus orientiert sich nun stärker an der gewohnten Bedienung von Blizzard, bietet aber weiterhin die praktischen Funktionen von Horizon."
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_BODY"]                       = "Die aktualisierte Voreinstellung sorgt für ein übersichtlicheres Standard-Interaktionsmodell mit Quests. Für Anpassungen gehe zu Focus > Interaktionen. Halte Ausschau nach Horizon+ und erweiterten benutzerdefinierten Tastenkombinationen, die als Nächstes folgen."
 L["DASH_NEWS_FOCUS_CLICK_PROFILE_META"]                       = "Focus • Interaktions-Voreinstellung • Jetzt verfügbar"
--- L["DASH_NEWS_GRADIENT_TOOLTIPS_TITLE"]                     = "Gradient Tooltip Fonts, Dynamic Focus Tooltips, a New! Indicator, and Module Name Options"
--- L["DASH_NEWS_GRADIENT_TOOLTIPS_TAGLINE"]                   = "Surprise! Customise your Insight tooltips with gradient font based on class-style character names and item quality. Highlight newly implemented features with a New! indicator, and experience dynamic tooltips in Focus that intelligently shift their anchor left or right based on screen position."
--- L["DASH_NEWS_GRADIENT_TOOLTIPS_BODY"]                      = "Additionally, we've introduced a new |cffaaaaaaAxis > Module Name Style|r setting, allowing you to choose how module names are displayed: Horizon (code-name only, default), Subtitle (e.g., Vista – Minimap), or Simple/Simple (simplified, plain-language names)."
--- L["DASH_NEWS_GRADIENT_TOOLTIPS_META"]                      = "Insight • Dynamic Tooltips • Gradient Font • Available Now"
+L["DASH_NEWS_GRADIENT_TOOLTIPS_TITLE"]                        = "Tooltip-Schriftverläufe, Dynamische Focus-Tooltips, ein Neu!-Indikator und Optionen für Modulbezeichnungen"
+L["DASH_NEWS_GRADIENT_TOOLTIPS_TAGLINE"]                      = "Überraschung! Passe Insight-Tooltips mit Schriftfarbverläufen basierend Klassenfarben und Gegenstandsqualität. Hervorhebung kürzlich implementierter Funktionen mit einem Neu!-Indikator. Dynamische Tooltip-Positionierung in Focus auf Basis der Bildschirmposition."
+L["DASH_NEWS_GRADIENT_TOOLTIPS_BODY"]                         = "Zusätzlich haben wir eine neue Einstellung für den |cffaaaaaaAxis > Modulbezeichnungsstil|r hinzugefügt: Horizon (Codenamen, Standard), Untertiel (z.B., Vista – Minikarte) oder Schlicht (vereinfachte, leicht verständliche Bezeichnungen)."
+L["DASH_NEWS_GRADIENT_TOOLTIPS_META"]                         = "Insight • Dynamische Tooltips • Schriftfarbverläufe • Jetzt verfügbar"
 L["DASH_NEWS_CLASS_ICONS_TITLE"]                              = "Ein vollständiges Horizon-Klassensymbolset ist jetzt enthalten"
 L["DASH_NEWS_CLASS_ICONS_BODY"]                               = "Stelle unter Axis > Globale Einstellungen den Klassensymbolstil auf Horizon, um das neue Design in der gesamten Suite zu verwenden. Das Dashboard zeigt nun Aktualisierungen wie eine Veröffentlichung und nicht wie eine Fußnote an."
 L["DASH_NEWS_CLASS_ICONS_META"]                               = "Axis • Globale Einstellungen • Kunst von Gabriel C"
@@ -165,7 +166,7 @@ L["DASH_WELCOME_ACTION_NEWS_BODY"]                            = "Neuigkeiten üb
 L["DASH_WELCOME_LEARN_BODY"]                                  = "Dieser Abschnitt dient als Leitfaden für Horizon: Was die einzelnen Module leisten, wie man loslegt und wie man durchstartet, sobald die Grundlagen sitzen."
 L["DASH_WELCOME_PATH"]                                        = "%s → %s → %s"
 L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]                 = "Blizzard+-Mausklickprofil"
-L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                    = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
+L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                    = [=[Focus verwendet jetzt standardmäßig |cffffffffBlizzard+|r — Blizzard-ähnliches Klickprofil mit einigen Horizon-Vorzügen. Öffne |cffaaaaaaFocus > Interaktionen|r und gehe zu |cffaaaaaaMausklickprofile|r, um die Voreinstellung anzussehen; |cffffffffHorizon+|r und voll |cffffffffanpassbare|r Belegungen sind in Arbeit.]=]
 L["DASH_WELCOME_COMING_SOON_TITLE"]                           = "In Kürze"
 L["DASH_WELCOME_COMING_SOON_TAGLINE"]                         = "Neue Einstiegserfahrungen sind auf dem Weg."
 L["DASH_WELCOME_COMING_SOON_BODY"]                            = [=[Im Blick behalten — Aktualisierungen werden hier und in den |cffaaaaaaÄnderungshinweisen|r vorgestellt. Tritt unserem |cffaaaaaaDiscord|r für Neuigkeiten und Feedback bei (Links dazu unten).]=]
@@ -211,7 +212,7 @@ L["DASH_GUIDE_TAB"]                                           = "Anleitung"
 L["DASH_GUIDE_HEAD_SUB"]                                      = "Funktionsumfang der Horizon-Module"
 L["DASH_GUIDE_HERO_TITLE"]                                    = "Mit Horizon loslegen"
 L["DASH_GUIDE_HERO_TAGLINE"]                                  = "Ein modulares UI-Paket für Quests, Benachrichtigunen, Minikarte und mehr."
-L["DASH_GUIDE_HERO_INTRO"]                                    = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
+L["DASH_GUIDE_HERO_INTRO"]                                    = "Wähle die gewünschten Module aus, passe sie in der Seitenleiste an und lade das Interface neu, wenn ein Modul ein- oder ausgeschaltet wurde. Diese Seite ist immer verfügbar — Du kannst sie jederzeit mit 'Leitfaden' unter der Willkommensnachricht erreichen."
 L["DASH_GUIDE_HERO_THEME_PROMPT"]                             = [=[Unter |cffaaaaaaAxis > Globale Einstellungen:|r |cff73b4ff|Hhsdash:classcolours|hKlassenfärbung|h|r für Dashboard und Module einstellen, sowie ein Auswahl an |cff73b4ff|Hhsdash:theme|hDashboard-Motiven|h|r.]=]
 L["DASH_GUIDE_HORIZON_HEADING"]                               = "Was ist Horizon?"
 L["DASH_GUIDE_HORIZON_BULLETS"]                               = [=[• Axis — Profile, Modulsteuerungen, globale Einstellungen, Typografie und andere Horizon-weite Konfigurationen.
@@ -234,7 +235,7 @@ L["DASH_GUIDE_PRESENCE_BODY"]                                 = [=[Typische Pres
 • Szenariobeginn, -fortschritt und -abschluss (inklusieve Tiefen-ähnlicher Stieldarstellung).
 • Errungene Erfolge und optionale Erfolgsfortschritte.
 • Stufenaufstieg, Boss-Geschwätz und besiegte seltene Gegner.]=]
-L["DASH_GUIDE_PRESENCE_BLIZZARD"]                          = [=[Sobald ein Presence-Typ aktiviert ist, kann Horizon das entsprechende Standard-UI-Element ausblenden. Dadurch werden Duplikatanzeigen vermieden — Beispielsweise Einblendungen zu Zonennamen, Stufenaufstieg, Boss-Geschwätz, Ereignisse, Welt-Quest-Abschlüsse oder Bonusziele. Schalte einen Presence-Typ in den Einstellungen aus, um die Standard-UI-Darstellung für diese Kategorie wieder einzublenden.]=]
+L["DASH_GUIDE_PRESENCE_BLIZZARD"]                             = [=[Sobald ein Presence-Typ aktiviert ist, kann Horizon das entsprechende Standard-UI-Element ausblenden. Dadurch werden Duplikatanzeigen vermieden — Beispielsweise Einblendungen zu Zonennamen, Stufenaufstieg, Boss-Geschwätz, Ereignisse, Welt-Quest-Abschlüsse oder Bonusziele. Schalte einen Presence-Typ in den Einstellungen aus, um die Standard-UI-Darstellung für diese Kategorie wieder einzublenden.]=]
 L["DASH_GUIDE_MOD_VISTA_BODY"]                                = "Vista verziert die Minikarte mit lesbarem Zonen- und Unterzonentext, optionalen Koordinaten, einer Uhr, sowie eine Leiste, die sämtliche Schlatflächen der Minikarte geordnet sammelt. Layout und Farben sind unter Vista in der eitenleiste anpassbar."
 L["DASH_GUIDE_MOD_INSIGHT_BODY"]                              = "Insight erweitert die Blizzard-Tooltips für Spielercharaktere, NPCs und Gegenstände — Färbung nach Klasse und Fraktion, Spezialisierungs- und Symbolzeilen, optionale Mythsch-Plus-Wertung, Gegenstandsstufe, Hinweise zu Reittieren, sowie saubere Trenner. Jede Tooltip-Art hat eine eigene Kategorie unter Insight."
 L["DASH_GUIDE_MOD_CACHE_BODY"]                                = "Cache übernimmt die Beutebenachrichtigung: Stilistische Benachrichtigungen für Gegenstände, Gold, Währung und Ruf, sowie Optionen zur Darstellung von Belohnungen. Aktivieren, um Horizons Repräsentation anstelle der Standardbenachrichtigungen zu nutzen."
@@ -281,7 +282,7 @@ L["FOCUS_COMBAT"]                                             = "Kampf"
 L["FOCUS_FILTERING"]                                          = "Filterung"
 L["FOCUS_HEADER"]                                             = "Kopfzeile"
 L["FOCUS_SECTIONS_STRUCTURE"]                                 = "Abschnitte & Struktur"
-L["FOCUS_ENTRY_DETAILS"]                                      = "Eintragsdetails"
+L["FOCUS_ENTRY_DETAILS"]                                      = "Einträge"
 L["FOCUS_PROGRESS_TIMERS"]                                    = "Fortschritt & Timer"
 L["FOCUS_EMPHASIS"]                                           = "Hervorhebung"
 L["FOCUS_LIST"]                                               = "Liste"
@@ -332,6 +333,8 @@ L["AXIS_CHARACTERS_SAME_PROFILE"]                             = "Alle Charaktere
 L["AXIS_ENABLE_PER_SPECIALIZATION_PROFILES"]                  = "Profil pro Spezialisierung aktivieren"
 L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"]                    = "Wähle unterschiedliche Profile für Spezialisierungen."
 L["AXIS_SPECIALIZATION"]                                      = "Spezialisierung"
+-- L["AXIS_SPEC_PROFILES"]                                    = "Spec Profiles"
+-- L["AXIS_ENABLE"]                                           = "Enable"
 L["AXIS_SHARING"]                                             = "Teilen"
 L["AXIS_IMPORT_PROFILE"]                                      = "Profil importieren"
 L["AXIS_IMPORT_STRING"]                                       = "Import-Zeichenkette"
@@ -365,10 +368,23 @@ L["AXIS_ENABLE_CACHE_MODULE"]                                 = "Cache-Modul akt
 L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Filmische Beutebenachrichtigungen (Gegenstände, Gold, Währungen, Ruf)"
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "Vista-Modul aktivieren"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Filmische quadratische Minimap mit Zonentext, Koordinaten und Schaltflächensammlung"
-L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Filmische quadratische Minimap mit Zonentext, Koordinaten, Uhrzeit und Button-Sammlung"
+L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Filmische quadratische Minimap mit Zonentext, Koordinaten, Uhrzeit und Schaltflächensammlung"
 L["AXIS_BETA"]                                                = "Beta"
 L["AXIS_SCALING"]                                             = "Skalierung"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Globale Einstellungen"
+-- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"
+-- L["AXIS_GLOBAL_FONT_SECTION"]                              = "Global Font (Coming Soon!)"
+-- L["AXIS_GLOBAL_SCALE_SECTION"]                             = "Global Scale"
+-- L["AXIS_MINIMAP_ICON_SECTION"]                             = "Minimap Icon"
+-- L["AXIS_CLASS_THEME_SECTION"]                              = "Class Theme"
+-- L["AXIS_GLOBAL_CLASS_THEME"]                               = "Global Class Theme"
+-- L["AXIS_CLASS_THEME_DASHBOARD"]                            = "Dashboard"
+-- L["AXIS_CLASS_THEME_DASHBOARD_DESC"]                       = "Enables Dashboard class theming. Flipping it on turns on Class Colours, Dashboard Class Icon, and Override Background; each sub-option can then be adjusted independently while the master stays on."
+-- L["AXIS_DASHBOARD_CLASS_COLOURS"]                          = "Class Colours"
+-- L["AXIS_DASHBOARD_CLASS_ICON"]                             = "Dashboard Class Icon"
+-- L["AXIS_DASHBOARD_CLASS_ICON_DESC"]                        = "Show a class icon on the Dashboard. Independent of class colour tinting and of the class background override."
+-- L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE"]                      = "Override Background to Class Background"
+-- L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE_DESC"]                 = "Replace the Dashboard background with a class-themed background. Independent of class colour tinting and of the class icon."
 L["AXIS_PATCH_NOTES_SECTION"]                                 = "Änderungshinweise"
 L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"]                      = "Änderungshinweise nach Aktualisierung automatisch einblenden"
 L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"]                 = "EIN: Änderungshinweise zu Horizon werden nach jeder Aktualisierung einmalig eingeblendet. AUS: Ein grüner Indikator erscheint auf dem Horizon-Minikartensymbol bis die Änderungshinweise manuell geöffnet werden"
@@ -447,6 +463,8 @@ L["INSIGHT_PLAYER_NAME_COLOUR"]                               = "Farbe des Spiel
 L["INSIGHT_PLAYER_NAME_COLOUR_DESC"]                          = "Farbe des Spielernamens in der ersten Tooltip-Zeile: Fraktion (Allianz blau, Horde rot) oder Klassenfarbe."
 L["INSIGHT_PLAYER_NAME_COLOUR_FACTION"]                       = "Fraktion"
 L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"]                         = "Klasse"
+-- L["INSIGHT_PLAYER_NAME_GRADIENT"]                          = "Class Colour Gradient"
+-- L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"]                     = "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class)."
 L["INSIGHT_SECTION_STATUS_PVP"]                               = "Status & PvP"
 L["INSIGHT_SECTION_RATINGS_GEAR"]                             = "Wertungen & Ausrüstung"
 L["INSIGHT_SPEC_ROLE"]                                        = "Spezialisierungssymbol & Rolle"
@@ -477,6 +495,8 @@ L["INSIGHT_NPC_ICONS_DESC"]                                   = "Zeigt für NPCs
 L["INSIGHT_SECTION_ITEM_STYLING"]                             = "Gegenstandsdarstellung"
 L["INSIGHT_ITEM_QUALITY_BORDER"]                              = "Umrandung mit Qualitätsfärbung"
 L["INSIGHT_ITEM_QUALITY_BORDER_DESC"]                         = "Färbung der Tooltip-Umrandung nach Gegenstandsqualität (grün für ungewöhnlich, blau für selten, Lila für episch, etc.)"
+-- L["INSIGHT_ITEM_NAME_GRADIENT"]                            = "Quality Gradient Name"
+-- L["INSIGHT_ITEM_NAME_GRADIENT_DESC"]                       = "Render the item name as a two-stop gradient of its quality colour (Uncommon green, Rare blue, Epic purple, etc.)."
 L["INSIGHT_ITEM_SECTION_SPACING"]                             = "Leerzeile vor Blöcken"
 L["INSIGHT_ITEM_SECTION_SPACING_DESC"]                        = "Fügt eine Leerzeile anstelle einer gefärbten Trennlinie vor Insight-Blöcken in Gegenstands-Tooltips ein."
 L["AXIS_ITEM_TOOLTIP"]                                        = "Gegenstands-Tooltip"
@@ -505,7 +525,7 @@ L["AXIS_BLANK_SEPARATOR"]                                     = "Leere Trennzeil
 L["AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"]                      = "Fügt eine leere Zeile anstelle von Bindestrichen zwischen Tooltip-Sektionen ein."
 L["AXIS_ICONS"]                                               = "Symbole anzeigen"
 L["AXIS_CLASS_ICON_STYLE"]                                    = "Klassensymbolstil"
-L["AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"]          = "Use Default (Blizzard) or RondoMedia class icons on the class/spec line."
+L["AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"]          = "Verwende Blizzard-Standard- oder Klassensymbole von RondoMedia in der Klassen/Spezialisierungszeile."
 L["AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Benutzerdefiniert (Addon-Medien)"
 L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Benutzerdefiniert: Platziere eine TGA-Datei pro Klasse unter media/CustomClassIcons/<CLASS>/<class lower>.tga (z.B. WARRIOR/warrior.tga), anschließend Interface neuladen."
 L["AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]       = "RondoMedia-Klassensymbole von RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
@@ -558,8 +578,8 @@ L["FOCUS_FADE"]                                               = "Verblassen"
 L["FOCUS_HIDE"]                                               = "Ausblenden"
 L["FOCUS_COMBAT_FADE_OPACITY"]                                = "Sichtbarkeit im Kampf"
 L["FOCUS_VISIBLE_TRACKER_FADED_COMBAT"]                       = "Wie sichtbar der Tracker ist, wenn er im Kampf verblasst (0 = unsichtbar). Gilt nur, wenn die Sichtbarkeit im Kampf auf „Ausblenden“ eingestellt ist."
-L["FOCUS_MOUSEOVER"]                                          = "Maus-Over"
-L["FOCUS_SHOW_ONLY_MOUSEOVER"]                                = "Zeige nur bei Maus-Over."
+L["FOCUS_MOUSEOVER"]                                          = "Mouseover"
+L["FOCUS_SHOW_ONLY_MOUSEOVER"]                                = "Zeige nur bei Mouseover."
 L["FOCUS_FADE_TRACKER_HOVERING_MOVE_MOUSE"]                   = "Zielverfolger verblasst wenn der Mauszeiger nicht darüber schwebt"
 L["FOCUS_FADED_OPACITY"]                                      = "Sichtbarkeit wenn verblasst"
 L["FOCUS_VISIBLE_TRACKER_FADED_INVISIBLE"]                    = "Sichtbarkeit des Trackers wenn er verblasst ist (0 = unsichtbar)"
@@ -569,7 +589,7 @@ L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"]              = "Verstecke Quest
 -- =====================================================================
 -- OptionsData.lua Display — Header
 -- =====================================================================
-L["FOCUS_QUEST_COUNT"]                                        = "Quest-Anzahl anzeigen"
+L["FOCUS_QUEST_COUNT"]                                        = "Anzahl der Quests anzeigen"
 L["FOCUS_QUEST_COUNT_HEADER"]                                 = "Zeige die Anzahl der Quests in der Kopfzeile an"
 L["FOCUS_HEADER_COUNT_FORMAT"]                                = "Format des Zählers"
 L["FOCUS_TRACKED_LOG_LOG_MAX_SLOTS_TRACKED"]                  = "Verfolgt/im-Log oder im-Log/max-Plätze. Verfolgt schließt Welt- & Zonen-Quests aus."
@@ -693,7 +713,7 @@ L["UI_RARE_BOSS_VIGNETTES_LIST"]                              = "Vignetten selte
 L["UI_RARE_LOOT"]                                             = "Seltene Schätze"
 L["UI_TREASURE_ITEM_VIGNETTES_RARE_LOOT"]                     = "Zeigt Schätze und Gegenstände in der Liste seltener Beute."
 L["UI_RARE_SOUND_VOLUME"]                                     = "Lautstärke seltener Beute"
-L["UI_VOLUME_OF_RARE_ALERT_SOUND"]                            = "Lautstärke des Alarmsounds für seltene Beute (50–200 %)."
+L["UI_VOLUME_OF_RARE_ALERT_SOUND"]                            = "Lautstärke des Audioeffekts für seltene Beute (50–200 %)."
 L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"]                        = "Lautstärke anpassen. 100 % = normal; 150 % = lauter."
 L["UI_RARE_ADDED_SOUND"]                                      = "Audioeffekt bei seltenen Gegnern"
 L["UI_PLAY_A_SOUND_A_RARE"]                                   = "Audioeffekt abspielen, wenn ein seltener Gegner gefunden wird."
@@ -961,7 +981,7 @@ L["FOCUS_A_VISUAL_HINT_LIST_CONTENT_TH"]                      = "Visuellen Hinwe
 L["FOCUS_SCROLL_INDICATOR_STYLE"]                             = "Scroll-Indikatorstil"
 L["FOCUS_CHOOSE_BETWEEN_A_FADE_GRADIENT_A"]                   = "Verlauf oder Pfeil für scrollbaren Inhalt wählen."
 L["FOCUS_ARROW"]                                              = "Pfeil"
-L["FOCUS_HIGHLIGHT_ALPHA"]                                    = "Deckkraft für Hervorhebung"
+L["FOCUS_HIGHLIGHT_ALPHA"]                                    = "Deckkraft der Hervorhebung"
 L["FOCUS_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"]                 = "Deckkraft der Quest-Hervorhebung (0–1)."
 L["FOCUS_BAR_WIDTH"]                                          = "Breite der Leiste"
 L["FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"]                   = "Breite der Leistenhervorhebung (2–6)."
@@ -978,7 +998,7 @@ L["FOCUS_CATEGORY_COLOUR_BAR"]                                = "Färbung der Le
 L["FOCUS_CHECKMARK_COMPLETED"]                                = "Häkchen für abgeschlossen"
 L["FOCUS_CURRENT_QUEST_CATEGORY"]                             = "Abschnitt für aktuelle Quest"
 L["FOCUS_CURRENT_QUEST_WINDOW"]                               = "Aktuelle Quest-Fenster"
-L["FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                         = "Quests mit kürzlichem Fortschritt oben listen."
+L["FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                         = "Quests mit kürzlichem Fortschritt oben auflisten."
 L["FOCUS_RECENT_QUEST_SECONDS"]                               = "Sekundenfortschritt für aktuelle Quest (30–120)."
 L["FOCUS_QUEST_PROGRESSION_SECTION"]                          = "Quests mit Fortschritt in der letzten Minute erscheinen in eigenem Abschnitt."
 L["FOCUS_SHOW_ZONE_EVENTS"]                                   = "Abschnitt für Zonenereignisse"
@@ -1122,10 +1142,10 @@ L["PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"]          = "Wechsel von Unt
 L["PRESENCE_HIDE_ZONE_NAME_SUBZONE_CHANGES"]                  = "Zonennamen bei Unterzonenwechsel verbergen"
 L["PRESENCE_MOVING_BETWEEN_SUBZONES_WITHIN_SAME_ZONE"]        = "Bei Unterzonenwechsel in gleicher Zone nur Unterzonenname. Zonennamen erscheint bei neuer Zone."
 L["PRESENCE_SUPPRESS_DELVE"]                                  = "In Tiefen unterdrücken"
-L["PRESENCE_SUPPRESS_SCENARIO_PROGRESS_NOTIFICATIONS_DELVES"] = "Benachrichtigungen zu Szenariofortschritten in Tiefen unterdrücken."
+L["PRESENCE_SUPPRESS_SCENARIO_PROGRESS_NOTIFICATIONS_DELVES"]   = "Benachrichtigungen zu Szenariofortschritten in Tiefen unterdrücken."
 L["PRESENCE_HIDE_DELVE_OBJECTIVE_UPDATE"]                     = "EIN: Zielaktualisierungen in Tiefen verbergen. Zonenwechsel und Abschlussbenachrichtigungen werden weiterhin angezeigt."
 L["PRESENCE_SUPPRESS_ZONE_CHANGES_MYTHIC"]                    = "Zonenwechsel in Mythisch-Plus unterdrücken"
-L["PRESENCE_MYTHICPLUS_SHOW_BOSS_EMOTES_ACHIEVEMENTS_LEVELS"] = "In Mythisch-Plus nur Bossgeschwätz, Erfolge und Stufenaufstieg. Zonen-, Quest- und Szenariobenachrichtigungen verbergen."
+L["PRESENCE_MYTHICPLUS_SHOW_BOSS_EMOTES_ACHIEVEMENTS_LEVELS"]   = "In Mythisch-Plus nur Bossgeschwätz, Erfolge und Stufenaufstieg. Zonen-, Quest- und Szenariobenachrichtigungen verbergen."
 L["PRESENCE_LEVEL"]                                           = "Stufenaufstieg anzeigen"
 L["PRESENCE_LEVEL_NOTIFICATION"]                              = "Benachrichtigungen zu Stufenaufstiege anzeigen."
 L["PRESENCE_BOSS_EMOTES"]                                     = "Bossgeschwätz anzeigen"
@@ -1393,8 +1413,8 @@ L["VISTA_COLOUR_OF_COORDINATES_TEXT"]                         = "Farbe des Koord
 L["VISTA_COORDINATE_PRECISION"]                               = "Präzision der Koordinaten"
 L["VISTA_NUMBER_OF_DECIMAL_PLACES_SHOWN_X"]                   = "Anzahl Dezimalstellen für X- und Y-Koordinaten."
 L["VISTA_COORDS_DECIMALS_OFF"]                                = "Keine Dezimalstellen (z.B. 52, 37)"
-L["VISTA_DECIMAL_E_G"]                                        = "1 Dezimalstelle (z.B. 52,3, 37,1)"
-L["VISTA_DECIMALS_E_G"]                                       = "2 Dezimalstellen (z.B. 52,34, 37,12)"
+L["VISTA_DECIMAL_E_G"]                                        = "Eine Dezimalstelle (z.B. 52,3, 37,1)"
+L["VISTA_DECIMALS_E_G"]                                       = "Zwei Dezimalstellen (z.B. 52,34, 37,12)"
 L["VISTA_TEXT"]                                               = "Uhrzeit"
 L["VISTA_FONT"]                                               = "Schriftart für Uhrzeit"
 L["VISTA_FONT_TEXT_BELOW_MINIMAP"]                            = "Schriftart für den Zeittext unterhalb der Minikarte."
@@ -1500,13 +1520,15 @@ L["VISTA_LOCK_QUEUE_BUTTON"]                                  = "Warteschlangen-
 L["VISTA_PREVENT_DRAGGING_QUEUE_STATUS_BUTTON"]               = "Warteschlangen-Button nicht verschiebbar."
 L["VISTA_LOCK_MAIL_INDICATOR"]                                = "Postsymbol fixieren"
 L["VISTA_PREVENT_DRAGGING_MAIL_ICON"]                         = "Postsymbol nicht verschiebbar."
+-- L["VISTA_LOCK_CRAFTING_ORDER_INDICATOR"]                   = "Lock Crafting Order Indicator"
+-- L["VISTA_PREVENT_DRAGGING_CRAFTING_ORDER_ICON"]            = "Prevent dragging the crafting order icon."
 L["VISTA_DISABLE_QUEUE_HANDLING"]                             = "Warteschlangen-Verwaltung deaktivieren"
 L["VISTA_DISABLE_QUEUE_BUTTON_HANDLING"]                      = "Warteschlangen-Button-Verwaltung deaktivieren"
 L["VISTA_TURN_QUEUE_BUTTON_ANCHORING_OFF_ADDON_CONFLICT"]     = "Alle Warteschlangen-Button-Ankerungen deaktivieren (wenn anderes Addon verwaltet)."
 L["VISTA_BUTTON_SIZES"]                                       = "Größe der Schaltflächen"
 L["VISTA_ADJUST_SIZE_OF_MINIMAP_OVERLAY_BUTTONS"]             = "Größe der Überlagerungschaltflächen an der Minikarte anpassen."
 L["VISTA_TRACKING_BUTTON_SIZE"]                               = "Verfolgen-Button-Größe"
-L["VISTA_SIZE_OF_TRACKING_BUTTON_PIXELS"]                     = "Größe des Verfolgen-Buttons (in Pixel)."
+L["VISTA_SIZE_OF_TRACKING_BUTTON_PIXELS"]                     = "Größe der Verfolgenschaltfläche (in Pixel)."
 L["VISTA_CALENDAR_BUTTON_SIZE"]                               = "Größe der Kalenderschaltfläche"
 L["VISTA_SIZE_OF_CALENDAR_BUTTON_PIXELS"]                     = "Größe des Kalenderschaltfläche (in Pixel)."
 L["VISTA_QUEUE_BUTTON_SIZE"]                                  = "Größe der Warteschlangen-Schaltfläche"
@@ -1515,6 +1537,8 @@ L["VISTA_ZOOM_BUTTON_SIZE"]                                   = "Größe der Zoo
 L["VISTA_SIZE_OF_ZOOM_ZOOM_BUTTONS_PIXELS"]                   = "Größe der Zoom-Schaltfläche (in Pixel)."
 L["VISTA_MAIL_INDICATOR_SIZE"]                                = "Grüße des Postsymbols"
 L["VISTA_SIZE_OF_MAIL_ICON_PIXELS"]                           = "Größe des Postsymbols (in Pixel)."
+-- L["VISTA_CRAFTING_ORDER_INDICATOR_SIZE"]                   = "Crafting Order Indicator Size"
+-- L["VISTA_SIZE_OF_CRAFTING_ORDER_ICON_PIXELS"]              = "Size of the crafting order icon (pixels)."
 L["VISTA_ADDON_BUTTON_SIZE"]                                  = "Größe der Addon-Schaltfläche"
 L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "Größe der gesammelten Minikarten-Schaltflächen von Addons (in Pixel)."
 
@@ -1523,6 +1547,8 @@ L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "Größe der ges
 -- =====================================================================
 L["VISTA_COLLECT_HORIZON_MINIMAP"]                            = "Minikartensymbol von Horizon mit einschließen"
 L["VISTA_COLLECT_HORIZON_MINIMAP_DESC"]                       = "Verlegt Horizons eigenen Minikartensymbol in die verwaltete Addon-Leiste, die Rechtsklick-Anzeige oder die Schublade anstatt es am Rand der Minikarte zu belassen."
+-- L["VISTA_SORT_BUTTONS_ALPHA"]                              = "Sort Buttons Alphabetically"
+-- L["VISTA_SORT_BUTTONS_ALPHA_DESC"]                         = "Sort collected addon minimap buttons alphabetically by name."
 L["VISTA_ADDON_BUTTONS"]                                      = "Addon-Schaltflächen"
 L["VISTA_MINIMAP_ADDON_BUTTONS"]                              = "Minikartenschaltflächen von Addons"
 L["VISTA_BUTTON_MANAGEMENT"]                                  = "Verwaltung der SChaltflächen"
@@ -1551,7 +1577,7 @@ L["VISTA_BUTTONS_FILL_RIGHT"]                                 = "Rechts"
 L["VISTA_BUTTONS_FILL_LEFT"]                                  = "Links"
 L["VISTA_BUTTONS_FILL_DOWN"]                                  = "Unten"
 L["VISTA_BUTTONS_FILL_UP"]                                    = "Oben"
-L["VISTA_MOUSEOVER_BAR_APPEARANCE"]                           = "Darstellung der Mausüber-Leiste"
+L["VISTA_MOUSEOVER_BAR_APPEARANCE"]                           = "Darstellung der Mouseover-Leiste"
 L["VISTA_BACKGROUND_BORDER_MOUSEOVER_BUTTON_BAR"]             = "Hintergrund und Rahmen für die Mausüber-Button-Leiste."
 L["VISTA_BACKDROP_COLOUR"]                                    = "Hintergrundfarbe"
 L["VISTA_BACKGROUND_COLOUR_OF_MOUSEOVER_BUTTON_BAR"]          = "Hintergrundfarbe der Mausüber-Leiste (Alpha für Transparenz)."
@@ -1571,6 +1597,9 @@ L["VISTA_DRAWER_CLOSE_DELAY"]                                 = "Schublade-Schli
 L["VISTA_LONG_SECONDS_DRAWER_PANEL_STAYS_OPEN"]               = "Dauer (in Sekunden), in der die Schublade nach dem wegklicken geöffnet bleibt. 0 = nie automatisch schließen."
 L["VISTA_MAIL_ICON_BLINK"]                                    = "Blinkendes Postsymbol"
 L["VISTA_MAIL_ICON_PULSES_DRAW_ATTENTION"]                    = "EIN: Postsymbol pulsiert. AUS: volle Deckkraft."
+-- L["VISTA_CRAFTING_ORDER_ICON_PULSE"]                       = "Crafting Order Icon Pulse"
+-- L["VISTA_CRAFTING_ORDER_ICON_PULSES_DRAW_ATTENTION"]       = "When on, the crafting order icon pulses to draw attention. When off, it stays at full opacity."
+-- L["VISTA_CRAFTING_ORDER_TOOLTIP"]                          = "Personal Crafting Orders"
 L["VISTA_PANEL_APPEARANCE"]                                   = "Anzeigedarstellung"
 L["VISTA_COLOURS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"]           = "Farben für Schublade und Rechtsklick-Anzeigen."
 L["VISTA_PANEL_BG_COLOUR_LABEL"]                              = "Hintergrundfrabe der Anzeige"
@@ -1587,14 +1616,14 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Noch keine Add
 -- Inline option / module strings (used in OptionsData / modules; symbolic migration)
 -- =====================================================================
 
-L["HEROIC_DUNGEON"]                                           = "   Heroische Dungeons"
-L["HEROIC_RAID"]                                              = "   Heroische Schlachtzüge"
-L["LFR"]                                                      = "   Schlachtzugs-Browser"
-L["MYTHIC_DUNGEON"]                                           = "   Mythische Dungeons"
-L["MYTHIC_RAID"]                                              = "   Mythische Schlachtzüge"
-L["MYTHIC_PLUS_DUNGEON"]                                      = "   Mythisch-Plus-Dungeons"
-L["NORMAL_DUNGEON"]                                           = "   Normale Dungeons"
-L["NORMAL_RAID"]                                              = "   Normale Schlachtzüge"
+L["HEROIC_DUNGEON"]                                           = " - Heroische Dungeons"
+L["HEROIC_RAID"]                                              = " - Heroische Schlachtzüge"
+L["LFR"]                                                      = " - Schlachtzugs-Browser"
+L["MYTHIC_DUNGEON"]                                           = " - Mythische Dungeons"
+L["MYTHIC_RAID"]                                              = " - Mythische Schlachtzüge"
+L["MYTHIC_PLUS_DUNGEON"]                                      = " - Mythisch-Plus-Dungeons"
+L["NORMAL_DUNGEON"]                                           = " - Normale Dungeons"
+L["NORMAL_RAID"]                                              = " - Normale Schlachtzüge"
 L["ACHIEVEMENT_ICONS"]                                        = "Erfolgssymbole"
 L["ACTIVE_INSTANCE"]                                          = "Nur aktive Instanz"
 L["ADJUST_FONT_SIZES_AMOUNT"]                                 = "Sämtliche Schriftgrößen um diesen Wert anpassen."
@@ -1621,15 +1650,15 @@ L["COLOUR_ZONE_TYPE"]                                         = "Färbung nach Z
 L["COLOUR_CONTESTED_ZONES_ORANGE_DEFAULT"]                    = "Farbe für umkämpfte Zonen (Standard: organge)."
 L["COLOUR_FRIENDLY_ZONES_GREEN_DEFAULT"]                      = "Farbe für freundliche Zonen (Standard: grün)."
 L["COLOUR_HOSTILE_ZONES_RED_DEFAULT"]                         = "Farbe für feindliche Zonen (Standard: rot)."
-L["COLOUR_SANCTUARY_ZONES_BLUE_DEFAULT"]                      = "Colour for sanctuary zones (blue by default)."
-L["COLOUR_OF_DIVIDER_LINES_BETWEEN_SECTIONS"]                 = "Colour of the divider lines between sections."
+L["COLOUR_SANCTUARY_ZONES_BLUE_DEFAULT"]                      = "Farbe für sichere Zonen (Standard: blau)."
+L["COLOUR_OF_DIVIDER_LINES_BETWEEN_SECTIONS"]                 = "Farbe der Trennlinien zwischen Abschnitten."
 L["COLOUR_RECIPE_TITLES_OUTPUT_ITEM_RARITY"]                  = "Färbung von Rezeptnamen nach Produktseltenheit."
 L["COLOUR_ZONE_SUBZONE_TITLES_PVP_ZONE"]                      = "Färbung von Zonen- und Unterzonennamen nach  PvP-Zonentyp (freundlich, feindlich, umkämpft, sicher). AUS: Verwendet Standardfarbe des Abschnittes."
 L["COMBAT_AFK_DND_PVP_PARTY_FRIENDS"]                         = "Kampf, AFK, DND, PvP, Gruppe, Freunde & Ziele."
 L["COMING_SOON"]                                              = "In Kürze"
 L["COMPLETED_BOSS_STYLE"]                                     = "Darstellung besiegter Bosse"
 L["COMPLETED_COUNT"]                                          = "Anzahl besiegter Streitkräfte"
-L["FOCUS_TOMTOM_CONFIGURE_DESC"]                              = "Configure click behaviors, tracking rules, and TomTom integration."
+L["FOCUS_TOMTOM_CONFIGURE_DESC"]                              = "Klickverhalten, Verfolgungsregeln und TomTom-Integration."
 L["CONFIGURE_MINIMAP_S_SHAPE_SIZE_POSITION"]                  = "Konfiguration der Minikartenform, -größe, -position und Textüberlagerungen."
 L["CONTESTED_ZONE_COLOUR"]                                    = "Farbe für umkämpfte Zonen"
 L["CONTROL_TRACKER_VISIBILITY_WITHIN_DUNGEONS_RAIDS"]         = "Sichtbarkeit des Zielverfolgers in Dungeons, Schlachtzügen und PvP."
@@ -1875,4 +1904,159 @@ L["ZONE_LABELS"]                                              = "Zonenbeschriftu
 L["ZONE_NAME_NEW_ZONE"]                                       = "Der Zonenname erscheint weiterhin beim Betreten einer neuen Zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Färbung nach Zonentyp"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t anstelle von grüngefärbten abgeschlossenen Zielen."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
