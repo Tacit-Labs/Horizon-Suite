@@ -842,7 +842,7 @@ local OptionCategories = {
     },
     {
         key = "GlobalToggles",
-        name = L["AXIS_GLOBAL_TOGGLES"] or "Global (Axis / Settings)",
+        name = L["AXIS_GLOBAL_TOGGLES"] or "Global",
         desc = L["AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"] or "Suite-wide class colour tinting and UI scale (global or per module).",
         moduleKey = nil,
         options = function()
