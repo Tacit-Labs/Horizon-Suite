@@ -716,12 +716,12 @@ L["FOCUS_AUTO_ADD_WORLD_QUESTS_YOUR_CURRENT"]                 = "Auto-add world 
 -- =====================================================================
 L["FOCUS_SHOW_FLOATING_QUEST_ITEM"]                           = "Show Floating Quest Item"
 L["FOCUS_QUICK_BUTTON_FOCUSED_QUEST_S_USABLE"]                = "Show quick-use button for the focused quest's usable item."
-L["FOCUS_LOCK_FLOATING_QUEST_ITEM_POSITION"]                  = "Lock floating quest item position"
+L["FOCUS_LOCK_FLOATING_QUEST_ITEM_POSITION"]                  = "Lock Floating Quest Item Position"
 L["FOCUS_PREVENT_DRAGGING_FLOATING_QUEST_ITEM_BUTTON"]        = "Prevent dragging the floating quest item button."
-L["FOCUS_FLOATING_QUEST_ITEM_SOURCE"]                         = "Floating quest item source"
+L["FOCUS_FLOATING_QUEST_ITEM_SOURCE"]                         = "Floating Quest Item Source"
 L["FOCUS_WHICH_QUEST_S_ITEM_SUPER_TRACKED"]                   = "Which quest's item to show: super-tracked first, or current zone first."
-L["FOCUS_SUPER_TRACKED_FIRST"]                                = "Super-tracked, then first"
-L["FOCUS_CURRENT_ZONE_FIRST"]                                 = "Current zone first"
+L["FOCUS_SUPER_TRACKED_FIRST"]                                = "Super-Tracked, then First"
+L["FOCUS_CURRENT_ZONE_FIRST"]                                 = "Current Zone First"
 
 -- =====================================================================
 -- OptionsData.lua Features — Mythic+
