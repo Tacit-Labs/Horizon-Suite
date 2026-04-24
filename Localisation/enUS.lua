@@ -1610,6 +1610,7 @@ L["VISTA_MAIL_ICON_PULSES_DRAW_ATTENTION"]                    = "When on, the ma
 L["VISTA_CRAFTING_ORDER_ICON_PULSE"]                          = "Crafting Order Icon Pulse"
 L["VISTA_CRAFTING_ORDER_ICON_PULSES_DRAW_ATTENTION"]          = "When on, the crafting order icon pulses to draw attention. When off, it stays at full opacity."
 L["VISTA_CRAFTING_ORDER_TOOLTIP"]                             = "Personal Crafting Orders"
+L["VISTA_CRAFTING_ORDER_PENDING_COUNT"]                       = "%d pending"
 L["VISTA_PANEL_APPEARANCE"]                                   = "Panel Appearance"
 L["VISTA_COLOURS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"]           = "Colours for the Drawer and Right-Click Button Panels."
 L["VISTA_PANEL_BG_COLOUR_LABEL"]                              = "Panel Background Colour"
