@@ -1278,8 +1278,16 @@ local OptionCategories = {
                     if v and currentKey and addon.SetGlobalProfileKey then
                         addon.SetGlobalProfileKey(currentKey)
                     end
-                    if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+                    if addon.OnActiveProfileChangedDeferred then addon.OnActiveProfileChangedDeferred() end
                 end,
+                refreshIds = {
+                    "_profiles_current",
+                    "_profiles_usePerSpec",
+                    "_profiles_spec_1",
+                    "_profiles_spec_2",
+                    "_profiles_spec_3",
+                    "_profiles_spec_4",
+                },
             }
 
                 opts[#opts + 1] = {
@@ -1297,7 +1305,7 @@ local OptionCategories = {
                     set = function(v)
                         if addon.SetActiveProfileKey then addon.SetActiveProfileKey(v) end
                         addon._profileCopyFrom = nil
-                        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+                        if addon.OnActiveProfileChangedDeferred then addon.OnActiveProfileChangedDeferred() end
                     end,
                 }
 
@@ -1405,6 +1413,11 @@ local OptionCategories = {
                     end,
                 }
 
+                opts[#opts + 1] = {
+                    type = "moduleReloadPrompt",
+                    hintText = L["PROFILE_RELOAD_HINT"] or "Reload the interface to finish applying profile changes.",
+                }
+
                 -- Section B: Per-spec switch + spec dropdowns
                 opts[#opts + 1] = { type = "section", name = L["AXIS_SPEC_PROFILES"] or "Spec Profiles" }
 
@@ -1413,6 +1426,13 @@ local OptionCategories = {
                     name = L["AXIS_ENABLE"] or "Enable",
                     desc = L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"] or "Pick different profiles per spec.",
                     dbKey = "_profiles_usePerSpec",
+                    refreshIds = {
+                        "_profiles_current",
+                        "_profiles_spec_1",
+                        "_profiles_spec_2",
+                        "_profiles_spec_3",
+                        "_profiles_spec_4",
+                    },
                     disabled = function()
                         local useGlobal = addon.GetProfileModeState and select(1, addon.GetProfileModeState())
                         return useGlobal == true
@@ -1440,7 +1460,7 @@ local OptionCategories = {
                             end
                         end
                         if addon.SetUsePerSpecProfiles then addon.SetUsePerSpecProfiles(v) end
-                        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+                        if addon.OnActiveProfileChangedDeferred then addon.OnActiveProfileChangedDeferred() end
                     end,
                 }
 
@@ -1497,10 +1517,15 @@ local OptionCategories = {
                         end,
                         set = function(v)
                             if addon.SetPerSpecProfileKey then addon.SetPerSpecProfileKey(specIndex, v) end
-                            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+                            if addon.OnActiveProfileChangedDeferred then addon.OnActiveProfileChangedDeferred() end
                         end,
                     }
                 end
+
+                opts[#opts + 1] = {
+                    type = "moduleReloadPrompt",
+                    hintText = L["PROFILE_RELOAD_HINT"] or "Reload the interface to finish applying profile changes.",
+                }
 
                 -- Section C: Sharing (export / import)
                 opts[#opts + 1] = { type = "section", name = L["AXIS_SHARING"] or "Sharing" }

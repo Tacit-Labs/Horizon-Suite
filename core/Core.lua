@@ -463,6 +463,17 @@ function addon.OnActiveProfileChanged()
     ReloadUI()
 end
 
+--- Deferred variant of OnActiveProfileChanged: syncs modules to the new profile,
+--- flags a pending reload so the options panel surfaces a "Reload UI" prompt,
+--- and relayouts the dashboard so the prompt appears live. The actual ReloadUI
+--- is user-triggered via that prompt (same pattern as module toggles).
+--- @return nil
+function addon.OnActiveProfileChangedDeferred()
+    SyncModulesFromActiveProfile()
+    addon._moduleReloadRecommended = true
+    if addon.Dashboard_Refresh then addon.Dashboard_Refresh() end
+end
+
 --- Returns the header bar height from DB or default, clamped to 18â€“48 px.
 --- @return number
 function addon.GetHeaderHeight()

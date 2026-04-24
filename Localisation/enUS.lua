@@ -94,6 +94,7 @@ L["AXIS_MODULE_NAME_HORIZON"]                                 = "Horizon"
 L["AXIS_MODULE_NAME_SUBTITLE"]                                = "Subtitle"
 L["AXIS_MODULE_NAME_SIMPLE"]                                  = "Simple"
 L["MODULE_RELOAD_HINT"]                                       = "Reload the interface to finish applying module changes."
+L["PROFILE_RELOAD_HINT"]                                      = "Reload the interface to finish applying profile changes."
 L["RELOAD_UI"]                                                = "Reload UI"
 
 -- =====================================================================
