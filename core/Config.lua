@@ -200,6 +200,10 @@ addon.SectionFont = CreateFont("HorizonSuiteSectionFont")
 addon.SectionFont:SetFont(addon.FONT_PATH, addon.SECTION_SIZE, "OUTLINE")
 addon.ProgressBarFont = CreateFont("HorizonSuiteProgressBarFont")
 addon.ProgressBarFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
+addon.TimerFont   = CreateFont("HorizonSuiteTimerFont")
+addon.TimerFont:SetFont(addon.FONT_PATH, addon.TITLE_SIZE, "OUTLINE")
+addon.OptionsFont = CreateFont("HorizonSuiteOptionsFont")
+addon.OptionsFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
 -- Values are UI_* locale keys so tracker/options pick up translations; see Localisation/enUS.lua (Tracker section labels).
 addon.SECTION_LABELS = {
