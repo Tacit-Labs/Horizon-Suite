@@ -1167,15 +1167,28 @@ local OptionCategories = {
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["AXIS_CLASS_THEME_DASHBOARD"] or "Dashboard",
-                desc = L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour. Also toggles the Dashboard Class Icon and Override Background sub-options together; they can then be adjusted independently.",
-                dbKey = "classColorDashboard",
-                get = function() return getDB("classColorDashboard", false) end,
+                desc = L["AXIS_CLASS_THEME_DASHBOARD_DESC"] or "Master toggle for Dashboard class theming. Flipping it on enables Class Colours, Dashboard Class Icon, and Override Background together; each sub-option can then be adjusted independently.",
+                dbKey = "_dashboardClassTheme",
+                get = function()
+                    return getDB("classColorDashboard", false)
+                        and getDB("dashboardShowClassIcon", false)
+                        and getDB("dashboardBackgroundClassOverride", false)
+                end,
                 set = function(v)
                     setDB("classColorDashboard", v)
                     setDB("dashboardShowClassIcon", v)
                     setDB("dashboardBackgroundClassOverride", v)
                 end,
-                refreshIds = { "_classColorAll", "dashboardShowClassIcon", "dashboardClassIconSource", "dashboardBackgroundClassOverride" },
+                refreshIds = { "_classColorAll", "classColorDashboard", "dashboardShowClassIcon", "dashboardClassIconSource", "dashboardBackgroundClassOverride" },
+            }
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["AXIS_DASHBOARD_CLASS_COLOURS"] or "Class Colours",
+                desc = L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour.",
+                dbKey = "classColorDashboard",
+                get = function() return getDB("classColorDashboard", false) end,
+                set = function(v) setDB("classColorDashboard", v) end,
+                refreshIds = { "_classColorAll", "_dashboardClassTheme" },
             }
             opts[#opts + 1] = {
                 type = "toggle",
@@ -1184,7 +1197,7 @@ local OptionCategories = {
                 dbKey = "dashboardShowClassIcon",
                 get = function() return getDB("dashboardShowClassIcon", false) end,
                 set = function(v) setDB("dashboardShowClassIcon", v) end,
-                refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource" },
+                refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource", "_dashboardClassTheme" },
             }
             opts[#opts + 1] = {
                 type = "dropdown",
@@ -1209,7 +1222,7 @@ local OptionCategories = {
                 dbKey = "dashboardBackgroundClassOverride",
                 get = function() return getDB("dashboardBackgroundClassOverride", false) end,
                 set = function(v) setDB("dashboardBackgroundClassOverride", v) end,
-                refreshIds = { "dashboardBackgroundTheme" },
+                refreshIds = { "dashboardBackgroundTheme", "_dashboardClassTheme" },
             }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
