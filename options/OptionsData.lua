@@ -1051,7 +1051,6 @@ local OptionCategories = {
                 end)
             end
             local function isPerModule() return getDB("perModuleScaling", false) end
-            local function isNotPerModule() return not isPerModule() end
             opts[#opts + 1] = { type = "slider", name = L["AXIS_GLOBAL_UI_SCALE"], desc = L["SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
                 disabled = isPerModule,
                 get = function()
@@ -1067,7 +1066,7 @@ local OptionCategories = {
                 if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
             end }
             opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
+                visibleWhen = isPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
@@ -1075,7 +1074,7 @@ local OptionCategories = {
                     debouncedRefresh("focus", refreshAllScaling)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["PRESENCE_SCALE"], desc = L["AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
+                visibleWhen = isPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
@@ -1085,7 +1084,7 @@ local OptionCategories = {
                     end)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["VISTA_SCALE"], desc = L["AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
+                visibleWhen = isPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
@@ -1095,14 +1094,14 @@ local OptionCategories = {
                     end)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["INSIGHT_SCALE"], desc = L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
+                visibleWhen = isPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
                 end }
             opts[#opts + 1] = { type = "slider", name = L["CACHE_SCALE"], desc = L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
-                disabled = isNotPerModule,
+                visibleWhen = isPerModule,
                 get = function()
                     return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
