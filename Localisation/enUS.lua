@@ -777,9 +777,9 @@ L["FOCUS_APPEARANCE_ICONS"]                                   = "Show Appearance
 L["FOCUS_APPEARANCE_ICON_NEXT_TITLE"]                         = "Show each appearance's icon next to the title. Requires 'Show quest type icons' in Display."
 L["FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON"]                  = "Use Transmog List Icon"
 L["FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON_DESC"]             = "Use the in-game Appearances / transmog list icon for every row instead of each appearance's item icon. If that icon cannot be resolved, the item icon is used."
-L["FOCUS_SHOW_APPEARANCE_WARDROBE"]                           = "Show wardrobe"
+L["FOCUS_SHOW_APPEARANCE_WARDROBE"]                           = "Show Wardrobe"
 L["FOCUS_OPEN_APPEARANCES_COLLECTIONS"]                       = "Open Collections"
-L["FOCUS_UNTRACK_APPEARANCE"]                                 = "Untrack appearance"
+L["FOCUS_UNTRACK_APPEARANCE"]                                 = "Untrack Appearance"
 L["FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map; with TomTom waypoints enabled, that click also sets the arrow. Ctrl-click Collections, Alt-click dressing room. Right-click clears focus or untracks."
 
 -- =====================================================================
