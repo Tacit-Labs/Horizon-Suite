@@ -411,8 +411,12 @@ do
                     end
                 end
             end
+            -- CraftingOrderIcon stays alive: SuppressBlizzardCraftingOrder hooks
+            -- its Show/Hide/SetShown to mirror state into the Vista proxy. KillFrameObj
+            -- stomps Show with a no-op, which would silently break those hooks.
+            local craftingOrderNative = MinimapCluster.CraftingOrderIcon or _G.MiniMapCraftingOrderIcon
             for _, child in ipairs({ MinimapCluster:GetChildren() }) do
-                if child ~= Minimap then
+                if child ~= Minimap and child ~= craftingOrderNative then
                     local cName = child:GetName()
                     if not cName or not cName:find("^HorizonSuite") then
                         KillFrameObj(child)
@@ -472,6 +476,22 @@ local vistaLastKnownZone, autoZoomTimer
 -- ============================================================================
 -- DRAGGABLE ELEMENT HELPER
 -- ============================================================================
+
+-- Compute the SetPoint offset that keeps `frame` centered at its currently
+-- dragged position when re-anchored as CENTER→Minimap CENTER. Works regardless
+-- of the frame's parent — some Vista draggables are UIParent children, others
+-- are parented under Minimap (via `decor`) which inherits the module's custom
+-- minimap scale. The offset is expressed in the frame's own local scale, which
+-- is exactly what SetPoint's offset parameters expect.
+local function ComputeMinimapCenterOffset(frame)
+    local mx, my = Minimap:GetCenter()
+    local bx, by = frame:GetCenter()
+    if not (mx and my and bx and by) then return nil, nil end
+    local mmScale = Minimap:GetEffectiveScale() or 1
+    local bScale  = frame:GetEffectiveScale() or 1
+    return (bx * bScale - mx * mmScale) / bScale,
+           (by * bScale - my * mmScale) / bScale
+end
 
 -- Makes `frame` draggable. On drag-stop saves the position as an offset
 -- relative to `relFrame` using anchors from `getAnchors()`.
@@ -1250,10 +1270,15 @@ local function CreateMailIndicator()
         mailAnchor:SetPoint("TOPLEFT", Minimap, "TOPLEFT", inset, -inset)
     end
 
-    -- Visible border shown when unlocked and no mail (drag handle)
+    -- Drag-handle placeholder shown when unlocked and no mail — semi-transparent
+    -- mailbox icon so the slot is recognisable while repositioning. Mirrors the
+    -- queue anchor's LFG-eye pattern.
     local border = mailAnchor:CreateTexture(nil, "OVERLAY")
-    border:SetAllPoints()
-    border:SetColorTexture(0.4, 0.6, 1, 0.5)
+    border:SetSize(mailSz, mailSz)
+    border:SetPoint("CENTER", mailAnchor, "CENTER", 0, 0)
+    border:SetTexture("Interface\\MINIMAP\\TRACKING\\Mailbox")
+    border:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    border:SetAlpha(0.5)
     border:Hide()
     mailAnchor._border = border
 
@@ -1266,14 +1291,8 @@ local function CreateMailIndicator()
     end)
     mailAnchor:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        local mx, my = Minimap:GetCenter()
-        local bx, by = self:GetCenter()
-        if not (mx and my and bx and by) then return end
-        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-        local bScale  = (self:GetEffectiveScale()) or uiScale
-        local ox = (bx * bScale - mx * mmScale) / uiScale
-        local oy = (by * bScale - my * mmScale) / uiScale
+        local ox, oy = ComputeMinimapCenterOffset(self)
+        if not ox then return end
         SetDB("vistaEX_proxy_mail", ox)
         SetDB("vistaEY_proxy_mail", oy)
         self:ClearAllPoints()
@@ -1358,19 +1377,27 @@ end
 local function RefreshCraftingOrderAnchor()
     if not craftingOrderAnchor then return end
     local locked = DB("vistaLocked_proxy_craftingOrder", true)
-    local visible = Vista._craftingOrderVisible and true or false
+    local hasOrder = Vista._craftingOrderVisible and true or false
 
-    if visible then
-        craftingOrderAnchor:SetAlpha(1)
-        craftingOrderAnchor._border:Hide()
+    craftingOrderAnchor:SetAlpha(1)
+    if hasOrder then
+        -- Live indicator: full opacity (OnUpdate may pulse it if the blink option is on).
+        craftingOrderAnchor._placeholder = false
+        craftingOrderPulsing = true
+        craftingOrderAnchor.icon:Show()
+        craftingOrderAnchor.icon:SetAlpha(1)
         craftingOrderAnchor:Show()
     elseif not locked then
-        craftingOrderAnchor:SetAlpha(1)
-        craftingOrderAnchor._border:Show()
+        -- Drag-handle placeholder: half opacity, no pulse.
+        craftingOrderAnchor._placeholder = true
+        craftingOrderPulsing = false
+        craftingOrderAnchor.icon:Show()
+        craftingOrderAnchor.icon:SetAlpha(0.5)
         craftingOrderAnchor:Show()
     else
-        craftingOrderAnchor:SetAlpha(0)
-        craftingOrderAnchor._border:Hide()
+        -- Locked with no pending order: hide entirely.
+        craftingOrderAnchor._placeholder = false
+        craftingOrderPulsing = false
         craftingOrderAnchor:Hide()
     end
 end
@@ -1381,7 +1408,11 @@ local function CreateCraftingOrderIndicator()
     local coSz = G.CraftingOrderIconSize()
     local anchorSz = coSz + MAIL_ANCHOR_PAD * 2
 
-    craftingOrderAnchor = CreateFrame("Frame", "HorizonSuiteVistaCraftingOrderAnchor", decor)
+    -- Single Button handles click, drag, tooltip, and hosts the icon texture —
+    -- no separate child frame. Splitting them put the Button on top of the
+    -- anchor and broke drag tracking because StartMoving was called on a
+    -- different frame than the one receiving OnDragStart.
+    craftingOrderAnchor = CreateFrame("Button", "HorizonSuiteVistaCraftingOrderAnchor", decor)
     craftingOrderAnchor:SetSize(anchorSz, anchorSz)
     craftingOrderAnchor:SetFrameLevel(decor:GetFrameLevel() + 2)
     craftingOrderAnchor:SetClampedToScreen(true)
@@ -1399,12 +1430,15 @@ local function CreateCraftingOrderIndicator()
         craftingOrderAnchor:SetPoint("TOPLEFT", Minimap, "TOPLEFT", inset, -(inset + mailStack))
     end
 
-    -- Drag handle border — shown when unlocked and icon not currently visible.
-    local border = craftingOrderAnchor:CreateTexture(nil, "OVERLAY")
-    border:SetAllPoints()
-    border:SetColorTexture(0.9, 0.6, 0.2, 0.5)
-    border:Hide()
-    craftingOrderAnchor._border = border
+    -- Icon texture sits on the anchor itself. Alpha is driven by state:
+    --   pending order → 1.0 (and optionally pulses)
+    --   no order, unlocked → 0.5 (drag placeholder)
+    --   no order, locked → anchor is hidden so the texture doesn't matter
+    local icon = craftingOrderAnchor:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(coSz, coSz)
+    icon:SetPoint("CENTER", craftingOrderAnchor, "CENTER", 0, 0)
+    icon:SetTexture("Interface\\AddOns\\HorizonSuite\\media\\CraftingOrder_minimap.tga")
+    craftingOrderAnchor.icon = icon
 
     craftingOrderAnchor:RegisterForDrag("LeftButton")
     craftingOrderAnchor:SetScript("OnDragStart", function(self)
@@ -1414,40 +1448,16 @@ local function CreateCraftingOrderIndicator()
     end)
     craftingOrderAnchor:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        local mx, my = Minimap:GetCenter()
-        local bx, by = self:GetCenter()
-        if not (mx and my and bx and by) then return end
-        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-        local bScale  = (self:GetEffectiveScale()) or uiScale
-        local ox = (bx * bScale - mx * mmScale) / uiScale
-        local oy = (by * bScale - my * mmScale) / uiScale
+        local ox, oy = ComputeMinimapCenterOffset(self)
+        if not ox then return end
         SetDB("vistaEX_proxy_craftingOrder", ox)
         SetDB("vistaEY_proxy_craftingOrder", oy)
         self:ClearAllPoints()
         self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
     end)
 
-    -- Icon frame as child of anchor
-    craftingOrderFrame = CreateFrame("Button", nil, craftingOrderAnchor)
-    craftingOrderFrame:SetSize(coSz, coSz)
-    craftingOrderFrame:SetPoint("CENTER", craftingOrderAnchor, "CENTER")
-    craftingOrderFrame:SetFrameLevel(craftingOrderAnchor:GetFrameLevel() + 1)
-    craftingOrderFrame:Hide()
-
-    local icon = craftingOrderFrame:CreateTexture(nil, "ARTWORK")
-    icon:SetAllPoints()
-    -- Blizzard's own indicator uses the "Minimap-CraftingOrders" atlas; fall back to
-    -- a professions-themed icon on older/localised clients missing the atlas.
-    local atlasOK = pcall(function() icon:SetAtlas("Minimap-CraftingOrders") end)
-    if (not atlasOK) or ((icon:GetAtlas() or "") == "" and (icon:GetTexture() or "") == "") then
-        icon:SetTexture("Interface\\ICONS\\INV_Misc_Note_01")
-        icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    end
-    craftingOrderFrame.icon = icon
-
-    craftingOrderFrame:RegisterForClicks("AnyUp")
-    craftingOrderFrame:SetScript("OnClick", function(_, btn)
+    craftingOrderAnchor:RegisterForClicks("AnyUp")
+    craftingOrderAnchor:SetScript("OnClick", function(_, btn)
         -- `:Click()` on the native frame opens the professions UI, which touches
         -- protected state — don't dispatch it in combat or taint bleeds across.
         if InCombatLockdown() then
@@ -1462,33 +1472,65 @@ local function CreateCraftingOrderIndicator()
         end)
     end)
 
-    craftingOrderFrame:EnableMouse(true)
-    craftingOrderFrame:SetScript("OnEnter", function(self)
+    craftingOrderAnchor:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
         GameTooltip:SetText((addon.L and addon.L["VISTA_CRAFTING_ORDER_TOOLTIP"]) or "Personal Crafting Orders")
+        local total = 0
+        if C_CraftingOrders and C_CraftingOrders.GetPersonalOrdersInfo then
+            local ok, infos = pcall(C_CraftingOrders.GetPersonalOrdersInfo)
+            if ok and type(infos) == "table" then
+                for _, info in ipairs(infos) do
+                    if type(info) == "table" then
+                        total = total + (tonumber(info.numPersonalOrders) or tonumber(info.numOrders) or 0)
+                    end
+                end
+            end
+        end
+        if total > 0 then
+            local fmt = (addon.L and addon.L["VISTA_CRAFTING_ORDER_PENDING_COUNT"]) or "%d pending"
+            GameTooltip:AddLine(fmt:format(total), 1, 1, 1)
+        end
         GameTooltip:Show()
     end)
-    craftingOrderFrame:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    craftingOrderAnchor:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     local pulseTime = 0
-    craftingOrderFrame:SetScript("OnUpdate", function(self, elapsed)
-        if not craftingOrderPulsing or not G.CraftingOrderBlink() then self.icon:SetAlpha(1); return end
+    craftingOrderAnchor:SetScript("OnUpdate", function(self, elapsed)
+        if not craftingOrderPulsing or not G.CraftingOrderBlink() then
+            self.icon:SetAlpha(self._placeholder and 0.5 or 1)
+            return
+        end
         pulseTime = pulseTime + elapsed
         local t = (math.sin(pulseTime * PULSE_SPEED * math.pi * 2) + 1) / 2
         self.icon:SetAlpha(PULSE_MIN + (PULSE_MAX - PULSE_MIN) * t)
     end)
 
+    -- craftingOrderFrame no longer exists as a separate frame; keep the local
+    -- pointing at the anchor so ApplyOptions_Buttons' size-refresh path works.
+    craftingOrderFrame = craftingOrderAnchor
+
     RefreshCraftingOrderAnchor()
 end
 
 UpdateCraftingOrderIndicator = function()
-    if not craftingOrderFrame then return end
-    if Vista._craftingOrderVisible then
-        craftingOrderFrame:Show(); craftingOrderPulsing = true
-    else
-        craftingOrderFrame:Hide(); craftingOrderPulsing = false
-    end
+    -- All visibility/alpha/pulse state is driven from RefreshCraftingOrderAnchor
+    -- now that anchor and icon live on a single frame.
     RefreshCraftingOrderAnchor()
+end
+
+-- Event-driven safety net for cases where the Show/Hide/SetShown hooks miss a
+-- transition (e.g. Blizzard handled the event before we installed the hook, or
+-- SetShown short-circuited because the native was already at the target state).
+-- Runs after a 0-frame delay so Blizzard's own event handler updates IsShown()
+-- first, then we mirror that state into the proxy.
+local function SyncCraftingOrderFromNative()
+    local native = GetNativeCraftingOrderIcon()
+    if not native then return end
+    local shown = native:IsShown() and true or false
+    if Vista._craftingOrderVisible ~= shown then
+        Vista._craftingOrderVisible = shown
+        UpdateCraftingOrderIndicator()
+    end
 end
 
 local function SuppressBlizzardCraftingOrder()
@@ -1530,7 +1572,7 @@ end
 -- DEFAULT BUTTON PROXIES  (tracking, calendar/landing page)
 -- ============================================================================
 
-local SuppressDefaultBlizzardButtons, CreateDefaultButtonProxies
+local SuppressDefaultBlizzardButtons, CreateDefaultButtonProxies, RefreshDefaultButtonProxiesFromDB
 do
 local DEFAULT_BTN_DEFS = {
     {
@@ -1693,7 +1735,7 @@ SuppressDefaultBlizzardButtons = function()
 end
 
 -- Update existing tracking/calendar proxies without wiping frames (avoids hook/script churn on every ApplyOptions).
-local function RefreshDefaultButtonProxiesFromDB()
+RefreshDefaultButtonProxiesFromDB = function()
     local showFuncs = {
         tracking = G.ShowTracking,
         calendar = G.ShowCalendar,
@@ -1729,7 +1771,10 @@ local function RefreshDefaultButtonProxiesFromDB()
             proxy:Hide()
         elseif getMouseover() then
             proxy:Show()
-            proxy:SetAlpha(0)
+            -- Unlocked in mouseover mode → show a semi-transparent drag handle
+            -- instead of fully hiding (mirrors queue/mail/crafting-order anchors).
+            local locked = DB("vistaLocked_" .. lockKey, true)
+            proxy:SetAlpha(locked and 0 or 0.5)
         else
             proxy:Show()
             proxy:SetAlpha(1)
@@ -1797,14 +1842,12 @@ CreateDefaultButtonProxies = function()
         end)
         proxy:SetScript("OnDragStop", function(self)
             self:StopMovingOrSizing()
-            local mx, my = Minimap:GetCenter()
-            local px, py = self:GetCenter()
-            SetDB("vistaEX_" .. lockKey, px - mx)
-            SetDB("vistaEY_" .. lockKey, py - my)
+            local ox, oy = ComputeMinimapCenterOffset(self)
+            if not ox then return end
+            SetDB("vistaEX_" .. lockKey, ox)
+            SetDB("vistaEY_" .. lockKey, oy)
             self:ClearAllPoints()
-            self:SetPoint("CENTER", Minimap, "CENTER",
-                tonumber(DB("vistaEX_" .. lockKey, 0)) or 0,
-                tonumber(DB("vistaEY_" .. lockKey, 0)) or 0)
+            self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
         end)
 
         -- Icon — use NormalTexture slot so it's always full-brightness
@@ -1840,7 +1883,10 @@ CreateDefaultButtonProxies = function()
         end)
         proxy:SetScript("OnLeave", function(self)
             GameTooltip:Hide()
-            if getShow() and getMouseover() then self:SetAlpha(0) end
+            if getShow() and getMouseover() then
+                local locked = DB("vistaLocked_" .. lockKey, true)
+                self:SetAlpha(locked and 0 or 0.5)
+            end
         end)
 
         -- Tracking icon sync
@@ -2039,14 +2085,8 @@ do
         end)
         queueAnchor:SetScript("OnDragStop", function(self)
             self:StopMovingOrSizing()
-            local mx, my = Minimap:GetCenter()
-            local bx, by = self:GetCenter()
-            if not (mx and my and bx and by) then return end
-            local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-            local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-            local bScale  = (self:GetEffectiveScale()) or uiScale
-            local ox = (bx * bScale - mx * mmScale) / uiScale
-            local oy = (by * bScale - my * mmScale) / uiScale
+            local ox, oy = ComputeMinimapCenterOffset(self)
+            if not ox then return end
             SetDB("vistaEX_proxy_queue", ox)
             SetDB("vistaEY_proxy_queue", oy)
             self:ClearAllPoints()
@@ -2689,14 +2729,8 @@ local function CreateCollectorBar()
     end)
     collectorBar:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        local mx, my = Minimap:GetCenter()
-        local bx, by = self:GetCenter()
-        if not (mx and my and bx and by) then return end
-        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-        local bScale  = (self:GetEffectiveScale()) or uiScale
-        local ox = (bx * bScale - mx * mmScale) / uiScale
-        local oy = (by * bScale - my * mmScale) / uiScale
+        local ox, oy = ComputeMinimapCenterOffset(self)
+        if not ox then return end
         SetDB("vistaMouseoverBarX", ox)
         SetDB("vistaMouseoverBarY", oy)
         self:ClearAllPoints()
@@ -2756,17 +2790,9 @@ local function CreateCollectorBar()
         -- Live-follow: read anchor screen pos every frame, derive bar CENTER, move bar
         self:SetScript("OnUpdate", function(s)
             if not collectorBar then return end
-            local ax, ay = s:GetCenter()
-            if not ax then return end
-            local dir     = G.BtnLayoutDir()
-            local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-            local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-            local aScale  = (s:GetEffectiveScale()) or uiScale
-            local mx, my  = Minimap:GetCenter()
-            if not mx then return end
-            -- anchor centre in Minimap-relative units
-            local ancOffX = (ax * aScale - mx * mmScale) / uiScale
-            local ancOffY = (ay * aScale - my * mmScale) / uiScale
+            local ancOffX, ancOffY = ComputeMinimapCenterOffset(s)
+            if not ancOffX then return end
+            local dir = G.BtnLayoutDir()
             local cbW  = collectorBar:GetWidth()
             local cbH  = collectorBar:GetHeight()
             local ancW = s:GetWidth()
@@ -2789,17 +2815,9 @@ local function CreateCollectorBar()
         barAnchorDragging = false
         if not collectorBar then return end
 
-        -- Step 1: compute anchor's own offset from Minimap CENTER
-        -- (same formula used by collectorBar's own OnDragStop)
-        local mx, my = Minimap:GetCenter()
-        local ax, ay = self:GetCenter()
-        if not (mx and my and ax and ay) then return end
-        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-        local aScale  = (self:GetEffectiveScale()) or uiScale
-        -- anchor offset from Minimap CENTER, in Minimap-relative units
-        local ancOffX = (ax * aScale - mx * mmScale) / uiScale
-        local ancOffY = (ay * aScale - my * mmScale) / uiScale
+        -- Step 1: compute anchor's own offset from Minimap CENTER.
+        local ancOffX, ancOffY = ComputeMinimapCenterOffset(self)
+        if not ancOffX then return end
 
         -- Step 2: shift from anchor position to collectorBar CENTER
         -- based on expand direction (anchor sits on the leading edge)
@@ -3016,14 +3034,8 @@ local function CreateDrawerButton()
     end)
     drawerButton:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        local mx, my = Minimap:GetCenter()
-        local bx, by = self:GetCenter()
-        if not (mx and my and bx and by) then return end
-        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-        local bScale  = (self:GetEffectiveScale()) or uiScale
-        local ox = (bx * bScale - mx * mmScale) / uiScale
-        local oy = (by * bScale - my * mmScale) / uiScale
+        local ox, oy = ComputeMinimapCenterOffset(self)
+        if not ox then return end
         SetDB("vistaDrawerBtnX", ox)
         SetDB("vistaDrawerBtnY", oy)
         self:ClearAllPoints()
@@ -3154,14 +3166,8 @@ local function CreateRightClickPanel()
     end)
     rightClickPanel:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        local mx, my = Minimap:GetCenter()
-        local bx, by = self:GetCenter()
-        if not (mx and my and bx and by) then return end
-        local uiScale = (UIParent and UIParent:GetEffectiveScale()) or 1
-        local mmScale = (Minimap and Minimap:GetEffectiveScale()) or uiScale
-        local bScale  = (self:GetEffectiveScale()) or uiScale
-        local ox = (bx * bScale - mx * mmScale) / uiScale
-        local oy = (by * bScale - my * mmScale) / uiScale
+        local ox, oy = ComputeMinimapCenterOffset(self)
+        if not ox then return end
         SetDB("vistaRightClickPanelX", ox)
         SetDB("vistaRightClickPanelY", oy)
         self:ClearAllPoints()
@@ -3737,15 +3743,13 @@ local function ApplyOptions_Buttons(changedKey)
     if mailAnchor then
         local mailSz = G.MailIconSize()
         mailAnchor:SetSize(mailSz + MAIL_ANCHOR_PAD * 2, mailSz + MAIL_ANCHOR_PAD * 2)
+        if mailAnchor._border then mailAnchor._border:SetSize(mailSz, mailSz) end
         RefreshMailAnchor()
-    end
-    if craftingOrderFrame then
-        local coSz = G.CraftingOrderIconSize()
-        craftingOrderFrame:SetSize(coSz, coSz)
     end
     if craftingOrderAnchor then
         local coSz = G.CraftingOrderIconSize()
         craftingOrderAnchor:SetSize(coSz + MAIL_ANCHOR_PAD * 2, coSz + MAIL_ANCHOR_PAD * 2)
+        if craftingOrderAnchor.icon then craftingOrderAnchor.icon:SetSize(coSz, coSz) end
         RefreshCraftingOrderAnchor()
     end
     if queueAnchor and SyncQueueAnchorGeometry then
@@ -3821,6 +3825,8 @@ function Vista.ApplyLockOnlyOptions()
     ApplyOptions_TextDraggableLocks()
     if Vista.RefreshQueueProxies then Vista.RefreshQueueProxies() end
     if Vista.RefreshMailAnchor then Vista.RefreshMailAnchor() end
+    if Vista.RefreshCraftingOrderAnchor then Vista.RefreshCraftingOrderAnchor() end
+    RefreshDefaultButtonProxiesFromDB()
     UpdateBarAnchorVisibility()
 end
 
@@ -3965,6 +3971,8 @@ function Vista.Init()
     eventFrame:RegisterEvent("PET_BATTLE_CLOSE")
     eventFrame:RegisterEvent("MINIMAP_UPDATE_ZOOM")
     eventFrame:RegisterEvent("ADDON_LOADED")
+    pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_PERSONAL_ORDER_COUNTS") end)
+    pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_ORDER_COUNT") end)
 
     eventFrame:SetScript("OnEvent", function(_, event, arg1)
         if event == "ADDON_LOADED" then
@@ -3986,9 +3994,14 @@ function Vista.Init()
             C_Timer.After(2.0, function()
                 reStrip()
                 CollectMinimapButtons()
+                SyncCraftingOrderFromNative()
                 UpdateCraftingOrderIndicator()
             end)
             UpdateZoneText(); UpdateDifficultyText(); UpdateMailIndicator(); UpdateCraftingOrderIndicator()
+        elseif event == "CRAFTINGORDERS_UPDATE_PERSONAL_ORDER_COUNTS"
+            or event == "CRAFTINGORDERS_UPDATE_ORDER_COUNT" then
+            -- Let Blizzard's own handler run first, then mirror its IsShown() state.
+            C_Timer.After(0, SyncCraftingOrderFromNative)
         elseif event == "MINIMAP_UPDATE_ZOOM" then
             -- WoW sometimes re-shows zoom buttons after zoom level changes — keep them gone
             SuppressZoomButtons()
