@@ -972,38 +972,10 @@ function addon.Dashboard_BuildMainFrame()
             f.newsView = newsView
 
             local PN_SCROLL_ABOVE_COMMUNITY_FOOTER = (DC.COMMUNITY_FOOTER_SCROLL_GAP) or 24
-            local PN_BODY_COL  = { 0.72, 0.72, 0.76, 1 }
-            local PN_MUTED_COL = { 0.52, 0.56, 0.62, 1 }
-            local PN_SECTION_GAP = 16
-            local PN_BULLET_X    = 16
-            local PN_LINE_GAP    = 5
-
-            local PN_MODULE_COLORS = {
-                ["Essence"]  = "DC143C",
-                ["Focus"]    = "FFD133",
-                ["Cache"]    = "33CC66",
-                ["Presence"] = "33FFDF",
-                ["Flow"]     = "3399FF",
-                ["Vista"]    = "B366FF",
-                ["Insight"]  = "FF66B3",
-                ["Axis"]     = "E0E0E0",
-            }
-
-            -- Capitalize first letter after "…: " (module prefix) so in-game bullets read consistently.
-            local function CapitalizeAfterModulePrefix(text)
-                if type(text) ~= "string" or text == "" then return text end
-                local pre, first, rest = text:match("^(.-:%s*)(%a)(.*)$")
-                if not pre or not first then return text end
-                if first ~= string.lower(first) then return text end
-                return pre .. string.upper(first) .. rest
-            end
-
-            local function ColorModuleNames(text)
-                for name, hex in pairs(PN_MODULE_COLORS) do
-                    text = text:gsub("%f[%a](" .. name .. ")%f[%A]", "|cFF" .. hex .. "%1|r")
-                end
-                return text
-            end
+            -- Patch notes constants/helpers live in DashboardPatchNotesContent.lua.
+            -- Bullet recolor on accent change (line ~308) needs the same hex format
+            -- the builder used; that is handled there via ColorModuleNames + the
+            -- accent-coloured em-dash below.
 
             -- Community & Support footer (shared factory with Welcome); scroll stops above it.
             local pnCommunityFooterPanel = CreateFrame("Frame", nil, patchNotesView)
@@ -1084,147 +1056,38 @@ function addon.Dashboard_BuildMainFrame()
 
             local pnBuiltVersion = nil
 
+            -- Thin wrapper: delegates to addon.PatchNotes_BuildContent (shared with the
+            -- standalone modal). Keeps dashboard-specific bookkeeping (orphaning the
+            -- previous inner, populating dashAccentRefs/typoRefs, deferred layout).
             local function BuildPatchNotesContent(currentVersion)
-                -- Orphan previous inner container so its regions don't render
                 if pnContent._inner then pnContent._inner:SetParent(nil) end
                 wipe(dashAccentRefs.patchNotesSectionLabels)
                 wipe(dashAccentRefs.patchNotesBullets)
                 wipe(dashAccentRefs.patchNotesRules)
                 wipe(f._patchNotesTypoRefs)
 
-                local function ApplyPatchNoteFontString(fs, base, flagsOrNil, widgetChrome)
-                    local path = addon.Dashboard_ResolveSavedDashboardFontPath(
-                        (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
-                    )
-                    local eff = addon.Dashboard_EffectiveDashboardFontSize(base)
-                    local fl
-                    if widgetChrome and addon.Dashboard_GetWidgetOutlineFlags then
-                        fl = addon.Dashboard_GetWidgetOutlineFlags()
-                    else
-                        fl = flagsOrNil or ""
-                    end
-                    pcall(function()
-                        fs:SetFont(path, eff, fl)
-                    end)
-                    if addon.Dashboard_ApplyTextShadow then
-                        addon.Dashboard_ApplyTextShadow(fs)
-                    end
-                    tinsert(f._patchNotesTypoRefs, {
-                        fs = fs,
-                        base = base,
-                        flags = widgetChrome and nil or flagsOrNil,
-                        widgetChrome = widgetChrome and true or nil,
-                    })
-                end
+                local result = addon.PatchNotes_BuildContent({
+                    parent         = pnContent,
+                    width          = contentWidth,
+                    version        = currentVersion,
+                    GetAccentColor = GetAccentColor,
+                    accentRefs     = {
+                        sectionLabels = dashAccentRefs.patchNotesSectionLabels,
+                        bullets       = dashAccentRefs.patchNotesBullets,
+                        rules         = dashAccentRefs.patchNotesRules,
+                    },
+                    typoRefs       = f._patchNotesTypoRefs,
+                })
 
-                -- Inner container parented to pnContent (scroll child stays fixed)
-                local cW = contentWidth
-                local inner = CreateFrame("Frame", nil, pnContent)
-                inner:SetWidth(cW)
-                inner:SetHeight(1)
-                inner:SetPoint("TOPLEFT", pnContent, "TOPLEFT", 0, 0)
-                pnContent._inner = inner
-                f._pnContent = pnContent
+                pnContent._inner         = result.inner
+                f._pnContent             = pnContent
+                f._patchNotesLayoutItems = result.items
+                pnBuiltVersion           = result.builtVersion
 
-                local items = {}
-                local ar, ag, ab = GetAccentColor()
-                local hex = string.format("%02X%02X%02X",
-                    math.floor(ar*255+0.5), math.floor(ag*255+0.5), math.floor(ab*255+0.5))
-
-                -- Collect all versions in the current major (e.g. 4.x.x) and sort descending
-                local curMajor = tonumber(currentVersion:match("^(%d+)")) or 0
-                local versions = {}
-                if addon.PATCH_NOTES then
-                    for v in pairs(addon.PATCH_NOTES) do
-                        if (tonumber(v:match("^(%d+)")) or 0) == curMajor then
-                            tinsert(versions, v)
-                        end
-                    end
-                end
-                table.sort(versions, function(a, b)
-                    local a1,a2,a3 = a:match("^(%d+)%.(%d+)%.(%d+)$")
-                    local b1,b2,b3 = b:match("^(%d+)%.(%d+)%.(%d+)$")
-                    a1,a2,a3 = tonumber(a1) or 0, tonumber(a2) or 0, tonumber(a3) or 0
-                    b1,b2,b3 = tonumber(b1) or 0, tonumber(b2) or 0, tonumber(b3) or 0
-                    if a1 ~= b1 then return a1 > b1 end
-                    if a2 ~= b2 then return a2 > b2 end
-                    return a3 > b3
-                end)
-
-                if #versions == 0 then
-                    local lbl = inner:CreateFontString(nil, "OVERLAY")
-                    ApplyPatchNoteFontString(lbl, 12, "")
-                    lbl:SetWidth(cW)
-                    lbl:SetJustifyH("CENTER")
-                    lbl:SetText(L["DASH_PATCH_NOTES_EMPTY"] or "No notes available.")
-                    lbl:SetTextColor(unpack(PN_MUTED_COL))
-                    tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 0, onResize = function(w) lbl:SetWidth(w) end })
-                else
-                    for vi, ver in ipairs(versions) do
-                        local notes = addon.PATCH_NOTES[ver]
-                        if notes then
-                            -- Subtle rule between versions
-                            if vi > 1 then
-                                tinsert(items, { type = "gap", h = 24 })
-                                local sep = inner:CreateTexture(nil, "ARTWORK")
-                                sep:SetSize(cW, 1)
-                                sep:SetColorTexture(ar, ag, ab, 0.15)
-                                tinsert(dashAccentRefs.patchNotesRules, sep)
-                                tinsert(items, { type = "tex", tex = sep, gap = 18, onResize = function(w) sep:SetWidth(w) end })
-                            end
-
-                            -- Version header (optional date from PatchNotesData matches CHANGELOG)
-                            local vHdr = inner:CreateFontString(nil, "OVERLAY")
-                            ApplyPatchNoteFontString(vHdr, 14, nil, true)
-                            vHdr:SetJustifyH("LEFT")
-                            local noteDate = notes.date
-                            if type(noteDate) == "string" and noteDate ~= "" then
-                                local disp = (addon.PatchNotes_FormatIsoDateLongUK and addon.PatchNotes_FormatIsoDateLongUK(noteDate)) or noteDate
-                                vHdr:SetText("v" .. ver .. " (" .. disp .. ")")
-                            else
-                                vHdr:SetText("v" .. ver)
-                            end
-                            vHdr:SetTextColor(ar, ag, ab)
-                            tinsert(dashAccentRefs.patchNotesSectionLabels, vHdr)
-                            tinsert(items, { type = "fs", fs = vHdr, x = 0, gap = 14 })
-
-                            -- Sections (no ruled divider — label + spacing carry the hierarchy)
-                            for si, sec in ipairs(notes) do
-                                if si > 1 then tinsert(items, { type = "gap", h = PN_SECTION_GAP }) end
-
-                                local lbl = inner:CreateFontString(nil, "OVERLAY")
-                                ApplyPatchNoteFontString(lbl, 10, nil, true)
-                                lbl:SetWidth(cW)
-                                lbl:SetJustifyH("LEFT")
-                                lbl:SetText(sec.section:upper())
-                                lbl:SetTextColor(ar, ag, ab)
-                                tinsert(dashAccentRefs.patchNotesSectionLabels, lbl)
-                                tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 9, onResize = function(w) lbl:SetWidth(w) end })
-
-                                for _, bullet in ipairs(sec.bullets) do
-                                    local txt = inner:CreateFontString(nil, "OVERLAY")
-                                    ApplyPatchNoteFontString(txt, 12, "")
-                                    txt:SetWidth(cW - PN_BULLET_X)
-                                    txt:SetJustifyH("LEFT")
-                                    txt:SetWordWrap(true)
-                                    local coloredBullet = ColorModuleNames(CapitalizeAfterModulePrefix(bullet))
-                                    txt:SetText("|cFF"..hex.."\226\128\148|r  "..coloredBullet)
-                                    txt:SetTextColor(unpack(PN_BODY_COL))
-                                    tinsert(dashAccentRefs.patchNotesBullets, { fs = txt, bullet = bullet, coloredBullet = coloredBullet })
-                                    tinsert(items, { type = "fs", fs = txt, x = PN_BULLET_X, gap = PN_LINE_GAP, onResize = function(w) txt:SetWidth(w - PN_BULLET_X) end })
-                                end
-                            end
-                        end
-                    end
-                end
-
-                f._patchNotesLayoutItems = items
                 C_Timer.After(0, function()
                     if not (patchNotesView and patchNotesView:IsShown()) then return end
                     if f._layoutPatchNotesScroll then f._layoutPatchNotesScroll() end
                 end)
-
-                pnBuiltVersion = currentVersion
             end
 
 

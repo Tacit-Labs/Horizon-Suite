@@ -15,6 +15,17 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.15.1"] = {
+        date = "2026-04-25",
+        {
+            section = "New Features",
+            bullets = {
+                "Dashboard: smarter open behaviour — first install lands on Welcome, subsequent opens default to News, and the dashboard now resumes wherever you left it (module pages and category drill-downs included).",
+                "Patch Notes: version updates now appear in a standalone popup on reload instead of opening the dashboard, so your last location is preserved when a new version lands.",
+            },
+        },
+    },
+
     ["4.15.0"] = {
         date = "2026-04-24",
         {

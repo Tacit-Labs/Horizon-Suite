@@ -262,6 +262,15 @@ loginFrame:SetScript("OnEvent", function(self)
         return
     end
 
+    -- Skip the auto-show modal on first install — the user should see the
+    -- Welcome onboarding (driven by the dashboard flow gating in
+    -- DashboardPanel.lua) before being interrupted by patch notes.
+    local rootDB = _G[addon.DB_NAME]
+    if rootDB and not rootDB.welcomeSeen then
+        addon.PatchNotes_RefreshAttentionIndicators()
+        return
+    end
+
     local autoShow = true
     if addon.GetDB then
         autoShow = addon.GetDB("autoShowPatchNotesOnLogin", true) and true or false
@@ -269,9 +278,15 @@ loginFrame:SetScript("OnEvent", function(self)
     if autoShow then
         if C_Timer and C_Timer.After then
             C_Timer.After(2.0, function()
-                if addon.ShowPatchNotes then addon.ShowPatchNotes() end
+                if addon.PatchNotes_ShowModal then
+                    addon.PatchNotes_ShowModal(cur)
+                elseif addon.ShowPatchNotes then
+                    addon.ShowPatchNotes()
+                end
             end)
-        else
+        elseif addon.PatchNotes_ShowModal then
+            addon.PatchNotes_ShowModal(cur)
+        elseif addon.ShowPatchNotes then
             addon.ShowPatchNotes()
         end
     end
