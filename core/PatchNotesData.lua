@@ -15,6 +15,24 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.16.0"] = {
+        date = "2026-04-25",
+        {
+            section = "New Features",
+            bullets = {
+                "Axis: Dashboard smart open routing — the dashboard now resumes wherever you left it (including module sub-categories), and the Welcome page only appears once on first install.",
+                "Axis: patch notes popup — on the first reload after an update, a small standalone popup shows the latest release notes instead of taking over the dashboard, so your last view is preserved.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Vista: the Crafting Orders minimap icon no longer flashes briefly on characters with no pending orders.",
+                "Vista: the Crafting Orders tooltip now lists each profession with a pending order beneath the total, instead of only showing a count.",
+            },
+        },
+    },
+
     ["4.15.0"] = {
         date = "2026-04-24",
         {

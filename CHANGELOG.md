@@ -10,6 +10,20 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.16.0] – 2026-04-25
+
+### ✨ New Features
+
+- **(Axis) Dashboard smart open routing** — The dashboard now resumes wherever you left it (including module sub-categories), and the Welcome page only appears once on first install.
+- **(Axis) Patch notes popup** — On the first reload after an update, a small standalone popup shows the latest release notes instead of taking over the dashboard, so your last view is preserved. "View all patch notes" jumps to the full history.
+
+### 🐛 Fixes
+
+- **(Vista)** The Crafting Orders minimap icon no longer flashes briefly on characters with no pending orders.
+- **(Vista)** The Crafting Orders tooltip now lists each profession with a pending order beneath the total, instead of only showing a count.
+
+---
+
 ## [4.15.0] – 2026-04-24
 
 ### ✨ New Features
