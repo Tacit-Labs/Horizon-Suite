@@ -866,6 +866,14 @@ L["FOCUS_PROGRESS_BAR_FONT"]                                  = "진행 바 글�
 L["FOCUS_FONT_FAMILY_PROGRESS_BAR_LABEL"]                     = "진행 바 텍스트의 글자."
 L["FOCUS_PROGRESS_BAR_TEXT_SIZE"]                             = "진행 바 텍스트 크기"
 L["FOCUS_FONT_SIZE_PROGRESS_BAR_LABEL_ADJUSTS"]               = "진행 바 글자 크기. 바 높이도 함께 조정됩니다. 퀘스트 목표, 시나리오 진행 및 시나리오 타이머 바에 적용됩니다."
+-- L["FOCUS_TIMER_TEXT_FONT"]                                 = "Timer Font"
+-- L["FOCUS_FONT_FAMILY_TIMER_TEXT"]                          = "Font family for quest timer text (inline timers and world quest timers)."
+-- L["FOCUS_TIMER_TEXT_SIZE"]                                 = "Timer Text Size"
+-- L["FOCUS_TIMER_TEXT_FONT_SIZE"]                            = "Quest timer text font size."
+-- L["FOCUS_OPTIONS_FONT"]                                    = "Options Font"
+-- L["FOCUS_FONT_FAMILY_OPTIONS"]                             = "Font family for the Options button label in the tracker header."
+-- L["FOCUS_OPTIONS_TEXT_SIZE"]                               = "Options Text Size"
+-- L["FOCUS_OPTIONS_TEXT_FONT_SIZE"]                          = "Options button label font size."
 L["FOCUS_PROGRESS_BAR_FILL"]                                  = "진행 바 채우기"
 L["FOCUS_PROGRESS_BAR_TEXT"]                                  = "진행 바 글자"
 L["FOCUS_OUTLINE"]                                            = "외곽선"
@@ -1598,6 +1606,8 @@ L["VISTA_DRAWER_CLOSE_DELAY"]                                 = "Drawer close de
 -- L["VISTA_CRAFTING_ORDER_ICON_PULSE"]                       = "Crafting Order Icon Pulse"
 -- L["VISTA_CRAFTING_ORDER_ICON_PULSES_DRAW_ATTENTION"]       = "When on, the crafting order icon pulses to draw attention. When off, it stays at full opacity."
 -- L["VISTA_CRAFTING_ORDER_TOOLTIP"]                          = "Personal Crafting Orders"
+-- L["VISTA_CRAFTING_ORDER_PENDING_COUNT"]                    = "%d pending"
+-- L["VISTA_CRAFTING_ORDER_PROFESSION_LINE"]                  = "  %s: %d"
 L["VISTA_PANEL_APPEARANCE"]                                   = "패널 외형"
 L["VISTA_COLOURS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"]           = "서랍 및 우클릭 버튼 패널 색상."
 L["VISTA_PANEL_BG_COLOUR_LABEL"]                              = "패널 배경 색상"
@@ -1902,6 +1912,7 @@ L["ZONE_LABELS"]                                              = "Zone labels"
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone type colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
