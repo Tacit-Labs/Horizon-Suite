@@ -61,18 +61,45 @@ local CATEGORIES = {
         presenceTypes = { "BOSS_EMOTE" },
     },
     EVENT_TOASTS = {
-        -- Shared Blizzard frame for achievements / quests / scenarios / rares.
-        -- Also gates AlertFrame muting (small achievement/quest popups) via PresenceErrors.
+        -- Catch-all for EventToastManagerFrame templates not claimed by a more
+        -- specific category. EventToastManagerFrame is no longer whole-frame
+        -- killed; suppression is per-toast in PresenceBlizzard's GetToastFrame
+        -- post-hook, dispatched by toastInfo.template via GetCategoryForTemplate.
+        -- Also gates AlertFrame muting via PresenceErrors.
+        -- Scenario types are listed here as a non-contextual fallback so any
+        -- scenario that is neither a delve nor abundance still dispatches here.
         dbKey         = "presenceSuppressEventToasts",
         default       = true,
         label         = "Achievements, quests, scenarios",
-        frames        = { "EventToastManagerFrame" },
         presenceTypes = {
             "ACHIEVEMENT", "ACHIEVEMENT_PROGRESS",
             "QUEST_ACCEPT", "QUEST_COMPLETE", "QUEST_UPDATE", "WORLD_QUEST_ACCEPT",
-            "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE",
             "RARE_DEFEATED",
+            "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE",
         },
+        catchAllToastTemplates = true,
+    },
+    ABUNDANCE = {
+        -- Active only inside an Abundance scenario. Both ABUNDANCE and DELVE
+        -- claim the same templates and scenario Presence types; the
+        -- `contextCheck` predicate disambiguates at runtime so a Blizzard
+        -- delve toast routes to DELVE and an abundance toast routes to
+        -- ABUNDANCE, even though they use the same Blizzard UI templates.
+        dbKey         = "presenceSuppressAbundance",
+        default       = true,
+        label         = "Abundance",
+        presenceTypes = { "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE" },
+        templates     = { "EventToastScenarioExpandToastTemplate", "EventToastDialogToastTemplate" },
+        contextCheck  = function() return addon.IsAbundanceScenario and addon.IsAbundanceScenario() and true or false end,
+    },
+    DELVE = {
+        -- Active only inside a Delve.
+        dbKey         = "presenceSuppressDelve",
+        default       = true,
+        label         = "Delve start / summary",
+        presenceTypes = { "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE" },
+        templates     = { "EventToastScenarioExpandToastTemplate", "EventToastDialogToastTemplate" },
+        contextCheck  = function() return addon.IsDelveActive and addon.IsDelveActive() and true or false end,
     },
     WORLD_QUEST_BANNER = {
         dbKey         = "presenceSuppressWorldQuestBanner",
@@ -136,18 +163,45 @@ local function IsSuppressed(category)
     return categoryEnabled(entry)
 end
 
+local function categoryClaimsType(entry, typeName)
+    if not entry.presenceTypes then return false end
+    for _, t in ipairs(entry.presenceTypes) do
+        if t == typeName then return true end
+    end
+    return false
+end
+
+local function categoryClaimsTemplate(entry, template)
+    if not entry.templates then return false end
+    for _, t in ipairs(entry.templates) do
+        if t == template then return true end
+    end
+    return false
+end
+
+local function contextHolds(entry)
+    if not entry.contextCheck then return true end
+    local ok, isMatch = pcall(entry.contextCheck)
+    return ok and isMatch and true or false
+end
+
 --- Resolve whether Presence should render its toast for a Presence type.
---- Driven by the same per-category toggle that suppresses Blizzard's frame
---- for this type, so display and suppression cannot diverge.
+--- When multiple categories claim the same Presence type, contextual ones
+--- (those with a `contextCheck`) win when their predicate holds; otherwise
+--- the first non-contextual claimant decides. This lets ABUNDANCE and
+--- DELVE both claim SCENARIO_* types and dispatch by current scenario.
 --- @param typeName string Presence type id (e.g. "LEVEL_UP", "QUEST_COMPLETE")
 --- @return boolean rendered True when Presence should show its toast
 local function IsTypeRendered(typeName)
     if not typeName then return false end
     for _, entry in pairs(CATEGORIES) do
-        if entry.presenceTypes then
-            for _, t in ipairs(entry.presenceTypes) do
-                if t == typeName then return categoryEnabled(entry) end
-            end
+        if entry.contextCheck and categoryClaimsType(entry, typeName) and contextHolds(entry) then
+            return categoryEnabled(entry)
+        end
+    end
+    for _, entry in pairs(CATEGORIES) do
+        if not entry.contextCheck and categoryClaimsType(entry, typeName) then
+            return categoryEnabled(entry)
         end
     end
     return false
@@ -157,6 +211,32 @@ end
 --- @return table CATEGORIES
 local function GetCategories()
     return CATEGORIES
+end
+
+--- Map a Blizzard toast template name to its registry category, taking
+--- runtime scenario context into account. Resolution order:
+---  1. Categories that claim the template AND whose `contextCheck` holds
+---     (e.g. ABUNDANCE only when in an abundance scenario).
+---  2. Categories that claim the template without a `contextCheck`.
+---  3. The category flagged `catchAllToastTemplates = true` (EVENT_TOASTS).
+--- @param template string Blizzard toast template (e.g. `EventToastScenarioExpandToastTemplate`)
+--- @return string|nil category id, or nil when nothing claims it
+local function GetCategoryForTemplate(template)
+    if not template then return nil end
+    for category, entry in pairs(CATEGORIES) do
+        if entry.contextCheck and categoryClaimsTemplate(entry, template) and contextHolds(entry) then
+            return category
+        end
+    end
+    for category, entry in pairs(CATEGORIES) do
+        if not entry.contextCheck and categoryClaimsTemplate(entry, template) then
+            return category
+        end
+    end
+    for category, entry in pairs(CATEGORIES) do
+        if entry.catchAllToastTemplates then return category end
+    end
+    return nil
 end
 
 --- Resolve registered Blizzard frame globals for a category (skips nils).
@@ -178,11 +258,12 @@ end
 -- ============================================================================
 
 addon.Presence.Suppression = {
-    IsSuppressed    = IsSuppressed,
-    IsSuppressAllOn = IsSuppressAllOn,
-    IsTypeRendered  = IsTypeRendered,
-    GetCategories   = GetCategories,
-    GetFrames       = GetFrames,
-    MASTER_KEY      = MASTER_KEY,
-    MASTER_DEFAULT  = MASTER_DEFAULT,
+    IsSuppressed           = IsSuppressed,
+    IsSuppressAllOn        = IsSuppressAllOn,
+    IsTypeRendered         = IsTypeRendered,
+    GetCategoryForTemplate = GetCategoryForTemplate,
+    GetCategories          = GetCategories,
+    GetFrames              = GetFrames,
+    MASTER_KEY             = MASTER_KEY,
+    MASTER_DEFAULT         = MASTER_DEFAULT,
 }

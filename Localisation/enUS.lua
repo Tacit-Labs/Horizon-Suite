@@ -1396,7 +1396,11 @@ L["PRESENCE_SUPPRESS_ALL_DESC"]                               = "Force every Bli
 L["PRESENCE_PER_AREA"]                                        = "Per-area notifications (Presence vs Blizzard)"
 L["PRESENCE_BLIZZARD_ONLY_SUPPRESSION"]                       = "Blizzard popups with no Presence equivalent"
 L["PRESENCE_EVENT_TOASTS_BUNDLE"]                             = "Achievements, quests, scenarios"
-L["PRESENCE_EVENT_TOASTS_BUNDLE_DESC"]                        = "Bundled because Blizzard renders all of these on a single shared toast frame: achievement earn and progress, quest accept / complete / progress, scenario start / progress / complete, world quest accept, rare defeated. Also gates Blizzard's small AlertFrame popups for the same events."
+L["PRESENCE_EVENT_TOASTS_BUNDLE_DESC"]                        = "Catch-all for Blizzard's shared event toast frame: achievement earn and progress, quest accept / complete / progress, world quest accept, rare defeated. Also gates Blizzard's small AlertFrame popups for the same events. Abundance and Delve have their own toggles below."
+L["PRESENCE_ABUNDANCE"]                                       = "Abundance"
+L["PRESENCE_ABUNDANCE_DESC"]                                  = "Mid-run abundance pickup progress popups in delves. Toggle ON: Presence shows the progress toast and Blizzard's scenario-expand popup is hidden. Toggle OFF: Blizzard's default popup shows and Presence stays quiet for abundance pickups."
+L["PRESENCE_DELVE"]                                           = "Delve start / summary"
+L["PRESENCE_DELVE_DESC"]                                      = "Delve / scenario start banner and end-of-run summary dialog. Toggle ON: Presence handles them and Blizzard's popups are hidden. Toggle OFF: Blizzard's default popups show and Presence stays quiet for scenario start and complete."
 L["PRESENCE_SUPPRESS_BOSS_BANNER"]                            = "Boss kill banner"
 L["PRESENCE_SUPPRESS_BOSS_BANNER_DESC"]                       = "Hide Blizzard's BossBanner shown after a boss kill. Presence does not replace this with its own toast — off shows Blizzard's, on hides it."
 L["PRESENCE_SUPPRESS_OBJECTIVE_BANNERS"]                      = "Objective tracker banners"
@@ -1934,6 +1938,10 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+
+
+
 
 
 

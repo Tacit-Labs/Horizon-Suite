@@ -229,38 +229,66 @@ local function SweepSuppressedFrames()
     end
 end
 
+-- Hide every currently-active frame in the toast pool that matches `template`,
+-- and release it back to the pool. Defensive across pool-shape variants
+-- (FramePoolCollection with sub-pools per template, or a single FramePool).
+local function hideAndReleaseActiveToasts(etm, template)
+    if not etm or not template then return end
+    local fpc = etm.toastFramePool
+    if not fpc then return end
+    pcall(function()
+        local sub = fpc.GetPool and fpc:GetPool(template)
+        if sub and sub.EnumerateActive then
+            for f in sub:EnumerateActive() do
+                if f then
+                    pcall(function() f:Hide() end)
+                    pcall(function() f:SetAlpha(0) end)
+                    if sub.Release then pcall(function() sub:Release(f) end) end
+                end
+            end
+            return
+        end
+        if fpc.EnumerateActive then
+            for f in fpc:EnumerateActive() do
+                if f then
+                    pcall(function() f:Hide() end)
+                    pcall(function() f:SetAlpha(0) end)
+                    if fpc.Release then pcall(function() fpc:Release(f) end) end
+                end
+            end
+        end
+    end)
+end
+
 HookEventToastManager = function()
     if eventToastHooked then return end
     local etm = EventToastManagerFrame or _G["EventToastManagerFrame"]
     if not etm then return end
     eventToastHooked = true
 
-    if etm.DisplayToast then
+    -- Per-toast suppression: GetToastFrame is called once per incoming toast
+    -- with the toast's metadata table (containing `.template`). We dispatch
+    -- by template through the registry; if the resulting category is
+    -- suppressed, we defer one frame so Blizzard's Setup/Show have run, then
+    -- hide and release the matching pool frame(s).
+    if etm.GetToastFrame then
         pcall(function()
-            hooksecurefunc(etm, "DisplayToast", function(self)
-                if suppressedFrames[self] then
-                    pcall(function()
-                        self:Hide()
-                        self:SetAlpha(0)
-                    end)
+            hooksecurefunc(etm, "GetToastFrame", function(self, toastInfo)
+                if not addon:IsModuleEnabled("presence") then return end
+                if type(toastInfo) ~= "table" then return end
+                local template = toastInfo.template
+                if not template then return end
+                local s = suppressionRegistry()
+                if not (s and s.GetCategoryForTemplate) then return end
+                local category = s.GetCategoryForTemplate(template)
+                if not category or not s.IsSuppressed(category) then return end
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, function() hideAndReleaseActiveToasts(self, template) end)
+                else
+                    hideAndReleaseActiveToasts(self, template)
                 end
             end)
         end)
-    end
-
-    for _, methodName in ipairs({ "ShowNextToast", "ReleaseToasts", "ShowToast" }) do
-        if etm[methodName] then
-            pcall(function()
-                hooksecurefunc(etm, methodName, function(self)
-                    if suppressedFrames[self] then
-                        pcall(function()
-                            self:Hide()
-                            self:SetAlpha(0)
-                        end)
-                    end
-                end)
-            end)
-        end
     end
 end
 
