@@ -170,25 +170,60 @@ local PREVIEW_TYPE_LABELS = {
 
 local debounceTimers = {}
 
---- Check if a Presence type is enabled, with optional fallback to a grouped option.
---- @param key string DB key for the per-type toggle (e.g. presenceQuestAccept)
---- @param fallbackKey string|nil DB key for fallback when key is nil (e.g. presenceQuestEvents)
---- @param fallbackDefault boolean Default when fallbackKey is nil or not used
+-- Legacy per-type DB keys -> Presence type ids. Direct callers across Presence
+-- modules (PresenceQuest, PresenceZone, PresenceAchievement, PresenceScenario)
+-- still pass legacy keys; we route those through the suppression registry so
+-- there is a singular point of truth for "is Presence rendering for type T".
+local LEGACY_KEY_TO_TYPE = {
+    presenceZoneChange          = "ZONE_CHANGE",
+    presenceSubzoneChange       = "SUBZONE_CHANGE",
+    presenceLevelUp             = "LEVEL_UP",
+    presenceBossEmote           = "BOSS_EMOTE",
+    presenceAchievement         = "ACHIEVEMENT",
+    presenceAchievementProgress = "ACHIEVEMENT_PROGRESS",
+    presenceQuestAccept         = "QUEST_ACCEPT",
+    presenceWorldQuestAccept    = "WORLD_QUEST_ACCEPT",
+    presenceQuestComplete       = "QUEST_COMPLETE",
+    presenceWorldQuest          = "WORLD_QUEST",
+    presenceQuestUpdate         = "QUEST_UPDATE",
+    presenceScenarioStart       = "SCENARIO_START",
+    presenceScenarioUpdate      = "SCENARIO_UPDATE",
+    presenceScenarioComplete    = "SCENARIO_COMPLETE",
+    presenceRareDefeated        = "RARE_DEFEATED",
+}
+
+--- Check if a Presence type is enabled. Routes Presence per-type DB keys
+--- through `addon.Presence.Suppression` (the singular toggle source).
+--- Other keys (e.g. `showScenarioEvents`) keep direct DB lookup so non-type
+--- gates such as the cross-module Focus scenario master still work.
+--- @param key string DB key (per-type or other gate)
+--- @param fallbackKey string|nil Fallback DB key when `key` is nil and not a Presence type
+--- @param fallbackDefault boolean Default when neither key resolves
 --- @return boolean
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
+    local typeName = key and LEGACY_KEY_TO_TYPE[key]
+    if typeName then
+        local s = addon.Presence and addon.Presence.Suppression
+        if s and s.IsTypeRendered then return s.IsTypeRendered(typeName) end
+    end
     if not addon.GetDB then return fallbackDefault end
     local v = addon.GetDB(key, nil)
     if v ~= nil then return v end
     return (fallbackKey and addon.GetDB(fallbackKey, fallbackDefault)) or fallbackDefault
 end
 
---- Check if a Presence type (e.g. QUEST_ACCEPT, SCENARIO_UPDATE) is enabled via TYPE_OPTIONS.
+--- Check if a Presence type (e.g. QUEST_ACCEPT, SCENARIO_UPDATE) should render.
+--- Single source of truth: the suppression registry. The legacy TYPE_OPTIONS
+--- map and per-type DB keys are no longer consulted - the per-category
+--- toggle in `addon.Presence.Suppression` decides both display and Blizzard
+--- suppression for every type that maps to a category. Types with no
+--- category mapping (none today) return false.
 --- @param typeName string One of TYPES keys (LEVEL_UP, QUEST_ACCEPT, etc.)
 --- @return boolean
 local function IsTypeEnabledForType(typeName)
-    local opts = typeName and TYPE_OPTIONS[typeName]
-    if not opts then return false end
-    return IsTypeEnabled(opts.key, opts.fallback, opts.default)
+    local s = addon.Presence and addon.Presence.Suppression
+    if s and s.IsTypeRendered then return s.IsTypeRendered(typeName) end
+    return false
 end
 
 --- Cancel existing timer for key, schedule callback after delay. Debounce helper.

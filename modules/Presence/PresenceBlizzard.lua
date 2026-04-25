@@ -21,8 +21,18 @@ local originalAlphas = {}
 local hookedShowFrames = {}  -- frames with persistent hooksecurefunc("Show") applied
 local ZONE_TEXT_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
 
-local function isTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+local function suppressionRegistry()
+    return addon.Presence and addon.Presence.Suppression
+end
+
+local function isSuppressed(category)
+    local s = suppressionRegistry()
+    return s and s.IsSuppressed(category) or false
+end
+
+local function framesFor(category)
+    local s = suppressionRegistry()
+    return s and s.GetFrames(category) or {}
 end
 
 -- ============================================================================
@@ -96,83 +106,35 @@ end
 -- Forward declarations for reload-safe suppression (defined later)
 local HookEventToastManager
 
---- Apply per-type Blizzard suppression. Suppress only frames for types that are ON;
---- restore frames for types that are OFF so default WoW notifications show.
+--- Apply per-frame Blizzard suppression. Iterates the suppression registry and
+--- kills frames for categories the user has chosen to suppress; restores the
+--- rest. Also re-evaluates the AlertFrame mute via PresenceErrors.MuteAlerts.
 --- Idempotent; safe to call multiple times.
 --- @return nil
 local function ApplyBlizzardSuppression()
     if not addon:IsModuleEnabled("presence") then return end
-
-    -- Zone entry
-    local zoneFrame = ZoneTextFrame or _G["ZoneTextFrame"]
-    if isTypeEnabled("presenceZoneChange", nil, true) then
-        KillBlizzardFrame(zoneFrame)
-    else
-        RestoreBlizzardFrame(zoneFrame)
+    local s = suppressionRegistry()
+    if not s then return end
+    for category, entry in pairs(s.GetCategories()) do
+        if entry.frames then
+            local kill = s.IsSuppressed(category)
+            for _, frame in ipairs(s.GetFrames(category)) do
+                if kill then KillBlizzardFrame(frame) else RestoreBlizzardFrame(frame) end
+            end
+        end
     end
-
-    -- Subzone: suppress when subzone notifications are on, or when user wants zone hidden for subzone-only changes
-    local subzoneFrame = SubZoneTextFrame or _G["SubZoneTextFrame"]
-    local subzoneOn = isTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
-    local hideZoneForSubzone = addon.GetDB and addon.GetDB("presenceHideZoneForSubzone", false)
-    if subzoneOn or hideZoneForSubzone then
-        KillBlizzardFrame(subzoneFrame)
-    else
-        RestoreBlizzardFrame(subzoneFrame)
-    end
-
-    -- Level up
-    local levelUpFrame = LevelUpDisplay or _G["LevelUpDisplay"]
-    if addon.GetDB and addon.GetDB("presenceLevelUp", true) then
-        KillBlizzardFrame(levelUpFrame)
-    else
-        RestoreBlizzardFrame(levelUpFrame)
-    end
-
-    -- Boss emotes
-    local bossEmoteFrame = RaidBossEmoteFrame or _G["RaidBossEmoteFrame"]
-    if addon.GetDB and addon.GetDB("presenceBossEmote", true) then
-        KillBlizzardFrame(bossEmoteFrame)
-    else
-        RestoreBlizzardFrame(bossEmoteFrame)
-    end
-
-    -- Event toasts (achievements, quest accept/complete/progress, scenario) - shared frame
-    local anyToast = (addon.Presence and addon.Presence.IsAnyToastEnabled and addon.Presence.IsAnyToastEnabled()) or false
-    local eventToastFrame = EventToastManagerFrame or _G["EventToastManagerFrame"]
-    if anyToast then
-        KillBlizzardFrame(eventToastFrame)
-    else
-        RestoreBlizzardFrame(eventToastFrame)
-    end
-
-    -- World quest complete banner (separate from EventToastManagerFrame)
-    if isTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true) then
-        local wqFrame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
-        if wqFrame then KillBlizzardFrame(wqFrame) end
-    else
-        local wqFrame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
-        if wqFrame then RestoreBlizzardFrame(wqFrame) end
-    end
-
-    -- Always suppress when Presence is on (no per-type mapping)
-    KillBlizzardFrame(BossBanner)
-    KillBlizzardFrame(ObjectiveTrackerBonusBannerFrame)
-    local topBannerFrame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"]
-    if topBannerFrame then KillBlizzardFrame(topBannerFrame) end
+    if addon.Presence and addon.Presence.MuteAlerts then addon.Presence.MuteAlerts() end
 end
 
---- Re-apply zone frame suppression. Call when zone events fire to ensure frames stay hidden after Blizzard may have shown them.
+--- Re-apply zone-frame suppression after a zone event in case Blizzard re-showed them.
 --- @return nil
 local function ReapplyZoneSuppression()
     if not addon:IsModuleEnabled("presence") then return end
-    if isTypeEnabled("presenceZoneChange", nil, true) then
-        KillBlizzardFrame(ZoneTextFrame or _G["ZoneTextFrame"])
+    if isSuppressed("ZONE_TEXT") then
+        for _, f in ipairs(framesFor("ZONE_TEXT")) do KillBlizzardFrame(f) end
     end
-    local subzoneOn = isTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
-    local hideZoneForSubzone = addon.GetDB and addon.GetDB("presenceHideZoneForSubzone", false)
-    if subzoneOn or hideZoneForSubzone then
-        KillBlizzardFrame(SubZoneTextFrame or _G["SubZoneTextFrame"])
+    if isSuppressed("SUBZONE_TEXT") then
+        for _, f in ipairs(framesFor("SUBZONE_TEXT")) do KillBlizzardFrame(f) end
     end
 end
 
@@ -183,75 +145,61 @@ local function SuppressBlizzard()
     HookEventToastManager()
 end
 
---- Restore all suppressed Blizzard frames when Presence is disabled.
+--- Restore every Blizzard frame Presence may have suppressed (called when Presence is disabled).
 --- @return nil
 local function RestoreBlizzard()
-    RestoreBlizzardFrame(ZoneTextFrame)
-    RestoreBlizzardFrame(SubZoneTextFrame)
-    RestoreBlizzardFrame(RaidBossEmoteFrame or _G["RaidBossEmoteFrame"])
-    RestoreBlizzardFrame(LevelUpDisplay or _G["LevelUpDisplay"])
-    RestoreBlizzardFrame(EventToastManagerFrame or _G["EventToastManagerFrame"])
-    RestoreBlizzardFrame(BossBanner)
-    RestoreBlizzardFrame(ObjectiveTrackerBonusBannerFrame)
-    local topBannerFrame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"]
-    if topBannerFrame then RestoreBlizzardFrame(topBannerFrame) end
-    local wqFrame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
-    if wqFrame then RestoreBlizzardFrame(wqFrame) end
+    local s = suppressionRegistry()
+    if not s then return end
+    for category, entry in pairs(s.GetCategories()) do
+        if entry.frames then
+            for _, frame in ipairs(s.GetFrames(category)) do
+                RestoreBlizzardFrame(frame)
+            end
+        end
+    end
 end
 
---- Dump notification type options and Blizzard frame suppression state for debugging.
---- Call with addon.HSPrint or similar. Use /horizon presence debugtypes for quick check.
+--- Dump suppression registry state for debugging. Use /horizon presence debugtypes.
 --- @param p function Print function (msg) -> nil
 --- @return nil
 local function DumpBlizzardSuppression(p)
     if not p then return end
-    p("|cFF00CCFF--- Notification types & Blizzard suppression ---|r")
+    p("|cFF00CCFF--- Blizzard suppression ---|r")
     if not addon:IsModuleEnabled("presence") then
         p("Module disabled - Blizzard frames not managed by Presence")
         return
     end
-
+    local s = suppressionRegistry()
+    if not s then
+        p("Suppression registry not loaded")
+        return
+    end
+    p("Master presenceSuppressAll = " .. tostring(s.IsSuppressAllOn()))
     local function frameState(frame)
         if not frame then return "nil" end
         return suppressedFrames[frame] and "SUPPRESSED" or "restored"
     end
-
-    -- Per-type mappings: label, option enabled?, Blizzard frame
-    local zoneOn = isTypeEnabled("presenceZoneChange", nil, true)
-    p("Zone entry:    option=" .. tostring(zoneOn) .. " | ZoneTextFrame=" .. frameState(ZoneTextFrame))
-
-    local subzoneOn = isTypeEnabled("presenceSubzoneChange", "presenceZoneChange", true)
-    p("Subzone:       option=" .. tostring(subzoneOn) .. " | SubZoneTextFrame=" .. frameState(SubZoneTextFrame))
-
-    local levelUpFrame = LevelUpDisplay or _G["LevelUpDisplay"]
-    local levelOn = addon.GetDB and addon.GetDB("presenceLevelUp", true)
-    p("Level up:      option=" .. tostring(levelOn) .. " | LevelUpDisplay=" .. frameState(levelUpFrame))
-
-    local bossEmoteFrame = RaidBossEmoteFrame or _G["RaidBossEmoteFrame"]
-    local bossOn = addon.GetDB and addon.GetDB("presenceBossEmote", true)
-    p("Boss emote:    option=" .. tostring(bossOn) .. " | RaidBossEmoteFrame=" .. frameState(bossEmoteFrame))
-
-    local anyToast = (addon.Presence and addon.Presence.IsAnyToastEnabled and addon.Presence.IsAnyToastEnabled()) or false
-    local eventToastFrame = EventToastManagerFrame or _G["EventToastManagerFrame"]
-    p("Event toasts:  any=" .. tostring(anyToast) .. " (ach/quest/scenario) | EventToastManagerFrame=" .. frameState(eventToastFrame))
-
-    local wqOn = isTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)
-    local wqFrame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
-    p("World quest:   option=" .. tostring(wqOn) .. " | WorldQuestCompleteBannerFrame=" .. frameState(wqFrame))
-
-    p("Expect: option=ON -> SUPPRESSED (Presence shows). option=OFF -> restored (WoW default shows)")
+    for category, entry in pairs(s.GetCategories()) do
+        local decision = s.IsSuppressed(category)
+        if entry.frames then
+            local parts = {}
+            for _, frame in ipairs(s.GetFrames(category)) do
+                parts[#parts + 1] = frameState(frame)
+            end
+            p(category .. ": suppress=" .. tostring(decision) .. " | frames=" .. table.concat(parts, ", "))
+        else
+            p(category .. ": suppress=" .. tostring(decision) .. " | (no frames)")
+        end
+    end
     p("|cFF00CCFF--- End suppression debug ---|r")
 end
 
 --- Suppress WorldQuestCompleteBannerFrame (called on ADDON_LOADED for Blizzard_WorldQuestComplete).
---- Only suppresses if presenceWorldQuest type is enabled.
+--- Only suppresses if the WORLD_QUEST_BANNER suppression category is on.
 --- @return nil
 local function KillWorldQuestBanner()
-    if not isTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true) then return end
-    local frame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
-    if frame then
-        KillBlizzardFrame(frame)
-    end
+    if not isSuppressed("WORLD_QUEST_BANNER") then return end
+    for _, frame in ipairs(framesFor("WORLD_QUEST_BANNER")) do KillBlizzardFrame(frame) end
 end
 
 -- ============================================================================

@@ -1385,6 +1385,24 @@ L["PRESENCE_H_DEBUG_DUMP_STATE"]                              = "  /h presence d
 L["PRESENCE_H_DEBUGLIVE_TOGGLE_LIVE"]                         = "  /h presence debuglive - Toggle live debug panel (log as events happen)"
 
 -- =====================================================================
+-- Presence — Suppression registry & Display rules card
+L["PRESENCE_DISPLAY_RULES"]                                   = "Display Rules"
+L["PRESENCE_DISPLAY_RULES_DESC"]                              = "How Presence's toasts behave when they fire (rendering tweaks) and where Presence stays quiet entirely (instance suppression). The per-area choice of who shows the popup — Presence or Blizzard — lives in the Blizzard Suppression card."
+L["PRESENCE_RENDERING_RULES"]                                 = "Rendering Rules"
+L["PRESENCE_BLIZZARD_SUPPRESSION"]                            = "Blizzard Suppression"
+L["PRESENCE_BLIZZARD_SUPPRESSION_DESC"]                       = "Singular per-area control. Toggle ON: Presence shows its toast and Blizzard's matching popup is hidden. Toggle OFF: Blizzard's default popup shows and Presence stays quiet for that area."
+L["PRESENCE_SUPPRESS_ALL"]                                    = "Suppress all Blizzard popups"
+L["PRESENCE_SUPPRESS_ALL_DESC"]                               = "Force every Blizzard popup hidden, even for areas where the per-area toggle is off. Per-area OFF + master ON = total silence."
+L["PRESENCE_PER_AREA"]                                        = "Per-area notifications (Presence vs Blizzard)"
+L["PRESENCE_BLIZZARD_ONLY_SUPPRESSION"]                       = "Blizzard popups with no Presence equivalent"
+L["PRESENCE_EVENT_TOASTS_BUNDLE"]                             = "Achievements, quests, scenarios"
+L["PRESENCE_EVENT_TOASTS_BUNDLE_DESC"]                        = "Bundled because Blizzard renders all of these on a single shared toast frame: achievement earn and progress, quest accept / complete / progress, scenario start / progress / complete, world quest accept, rare defeated. Also gates Blizzard's small AlertFrame popups for the same events."
+L["PRESENCE_SUPPRESS_BOSS_BANNER"]                            = "Boss kill banner"
+L["PRESENCE_SUPPRESS_BOSS_BANNER_DESC"]                       = "Hide Blizzard's BossBanner shown after a boss kill. Presence does not replace this with its own toast — off shows Blizzard's, on hides it."
+L["PRESENCE_SUPPRESS_OBJECTIVE_BANNERS"]                      = "Objective tracker banners"
+L["PRESENCE_SUPPRESS_OBJECTIVE_BANNERS_DESC"]                 = "Hide Blizzard's bonus objective and top objective tracker banners. Presence does not replace these."
+
+-- =====================================================================
 -- OptionsData.lua Vista — General
 L["VISTA_POSITION_LAYOUT"]                                    = "Position & Layout"
 
@@ -1916,6 +1934,7 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

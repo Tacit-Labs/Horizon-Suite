@@ -61,7 +61,9 @@ local function ShouldSuppress()
 end
 
 local function IsPresenceTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    -- NB: `a and b or c` collapses an explicit `false` to `c`; do not use here.
+    if not (addon.Presence and addon.Presence.IsTypeEnabled) then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 local PRESENCE_EVENTS = {

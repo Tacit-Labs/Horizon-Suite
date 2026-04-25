@@ -181,6 +181,16 @@ local PRESENCE_KEYS = {
     presenceSuppressInBattleground = true,
     presenceHideQuestUpdateTitle = true,
     presencePreviewType = true,
+    -- Suppression rebuild (feature/presence-suppression-toggles)
+    presenceSuppressAll              = true,
+    presenceSuppressZoneText         = true,
+    presenceSuppressSubzoneText      = true,
+    presenceSuppressLevelUp          = true,
+    presenceSuppressBossEmote        = true,
+    presenceSuppressEventToasts      = true,
+    presenceSuppressWorldQuestBanner = true,
+    presenceSuppressBossBanner       = true,
+    presenceSuppressObjectiveBanners = true,
 }
 
 local MPLUS_TYPOGRAPHY_KEYS = {
@@ -2212,36 +2222,65 @@ local OptionCategories = {
     },
     {
         key = "PresenceNotifications",
-        name = L["PRESENCE_NOTIFICATIONS"],
-        desc = L["CHOOSE_WHICH_EVENTS_TRIGGER_SCREEN_ALERTS"] or "Choose which events trigger on-screen alerts.",
+        name = L["PRESENCE_DISPLAY_RULES"],
+        desc = L["PRESENCE_DISPLAY_RULES_DESC"],
         moduleKey = "presence",
         options = {
-            { type = "section", name = L["PRESENCE_NOTIFICATION_TYPES"] },
-            { type = "toggle", name = L["ZONE_ENTRY"], desc = L["PRESENCE_ZONE_CHANGE_ENTERING_A_AREA"], dbKey = "presenceZoneChange", get = function() return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceZoneChange", v) end },
-            { type = "toggle", name = L["SUBZONE_CHANGES"], desc = L["PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"], dbKey = "presenceSubzoneChange", get = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceSubzoneChange", v) end },
+            { type = "section", name = L["PRESENCE_RENDERING_RULES"] },
             { type = "toggle", name = L["VISTA_SHOW_SUBZONE"], desc = L["SUBZONE_NAME_WITHIN_SAME_ZONE"], dbKey = "presenceHideZoneForSubzone", get = function() return getDB("presenceHideZoneForSubzone", false) end, set = function(v) setDB("presenceHideZoneForSubzone", v) end, tooltip = L["ZONE_NAME_NEW_ZONE"] },
-            { type = "toggle", name = L["SUPPRESS_M"], desc = L["HIDE_ZONE_NOTIFICATIONS_MYTHIC"], tooltip = L["BOSS_EMOTES_ACHIEVEMENTS_LEVEL_HIDES_ZONE"], dbKey = "presenceSuppressZoneInMplus", get = function() return getDB("presenceSuppressZoneInMplus", true) end, set = function(v) setDB("presenceSuppressZoneInMplus", v) end },
+            { type = "toggle", name = L["PRESENCE_OBJECTIVE"], desc = L["PRESENCE_QUEST_PROGRESS_HIDE_TITLE"], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end },
             { type = "section", name = L["INSTANCE_SUPPRESSION"] },
+            { type = "toggle", name = L["SUPPRESS_M"], desc = L["HIDE_ZONE_NOTIFICATIONS_MYTHIC"], tooltip = L["BOSS_EMOTES_ACHIEVEMENTS_LEVEL_HIDES_ZONE"], dbKey = "presenceSuppressZoneInMplus", get = function() return getDB("presenceSuppressZoneInMplus", true) end, set = function(v) setDB("presenceSuppressZoneInMplus", v) end },
             { type = "toggle", name = L["SUPPRESS_DUNGEON"], desc = L["SUPPRESS_NOTIFICATIONS_DUNGEONS"], tooltip = L["SUPPRESS_IN_DUNGEON_DETAIL"], dbKey = "presenceSuppressInDungeon", get = function() return getDB("presenceSuppressInDungeon", false) end, set = function(v) setDB("presenceSuppressInDungeon", v) end },
             { type = "toggle", name = L["PRESENCE_SUPPRESS_DELVE"], desc = L["PRESENCE_SUPPRESS_SCENARIO_PROGRESS_NOTIFICATIONS_DELVES"], tooltip = L["PRESENCE_HIDE_DELVE_OBJECTIVE_UPDATE"], dbKey = "presenceSuppressInDelve", get = function() return getDB("presenceSuppressInDelve", false) end, set = function(v) setDB("presenceSuppressInDelve", v) end },
             { type = "toggle", name = L["SUPPRESS_RAID"], desc = L["SUPPRESS_IN_RAID_DETAIL"], dbKey = "presenceSuppressInRaid", get = function() return getDB("presenceSuppressInRaid", false) end, set = function(v) setDB("presenceSuppressInRaid", v) end },
             { type = "toggle", name = L["SUPPRESS_PVP"], desc = L["SUPPRESS_IN_ARENA_DETAIL"], dbKey = "presenceSuppressInPvP", get = function() return getDB("presenceSuppressInPvP", false) end, set = function(v) setDB("presenceSuppressInPvP", v) end },
             { type = "toggle", name = L["SUPPRESS_BATTLEGROUND"], desc = L["SUPPRESS_PRESENCE_NOTIFICATIONS_WHILE_INSIDE_A"], dbKey = "presenceSuppressInBattleground", get = function() return getDB("presenceSuppressInBattleground", false) end, set = function(v) setDB("presenceSuppressInBattleground", v) end },
-            { type = "toggle", name = L["PRESENCE_LEVEL_UP_TOGGLE"], desc = L["PRESENCE_LEVEL_NOTIFICATION"], dbKey = "presenceLevelUp", get = function() return getDB("presenceLevelUp", true) end, set = function(v) setDB("presenceLevelUp", v) end },
-            { type = "toggle", name = L["BOSS_EMOTES"], desc = L["PRESENCE_RAID_DUNGEON_BOSS_EMOTE_NOTIFICATIONS"], dbKey = "presenceBossEmote", get = function() return getDB("presenceBossEmote", true) end, set = function(v) setDB("presenceBossEmote", v) end },
-            { type = "toggle", name = L["FOCUS_ACHIEVEMENTS"], desc = L["PRESENCE_ACHIEVEMENT_EARNED_NOTIFICATIONS"], dbKey = "presenceAchievement", get = function() return getDB("presenceAchievement", true) end, set = function(v) setDB("presenceAchievement", v) end },
-            { type = "toggle", name = L["PRESENCE_ACHIEVEMENT_PROGRESS"], desc = L["NOTIFY_ACHIEVEMENT_CRITERIA_UPDATE"], tooltip = L["PRESENCE_NOTIFICATION_ACHIEVEMENT_CRITERIA_UPDATE"], dbKey = "presenceAchievementProgress", get = function() return getDB("presenceAchievementProgress", false) end, set = function(v) setDB("presenceAchievementProgress", v) end },
-            { type = "toggle", name = L["QUEST_ACCEPT"], desc = L["PRESENCE_NOTIFICATION_ACCEPTING_A_QUEST"], dbKey = "presenceQuestAccept", get = function() local v = getDB("presenceQuestAccept", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestAccept", v) end },
-            { type = "toggle", name = L["WORLD_QUEST_ACCEPT"], desc = L["PRESENCE_NOTIFICATION_ACCEPTING_A_WORLD_QUEST"], dbKey = "presenceWorldQuestAccept", get = function() local v = getDB("presenceWorldQuestAccept", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceWorldQuestAccept", v) end },
-            { type = "toggle", name = L["QUEST_COMPLETE"], desc = L["PRESENCE_NOTIFICATION_COMPLETING_A_QUEST"], dbKey = "presenceQuestComplete", get = function() local v = getDB("presenceQuestComplete", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestComplete", v) end },
-            { type = "toggle", name = L["WORLD_QUEST_COMPLETE"], desc = L["PRESENCE_NOTIFICATION_COMPLETING_A_WORLD_QUEST"], dbKey = "presenceWorldQuest", get = function() local v = getDB("presenceWorldQuest", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceWorldQuest", v) end },
-            { type = "toggle", name = L["QUEST_PROGRESS"], desc = L["PRESENCE_NOTIFICATION_QUEST_OBJECTIVES_UPDATE"], dbKey = "presenceQuestUpdate", get = function() local v = getDB("presenceQuestUpdate", nil); if v ~= nil then return v end; return getDB("presenceQuestEvents", true) end, set = function(v) setDB("presenceQuestUpdate", v) end },
-            { type = "toggle", name = L["PRESENCE_OBJECTIVE"], desc = L["PRESENCE_QUEST_PROGRESS_HIDE_TITLE"], dbKey = "presenceHideQuestUpdateTitle", get = function() return getDB("presenceHideQuestUpdateTitle", false) end, set = function(v) setDB("presenceHideQuestUpdateTitle", v) end },
-            { type = "toggle", name = L["SCENARIO_START"], desc = L["PRESENCE_NOTIFICATION_ENTERING_A_SCENARIO_DELVE"], dbKey = "presenceScenarioStart", get = function() local v = getDB("presenceScenarioStart", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioStart", v) end },
-            { type = "toggle", name = L["SCENARIO_PROGRESS"], desc = L["PRESENCE_NOTIFICATION_SCENARIO_DELVE_OBJECTIVES"], dbKey = "presenceScenarioUpdate", get = function() local v = getDB("presenceScenarioUpdate", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioUpdate", v) end },
-            { type = "toggle", name = L["PRESENCE_SHOW_SCENARIO_COMPLETE"], desc = L["NOTIFICATION_A_SCENARIO_DELVE_FULLY_COM"], dbKey = "presenceScenarioComplete", get = function() local v = getDB("presenceScenarioComplete", nil); if v ~= nil then return v end; return getDB("showScenarioEvents", true) end, set = function(v) setDB("presenceScenarioComplete", v) end },
-            { type = "toggle", name = L["PRESENCE_SHOW_RARE_DEFEATED"], desc = L["NOTIFICATION_A_RARE_MOB_DEFEATED_NEARBY"], dbKey = "presenceRareDefeated", get = function() return getDB("presenceRareDefeated", true) end, set = function(v) setDB("presenceRareDefeated", v) end },
         },
+    },
+    {
+        key = "PresenceSuppression",
+        name = L["PRESENCE_BLIZZARD_SUPPRESSION"],
+        desc = L["PRESENCE_BLIZZARD_SUPPRESSION_DESC"],
+        moduleKey = "presence",
+        options = (function()
+            local function applySuppress()
+                if addon.Presence and addon.Presence.ApplyBlizzardSuppression then
+                    addon.Presence.ApplyBlizzardSuppression()
+                end
+            end
+            local function areaToggle(label, descText, key)
+                return {
+                    type = "toggle",
+                    name = label,
+                    desc = descText,
+                    dbKey = key,
+                    get = function() return getDB(key, true) end,
+                    set = function(v) setDB(key, v); applySuppress() end,
+                }
+            end
+            return {
+                { type = "section", name = L["PRESENCE_BLIZZARD_SUPPRESSION"] },
+                {
+                    type = "toggle",
+                    name = L["PRESENCE_SUPPRESS_ALL"],
+                    desc = L["PRESENCE_SUPPRESS_ALL_DESC"],
+                    dbKey = "presenceSuppressAll",
+                    get = function() return getDB("presenceSuppressAll", true) end,
+                    set = function(v) setDB("presenceSuppressAll", v); applySuppress() end,
+                },
+                { type = "section", name = L["PRESENCE_PER_AREA"] },
+                areaToggle(L["ZONE_ENTRY"],                  L["PRESENCE_ZONE_CHANGE_ENTERING_A_AREA"],            "presenceSuppressZoneText"),
+                areaToggle(L["SUBZONE_CHANGES"],             L["PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"], "presenceSuppressSubzoneText"),
+                areaToggle(L["PRESENCE_LEVEL_UP_TOGGLE"],    L["PRESENCE_LEVEL_NOTIFICATION"],                     "presenceSuppressLevelUp"),
+                areaToggle(L["BOSS_EMOTES"],                 L["PRESENCE_RAID_DUNGEON_BOSS_EMOTE_NOTIFICATIONS"],  "presenceSuppressBossEmote"),
+                areaToggle(L["PRESENCE_EVENT_TOASTS_BUNDLE"], L["PRESENCE_EVENT_TOASTS_BUNDLE_DESC"],              "presenceSuppressEventToasts"),
+                areaToggle(L["WORLD_QUEST_COMPLETE"],        L["PRESENCE_NOTIFICATION_COMPLETING_A_WORLD_QUEST"],  "presenceSuppressWorldQuestBanner"),
+                { type = "section", name = L["PRESENCE_BLIZZARD_ONLY_SUPPRESSION"] },
+                areaToggle(L["PRESENCE_SUPPRESS_BOSS_BANNER"],        L["PRESENCE_SUPPRESS_BOSS_BANNER_DESC"],        "presenceSuppressBossBanner"),
+                areaToggle(L["PRESENCE_SUPPRESS_OBJECTIVE_BANNERS"],  L["PRESENCE_SUPPRESS_OBJECTIVE_BANNERS_DESC"],  "presenceSuppressObjectiveBanners"),
+            }
+        end)(),
     },
     {
         key = "PresenceTypography",

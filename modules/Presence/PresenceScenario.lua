@@ -87,7 +87,9 @@ local function ShouldSuppress()
 end
 
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    -- NB: `a and b or c` collapses an explicit `false` to `c`; do not use here.
+    if not (addon.Presence and addon.Presence.IsTypeEnabled) then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 --- Resolve delve name: use cached value (primary) or resolve from APIs and cache on first success.

@@ -68,6 +68,7 @@ modules/Focus/FocusSlash.lua
 modules/Focus/FocusModule.lua
 
 modules/Presence/PresenceCore.lua
+modules/Presence/PresenceSuppression.lua
 modules/Presence/PresenceBlizzard.lua
 modules/Presence/PresenceScenario.lua
 modules/Presence/PresenceQuest.lua

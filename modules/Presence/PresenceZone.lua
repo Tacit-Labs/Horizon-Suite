@@ -35,7 +35,10 @@ local function ShouldSuppress()
 end
 
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
-    return addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+    -- NB: explicit `false` from the resolver must be returned as `false`,
+    -- not collapsed via `a and b or c` (which would fall through to fallbackDefault).
+    if not (addon.Presence and addon.Presence.IsTypeEnabled) then return fallbackDefault end
+    return addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault)
 end
 
 local function CancelPendingDelveZone()

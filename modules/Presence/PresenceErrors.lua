@@ -62,44 +62,26 @@ end
 local alertsMuted = false
 local alertEventsUnregistered = {}
 
---- Unregister AlertFrame from achievement/quest/criteria events so Presence can replace them.
---- Includes CRITERIA_UPDATE, TRACKED_ACHIEVEMENT_UPDATE, and CRITERIA_EARNED to suppress
---- Blizzard's default achievement-progress popups (CriteriaAlertSystem). Idempotent.
---- @return nil
-local function MuteAlerts()
-    if alertsMuted then return end
-    -- pcall: AlertFrame may not exist or methods may throw.
-    pcall(function()
-        if AlertFrame and AlertFrame.UnregisterEvent then
-            AlertFrame:UnregisterEvent("ACHIEVEMENT_EARNED")
-            alertEventsUnregistered["ACHIEVEMENT_EARNED"] = true
-            AlertFrame:UnregisterEvent("QUEST_TURNED_IN")
-            alertEventsUnregistered["QUEST_TURNED_IN"] = true
-            AlertFrame:UnregisterEvent("CRITERIA_UPDATE")
-            alertEventsUnregistered["CRITERIA_UPDATE"] = true
-            AlertFrame:UnregisterEvent("TRACKED_ACHIEVEMENT_UPDATE")
-            alertEventsUnregistered["TRACKED_ACHIEVEMENT_UPDATE"] = true
-            AlertFrame:UnregisterEvent("CRITERIA_EARNED")
-            alertEventsUnregistered["CRITERIA_EARNED"] = true
-        end
-    end)
-    alertsMuted = true
+local ALERT_EVENTS = {
+    "ACHIEVEMENT_EARNED",
+    "QUEST_TURNED_IN",
+    "CRITERIA_UPDATE",
+    "TRACKED_ACHIEVEMENT_UPDATE",
+    "CRITERIA_EARNED",
+}
+
+local function isAlertSuppressed()
+    -- AlertFrame mute is gated by EVENT_TOASTS: both surfaces fire for the
+    -- same achievement/quest/criteria events Presence intercepts.
+    local s = addon.Presence and addon.Presence.Suppression
+    return s and s.IsSuppressed("EVENT_TOASTS") or false
 end
 
---- Re-register AlertFrame events when Presence is disabled.
---- @return nil
-local function RestoreAlerts()
+local function unmuteInternal()
     if not alertsMuted then return end
-    -- pcall: AlertFrame may not exist or methods may throw.
     pcall(function()
         if AlertFrame and AlertFrame.RegisterEvent then
-            for _, evt in ipairs({
-                "ACHIEVEMENT_EARNED",
-                "QUEST_TURNED_IN",
-                "CRITERIA_UPDATE",
-                "TRACKED_ACHIEVEMENT_UPDATE",
-                "CRITERIA_EARNED",
-            }) do
+            for _, evt in ipairs(ALERT_EVENTS) do
                 if alertEventsUnregistered[evt] then
                     AlertFrame:RegisterEvent(evt)
                     alertEventsUnregistered[evt] = nil
@@ -108,6 +90,32 @@ local function RestoreAlerts()
         end
     end)
     alertsMuted = false
+end
+
+local function muteInternal()
+    if alertsMuted then return end
+    pcall(function()
+        if AlertFrame and AlertFrame.UnregisterEvent then
+            for _, evt in ipairs(ALERT_EVENTS) do
+                AlertFrame:UnregisterEvent(evt)
+                alertEventsUnregistered[evt] = true
+            end
+        end
+    end)
+    alertsMuted = true
+end
+
+--- Apply the current ALERT_FRAME suppression decision (mute or restore).
+--- Idempotent; safe to call on enable, after toggle, or after master switch flips.
+--- @return nil
+local function MuteAlerts()
+    if isAlertSuppressed() then muteInternal() else unmuteInternal() end
+end
+
+--- Re-register AlertFrame events. Called when Presence is disabled.
+--- @return nil
+local function RestoreAlerts()
+    unmuteInternal()
 end
 
 -- ============================================================================
