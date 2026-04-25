@@ -874,6 +874,14 @@ L["FOCUS_PROGRESS_BAR_FONT"]                                  = "Progress Bar Fo
 L["FOCUS_FONT_FAMILY_PROGRESS_BAR_LABEL"]                     = "Font family for the progress bar label."
 L["FOCUS_PROGRESS_BAR_TEXT_SIZE"]                             = "Progress Bar Text Size"
 L["FOCUS_FONT_SIZE_PROGRESS_BAR_LABEL_ADJUSTS"]               = "Font size for the progress bar label. Also adjusts bar height. Affects quest objectives, scenario progress, and scenario timer bars."
+L["FOCUS_TIMER_TEXT_FONT"]                                    = "Timer Font"
+L["FOCUS_FONT_FAMILY_TIMER_TEXT"]                             = "Font family for quest timer text (inline timers and world quest timers)."
+L["FOCUS_TIMER_TEXT_SIZE"]                                    = "Timer Text Size"
+L["FOCUS_TIMER_TEXT_FONT_SIZE"]                               = "Quest timer text font size."
+L["FOCUS_OPTIONS_FONT"]                                       = "Options Font"
+L["FOCUS_FONT_FAMILY_OPTIONS"]                                = "Font family for the Options button label in the tracker header."
+L["FOCUS_OPTIONS_TEXT_SIZE"]                                  = "Options Text Size"
+L["FOCUS_OPTIONS_TEXT_FONT_SIZE"]                             = "Options button label font size."
 L["FOCUS_PROGRESS_BAR_FILL"]                                  = "Progress bar fill"
 L["FOCUS_PROGRESS_BAR_TEXT"]                                  = "Progress bar text"
 L["FOCUS_OUTLINE"]                                            = "Outline"
@@ -1606,6 +1614,8 @@ L["VISTA_MAIL_ICON_PULSES_DRAW_ATTENTION"]                    = "When on, the ma
 L["VISTA_CRAFTING_ORDER_ICON_PULSE"]                          = "Crafting Order Icon Pulse"
 L["VISTA_CRAFTING_ORDER_ICON_PULSES_DRAW_ATTENTION"]          = "When on, the crafting order icon pulses to draw attention. When off, it stays at full opacity."
 L["VISTA_CRAFTING_ORDER_TOOLTIP"]                             = "Personal Crafting Orders"
+L["VISTA_CRAFTING_ORDER_PENDING_COUNT"]                       = "%d pending"
+L["VISTA_CRAFTING_ORDER_PROFESSION_LINE"]                     = "  %s: %d"
 L["VISTA_PANEL_APPEARANCE"]                                   = "Panel Appearance"
 L["VISTA_COLOURS_DRAWER_RIGHT_CLICK_BUTTON_PANELS"]           = "Colours for the Drawer and Right-Click Button Panels."
 L["VISTA_PANEL_BG_COLOUR_LABEL"]                              = "Panel Background Colour"
@@ -1910,6 +1920,7 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

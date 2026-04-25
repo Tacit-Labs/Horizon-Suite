@@ -1374,6 +1374,76 @@ local function GetNativeCraftingOrderIcon()
     return _G.MiniMapCraftingOrderIcon
 end
 
+-- Map Enum.Profession → representative profession spell ID. Built lazily on first
+-- use because Enum may not be fully populated at file-load time. The spell-name
+-- fallback works regardless of whether the character has trained the profession,
+-- which the C_TradeSkillUI path doesn't.
+local PROFESSION_SPELL_BY_ID
+local function BuildProfessionSpellMap()
+    if PROFESSION_SPELL_BY_ID then return end
+    if not Enum or not Enum.Profession then return end
+    local byName = {
+        Alchemy        = 2259,  Blacksmithing = 2018,  Cooking      = 2550,
+        Enchanting     = 7411,  Engineering   = 4036,  Fishing      = 7620,
+        Herbalism      = 2366,  Inscription   = 45357, Jewelcrafting = 25229,
+        Leatherworking = 2108,  Mining        = 2575,  Skinning     = 8613,
+        Tailoring      = 3908,
+    }
+    local map = {}
+    for name, spellID in pairs(byName) do
+        local enumVal = Enum.Profession[name]
+        if enumVal then map[enumVal] = spellID end
+    end
+    PROFESSION_SPELL_BY_ID = map
+end
+
+-- Resolve a personal-orders entry to a localised profession name.
+-- Entries from C_CraftingOrders.GetPersonalOrdersInfo carry a `professionID`
+-- (Enum.Profession). We try C_TradeSkillUI first (best for trained professions
+-- because it picks up expansion-specific names), then fall back to a spell-name
+-- lookup that works for any character — incoming orders can be for professions
+-- the recipient doesn't practice themselves.
+local function GetProfessionDisplayName(info)
+    if type(info) ~= "table" then return nil end
+    local professionID = tonumber(info.professionID) or tonumber(info.profession)
+    local skillLineID  = tonumber(info.skillLineID)
+
+    if not skillLineID and professionID and C_TradeSkillUI
+        and C_TradeSkillUI.GetProfessionChildSkillLineID then
+        local ok, sid = pcall(C_TradeSkillUI.GetProfessionChildSkillLineID, professionID)
+        if ok then skillLineID = tonumber(sid) end
+    end
+
+    if skillLineID and skillLineID ~= 0 and C_TradeSkillUI
+        and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+        local ok, profInfo = pcall(C_TradeSkillUI.GetProfessionInfoBySkillLineID, skillLineID)
+        if ok and type(profInfo) == "table" then
+            local name = profInfo.parentProfessionName or profInfo.professionName
+            if name and name ~= "" then return name end
+        end
+    end
+
+    if professionID and C_Spell then
+        BuildProfessionSpellMap()
+        local spellID = PROFESSION_SPELL_BY_ID and PROFESSION_SPELL_BY_ID[professionID]
+        if spellID then
+            if C_Spell.GetSpellName then
+                local ok, name = pcall(C_Spell.GetSpellName, spellID)
+                if ok and type(name) == "string" and name ~= "" then return name end
+            end
+            if C_Spell.GetSpellInfo then
+                local ok, spellInfo = pcall(C_Spell.GetSpellInfo, spellID)
+                if ok and type(spellInfo) == "table"
+                    and spellInfo.name and spellInfo.name ~= "" then
+                    return spellInfo.name
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
 local function RefreshCraftingOrderAnchor()
     if not craftingOrderAnchor then return end
     local locked = DB("vistaLocked_proxy_craftingOrder", true)
@@ -1476,12 +1546,17 @@ local function CreateCraftingOrderIndicator()
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
         GameTooltip:SetText((addon.L and addon.L["VISTA_CRAFTING_ORDER_TOOLTIP"]) or "Personal Crafting Orders")
         local total = 0
+        local rows = {}
         if C_CraftingOrders and C_CraftingOrders.GetPersonalOrdersInfo then
             local ok, infos = pcall(C_CraftingOrders.GetPersonalOrdersInfo)
             if ok and type(infos) == "table" then
                 for _, info in ipairs(infos) do
                     if type(info) == "table" then
-                        total = total + (tonumber(info.numPersonalOrders) or tonumber(info.numOrders) or 0)
+                        local count = tonumber(info.numPersonalOrders) or tonumber(info.numOrders) or 0
+                        total = total + count
+                        if count > 0 then
+                            rows[#rows + 1] = { name = GetProfessionDisplayName(info), count = count }
+                        end
                     end
                 end
             end
@@ -1489,6 +1564,11 @@ local function CreateCraftingOrderIndicator()
         if total > 0 then
             local fmt = (addon.L and addon.L["VISTA_CRAFTING_ORDER_PENDING_COUNT"]) or "%d pending"
             GameTooltip:AddLine(fmt:format(total), 1, 1, 1)
+            local rowFmt = (addon.L and addon.L["VISTA_CRAFTING_ORDER_PROFESSION_LINE"]) or "  %s: %d"
+            for _, row in ipairs(rows) do
+                local name = row.name or (UNKNOWN or "Unknown")
+                GameTooltip:AddLine(rowFmt:format(name, row.count), 0.85, 0.85, 0.85)
+            end
         end
         GameTooltip:Show()
     end)
@@ -1518,15 +1598,39 @@ UpdateCraftingOrderIndicator = function()
     RefreshCraftingOrderAnchor()
 end
 
+-- Returns the total count of pending personal crafting orders across professions,
+-- or nil if the API is unavailable / errored.
+local function GetPendingPersonalOrderCount()
+    if not C_CraftingOrders or not C_CraftingOrders.GetPersonalOrdersInfo then return nil end
+    local ok, infos = pcall(C_CraftingOrders.GetPersonalOrdersInfo)
+    if not ok or type(infos) ~= "table" then return nil end
+    local total = 0
+    for _, info in ipairs(infos) do
+        if type(info) == "table" then
+            total = total + (tonumber(info.numPersonalOrders) or tonumber(info.numOrders) or 0)
+        end
+    end
+    return total
+end
+
 -- Event-driven safety net for cases where the Show/Hide/SetShown hooks miss a
 -- transition (e.g. Blizzard handled the event before we installed the hook, or
 -- SetShown short-circuited because the native was already at the target state).
 -- Runs after a 0-frame delay so Blizzard's own event handler updates IsShown()
--- first, then we mirror that state into the proxy.
+-- first, then we mirror that state into the proxy. Prefers the API count over
+-- IsShown() because the native frame's XML default is shown=true even on
+-- characters with zero pending orders, which would otherwise flash the proxy
+-- on after PLAYER_ENTERING_WORLD.
 local function SyncCraftingOrderFromNative()
     local native = GetNativeCraftingOrderIcon()
     if not native then return end
-    local shown = native:IsShown() and true or false
+    local count = GetPendingPersonalOrderCount()
+    local shown
+    if count ~= nil then
+        shown = count > 0
+    else
+        shown = native:IsShown() and true or false
+    end
     if Vista._craftingOrderVisible ~= shown then
         Vista._craftingOrderVisible = shown
         UpdateCraftingOrderIndicator()
@@ -1549,7 +1653,11 @@ local function SuppressBlizzardCraftingOrder()
             pcall(function()
                 hooksecurefunc(native, "Show", function(self)
                     self:SetAlpha(0)
-                    Vista._craftingOrderVisible = true
+                    -- Blizzard's event handler may call Show() unconditionally on
+                    -- CRAFTINGORDERS_UPDATE_* fires; trust the API count over the
+                    -- bare Show call to avoid flashing the proxy on for 0 orders.
+                    local count = GetPendingPersonalOrderCount()
+                    Vista._craftingOrderVisible = (count == nil) or (count > 0)
                     UpdateCraftingOrderIndicator()
                 end)
                 hooksecurefunc(native, "Hide", function(_)
@@ -1557,7 +1665,12 @@ local function SuppressBlizzardCraftingOrder()
                     UpdateCraftingOrderIndicator()
                 end)
                 hooksecurefunc(native, "SetShown", function(_, shown)
-                    Vista._craftingOrderVisible = shown and true or false
+                    if shown then
+                        local count = GetPendingPersonalOrderCount()
+                        Vista._craftingOrderVisible = (count == nil) or (count > 0)
+                    else
+                        Vista._craftingOrderVisible = false
+                    end
                     UpdateCraftingOrderIndicator()
                 end)
             end)
