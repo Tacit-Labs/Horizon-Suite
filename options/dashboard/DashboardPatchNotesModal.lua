@@ -20,14 +20,24 @@ if not addon then return end
 
 local L = (addon.L) or setmetatable({}, { __index = function(_, k) return k end })
 
-local MODAL_W            = 640
-local MODAL_H            = 540
+local MODAL_W            = 544
+local MODAL_H            = 459
 local MODAL_PAD          = 18
-local MODAL_TITLE_H      = 36
+local MODAL_TITLE_H      = 50
 local MODAL_FOOTER_H     = 56
-local MODAL_DISMISS_W    = 140
-local MODAL_DISMISS_H    = 30
+local MODAL_LOGO_SIZE    = 32
+local MODAL_LOGO_PATH    = "Interface\\AddOns\\HorizonSuite\\HorizonLogo"
+local MODAL_BTN_W        = 168
+local MODAL_BTN_H        = 24
+local MODAL_BTN_GAP      = 12
 local MODAL_FRAME_NAME   = "HorizonSuitePatchNotesModal"
+
+-- Match core/UrlCopyDialog.lua chrome — same button look used by every Horizon
+-- popup (footer link copy boxes, etc.) so dialog buttons feel uniform.
+local MODAL_BTN_FONT     = "Fonts\\FRIZQT__.TTF"
+local MODAL_BTN_FONT_SZ  = 10
+local MODAL_BTN_BG_COL   = { 0.20, 0.20, 0.26, 0.60 }
+local MODAL_BTN_TXT_COL  = { 0.90, 0.90, 0.92 }
 
 -- Inherit the dashboard's accent color helper if present; otherwise fall back
 -- to the white-default and a hardcoded dim accent so the modal still renders
@@ -42,6 +52,36 @@ local function ResolveAccentColor()
         if r and g and b then return r, g, b end
     end
     return 0.45, 0.7, 1.0
+end
+
+-- Build one popup-style footer button. Background defaults to the muted
+-- bevel; hover shifts to a 50%-tinted version of the live accent. The accent
+-- is read at hover-time so class-colour changes apply immediately.
+local function CreateModalFooterButton(parent, text, onClick)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(MODAL_BTN_W, MODAL_BTN_H)
+
+    local bg = btn:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(unpack(MODAL_BTN_BG_COL))
+    btn._bg = bg
+
+    local lbl = btn:CreateFontString(nil, "OVERLAY")
+    lbl:SetFont(MODAL_BTN_FONT, MODAL_BTN_FONT_SZ, "")
+    lbl:SetPoint("CENTER")
+    lbl:SetText(text)
+    lbl:SetTextColor(unpack(MODAL_BTN_TXT_COL))
+    btn._label = lbl
+
+    btn:SetScript("OnEnter", function()
+        local ar, ag, ab = ResolveAccentColor()
+        bg:SetColorTexture(ar * 0.5, ag * 0.5, ab * 0.5, 0.5)
+    end)
+    btn:SetScript("OnLeave", function()
+        bg:SetColorTexture(unpack(MODAL_BTN_BG_COL))
+    end)
+    btn:SetScript("OnClick", onClick)
+    return btn
 end
 
 local modal -- lazy-built singleton
@@ -85,14 +125,32 @@ local function BuildModal()
     f:SetBackdropColor(0.06, 0.06, 0.08, 0.97)
     f:SetBackdropBorderColor(0.18, 0.20, 0.24, 0.85)
 
-    -- Header bar: accent-coloured title + version, with an underline rule.
-    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", f, "TOPLEFT", MODAL_PAD, -MODAL_PAD)
+    -- Header bar: Horizon Suite logo + brand line on top, accent subtitle
+    -- ("Patch Notes — v4.15.5") below — mirrors the URL-copy popup chrome so
+    -- branding is consistent across Horizon dialogs.
+    local logo = f:CreateTexture(nil, "ARTWORK")
+    logo:SetSize(MODAL_LOGO_SIZE, MODAL_LOGO_SIZE)
+    logo:SetPoint("TOPLEFT", f, "TOPLEFT", MODAL_PAD, -MODAL_PAD)
+    logo:SetTexture(MODAL_LOGO_PATH)
+    f._logo = logo
+
+    local brand = f:CreateFontString(nil, "OVERLAY")
+    brand:SetFont("Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
+    brand:SetPoint("TOPLEFT", logo, "TOPRIGHT", 10, -2)
+    brand:SetText((L["NAME_ADDON"] or "Horizon Suite"):upper())
+    brand:SetTextColor(0.88, 0.88, 0.92)
+    f._brand = brand
+
+    -- Modal-specific subtitle: "What's New" + version, accent coloured.
+    local title = f:CreateFontString(nil, "OVERLAY")
+    title:SetFont("Fonts\\ARIALN.TTF", 11, "")
+    title:SetPoint("TOPLEFT", brand, "BOTTOMLEFT", 0, -3)
     title:SetText(L["DASH_WHATS_NEW"] or "What's New")
     f._title = title
 
-    local versionLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    versionLabel:SetPoint("LEFT", title, "RIGHT", 8, 0)
+    local versionLabel = f:CreateFontString(nil, "OVERLAY")
+    versionLabel:SetFont("Fonts\\ARIALN.TTF", 11, "")
+    versionLabel:SetPoint("LEFT", title, "RIGHT", 6, 0)
     versionLabel:SetTextColor(0.55, 0.55, 0.62, 1)
     f._versionLabel = versionLabel
 
@@ -142,18 +200,36 @@ local function BuildModal()
         addon.Dashboard_ApplySmoothScroll(scroll, content, 60, true)
     end
 
-    -- Footer rule + dismiss button.
+    -- Footer rule + popup-style action buttons.
     local footRule = f:CreateTexture(nil, "ARTWORK")
     footRule:SetHeight(1)
     footRule:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", MODAL_PAD, MODAL_FOOTER_H - 8)
     footRule:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -MODAL_PAD, MODAL_FOOTER_H - 8)
     f._footRule = footRule
 
-    local dismiss = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    dismiss:SetSize(MODAL_DISMISS_W, MODAL_DISMISS_H)
-    dismiss:SetPoint("BOTTOM", f, "BOTTOM", 0, MODAL_PAD)
-    dismiss:SetText(L["DASH_PATCH_NOTES_DISMISS"] or "Got it!")
-    dismiss:SetScript("OnClick", function() addon.PatchNotes_HideModal() end)
+    -- Footer holds two popup-style buttons centred as a pair:
+    -- [View all patch notes] [Dismiss]. Same chrome as the URL-copy dialog so
+    -- every Horizon popup's footer feels uniform.
+    local viewAll = CreateModalFooterButton(
+        f,
+        L["DASH_PATCH_NOTES_VIEW_ALL"] or "View all patch notes",
+        function()
+            if modal and modal.frame   then modal.frame:Hide()   end
+            if modal and modal.blocker then modal.blocker:Hide() end
+            if addon.ShowPatchNotes then addon.ShowPatchNotes() end
+        end
+    )
+    viewAll:SetPoint("BOTTOM", f, "BOTTOM",
+                     -((MODAL_BTN_W + MODAL_BTN_GAP) / 2), MODAL_PAD)
+    f._viewAll = viewAll
+
+    local dismiss = CreateModalFooterButton(
+        f,
+        L["DASH_PATCH_NOTES_DISMISS"] or "Dismiss",
+        function() addon.PatchNotes_HideModal() end
+    )
+    dismiss:SetPoint("BOTTOM", f, "BOTTOM",
+                     ((MODAL_BTN_W + MODAL_BTN_GAP) / 2), MODAL_PAD)
     f._dismiss = dismiss
 
     -- Esc closes the modal. EnableKeyboard / SetPropagateKeyboardInput are
@@ -212,6 +288,7 @@ local function RebuildContent(m, version)
         parent         = m.content,
         width          = m.contentW,
         version        = version or "",
+        maxVersions    = 1,
         GetAccentColor = ResolveAccentColor,
         accentRefs     = m.accentRefs,
         typoRefs       = m.typoRefs,

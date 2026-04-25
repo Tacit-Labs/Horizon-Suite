@@ -64,6 +64,8 @@ addon.PatchNotes_CapitalizeAfterModulePrefix = CapitalizeAfterModulePrefix
 --   parent         = Frame                -- where the inner container is parented
 --   width          = number               -- content width in px
 --   version        = string               -- target version, e.g. "4.15.0"
+--   maxVersions    = number?              -- if set, render only the N most recent
+--                                            versions (modal uses 1)
 --   GetAccentColor = function() -> r,g,b  -- 0..1 RGB
 --   accentRefs     = {                    -- caller-owned arrays for accent refresh
 --                       sectionLabels = {}, bullets = {}, rules = {} }
@@ -79,6 +81,7 @@ function addon.PatchNotes_BuildContent(opts)
     local parent         = opts.parent
     local cW             = opts.width or 600
     local currentVersion = opts.version or ""
+    local maxVersions    = opts.maxVersions
     local GetAccentColor = opts.GetAccentColor or function() return 1, 1, 1 end
     local accentRefs     = opts.accentRefs or {}
     accentRefs.sectionLabels = accentRefs.sectionLabels or {}
@@ -141,6 +144,10 @@ function addon.PatchNotes_BuildContent(opts)
         if a2 ~= b2 then return a2 > b2 end
         return a3 > b3
     end)
+
+    if type(maxVersions) == "number" and maxVersions > 0 and #versions > maxVersions then
+        for i = #versions, maxVersions + 1, -1 do versions[i] = nil end
+    end
 
     if #versions == 0 then
         local lbl = inner:CreateFontString(nil, "OVERLAY")
