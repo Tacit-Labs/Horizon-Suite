@@ -86,6 +86,156 @@ addon.ShowDashboard = function()
 end
 _G.HorizonSuite_ShowDashboard = addon.ShowDashboard
 
+-- dashboardLastView (root SavedVar) records the user's last "real" location
+-- so the dashboard can resume there. Schema:
+--   { kind = "news" }
+--   { kind = "dashboard" }
+--   { kind = "whatsnew" }                                      -- Patch Notes
+--   { kind = "module",   name = ..., moduleKey = ... }         -- module landing
+--   { kind = "category", modName = ..., catName = ...,
+--                        moduleKey = ... }                     -- category drill-down
+-- Welcome and Search are intentionally NOT resume targets:
+--   - Welcome is one-shot onboarding gated by welcomeSeen.
+--   - Search is transient (no meaningful state to restore).
+-- Stale string values from earlier builds are coerced to { kind = <string> }.
+
+local SIMPLE_KIND_BY_FN = {
+    ShowNews       = "news",
+    ShowDashboard  = "dashboard",
+    ShowPatchNotes = "whatsnew",
+}
+
+local function ReadLastView(db)
+    local v = db and db.dashboardLastView or nil
+    if type(v) == "string" then return { kind = v } end
+    if type(v) == "table" then return v end
+    return nil
+end
+
+-- Find a category by name in the global category list and return its
+-- options (resolving function-typed options).
+local function FindCategoryOptions(catName)
+    if not catName or not addon.OptionCategories then return nil end
+    for _, cat in ipairs(addon.OptionCategories) do
+        if cat.name == catName then
+            local opts = type(cat.options) == "function" and cat.options() or cat.options
+            return opts
+        end
+    end
+    return nil
+end
+
+-- Returns a zero-arg function that opens the resolved entry view.
+-- Rules:
+--   1. First-ever open (no welcomeSeen) → Welcome.
+--   2. Otherwise replay dashboardLastView if it's known and resumable.
+--   3. Fallback: News (post-onboarding home).
+local function ResolveEntryAction(frame)
+    local db = _G[addon.DB_NAME]
+    if not db then
+        if frame.ShowWelcome then return frame.ShowWelcome end
+        return frame.ShowDashboard or function() end
+    end
+
+    if not db.welcomeSeen then
+        return frame.ShowWelcome or frame.ShowNews or frame.ShowDashboard
+    end
+
+    local last = ReadLastView(db)
+    if last then
+        local kind = last.kind
+        if kind == "news" and frame.ShowNews then
+            return frame.ShowNews
+        elseif kind == "dashboard" and frame.ShowDashboard then
+            return frame.ShowDashboard
+        elseif kind == "whatsnew" and frame.ShowPatchNotes then
+            return frame.ShowPatchNotes
+        elseif kind == "module" and frame.OpenModule and last.moduleKey then
+            local name, mk = last.name or last.moduleKey, last.moduleKey
+            return function() frame.OpenModule(name, mk) end
+        elseif kind == "category" and frame.OpenCategoryDetail and last.catName then
+            local options = FindCategoryOptions(last.catName)
+            if options then
+                local modName, catName = last.modName or "", last.catName
+                local mk = last.moduleKey
+                return function()
+                    -- Prime f.currentModuleKey + sidebar context, then jump into the category.
+                    if mk and frame.OpenModule then
+                        frame.OpenModule(modName ~= "" and modName or mk, mk, true)
+                    end
+                    frame.OpenCategoryDetail(modName, catName, options)
+                end
+            end
+        end
+    end
+
+    return frame.ShowNews or frame.ShowDashboard
+end
+
+-- Wrap navigation entry points once per frame so each call snapshots
+-- dashboardLastView. ShowWelcome only flips welcomeSeen (one-shot marker).
+local function InstallFlowGatingHooks(frame)
+    if not frame or frame._flowGatingHooked then return end
+
+    if type(frame.ShowWelcome) == "function" then
+        local origWelcome = frame.ShowWelcome
+        frame.ShowWelcome = function(...)
+            origWelcome(...)
+            local db = _G[addon.DB_NAME]
+            if db then db.welcomeSeen = true end
+        end
+    end
+
+    for fnName, kind in pairs(SIMPLE_KIND_BY_FN) do
+        local orig = frame[fnName]
+        if type(orig) == "function" then
+            frame[fnName] = function(...)
+                orig(...)
+                local db = _G[addon.DB_NAME]
+                if db then db.dashboardLastView = { kind = kind } end
+            end
+        end
+    end
+
+    -- Module landing pages (sidebar header / standalone module click).
+    -- For sidebar subcategory clicks the call site fires OpenModule(...,true)
+    -- immediately followed by OpenCategoryDetail — the latter overwrites this
+    -- write with kind = "category", which is what we want.
+    if type(frame.OpenModule) == "function" then
+        local origOpen = frame.OpenModule
+        frame.OpenModule = function(name, moduleKey, skipDetailBuild)
+            origOpen(name, moduleKey, skipDetailBuild)
+            local db = _G[addon.DB_NAME]
+            if db and moduleKey then
+                db.dashboardLastView = {
+                    kind = "module",
+                    name = name,
+                    moduleKey = moduleKey,
+                }
+            end
+        end
+    end
+
+    -- Category drill-down (subcategory tile or sidebar sub-row click).
+    if type(frame.OpenCategoryDetail) == "function" then
+        local origCat = frame.OpenCategoryDetail
+        frame.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
+            origCat(modName, catName, options, skipEntranceCascade)
+            local db = _G[addon.DB_NAME]
+            if db and catName then
+                db.dashboardLastView = {
+                    kind = "category",
+                    modName = modName,
+                    catName = catName,
+                    moduleKey = frame.currentModuleKey,
+                }
+            end
+        end
+    end
+
+    frame._flowGatingHooked = true
+end
+
 SLASH_HSDASH1 = "/hsd"
 SLASH_HSDASH2 = "/dash"
 SlashCmdList["HSDASH"] = function(msg)
@@ -98,10 +248,14 @@ SlashCmdList["HSDASH"] = function(msg)
                 f = addon.Dashboard_BuildMainFrame()
             end
         end
-        if f and f.ShowWelcome then
-            f.ShowWelcome()
-        elseif f and f.ShowDashboard then
-            f.ShowDashboard()
+        if f then
+            InstallFlowGatingHooks(f)
+            local action = ResolveEntryAction(f)
+            if type(action) == "function" then
+                action()
+            elseif f.ShowDashboard then
+                f.ShowDashboard()
+            end
         end
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
         if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then

@@ -784,6 +784,12 @@ EnsureProfilesAndMigrateLegacy = function()
         dashboardTopLeftX  = true,
         dashboardTopLeftY  = true,
 
+        -- Dashboard flow gating (root-level / global across characters):
+        -- welcomeSeen flips true once the user lands on Welcome; subsequent opens
+        -- skip onboarding and resolve via dashboardLastView (defaulting to News).
+        welcomeSeen        = true,
+        dashboardLastView  = true,
+
         modules = true,
 
         profiles = true,

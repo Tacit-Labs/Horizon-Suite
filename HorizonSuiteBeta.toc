@@ -112,5 +112,7 @@ options/dashboard/DashboardWelcomeView.lua
 options/dashboard/DashboardHomeWelcome.lua
 options/dashboard/DashboardModuleGuide.lua
 options/dashboard/DashboardPreviewPullout.lua
+options/dashboard/DashboardPatchNotesContent.lua
+options/dashboard/DashboardPatchNotesModal.lua
 options/dashboard/DashboardFrame.lua
 options/dashboard/DashboardPanel.lua
