@@ -2369,6 +2369,11 @@ local function BuildEntrySignature(qData, groupKey)
         tostring(qData.outputQuality or ""),
         tostring(qData.tierSpellID or ""),
     }
+    -- Recipe entries gate the AH search button on AuctionHouseFrame:IsShown(); fold that
+    -- into the signature so AUCTION_HOUSE_SHOW/CLOSED actually re-populates the row.
+    if qData.isRecipe then
+        parts[#parts + 1] = (AuctionHouseFrame and AuctionHouseFrame:IsShown()) and "ah1" or "ah0"
+    end
     local objs = qData.objectives
     if objs then
         for i = 1, #objs do
