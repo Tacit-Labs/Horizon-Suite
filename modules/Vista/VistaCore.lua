@@ -1314,7 +1314,16 @@ local function CreateMailIndicator()
     mailFrame:EnableMouse(true)
     mailFrame:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
-        GameTooltip:SetText("You have mail"); GameTooltip:Show()
+        local sender1, sender2, sender3 = GetLatestThreeSenders()
+        if sender1 or sender2 or sender3 then
+            GameTooltip:SetText(HAVE_MAIL_FROM or "Unread mail from:")
+            if sender1 then GameTooltip:AddLine(sender1, 1, 1, 1) end
+            if sender2 then GameTooltip:AddLine(sender2, 1, 1, 1) end
+            if sender3 then GameTooltip:AddLine(sender3, 1, 1, 1) end
+        else
+            GameTooltip:SetText(HAVE_MAIL or "You have mail")
+        end
+        GameTooltip:Show()
     end)
     mailFrame:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
