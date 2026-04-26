@@ -26,15 +26,14 @@ jobs:
       - name: WoW Packager
         uses: BigWigsMods/packager@v2.5.1
 
+      - name: Build Discord release payload
+        if: success()
+        run: bash .release/build-release-payload.sh "${GITHUB_REF_NAME}"
+
       - name: Post to Discord
         if: success()
         continue-on-error: true
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_RELEASE }}
-          username: "Addon Release Bot"
-          avatar-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-          embed-title: "New Release: ${{ github.event.repository.name }} — ${{ github.ref_name }}"
-          embed-url: "https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
-          embed-description: |
-            **Full release.** [Download on GitHub](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) · [CurseForge](https://www.curseforge.com/projects/1457844) · [Wago](https://addons.wago.io/addons/jK8gY56y)
+          raw-data: .release/discord-release-payload.json
