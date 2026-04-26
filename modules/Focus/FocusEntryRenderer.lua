@@ -1647,10 +1647,21 @@ local function PopulateEntry(entry, questData, groupKey)
     end
 
     -- Quest icon button: configurable icon-click action for quest and appearance rows.
+    -- Read fresh values from questData here — entry.questID / entry.isAppearance are not
+    -- refreshed until the assignment block at the end of PopulateEntry, so a pooled frame
+    -- being reused for a different row would otherwise gate visibility on stale state and
+    -- the click overlay would be hidden (or shown on the wrong rows).
     if entry.questIconBtn then
         local iconFocus = addon.focus.UseFocusIconClickButton and addon.focus.UseFocusIconClickButton()
-        local showQuestIcon = iconFocus and entry.questID and entry.questTypeIcon:IsShown()
-        local showAppearanceIcon = iconFocus and (questData.isAppearance or questData.category == "APPEARANCE") and entry.questTypeIcon:IsShown()
+        local isAppearanceRow = (questData.isAppearance or questData.category == "APPEARANCE") and true or false
+        local isQuestRow = (not isAppearanceRow)
+            and (questData.questID ~= nil)
+            and not (questData.isRare or questData.isRareLoot or questData.isAchievement
+                or questData.isEndeavor or questData.isDecor or questData.isRecipe
+                or questData.isAdventureGuide)
+        local iconShown = entry.questTypeIcon:IsShown()
+        local showQuestIcon = iconFocus and isQuestRow and iconShown
+        local showAppearanceIcon = iconFocus and isAppearanceRow and iconShown
         if showQuestIcon or showAppearanceIcon then
             entry.questIconBtn:Show()
         else
