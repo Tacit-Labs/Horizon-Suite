@@ -4,8 +4,21 @@
     Restore per-type when that type is toggled off (user gets default WoW).
     Restore all when Presence is disabled.
     Frames: ZoneTextFrame, SubZoneTextFrame, RaidBossEmoteFrame, LevelUpDisplay,
-    BossBanner, ObjectiveTrackerBonusBannerFrame, ObjectiveTrackerTopBannerFrame,
+    BossBanner, ObjectiveTrackerTopBannerFrame,
     EventToastManagerFrame, WorldQuestCompleteBannerFrame.
+
+    ObjectiveTrackerBonusBannerFrame is intentionally NOT suppressed: it carries
+    bonus objective banners and the Midnight Abundance / Prey information panel
+    and pickup toasts (issue #47). Presence does not yet have a custom toast for
+    Abundance, so we leave the native UI intact.
+
+    EventToastManagerFrame uses "selective" suppression: the frame keeps its
+    normal parent, and our DisplayToast / OnShow / Show hooks hide it only when
+    the currently-displayed toast is NOT an Abundance toast. This lets Midnight
+    Abundance completion / turn-in toasts render natively while everything else
+    Presence already replaces (achievements, quest events, scenario stages)
+    stays hidden. Abundance detection is string-based on localized "Abundance"
+    across toastInfo text fields, with a best-effort Enum.EventToastType probe.
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -21,8 +34,111 @@ local originalAlphas = {}
 local hookedShowFrames = {}  -- frames with persistent hooksecurefunc("Show") applied
 local ZONE_TEXT_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
 
+-- Selective EventToastManagerFrame state. When true, our hooks hide the manager
+-- for every toast except Abundance. See "selective" note in file header.
+local eventToastSelectiveSuppressed = false
+local lastDisplayToastWasAbundance = false
+
+-- Diagnostic: when true, the DisplayToast hook dumps each toastInfo payload
+-- to chat. Toggle via /h debug presence debugtoasts. Used to identify the
+-- exact field shape for Abundance toasts so IsAbundanceEventToast can be
+-- tightened. Off by default.
+local debugEventToastLogging = false
+
+-- Fields on toastInfo / currentDisplayingToast.toastInfo that may carry user
+-- facing text. We scan each for the localized "Abundance" needle.
+local ABUNDANCE_TEXT_FIELDS = {
+    "primaryText", "toastString", "toastString1", "toastString2",
+    "title", "subtitle", "description", "text", "eventDescription",
+}
+-- Best-effort Enum.EventToastType names; we don't know the exact enum for
+-- Midnight Abundance toasts, so probe a handful.
+local ABUNDANCE_ENUM_NAMES = {
+    "AbundanceToast", "AbundanceHeld", "AbundanceHeldFinal",
+    "Abundance", "AbundanceCollected", "AbundanceTurnIn",
+}
+
 local function isTypeEnabled(key, fallbackKey, fallbackDefault)
     return addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
+end
+
+local function GetAbundanceNeedle()
+    local L = addon.L or {}
+    local n = L["UI_ABUNDANCE"]
+    if type(n) ~= "string" or n == "" then n = "Abundance" end
+    return n:lower()
+end
+
+--- True when the given toastInfo table looks like a Midnight Abundance toast.
+--- Detection is string-based on localized "Abundance" across common text
+--- fields, with a best-effort Enum.EventToastType name probe as a bonus.
+--- @param toastInfo table|nil
+--- @return boolean
+local function IsAbundanceEventToast(toastInfo)
+    if type(toastInfo) ~= "table" then return false end
+    local needle = GetAbundanceNeedle()
+    for i = 1, #ABUNDANCE_TEXT_FIELDS do
+        local v = toastInfo[ABUNDANCE_TEXT_FIELDS[i]]
+        if type(v) == "string" and v:lower():find(needle, 1, true) then
+            return true
+        end
+    end
+    if type(toastInfo.type) == "number" and Enum and Enum.EventToastType then
+        for i = 1, #ABUNDANCE_ENUM_NAMES do
+            local v = Enum.EventToastType[ABUNDANCE_ENUM_NAMES[i]]
+            if v ~= nil and v == toastInfo.type then return true end
+        end
+    end
+    return false
+end
+
+--- True when EventToastManagerFrame is currently displaying an Abundance toast.
+--- Used from hooks that don't receive toastInfo (ShowNextToast, OnShow, etc.).
+--- @param manager table|nil EventToastManagerFrame
+--- @return boolean
+local function IsCurrentEventToastAbundance(manager)
+    if type(manager) ~= "table" then return false end
+    local t = manager.currentDisplayingToast
+    if t and type(t) == "table" and IsAbundanceEventToast(t.toastInfo) then
+        return true
+    end
+    return false
+end
+
+--- Diagnostic helper: dump every scalar field of a toastInfo table to chat.
+--- Guarded by debugEventToastLogging. Used to reverse-engineer the exact
+--- toast payload shape for Midnight Abundance toasts.
+--- @param label string
+--- @param info table|nil
+local function DumpToastInfo(label, info)
+    if not debugEventToastLogging then return end
+    local p = addon.HSPrint or print
+    if type(info) ~= "table" then
+        p(("|cFFFFD100[Presence:toasts]|r %s toastInfo=%s"):format(label, tostring(info)))
+        return
+    end
+    p(("|cFFFFD100[Presence:toasts]|r %s:"):format(label))
+    local count = 0
+    for k, v in pairs(info) do
+        local tv = type(v)
+        if tv == "string" or tv == "number" or tv == "boolean" then
+            p(("  %s (%s) = %s"):format(tostring(k), tv, tostring(v)))
+        elseif tv == "table" then
+            p(("  %s (table) = {...}"):format(tostring(k)))
+        else
+            p(("  %s (%s)"):format(tostring(k), tv))
+        end
+        count = count + 1
+    end
+    if count == 0 then p("  <empty table>") end
+end
+
+--- Exported: toggle toastInfo logging. Returns new state. Invoked via
+--- /h debug presence debugtoasts.
+--- @return boolean
+local function ToggleDebugEventToasts()
+    debugEventToastLogging = not debugEventToastLogging
+    return debugEventToastLogging
 end
 
 -- ============================================================================
@@ -89,6 +205,25 @@ local function RestoreBlizzardFrame(frame)
     originalAlphas[frame] = nil
 end
 
+-- Selective EventToastManagerFrame suppression: DO NOT reparent or mass-hide
+-- the frame. Our permanent DisplayToast / ShowNextToast / ShowToast /
+-- ReleaseToasts hooks (installed by HookEventToastManager) inspect each toast
+-- and let Abundance render while hiding everything else when this flag is on.
+local function SuppressEventToastManagerSelective(etm)
+    eventToastSelectiveSuppressed = true
+    if not etm then return end
+    -- Clear any legacy reparent/kill from an older session so Abundance can render.
+    if suppressedFrames[etm] then RestoreBlizzardFrame(etm) end
+end
+
+local function RestoreEventToastManagerSelective(etm)
+    eventToastSelectiveSuppressed = false
+    lastDisplayToastWasAbundance = false
+    if etm then
+        pcall(function() etm:SetAlpha(1) end)
+    end
+end
+
 -- ============================================================================
 -- Public functions
 -- ============================================================================
@@ -137,13 +272,15 @@ local function ApplyBlizzardSuppression()
         RestoreBlizzardFrame(bossEmoteFrame)
     end
 
-    -- Event toasts (achievements, quest accept/complete/progress, scenario) - shared frame
+    -- Event toasts (achievements, quest accept/complete/progress, scenario) - shared frame.
+    -- Selective suppression: Abundance toasts pass through natively (#47);
+    -- everything else is hidden by the DisplayToast / OnShow hooks.
     local anyToast = (addon.Presence and addon.Presence.IsAnyToastEnabled and addon.Presence.IsAnyToastEnabled()) or false
     local eventToastFrame = EventToastManagerFrame or _G["EventToastManagerFrame"]
     if anyToast then
-        KillBlizzardFrame(eventToastFrame)
+        SuppressEventToastManagerSelective(eventToastFrame)
     else
-        RestoreBlizzardFrame(eventToastFrame)
+        RestoreEventToastManagerSelective(eventToastFrame)
     end
 
     -- World quest complete banner (separate from EventToastManagerFrame)
@@ -157,9 +294,10 @@ local function ApplyBlizzardSuppression()
 
     -- Always suppress when Presence is on (no per-type mapping)
     KillBlizzardFrame(BossBanner)
-    KillBlizzardFrame(ObjectiveTrackerBonusBannerFrame)
     local topBannerFrame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"]
     if topBannerFrame then KillBlizzardFrame(topBannerFrame) end
+    -- Abundance / bonus objective banner (ObjectiveTrackerBonusBannerFrame)
+    -- is intentionally left alone; see file header.
 end
 
 --- Re-apply zone frame suppression. Call when zone events fire to ensure frames stay hidden after Blizzard may have shown them.
@@ -190,7 +328,11 @@ local function RestoreBlizzard()
     RestoreBlizzardFrame(SubZoneTextFrame)
     RestoreBlizzardFrame(RaidBossEmoteFrame or _G["RaidBossEmoteFrame"])
     RestoreBlizzardFrame(LevelUpDisplay or _G["LevelUpDisplay"])
-    RestoreBlizzardFrame(EventToastManagerFrame or _G["EventToastManagerFrame"])
+    local etm = EventToastManagerFrame or _G["EventToastManagerFrame"]
+    -- Belt-and-braces: also call RestoreBlizzardFrame in case a pre-#47 install
+    -- had the manager in suppressedFrames from the old KillBlizzardFrame path.
+    if etm and suppressedFrames[etm] then RestoreBlizzardFrame(etm) end
+    RestoreEventToastManagerSelective(etm)
     RestoreBlizzardFrame(BossBanner)
     RestoreBlizzardFrame(ObjectiveTrackerBonusBannerFrame)
     local topBannerFrame = ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"]
@@ -233,7 +375,9 @@ local function DumpBlizzardSuppression(p)
 
     local anyToast = (addon.Presence and addon.Presence.IsAnyToastEnabled and addon.Presence.IsAnyToastEnabled()) or false
     local eventToastFrame = EventToastManagerFrame or _G["EventToastManagerFrame"]
-    p("Event toasts:  any=" .. tostring(anyToast) .. " (ach/quest/scenario) | EventToastManagerFrame=" .. frameState(eventToastFrame))
+    local selectiveLabel = eventToastSelectiveSuppressed and "SELECTIVE (Abundance passthrough)" or "off"
+    p("Event toasts:  any=" .. tostring(anyToast) .. " (ach/quest/scenario) | EventToastManagerFrame=" .. selectiveLabel
+        .. " | legacy-kill=" .. frameState(eventToastFrame))
 
     local wqOn = isTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)
     local wqFrame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
@@ -264,19 +408,90 @@ local reloadSweepTicker = nil
 local eventToastHooked = false
 
 local function SweepSuppressedFrames()
+    local etm = EventToastManagerFrame or _G["EventToastManagerFrame"]
     for frame in pairs(suppressedFrames) do
-        pcall(function()
-            if frame:IsShown() then
-                frame:Hide()
-            end
-            frame:SetAlpha(0)
-            if frame.GetChildren then
-                for _, child in ipairs({ frame:GetChildren() }) do
-                    if child and child.IsShown and child:IsShown() then
-                        pcall(function() child:Hide() end)
+        -- Carve-out: don't clobber EventToastManagerFrame if it's currently
+        -- rendering an Abundance toast. (Normally the manager isn't in
+        -- suppressedFrames under selective mode, but a pre-#47 install could
+        -- still have it here and the sweep runs before SuppressEventToastManagerSelective
+        -- clears that state.)
+        local skip = (frame == etm) and (lastDisplayToastWasAbundance or IsCurrentEventToastAbundance(frame))
+        if not skip then
+            pcall(function()
+                if frame:IsShown() then
+                    frame:Hide()
+                end
+                frame:SetAlpha(0)
+                if frame.GetChildren then
+                    for _, child in ipairs({ frame:GetChildren() }) do
+                        if child and child.IsShown and child:IsShown() then
+                            pcall(function() child:Hide() end)
+                        end
                     end
                 end
-            end
+            end)
+        end
+    end
+end
+
+-- Selective event-toast hide gate. Called from each hook:
+-- - returns without hiding if this is an Abundance toast (passthrough, #47)
+-- - returns without hiding if selective suppression is off (Presence toasts disabled)
+-- - otherwise hides the manager so non-Abundance toasts Presence already
+--   replaces (achievement/quest/scenario) don't double up.
+local function MaybeHideEventToastManager(self, isAbundance)
+    if isAbundance then
+        pcall(function()
+            self:SetAlpha(1)
+            if not self:IsShown() then self:Show() end
+        end)
+        return
+    end
+    if not eventToastSelectiveSuppressed then return end
+    pcall(function()
+        self:Hide()
+        self:SetAlpha(0)
+    end)
+end
+
+-- Diagnostic: hook ObjectiveTrackerTopBannerFrame / ObjectiveTrackerBonusBannerFrame
+-- PlayBanner so we can see whether Abundance completion fires through either
+-- banner pathway (as opposed to EventToastManagerFrame). Gated on
+-- debugEventToastLogging; off by default.
+local bannerDiagnosticHooked = false
+local function HookBannerDiagnostics()
+    if bannerDiagnosticHooked then return end
+    bannerDiagnosticHooked = true
+    local function hook(frame, frameName)
+        if not frame or not frame.PlayBanner then return end
+        pcall(function()
+            hooksecurefunc(frame, "PlayBanner", function(self, data)
+                if not debugEventToastLogging then return end
+                local p = addon.HSPrint or print
+                p(("|cFFFFD100[Presence:banner]|r %s:PlayBanner fired"):format(frameName))
+                DumpToastInfo(frameName .. ".PlayBanner.data", data)
+            end)
+        end)
+        pcall(function()
+            hooksecurefunc(frame, "Show", function(self)
+                if not debugEventToastLogging then return end
+                local p = addon.HSPrint or print
+                p(("|cFFFFD100[Presence:banner]|r %s:Show fired (alpha=%s, shown=%s)"):format(
+                    frameName, tostring(self:GetAlpha()), tostring(self:IsShown())))
+            end)
+        end)
+    end
+    hook(ObjectiveTrackerTopBannerFrame or _G["ObjectiveTrackerTopBannerFrame"], "ObjectiveTrackerTopBannerFrame")
+    hook(ObjectiveTrackerBonusBannerFrame or _G["ObjectiveTrackerBonusBannerFrame"], "ObjectiveTrackerBonusBannerFrame")
+    -- Also watch the widget top-center container; Abundance may route through widgets.
+    local widgetContainer = UIWidgetTopCenterContainerFrame or _G["UIWidgetTopCenterContainerFrame"]
+    if widgetContainer and widgetContainer.Show then
+        pcall(function()
+            hooksecurefunc(widgetContainer, "Show", function(self)
+                if not debugEventToastLogging then return end
+                local p = addon.HSPrint or print
+                p("|cFFFFD100[Presence:banner]|r UIWidgetTopCenterContainerFrame:Show fired")
+            end)
         end)
     end
 end
@@ -289,13 +504,19 @@ HookEventToastManager = function()
 
     if etm.DisplayToast then
         pcall(function()
-            hooksecurefunc(etm, "DisplayToast", function(self)
-                if suppressedFrames[self] then
-                    pcall(function()
-                        self:Hide()
-                        self:SetAlpha(0)
-                    end)
+            hooksecurefunc(etm, "DisplayToast", function(self, toastInfo)
+                local isAbundance = IsAbundanceEventToast(toastInfo) or IsCurrentEventToastAbundance(self)
+                lastDisplayToastWasAbundance = isAbundance
+                if debugEventToastLogging then
+                    DumpToastInfo("DisplayToast.arg", toastInfo)
+                    local current = self and self.currentDisplayingToast
+                    DumpToastInfo("DisplayToast.current.toastInfo", current and current.toastInfo)
+                    local p = addon.HSPrint or print
+                    p(("|cFFFFD100[Presence:toasts]|r isAbundance=%s  -> %s"):format(
+                        tostring(isAbundance),
+                        isAbundance and "PASSTHROUGH" or (eventToastSelectiveSuppressed and "HIDE" or "allow (selective=off)")))
                 end
+                MaybeHideEventToastManager(self, isAbundance)
             end)
         end)
     end
@@ -304,12 +525,8 @@ HookEventToastManager = function()
         if etm[methodName] then
             pcall(function()
                 hooksecurefunc(etm, methodName, function(self)
-                    if suppressedFrames[self] then
-                        pcall(function()
-                            self:Hide()
-                            self:SetAlpha(0)
-                        end)
-                    end
+                    local isAbundance = IsCurrentEventToastAbundance(self) or lastDisplayToastWasAbundance
+                    MaybeHideEventToastManager(self, isAbundance)
                 end)
             end)
         end
@@ -359,6 +576,7 @@ reloadGuardFrame:SetScript("OnEvent", function(self, event)
     if not addon:IsModuleEnabled("presence") then return end
     ApplyBlizzardSuppression()
     HookEventToastManager()
+    HookBannerDiagnostics()
     SweepSuppressedFrames()
     DrainAlertFrameQueue()
     StartReloadSweep()
@@ -375,3 +593,4 @@ addon.Presence.ReapplyZoneSuppression   = ReapplyZoneSuppression
 addon.Presence.DumpBlizzardSuppression = DumpBlizzardSuppression
 addon.Presence.KillWorldQuestBanner     = KillWorldQuestBanner
 addon.Presence.HookEventToastManager   = HookEventToastManager
+addon.Presence.ToggleDebugEventToasts  = ToggleDebugEventToasts
