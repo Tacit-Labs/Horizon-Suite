@@ -15,6 +15,23 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.16.1"] = {
+        date = "2026-04-26",
+        {
+            section = "Improvements",
+            bullets = {
+                "Vista: mail icon tooltip now lists senders like the default Blizzard tooltip.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: quest icon clicks in Blizzard+ mode now reliably focus the quest, even after the slot previously rendered a non-quest row.",
+                "Focus: Auctionator search button now appears immediately on tracked recipe entries when the Auction House opens.",
+            },
+        },
+    },
+
     ["4.16.0"] = {
         date = "2026-04-25",
         {

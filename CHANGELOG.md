@@ -10,6 +10,19 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.16.1] – 2026-04-26
+
+### 🔧 Improvements
+
+- **(Vista)** Mail icon tooltip now lists senders like the default Blizzard tooltip — see who sent each piece of mail without opening the mailbox.
+
+### 🐛 Fixes
+
+- **(Focus)** Quest icon clicks in Blizzard+ mode now reliably focus the quest, even after the slot previously rendered a non-quest row.
+- **(Focus)** Auctionator search button now appears immediately on tracked recipe entries when the Auction House opens.
+
+---
+
 ## [4.16.0] – 2026-04-25
 
 ### ✨ New Features
