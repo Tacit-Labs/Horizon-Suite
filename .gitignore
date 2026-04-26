@@ -23,6 +23,7 @@ docs/
 # Generated release artifacts (local review only)
 .release/discord-issuelog-payload*.json
 .release/discord-issuelog-message-id
+.release/discord-release-payload.json
 
 # Local dev tools
 .luacheckrc
