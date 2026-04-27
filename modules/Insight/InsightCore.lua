@@ -353,9 +353,17 @@ local function OnItemTooltip(tooltip, data)
     local itemID = data and data.id
     if not itemID then return end
 
-    -- Base quality: TDP data.quality first, falling back to the third return
-    -- of C_Item.GetItemInfo (it's multi-return, not a table).
-    local baseQuality = data.quality
+    -- Base quality: prefer C_Item.GetItemInfo on the full hyperlink (it's
+    -- link-aware, so bonus IDs that bump or drop quality — e.g. a Tarnished
+    -- delve item lifted to rare by its bonus chain — are reflected). Fall
+    -- back to TDP data.quality, then itemID-only lookup which is base-only.
+    local baseQuality
+    local hyperlink = data.hyperlink
+    if hyperlink and C_Item and C_Item.GetItemInfo then
+        local _, _, q = C_Item.GetItemInfo(hyperlink)
+        baseQuality = q
+    end
+    if not baseQuality then baseQuality = data.quality end
     if not baseQuality and C_Item and C_Item.GetItemInfo then
         local _, _, q = C_Item.GetItemInfo(itemID)
         baseQuality = q

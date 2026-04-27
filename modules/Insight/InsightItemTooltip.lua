@@ -158,8 +158,11 @@ function Insight.DetectUpgradeTrackQuality(tooltip)
     pcall(function()
         Insight.ForTooltipLines(tooltip, function(_, left)
             if result or not left then return end
-            local txt = left:GetText()
-            if type(txt) ~= "string" or txt == "" then return end
+            -- SafeGetFontText coerces a possibly-secret return value to a
+            -- plain Lua string; :match on a raw secret string would error
+            -- and leave result = nil silently.
+            local txt = Insight.SafeGetFontText(left)
+            if txt == "" then return end
             local track = txt:match(UPGRADE_LINE_PATTERN)
             if track then
                 result = UPGRADE_TRACK_QUALITY[track]
