@@ -305,6 +305,16 @@ function addon.GetMaxContentHeight()
     return addon.Scaled(v)
 end
 
+function addon.IsStaticBackgroundEnabled()
+    return addon.GetDB("staticBackgroundEnabled", false) and true or false
+end
+
+function addon.GetStaticPanelHeight()
+    local v = tonumber(addon.GetDB("staticPanelHeight", 400)) or 400
+    if v < 50 then v = 50 elseif v > 1500 then v = 1500 end
+    return addon.Scaled(v)
+end
+
 --- Returns the header text color from DB or default.
 --- When Focus class colour is enabled, RGB uses the player class colour.
 --- @return table {r,g,b}

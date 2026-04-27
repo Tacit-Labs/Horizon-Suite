@@ -563,6 +563,10 @@ L["FOCUS_PANEL_WIDTH"]                                        = "Panel Width"
 L["FOCUS_TRACKER_WIDTH_PIXELS"]                               = "Tracker Width in Pixels."
 L["FOCUS_MAX_CONTENT_HEIGHT"]                                 = "Max Content Height"
 L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"]               = "Max height of the scrollable list (pixels)."
+L["FOCUS_STATIC_BACKGROUND"]                                  = "Static Background Size"
+L["FOCUS_STATIC_BACKGROUND_DESC"]                             = "Lock the panel to a fixed height regardless of tracked content."
+L["FOCUS_STATIC_PANEL_HEIGHT"]                                = "Static Panel Height"
+L["FOCUS_STATIC_PANEL_HEIGHT_DESC"]                           = "Pixel height of the panel when static background is enabled."
 
 -- =====================================================================
 -- OptionsData.lua Visibility
@@ -1922,6 +1926,7 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
