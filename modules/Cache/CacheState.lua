@@ -16,8 +16,29 @@ local y = addon.cache
 -- CONSTANTS
 -- ============================================================================
 
-Y.FONT_PATH       = "Fonts\\FRIZQT__.TTF"
+Y.FONT_PATH       = "Fonts\\FRIZQT__.TTF"  -- ultimate fallback; prefer Y.GetFontPath()
 Y.FONT_SIZE       = 16
+
+local FONT_USE_GLOBAL = "__global__"
+
+--- Resolve the active font path for Cache loot toasts. Mirrors VistaCore.ResolveFont
+--- (modules/Vista/VistaCore.lua) and InsightShared (modules/Insight/InsightShared.lua):
+--- per-module DB key → global fontPath DB → addon.GetDefaultFontPath() → Y.FONT_PATH.
+--- @return string font file path
+function Y.GetFontPath()
+    local raw = (addon.GetDB and addon.GetDB("cacheFontPath", FONT_USE_GLOBAL)) or FONT_USE_GLOBAL
+    if raw == FONT_USE_GLOBAL or raw == nil or raw == "" then
+        raw = (addon.GetDB and addon.GetDB("fontPath", nil)) or nil
+    end
+    if not raw or raw == "" or raw == FONT_USE_GLOBAL then
+        return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or Y.FONT_PATH
+    end
+    if addon.ResolveFontPath then
+        local resolved = addon.ResolveFontPath(raw)
+        if resolved and resolved ~= "" then return resolved end
+    end
+    return raw
+end
 Y.ICON_SIZE       = 34
 Y.BORDER_PAD      = 1
 Y.ENTRY_HEIGHT    = 38
