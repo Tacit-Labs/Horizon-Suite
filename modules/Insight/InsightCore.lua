@@ -360,10 +360,17 @@ local function OnItemTooltip(tooltip, data)
         local _, _, q = C_Item.GetItemInfo(itemID)
         baseQuality = q
     end
-    -- Effective gradient quality:
-    --   1. Upgrade-track tier (Veteran/Champion/Hero/Myth → Epic, etc.) — gear only
-    --   2. Else fall through to the item's base quality as Blizzard reports it
-    local quality = Insight.DetectUpgradeTrackQuality(tooltip) or baseQuality
+    -- Effective gradient quality: take the higher of the item's base quality
+    -- and any TWW upgrade-track tier on the tooltip. The track can only lift
+    -- (Adventurer→Rare, Veteran+→Epic) — never downgrade a higher base, and
+    -- if no track line is present we use the base quality as-is.
+    local trackQuality = Insight.DetectUpgradeTrackQuality(tooltip)
+    local quality
+    if baseQuality and trackQuality then
+        quality = baseQuality > trackQuality and baseQuality or trackQuality
+    else
+        quality = baseQuality or trackQuality
+    end
 
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)

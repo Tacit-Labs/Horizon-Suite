@@ -97,10 +97,11 @@ end
 -- Generic UTF-8 iteration + gradient building lives in InsightShared.
 -- ============================================================================
 
--- TWW upgrade-track name → ItemQuality tier. Mapping follows the Horizon
--- colour scheme: Adventurer lifts to Rare, Veteran+ all land on Epic. Items
--- without a detectable track default to Uncommon unless their base quality
--- is already Epic+, in which case the base tier is preserved (see caller).
+-- TWW upgrade-track name → ItemQuality tier. Detection only ever *raises*
+-- quality: the caller takes math.max(baseQuality, trackQuality), so an Epic
+-- or Legendary base is never downgraded by a track that maps lower. Track
+-- names are English-only here; non-enUS clients fall through to the item's
+-- base quality, which is the same as the pre-detection behaviour.
 local UPGRADE_TRACK_QUALITY = {
     ["Explorer"]   = 2, -- Uncommon
     ["Adventurer"] = 3, -- Rare
@@ -110,9 +111,46 @@ local UPGRADE_TRACK_QUALITY = {
     ["Myth"]       = 4, -- Epic
 }
 
---- Scan tooltip lines for an "Upgrade Level: <Track>" label and return the
---- mapped ItemQuality tier, or nil if no track is present. Wrapped in pcall:
---- line text may be a secret string on some Midnight tooltip sources.
+-- Build a Lua pattern matching the localised "Upgrade Level: <Track> n/m"
+-- line. Escapes Lua-pattern magic in the literal segments of the printf
+-- format string, replaces `%s` with a non-whitespace capture, and `%d` with
+-- a digit run. Falls back to enUS literal if the global is unavailable.
+local UPGRADE_LINE_PATTERN
+do
+    local fmt = ITEM_UPGRADE_TOOLTIP_FORMAT_STRING
+    if type(fmt) == "string" and fmt ~= "" then
+        local parts, last = {}, 1
+        for s, code, e in fmt:gmatch("()%%([a-zA-Z])()") do
+            if s > last then
+                local literal = fmt:sub(last, s - 1)
+                parts[#parts + 1] = (literal:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
+            end
+            if code == "s" then
+                parts[#parts + 1] = "(%S+)"
+            elseif code == "d" then
+                parts[#parts + 1] = "%d+"
+            else
+                parts[#parts + 1] = "%S+"
+            end
+            last = e
+        end
+        if last <= #fmt then
+            local literal = fmt:sub(last)
+            parts[#parts + 1] = (literal:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"))
+        end
+        UPGRADE_LINE_PATTERN = table.concat(parts)
+    end
+    if not UPGRADE_LINE_PATTERN then
+        UPGRADE_LINE_PATTERN = "Upgrade Level:%s+(%S+)%s+%d+/%d+"
+    end
+end
+
+--- Scan tooltip lines for an "Upgrade Level: <Track> n/m" label and return
+--- the mapped ItemQuality tier, or nil if no track is present. Anchored on
+--- the localised upgrade-line format so flavour text containing a track
+--- word ("Explorer", "Champion", …) cannot trigger a false positive.
+--- Wrapped in pcall: line text may be a secret string on some Midnight
+--- tooltip sources.
 --- @param tooltip table GameTooltip-like frame
 --- @return number|nil ItemQuality index (1..6)
 function Insight.DetectUpgradeTrackQuality(tooltip)
@@ -122,11 +160,9 @@ function Insight.DetectUpgradeTrackQuality(tooltip)
             if result or not left then return end
             local txt = left:GetText()
             if type(txt) ~= "string" or txt == "" then return end
-            for track, q in pairs(UPGRADE_TRACK_QUALITY) do
-                if txt:find(track, 1, true) then
-                    result = q
-                    return
-                end
+            local track = txt:match(UPGRADE_LINE_PATTERN)
+            if track then
+                result = UPGRADE_TRACK_QUALITY[track]
             end
         end)
     end)
