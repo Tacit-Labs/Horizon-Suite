@@ -44,8 +44,9 @@ local TYPOGRAPHY_KEYS = {
 local CACHE_KEYS = {
     cachePoint    = true,
     cacheRelPoint = true,
-    cacheX       = true,
-    cacheY       = true,
+    cacheX        = true,
+    cacheY        = true,
+    cacheFontPath = true,
 }
 
 local FOCUS_CLICK_KEYS = {
@@ -3253,6 +3254,18 @@ local OptionCategories = {
             { type = "button", name = L["AXIS_RESET_POSITION"], desc = L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"], onClick = function()
                 if addon.Cache and addon.Cache.ResetPosition then addon.Cache.ResetPosition() end
             end },
+            { type = "section", name = L["DASH_TYPOGRAPHY"] or "Typography" },
+            { type = "dropdown",
+                name = L["CACHE_FONT"] or "Loot toast font",
+                desc = L["CACHE_FONT_FAMILY"] or "Font family used for loot toast text. Use 'Use global font' to follow the addon-wide font.",
+                dbKey = "cacheFontPath",
+                searchable = true,
+                options = function() return GetPerElementFontDropdownOptions("cacheFontPath") end,
+                get = function() return getDB("cacheFontPath", FONT_USE_GLOBAL) end,
+                set = function(v) setDB("cacheFontPath", v) end,
+                displayFn = DisplayPerElementFont,
+                fontPreviewInList = true,
+            },
         },
     },
 }

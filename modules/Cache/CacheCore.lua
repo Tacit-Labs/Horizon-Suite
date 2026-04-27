@@ -85,13 +85,13 @@ editOverlay:SetFrameLevel(Frame:GetFrameLevel() + 10)
 editOverlay:EnableMouse(false)
 
 local editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
-editTitle:SetFont(Cache.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(14, "cache"), "OUTLINE")
+editTitle:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(14, "cache"), "OUTLINE")
 editTitle:SetTextColor(0.4, 0.8, 1.0, 1)
 editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
 editTitle:SetText("LOOT TOAST AREA")
 
 local editHint = editOverlay:CreateFontString(nil, "OVERLAY")
-editHint:SetFont(Cache.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
+editHint:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
 editHint:SetTextColor(0.7, 0.7, 0.7, 1)
 editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
 editHint:SetText("Drag to reposition  |  /h cache edit to hide")
@@ -116,13 +116,13 @@ anchorFrame:SetFrameStrata("DIALOG")
 anchorFrame:Hide()
 
 local anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
-anchorLabel:SetFont(Cache.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(12, "cache"), "OUTLINE")
+anchorLabel:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(12, "cache"), "OUTLINE")
 anchorLabel:SetPoint("CENTER")
 anchorLabel:SetTextColor(0.50, 0.70, 1.0, 1)
 anchorLabel:SetText("LOOT TOAST ANCHOR")
 
 local anchorHint = anchorFrame:CreateFontString(nil, "OVERLAY")
-anchorHint:SetFont(Cache.FONT_PATH, (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
+anchorHint:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
 anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
 anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
 anchorHint:SetText("Drag to move · Right-click to confirm")
@@ -193,6 +193,7 @@ function Cache.ApplyCacheOptions()
         Cache.ApplyStoredAnchor(anchorFrame)
     end
     Cache.ApplyStoredAnchor(Frame)
+    if Cache.ApplyScale then Cache.ApplyScale() end
 end
 
 local function CreateToastEntry(parent)
@@ -219,7 +220,7 @@ local function CreateToastEntry(parent)
     shine:Hide()
 
     local shadow = f:CreateFontString(nil, "BORDER")
-    shadow:SetFont(Cache.FONT_PATH, S(Cache.FONT_SIZE), "OUTLINE")
+    shadow:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), "OUTLINE")
     shadow:SetTextColor(0, 0, 0, 0.7)
     shadow:SetJustifyH("LEFT")
     shadow:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP) + 1, -1)
@@ -227,7 +228,7 @@ local function CreateToastEntry(parent)
     shadow:SetWordWrap(false)
 
     local text = f:CreateFontString(nil, "OVERLAY")
-    text:SetFont(Cache.FONT_PATH, S(Cache.FONT_SIZE), "OUTLINE")
+    text:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), "OUTLINE")
     text:SetTextColor(1, 1, 1, 1)
     text:SetJustifyH("LEFT")
     text:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP), 0)
@@ -496,9 +497,11 @@ function Cache.SetFrameVisible(visible)
     end
 end
 
---- Re-apply scale to frame and pool entries (call when global UI scale changes).
+--- Re-apply scale and font to frame, pool entries, and edit-mode overlays.
+--- Called when UI scale or the cacheFontPath option changes.
 function Cache.ApplyScale()
     local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
+    local fontPath = Cache.GetFontPath()
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
     for i = 1, Cache.POOL_SIZE do
         local entry = state.pool[i]
@@ -507,10 +510,14 @@ function Cache.ApplyScale()
             if entry.iconBg then entry.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
             if entry.icon then entry.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
             if entry.shine then entry.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
-            if entry.text then entry.text:SetFont(Cache.FONT_PATH, S(Cache.FONT_SIZE), "OUTLINE") end
-            if entry.shadow then entry.shadow:SetFont(Cache.FONT_PATH, S(Cache.FONT_SIZE), "OUTLINE") end
+            if entry.text then entry.text:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
+            if entry.shadow then entry.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
         end
     end
+    if editTitle then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
+    if editHint then editHint:SetFont(fontPath, S(10), "OUTLINE") end
+    if anchorLabel then anchorLabel:SetFont(fontPath, S(12), "OUTLINE") end
+    if anchorHint then anchorHint:SetFont(fontPath, S(10), "OUTLINE") end
 end
 
 Cache.Frame = Frame
