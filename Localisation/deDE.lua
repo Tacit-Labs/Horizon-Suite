@@ -104,6 +104,8 @@ L["DASH_FULL_CHANGELOG"]                                      = "Versionshistori
 L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                             = " (Neu!)"
 L["DASH_PATCH_NOTES_HEAD_SUB"]                                = "Versionshistorie und aktuelle Änderungen"
 L["DASH_PATCH_NOTES_EMPTY"]                                   = "Keine Änderungshinweise verfügbar."
+-- L["DASH_PATCH_NOTES_DISMISS"]                              = "Dismiss"
+-- L["DASH_PATCH_NOTES_VIEW_ALL"]                             = "View all patch notes"
 L["DASH_WELCOME_TAB"]                                         = "Willkommen"
 L["DASH_NEWS_TAB"]                                            = "Neuigkeiten"
 L["DASH_SEARCH_TAB"]                                          = "Durchsuchen"
@@ -555,6 +557,10 @@ L["FOCUS_PANEL_WIDTH"]                                        = "Anzeigebreite"
 L["FOCUS_TRACKER_WIDTH_PIXELS"]                               = "Breite des Zielverfolgers"
 L["FOCUS_MAX_CONTENT_HEIGHT"]                                 = "Maximalhöhe"
 L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"]               = "Maximale Höhe der scrollbaren ZielverfolgerListe"
+-- L["FOCUS_STATIC_BACKGROUND"]                               = "Static Background Size"
+-- L["FOCUS_STATIC_BACKGROUND_DESC"]                          = "Lock the panel to a fixed height regardless of tracked content."
+-- L["FOCUS_STATIC_PANEL_HEIGHT"]                             = "Static Panel Height"
+-- L["FOCUS_STATIC_PANEL_HEIGHT_DESC"]                        = "Pixel height of the panel when static background is enabled."
 
 -- =====================================================================
 -- OptionsData.lua Visibility
@@ -1914,6 +1920,7 @@ L["ZONE_LABELS"]                                              = "Zonenbeschriftu
 L["ZONE_NAME_NEW_ZONE"]                                       = "Der Zonenname erscheint weiterhin beim Betreten einer neuen Zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Färbung nach Zonentyp"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t anstelle von grüngefärbten abgeschlossenen Zielen."
+
 
 
 

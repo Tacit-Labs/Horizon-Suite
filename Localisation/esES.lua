@@ -104,6 +104,8 @@ L["DASH_FULL_CHANGELOG"]                                      = "Full changelog"
 -- L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                          = " (New!)"
 -- L["DASH_PATCH_NOTES_HEAD_SUB"]                             = "Release history and recent changes"
 -- L["DASH_PATCH_NOTES_EMPTY"]                                = "No notes available."
+-- L["DASH_PATCH_NOTES_DISMISS"]                              = "Dismiss"
+-- L["DASH_PATCH_NOTES_VIEW_ALL"]                             = "View all patch notes"
 -- L["DASH_WELCOME_TAB"]                                      = "Welcome"
 -- L["DASH_NEWS_TAB"]                                         = "News"
 -- L["DASH_SEARCH_TAB"]                                       = "Search"
@@ -553,6 +555,10 @@ L["FOCUS_PANEL_WIDTH"]                                        = "Ancho del panel
 L["FOCUS_TRACKER_WIDTH_PIXELS"]                               = "Ancho del rastreador de objetivos en píxeles."
 L["FOCUS_MAX_CONTENT_HEIGHT"]                                 = "Altura máxima del contenido"
 L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"]               = "Altura máxima de la lista desplazable (píxeles)."
+-- L["FOCUS_STATIC_BACKGROUND"]                               = "Static Background Size"
+-- L["FOCUS_STATIC_BACKGROUND_DESC"]                          = "Lock the panel to a fixed height regardless of tracked content."
+-- L["FOCUS_STATIC_PANEL_HEIGHT"]                             = "Static Panel Height"
+-- L["FOCUS_STATIC_PANEL_HEIGHT_DESC"]                        = "Pixel height of the panel when static background is enabled."
 
 -- =====================================================================
 -- OptionsData.lua Visibility
@@ -1912,6 +1918,7 @@ L["ZONE_LABELS"]                                              = "Zone labels"
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone type colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
