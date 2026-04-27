@@ -10,6 +10,18 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.17.0] – 2026-04-28
+
+### ✨ New Features
+
+- **(Focus) Static Background Size** — Optionally lock the Focus tracker background to a fixed size so it stays consistent regardless of how many quests, M+ timers, or scenarios are tracked.
+
+### 🔧 Improvements
+
+- **(Cache) Per-module font picker with locale-aware default** — Cyrillic, Korean, and other non-Latin glyphs now render correctly in the loot display, and each module can pick its own font.
+
+---
+
 ## [4.16.1] – 2026-04-26
 
 ### 🔧 Improvements

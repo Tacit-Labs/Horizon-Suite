@@ -15,6 +15,22 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.17.0"] = {
+        date = "2026-04-28",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: static background size option — lock the Focus tracker background to a fixed size regardless of how many entries are tracked.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Cache: per-module font picker with locale-aware default — Cyrillic, Korean, and other non-Latin glyphs now render correctly in the loot display, and each module can pick its own font.",
+            },
+        },
+    },
+
     ["4.16.1"] = {
         date = "2026-04-26",
         {
