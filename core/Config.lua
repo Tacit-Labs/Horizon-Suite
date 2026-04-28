@@ -622,14 +622,14 @@ addon.BrandDisplay = {
     productName = "Horizon Suite",
     horizonInsight = "Horizon Insight",
     module = {
-        axis = "Axis",
-        focus = "Focus",
-        presence = "Presence",
-        vista = "Vista",
-        insight = "Insight",
-        cache = "Cache",
-        essence = "Essence",
-        meridian = "Meridian",
+        axis = addon.L["NAME_ADDON"]
+        focus = addon.L["NAME_ADDON_OBJECTIVES"],
+        presence = addon.L["NAME_ADDON_TOASTS"],
+        vista = addon.L["NAME_ADDON_MINIMAP"],
+        insight = addon.L["NAME_ADDON_TOOLTIPS"],
+        cache = addon.L["NAME_ADDON_LOOT"],
+        essence = addon.L["NAME_ADDON_CHARACTER"],
+        meridian = addon.L["NAME_ADDON_C-----S"],
     },
     -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
     simple = {
