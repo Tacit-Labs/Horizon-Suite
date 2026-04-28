@@ -48,7 +48,7 @@ const total = keys.length;
 
 const lines = [];
 lines.push('```');
-lines.push(`${'Language'.padEnd(24)} Current Coverage`);
+lines.push(`${'Locale'.padEnd(24)} Current Coverage`);
 lines.push('-'.repeat(48));
 
 for (const locale of LOCALES) {
