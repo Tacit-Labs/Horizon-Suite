@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-/**
- * Locale audit → Discord embed payload (Localisation/).
- *
- * Usage: node tools/locale_audit_discord.js
+/*
+  Locale audit → Discord embed payload (Localisation/).
+  Usage: node tools/locale_audit_discord.js
  */
 
 const fs = require('fs');
