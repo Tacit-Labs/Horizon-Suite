@@ -11,7 +11,6 @@ const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const LOC = path.join(ROOT, 'Localisation');
-const META = path.join(ROOT, 'tools', 'locale-meta');
 
 const LOCALES = [
     { code: 'deDE', flag: '\uD83C\uDDE9\uD83C\uDDEA', name: 'German' },
@@ -22,16 +21,6 @@ const LOCALES = [
     { code: 'ruRU', flag: '\uD83C\uDDF7\uD83C\uDDFA', name: 'Russian' },
     { code: 'esES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: 'Spanish (ES)' },
 ];
-
-function loadMeta(locale) {
-    const p = path.join(META, `${locale}.json`);
-    if (!fs.existsSync(p)) return {};
-    try {
-        return JSON.parse(fs.readFileSync(p, 'utf8'));
-    } catch {
-        return {};
-    }
-}
 
 function progressBar(pct, len) {
     const filled = Math.round((pct / 100) * len);
