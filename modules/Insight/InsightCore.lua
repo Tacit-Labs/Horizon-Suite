@@ -353,17 +353,32 @@ local function OnItemTooltip(tooltip, data)
     local itemID = data and data.id
     if not itemID then return end
 
-    -- Base quality: TDP data.quality first, falling back to the third return
-    -- of C_Item.GetItemInfo (it's multi-return, not a table).
-    local baseQuality = data.quality
+    -- Base quality: prefer C_Item.GetItemInfo on the full hyperlink (it's
+    -- link-aware, so bonus IDs that bump or drop quality — e.g. a Tarnished
+    -- delve item lifted to rare by its bonus chain — are reflected). Fall
+    -- back to TDP data.quality, then itemID-only lookup which is base-only.
+    local baseQuality
+    local hyperlink = data.hyperlink
+    if hyperlink and C_Item and C_Item.GetItemInfo then
+        local _, _, q = C_Item.GetItemInfo(hyperlink)
+        baseQuality = q
+    end
+    if not baseQuality then baseQuality = data.quality end
     if not baseQuality and C_Item and C_Item.GetItemInfo then
         local _, _, q = C_Item.GetItemInfo(itemID)
         baseQuality = q
     end
-    -- Effective gradient quality:
-    --   1. Upgrade-track tier (Veteran/Champion/Hero/Myth → Epic, etc.) — gear only
-    --   2. Else fall through to the item's base quality as Blizzard reports it
-    local quality = Insight.DetectUpgradeTrackQuality(tooltip) or baseQuality
+    -- Effective gradient quality: take the higher of the item's base quality
+    -- and any TWW upgrade-track tier on the tooltip. The track can only lift
+    -- (Adventurer→Rare, Veteran+→Epic) — never downgrade a higher base, and
+    -- if no track line is present we use the base quality as-is.
+    local trackQuality = Insight.DetectUpgradeTrackQuality(tooltip)
+    local quality
+    if baseQuality and trackQuality then
+        quality = baseQuality > trackQuality and baseQuality or trackQuality
+    else
+        quality = baseQuality or trackQuality
+    end
 
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
