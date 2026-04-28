@@ -547,7 +547,7 @@ function addon.DashboardDetailView_Init(env)
         lbl:SetPoint("TOPLEFT", 35, -22)
 
         -- Collect subset of option names for description
-        local descStr = desc or ("Configure and customise settings related to " .. name:lower() .. ".")
+        local descStr = desc or (L["FOCUS_LAYOUT_TAB_DESC"])
 
         -- Description Text
         local descLbl = MakeText(tile, descStr, 12, 0.55, 0.6, 0.65, "LEFT")
