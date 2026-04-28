@@ -633,14 +633,14 @@ addon.BrandDisplay = {
     },
     -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
     simple = {
-        axis     = "Settings",
-        focus    = "Objective Tracker",
-        presence = "Notifications",
-        vista    = "Minimap",
-        insight  = "Tooltips",
-        cache    = "Loot Toasts",
-        essence  = "Character Sheet",
-        meridian = "Meridian",
+        axis     = addon.L["AXIS_MODULE_NAME_SIMPLE_DASHBOARD"],
+        focus    = addon.L["AXIS_MODULE_NAME_SIMPLE_OBJECTIVES"],
+        presence = addon.L["AXIS_MODULE_NAME_SIMPLE_NOTIFICATIONS"],
+        vista    = addon.L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"],
+        insight  = addon.L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"],
+        cache    = addon.L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
+        essence  = addon.L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
+        meridian = addon.L["AXIS_MODULE_NAME_SIMPLE_C-----S"],
     },
 }
 
