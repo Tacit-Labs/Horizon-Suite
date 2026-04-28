@@ -18,22 +18,11 @@ const { hashFromLuaRhs, decodedStringFromLuaRhs } = require('./lib/localeHash.js
 
 const ROOT = path.resolve(__dirname, '..');
 const LOC = path.join(ROOT, 'Localisation');
-const META = path.join(ROOT, 'tools', 'locale-meta');
 
 const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'ruRU', 'esES', 'zhCN'];
 
 const showMissing = process.argv.includes('--missing');
 const strict = process.argv.includes('--strict');
-
-function loadMeta(locale) {
-    const p = path.join(META, `${locale}.json`);
-    if (!fs.existsSync(p)) return {};
-    try {
-        return JSON.parse(fs.readFileSync(p, 'utf8'));
-    } catch {
-        return {};
-    }
-}
 
 /** Each enUS key must appear as an active or commented L["key"] = row (restructure output). */
 function keyRowInLocale(text, symKey) {
@@ -69,29 +58,15 @@ for (const locale of LOCALES) {
     const filePath = path.join(LOC, `${locale}.lua`);
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const translated = parseLocaleTranslations(filePath);
-    const meta = loadMeta(locale);
     const translatedCount = keys.filter((k) => isReallyTranslated(k, translated, enByKey[k])).length;
     const missingCount = keys.length - translatedCount;
     const pct = keys.length ? Math.round((translatedCount / keys.length) * 100) : 0;
     const missingKeys = keys.filter((k) => !isReallyTranslated(k, translated, enByKey[k]));
     const structuralMissing = keys.filter((k) => !keyRowInLocale(fileContent, k));
 
-    let v = 0,
-        u = 0,
-        r = 0;
-    for (const k of keys) {
-        const m = meta[k];
-        if (!m || !m.status) continue;
-        if (m.status === 'validated') v++;
-        else if (m.status === 'unvalidated') u++;
-        else if (m.status === 'needs_review') r++;
-    }
-
     const hashMismatch = [];
     for (const k of keys) {
         if (!isReallyTranslated(k, translated, enByKey[k])) continue;
-        const m = meta[k];
-        if (!m || m.status !== 'validated') continue;
         const enRhs = enByKey[k];
         if (!enRhs) continue;
         const cur = hashFromLuaRhs(enRhs);
@@ -116,7 +91,7 @@ for (const locale of LOCALES) {
 }
 
 console.log(
-    `${'Locale'.padEnd(10)} ${'Translated'.padEnd(12)} ${'enUS fallbk'.padEnd(12)} ${'Coverage'.padEnd(10)} meta: val/unval/review`
+    `${'Locale'.padEnd(10)} ${'Translated'.padEnd(12)} ${'enUS fallbk'.padEnd(12)} ${'Coverage'.padEnd(10)}`
 );
 console.log(`${'─'.repeat(10)} ${'─'.repeat(12)} ${'─'.repeat(10)} ${'─'.repeat(10)} ${'─'.repeat(28)}`);
 
