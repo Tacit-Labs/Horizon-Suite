@@ -63,17 +63,6 @@ for (const locale of LOCALES) {
     }).length;
     const pct = total ? Math.round((translated / total) * 100) : 0;
     const bar = progressBar(pct, 10);
-    const meta = loadMeta(locale.code);
-    let v = 0,
-        u = 0,
-        r = 0;
-    for (const k of keys) {
-        const m = meta[k];
-        if (!m || !m.status) continue;
-        if (m.status === 'validated') v++;
-        else if (m.status === 'unvalidated') u++;
-        else if (m.status === 'needs_review') r++;
-    }
     const label = `${locale.flag} ${locale.name} (${locale.code})`;
     lines.push(`${label.padEnd(24)} ${bar} ${String(pct).padStart(3)}%  ${v}/${u}/${r}`);
 }
