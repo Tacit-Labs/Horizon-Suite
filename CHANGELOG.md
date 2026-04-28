@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.17.1] – 2026-04-29
+
+### 🐛 Fixes
+
+- **(Insight)** Tooltip quality colour now matches the item's actual rarity instead of occasionally showing the wrong border and name colour.
+
+---
+
 ## [4.17.0] – 2026-04-28
 
 ### ✨ New Features

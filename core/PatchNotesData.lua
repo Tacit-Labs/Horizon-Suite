@@ -15,6 +15,16 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.17.1"] = {
+        date = "2026-04-29",
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: tooltip quality colour now matches the item's actual rarity instead of occasionally showing the wrong border and name colour.",
+            },
+        },
+    },
+
     ["4.17.0"] = {
         date = "2026-04-28",
         {
