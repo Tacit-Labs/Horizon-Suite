@@ -1944,7 +1944,9 @@ local DEFAULT_BTN_DEFS = {
                             if inCombat then break end  -- can't create new secure rows in combat
                             row = CreateFrame("Button", "HorizonSuiteVistaTeleportRow"..i, menu, "SecureActionButtonTemplate")
                             row:SetHeight(ROW_H)
-                            row:RegisterForClicks("AnyUp")
+                            -- Both AnyDown and AnyUp required since 10.0; the cvar
+                            -- ActionButtonUseKeyDown determines which actually fires.
+                            row:RegisterForClicks("AnyDown", "AnyUp")
                             row._icon = row:CreateTexture(nil, "ARTWORK")
                             row._icon:SetSize(ICON_W, ICON_W)
                             row._icon:SetPoint("LEFT", row, "LEFT", PAD, 0)
@@ -1974,7 +1976,10 @@ local DEFAULT_BTN_DEFS = {
                                 row:SetAttribute("spell", nil)
                             elseif entry.kind == "item" then
                                 row:SetAttribute("type", "item")
-                                row:SetAttribute("item", "item:" .. entry.id)
+                                -- Pass the item name; SecureActionButtonTemplate's "item"
+                                -- attribute resolves names via GetItemInfo. The "item:<id>"
+                                -- form is unreliable across clients.
+                                row:SetAttribute("item", entry.name)
                                 row:SetAttribute("toy",  nil)
                                 row:SetAttribute("spell", nil)
                             elseif entry.kind == "spell" then
