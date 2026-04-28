@@ -86,6 +86,7 @@ modules/Cache/CacheEvents.lua
 modules/Cache/CacheSlash.lua
 modules/Cache/CacheModule.lua
 
+modules/Vista/VistaTeleports.lua
 modules/Vista/VistaCore.lua
 modules/Vista/VistaSlash.lua
 modules/Vista/VistaModule.lua

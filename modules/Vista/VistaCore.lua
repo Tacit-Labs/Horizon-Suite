@@ -130,7 +130,7 @@ do
     local PANEL_BORDER_DEFAULT = { 0.3, 0.4, 0.6, 0.7 }
     local MASK_SQUARE_V   = "Interface\\ChatFrame\\ChatFrameBackground"
     local MASK_CIRCULAR_V = 186178
-    local BTN_DEFAULTS = { tracking=22, calendar=22, queue=22, mail=20, craftingOrder=20, addon=26 }
+    local BTN_DEFAULTS = { tracking=22, calendar=22, teleport=22, queue=22, mail=20, craftingOrder=20, addon=26 }
 
     -- Font / size
     G.ZoneFont   = function() return ResolveFont("vistaZoneFontPath") end
@@ -236,12 +236,15 @@ do
     -- Per-button visibility / mouseover
     G.ShowTracking      = function() return DB("vistaShowTracking",      true)  end
     G.ShowCalendar      = function() return DB("vistaShowCalendar",      true)  end
+    G.ShowTeleport      = function() return DB("vistaShowTeleport",      true)  end
     G.MouseoverTracking = function() return DB("vistaMouseoverTracking", false) end
     G.MouseoverCalendar = function() return DB("vistaMouseoverCalendar", false) end
+    G.MouseoverTeleport = function() return DB("vistaMouseoverTeleport", false) end
 
     -- Button sizes
     G.TrackingBtnSize = function() return tonumber(DB("vistaTrackingBtnSize", BTN_DEFAULTS.tracking)) or BTN_DEFAULTS.tracking end
     G.CalendarBtnSize = function() return tonumber(DB("vistaCalendarBtnSize", BTN_DEFAULTS.calendar)) or BTN_DEFAULTS.calendar end
+    G.TeleportBtnSize = function() return tonumber(DB("vistaTeleportBtnSize", BTN_DEFAULTS.teleport)) or BTN_DEFAULTS.teleport end
     G.QueueBtnSize    = function() return tonumber(DB("vistaQueueBtnSize",    BTN_DEFAULTS.queue))    or BTN_DEFAULTS.queue    end
     G.MailIconSize    = function() return tonumber(DB("vistaMailIconSize",     BTN_DEFAULTS.mail))     or BTN_DEFAULTS.mail     end
     G.CraftingOrderIconSize = function() return tonumber(DB("vistaCraftingOrderIconSize", BTN_DEFAULTS.craftingOrder)) or BTN_DEFAULTS.craftingOrder end
@@ -249,6 +252,7 @@ do
     G.ProxyBtnSizeForKey = function(k)
         if k=="tracking" then return G.TrackingBtnSize()
         elseif k=="calendar" then return G.CalendarBtnSize()
+        elseif k=="teleport" then return G.TeleportBtnSize()
         elseif k=="queue"    then return G.QueueBtnSize()
         else return BTN_DEFAULTS.tracking end
     end
@@ -1839,6 +1843,169 @@ local DEFAULT_BTN_DEFS = {
             end)
         end,
     },
+    {
+        key     = "teleport",
+        names   = {},  -- no Blizzard frame to suppress; this is a Horizon-only proxy
+        anchor  = "BOTTOMRIGHT",
+        xOff    = -VISTA_MINIMAP_CORNER_INSET, yOff = VISTA_MINIMAP_CORNER_INSET,
+        tooltip = (addon.L and addon.L["VISTA_TELEPORT_TOOLTIP"]) or "Teleports",
+        getIcon = function()
+            return 134414  -- Hearthstone icon
+        end,
+        setIcon = function(iconTex)
+            iconTex:SetTexture(134414)
+            iconTex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        end,
+        onClick = function(self, _btn)
+            pcall(function()
+                if not addon.Vista or not addon.Vista.GetUnlockedTeleports then return end
+
+                -- Build the menu lazily on first use (out of combat only — secure
+                -- rows must be created before combat to be usable).
+                local inCombat = InCombatLockdown()
+                local menu = Vista._teleportMenu
+                if not menu then
+                    if inCombat then return end  -- can't create secure rows in combat
+                    menu = CreateFrame("Frame", "HorizonSuiteVistaTeleportMenu", UIParent, "BackdropTemplate")
+                    menu:SetFrameStrata("TOOLTIP")
+                    menu:SetClampedToScreen(true)
+                    menu:SetBackdrop({
+                        bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+                        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                        edgeSize = 12,
+                        insets   = { left = 3, right = 3, top = 3, bottom = 3 },
+                    })
+                    menu:SetBackdropColor(0.06, 0.06, 0.1, 0.95)
+                    menu:SetBackdropBorderColor(0.3, 0.4, 0.6, 0.8)
+                    menu:EnableMouse(true)
+                    menu:Hide()
+                    menu._rows = {}
+                    menu:SetScript("OnLeave", function(s)
+                        C_Timer.After(0.3, function()
+                            if not s or not s:IsShown() or s:IsMouseOver() then return end
+                            if InCombatLockdown() then return end  -- can't hide a frame containing secure rows in combat
+                            s:Hide()
+                        end)
+                    end)
+                    -- After combat, close the menu if the cursor isn't on it (we couldn't hide during combat).
+                    menu:RegisterEvent("PLAYER_REGEN_ENABLED")
+                    menu:SetScript("OnEvent", function(s, ev)
+                        if ev == "PLAYER_REGEN_ENABLED" and s:IsShown() and not s:IsMouseOver() then
+                            s:Hide()
+                        end
+                    end)
+                    Vista._teleportMenu = menu
+                end
+
+                if menu:IsShown() then
+                    if not inCombat then menu:Hide() end  -- can't hide a frame containing secure rows during combat
+                    return
+                end
+
+                local entries = (not inCombat) and addon.Vista.GetUnlockedTeleports() or (menu._lastEntries or {})
+                if not inCombat then menu._lastEntries = entries end
+
+                local ROW_H = 22
+                local PAD   = 6
+                local ICON_W = 16
+                local maxW  = 140
+                local rowIdx = 0
+
+                -- Empty state placeholder
+                if #entries == 0 then
+                    local row = menu._emptyRow
+                    if not row then
+                        row = CreateFrame("Frame", nil, menu)
+                        row:SetHeight(ROW_H)
+                        row._label = row:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+                        row._label:SetPoint("LEFT", row, "LEFT", PAD, 0)
+                        row._label:SetJustifyH("LEFT")
+                        menu._emptyRow = row
+                    end
+                    row:ClearAllPoints()
+                    row:SetPoint("TOPLEFT",  menu, "TOPLEFT",  PAD, -PAD)
+                    row:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -PAD, -PAD)
+                    row._label:SetText((addon.L and addon.L["VISTA_NO_TELEPORTS_UNLOCKED"]) or "No teleports unlocked")
+                    row:Show()
+                    -- Hide all secure rows
+                    for i = 1, #menu._rows do
+                        local r = menu._rows[i]
+                        if r then r:Hide() end
+                    end
+                    local w = (row._label:GetStringWidth() or 0) + PAD * 2
+                    if w > maxW then maxW = w end
+                    menu:SetSize(maxW + PAD * 2, PAD * 2 + ROW_H)
+                else
+                    if menu._emptyRow then menu._emptyRow:Hide() end
+                    for i = 1, #entries do
+                        local entry = entries[i]
+                        local row = menu._rows[i]
+                        if not row then
+                            if inCombat then break end  -- can't create new secure rows in combat
+                            row = CreateFrame("Button", "HorizonSuiteVistaTeleportRow"..i, menu, "SecureActionButtonTemplate")
+                            row:SetHeight(ROW_H)
+                            row:RegisterForClicks("AnyUp")
+                            row._icon = row:CreateTexture(nil, "ARTWORK")
+                            row._icon:SetSize(ICON_W, ICON_W)
+                            row._icon:SetPoint("LEFT", row, "LEFT", PAD, 0)
+                            row._icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+                            row._label = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                            row._label:SetPoint("LEFT", row._icon, "RIGHT", PAD, 0)
+                            row._label:SetJustifyH("LEFT")
+                            row._hl = row:CreateTexture(nil, "HIGHLIGHT")
+                            row._hl:SetAllPoints()
+                            row._hl:SetColorTexture(1, 1, 1, 0.1)
+                            row:SetScript("PostClick", function() menu:Hide() end)
+                            menu._rows[i] = row
+                        end
+                        row:ClearAllPoints()
+                        row:SetPoint("TOPLEFT",  menu, "TOPLEFT",  PAD, -(PAD + (i - 1) * ROW_H))
+                        row:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -PAD, -(PAD + (i - 1) * ROW_H))
+                        row._icon:SetTexture(entry.icon or 134400)
+                        row._label:SetText(entry.name or "")
+                        row._label:SetTextColor(1, 1, 1)
+
+                        -- Secure attributes: only modify out of combat.
+                        if not inCombat then
+                            if entry.kind == "toy" then
+                                row:SetAttribute("type", "toy")
+                                row:SetAttribute("toy",  entry.id)
+                                row:SetAttribute("item", nil)
+                                row:SetAttribute("spell", nil)
+                            elseif entry.kind == "item" then
+                                row:SetAttribute("type", "item")
+                                row:SetAttribute("item", "item:" .. entry.id)
+                                row:SetAttribute("toy",  nil)
+                                row:SetAttribute("spell", nil)
+                            elseif entry.kind == "spell" then
+                                row:SetAttribute("type",  "spell")
+                                row:SetAttribute("spell", entry.id)
+                                row:SetAttribute("toy",   nil)
+                                row:SetAttribute("item",  nil)
+                            end
+                        end
+
+                        row:Show()
+                        rowIdx = i
+                        local w = (row._label:GetStringWidth() or 0) + ICON_W + PAD * 3
+                        if w > maxW then maxW = w end
+                    end
+
+                    -- Hide leftover rows from previous opens
+                    for i = rowIdx + 1, #menu._rows do
+                        local r = menu._rows[i]
+                        if r then r:Hide() end
+                    end
+
+                    menu:SetSize(maxW + PAD * 2, PAD * 2 + rowIdx * ROW_H)
+                end
+
+                menu:ClearAllPoints()
+                menu:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -2)
+                menu:Show()
+            end)
+        end,
+    },
 }
 
 SuppressDefaultBlizzardButtons = function()
@@ -1861,10 +2028,12 @@ RefreshDefaultButtonProxiesFromDB = function()
     local showFuncs = {
         tracking = G.ShowTracking,
         calendar = G.ShowCalendar,
+        teleport = G.ShowTeleport,
     }
     local mouseoverFuncs = {
         tracking = G.MouseoverTracking,
         calendar = G.MouseoverCalendar,
+        teleport = G.MouseoverTeleport,
     }
     for _, proxy in ipairs(defaultProxies) do
         local key = proxy._vistaKey
@@ -1923,10 +2092,12 @@ CreateDefaultButtonProxies = function()
     local showFuncs = {
         tracking = G.ShowTracking,
         calendar = G.ShowCalendar,
+        teleport = G.ShowTeleport,
     }
     local mouseoverFuncs = {
         tracking = G.MouseoverTracking,
         calendar = G.MouseoverCalendar,
+        teleport = G.MouseoverTeleport,
     }
 
     for _, def in ipairs(DEFAULT_BTN_DEFS) do
@@ -3710,6 +3881,7 @@ local VISTA_OPTION_KEYS_SKIP_MINIMAP_COLLECT = {
     vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true, vistaDiffVerticalPos = true,
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
+    vistaShowTeleport = true, vistaMouseoverTeleport = true,
     vistaEX_zone = true, vistaEY_zone = true,
     vistaEX_coord = true, vistaEY_coord = true,
     vistaEX_time = true, vistaEY_time = true,
@@ -3717,6 +3889,7 @@ local VISTA_OPTION_KEYS_SKIP_MINIMAP_COLLECT = {
     vistaEX_diff = true, vistaEY_diff = true,
     ["vistaEX_proxy_tracking"] = true, ["vistaEY_proxy_tracking"] = true,
     ["vistaEX_proxy_calendar"] = true, ["vistaEY_proxy_calendar"] = true,
+    ["vistaEX_proxy_teleport"] = true, ["vistaEY_proxy_teleport"] = true,
     ["vistaCoordPrecision"] = true,
     vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
     vistaCoordColorR = true, vistaCoordColorG = true, vistaCoordColorB = true,
