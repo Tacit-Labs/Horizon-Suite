@@ -75,7 +75,7 @@ const description = [
     '**Want to help translate?**',
     '1. See [TRANSLATING.md](https://github.com/Tacit-Labs/Horizon-Suite/blob/main/TRANSLATING.md)',
     '2. Use [locale_template.lua](https://github.com/Tacit-Labs/Horizon-Suite/blob/main/Localisation/locale_template.lua)',
-    '3. Post your file in <#localisation-submission> for review!',
+    '3. Post your file here for review!',
 ].join('\n');
 
 const payload = {
