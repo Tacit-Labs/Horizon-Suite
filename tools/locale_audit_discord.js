@@ -64,7 +64,7 @@ for (const locale of LOCALES) {
     const pct = total ? Math.round((translated / total) * 100) : 0;
     const bar = progressBar(pct, 10);
     const label = `${locale.flag} ${locale.name} (${locale.code})`;
-    lines.push(`${label.padEnd(24)} ${bar} ${String(pct).padStart(3)}%  ${v}/${u}/${r}`);
+    lines.push(`${label.padEnd(24)} ${bar} ${String(pct).padStart(3)}%`);
 }
 
 lines.push('```');
