@@ -73,10 +73,17 @@ local function SetDB(key, value)
     if addon.SetDB then addon.SetDB(key, value) end
 end
 
-local SQUARE_SIZE_DEFAULT     = 200
-local CIRCLE_SIZE_DEFAULT     = 200
-local RECTANGLE_WIDTH_DEFAULT = 280
+local SQUARE_SIZE_DEFAULT      = 200
+local CIRCLE_SIZE_DEFAULT      = 200
+local RECTANGLE_WIDTH_DEFAULT  = 280
 local RECTANGLE_HEIGHT_DEFAULT = 180
+
+-- Blizzard's Minimap frame is internally tied to a 256px-square coordinate space
+-- (the circular mask texture, blip rendering, and corner anchors all assume it).
+-- We render at user-chosen pixel sizes by keeping the LONGER axis pinned at this
+-- BASE in the frame's coord space and using proxy.SetScale to reach the user's
+-- pixel size. Rectangle's shorter axis stays at BASE × aspect.
+local MINIMAP_BASE_SIZE = 256
 
 local function GetShape()
     return DB("vistaShape", "square")
@@ -94,6 +101,22 @@ local function GetMapHeight()
     if s == "rectangle" then return tonumber(DB("vistaRectangleHeight", RECTANGLE_HEIGHT_DEFAULT)) or RECTANGLE_HEIGHT_DEFAULT end
     if s == "circle"    then return tonumber(DB("vistaCircleSize",      CIRCLE_SIZE_DEFAULT))      or CIRCLE_SIZE_DEFAULT end
     return tonumber(DB("vistaSquareSize", SQUARE_SIZE_DEFAULT)) or SQUARE_SIZE_DEFAULT
+end
+
+-- Internal pre-scale dims: longer axis pinned at MINIMAP_BASE_SIZE, shorter axis proportional.
+-- The Minimap frame is sized in these coords and proxy.SetScale lifts to user pixels.
+local function GetMapInternalScale()
+    local mx = math.max(GetMapWidth(), GetMapHeight())
+    if mx <= 0 then return 1 end
+    return mx / MINIMAP_BASE_SIZE
+end
+
+local function GetInternalWidth()
+    return GetMapWidth() / GetMapInternalScale()
+end
+
+local function GetInternalHeight()
+    return GetMapHeight() / GetMapInternalScale()
 end
 local function GetBorderShow()  return DB("vistaBorderShow", true) end
 local function GetBorderW()     return tonumber(DB("vistaBorderWidth", 1)) or 1 end
@@ -604,7 +627,7 @@ local function SetupMinimap()
     local vy    = DB("vistaY",        nil)
     local scale = DB("vistaScale",    1.0)
 
-    Minimap:SetSize(GetMapWidth(), GetMapHeight())
+    Minimap:SetSize(GetInternalWidth(), GetInternalHeight())
     Minimap:SetMaskTexture(G.IsCircle() and G.MaskCircular or G.MaskSquare)
 
     if pt then
@@ -628,7 +651,7 @@ local function SetupMinimap()
     end
 
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
-    proxy.SetScale(Minimap, (scale or 1.0) * moduleScale)
+    proxy.SetScale(Minimap, (scale or 1.0) * moduleScale * GetMapInternalScale())
     Minimap:Show()
     Minimap:SetAlpha(1)
 end
@@ -3759,12 +3782,12 @@ end
 
 local function ApplyOptions_Minimap()
     Minimap:SetMovable(not DB("vistaLock", true))
-    Minimap:SetSize(GetMapWidth(), GetMapHeight())
+    Minimap:SetSize(GetInternalWidth(), GetInternalHeight())
     Minimap:SetMaskTexture(G.IsCircle() and G.MaskCircular or G.MaskSquare)
     pcall(function() local z = Minimap:GetZoom(); if z then Minimap:SetZoom(z) end end)
     local vistaScale  = DB("vistaScale", 1.0) or 1.0
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
-    proxy.SetScale(Minimap, vistaScale * moduleScale)
+    proxy.SetScale(Minimap, vistaScale * moduleScale * GetMapInternalScale())
     ApplyBorderTextures()
 end
 
@@ -4185,7 +4208,7 @@ function Vista.ApplyScale()
     if not Minimap then return end
     local scale = DB("vistaScale", 1.0) or 1.0
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
-    proxy.SetScale(Minimap, scale * moduleScale)
+    proxy.SetScale(Minimap, scale * moduleScale * GetMapInternalScale())
 end
 
 -- Convert PascalCase / camelCase to a human-readable string.
