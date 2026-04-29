@@ -80,9 +80,11 @@ local RECTANGLE_HEIGHT_DEFAULT = 180
 
 -- Blizzard's Minimap frame is internally tied to a 256px-square coordinate space
 -- (the circular mask texture, blip rendering, and corner anchors all assume it).
--- We render at user-chosen pixel sizes by keeping the LONGER axis pinned at this
--- BASE in the frame's coord space and using proxy.SetScale to reach the user's
--- pixel size. Rectangle's shorter axis stays at BASE × aspect.
+-- We render at user-chosen pixel sizes by pinning the SHORTER axis at BASE in
+-- the frame's coord space and using proxy.SetScale to reach the user's pixel
+-- size. Rectangle's longer axis grows past BASE proportionally. Pinning the
+-- shorter axis (rather than the longer one) means icons and overlays parented
+-- to Minimap render at a similar visual scale across square/circle/rectangle.
 local MINIMAP_BASE_SIZE = 256
 
 local function GetShape()
@@ -103,12 +105,14 @@ local function GetMapHeight()
     return tonumber(DB("vistaSquareSize", SQUARE_SIZE_DEFAULT)) or SQUARE_SIZE_DEFAULT
 end
 
--- Internal pre-scale dims: longer axis pinned at MINIMAP_BASE_SIZE, shorter axis proportional.
+-- Internal pre-scale dims: shorter axis pinned at MINIMAP_BASE_SIZE, longer axis proportional.
 -- The Minimap frame is sized in these coords and proxy.SetScale lifts to user pixels.
+-- Pinning the shorter axis keeps Minimap-parented icons (mail, queue, etc.) at a
+-- consistent visual scale across square/circle/rectangle shapes.
 local function GetMapInternalScale()
-    local mx = math.max(GetMapWidth(), GetMapHeight())
-    if mx <= 0 then return 1 end
-    return mx / MINIMAP_BASE_SIZE
+    local mn = math.min(GetMapWidth(), GetMapHeight())
+    if mn <= 0 then return 1 end
+    return mn / MINIMAP_BASE_SIZE
 end
 
 local function GetInternalWidth()
@@ -3968,14 +3972,51 @@ local function ApplyOptions_Buttons(changedKey)
     CreateQueueAnchor()
 end
 
+-- When the active shape changes, the new dimensions cause SetPoint's anchor corner to
+-- "stay put" on screen and the opposite corner to leap. Capture the visible center,
+-- apply the changes, then nudge the saved offsets so the center is preserved — feels
+-- like the minimap reshapes around its current position rather than jumping corners.
+local SHAPE_AFFECTING_KEYS = {
+    vistaShape           = true,
+    vistaSquareSize      = true,
+    vistaCircleSize      = true,
+    vistaRectangleWidth  = true,
+    vistaRectangleHeight = true,
+}
+
 --- Apply Vista minimap/overlay options from DB.
 --- @param changedKey string|nil Option key that triggered the apply; nil = full apply including addon button collect.
 --- @return nil
 function Vista.ApplyOptions(changedKey)
     if not decor then return end
+
+    local prevCx, prevCy
+    if Minimap and changedKey and SHAPE_AFFECTING_KEYS[changedKey] and not InCombatLockdown() then
+        prevCx, prevCy = Minimap:GetCenter()
+    end
+
     ApplyOptions_Minimap()
     ApplyOptions_Texts(GetMapWidth())
     ApplyOptions_Buttons(changedKey)
+
+    if prevCx and prevCy then
+        local newCx, newCy = Minimap:GetCenter()
+        if newCx and newCy then
+            local dx = prevCx - newCx
+            local dy = prevCy - newCy
+            if dx ~= 0 or dy ~= 0 then
+                local p  = DB("vistaPoint",    DEFAULT_POINT)
+                local rp = DB("vistaRelPoint", DEFAULT_RELPOINT)
+                local x  = (tonumber(DB("vistaX", DEFAULT_X)) or DEFAULT_X) + dx
+                local y  = (tonumber(DB("vistaY", DEFAULT_Y)) or DEFAULT_Y) + dy
+                SetDB("vistaX", x)
+                SetDB("vistaY", y)
+                proxy.ClearAllPoints(Minimap)
+                proxy.SetPoint(Minimap, p, UIParent, rp, x, y)
+            end
+        end
+    end
+
     if addon.MinimapButton_ApplyPosition then
         addon.MinimapButton_ApplyPosition()
     end
