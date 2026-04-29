@@ -40,6 +40,19 @@ addon:RegisterModule("vista", {
                 if src.enabled ~= nil then addon.SetDB("vistaShowMinimap", src.enabled) end
             end
         end
+
+        -- Issue #139: vistaCircular boolean + single vistaMapSize → per-shape schema.
+        -- Seed both square and circle sizes from the legacy size so toggling between
+        -- the two preserves the user's previous size; rectangle uses code defaults.
+        if addon.GetDB("vistaShape", nil) == nil then
+            local wasCircular = addon.GetDB("vistaCircular", nil)
+            local oldSize     = tonumber(addon.GetDB("vistaMapSize", nil))
+            addon.SetDB("vistaShape", wasCircular and "circle" or "square")
+            if oldSize then
+                addon.SetDB("vistaSquareSize", oldSize)
+                addon.SetDB("vistaCircleSize", oldSize)
+            end
+        end
     end,
 
     OnEnable = function()
