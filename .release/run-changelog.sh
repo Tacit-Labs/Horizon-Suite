@@ -43,10 +43,6 @@ SECTIONS=""
 printf '%s' "$BODY" | jq -Rs 'if length > 4096 then .[0:4096] else . end' > /tmp/changelog-desc.json
 REPO_NAME="${GITHUB_REPOSITORY##*/}"
 jq -n \
-  --arg user "Addon Beta Bot" \
-  --arg avatar "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
-  --arg title "New Beta Build: ${REPO_NAME}" \
-  --arg url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/beta" \
   --slurpfile desc /tmp/changelog-desc.json \
   '{username: $user, avatar_url: $avatar, embeds: [{title: $title, url: $url, description: $desc[0]}]}' \
   > .release/discord-payload.json
