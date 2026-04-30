@@ -1498,6 +1498,12 @@ L["VISTA_CALENDAR_BUTTON"]                                    = "Afficher le bou
 L["VISTA_MINIMAP_CALENDAR_BUTTON"]                            = "Affiche le bouton de calendrier sur la minicarte."
 L["VISTA_CALENDAR_BUTTON_MOUSEOVER"]                          = "Bouton de calendrier au survol uniquement"
 L["VISTA_HIDE_CALENDAR_BUTTON_UNTIL_YOU_HOVER"]               = "Masque le bouton de calendrier jusqu'au survol de la minicarte."
+-- L["VISTA_TELEPORT_BUTTON"]                                 = "Show Teleport Button"
+-- L["VISTA_MINIMAP_TELEPORT_BUTTON"]                         = "Show a button that lists toys, hearthstones and class teleports the character has unlocked."
+-- L["VISTA_TELEPORT_BUTTON_MOUSEOVER"]                       = "Teleport Button on Mouseover Only"
+-- L["VISTA_HIDE_TELEPORT_BUTTON_UNTIL_YOU_HOVER"]            = "Hide teleport button until you hover over the minimap."
+-- L["VISTA_TELEPORT_TOOLTIP"]                                = "Teleports"
+-- L["VISTA_NO_TELEPORTS_UNLOCKED"]                           = "No teleports unlocked"
 L["VISTA_ZOOM_BUTTONS"]                                       = "Afficher les boutons de zoom"
 L["VISTA_ZOOM_BUTTONS_MINIMAP"]                               = "Affiche les boutons de zoom + et - sur la minicarte."
 L["VISTA_ZOOM_BUTTONS_MOUSEOVER"]                             = "Boutons de zoom au survol uniquement"
@@ -1936,6 +1942,7 @@ L["ZONE_LABELS"]                                              = "Zone labels"
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone type colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 
