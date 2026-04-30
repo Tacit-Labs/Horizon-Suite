@@ -16,9 +16,9 @@ Thumbs.db
 # Local dev notes (not for version control)
 AGENTS.md
 CLAUDE.md
+
 # Dev / listing assets (screenshots, GIFs, internal notes); also excluded from addon zips via .pkgmeta
 docs/
-
 
 # Generated release artifacts (local review only)
 .release/discord-issuelog-payload*.json
