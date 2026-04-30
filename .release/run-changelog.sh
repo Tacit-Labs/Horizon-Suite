@@ -5,8 +5,6 @@ export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Tacit-Labs/Horizon-Suite}"
 LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
 if [ -n "$LAST_TAG" ]; then
   TAG_DATE=$(git log -1 --format=%cd --date=short "$LAST_TAG")
-else
-  TAG_DATE="2020-01-01"
 fi
 
 FEATURES=""
