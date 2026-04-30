@@ -22,10 +22,9 @@ while IFS= read -r line; do
   [[ "$labels" =~ \bAxis\b ]] && module="(Axis) "
   [[ "$labels" =~ \bVista\b ]] && module="(Vista) "
   [[ "$labels" =~ \bCache\b ]] && module="(Cache) "
-  [[ "$labels" =~ \bPulse\b ]] && module="(Pulse) "
   [[ "$labels" =~ \bEssence\b ]] && module="(Essence) "
   [[ "$labels" =~ \bInsight\b ]] && module="(Insight) "
-  [[ "$labels" =~ \bVerse\b ]] && module="(Verse) "
+  [[ "$labels" =~ \bMeridian\b ]] && module="(Meridian) "
   bullet="- ${module}${title} (#${num})"
   if [[ "$labels" =~ \bfeature\b ]]; then
     FEATURES="${FEATURES}${bullet}"$'\n'
