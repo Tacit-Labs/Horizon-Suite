@@ -293,7 +293,7 @@ local VISTA_KEYS = {
     vistaRightClickLocked = true, vistaRightClickPanelX = true, vistaRightClickPanelY = true,
     vistaButtonMode = true, vistaHandleAddonButtons = true,
     vistaCollectHorizonMinimapButton = true, vistaButtonSortAlpha = true,
-    vistaDrawerButtonLocked = true, vistaButtonWhitelist = true,
+    vistaDrawerButtonLocked = true, vistaDrawerIcon = true, vistaButtonWhitelist = true,
     vistaMailBlink = true,
     vistaCraftingOrderBlink = true,
     -- Button sizes (separate per type)
@@ -2955,6 +2955,7 @@ local OptionCategories = {
                   desc = L["VISTA_ADDON_BUTTONS_PRESENTED_HOVER_BAR_BELOW"] or "How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.",
                   dbKey = "vistaButtonMode",
                   options = BUTTON_MODE_OPTIONS,
+                  refreshIds = { "vistaDrawerIcon", "vistaDrawerButtonLocked", "vistaMouseoverLocked", "vistaMouseoverBarVisible", "vistaRightClickLocked" },
                   get = function() return getDB("vistaButtonMode", "rightclick") end,
                   set = function(v)
                       if not getDB("vistaHandleAddonButtons", true) then return end
@@ -2966,6 +2967,18 @@ local OptionCategories = {
                       end
                   end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
+                { type = "button",
+                  name = L["VISTA_CHOOSE_DRAWER_ICON"] or "Choose Drawer Icon",
+                  dbKey = "vistaDrawerIcon",
+                  visibleWhen = function()
+                      return getDB("vistaHandleAddonButtons", true) and getDB("vistaButtonMode", "mouseover") == "drawer"
+                  end,
+                  tooltip = L["VISTA_DRAWER_BUTTON_ICON_DESC"] or "Enter a Blizzard icon file ID or texture path. Leave blank to use the default drawer icon.",
+                  onClick = function()
+                      if addon.OpenVistaDrawerIconPicker then
+                          addon.OpenVistaDrawerIconPicker()
+                      end
+                  end },
                 { type = "toggle", name = L["LOCK_DRAWER_BUTTON"] or "Lock drawer button",
                   desc = L["VISTA_PREVENT_DRAGGING_FLOATING_DRAWER_BUTTON"] or "Prevent dragging the floating drawer button.",
                   dbKey = "vistaDrawerButtonLocked",

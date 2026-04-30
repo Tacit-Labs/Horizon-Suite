@@ -4,6 +4,7 @@
 ## Author: Crystilac
 ## Version: 4.0.0-BETA
 ## SavedVariables: HorizonBetaDB
+## OptionalDeps: IconBrowser
 ## IconTexture: Interface\AddOns\HorizonSuiteBeta\HorizonLogo
 
 HorizonSuite.lua
