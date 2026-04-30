@@ -164,7 +164,7 @@ function addon:EnsureModulesDB()
     if not db.modules.insight then
         db.modules.insight = { enabled = true }
     end
-    -- Ensure essence exists for existing installs; disabled by default (beta)
+    -- Ensure essence exists for existing installs; disabled by default (preview)
     if not db.modules.essence then
         db.modules.essence = { enabled = false }
     end
