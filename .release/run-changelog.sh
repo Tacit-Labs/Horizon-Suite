@@ -40,14 +40,6 @@ SECTIONS=""
 [ -n "$IMPROVEMENTS" ] && SECTIONS="${SECTIONS}### 🔧 Improvements"$'\n\n'"$IMPROVEMENTS"$'\n'
 [ -n "$FIXES" ] && SECTIONS="${SECTIONS}### 🐛 Fixes"$'\n\n'"$FIXES"$'\n'
 
-if [ -n "$SECTIONS" ]; then
-  SINCE=""
-  [ -n "$LAST_TAG" ] && SINCE=" (since $LAST_TAG)"
-  BODY="Rolling beta from **main**. Download the zip below."$'\n\n'"## Recent changes${SINCE}"$'\n\n'"$SECTIONS"
-else
-  BODY="Rolling beta from **main**. Download the zip below."
-fi
-
 printf '%s' "$BODY" | jq -Rs 'if length > 4096 then .[0:4096] else . end' > /tmp/changelog-desc.json
 REPO_NAME="${GITHUB_REPOSITORY##*/}"
 jq -n \
