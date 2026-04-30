@@ -424,33 +424,67 @@ function addon.Dashboard_ApplySmoothScroll(scrollFrame, scrollContent, speed, ad
     local updateThumb
     if addScrollbar then
         local track = CreateFrame("Frame", nil, scrollFrame)
-        track:SetWidth(4)
-        track:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", 10, 0)
-        track:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 10, 0)
+        track:SetWidth(12)
+        track:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", 14, 0)
+        track:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 14, 0)
 
         local thumb = track:CreateTexture(nil, "OVERLAY")
         thumb:SetWidth(4)
         thumb:SetColorTexture(1, 1, 1, 0.2)
 
+        local slider = CreateFrame("Slider", nil, track)
+        slider:SetAllPoints(track)
+        slider:SetOrientation("VERTICAL")
+        slider:SetMinMaxValues(0, 1)
+        slider:SetValueStep(1)
+        slider:SetObeyStepOnDrag(true)
+        slider:SetThumbTexture(thumb)
+        slider:SetFrameLevel((track:GetFrameLevel() or 0) + 2)
+
+        local syncingSlider = false
         updateThumb = function()
             local frameH = scrollFrame:GetHeight() or 1
             if frameH == 0 then frameH = 1 end
             local contentH = scrollContent:GetHeight() or 1
             if contentH <= frameH then
-                thumb:Hide()
+                track:Hide()
                 return
             end
-            thumb:Show()
+            track:Show()
             local scroll = scrollFrame:GetVerticalScroll() or 0
             local maxScroll = math.max(1, contentH - frameH)
+            syncingSlider = true
+            slider:SetMinMaxValues(0, maxScroll)
+            slider:SetValueStep(1)
+            slider:SetValue(scroll)
+            syncingSlider = false
             local thumbPct = frameH / contentH
             local thumbH = math.max(20, frameH * thumbPct)
             thumb:SetHeight(thumbH)
-            local trackH = (track:GetHeight() or frameH) - thumbH
-            local offset = (scroll / maxScroll) * trackH
-            thumb:ClearAllPoints()
-            thumb:SetPoint("TOP", track, "TOP", 0, -offset)
         end
+
+        slider:SetScript("OnValueChanged", function(_, value)
+            if syncingSlider then return end
+            local frameH = scrollFrame:GetHeight() or 0
+            local contentH = scrollContent:GetHeight() or 0
+            local maxScroll = math.max(0, contentH - frameH)
+            local newScroll = math.max(0, math.min(maxScroll, math.floor((value or 0) + 0.5)))
+            scrollFrame.targetScroll = nil
+            scrollFrame:SetScript("OnUpdate", nil)
+            scrollFrame:SetVerticalScroll(newScroll)
+            if updateThumb then updateThumb() end
+        end)
+
+        slider:SetScript("OnMouseWheel", function(_, delta)
+            local frameH = scrollFrame:GetHeight() or 0
+            local contentH = scrollContent:GetHeight() or 0
+            local maxScroll = math.max(0, contentH - frameH)
+            local cur = scrollFrame:GetVerticalScroll() or 0
+            scrollFrame.targetScroll = nil
+            scrollFrame:SetScript("OnUpdate", nil)
+            scrollFrame:SetVerticalScroll(math.max(0, math.min(maxScroll, cur - delta * (scrollFrame.scrollSpeed or 60))))
+            if updateThumb then updateThumb() end
+        end)
 
         if scrollFrame:GetScript("OnScrollRangeChanged") then
             scrollFrame:HookScript("OnScrollRangeChanged", updateThumb)

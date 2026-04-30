@@ -91,15 +91,25 @@ function addon.DashboardSidebar_CreateChrome(p)
     -- Frame level above sidebar buttons so the thumb renders on top.
     local sbTrack = CreateFrame("Frame", nil, sidebar)
     sbTrack:SetFrameLevel((sidebar:GetFrameLevel() or 0) + 8)
-    sbTrack:SetWidth(3)
-    sbTrack:SetPoint("TOPRIGHT",    sidebarScrollFrame, "TOPRIGHT",    1, 0)
-    sbTrack:SetPoint("BOTTOMRIGHT", sidebarScrollFrame, "BOTTOMRIGHT", 1, 0)
+    sbTrack:SetWidth(12)
+    sbTrack:SetPoint("TOPRIGHT",    sidebarScrollFrame, "TOPRIGHT",    5, 0)
+    sbTrack:SetPoint("BOTTOMRIGHT", sidebarScrollFrame, "BOTTOMRIGHT", 5, 0)
     sbTrack:Hide()
 
     local sbThumb = sbTrack:CreateTexture(nil, "OVERLAY")
     sbThumb:SetWidth(3)
     sbThumb:SetColorTexture(1, 1, 1, 0.22)
 
+    local sbSlider = CreateFrame("Slider", nil, sbTrack)
+    sbSlider:SetAllPoints(sbTrack)
+    sbSlider:SetOrientation("VERTICAL")
+    sbSlider:SetMinMaxValues(0, 1)
+    sbSlider:SetValueStep(1)
+    sbSlider:SetObeyStepOnDrag(true)
+    sbSlider:SetThumbTexture(sbThumb)
+    sbSlider:SetFrameLevel((sbTrack:GetFrameLevel() or 0) + 2)
+
+    local syncingSidebarSlider = false
     local function UpdateSidebarScrollbar()
         local frameH   = sidebarScrollFrame:GetHeight() or 1
         local contentH = sidebarScrollContent:GetHeight() or 1
@@ -117,13 +127,29 @@ function addon.DashboardSidebar_CreateChrome(p)
         local scroll    = math.min(sidebarScrollFrame:GetVerticalScroll() or 0, contentH - frameH)
         local maxScroll = math.max(1, contentH - frameH)
         local trackH    = sbTrack:GetHeight() or frameH
+        syncingSidebarSlider = true
+        sbSlider:SetMinMaxValues(0, maxScroll)
+        sbSlider:SetValueStep(1)
+        sbSlider:SetValue(scroll)
+        syncingSidebarSlider = false
         local thumbPct  = frameH / contentH
         local thumbH    = math.max(20, trackH * thumbPct)
-        local offset    = (scroll / maxScroll) * (trackH - thumbH)
-        sbThumb:ClearAllPoints()
         sbThumb:SetHeight(thumbH)
-        sbThumb:SetPoint("TOP", sbTrack, "TOP", 0, -offset)
     end
+
+    sbSlider:SetScript("OnValueChanged", function(_, value)
+        if syncingSidebarSlider then return end
+        local maxS = math.max(0, sidebarScrollContent:GetHeight() - sidebarScrollFrame:GetHeight())
+        sidebarScrollFrame:SetVerticalScroll(math.max(0, math.min(maxS, math.floor((value or 0) + 0.5))))
+        UpdateSidebarScrollbar()
+    end)
+
+    sbSlider:SetScript("OnMouseWheel", function(_, delta)
+        local cur = sidebarScrollFrame:GetVerticalScroll() or 0
+        local maxS = math.max(0, sidebarScrollContent:GetHeight() - sidebarScrollFrame:GetHeight())
+        sidebarScrollFrame:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * 30)))
+        UpdateSidebarScrollbar()
+    end)
 
     sidebarScrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local cur = self:GetVerticalScroll() or 0
