@@ -3,8 +3,7 @@
     Constants, colors, fonts, labels, and group order. Loaded after Utilities, before Core.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- CONFIGURATION (constants, colors, fonts, labels, group order)
