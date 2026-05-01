@@ -203,17 +203,7 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Danke an alle
 L["DASH_WELCOME_SUPPORTERS_HEADING"]                          = "Unterstützer"
 L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Vielen Dank an alle, die Horizon Suite über Ko-fi, Patreon und andere Wege unterstützen.]=]
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Lokalisierungen"
-L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[Das Konfigurationsfenster ist lokalisiert für:
-
-• Chinesisch (zhCN) — Localisation/zhCN.lua
-• Französisch (frFR) — Localisation/frFR.lua
-• Deutsch (deDE) — Localisation/deDE.lua
-• Koreanisch (koKR) — Localisation/koKR.lua
-• Brasilianisch-Portugiesisch (ptBR) — Localisation/ptBR.lua
-• Russisch (ruRU) — Localisation/ruRU.lua
-• Spanisch (esES) — Localisation/esES.lua
-
-Contributions for additional locales are welcome via Discord.]=]
+-- L["DASH_WELCOME_LOCALISATIONS_BODY"] = ... (falls back to enUS until retranslated against new path layout)
 
 
 -- =====================================================================

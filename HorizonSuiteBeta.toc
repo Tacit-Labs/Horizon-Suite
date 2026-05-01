@@ -8,15 +8,14 @@
 ## IconTexture: Interface\AddOns\HorizonSuiteBeta\HorizonLogo
 
 HorizonSuite.lua
-Localisation/LocaleCore.lua
-Localisation/enUS.lua
-Localisation/deDE.lua
-Localisation/koKR.lua
-Localisation/frFR.lua
-Localisation/ptBR.lua
-Localisation/ruRU.lua
-Localisation/esES.lua
-Localisation/zhCN.lua
+localisation/LocaleCore.lua
+localisation/horizon/deDE.lua
+localisation/horizon/enUS.lua
+localisation/horizon/esES.lua
+localisation/horizon/frFR.lua
+localisation/horizon/koKR.lua
+localisation/horizon/ptBR.lua
+localisation/horizon/zhCN.lua
 Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua

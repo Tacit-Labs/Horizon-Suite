@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Sync Localisation/{locale}.lua to match Localisation/enUS.lua key order and sections.
+ * Sync localisation/horizon/{locale}.lua to match localisation/horizon/enUS.lua key order and sections.
  * Normalizes enUS first (removes per-key `-- Context:` lines; drops blank lines between keys;
  * aligns `=` and values in a fixed column from max `L["KEY"]` width).
  * Untranslated keys become commented-out assignments (leading `--` only; runtime falls back to enUS).
  * Assignments whose string equals enUS are treated as untranslated (comment only) so
  * locales fall back via __index to enUS — no duplicate English to maintain.
- * Regenerates Localisation/locale_template.lua for new translators.
+ * Regenerates localisation/horizon/locale_template.lua for new translators.
  *
  * Usage: node tools/restructure_locales.js
  */
@@ -23,10 +23,10 @@ const {
 const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOC = path.join(ROOT, 'Localisation');
+const LOC = path.join(ROOT, 'localisation/horizon');
 const enUSPath = path.join(LOC, 'enUS.lua');
 
-const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'ruRU', 'esES', 'zhCN'];
+const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'esES', 'zhCN'];
 
 /** Normalize decoded locale text for comparison with enUS (legacy marker inside strings). */
 function localeCompareString(s) {
@@ -108,7 +108,7 @@ function generateTemplate(entries, maxLhsLen) {
     const lines = [];
     lines.push('--[[');
     lines.push('    Horizon Suite — Translation template (not loaded by the addon).');
-    lines.push('    Copy to Localisation/<yourLocale>.lua, set GetLocale() guard, translate values.');
+    lines.push('    Copy to localisation/horizon/*.lua, set GetLocale() guard, translate values.');
     lines.push(']]');
     lines.push('');
     lines.push('if GetLocale() ~= "LOCALE_CODE" then return end');
@@ -148,9 +148,9 @@ function generateTemplate(entries, maxLhsLen) {
     return lines.join('\n') + '\n';
 }
 
-console.log('Normalizing Localisation/enUS.lua (section headers only; no per-key Context)...');
+console.log('Normalizing localisation/horizon/enUS.lua (section headers only; no per-key Context)...');
 rewriteEnUSNormalized(enUSPath);
-console.log('Parsing Localisation/enUS.lua...');
+console.log('Parsing localisation/horizon/enUS.lua...');
 const { entries, keys } = parseEnUS(enUSPath);
 const maxLhsLen = computeMaxLhsLen(entries);
 console.log(`  Keys: ${keys.length}`);

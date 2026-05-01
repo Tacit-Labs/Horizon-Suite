@@ -57,7 +57,7 @@ addon.DB_NAME    = DB_NAME
 
 addon.modules = {}
 
--- Localization: L[key] returns translated string or key as fallback. Localisation/LocaleCore.lua then enUS.lua; locale files (frFR, etc.) wrap with fallback to English.
+-- Localisation: L[key] returns translated string or key as fallback. localisation/LocaleCore.lua then enUS.lua; locale files (frFR, etc.) wrap with fallback to English.
 addon.L = setmetatable({}, { __index = function(t, k) return k end })
 
 --- Register a module. Called by module files at load time.

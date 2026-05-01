@@ -155,10 +155,10 @@ Horizon Suite is built with the community, not just for it. Feature requests and
 Thanks to everyone who has contributed to Horizon Suite:
 
 - **feanor21#2847 — Panoramuxa (Tarren Mill -EU)** — Development
-- Marthix — Development
-- Swift — Coordinator
-- Boofuls — Moderator
-- Diva — Innovator
+- **Marthix** — Development
+- **Swift** — Coordinator
+- **Boofuls** — Moderator
+- **Diva** — Innovator
 - **RondoFerrari** — [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) — Class icons in Insight tooltips and optional Dashboard header icon when class colours are on (optional)
 - **Aishuu** — French localization (frFR)
 - **아즈샤라-두녘** — Korean localization (koKR)
@@ -169,9 +169,9 @@ Thanks to everyone who has contributed to Horizon Suite:
 
 ## 🌐 Localizations
 
-The addon UI is localized for: Chinese (zhCN), French (frFR), German (deDE), Korean (koKR), Brazilian Portuguese (ptBR), Russian (ruRU), Spanish (esES).
+The addon UI is localized for: Chinese (zhCN), French (frFR), German (deDE), Korean (koKR), Brazilian Portuguese (ptBR), Spanish (esES).
 
-Contributions for additional locales are welcome — see **[TRANSLATING.md](TRANSLATING.md)** and Discord.
+Contributions for additional locales are welcome — see **[contributions/translate.md](contributions/translate.md)** and Discord.
 
 ---
 

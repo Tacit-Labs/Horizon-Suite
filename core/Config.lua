@@ -205,7 +205,7 @@ addon.TimerFont:SetFont(addon.FONT_PATH, addon.TITLE_SIZE, "OUTLINE")
 addon.OptionsFont = CreateFont("HorizonSuiteOptionsFont")
 addon.OptionsFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
--- Values are UI_* locale keys so tracker/options pick up translations; see Localisation/enUS.lua (Tracker section labels).
+-- Values are UI_* locale keys so tracker/options pick up translations; see localisation/horizon/enUS.lua (Tracker section labels).
 addon.SECTION_LABELS = {
     CURRENT       = "UI_CURRENT_QUEST",
     CURRENT_EVENT = "UI_CURRENT_EVENT",
@@ -612,7 +612,7 @@ end
 -- ============================================================================
 -- BRAND DISPLAY
 -- Fixed English product and module display names — NOT localised.
--- UI sentences/descriptions belong in addon.L; see TRANSLATING.md.
+-- UI sentences/descriptions belong in addon.L; see contributions/translate.md.
 -- ============================================================================
 
 addon.BrandDisplay = {

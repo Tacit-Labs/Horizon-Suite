@@ -15,9 +15,10 @@ ignore:
   - tools
   - docs
   - notes
+  - contributions/
   - "modules/*/notes"
-  - Localisation/TAXONOMY.md
-  - "Localisation/Global Strings -- Blizzard"
+  - localisation/KeyNomenclature.md
+  - localisation/blizzard
   - pipeline.md
   - .cursor
   - .claude

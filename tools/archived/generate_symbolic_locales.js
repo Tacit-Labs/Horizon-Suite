@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * ARCHIVED — one-time migration (2026). Requires removed `locales/` tree from git history.
- * Current workflow: edit Localisation/enUS.lua + node tools/restructure_locales.js
+ * Current workflow: edit localisation/horizon/enUS.lua + node tools/restructure_locales.js
  *
- * Was: LocaleBase.lua -> Localisation/enUS.lua, locale-key-mapping.json, Localisation/{lang}.lua
+ * Was: LocaleBase.lua -> localisation/horizon/enUS.lua, locale-key-mapping.json, localisation/horizon/{lang}.lua
  */
 
 const fs = require('fs');
@@ -11,7 +11,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const LEGACY = path.join(ROOT, 'locales');
-const OUT_DIR = path.join(ROOT, 'Localisation');
+const OUT_DIR = path.join(ROOT, 'localisation/horizon');
 const MAPPING_PATH = path.join(ROOT, 'tools', 'locale-key-mapping.json');
 
 function sectionToPrefix(commentLine) {
@@ -330,7 +330,7 @@ function main() {
 
     fs.mkdirSync(OUT_DIR, { recursive: true });
     fs.writeFileSync(path.join(OUT_DIR, 'enUS.lua'), generateEnUS(withSym), 'utf8');
-    console.log('Written Localisation/enUS.lua');
+    console.log('Written localisation/horizon/enUS.lua');
 
     fs.writeFileSync(MAPPING_PATH, JSON.stringify(mapping, null, 2) + '\n', 'utf8');
     console.log('Written tools/locale-key-mapping.json');
@@ -342,7 +342,7 @@ function main() {
         const translatedMap = parseLegacyLocaleValues(legacyPath);
         const out = generateLocaleFile(loc, withSym, translatedMap);
         fs.writeFileSync(path.join(OUT_DIR, `${loc}.lua`), out, 'utf8');
-        console.log(`Written Localisation/${loc}.lua`);
+        console.log(`Written localisation/horizon/${loc}.lua`);
     }
 
     console.log('Done.');

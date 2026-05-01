@@ -115,31 +115,31 @@ Insight - Tooltips
 Thanks to everyone who has contributed to Horizon Suite:
 
 - **feanor21#2847 — Panoramuxa (Tarren Mill -EU)** — Development
-- Marthix — Development
-- Swift — Coordinator
-- Boofuls — Moderator
-- Diva — Innovator
+- **Marthix** — Development
+- **Swift** — Coordinator
+- **Boofuls** — Moderator
+- **Diva** — Innovator
 - **RondoFerrari** — [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) — Class icons in Insight tooltips and optional Dashboard header icon when class colours are on (optional)
-- **Aishuu** — French localization (frFR)
-- **아즈샤라-두녘** — Korean localization (koKR)
-- **Linho-Gallywix** — Brazilian Portuguese localization (ptBR)
-- **allmoon** — Chinese localization (zhCN)
+- **Aishuu** — French localisation (frFR)
+- **아즈샤라-두녘** — Korean localisation (koKR)
+- **Linho-Gallywix** — Brazilian Portuguese localisation (ptBR)
+- **allmoon** — Chinese localisation (zhCN)
 
 ---
 
-## 🌐 Localizations
+## 🌐 Localisations
 
-The addon UI is localized for:
+The addon UI is localised for:
 
-- **Chinese (zhCN)** — `Localisation/zhCN.lua`
-- **French (frFR)** — `Localisation/frFR.lua`
-- **German (deDE)** — `Localisation/deDE.lua`
-- **Korean (koKR)** — `Localisation/koKR.lua`
-- **Brazilian Portuguese (ptBR)** — `Localisation/ptBR.lua`
-- **Russian (ruRU)** — `Localisation/ruRU.lua`
-- **Spanish (esES)** — `Localisation/esES.lua`
+- **German (deDE)** — `localisation/horizon/deDE.lua`
+- **English (enUS)** — `localisation/horizon/enUS.lua`
+- **Spanish (esES)** — `localisation/horizon/esES.lua`
+- **French (frFR)** — `localisation/horizon/frFR.lua`
+- **Korean (koKR)** — `localisation/horizon/koKR.lua`
+- **Brazilian Portuguese (ptBR)** — `localisation/horizon/ptBR.lua`
+- **Chinese (zhCN)** — `localisation/horizon/zhCN.lua`
 
-Contributions for additional locales are welcome — see **[TRANSLATING.md](TRANSLATING.md)** and Discord.
+Contributions for additional locales are welcome — see **[contributions/translate.md](contributions/translate.md)** and Discord.
 
 ---
 
