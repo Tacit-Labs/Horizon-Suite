@@ -137,7 +137,9 @@ end
 local ScheduleUpdateUiWidgetDebouncedRefresh = MakeDebouncedRefresh(UPDATE_UI_WIDGET_DEBOUNCE)
 local function OnUpdateUiWidgetDebounced()
     if not addon.focus.enabled then return end
-    if not ((addon.IsDelveActive and addon.IsDelveActive()) or (addon.IsScenarioActive and addon.IsScenarioActive())) then
+    if not ((addon.IsDelveActive and addon.IsDelveActive())
+        or (addon.IsScenarioActive and addon.IsScenarioActive())
+        or (addon.IsWorldScenario and addon.IsWorldScenario())) then
         return
     end
     ScheduleUpdateUiWidgetDebouncedRefresh()

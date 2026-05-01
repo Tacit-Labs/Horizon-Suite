@@ -45,6 +45,57 @@ local function HideDelveAffixRow(entry)
     end
 end
 
+local function HideTitleCurrencyHitboxes(entry)
+    if not entry or not entry.titleCurrencyHitboxes then return end
+    for _, hitbox in ipairs(entry.titleCurrencyHitboxes) do
+        hitbox:Hide()
+        hitbox._tooltipTitle = nil
+        hitbox._tooltipBody = nil
+    end
+end
+
+local function SplitScenarioCurrencyTooltip(currency)
+    local tooltip = currency and currency.scenarioHeaderCurrencyTooltip
+    if type(tooltip) ~= "string" then tooltip = "" end
+    tooltip = tooltip:gsub("|n", "\n"):gsub("\\n", "\n"):gsub("\\r", "\n")
+    local title = tooltip:match("^([^\n\r]+)") or (currency and currency.scenarioHeaderCurrencyLabel) or ""
+    local body = tooltip:gsub("^[^\n\r]*[\n\r]*", "")
+    body = body:gsub("^%s+", ""):gsub("%s+$", "")
+    return title, body
+end
+
+local function LayoutTitleCurrencyHitboxes(entry, currencies)
+    HideTitleCurrencyHitboxes(entry)
+    if not entry or not entry.delveLivesText or not entry.titleCurrencyHitboxes or type(currencies) ~= "table" then return end
+    local measure = entry.titleCurrencyMeasure
+    if not measure then return end
+    local Scale = addon.Scaled or function(v) return v end
+    measure:SetFontObject(addon.TitleFont)
+
+    local iconSize = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
+    local gap = Scale(4)
+    local x = 0
+    local shown = 0
+    for _, currency in ipairs(currencies) do
+        local hitbox = entry.titleCurrencyHitboxes[shown + 1]
+        if not hitbox then break end
+        local iconFileID = currency and tonumber(currency.iconFileID)
+        local value = currency and currency.scenarioHeaderCurrencyValue
+        if iconFileID and iconFileID > 0 and value and value ~= "" then
+            measure:SetText(" " .. tostring(value))
+            local valueWidth = measure:GetStringWidth() or 0
+            local width = iconSize + valueWidth + gap
+            hitbox:ClearAllPoints()
+            hitbox:SetPoint("TOPLEFT", entry.delveLivesText, "TOPLEFT", x, 0)
+            hitbox:SetSize(math.max(Scale(18), width), math.max(iconSize, entry.delveLivesText:GetStringHeight() or iconSize))
+            hitbox._tooltipTitle, hitbox._tooltipBody = SplitScenarioCurrencyTooltip(currency)
+            hitbox:Show()
+            x = x + width + gap
+            shown = shown + 1
+        end
+    end
+end
+
 --- Returns true when Auctionator's v1 CreateShoppingList API is available.
 -- Result is cached after the first positive hit so we don't re-walk globals every render pass.
 local _auctionatorAvailable = nil
@@ -672,6 +723,10 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
     local shownObjs = 0
     local entryKey = questData.entryKey or entry.entryKey
+    local hideScenarioHeaderCurrencies = addon.GetDB("showScenarioHeaderCurrenciesInTitle", true)
+        and questData.category == "SCENARIO"
+        and questData.isScenarioMain
+        and type(questData.scenarioHeaderCurrencies) == "table"
     -- Default collapsed when key not in table (nil).
     local optCollapsed = not (addon.focus and addon.focus.recipeOptionalCollapsed and addon.focus.recipeOptionalCollapsed[entryKey] == false)
     local finCollapsed = not (addon.focus and addon.focus.recipeFinishingCollapsed and addon.focus.recipeFinishingCollapsed[entryKey] == false)
@@ -685,6 +740,10 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             elseif j > maxObjs then
                 oData = nil
             end
+        end
+
+        if oData and hideScenarioHeaderCurrencies and oData.isScenarioHeaderCurrency then
+            oData = nil
         end
 
         -- Recipe: DB toggles hide entire optional/finishing sections (headers + rows).
@@ -769,7 +828,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 end
                 local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
                 if prefixStyle == "numbers" then
-                    objText = ("%d. %s"):format(j, objText)
+                    objText = ("%d. %s"):format(shownObjs + 1, objText)
                 elseif prefixStyle == "hyphens" then
                     objText = "- " .. objText
                 end
@@ -1457,6 +1516,8 @@ local function ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
 end
 
 local function PopulateEntry(entry, questData, groupKey)
+    HideTitleCurrencyHitboxes(entry)
+
     -- Derive percent when missing so progress bar eligibility and rendering can use it.
     if questData.objectives then
         for _, o in ipairs(questData.objectives) do
@@ -1673,7 +1734,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.trackedFromOtherZoneIcon:Hide()
     end
 
-    -- Delve main row: reserve right strip for lives (hearts) and Nemesis groups (chest) on the same line as name + tier.
+    -- Main scenario rows can reserve a right strip on the same line as the title.
     local delveLivesActive = false
     local delveLivesStr = ""
     local delveLivesReserve = 0
@@ -1681,7 +1742,22 @@ local function PopulateEntry(entry, questData, groupKey)
     local delveGroupsStr = ""
     local delveGroupsReserve = 0
     local titleLineWidth = titleWidth
-    if entry.delveLivesText and addon.FormatDelveLivesHeartsForTitle
+    if entry.delveLivesText and addon.FormatScenarioHeaderCurrenciesForTitle
+        and addon.GetDB("showScenarioHeaderCurrenciesInTitle", true)
+        and questData.category == "SCENARIO" and questData.isScenarioMain
+        and type(questData.scenarioHeaderCurrencies) == "table" then
+        local stripText = addon.FormatScenarioHeaderCurrenciesForTitle(questData.scenarioHeaderCurrencies)
+        if stripText ~= "" then
+            delveLivesActive = true
+            delveLivesStr = stripText
+            entry.delveLivesText:SetFontObject(addon.TitleFont)
+            entry.delveLivesText:SetText(delveLivesStr)
+            delveLivesReserve = (entry.delveLivesText:GetStringWidth() or 0) + S(6)
+        else
+            entry.delveLivesText:Hide()
+            if entry.delveLivesShadow then entry.delveLivesShadow:Hide() end
+        end
+    elseif entry.delveLivesText and addon.FormatDelveLivesHeartsForTitle
         and questData.category == "DELVES" and questData.isScenarioMain
         and type(questData.delveLivesRemaining) == "number" and questData.delveLivesRemaining > 0 then
         delveLivesActive = true
@@ -1793,6 +1869,9 @@ local function PopulateEntry(entry, questData, groupKey)
             entry.delveLivesShadow:ClearAllPoints()
             entry.delveLivesShadow:SetPoint("CENTER", entry.delveLivesText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
             entry.delveLivesShadow:Show()
+        end
+        if questData.category == "SCENARIO" and type(questData.scenarioHeaderCurrencies) == "table" then
+            LayoutTitleCurrencyHitboxes(entry, questData.scenarioHeaderCurrencies)
         end
     end
 
