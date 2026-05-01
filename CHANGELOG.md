@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.17.2] – 2026-05-02
+
+### 🔧 Improvements
+
+- **(Focus) Ritual Site objective counters** — Ritual Site scenario headers now display their currency icons and progress values alongside the rest of the scenario objectives.
+- **(Vista) Configurable drawer icon picker** — When the floating drawer button is enabled, you can now choose a custom Blizzard icon or texture path for it instead of being stuck with the default.
+
+---
+
 ## [4.17.1] – 2026-04-29
 
 ### 🐛 Fixes
