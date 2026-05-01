@@ -4,7 +4,6 @@
     Player/NPC/Item logic lives in InsightPlayerTooltip, InsightNpcTooltip, InsightItemTooltip.
 ]]
 
-
 local addon = _G.HorizonSuite
 
 addon.Insight = addon.Insight or {}

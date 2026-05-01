@@ -5,7 +5,6 @@
     Mouse/click behaviour for appearance rows lives in FocusInteractions.lua (same click profile as quests).
 ]]
 
-
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- Blizzard UI atlases that represent transmog / Appearances (first match via C_Texture.GetAtlasExists wins).

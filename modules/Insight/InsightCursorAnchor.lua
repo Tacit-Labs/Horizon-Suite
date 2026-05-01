@@ -4,7 +4,6 @@
     No per-frame updates, no manual line clearing, no state tracking.
 ]]
 
-
 local addon = _G.HorizonSuite
 
 addon.Insight = addon.Insight or {}

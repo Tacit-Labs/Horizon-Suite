@@ -3,7 +3,6 @@
     Entry: slash commands, ShowDashboard, lazy init via options/dashboard/DashboardFrame.lua.
 ]]
 
-
 local addon = _G.HorizonSuite
 
 local f = _G.HorizonSuiteDashboard

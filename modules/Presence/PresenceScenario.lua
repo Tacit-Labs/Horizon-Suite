@@ -5,7 +5,6 @@
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Presence then return end
 
 local SCENARIO_DEBOUNCE = 0.4
 local SCENARIO_UPDATE_BUFFER_TIME = 0.35

@@ -14,8 +14,6 @@
 ]]
 local addon = _G.HorizonSuite
 
-
-
 addon.Presence = addon.Presence or {}
 
 -- ============================================================================

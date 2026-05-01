@@ -3,7 +3,6 @@
     Wired from DashboardHomeWelcome_Init via addon.DashboardWelcomeView_Init(env).
 ]]
 
-
 local addon = _G.HorizonSuite
 
 local tinsert = table.insert

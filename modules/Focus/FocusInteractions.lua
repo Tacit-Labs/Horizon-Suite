@@ -3,7 +3,6 @@
     Mouse scripts on pool entries (click, tooltip, scroll).
 ]]
 
-
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- INTERACTIONS

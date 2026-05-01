@@ -5,7 +5,6 @@
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Presence then return end
 
 local ZONE_DEBOUNCE = 0.25
 local SUBZONE_DEDUP_TIME = 2.0

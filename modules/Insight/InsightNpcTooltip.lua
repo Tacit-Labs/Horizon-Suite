@@ -4,7 +4,6 @@
     preserves Blizzard line 2 (subtitle) when it is not the level row.
 ]]
 
-
 local addon = _G.HorizonSuite
 
 addon.Insight = addon.Insight or {}

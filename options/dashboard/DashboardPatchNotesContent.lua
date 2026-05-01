@@ -11,7 +11,6 @@
     accent/typography refresh ref tables and pass them in.
 ]]
 
-
 local addon = _G.HorizonSuite
 
 local L = (addon.L) or setmetatable({}, { __index = function(_, k) return k end })

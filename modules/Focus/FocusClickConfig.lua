@@ -4,7 +4,6 @@
     Quest and tracked-appearance rows share PROFILES and focusClick_*; executors differ in FocusInteractions.lua.
 ]]
 
-
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 -- When true: only blizzardDefault is active; Horizon+ and Custom are hidden and DB is normalized.

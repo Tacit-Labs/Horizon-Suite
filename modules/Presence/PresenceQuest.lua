@@ -5,7 +5,6 @@
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Presence then return end
 
 -- Live-debug trace (no-op unless presence debug live is on — avoids string work when off).
 local function DbgWQ(...)

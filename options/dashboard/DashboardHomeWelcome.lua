@@ -5,7 +5,6 @@
     Wired from DashboardFrame.lua via addon.DashboardHomeWelcome_Init(env).
 ]]
 
-
 local addon = _G.HorizonSuite
 
 local tinsert = table.insert

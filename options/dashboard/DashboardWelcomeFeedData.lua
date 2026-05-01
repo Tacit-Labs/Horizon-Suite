@@ -6,7 +6,6 @@
     { atlas = "AtlasName", fallback = "INV_File" } (same pattern as dashboard sidebar buttons).
 ]]
 
-
 local addon = _G.HorizonSuite
 
 --- @type table[] Welcome feed: onboarding content (getting started, contributors, localisations, embedded guide).
