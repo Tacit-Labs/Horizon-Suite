@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build tools/locale-key-rename.json from Localisation/horizon/enUS.lua using the
+ * Build tools/locale-key-rename.json from localisation/horizon/enUS.lua using the
  * v2 rationalisation taxonomy (domain-first prefixes, UK spelling).
  *
  * Mechanical rules applied, longest match first, per old key:
@@ -27,7 +27,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const enUSPath = path.join(ROOT, 'Localisation', 'enUS.lua');
+const enUSPath = path.join(ROOT, 'localisation/horizon/enUS.lua');
 const outPath = path.join(ROOT, 'tools', 'locale-key-rename.json');
 const collisionPath = path.join(ROOT, 'tools', 'rationalisation-collisions.json');
 

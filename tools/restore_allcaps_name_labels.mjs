@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const optionsDataPath = path.join(root, "options", "OptionsData.lua");
-const enusPath = path.join(root, "Localisation", "enUS.lua");
+const enusPath = path.join(root, "localisation/horizon/enUS.lua");
 
 function getNameKeys() {
   const s = fs.readFileSync(optionsDataPath, "utf8");

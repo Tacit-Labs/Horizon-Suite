@@ -8,7 +8,7 @@
 ## IconTexture: Interface\AddOns\HorizonSuiteBeta\HorizonLogo
 
 HorizonSuite.lua
-localisation/horizon/LocaleCore.lua
+localisation/LocaleCore.lua
 localisation/horizon/deDE.lua
 localisation/horizon/enUS.lua
 localisation/horizon/esES.lua

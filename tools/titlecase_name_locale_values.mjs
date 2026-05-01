@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const optionsDataPath = path.join(root, "options", "OptionsData.lua");
-const enusPath = path.join(root, "Localisation", "enUS.lua");
+const enusPath = path.join(root, "localisation/horizon/enUS.lua");
 
 const SMALL = new Set(
   "a an and as at but by for in nor of on or the to with vs is it if as per be so up we us re".split(" ")
