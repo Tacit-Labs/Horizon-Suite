@@ -3,8 +3,7 @@
     /essence and /hse slash commands.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 local function HandleEssenceSlash(msg)
     if not addon:IsModuleEnabled("essence") then

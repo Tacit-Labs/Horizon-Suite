@@ -3,8 +3,7 @@
     /h presence [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Presence or not addon.RegisterSlashHandler then return end
+local addon = _G.HorizonSuite
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 

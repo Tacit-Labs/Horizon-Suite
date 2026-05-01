@@ -5,8 +5,7 @@
     APIs: C_QuestLine, C_QuestLog, C_Map, C_QuestInfoSystem, C_TaskQuest.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 local PADDING = 12
 local ROW_HEIGHT = 22

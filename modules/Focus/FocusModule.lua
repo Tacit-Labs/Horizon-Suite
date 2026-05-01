@@ -4,8 +4,7 @@
     OnInit/OnEnable/OnDisable route initialization and teardown.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.RegisterModule then return end
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- FOCUS MODULE DEFINITION

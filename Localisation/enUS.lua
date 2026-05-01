@@ -3,8 +3,7 @@
     Symbolic keys; other locales override via metatable chain.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 local L = addon.L
 

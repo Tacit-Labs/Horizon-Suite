@@ -4,8 +4,7 @@
     APIs: C_QuestLog, C_SuperTrack, C_Timer.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Presence then return end
+local addon = _G.HorizonSuite
 
 -- Live-debug trace (no-op unless presence debug live is on — avoids string work when off).
 local function DbgWQ(...)

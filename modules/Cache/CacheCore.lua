@@ -3,8 +3,7 @@
     Frame, pool, animation engine, ShowToast. Blizzard: CreateFrame, C_Timer.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Cache then return end
+local addon = _G.HorizonSuite
 
 local Cache = addon.Cache
 local state = addon.cache

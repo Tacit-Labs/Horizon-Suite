@@ -3,8 +3,7 @@
     OptionCategories (Insight: InsightGlobal, InsightPlayer, InsightNpc, InsightItem + others), getDB/setDB/notifyMainAddon, search index.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 if not _G[addon.DB_NAME] then _G[addon.DB_NAME] = {} end
 
 local L = addon.L

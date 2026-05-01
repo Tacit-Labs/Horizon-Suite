@@ -3,8 +3,7 @@
     Wired from options/dashboard/DashboardFrame.lua via addon.DashboardDetailView_Init(env).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 --- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
 --- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,

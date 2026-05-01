@@ -44,7 +44,7 @@ function generateLocaleFile(localeCode, entries, translated, standardFont, maxLh
     const lines = [];
     lines.push(`if GetLocale() ~= "${localeCode}" then return end`);
     lines.push('');
-    lines.push('local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite');
+    lines.push('local addon = _G.HorizonSuite');
     lines.push('if not addon then return end');
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');
@@ -113,7 +113,7 @@ function generateTemplate(entries, maxLhsLen) {
     lines.push('');
     lines.push('if GetLocale() ~= "LOCALE_CODE" then return end');
     lines.push('');
-    lines.push('local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite');
+    lines.push('local addon = _G.HorizonSuite');
     lines.push('if not addon then return end');
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');

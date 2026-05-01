@@ -3,7 +3,7 @@
     Registers and retrieves specialized scenario providers based on the current environment.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local providers = {}
 local Registry = {}

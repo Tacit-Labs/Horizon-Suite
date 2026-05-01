@@ -4,7 +4,7 @@
     Mirrors FocusAchievements: when the player tracks an Endeavor in-game, it appears in the tracker.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- ENDEAVOR DATA PROVIDER

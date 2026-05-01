@@ -5,8 +5,7 @@
     Idempotent: safe to call SuppressBlizzard/RestoreBlizzard multiple times.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Cache then return end
+local addon = _G.HorizonSuite
 
 local Y = addon.Cache
 

@@ -3,7 +3,7 @@
     C_QuestLog watch list iteration. Returns quests from the quest tracker.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 --- Returns quests from the watch list (C_QuestLog.GetNumQuestWatches). Respects filterByZone and showWorldQuests.
 local function CollectTrackedQuests(ctx)
