@@ -208,7 +208,7 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI 
 • German (deDE) — `localisation/horizon/deDE.lua`
 • English (enUS) — `localisation/horizon/enUS.lua`
 • Spanish (esES) — `localisation/horizon/esES.lua`
-• French (frFR) — `localisation/horizon/rFR.lua`
+• French (frFR) — `localisation/horizon/frFR.lua`
 • Korean (koKR) — `localisation/horizon/koKR.lua`
 • Brazilian Portuguese (ptBR) — `localisation/horizon/ptBR.lua`
 • Chinese (zhCN) — `localisation/horizon/zhCN.lua`
