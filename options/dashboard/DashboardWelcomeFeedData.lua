@@ -7,8 +7,7 @@
 ]]
 
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 --- @type table[] Welcome feed: onboarding content (getting started, contributors, localisations, embedded guide).
 addon.DashboardWelcomeFeed = {

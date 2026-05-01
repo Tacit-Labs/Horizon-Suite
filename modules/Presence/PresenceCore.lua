@@ -12,8 +12,7 @@
     - QueueOrPlay(typeName, title, subtitle, opts): title = heading, subtitle = second
       line; opts.questID is for colour/icon only, never displayed.
 ]]
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 
 

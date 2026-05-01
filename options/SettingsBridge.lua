@@ -4,8 +4,7 @@
     Provides a minimal panel with a button to open the custom options launcher.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 local L = addon.L or {}
 

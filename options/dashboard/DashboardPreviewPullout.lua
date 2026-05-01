@@ -4,8 +4,7 @@
     Modules register via DashboardPreview.Register(moduleKey, def).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 addon.DashboardPreview = addon.DashboardPreview or {}
 local DP = addon.DashboardPreview

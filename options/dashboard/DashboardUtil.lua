@@ -2,8 +2,7 @@
     Horizon Suite - Dashboard small helpers (text, axis category keys, branding).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 -- Community & Support footer link icons (Welcome + Module Guide); keep paths in sync with media/dashboard/footer/
 local DASHBOARD_FOOTER_MEDIA = "Interface/AddOns/HorizonSuite/media/dashboard/footer/"

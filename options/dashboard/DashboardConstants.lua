@@ -6,8 +6,7 @@
     dimensions and scaled by the caller-supplied ratio.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 addon.DashboardConstants = {
     -- Interior fills: lower so tiles/sidebar do not read as opaque slabs over the softened backdrop.

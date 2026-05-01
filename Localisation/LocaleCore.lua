@@ -3,8 +3,7 @@
     Initializes addon.L with missing-key fallback before enUS and locale files load.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 local L = {}
 
