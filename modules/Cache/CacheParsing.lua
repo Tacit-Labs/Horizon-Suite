@@ -3,8 +3,7 @@
     Parse CHAT_MSG_LOOT, CHAT_MSG_MONEY, CHAT_MSG_CURRENCY, CHAT_MSG_COMBAT_FACTION_CHANGE.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.Cache then return end
+local addon = _G.HorizonSuite
 
 local Y = addon.Cache
 local y = addon.cache

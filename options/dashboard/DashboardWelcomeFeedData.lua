@@ -6,7 +6,7 @@
     { atlas = "AtlasName", fallback = "INV_File" } (same pattern as dashboard sidebar buttons).
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
+
 local addon = _G.HorizonSuite
 
 --- @type table[] Welcome feed: onboarding content (getting started, contributors, localisations, embedded guide).

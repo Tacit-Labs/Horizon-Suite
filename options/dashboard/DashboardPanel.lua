@@ -3,7 +3,7 @@
     Entry: slash commands, ShowDashboard, lazy init via options/dashboard/DashboardFrame.lua.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
+
 local addon = _G.HorizonSuite
 
 local f = _G.HorizonSuiteDashboard

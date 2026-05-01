@@ -5,7 +5,7 @@
     Wired from DashboardFrame.lua via addon.DashboardHomeWelcome_Init(env).
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
+
 local addon = _G.HorizonSuite
 
 local tinsert = table.insert
