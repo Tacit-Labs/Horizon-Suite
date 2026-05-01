@@ -3,7 +3,7 @@
     /h focus [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite - Focus:|r " .. tostring(msg or "")) end
 local colorCheckState = nil

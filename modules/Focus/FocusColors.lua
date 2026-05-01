@@ -3,7 +3,7 @@
     Color matrix: defaults + per-category overrides for title/objective/zone/section.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local function EnsureColorMatrix()
     if not addon.GetDB then return end

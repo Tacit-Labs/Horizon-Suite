@@ -3,7 +3,7 @@
     PopulateEntry, FullLayout, ToggleCollapse, AcquireEntry, section headers, header button, keybind, floating item, M+ block.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- LAYOUT ENGINE

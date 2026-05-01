@@ -7,7 +7,7 @@
     quality + tier defaults.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local AH_CRAFT_W        = addon.Scaled(420)
 local AH_CRAFT_PAD      = addon.Scaled(16)

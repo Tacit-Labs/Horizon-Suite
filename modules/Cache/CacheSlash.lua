@@ -3,7 +3,7 @@
     /h cache [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local Y = addon.Cache
 local y = addon.cache

@@ -4,7 +4,7 @@
     Registers with addon:RegisterModule. Migrated from ModernMinimap.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 addon:RegisterModule("vista", {
     title       = "Vista",

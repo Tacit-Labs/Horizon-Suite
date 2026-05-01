@@ -3,7 +3,7 @@
     Instance detection (GetInstanceInfo) and dungeon quest collection. Isolated API boundary.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local function IsInMythicDungeon()
     local ok, name, instanceType, difficultyID = pcall(GetInstanceInfo)

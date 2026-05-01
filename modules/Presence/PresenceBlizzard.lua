@@ -8,7 +8,7 @@
     EventToastManagerFrame, WorldQuestCompleteBannerFrame.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local hiddenParent = CreateFrame("Frame")
 hiddenParent:Hide()

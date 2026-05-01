@@ -3,7 +3,7 @@
     PopulateEntry, ApplyHighlightStyle, ApplyObjectives, ApplyScenarioOrWQTimerBar, ApplyShadowColors.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- Middle dot between delve affix names; rendered in default game FontStrings (affixSepSegs), not the user title font.
 local DELVE_AFFIX_SEPARATOR_TEXT = "  ·  "

@@ -3,7 +3,7 @@
     Cinematic zone text and notifications. Registers with addon:RegisterModule.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 addon:RegisterModule("presence", {
     title       = "Presence",

@@ -3,7 +3,7 @@
     Specialized logic for Delves scenarios.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local DelveProvider = setmetatable({}, addon.FocusScenarioDefaultProvider or addon.FocusScenarioBaseProvider)
 DelveProvider.__index = DelveProvider

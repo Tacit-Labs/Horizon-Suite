@@ -4,7 +4,7 @@
     APIs: GetZoneText, GetSubZoneText, addon.IsDelveActive, addon.IsInPartyDungeon.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local ZONE_DEBOUNCE = 0.25
 local SUBZONE_DEDUP_TIME = 2.0
