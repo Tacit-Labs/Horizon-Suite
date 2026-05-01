@@ -50,7 +50,7 @@ function DefaultProvider:ReadEntries()
     local color = addon.GetQuestColor and addon.GetQuestColor(category) or { 0.38, 0.52, 0.88 }
 
     -- 1. Main Step
-    local ok, stageName, _, numCriteria, _, _, _, _, _, _, rewardQuestID, widgetSetID = pcall(C_Scenario.GetStepInfo)
+    local ok, stageName, _, numCriteria, _, _, _, _, _, _, _, rewardQuestID, widgetSetID = pcall(C_Scenario.GetStepInfo)
     local scenarioName, stageIndex
     local gOk, gName, currentStage = pcall(C_Scenario.GetInfo)
     if gOk and gName and gName ~= "" then scenarioName = gName end
@@ -58,6 +58,12 @@ function DefaultProvider:ReadEntries()
     if ok and stageName and stageName ~= "" then
         local objectives = {}
         local timerDuration, timerStartTime = nil, nil
+
+        -- Header widgets first: Ritual Sites use ScenarioHeaderCurrenciesAndBackground
+        -- for spoils/deaths, and Blizzard displays these above criteria.
+        for _, wObj in ipairs(self:ParseWidgetObjectives(widgetSetID)) do
+            table.insert(objectives, wObj)
+        end
 
         -- Main Criteria
         for i = 1, (numCriteria or 0) + 3 do
@@ -81,11 +87,6 @@ function DefaultProvider:ReadEntries()
             timerDuration, timerStartTime = self:GetTimerInfo(nil, rewardQuestID, widgetSetID)
         end
 
-        -- Widget Objective Fallback
-        for _, wObj in ipairs(self:ParseWidgetObjectives(widgetSetID)) do
-            table.insert(objectives, wObj)
-        end
-
         -- Global Widget Objective Fallback
         local otSet = C_UIWidgetManager.GetObjectiveTrackerWidgetSetID()
         if otSet and otSet ~= 0 and otSet ~= widgetSetID then
@@ -95,6 +96,7 @@ function DefaultProvider:ReadEntries()
         end
 
         objectives = self:DeduplicateObjectives(objectives)
+        local scenarioHeaderCurrencies = self:GetScenarioHeaderCurrenciesForTitle(objectives)
 
         -- Only create entry when it has real content; prevents empty entries from
         -- prematurely suppressing bonus objective quests (Abundance race condition).
@@ -108,6 +110,7 @@ function DefaultProvider:ReadEntries()
                 category = category,
                 color = color,
                 objectives = objectives,
+                scenarioHeaderCurrencies = scenarioHeaderCurrencies,
                 timerDuration = timerDuration,
                 timerStartTime = timerStartTime,
                 isScenarioMain = true,
@@ -120,7 +123,7 @@ function DefaultProvider:ReadEntries()
     local bOk, bonusSteps = pcall(C_Scenario.GetBonusSteps)
     if bOk and bonusSteps then
         for _, stepID in ipairs(bonusSteps) do
-            local sOk, title, _, nCrit, _, _, _, _, _, _, bonusRewardID, bWidgetID = pcall(C_Scenario.GetStepInfo, stepID)
+            local sOk, title, _, nCrit, _, _, _, _, _, _, _, bonusRewardID, bWidgetID = pcall(C_Scenario.GetStepInfo, stepID)
             if sOk and title and title ~= "" then
                 local bObjectives = {}
                 local bTimeDur, bTimeStart = nil, nil
