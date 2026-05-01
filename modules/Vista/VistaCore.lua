@@ -52,6 +52,7 @@ local VISTA_DIFF_LAYOUT_VERSION = 2
 
 -- Sentinel value meaning "use the global font" for per-element font pickers
 local FONT_USE_GLOBAL = "__global__"
+local DRAWER_ICON_DEFAULT = "Interface\\MINIMAP\\TRACKING\\Recycle"
 
 -- Button modes
 local BTN_MODE_MOUSEOVER  = "mouseover"
@@ -189,6 +190,16 @@ do
     G.ButtonMode          = function() return DB("vistaButtonMode",         BTN_MODE_RIGHTCLICK) end
     G.ButtonHandleButtons = function() return DB("vistaHandleAddonButtons", true) end
     G.ButtonDrawerLocked  = function() return DB("vistaDrawerButtonLocked", false) end
+    G.DrawerIcon           = function()
+        local v = DB("vistaDrawerIcon", DRAWER_ICON_DEFAULT)
+        if type(v) == "number" then return v end
+        if type(v) == "string" then
+            v = v:gsub("^%s+", ""):gsub("%s+$", "")
+            if v == "" then return DRAWER_ICON_DEFAULT end
+            return tonumber(v) or v
+        end
+        return DRAWER_ICON_DEFAULT
+    end
     G.ButtonWhitelist     = function() return DB("vistaButtonWhitelist",    nil) end
     G.IsButtonManaged     = function(n) return DB("vistaButtonManaged_" .. n, true) end
     G.ButtonSortAlpha     = function() return DB("vistaButtonSortAlpha",    false) end
@@ -3101,6 +3112,28 @@ local function UpdateDrawerPanelLayout()
     end
 end
 
+local function ApplyDrawerButtonIcon()
+    if not drawerButton or not drawerButton.icon then return end
+    local ok = pcall(function()
+        drawerButton.icon:SetTexture(G.DrawerIcon())
+    end)
+    if not ok then
+        drawerButton.icon:SetTexture(DRAWER_ICON_DEFAULT)
+    end
+    drawerButton.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    local iconSize = math.max(1, (G.AddonBtnSize() or 24) - 2)
+    drawerButton.icon:SetSize(iconSize, iconSize)
+end
+
+local function ApplyDrawerButtonLockState()
+    if not drawerButton then return end
+    local locked = G.ButtonDrawerLocked()
+    drawerButton:SetMovable(not locked)
+    if drawerButton._border then
+        drawerButton._border:SetShown(not locked)
+    end
+end
+
 local function CreateDrawerButton()
     if drawerButton then drawerButton:Show(); return end
 
@@ -3127,16 +3160,16 @@ local function CreateDrawerButton()
     drawerButton._bg = bg
 
     local icon = drawerButton:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("CENTER"); icon:SetSize(18, 18)
-    icon:SetTexture("Interface\\MINIMAP\\TRACKING\\Recycle")
-    icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    icon:SetPoint("CENTER")
     drawerButton.icon = icon
+    ApplyDrawerButtonIcon()
 
     local brR, brG, brB, brA = G.PanelBorderColor()
     local border = drawerButton:CreateTexture(nil, "OVERLAY")
     border:SetPoint("TOPLEFT", -1, 1); border:SetPoint("BOTTOMRIGHT", 1, -1)
     border:SetColorTexture(brR, brG, brB, brA)
     drawerButton._border = border
+    ApplyDrawerButtonLockState()
 
     drawerButton:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
@@ -3151,6 +3184,7 @@ local function CreateDrawerButton()
 
     -- Drag via OnDragStart / OnDragStop (clean, no sticky-mouse bug)
     drawerButton:SetScript("OnDragStart", function(self)
+        if G.ButtonDrawerLocked() then return end
         if InCombatLockdown() then return end
         self:StartMoving()
     end)
@@ -3730,6 +3764,7 @@ local VISTA_OPTION_KEYS_SKIP_MINIMAP_COLLECT = {
     vistaPanelBgR = true, vistaPanelBgG = true, vistaPanelBgB = true, vistaPanelBgA = true,
     vistaPanelBorderR = true, vistaPanelBorderG = true, vistaPanelBorderB = true, vistaPanelBorderA = true,
     vistaTrackingBtnSize = true, vistaCalendarBtnSize = true,
+    vistaDrawerIcon = true,
 }
 
 local function VistaOptionKeySkipsMinimapCollect(changedKey)
@@ -3882,6 +3917,8 @@ local function ApplyOptions_Buttons(changedKey)
         drawerButton:SetSize(addonSz + 4, addonSz + 4)
         if drawerButton._bg     then drawerButton._bg:SetColorTexture(G.PanelBgColor())     end
         if drawerButton._border then drawerButton._border:SetColorTexture(G.PanelBorderColor()) end
+        ApplyDrawerButtonIcon()
+        ApplyDrawerButtonLockState()
     end
     local bgR, bgG, bgB, bgA = G.PanelBgColor()
     local brR, brG, brB, brA = G.PanelBorderColor()
@@ -3945,6 +3982,7 @@ end
 function Vista.ApplyLockOnlyOptions()
     if not decor then return end
     ApplyOptions_TextDraggableLocks()
+    ApplyDrawerButtonLockState()
     if Vista.RefreshQueueProxies then Vista.RefreshQueueProxies() end
     if Vista.RefreshMailAnchor then Vista.RefreshMailAnchor() end
     if Vista.RefreshCraftingOrderAnchor then Vista.RefreshCraftingOrderAnchor() end

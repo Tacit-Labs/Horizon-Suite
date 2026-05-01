@@ -356,9 +356,14 @@ local function OnItemTooltip(tooltip, data)
     -- Base quality: prefer C_Item.GetItemInfo on the full hyperlink (it's
     -- link-aware, so bonus IDs that bump or drop quality — e.g. a Tarnished
     -- delve item lifted to rare by its bonus chain — are reflected). Fall
-    -- back to TDP data.quality, then itemID-only lookup which is base-only.
+    -- back to tooltip:GetItem(), then TDP data.quality, then itemID-only
+    -- lookup which is base-only.
     local baseQuality
     local hyperlink = data.hyperlink
+    if not hyperlink and tooltip.GetItem then
+        local _, link = tooltip:GetItem()
+        hyperlink = link
+    end
     if hyperlink and C_Item and C_Item.GetItemInfo then
         local _, _, q = C_Item.GetItemInfo(hyperlink)
         baseQuality = q
@@ -368,17 +373,12 @@ local function OnItemTooltip(tooltip, data)
         local _, _, q = C_Item.GetItemInfo(itemID)
         baseQuality = q
     end
-    -- Effective gradient quality: take the higher of the item's base quality
-    -- and any TWW upgrade-track tier on the tooltip. The track can only lift
-    -- (Adventurer→Rare, Veteran+→Epic) — never downgrade a higher base, and
-    -- if no track line is present we use the base quality as-is.
+    -- Effective gradient quality: use the upgrade track tier when present,
+    -- since PvP and some other items report an inflated base quality that
+    -- does not match their actual tier. Track quality always wins; fall back
+    -- to base quality only when no track line is detected.
     local trackQuality = Insight.DetectUpgradeTrackQuality(tooltip)
-    local quality
-    if baseQuality and trackQuality then
-        quality = baseQuality > trackQuality and baseQuality or trackQuality
-    else
-        quality = baseQuality or trackQuality
-    end
+    local quality = trackQuality or baseQuality
 
     if quality and quality >= 0 then
         local r, g, b = GetItemQualityColor(quality)
@@ -974,4 +974,3 @@ if addon.RegisterSlashHandlerDebug then
 end
 
 addon.Insight = Insight
-
