@@ -2,8 +2,8 @@
 This folder contains files from the following repository:
 **Ketho** > *BlizzardInterfaceResources* > *Resources* > **Global Strings**
 
-These files were downloaded on April 9th, 2026 @ 15:39.
-Last update hash: [bc1cfe3](https://github.com/Ketho/BlizzardInterfaceResources/commit/bc1acfe31b3b0b8c9a179464bdc675ea375a5eb3)
+These files were downloaded on May 1st, 2026 @ 16:21.
+Last update hash: [2658949](https://github.com/Ketho/BlizzardInterfaceResources/commit/26589499e19f25c8a9e61e69221108f4ddc0481e)
 
 For translation ("localisation") purposes, these files are meant to act as an *official* reference point.
 The terminology in these strings is the legitimate output that Blizzard provides in-game.

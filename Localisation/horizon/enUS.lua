@@ -1,16 +1,12 @@
---[[
-    Horizon Suite — Translation template (not loaded by the addon).
-    Copy to Localisation/<yourLocale>.lua, set GetLocale() guard, translate values.
-]]
-
-if GetLocale() ~= "LOCALE_CODE" then return end
-
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
-local L = setmetatable({}, { __index = addon.L })
-addon.L = L
-addon.StandardFont = UNIT_NAME_FONT
+local L = addon.L
+
+-- Template Key, feel free to copy/paste. 
+L["TERM"]                                                = " "
+-- Do not change anything except for the information inside of the quotation marks.
+-- To inactivate the key, make it a comment stub (prefaced with -- ) as this line is.
 
 -- =====================================================================
 -- Branding — Horizon Suite, module names, and third-party brand names
@@ -209,15 +205,15 @@ L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Thank you to 
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Localisations"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
 
-• Chinese (zhCN) — Localisation/zhCN.lua
-• French (frFR) — Localisation/frFR.lua
-• German (deDE) — Localisation/deDE.lua
-• Korean (koKR) — Localisation/koKR.lua
-• Brazilian Portuguese (ptBR) — Localisation/ptBR.lua
-• Russian (ruRU) — Localisation/ruRU.lua
-• Spanish (esES) — Localisation/esES.lua
+• German (deDE) — `localisation/horizon/deDE.lua`
+• English (enUS) — `localisation/horizon/enUS.lua`
+• Spanish (esES) — `localisation/horizon/esES.lua`
+• French (frFR) — `localisation/horizon/rFR.lua`
+• Korean (koKR) — `localisation/horizon/koKR.lua`
+• Brazilian Portuguese (ptBR) — `localisation/horizon/ptBR.lua`
+• Chinese (zhCN) — `localisation/horizon/zhCN.lua`
 
-See TRANSLATING.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
+See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
 
 -- =====================================================================
@@ -1944,7 +1940,6 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
-
 
 
 

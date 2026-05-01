@@ -168,5 +168,5 @@ if (doWrite) {
     c = r.content;
   }
   fs.writeFileSync(enusPath, c, "utf8");
-  console.error("Wrote", changes.length, "title-case updates to Localisation/enUS.lua");
+  console.error("Wrote", changes.length, "title-case updates to localisation/horizon/enUS.lua");
 }

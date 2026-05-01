@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build tools/locale-key-rename.json from Localisation/enUS.lua using the
+ * Build tools/locale-key-rename.json from Localisation/horizon/enUS.lua using the
  * v2 rationalisation taxonomy (domain-first prefixes, UK spelling).
  *
  * Mechanical rules applied, longest match first, per old key:

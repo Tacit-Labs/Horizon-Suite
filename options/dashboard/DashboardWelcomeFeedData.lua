@@ -1,7 +1,7 @@
 --[[
     Horizon Suite - Dashboard Welcome feed definitions (ordered news-reel items).
     Higher `sort` appears first after layout. Edit this file to add/reorder announcements.
-    Locale strings use keys in Localisation/enUS.lua (titleKey, bodyKey, etc.).
+    Locale strings use keys in localisation/horizon/enUS.lua (titleKey, bodyKey, etc.).
     For welcome_action_card, `icon` may be an icon file name (string) or a table
     { atlas = "AtlasName", fallback = "INV_File" } (same pattern as dashboard sidebar buttons).
 ]]

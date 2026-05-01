@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Locale audit → Discord embed payload (Localisation/).
+  Locale audit → Discord embed payload (localisation/horizon/).
   Usage: node tools/locale_audit_discord.js
  */
 
@@ -10,16 +10,15 @@ const { parseEnUS, parseLocaleTranslations } = require('./lib/parseLocalisationE
 const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOC = path.join(ROOT, 'Localisation');
+const LOC = path.join(ROOT, 'localisation/horizon');
 
 const LOCALES = [
     { code: 'deDE', flag: '\uD83C\uDDE9\uD83C\uDDEA', name: 'German' },
-    { code: 'zhCN', flag: '\uD83C\uDDE8\uD83C\uDDF3', name: 'Chinese (CN)' },
-    { code: 'ptBR', flag: '\uD83C\uDDE7\uD83C\uDDF7', name: 'Portuguese' },
+    { code: 'esES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: 'Spanish (ES)' },
     { code: 'frFR', flag: '\uD83C\uDDEB\uD83C\uDDF7', name: 'French' },
     { code: 'koKR', flag: '\uD83C\uDDF0\uD83C\uDDF7', name: 'Korean' },
-    { code: 'ruRU', flag: '\uD83C\uDDF7\uD83C\uDDFA', name: 'Russian' },
-    { code: 'esES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: 'Spanish (ES)' },
+    { code: 'ptBR', flag: '\uD83C\uDDE7\uD83C\uDDF7', name: 'Portuguese' },
+    { code: 'zhCN', flag: '\uD83C\uDDE8\uD83C\uDDF3', name: 'Chinese (CN)' },
 ];
 
 function progressBar(pct, len) {
@@ -60,10 +59,10 @@ lines.push('```');
 const description = [
     `Non-English strings vs **${total}** keys (enUS fallback does not count):\n`,
     lines.join('\n'),
-    '**Want to help translate?**',
-    '1. See [TRANSLATING.md](https://github.com/Tacit-Labs/Horizon-Suite/blob/main/TRANSLATING.md)',
-    '2. Use [locale_template.lua](https://github.com/Tacit-Labs/Horizon-Suite/blob/main/Localisation/locale_template.lua)',
-    '3. Post your file here for review!',
+    '**Want to help?**',
+    'See `translate.md` from the `contributions/` folder in the [GitHub](https://github.com/Tacit-Labs/Horizon-Suite) repository.',
+    'New languages are absolutely welcome, full instructions are inside the file.',
+    'Every translated line helps!',
 ].join('\n');
 
 const payload = {

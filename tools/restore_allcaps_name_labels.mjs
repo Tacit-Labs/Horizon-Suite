@@ -49,9 +49,9 @@ function setLine(content, key, newValue) {
 const nameKeys = getNameKeys();
 let head;
 try {
-  head = execFileSync("git", ["show", "HEAD:Localisation/enUS.lua"], { cwd: root, encoding: "utf8" });
+  head = execFileSync("git", ["show", "HEAD:localisation/horizon/enUS.lua"], { cwd: root, encoding: "utf8" });
 } catch {
-  console.error("No git or HEAD:Localisation/enUS.lua; nothing to do.");
+  console.error("No git or HEAD:localisation/horizon/enUS.lua; nothing to do.");
   process.exit(0);
 }
 
