@@ -15,6 +15,17 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.17.2"] = {
+        date = "2026-05-02",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: Ritual Site scenario headers now show their currency icons and progress values alongside the other objectives.",
+                "Vista: choose a custom icon for the floating drawer button — accepts a Blizzard icon name or texture path.",
+            },
+        },
+    },
+
     ["4.17.1"] = {
         date = "2026-04-29",
         {
