@@ -293,7 +293,7 @@ local VISTA_KEYS = {
     vistaRightClickLocked = true, vistaRightClickPanelX = true, vistaRightClickPanelY = true,
     vistaButtonMode = true, vistaHandleAddonButtons = true,
     vistaCollectHorizonMinimapButton = true, vistaButtonSortAlpha = true,
-    vistaDrawerButtonLocked = true, vistaDrawerIcon = true, vistaButtonWhitelist = true,
+    vistaDrawerButtonLocked = true, vistaButtonWhitelist = true,
     vistaMailBlink = true,
     vistaCraftingOrderBlink = true,
     -- Button sizes (separate per type)
@@ -2108,6 +2108,7 @@ local OptionCategories = {
             { type = "toggle", name = L["SCENARIO_EVENTS"], desc = L["FOCUS_TRACK_DELVE_DUNGEON_SCENARIO_ACTIVITIES"], dbKey = "showScenarioEvents", get = function() return getDB("showScenarioEvents", true) end, set = function(v) setDB("showScenarioEvents", v) end, tooltip = L["FOCUS_DELVES_APPEAR_DELVES_SECTION_DUNGEONS_DUNGEON"] },
             { type = "toggle", name = L["ACTIVE_INSTANCE"], desc = L["ACTIVE_INSTANCE_SECTION"], dbKey = "hideOtherCategoriesInDelve", get = function() return getDB("hideOtherCategoriesInDelve", false) end, set = function(v) setDB("hideOtherCategoriesInDelve", v) end, tooltip = L["HIDES_CATEGORIES_WHILE_A_DELVE_PARTY"] },
             { type = "toggle", name = L["FOCUS_DELVE_AFFIX_NAMES"], desc = L["AFFIX_NAMES_FIRST_DELVE_ENTRY"], dbKey = "showDelveAffixes", get = function() return getDB("showDelveAffixes", getDB("delveBlockShowAffixes", true)) end, set = function(v) setDB("showDelveAffixes", v); if addon.ScheduleRefresh then addon.ScheduleRefresh() end end, tooltip = L["APPEAR_FULL_TRACKER_REPLACEMENTS"] },
+            { type = "toggle", name = L["FOCUS_RITUAL_SITE_TITLE_COUNTERS"], desc = L["FOCUS_RITUAL_SITE_TITLE_COUNTERS_DESC"], dbKey = "showScenarioHeaderCurrenciesInTitle", get = function() return getDB("showScenarioHeaderCurrenciesInTitle", true) end, set = function(v) setDB("showScenarioHeaderCurrenciesInTitle", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end, tooltip = L["FOCUS_RITUAL_SITE_TITLE_COUNTERS_TOOLTIP"] },
             { type = "section", name = L["FOCUS_SCENARIO_BAR"] },
             { type = "toggle", name = L["SCENARIO_TIMER_BAR"], desc = L["FOCUS_TIMER_PROGRESS_BAR_SCENARIO_ENTRIES"], dbKey = "cinematicScenarioBar", get = function() return getDB("cinematicScenarioBar", true) end, set = function(v) setDB("cinematicScenarioBar", v) end },
         },
@@ -2955,7 +2956,6 @@ local OptionCategories = {
                   desc = L["VISTA_ADDON_BUTTONS_PRESENTED_HOVER_BAR_BELOW"] or "How addon buttons are presented: hover bar below minimap, panel on right-click, or floating drawer button.",
                   dbKey = "vistaButtonMode",
                   options = BUTTON_MODE_OPTIONS,
-                  refreshIds = { "vistaDrawerIcon", "vistaDrawerButtonLocked", "vistaMouseoverLocked", "vistaMouseoverBarVisible", "vistaRightClickLocked" },
                   get = function() return getDB("vistaButtonMode", "rightclick") end,
                   set = function(v)
                       if not getDB("vistaHandleAddonButtons", true) then return end
@@ -2967,18 +2967,6 @@ local OptionCategories = {
                       end
                   end,
                   disabled = function() return not getDB("vistaHandleAddonButtons", true) end },
-                { type = "button",
-                  name = L["VISTA_CHOOSE_DRAWER_ICON"] or "Choose Drawer Icon",
-                  dbKey = "vistaDrawerIcon",
-                  visibleWhen = function()
-                      return getDB("vistaHandleAddonButtons", true) and getDB("vistaButtonMode", "mouseover") == "drawer"
-                  end,
-                  tooltip = L["VISTA_DRAWER_BUTTON_ICON_DESC"] or "Enter a Blizzard icon file ID or texture path. Leave blank to use the default drawer icon.",
-                  onClick = function()
-                      if addon.OpenVistaDrawerIconPicker then
-                          addon.OpenVistaDrawerIconPicker()
-                      end
-                  end },
                 { type = "toggle", name = L["LOCK_DRAWER_BUTTON"] or "Lock drawer button",
                   desc = L["VISTA_PREVENT_DRAGGING_FLOATING_DRAWER_BUTTON"] or "Prevent dragging the floating drawer button.",
                   dbKey = "vistaDrawerButtonLocked",

@@ -412,6 +412,41 @@ local function CreateQuestEntry(parent, index)
     e.delveLivesText:Hide()
     e.delveLivesShadow:Hide()
 
+    e.titleCurrencyMeasure = e:CreateFontString(nil, "OVERLAY")
+    e.titleCurrencyMeasure:SetFontObject(addon.TitleFont)
+    e.titleCurrencyMeasure:Hide()
+    e.titleCurrencyHitboxes = {}
+    for i = 1, 4 do
+        local hitbox = CreateFrame("Frame", nil, e)
+        hitbox:SetFrameLevel(e:GetFrameLevel() + 8)
+        hitbox:EnableMouse(true)
+        hitbox:SetScript("OnEnter", function(self)
+            if not GameTooltip then return end
+            if addon.focus and addon.focus.AnchorTooltip then
+                addon.focus.AnchorTooltip(GameTooltip, self)
+            else
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            end
+            GameTooltip:ClearLines()
+            local title = self._tooltipTitle
+            local body = self._tooltipBody
+            if title and title ~= "" then
+                GameTooltip:AddLine(title, 1, 1, 1)
+            end
+            if body and body ~= "" then
+                GameTooltip:AddLine(body, 1, 0.82, 0, true)
+            end
+            GameTooltip:Show()
+        end)
+        hitbox:SetScript("OnLeave", function(self)
+            if GameTooltip and GameTooltip:GetOwner() == self then
+                GameTooltip:Hide()
+            end
+        end)
+        hitbox:Hide()
+        e.titleCurrencyHitboxes[i] = hitbox
+    end
+
     -- Delve Nemesis groups / bonus chest (chest + count or check) on the title row; anchored from lives or title in FocusEntryRenderer.
     e.delveGroupsShadow = e:CreateFontString(nil, "BORDER")
     e.delveGroupsShadow:SetFontObject(addon.TitleFont)
@@ -934,6 +969,13 @@ local function ClearEntry(entry, full)
         if entry.inlineTimerText then entry.inlineTimerText:Hide() end
         if entry.delveLivesText then entry.delveLivesText:Hide() end
         if entry.delveLivesShadow then entry.delveLivesShadow:Hide() end
+        if entry.titleCurrencyHitboxes then
+            for _, hitbox in ipairs(entry.titleCurrencyHitboxes) do
+                hitbox:Hide()
+                hitbox._tooltipTitle = nil
+                hitbox._tooltipBody = nil
+            end
+        end
         if entry.delveGroupsText then entry.delveGroupsText:Hide() end
         if entry.delveGroupsShadow then entry.delveGroupsShadow:Hide() end
         if entry.wqProgressBg then entry.wqProgressBg:Hide() end
