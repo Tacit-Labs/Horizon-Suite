@@ -3,7 +3,38 @@
     Constants, colors, fonts, labels, and group order. Loaded after Utilities, before Core.
 ]]
 
-local addon = _G.HorizonSuite
+local ADDON_NAME
+do
+    -- Walk the call stack to find the originating file path.  When WoW (or
+    -- the test harness) loads "Interface/AddOns/<FolderName>/HorizonSuite.lua"
+    -- the folder name tells us which copy we are.
+    local info = debugstack and debugstack(1, 1, 0) or ""
+    if info:find("HorizonSuiteBeta") then
+        ADDON_NAME = "HorizonSuiteBeta"
+    else
+        ADDON_NAME = "HorizonSuite"
+    end
+end
+
+local isBeta    = (ADDON_NAME == "HorizonSuiteBeta")
+local GLOBAL_NS = isBeta and "HorizonSuiteBeta" or "HorizonSuite"
+local DB_NAME   = isBeta and "HorizonBetaDB"     or "HorizonDB"
+
+
+if not _G[GLOBAL_NS] then _G[GLOBAL_NS] = {} end
+local addon = _G[GLOBAL_NS]
+
+--- Loading marker: WoW loads all TOC files for one addon sequentially before
+--- moving to the next addon. Every subsequent file in this addon's TOC checks
+--- _G._HorizonSuite_Loading to find the correct namespace, avoiding the bug
+--- where the main addon's files accidentally bind to the beta namespace (or
+--- vice-versa) when both are loaded simultaneously.
+_G._HorizonSuite_Loading = addon
+
+--- Store identity so every other file can query it.
+addon.ADDON_NAME = ADDON_NAME
+addon.IS_BETA    = isBeta
+addon.DB_NAME    = DB_NAME
 
 -- ============================================================================
 -- CONFIGURATION (constants, colors, fonts, labels, group order)
