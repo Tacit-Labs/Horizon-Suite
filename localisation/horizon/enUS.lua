@@ -1254,6 +1254,9 @@ L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"]          = "Font size for s
 -- =====================================================================
 L["FOCUS_OUTLINE_NONE"]                                       = "None"
 L["FOCUS_THICK_OUTLINE"]                                      = "Thick Outline"
+L["FOCUS_SLUG"]                                               = "SLUG"
+L["FOCUS_SLUG_OUTLINE"]                                       = "SLUG Outline"
+L["FOCUS_SLUG_THICK_OUTLINE"]                                 = "SLUG Thick Outline"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
