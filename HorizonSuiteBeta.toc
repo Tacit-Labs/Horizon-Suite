@@ -9,8 +9,8 @@
 
 HorizonSuite.lua
 localisation/LocaleCore.lua
-localisation/horizon/deDE.lua
 localisation/horizon/enUS.lua
+localisation/horizon/deDE.lua
 localisation/horizon/esES.lua
 localisation/horizon/frFR.lua
 localisation/horizon/koKR.lua

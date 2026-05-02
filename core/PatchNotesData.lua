@@ -15,6 +15,16 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.17.3"] = {
+        date = "2026-05-02",
+        {
+            section = "Fixes",
+            bullets = {
+                "Localisation: non-English clients now display in the player's selected language again instead of falling back to English (regression introduced in 4.17.2).",
+            },
+        },
+    },
+
     ["4.17.2"] = {
         date = "2026-05-02",
         {

@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.17.3] – 2026-05-02
+
+### 🐛 Fixes
+
+- **Localisation** — Non-English clients (German, Spanish, French, Korean, Brazilian Portuguese, Simplified Chinese) once again display in the player's selected language instead of falling back to English. A file load order regression in 4.17.2 caused English strings to overwrite every translation at startup.
+
+---
+
 ## [4.17.2] – 2026-05-02
 
 ### 🔧 Improvements
