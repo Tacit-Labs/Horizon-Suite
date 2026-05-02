@@ -2,7 +2,7 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
-## Version: 4.17.2
+## Version: 4.17.3
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator, IconBrowser
 ## IconTexture: Interface\AddOns\HorizonSuite\HorizonLogo
@@ -11,8 +11,8 @@
 
 HorizonSuite.lua
 localisation/LocaleCore.lua
-localisation/horizon/deDE.lua
 localisation/horizon/enUS.lua
+localisation/horizon/deDE.lua
 localisation/horizon/esES.lua
 localisation/horizon/frFR.lua
 localisation/horizon/koKR.lua
