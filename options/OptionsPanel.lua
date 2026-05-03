@@ -421,7 +421,7 @@ function addon.OpenVistaDrawerIconPicker()
 end
 
 -- Card collapse state: default collapsed (true) when key not in table; sectionDefaultCollapsed overrides when key absent
-local cardCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsCardCollapsed) or {}
+local cardCollapsed = (_G[addon.DATABASE] and _G[addon.DATABASE].optionsCardCollapsed) or {}
 local sectionDefaultCollapsed = {}
 local function GetCardCollapsed(sectionKey)
     if cardCollapsed[sectionKey] ~= nil then return cardCollapsed[sectionKey] end
@@ -429,7 +429,7 @@ local function GetCardCollapsed(sectionKey)
 end
 local function SetCardCollapsed(sectionKey, v)
     cardCollapsed[sectionKey] = v
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if db then db.optionsCardCollapsed = cardCollapsed end
 end
 
@@ -491,7 +491,7 @@ local function StopPanelDrag()
     if not isDraggingPanel then return end
     isDraggingPanel = false
     panel:SetScript("OnUpdate", nil)
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if InCombatLockdown() then
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -500,7 +500,7 @@ local function StopPanelDrag()
             self:SetScript("OnEvent", nil)
             if not InCombatLockdown() then
                 panel:StopMovingOrSizing()
-                db = _G[addon.DB_NAME]
+                db = _G[addon.DATABASE]
                 if db then
                     local x, y = panel:GetCenter()
                     local uix, uiy = UIParent:GetCenter()
@@ -846,7 +846,7 @@ resizeHandle:SetScript("OnDragStop", function(self)
     if not isResizing then return end
     isResizing = false
     self:SetScript("OnUpdate", nil)
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if db then
         db.optionsPanelWidth = panel:GetWidth()
         db.optionsPanelHeight = panel:GetHeight()
@@ -1588,7 +1588,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local swatches = {}
             for _, key in ipairs(keys) do
                 local getTbl = function() local db = getDB(opt.dbKey, nil) return db and db[key] end
-                local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DB_NAME]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
+                local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DATABASE]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
                 local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], defaultMap[key], getTbl, setKeyVal, notifyMainAddon)
                 currentCard.contentAnchor = row
                 currentCard.contentHeight = currentCard.contentHeight + 4 + 24
@@ -2466,7 +2466,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local swatches = {}
             for _, key in ipairs(keys) do
                 local getTbl = function() local db = getDB(opt.dbKey, nil) return db and db[key] end
-                local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DB_NAME]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
+                local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DATABASE]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
                 local def = defaultMap[key] or {0.5,0.5,0.5}
                 local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], def, getTbl, setKeyVal, notifyMainAddon)
                 currentCard.contentAnchor = row
@@ -2542,11 +2542,11 @@ local easeOut = addon.easeOut or function(t) return 1 - (1-t)*(1-t) end
 
 local lastSidebarRow = nil
 -- Sidebar group collapse state: persisted in optionsSidebarGroupCollapsed
-local groupCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsSidebarGroupCollapsed) or {}
+local groupCollapsed = (_G[addon.DATABASE] and _G[addon.DATABASE].optionsSidebarGroupCollapsed) or {}
 local function GetGroupCollapsed(mk) return groupCollapsed[mk] ~= false end
 local function SetGroupCollapsed(mk, v)
     groupCollapsed[mk] = v
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if db then db.optionsSidebarGroupCollapsed = groupCollapsed end
 end
 
@@ -3079,7 +3079,7 @@ panel:SetScript("OnShow", function()
     if sidebarScrollFrame and sidebarScrollFrame.SetVerticalScroll then sidebarScrollFrame:SetVerticalScroll(0) end
     -- Reset section cards to collapsed on each open
     for k in pairs(cardCollapsed) do cardCollapsed[k] = nil end
-    local _cdb = _G[addon.DB_NAME]
+    local _cdb = _G[addon.DATABASE]
     if _cdb then _cdb.optionsCardCollapsed = cardCollapsed end
     for _, card in ipairs(allCollapsibleCards) do
         if card and card.sectionKey and card.contentContainer and card.headerHeight then
@@ -3101,7 +3101,7 @@ panel:SetScript("OnShow", function()
     end
     updateOptionsPanelFonts()
     -- Restore saved dimensions
-    local _db = _G[addon.DB_NAME]
+    local _db = _G[addon.DATABASE]
     if _db then
         if _db.optionsPanelWidth then
             panel:SetWidth(math.max(600, math.min(1400, _db.optionsPanelWidth)))

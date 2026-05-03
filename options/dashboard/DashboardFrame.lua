@@ -38,9 +38,9 @@ end
 
 function addon.Dashboard_BuildMainFrame()
             -- Read saved resize ratio FIRST — needed for initial SetSize and sidebar width.
-            -- Accessed via raw _G[DB_NAME] (not profile-routed GetDB) because it is a root key.
+            -- Accessed via raw _G[DATABASE] (not profile-routed GetDB) because it is a root key.
             local _initRatio = (function()
-                local db = _G[addon.DB_NAME]
+                local db = _G[addon.DATABASE]
                 local r = db and tonumber(db.dashboardSizeRatio)
                 if r and r >= 0.5 and r <= 2.0 then return r end
                 return 1.0
@@ -94,7 +94,7 @@ function addon.Dashboard_BuildMainFrame()
                 if fl and ft then
                     f:ClearAllPoints()
                     f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", fl, ft)
-                    local db = _G[addon.DB_NAME]
+                    local db = _G[addon.DATABASE]
                     if db then
                         db.dashboardTopLeftX = fl
                         db.dashboardTopLeftY = ft
@@ -2287,7 +2287,7 @@ function addon.Dashboard_BuildMainFrame()
                 ratio = math.max(0.5, ratio)
 
                 -- Persist to DB (root-level keys, raw access).
-                local db = _G[addon.DB_NAME]
+                local db = _G[addon.DATABASE]
                 if db then
                     db.dashboardSizeRatio = ratio
                     db.dashboardTopLeftX  = _dragPinX
@@ -2340,7 +2340,7 @@ function addon.Dashboard_BuildMainFrame()
                 -- Reset to native 1.0 ratio, centered.
                 f:ClearAllPoints()
                 f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-                local db = _G[addon.DB_NAME]
+                local db = _G[addon.DATABASE]
                 if db then
                     db.dashboardSizeRatio = nil
                     db.dashboardTopLeftX  = nil

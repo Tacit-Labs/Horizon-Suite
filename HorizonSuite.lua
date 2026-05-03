@@ -3,7 +3,7 @@ if not _G[GLOBAL_NS] then _G[GLOBAL_NS] = {} end
 local addon = _G[GLOBAL_NS]
 _G._HorizonSuite_Loading = addon
 addon.ADDON_NAME = "HorizonSuite"
-addon.DB_NAME    = "HorizonDB"
+addon.DATABASE    = "HorizonDB"
 
 -- ============================================================================
 -- MODULE REGISTRY AND LIFECYCLE
@@ -85,8 +85,8 @@ end
 function addon:EnableModule(key)
     local m = self.modules[key]
     if not m or m.enabled then return end
-    local db = _G[self.DB_NAME]
-    if not db then db = {}; _G[self.DB_NAME] = db end
+    local db = _G[self.DATABASE]
+    if not db then db = {}; _G[self.DATABASE] = db end
     if not db.modules then db.modules = {} end
     if not db.modules[key] then db.modules[key] = {} end
     db.modules[key].enabled = true
@@ -105,7 +105,7 @@ function addon:DisableModule(key)
     if not m or not m.enabled then return end
     if m.OnDisable then m.OnDisable(self) end
     m.enabled = false
-    local db = _G[self.DB_NAME]
+    local db = _G[self.DATABASE]
     if db and db.modules and db.modules[key] then
         db.modules[key].enabled = false
     end
@@ -133,8 +133,8 @@ end
 
 --- Ensure modules table exists and migrate legacy installs (no modules table = all defaults).
 function addon:EnsureModulesDB()
-    local db = _G[self.DB_NAME]
-    if not db then db = {}; _G[self.DB_NAME] = db end
+    local db = _G[self.DATABASE]
+    if not db then db = {}; _G[self.DATABASE] = db end
     if not db.modules then
         db.modules = {}
         -- First-time install: all modules off until the user enables them in options.

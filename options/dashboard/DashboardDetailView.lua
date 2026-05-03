@@ -1264,7 +1264,7 @@ function addon.DashboardDetailView_Init(env)
                         local getTbl = function() local db = _G.OptionsData_GetDB(opt.dbKey, nil) return db and db[key] end
                         local setKeyVal = function(v) 
                             addon.EnsureDB()
-                            local _rdb = _G[addon.DB_NAME]
+                            local _rdb = _G[addon.DATABASE]
                             if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end
                             _rdb[opt.dbKey][key] = v
                             if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end

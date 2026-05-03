@@ -20,10 +20,10 @@ local function GetCurrentVersion()
 end
 
 local function EnsureRootDB()
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if not db then
         db = {}
-        _G[addon.DB_NAME] = db
+        _G[addon.DATABASE] = db
     end
     return db
 end
@@ -38,7 +38,7 @@ end
 
 local function GetPatchNotesLastViewedVersion()
     MigratePatchNotesVersionIfNeeded()
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     return (db and db.patchNotesLastViewedVersion) or ""
 end
 
@@ -62,7 +62,7 @@ end
 
 local function GetWhatsNewSidebarAckedVersion()
     MigrateWhatsNewSidebarAckIfNeeded()
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     return (db and db.patchNotesWhatsNewSidebarAckedVersion) or ""
 end
 
@@ -265,7 +265,7 @@ loginFrame:SetScript("OnEvent", function(self)
     -- Skip the auto-show modal on first install — the user should see the
     -- Welcome onboarding (driven by the dashboard flow gating in
     -- DashboardPanel.lua) before being interrupted by patch notes.
-    local rootDB = _G[addon.DB_NAME]
+    local rootDB = _G[addon.DATABASE]
     if rootDB and not rootDB.welcomeSeen then
         addon.PatchNotes_RefreshAttentionIndicators()
         return

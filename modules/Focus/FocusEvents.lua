@@ -273,7 +273,7 @@ end
 local function OnAddonLoaded(addonName)
     if addonName == addon.ADDON_NAME then
         addon:EnsureModulesDB()
-        local db = _G[addon.DB_NAME]
+        local db = _G[addon.DATABASE]
         for key in pairs(addon.modules or {}) do
             local modDb = db and db.modules and db.modules[key]
             if modDb and modDb.enabled ~= false then

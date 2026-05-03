@@ -830,8 +830,8 @@ local function HandleFocusDebugSlash(msg)
         local numSpecs = _G.GetNumSpecializations and _G.GetNumSpecializations() or "?"
         local curSpec = _G.GetSpecialization and _G.GetSpecialization() or "?"
         HSPrint("Specs: " .. tostring(numSpecs) .. " | Current spec index: " .. tostring(curSpec))
-        if _G[addon.DB_NAME] then
-            local db = _G[addon.DB_NAME]
+        if _G[addon.DATABASE] then
+            local db = _G[addon.DATABASE]
             HSPrint("useGlobalProfile: " .. tostring(db.useGlobalProfile))
             HSPrint("globalProfileKey: " .. tostring(db.globalProfileKey))
             HSPrint("usePerSpecProfiles: " .. tostring(db.usePerSpecProfiles))

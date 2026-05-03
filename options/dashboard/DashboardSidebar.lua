@@ -193,11 +193,11 @@ function addon.DashboardSidebar_CreateChrome(p)
     local sidebarButtons = {}
 
     -- Sidebar group collapse (reuse OptionsPanel state for consistency)
-    local groupCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsSidebarGroupCollapsed) or {}
+    local groupCollapsed = (_G[addon.DATABASE] and _G[addon.DATABASE].optionsSidebarGroupCollapsed) or {}
     local function GetGroupCollapsed(mk) return groupCollapsed[mk] ~= false end
     local function SetGroupCollapsed(mk, v)
         groupCollapsed[mk] = v
-        local db = _G[addon.DB_NAME]
+        local db = _G[addon.DATABASE]
         if db then db.optionsSidebarGroupCollapsed = groupCollapsed end
     end
 

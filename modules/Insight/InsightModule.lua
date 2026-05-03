@@ -17,7 +17,7 @@ addon:RegisterModule("insight", {
         -- Module on/off and db.modules.insight shape: addon:EnsureModulesDB() in HorizonSuite.lua.
         -- Here: one-time migration from standalone ModernTooltip into the active profile.
         addon.EnsureDB()
-        local db = _G[addon.DB_NAME]
+        local db = _G[addon.DATABASE]
         local modDb = db and db.modules and db.modules.insight
         if not modDb then return end
 
