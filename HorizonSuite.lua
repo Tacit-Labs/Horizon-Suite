@@ -6,11 +6,8 @@
 -- colliding on global namespace, SavedVariables, or frame names.
 
 local ADDON_NAME = "HorizonSuite"
-local isBeta    = (ADDON_NAME == "HorizonSuiteBeta")
-local GLOBAL_NS = isBeta and "HorizonSuiteBeta" or "HorizonSuite"
-local DB_NAME   = isBeta and "HorizonBetaDB"     or "HorizonDB"
-
-
+local GLOBAL_NS = "HorizonSuite"
+local DB_NAME   = "HorizonDB"
 if not _G[GLOBAL_NS] then _G[GLOBAL_NS] = {} end
 local addon = _G[GLOBAL_NS]
 
@@ -23,7 +20,6 @@ _G._HorizonSuite_Loading = addon
 
 -- Store identity so every other file can query it.
 addon.ADDON_NAME = ADDON_NAME
-addon.IS_BETA    = isBeta
 addon.DB_NAME    = DB_NAME
 
 -- ============================================================================
