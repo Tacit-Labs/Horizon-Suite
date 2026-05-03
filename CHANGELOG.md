@@ -10,6 +10,15 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.17.4] – 2026-05-04
+
+### 🔧 Improvements
+
+- **(Axis) SLUG font outline options** — The shared outline dropdown now offers SLUG, SLUG Outline, and SLUG Thick Outline choices alongside the existing Outline and Thick Outline variants.
+- **Localisation** — English settings labels and tooltip descriptions now follow Title Case consistently (e.g. "Focus Objective Tracker", "Loot Toast Font", "Tooltip Anchor Mode").
+
+---
+
 ## [4.17.3] – 2026-05-02
 
 ### 🐛 Fixes

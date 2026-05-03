@@ -14,6 +14,17 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.17.4"] = {
+        date = "2026-05-04",
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: SLUG, SLUG Outline, and SLUG Thick Outline are now selectable in the shared outline dropdown alongside Outline and Thick Outline.",
+                "Localisation: English settings labels and tooltip descriptions now follow Title Case consistently.",
+            },
+        },
+    },
+
     ["4.17.3"] = {
         date = "2026-05-02",
         {

@@ -2,7 +2,7 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
-## Version: 4.17.3
+## Version: 4.17.4
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator, IconBrowser
 ## IconTexture: Interface\AddOns\HorizonSuite\HorizonLogo
