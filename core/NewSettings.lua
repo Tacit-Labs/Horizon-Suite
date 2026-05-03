@@ -8,9 +8,7 @@
     Ack-on-interaction: first `set()` or `onClick()` clears the suffix for that optId.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then return end
 local addon = _G.HorizonSuite
-if not addon then return end
 
 local function EnsureRootDB()
     local db = _G[addon.DATABASE]

@@ -3,7 +3,6 @@
     Centralized /h and /horizon handler. Core commands (options, edit, help) and dispatcher to module handlers.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G.HorizonSuite
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end

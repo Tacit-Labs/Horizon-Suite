@@ -3,9 +3,9 @@
     Wired from DashboardHomeWelcome_Init via addon.DashboardWelcomeView_Init(env).
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
+
 local addon = _G.HorizonSuite
-if not addon then return end
+
 
 local tinsert = table.insert
 

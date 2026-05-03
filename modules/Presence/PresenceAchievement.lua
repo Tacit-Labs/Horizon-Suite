@@ -5,9 +5,8 @@
     Events: CRITERIA_UPDATE, CRITERIA_EARNED, TRACKED_ACHIEVEMENT_UPDATE (see wowapi/AchievementInfoDocumentation.lua).
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G.HorizonSuite
-if not addon or not addon.Presence then return end
+
 
 local ACHIEVEMENT_PROGRESS_DEBOUNCE = 0.6
 local ACHIEVEMENT_PROGRESS_DEDUPE = 3

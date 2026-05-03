@@ -10,7 +10,6 @@
       first letter after ": " when it is lowercase (ASCII). Data can stay lowercase after the colon if you prefer.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then return end
 local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {

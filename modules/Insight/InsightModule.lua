@@ -4,9 +4,9 @@
     Registers with addon:RegisterModule. Migrated from ModernTooltip.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
+
 local addon = _G.HorizonSuite
-if not addon or not addon.RegisterModule then return end
+
 
 addon:RegisterModule("insight", {
     title       = "Horizon Insight",

@@ -7,7 +7,6 @@
     quality + tier defaults.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G.HorizonSuite
 
 local AH_CRAFT_W        = addon.Scaled(420)

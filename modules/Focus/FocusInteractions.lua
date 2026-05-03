@@ -3,7 +3,6 @@
     Mouse scripts on pool entries (click, tooltip, scroll).
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
 local addon = _G.HorizonSuite
 
 -- INTERACTIONS
