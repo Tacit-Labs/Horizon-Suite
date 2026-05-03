@@ -5,19 +5,7 @@
 -- "HorizonSuiteBeta" folder so both can be loaded simultaneously without
 -- colliding on global namespace, SavedVariables, or frame names.
 
-local ADDON_NAME
-do
-    -- Walk the call stack to find the originating file path.  When WoW (or
-    -- the test harness) loads "Interface/AddOns/<FolderName>/HorizonSuite.lua"
-    -- the folder name tells us which copy we are.
-    local info = debugstack and debugstack(1, 1, 0) or ""
-    if info:find("HorizonSuiteBeta") then
-        ADDON_NAME = "HorizonSuiteBeta"
-    else
-        ADDON_NAME = "HorizonSuite"
-    end
-end
-
+local ADDON_NAME = "HorizonSuite"
 local isBeta    = (ADDON_NAME == "HorizonSuiteBeta")
 local GLOBAL_NS = isBeta and "HorizonSuiteBeta" or "HorizonSuite"
 local DB_NAME   = isBeta and "HorizonBetaDB"     or "HorizonDB"
