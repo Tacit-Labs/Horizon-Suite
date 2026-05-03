@@ -1,4 +1,4 @@
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = addon.L
@@ -386,7 +386,6 @@ L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Cinematic loot 
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "Enable Vista Module"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Cinematic square minimap with zone text, coordinates, and button collector."
 L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Cinematic square minimap with zone text, coordinates, time, and button collector."
-L["AXIS_BETA"]                                                = "Beta"
 L["AXIS_SCALING"]                                             = "Scaling"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Global Settings"
 L["AXIS_DASHBOARD_SECTION"]                                   = "Dashboard"

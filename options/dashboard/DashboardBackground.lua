@@ -2,7 +2,7 @@
     Horizon Suite - Dashboard full-bleed background (solid + themed art, crossfade).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 -- Dashboard background: Minimalistic (horizon) = solid only. Default theme = Midnight (addon PNG). Talents = Blizzard class-talent atlas for current spec.

@@ -1,6 +1,6 @@
 if GetLocale() ~= "koKR" then return end
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = setmetatable({}, { __index = addon.L })
@@ -369,7 +369,6 @@ L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "보기 좋은 �
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "미니맵 기능 활성화"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "지역 텍스트, 좌표, 버튼 수집기가 있는 보기 좋은(?) 사각형 미니맵."
 -- L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                      = "Cinematic square minimap with zone text, coordinates, time, and button collector."
--- L["AXIS_BETA"]                                             = "Beta"
 L["AXIS_SCALING"]                                             = "크기 조정"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Global Toggles"
 -- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"

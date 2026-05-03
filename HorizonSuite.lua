@@ -1,56 +1,9 @@
---[[
-    HORIZON SUITE
-    Core addon with pluggable modules. Focus (objective tracker) is the first module.
-    This file creates the addon namespace and module registry; behavior lives in Core and module files.
-
-    Abbreviation glossary:
-    - HS   = Horizon Suite (addon / frame prefix)
-    - WQ   = World Quest
-    - M+   = Mythic Plus (dungeon)
-    - ATT  = All The Things (addon; rare vignette source)
-    - WQT  = World Quest / Task Quest (C_TaskQuest API)
-]]
-
--- ============================================================================
--- ADDON IDENTITY DETECTION
--- ============================================================================
--- Detect whether this code is running from the "HorizonSuite" or
--- "HorizonSuiteBeta" folder so both can be loaded simultaneously without
--- colliding on global namespace, SavedVariables, or frame names.
-
-local ADDON_NAME
-do
-    -- Walk the call stack to find the originating file path.  When WoW (or
-    -- the test harness) loads "Interface/AddOns/<FolderName>/HorizonSuite.lua"
-    -- the folder name tells us which copy we are.
-    local info = debugstack and debugstack(1, 1, 0) or ""
-    if info:find("HorizonSuiteBeta") then
-        ADDON_NAME = "HorizonSuiteBeta"
-    else
-        ADDON_NAME = "HorizonSuite"
-    end
-end
-
-local isBeta    = (ADDON_NAME == "HorizonSuiteBeta")
-local GLOBAL_NS = isBeta and "HorizonSuiteBeta" or "HorizonSuite"
-local DB_NAME   = isBeta and "HorizonBetaDB"     or "HorizonDB"
-
-
+local GLOBAL_NS = "HorizonSuite"
 if not _G[GLOBAL_NS] then _G[GLOBAL_NS] = {} end
 local addon = _G[GLOBAL_NS]
-
--- Loading marker: WoW loads all TOC files for one addon sequentially before
--- moving to the next addon. Every subsequent file in this addon's TOC checks
--- _G._HorizonSuite_Loading to find the correct namespace, avoiding the bug
--- where the main addon's files accidentally bind to the beta namespace (or
--- vice-versa) when both are loaded simultaneously.
-_G._HorizonSuite_Loading = addon
-
--- Store identity so every other file can query it.
-addon.ADDON_NAME = ADDON_NAME
-addon.IS_BETA    = isBeta
-addon.DB_NAME    = DB_NAME
-
+addon.ADDON_NAME = "HorizonSuite"
+addon.DATABASE    = "HorizonDB"
+_G.HorizonSuite = addon
 -- ============================================================================
 -- MODULE REGISTRY AND LIFECYCLE
 -- ============================================================================
@@ -131,8 +84,8 @@ end
 function addon:EnableModule(key)
     local m = self.modules[key]
     if not m or m.enabled then return end
-    local db = _G[self.DB_NAME]
-    if not db then db = {}; _G[self.DB_NAME] = db end
+    local db = _G[self.DATABASE]
+    if not db then db = {}; _G[self.DATABASE] = db end
     if not db.modules then db.modules = {} end
     if not db.modules[key] then db.modules[key] = {} end
     db.modules[key].enabled = true
@@ -151,7 +104,7 @@ function addon:DisableModule(key)
     if not m or not m.enabled then return end
     if m.OnDisable then m.OnDisable(self) end
     m.enabled = false
-    local db = _G[self.DB_NAME]
+    local db = _G[self.DATABASE]
     if db and db.modules and db.modules[key] then
         db.modules[key].enabled = false
     end
@@ -179,8 +132,8 @@ end
 
 --- Ensure modules table exists and migrate legacy installs (no modules table = all defaults).
 function addon:EnsureModulesDB()
-    local db = _G[self.DB_NAME]
-    if not db then db = {}; _G[self.DB_NAME] = db end
+    local db = _G[self.DATABASE]
+    if not db then db = {}; _G[self.DATABASE] = db end
     if not db.modules then
         db.modules = {}
         -- First-time install: all modules off until the user enables them in options.

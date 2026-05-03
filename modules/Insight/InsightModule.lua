@@ -4,9 +4,7 @@
     Registers with addon:RegisterModule. Migrated from ModernTooltip.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon or not addon.RegisterModule then return end
+local addon = _G.HorizonSuite
 
 addon:RegisterModule("insight", {
     title       = "Horizon Insight",
@@ -17,7 +15,7 @@ addon:RegisterModule("insight", {
         -- Module on/off and db.modules.insight shape: addon:EnsureModulesDB() in HorizonSuite.lua.
         -- Here: one-time migration from standalone ModernTooltip into the active profile.
         addon.EnsureDB()
-        local db = _G[addon.DB_NAME]
+        local db = _G[addon.DATABASE]
         local modDb = db and db.modules and db.modules.insight
         if not modDb then return end
 

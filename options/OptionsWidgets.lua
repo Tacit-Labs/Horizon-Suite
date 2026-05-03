@@ -4,7 +4,7 @@
     Modern Cinematic styling. All widgets expose :Refresh() and .searchText for search indexing.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = addon.L

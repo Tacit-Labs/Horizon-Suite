@@ -1,6 +1,6 @@
 if GetLocale() ~= "zhCN" then return end
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = setmetatable({}, { __index = addon.L })
@@ -370,7 +370,6 @@ L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "电影级战利
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "启用Vista模块"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "电影级方形小地图, 带有区域文本, 坐标和按钮收集器."
 L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "带有区域文本, 坐标, 时间和按钮收集器的电影式方形小地图."
-L["AXIS_BETA"]                                                = "测试版"
 L["AXIS_SCALING"]                                             = "缩放"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Global Toggles"
 -- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"

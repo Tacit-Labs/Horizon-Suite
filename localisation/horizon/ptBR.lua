@@ -1,6 +1,6 @@
 if GetLocale() ~= "ptBR" then return end
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = setmetatable({}, { __index = addon.L })
@@ -369,7 +369,6 @@ L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Notificações 
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "Ativar Módulo Vista"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Minimapa quadrado cinematográfico com texto de zona, coordenadas e coletor de botões."
 L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Minimapa quadrado cinematográfico com texto de zona, coordenadas, horário e coletor de botões."
--- L["AXIS_BETA"]                                             = "Beta"
 L["AXIS_SCALING"]                                             = "Escala"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Global Toggles"
 -- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"

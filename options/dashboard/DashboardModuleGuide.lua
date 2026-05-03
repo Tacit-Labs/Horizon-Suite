@@ -4,7 +4,7 @@
     Wired from DashboardFrame.lua via addon.DashboardModuleGuide_Init(env).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local tinsert = table.insert

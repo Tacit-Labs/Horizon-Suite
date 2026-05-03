@@ -4,8 +4,7 @@
     Quest and tracked-appearance rows share PROFILES and focusClick_*; executors differ in FocusInteractions.lua.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- When true: only blizzardDefault is active; Horizon+ and Custom are hidden and DB is normalized.
 local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = false

@@ -3,7 +3,7 @@
     Populate / collapse / state wiring remains in DashboardFrame.lua (same closure as navigation).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 --- @param p table f, addon, dashAccentRefs, dashSession, DASHBOARD_CHILD_PANEL_ALPHA, MakeText, GetAccentColor, refreshDashboardClassIcon
@@ -193,11 +193,11 @@ function addon.DashboardSidebar_CreateChrome(p)
     local sidebarButtons = {}
 
     -- Sidebar group collapse (reuse OptionsPanel state for consistency)
-    local groupCollapsed = (_G[addon.DB_NAME] and _G[addon.DB_NAME].optionsSidebarGroupCollapsed) or {}
+    local groupCollapsed = (_G[addon.DATABASE] and _G[addon.DATABASE].optionsSidebarGroupCollapsed) or {}
     local function GetGroupCollapsed(mk) return groupCollapsed[mk] ~= false end
     local function SetGroupCollapsed(mk, v)
         groupCollapsed[mk] = v
-        local db = _G[addon.DB_NAME]
+        local db = _G[addon.DATABASE]
         if db then db.optionsSidebarGroupCollapsed = groupCollapsed end
     end
 

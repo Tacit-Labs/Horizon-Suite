@@ -4,9 +4,7 @@
     Player/NPC/Item logic lives in InsightPlayerTooltip, InsightNpcTooltip, InsightItemTooltip.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
@@ -909,7 +907,7 @@ local function HandleInsightDebugSlash(msg)
         end
         local rondo = addon.CLASS_ICON_RONDO_NAMES
         local displayName = rondo and rondo["WARRIOR"] or "Warrior"
-        local folder = addon.ADDON_NAME or "HorizonSuite"
+        local folder = addon.ADDON_NAME
         local rondoPath = isRondo
             and ("Interface\\AddOns\\RondoMedia\\media\\Class_icons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
             or ("Interface\\AddOns\\%s\\media\\RondoClassIcons\\class_colored border\\32x32\\%s_32.tga"):format(folder, displayName)

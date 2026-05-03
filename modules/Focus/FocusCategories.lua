@@ -4,7 +4,7 @@
     GetQuestBaseCategory, GetQuestTypeAtlas, GetQuestZoneName. Used by multiple providers.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local function GetQuestCategory(questID)
     if not questID or questID <= 0 then return "DEFAULT" end

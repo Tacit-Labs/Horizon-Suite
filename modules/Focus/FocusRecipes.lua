@@ -4,7 +4,7 @@
     When the player tracks a recipe in the profession UI, it appears in the tracker.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- REAGENT TYPE CONSTANTS

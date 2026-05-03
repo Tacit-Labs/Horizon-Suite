@@ -4,7 +4,7 @@
     Hover tooltip shows detailed dungeon and modifier info.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- MYTHIC+ BANNER (CINEMATIC, ALWAYS-VISIBLE ABOVE / BELOW LIST)

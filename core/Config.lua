@@ -3,7 +3,7 @@
     Constants, colors, fonts, labels, and group order. Loaded after Utilities, before Core.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 -- ============================================================================
@@ -592,7 +592,7 @@ end
 function addon.PatchNotes_StyleAttentionBadge(tex)
     if not tex then return end
     pcall(function() tex:SetMask(nil) end)
-    local folder = addon.ADDON_NAME or "HorizonSuite"
+    local folder = addon.ADDON_NAME
     local base = "Interface\\AddOns\\" .. folder .. "\\media\\update"
     local ok = pcall(function() tex:SetTexture(base) end)
     if not ok then

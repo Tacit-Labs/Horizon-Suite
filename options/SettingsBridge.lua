@@ -4,7 +4,7 @@
     Provides a minimal panel with a button to open the custom options launcher.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = addon.L or {}
@@ -55,7 +55,7 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(self, event, addonName)
-    if addonName ~= "HorizonSuite" and addonName ~= "HorizonSuiteBeta" then return end
+    if addonName ~= "HorizonSuite" then return end
     self:UnregisterEvent("ADDON_LOADED")
     C_Timer.After(0, RegisterWithSettings)
 end)

@@ -1,11 +1,11 @@
 --[[
     Horizon Suite — Profile IO
     Profile export / import: base64 codec, Lua table serializer, HSP2 string format.
-    Extracted from Core.lua. Depends on addon._RawDB and addon._GetCurrentCharacterProfileKey
+    Extracted from Core.lua. Depends on addon.DATABASE and addon._GetCurrentCharacterProfileKey
     (exposed by Core.lua) and EnsureProfilesAndMigrateLegacy (global, set by Core.lua).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 -- ==========================================================================
@@ -149,7 +149,7 @@ function addon.ExportProfile(key)
     if type(key) ~= "string" or key == "" then return nil end
     addon.EnsureDB()
     EnsureProfilesAndMigrateLegacy()
-    local db = addon._RawDB()
+    local db = _G[addon.DATABASE]
     db.profiles = db.profiles or {}
     local profile
     local activeKey = addon.GetEffectiveProfileKey()
@@ -194,7 +194,7 @@ function addon.ImportProfile(name, dataString)
     if not next(tbl) then return false, "corrupt" end
 
     addon.EnsureDB()
-    local db = addon._RawDB()
+    local db = _G[addon.DATABASE]
     db._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
     db.profiles = db.profiles or {}

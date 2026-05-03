@@ -3,7 +3,7 @@
     Quest entry frames, section headers, ApplyTypography, ApplyDimensions.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 local function T(key)
     return (addon.L and addon.L[key]) or key
 end

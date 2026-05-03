@@ -4,8 +4,7 @@
     Constants, colors, fonts, and labels live in Config.lua.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- ---------------------------------------------------------------------------
 -- Forward declarations (Lua local scoping)
@@ -13,17 +12,13 @@ local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 
 local EnsureProfilesAndMigrateLegacy
 
--- ---------------------------------------------------------------------------
--- Dynamic DB accessor: returns _G[addon.DB_NAME] (HorizonDB or HorizonBetaDB)
--- ---------------------------------------------------------------------------
 local function rawDB()
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if not db then
-        db = {}; _G[addon.DB_NAME] = db
+        db = {}; _G[addon.DATABASE] = db
     end
     return db
 end
-addon._RawDB = rawDB  -- exposed for ProfileIO.lua
 
 -- ==========================================================================
 -- DB AND DIMENSION HELPERS (depend on Config constants)
@@ -1142,7 +1137,7 @@ end)
 -- ==========================================================================
 
 function addon.GetDB(key, default)
-    if not _G[addon.DB_NAME] then return default end
+    if not _G[addon.DATABASE] then return default end
     EnsureProfilesAndMigrateLegacy()
     local profile = addon.GetActiveProfile()
     local v = profile[key]
@@ -1185,7 +1180,7 @@ function addon.GetCombatFadeAlpha()
 end
 
 function addon.EnsureDB()
-    rawDB() -- ensures _G[DB_NAME] exists
+    rawDB() -- ensures _G[DATABASE] exists
     if addon._ensureDBInProgress then return end
     addon._ensureDBInProgress = true
     if addon.EnsureModulesDB then addon:EnsureModulesDB() end

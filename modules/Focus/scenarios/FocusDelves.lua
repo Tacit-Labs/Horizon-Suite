@@ -7,7 +7,7 @@
         `nemesisCache` when Blizzard drops the affix spell from the widget.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- Scenario step widget set contains Delve header; Objective Tracker set may not when tracker is hidden.
 local WIDGET_TYPE_SCENARIO_HEADER_DELVES = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.ScenarioHeaderDelves) or 29

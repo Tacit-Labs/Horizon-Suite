@@ -3,7 +3,7 @@
     C_QuestInfoSystem.GetQuestClassification + Enum.QuestFrequency. Zone-based daily/weekly detection.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 --- Returns weeklies and dailies in zone (nearbySet). Each has questID and opts.forceCategory ("WEEKLY" or "DAILY").
 -- Blacklist filtering is applied by the aggregator.

@@ -8,15 +8,13 @@
     Ack-on-interaction: first `set()` or `onClick()` clears the suffix for that optId.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then return end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 local function EnsureRootDB()
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if not db then
         db = {}
-        _G[addon.DB_NAME] = db
+        _G[addon.DATABASE] = db
     end
     if type(db.newSettingsAcked) ~= "table" then
         db.newSettingsAcked = {}
@@ -25,7 +23,7 @@ local function EnsureRootDB()
 end
 
 local function ReadAckedVersion(optId)
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     local t = db and db.newSettingsAcked
     if type(t) ~= "table" then return "" end
     return t[optId] or ""

@@ -3,7 +3,7 @@
     Namespaced runtime state for the Focus module. Loaded first so all other files can reference addon.focus.*
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- Merge into existing addon.focus if Core created layout early; otherwise create fresh.
 local existing = addon.focus

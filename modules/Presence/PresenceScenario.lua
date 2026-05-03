@@ -4,7 +4,7 @@
     APIs: C_ScenarioInfo, C_Scenario, addon.Presence.IsScenarioActive, addon.Presence.GetScenarioDisplayInfo.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon or not addon.Presence then return end
 
 local SCENARIO_DEBOUNCE = 0.4

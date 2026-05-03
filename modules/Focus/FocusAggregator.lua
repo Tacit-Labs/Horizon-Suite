@@ -4,7 +4,7 @@
     APIs: C_QuestLog, C_SuperTrack, GetQuestLogSpecialItemInfo, GetQuestLogTitle.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local DEFAULT_SORT_MODE = "questType"
 local CATEGORY_SORT_FALLBACK = 99

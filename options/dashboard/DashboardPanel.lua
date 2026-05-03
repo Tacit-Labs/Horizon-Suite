@@ -3,9 +3,7 @@
     Entry: slash commands, ShowDashboard, lazy init via options/dashboard/DashboardFrame.lua.
 ]]
 
-if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then return end
+local addon = _G.HorizonSuite
 
 local f = _G.HorizonSuiteDashboard
 
@@ -22,7 +20,7 @@ local function ApplyDashboardSizeFromDB(frame)
     local DC = addon.DashboardConstants
     if not DC then return end
 
-    local db    = _G[addon.DB_NAME]
+    local db    = _G[addon.DATABASE]
     local ratio = db and tonumber(db.dashboardSizeRatio)
     local pinX  = db and tonumber(db.dashboardTopLeftX)
     local pinY  = db and tonumber(db.dashboardTopLeftY)
@@ -131,7 +129,7 @@ end
 --   2. Otherwise replay dashboardLastView if it's known and resumable.
 --   3. Fallback: News (post-onboarding home).
 local function ResolveEntryAction(frame)
-    local db = _G[addon.DB_NAME]
+    local db = _G[addon.DATABASE]
     if not db then
         if frame.ShowWelcome then return frame.ShowWelcome end
         return frame.ShowDashboard or function() end
@@ -181,7 +179,7 @@ local function InstallFlowGatingHooks(frame)
         local origWelcome = frame.ShowWelcome
         frame.ShowWelcome = function(...)
             origWelcome(...)
-            local db = _G[addon.DB_NAME]
+            local db = _G[addon.DATABASE]
             if db then db.welcomeSeen = true end
         end
     end
@@ -191,7 +189,7 @@ local function InstallFlowGatingHooks(frame)
         if type(orig) == "function" then
             frame[fnName] = function(...)
                 orig(...)
-                local db = _G[addon.DB_NAME]
+                local db = _G[addon.DATABASE]
                 if db then db.dashboardLastView = { kind = kind } end
             end
         end
@@ -205,7 +203,7 @@ local function InstallFlowGatingHooks(frame)
         local origOpen = frame.OpenModule
         frame.OpenModule = function(name, moduleKey, skipDetailBuild)
             origOpen(name, moduleKey, skipDetailBuild)
-            local db = _G[addon.DB_NAME]
+            local db = _G[addon.DATABASE]
             if db and moduleKey then
                 db.dashboardLastView = {
                     kind = "module",
@@ -221,7 +219,7 @@ local function InstallFlowGatingHooks(frame)
         local origCat = frame.OpenCategoryDetail
         frame.OpenCategoryDetail = function(modName, catName, options, skipEntranceCascade)
             origCat(modName, catName, options, skipEntranceCascade)
-            local db = _G[addon.DB_NAME]
+            local db = _G[addon.DATABASE]
             if db and catName then
                 db.dashboardLastView = {
                     kind = "category",

@@ -3,7 +3,7 @@
     RARES_BY_MAP, vignette detection, GetRaresOnMap.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- RARE BOSSES BY ZONE AND VIGNETTE DETECTION
