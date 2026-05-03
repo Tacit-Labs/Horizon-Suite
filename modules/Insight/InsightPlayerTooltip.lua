@@ -3,9 +3,7 @@
     Player-specific tooltip enrichment: class/spec/role, PvP title, honor, badges, stats, mount block, inspect.
 ]]
 
-
 local addon = _G.HorizonSuite
-
 
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight

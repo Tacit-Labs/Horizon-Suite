@@ -4,9 +4,7 @@
     Registers with addon:RegisterModule. Migrated from ModernTooltip.
 ]]
 
-
 local addon = _G.HorizonSuite
-
 
 addon:RegisterModule("insight", {
     title       = "Horizon Insight",

@@ -55,7 +55,7 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(self, event, addonName)
-    if addonName ~= "HorizonSuite" and addonName ~= "HorizonSuiteBeta" then return end
+    if addonName ~= "HorizonSuite" then return end
     self:UnregisterEvent("ADDON_LOADED")
     C_Timer.After(0, RegisterWithSettings)
 end)

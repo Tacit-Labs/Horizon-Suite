@@ -371,7 +371,6 @@ L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Filmische Beute
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "Vista-Modul aktivieren"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Filmische quadratische Minimap mit Zonentext, Koordinaten und Schaltflächensammlung"
 L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Filmische quadratische Minimap mit Zonentext, Koordinaten, Uhrzeit und Schaltflächensammlung"
--- L["AXIS_BETA"]                                             = "Beta"
 L["AXIS_SCALING"]                                             = "Skalierung"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Globale Einstellungen"
 -- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"

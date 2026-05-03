@@ -6,7 +6,6 @@
 
 local addon = _G.HorizonSuite
 
-
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 

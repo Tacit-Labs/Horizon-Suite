@@ -369,7 +369,6 @@ L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Notificaciones 
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "Activar módulo Vista"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Minimapa cuadrado cinematográfico con texto de zona, coordenadas y recopilador de botones."
 -- L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                      = "Cinematic square minimap with zone text, coordinates, time, and button collector."
--- L["AXIS_BETA"]                                             = "Beta"
 L["AXIS_SCALING"]                                             = "Escala"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Global Toggles"
 -- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"

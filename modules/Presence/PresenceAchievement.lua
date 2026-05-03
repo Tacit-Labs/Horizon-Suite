@@ -7,7 +7,6 @@
 
 local addon = _G.HorizonSuite
 
-
 local ACHIEVEMENT_PROGRESS_DEBOUNCE = 0.6
 local ACHIEVEMENT_PROGRESS_DEDUPE = 3
 

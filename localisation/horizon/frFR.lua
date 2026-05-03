@@ -369,7 +369,6 @@ L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Alertes cinéma
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "Activer le module Vista"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Minicarte carrée cinématique avec texte de zone, coordonnées et rubrique à boutons."
 L["AXIS_MINIMAP_ZONE_TIME_COLLECTOR"]                         = "Minicarte carrée cinématique avec texte de zone, coordonnées, horloge et conteneur de boutons."
--- L["AXIS_BETA"]                                             = "Beta"
 L["AXIS_SCALING"]                                             = "Mise à l'échelle"
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Réglages globaux"
 -- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"

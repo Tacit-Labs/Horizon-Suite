@@ -149,7 +149,7 @@ function addon.ExportProfile(key)
     if type(key) ~= "string" or key == "" then return nil end
     addon.EnsureDB()
     EnsureProfilesAndMigrateLegacy()
-    local db = addon.DATABASE
+    local db = _G[addon.DATABASE]
     db.profiles = db.profiles or {}
     local profile
     local activeKey = addon.GetEffectiveProfileKey()
@@ -194,7 +194,7 @@ function addon.ImportProfile(name, dataString)
     if not next(tbl) then return false, "corrupt" end
 
     addon.EnsureDB()
-    local db = addon.DATABASE
+    local db = _G[addon.DATABASE]
     db._profilesValidated = nil
     EnsureProfilesAndMigrateLegacy()
     db.profiles = db.profiles or {}

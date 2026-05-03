@@ -4,9 +4,7 @@
     Used by InsightPlayerTooltip, InsightNpcTooltip, InsightItemTooltip, and InsightCore.
 ]]
 
-
 local addon = _G.HorizonSuite
-
 
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
