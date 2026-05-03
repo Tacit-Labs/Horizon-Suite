@@ -4,7 +4,7 @@
     HomeWelcome (tiles + welcome), patch notes + search shell here; see options/dashboard/Navigation.lua.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = addon.L

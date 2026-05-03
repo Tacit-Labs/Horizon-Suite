@@ -12,7 +12,7 @@
 ]]
 
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = (addon.L) or setmetatable({}, { __index = function(_, k) return k end })

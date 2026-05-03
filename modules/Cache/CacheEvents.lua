@@ -3,7 +3,7 @@
     Event registration and dispatch for loot, money, currency, reputation.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon or not addon.Cache then return end
 
 local Y = addon.Cache

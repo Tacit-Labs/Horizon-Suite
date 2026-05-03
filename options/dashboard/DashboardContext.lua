@@ -3,7 +3,7 @@
     Fields assigned from Dashboard_BuildMainFrame: frame, layout (contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, viewWidth, …).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 addon.DashboardCtx = addon.DashboardCtx or {}

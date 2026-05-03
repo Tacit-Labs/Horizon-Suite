@@ -4,7 +4,7 @@
     Registers with addon:RegisterModule.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon or not addon.RegisterModule then return end
 
 addon:RegisterModule("essence", {

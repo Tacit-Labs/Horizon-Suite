@@ -1,10 +1,9 @@
 local GLOBAL_NS = "HorizonSuite"
 if not _G[GLOBAL_NS] then _G[GLOBAL_NS] = {} end
 local addon = _G[GLOBAL_NS]
-_G._HorizonSuite_Loading = addon
 addon.ADDON_NAME = "HorizonSuite"
 addon.DATABASE    = "HorizonDB"
-
+_G.HorizonSuite = addon
 -- ============================================================================
 -- MODULE REGISTRY AND LIFECYCLE
 -- ============================================================================

@@ -3,7 +3,7 @@
     /h cache [cmd] subcommands. Registers with core via addon.RegisterSlashHandler.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon or not addon.Cache or not addon.RegisterSlashHandler then return end
 
 local Y = addon.Cache

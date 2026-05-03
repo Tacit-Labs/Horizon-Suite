@@ -6,7 +6,7 @@
 ]]
 
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon or not addon.Presence then return end
 
 local ACHIEVEMENT_PROGRESS_DEBOUNCE = 0.6

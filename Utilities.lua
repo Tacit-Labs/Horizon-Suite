@@ -3,12 +3,7 @@
     Shared helpers for design tokens, borders, text, logging, and quest/map helpers.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
-if not addon then
-    addon = {}
-    -- Fallback: shouldn't happen since HorizonSuite.lua loads first
-    _G.HorizonSuite = addon
-end
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- DESIGN TOKENS

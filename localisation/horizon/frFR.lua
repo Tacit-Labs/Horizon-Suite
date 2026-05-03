@@ -1,6 +1,6 @@
 if GetLocale() ~= "frFR" then return end
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = setmetatable({}, { __index = addon.L })

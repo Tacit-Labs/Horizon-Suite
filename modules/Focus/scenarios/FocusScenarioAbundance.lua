@@ -3,7 +3,7 @@
     Specialized logic for Abundance (TWW open-world) scenarios.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local AbundanceProvider = setmetatable({}, addon.FocusScenarioDefaultProvider or addon.FocusScenarioBaseProvider)
 AbundanceProvider.__index = AbundanceProvider

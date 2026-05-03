@@ -3,7 +3,7 @@
     Extra Action style button for quest item; keybindable. Source: super-tracked/first or current-zone first.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- ============================================================================
 -- FLOATING QUEST ITEM BUTTON

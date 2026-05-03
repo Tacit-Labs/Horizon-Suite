@@ -6,7 +6,7 @@
 ]]
 
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then _G.HorizonSuite = {} end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 -- Blizzard UI atlases that represent transmog / Appearances (first match via C_Texture.GetAtlasExists wins).
 local TRANSMOG_TYPE_ICON_ATLAS_CANDIDATES = {

@@ -11,7 +11,7 @@
 ]]
 
 if not _G.HorizonSuite and not _G.HorizonSuiteBeta then return end
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 

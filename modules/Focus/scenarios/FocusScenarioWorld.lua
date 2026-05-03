@@ -3,7 +3,7 @@
     Specialized logic for World Scenarios (Singularity, etc.).
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 
 local WorldProvider = setmetatable({}, addon.FocusScenarioBaseProvider)
 WorldProvider.__index = WorldProvider
