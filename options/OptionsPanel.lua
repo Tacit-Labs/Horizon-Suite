@@ -869,7 +869,7 @@ versionLabel:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.SectionSize or 1
 SetTextColor(versionLabel, Def.TextColorSection)
 versionLabel:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 10, 10)
 local getMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
-local versionText = getMetadata and getMetadata(addon.ADDON_NAME or "HorizonSuite", "Version")
+local versionText = getMetadata and getMetadata(addon.ADDON_NAME, "Version")
 if versionText and versionText ~= "" then
     versionLabel:SetText("v" .. versionText)
     versionLabel:Show()
