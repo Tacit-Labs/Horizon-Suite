@@ -3,15 +3,7 @@ local GLOBAL_NS = "HorizonSuite"
 local DB_NAME   = "HorizonDB"
 if not _G[GLOBAL_NS] then _G[GLOBAL_NS] = {} end
 local addon = _G[GLOBAL_NS]
-
--- Loading marker: WoW loads all TOC files for one addon sequentially before
--- moving to the next addon. Every subsequent file in this addon's TOC checks
--- _G._HorizonSuite_Loading to find the correct namespace, avoiding the bug
--- where the main addon's files accidentally bind to the beta namespace (or
--- vice-versa) when both are loaded simultaneously.
 _G._HorizonSuite_Loading = addon
-
--- Store identity so every other file can query it.
 addon.ADDON_NAME = ADDON_NAME
 addon.DB_NAME    = DB_NAME
 
