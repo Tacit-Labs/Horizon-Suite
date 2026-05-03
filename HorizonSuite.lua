@@ -1,10 +1,3 @@
--- ============================================================================
--- ADDON IDENTITY DETECTION
--- ============================================================================
--- Detect whether this code is running from the "HorizonSuite" or
--- "HorizonSuiteBeta" folder so both can be loaded simultaneously without
--- colliding on global namespace, SavedVariables, or frame names.
-
 local ADDON_NAME = "HorizonSuite"
 local GLOBAL_NS = "HorizonSuite"
 local DB_NAME   = "HorizonDB"
