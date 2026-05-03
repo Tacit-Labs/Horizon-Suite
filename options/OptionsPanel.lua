@@ -1329,7 +1329,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                     tooltip = resetBtn.tooltip,
                 }
             end
-            local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, setFn, opt.displayFn, searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList)
+            local w = OptionsWidgets_CreateCustomDropdown(cardContent, opt.name, opt.desc or opt.tooltip, opt.options or {}, opt.get, setFn, opt.displayFn, searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
             w:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
             w:SetPoint("RIGHT", currentCard, "RIGHT", -CardPadding, 0)
             currentCard.contentAnchor = w

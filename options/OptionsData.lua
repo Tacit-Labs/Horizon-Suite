@@ -775,6 +775,17 @@ local OUTLINE_OPTIONS = {
     { L["FOCUS_OUTLINE_NONE"], "" },
     { L["FOCUS_OUTLINE"], "OUTLINE" },
     { L["FOCUS_THICK_OUTLINE"], "THICKOUTLINE" },
+    { L["FOCUS_SLUG"] or "SLUG", "SLUG" },
+    { L["FOCUS_SLUG_OUTLINE"] or "SLUG Outline", "OUTLINE, SLUG" },
+    { L["FOCUS_SLUG_THICK_OUTLINE"] or "SLUG Thick Outline", "THICKOUTLINE, SLUG" },
+}
+local VALID_OUTLINE_VALUES = {
+    [""] = true,
+    OUTLINE = true,
+    THICKOUTLINE = true,
+    SLUG = true,
+    ["OUTLINE, SLUG"] = true,
+    ["THICKOUTLINE, SLUG"] = true,
 }
 local HIGHLIGHT_OPTIONS = {
     { L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"], "bar-left" },
@@ -999,9 +1010,10 @@ local OptionCategories = {
                 desc = L["DASHBOARD_TYPO_OUTLINE_DESC"] or "Outline style for dashboard text.",
                 dbKey = "dashboardTextOutline",
                 options = OUTLINE_OPTIONS,
+                preserveOrder = true,
                 get = function()
                     local v = getDB("dashboardTextOutline", 1)
-                    if v == "" or v == "OUTLINE" or v == "THICKOUTLINE" then return v end
+                    if VALID_OUTLINE_VALUES[v] then return v end
                     if v == true then return "OUTLINE" end
                     if v == false then return "" end
                     local n = tonumber(v)
@@ -2007,7 +2019,7 @@ local OptionCategories = {
             { type = "slider", name = L["FOCUS_PROGRESS_BAR_TEXT_SIZE"], desc = L["FONT_SIZE_BAR_LABEL_BAR_HEIGHT"], dbKey = "progressBarFontSize", min = 7, max = 18, get = function() return getDB("progressBarFontSize", 10) end, set = function(v) setDB("progressBarFontSize", v) end, tooltip = L["AFFECTS_SCENARIO_PROGRESS_TIMER_BARS"] },
             { type = "slider", name = L["FOCUS_TIMER_TEXT_SIZE"], desc = L["FOCUS_TIMER_TEXT_FONT_SIZE"], dbKey = "timerFontSize", min = 8, max = 24, get = function() return getDB("timerFontSize", 13) end, set = function(v) setDB("timerFontSize", v) end },
             { type = "slider", name = L["FOCUS_OPTIONS_TEXT_SIZE"], desc = L["FOCUS_OPTIONS_TEXT_FONT_SIZE"], dbKey = "optionsFontSize", min = 8, max = 20, get = function() return getDB("optionsFontSize", 11) end, set = function(v) setDB("optionsFontSize", v) end },
-            { type = "dropdown", name = L["FOCUS_OUTLINE"], desc = L["FOCUS_FONT_OUTLINE_STYLE"], dbKey = "fontOutline", options = OUTLINE_OPTIONS, get = function() return getDB("fontOutline", "OUTLINE") end, set = function(v) setDB("fontOutline", v) end },
+            { type = "dropdown", name = L["FOCUS_OUTLINE"], desc = L["FOCUS_FONT_OUTLINE_STYLE"], dbKey = "fontOutline", options = OUTLINE_OPTIONS, preserveOrder = true, get = function() return getDB("fontOutline", "OUTLINE") end, set = function(v) setDB("fontOutline", v) end },
             { type = "section", name = L["FOCUS_TEXT_CASE"] },
             { type = "dropdown", name = L["FOCUS_HEADER_TEXT_CASE"], desc = L["FOCUS_DISPLAY_CASE_HEADER"], dbKey = "headerTextCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("headerTextCase", "upper"); return (v == "default") and "upper" or v end, set = function(v) setDB("headerTextCase", v) end },
             { type = "dropdown", name = L["FOCUS_SECTION_HEADER_CASE"], desc = L["FOCUS_DISPLAY_CASE_CATEGORY_LABELS"], dbKey = "sectionHeaderTextCase", options = TEXT_CASE_OPTIONS, get = function() local v = getDB("sectionHeaderTextCase", "proper"); return (v == "default") and "proper" or v end, set = function(v) setDB("sectionHeaderTextCase", v) end },

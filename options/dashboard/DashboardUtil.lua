@@ -131,21 +131,40 @@ function addon.Dashboard_EffectiveDashboardFontSize(base)
     return math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((tonumber(base) or 13) - 13) + 0.5))
 end
 
+--- Parse stored dashboardTextOutline value into (level, slug) pair.
+--- Levels: 0 off, 1 OUTLINE, 2 THICKOUTLINE. SLUG is an independent SDF flag.
+local function parseOutlineValue(v)
+    if v == "" then return 0, false end
+    if v == "OUTLINE" then return 1, false end
+    if v == "THICKOUTLINE" then return 2, false end
+    if v == "SLUG" then return 0, true end
+    if v == "OUTLINE, SLUG" then return 1, true end
+    if v == "THICKOUTLINE, SLUG" then return 2, true end
+    -- Legacy boolean migration
+    if v == true then return 1, false end
+    if v == false then return 0, false end
+    local n = tonumber(v)
+    if not n then return 1, false end
+    return math.max(0, math.min(2, math.floor(n + 0.5))), false
+end
+
+local function readOutlineConfig()
+    if not addon.GetDB then return 1, false end
+    return parseOutlineValue(addon.GetDB("dashboardTextOutline", 1))
+end
+
 --- Saved outline level: 0 off, 1 OUTLINE, 2 THICKOUTLINE. Handles legacy booleans and new string values from dropdown.
 --- @return integer 0–2
 function addon.Dashboard_GetTextOutlineLevel()
-    if not addon.GetDB then return 1 end
-    local v = addon.GetDB("dashboardTextOutline", 1)
-    -- New string values from dropdown
-    if v == "" then return 0 end
-    if v == "OUTLINE" then return 1 end
-    if v == "THICKOUTLINE" then return 2 end
-    -- Legacy boolean migration
-    if v == true then return 1 end
-    if v == false then return 0 end
-    local n = tonumber(v)
-    if not n then return 1 end
-    return math.max(0, math.min(2, math.floor(n + 0.5)))
+    local lev = readOutlineConfig()
+    return lev
+end
+
+--- Whether the SLUG (SDF) flag is enabled for dashboard text.
+--- @return boolean
+function addon.Dashboard_HasTextSlugFlag()
+    local _, slug = readOutlineConfig()
+    return slug
 end
 
 --- Saved shadow strength 0–100 (opacity %; migrates legacy boolean on=true → 65).
@@ -172,34 +191,38 @@ function addon.Dashboard_ShouldUseTextShadow()
     return addon.Dashboard_GetTextShadowStrength() > 0
 end
 
+local function composeFlags(outline, slug)
+    if slug then
+        if outline == "" then return "SLUG" end
+        return outline .. ", SLUG"
+    end
+    return outline
+end
+
 --- Font outline flags for widget-style dashboard chrome from outline level.
 --- @return string
 function addon.Dashboard_GetWidgetOutlineFlags()
-    local lev = addon.Dashboard_GetTextOutlineLevel()
+    local lev, slug = readOutlineConfig()
+    local outline = ""
     if lev >= 2 then
-        return "THICKOUTLINE"
+        outline = "THICKOUTLINE"
+    elseif lev >= 1 then
+        outline = "OUTLINE"
     end
-    if lev >= 1 then
-        return "OUTLINE"
-    end
-    return ""
+    return composeFlags(outline, slug)
 end
 
 --- Outline for dashboard chrome after offset (≥14px when level > 0; thick at level 2).
+--- SLUG is preserved at all sizes since SDF rendering benefits small text most.
 --- @param effSize number
 --- @return string
 function addon.Dashboard_OutlineFlagsForSize(effSize)
-    local lev = addon.Dashboard_GetTextOutlineLevel()
-    if lev <= 0 then
-        return ""
+    local lev, slug = readOutlineConfig()
+    local outline = ""
+    if lev > 0 and effSize >= 14 then
+        outline = (lev >= 2) and "THICKOUTLINE" or "OUTLINE"
     end
-    if effSize < 14 then
-        return ""
-    end
-    if lev >= 2 then
-        return "THICKOUTLINE"
-    end
-    return "OUTLINE"
+    return composeFlags(outline, slug)
 end
 
 --- Apply or clear drop shadow from strength 0–100 (no-op for non–FontString types).

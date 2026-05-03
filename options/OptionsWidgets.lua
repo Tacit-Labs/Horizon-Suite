@@ -593,7 +593,7 @@ local DROPDOWN_FONT_GLOBAL_SENTINEL = "__global__"
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
 -- resetButton: optional table { onClick, tooltip } — adds a small reset-arrow icon button to the left of the dropdown.
 -- fontPreviewInList: when true, each list row (and closed button when a font path is selected) uses ResolveFontPath(value) for SetFont.
-function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton, fontPreviewInList)
+function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, options, get, set, displayFn, searchable, disabledFn, tooltip, resetButton, fontPreviewInList, preserveOrder)
     local labelFn = type(labelText) == "function" and labelText or nil
     local resolvedLabel = labelFn and labelFn() or labelText
     local row = CreateFrame("Frame", nil, parent)
@@ -851,13 +851,15 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
                 out[#out + 1] = { k, v }
             end
         end
-        table.sort(out, function(a, b)
-            local aVal = a and a[2]
-            local bVal = b and b[2]
-            if aVal == "__global__" then return true end
-            if bVal == "__global__" then return false end
-            return tostring(a and a[1] or "") < tostring(b and b[1] or "")
-        end)
+        if not preserveOrder then
+            table.sort(out, function(a, b)
+                local aVal = a and a[2]
+                local bVal = b and b[2]
+                if aVal == "__global__" then return true end
+                if bVal == "__global__" then return false end
+                return tostring(a and a[1] or "") < tostring(b and b[1] or "")
+            end)
+        end
         return out
     end
 
