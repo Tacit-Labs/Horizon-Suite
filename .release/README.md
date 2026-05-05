@@ -1,34 +1,40 @@
-# 🌌 Horizon Suite
-
 ![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge)
 ![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) [![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)](https://discord.gg/nFabdZmvSB)
 [![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite)
 
 ---
-
-> **One addon. Everything your UI needs.**
-> Horizon Suite replaces your objective tracker, zone text, minimap, tooltips, and loot toasts — all in one place, all working together, all built for Midnight.
-
-Stop juggling separate addons with separate option panels. Horizon Suite brings them together under one roof with a shared design language, unified profiles, and a community actively shaping what comes next.
-
-**Eight modules. One options panel. Zero clutter.**
-
-| Module | What it does | Status |
-|---|---|---|
-| 🎯 **Focus** | Objective tracker | Live |
-| 🎬 **Presence** | Zone text & cinematic notifications | Live |
-| 🗺️ **Vista** | Minimap with full customisation | Live |
-| 🔍 **Insight** | Cinematic tooltips | Live |
-| 🎒 **Cache** | Loot toasts & bag organisation | Preview |
-| 📜 **Essence** | Character sheet | Preview |
-| 💬 **Flow** | Chat frame | Coming Soon |
-| 🌅 **Meridian** | Take a Guess! | Coming Soon |
+# 🌌 Horizon Suite 
+Driven by the community and customised for each member's sensibilities.
+## Modules
+### Current
+| | |
+|---|---|
+| 🎯 <span style="color:#FFD133;">**Focus**</span> | Objective Tracker
+| 🎬 <span style="color:#33FFDF;">**Presence**</span> | Cinematic Notifications
+| 🗺️ <span style="color:#B366FF;">**Vista**</span> | Minimap
+| 🔍 <span style="color:#FF66B3;">**Insight**</span> | Tooltips
+### Preview
+| | |
+|---|---|
+| 🎒 <span style="color:#33CC66;">**Cache**</span> | Loot & Bags
+| 📜 <span style="color:#DC143C;">**Essence**</span> | Character Sheet
+### Planned
+| | |
+|---|---|
+| 💬 <span style="color:#3399FF;">**Flow**</span> | Chat |
+| 🧭 <span style="color:#FFFFFF;">**Meridian**</span> | 🤫 |
 
 ---
 
-## 🎯 Focus — Objective Tracker
+## 📜 <span style="color:#;">**Axis**</span> [Centralised Dashboard] (?)
 
-![Focus - Objective Tracker](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-5frvkrwhxhng1.gif?width=489&auto=webp&s=9c6da75805f3cff68cdcf545b22cc6ec082b20c5)
+![Essence](link_here)
+
+---
+
+## 🎯 <span style="color:#FFD133;">Focus</span> [Objective Tracker]
+
+![Focus | Objective Tracker](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-5frvkrwhxhng1.gif?width=489&auto=webp&s=9c6da75805f3cff68cdcf545b22cc6ec082b20c5)
 
 Your tracker shouldn't need babysitting. Focus keeps up with you — surfacing nearby quests, updating as you move, and getting out of the way when you don't need it.
 
@@ -49,7 +55,7 @@ Your tracker shouldn't need babysitting. Focus keeps up with you — surfacing n
 
 ---
 
-## 🎬 Presence — Zone Text & Notifications
+## 🎬 <span style="color:#33FFDF;">Presence</span> [Cinematic Notifications]
 
 ![Presence - Zone Text & Notifications](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-mj3ii5rnxhng1.gif?width=731&auto=webp&s=e9267169ee7e52bd3276b49114e65047d412037f)
 
@@ -65,7 +71,7 @@ Blizzard's zone text does the job. Presence makes it feel like a moment.
 
 ---
 
-## 🗺️ Vista — Minimap
+## 🗺️ <span style="color:#B366FF;">Vista</span> [Minimap]
 
 ![Vista - Minimap](https://preview.redd.it/addon-horizon-suite-3-0-0-released-vista-minimap-is-now-out-v0-adkv296wnblg1.gif?width=325&auto=webp&s=f623b0327377002da3eaa64b3ef78062dc7cfebf)
 
@@ -82,19 +88,7 @@ A minimap that fits your UI — not the other way around.
 
 ---
 
-## 🎒 Cache — Loot Toasts & Bags *(Preview)*
-
-![Cache - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
-
-Loot that deserves to be seen — and a bag that keeps itself organised.
-
-- **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
-- **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
-- **Bag organisation** — Clean up your inventory with Cache's built-in bag management.
-
----
-
-## 🔍 Insight — Tooltips
+## 🔍 <span style="color:#FF66B3;">Insight</span> [Tooltips]
 
 ![Insight - Tooltips](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-9luqvfjeyhng1.png?width=387&format=png&auto=webp&s=e0816c4ced5581178a50507f8d803adc9a93edde)
 
@@ -110,11 +104,39 @@ Tooltips that actually tell you who you're looking at.
 
 ---
 
-## 🎨 Shared Design & Customisation
+## 🎒 <span style="color:#33CC66;">Cache</span> [Loot & Bags]
 
-Every module shares the same design foundations, so they feel like one cohesive UI.
+![Cache - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
 
-- **Global or per-module scaling** — Set one global scale (50–200%) or dial in each module independently under Axis → Global Toggles.
+Loot that deserves to be seen — and a bag that keeps itself organised.
+
+- **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
+- **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
+- **Bag organisation** — Clean up your inventory with Cache's built-in bag management.
+
+---
+
+## 📜 <span style="color:#DC143C;">**Essence**</span> [Character Sheet]
+
+![Essence](link_here)
+
+---
+
+## 💬 <span style="color:#3399FF;">**Flow**</span> [Chat]
+
+![Flow](link_here)
+
+---
+
+## 🧭 <span style="color:#FFFFFF;">**Meridian**</span> [🤫]
+
+![Meridian(link_here)
+
+---
+
+## 🎨 Endless Customisation
+### Global or Per-Module scaling
+### Scale
 - **Class tint** — Enable class colours per module or all at once from the Axis panel. Under Global Toggles, set **dashboard font** and **dashboard text size** for the settings window (separate from Focus tracker typography). Dashboard background presets: flat Default, Midnight artwork, or Specialisation (auto) — uses Blizzard's talent UI art for your current spec with a crossfade when you switch.
 - **SharedMedia support** — Fonts and progress bar textures from addon packs across all modules. Works without SharedMedia installed too.
 - **Per-category colours** — Title, objective, zone, section, and backdrop colours all configurable.
@@ -167,14 +189,20 @@ Thanks to everyone who has contributed to Horizon Suite:
 
 ---
 
-## 🌐 Localizations
+## 🌐 Localisations
+| | | |
+|---|---|---|
+|German|deDE|100%|
+|English|enUS|100%|
+|Spanish|esES|?%|
+|French|frFR|?%|
+|Korean|koKR|?%|
+|Brazilian Portuguese|ptBR|?%|
+|Chinese|zhCN|?%|
 
-The addon UI is localized for: Chinese (zhCN), French (frFR), German (deDE), Korean (koKR), Brazilian Portuguese (ptBR), Spanish (esES).
-
-Contributions for additional locales are welcome — see **[contributions/translate.md](contributions/translate.md)** and Discord.
+Additional translations are always welcome!
+See **[contributions/translate.md](contributions/translate.md)** for more information on how to contribute.
 
 ---
-
 ## License
-
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License, see `LICENSE` for more information.

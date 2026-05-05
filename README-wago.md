@@ -1,12 +1,26 @@
 # 🌌 Horizon Suite
 
 ![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge)
-
 ![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) [![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)](https://discord.gg/nFabdZmvSB)
-
 [![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite) 
 
-**Horizon Suite** is a core addon with pluggable modules: **Focus** (objective tracker), **Presence** (zone text & notifications), **Insight** (cinematic tooltips), **Vista** (minimap), and **Cache** (loot toasts). Designed for the Midnight era—clean, cinematic, player-in-control. It replaces static, cluttered lists with a fluid interface that grants you total agency over your goals. Additional suites will appear as modules in the same options panel.
+| | |
+|---|---|
+| 🎯 <span style="color:#FFD133;">**Focus**</span> | Objective Tracker
+| 🎬 <span style="color:#33FFDF;">**Presence**</span> | Cinematic Toasts
+| 🗺️ <span style="color:#B366FF;">**Vista**</span> | Minimap
+| 🔍 <span style="color:#FF66B3;">**Insight**</span> | Tooltips
+### Preview
+| | |
+|---|---|
+| 🎒 <span style="color:#33CC66;">**Cache**</span> | Loot & Bags
+| 📜 <span style="color:#DC143C;">**Essence**</span> | Character Sheet
+### Planned
+| | |
+|---|---|
+| 💬 <span style="color:#3399FF;">**Flow**</span> | Chat |
+| 🧭 <span style="color:#FFFFFF;">**Meridian**</span> | 🤫 |
+---
 
 ---
 
