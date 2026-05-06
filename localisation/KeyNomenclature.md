@@ -13,6 +13,7 @@ A template key is provided for you at the top of the `enUS.lua` file, as seen be
 ```
 L["TERM"]                                                = " "
 ```
+### Please mention in the commit and PR message if  `node tools/restructure_locales.js` was run.
 
 ## Key Nomenclature
 Each key follows the same format.
