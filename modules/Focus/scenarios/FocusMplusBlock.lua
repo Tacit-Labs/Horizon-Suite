@@ -590,14 +590,45 @@ mplusBlock:SetScript("OnLeave", function(self)
     end
 end)
 
+-- Shared demo payload: drives `/horizon mplusdebug` and the "Always" preview
+-- toggle when the player isn't in an active keystone run.
+local MPLUS_DEMO_DATA = {
+    dungeonName = "Darkheart Thicket",
+    level = 15,
+    timer = 1112,
+    timeLimit = 1800,
+    deathPenalty = 15,
+    bossList = {
+        { name = "Boss 1", completed = true },
+        { name = "Boss 2", completed = true },
+        { name = "Boss 3", completed = false },
+        { name = "Boss 4", completed = false },
+    },
+    enemyForces = { current = 340, total = 400, percent = 85.25 },
+    numDeaths = 2,
+    affixes = {
+        { name = "Fortified", desc = "Non-boss enemies have 20% more health." },
+        { name = "Bursting", desc = "When slain, non-boss enemies burst, causing damage." },
+        { name = "Sanguine", desc = "When slain, non-boss enemies leave a pool of blood." },
+    },
+}
+
+local function IsInActiveKeystoneRun()
+    return C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
+        and C_ChallengeMode.GetActiveChallengeMapID() ~= nil
+end
+
 -- OnUpdate for timer refresh (updates every second)
 local timeSinceLastUpdate = 0
 mplusBlock:SetScript("OnUpdate", function(self, elapsed)
     if not self:IsShown() then return end
     if addon.mplusDebugPreview then return end
-    
+    -- Preview-mode (alwaysShow with no active run) renders static demo data;
+    -- skip live refresh so we don't blow it away with empty GetMplusData().
+    if not IsInActiveKeystoneRun() then return end
+
     timeSinceLastUpdate = timeSinceLastUpdate + elapsed
-    
+
     -- Update display every 1 second for smooth timer
     if timeSinceLastUpdate >= 1.0 then
         timeSinceLastUpdate = 0
@@ -608,46 +639,26 @@ end)
 
 local function UpdateMplusBlock()
     local pos = addon.GetDB("mplusBlockPosition", "top") or "top"
-    
+
     -- mplusDebugPreview: show hardcoded demo data (from /horizon mplusdebug)
     if addon.mplusDebugPreview then
         PositionMplusBlock(pos)
         ApplyMplusTypography()
-        local demoData = {
-            dungeonName = "Darkheart Thicket",
-            level = 15,
-            timer = 1112,
-            timeLimit = 1800,
-            deathPenalty = 15,
-            bossList = {
-                { name = "Boss 1", completed = true },
-                { name = "Boss 2", completed = true },
-                { name = "Boss 3", completed = false },
-                { name = "Boss 4", completed = false },
-            },
-            enemyForces = { current = 340, total = 400, percent = 85.25 },
-            numDeaths = 2,
-            affixes = {
-                { name = "Fortified", desc = "Non-boss enemies have 20% more health." },
-                { name = "Bursting", desc = "When slain, non-boss enemies burst, causing damage." },
-                { name = "Sanguine", desc = "When slain, non-boss enemies leave a pool of blood." },
-            }
-        }
-        UpdateMplusBlockDisplay(demoData)
+        UpdateMplusBlockDisplay(MPLUS_DEMO_DATA)
         mplusBlock:Show()
         return
     end
 
-    -- Check visibility settings
     local showBlock = addon.GetDB("showMythicPlusBlock", true)
-    local alwaysShow = addon.GetDB("mplusAlwaysShow", false)
-    local hasActiveKeystone = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID and C_ChallengeMode.GetActiveChallengeMapID() ~= nil
+    if not showBlock then
+        mplusBlock:Hide()
+        return
+    end
 
-    -- "Show Mythic+ block" ON  → show the M+ block.
-    -- "Show Mythic+ block" OFF → only show if "Always show M+ block" is ON.
-    local shouldShow = hasActiveKeystone and (showBlock or alwaysShow)
-    
-    if not shouldShow then
+    local inActiveRun = IsInActiveKeystoneRun()
+    local alwaysShow = addon.GetDB("mplusAlwaysShow", false)
+
+    if not inActiveRun and not alwaysShow then
         mplusBlock:Hide()
         return
     end
@@ -656,8 +667,7 @@ local function UpdateMplusBlock()
     if not mplusBlock:IsShown() then
         ApplyMplusTypography()
     end
-    local data = GetMplusData()
-    UpdateMplusBlockDisplay(data)
+    UpdateMplusBlockDisplay(inActiveRun and GetMplusData() or MPLUS_DEMO_DATA)
     mplusBlock:Show()
 end
 
