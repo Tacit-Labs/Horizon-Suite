@@ -1227,6 +1227,21 @@ function addon.EnsureDB()
             db._migratedShowQuestTypeIconsDefaultOn = true
         end
     end
+    -- One-shot: "Always show M+ block" used to be a no-op; now it renders a
+    -- preview when out of a keystone run. Reset stored values so the new
+    -- preview doesn't surprise existing users on upgrade.
+    do
+        local db = rawDB()
+        if not db._migratedMplusAlwaysShowReset then
+            db.profiles = db.profiles or {}
+            for _, prof in pairs(db.profiles) do
+                if type(prof) == "table" then
+                    prof.mplusAlwaysShow = false
+                end
+            end
+            db._migratedMplusAlwaysShowReset = true
+        end
+    end
     -- One-time migration from legacy hideInCombat toggle.
     -- Check both the active profile and the root DB for the legacy key,
     -- then write the migrated value into the active profile where GetDB reads it.
