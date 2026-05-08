@@ -54,16 +54,35 @@ end
 local DEFAULT_ANCHOR = "BOTTOMLEFT"
 local DEFAULT_X, DEFAULT_Y = 2, 2
 
--- Standalone minimap child: tooltip anchor; Vista proxies pass ANCHOR_BOTTOMLEFT via ShowGameTooltip.
-local STANDALONE_TOOLTIP_ANCHOR = "ANCHOR_LEFT"
+-- Standalone minimap child: tooltip anchor flips to the opposite quadrant of the button so it
+-- never clips off-screen — same idea LibDBIcon uses (`getAnchors`, BugSack/Libs/LibDBIcon-1.0/
+-- LibDBIcon-1.0.lua:60). Vista proxies still pass ANCHOR_BOTTOMLEFT explicitly.
+--   * y in upper half → tooltip below (ANCHOR_BOTTOM*); lower half → above (ANCHOR_TOP*).
+--   * x in left third → tooltip extends right (*RIGHT); right third → extends left (*LEFT);
+--     middle third → no L/R suffix.
+local function PickStandaloneTooltipAnchor(ownerFrame)
+    if not ownerFrame or not UIParent then return "ANCHOR_LEFT" end
+    local x, y = ownerFrame:GetCenter()
+    if not x or not y then return "ANCHOR_LEFT" end
+    local uw = UIParent:GetWidth()  or 0
+    local uh = UIParent:GetHeight() or 0
+    if uw == 0 or uh == 0 then return "ANCHOR_LEFT" end
+    local v = (y > uh / 2) and "BOTTOM" or "TOP"
+    local h
+    if x < uw / 3 then       h = "RIGHT"
+    elseif x > uw * 2 / 3 then h = "LEFT"
+    else                     h = ""
+    end
+    return "ANCHOR_" .. v .. h
+end
 
 --- Show Horizon minimap tooltip anchored to the given frame (standalone button or Vista proxy).
 --- @param ownerFrame Frame
---- @param anchor string|nil GameTooltip anchor token; default STANDALONE_TOOLTIP_ANCHOR
+--- @param anchor string|nil GameTooltip anchor token; defaults to a quadrant-aware anchor for the standalone btn.
 --- @return nil
 local function ShowGameTooltip(ownerFrame, anchor)
     if not GameTooltip or not ownerFrame then return end
-    anchor = anchor or STANDALONE_TOOLTIP_ANCHOR
+    anchor = anchor or PickStandaloneTooltipAnchor(ownerFrame)
     GameTooltip:SetOwner(ownerFrame, anchor)
     GameTooltip:ClearLines()
     local title = (addon.BrandDisplay and addon.BrandDisplay.minimapTooltipTitle) or "Horizon"
@@ -449,7 +468,7 @@ local function CreateButton()
             self:SetAlpha(1)
         end
         self._hsTooltipStick = true
-        ShowGameTooltip(self, STANDALONE_TOOLTIP_ANCHOR)
+        ShowGameTooltip(self)
     end)
     btn:SetScript("OnLeave", function()
         btn._hsTooltipStick = nil
@@ -487,7 +506,7 @@ local function CreateButton()
         end
         -- Re-anchor tooltip every frame while hovering (minimap resize / drag moves the button).
         if btn and btn._hsTooltipStick and GameTooltip and GameTooltip:GetOwner() == btn then
-            GameTooltip:SetOwner(btn, STANDALONE_TOOLTIP_ANCHOR)
+            GameTooltip:SetOwner(btn, PickStandaloneTooltipAnchor(btn))
             GameTooltip:Show()
         end
     end)
