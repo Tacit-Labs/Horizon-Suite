@@ -575,6 +575,10 @@ function OptionsData_NotifyMainAddon()
     elseif _G.HorizonSuite_ApplyDimensions then _G.HorizonSuite_ApplyDimensions() end
     if addon.ApplyBackdropOpacity then addon.ApplyBackdropOpacity() end
     if addon.ApplyBorderVisibility then addon.ApplyBorderVisibility() end
+    -- Re-apply colours and bar textures on visible entries; FullLayout repositions
+    -- but does not re-run the per-entry renderer that calls SetTexture, so without
+    -- this call texture/colour changes wait for an aggregator pass or /reload.
+    if addon.ApplyFocusColors then addon.ApplyFocusColors() end
     if addon.RequestRefresh then addon.RequestRefresh()
     elseif _G.HorizonSuite_RequestRefresh then _G.HorizonSuite_RequestRefresh() end
     local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
