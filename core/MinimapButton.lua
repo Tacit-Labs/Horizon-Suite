@@ -27,10 +27,11 @@ local FADE_IN_DUR  = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeIn  or 0.2
 local FADE_OUT_DUR = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeOut or 0.3
 
 local btn
-local hoverZone   -- invisible frame over minimap to detect mouse enter/leave
-local iconMask    -- circular MaskTexture; created lazily the first time circular mode is on
-local ringBorder  -- gold ring overlay (Blizzard's standard minimap button frame) shown in circular mode
-local dragHelper  -- separate Frame with OnUpdate that snaps btn to minimap edge while dragging
+local hoverZone     -- invisible frame over minimap to detect mouse enter/leave
+local iconMask      -- circular MaskTexture; created lazily the first time circular mode is on
+local ringBorder    -- gold ring overlay (Blizzard's standard minimap button frame) shown in circular mode
+local hoverGlow     -- HIGHLIGHT-layer texture shown on mouseover in circular mode (additive gold glow)
+local dragHelper    -- separate Frame with OnUpdate that snaps btn to minimap edge while dragging
 local DEFAULT_ANGLE_RAD = math.rad(225)  -- bottom-left, mirroring the legacy DEFAULT_ANCHOR corner
 -- LibDBIcon proportions: icon ~64% of button (centered with insets); ring ~174% anchored TOPLEFT.
 -- The MiniMap-TrackingBorder texture's visible ring artwork is calibrated for these ratios — at
@@ -211,6 +212,17 @@ local function ApplyShape()
         ringBorder:SetSize(w * RING_SIZE_FRAC, h * RING_SIZE_FRAC)
         ringBorder:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
         ringBorder:Show()
+
+        -- Mouseover glow: standard Blizzard minimap-button highlight, additive blend.
+        -- HIGHLIGHT-layer textures are auto-shown by WoW only while the cursor is over the button.
+        if not hoverGlow then
+            hoverGlow = btn:CreateTexture(nil, "HIGHLIGHT")
+            hoverGlow:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+            hoverGlow:SetBlendMode("ADD")
+        end
+        hoverGlow:ClearAllPoints()
+        hoverGlow:SetAllPoints(btn)
+        hoverGlow:Show()
     else
         -- Restore the square presentation: full-button icon with the original 8% TexCoord crop.
         btn.icon:ClearAllPoints()
@@ -218,6 +230,7 @@ local function ApplyShape()
         btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         if iconMask then btn.icon:RemoveMaskTexture(iconMask) end
         if ringBorder then ringBorder:Hide() end
+        if hoverGlow then hoverGlow:Hide() end
     end
 end
 
