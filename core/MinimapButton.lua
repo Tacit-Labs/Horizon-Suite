@@ -30,16 +30,15 @@ local btn
 local hoverZone     -- invisible frame over minimap to detect mouse enter/leave
 local iconMask      -- circular MaskTexture; created lazily the first time circular mode is on
 local ringBorder    -- gold ring overlay (Blizzard's standard minimap button frame) shown in circular mode
-local hoverGlow     -- HIGHLIGHT-layer texture shown on mouseover in circular mode (additive gold glow)
 local dragHelper    -- separate Frame with OnUpdate that snaps btn to minimap edge while dragging
 local DEFAULT_ANGLE_RAD = math.rad(225)  -- bottom-left, mirroring the legacy DEFAULT_ANCHOR corner
--- LibDBIcon proportions: icon ~64% of button (centered with insets); ring ~174% anchored TOPLEFT.
--- The MiniMap-TrackingBorder texture's visible ring artwork is calibrated for these ratios — at
--- TOPLEFT(0,0) with size 1.74x the button, the ring's inner opening lands around the inset icon.
-local ICON_INSET_FRAC_X = 7 / 31    -- LibDBIcon: icon TOPLEFT is (7, -5) on a 31x31 button
-local ICON_INSET_FRAC_Y = 5 / 31
-local ICON_SIZE_FRAC    = 20 / 31   -- icon is 20x20 inside a 31x31 button
-local RING_SIZE_FRAC    = 54 / 31   -- border is 54x54 anchored TOPLEFT(0, 0)
+-- LibDBIcon proportions for WOW_PROJECT_MAINLINE (retail / Midnight): icon 18x18 CENTER-anchored,
+-- border 50x50 TOPLEFT(0, 0), inside a 31x31 button. The MiniMap-TrackingBorder texture's visible
+-- artwork is calibrated for exactly these dimensions — see Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua
+-- in BugSack (`ResetButtonIcon` / `ResetButtonBorder`, lines 526–617). Different numbers leave the
+-- icon off-centre or the ring loose around it.
+local ICON_SIZE_FRAC = 18 / 31
+local RING_SIZE_FRAC = 50 / 31
 local vistaCollectedStandaloneHidden = false
 -- Vista proxy for HorizonSuiteMinimapButton when the icon is in the collector UI.
 local horizonPatchNotesProxy
@@ -187,12 +186,12 @@ local function ApplyShape()
     local w = btn:GetWidth() or 22
     local h = btn:GetHeight() or 22
     if circular then
-        -- Resize and re-anchor btn.icon to the LibDBIcon-style inset so the visible logo lands inside
-        -- the gold ring's inner opening. SetTexCoord(0,1,0,1) drops the original 8% square crop —
+        -- Resize and re-anchor btn.icon to LibDBIcon's mainline proportions so the visible logo lands
+        -- inside the gold ring's inner opening. SetTexCoord(0,1,0,1) drops the original 8% square crop —
         -- the alpha mask now defines the visible silhouette, so cropping would just clip the logo.
         btn.icon:ClearAllPoints()
         btn.icon:SetSize(w * ICON_SIZE_FRAC, h * ICON_SIZE_FRAC)
-        btn.icon:SetPoint("TOPLEFT", btn, "TOPLEFT", w * ICON_INSET_FRAC_X, -h * ICON_INSET_FRAC_Y)
+        btn.icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
         btn.icon:SetTexCoord(0, 1, 0, 1)
 
         if not iconMask then
@@ -213,16 +212,9 @@ local function ApplyShape()
         ringBorder:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
         ringBorder:Show()
 
-        -- Mouseover glow: standard Blizzard minimap-button highlight, additive blend.
-        -- HIGHLIGHT-layer textures are auto-shown by WoW only while the cursor is over the button.
-        if not hoverGlow then
-            hoverGlow = btn:CreateTexture(nil, "HIGHLIGHT")
-            hoverGlow:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-            hoverGlow:SetBlendMode("ADD")
-        end
-        hoverGlow:ClearAllPoints()
-        hoverGlow:SetAllPoints(btn)
-        hoverGlow:Show()
+        -- Mouseover glow: same FileDataID LibDBIcon installs via SetHighlightTexture, which puts
+        -- the texture on the auto-managed HIGHLIGHT layer (only visible while cursor is over btn).
+        btn:SetHighlightTexture(136477)  -- "Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight"
     else
         -- Restore the square presentation: full-button icon with the original 8% TexCoord crop.
         btn.icon:ClearAllPoints()
@@ -230,7 +222,7 @@ local function ApplyShape()
         btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         if iconMask then btn.icon:RemoveMaskTexture(iconMask) end
         if ringBorder then ringBorder:Hide() end
-        if hoverGlow then hoverGlow:Hide() end
+        btn:SetHighlightTexture(nil)
     end
 end
 
