@@ -398,6 +398,7 @@ local DASHBOARD_TYPOGRAPHY_KEYS = {
     dashboardFontSize = true,
     dashboardTextOutline = true,
     dashboardTextShadow = true,
+    dashboardHeadingColor = true,
 }
 
 function OptionsData_GetDB(key, default)
@@ -973,6 +974,7 @@ local OptionCategories = {
                 "dashboardFontSize",
                 "dashboardTextOutline",
                 "dashboardTextShadow",
+                "dashboardHeadingColor",
             }
             opts[#opts + 1] = {
                 type = "dropdown",
@@ -1037,6 +1039,24 @@ local OptionCategories = {
                     return v == true
                 end,
                 set = function(v) setDB("dashboardTextShadow", v) end,
+                refreshIds = dashboardTypoRefreshIds,
+            }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["DASHBOARD_TYPO_HEADING_COLOR"] or "Heading Colour",
+                desc = L["DASHBOARD_TYPO_HEADING_COLOR_DESC"] or "Colour of the large headings on the Welcome and News tabs. Use a softer tone if pure white feels too bright on HDR displays.",
+                dbKey = "dashboardHeadingColor",
+                options = {
+                    { L["DASHBOARD_TYPO_HEADING_COLOR_WHITE"] or "White (default)", "white" },
+                    { L["DASHBOARD_TYPO_HEADING_COLOR_CYAN"]  or "Cyan (relaxed)",  "cyan"  },
+                    { L["DASHBOARD_TYPO_HEADING_COLOR_GOLD"]  or "Gold (relaxed)",  "gold"  },
+                },
+                preserveOrder = true,
+                get = function() return getDB("dashboardHeadingColor", "white") end,
+                set = function(v)
+                    setDB("dashboardHeadingColor", v)
+                    if addon.Dashboard_RefreshHeadingColors then addon.Dashboard_RefreshHeadingColors() end
+                end,
                 refreshIds = dashboardTypoRefreshIds,
             }
             opts[#opts + 1] = {

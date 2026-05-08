@@ -609,6 +609,10 @@ function addon.DashboardWelcomeView_Init(env)
 
             local eyebrowFs = MakeText(hero, "", 11, 0.56, 0.75, 0.92, "LEFT")
             local titleFs = MakeText(hero, "", 30, 0.98, 0.99, 1, "LEFT")
+            if dashAccentRefs.headingTexts then
+                tinsert(dashAccentRefs.headingTexts, titleFs)
+                if addon.Dashboard_GetHeadingColor then titleFs:SetTextColor(addon.Dashboard_GetHeadingColor()) end
+            end
             local taglineFs = MakeText(hero, "", 15, 0.78, 0.81, 0.87, "LEFT")
             local bodyFs = MakeDashboardWelcomeMixedScriptText(hero, "", 13, 0.70, 0.73, 0.79, "LEFT")
             bodyFs:SetWordWrap(true)
@@ -783,6 +787,10 @@ function addon.DashboardWelcomeView_Init(env)
             local badgeFs = MakeText(hero, "", 10, 0.78, 0.91, 1, "CENTER")
             badgeFs:Hide()
             local titleFs = MakeText(hero, "", 28, 0.98, 0.99, 1, "LEFT")
+            if dashAccentRefs.headingTexts then
+                tinsert(dashAccentRefs.headingTexts, titleFs)
+                if addon.Dashboard_GetHeadingColor then titleFs:SetTextColor(addon.Dashboard_GetHeadingColor()) end
+            end
             local taglineFs = MakeText(hero, "", 15, 0.76, 0.80, 0.87, "LEFT")
             local bodyFs = MakeDashboardWelcomeMixedScriptText(hero, "", 13, 0.70, 0.73, 0.79, "LEFT")
             bodyFs:SetWordWrap(true)

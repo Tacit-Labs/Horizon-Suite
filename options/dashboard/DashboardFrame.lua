@@ -200,6 +200,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideHeroRail = nil,
                 communityFooterTopRules = {},
                 dashboardClassIcon = nil,
+                headingTexts = {},
             }
 
             -- Set after sidebar header built; repositions logo separator + scroll under version/dev/class icon.
@@ -321,6 +322,26 @@ function addon.Dashboard_BuildMainFrame()
                 RefreshDashboardClassIcon()
                 if LayoutDashboardSidebarUnderHeader then
                     LayoutDashboardSidebarUnderHeader()
+                end
+            end
+
+            -- Welcome / News heading colour: optional softer presets for HDR users.
+            local HEADING_COLOR_PRESETS = {
+                white = { 0.98, 0.99, 1.00 },
+                cyan  = { 0.55, 0.85, 0.95 },
+                gold  = { 0.95, 0.82, 0.45 },
+            }
+            addon.Dashboard_GetHeadingColor = function()
+                local key = (addon.GetDB and addon.GetDB("dashboardHeadingColor", "white")) or "white"
+                local c = HEADING_COLOR_PRESETS[key] or HEADING_COLOR_PRESETS.white
+                return c[1], c[2], c[3]
+            end
+            addon.Dashboard_RefreshHeadingColors = function()
+                local refs = dashAccentRefs.headingTexts
+                if not refs then return end
+                local r, g, b = addon.Dashboard_GetHeadingColor()
+                for _, fs in ipairs(refs) do
+                    if fs and fs.SetTextColor then fs:SetTextColor(r, g, b) end
                 end
             end
 
