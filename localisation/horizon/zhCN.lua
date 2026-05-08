@@ -202,7 +202,7 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Thanks to eve
 -- L["DASH_WELCOME_SUPPORTERS_HEADING"]                       = "Supporters"
 -- L["DASH_WELCOME_SUPPORTERS_BODY"]                          = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.]=]
 -- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                    = "Localisations"
--- L["DASH_WELCOME_LOCALISATIONS_BODY"]                       = [=[The addon UI is localised for:
+L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
 -- 
 -- • German (deDE) — `localisation/horizon/deDE.lua`
 -- • English (enUS) — `localisation/horizon/enUS.lua`
@@ -390,7 +390,7 @@ L["AXIS_GLOBAL_TOGGLES"]                                      = "Global Toggles"
 -- L["AXIS_GLOBAL_SCALE_SECTION"]                             = "Global Scale"
 -- L["AXIS_MINIMAP_ICON_SECTION"]                             = "Minimap Icon"
 -- L["AXIS_MINIMAP_ICON_CIRCULAR"]                            = "Circular icon"
--- L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                       = "Round the Horizon minimap icon and add a gold ring border to match calendar, clock, and other circular minimap buttons."
+L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                          = "Round the Horizon minimap icon and add a gold ring border to match calendar, clock, and other circular minimap buttons."
 -- L["AXIS_CLASS_THEME_SECTION"]                              = "Class Theme"
 -- L["AXIS_GLOBAL_CLASS_THEME"]                               = "Global Class Theme"
 -- L["AXIS_CLASS_THEME_DASHBOARD"]                            = "Dashboard"
@@ -1949,6 +1949,7 @@ L["ZONE_LABELS"]                                              = "Zone labels"
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone type colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

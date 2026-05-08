@@ -26,6 +26,8 @@ local btn
 local hoverZone   -- invisible frame over minimap to detect mouse enter/leave
 local iconMask    -- circular MaskTexture; created lazily the first time circular mode is on
 local ringBorder  -- gold ring overlay (Blizzard's standard minimap button frame) shown in circular mode
+local dragHelper  -- separate Frame with OnUpdate that snaps btn to minimap edge while dragging
+local DEFAULT_ANGLE_RAD = math.rad(225)  -- bottom-left, mirroring the legacy DEFAULT_ANCHOR corner
 -- LibDBIcon proportions: icon ~64% of button (centered with insets); ring ~174% anchored TOPLEFT.
 -- The MiniMap-TrackingBorder texture's visible ring artwork is calibrated for these ratios — at
 -- TOPLEFT(0,0) with size 1.74x the button, the ring's inner opening lands around the inset icon.
@@ -200,17 +202,65 @@ local function ApplyShape()
     end
 end
 
+-- True when the minimap silhouette is a circle. Default WoW minimaps are round; when Vista is
+-- enabled we follow its `vistaCircular` setting instead.
+local function MinimapIsRoundShape()
+    if addon.IsModuleEnabled and addon:IsModuleEnabled("vista") then
+        return addon.GetDB and addon.GetDB("vistaCircular", false) and true or false
+    end
+    return true
+end
+
+-- Offset from Minimap CENTER to place the button on the minimap's perimeter at `angle` radians.
+-- Round case: button center sits on the circular edge (half the icon overlaps the minimap, half
+-- overhangs — matches Blizzard's calendar/clock placement). Square case: angle ray clamped to box.
+local function GetEdgePosition(angle)
+    local mw = (Minimap and Minimap:GetWidth()) or 140
+    local mh = (Minimap and Minimap:GetHeight()) or 140
+    local cosA, sinA = math.cos(angle), math.sin(angle)
+    local hw, hh = mw / 2, mh / 2
+    if MinimapIsRoundShape() then
+        return cosA * hw, sinA * hh
+    end
+    local tx = (cosA == 0) and math.huge or (hw / math.abs(cosA))
+    local ty = (sinA == 0) and math.huge or (hh / math.abs(sinA))
+    local t = math.min(tx, ty)
+    return cosA * t, sinA * t
+end
+
+-- Resolve the saved angle, migrating from the legacy `minimapButtonX/Y` keys on first read so
+-- existing users land at the closest edge position rather than jumping to the default corner.
+local function ResolveButtonAngle()
+    if not addon.GetDB then return DEFAULT_ANGLE_RAD end
+    local saved = tonumber(addon.GetDB("minimapButtonAngle", nil))
+    if saved then return saved end
+    local x = tonumber(addon.GetDB("minimapButtonX", nil))
+    local y = tonumber(addon.GetDB("minimapButtonY", nil))
+    if x and y and (x ~= 0 or y ~= 0) then
+        local migrated = math.atan2(y, x)
+        if addon.SetDB then addon.SetDB("minimapButtonAngle", migrated) end
+        return migrated
+    end
+    return DEFAULT_ANGLE_RAD
+end
+
 local function ApplyPosition()
     if not btn or not Minimap then return end
     if vistaCollectedStandaloneHidden then return end
     btn:SetSize(GetMinimapButtonDisplayPixelSize(), GetMinimapButtonDisplayPixelSize())
-    local savedX = addon.GetDB and tonumber(addon.GetDB("minimapButtonX", nil))
-    local savedY = addon.GetDB and tonumber(addon.GetDB("minimapButtonY", nil))
+    local circular = addon.GetDB and addon.GetDB("minimapButtonCircular", false)
     btn:ClearAllPoints()
-    if savedX and savedY then
-        btn:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+    if circular then
+        local x, y = GetEdgePosition(ResolveButtonAngle())
+        btn:SetPoint("CENTER", Minimap, "CENTER", x, y)
     else
-        btn:SetPoint(DEFAULT_ANCHOR, Minimap, DEFAULT_ANCHOR, DEFAULT_X, DEFAULT_Y)
+        local savedX = addon.GetDB and tonumber(addon.GetDB("minimapButtonX", nil))
+        local savedY = addon.GetDB and tonumber(addon.GetDB("minimapButtonY", nil))
+        if savedX and savedY then
+            btn:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+        else
+            btn:SetPoint(DEFAULT_ANCHOR, Minimap, DEFAULT_ANCHOR, DEFAULT_X, DEFAULT_Y)
+        end
     end
     ApplyShape()
     UpdatePatchNotesBadgeInternal()
@@ -310,19 +360,59 @@ local function CreateButton()
     end)
     btn:SetScript("OnDragStart", function(self)
         if IsMinimapButtonLocked() or InCombatLockdown() then return end
-        self:StartMoving()
+        local circular = addon.GetDB and addon.GetDB("minimapButtonCircular", false)
+        if circular then
+            -- Magnetic drag: dragHelper's OnUpdate keeps the button glued to the minimap edge
+            -- under the cursor angle. Initialised lazily to keep load-time work minimal.
+            if not dragHelper then
+                dragHelper = CreateFrame("Frame")
+                dragHelper:Hide()
+                dragHelper:SetScript("OnUpdate", function(self)
+                    local target = self.target
+                    if not target or not Minimap then self:Hide(); return end
+                    local mx, my = Minimap:GetCenter()
+                    if not mx then return end
+                    local cx, cy = GetCursorPosition()
+                    local scale = (Minimap.GetEffectiveScale and Minimap:GetEffectiveScale()) or 1
+                    if scale == 0 then scale = 1 end
+                    cx, cy = cx / scale, cy / scale
+                    local angle = math.atan2(cy - my, cx - mx)
+                    local x, y = GetEdgePosition(angle)
+                    target:ClearAllPoints()
+                    target:SetPoint("CENTER", Minimap, "CENTER", x, y)
+                end)
+            end
+            dragHelper.target = self
+            dragHelper:Show()
+        else
+            self:StartMoving()
+        end
     end)
     btn:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        local mx, my = Minimap:GetCenter()
-        local px, py = self:GetCenter()
-        local ox, oy = px - mx, py - my
-        if addon.SetDB then
-            addon.SetDB("minimapButtonX", ox)
-            addon.SetDB("minimapButtonY", oy)
+        local circular = addon.GetDB and addon.GetDB("minimapButtonCircular", false)
+        if circular then
+            if dragHelper then dragHelper.target = nil; dragHelper:Hide() end
+            local mx, my = Minimap:GetCenter()
+            local px, py = self:GetCenter()
+            if mx and px then
+                local angle = math.atan2(py - my, px - mx)
+                if addon.SetDB then addon.SetDB("minimapButtonAngle", angle) end
+                local nx, ny = GetEdgePosition(angle)
+                self:ClearAllPoints()
+                self:SetPoint("CENTER", Minimap, "CENTER", nx, ny)
+            end
+        else
+            self:StopMovingOrSizing()
+            local mx, my = Minimap:GetCenter()
+            local px, py = self:GetCenter()
+            local ox, oy = px - mx, py - my
+            if addon.SetDB then
+                addon.SetDB("minimapButtonX", ox)
+                addon.SetDB("minimapButtonY", oy)
+            end
+            self:ClearAllPoints()
+            self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
         end
-        self:ClearAllPoints()
-        self:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
     end)
     btn:SetScript("OnEnter", function(self)
         if MinimapHoverFadeEnabled() then
