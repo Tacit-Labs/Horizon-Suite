@@ -26,7 +26,13 @@ local btn
 local hoverZone   -- invisible frame over minimap to detect mouse enter/leave
 local iconMask    -- circular MaskTexture; created lazily the first time circular mode is on
 local ringBorder  -- gold ring overlay (Blizzard's standard minimap button frame) shown in circular mode
-local RING_SCALE = 1.5  -- ring texture is centered on btn at 1.5x button size, matching calendar/clock buttons
+-- LibDBIcon proportions: icon ~64% of button (centered with insets); ring ~174% anchored TOPLEFT.
+-- The MiniMap-TrackingBorder texture's visible ring artwork is calibrated for these ratios — at
+-- TOPLEFT(0,0) with size 1.74x the button, the ring's inner opening lands around the inset icon.
+local ICON_INSET_FRAC_X = 7 / 31    -- LibDBIcon: icon TOPLEFT is (7, -5) on a 31x31 button
+local ICON_INSET_FRAC_Y = 5 / 31
+local ICON_SIZE_FRAC    = 20 / 31   -- icon is 20x20 inside a 31x31 button
+local RING_SIZE_FRAC    = 54 / 31   -- border is 54x54 anchored TOPLEFT(0, 0)
 local vistaCollectedStandaloneHidden = false
 -- Vista proxy for HorizonSuiteMinimapButton when the icon is in the collector UI.
 local horizonPatchNotesProxy
@@ -151,28 +157,44 @@ local function UpdatePatchNotesBadgeInternal()
     end
 end
 
--- When `minimapButtonCircular` is on, mask btn.icon to a circle (same alpha asset Vista uses on the minimap)
--- and draw the standard Blizzard gold ring overlay so it matches calendar/clock-style minimap buttons.
+-- When `minimapButtonCircular` is on, shrink btn.icon to LibDBIcon proportions, mask it to a circle,
+-- and overlay Blizzard's MiniMap-TrackingBorder so it matches calendar/clock-style minimap buttons.
 local function ApplyShape()
     if not btn or not btn.icon then return end
     local circular = addon.GetDB and addon.GetDB("minimapButtonCircular", false)
+    local w = btn:GetWidth() or 22
+    local h = btn:GetHeight() or 22
     if circular then
+        -- Resize and re-anchor btn.icon to the LibDBIcon-style inset so the visible logo lands inside
+        -- the gold ring's inner opening. SetTexCoord(0,1,0,1) drops the original 8% square crop —
+        -- the alpha mask now defines the visible silhouette, so cropping would just clip the logo.
+        btn.icon:ClearAllPoints()
+        btn.icon:SetSize(w * ICON_SIZE_FRAC, h * ICON_SIZE_FRAC)
+        btn.icon:SetPoint("TOPLEFT", btn, "TOPLEFT", w * ICON_INSET_FRAC_X, -h * ICON_INSET_FRAC_Y)
+        btn.icon:SetTexCoord(0, 1, 0, 1)
+
         if not iconMask then
             iconMask = btn:CreateMaskTexture(nil, "BACKGROUND")
             iconMask:SetTexture(addon.MASK_CIRCULAR_FILEDATAID,
                 "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-            iconMask:SetAllPoints(btn.icon)
         end
+        iconMask:ClearAllPoints()
+        iconMask:SetAllPoints(btn.icon)
         btn.icon:AddMaskTexture(iconMask)
+
         if not ringBorder then
             ringBorder = btn:CreateTexture(nil, "OVERLAY")
             ringBorder:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-            ringBorder:SetPoint("CENTER", btn, "CENTER", 0, 0)
         end
-        local w, h = btn:GetWidth(), btn:GetHeight()
-        ringBorder:SetSize((w or 22) * RING_SCALE, (h or 22) * RING_SCALE)
+        ringBorder:ClearAllPoints()
+        ringBorder:SetSize(w * RING_SIZE_FRAC, h * RING_SIZE_FRAC)
+        ringBorder:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
         ringBorder:Show()
     else
+        -- Restore the square presentation: full-button icon with the original 8% TexCoord crop.
+        btn.icon:ClearAllPoints()
+        btn.icon:SetAllPoints(btn)
+        btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         if iconMask then btn.icon:RemoveMaskTexture(iconMask) end
         if ringBorder then ringBorder:Hide() end
     end
