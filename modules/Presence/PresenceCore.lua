@@ -339,6 +339,18 @@ local function getPresenceSubtitleFontPath()
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
+local function getPresenceTitleFontOutline()
+    local raw = addon.GetDB and addon.GetDB("presenceTitleFontOutline", "OUTLINE")
+    if raw == nil then return "OUTLINE" end
+    return raw
+end
+
+local function getPresenceSubtitleFontOutline()
+    local raw = addon.GetDB and addon.GetDB("presenceSubtitleFontOutline", "OUTLINE")
+    if raw == nil then return "OUTLINE" end
+    return raw
+end
+
 -- Variant-based sizes: large (sz 48), medium (sz 36), small (sz 28). Each has primary + secondary.
 local VARIANT_DEFAULTS = {
     large  = { primary = 48, secondary = 24 },
@@ -457,12 +469,12 @@ local function CreateLayer(parent)
     local shadowY = (addon.GetDB and tonumber(addon.GetDB("shadowOffsetY", -2))) or addon.SHADOW_OY or -2
 
     L.titleShadow = parent:CreateFontString(nil, "BORDER")
-    SetSafeFont(L.titleShadow, getPresenceTitleFontPath(), MAIN_SIZE, "OUTLINE")
+    SetSafeFont(L.titleShadow, getPresenceTitleFontPath(), MAIN_SIZE, getPresenceTitleFontOutline())
     L.titleShadow:SetTextColor(0, 0, 0, shadowA)
     L.titleShadow:SetJustifyH("CENTER")
 
     L.titleText = parent:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(L.titleText, getPresenceTitleFontPath(), MAIN_SIZE, "OUTLINE")
+    SetSafeFont(L.titleText, getPresenceTitleFontPath(), MAIN_SIZE, getPresenceTitleFontOutline())
     L.titleText:SetTextColor(1, 1, 1, 1)
     L.titleText:SetJustifyH("CENTER")
     L.titleText:SetPoint("TOP", 0, 0)
@@ -481,24 +493,24 @@ local function CreateLayer(parent)
     L.divider:SetAlpha(0)
 
     L.subShadow = parent:CreateFontString(nil, "BORDER")
-    SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), SUB_SIZE, "OUTLINE")
+    SetSafeFont(L.subShadow, getPresenceSubtitleFontPath(), SUB_SIZE, getPresenceSubtitleFontOutline())
     L.subShadow:SetTextColor(0, 0, 0, shadowA)
     L.subShadow:SetJustifyH("CENTER")
 
     L.subText = parent:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(L.subText, getPresenceSubtitleFontPath(), SUB_SIZE, "OUTLINE")
+    SetSafeFont(L.subText, getPresenceSubtitleFontPath(), SUB_SIZE, getPresenceSubtitleFontOutline())
     L.subText:SetTextColor(1, 1, 1, 1)  -- neutral; resolved at play via resolveColors
     L.subText:SetJustifyH("CENTER")
     L.subText:SetPoint("TOP", L.divider, "BOTTOM", 0, -10)
     L.subShadow:SetPoint("CENTER", L.subText, "CENTER", shadowX, shadowY)
 
     L.discoveryShadow = parent:CreateFontString(nil, "BORDER")
-    SetSafeFont(L.discoveryShadow, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, "OUTLINE")
+    SetSafeFont(L.discoveryShadow, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, getPresenceSubtitleFontOutline())
     L.discoveryShadow:SetTextColor(0, 0, 0, shadowA)
     L.discoveryShadow:SetJustifyH("CENTER")
 
     L.discoveryText = parent:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(L.discoveryText, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, "OUTLINE")
+    SetSafeFont(L.discoveryText, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, getPresenceSubtitleFontOutline())
     L.discoveryText:SetTextColor(1, 1, 1, 1)  -- neutral; resolved at show via getDiscoveryColor
     L.discoveryText:SetJustifyH("CENTER")
     L.discoveryText:SetPoint("TOP", L.subText, "BOTTOM", 0, -5)
@@ -848,10 +860,10 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, 
     local mainSz = math.max(12, math.min(72, math.floor(getPrimarySz(variant))))
     local subSz = compactLayout and mainSz or math.max(12, math.min(40, math.floor(getSecondarySz(variant))))
 
-    SetSafeFont(layer.titleText, getPresenceTitleFontPath(), mainSz, "OUTLINE")
-    SetSafeFont(layer.titleShadow, getPresenceTitleFontPath(), mainSz, "OUTLINE")
-    SetSafeFont(layer.subText, getPresenceSubtitleFontPath(), subSz, "OUTLINE")
-    SetSafeFont(layer.subShadow, getPresenceSubtitleFontPath(), subSz, "OUTLINE")
+    SetSafeFont(layer.titleText, getPresenceTitleFontPath(), mainSz, getPresenceTitleFontOutline())
+    SetSafeFont(layer.titleShadow, getPresenceTitleFontPath(), mainSz, getPresenceTitleFontOutline())
+    SetSafeFont(layer.subText, getPresenceSubtitleFontPath(), subSz, getPresenceSubtitleFontOutline())
+    SetSafeFont(layer.subShadow, getPresenceSubtitleFontPath(), subSz, getPresenceSubtitleFontOutline())
 
     layer.titleText:SetTextColor(c[1], c[2], c[3], 1)
     layer.subText:SetTextColor(sc[1], sc[2], sc[3], 1)

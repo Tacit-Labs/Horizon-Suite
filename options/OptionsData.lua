@@ -24,6 +24,8 @@ local TYPOGRAPHY_KEYS = {
     titleFontPath = true,
     presenceTitleFontPath = true,
     presenceSubtitleFontPath = true,
+    presenceTitleFontOutline = true,
+    presenceSubtitleFontOutline = true,
     zoneFontPath = true,
     objectiveFontPath = true,
     sectionFontPath = true,
@@ -170,6 +172,8 @@ local PRESENCE_KEYS = {
     presenceSecondarySmallSz = true,
     presenceTitleFontPath = true,
     presenceSubtitleFontPath = true,
+    presenceTitleFontOutline = true,
+    presenceSubtitleFontOutline = true,
     presenceZoneTypeColoring = true,
     presenceZoneColorFriendly = true,
     presenceZoneColorHostile = true,
@@ -2303,6 +2307,8 @@ local OptionCategories = {
             { type = "button", name = L["PRESENCE_RESET_TYPOGRAPHY_DEFAULTS"], desc = L["PRESENCE_RESET_PRESENCE_TYPOGRAPHY_OPTIONS_FONTS_SIZES"], onClick = function()
                 setDB("presenceTitleFontPath", nil)
                 setDB("presenceSubtitleFontPath", nil)
+                setDB("presenceTitleFontOutline", nil)
+                setDB("presenceSubtitleFontOutline", nil)
                 setDB("presencePrimaryLargeSz", nil)
                 setDB("presenceSecondaryLargeSz", nil)
                 setDB("presencePrimaryMediumSz", nil)
@@ -2323,9 +2329,11 @@ local OptionCategories = {
                 elseif addon.OptionsPanel_Refresh then
                     addon.OptionsPanel_Refresh()
                 end
-            end, refreshIds = { "presencePreview", "presenceTitleFontPath", "presenceSubtitleFontPath", "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary" } },
+            end, refreshIds = { "presencePreview", "presenceTitleFontPath", "presenceSubtitleFontPath", "presenceTitleFontOutline", "presenceSubtitleFontOutline", "presencePrimaryLargeSz", "presenceSecondaryLargeSz", "presencePrimaryMediumSz", "presenceSecondaryMediumSz", "presencePrimarySmallSz", "presenceSecondarySmallSz", "presenceBossEmoteColor", "presenceDiscoveryColor", "presenceZoneTypeColoring", "presenceZoneColorFriendly", "presenceZoneColorHostile", "presenceZoneColorContested", "presenceZoneColorSanctuary" } },
             { type = "dropdown", name = L["PRESENCE_MAIN_TITLE_FONT"], desc = L["PRESENCE_FONT_FAMILY_MAIN_TITLE"], dbKey = "presenceTitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceTitleFontPath") end, get = function() return getDB("presenceTitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceTitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true },
             { type = "dropdown", name = L["PRESENCE_SUBTITLE_FONT"], desc = L["PRESENCE_FONT_FAMILY_SUBTITLE"], dbKey = "presenceSubtitleFontPath", searchable = true, options = function() return GetPerElementFontDropdownOptions("presenceSubtitleFontPath") end, get = function() return getDB("presenceSubtitleFontPath", FONT_USE_GLOBAL) end, set = function(v) setDB("presenceSubtitleFontPath", v) end, displayFn = DisplayPerElementFont, refreshIds = { "presencePreview" }, fontPreviewInList = true },
+            { type = "dropdown", name = L["PRESENCE_MAIN_TITLE_OUTLINE"] or "Main title outline", desc = L["PRESENCE_FONT_OUTLINE_MAIN_TITLE"] or "Outline style for main notification titles.", dbKey = "presenceTitleFontOutline", options = OUTLINE_OPTIONS, preserveOrder = true, get = function() return getDB("presenceTitleFontOutline", "OUTLINE") end, set = function(v) setDB("presenceTitleFontOutline", v) end, refreshIds = { "presencePreview" } },
+            { type = "dropdown", name = L["PRESENCE_SUBTITLE_OUTLINE"] or "Subtitle outline", desc = L["PRESENCE_FONT_OUTLINE_SUBTITLE"] or "Outline style for notification subtitles.", dbKey = "presenceSubtitleFontOutline", options = OUTLINE_OPTIONS, preserveOrder = true, get = function() return getDB("presenceSubtitleFontOutline", "OUTLINE") end, set = function(v) setDB("presenceSubtitleFontOutline", v) end, refreshIds = { "presencePreview" } },
             { type = "section", name = L["PRESENCE_LARGE_NOTIFICATIONS"] },
             { type = "slider", name = L["PRESENCE_LARGE_PRIMARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_TITLES_ZONE"], dbKey = "presencePrimaryLargeSz", min = 12, max = 72, get = function() return math.max(12, math.min(72, tonumber(getDB("presencePrimaryLargeSz", 48)) or 48)) end, set = function(v) setDB("presencePrimaryLargeSz", math.max(12, math.min(72, v))) end, refreshIds = { "presencePreview" } },
             { type = "slider", name = L["PRESENCE_LARGE_SECONDARY_SIZE"], desc = L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_SUBTITLES"], dbKey = "presenceSecondaryLargeSz", min = 12, max = 40, get = function() return math.max(12, math.min(40, tonumber(getDB("presenceSecondaryLargeSz", 24)) or 24)) end, set = function(v) setDB("presenceSecondaryLargeSz", math.max(12, math.min(40, v))) end, refreshIds = { "presencePreview" } },
