@@ -15,6 +15,10 @@ if not Minimap then return end
 local VISTA_ADDON_BTN_MIN = 16
 local VISTA_ADDON_BTN_MAX = 48
 local VISTA_ADDON_BTN_DEFAULT = 26
+-- Blizzard / LibDBIcon canonical addon-minimap-button size: 31px button, 54px ring. Used only when
+-- `minimapButtonCircular` is on and the button is standalone, so the stock-button look matches
+-- calendar/clock dimensions. Vista-collected proxy continues to use the slider (`vistaAddonBtnSize`).
+local STANDARD_CIRCULAR_BTN_PX = 31
 
 local ICON_PATH = "Interface\\AddOns\\HorizonSuite\\HorizonLogo"
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
@@ -106,6 +110,21 @@ local function GetMinimapButtonDisplayPixelSize()
         return enlarged
     end
     return base
+end
+
+-- Size used for the standalone btn frame. When circular mode is on, override to Blizzard's
+-- canonical 31px (with the same patch-notes-unread enlarge multiplier on top). Vista's
+-- collected proxy keeps using `GetMinimapButtonDisplayPixelSize` so the bar stays uniform.
+local function GetStandalonePixelSize()
+    if addon.GetDB and addon.GetDB("minimapButtonCircular", false) then
+        local base = STANDARD_CIRCULAR_BTN_PX
+        if addon.PatchNotes_HasUnread and addon.PatchNotes_HasUnread() then
+            local enlarged = math.floor(base * UNREAD_MINIMAP_SIZE_MULT + 0.5)
+            return math.max(enlarged, base + 2)
+        end
+        return base
+    end
+    return GetMinimapButtonDisplayPixelSize()
 end
 
 -- ~25% of minimap / Vista proxy button — top-right corner exclamation-style marker.
@@ -247,7 +266,8 @@ end
 local function ApplyPosition()
     if not btn or not Minimap then return end
     if vistaCollectedStandaloneHidden then return end
-    btn:SetSize(GetMinimapButtonDisplayPixelSize(), GetMinimapButtonDisplayPixelSize())
+    local size = GetStandalonePixelSize()
+    btn:SetSize(size, size)
     local circular = addon.GetDB and addon.GetDB("minimapButtonCircular", false)
     btn:ClearAllPoints()
     if circular then
@@ -335,7 +355,8 @@ local function CreateButton()
     if btn then return btn end
 
     btn = CreateFrame("Button", "HorizonSuiteMinimapButton", Minimap)
-    btn:SetSize(GetMinimapButtonDisplayPixelSize(), GetMinimapButtonDisplayPixelSize())
+    local initSize = GetStandalonePixelSize()
+    btn:SetSize(initSize, initSize)
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(Minimap:GetFrameLevel() + 5)
     btn:SetClampedToScreen(true)
