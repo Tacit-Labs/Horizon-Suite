@@ -194,7 +194,7 @@ local function ApplyShape()
         btn.icon:ClearAllPoints()
         btn.icon:SetSize(w * ICON_SIZE_FRAC, h * ICON_SIZE_FRAC)
         btn.icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
-        btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        btn.icon:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 
         if not iconMask then
             iconMask = btn:CreateMaskTexture(nil, "BACKGROUND")
