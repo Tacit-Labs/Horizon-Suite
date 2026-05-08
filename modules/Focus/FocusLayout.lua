@@ -279,6 +279,38 @@ local function HideAllItemButtons()
     end
 end
 
+--- Walk visible entries' FontStrings and return the widest unwrapped string width
+--- (in scaled pixels). Used by the dynamic-width "shrink to fit content" mode so the
+--- panel can resize itself based on content. Uses GetUnboundedStringWidth where
+--- available so the result doesn't depend on the current frame width (and therefore
+--- doesn't loop with width application).
+local function MeasureDynamicContentWidth()
+    local maxW = 0
+    local function meas(fs)
+        if not fs or not fs.IsShown or not fs:IsShown() then return end
+        local w = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth()
+        if w and w > maxW then maxW = w end
+    end
+    meas(addon.headerText)
+    for _, entry in pairs(activeMap) do
+        if entry and entry.IsShown and entry:IsShown() then
+            meas(entry.titleText)
+            meas(entry.zoneText)
+            meas(entry.inlineTimerText)
+            if entry.objectives then
+                for j = 1, addon.MAX_OBJECTIVES do
+                    local obj = entry.objectives[j]
+                    if obj then
+                        meas(obj.text)
+                        meas(obj.progressBarLabel)
+                    end
+                end
+            end
+        end
+    end
+    return maxW
+end
+
 local function FullLayout()
     if not addon.focus.enabled then return end
 
@@ -1487,6 +1519,32 @@ local function FullLayout()
 
     syncScenarioBarTickerForLayout()
     if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
+
+    -- Shrink-to-fit: measure widest visible row and resize the panel if needed.
+    -- Uses unbounded string widths, so the result is stable across passes and converges
+    -- in one deferred FullLayout (no oscillation between widths and wrapping).
+    if addon.GetDB("focusDynamicWidth", false) then
+        local rawW = MeasureDynamicContentWidth()
+        if rawW > 0 then
+            local padding = addon.GetScaledPadding() * 2 + addon.Scaled(addon.CONTENT_RIGHT_PADDING or 0)
+            local minScaled = addon.Scaled(180)
+            local maxScaled = addon.Scaled(tonumber(addon.GetDB("focusDynamicWidthMax", 400)) or 400)
+            local target = math.max(minScaled, math.min(maxScaled, rawW + padding))
+            local prev = addon.focus.layout.dynamicContentWidth
+            if not prev or math.abs(prev - target) > 1 then
+                addon.focus.layout.dynamicContentWidth = target
+                if C_Timer and C_Timer.After then
+                    C_Timer.After(0, function()
+                        if addon.focus and addon.focus.enabled and addon.FullLayout then
+                            addon.FullLayout()
+                        end
+                    end)
+                end
+            end
+        end
+    elseif addon.focus.layout.dynamicContentWidth ~= nil then
+        addon.focus.layout.dynamicContentWidth = nil
+    end
 end
 
 --- Lightweight color refresh: updates main header title, section headers, entry colors, and dividers without FullLayout.
