@@ -3975,6 +3975,9 @@ function Vista.ApplyOptions(changedKey)
     if addon.MinimapButton_ApplyPosition then
         addon.MinimapButton_ApplyPosition()
     end
+    if addon.MinimapButton_ApplyShape then
+        addon.MinimapButton_ApplyShape()
+    end
 end
 
 --- Lightweight apply for position-lock toggles only: no proxy rebuild, no CollectMinimapButtons, no FullLayout (caller skips NotifyMainAddon).

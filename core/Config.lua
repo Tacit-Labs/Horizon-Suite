@@ -305,6 +305,10 @@ addon.ATLAS_QUEST_IMPORTANT = "importantavailablequesticon"
 addon.ATLAS_QUEST_LEGENDARY = "UI-QuestPoiLegendary-QuestBang"
 addon.ATLAS_QUEST_PVP = "questlog-questtypeicon-pvp"
 
+-- Circular alpha-mask FileDataID (Blizzard's "MASK_CIRCULAR_V"). Used by Vista for the
+-- minimap mask and by MinimapButton to round the Horizon icon when vistaCircular is on.
+addon.MASK_CIRCULAR_FILEDATAID = 186178
+
 addon.CATEGORY_TO_GROUP = {
     COMPLETE  = "COMPLETE",
     DUNGEON   = "DUNGEON",

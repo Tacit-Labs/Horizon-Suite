@@ -24,6 +24,7 @@ local FADE_OUT_DUR = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeOut or 0.3
 
 local btn
 local hoverZone  -- invisible frame over minimap to detect mouse enter/leave
+local iconMask   -- circular MaskTexture; created lazily the first time vistaCircular is on
 local vistaCollectedStandaloneHidden = false
 -- Vista proxy for HorizonSuiteMinimapButton when the icon is in the collector UI.
 local horizonPatchNotesProxy
@@ -148,6 +149,24 @@ local function UpdatePatchNotesBadgeInternal()
     end
 end
 
+-- Match the standalone Horizon icon to the minimap silhouette: when Vista is set to circular,
+-- mask btn.icon with the same alpha asset Vista uses on the minimap itself; otherwise leave it square.
+local function ApplyShape()
+    if not btn or not btn.icon then return end
+    local circular = addon.GetDB and addon.GetDB("vistaCircular", false)
+    if circular then
+        if not iconMask then
+            iconMask = btn:CreateMaskTexture(nil, "BACKGROUND")
+            iconMask:SetTexture(addon.MASK_CIRCULAR_FILEDATAID,
+                "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+            iconMask:SetAllPoints(btn.icon)
+        end
+        btn.icon:AddMaskTexture(iconMask)
+    elseif iconMask then
+        btn.icon:RemoveMaskTexture(iconMask)
+    end
+end
+
 local function ApplyPosition()
     if not btn or not Minimap then return end
     if vistaCollectedStandaloneHidden then return end
@@ -160,6 +179,7 @@ local function ApplyPosition()
     else
         btn:SetPoint(DEFAULT_ANCHOR, Minimap, DEFAULT_ANCHOR, DEFAULT_X, DEFAULT_Y)
     end
+    ApplyShape()
     UpdatePatchNotesBadgeInternal()
 end
 
@@ -250,6 +270,7 @@ local function CreateButton()
         icon:SetTexture(FALLBACK_ICON)
     end
     btn.icon = icon
+    ApplyShape()
 
     btn:SetScript("OnClick", function(self, mouseButton)
         ShowOptions()
@@ -361,6 +382,10 @@ end)
 addon.MinimapButton_SetVistaCollected = SetVistaCollected
 addon.MinimapButton_UpdateVisibility = UpdateVisibility
 addon.MinimapButton_ApplyPosition = ApplyPosition
+--- Re-mask the standalone Horizon icon to match Vista's minimap shape (circular vs. square).
+--- Called from Vista's ApplyOptions_Minimap so live shape toggles take effect without /reload.
+--- @return nil
+addon.MinimapButton_ApplyShape = ApplyShape
 addon.MinimapButton_ShowGameTooltip = ShowGameTooltip
 --- Effective minimap button edge size (slightly enlarged when patch notes are unread); Vista proxy matches this.
 --- @return number
