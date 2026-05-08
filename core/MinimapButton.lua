@@ -187,12 +187,14 @@ local function ApplyShape()
     local h = btn:GetHeight() or 22
     if circular then
         -- Resize and re-anchor btn.icon to LibDBIcon's mainline proportions so the visible logo lands
-        -- inside the gold ring's inner opening. SetTexCoord(0,1,0,1) drops the original 8% square crop —
-        -- the alpha mask now defines the visible silhouette, so cropping would just clip the logo.
+        -- inside the gold ring's inner opening. Keep the 8% TexCoord crop the square mode uses:
+        -- LibDBIcon assumes edge-to-edge icon content (Blizzard ability/quest icons), but HorizonLogo
+        -- has transparent padding inside the texture canvas — without the crop, the visible glass is
+        -- smaller than the 18×18 box and a gap appears between the logo and the ring's inner edge.
         btn.icon:ClearAllPoints()
         btn.icon:SetSize(w * ICON_SIZE_FRAC, h * ICON_SIZE_FRAC)
         btn.icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
-        btn.icon:SetTexCoord(0, 1, 0, 1)
+        btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
         if not iconMask then
             iconMask = btn:CreateMaskTexture(nil, "BACKGROUND")
