@@ -1,6 +1,6 @@
 if GetLocale() ~= "ptBR" then return end
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 local L = setmetatable({}, { __index = addon.L })
@@ -201,7 +201,17 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Thanks to eve
 -- L["DASH_WELCOME_SUPPORTERS_HEADING"]                       = "Supporters"
 -- L["DASH_WELCOME_SUPPORTERS_BODY"]                          = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.]=]
 -- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                    = "Localisations"
--- L["DASH_WELCOME_LOCALISATIONS_BODY"] = ... (falls back to enUS until retranslated against new path layout)
+-- L["DASH_WELCOME_LOCALISATIONS_BODY"]                       = [=[The addon UI is localised for:
+-- 
+-- • German (deDE) — `localisation/horizon/deDE.lua`
+-- • English (enUS) — `localisation/horizon/enUS.lua`
+-- • Spanish (esES) — `localisation/horizon/esES.lua`
+-- • French (frFR) — `localisation/horizon/frFR.lua`
+-- • Korean (koKR) — `localisation/horizon/koKR.lua`
+-- • Brazilian Portuguese (ptBR) — `localisation/horizon/ptBR.lua`
+-- • Chinese (zhCN) — `localisation/horizon/zhCN.lua`
+-- 
+-- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
 
 -- =====================================================================
@@ -315,6 +325,9 @@ L["FOCUS_CONTENT_TYPES"]                                      = "Tipos de Conte�
 -- L["FOCUS_DELVES"]                                          = "Delves"
 L["FOCUS_DELVES_DUNGEONS"]                                    = "Delves e Masmorras"
 L["FOCUS_DELVE_COMPLETE"]                                     = "Delve concluído"
+-- L["FOCUS_RITUAL_SITE_TITLE_COUNTERS"]                      = "Ritual Site Title Counters"
+-- L["FOCUS_RITUAL_SITE_TITLE_COUNTERS_DESC"]                 = "Show Ritual Site spoils and deaths beside the scenario title."
+-- L["FOCUS_RITUAL_SITE_TITLE_COUNTERS_TOOLTIP"]              = "Uses the same title-row counter style as Delves when the scenario provides header currency icons."
 L["FOCUS_INTERACTIONS"]                                       = "Interações"
 -- L["FOCUS_LAYOUT_TAB_DESC"]                                 = "Configure and customise settings related to layout."
 -- L["FOCUS_APPEARANCE_TAB_DESC"]                             = "Tracker panel look, fading, and list layout (header, sections, entries, timers, emphasis)."
@@ -375,6 +388,8 @@ L["AXIS_GLOBAL_TOGGLES"]                                      = "Global Toggles"
 -- L["AXIS_GLOBAL_FONT_SECTION"]                              = "Global Font (Coming Soon!)"
 -- L["AXIS_GLOBAL_SCALE_SECTION"]                             = "Global Scale"
 -- L["AXIS_MINIMAP_ICON_SECTION"]                             = "Minimap Icon"
+-- L["AXIS_MINIMAP_ICON_CIRCULAR"]                            = "Circular icon"
+-- L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                       = "Round the Horizon minimap icon and add a gold ring border to match calendar, clock, and other circular minimap buttons."
 -- L["AXIS_CLASS_THEME_SECTION"]                              = "Class Theme"
 -- L["AXIS_GLOBAL_CLASS_THEME"]                               = "Global Class Theme"
 -- L["AXIS_CLASS_THEME_DASHBOARD"]                            = "Dashboard"
@@ -404,7 +419,7 @@ L["INSIGHT_SCALE"]                                            = "Escala do Insig
 L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"]                        = "Escala do módulo de tooltip Insight (50–200%)."
 L["CACHE_SCALE"]                                              = "Escala do Cache"
 L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"]                       = "Escala do módulo de notificação de saque Cache (50–200%)."
--- L["CACHE_FONT"]                                            = "Loot toast font"
+L["CACHE_FONT"]                                               = "Loot toast font"
 -- L["CACHE_FONT_FAMILY"]                                     = "Font family used for loot toast text. Use 'Use global font' to follow the addon-wide font."
 L["AXIS_ENABLE_HORIZON_INSIGHT_MODULE"]                       = "Ativar Módulo Horizon Insight"
 L["AXIS_CINEMATIC_TOOLTIPS_CLASS_COLOURS_SPEC_DISPLAY"]       = "Tooltips cinematográficos com cores de classe, exibição de especialização e ícones de facção."
@@ -985,6 +1000,11 @@ L["DASHBOARD_TYPO_OUTLINE"]                                   = "Dashboard text 
 L["DASHBOARD_TYPO_OUTLINE_DESC"]                              = "When on, dashboard UI text uses the standard outlined font style. Turn off for a softer, flat look."
 L["DASHBOARD_TYPO_SHADOW"]                                    = "Dashboard text shadow"
 L["DASHBOARD_TYPO_SHADOW_DESC"]                               = "Adds a subtle drop shadow behind dashboard text to improve readability on busy backgrounds."
+-- L["DASHBOARD_TYPO_HEADING_COLOR"]                          = "Heading Colour"
+-- L["DASHBOARD_TYPO_HEADING_COLOR_DESC"]                     = "Colour of the large headings on the Welcome and News tabs. Use a softer tone if pure white feels too bright on HDR displays."
+-- L["DASHBOARD_TYPO_HEADING_COLOR_WHITE"]                    = "White (default)"
+-- L["DASHBOARD_TYPO_HEADING_COLOR_CYAN"]                     = "Cyan (relaxed)"
+-- L["DASHBOARD_TYPO_HEADING_COLOR_GOLD"]                     = "Gold (relaxed)"
 L["FOCUS_BACKDROP_OPACITY"]                                   = "Opacidade do fundo"
 L["FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Opacidade do fundo do painel (0–1)."
 L["FOCUS_BORDER"]                                             = "Mostrar borda"
@@ -1236,6 +1256,9 @@ L["PRESENCE_SMALL_SECONDARY_SIZE"]                            = "Small secondary
 -- =====================================================================
 L["FOCUS_OUTLINE_NONE"]                                       = "Nenhum"
 L["FOCUS_THICK_OUTLINE"]                                      = "Contorno espesso"
+-- L["FOCUS_SLUG"]                                            = "SLUG"
+-- L["FOCUS_SLUG_OUTLINE"]                                    = "SLUG Outline"
+-- L["FOCUS_SLUG_THICK_OUTLINE"]                              = "SLUG Thick Outline"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
@@ -1576,10 +1599,10 @@ L["VISTA_KEEP_MOUSEOVER_BAR_VISIBLE_TIMES_YOU"]               = "Mantém a barra
 L["VISTA_MOUSEOVER_BAR"]                                      = "Barra ao passar o mouse"
 L["VISTA_RIGHT_CLICK_PANEL"]                                  = "Painel com botão direito"
 L["VISTA_FLOATING_DRAWER"]                                    = "Gaveta flutuante"
--- L["VISTA_DRAWER_BUTTON_ICON"]                              = "Drawer button icon"
+L["VISTA_DRAWER_BUTTON_ICON"]                                 = "Drawer button icon"
 L["VISTA_DRAWER_BUTTON_ICON_DESC"]                            = "Enter a Blizzard icon file ID or texture path. Leave blank to use the default drawer icon."
 -- L["VISTA_CHOOSE_ICON"]                                     = "Choose icon"
-L["VISTA_CHOOSE_DRAWER_ICON"]                                 = "Choose Drawer Icon"
+-- L["VISTA_CHOOSE_DRAWER_ICON"]                              = "Choose Drawer Icon"
 L["VISTA_LOCK_DRAWER_BUTTON_POSITION"]                        = "Bloquear posição do botão gaveta"
 L["VISTA_PREVENT_DRAGGING_FLOATING_DRAWER_BUTTON"]            = "Impede arrastar o botão da gaveta flutuante."
 L["VISTA_LOCK_MOUSEOVER_BAR_POSITION"]                        = "Bloquear posição da barra ao passar o mouse"
@@ -1651,7 +1674,7 @@ L["AFFIX_ICONS"]                                              = "Affix icons"
 L["AFFIX_TOOLTIPS"]                                           = "Affix tooltips"
 -- L["AFFECTS_SCENARIO_PROGRESS_TIMER_BARS"]                  = "Also affects scenario progress and timer bars."
 L["ALWAYS"]                                                   = "Always show"
--- L["ALWAYS_M_TIMER"]                                        = "Always show M+ timer."
+L["ALWAYS_M_TIMER"]                                           = "Always show M+ timer."
 -- L["AUTO_ADD_WQS_YOUR_CURRENT_ZONE"]                        = "Auto-add WQs in your current zone."
 -- L["AUTO_CLOSE_DELAY_DISABLE"]                              = "Auto-close delay (0 to disable)."
 -- L["AUTO_UNTRACK_FINISHED_ACTIVITIES"]                      = "Auto-untrack finished activities."
@@ -1865,7 +1888,7 @@ L["FOCUS_AH_CRAFT_HINT_TIER"]                                 = "Crafting tier 1
 -- L["RECENT_PROGRESS_TOP"]                                   = "Show recent progress at the top."
 -- L["RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]                 = "Show recipe icon next to title. Requires quest type icons in Display."
 L["SECTION_DIVIDERS"]                                         = "Show section dividers"
--- L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                   = "Show the M+ block whenever an active keystone is running."
+L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ block whenever an active keystone is running."
 -- L["TRACKED_PROFESSION_RECIPES_LIST"]                       = "Show tracked profession recipes in the list."
 -- L["TRACKER_HEROIC_DUNGEONS"]                               = "Show tracker in Heroic dungeons. When unset, uses the master dungeon toggle."
 -- L["TRACKER_HEROIC_RAIDS"]                                  = "Show tracker in Heroic raids. When unset, uses the master raid toggle."
@@ -1925,6 +1948,7 @@ L["ZONE_LABELS"]                                              = "Zone labels"
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone type colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
 
 
 

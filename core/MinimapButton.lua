@@ -23,8 +23,10 @@ local FADE_IN_DUR  = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeIn  or 0.2
 local FADE_OUT_DUR = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeOut or 0.3
 
 local btn
-local hoverZone  -- invisible frame over minimap to detect mouse enter/leave
-local iconMask   -- circular MaskTexture; created lazily the first time vistaCircular is on
+local hoverZone   -- invisible frame over minimap to detect mouse enter/leave
+local iconMask    -- circular MaskTexture; created lazily the first time circular mode is on
+local ringBorder  -- gold ring overlay (Blizzard's standard minimap button frame) shown in circular mode
+local RING_SCALE = 1.5  -- ring texture is centered on btn at 1.5x button size, matching calendar/clock buttons
 local vistaCollectedStandaloneHidden = false
 -- Vista proxy for HorizonSuiteMinimapButton when the icon is in the collector UI.
 local horizonPatchNotesProxy
@@ -149,11 +151,11 @@ local function UpdatePatchNotesBadgeInternal()
     end
 end
 
--- Match the standalone Horizon icon to the minimap silhouette: when Vista is set to circular,
--- mask btn.icon with the same alpha asset Vista uses on the minimap itself; otherwise leave it square.
+-- When `minimapButtonCircular` is on, mask btn.icon to a circle (same alpha asset Vista uses on the minimap)
+-- and draw the standard Blizzard gold ring overlay so it matches calendar/clock-style minimap buttons.
 local function ApplyShape()
     if not btn or not btn.icon then return end
-    local circular = addon.GetDB and addon.GetDB("vistaCircular", false)
+    local circular = addon.GetDB and addon.GetDB("minimapButtonCircular", false)
     if circular then
         if not iconMask then
             iconMask = btn:CreateMaskTexture(nil, "BACKGROUND")
@@ -162,8 +164,17 @@ local function ApplyShape()
             iconMask:SetAllPoints(btn.icon)
         end
         btn.icon:AddMaskTexture(iconMask)
-    elseif iconMask then
-        btn.icon:RemoveMaskTexture(iconMask)
+        if not ringBorder then
+            ringBorder = btn:CreateTexture(nil, "OVERLAY")
+            ringBorder:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+            ringBorder:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        end
+        local w, h = btn:GetWidth(), btn:GetHeight()
+        ringBorder:SetSize((w or 22) * RING_SCALE, (h or 22) * RING_SCALE)
+        ringBorder:Show()
+    else
+        if iconMask then btn.icon:RemoveMaskTexture(iconMask) end
+        if ringBorder then ringBorder:Hide() end
     end
 end
 

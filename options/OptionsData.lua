@@ -1282,6 +1282,14 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"] or "Lock minimap button position", desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"] or "Prevent dragging the Horizon minimap button.", dbKey = "minimapButtonLocked", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
                 C_Timer.After(0, function() setDB("minimapButtonLocked", v) end)
             end }
+            opts[#opts + 1] = { type = "toggle", name = L["AXIS_MINIMAP_ICON_CIRCULAR"] or "Circular icon",
+                desc = L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"] or "Round the Horizon minimap icon and add a gold ring border to match calendar, clock, and other circular minimap buttons.",
+                dbKey = "minimapButtonCircular", visibleWhen = isMinimapStandalone,
+                get = function() return getDB("minimapButtonCircular", false) end,
+                set = function(v)
+                    setDB("minimapButtonCircular", v)
+                    if addon.MinimapButton_ApplyShape then addon.MinimapButton_ApplyShape() end
+                end }
             opts[#opts + 1] = { type = "button", dbKey = "__minimapButtonReset", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
             return opts
         end,

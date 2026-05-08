@@ -1,6 +1,6 @@
 if GetLocale() ~= "deDE" then return end
 
-local addon = _G.HorizonSuite
+local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
 if not addon then return end
 
 local L = setmetatable({}, { __index = addon.L })
@@ -203,7 +203,17 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Danke an alle
 L["DASH_WELCOME_SUPPORTERS_HEADING"]                          = "Unterstützer"
 L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Vielen Dank an alle, die Horizon Suite über Ko-fi, Patreon und andere Wege unterstützen.]=]
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Lokalisierungen"
--- L["DASH_WELCOME_LOCALISATIONS_BODY"] = ... (falls back to enUS until retranslated against new path layout)
+-- L["DASH_WELCOME_LOCALISATIONS_BODY"]                       = [=[The addon UI is localised for:
+-- 
+-- • German (deDE) — `localisation/horizon/deDE.lua`
+-- • English (enUS) — `localisation/horizon/enUS.lua`
+-- • Spanish (esES) — `localisation/horizon/esES.lua`
+-- • French (frFR) — `localisation/horizon/frFR.lua`
+-- • Korean (koKR) — `localisation/horizon/koKR.lua`
+-- • Brazilian Portuguese (ptBR) — `localisation/horizon/ptBR.lua`
+-- • Chinese (zhCN) — `localisation/horizon/zhCN.lua`
+-- 
+-- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
 
 -- =====================================================================
@@ -317,6 +327,9 @@ L["FOCUS_CONTENT_TYPES"]                                      = "Inhaltstypen"
 L["FOCUS_DELVES"]                                             = "Tiefen"
 L["FOCUS_DELVES_DUNGEONS"]                                    = "Tiefen & Verliese"
 L["FOCUS_DELVE_COMPLETE"]                                     = "Tiefe abgeschlossen"
+-- L["FOCUS_RITUAL_SITE_TITLE_COUNTERS"]                      = "Ritual Site Title Counters"
+-- L["FOCUS_RITUAL_SITE_TITLE_COUNTERS_DESC"]                 = "Show Ritual Site spoils and deaths beside the scenario title."
+-- L["FOCUS_RITUAL_SITE_TITLE_COUNTERS_TOOLTIP"]              = "Uses the same title-row counter style as Delves when the scenario provides header currency icons."
 L["FOCUS_INTERACTIONS"]                                       = "Interaktionen"
 -- L["FOCUS_LAYOUT_TAB_DESC"]                                 = "Configure and customise settings related to layout."
 L["FOCUS_APPEARANCE_TAB_DESC"]                                = "Darstellung, Abblendung und Listen-Layout (Kopfbereich, Abschnitte, Einträge, Timer, Hervorhebung) des Zielverfolgers."
@@ -377,6 +390,8 @@ L["AXIS_GLOBAL_TOGGLES"]                                      = "Globale Einstel
 -- L["AXIS_GLOBAL_FONT_SECTION"]                              = "Global Font (Coming Soon!)"
 -- L["AXIS_GLOBAL_SCALE_SECTION"]                             = "Global Scale"
 -- L["AXIS_MINIMAP_ICON_SECTION"]                             = "Minimap Icon"
+-- L["AXIS_MINIMAP_ICON_CIRCULAR"]                            = "Circular icon"
+-- L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                       = "Round the Horizon minimap icon and add a gold ring border to match calendar, clock, and other circular minimap buttons."
 -- L["AXIS_CLASS_THEME_SECTION"]                              = "Class Theme"
 -- L["AXIS_GLOBAL_CLASS_THEME"]                               = "Global Class Theme"
 -- L["AXIS_CLASS_THEME_DASHBOARD"]                            = "Dashboard"
@@ -406,7 +421,7 @@ L["INSIGHT_SCALE"]                                            = "Insight-Skalier
 L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"]                        = "Skalierung für das Insight-Tooltip-Modul (50–200 %)"
 L["CACHE_SCALE"]                                              = "Cache-Skalierung"
 L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"]                       = "Skalierung des Cache-Beutebenachrichtungsmoduls (50–200 %)."
--- L["CACHE_FONT"]                                            = "Loot toast font"
+L["CACHE_FONT"]                                               = "Loot toast font"
 -- L["CACHE_FONT_FAMILY"]                                     = "Font family used for loot toast text. Use 'Use global font' to follow the addon-wide font."
 L["AXIS_ENABLE_HORIZON_INSIGHT_MODULE"]                       = "Horizon-Insight-Modul aktivieren"
 L["AXIS_CINEMATIC_TOOLTIPS_CLASS_COLOURS_SPEC_DISPLAY"]       = "Filmische Tooltips mit Klassenfarben, Spezialisierungsanzeige und Fraktionssymbolen."
@@ -987,6 +1002,11 @@ L["DASHBOARD_TYPO_OUTLINE"]                                   = "Schriftkontur d
 L["DASHBOARD_TYPO_OUTLINE_DESC"]                              = "When on, dashboard UI text uses the standard outlined font style. Turn off for a softer, flat look."
 L["DASHBOARD_TYPO_SHADOW"]                                    = "Textschattierung für Dashboard-Text"
 L["DASHBOARD_TYPO_SHADOW_DESC"]                               = "Fügt einen subtilen Schlagschatten hinter dem Dashboard-Text, um die Lesbarkeit zu verbessern."
+-- L["DASHBOARD_TYPO_HEADING_COLOR"]                          = "Heading Colour"
+-- L["DASHBOARD_TYPO_HEADING_COLOR_DESC"]                     = "Colour of the large headings on the Welcome and News tabs. Use a softer tone if pure white feels too bright on HDR displays."
+-- L["DASHBOARD_TYPO_HEADING_COLOR_WHITE"]                    = "White (default)"
+-- L["DASHBOARD_TYPO_HEADING_COLOR_CYAN"]                     = "Cyan (relaxed)"
+-- L["DASHBOARD_TYPO_HEADING_COLOR_GOLD"]                     = "Gold (relaxed)"
 L["FOCUS_BACKDROP_OPACITY"]                                   = "Deckkraft des Hintergrunds"
 L["FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Hintergrunddeckkraft des Fensters (0–1)."
 L["FOCUS_BORDER"]                                             = "Rahmen anzeigen"
@@ -1238,6 +1258,9 @@ L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"]          = "Schriftgröße 
 -- =====================================================================
 L["FOCUS_OUTLINE_NONE"]                                       = "Keine"
 L["FOCUS_THICK_OUTLINE"]                                      = "Starke Kontur"
+-- L["FOCUS_SLUG"]                                            = "SLUG"
+-- L["FOCUS_SLUG_OUTLINE"]                                    = "SLUG Outline"
+-- L["FOCUS_SLUG_THICK_OUTLINE"]                              = "SLUG Thick Outline"
 
 -- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
@@ -1578,10 +1601,10 @@ L["VISTA_DISABLE_DONE"]                                       = "Deaktivieren we
 L["VISTA_MOUSEOVER_BAR"]                                      = "Mausüber-Leiste"
 L["VISTA_RIGHT_CLICK_PANEL"]                                  = "Rechtsklick-Anzeige"
 L["VISTA_FLOATING_DRAWER"]                                    = "Schwebende Schublade"
--- L["VISTA_DRAWER_BUTTON_ICON"]                              = "Drawer button icon"
+L["VISTA_DRAWER_BUTTON_ICON"]                                 = "Drawer button icon"
 L["VISTA_DRAWER_BUTTON_ICON_DESC"]                            = "Enter a Blizzard icon file ID or texture path. Leave blank to use the default drawer icon."
 -- L["VISTA_CHOOSE_ICON"]                                     = "Choose icon"
-L["VISTA_CHOOSE_DRAWER_ICON"]                                 = "Choose Drawer Icon"
+-- L["VISTA_CHOOSE_DRAWER_ICON"]                              = "Choose Drawer Icon"
 L["VISTA_LOCK_DRAWER_BUTTON_POSITION"]                        = "Position der Schubladenschaltfläche fixieren"
 L["VISTA_PREVENT_DRAGGING_FLOATING_DRAWER_BUTTON"]            = "Schubladenschaltfläche nicht verschiebbar."
 L["VISTA_LOCK_MOUSEOVER_BAR_POSITION"]                        = "Position der Mausüber-Leiste fixieren"
@@ -1927,6 +1950,7 @@ L["ZONE_LABELS"]                                              = "Zonenbeschriftu
 L["ZONE_NAME_NEW_ZONE"]                                       = "Der Zonenname erscheint weiterhin beim Betreten einer neuen Zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Färbung nach Zonentyp"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t anstelle von grüngefärbten abgeschlossenen Zielen."
+
 
 
 
