@@ -88,6 +88,21 @@ local DASHBOARD_TEXT_SHADOW_OFFSET_X = 1
 local DASHBOARD_TEXT_SHADOW_OFFSET_Y = -1
 local DASHBOARD_TEXT_SHADOW_ALPHA_MAX = 0.85
 
+--- Detect CJK / Hangul / Kana via UTF-8 leading-byte scan (0xE3..0xED). Trail bytes for those
+--- sequences are 0x80..0xBF, which doesn't overlap, so the scan is exact for Lua 5.1 strings.
+--- @param text string|nil
+--- @return boolean
+function addon.Dashboard_TextNeedsExtendedScript(text)
+    if type(text) ~= "string" or text == "" then return false end
+    for i = 1, #text do
+        local b = string.byte(text, i)
+        if b and b >= 0xE3 and b <= 0xED then
+            return true
+        end
+    end
+    return false
+end
+
 --- Default font when dashboardFontPath is unset (matches Focus/options widget default).
 --- @return string
 function addon.Dashboard_GetDefaultDashboardFontPath()
@@ -302,12 +317,14 @@ function addon.ApplyDashboardTypography()
             if fs and fs.SetFont then
                 local eff = math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((e.base or 13) - 13) + 0.5))
                 if e.extendedScriptFont then
-                    local okExt = pcall(function()
-                        fs:SetFont(DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT, eff, "")
+                    local needsExt = addon.Dashboard_TextNeedsExtendedScript(fs:GetText())
+                    local target = needsExt and DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT or path
+                    local ok = pcall(function()
+                        fs:SetFont(target, eff, "")
                     end)
-                    if not okExt then
+                    if not ok then
                         pcall(function()
-                            fs:SetFont(path, eff, "")
+                            fs:SetFont(DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT, eff, "")
                         end)
                     end
                 else
@@ -408,25 +425,36 @@ end
 --- @param reg table|nil Optional typography registry from dashboard frame build.
 --- @return FontString
 function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify, reg)
-    local path = addon.Dashboard_ResolveSavedDashboardFontPath(
-        (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
-    )
-    local eff = addon.Dashboard_EffectiveDashboardFontSize(size)
     local fs = parent:CreateFontString(nil, "OVERLAY")
-    local ok = pcall(function()
-        fs:SetFont(DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT, eff, "")
-    end)
-    if not ok then
-        ok = pcall(function()
-            fs:SetFont(path, eff, "")
-        end)
+
+    -- Pick font based on the text we're about to render: user dashboard font when there's
+    -- no CJK/Hangul/Kana content, otherwise Blizzard 2002 so contributor names render without
+    -- tofu squares. Must run BEFORE SetText, since SetText errors if no font is set yet.
+    local function applyFontForText(txt)
+        local userPath = addon.Dashboard_ResolveSavedDashboardFontPath(
+            (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
+        )
+        local eff = addon.Dashboard_EffectiveDashboardFontSize(size)
+        local needsExt = addon.Dashboard_TextNeedsExtendedScript(txt)
+        local target = needsExt and DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT or userPath
+        local ok = pcall(function() fs:SetFont(target, eff, "") end)
+        if not ok then
+            ok = pcall(function() fs:SetFont(DASHBOARD_WELCOME_EXTENDED_SCRIPT_FONT, eff, "") end)
+        end
+        if not ok then
+            pcall(function() fs:SetFont("Fonts\\ARIALN.TTF", eff, "") end)
+        end
     end
-    if not ok then
-        pcall(function()
-            fs:SetFont("Fonts\\ARIALN.TTF", eff, "")
-        end)
+
+    -- Per-instance SetText override: re-pick the font for the incoming text first,
+    -- then defer to the original SetText so it has a valid font to render against.
+    local origSetText = fs.SetText
+    fs.SetText = function(self, txt)
+        applyFontForText(txt)
+        origSetText(self, txt)
     end
-    fs:SetText(text)
+
+    fs:SetText(text or "")
     fs:SetTextColor(r, g, b)
     if justify then fs:SetJustifyH(justify) end
     addon.Dashboard_RegisterTypographyFontString(reg, fs, size, "", nil, true)
