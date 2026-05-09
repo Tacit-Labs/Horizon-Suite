@@ -306,7 +306,8 @@ end
 
 local function FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, nameG, nameB, useGradient)
     local titleFirst = titlePosition ~= "suffix"
-    local plain = titleFirst and (titlePart .. " " .. namePart) or (namePart .. " " .. titlePart)
+    -- Suffix titles carry their own native separator (" the X" or ", the X"); don't double-space.
+    local plain = titleFirst and (titlePart .. " " .. namePart) or (namePart .. titlePart)
     if GetTitleColorMode() == "gradient" then
         return Insight.BuildNameGradient(plain, nameR, nameG, nameB)
     end
@@ -316,7 +317,7 @@ local function FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, na
     if titleFirst then
         return titleSpan .. " " .. nameSpan
     end
-    return nameSpan .. " " .. titleSpan
+    return nameSpan .. titleSpan
 end
 
 local function GetPlayerDisplayName(unit, nameLeft)
@@ -347,10 +348,12 @@ local function GetCharacterTitleParts(unit, nameLeft)
             local idx = pvpName:find(plainCandidate, 1, true)
             if idx then
                 local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
-                local suffixTitle = pvpName:sub(idx + #plainCandidate):gsub("^%s+", "")
+                -- Preserve the native suffix separator (" the X" or ", the X") rather than
+                -- stripping it; FormatTitleNameSpan relies on it for correct spacing.
+                local suffixTitle = pvpName:sub(idx + #plainCandidate)
                 if titlePart ~= "" then
                     return titlePart, fullName or candidate, "prefix"
-                elseif suffixTitle ~= "" then
+                elseif suffixTitle:find("%S") then
                     return suffixTitle, fullName or candidate, "suffix"
                 end
             end
