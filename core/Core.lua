@@ -291,6 +291,10 @@ function addon.GetObjIndent()
 end
 
 function addon.GetPanelWidth()
+    if addon.GetDB("focusDynamicWidth", false) then
+        local dyn = addon.focus and addon.focus.layout and addon.focus.layout.dynamicContentWidth
+        if dyn and dyn > 0 then return dyn end
+    end
     local v = tonumber(addon.GetDB("panelWidth", addon.PANEL_WIDTH)) or addon.PANEL_WIDTH
     return addon.Scaled(v)
 end
@@ -1741,6 +1745,7 @@ HS:RegisterForDrag("LeftButton")
 HS:SetScript("OnDragStart", function(self)
     if InCombatLockdown() then return end
     if addon.GetDB("lockPosition", false) then return end
+    if addon.GetDB("focusDynamicWidth", false) then return end
     self:StartMoving()
 end)
 
@@ -1878,6 +1883,7 @@ local function ResizeOnUpdate(self, elapsed)
 end
 resizeHandle:SetScript("OnDragStart", function(self)
     if addon.GetDB("lockPosition", false) then return end
+    if addon.GetDB("focusDynamicWidth", false) then return end
     if InCombatLockdown() then return end
     isResizing = true
     startWidth = HS:GetWidth()
