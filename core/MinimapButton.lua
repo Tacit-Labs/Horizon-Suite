@@ -243,7 +243,11 @@ local function ApplyShape()
         btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         if iconMask then btn.icon:RemoveMaskTexture(iconMask) end
         if ringBorder then ringBorder:Hide() end
-        btn:SetHighlightTexture(nil)
+        local highlight = btn:GetHighlightTexture()
+        if highlight then
+            highlight:SetTexture(nil)
+            highlight:Hide()
+        end
     end
 end
 
