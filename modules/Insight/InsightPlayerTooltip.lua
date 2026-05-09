@@ -208,6 +208,161 @@ local function PvPHasContent(unit)
     return GetHonorLevelIfShown(unit) ~= nil
 end
 
+local function SafePlainString(value)
+    local ok, text = pcall(function()
+        if value == nil then return nil end
+        local s = tostring(value)
+        if type(s) == "string" and s ~= "" then
+            return s
+        end
+        return nil
+    end)
+    return ok and text or nil
+end
+
+local function GetSafeGuildInfo(unit)
+    local guildName, guildRankName, guildRealm
+    pcall(function()
+        local rawGuildName, second, third, fourth = GetGuildInfo(unit)
+        guildName = rawGuildName
+        if type(third) == "string" and type(second) == "string" then
+            guildRealm = second
+            guildRankName = third
+        else
+            guildRankName = second
+            guildRealm = fourth
+        end
+    end)
+    return SafePlainString(guildName), SafePlainString(guildRankName), SafePlainString(guildRealm)
+end
+
+local function IsGuildLine(text, guildName, guildRealm)
+    if not text or not guildName or guildName == "" then return false end
+    local plain = Insight.StripColourEscapes and Insight.StripColourEscapes(text) or text
+    if plain == guildName then return true end
+    if guildRealm and guildRealm ~= "" and plain == guildName .. "-" .. guildRealm then return true end
+    if plain:find("<" .. guildName .. ">", 1, true) then return true end
+    if guildRealm and guildRealm ~= "" and plain:find("<" .. guildName .. "-" .. guildRealm .. ">", 1, true) then return true end
+    return false
+end
+
+local function GetGuildRankDisplay(guildRankName, guildRealm)
+    local rank = SafePlainString(guildRankName)
+    if not rank or rank == "" then return nil end
+    if guildRealm and rank == guildRealm then return nil end
+    return rank
+end
+
+local function GetGuildDisplayLine(guildName, guildRankDisplay)
+    if not guildName or guildName == "" then return nil end
+    local line = "|cff00ff00<" .. guildName .. ">|r"
+    if guildRankDisplay and guildRankDisplay ~= "" then
+        line = line .. " |cffffffff" .. guildRankDisplay .. "|r"
+    end
+    return line
+end
+
+local function GetInsightTitleColorHex()
+    local tc = addon.GetDB("insightTitleColor", nil)
+    if not (tc and type(tc) == "table" and tc[1] and tc[2] and tc[3]) then
+        local r = addon.GetDB("insightTitleColorR", nil)
+        local g = addon.GetDB("insightTitleColorG", nil)
+        local b = addon.GetDB("insightTitleColorB", nil)
+        tc = (r and g and b) and { r, g, b } or Insight.TITLE_COLOR
+    end
+    return string.format("%02x%02x%02x",
+        math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
+end
+
+local function RGBToHex(r, g, b)
+    return string.format("%02x%02x%02x",
+        math.floor((r or 1) * 255), math.floor((g or 1) * 255), math.floor((b or 1) * 255))
+end
+
+local function IsNameGradientEnabled()
+    return addon.GetDB("insightPlayerNameColor", "faction") == "class"
+        and addon.GetDB("insightPlayerNameGradient", false)
+end
+
+local function GetTitleColorMode()
+    local mode = addon.GetDB("insightTitleColorMode", nil)
+    if mode == "match" or mode == "gradient" or mode == "custom" then
+        if mode == "gradient" and not IsNameGradientEnabled() then return "match" end
+        return mode
+    end
+    if addon.GetDB("insightTitleMatchNameColor", false) then return "match" end
+    return "custom"
+end
+
+local function FormatTitleSpan(titlePart, nameR, nameG, nameB)
+    local mode = GetTitleColorMode()
+    if mode == "gradient" then
+        return Insight.BuildNameGradient(titlePart, nameR, nameG, nameB)
+    elseif mode == "match" then
+        return "|cff" .. RGBToHex(nameR, nameG, nameB) .. titlePart .. "|r"
+    end
+    return "|cff" .. GetInsightTitleColorHex() .. titlePart .. "|r"
+end
+
+local function FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, nameG, nameB, useGradient)
+    local titleFirst = titlePosition ~= "suffix"
+    -- Suffix titles carry their own native separator (" the X" or ", the X"); don't double-space.
+    local plain = titleFirst and (titlePart .. " " .. namePart) or (namePart .. titlePart)
+    if GetTitleColorMode() == "gradient" then
+        return Insight.BuildNameGradient(plain, nameR, nameG, nameB)
+    end
+
+    local nameSpan = FormatNameSpan(namePart, nameR, nameG, nameB, useGradient)
+    local titleSpan = FormatTitleSpan(titlePart, nameR, nameG, nameB)
+    if titleFirst then
+        return titleSpan .. " " .. nameSpan
+    end
+    return nameSpan .. titleSpan
+end
+
+local function GetPlayerDisplayName(unit, nameLeft)
+    local namePart
+    pcall(function()
+        local n = GetUnitName(unit, true)
+        namePart = SafePlainString(n)
+    end)
+    if not namePart or namePart == "" then
+        namePart = Insight.SafeGetFontText(nameLeft) or ""
+    end
+    return namePart
+end
+
+local function GetCharacterTitleParts(unit, nameLeft)
+    local pvpName, baseName, fullName
+    pcall(function()
+        pvpName = SafePlainString(UnitPVPName(unit))
+        baseName = SafePlainString(UnitName(unit))
+        fullName = SafePlainString(GetUnitName(unit, true))
+    end)
+    if not pvpName or pvpName == "" then return nil, nil end
+
+    local candidates = { fullName, baseName, Insight.SafeGetFontText(nameLeft) }
+    for _, candidate in ipairs(candidates) do
+        if candidate and candidate ~= "" then
+            local plainCandidate = Insight.StripColourEscapes and Insight.StripColourEscapes(candidate) or candidate
+            local idx = pvpName:find(plainCandidate, 1, true)
+            if idx then
+                local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
+                -- Preserve the native suffix separator (" the X" or ", the X") rather than
+                -- stripping it; FormatTitleNameSpan relies on it for correct spacing.
+                local suffixTitle = pvpName:sub(idx + #plainCandidate)
+                if titlePart ~= "" then
+                    return titlePart, fullName or candidate, "prefix"
+                elseif suffixTitle:find("%S") then
+                    return suffixTitle, fullName or candidate, "suffix"
+                end
+            end
+        end
+    end
+
+    return nil, nil
+end
+
 --- Add PvP block (honor level only). Character title is shown in identity section.
 --- @param tooltip table GameTooltip
 --- @param unit string Unit token
@@ -359,12 +514,12 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end)
     if not isUnitPlayer then return false end
 
-    local className, classFile, classColor, guildName, guildRankName
+    local className, classFile, classColor
     pcall(function()
         className, classFile = UnitClass(unit)
         classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
-        guildName, guildRankName = GetGuildInfo(unit)
     end)
+    local guildName, guildRankName, guildRealm = GetSafeGuildInfo(unit)
     if classColor then
         local modcc = addon.GetModuleClassColor and addon.GetModuleClassColor("insight")
         if not modcc then classColor = nil end
@@ -414,55 +569,14 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         local useGradient = (nameMode == "class")
             and addon.GetDB("insightPlayerNameGradient", false)
         if ShowCharacterTitle() then
-            -- Midnight: never compare or string-op Unit* name returns outside pcall (secret strings).
             pcall(function()
-                local pvpName, baseName = UnitPVPName(unit), UnitName(unit)
-                local namesDiffer = false
-                pcall(function()
-                    namesDiffer = (pvpName ~= baseName)
-                end)
-                if not namesDiffer then return end
-                local idx = pvpName:find(baseName, 1, true)
-                if not idx or idx <= 1 then return end
-                local titlePart = pvpName:sub(1, idx - 1):gsub("%s+$", "")
-                local namePart = ""
-                pcall(function()
-                    local okB, sb = pcall(tostring, baseName)
-                    if okB and type(sb) == "string" then
-                        namePart = sb
-                    end
-                end)
-                pcall(function()
-                    local n = GetUnitName(unit, true)
-                    local okT, s = pcall(tostring, n)
-                    if okT and type(s) == "string" and s ~= "" then
-                        namePart = s
-                    end
-                end)
-                local tc = addon.GetDB("insightTitleColor", nil)
-                if not (tc and type(tc) == "table" and tc[1] and tc[2] and tc[3]) then
-                    local r = addon.GetDB("insightTitleColorR", nil)
-                    local g = addon.GetDB("insightTitleColorG", nil)
-                    local b = addon.GetDB("insightTitleColorB", nil)
-                    tc = (r and g and b) and { r, g, b } or Insight.TITLE_COLOR
-                end
-                local titleHex = string.format("%02x%02x%02x",
-                    math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
-                displayText = "|cff" .. titleHex .. titlePart .. "|r " .. FormatNameSpan(namePart, nameR, nameG, nameB, useGradient)
+                local titlePart, namePart, titlePosition = GetCharacterTitleParts(unit, nameLeft)
+                if not titlePart or not namePart then return end
+                displayText = FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, nameG, nameB, useGradient)
             end)
         end
         if not displayText then
-            local namePart
-            pcall(function()
-                local n = GetUnitName(unit, true)
-                local okT, s = pcall(tostring, n)
-                if okT and type(s) == "string" and s ~= "" then
-                    namePart = s
-                end
-            end)
-            if not namePart or namePart == "" then
-                namePart = Insight.SafeGetFontText(nameLeft) or ""
-            end
+            local namePart = GetPlayerDisplayName(unit, nameLeft)
             if useGradient then
                 -- Force vertex colour to white so our |cff escapes aren't
                 -- dampened by Blizzard's SetTextColor.
@@ -483,6 +597,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
 
     -- 3. Clean up Blizzard lines (skip line 1; name already styled)
     local classLineStyled = false
+    local guildLineStyled = false
+    local guildRankDisplay = ShowGuildRank() and GetGuildRankDisplay(guildRankName, guildRealm)
     Insight.ForTooltipLines(tooltip, function(j, lineLeft, _lineRight)
         if j < 2 or not lineLeft then return end
         pcall(function()
@@ -494,13 +610,16 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 lineLeft:SetText(text)
             end
 
-            if text == "Horde" or text == "Alliance" then
+            if text == "Horde" or text == "Alliance" or text == "PvP" then
                 lineLeft:SetText("")
             elseif className and text ~= "" and text:find(className, 1, true) and classLineStyled then
                 lineLeft:SetText("")
-            elseif guildName and text == "<" .. guildName .. ">" then
-                if ShowGuildRank() and guildRankName and guildRankName ~= "" then
-                    lineLeft:SetText(text .. "  |cffaaaaaa" .. guildRankName .. "|r")
+            elseif IsGuildLine(text, guildName, guildRealm) then
+                guildLineStyled = true
+                local guildDisplayLine = GetGuildDisplayLine(guildName, guildRankDisplay)
+                if guildDisplayLine then
+                    lineLeft:SetText(guildDisplayLine)
+                    lineLeft:SetTextColor(1, 1, 1)
                 end
             elseif className and text ~= "" and text:find(className, 1, true) then
                 classLineStyled = true
@@ -535,6 +654,12 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end)
         -- On taint/secret string, pcall catches; skip styling for this line
     end)
+
+    if guildName and guildRankDisplay and not guildLineStyled then
+        Insight.TagLines(tooltip, "identity", function()
+            tooltip:AddLine(GetGuildDisplayLine(guildName, guildRankDisplay), 1, 1, 1)
+        end)
+    end
 
     -- 4. Status badges (part of identity section)
     Insight.AddStatusBadgesBlock(tooltip, unit)
@@ -579,16 +704,7 @@ function Insight.RenderTestTooltipContent(tooltip)
     -- 1. Name line (character title optional — same as live)
     local nameSpan = FormatNameSpan("Horizonaut-Stormrage", nameR, nameG, nameB, useGradient)
     if ShowCharacterTitle() then
-        local tc = addon.GetDB("insightTitleColor", nil)
-        if not (tc and type(tc) == "table" and tc[1] and tc[2] and tc[3]) then
-            local r = addon.GetDB("insightTitleColorR", nil)
-            local g = addon.GetDB("insightTitleColorG", nil)
-            local b = addon.GetDB("insightTitleColorB", nil)
-            tc = (r and g and b) and { r, g, b } or Insight.TITLE_COLOR
-        end
-        local titleHex = string.format("%02x%02x%02x",
-            math.floor(tc[1] * 255), math.floor(tc[2] * 255), math.floor(tc[3] * 255))
-        tooltip:AddLine(facIcon .. "|cff" .. titleHex .. "Duelist|r " .. nameSpan, nameR, nameG, nameB)
+        tooltip:AddLine(facIcon .. FormatTitleNameSpan("Duelist", "Horizonaut-Stormrage", "prefix", nameR, nameG, nameB, useGradient), nameR, nameG, nameB)
     else
         tooltip:AddLine(facIcon .. nameSpan, nameR, nameG, nameB)
     end

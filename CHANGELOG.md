@@ -10,6 +10,21 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.17.7] – 2026-05-09
+
+### 🔧 Improvements
+
+- **(Vista) Circular Horizon button** — A round minimap-button variant so the Horizon icon matches addons like SexyMap and HidingBar that style their buttons round.
+- **(Presence) Font outline options** — Presence text gains the same outline picker as the rest of the addon (None, Thin Outline, Thick Outline, Monochrome Outline, SLUG).
+- **(Insight) Character titles and title colour** — Suffix titles now render correctly (including comma-prefixed forms like *"Aragorn, the Argent Champion"*), and a new Title Colour dropdown lets you pick **Match Name**, **Match Name (Gradient)**, or **Custom**.
+
+### 🐛 Fixes
+
+- **(Insight)** Guild rank now displays correctly in player tooltips — no more realm name leaking into the rank slot, and the rank sits inline beside the guild name.
+- **(Vista)** Square minimap mode no longer errors when clearing the Horizon button's highlight texture.
+
+---
+
 ## [4.17.6] – 2026-05-08
 
 ### 🔧 Improvements
