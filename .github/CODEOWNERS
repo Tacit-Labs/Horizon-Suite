@@ -1,2 +1,3 @@
-# Default code owner for the entire repository
-* @TLL-Chris
+# Default code owners for the entire repository
+# Approvals on `main` must come from a director (enforced via `require_code_owner_review`)
+* @TLL-Chris @TLL-Joe @TLL-Arnaud
