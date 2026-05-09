@@ -1,0 +1,44 @@
+name: Post Activity Feed to Discord
+# Live event log for issues + PRs. Fires on each supported GitHub event and
+# posts one Discord embed per event. Distinct from the daily issuelog (which
+# is a front-facing snapshot) — this channel is a permanent activity stream
+# for the dev/contributor audience.
+#
+# Requires repository secret: DISCORD_WEBHOOK_ACTIVITY
+#
+# Discord @mentions for assignees and requested reviewers are driven by
+# .github/discord-user-map.json — unmapped logins fall back to plain text.
+#
+# Bot-authored events ([bot] suffix on author or sender) are skipped.
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, closed, reopened, review_requested]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  issues: read
+  pull-requests: read
+  contents: read
+
+# Run events serially per branch/PR — Discord doesn't care about order across
+# unrelated items, but we don't want two close-events racing for one PR.
+concurrency:
+  group: activity-feed-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for user map + script)
+        uses: actions/checkout@v4
+
+      - name: Post activity event
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_ACTIVITY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash .release/run-activity-post.sh
