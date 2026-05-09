@@ -1,0 +1,7 @@
+{
+  "_comment": "GitHub login -> Discord user ID. Used by .release/run-activity-post.sh to @mention assignees and requested reviewers. To add yourself: in Discord enable Developer Mode (Advanced settings), right-click your name, 'Copy User ID', then add a line below as \"GithubLogin\": \"DiscordUserId\". Logins are case-sensitive and match GitHub exactly. Discord IDs are 17-19 digit numeric strings.",
+  "TLL-Chris": "128996382194270208",
+  "nightofglass": "53735211015344128",
+  "ProgrammingSam": "1015992951182200943",
+  "Swiftmint": "330213693180608512"
+}

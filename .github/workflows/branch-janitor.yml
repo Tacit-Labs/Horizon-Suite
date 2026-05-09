@@ -1,0 +1,151 @@
+name: Branch Janitor
+# Deletes merged feature-style branches on a weekly schedule. The repo's
+# delete_branch_on_merge setting is intentionally OFF (so `dev` is never
+# auto-deleted on a promotion merge) — this workflow is the cleanup mechanism
+# that fills the gap, with explicit guards that make it impossible to touch
+# `main`, `dev`, or anything that doesn't match a feature-style prefix.
+#
+# Safety design (each is a hard gate):
+#   1. Allowlist of branch prefixes — anything else is left alone
+#   2. Denylist of permanent branches (main, dev) — never touched even if a
+#      future bug somehow makes them match the prefix
+#   3. Must have a merged PR with that branch as head — unmerged WIP is safe
+#   4. Merge must be ≥ GRACE_DAYS old — recent merges keep their branch around
+#      for cherry-picks
+#   5. Must have no open PR using that branch as head — covers the rare case
+#      of a branch being reused for a follow-up PR
+#
+# Triggers:
+#   - schedule: every Sunday at 03:00 UTC
+#   - workflow_dispatch: manual run with optional dry_run mode
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (log deletions but do not perform them)'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+  schedule:
+    - cron: '0 3 * * 0'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: branch-janitor
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      DRY_RUN: ${{ inputs.dry_run || 'false' }}
+    steps:
+      - name: Prune merged feature branches
+        run: |
+          set -euo pipefail
+
+          # ------------------------------------------------------------------
+          # Tunables. Update these in one place if the team's branch naming
+          # conventions change. Anything outside the allowlist is left alone.
+          # ------------------------------------------------------------------
+          PROTECTED_BRANCHES=("main" "dev")
+          # Allowlist regex. Matches: feature/, fix/, bug/, chore/, docs/,
+          # refactor/, test/, hotfix/. `bug/` is included because legacy work
+          # in this repo used it before the org adopted `fix/`.
+          PATTERN='^(feature|fix|bug|chore|docs|refactor|test|hotfix)/'
+          GRACE_DAYS=3
+
+          cutoff_iso=$(date -u -d "${GRACE_DAYS} days ago" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Cutoff (delete branches whose PR merged at or before): $cutoff_iso"
+          echo "Dry run: $DRY_RUN"
+          echo
+
+          # Pull merged PRs (most recent 500). For each, we need head ref + mergedAt.
+          gh pr list --repo "$REPO" --state merged --limit 500 \
+            --json number,headRefName,mergedAt > /tmp/merged.json
+          echo "Fetched $(jq 'length' /tmp/merged.json) merged PR(s)"
+
+          deleted=0
+          kept=0
+          skipped=0
+
+          # Build a deduped list of head refs that ever appeared on a merged
+          # PR. Branches that were never merged aren't candidates.
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+
+            # Gate 1: protected branches.
+            for protected in "${PROTECTED_BRANCHES[@]}"; do
+              if [ "$ref" = "$protected" ]; then
+                echo "PROTECTED: $ref — refusing to consider"
+                skipped=$((skipped + 1))
+                continue 2
+              fi
+            done
+
+            # Gate 2: prefix allowlist.
+            if ! [[ "$ref" =~ $PATTERN ]]; then
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            # Gate 3: branch must still exist on the remote (it may already
+            # have been deleted by `gh pr merge --delete-branch` or a prior run).
+            if ! gh api "repos/${REPO}/branches/${ref}" >/dev/null 2>&1; then
+              continue
+            fi
+
+            # Gate 4: most recent merge for this head ref.
+            latest_merged=$(jq -r --arg ref "$ref" \
+              '[.[] | select(.headRefName == $ref) | .mergedAt] | max' /tmp/merged.json)
+            if [ -z "$latest_merged" ] || [ "$latest_merged" = "null" ]; then
+              continue
+            fi
+
+            # Gate 5: still inside the grace window.
+            # ISO-8601 timestamps in UTC sort lexically the same way they sort
+            # by time, so > comparison is correct here.
+            if [[ "$latest_merged" > "$cutoff_iso" ]]; then
+              echo "KEEP    $ref — merged $latest_merged (within ${GRACE_DAYS}d grace)"
+              kept=$((kept + 1))
+              continue
+            fi
+
+            # Gate 6: any open PR currently using this ref as head.
+            open_count=$(gh pr list --repo "$REPO" --state open \
+              --head "$ref" --json number --jq 'length' 2>/dev/null || echo 0)
+            if [ "${open_count:-0}" -gt 0 ]; then
+              echo "KEEP    $ref — has ${open_count} open PR(s)"
+              kept=$((kept + 1))
+              continue
+            fi
+
+            # Eligible for deletion.
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "WOULD-DELETE $ref (last merged $latest_merged)"
+              deleted=$((deleted + 1))
+              continue
+            fi
+
+            if gh api -X DELETE "repos/${REPO}/git/refs/heads/${ref}" >/dev/null 2>&1; then
+              echo "DELETE  $ref (last merged $latest_merged)"
+              deleted=$((deleted + 1))
+            else
+              echo "FAIL    $ref — delete returned non-success (protected ref?)"
+              kept=$((kept + 1))
+            fi
+          done < <(jq -r '.[].headRefName' /tmp/merged.json | sort -u)
+
+          echo
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::notice::Dry run — would have deleted ${deleted}, kept ${kept}, skipped ${skipped}"
+          else
+            echo "::notice::Pruned ${deleted} branch(es), kept ${kept}, skipped ${skipped}"
+          fi
