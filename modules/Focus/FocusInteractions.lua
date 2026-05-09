@@ -39,12 +39,21 @@ function addon.focus.AnchorTooltip(tooltip, owner)
             yOffset = ownerTop - hsTop
         end
         tooltip:SetOwner(owner, "ANCHOR_NONE")
-        tooltip:ClearAllPoints()
-        if panelOnRight then
-            tooltip:SetPoint("TOPRIGHT", hs, "TOPLEFT", -4, yOffset)
-        else
-            tooltip:SetPoint("TOPLEFT", hs, "TOPRIGHT", 4, yOffset)
-        end
+        -- Defer the SetPoint to the next frame so the geometry write happens outside
+        -- any protected call stack (e.g. map-pin OnMouseEnter). This preserves the
+        -- panel-edge anchoring visually while preventing taint from leaking into
+        -- Blizzard's UIWidget / LayoutFrame code. See issue #99.
+        C_Timer.After(0, function()
+            if not tooltip or not tooltip.IsShown or not tooltip:IsShown() then return end
+            if not tooltip.GetOwner or tooltip:GetOwner() ~= owner then return end
+            if not hs or not hs.IsShown or not hs:IsShown() then return end
+            tooltip:ClearAllPoints()
+            if panelOnRight then
+                tooltip:SetPoint("TOPRIGHT", hs, "TOPLEFT", -4, yOffset)
+            else
+                tooltip:SetPoint("TOPLEFT", hs, "TOPRIGHT", 4, yOffset)
+            end
+        end)
         return
     end
 
