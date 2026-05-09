@@ -81,6 +81,8 @@ local INSIGHT_KEYS = {
     insightShowCharacterTitle   = true,
     insightPlayerNameColor      = true,
     insightPlayerNameGradient   = true,
+    insightTitleColorMode       = true,
+    insightTitleMatchNameColor  = true,
     insightTitleColor           = true,
     insightTitleColorR          = true,
     insightTitleColorG          = true,
@@ -2394,11 +2396,39 @@ local OptionCategories = {
         dashboardPreviewMode = "player",
         options = {
             { type = "section", name = L["INSIGHT_SECTION_IDENTITY"] or "Identity" },
-            { type = "dropdown", name = L["INSIGHT_PLAYER_NAME_COLOUR"] or "Player name colour", desc = L["INSIGHT_PLAYER_NAME_COLOUR_DESC"] or "Colour for the player's name on the first tooltip line.", dbKey = "insightPlayerNameColor", options = { { L["INSIGHT_PLAYER_NAME_COLOUR_FACTION"] or "Faction", "faction" }, { L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"] or "Class", "class" } }, get = function() local v = getDB("insightPlayerNameColor", "faction"); return v == "class" and "class" or "faction" end, set = function(v) setDB("insightPlayerNameColor", v == "class" and "class" or "faction") end, refreshIds = { "insightPlayerNameGradient" } },
-            { type = "toggle", name = L["INSIGHT_PLAYER_NAME_GRADIENT"] or "Class colour gradient", desc = L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"] or "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class).", dbKey = "insightPlayerNameGradient", isNew = "4.12.6a", get = function() return getDB("insightPlayerNameGradient", false) end, set = function(v) setDB("insightPlayerNameGradient", v) end, visibleWhen = function() return getDB("insightPlayerNameColor", "faction") == "class" end },
+            { type = "dropdown", name = L["INSIGHT_PLAYER_NAME_COLOUR"] or "Player name colour", desc = L["INSIGHT_PLAYER_NAME_COLOUR_DESC"] or "Colour for the player's name on the first tooltip line.", dbKey = "insightPlayerNameColor", options = { { L["INSIGHT_PLAYER_NAME_COLOUR_FACTION"] or "Faction", "faction" }, { L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"] or "Class", "class" } }, get = function() local v = getDB("insightPlayerNameColor", "faction"); return v == "class" and "class" or "faction" end, set = function(v) setDB("insightPlayerNameColor", v == "class" and "class" or "faction") end, refreshIds = { "insightPlayerNameGradient", "insightTitleColorMode", "insightTitleColor" } },
+            { type = "toggle", name = L["INSIGHT_PLAYER_NAME_GRADIENT"] or "Class colour gradient", desc = L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"] or "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class).", dbKey = "insightPlayerNameGradient", isNew = "4.12.6a", get = function() return getDB("insightPlayerNameGradient", false) end, set = function(v) setDB("insightPlayerNameGradient", v) end, visibleWhen = function() return getDB("insightPlayerNameColor", "faction") == "class" end, refreshIds = { "insightTitleColorMode", "insightTitleColor" } },
             { type = "toggle", name = L["GUILD_RANK"] or "Guild rank", desc = L["AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
-            { type = "toggle", name = L["AXIS_CHARACTER_TITLE"] or "Character title", desc = L["AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColor" } },
-            { type = "color", name = L["AXIS_TITLE_COLOUR"] or "Title color", desc = L["AXIS_COLOUR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"] or "Color of the character title in the player tooltip name line.", dbKey = "insightTitleColor", default = { 1.00, 0.82, 0.00 }, visibleWhen = function() return getDB("insightShowCharacterTitle", true) end },
+            { type = "toggle", name = L["AXIS_CHARACTER_TITLE"] or "Character title", desc = L["AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColorMode", "insightTitleColor" } },
+            { type = "dropdown", name = L["AXIS_TITLE_COLOUR"] or "Title Colour", desc = L["INSIGHT_TITLE_COLOUR_MODE_DESC"] or "Choose how character titles are coloured in the player tooltip name line.", dbKey = "insightTitleColorMode", options = function()
+                local opts = {
+                    { L["INSIGHT_TITLE_COLOUR_MATCH_NAME"] or "Match Name", "match" },
+                }
+                if getDB("insightPlayerNameColor", "faction") == "class" and getDB("insightPlayerNameGradient", false) then
+                    opts[#opts + 1] = { L["INSIGHT_TITLE_COLOUR_MATCH_NAME_GRADIENT"] or "Match Name (Gradient)", "gradient" }
+                end
+                opts[#opts + 1] = { L["INSIGHT_TITLE_COLOUR_CUSTOM"] or "Custom", "custom" }
+                return opts
+            end, get = function()
+                local v = getDB("insightTitleColorMode", nil)
+                if v ~= "match" and v ~= "gradient" and v ~= "custom" then
+                    v = getDB("insightTitleMatchNameColor", false) and "match" or "custom"
+                end
+                if v == "gradient" and not (getDB("insightPlayerNameColor", "faction") == "class" and getDB("insightPlayerNameGradient", false)) then
+                    v = "match"
+                end
+                return v
+            end, set = function(v) setDB("insightTitleColorMode", (v == "match" or v == "gradient" or v == "custom") and v or "custom") end, visibleWhen = function() return getDB("insightShowCharacterTitle", true) end, refreshIds = { "insightTitleColor" } },
+            { type = "color", name = L["INSIGHT_TITLE_CUSTOM_COLOUR"] or "Custom Color", desc = L["AXIS_COLOUR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"] or "Color of the character title in the player tooltip name line.", dbKey = "insightTitleColor", default = { 1.00, 0.82, 0.00 }, visibleWhen = function()
+                local mode = getDB("insightTitleColorMode", nil)
+                if mode ~= "match" and mode ~= "gradient" and mode ~= "custom" then
+                    mode = getDB("insightTitleMatchNameColor", false) and "match" or "custom"
+                end
+                if mode == "gradient" and not (getDB("insightPlayerNameColor", "faction") == "class" and getDB("insightPlayerNameGradient", false)) then
+                    mode = "match"
+                end
+                return getDB("insightShowCharacterTitle", true) and mode == "custom"
+            end },
             { type = "section", name = L["INSIGHT_SECTION_STATUS_PVP"] or "Status & PvP" },
             { type = "toggle", name = L["STATUS_BADGES"] or "Status badges", desc = L["COMBAT_AFK_DND_PVP_PARTY_FRIENDS"], dbKey = "insightShowStatusBadges", get = function() return getDB("insightShowStatusBadges", true) end, set = function(v) setDB("insightShowStatusBadges", v) end },
             { type = "toggle", name = L["HONOR_LEVEL"] or "Honor level", desc = L["AXIS_PLAYER_S_PVP_HONOR_LEVEL_TOOLTIP"] or "Show the player's PvP honor level in the tooltip.", dbKey = "insightShowHonorLevel", get = function() return getDB("insightShowHonorLevel", true) end, set = function(v) setDB("insightShowHonorLevel", v) end },
