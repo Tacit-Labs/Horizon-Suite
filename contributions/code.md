@@ -16,7 +16,7 @@ Try to minimise the amount of symbols within file names.
 **`chore`** `/` *preserves* base functionality for posterity
 ### EMERGENCIES ONLY
 **`hotfix`** `/` *revives* a broken function
-This is ***exclusively*** for game/AddOn-breaking bugs, not small fixes.
+This is ***exclusively*** for game/AddOn-breaking bugs, not small fixes
 <br>
 
 ---
