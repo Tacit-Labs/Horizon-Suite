@@ -1,4 +1,4 @@
-# Branch, File, and Folder Nomenclature
+# `Nomenclature` (Branches, Files, and Folders)
 Use any alphanumeric character besides `spaces` (` `) or `underscores` (`_`).
 Try to minimise the amount of symbols within file names.
 
@@ -14,6 +14,9 @@ Try to minimise the amount of symbols within file names.
 **`docs`** `/` *records* information in an `*.md` file
 **`refactor`** `/` *revises* code without a behavioural change
 **`chore`** `/` *preserves* base functionality for posterity
+### EMERGENCIES ONLY
+**`hotfix`** `/` *revives* a broken function
+This is ***exclusively*** for game/AddOn-breaking bugs, not small fixes
 <br>
 
 ---
@@ -32,5 +35,16 @@ L["TERM"]                                                = " "
 ### Please mention in the commit and PR message if  `node tools/restructure_locales.js` was run.
 
 See [**Key Nomenclature**](KeyNomenclature.md) for more information.
+<br>
+
+---
+
+# `Pull Requests`
+The `main` branch is **strictly** for releases.
+The `dev` branch is where all code changes will go before entering the next release from main.
+
+All PRs should be directed to `dev` and will require a review from a staff-member.
+Nobody can approve their own PR on the dev branch except for extenuating circumstances.
+These circumstances include, but are not limited to, urgency that does not warrant a `hotfix/` branch and excess lack of activity from other developers.
 
 ---

@@ -33,6 +33,18 @@ function localeCompareString(s) {
     return s.replace(/\s*-- NEEDS TRANSLATION/g, '');
 }
 
+/**
+ * Case- and whitespace-insensitive equality between a locale value and its enUS source.
+ * A locale entry that differs from enUS only by casing or trailing whitespace was never
+ * translated — most often because enUS was later title-cased by titlecase_name_locale_values.mjs
+ * after the locale snapshot was captured. Treat those as untranslated so they fall back via __index.
+ */
+function isUntranslatedAgainstEn(locStr, enStr) {
+    const a = localeCompareString(locStr).trim().toLowerCase();
+    const b = enStr.trim().toLowerCase();
+    return a === b;
+}
+
 function readStandardFont(localePath) {
     if (!fs.existsSync(localePath)) return 'UNIT_NAME_FONT';
     const head = fs.readFileSync(localePath, 'utf8').split(/\r?\n/).slice(0, 15).join('\n');
@@ -69,7 +81,7 @@ function generateLocaleFile(localeCode, entries, translated, standardFont, maxLh
             const enStr = decodedStringFromLuaRhs(e.valueRaw);
             if (rhs !== undefined) {
                 const locStr = decodedStringFromLuaRhs(rhs);
-                if (localeCompareString(locStr) === enStr) {
+                if (isUntranslatedAgainstEn(locStr, enStr)) {
                     lines.push(
                         formatLocaleAssignment({
                             symKey: e.symKey,

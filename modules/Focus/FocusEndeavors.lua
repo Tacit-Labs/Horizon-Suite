@@ -10,6 +10,15 @@ local addon = _G.HorizonSuite
 -- ENDEAVOR DATA PROVIDER
 -- ============================================================================
 
+-- Strip leading dash runs from API objective text. C_NeighborhoodInitiative ships
+-- requirementText with an embedded "- " prefix; left in place it stacks with the
+-- renderer's chosen objectivePrefixStyle and produces "-- " for hyphens / a stray
+-- "- " for none/numbers.
+local function CleanObjectiveText(s)
+    if type(s) ~= "string" or s == "" then return s end
+    return (s:gsub("^[%s%-]*%-+%s*", ""))
+end
+
 --- Resolve tracked Endeavor IDs from C_NeighborhoodInitiative, C_Endeavors, or C_PlayerHousing.
 -- @return table Array of endeavor/task IDs
 local function GetTrackedEndeavorIDs()
@@ -92,6 +101,7 @@ local function GetEndeavorDisplayInfo(endeavorID)
             if taskInfo.requirementsList and type(taskInfo.requirementsList) == "table" then
                 for _, req in ipairs(taskInfo.requirementsList) do
                     local text = (type(req) == "table" and req.requirementText) or tostring(req)
+                    text = CleanObjectiveText(text)
                     if text and text ~= "" then
                         objectives[#objectives + 1] = {
                             text = text,
@@ -127,6 +137,7 @@ local function GetEndeavorDisplayInfo(endeavorID)
             if info.objectives and type(info.objectives) == "table" then
                 for _, obj in ipairs(info.objectives) do
                     local text = (type(obj) == "table" and (obj.text or obj.description or obj.label)) or tostring(obj)
+                    text = CleanObjectiveText(text)
                     if text and text ~= "" then
                         objectives[#objectives + 1] = {
                             text = text,
@@ -136,7 +147,7 @@ local function GetEndeavorDisplayInfo(endeavorID)
                     end
                 end
             elseif info.description and info.description ~= "" then
-                objectives[#objectives + 1] = { text = info.description, finished = isComplete, percent = nil }
+                objectives[#objectives + 1] = { text = CleanObjectiveText(info.description), finished = isComplete, percent = nil }
             end
             return name, icon, objectives, isComplete
         end
@@ -148,7 +159,7 @@ local function GetEndeavorDisplayInfo(endeavorID)
         if ok and name then
             local objectives = {}
             if description and description ~= "" then
-                objectives[#objectives + 1] = { text = description, finished = isComplete, percent = nil }
+                objectives[#objectives + 1] = { text = CleanObjectiveText(description), finished = isComplete, percent = nil }
             end
             return name or ("Endeavor " .. tostring(endeavorID)), icon, objectives, isComplete or false
         end
@@ -165,6 +176,7 @@ local function GetEndeavorDisplayInfo(endeavorID)
             if info.objectives and type(info.objectives) == "table" then
                 for _, obj in ipairs(info.objectives) do
                     local text = (type(obj) == "table" and (obj.text or obj.description)) or tostring(obj)
+                    text = CleanObjectiveText(text)
                     if text and text ~= "" then
                         objectives[#objectives + 1] = { text = text, finished = false, percent = nil }
                     end
