@@ -10,6 +10,35 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.18.0] – 2026-05-14
+
+### ✨ New Features
+
+- **(Presence) Talking Head customisation** — A new sub-category under Presence that lets you style Blizzard's Talking Head frame without a separate addon:
+  - Enable/disable the frame entirely
+  - Mute the voice-over independently of game volume
+  - Separate font family, outline, and size for both the NPC name and dialogue text
+  - Name colour picker
+  - Show/hide the NPC portrait and decorative frame ring
+  - Show/hide the cinematic background and close button
+  - Frame scale (0.5×–2.0×)
+- **(Focus) Focused Quest category** — Super-tracked quests hoist into their own reorderable **FOCUSED QUEST** section so the focused quest can be pinned anywhere in the tracker — including just above the bottom-anchored header when grow-up is enabled.
+- **(Focus) Mythic+ split timers** — The M+ block adds a split-timer line showing remaining time to the +1, +2, and +3 cut-offs. Tiers you've already crossed dim out so it's clear at a glance which upgrades are still reachable. Configurable font size and colour, with a separate colour for crossed tiers.
+- **(Insight) Tooltip Preview window & new toggles** — The dashboard preview now sizes player, NPC, and item tooltips to fit their actual content rather than a shared fixed width. Live player tooltips gain Shift-modifier refresh, per-stat (Mythic+ / item level / honor) Force/Modifier/Hide modes, per-status-badge toggles (Combat, AFK, DND, PvP, Group, Friend, Targeting You), a Spec-Override class-icon mode, a Realm Names dropdown, a Section Separation dropdown, and bundled race icons, including the new Haranir race plus Dracthyr and its Visage form.
+
+### 🔧 Improvements
+
+- **(Focus) Shrink-to-fit width** — The Focus tracker can grow in width to fit the longest visible row, capped at a configurable maximum, so progress bars no longer stretch wider than the tracked content needs.
+- **(Focus) Progress bar text inherits objective colour** — Progress label text ("3/10 (30%)") now matches its category-aware objective colour by default instead of near-white, while a custom Progress Bar Text Colour pick still overrides.
+- **Localisation** — German locale refreshed, plus ongoing locale hygiene across the other non-English locales.
+
+### 🐛 Fixes
+
+- **(Presence)** Disabling Zone Notifications now hides them correctly.
+- **(Focus)** Objective lines with a leading dash no longer double up the bullet prefix.
+
+---
+
 ## [4.17.7] – 2026-05-09
 
 ### 🔧 Improvements
