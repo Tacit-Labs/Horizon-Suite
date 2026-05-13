@@ -6,7 +6,6 @@
  * Untranslated keys become commented-out assignments (leading `--` only; runtime falls back to enUS).
  * Assignments whose string equals enUS are treated as untranslated (comment only) so
  * locales fall back via __index to enUS — no duplicate English to maintain.
- * Regenerates localisation/horizon/locale_template.lua for new translators.
  *
  * Usage: node tools/restructure_locales.js
  */
@@ -16,7 +15,6 @@ const path = require('path');
 const {
     parseEnUS,
     parseLocaleTranslations,
-    rewriteEnUSNormalized,
     computeMaxLhsLen,
     formatLocaleAssignment,
 } = require('./lib/parseLocalisationEnUS.js');
@@ -56,7 +54,7 @@ function generateLocaleFile(localeCode, entries, translated, standardFont, maxLh
     const lines = [];
     lines.push(`if GetLocale() ~= "${localeCode}" then return end`);
     lines.push('');
-    lines.push('local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite');
+    lines.push('local addon = _G.HorizonSuite');
     lines.push('if not addon then return end');
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');
@@ -125,7 +123,7 @@ function generateTemplate(entries, maxLhsLen) {
     lines.push('');
     lines.push('if GetLocale() ~= "LOCALE_CODE" then return end');
     lines.push('');
-    lines.push('local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite');
+    lines.push('local addon = _G.HorizonSuite');
     lines.push('if not addon then return end');
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');
@@ -160,8 +158,6 @@ function generateTemplate(entries, maxLhsLen) {
     return lines.join('\n') + '\n';
 }
 
-console.log('Normalizing localisation/horizon/enUS.lua (section headers only; no per-key Context)...');
-rewriteEnUSNormalized(enUSPath);
 console.log('Parsing localisation/horizon/enUS.lua...');
 const { entries, keys } = parseEnUS(enUSPath);
 const maxLhsLen = computeMaxLhsLen(entries);
@@ -175,8 +171,3 @@ for (const locale of LOCALES) {
     fs.writeFileSync(filePath, out, 'utf8');
     console.log(`  Written ${filePath}`);
 }
-
-const templatePath = path.join(LOC, 'locale_template.lua');
-fs.writeFileSync(templatePath, generateTemplate(entries, maxLhsLen), 'utf8');
-console.log(`  Written ${templatePath}`);
-console.log('Done.');

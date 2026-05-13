@@ -208,28 +208,6 @@ function serializeLocaleEntries(entries, maxLhsLen) {
 }
 
 /**
- * Rewrite enUS.lua: strip `-- Context:`, compact blanks between keys; preserve header before first section.
- * @param {string} filePath
- */
-function rewriteEnUSNormalized(filePath) {
-    const fs = require('fs');
-    const text = fs.readFileSync(filePath, 'utf8');
-    const lines = text.split(/\r?\n/);
-    const firstSection = lines.findIndex((l) => /^-- =+$/.test(l));
-    if (firstSection === -1) {
-        throw new Error('enUS.lua: no section delimiter (-- ===) found');
-    }
-    const headerLines = lines.slice(0, firstSection);
-    const bodyLines = lines.slice(firstSection);
-    const keys = [];
-    let bodyEntries = parseBodyLines(bodyLines, keys);
-    bodyEntries = compactLocaleEntries(bodyEntries);
-    const maxLhsLen = computeMaxLhsLen(bodyEntries);
-    const out = headerLines.join('\n') + '\n' + serializeLocaleEntries(bodyEntries, maxLhsLen) + '\n';
-    fs.writeFileSync(filePath, out, 'utf8');
-}
-
-/**
  * @param {string} filePath
  * @returns {{ entries: object[], keys: string[] }}
  */
@@ -322,7 +300,6 @@ function parseValueAt(text, start) {
 module.exports = {
     parseEnUS,
     parseLocaleTranslations,
-    rewriteEnUSNormalized,
     compactLocaleEntries,
     serializeLocaleEntries,
     computeMaxLhsLen,
