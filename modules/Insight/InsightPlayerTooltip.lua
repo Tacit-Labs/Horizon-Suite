@@ -463,7 +463,7 @@ end
 
 local function GetRealmNameMode()
     local mode = addon.GetDB("insightRealmNameMode", "full")
-    if mode == "full" or mode == "hide" or mode == "modifier" or mode == "simplified" or mode == "simplify" then return mode end
+    if mode == "full" or mode == "hide" or mode == "modifier" or mode == "simplified" then return mode end
     return "full"
 end
 
