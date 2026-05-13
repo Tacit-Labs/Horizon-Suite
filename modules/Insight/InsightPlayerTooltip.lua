@@ -16,6 +16,51 @@ local MOUNT_READY_TEX  = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local MOUNT_NOTREADY_TEX = "Interface\\RaidFrame\\ReadyCheck-NotReady"
 local MOUNT_OWN_ICON_BASE = 14
 
+local RACE_ICON_PATH_PREFIX = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\RaceIcons\\Charactercreate-races_"
+
+local RACE_ICON_FILE_BASE = {
+    BloodElf            = "bloodelf",
+    DarkIronDwarf       = "darkirondwarf",
+    Draenei             = "draenei",
+    Dracthyr            = "dracthyr",
+    Dwarf               = "dwarf",
+    EarthenDwarf        = "earthen",
+    Gnome               = "gnome",
+    Goblin              = "goblin",
+    HighmountainTauren  = "highmountain",
+    Human               = "human",
+    KulTiran            = "kultiranhuman",
+    LightforgedDraenei  = "lightforged",
+    MagharOrc           = "maghar",
+    Mechagnome          = "mechagnome",
+    Nightborne          = "nightborne",
+    NightElf            = "nightelf",
+    Orc                 = "orc",
+    Pandaren            = "panda",
+    Scourge             = "undead",
+    Tauren              = "tauren",
+    Troll               = "troll",
+    VoidElf             = "voidelf",
+    Vulpera             = "vulpera",
+    Worgen              = "worgen",
+    ZandalariTroll      = "ZandalariTroll",
+    Haranir             = "haranir",
+    Harronir            = "haranir",
+    Harranir            = "haranir",
+}
+
+local RACE_ICON_GENDER_SUFFIX = {
+    Worgen = {
+        male = "male2",
+        female = "female2",
+    },
+}
+
+local DRACTHYR_VISAGE_AURA_SPELL_IDS = {
+    372014, -- Visage: visible health regeneration aura while in visage form.
+    382916, -- Visage Form: quest/form helper aura on some clients.
+}
+
 -- Wrap a plain name in either a per-character gradient (class-colour mode with
 -- the gradient toggle on) or a single flat |cff colour span. Shared by the
 -- live tooltip and the dashboard preview.
@@ -28,15 +73,137 @@ local function FormatNameSpan(plain, r, g, b, useGradient)
     return "|cff" .. hex .. plain .. "|r"
 end
 
+local function ShiftModifierActive()
+    return IsShiftKeyDown and IsShiftKeyDown()
+end
+
+local function GetInsightDisplayMode(modeKey, legacyKey)
+    local mode = addon.GetDB(modeKey, nil)
+    if mode == "force" or mode == "modifier" or mode == "hide" then return mode end
+    return addon.GetDB(legacyKey, false) and "force" or "hide"
+end
+
 local function ShowMount()            return addon.GetDB("insightShowMount",            true)  end
-local function ShowIlvl()             return addon.GetDB("insightShowIlvl",             true)  end
-local function ShowSpecRole()          return addon.GetDB("insightShowSpecRole",          true)  end
+local function ShowSpecRole()         return addon.GetDB("insightShowSpecRole",          true)  end
 local function ShowCharacterTitle()   return addon.GetDB("insightShowCharacterTitle",   true)  end
 local function ShowStatusBadges()     return addon.GetDB("insightShowStatusBadges",     true)  end
-local function ShowMythicScore()  return addon.GetDB("insightShowMythicScore",  true)  end
+local function ShowStatusBadgeCombat()    return addon.GetDB("insightStatusBadgeCombat",    true) end
+local function ShowStatusBadgeAFK()       return addon.GetDB("insightStatusBadgeAFK",        true) end
+local function ShowStatusBadgeDND()       return addon.GetDB("insightStatusBadgeDND",        true) end
+local function ShowStatusBadgePVP()       return addon.GetDB("insightStatusBadgePVP",        true) end
+local function ShowStatusBadgeGroup()     return addon.GetDB("insightStatusBadgeGroup",      true) end
+local function ShowStatusBadgeFriend()    return addon.GetDB("insightStatusBadgeFriend",     true) end
+local function ShowStatusBadgeTargeting() return addon.GetDB("insightStatusBadgeTargeting",  true) end
+local function ShowMythicScore()
+    local mode = GetInsightDisplayMode("insightMythicScoreMode", "insightShowMythicScore")
+    if mode == "hide" then return false end
+    return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
+end
 local function ShowGuildRank()    return addon.GetDB("insightShowGuildRank",    true)  end
-local function ShowHonorLevel()  return addon.GetDB("insightShowHonorLevel",   true)  end
-local function ShowIcons()       return addon.GetDB("insightShowIcons",       true)  end
+local function ShowIcons()        return addon.GetDB("insightShowIcons",        true)  end
+local function ShowRaceIcons()    return ShowIcons() and addon.GetDB("insightRaceIcons", true) end
+local function ShowRatingsIcons() return addon.GetDB("insightRatingsIcons",     true)  end
+
+local function SpecIconMarkup(specIcon, size)
+    if not specIcon then return "" end
+    size = tonumber(size) or 14
+    -- Crop Blizzard spec icons slightly so their baked pale edge blends into the tooltip.
+    return "|T" .. specIcon .. ":" .. size .. ":" .. size .. ":0:0:64:64:5:59:5:59|t "
+end
+
+local function GetSpellNameByID(spellID)
+    if C_Spell and C_Spell.GetSpellName then
+        local ok, name = pcall(C_Spell.GetSpellName, spellID)
+        if ok and name then return name end
+    end
+    if GetSpellInfo then
+        local ok, name = pcall(GetSpellInfo, spellID)
+        if ok and name then return name end
+    end
+    return nil
+end
+
+local function UnitHasAuraBySpellID(unit, spellID)
+    if not unit or not spellID then return false end
+    if UnitIsUnit and UnitIsUnit(unit, "player") and C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
+        local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, spellID)
+        if ok and aura then return true end
+    end
+    if C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID then
+        local ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, spellID)
+        if ok and aura then return true end
+    end
+    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+        for i = 1, 40 do
+            local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, i, "HELPFUL")
+            if not ok or not aura then break end
+            if aura.spellId == spellID then return true end
+        end
+    end
+    if UnitAura then
+        for i = 1, 40 do
+            local ok, name, _, _, _, _, _, _, _, spellId = pcall(UnitAura, unit, i, "HELPFUL")
+            if not ok or not name then break end
+            if spellId == spellID then return true end
+        end
+    end
+    if AuraUtil and AuraUtil.FindAuraByName then
+        local spellName = GetSpellNameByID(spellID)
+        if spellName then
+            local ok, auraName = pcall(AuraUtil.FindAuraByName, spellName, unit, "HELPFUL")
+            if ok and auraName then return true end
+        end
+    end
+    return false
+end
+
+local function IsDracthyrInVisageForm(unit)
+    for _, spellID in ipairs(DRACTHYR_VISAGE_AURA_SPELL_IDS) do
+        if UnitHasAuraBySpellID(unit, spellID) then
+            return true
+        end
+    end
+    return false
+end
+
+local function RaceIconMarkup(unit, size)
+    if not ShowRaceIcons() then return "" end
+    local raceName, raceFile, sex
+    pcall(function()
+        local localizedName, fileName = UnitRace(unit)
+        raceName = localizedName
+        raceFile = fileName
+        sex = UnitSex(unit)
+    end)
+    local fileBase = raceFile and RACE_ICON_FILE_BASE[raceFile]
+    if not fileBase then
+        local raceKey = tostring(raceFile or raceName or ""):lower()
+        if raceKey:find("haranir", 1, true) or raceKey:find("harronir", 1, true) or raceKey:find("harranir", 1, true) then
+            fileBase = "haranir"
+        end
+    end
+    if not fileBase then return "" end
+    if raceFile == "Dracthyr" and IsDracthyrInVisageForm(unit) then
+        fileBase = "dracthyr-visage"
+    end
+    size = tonumber(size) or 14
+    local gender = (sex == 3) and "female" or "male"
+    local suffixes = RACE_ICON_GENDER_SUFFIX[raceFile]
+    local genderSuffix = (suffixes and suffixes[gender]) or gender
+    return "|T" .. RACE_ICON_PATH_PREFIX .. fileBase .. "-" .. genderSuffix .. ".tga:" .. size .. ":" .. size .. ":0:0|t "
+end
+
+local function ShowIlvl()
+    local mode = GetInsightDisplayMode("insightItemLevelMode", "insightShowIlvl")
+    if mode == "hide" then return false end
+    return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
+end
+
+local function ShowHonorLevel()
+    local mode = GetInsightDisplayMode("insightHonorLevelMode", "insightShowHonorLevel")
+    if mode == "hide" then return false end
+    return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
+end
 
 -- ============================================================================
 -- INSPECT CACHE
@@ -294,6 +461,35 @@ local function GetTitleColorMode()
     return "custom"
 end
 
+local function GetRealmNameMode()
+    local mode = addon.GetDB("insightRealmNameMode", "full")
+    if mode == "full" or mode == "hide" or mode == "modifier" or mode == "simplify" then return mode end
+    return "full"
+end
+
+local function SplitRealmName(name)
+    if type(name) ~= "string" or name == "" then return name end
+    local base, realm = name:match("^(.-)%-(.+)$")
+    if not base or base == "" or not realm or realm == "" then return name end
+    return base, realm
+end
+
+local function GetRealmDisplayParts(name)
+    local base, realm = SplitRealmName(name)
+    if not realm then return name, "" end
+    local mode = GetRealmNameMode()
+    if mode == "full" then
+        return base, "-" .. realm
+    elseif mode == "hide" then
+        return base, ""
+    elseif ShiftModifierActive() then
+        return base, "-" .. realm
+    elseif mode == "modifier" then
+        return base, ""
+    end
+    return base, " (*)"
+end
+
 local function FormatTitleSpan(titlePart, nameR, nameG, nameB)
     local mode = GetTitleColorMode()
     if mode == "gradient" then
@@ -304,20 +500,22 @@ local function FormatTitleSpan(titlePart, nameR, nameG, nameB)
     return "|cff" .. GetInsightTitleColorHex() .. titlePart .. "|r"
 end
 
-local function FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, nameG, nameB, useGradient)
+local function FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, nameG, nameB, useGradient, realmSuffix)
+    realmSuffix = realmSuffix or ""
     local titleFirst = titlePosition ~= "suffix"
     -- Suffix titles carry their own native separator (" the X" or ", the X"); don't double-space.
-    local plain = titleFirst and (titlePart .. " " .. namePart) or (namePart .. titlePart)
+    local plain = titleFirst and (titlePart .. " " .. namePart .. realmSuffix) or (namePart .. titlePart .. realmSuffix)
     if GetTitleColorMode() == "gradient" then
         return Insight.BuildNameGradient(plain, nameR, nameG, nameB)
     end
 
     local nameSpan = FormatNameSpan(namePart, nameR, nameG, nameB, useGradient)
     local titleSpan = FormatTitleSpan(titlePart, nameR, nameG, nameB)
+    local realmSpan = realmSuffix ~= "" and FormatNameSpan(realmSuffix, nameR, nameG, nameB, useGradient) or ""
     if titleFirst then
-        return titleSpan .. " " .. nameSpan
+        return titleSpan .. " " .. nameSpan .. realmSpan
     end
-    return nameSpan .. titleSpan
+    return nameSpan .. titleSpan .. realmSpan
 end
 
 local function GetPlayerDisplayName(unit, nameLeft)
@@ -329,7 +527,28 @@ local function GetPlayerDisplayName(unit, nameLeft)
     if not namePart or namePart == "" then
         namePart = Insight.SafeGetFontText(nameLeft) or ""
     end
-    return namePart
+    local baseName, realmSuffix = GetRealmDisplayParts(namePart)
+    return baseName .. realmSuffix
+end
+
+local function GetInlineStatusTag(unit)
+    if not ShowStatusBadges() then return "" end
+    local tag = nil
+    pcall(function()
+        if ShowStatusBadgeAFK() and UnitIsAFK(unit) then
+            tag = "|cffffff55[AFK]|r"
+        elseif ShowStatusBadgeDND() and UnitIsDND(unit) then
+            tag = "|cffaaaaaa[DND]|r"
+        end
+    end)
+    return tag and (" " .. tag) or ""
+end
+
+local function GetPreviewInlineStatusTag()
+    if not ShowStatusBadges() then return "" end
+    if ShowStatusBadgeAFK() then return " |cffffff55[AFK]|r" end
+    if ShowStatusBadgeDND() then return " |cffaaaaaa[DND]|r" end
+    return ""
 end
 
 local function GetCharacterTitleParts(unit, nameLeft)
@@ -374,7 +593,10 @@ function Insight.AddPvPBlock(tooltip, unit, _sepR, _sepG, _sepB)
     local honorLevel = GetHonorLevelIfShown(unit)
     if honorLevel then
         Insight.TagLines(tooltip, "stats", function()
-            tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(honorLevel), 0.85, 0.70, 1.00)
+            local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.HONOR_ICON or ""
+            local faction = UnitFactionGroup(unit)
+            local fc = Insight.FACTION_COLORS[faction]
+            tooltip:AddLine(icon .. "Honor Level: " .. Insight.FormatNumberWithCommas(honorLevel), (fc and fc[1]) or 0.85, (fc and fc[2]) or 0.70, (fc and fc[3]) or 1.00)
         end)
     end
 end
@@ -386,36 +608,26 @@ function Insight.AddStatusBadgesBlock(tooltip, unit)
     if not ShowStatusBadges() then return end
     local badges = {}
     pcall(function()
-        if UnitAffectingCombat(unit) then badges[#badges + 1] = "|cffff4444[Combat]|r"      end
-        if UnitIsAFK(unit)           then badges[#badges + 1] = "|cffffff55[AFK]|r"         end
-        if UnitIsDND(unit)           then badges[#badges + 1] = "|cffaaaaaa[DND]|r"         end
-        if UnitIsPVP(unit)           then badges[#badges + 1] = "|cffff8c00[PvP]|r"         end
-        if UnitInRaid(unit)          then badges[#badges + 1] = "|cff88ddff[Raid]|r"
-        elseif UnitInParty(unit)     then badges[#badges + 1] = "|cff88ddff[Party]|r"       end
-        if C_FriendList and C_FriendList.IsFriend then
+        if ShowStatusBadgeCombat() and UnitAffectingCombat(unit) then badges[#badges + 1] = "|cffff4444[Combat]|r"    end
+        if ShowStatusBadgePVP()    and UnitIsPVP(unit)           then badges[#badges + 1] = "|cffff8c00[PvP]|r"       end
+        if ShowStatusBadgeGroup() then
+            if UnitInRaid(unit)        then badges[#badges + 1] = "|cff88ddff[Raid]|r"
+            elseif UnitInParty(unit)   then badges[#badges + 1] = "|cff88ddff[Party]|r" end
+        end
+        if ShowStatusBadgeFriend() and C_FriendList and C_FriendList.IsFriend then
             local isFriend = false
             pcall(function()
                 local g = UnitGUID(unit)
-                if C_FriendList.IsFriend(g) then
-                    isFriend = true
-                else
-                    isFriend = false
-                end
+                if C_FriendList.IsFriend(g) then isFriend = true else isFriend = false end
             end)
-            if isFriend then
-                badges[#badges + 1] = "|cff55ff55[Friend]|r"
-            end
+            if isFriend then badges[#badges + 1] = "|cff55ff55[Friend]|r" end
         end
-        local targetingYou = false
-        pcall(function()
-            if UnitIsUnit("mouseoverTarget", "player") then
-                targetingYou = true
-            else
-                targetingYou = false
-            end
-        end)
-        if targetingYou then
-            badges[#badges + 1] = "|cffff4466[Targeting You]|r"
+        if ShowStatusBadgeTargeting() then
+            local targetingYou = false
+            pcall(function()
+                if UnitIsUnit("mouseoverTarget", "player") then targetingYou = true else targetingYou = false end
+            end)
+            if targetingYou then badges[#badges + 1] = "|cffff4466[Targeting You]|r" end
         end
     end)
     if #badges > 0 then
@@ -425,7 +637,7 @@ function Insight.AddStatusBadgesBlock(tooltip, unit)
     end
 end
 
---- Add stats block (M+ score, item level) to tooltip. Returns ensureStatsSep function for optional stats.
+--- Add ratings block (M+ score, honor level) to tooltip.
 function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
     local hasStats = false
     local function EnsureStatsSep()
@@ -442,16 +654,29 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
             local r, g, b = Insight.MythicScoreColor(score)
             EnsureStatsSep()
             Insight.TagLines(tooltip, "stats", function()
-                tooltip:AddLine((ShowIcons() and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(score), r, g, b)
+                local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.MYTHIC_ICON or ""
+                tooltip:AddLine(icon .. "M+ Score: " .. Insight.FormatNumberWithCommas(score), r, g, b)
             end)
         end
     end
 
+    local honorLevel = GetHonorLevelIfShown(unit)
+    if honorLevel then
+        EnsureStatsSep()
+        Insight.TagLines(tooltip, "stats", function()
+            local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.HONOR_ICON or ""
+            local faction = UnitFactionGroup(unit)
+            local fc = Insight.FACTION_COLORS[faction]
+            tooltip:AddLine(icon .. "Honor Level: " .. Insight.FormatNumberWithCommas(honorLevel), (fc and fc[1]) or 0.85, (fc and fc[2]) or 0.70, (fc and fc[3]) or 1.00)
+        end)
+    end
+
     if cached then
         if ShowIlvl() and cached.ilvl then
-            EnsureStatsSep()
+            Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
             Insight.TagLines(tooltip, "stats", function()
-                tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(cached.ilvl), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+                local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.ILVL_ICON or ""
+                tooltip:AddLine(icon .. "Item Level: " .. Insight.FormatNumberWithCommas(cached.ilvl), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
             end)
         end
     else
@@ -463,7 +688,12 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
                 isSelf = false
             end
         end)
-        if not isSelf and (ShowIlvl() or ShowSpecRole()) then
+        local needsInspect = ShowIlvl() or ShowSpecRole()
+        if not needsInspect then
+            local src = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
+            needsInspect = (src == "specoverride")
+        end
+        if not isSelf and needsInspect then
             RequestInspect(unit)
         end
     end
@@ -519,6 +749,20 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         className, classFile = UnitClass(unit)
         classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
     end)
+    -- className from UnitClass is a tainted (secret) string in TWW Midnight — it cannot be
+    -- passed to Lua string functions (find, gsub, etc.) without erroring.  Get an equivalent
+    -- plain Lua string from the global lookup table instead, keyed by classFile which is the
+    -- non-tainted uppercase token (e.g. "DEATHKNIGHT").  Falls back to className if the lookup
+    -- fails so this is a no-op on older clients where taint is not an issue.
+    local classNameSafe = className  -- pre-TWW fallback
+    pcall(function()
+        if classFile and LOCALIZED_CLASS_NAMES_MALE then
+            local safe = LOCALIZED_CLASS_NAMES_MALE[classFile]
+            if type(safe) == "string" and safe ~= "" then
+                classNameSafe = safe
+            end
+        end
+    end)
     local guildName, guildRankName, guildRealm = GetSafeGuildInfo(unit)
     if classColor then
         local modcc = addon.GetModuleClassColor and addon.GetModuleClassColor("insight")
@@ -542,6 +786,16 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     if not cached and isSelfUnit then
         TrySeedSelfInspectCache(unit)
         cached = GetInspectCachedForUnit(unit)
+    end
+    if not cached then
+        local needsEarlyInspect = ShowIlvl() or ShowSpecRole()
+        if not needsEarlyInspect and ShowIcons() then
+            local src = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
+            needsEarlyInspect = src == "specoverride"
+        end
+        if needsEarlyInspect then
+            RequestInspect(unit)
+        end
     end
 
     -- 1. Name line: faction icon + name (with character title when ShowCharacterTitle; title in gold, name in faction/class color)
@@ -572,7 +826,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             pcall(function()
                 local titlePart, namePart, titlePosition = GetCharacterTitleParts(unit, nameLeft)
                 if not titlePart or not namePart then return end
-                displayText = FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, nameG, nameB, useGradient)
+                local baseName, realmSuffix = GetRealmDisplayParts(namePart)
+                displayText = FormatTitleNameSpan(titlePart, baseName, titlePosition, nameR, nameG, nameB, useGradient, realmSuffix)
             end)
         end
         if not displayText then
@@ -587,7 +842,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 nameLeft:SetTextColor(nameR, nameG, nameB)
             end
         end
-        nameLeft:SetText(icon .. displayText)
+        nameLeft:SetText(icon .. displayText .. GetInlineStatusTag(unit))
     end
 
     -- 2. Border tint
@@ -599,11 +854,21 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     local classLineStyled = false
     local guildLineStyled = false
     local guildRankDisplay = ShowGuildRank() and GetGuildRankDisplay(guildRankName, guildRealm)
+    local raceNameSafe = nil
+    pcall(function()
+        raceNameSafe = UnitRace(unit)
+    end)
+    local raceIconStyled = false
+    local raceIconPrefix = ""
+    if raceNameSafe and raceNameSafe ~= "" then
+        local raceIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
+        raceIconPrefix = RaceIconMarkup(unit, raceIconPx)
+    end
     Insight.ForTooltipLines(tooltip, function(j, lineLeft, _lineRight)
         if j < 2 or not lineLeft then return end
         pcall(function()
-            local text = lineLeft:GetText()
-            if not text then return end
+            local text = Insight.SafeGetFontText(lineLeft)
+            if not text or text == "" then return end
 
             if text:find(" %(Player%)") then
                 text = text:gsub(" %(Player%)", "")
@@ -612,7 +877,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
 
             if text == "Horde" or text == "Alliance" or text == "PvP" then
                 lineLeft:SetText("")
-            elseif className and text ~= "" and text:find(className, 1, true) and classLineStyled then
+            elseif classNameSafe and text ~= "" and text:find(classNameSafe, 1, true) and classLineStyled then
                 lineLeft:SetText("")
             elseif IsGuildLine(text, guildName, guildRealm) then
                 guildLineStyled = true
@@ -621,7 +886,10 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                     lineLeft:SetText(guildDisplayLine)
                     lineLeft:SetTextColor(1, 1, 1)
                 end
-            elseif className and text ~= "" and text:find(className, 1, true) then
+            elseif not raceIconStyled and raceIconPrefix ~= "" and raceNameSafe and text ~= "" and text:find(raceNameSafe, 1, true) and not text:find("|T", 1, true) and not text:find("|A", 1, true) then
+                raceIconStyled = true
+                lineLeft:SetText(raceIconPrefix .. text)
+            elseif classNameSafe and text ~= "" and text:find(classNameSafe, 1, true) then
                 classLineStyled = true
                 if classColor then
                     lineLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
@@ -629,11 +897,19 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 local iconPrefix = ""
                 if ShowIcons() then
                     local lineIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
-                    local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile)
-                    if classIcon then
-                        iconPrefix = classIcon
-                    elseif ShowSpecRole() and cached and cached.specIcon then
-                        iconPrefix = "|T" .. cached.specIcon .. ":" .. lineIconPx .. ":" .. lineIconPx .. ":0:0|t "
+                    local source = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
+                    if source == "specoverride" then
+                        -- Spec override intentionally waits for inspect data instead of flashing a class icon first.
+                        if cached and cached.specIcon then
+                            iconPrefix = SpecIconMarkup(cached.specIcon, lineIconPx)
+                        end
+                    else
+                        local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile)
+                        if classIcon then
+                            iconPrefix = classIcon
+                        elseif ShowSpecRole() and cached and cached.specIcon then
+                            iconPrefix = SpecIconMarkup(cached.specIcon, lineIconPx)
+                        end
                     end
                 end
                 local roleSuffix = ""
@@ -664,18 +940,10 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     -- 4. Status badges (part of identity section)
     Insight.AddStatusBadgesBlock(tooltip, unit)
 
-    -- Separator: identity block → PvP block (only when PvP will add content)
-    if PvPHasContent(unit) then
-        Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
-    end
-
-    -- 5. PvP title + honor level
-    Insight.AddPvPBlock(tooltip, unit, sepR, sepG, sepB)
-
-    -- 6. Stats block (M+ score, item level)
+    -- 5. Stats block (M+ score, item level)
     Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
 
-    -- 7. Mount block
+    -- 6. Mount block
     Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
 
     return true
@@ -702,11 +970,13 @@ function Insight.RenderTestTooltipContent(tooltip)
         and addon.GetDB("insightPlayerNameGradient", false)
 
     -- 1. Name line (character title optional — same as live)
-    local nameSpan = FormatNameSpan("Horizonaut-Stormrage", nameR, nameG, nameB, useGradient)
+    local previewName, previewRealmSuffix = GetRealmDisplayParts("Horizonaut-Stormrage")
+    local inlineStatusTag = GetPreviewInlineStatusTag()
+    local nameSpan = FormatNameSpan(previewName .. previewRealmSuffix, nameR, nameG, nameB, useGradient)
     if ShowCharacterTitle() then
-        tooltip:AddLine(facIcon .. FormatTitleNameSpan("Duelist", "Horizonaut-Stormrage", "prefix", nameR, nameG, nameB, useGradient), nameR, nameG, nameB)
+        tooltip:AddLine(facIcon .. FormatTitleNameSpan("Duelist", previewName, "prefix", nameR, nameG, nameB, useGradient, previewRealmSuffix) .. inlineStatusTag, nameR, nameG, nameB)
     else
-        tooltip:AddLine(facIcon .. nameSpan, nameR, nameG, nameB)
+        tooltip:AddLine(facIcon .. nameSpan .. inlineStatusTag, nameR, nameG, nameB)
     end
 
     -- 2. Guild (rank line only when guild rank toggle on — live augments guild line)
@@ -716,60 +986,92 @@ function Insight.RenderTestTooltipContent(tooltip)
         tooltip:AddLine("<Ascension>", testSepR, testSepG, testSepB)
     end
 
-    tooltip:AddLine("Level 80 Human", 1, 0.82, 0)
-
-    local rc = Insight.ROLE_COLORS["TANK"]
-    local roleHex = string.format("%02x%02x%02x", math.floor(rc[1] * 255), math.floor(rc[2] * 255), math.floor(rc[3] * 255))
     local testIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
-    local classIconStr = (showIcons and Insight.GetClassIconTexture and Insight.GetClassIconTexture("DEATHKNIGHT")) or ""
-    if classIconStr == "" and showIcons then
-        classIconStr = "|TInterface\\Icons\\spell_deathknight_bloodpresence:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t "
+    local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH_PREFIX .. "human-male.tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
+    tooltip:AddLine(raceIconStr .. "Level 80 Human", 1, 0.82, 0)
+
+    local classIconStr = ""
+    if showIcons then
+        local src = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
+        if src == "specoverride" then
+            -- Spec Override: show Blizzard's native Blood DK spec icon
+            classIconStr = SpecIconMarkup("Interface\\Icons\\spell_deathknight_bloodpresence", testIconPx)
+        else
+            classIconStr = (Insight.GetClassIconTexture and Insight.GetClassIconTexture("DEATHKNIGHT")) or ""
+            if classIconStr == "" then
+                classIconStr = "|TInterface\\Icons\\spell_deathknight_bloodpresence:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t "
+            end
+        end
     end
-    tooltip:AddLine(
-        classIconStr .. "Blood Death Knight  |cff" .. roleHex .. "Tank|r",
-        0.77, 0.12, 0.23)
+    local previewRoleSuffix = ""
+    if ShowSpecRole() then
+        local previewRc = Insight.ROLE_COLORS["TANK"]
+        local previewRoleHex = string.format("%02x%02x%02x", math.floor(previewRc[1] * 255), math.floor(previewRc[2] * 255), math.floor(previewRc[3] * 255))
+        previewRoleSuffix = "  |cff" .. previewRoleHex .. "Tank|r"
+    end
+    tooltip:AddLine(classIconStr .. "Blood Death Knight" .. previewRoleSuffix, 0.77, 0.12, 0.23)
 
     -- 4. Status badges (AddStatusBadgesBlock)
     if ShowStatusBadges() then
-        tooltip:AddLine("|cffff4444[Combat]|r  |cffff8c00[PvP]|r  |cff88ddff[Party]|r  |cff55ff55[Friend]|r  |cffff4466[Targeting You]|r", 1, 1, 1)
+        local previewBadges = {}
+        if ShowStatusBadgeCombat()    then previewBadges[#previewBadges + 1] = "|cffff4444[Combat]|r"       end
+        if ShowStatusBadgePVP()       then previewBadges[#previewBadges + 1] = "|cffff8c00[PvP]|r"         end
+        if ShowStatusBadgeGroup()     then previewBadges[#previewBadges + 1] = "|cff88ddff[Party]|r"       end
+        if ShowStatusBadgeFriend()    then previewBadges[#previewBadges + 1] = "|cff55ff55[Friend]|r"      end
+        if ShowStatusBadgeTargeting() then previewBadges[#previewBadges + 1] = "|cffff4466[Targeting You]|r" end
+        if #previewBadges > 0 then
+            Insight.TagLines(tooltip, "badges", function()
+                tooltip:AddLine(table.concat(previewBadges, "  "), 1, 1, 1)
+            end)
+        end
     end
 
-    -- 5. Honor (PvP block — separator only when honor will show, like PvPHasContent)
-    if ShowHonorLevel() then
-        Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
-        tooltip:AddLine("Honor Level " .. Insight.FormatNumberWithCommas(247), 0.85, 0.70, 1.00)
-    end
-
-    -- 6. Stats (M+ / ilvl — EnsureStatsSep pattern from AddStatsBlock)
+    -- 5. Stats (M+ / ilvl — EnsureStatsSep pattern from AddStatsBlock)
     local hasStats = false
     local function ensureStatsSep()
         if not hasStats then
-            Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+            Insight.AddSectionSeparator(tooltip)
             hasStats = true
         end
     end
     if ShowMythicScore() then
         ensureStatsSep()
-        tooltip:AddLine((showIcons and Insight.MYTHIC_ICON or "") .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
+        Insight.TagLines(tooltip, "stats", function()
+            local icon = (showIcons and ShowRatingsIcons()) and Insight.MYTHIC_ICON or ""
+            tooltip:AddLine(icon .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
+        end)
     end
-    if ShowIlvl() then
+    if ShowHonorLevel() then
         ensureStatsSep()
-        tooltip:AddLine("Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+        Insight.TagLines(tooltip, "stats", function()
+            local icon = (showIcons and ShowRatingsIcons()) and Insight.HONOR_ICON or ""
+            tooltip:AddLine(icon .. "Honor Level: " .. Insight.FormatNumberWithCommas(247), fc[1], fc[2], fc[3])
+        end)
+    end
+
+    if ShowIlvl() then
+        Insight.AddSectionSeparator(tooltip)
+        Insight.TagLines(tooltip, "stats", function()
+            local icon = (showIcons and ShowRatingsIcons()) and Insight.ILVL_ICON or ""
+            tooltip:AddLine(icon .. "Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+        end)
     end
 
     -- 7. Mount block (mirrors AddMountBlock: source only when not collected; ownership from setting)
     if ShowMount() then
-        Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+        Insight.AddSectionSeparator(tooltip)
         local mountIconStr = showIcons and "|TInterface\\Icons\\ability_mount_drake_proto:14:14:0:0|t " or ""
         local ownSuffix, ownTextLine = GetMountOwnershipDisplay(false)
-        tooltip:AddLine(
-            mountIconStr .. "Reins of the Thundering Cobalt Cloud Serpent" .. (ownSuffix or ""),
-            Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
-        -- Uncollected sample mount: source line shown; collected mounts omit source in live tooltips.
-        tooltip:AddLine("Drop: Sha of Anger", Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
-        if ownTextLine then
-            tooltip:AddLine(ownTextLine, 1, 1, 1)
-        end
+        Insight.TagLines(tooltip, "mount", function()
+            tooltip:AddLine(
+                mountIconStr .. "Reins of the Thundering Cobalt Cloud Serpent" .. (ownSuffix or ""),
+                Insight.MOUNT_COLOR[1], Insight.MOUNT_COLOR[2], Insight.MOUNT_COLOR[3])
+            -- Uncollected sample mount: source line shown; collected mounts omit source in live tooltips.
+            tooltip:AddLine("Drop: Sha of Anger", Insight.MOUNT_SRC_COLOR[1], Insight.MOUNT_SRC_COLOR[2], Insight.MOUNT_SRC_COLOR[3])
+            if ownTextLine then
+                tooltip:AddLine(ownTextLine, 1, 1, 1)
+            end
+        end)
     end
 end
 

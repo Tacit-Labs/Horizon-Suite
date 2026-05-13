@@ -124,11 +124,23 @@ function DP.SetActiveModuleKey(moduleKey)
     UpdateTabVisibility()
 end
 
+local function ResolvePulloutWidth(def)
+    local width = def and def.width
+    if type(width) == "function" then
+        local ok, value = pcall(width)
+        width = ok and value or nil
+    end
+    return math.max(220, tonumber(width) or 260)
+end
+
 function DP.NotifyRefresh()
     if not (pulloutFrame and pulloutFrame:IsShown() and pulloutState == "open" and activeModuleKey) then
         return
     end
     local def = registrations[activeModuleKey]
+    local w = ResolvePulloutWidth(def)
+    pulloutFrame:SetWidth(w)
+    animFullWidth = w
     if def and def.refresh then
         pcall(def.refresh)
     end
@@ -274,7 +286,7 @@ local function OpenPullout()
     ApplyHeader(def)
     EnsureMounted(activeModuleKey, def)
 
-    local w = tonumber(def.width) or 260
+    local w = ResolvePulloutWidth(def)
     animFullWidth = w
     pulloutFrame:SetWidth(1)
     SetPulloutHeaderAlpha(0)
