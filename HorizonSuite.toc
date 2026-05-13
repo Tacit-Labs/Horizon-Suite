@@ -112,6 +112,7 @@ modules/Essence/EssenceModule.lua
 options/OptionsWidgets.lua
 options/OptionsData.lua
 options/modules/OptionsPresence.lua
+options/modules/OptionsInsight.lua
 options/modules/OptionsEssence.lua
 options/modules/OptionsCache.lua
 options/modules/OptionsPresenceTalkingHead.lua
