@@ -14,6 +14,34 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.18.0"] = {
+        date = "2026-05-14",
+        {
+            section = "New Features",
+            bullets = {
+                "Presence: Talking Head customisation — fonts, colours, portrait/frame visibility, scale, and voice-over mute.",
+                "Focus: Focused Quest category — super-tracked quests hoist into their own reorderable section.",
+                "Focus: Mythic+ split timers — remaining time to the +1, +2, and +3 cut-offs, with crossed tiers dimmed.",
+                "Insight: Tooltip preview window and new toggles — content-sized previews, Shift-modifier refresh, per-stat display modes, per-status-badge toggles, Spec-Override class icon, Realm Names and Section Separation dropdowns, and bundled race icons.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: Shrink-to-fit width — tracker grows to the longest visible row, capped at a configurable maximum.",
+                "Focus: Progress bar text inherits the objective's category colour by default; the custom colour picker still overrides.",
+                "Localisation: German locale refresh plus ongoing locale hygiene across the other non-English locales.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Presence: Disabling Zone Notifications now hides them correctly.",
+                "Focus: Objective lines with a leading dash no longer double up the bullet prefix.",
+            },
+        },
+    },
+
     ["4.17.7"] = {
         date = "2026-05-09",
         {

@@ -77,8 +77,11 @@ local INSIGHT_KEYS = {
     insightBgOpacity       = true,
     insightShowMount            = true,
     insightShowIlvl             = true,
+    insightItemLevelMode        = true,
     insightShowSpecRole         = true,
     insightShowCharacterTitle   = true,
+    insightRealmNameMode        = true,
+    insightRaceIcons            = true,
     insightPlayerNameColor      = true,
     insightPlayerNameGradient   = true,
     insightTitleColorMode       = true,
@@ -88,10 +91,21 @@ local INSIGHT_KEYS = {
     insightTitleColorG          = true,
     insightTitleColorB          = true,
     insightShowHonorLevel       = true,
+    insightHonorLevelMode       = true,
     insightShowStatusBadges     = true,
+    insightStatusBadgeCombat    = true,
+    insightStatusBadgeAFK       = true,
+    insightStatusBadgeDND       = true,
+    insightStatusBadgePVP       = true,
+    insightStatusBadgeGroup     = true,
+    insightStatusBadgeFriend    = true,
+    insightStatusBadgeTargeting = true,
     insightShowMythicScore  = true,
+    insightMythicScoreMode  = true,
+    insightRatingsIcons     = true,
     insightShowTransmog     = true,
     insightShowGuildRank    = true,
+    insightSeparatorMode    = true,
     insightBlankSeparator   = true,
     insightShowIcons       = true,
     insightClassIconSource = true,
@@ -190,6 +204,15 @@ local PRESENCE_KEYS = {
     presencePreviewType = true,
 }
 
+-- Keys whose values are baked into a formatted string inside UpdateMplusBlockDisplay
+-- (|cff...|r markup) rather than applied via SetTextColor in ApplyMplusTypography.
+-- Changing one of these requires re-running the display, not just typography.
+local MPLUS_EMBEDDED_MARKUP_KEYS = {
+    mplusShowSplitTimer = true,
+    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
+    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
+}
+
 local MPLUS_TYPOGRAPHY_KEYS = {
     fontPath = true,
     fontOutline = true,
@@ -202,6 +225,10 @@ local MPLUS_TYPOGRAPHY_KEYS = {
     mplusTimerSize = true,
     mplusTimerColorR = true, mplusTimerColorG = true, mplusTimerColorB = true,
     mplusTimerOvertimeColorR = true, mplusTimerOvertimeColorG = true, mplusTimerOvertimeColorB = true,
+    mplusShowSplitTimer = true,
+    mplusSplitSize = true,
+    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
+    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
     mplusProgressSize = true,
     mplusProgressColorR = true, mplusProgressColorG = true, mplusProgressColorB = true,
     mplusAffixSize = true,
@@ -223,6 +250,8 @@ local COLOR_LIVE_KEYS = {
     mplusDungeonColorR = true, mplusDungeonColorG = true, mplusDungeonColorB = true,
     mplusTimerColorR = true, mplusTimerColorG = true, mplusTimerColorB = true,
     mplusTimerOvertimeColorR = true, mplusTimerOvertimeColorG = true, mplusTimerOvertimeColorB = true,
+    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
+    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
     mplusProgressColorR = true, mplusProgressColorG = true, mplusProgressColorB = true,
     mplusBarColorR = true, mplusBarColorG = true, mplusBarColorB = true, mplusBarColorA = true,
     mplusBarDoneColorR = true, mplusBarDoneColorG = true, mplusBarDoneColorB = true, mplusBarDoneColorA = true,
@@ -441,6 +470,9 @@ function OptionsData_SetDB(key, value)
     if MPLUS_TYPOGRAPHY_KEYS[key] and addon.ApplyMplusTypography then
         addon.ApplyMplusTypography()
     end
+    if MPLUS_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateMplusBlock then
+        addon.UpdateMplusBlock()
+    end
     if PRESENCE_KEYS[key] and addon.Presence then
         if addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
         if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
@@ -575,6 +607,10 @@ function OptionsData_NotifyMainAddon_Live()
 end
 
 function OptionsData_NotifyMainAddon()
+    -- Bust the per-entry populate-signature cache so option changes (objectivePrefixStyle,
+    -- showZoneLabels, useTickForCompletedObjectives, etc.) take effect on the next FullLayout
+    -- instead of waiting for /reload or a fingerprinted qData field to perturb.
+    if addon.focus and addon.focus.InvalidatePopulateCache then addon.focus.InvalidatePopulateCache() end
     local applyTy = addon.ApplyTypography or _G.HorizonSuite_ApplyTypography
     if applyTy then applyTy() end
     if addon.ApplyDimensions then addon.ApplyDimensions()
@@ -823,6 +859,11 @@ local TEXT_CASE_OPTIONS = {
     { L["FOCUS_TEXT_LOWER_CASE"], "lower" },
     { L["FOCUS_TEXT_UPPER_CASE"], "upper" },
     { L["FOCUS_TEXT_PROPER_CASE"], "proper" },
+}
+local INSIGHT_FORCE_MODIFIER_OPTIONS = {
+    { L["INSIGHT_DISPLAY_MODE_HIDE"] or "Hide",             "hide" },
+    { L["INSIGHT_DISPLAY_MODE_SHOW"] or "Show",             "force" },
+    { L["INSIGHT_DISPLAY_MODE_MODIFIER"] or "Modifier",     "modifier" },
 }
 -- Use addon.QUEST_COLORS from Config as single source for quest type colors.
 local COLOR_KEYS_ORDER = { "DEFAULT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "WORLD", "DELVES", "SCENARIO", "RAID", "ACHIEVEMENT", "APPEARANCE", "WEEKLY", "PREY", "DAILY", "COMPLETE", "RARE" }
@@ -2022,6 +2063,7 @@ local OptionCategories = {
             { type = "section", name = L["FOCUS_FILTERING"] },
             { type = "toggle", name = L["CURRENT_ZONE"], desc = L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"], dbKey = "filterByZone", get = function() return getDB("filterByZone", false) end, set = function(v) setDB("filterByZone", v) end },
             { type = "section", name = L["GROUPING"] },
+            { type = "toggle", name = L["FOCUS_FOCUSED_QUEST_CATEGORY"], desc = L["FOCUS_FOCUSED_QUEST_CATEGORY_DESC"], tooltip = L["FOCUS_FOCUSED_QUEST_CATEGORY_TIP"], dbKey = "showFocusedQuestCategory", isNew = "4.17.7", get = function() return getDB("showFocusedQuestCategory", true) end, set = function(v) setDB("showFocusedQuestCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end },
             { type = "toggle", name = L["FOCUS_CURRENT_QUEST_CATEGORY"], desc = L["RECENT_PROGRESS_TOP"], tooltip = L["FOCUS_QUEST_PROGRESSION_SECTION"], dbKey = "showCurrentQuestCategory", get = function() return getDB("showCurrentQuestCategory", true) end, set = function(v) setDB("showCurrentQuestCategory", v) end, refreshIds = { "currentQuestWindowSec" } },
             { type = "slider", name = L["FOCUS_CURRENT_QUEST_WINDOW"], desc = L["SECONDS_OF_RECENT_PROGRESS"], dbKey = "currentQuestWindowSec", min = 30, max = 120, get = function() return math.max(30, math.min(120, tonumber(getDB("currentQuestWindowSec", 60)) or 60)) end, set = function(v) setDB("currentQuestWindowSec", math.max(30, math.min(120, v))) end, visibleWhen = function() return getDB("showCurrentQuestCategory", true) end, id = "currentQuestWindowSec" },
             { type = "toggle", name = L["CURRENT_ZONE_GROUP"], desc = L["DEDICATED_SECTION_ZONE_QUESTS"], dbKey = "showNearbyGroup", get = function() return getDB("showNearbyGroup", true) end, set = function(v) setDB("showNearbyGroup", v) end, tooltip = L["ZONE_QUESTS_APPEAR_THEIR_NORMAL_CATEGORY"], refreshIds = { "nearbyCompleteToBottom" } },
@@ -2122,7 +2164,8 @@ local OptionCategories = {
             { type = "toggle", name = L["BATTLEGROUND"], desc = L["FOCUS_TRACKER_BATTLEGROUNDS"], dbKey = "showInBattleground", get = function() return getDB("showInBattleground", false) end, set = function(v) setDB("showInBattleground", v) end },
             { type = "toggle", name = L["ARENA"], desc = L["FOCUS_TRACKER_ARENAS"], dbKey = "showInArena", get = function() return getDB("showInArena", false) end, set = function(v) setDB("showInArena", v) end },
             { type = "section", name = L["MYTHIC_BLOCK"] },
-            { type = "toggle", name = L["ENABLE_M_BLOCK"], desc = L["FOCUS_TIMER_COMPLETION_AFFIXES_MYTHIC_DUNGEONS"], dbKey = "showMythicPlusBlock", get = function() return getDB("showMythicPlusBlock", true) end, set = function(v) setDB("showMythicPlusBlock", v) end, refreshIds = { "mplusAlwaysShow", "mplusShowAffixIcons", "mplusShowAffixDescriptions", "mplusBlockPosition", "mplusBossCompletedDisplay" } },
+            { type = "toggle", name = L["ENABLE_M_BLOCK"], desc = L["FOCUS_TIMER_COMPLETION_AFFIXES_MYTHIC_DUNGEONS"], dbKey = "showMythicPlusBlock", get = function() return getDB("showMythicPlusBlock", true) end, set = function(v) setDB("showMythicPlusBlock", v) end, refreshIds = { "mplusAlwaysShow", "mplusShowAffixIcons", "mplusShowAffixDescriptions", "mplusShowSplitTimer", "mplusBlockPosition", "mplusBossCompletedDisplay" } },
+            { type = "toggle", name = L["FOCUS_SHOW_SPLIT_TIMER"], desc = L["FOCUS_SHOW_SPLIT_TIMER_DESC"], dbKey = "mplusShowSplitTimer", id = "mplusShowSplitTimer", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusShowSplitTimer", true) end, set = function(v) setDB("mplusShowSplitTimer", v); if addon.UpdateMplusBlock then addon.UpdateMplusBlock() end end },
             { type = "toggle", name = L["ALWAYS"], desc = L["ALWAYS_M_TIMER"], tooltip = L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"], dbKey = "mplusAlwaysShow", id = "mplusAlwaysShow", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusAlwaysShow", false) end, set = function(v) setDB("mplusAlwaysShow", v); if addon.FullLayout then addon.FullLayout() end end },
             { type = "toggle", name = L["AFFIX_ICONS"], desc = L["FOCUS_AFFIX_ICONS_NEXT_MODIFIER_NAMES_M"], dbKey = "mplusShowAffixIcons", id = "mplusShowAffixIcons", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusShowAffixIcons", true) end, set = function(v) setDB("mplusShowAffixIcons", v) end },
             { type = "toggle", name = L["AFFIX_TOOLTIPS"], desc = L["FOCUS_AFFIX_DESCRIPTIONS_HOVERING_M_BLO"], dbKey = "mplusShowAffixDescriptions", id = "mplusShowAffixDescriptions", visibleWhen = function() return getDB("showMythicPlusBlock", true) end, get = function() return getDB("mplusShowAffixDescriptions", true) end, set = function(v) setDB("mplusShowAffixDescriptions", v) end },
@@ -2131,6 +2174,7 @@ local OptionCategories = {
             { type = "section", name = L["FOCUS_MYTHIC_TYPOGRAPHY"], defaultCollapsed = true },
             { type = "slider", name = L["FOCUS_DUNGEON_NAME_SIZE"], desc = L["FOCUS_FONT_SIZE_DUNGEON_NAME_PX"], dbKey = "mplusDungeonSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusDungeonSize", 14)) or 14)) end, set = function(v) setDB("mplusDungeonSize", math.max(8, math.min(32, v))) end },
             { type = "slider", name = L["FOCUS_TIMER_SIZE"], desc = L["FOCUS_FONT_SIZE_TIMER_PX"], dbKey = "mplusTimerSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusTimerSize", 13)) or 13)) end, set = function(v) setDB("mplusTimerSize", math.max(8, math.min(32, v))) end },
+            { type = "slider", name = L["FOCUS_SPLIT_TIMER_SIZE"], desc = L["FOCUS_FONT_SIZE_SPLIT_TIMER_PX"], dbKey = "mplusSplitSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusSplitSize", 12)) or 12)) end, set = function(v) setDB("mplusSplitSize", math.max(8, math.min(32, v))) end },
             { type = "slider", name = L["ENEMY_FORCES_SIZE"], desc = L["FOCUS_FONT_SIZE_ENEMY_FORCES_PX"], dbKey = "mplusProgressSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusProgressSize", 12)) or 12)) end, set = function(v) setDB("mplusProgressSize", math.max(8, math.min(32, v))) end },
             { type = "slider", name = L["FOCUS_AFFIX_SIZE"], desc = L["FOCUS_FONT_SIZE_AFFIXES_PX"], dbKey = "mplusAffixSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusAffixSize", 12)) or 12)) end, set = function(v) setDB("mplusAffixSize", math.max(8, math.min(32, v))) end },
             { type = "slider", name = L["FOCUS_BOSS_SIZE"], desc = L["FOCUS_FONT_SIZE_BOSS_NAMES_PX"], dbKey = "mplusBossSize", min = 8, max = 32, step = 1, get = function() return math.max(8, math.min(32, tonumber(getDB("mplusBossSize", 12)) or 12)) end, set = function(v) setDB("mplusBossSize", math.max(8, math.min(32, v))) end },
@@ -2138,6 +2182,8 @@ local OptionCategories = {
             { type = "color", name = L["FOCUS_DUNGEON_NAME_COLOUR"], desc = L["FOCUS_TEXT_COLOUR_DUNGEON_NAME"], dbKey = "mplusDungeonColor", get = function() return getDB("mplusDungeonColorR", 0.96), getDB("mplusDungeonColorG", 0.96), getDB("mplusDungeonColorB", 1.0) end, set = function(r, g, b) setDB("mplusDungeonColorR", r); setDB("mplusDungeonColorG", g); setDB("mplusDungeonColorB", b) end },
             { type = "color", name = L["FOCUS_TIMER_COLOUR"], desc = L["FOCUS_TEXT_COLOUR_TIMER"], dbKey = "mplusTimerColor", get = function() return getDB("mplusTimerColorR", 0.6), getDB("mplusTimerColorG", 0.88), getDB("mplusTimerColorB", 1.0) end, set = function(r, g, b) setDB("mplusTimerColorR", r); setDB("mplusTimerColorG", g); setDB("mplusTimerColorB", b) end },
             { type = "color", name = L["FOCUS_TIMER_OVERTIME_COLOUR"], desc = L["FOCUS_TEXT_COLOUR_TIMER_LIMIT"], dbKey = "mplusTimerOvertimeColor", get = function() return getDB("mplusTimerOvertimeColorR", 0.9), getDB("mplusTimerOvertimeColorG", 0.25), getDB("mplusTimerOvertimeColorB", 0.2) end, set = function(r, g, b) setDB("mplusTimerOvertimeColorR", r); setDB("mplusTimerOvertimeColorG", g); setDB("mplusTimerOvertimeColorB", b) end },
+            { type = "color", name = L["FOCUS_SPLIT_TIMER_COLOUR"], desc = L["FOCUS_TEXT_COLOUR_SPLIT_TIMER"], dbKey = "mplusSplitColor", get = function() return getDB("mplusSplitColorR", 0.85), getDB("mplusSplitColorG", 0.90), getDB("mplusSplitColorB", 0.55) end, set = function(r, g, b) setDB("mplusSplitColorR", r); setDB("mplusSplitColorG", g); setDB("mplusSplitColorB", b) end },
+            { type = "color", name = L["FOCUS_SPLIT_TIMER_PAST_COLOUR"], desc = L["FOCUS_TEXT_COLOUR_SPLIT_TIMER_PAST"], dbKey = "mplusSplitPastColor", get = function() return getDB("mplusSplitPastColorR", 0.40), getDB("mplusSplitPastColorG", 0.40), getDB("mplusSplitPastColorB", 0.40) end, set = function(r, g, b) setDB("mplusSplitPastColorR", r); setDB("mplusSplitPastColorG", g); setDB("mplusSplitPastColorB", b) end },
             { type = "color", name = L["ENEMY_FORCES_COLOUR"], desc = L["FOCUS_TEXT_COLOUR_ENEMY_FORCES"], dbKey = "mplusProgressColor", get = function() return getDB("mplusProgressColorR", 0.72), getDB("mplusProgressColorG", 0.76), getDB("mplusProgressColorB", 0.88) end, set = function(r, g, b) setDB("mplusProgressColorR", r); setDB("mplusProgressColorG", g); setDB("mplusProgressColorB", b) end },
             { type = "color", name = L["FOCUS_BAR_FILL_COLOUR"], desc = L["FOCUS_PROGRESS_BAR_FILL_COLOUR_PROGRESS"], dbKey = "mplusBarColor", get = function() return getDB("mplusBarColorR", 0.20), getDB("mplusBarColorG", 0.45), getDB("mplusBarColorB", 0.60), getDB("mplusBarColorA", 0.90) end, set = function(r, g, b, a) setDB("mplusBarColorR", r); setDB("mplusBarColorG", g); setDB("mplusBarColorB", b); if a then setDB("mplusBarColorA", a) end end, hasAlpha = true },
             { type = "color", name = L["FOCUS_BAR_COMPLETE_COLOUR"], desc = L["FOCUS_PROGRESS_BAR_FILL_COLOUR_ENEMY_FORCES"], dbKey = "mplusBarDoneColor", get = function() return getDB("mplusBarDoneColorR", 0.15), getDB("mplusBarDoneColorG", 0.65), getDB("mplusBarDoneColorB", 0.25), getDB("mplusBarDoneColorA", 0.90) end, set = function(r, g, b, a) setDB("mplusBarDoneColorR", r); setDB("mplusBarDoneColorG", g); setDB("mplusBarDoneColorB", b); if a then setDB("mplusBarDoneColorA", a) end end, hasAlpha = true },
@@ -2149,6 +2195,9 @@ local OptionCategories = {
                 setDB("mplusTimerSize", 13)
                 setDB("mplusTimerColorR", 0.6); setDB("mplusTimerColorG", 0.88); setDB("mplusTimerColorB", 1.0)
                 setDB("mplusTimerOvertimeColorR", 0.9); setDB("mplusTimerOvertimeColorG", 0.25); setDB("mplusTimerOvertimeColorB", 0.2)
+                setDB("mplusSplitSize", 12)
+                setDB("mplusSplitColorR", 0.85); setDB("mplusSplitColorG", 0.90); setDB("mplusSplitColorB", 0.55)
+                setDB("mplusSplitPastColorR", 0.40); setDB("mplusSplitPastColorG", 0.40); setDB("mplusSplitPastColorB", 0.40)
                 setDB("mplusProgressSize", 12)
                 setDB("mplusProgressColorR", 0.72); setDB("mplusProgressColorG", 0.76); setDB("mplusProgressColorB", 0.88)
                 setDB("mplusBarColorR", 0.20); setDB("mplusBarColorG", 0.45); setDB("mplusBarColorB", 0.60); setDB("mplusBarColorA", 0.90)
@@ -2157,7 +2206,7 @@ local OptionCategories = {
                 setDB("mplusAffixColorR", 0.85); setDB("mplusAffixColorG", 0.85); setDB("mplusAffixColorB", 0.95)
                 setDB("mplusBossSize", 12)
                 setDB("mplusBossColorR", 0.78); setDB("mplusBossColorG", 0.82); setDB("mplusBossColorB", 0.92)
-            end, refreshIds = { "mplusDungeonSize", "mplusDungeonColor", "mplusTimerSize", "mplusTimerColor", "mplusTimerOvertimeColor", "mplusProgressSize", "mplusProgressColor", "mplusBarColor", "mplusBarDoneColor", "mplusAffixSize", "mplusAffixColor", "mplusBossSize", "mplusBossColor" } },
+            end, refreshIds = { "mplusDungeonSize", "mplusDungeonColor", "mplusTimerSize", "mplusTimerColor", "mplusTimerOvertimeColor", "mplusSplitSize", "mplusSplitColor", "mplusSplitPastColor", "mplusProgressSize", "mplusProgressColor", "mplusBarColor", "mplusBarDoneColor", "mplusAffixSize", "mplusAffixColor", "mplusBossSize", "mplusBossColor" } },
             { type = "section", name = L["FOCUS_DELVES_DUNGEONS"] },
             { type = "toggle", name = L["SCENARIO_EVENTS"], desc = L["FOCUS_TRACK_DELVE_DUNGEON_SCENARIO_ACTIVITIES"], dbKey = "showScenarioEvents", get = function() return getDB("showScenarioEvents", true) end, set = function(v) setDB("showScenarioEvents", v) end, tooltip = L["FOCUS_DELVES_APPEAR_DELVES_SECTION_DUNGEONS_DUNGEON"] },
             { type = "toggle", name = L["ACTIVE_INSTANCE"], desc = L["ACTIVE_INSTANCE_SECTION"], dbKey = "hideOtherCategoriesInDelve", get = function() return getDB("hideOtherCategoriesInDelve", false) end, set = function(v) setDB("hideOtherCategoriesInDelve", v) end, tooltip = L["HIDES_CATEGORIES_WHILE_A_DELVE_PARTY"] },
@@ -2275,9 +2324,9 @@ local OptionCategories = {
         moduleKey = "presence",
         options = {
             { type = "section", name = L["PRESENCE_NOTIFICATION_TYPES"] },
-            { type = "toggle", name = L["ZONE_ENTRY"], desc = L["PRESENCE_ZONE_CHANGE_ENTERING_A_AREA"], dbKey = "presenceZoneChange", get = function() return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceZoneChange", v) end },
-            { type = "toggle", name = L["SUBZONE_CHANGES"], desc = L["PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"], dbKey = "presenceSubzoneChange", get = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceSubzoneChange", v) end },
-            { type = "toggle", name = L["VISTA_SHOW_SUBZONE"], desc = L["SUBZONE_NAME_WITHIN_SAME_ZONE"], dbKey = "presenceHideZoneForSubzone", get = function() return getDB("presenceHideZoneForSubzone", false) end, set = function(v) setDB("presenceHideZoneForSubzone", v) end, tooltip = L["ZONE_NAME_NEW_ZONE"] },
+            { type = "toggle", name = L["ZONE_ENTRY"], desc = L["PRESENCE_ZONE_CHANGE_ENTERING_A_AREA"], dbKey = "presenceZoneChange", get = function() return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceZoneChange", v) end, refreshIds = { "presenceSubzoneChange", "presenceHideZoneForSubzone" } },
+            { type = "toggle", name = L["SUBZONE_CHANGES"], desc = L["PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"], dbKey = "presenceSubzoneChange", get = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceSubzoneChange", v) end, refreshIds = { "presenceHideZoneForSubzone" } },
+            { type = "toggle", name = L["VISTA_SHOW_SUBZONE"], desc = L["SUBZONE_NAME_WITHIN_SAME_ZONE"], dbKey = "presenceHideZoneForSubzone", get = function() return getDB("presenceHideZoneForSubzone", false) end, set = function(v) setDB("presenceHideZoneForSubzone", v) end, tooltip = L["ZONE_NAME_NEW_ZONE"], visibleWhen = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end },
             { type = "toggle", name = L["SUPPRESS_M"], desc = L["HIDE_ZONE_NOTIFICATIONS_MYTHIC"], tooltip = L["BOSS_EMOTES_ACHIEVEMENTS_LEVEL_HIDES_ZONE"], dbKey = "presenceSuppressZoneInMplus", get = function() return getDB("presenceSuppressZoneInMplus", true) end, set = function(v) setDB("presenceSuppressZoneInMplus", v) end },
             { type = "section", name = L["INSTANCE_SUPPRESSION"] },
             { type = "toggle", name = L["SUPPRESS_DUNGEON"], desc = L["SUPPRESS_NOTIFICATIONS_DUNGEONS"], tooltip = L["SUPPRESS_IN_DUNGEON_DETAIL"], dbKey = "presenceSuppressInDungeon", get = function() return getDB("presenceSuppressInDungeon", false) end, set = function(v) setDB("presenceSuppressInDungeon", v) end },
@@ -2387,7 +2436,7 @@ local OptionCategories = {
             { type = "toggle", name = L["INSIGHT_HIDE_IN_COMBAT"] or "Hide tooltips in combat", desc = L["INSIGHT_HIDE_IN_COMBAT_DESC"] or "While in combat, close GameTooltip and other Insight-styled tooltip frames and block them from staying open. Applies only when the Insight module is enabled.", dbKey = "insightHideTooltipsInCombat", get = function() return getDB("insightHideTooltipsInCombat", false) end, set = function(v) setDB("insightHideTooltipsInCombat", v) end },
             { type = "section", name = L["INSIGHT_SECTION_ICONS_AND_SEPARATORS"] or "Icons & separators" },
             { type = "toggle", name = L["AXIS_ICONS"] or "Show icons", desc = L["AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"] or "Show faction, spec, mount, and Mythic+ icons in tooltips.", dbKey = "insightShowIcons", get = function() return getDB("insightShowIcons", true) end, set = function(v) setDB("insightShowIcons", v) end, refreshIds = { "insightClassIconSource" } },
-            { type = "toggle", name = L["AXIS_BLANK_SEPARATOR"] or "Blank separator", desc = L["AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"] or "Use a blank line instead of dashes between tooltip sections.", dbKey = "insightBlankSeparator", get = function() return getDB("insightBlankSeparator", false) end, set = function(v) setDB("insightBlankSeparator", v) end },
+            { type = "dropdown", name = L["AXIS_SEPARATION"] or "Separation", desc = L["AXIS_SEPARATION_DESC"] or "Choose how Insight separates tooltip sections: divider lines, blank spacing, or no separators.", dbKey = "insightSeparatorMode", options = { { L["AXIS_SEPARATION_DIVIDERS"] or "Dividers", "divider" }, { L["AXIS_SEPARATION_BLANK"] or "Blank", "blank" }, { L["AXIS_SEPARATION_NONE"] or "None", "none" } }, preserveOrder = true, get = function() local v = getDB("insightSeparatorMode", nil); if v == "divider" or v == "blank" or v == "none" then return v end; return getDB("insightBlankSeparator", false) and "blank" or "divider" end, set = function(v) v = (v == "blank") and "blank" or (v == "none") and "none" or "divider"; setDB("insightSeparatorMode", v); setDB("insightBlankSeparator", v == "blank") end, tooltip = L["AXIS_SEPARATION_TOOLTIP"] or "Dividers draws a tinted dashed line between sections. Blank inserts a blank line instead. None removes Insight section separators entirely." },
         },
     },
     {
@@ -2400,6 +2449,8 @@ local OptionCategories = {
             { type = "section", name = L["INSIGHT_SECTION_IDENTITY"] or "Identity" },
             { type = "dropdown", name = L["INSIGHT_PLAYER_NAME_COLOUR"] or "Player name colour", desc = L["INSIGHT_PLAYER_NAME_COLOUR_DESC"] or "Colour for the player's name on the first tooltip line.", dbKey = "insightPlayerNameColor", options = { { L["INSIGHT_PLAYER_NAME_COLOUR_FACTION"] or "Faction", "faction" }, { L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"] or "Class", "class" } }, get = function() local v = getDB("insightPlayerNameColor", "faction"); return v == "class" and "class" or "faction" end, set = function(v) setDB("insightPlayerNameColor", v == "class" and "class" or "faction") end, refreshIds = { "insightPlayerNameGradient", "insightTitleColorMode", "insightTitleColor" } },
             { type = "toggle", name = L["INSIGHT_PLAYER_NAME_GRADIENT"] or "Class colour gradient", desc = L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"] or "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class).", dbKey = "insightPlayerNameGradient", isNew = "4.12.6a", get = function() return getDB("insightPlayerNameGradient", false) end, set = function(v) setDB("insightPlayerNameGradient", v) end, visibleWhen = function() return getDB("insightPlayerNameColor", "faction") == "class" end, refreshIds = { "insightTitleColorMode", "insightTitleColor" } },
+            { type = "dropdown", name = L["INSIGHT_REALM_NAMES"] or "Realm Names", desc = L["INSIGHT_REALM_NAMES_DESC"] or "Choose how realm names display in player tooltip names.", dbKey = "insightRealmNameMode", options = { { L["INSIGHT_REALM_NAMES_FULL"] or "Full", "full" }, { L["INSIGHT_REALM_NAMES_HIDE"] or "Hide", "hide" }, { L["INSIGHT_REALM_NAMES_MODIFIER"] or "Modifier", "modifier" }, { L["INSIGHT_REALM_NAMES_SIMPLIFIED"] or "Simplified", "simplified" } }, preserveOrder = true, get = function() local v = getDB("insightRealmNameMode", "full"); return (v == "full" or v == "hide" or v == "modifier" or v == "simplified") and v or "full" end, set = function(v) setDB("insightRealmNameMode", (v == "full" or v == "hide" or v == "modifier" or v == "simplified") and v or "full") end },
+            { type = "toggle", name = L["INSIGHT_RACE_ICONS"] or "Race icons", desc = L["INSIGHT_RACE_ICONS_DESC"] or "Show a race icon beside the level and race line.", dbKey = "insightRaceIcons", get = function() return getDB("insightRaceIcons", true) end, set = function(v) setDB("insightRaceIcons", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
             { type = "toggle", name = L["GUILD_RANK"] or "Guild rank", desc = L["AXIS_APPEND_PLAYER_S_GUILD_RANK_NEXT"] or "Append the player's guild rank next to their guild name.", dbKey = "insightShowGuildRank", get = function() return getDB("insightShowGuildRank", true) end, set = function(v) setDB("insightShowGuildRank", v) end },
             { type = "toggle", name = L["AXIS_CHARACTER_TITLE"] or "Character title", desc = L["AXIS_PLAYER_S_SELECTED_TITLE_ACHIEVEMENT_PVP"] or "Show the player's selected title (achievement or PvP) in the name line.", dbKey = "insightShowCharacterTitle", get = function() return getDB("insightShowCharacterTitle", true) end, set = function(v) setDB("insightShowCharacterTitle", v) end, refreshIds = { "insightTitleColorMode", "insightTitleColor" } },
             { type = "dropdown", name = L["AXIS_TITLE_COLOUR"] or "Title Colour", desc = L["INSIGHT_TITLE_COLOUR_MODE_DESC"] or "Choose how character titles are coloured in the player tooltip name line.", dbKey = "insightTitleColorMode", options = function()
@@ -2431,23 +2482,31 @@ local OptionCategories = {
                 end
                 return getDB("insightShowCharacterTitle", true) and mode == "custom"
             end },
-            { type = "section", name = L["INSIGHT_SECTION_STATUS_PVP"] or "Status & PvP" },
-            { type = "toggle", name = L["STATUS_BADGES"] or "Status badges", desc = L["COMBAT_AFK_DND_PVP_PARTY_FRIENDS"], dbKey = "insightShowStatusBadges", get = function() return getDB("insightShowStatusBadges", true) end, set = function(v) setDB("insightShowStatusBadges", v) end },
-            { type = "toggle", name = L["HONOR_LEVEL"] or "Honor level", desc = L["AXIS_PLAYER_S_PVP_HONOR_LEVEL_TOOLTIP"] or "Show the player's PvP honor level in the tooltip.", dbKey = "insightShowHonorLevel", get = function() return getDB("insightShowHonorLevel", true) end, set = function(v) setDB("insightShowHonorLevel", v) end },
+            { type = "section", name = L["INSIGHT_SECTION_STATUS_PVP"] or "Status" },
+            { type = "toggle", name = L["STATUS_BADGES"] or "Status badges", desc = L["COMBAT_AFK_DND_PVP_PARTY_FRIENDS"], dbKey = "insightShowStatusBadges", get = function() return getDB("insightShowStatusBadges", true) end, set = function(v) setDB("insightShowStatusBadges", v) end, refreshIds = { "insightStatusBadgeCombat", "insightStatusBadgeAFK", "insightStatusBadgeDND", "insightStatusBadgePVP", "insightStatusBadgeGroup", "insightStatusBadgeFriend", "insightStatusBadgeTargeting" } },
+            { type = "toggle", name = L["INSIGHT_STATUS_BADGE_COMBAT"] or "Combat",                desc = L["INSIGHT_STATUS_BADGE_COMBAT_DESC"] or "Show a Combat badge when the hovered player is in combat.",                 dbKey = "insightStatusBadgeCombat",    get = function() return getDB("insightStatusBadgeCombat",    true) end, set = function(v) setDB("insightStatusBadgeCombat",    v) end, visibleWhen = function() return getDB("insightShowStatusBadges", true) end },
+            { type = "toggle", name = L["INSIGHT_STATUS_BADGE_AFK"] or "AFK",                      desc = L["INSIGHT_STATUS_BADGE_AFK_DESC"] or "Show an AFK badge when the hovered player is away.",                        dbKey = "insightStatusBadgeAFK",       get = function() return getDB("insightStatusBadgeAFK",       true) end, set = function(v) setDB("insightStatusBadgeAFK",       v) end, visibleWhen = function() return getDB("insightShowStatusBadges", true) end },
+            { type = "toggle", name = L["INSIGHT_STATUS_BADGE_DND"] or "DND",                      desc = L["INSIGHT_STATUS_BADGE_DND_DESC"] or "Show a DND badge when the hovered player is marked do not disturb.",        dbKey = "insightStatusBadgeDND",       get = function() return getDB("insightStatusBadgeDND",       true) end, set = function(v) setDB("insightStatusBadgeDND",       v) end, visibleWhen = function() return getDB("insightShowStatusBadges", true) end },
+            { type = "toggle", name = L["INSIGHT_STATUS_BADGE_PVP"] or "PvP",                      desc = L["INSIGHT_STATUS_BADGE_PVP_DESC"] or "Show a PvP badge when the hovered player is flagged for PvP.",             dbKey = "insightStatusBadgePVP",       get = function() return getDB("insightStatusBadgePVP",       true) end, set = function(v) setDB("insightStatusBadgePVP",       v) end, visibleWhen = function() return getDB("insightShowStatusBadges", true) end },
+            { type = "toggle", name = L["INSIGHT_STATUS_BADGE_GROUP"] or "Group",                  desc = L["INSIGHT_STATUS_BADGE_GROUP_DESC"] or "Show Party or Raid badges for grouped players.",                            dbKey = "insightStatusBadgeGroup",     get = function() return getDB("insightStatusBadgeGroup",     true) end, set = function(v) setDB("insightStatusBadgeGroup",     v) end, visibleWhen = function() return getDB("insightShowStatusBadges", true) end },
+            { type = "toggle", name = L["INSIGHT_STATUS_BADGE_FRIEND"] or "Friend",                desc = L["INSIGHT_STATUS_BADGE_FRIEND_DESC"] or "Show a Friend badge for players on your friend list.",                      dbKey = "insightStatusBadgeFriend",    get = function() return getDB("insightStatusBadgeFriend",    true) end, set = function(v) setDB("insightStatusBadgeFriend",    v) end, visibleWhen = function() return getDB("insightShowStatusBadges", true) end },
+            { type = "toggle", name = L["INSIGHT_STATUS_BADGE_TARGETING"] or "Targeting You",      desc = L["INSIGHT_STATUS_BADGE_TARGETING_DESC"] or "Show a Targeting You badge when the hovered player has you targeted.",      dbKey = "insightStatusBadgeTargeting", get = function() return getDB("insightStatusBadgeTargeting", true) end, set = function(v) setDB("insightStatusBadgeTargeting", v) end, visibleWhen = function() return getDB("insightShowStatusBadges", true) end },
             { type = "section", name = L["INSIGHT_SECTION_RATINGS_GEAR"] or "Ratings & gear" },
-            { type = "toggle", name = L["MYTHIC_SCORE"] or "Mythic+ score", desc = L["AXIS_PLAYER_S_CURRENT_SEASON_MYTHIC_SCORE"] or "Show the player's current season Mythic+ score, colour-coded by tier.", dbKey = "insightShowMythicScore", get = function() return getDB("insightShowMythicScore", true) end, set = function(v) setDB("insightShowMythicScore", v) end },
-            { type = "toggle", name = L["ITEM_LEVEL"] or "Item level", desc = L["AXIS_PLAYER_S_EQUIPPED_ITEM_LEVEL_AFTER"] or "Show the player's equipped item level after inspecting them.", dbKey = "insightShowIlvl", get = function() return getDB("insightShowIlvl", true) end, set = function(v) setDB("insightShowIlvl", v) end },
-            { type = "toggle", name = L["INSIGHT_SPEC_ROLE"] or "Spec icon & role", desc = L["INSIGHT_SPEC_ROLE_DESC"] or "Show the player's specialization icon and role after inspecting them. Disable to stop Insight from calling NotifyInspect on mouseover.", dbKey = "insightShowSpecRole", get = function() return getDB("insightShowSpecRole", true) end, set = function(v) setDB("insightShowSpecRole", v) end },
+            { type = "dropdown", name = L["MYTHIC_SCORE"] or "Mythic+ score", desc = L["INSIGHT_MYTHIC_SCORE_MODE_DESC"] or "Choose when to show Mythic+ score. Show always displays it. Modifier shows it only while Shift is held.", dbKey = "insightMythicScoreMode", options = INSIGHT_FORCE_MODIFIER_OPTIONS, preserveOrder = true, get = function() local v = getDB("insightMythicScoreMode", nil); if v == "force" or v == "modifier" or v == "hide" then return v end; return getDB("insightShowMythicScore", false) and "force" or "hide" end, set = function(v) v = (v == "modifier") and "modifier" or (v == "force") and "force" or "hide"; setDB("insightMythicScoreMode", v); setDB("insightShowMythicScore", v == "force") end },
+            { type = "dropdown", name = L["ITEM_LEVEL"] or "Item level", desc = L["INSIGHT_ITEM_LEVEL_MODE_DESC"] or "Choose when to show equipped item level. Show requests inspect data on hover and may not appear instantly. Modifier shows it only while Shift is held.", dbKey = "insightItemLevelMode", options = INSIGHT_FORCE_MODIFIER_OPTIONS, preserveOrder = true, get = function() local v = getDB("insightItemLevelMode", nil); if v == "force" or v == "modifier" or v == "hide" then return v end; return getDB("insightShowIlvl", false) and "force" or "hide" end, set = function(v) v = (v == "modifier") and "modifier" or (v == "force") and "force" or "hide"; setDB("insightItemLevelMode", v); setDB("insightShowIlvl", v == "force") end },
+            { type = "dropdown", name = L["HONOR_LEVEL"] or "Honor level", desc = L["INSIGHT_HONOR_LEVEL_MODE_DESC"] or "Choose when to show PvP honor level. Show attempts to show it on every player tooltip. Modifier shows it only while Shift is held.", dbKey = "insightHonorLevelMode", options = INSIGHT_FORCE_MODIFIER_OPTIONS, preserveOrder = true, get = function() local v = getDB("insightHonorLevelMode", nil); if v == "force" or v == "modifier" or v == "hide" then return v end; return getDB("insightShowHonorLevel", false) and "force" or "hide" end, set = function(v) v = (v == "modifier") and "modifier" or (v == "force") and "force" or "hide"; setDB("insightHonorLevelMode", v); setDB("insightShowHonorLevel", v == "force") end },
+            { type = "toggle", name = L["INSIGHT_RATINGS_ICONS"] or "Rating icons", desc = L["INSIGHT_RATINGS_ICONS_DESC"] or "Show icons beside Mythic+ score, honor level, and item level.", dbKey = "insightRatingsIcons", get = function() return getDB("insightRatingsIcons", true) end, set = function(v) setDB("insightRatingsIcons", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
             { type = "section", name = L["INSIGHT_SECTION_MOUNT"] or "Mount" },
             { type = "toggle", name = L["MOUNT_INFO"] or "Mount info", desc = L["MOUNT_NAME_SOURCE_COLLECTION_STATUS"], dbKey = "insightShowMount", get = function() return getDB("insightShowMount", true) end, set = function(v) setDB("insightShowMount", v) end, tooltip = L["SHOWN_HOVERING_A_MOUNTED_PLAYER"] },
             { type = "dropdown", name = L["INSIGHT_MOUNT_OWNERSHIP_DISPLAY"] or "Mount collection indicator", desc = L["INSIGHT_MOUNT_OWNERSHIP_DISPLAY_DESC"] or "How to show whether you have collected the hovered player's mount.", dbKey = "insightMountOwnershipDisplay", options = { { L["INSIGHT_MOUNT_OWNERSHIP_TEXT"] or "Full text", "text" }, { L["INSIGHT_MOUNT_OWNERSHIP_ICONS"] or "Tick / cross", "icons" } }, get = function() return getDB("insightMountOwnershipDisplay", "text") end, set = function(v) setDB("insightMountOwnershipDisplay", v) end, visibleWhen = function() return getDB("insightShowMount", true) end },
-            { type = "section", name = L["AXIS_ICONS"] or "Icons" },
-            { type = "dropdown", name = L["AXIS_CLASS_ICON_STYLE"] or "Class icon style", desc = L["AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"], dbKey = "insightClassIconSource", options = { { L["AXIS_CUSTOM_CLASS_ICONS_LABEL"] or "Horizon", "custom" }, { L["AXIS_DEFAULT"] or "Default", "default" }, { "RondoMedia", "rondomedia" } }, get = function() return getDB("insightClassIconSource", "custom") end, set = function(v) setDB("insightClassIconSource", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
+            { type = "section", name = L["INSIGHT_SECTION_CLASS"] or "Class" },
+            { type = "toggle", name = L["INSIGHT_SPEC_ROLE"] or "Role", desc = L["INSIGHT_SPEC_ROLE_DESC"] or "Show the player's role (Tank / Healer / DPS) on the class line. Requires inspect data — appears after hovering for a moment.", dbKey = "insightShowSpecRole", get = function() return getDB("insightShowSpecRole", true) end, set = function(v) setDB("insightShowSpecRole", v) end },
+            { type = "dropdown", name = L["AXIS_CLASS_ICON_STYLE"] or "Class icon style", desc = L["AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"] or "Use Default (Blizzard) or RondoMedia class icons on the class/spec line.", tooltip = (L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"] or "") .. "\n\n" .. (L["AXIS_SPEC_OVERRIDE_INSPECT_NOTE"] or "Spec override requires inspect data — appears after hovering for a moment."), dbKey = "insightClassIconSource", options = { { L["AXIS_CUSTOM_CLASS_ICONS_LABEL"] or "Horizon", "custom" }, { L["AXIS_DEFAULT"] or "Default", "default" }, { "RondoMedia", "rondomedia" }, { L["AXIS_SPEC_OVERRIDE"] or "Spec Override", "specoverride" } }, get = function() return getDB("insightClassIconSource", "custom") end, set = function(v) setDB("insightClassIconSource", v) end, visibleWhen = function() return getDB("insightShowIcons", true) end },
             { type = "section", name = L["FOCUS_FONT_SIZES"] or "Font sizes" },
             { type = "slider", name = L["FOCUS_HEADER_SIZE"] or "Header size",   desc = L["FOCUS_HEADER_FONT_SIZE"] or "Header font size for player tooltips.",                                dbKey = "insightPlayerHeaderSize",  min = 8, max = 24, get = function() return getDB("insightPlayerHeaderSize",  14) end, set = function(v) setDB("insightPlayerHeaderSize",  v) end },
             { type = "slider", name = L["INSIGHT_BODY_SIZE"] or "Body size",     desc = L["INSIGHT_BODY_FONT_SIZE"] or "Body font size for player tooltips.",                                  dbKey = "insightPlayerBodySize",    min = 8, max = 20, get = function() return getDB("insightPlayerBodySize",    12) end, set = function(v) setDB("insightPlayerBodySize",    v) end },
-            { type = "slider", name = L["INSIGHT_BADGES_SIZE"] or "Badges size", desc = L["INSIGHT_BADGES_FONT_SIZE"] or "Status badges font size for player tooltips.",                      dbKey = "insightPlayerBadgesSize",  min = 6, max = 20, get = function() return getDB("insightPlayerBadgesSize",  12) end, set = function(v) setDB("insightPlayerBadgesSize",  v) end },
-            { type = "slider", name = L["INSIGHT_STATS_SIZE"] or "Stats size",   desc = L["INSIGHT_STATS_FONT_SIZE"] or "M+ score, item level, and honor level font size for player tooltips.", dbKey = "insightPlayerStatsSize",  min = 6, max = 20, get = function() return getDB("insightPlayerStatsSize",   11) end, set = function(v) setDB("insightPlayerStatsSize",   v) end },
+            { type = "slider", name = L["INSIGHT_BADGES_SIZE"] or "Status badge size",    desc = L["INSIGHT_BADGES_FONT_SIZE"] or "Font size for status badges on player tooltips.",                                               dbKey = "insightPlayerBadgesSize",  min = 6, max = 20, get = function() return getDB("insightPlayerBadgesSize",  12) end, set = function(v) setDB("insightPlayerBadgesSize",  v) end },
+            { type = "slider", name = L["INSIGHT_STATS_SIZE"] or "Ratings size",           desc = L["INSIGHT_STATS_FONT_SIZE"] or "Font size for Mythic+ score, item level, and honor level on player tooltips.", dbKey = "insightPlayerStatsSize",  min = 6, max = 20, get = function() return getDB("insightPlayerStatsSize",   11) end, set = function(v) setDB("insightPlayerStatsSize",   v) end },
             { type = "slider", name = L["INSIGHT_MOUNT_SIZE"] or "Mount size",   desc = L["INSIGHT_MOUNT_FONT_SIZE"] or "Mount name, source, and ownership font size for player tooltips.",   dbKey = "insightPlayerMountSize",   min = 6, max = 20, get = function() return getDB("insightPlayerMountSize",   11) end, set = function(v) setDB("insightPlayerMountSize",   v) end },
         },
     },
@@ -3540,6 +3599,10 @@ end
 -- Export for panel
 addon.OptionsData_GetDB = OptionsData_GetDB
 addon.OptionsData_SetDB = OptionsData_SetDB
+addon.OptionsData_GetFontList = function()
+    if addon.RefreshFontList then addon.RefreshFontList() end
+    return (addon.GetFontList and addon.GetFontList()) or {}
+end
 addon.OptionsData_NotifyMainAddon = OptionsData_NotifyMainAddon
 addon.OptionsData_SetUpdateFontsRef = OptionsData_SetUpdateFontsRef
 addon.GetPresencePreviewDropdownOptions = GetPresencePreviewDropdownOptions

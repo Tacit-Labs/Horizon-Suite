@@ -455,10 +455,10 @@ L["AXIS_TOOLTIP_FONT"]                                        = "Tooltip Font"
 L["AXIS_FONT_FAMILY_TOOLTIP_TEXT"]                            = "Font family used for all tooltip text."
 L["INSIGHT_BODY_SIZE"]                                        = "Body Size"
 L["INSIGHT_BODY_FONT_SIZE"]                                   = "Body Font Size."
-L["INSIGHT_BADGES_SIZE"]                                      = "Badges Size"
-L["INSIGHT_BADGES_FONT_SIZE"]                                 = "Status Badges Font Size."
-L["INSIGHT_STATS_SIZE"]                                       = "Stats Size"
-L["INSIGHT_STATS_FONT_SIZE"]                                  = "M+ Score, Item Level, and Honour Level Font Size."
+L["INSIGHT_BADGES_SIZE"]                                      = "Status Badge Size"
+L["INSIGHT_BADGES_FONT_SIZE"]                                 = "Font size for status badges on player tooltips."
+L["INSIGHT_STATS_SIZE"]                                       = "Ratings Size"
+L["INSIGHT_STATS_FONT_SIZE"]                                  = "Font size for Mythic+ score, item level, and honor level on player tooltips."
 L["INSIGHT_MOUNT_SIZE"]                                       = "Mount Size"
 L["INSIGHT_MOUNT_FONT_SIZE"]                                  = "Mount name, source, and ownership font size."
 L["INSIGHT_MOUNT_OWNERSHIP_DISPLAY"]                          = "Mount Collection Indicator"
@@ -485,10 +485,41 @@ L["INSIGHT_PLAYER_NAME_COLOUR_FACTION"]                       = "Faction"
 L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"]                         = "Class"
 L["INSIGHT_PLAYER_NAME_GRADIENT"]                             = "Class Colour Gradient"
 L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"]                        = "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class)."
-L["INSIGHT_SECTION_STATUS_PVP"]                               = "Status & PvP"
+L["INSIGHT_REALM_NAMES"]                                      = "Realm Names"
+L["INSIGHT_REALM_NAMES_DESC"]                                 = "Choose how realm names display in player tooltip names."
+L["INSIGHT_REALM_NAMES_FULL"]                                 = "Full"
+L["INSIGHT_REALM_NAMES_HIDE"]                                 = "Hide"
+L["INSIGHT_REALM_NAMES_MODIFIER"]                             = "Modifier"
+L["INSIGHT_REALM_NAMES_SIMPLIFIED"]                           = "Simplified"
+L["INSIGHT_RACE_ICONS"]                                       = "Race Icons"
+L["INSIGHT_RACE_ICONS_DESC"]                                  = "Show a race icon beside the level and race line."
+L["INSIGHT_DISPLAY_MODE_HIDE"]                                = "Hide"
+L["INSIGHT_DISPLAY_MODE_SHOW"]                                = "Show"
+L["INSIGHT_DISPLAY_MODE_MODIFIER"]                            = "Modifier"
+L["INSIGHT_SECTION_STATUS_PVP"]                               = "Status"
+L["INSIGHT_STATUS_BADGE_COMBAT"]                              = "Combat"
+L["INSIGHT_STATUS_BADGE_COMBAT_DESC"]                         = "Show a Combat badge when the hovered player is in combat."
+L["INSIGHT_STATUS_BADGE_AFK"]                                 = "AFK"
+L["INSIGHT_STATUS_BADGE_AFK_DESC"]                            = "Show an AFK badge when the hovered player is away."
+L["INSIGHT_STATUS_BADGE_DND"]                                 = "DND"
+L["INSIGHT_STATUS_BADGE_DND_DESC"]                            = "Show a DND badge when the hovered player is marked do not disturb."
+L["INSIGHT_STATUS_BADGE_PVP"]                                 = "PvP"
+L["INSIGHT_STATUS_BADGE_PVP_DESC"]                            = "Show a PvP badge when the hovered player is flagged for PvP."
+L["INSIGHT_STATUS_BADGE_GROUP"]                               = "Group"
+L["INSIGHT_STATUS_BADGE_GROUP_DESC"]                          = "Show Party or Raid badges for grouped players."
+L["INSIGHT_STATUS_BADGE_FRIEND"]                              = "Friend"
+L["INSIGHT_STATUS_BADGE_FRIEND_DESC"]                         = "Show a Friend badge for players on your friend list."
+L["INSIGHT_STATUS_BADGE_TARGETING"]                           = "Targeting You"
+L["INSIGHT_STATUS_BADGE_TARGETING_DESC"]                      = "Show a Targeting You badge when the hovered player has you targeted."
+L["INSIGHT_SECTION_CLASS"]                                    = "Class"
 L["INSIGHT_SECTION_RATINGS_GEAR"]                             = "Ratings & Gear"
-L["INSIGHT_SPEC_ROLE"]                                        = "Spec Icon & Role"
-L["INSIGHT_SPEC_ROLE_DESC"]                                   = "Show the player's specialization icon and role after inspecting them. Disable to stop Insight from calling NotifyInspect on mouseover."
+L["INSIGHT_MYTHIC_SCORE_MODE_DESC"]                           = "Choose when to show Mythic+ score. Show requests inspect data on hover and may not appear instantly. Modifier shows it only while Shift is held."
+L["INSIGHT_ITEM_LEVEL_MODE_DESC"]                             = "Choose when to show equipped item level. Show requests inspect data on hover and may not appear instantly. Modifier shows it only while Shift is held."
+L["INSIGHT_HONOR_LEVEL_MODE_DESC"]                            = "Choose when to show PvP honor level. Show requests inspect data on hover and may not appear instantly. Modifier shows it only while Shift is held."
+L["INSIGHT_RATINGS_ICONS"]                                    = "Rating Icons"
+L["INSIGHT_RATINGS_ICONS_DESC"]                               = "Show icons beside Mythic+ score, honor level, and item level."
+L["INSIGHT_SPEC_ROLE"]                                        = "Role"
+L["INSIGHT_SPEC_ROLE_DESC"]                                   = "Show the player's role (Tank / Healer / DPS) on the class line. Requires inspect data — appears after hovering for a moment."
 L["INSIGHT_SECTION_MOUNT"]                                    = "Mount"
 L["INSIGHT_SECTION_DISMISS"]                                  = "Unit Tooltip Dismiss"
 L["INSIGHT_DISMISS_GRACE"]                                    = "Dismiss Grace"
@@ -548,9 +579,18 @@ L["AXIS_MOUNT_INFO"]                                          = "Show Mount Info
 L["AXIS_HOVERING_A_MOUNTED_PLAYER_THEIR_MOUNT"]               = "When hovering a mounted player, show their mount name, source, and whether you own it."
 L["AXIS_BLANK_SEPARATOR"]                                     = "Blank Separator"
 L["AXIS_A_BLANK_LINE_INSTEAD_OF_DASHES"]                      = "Use a blank line instead of dashes between tooltip sections."
+L["AXIS_SEPARATION"]                                          = "Separation"
+L["AXIS_SEPARATION_DESC"]                                     = "Choose how Insight separates tooltip sections."
+L["AXIS_SEPARATION_DIVIDERS"]                                 = "Dividers"
+L["AXIS_SEPARATION_BLANK"]                                    = "Blank"
+L["AXIS_SEPARATION_NONE"]                                     = "None"
+L["AXIS_SEPARATION_TOOLTIP"]                                  = "Dividers draws a tinted dashed line between sections. Blank inserts a blank line instead. None removes Insight section separators entirely."
 L["AXIS_ICONS"]                                               = "Show Icons"
 L["AXIS_CLASS_ICON_STYLE"]                                    = "Class Icon Style"
 L["AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"]          = "Use Blizzard default, RondoMedia, or Horizon icons from this addon's media folder on the class/spec line."
+L["AXIS_SPEC_OVERRIDE"]                                       = "Spec Override"
+L["AXIS_SPEC_OVERRIDE_DESC"]                                  = "Show the native Blizzard spec icon instead of the class icon. Falls back to class icon until inspect data arrives."
+L["AXIS_SPEC_OVERRIDE_INSPECT_NOTE"]                          = "Spec override requires inspect data — appears after hovering for a moment."
 L["AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Horizon"
 L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Horizon: bundled icons under media/CustomClassIcons/<CLASS>/<class lower>.tga (e.g. WARRIOR/warrior.tga); replace files and /reload to override."
 L["AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]       = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
@@ -950,6 +990,14 @@ L["FOCUS_TIMER_COLOUR"]                                       = "Timer Colour"
 L["FOCUS_TEXT_COLOUR_TIMER"]                                  = "Text colour for timer (in time)."
 L["FOCUS_TIMER_OVERTIME_COLOUR"]                              = "Timer Overtime Colour"
 L["FOCUS_TEXT_COLOUR_TIMER_LIMIT"]                            = "Text colour for timer when over the time limit."
+L["FOCUS_SHOW_SPLIT_TIMER"]                                   = "Split Timer (+1/+2/+3)"
+L["FOCUS_SHOW_SPLIT_TIMER_DESC"]                              = "Show remaining time to each keystone upgrade cut-off (+1, +2, +3)."
+L["FOCUS_SPLIT_TIMER_SIZE"]                                   = "Split Timer Size"
+L["FOCUS_FONT_SIZE_SPLIT_TIMER_PX"]                           = "Font size for split timer (8–32 px)."
+L["FOCUS_SPLIT_TIMER_COLOUR"]                                 = "Split Timer Colour"
+L["FOCUS_TEXT_COLOUR_SPLIT_TIMER"]                            = "Text colour for upgrade tiers that are still reachable."
+L["FOCUS_SPLIT_TIMER_PAST_COLOUR"]                            = "Split Timer Past Colour"
+L["FOCUS_TEXT_COLOUR_SPLIT_TIMER_PAST"]                       = "Text colour for upgrade tiers that have expired."
 L["FOCUS_PROGRESS_SIZE"]                                      = "Progress size"
 L["FOCUS_FONT_SIZE_ENEMY_FORCES_PX"]                          = "Font size for enemy forces (8–32 px)."
 L["FOCUS_PROGRESS_COLOUR"]                                    = "Progress colour"
@@ -1044,6 +1092,9 @@ L["FOCUS_CATEGORY_COLOUR_BAR"]                                = "Category Colour
 L["FOCUS_CHECKMARK_COMPLETED"]                                = "Checkmark for Completed"
 L["FOCUS_CURRENT_QUEST_CATEGORY"]                             = "Current Quest Category"
 L["FOCUS_CURRENT_QUEST_WINDOW"]                               = "Current Quest Window"
+L["FOCUS_FOCUSED_QUEST_CATEGORY"]                             = "Focused Quest Category"
+L["FOCUS_FOCUSED_QUEST_CATEGORY_DESC"]                        = "Show the super-tracked quest in its own category."
+L["FOCUS_FOCUSED_QUEST_CATEGORY_TIP"]                         = "When on, the quest you have focused (super-tracked) is hoisted into a dedicated Focused Quest section. The category can be reordered like any other, so you can pin the focused quest to the top, bottom, or anywhere in the tracker."
 L["FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                         = "Show quests with recent progress at the top."
 L["FOCUS_RECENT_QUEST_SECONDS"]                               = "Seconds of recent progress to show in Current Quest (30–120)."
 L["FOCUS_QUEST_PROGRESSION_SECTION"]                          = "Quests you made progress on in the last minute appear in a dedicated section."
@@ -1344,6 +1395,7 @@ L["UI_AVAILABLE_IN_ZONE"]                                     = "AVAILABLE IN ZO
 L["UI_EVENTS_IN_ZONE"]                                        = "Events in Zone"
 L["UI_CURRENT_EVENT"]                                         = "Current Event"
 L["UI_CURRENT_QUEST"]                                         = "CURRENT QUEST"
+L["UI_FOCUSED_QUEST"]                                         = "FOCUSED QUEST"
 L["UI_CURRENT_ZONE"]                                          = "CURRENT ZONE"
 L["UI_CAMPAIGN"]                                              = "CAMPAIGN"
 L["UI_IMPORTANT"]                                             = "IMPORTANT"
@@ -1938,6 +1990,43 @@ L["SUPPRESS_DUNGEON"]                                         = "Suppress in Dun
 L["SUPPRESS_RAID"]                                            = "Suppress in Raid"
 L["SUPPRESS_NOTIFICATIONS_DUNGEONS"]                          = "Suppress notifications in dungeons."
 L["TAKES_PRIORITY_SUPPRESS_UNTIL_RELOAD_ACCEPTING"]           = "Takes priority over suppress-until-reload. Accepting removes from blacklist."
+L["TALKING_HEAD"]                                             = "Talking Head"
+L["TALKING_HEAD_CATEGORY_DESC"]                               = "Configure the appearance and behaviour of the Talking Head frame."
+L["TALKING_HEAD_ENABLE"]                                      = "Enable Talking Head"
+L["TALKING_HEAD_ENABLE_DESC"]                                 = "Show the Talking Head frame during NPC dialogue."
+L["TALKING_HEAD_MUTE_VOICE"]                                  = "Mute Voice"
+L["TALKING_HEAD_MUTE_VOICE_DESC"]                             = "Silence the NPC voice-over when a Talking Head appears."
+L["TALKING_HEAD_CUSTOMISE"]                                   = "Customise Appearance"
+L["TALKING_HEAD_CUSTOMISE_DESC"]                              = "Apply Horizon Suite styling to the Talking Head frame. When disabled, Blizzard defaults are used."
+L["TALKING_HEAD_FRAME_CONTENT"]                               = "Content"
+L["TALKING_HEAD_NAME_FONT"]                                   = "Name Font"
+L["TALKING_HEAD_NAME_FONT_DESC"]                              = "Font family for the NPC name."
+L["TALKING_HEAD_NAME_SIZE"]                                   = "Name Font Size"
+L["TALKING_HEAD_NAME_SIZE_DESC"]                              = "Font size for the NPC name (10–24)."
+L["TALKING_HEAD_NAME_OUTLINE"]                                = "Name Outline"
+L["TALKING_HEAD_NAME_OUTLINE_DESC"]                           = "Apply a text outline to the NPC name."
+L["TALKING_HEAD_NAME_COLOUR"]                                 = "Name Colour"
+L["TALKING_HEAD_NAME_COLOUR_DESC"]                            = "Colour of the NPC name text."
+L["TALKING_HEAD_DIALOGUE_FONT"]                               = "Dialogue Font"
+L["TALKING_HEAD_DIALOGUE_FONT_DESC"]                          = "Font family for NPC dialogue text."
+L["TALKING_HEAD_DIALOGUE_SIZE"]                               = "Dialogue Font Size"
+L["TALKING_HEAD_DIALOGUE_SIZE_DESC"]                          = "Font size for NPC dialogue text (10–20)."
+L["TALKING_HEAD_DIALOGUE_OUTLINE"]                            = "Dialogue Outline"
+L["TALKING_HEAD_DIALOGUE_OUTLINE_DESC"]                       = "Apply a text outline to the NPC dialogue text."
+L["TALKING_HEAD_SHOW_PORTRAIT"]                               = "Show NPC Portrait"
+L["TALKING_HEAD_SHOW_PORTRAIT_DESC"]                          = "Show the NPC 3D model in the frame."
+L["TALKING_HEAD_SHOW_PORTRAIT_BORDER"]                        = "Show Portrait Border"
+L["TALKING_HEAD_SHOW_PORTRAIT_BORDER_DESC"]                   = "Show the decorative border around the NPC portrait."
+L["TALKING_HEAD_FRAME"]                                       = "Frame"
+L["TALKING_HEAD_SHOW_BG"]                                     = "Show Background"
+L["TALKING_HEAD_SHOW_BG_DESC"]                                = "Show the cinematic background art behind the portrait."
+L["TALKING_HEAD_SHOW_CLOSE"]                                  = "Show Close Button"
+L["TALKING_HEAD_SHOW_CLOSE_DESC"]                             = "Show a close button to dismiss the Talking Head early."
+L["TALKING_HEAD_SCALE"]                                       = "Frame Scale"
+L["TALKING_HEAD_SCALE_DESC"]                                  = "Scale of the entire Talking Head frame (0.5–2.0)."
+L["TALKING_HEAD_CONTENT_PREVIEW"]                             = "Preview"
+L["TALKING_HEAD_PREVIEW_NPC_NAME"]                            = "Thrall"
+L["TALKING_HEAD_PREVIEW_DIALOGUE"]                            = "I'm just a floating head. Surprising, I know — but Azeroth has seen weirder."
 L["TOAST_ICONS"]                                              = "Toast Icons"
 L["TOGGLE_TRACKING_WORLD_QUESTS_RARES_ACHIEVEMENTS"]          = "Toggle tracking for world quests, rares, achievements, and more."
 L["TOOLTIP_ANCHOR"]                                           = "Tooltip Anchor"
@@ -1965,162 +2054,3 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

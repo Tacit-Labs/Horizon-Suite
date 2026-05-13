@@ -386,6 +386,15 @@ local function FormatProgressPair(nf, nr)
     return addon.FormatNumberWithGrouping(nf) .. "/" .. addon.FormatNumberWithGrouping(nr)
 end
 
+-- Some Blizzard sources (notably C_NeighborhoodInitiative endeavor requirementText)
+-- ship objective text already prefixed with "- ". Strip leading dash runs so the
+-- user's objectivePrefixStyle choice ("none"/"numbers"/"hyphens") is applied to
+-- clean text and never stacks on top of an embedded dash.
+local function StripLeadingDashes(s)
+    if type(s) ~= "string" or s == "" then return s end
+    return (s:gsub("^[%s%-]*%-+%s*", ""))
+end
+
 local function IsProgressBarEnabled(questData)
     -- Achievements use showAchievementProgressBars + provider flag, not quest/scenario toggles.
     if questData.isAchievement then
@@ -826,6 +835,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                         end
                     end
                 end
+                objText = StripLeadingDashes(objText)
                 local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
                 if prefixStyle == "numbers" then
                     objText = ("%d. %s"):format(shownObjs + 1, objText)
@@ -948,7 +958,12 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
                 if obj.progressBarLabel then
                     local pct = math.floor(100 * fraction)
-                    obj.progressBarLabel:SetText(FormatProgressPair(nf, nr) .. (" (%d%%)"):format(pct))
+                    local pairStr = FormatProgressPair(nf, nr)
+                    if addon.GetDB("objectiveProgressNumberColors", true) then
+                        local fragment = ColoredProgressSlashFragment(nf, nr, oData.finished and true or false, effectiveDoneColor)
+                        if fragment then pairStr = fragment end
+                    end
+                    obj.progressBarLabel:SetText(pairStr .. (" (%d%%)"):format(pct))
                     obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], dimTextAlpha)
                     obj.progressBarLabel:ClearAllPoints()
                     obj.progressBarLabel:SetPoint("CENTER", obj.progressBarBg, "CENTER", 0, 0)
@@ -1012,7 +1027,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         local obj = entry.objectives[1]
         local isAutoComplete = questData.isAutoComplete and true or false
         local L = addon.L or {}
-        local readyToTurnIn = L["UI_READY_TO_TURN_IN"] or "Ready to turn in"
+        local readyToTurnIn = StripLeadingDashes(L["UI_READY_TO_TURN_IN"] or "Ready to turn in")
         local firstLineText = isAutoComplete
             and (_G.QUEST_WATCH_QUEST_COMPLETE or "Quest Complete")
             or (addon.GetDB("objectivePrefixStyle", "none") == "numbers" and ("1. " .. readyToTurnIn)
@@ -1824,7 +1839,15 @@ local function PopulateEntry(entry, questData, groupKey)
         if done and total then
             -- Omit (0/1)-style titles for any single-step quest, achievement, or endeavor — the progress pair is redundant when the objective row already conveys it.
             if not (type(total) == "number" and total == 1) then
-                displayTitle = ("%s (%s)"):format(displayTitle, FormatProgressPair(done, total))
+                local pairStr = FormatProgressPair(done, total)
+                if addon.GetDB("objectiveProgressNumberColors", true) then
+                    local cat = questData.category
+                    local doneRgb = (addon.GetCompletedObjectiveColor and addon.GetCompletedObjectiveColor(cat))
+                        or (addon.GetObjectiveColor and addon.GetObjectiveColor(cat)) or addon.OBJ_DONE_COLOR
+                    local fragment = ColoredProgressSlashFragment(done, total, done >= total, doneRgb)
+                    if fragment then pairStr = fragment end
+                end
+                displayTitle = ("%s (%s)"):format(displayTitle, pairStr)
             end
         end
     end
@@ -2425,6 +2448,14 @@ local function PopulateEntry(entry, questData, groupKey)
     return totalH
 end
 
+-- Bumped on any options change via OptionsData_NotifyMainAddon → invalidates the
+-- PopulateEntryCached signature for every entry so option changes (objectivePrefixStyle,
+-- showZoneLabels, useTickForCompletedObjectives, etc.) take effect on the next layout
+-- pass instead of waiting for /reload or a fingerprinted qData field to perturb.
+local populateCacheGen = 0
+addon.focus = addon.focus or {}
+addon.focus.InvalidatePopulateCache = function() populateCacheGen = populateCacheGen + 1 end
+
 -- Signature of the questData fields that drive PopulateEntry's visible output. Changes to
 -- any visible-impact field must be reflected here or stale entries will render.
 local function BuildEntrySignature(qData, groupKey)
@@ -2432,6 +2463,7 @@ local function BuildEntrySignature(qData, groupKey)
     local key = qData.entryKey or qData.questID
     if not key then return nil end
     local parts = {
+        tostring(populateCacheGen),
         tostring(key),
         tostring(groupKey or ""),
         qData.title or "",

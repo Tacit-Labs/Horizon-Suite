@@ -61,6 +61,9 @@ mplusHeroText:SetJustifyH("LEFT")
 local mplusPillText = mplusBlock:CreateFontString(nil, "OVERLAY")
 mplusPillText:SetJustifyH("LEFT")
 
+local mplusSplitText = mplusBlock:CreateFontString(nil, "OVERLAY")
+mplusSplitText:SetJustifyH("LEFT")
+
 -- Line 3: Progress bar (enemy forces)
 local PROGRESS_BAR_HEIGHT = 16
 local mplusProgressBar = CreateFrame("Frame", nil, mplusBlock)
@@ -104,6 +107,7 @@ mplusBossesText:SetJustifyV("TOP")
 addon.mplusBlock            = mplusBlock
 addon.mplusHeroText         = mplusHeroText
 addon.mplusTimerText        = mplusPillText
+addon.mplusSplitText        = mplusSplitText
 addon.mplusProgressBar      = mplusProgressBar
 addon.mplusAffixesText      = mplusAffixesText
 addon.mplusBossesText       = mplusBossesText
@@ -289,6 +293,8 @@ local function ApplyMplusTypography()
 
     local timerSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusTimerSize", 13)) or 13)))
 
+    local splitSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusSplitSize", 12)) or 12)))
+
     local progressSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusProgressSize", 12)) or 12)))
     local progressR = addon.GetDB("mplusProgressColorR", 0.72)
     local progressG = addon.GetDB("mplusProgressColorG", 0.76)
@@ -318,6 +324,8 @@ local function ApplyMplusTypography()
     mplusPillText:SetFont(fontPath, timerSize, fontOutline)
     -- Timer color is dynamic (in-time vs overtime); only UpdateMplusBlockDisplay sets it.
 
+    mplusSplitText:SetFont(fontPath, splitSize, fontOutline)
+
     progressPercentShadow:SetFont(fontPath, progressSize, fontOutline)
     progressPercentShadow:SetTextColor(0, 0, 0, shadowA)
     progressPercentShadow:SetJustifyH("RIGHT")
@@ -345,6 +353,7 @@ local function UpdateMplusBlockDisplay(data)
     -- Sizes for layout (ty applied in ApplyMplusTypography)
     local dungeonSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusDungeonSize", 14)) or 14)))
     local timerSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusTimerSize", 13)) or 13)))
+    local splitSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusSplitSize", 12)) or 12)))
     local progressSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusProgressSize", 12)) or 12)))
     local affixSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusAffixSize", 12)) or 12)))
     local bossSize = S(math.max(8, math.min(32, tonumber(addon.GetDB("mplusBossSize", 12)) or 12)))
@@ -402,6 +411,36 @@ local function UpdateMplusBlockDisplay(data)
         mplusPillText:SetTextColor(timerR, timerG, timerB, 1)
     end
     mplusPillText:SetText(timerStr)
+
+    local splitStr = ""
+    local showSplit = addon.GetDB("mplusShowSplitTimer", true)
+    if showSplit and data.timeLimit and data.timeLimit > 0 then
+        local splitR = addon.GetDB("mplusSplitColorR", 0.85)
+        local splitG = addon.GetDB("mplusSplitColorG", 0.90)
+        local splitB = addon.GetDB("mplusSplitColorB", 0.55)
+        local pastR  = addon.GetDB("mplusSplitPastColorR", 0.40)
+        local pastG  = addon.GetDB("mplusSplitPastColorG", 0.40)
+        local pastB  = addon.GetDB("mplusSplitPastColorB", 0.40)
+        local liveHex = string.format("|cff%02x%02x%02x", math.floor(splitR * 255), math.floor(splitG * 255), math.floor(splitB * 255))
+        local pastHex = string.format("|cff%02x%02x%02x", math.floor(pastR * 255), math.floor(pastG * 255), math.floor(pastB * 255))
+        local elapsed = data.timer or 0
+        local cuts = {
+            { label = "+3", cutoff = data.timeLimit * 0.6 },
+            { label = "+2", cutoff = data.timeLimit * 0.8 },
+            { label = "+1", cutoff = data.timeLimit * 1.0 },
+        }
+        local parts = {}
+        for _, c in ipairs(cuts) do
+            local remaining = c.cutoff - elapsed
+            if remaining > 0 then
+                parts[#parts + 1] = string.format("%s%s %d:%02d|r", liveHex, c.label, math.floor(remaining / 60), math.floor(remaining % 60))
+            else
+                parts[#parts + 1] = string.format("%s%s --|r", pastHex, c.label)
+            end
+        end
+        splitStr = table.concat(parts, "   ")
+    end
+    mplusSplitText:SetText(splitStr)
 
     -- Line 3: Progress bar (enemy forces)
     if data.enemyForces.total > 0 then
@@ -504,6 +543,14 @@ local function UpdateMplusBlockDisplay(data)
         mplusPillText:SetPoint("TOPLEFT", mplusBlock, "TOPLEFT", heroLeft, y)
         local timerH = mplusPillText:GetStringHeight() or timerSize
         y = y - timerH - 6
+
+        mplusSplitText:ClearAllPoints()
+        mplusSplitText:SetPoint("TOPLEFT", mplusBlock, "TOPLEFT", heroLeft, y)
+        mplusSplitText:SetWidth(barWidth)
+        if splitStr ~= "" then
+            local splitH = mplusSplitText:GetStringHeight() or splitSize
+            y = y - splitH - 6
+        end
 
         if data.enemyForces.total > 0 then
             mplusProgressBar:ClearAllPoints()

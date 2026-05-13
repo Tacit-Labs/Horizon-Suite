@@ -514,6 +514,10 @@ local PREVIEW_PAD_TOP    = 8
 local PREVIEW_PAD_SIDE   = 10
 local PREVIEW_PAD_BOTTOM = 10
 local PREVIEW_LINE_GAP   = 2
+local PREVIEW_BASE_WIDTH = 260   -- player / global
+local PREVIEW_NPC_WIDTH  = 180   -- compact NPC sample (3 short lines)
+local PREVIEW_ITEM_WIDTH = 195   -- compact item sample (name + ilvl)
+local PREVIEW_MAX_WIDTH  = 460
 
 local pulloutMock = nil
 
@@ -523,6 +527,7 @@ local MOCK_NAME = "HorizonSuiteInsightPreviewTooltip"
 
 local function CreateMockTooltipFrame(parent)
     local mock = CreateFrame("Frame", MOCK_NAME, parent, "BackdropTemplate")
+    mock._insightPreviewMock = true
 
     for i = 1, MAX_PREVIEW_LINES do
         local fs = mock:CreateFontString(nil, "OVERLAY")
@@ -564,9 +569,10 @@ local function CreateMockTooltipFrame(parent)
         end
     end
 
-    function mock:Layout()
-        local w = self:GetWidth()
+    function mock:Layout(explicitWidth)
+        local w = explicitWidth or self:GetWidth()
         if w <= 0 then w = 220 end
+        self:SetWidth(w)
         local innerW  = math.max(w - PREVIEW_PAD_SIDE * 2, 40)
         local yOffset = -PREVIEW_PAD_TOP
         for i = 1, self._lineCount do
@@ -586,11 +592,47 @@ local function CreateMockTooltipFrame(parent)
     return mock
 end
 
+-- Returns the raw (unscaled) DB font size — used only for width ratio calculations.
+local function GetPreviewFontSetting(keys, fallback)
+    local size = tonumber(fallback) or Insight.BODY_SIZE
+    if addon.GetDB then
+        for _, key in ipairs(keys) do
+            size = math.max(size, tonumber(addon.GetDB(key, size)) or size)
+        end
+    end
+    return size
+end
+
+local function GetPreviewPulloutWidth()
+    local mode = Insight.dashboardPreviewMode or "global"
+    local baseWidth, fontSize
+    if mode == "npc" then
+        baseWidth = PREVIEW_NPC_WIDTH
+        fontSize  = GetPreviewFontSetting({ "insightNpcHeaderSize", "insightNpcBodySize" }, Insight.HEADER_SIZE)
+    elseif mode == "item" then
+        baseWidth = PREVIEW_ITEM_WIDTH
+        fontSize  = GetPreviewFontSetting({ "insightItemHeaderSize", "insightItemBodySize", "insightItemTransmogSize" }, Insight.HEADER_SIZE)
+    elseif mode == "player" then
+        baseWidth = PREVIEW_BASE_WIDTH
+        fontSize  = GetPreviewFontSetting({ "insightPlayerHeaderSize", "insightPlayerBodySize", "insightPlayerBadgesSize", "insightPlayerStatsSize", "insightPlayerMountSize" }, Insight.HEADER_SIZE)
+    else
+        baseWidth = PREVIEW_BASE_WIDTH
+        fontSize  = GetPreviewFontSetting({ "insightHeaderSize", "insightBodySize", "insightBadgesSize", "insightStatsSize", "insightMountSize", "insightTransmogSize" }, Insight.HEADER_SIZE)
+    end
+    -- Scale compact NPC/item samples more gently so preview-only font choices do not make
+    -- short tooltips much wider than their live-game content.
+    local scalePerPoint = (mode == "npc" or mode == "item") and 10 or 20
+    local maxWidth = (mode == "npc" or mode == "item") and 300 or PREVIEW_MAX_WIDTH
+    local extra = math.max(0, fontSize - Insight.HEADER_SIZE) * scalePerPoint
+    return math.floor(math.min(maxWidth, baseWidth + extra) + 0.5)
+end
+
 local function RefreshPullout()
     if not pulloutMock then return end
     pulloutMock:ClearLines()
     Insight.ApplyBackdrop(pulloutMock)
     local mode = Insight.dashboardPreviewMode or "global"
+    Insight.previewRendering = true
     if mode == "item" and Insight.RenderItemPreviewContent then
         Insight.RenderItemPreviewContent(pulloutMock)
     elseif mode == "npc" and Insight.RenderNpcPreviewContent then
@@ -600,6 +642,7 @@ local function RefreshPullout()
     else
         if Insight.RenderTestTooltipContent then Insight.RenderTestTooltipContent(pulloutMock) end
     end
+    Insight.previewRendering = nil
     pulloutMock._insightTooltipType = (mode == "player" or mode == "npc" or mode == "item") and mode or nil
     Insight.StyleFonts(pulloutMock)
     local br, bg, bb, ba = 0.77, 0.12, 0.23, 0.60
@@ -618,7 +661,7 @@ local function RefreshPullout()
         end
     end
     pulloutMock:SetBackdropBorderColor(br, bg, bb, ba)
-    pulloutMock:Layout()
+    pulloutMock:Layout(GetPreviewPulloutWidth())
 end
 
 --- Toggle dashboard preview pullout (delegates to shared options shell).
@@ -666,6 +709,9 @@ function Insight.ApplyInsightOptions()
     end
     for _, tt in ipairs(tooltipsToStyle) do
         tt._insightStyled = nil
+        if Insight.ApplyNativeTooltipScale then
+            Insight.ApplyNativeTooltipScale(tt)
+        end
         ApplyLiveBackdropColor(tt)
     end
     if addon.DashboardPreview and addon.DashboardPreview.NotifyRefresh then
@@ -721,7 +767,7 @@ function Insight.Init()
 
     if addon.DashboardPreview and addon.DashboardPreview.Register then
         addon.DashboardPreview.Register("insight", {
-            width = 260,
+            width = GetPreviewPulloutWidth,
             title = "TOOLTIP PREVIEW",
             subtitle = "Updates as you change settings",
             tabTooltipTitle = "Tooltip Preview",
@@ -748,6 +794,7 @@ function Insight.Disable()
     HideAnchorFrame()
     for _, tt in ipairs(tooltipsToStyle) do
         if tt then
+            if tt.SetScale then tt:SetScale(1) end
             Insight.RestoreNineSlice(tt)
             if tt.SetBackdrop then tt:SetBackdrop(nil) end
         end
@@ -762,7 +809,22 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("INSPECT_READY")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+eventFrame:RegisterEvent("MODIFIER_STATE_CHANGED")
 eventFrame:SetScript("OnEvent", function(self, event, guid)
+    if event == "MODIFIER_STATE_CHANGED" then
+        local key = guid  -- first arg is key name e.g. "LSHIFT"
+        if key ~= "LSHIFT" and key ~= "RSHIFT" then return end
+        if not Insight.IsInsightEnabled() then return end
+        if not TooltipPlainShown(GameTooltip) then return end
+        if not GameTooltip._insightUnitTooltip then return end
+        if SafeUnitExistsKnown("mouseover") ~= true then return end
+        -- Reset dedup so the full rebuild runs clean, then let SetUnit
+        -- repopulate Blizzard content and re-trigger our hooks.
+        GameTooltip._insightUnitTooltipInstance = nil
+        GameTooltip._insightStyled = nil
+        GameTooltip:SetUnit("mouseover")
+        return
+    end
     if event == "PLAYER_REGEN_DISABLED" then
         HideStyledTooltipsIfCombatSuppressionActive()
         return

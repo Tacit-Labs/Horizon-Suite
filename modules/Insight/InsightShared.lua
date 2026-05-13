@@ -99,7 +99,9 @@ Insight.ROLE_COLORS = {
     DAMAGER = { 1.00, 0.55, 0.20 },
 }
 
-Insight.MYTHIC_ICON = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:0:0|t "
+Insight.MYTHIC_ICON = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:0:0:64:64:5:59:5:59|t "
+Insight.HONOR_ICON  = "|T132147:14:14:0:0:64:64:5:59:5:59|t "
+Insight.ILVL_ICON   = "|T1030901:14:14:0:0:64:64:5:59:5:59|t "
 Insight.SEPARATOR   = string.rep("-", 22)
 Insight.SEP_COLOR   = { 0.18, 0.18, 0.18 }
 
@@ -152,12 +154,7 @@ function Insight.FormatNumbersInString(str)
 end
 
 function Insight.MythicScoreColor(score)
-    if score >= 3000 then return 1.00, 0.50, 0.00
-    elseif score >= 2500 then return 0.85, 0.40, 1.00
-    elseif score >= 2000 then return 0.20, 0.75, 1.00
-    elseif score >= 1500 then return 0.40, 1.00, 0.40
-    else return 0.65, 0.65, 0.65
-    end
+    return 0.85, 0.40, 1.00
 end
 
 function Insight.easeOut(t) return 1 - (1 - t) * (1 - t) end
@@ -282,7 +279,13 @@ end
 --- Add a section separator line to tooltip.
 function Insight.AddSectionSeparator(tooltip, r, g, b)
     if not tooltip then return end
-    if addon.GetDB("insightBlankSeparator", false) then
+    local mode = addon.GetDB("insightSeparatorMode", nil)
+    if mode ~= "divider" and mode ~= "blank" and mode ~= "none" then
+        mode = addon.GetDB("insightBlankSeparator", false) and "blank" or "divider"
+    end
+    if mode == "none" then
+        return
+    elseif mode == "blank" then
         tooltip:AddLine(" ", 1, 1, 1)
     else
         local sepR = r or Insight.SEP_COLOR[1]
@@ -323,6 +326,15 @@ function Insight.Scaled(v)
     return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "insight")
 end
 
+function Insight.ApplyNativeTooltipScale(tooltip)
+    if not tooltip or tooltip._insightPreviewMock or not tooltip.SetScale then return end
+    local scale = 1
+    if addon.GetModuleScale then
+        scale = tonumber(addon.GetModuleScale("insight")) or 1
+    end
+    tooltip:SetScale(scale)
+end
+
 --- Strip NineSlice from tooltip; ApplyBackdrop applies cinematic styling.
 function Insight.StripNineSlice(tooltip)
     if tooltip and tooltip.NineSlice then
@@ -356,7 +368,8 @@ end
 
 local function StyleFonts(tooltip)
     if not tooltip then return end
-    local S        = Insight.Scaled
+    Insight.ApplyNativeTooltipScale(tooltip)
+    local S        = tooltip._insightPreviewMock and Insight.Scaled or function(v) return v end
     local tags     = tooltip._insightLineTags
     local headerSz = GetInsightHeaderSize()
     local bodySz   = GetInsightBodySize()
@@ -397,15 +410,17 @@ function Insight.StyleFonts(tooltip)
 end
 
 function Insight.StyleTooltipFull(tooltip)
+    Insight.ApplyNativeTooltipScale(tooltip)
     Insight.StripNineSlice(tooltip)
     Insight.ApplyBackdrop(tooltip)
+    StyleFonts(tooltip)
 end
 
 -- ============================================================================
 -- CLASS ICON (Default / RondoMedia / custom media via core/ClassIconMedia.lua)
 -- ============================================================================
 
-local VALID_INSIGHT_CLASS_ICON_SOURCE = { custom = true, default = true, rondomedia = true }
+local VALID_INSIGHT_CLASS_ICON_SOURCE = { custom = true, default = true, rondomedia = true, specoverride = true }
 
 --- Tooltip class icon pack: Horizon (custom), Blizzard default atlas, or RondoMedia.
 --- @return string "custom" | "default" | "rondomedia"

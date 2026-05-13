@@ -6,7 +6,6 @@
  * Untranslated keys become commented-out assignments (leading `--` only; runtime falls back to enUS).
  * Assignments whose string equals enUS are treated as untranslated (comment only) so
  * locales fall back via __index to enUS — no duplicate English to maintain.
- * Regenerates localisation/horizon/locale_template.lua for new translators.
  *
  * Usage: node tools/restructure_locales.js
  */
@@ -16,7 +15,6 @@ const path = require('path');
 const {
     parseEnUS,
     parseLocaleTranslations,
-    rewriteEnUSNormalized,
     computeMaxLhsLen,
     formatLocaleAssignment,
 } = require('./lib/parseLocalisationEnUS.js');
@@ -33,6 +31,18 @@ function localeCompareString(s) {
     return s.replace(/\s*-- NEEDS TRANSLATION/g, '');
 }
 
+/**
+ * Case- and whitespace-insensitive equality between a locale value and its enUS source.
+ * A locale entry that differs from enUS only by casing or trailing whitespace was never
+ * translated — most often because enUS was later title-cased by titlecase_name_locale_values.mjs
+ * after the locale snapshot was captured. Treat those as untranslated so they fall back via __index.
+ */
+function isUntranslatedAgainstEn(locStr, enStr) {
+    const a = localeCompareString(locStr).trim().toLowerCase();
+    const b = enStr.trim().toLowerCase();
+    return a === b;
+}
+
 function readStandardFont(localePath) {
     if (!fs.existsSync(localePath)) return 'UNIT_NAME_FONT';
     const head = fs.readFileSync(localePath, 'utf8').split(/\r?\n/).slice(0, 15).join('\n');
@@ -44,7 +54,7 @@ function generateLocaleFile(localeCode, entries, translated, standardFont, maxLh
     const lines = [];
     lines.push(`if GetLocale() ~= "${localeCode}" then return end`);
     lines.push('');
-    lines.push('local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite');
+    lines.push('local addon = _G.HorizonSuite');
     lines.push('if not addon then return end');
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');
@@ -69,7 +79,7 @@ function generateLocaleFile(localeCode, entries, translated, standardFont, maxLh
             const enStr = decodedStringFromLuaRhs(e.valueRaw);
             if (rhs !== undefined) {
                 const locStr = decodedStringFromLuaRhs(rhs);
-                if (localeCompareString(locStr) === enStr) {
+                if (isUntranslatedAgainstEn(locStr, enStr)) {
                     lines.push(
                         formatLocaleAssignment({
                             symKey: e.symKey,
@@ -113,7 +123,7 @@ function generateTemplate(entries, maxLhsLen) {
     lines.push('');
     lines.push('if GetLocale() ~= "LOCALE_CODE" then return end');
     lines.push('');
-    lines.push('local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite');
+    lines.push('local addon = _G.HorizonSuite');
     lines.push('if not addon then return end');
     lines.push('');
     lines.push('local L = setmetatable({}, { __index = addon.L })');
@@ -148,8 +158,6 @@ function generateTemplate(entries, maxLhsLen) {
     return lines.join('\n') + '\n';
 }
 
-console.log('Normalizing localisation/horizon/enUS.lua (section headers only; no per-key Context)...');
-rewriteEnUSNormalized(enUSPath);
 console.log('Parsing localisation/horizon/enUS.lua...');
 const { entries, keys } = parseEnUS(enUSPath);
 const maxLhsLen = computeMaxLhsLen(entries);
@@ -163,8 +171,3 @@ for (const locale of LOCALES) {
     fs.writeFileSync(filePath, out, 'utf8');
     console.log(`  Written ${filePath}`);
 }
-
-const templatePath = path.join(LOC, 'locale_template.lua');
-fs.writeFileSync(templatePath, generateTemplate(entries, maxLhsLen), 'utf8');
-console.log(`  Written ${templatePath}`);
-console.log('Done.');
