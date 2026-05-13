@@ -115,6 +115,7 @@ options/OptionsData.lua
 options/modules/OptionsPresence.lua
 options/modules/OptionsInsight.lua
 options/modules/OptionsEssence.lua
+options/modules/OptionsVista.lua
 options/modules/OptionsCache.lua
 options/modules/OptionsPresenceTalkingHead.lua
 options/OptionsPanel.lua
