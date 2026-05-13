@@ -14,6 +14,7 @@ addon:RegisterModule("presence", {
     OnInit = function()
         if addon.Presence and addon.Presence.Init then
             addon.Presence.Init()
+            if addon.Presence.InitTalkingHead then addon.Presence.InitTalkingHead() end
         end
     end,
 
@@ -26,6 +27,7 @@ addon:RegisterModule("presence", {
             if addon.Presence.SuppressBlizzard then addon.Presence.SuppressBlizzard() end
             if addon.Presence.MuteAlerts then addon.Presence.MuteAlerts() end
             if addon.Presence.HookUIErrorsFrame then addon.Presence.HookUIErrorsFrame() end
+            if addon.Presence.UpdateTalkingHead then addon.Presence.UpdateTalkingHead() end
         end
     end,
 

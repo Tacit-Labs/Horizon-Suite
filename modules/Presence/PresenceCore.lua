@@ -1233,6 +1233,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     if not cfg then return end
 
     opts = opts or {}
+    if not opts.ignoreTypeEnabled and not IsTypeEnabledForType(typeName) then return end
     cachedCompactLayout = (typeName == "QUEST_UPDATE" or typeName == "SCENARIO_UPDATE") and (addon.GetDB and addon.GetDB("presenceHideQuestUpdateTitle", false))
 
     if typeName == "QUEST_UPDATE" and subtitle and addon.Presence.NormalizeQuestUpdateText then
@@ -1360,6 +1361,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
     if not cfg then return end
 
     opts = opts or {}
+    if not opts.ignoreTypeEnabled and not IsTypeEnabledForType(typeName) then return end
 
     -- Dedupe: skip QUEST_UPDATE if same normalized text shown recently
     if typeName == "QUEST_UPDATE" and subtitle and addon.Presence.NormalizeQuestUpdateText then
@@ -1610,7 +1612,10 @@ local function PreviewToast(typeName)
     if sample.withDiscovery and addon.Presence.SetPendingDiscovery then
         addon.Presence.SetPendingDiscovery()
     end
-    QueueOrPlay(typeName, sample.title, sample.subtitle, sample.opts)
+    local opts = {}
+    for k, v in pairs(sample.opts or {}) do opts[k] = v end
+    opts.ignoreTypeEnabled = true
+    QueueOrPlay(typeName, sample.title, sample.subtitle, opts)
 end
 
 local previewTargets = setmetatable({}, { __mode = "k" })
