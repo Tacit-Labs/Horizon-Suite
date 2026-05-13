@@ -89,12 +89,16 @@ function addon.DashboardDetailView_Init(env)
     local function UpdateDetailLayout()
         local firstPad = (addon.DashboardConstants and addon.DashboardConstants.DETAIL_FIRST_BLOCK_TOP_PAD) or 0
         local yOffset = 0
-        for i, card in ipairs(currentDetailCards) do
-            card:ClearAllPoints()
-            local topExtra = (i == 1) and firstPad or 0
-            card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -(yOffset + topExtra))
-            card:SetPoint("RIGHT", detailContent, "RIGHT", 0, 0)
-            yOffset = yOffset + topExtra + card:GetHeight() + 15
+        local visibleIndex = 0
+        for _, card in ipairs(currentDetailCards) do
+            if card:IsShown() and (card:GetHeight() or 0) > 0 then
+                visibleIndex = visibleIndex + 1
+                card:ClearAllPoints()
+                local topExtra = (visibleIndex == 1) and firstPad or 0
+                card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", 0, -(yOffset + topExtra))
+                card:SetPoint("RIGHT", detailContent, "RIGHT", 0, 0)
+                yOffset = yOffset + topExtra + card:GetHeight() + 15
+            end
         end
         
         local newHeight = math.max(1, yOffset)
@@ -625,19 +629,23 @@ function addon.DashboardDetailView_Init(env)
         if not skipEntranceCascade then
             -- Cascade effect (faster per UX feedback)
             for i, card in ipairs(currentDetailCards) do
-                card:SetAlpha(0)
-                local _, _, _, xVal, yVal = card:GetPoint()
-                if yVal then
-                    card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
-                    if C_Timer and C_Timer.After then
-                        C_Timer.After(i * 0.05, function()
-                            if card:IsShown() then
-                                card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                UIFrameFadeIn(card, 0.2, 0, 1)
-                            end
-                        end)
-                    else
-                        card:SetAlpha(1)
+                if not card:IsShown() then
+                    card:SetAlpha(1)
+                else
+                    card:SetAlpha(0)
+                    local _, _, _, xVal, yVal = card:GetPoint()
+                    if yVal then
+                        card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
+                        if C_Timer and C_Timer.After then
+                            C_Timer.After(i * 0.05, function()
+                                if card:IsShown() then
+                                    card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
+                                    UIFrameFadeIn(card, 0.2, 0, 1)
+                                end
+                            end)
+                        else
+                            card:SetAlpha(1)
+                        end
                     end
                 end
             end
@@ -744,19 +752,23 @@ function addon.DashboardDetailView_Init(env)
 
                 -- Cascade effect (faster per UX feedback)
                 for i, card in ipairs(currentDetailCards) do
-                    card:SetAlpha(0)
-                    local _, _, _, xVal, yVal = card:GetPoint()
-                    if yVal then
-                        card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
-                        if C_Timer and C_Timer.After then
-                            C_Timer.After(i * 0.05, function()
-                                if card:IsShown() then
-                                    card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
-                                    UIFrameFadeIn(card, 0.2, 0, 1)
-                                end
-                            end)
-                        else
-                            card:SetAlpha(1)
+                    if not card:IsShown() then
+                        card:SetAlpha(1)
+                    else
+                        card:SetAlpha(0)
+                        local _, _, _, xVal, yVal = card:GetPoint()
+                        if yVal then
+                            card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal - 20)
+                            if C_Timer and C_Timer.After then
+                                C_Timer.After(i * 0.05, function()
+                                    if card:IsShown() then
+                                        card:SetPoint("TOPLEFT", detailContent, "TOPLEFT", xVal or 0, yVal)
+                                        UIFrameFadeIn(card, 0.2, 0, 1)
+                                    end
+                                end)
+                            else
+                                card:SetAlpha(1)
+                            end
                         end
                     end
                 end
@@ -898,10 +910,81 @@ function addon.DashboardDetailView_Init(env)
 
         local DEPENDENT_FADE_DUR = 0.12
         local DEPENDENT_HEIGHT_DUR = 0.15
+        local CARD_VISIBILITY_FADE_DUR = 0.3
         local easeOutDep = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 
-        local function DoInstantRelayout(card, skipHeightApply)
+        -- Animate a card's alpha + height together. direction = "in" or "out".
+        -- For "in", targetHeight is required.
+        local function AnimateCardVisibility(card, direction, targetHeight)
+            if not card then return end
+            local fadingIn = direction == "in"
+            -- Cancel any opposing fade in-flight; this animation takes ownership.
+            card._visibilityFadingIn = nil
+            card._visibilityFadingOut = nil
+            if fadingIn then
+                if not card:IsShown() then card:SetShown(true) end
+                card:SetAlpha(0)
+                card:SetHeight(0.01)
+                card._visibilityFadingIn = true
+            else
+                if not card:IsShown() then
+                    card:SetHeight(0)
+                    return
+                end
+                card._visibilityFadingOut = true
+            end
+
+            local startAlpha = card:GetAlpha() or (fadingIn and 0 or 1)
+            local startHeight = card:GetHeight() or 0
+            local endAlpha = fadingIn and 1 or 0
+            local endHeight = fadingIn and targetHeight or 0
+
+            local animFrame = card.relayoutAnimFrame
+            if not animFrame then
+                animFrame = CreateFrame("Frame", nil, card)
+                animFrame:SetAllPoints(card)
+                card.relayoutAnimFrame = animFrame
+            end
+            local elapsed = 0
+            animFrame:SetScript("OnUpdate", function(self, dt)
+                local ownerFlag = fadingIn and card._visibilityFadingIn or (not fadingIn and card._visibilityFadingOut)
+                if not ownerFlag then
+                    self:SetScript("OnUpdate", nil)
+                    return
+                end
+                elapsed = elapsed + dt
+                local t = math.min(1, elapsed / CARD_VISIBILITY_FADE_DUR)
+                local ep = easeOutDep(t)
+                card:SetAlpha(startAlpha + (endAlpha - startAlpha) * ep)
+                card:SetHeight(math.max(0.01, startHeight + (endHeight - startHeight) * ep))
+                UpdateDetailLayout()
+                if t >= 1 then
+                    self:SetScript("OnUpdate", nil)
+                    card._visibilityFadingIn = nil
+                    card._visibilityFadingOut = nil
+                    -- Re-check final condition: visibility may have flipped during the fade.
+                    local wantVisible = not card.visibleWhen or card.visibleWhen()
+                    if wantVisible then
+                        card:SetAlpha(1)
+                        card:SetHeight(card.expanded and (card.fullHeight or targetHeight or 0) or (card.collapsedHeight or 0))
+                    else
+                        card:SetShown(false)
+                        card:SetHeight(0)
+                        card:SetAlpha(1)
+                    end
+                    UpdateDetailLayout()
+                end
+            end)
+        end
+
+        local function FadeOutConditionalCard(card)
+            if not card or card._visibilityFadingOut then return end
+            AnimateCardVisibility(card, "out")
+        end
+
+        local function DoInstantRelayout(card, skipHeightApply, animateVisibility)
             if not card or not card.widgetList then return end
+            animateVisibility = animateVisibility == true
             local yOff = 0
             for _, entry in ipairs(card.widgetList) do
                 local visible = true
@@ -925,11 +1008,78 @@ function addon.DashboardDetailView_Init(env)
             if not skipHeightApply and card.expanded then
                 card:SetHeight(card.fullHeight)
             end
+            if card.visibleWhen then
+                local cardVisible = card.visibleWhen()
+                local wasShown = card:IsShown()
+                if not cardVisible then
+                    if animateVisibility then
+                        FadeOutConditionalCard(card)
+                    else
+                        card._visibilityFadingOut = nil
+                        card:SetShown(false)
+                        card:SetHeight(0)
+                        card:SetAlpha(1)
+                    end
+                elseif (card:GetHeight() or 0) < 1 then
+                    card._visibilityFadingOut = nil
+                    card:SetShown(true)
+                    card:SetHeight(card.expanded and card.fullHeight or card.collapsedHeight)
+                    if animateVisibility and not wasShown then
+                        card:SetAlpha(0)
+                        if UIFrameFadeIn then
+                            UIFrameFadeIn(card, CARD_VISIBILITY_FADE_DUR, 0, 1)
+                        else
+                            card:SetAlpha(1)
+                        end
+                    else
+                        card:SetAlpha(1)
+                    end
+                end
+            end
             UpdateDetailLayout()
         end
 
-        local function RelayoutCard(card)
+        local function RelayoutCard(card, animateVisibility)
             if not card or not card.widgetList then return end
+            animateVisibility = animateVisibility == true
+
+            -- If a visibility fade owns the card, let it run unless the target state flipped.
+            local wantVisible = (not card.visibleWhen) or card.visibleWhen()
+            if card._visibilityFadingIn then
+                if wantVisible then return end
+                card._visibilityFadingIn = nil
+                if card.relayoutAnimFrame then card.relayoutAnimFrame:SetScript("OnUpdate", nil) end
+            end
+            if card._visibilityFadingOut then
+                if not wantVisible then return end
+                card._visibilityFadingOut = nil
+                if card.relayoutAnimFrame then card.relayoutAnimFrame:SetScript("OnUpdate", nil) end
+            end
+
+            -- Hide path: dissolve alpha + height together.
+            if animateVisibility and card.visibleWhen and not wantVisible and card:IsShown() then
+                if card.relayoutAnim then
+                    card.relayoutAnim = nil
+                    if card.relayoutAnimFrame then card.relayoutAnimFrame:SetScript("OnUpdate", nil) end
+                end
+                FadeOutConditionalCard(card)
+                return
+            end
+
+            -- Show path: grow alpha + height together. Use DoInstantRelayout to compute
+            -- card.fullHeight so the animation has a real target.
+            if animateVisibility and card.visibleWhen and wantVisible
+                and (not card:IsShown() or (card:GetHeight() or 0) < 1) then
+                card:SetShown(true)
+                if card.relayoutAnim then
+                    card.relayoutAnim = nil
+                    if card.relayoutAnimFrame then card.relayoutAnimFrame:SetScript("OnUpdate", nil) end
+                end
+                DoInstantRelayout(card, true, false)
+                local target = card.expanded and card.fullHeight or (card.collapsedHeight or card.fullHeight)
+                AnimateCardVisibility(card, "in", target)
+                return
+            end
 
             if card.relayoutAnim then
                 if card.relayoutAnim.toShow then
@@ -963,7 +1113,7 @@ function addon.DashboardDetailView_Init(env)
             local skipAnim = (#toHide == 0 and #toShow == 0) or not card.expanded
 
             if skipAnim then
-                DoInstantRelayout(card, false)
+                DoInstantRelayout(card, false, animateVisibility)
                 return
             end
 
@@ -973,6 +1123,7 @@ function addon.DashboardDetailView_Init(env)
             animFrame:SetAllPoints(card)
             card.relayoutAnimFrame = animFrame
 
+            local capturedAnimateVisibility = animateVisibility
             if #toHide > 0 then
                 card.relayoutAnim = { phase = "fadeOut", elapsed = 0, toHide = toHide, oldHeight = oldHeight }
                 animFrame:SetScript("OnUpdate", function(self, dt)
@@ -990,7 +1141,7 @@ function addon.DashboardDetailView_Init(env)
                                 entry.frame:Hide()
                                 entry.frame:SetAlpha(1)
                             end
-                            DoInstantRelayout(card, true)
+                            DoInstantRelayout(card, true, capturedAnimateVisibility)
                             a.phase = "heightShrink"
                             a.elapsed = 0
                             a.targetFullH = card.fullHeight
@@ -1002,14 +1153,14 @@ function addon.DashboardDetailView_Init(env)
                         card:SetHeight(curH)
                         UpdateDetailLayout()
                         if t >= 1 then
-                            DoInstantRelayout(card, false)
+                            DoInstantRelayout(card, false, capturedAnimateVisibility)
                             card.relayoutAnim = nil
                             self:SetScript("OnUpdate", nil)
                         end
                     end
                 end)
             elseif #toShow > 0 then
-                DoInstantRelayout(card, true)
+                DoInstantRelayout(card, true, capturedAnimateVisibility)
                 for _, entry in ipairs(toShow) do
                     entry.frame:SetAlpha(0)
                 end
@@ -1097,13 +1248,20 @@ function addon.DashboardDetailView_Init(env)
             if opt.type == "section" then
                 -- Finalize previous card if any (relayout to apply visibility)
                 if currentCard then
-                    RelayoutCard(currentCard)
+                    RelayoutCard(currentCard, false)
                 end
 
                 currentCard = CreateAccordionCard(detailContent, opt.name)
                 currentCard.contentHeight = 0
                 currentCard.optionIds = {}
                 currentCard.widgetList = {}
+                currentCard.visibleWhen = opt.visibleWhen
+                if opt.dbKey then
+                    currentCard.Refresh = function()
+                        RelayoutCard(currentCard, true)
+                    end
+                    detailOptionFrames[opt.dbKey] = currentCard
+                end
                 tinsert(currentDetailCards, currentCard)
             else
                 if not currentCard then
@@ -1115,7 +1273,7 @@ function addon.DashboardDetailView_Init(env)
                 end
                 
                 -- Store the option identifier to track its parent card
-                local optId = opt.dbKey or (opt.type == "presencePreview" and "presencePreview") or (opt.type == "moduleReloadPrompt" and "_module_reload_prompt") or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
+                local optId = opt.dbKey or (opt.type == "presencePreview" and "presencePreview") or (opt.type == "talkingHeadPreview" and "talkingHeadPreview") or (opt.type == "moduleReloadPrompt" and "_module_reload_prompt") or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
                 currentCard.optionIds[optId] = true
 
                 -- Per-setting "(New!)" suffix: declared via `isNew = "<version>"`.
@@ -1180,6 +1338,14 @@ function addon.DashboardDetailView_Init(env)
                         end,
                         scale = 0.55,
                     })
+                    widget = previewWidget and previewWidget.frame or nil
+                    if widget and previewWidget.Refresh then
+                        widget.Refresh = previewWidget.Refresh
+                    end
+                    detailOptionFrames[optId] = widget
+                elseif opt.type == "talkingHeadPreview" then
+                    local previewWidget = addon.Presence and addon.Presence.CreateTalkingHeadPreviewWidget and
+                        addon.Presence.CreateTalkingHeadPreviewWidget(currentCard.settingsContainer)
                     widget = previewWidget and previewWidget.frame or nil
                     if widget and previewWidget.Refresh then
                         widget.Refresh = previewWidget.Refresh
@@ -1744,7 +1910,7 @@ function addon.DashboardDetailView_Init(env)
                         local cardRef = currentCard
                         widget.Refresh = function(self)
                             if origRefresh then origRefresh(self) end
-                            RelayoutCard(cardRef)
+                            RelayoutCard(cardRef, true)
                         end
                     end
                 end

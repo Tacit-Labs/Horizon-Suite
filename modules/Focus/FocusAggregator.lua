@@ -175,6 +175,7 @@ local function SortAndGroupQuests(quests)
     local keepCampaignInCat = addon.GetDB("keepCampaignInCategory", false)
     local keepImportantInCat = addon.GetDB("keepImportantInCategory", false)
     local showCurrent = addon.GetDB("showCurrentQuestCategory", true) and groups["CURRENT"]
+    local showFocused = addon.GetDB("showFocusedQuestCategory", true) and groups["FOCUSED"]
     local showEventsInZone = addon.GetDB("showEventsInZone", true)
     local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
     local scenarioActive = false
@@ -193,11 +194,16 @@ local function SortAndGroupQuests(quests)
         local isEventInPlayerZone = q.isEventQuest
             and (q.isNearby or (q.zoneName and playerZone and q.zoneName:lower() == playerZone:lower()))
 
+        -- Super-tracked (focused) quest is hoisted into its own FOCUSED section so users
+        -- can reorder it independently of its base category. Skips event/world-event quests
+        -- which prefer CURRENT_EVENT semantics.
+        if showFocused and q.isSuperTracked and q.questID and not q.isEventQuest then
+            groups["FOCUSED"][#groups["FOCUSED"] + 1] = q
         -- Event quests never participate in Current Quest / expired-from-Current routing.
         -- In-zone events move between Current Event and Events in Zone based on proximity.
         -- When a scenario is active, suppress BonusObjective (event) quests from CURRENT_EVENT
         -- so only the scenario entry is shown (matches Blizzard: quest + scenario widget).
-        if q.isEventQuest and q.isAccepted and q.isNearby and groups["CURRENT_EVENT"] then
+        elseif q.isEventQuest and q.isAccepted and q.isNearby and groups["CURRENT_EVENT"] then
             if not scenarioActive then
                 groups["CURRENT_EVENT"][#groups["CURRENT_EVENT"] + 1] = q
             end

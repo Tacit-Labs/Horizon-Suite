@@ -2045,6 +2045,7 @@ local OptionCategories = {
             { type = "section", name = L["FOCUS_FILTERING"] },
             { type = "toggle", name = L["CURRENT_ZONE"], desc = L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"], dbKey = "filterByZone", get = function() return getDB("filterByZone", false) end, set = function(v) setDB("filterByZone", v) end },
             { type = "section", name = L["GROUPING"] },
+            { type = "toggle", name = L["FOCUS_FOCUSED_QUEST_CATEGORY"], desc = L["FOCUS_FOCUSED_QUEST_CATEGORY_DESC"], tooltip = L["FOCUS_FOCUSED_QUEST_CATEGORY_TIP"], dbKey = "showFocusedQuestCategory", isNew = "4.17.7", get = function() return getDB("showFocusedQuestCategory", true) end, set = function(v) setDB("showFocusedQuestCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end },
             { type = "toggle", name = L["FOCUS_CURRENT_QUEST_CATEGORY"], desc = L["RECENT_PROGRESS_TOP"], tooltip = L["FOCUS_QUEST_PROGRESSION_SECTION"], dbKey = "showCurrentQuestCategory", get = function() return getDB("showCurrentQuestCategory", true) end, set = function(v) setDB("showCurrentQuestCategory", v) end, refreshIds = { "currentQuestWindowSec" } },
             { type = "slider", name = L["FOCUS_CURRENT_QUEST_WINDOW"], desc = L["SECONDS_OF_RECENT_PROGRESS"], dbKey = "currentQuestWindowSec", min = 30, max = 120, get = function() return math.max(30, math.min(120, tonumber(getDB("currentQuestWindowSec", 60)) or 60)) end, set = function(v) setDB("currentQuestWindowSec", math.max(30, math.min(120, v))) end, visibleWhen = function() return getDB("showCurrentQuestCategory", true) end, id = "currentQuestWindowSec" },
             { type = "toggle", name = L["CURRENT_ZONE_GROUP"], desc = L["DEDICATED_SECTION_ZONE_QUESTS"], dbKey = "showNearbyGroup", get = function() return getDB("showNearbyGroup", true) end, set = function(v) setDB("showNearbyGroup", v) end, tooltip = L["ZONE_QUESTS_APPEAR_THEIR_NORMAL_CATEGORY"], refreshIds = { "nearbyCompleteToBottom" } },
@@ -2298,9 +2299,9 @@ local OptionCategories = {
         moduleKey = "presence",
         options = {
             { type = "section", name = L["PRESENCE_NOTIFICATION_TYPES"] },
-            { type = "toggle", name = L["ZONE_ENTRY"], desc = L["PRESENCE_ZONE_CHANGE_ENTERING_A_AREA"], dbKey = "presenceZoneChange", get = function() return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceZoneChange", v) end },
-            { type = "toggle", name = L["SUBZONE_CHANGES"], desc = L["PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"], dbKey = "presenceSubzoneChange", get = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceSubzoneChange", v) end },
-            { type = "toggle", name = L["VISTA_SHOW_SUBZONE"], desc = L["SUBZONE_NAME_WITHIN_SAME_ZONE"], dbKey = "presenceHideZoneForSubzone", get = function() return getDB("presenceHideZoneForSubzone", false) end, set = function(v) setDB("presenceHideZoneForSubzone", v) end, tooltip = L["ZONE_NAME_NEW_ZONE"] },
+            { type = "toggle", name = L["ZONE_ENTRY"], desc = L["PRESENCE_ZONE_CHANGE_ENTERING_A_AREA"], dbKey = "presenceZoneChange", get = function() return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceZoneChange", v) end, refreshIds = { "presenceSubzoneChange", "presenceHideZoneForSubzone" } },
+            { type = "toggle", name = L["SUBZONE_CHANGES"], desc = L["PRESENCE_SUBZONE_CHANGE_MOVING_WITHIN_SAME_ZONE"], dbKey = "presenceSubzoneChange", get = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end, set = function(v) setDB("presenceSubzoneChange", v) end, refreshIds = { "presenceHideZoneForSubzone" } },
+            { type = "toggle", name = L["VISTA_SHOW_SUBZONE"], desc = L["SUBZONE_NAME_WITHIN_SAME_ZONE"], dbKey = "presenceHideZoneForSubzone", get = function() return getDB("presenceHideZoneForSubzone", false) end, set = function(v) setDB("presenceHideZoneForSubzone", v) end, tooltip = L["ZONE_NAME_NEW_ZONE"], visibleWhen = function() local v = getDB("presenceSubzoneChange", nil); if v ~= nil then return v end; return getDB("presenceZoneChange", true) end },
             { type = "toggle", name = L["SUPPRESS_M"], desc = L["HIDE_ZONE_NOTIFICATIONS_MYTHIC"], tooltip = L["BOSS_EMOTES_ACHIEVEMENTS_LEVEL_HIDES_ZONE"], dbKey = "presenceSuppressZoneInMplus", get = function() return getDB("presenceSuppressZoneInMplus", true) end, set = function(v) setDB("presenceSuppressZoneInMplus", v) end },
             { type = "section", name = L["INSTANCE_SUPPRESSION"] },
             { type = "toggle", name = L["SUPPRESS_DUNGEON"], desc = L["SUPPRESS_NOTIFICATIONS_DUNGEONS"], tooltip = L["SUPPRESS_IN_DUNGEON_DETAIL"], dbKey = "presenceSuppressInDungeon", get = function() return getDB("presenceSuppressInDungeon", false) end, set = function(v) setDB("presenceSuppressInDungeon", v) end },
@@ -3573,6 +3574,10 @@ end
 -- Export for panel
 addon.OptionsData_GetDB = OptionsData_GetDB
 addon.OptionsData_SetDB = OptionsData_SetDB
+addon.OptionsData_GetFontList = function()
+    if addon.RefreshFontList then addon.RefreshFontList() end
+    return (addon.GetFontList and addon.GetFontList()) or {}
+end
 addon.OptionsData_NotifyMainAddon = OptionsData_NotifyMainAddon
 addon.OptionsData_SetUpdateFontsRef = OptionsData_SetUpdateFontsRef
 addon.GetPresencePreviewDropdownOptions = GetPresencePreviewDropdownOptions

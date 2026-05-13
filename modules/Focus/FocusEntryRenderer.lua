@@ -958,7 +958,12 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
 
                 if obj.progressBarLabel then
                     local pct = math.floor(100 * fraction)
-                    obj.progressBarLabel:SetText(FormatProgressPair(nf, nr) .. (" (%d%%)"):format(pct))
+                    local pairStr = FormatProgressPair(nf, nr)
+                    if addon.GetDB("objectiveProgressNumberColors", true) then
+                        local fragment = ColoredProgressSlashFragment(nf, nr, oData.finished and true or false, effectiveDoneColor)
+                        if fragment then pairStr = fragment end
+                    end
+                    obj.progressBarLabel:SetText(pairStr .. (" (%d%%)"):format(pct))
                     obj.progressBarLabel:SetTextColor(progTextColor[1], progTextColor[2], progTextColor[3], dimTextAlpha)
                     obj.progressBarLabel:ClearAllPoints()
                     obj.progressBarLabel:SetPoint("CENTER", obj.progressBarBg, "CENTER", 0, 0)
@@ -1834,7 +1839,15 @@ local function PopulateEntry(entry, questData, groupKey)
         if done and total then
             -- Omit (0/1)-style titles for any single-step quest, achievement, or endeavor — the progress pair is redundant when the objective row already conveys it.
             if not (type(total) == "number" and total == 1) then
-                displayTitle = ("%s (%s)"):format(displayTitle, FormatProgressPair(done, total))
+                local pairStr = FormatProgressPair(done, total)
+                if addon.GetDB("objectiveProgressNumberColors", true) then
+                    local cat = questData.category
+                    local doneRgb = (addon.GetCompletedObjectiveColor and addon.GetCompletedObjectiveColor(cat))
+                        or (addon.GetObjectiveColor and addon.GetObjectiveColor(cat)) or addon.OBJ_DONE_COLOR
+                    local fragment = ColoredProgressSlashFragment(done, total, done >= total, doneRgb)
+                    if fragment then pairStr = fragment end
+                end
+                displayTitle = ("%s (%s)"):format(displayTitle, pairStr)
             end
         end
     end

@@ -207,6 +207,7 @@ addon.OptionsFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
 -- Values are UI_* locale keys so tracker/options pick up translations; see localisation/horizon/enUS.lua (Tracker section labels).
 addon.SECTION_LABELS = {
+    FOCUSED       = "UI_FOCUSED_QUEST",
     CURRENT       = "UI_CURRENT_QUEST",
     CURRENT_EVENT = "UI_CURRENT_EVENT",
     DUNGEON       = "UI_DUNGEON",
@@ -235,6 +236,7 @@ addon.SECTION_LABELS = {
 }
 
 addon.SECTION_COLORS = {
+    FOCUSED   = { 1.00, 0.92, 0.40 },  -- bright gold (super-tracked focus; distinct from CAMPAIGN)
     CURRENT   = { 0.95, 0.55, 0.45 },  -- coral (recent progress; distinct from NEARBY)
     DUNGEON   = { 0.64, 0.21, 0.93 },  -- WoW Epic purple (a335ee)
     RAID      = { 0.85, 0.25, 0.25 },  -- red: raid quests
@@ -263,13 +265,13 @@ addon.SECTION_COLORS = {
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
 
-addon.GROUP_ORDER = { "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
+addon.GROUP_ORDER = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
 addon.GROUP_ORDER_PRESETS = {
-    ["Collection Focused"] = { "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
-    ["Quest Focused"]      = { "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["Campaign Focused"]   = { "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["World / Rare Focused"] = { "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Collection Focused"] = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
+    ["Quest Focused"]      = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Campaign Focused"]   = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["World / Rare Focused"] = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
 -- Section groupKeys whose headers skip super-track dimming (achievements, rares, etc. — not quest log rows).
@@ -355,7 +357,7 @@ function addon.GetGroupOrder()
             seen[k] = true
         end
     end
-    -- Migration: prepend CURRENT_EVENT and CURRENT when missing so existing users get them at top.
+    -- Migration: prepend CURRENT_EVENT, CURRENT, and FOCUSED when missing so existing users get them at top.
     if not seen["CURRENT"] and known["CURRENT"] then
         table.insert(out, 1, "CURRENT")
         seen["CURRENT"] = true
@@ -363,6 +365,10 @@ function addon.GetGroupOrder()
     if not seen["CURRENT_EVENT"] and known["CURRENT_EVENT"] then
         table.insert(out, 1, "CURRENT_EVENT")
         seen["CURRENT_EVENT"] = true
+    end
+    if not seen["FOCUSED"] and known["FOCUSED"] then
+        table.insert(out, 1, "FOCUSED")
+        seen["FOCUSED"] = true
     end
     for i = 1, #addon.GROUP_ORDER do
         local k = addon.GROUP_ORDER[i]

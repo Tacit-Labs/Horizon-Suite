@@ -1084,6 +1084,9 @@ L["FOCUS_CATEGORY_COLOUR_BAR"]                                = "Category Colour
 L["FOCUS_CHECKMARK_COMPLETED"]                                = "Checkmark for Completed"
 L["FOCUS_CURRENT_QUEST_CATEGORY"]                             = "Current Quest Category"
 L["FOCUS_CURRENT_QUEST_WINDOW"]                               = "Current Quest Window"
+L["FOCUS_FOCUSED_QUEST_CATEGORY"]                             = "Focused Quest Category"
+L["FOCUS_FOCUSED_QUEST_CATEGORY_DESC"]                        = "Show the super-tracked quest in its own category."
+L["FOCUS_FOCUSED_QUEST_CATEGORY_TIP"]                         = "When on, the quest you have focused (super-tracked) is hoisted into a dedicated Focused Quest section. The category can be reordered like any other, so you can pin the focused quest to the top, bottom, or anywhere in the tracker."
 L["FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                         = "Show quests with recent progress at the top."
 L["FOCUS_RECENT_QUEST_SECONDS"]                               = "Seconds of recent progress to show in Current Quest (30–120)."
 L["FOCUS_QUEST_PROGRESSION_SECTION"]                          = "Quests you made progress on in the last minute appear in a dedicated section."
@@ -1384,6 +1387,7 @@ L["UI_AVAILABLE_IN_ZONE"]                                     = "AVAILABLE IN ZO
 L["UI_EVENTS_IN_ZONE"]                                        = "Events in Zone"
 L["UI_CURRENT_EVENT"]                                         = "Current Event"
 L["UI_CURRENT_QUEST"]                                         = "CURRENT QUEST"
+L["UI_FOCUSED_QUEST"]                                         = "FOCUSED QUEST"
 L["UI_CURRENT_ZONE"]                                          = "CURRENT ZONE"
 L["UI_CAMPAIGN"]                                              = "CAMPAIGN"
 L["UI_IMPORTANT"]                                             = "IMPORTANT"
@@ -2005,162 +2009,3 @@ L["ZONE_LABELS"]                                              = "Zone Labels"
 L["ZONE_NAME_NEW_ZONE"]                                       = "Zone name still appears when entering a new zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Zone Type Colouring"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

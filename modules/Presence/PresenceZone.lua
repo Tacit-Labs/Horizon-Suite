@@ -51,6 +51,10 @@ local function tryFireDelveZoneNotification()
         CancelPendingDelveZone()
         return
     end
+    if not IsTypeEnabled("presenceZoneChange", nil, true) then
+        CancelPendingDelveZone()
+        return
+    end
     if ShouldSuppress() then
         CancelPendingDelveZone()
         return
