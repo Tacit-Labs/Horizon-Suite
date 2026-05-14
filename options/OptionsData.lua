@@ -10,7 +10,7 @@ if not addon then return end
 if not _G[addon.DATABASE] then _G[addon.DATABASE] = {} end
 
 -- ---------------------------------------------------------------------------
--- DB helpers
+-- SetDB routing
 -- ---------------------------------------------------------------------------
 
 -- Populated by OptionsDefaults.lua (loads before this file)
@@ -212,8 +212,8 @@ end
 
 
 -- ---------------------------------------------------------------------------
--- OptionCategories: Axis hub first (Modules, Global Toggles, Profiles), then per-module tabs
--- (Focus, Presence, …), Insight (Global / Player / NPC / Item), Vista …, Cache
+-- OptionCategories: populated at load time by self-registering module files
+-- in TOC order. Read-only after initial load.
 -- ---------------------------------------------------------------------------
 
 local OptionCategories = {
