@@ -1,11 +1,11 @@
 # Translating for Horizon Suite
 ## [Official WoW Locales](blizzardlocales.md)
-Do not edit anything within the `localisation/blizzard` folder.
+Do not edit anything within the `locales/blizzard` folder.
 <br>
 
 ---
-## [Horizon Suite](localisation/horizon/)
-Do not edit anything directly within the `localisation/horizon` folder if you intend to submit on Discord.
+## [Horizon Suite](locales/horizon/)
+Do not edit anything directly within the `locales/horizon` folder if you intend to submit on Discord.
 
 ---
 To start a **`new`** translation, copy the `enUS.lua` file and rename it to the locale that corresponds to the language you are translating to.
@@ -22,7 +22,7 @@ Russian: **ruRU.lua**
 Chinese: **zhCN.lua**
 Taiwanese: **zhTW.lua**
 
-To **`continue`** an existing translation, copy the respective `locale file` from [GitHub](https://github.com/Tacit-Labs/Horizon-Suite/tree/main/localisation/horizon) and edit only your local copy.
+To **`continue`** an existing translation, copy the respective `locale file` from [GitHub](https://github.com/Tacit-Labs/Horizon-Suite/tree/main/locales/horizon) and edit only your local copy.
 In doing so, pay strict attention to the structure of the files. Do not edit the first nine lines of the file.
 
 Every key shares the same format. It is **crucial** that the coding syntax remains the same.

@@ -27,7 +27,6 @@ addon.StandardFont = UNIT_NAME_FONT
 -- L["NAME_CURSEFORGE"]                                       = "CurseForge"
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
-L["OTHER"]                                                    = "Otro"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -38,6 +37,7 @@ L["PER_CATEGORY"]                                             = "Colores por cat
 L["GROUPING_OVERRIDES"]                                       = "Colores personalizados"
 -- L["SECTION_OVERRIDES"]                                     = "Section Overrides"
 L["OTHER_COLOURS"]                                            = "Otros colores"
+L["OTHER"]                                                    = "Otro"
 
 -- =====================================================================
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
@@ -73,7 +73,7 @@ L["FOCUS_RESET_DEFAULT"]                                      = "Restablecer val
 -- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
-L["FOCUS_SEARCH_SETTINGS"]                                    = "Buscar opciones..."
+L["SEARCH_SETTINGS"]                                    = "Buscar opciones..."
 L["SEARCH_FONTS"]                                             = "Buscar fuentes..."
 
 -- =====================================================================
@@ -203,13 +203,13 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Thanks to eve
 -- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                    = "Localisations"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
 -- 
--- • German (deDE) — `localisation/horizon/deDE.lua`
--- • English (enUS) — `localisation/horizon/enUS.lua`
--- • Spanish (esES) — `localisation/horizon/esES.lua`
--- • French (frFR) — `localisation/horizon/frFR.lua`
--- • Korean (koKR) — `localisation/horizon/koKR.lua`
--- • Brazilian Portuguese (ptBR) — `localisation/horizon/ptBR.lua`
--- • Chinese (zhCN) — `localisation/horizon/zhCN.lua`
+-- • German (deDE) — `locales/horizon/deDE.lua`
+-- • English (enUS) — `locales/horizon/enUS.lua`
+-- • Spanish (esES) — `locales/horizon/esES.lua`
+-- • French (frFR) — `locales/horizon/frFR.lua`
+-- • Korean (koKR) — `locales/horizon/koKR.lua`
+-- • Brazilian Portuguese (ptBR) — `locales/horizon/ptBR.lua`
+-- • Chinese (zhCN) — `locales/horizon/zhCN.lua`
 -- 
 -- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 

@@ -10,7 +10,7 @@ _G.HorizonSuite = addon
 
 addon.modules = {}
 
--- Localisation: L[key] returns translated string or key as fallback. localisation/LocaleCore.lua then enUS.lua; locale files (frFR, etc.) wrap with fallback to English.
+-- Localisation: L[key] returns translated string or key as fallback. locales/LocaleCore.lua then enUS.lua; locale files (frFR, etc.) wrap with fallback to English.
 addon.L = setmetatable({}, { __index = function(t, k) return k end })
 
 --- Register a module. Called by module files at load time.

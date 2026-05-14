@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Locale coverage vs localisation/horizon/enUS.lua.
+ * Locale coverage vs locales/horizon/enUS.lua.
  *
  * "Translated" = active L["key"] assignment whose string differs from enUS (real locale text).
  * Fallback via __index (commented stub or identical copy) counts as not translated.
@@ -17,7 +17,7 @@ const { parseEnUS, parseLocaleTranslations } = require('./lib/parseLocalisationE
 const { hashFromLuaRhs, decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOC = path.join(ROOT, 'localisation/horizon');
+const LOC = path.join(ROOT, 'locales/horizon');
 
 const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'esES', 'zhCN'];
 
@@ -47,7 +47,7 @@ for (const e of entries) {
     }
 }
 
-console.log('\nHorizon Suite — Locale audit (localisation/horizon)');
+console.log('\nHorizon Suite — Locale audit (locales/horizon)');
 console.log(`${'='.repeat(55)}`);
 console.log(`enUS keys: ${keys.length}\n`);
 
