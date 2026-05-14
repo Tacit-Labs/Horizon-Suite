@@ -128,6 +128,8 @@ options/modules/defaults/OptionsDefaultsCache.lua
 options/modules/defaults/OptionsDefaultsVista.lua
 options/modules/defaults/OptionsDefaultsFocus.lua
 options/modules/defaults/OptionsDefaultsAxis.lua
+options/modules/defaults/OptionsDefaultsFlow.lua
+options/modules/defaults/OptionsDefaultsMeridian.lua
 options/OptionsSearch.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua
