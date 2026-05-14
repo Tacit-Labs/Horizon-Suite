@@ -1,5 +1,5 @@
 /**
- * Parse localisation/horizon/enUS.lua into ordered entries (sections, comments, keys).
+ * Parse locales/horizon/enUS.lua into ordered entries (sections, comments, keys).
  * Per-key `-- Context:` lines are ignored (section headers carry the same info).
  * Blanks between consecutive keys are dropped when parsing / rewriting.
  */

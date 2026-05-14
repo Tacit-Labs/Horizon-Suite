@@ -1,9 +1,9 @@
 # Localisation Keys
 ## [Official WoW Locales](blizzardlocales.md)
-Do not edit anything within the `localisation/blizzard` folder except to update the entirety of its contents.
-## [Horizon Suite](localisation/horizon/)
+Do not edit anything within the `locales/blizzard` folder except to update the entirety of its contents.
+## [Horizon Suite](locales/horizon/)
 Strings may only be added to **`enUS.lua`** as the other locales are regenerated from it.
-Do not edit anything within the `localisation/horizon` folder except to add strings.
+Do not edit anything within the `locales/horizon` folder except to add strings.
 
 Every key shares the same format. It is **crucial** that the coding syntax remains the same.
 ```

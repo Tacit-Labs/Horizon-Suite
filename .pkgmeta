@@ -19,8 +19,8 @@ ignore:
   - notes
   - contributions/
   - "modules/*/notes"
-  - localisation/KeyNomenclature.md
-  - localisation/blizzard
+  - locales/KeyNomenclature.md
+  - locales/blizzard
   - pipeline.md
   - .cursor
   - .claude
