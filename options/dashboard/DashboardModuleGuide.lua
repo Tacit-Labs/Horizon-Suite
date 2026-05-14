@@ -78,7 +78,7 @@ function addon.DashboardModuleGuide_Init(env)
 
     local function ShowCopyURL(label, url)
         if addon.ShowURLCopyBox then
-            addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
+            addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"]):format(label))
         end
     end
 
@@ -92,10 +92,10 @@ function addon.DashboardModuleGuide_Init(env)
     local function ModuleGuideSectionTitle(moduleKey)
         local base = (BrandMod(moduleKey) or ""):upper()
         if PREVIEW_MODULE_KEYS[moduleKey] then
-            return base .. " |cff228b22(" .. (L["PRESENCE_PREVIEW"] or "Preview") .. ")|r"
+            return base .. " |cff228b22(" .. (L["PRESENCE_PREVIEW"]) .. ")|r"
         end
         if COMING_SOON_MODULE_KEYS[moduleKey] then
-            return base .. " |cff8cb2e6(" .. (L["COMING_SOON"] or "Coming Soon") .. ")|r"
+            return base .. " |cff8cb2e6(" .. (L["COMING_SOON"]) .. ")|r"
         end
         return base
     end
@@ -105,8 +105,8 @@ function addon.DashboardModuleGuide_Init(env)
     --- @return string
     local function ApplyGuideBulletStatusTags(text)
         if type(text) ~= "string" or text == "" then return text end
-        local prevTag = " |cff228b22(" .. (L["PRESENCE_PREVIEW"] or "Preview") .. ")|r"
-        local soonTag = " |cff8cb2e6(" .. (L["COMING_SOON"] or "Coming Soon") .. ")|r"
+        local prevTag = " |cff228b22(" .. (L["PRESENCE_PREVIEW"]) .. ")|r"
+        local soonTag = " |cff8cb2e6(" .. (L["COMING_SOON"]) .. ")|r"
         for _, row in ipairs({
             { key = "cache", label = "Cache", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "essence", label = "Essence", tag = prevTag, when = PREVIEW_MODULE_KEYS },
@@ -269,12 +269,12 @@ function addon.DashboardModuleGuide_Init(env)
     dashAccentRefs.guideHeroRail = nil
     local heroCard = CreateFrame("Frame", nil, content)
 
-    local heroTitle = MakeText(heroCard, L["DASH_GUIDE_HERO_TITLE"] or "Getting started", 22, 1, 1, 1, "LEFT")
-    local heroTag = MakeText(heroCard, L["DASH_GUIDE_HERO_TAGLINE"] or "", 14, 0.78, 0.80, 0.85, "LEFT")
-    local heroOverview = MakeDashboardWelcomeMixedScriptText(heroCard, L["DASH_WELCOME_LEARN_BODY"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
+    local heroTitle = MakeText(heroCard, L["DASH_GUIDE_HERO_TITLE"], 22, 1, 1, 1, "LEFT")
+    local heroTag = MakeText(heroCard, L["DASH_GUIDE_HERO_TAGLINE"], 14, 0.78, 0.80, 0.85, "LEFT")
+    local heroOverview = MakeDashboardWelcomeMixedScriptText(heroCard, L["DASH_WELCOME_LEARN_BODY"], 13, 0.62, 0.65, 0.70, "LEFT")
     heroOverview:SetWordWrap(true)
     heroOverview:SetSpacing(4)
-    local heroIntro = MakeDashboardWelcomeMixedScriptText(heroCard, L["DASH_GUIDE_HERO_INTRO"] or "", 13, 0.62, 0.65, 0.70, "LEFT")
+    local heroIntro = MakeDashboardWelcomeMixedScriptText(heroCard, L["DASH_GUIDE_HERO_INTRO"], 13, 0.62, 0.65, 0.70, "LEFT")
     heroIntro:SetWordWrap(true)
     heroIntro:SetSpacing(4)
 
@@ -307,56 +307,56 @@ function addon.DashboardModuleGuide_Init(env)
     end
     local LayoutGuideContent
 
-    local horizonCard = CreateGuideAccordionCard(content, L["DASH_GUIDE_HORIZON_HEADING"] or "Introduction to Modules", false, RunAccordionLayout)
-    local horizonBullets = ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or ""))
+    local horizonCard = CreateGuideAccordionCard(content, L["DASH_GUIDE_HORIZON_HEADING"], false, RunAccordionLayout)
+    local horizonBullets = ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"]))
     local horizonBulletsFs = MakeDashboardWelcomeMixedScriptText(horizonCard.settingsContainer, horizonBullets, 12, 0.62, 0.65, 0.70, "LEFT")
     horizonBulletsFs:SetWordWrap(true)
     horizonBulletsFs:SetSpacing(5)
 
     -- Per-module detail accordions (order matches bullet list)
     local axisCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("axis"), false, RunAccordionLayout)
-    local axisBody = MakeDashboardWelcomeMixedScriptText(axisCard.settingsContainer, L["DASH_GUIDE_MOD_AXIS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local axisBody = MakeDashboardWelcomeMixedScriptText(axisCard.settingsContainer, L["DASH_GUIDE_MOD_AXIS_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     axisBody:SetWordWrap(true)
     axisBody:SetSpacing(4)
 
     local focusCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("focus"), false, RunAccordionLayout)
-    local focusBody = MakeDashboardWelcomeMixedScriptText(focusCard.settingsContainer, L["DASH_GUIDE_MOD_FOCUS_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local focusBody = MakeDashboardWelcomeMixedScriptText(focusCard.settingsContainer, L["DASH_GUIDE_MOD_FOCUS_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     focusBody:SetWordWrap(true)
     focusBody:SetSpacing(4)
 
     local presenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("presence"), false, RunAccordionLayout)
-    local presenceIntro = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_INTRO"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local presenceIntro = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_INTRO"], 12, 0.62, 0.65, 0.70, "LEFT")
     presenceIntro:SetWordWrap(true)
     presenceIntro:SetSpacing(4)
-    local presenceBody = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local presenceBody = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     presenceBody:SetWordWrap(true)
     presenceBody:SetSpacing(4)
-    local presenceBlizzard = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_BLIZZARD"] or "", 12, 0.55, 0.58, 0.64, "LEFT")
+    local presenceBlizzard = MakeDashboardWelcomeMixedScriptText(presenceCard.settingsContainer, L["DASH_GUIDE_PRESENCE_BLIZZARD"], 12, 0.55, 0.58, 0.64, "LEFT")
     presenceBlizzard:SetWordWrap(true)
     presenceBlizzard:SetSpacing(4)
 
     local vistaCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("vista"), false, RunAccordionLayout)
-    local vistaBody = MakeDashboardWelcomeMixedScriptText(vistaCard.settingsContainer, L["DASH_GUIDE_MOD_VISTA_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local vistaBody = MakeDashboardWelcomeMixedScriptText(vistaCard.settingsContainer, L["DASH_GUIDE_MOD_VISTA_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     vistaBody:SetWordWrap(true)
     vistaBody:SetSpacing(4)
 
     local insightCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("insight"), false, RunAccordionLayout)
-    local insightBody = MakeDashboardWelcomeMixedScriptText(insightCard.settingsContainer, L["DASH_GUIDE_MOD_INSIGHT_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local insightBody = MakeDashboardWelcomeMixedScriptText(insightCard.settingsContainer, L["DASH_GUIDE_MOD_INSIGHT_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     insightBody:SetWordWrap(true)
     insightBody:SetSpacing(4)
 
     local cacheCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("cache"), false, RunAccordionLayout)
-    local cacheBody = MakeDashboardWelcomeMixedScriptText(cacheCard.settingsContainer, L["DASH_GUIDE_MOD_CACHE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local cacheBody = MakeDashboardWelcomeMixedScriptText(cacheCard.settingsContainer, L["DASH_GUIDE_MOD_CACHE_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     cacheBody:SetWordWrap(true)
     cacheBody:SetSpacing(4)
 
     local essenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("essence"), false, RunAccordionLayout)
-    local essenceBody = MakeDashboardWelcomeMixedScriptText(essenceCard.settingsContainer, L["DASH_GUIDE_MOD_ESSENCE_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local essenceBody = MakeDashboardWelcomeMixedScriptText(essenceCard.settingsContainer, L["DASH_GUIDE_MOD_ESSENCE_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     essenceBody:SetWordWrap(true)
     essenceBody:SetSpacing(4)
 
     local meridianCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("meridian"), false, RunAccordionLayout)
-    local meridianBody = MakeDashboardWelcomeMixedScriptText(meridianCard.settingsContainer, L["DASH_GUIDE_MOD_MERIDIAN_BODY"] or "", 12, 0.62, 0.65, 0.70, "LEFT")
+    local meridianBody = MakeDashboardWelcomeMixedScriptText(meridianCard.settingsContainer, L["DASH_GUIDE_MOD_MERIDIAN_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
     meridianBody:SetWordWrap(true)
     meridianBody:SetSpacing(4)
 
@@ -394,7 +394,7 @@ function addon.DashboardModuleGuide_Init(env)
     end
 
     local function layoutGuideHero(w, startY)
-        horizonBulletsFs:SetText(ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"] or "")))
+        horizonBulletsFs:SetText(ApplyGuideBulletStatusTags(ColorGuideModuleNames(L["DASH_GUIDE_HORIZON_BULLETS"])))
         local y = startY
 
         heroCard:SetWidth(w)
@@ -405,7 +405,7 @@ function addon.DashboardModuleGuide_Init(env)
         heroTitle:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, 0)
         local yt = heroTitle:GetHeight() + 10
 
-        local themeText = L["DASH_GUIDE_HERO_THEME_PROMPT"] or ""
+        local themeText = L["DASH_GUIDE_HERO_THEME_PROMPT"]
         heroThemePrompt:SetText(themeText)
         if themeText ~= "" then
             heroThemePrompt:SetWidth(w)
@@ -423,7 +423,7 @@ function addon.DashboardModuleGuide_Init(env)
             heroThemeLinkHost:Hide()
         end
 
-        local tagText = L["DASH_GUIDE_HERO_TAGLINE"] or ""
+        local tagText = L["DASH_GUIDE_HERO_TAGLINE"]
         if tagText ~= "" then
             heroTag:SetText(tagText)
             heroTag:SetWidth(w)
@@ -435,7 +435,7 @@ function addon.DashboardModuleGuide_Init(env)
             heroTag:SetText("")
             heroTag:Hide()
         end
-        heroOverview:SetText(L["DASH_WELCOME_LEARN_BODY"] or "")
+        heroOverview:SetText(L["DASH_WELCOME_LEARN_BODY"])
         heroOverview:SetWidth(w)
         heroOverview:ClearAllPoints()
         heroOverview:SetPoint("TOPLEFT", heroCard, "TOPLEFT", 0, -yt)
@@ -512,7 +512,7 @@ function addon.DashboardModuleGuide_Init(env)
             if head then head:Show() end
             if headSub then
                 headSub:Show()
-                headSub:SetText(L["DASH_GUIDE_HEAD_SUB"] or "What each part of Horizon does")
+                headSub:SetText(L["DASH_GUIDE_HEAD_SUB"])
             end
             if f.searchView then f.searchView:Hide() end
             if searchBarShell then searchBarShell:Hide() end

@@ -352,7 +352,7 @@ local function EnsureAhCraftFrame()
 
     local function tierRowLabel(L, tierVal)
         if tierVal == nil then
-            return (L and L["FOCUS_AH_CRAFT_TIER_ANY"]) or "Any tier"
+            return (L and L["FOCUS_AH_CRAFT_TIER_ANY"])
         end
         local pat = L and L["FOCUS_AH_CRAFT_TIER_N"]
         if pat and type(pat) == "string" then
@@ -457,7 +457,7 @@ local function EnsureAhCraftFrame()
         local maxN = addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX or 999
         if not n or n < 1 or n > maxN or n ~= math.floor(n) then
             if addon.HSPrint then
-                addon.HSPrint((L and L["FOCUS_AH_CRAFT_COUNT_INVALID"]) or ("Enter a whole number from 1 to " .. tostring(maxN) .. "."))
+                addon.HSPrint(L["FOCUS_AH_CRAFT_COUNT_INVALID"]:format(maxN))
             end
             return
         end
@@ -503,7 +503,7 @@ function addon.focus.ShowAuctionCraftDialog(entry)
     local ar, ag, ab = GetAccentRGB()
     if f.accentStrip then f.accentStrip:SetColorTexture(ar, ag, ab, 1) end
     if f.subtitleLbl then
-        f.subtitleLbl:SetText((L and L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"]) or "Auction House shopping list")
+        f.subtitleLbl:SetText((L and L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"]))
         f.subtitleLbl:SetTextColor(ar, ag, ab, 1)
     end
     f.hintCraft:SetText((L and L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"])

@@ -32,7 +32,7 @@ def extract_lua_string(expr: str) -> str:
     if not expr or not isinstance(expr, str):
         return "(unknown)"
     expr = expr.strip()
-    # (L and L["key"]) or "fallback" -> prefer fallback (no $ so trailing ) doesn't break)
+    # (L and L["key"]) -> prefer fallback (no $ so trailing ) doesn't break)
     m = re.search(r'\bor\s+["\']([^"\']*)["\']', expr)
     if m:
         return m.group(1)

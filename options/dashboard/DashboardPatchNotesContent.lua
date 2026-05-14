@@ -154,7 +154,7 @@ function addon.PatchNotes_BuildContent(opts)
         ApplyPatchNoteFontString(lbl, 12, "")
         lbl:SetWidth(cW)
         lbl:SetJustifyH("CENTER")
-        lbl:SetText(L["DASH_PATCH_NOTES_EMPTY"] or "No notes available.")
+        lbl:SetText(L["DASH_PATCH_NOTES_EMPTY"])
         lbl:SetTextColor(unpack(PN_MUTED_COL))
         tinsert(items, { type = "fs", fs = lbl, x = 0, gap = 0,
                          onResize = function(w) lbl:SetWidth(w) end })

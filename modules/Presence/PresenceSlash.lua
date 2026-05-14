@@ -65,7 +65,7 @@ local function HandlePresenceSlash(msg)
             { "WORLD_QUEST_ACCEPT",  L["PRESENCE_WORLD_QUEST_ACCEPTED"],         L["PRESENCE_AZERITE_MINING"] },
             { "QUEST_UPDATE",        L["PRESENCE_QUEST_UPDATE"],                 L["PRESENCE_DRAGON_GLYPHS_3_5"] },
             { "QUEST_COMPLETE",      L["PRESENCE_QUEST_COMPLETE"],               L["PRESENCE_AIDING_THE_ACCORD"] },
-            { "WORLD_QUEST",         L["PRESENCE_WORLD_QUEST_COMPLETE"] or "WORLD QUEST COMPLETE", L["PRESENCE_AZERITE_MINING"] },
+            { "WORLD_QUEST",         L["PRESENCE_WORLD_QUEST_COMPLETE"], L["PRESENCE_AZERITE_MINING"] },
             { "SCENARIO_START",      "Cinderbrew Meadery",              "Defend the tavern", { category = "SCENARIO" } },
             { "ACHIEVEMENT",         L["PRESENCE_ACHIEVEMENT_EARNED"],           L["PRESENCE_EXPLORING_KHAZ_ALGAR"] },
             { "ACHIEVEMENT_PROGRESS", L["PRESENCE_EXPLORING_THE_MIDNIGHT_ISLES"], L["PRESENCE_DRAGON_GLYPHS_3_5"] },

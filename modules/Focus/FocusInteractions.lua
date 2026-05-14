@@ -89,10 +89,10 @@ local function AppendWoWheadLineToTooltip(entry)
     if not addon.GetDB("focusShowWoWheadLink", true) then return end
     local url = addon.GetWoWheadURL(entry)
     if not url then return end
-    local text = (addon.L and addon.L["FOCUS_VIEW_WOWHEAD"]) or "View on WoWhead"
+    local text = (addon.L and addon.L["FOCUS_VIEW_WOWHEAD"])
     local hint = addon.focus.GetWoWheadClickBindingHint and addon.focus.GetWoWheadClickBindingHint() or ""
     if hint == "" then
-        hint = (addon.L and addon.L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]) or "Configure in Focus options"
+        hint = (addon.L and addon.L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"])
     end
     local line = ("|cff00b4ff|Hurl:%s|h[%s]|h|r |cff888888(%s)|r"):format(url, text, hint)
     GameTooltip:AddLine(" ")
@@ -165,7 +165,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         local inGroup = (GetNumGroupMembers and GetNumGroupMembers() > 1) or (UnitInParty and UnitInParty("player"))
         if inGroup then
             menuList[#menuList + 1] = {
-                text = _G.SHARE_QUEST or L["FOCUS_SHARE_PARTY"] or "Share with party",
+                text = _G.SHARE_QUEST or L["FOCUS_SHARE_PARTY"],
                 notCheckable = true,
                 func = function()
                     if C_QuestLog and C_QuestLog.SetSelectedQuest then C_QuestLog.SetSelectedQuest(questID) end
@@ -178,7 +178,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         local qid = questID
         local trackedState = anchor and anchor.isTracked
         menuList[#menuList + 1] = {
-            text = L["FOCUS_CONTEXT_FOCUS_QUEST"] or "Focus quest",
+            text = L["FOCUS_CONTEXT_FOCUS_QUEST"],
             notCheckable = true,
             func = function()
                 if SuperTrackQuestFromMenuEntry then
@@ -189,7 +189,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
     end
     if C_QuestLog and C_QuestLog.CanAbandonQuest and C_QuestLog.CanAbandonQuest(questID) then
         menuList[#menuList + 1] = {
-            text = _G.ABANDON_QUEST or L["FOCUS_ABANDON_QUEST"] or "Abandon quest",
+            text = _G.ABANDON_QUEST or L["FOCUS_ABANDON_QUEST"],
             notCheckable = true,
             func = function()
                 StaticPopup_Show("HORIZONSUITE_ABANDON_QUEST", questName or "this quest", nil, { questID = questID })
@@ -198,7 +198,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
     end
     if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
         menuList[#menuList + 1] = {
-            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"],
             notCheckable = true,
             func = function()
                 SuppressWorldQuestEntry(questID)
@@ -207,7 +207,7 @@ local function ShowQuestContextMenu(questID, questName, anchor)
         }
     else
         menuList[#menuList + 1] = {
-            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"],
             notCheckable = true,
             func = function()
                 if anchor and anchor.isTracked == false then
@@ -434,7 +434,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
     local L = addon.L or {}
     local menuList = {
         {
-            text = L["FOCUS_SHOW_APPEARANCE_WARDROBE"] or "Show wardrobe",
+            text = L["FOCUS_SHOW_APPEARANCE_WARDROBE"],
             notCheckable = true,
             func = function()
                 local entry = anchor
@@ -445,7 +445,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
             end,
         },
         {
-            text = L["FOCUS_OPEN_APPEARANCES_COLLECTIONS"] or "Open Collections",
+            text = L["FOCUS_OPEN_APPEARANCES_COLLECTIONS"],
             notCheckable = true,
             func = function()
                 if addon.OpenTrackedAppearanceInCollections then
@@ -454,7 +454,7 @@ local function ShowAppearanceContextMenu(appearanceID, anchor)
             end,
         },
         {
-            text = L["FOCUS_UNTRACK_APPEARANCE"] or "Untrack appearance",
+            text = L["FOCUS_UNTRACK_APPEARANCE"],
             notCheckable = true,
             func = function()
                 AppearanceStopTracking(appearanceID)
@@ -799,12 +799,12 @@ local function ShowTrackedAchievementContextMenu(entry, anchor)
     if not aid then return end
     RunEasyMenuTracked({
         {
-            text = L["FOCUS_CONTEXT_OPEN_ACHIEVEMENT"] or "Open achievement",
+            text = L["FOCUS_CONTEXT_OPEN_ACHIEVEMENT"],
             notCheckable = true,
             func = function() OpenAchievementEntry(entry) end,
         },
         {
-            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"],
             notCheckable = true,
             func = function() UntrackAchievementEntry(entry) end,
         },
@@ -816,12 +816,12 @@ local function ShowTrackedEndeavorContextMenu(entry, anchor)
     if not entry.endeavorID then return end
     RunEasyMenuTracked({
         {
-            text = L["FOCUS_CONTEXT_OPEN_ENDEAVOR"] or "Open endeavor",
+            text = L["FOCUS_CONTEXT_OPEN_ENDEAVOR"],
             notCheckable = true,
             func = function() OpenEndeavorEntry(entry) end,
         },
         {
-            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"],
             notCheckable = true,
             func = function() UntrackEndeavorEntry(entry) end,
         },
@@ -836,12 +836,12 @@ local function ShowTrackedRecipeContextMenu(entry, anchor)
     local isRecraft = entry.recipeIsRecraft == true
     RunEasyMenuTracked({
         {
-            text = L["FOCUS_CONTEXT_OPEN_RECIPE"] or "Open recipe",
+            text = L["FOCUS_CONTEXT_OPEN_RECIPE"],
             notCheckable = true,
             func = function() OpenRecipeByID(recipeID, isRecraft) end,
         },
         {
-            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"],
             notCheckable = true,
             func = function() UntrackRecipeByID(recipeID, isRecraft) end,
         },
@@ -853,22 +853,22 @@ local function ShowTrackedDecorContextMenu(entry, anchor)
     if not entry.decorID then return end
     RunEasyMenuTracked({
         {
-            text = L["FOCUS_CONTEXT_OPEN_DECOR_CATALOG"] or "Open in catalog",
+            text = L["FOCUS_CONTEXT_OPEN_DECOR_CATALOG"],
             notCheckable = true,
             func = function() OpenDecorCatalogEntry(entry) end,
         },
         {
-            text = L["FOCUS_CONTEXT_PREVIEW_DECOR"] or "Preview decor",
+            text = L["FOCUS_CONTEXT_PREVIEW_DECOR"],
             notCheckable = true,
             func = function() DecorPreview(entry) end,
         },
         {
-            text = L["FOCUS_CONTEXT_SHOW_DECOR_MAP"] or "Show on map",
+            text = L["FOCUS_CONTEXT_SHOW_DECOR_MAP"],
             notCheckable = true,
             func = function() DecorOpenMap(entry) end,
         },
         {
-            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"],
             notCheckable = true,
             func = function() UntrackDecorEntry(entry) end,
         },
@@ -880,12 +880,12 @@ local function ShowTrackedAdventureGuideContextMenu(entry, anchor)
     if not entry.adventureGuideID then return end
     RunEasyMenuTracked({
         {
-            text = L["FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"] or "Open Traveler's Log",
+            text = L["FOCUS_CONTEXT_OPEN_TRAVELERS_LOG"],
             notCheckable = true,
             func = function() OpenAdventureGuideEntry(entry) end,
         },
         {
-            text = L["FOCUS_STOP_TRACKING"] or "Stop tracking",
+            text = L["FOCUS_STOP_TRACKING"],
             notCheckable = true,
             func = function() UntrackAdventureGuideEntry(entry) end,
         },
@@ -896,12 +896,12 @@ local function ShowTrackedRareContextMenu(entry, anchor)
     local L = addon.L or {}
     RunEasyMenuTracked({
         {
-            text = L["FOCUS_CONTEXT_SET_RARE_WAYPOINT"] or "Set waypoint",
+            text = L["FOCUS_CONTEXT_SET_RARE_WAYPOINT"],
             notCheckable = true,
             func = function() OpenRareWaypointEntry(entry) end,
         },
         {
-            text = L["FOCUS_CONTEXT_CLEAR_RARE_FOCUS"] or "Clear map focus",
+            text = L["FOCUS_CONTEXT_CLEAR_RARE_FOCUS"],
             notCheckable = true,
             func = function() UntrackRareEntry(entry) end,
         },
@@ -1055,7 +1055,7 @@ local function ExecuteTrackedContentAction(action, kind, entry)
     elseif action == "share" then
         local printFn = addon.HSPrint or print
         local L = addon.L or {}
-        printFn("|cffffcc00" .. (L["FOCUS_TRACKED_CONTENT_CANNOT_SHARE"] or "This entry cannot be shared.") .. "|r")
+        printFn("|cffffcc00" .. (L["FOCUS_TRACKED_CONTENT_CANNOT_SHARE"]) .. "|r")
     elseif action == "preview" then
         -- Mirror native Ctrl+Click previews: decor opens the housing preview, recipes open the inspect frame.
         -- Achievement / endeavor / advguide / rare have no standalone preview and fall through silently.
@@ -1548,7 +1548,7 @@ QUEST_ACTIONS["openDetails"] = function(entry)
         QueueOpenQuestDetailsAfterCombat(entry.questID)
         local printFn = addon.HSPrint or print
         local L = addon.L or {}
-        printFn("|cFF00CCFF" .. (L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"] or "Quest details will open when you leave combat.") .. "|r")
+        printFn("|cFF00CCFF" .. (L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"]) .. "|r")
         return
     end
     if addon.ToggleQuestDetails then
@@ -1609,10 +1609,10 @@ QUEST_ACTIONS["share"] = function(entry)
             C_QuestLog.SetSelectedQuest(entry.questID)
             QuestLogPushQuest()
         else
-            printFn("|cffffcc00" .. (L["FOCUS_REQUIRE_PARTY_SHARE"] or "You must be in a party to share this quest.") .. "|r")
+            printFn("|cffffcc00" .. (L["FOCUS_REQUIRE_PARTY_SHARE"]) .. "|r")
         end
     else
-        printFn("|cffffcc00" .. (L["FOCUS_CANNOT_SHARE_QUEST"] or "This quest cannot be shared.") .. "|r")
+        printFn("|cffffcc00" .. (L["FOCUS_CANNOT_SHARE_QUEST"]) .. "|r")
     end
 end
 
@@ -1682,7 +1682,7 @@ end
 APPEARANCE_ACTIONS["share"] = function(_)
     local printFn = addon.HSPrint or print
     local L = addon.L or {}
-    printFn("|cffffcc00" .. (L["FOCUS_APPEARANCE_CANNOT_SHARE"] or "Appearances cannot be shared like quests.") .. "|r")
+    printFn("|cffffcc00" .. (L["FOCUS_APPEARANCE_CANNOT_SHARE"]) .. "|r")
 end
 
 APPEARANCE_ACTIONS["abandon"] = function(entry)
