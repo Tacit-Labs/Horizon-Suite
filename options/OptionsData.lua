@@ -154,57 +154,6 @@ local ESSENCE_KEYS = {
     essenceShowStatBars  = true,
 }
 
-local PRESENCE_KEYS = {
-    presenceFrameY = true,
-    presenceFrameScale = true,
-    presenceBossEmoteColor = true,
-    presenceDiscoveryColor = true,
-    presenceZoneChange = true,
-    presenceSubzoneChange = true,
-    presenceHideZoneForSubzone = true,
-    presenceSuppressZoneInMplus = true,
-    presenceLevelUp = true,
-    presenceBossEmote = true,
-    presenceAchievement = true,
-    presenceAchievementProgress = false,
-    presenceQuestEvents = true,
-    presenceQuestAccept = true,
-    presenceWorldQuestAccept = true,
-    presenceQuestComplete = true,
-    presenceWorldQuest = true,
-    presenceQuestUpdate = true,
-    presenceScenarioStart = true,
-    presenceScenarioUpdate = true,
-    presenceScenarioComplete = true,
-    presenceRareDefeated = true,
-    presenceAnimations = true,
-    presenceEntranceDur = true,
-    presenceExitDur = true,
-    presenceHoldScale = true,
-    presencePrimaryLargeSz = true,
-    presenceSecondaryLargeSz = true,
-    presencePrimaryMediumSz = true,
-    presenceSecondaryMediumSz = true,
-    presencePrimarySmallSz = true,
-    presenceSecondarySmallSz = true,
-    presenceTitleFontPath = true,
-    presenceSubtitleFontPath = true,
-    presenceTitleFontOutline = true,
-    presenceSubtitleFontOutline = true,
-    presenceZoneTypeColoring = true,
-    presenceZoneColorFriendly = true,
-    presenceZoneColorHostile = true,
-    presenceZoneColorContested = true,
-    presenceZoneColorSanctuary = true,
-    presenceSuppressInDungeon = true,
-    presenceSuppressInRaid = true,
-    presenceSuppressInDelve = false,
-    presenceSuppressInPvP = true,
-    presenceSuppressInBattleground = true,
-    presenceHideQuestUpdateTitle = true,
-    presencePreviewType = true,
-}
-
 -- Keys whose values are baked into a formatted string inside UpdateMplusBlockDisplay
 -- (|cff...|r markup) rather than applied via SetTextColor in ApplyMplusTypography.
 -- Changing one of these requires re-running the display, not just typography.
@@ -474,7 +423,7 @@ function OptionsData_SetDB(key, value)
     if MPLUS_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateMplusBlock then
         addon.UpdateMplusBlock()
     end
-    if PRESENCE_KEYS[key] and addon.Presence then
+    if addon.PRESENCE_KEYS and addon.PRESENCE_KEYS[key] and addon.Presence then
         if addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
         if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
     end
