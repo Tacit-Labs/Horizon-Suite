@@ -27,7 +27,6 @@ addon.StandardFont = UNIT_NAME_FONT
 -- L["NAME_CURSEFORGE"]                                       = "CurseForge"
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
-L["OTHER"]                                                    = "Andere"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -38,6 +37,7 @@ L["PER_CATEGORY"]                                             = "Pro Kategorie"
 L["GROUPING_OVERRIDES"]                                       = "Gruppenübersteuerung"
 L["SECTION_OVERRIDES"]                                        = "Abschnittsübersteuerung"
 L["OTHER_COLOURS"]                                            = "Weitere Farben"
+L["OTHER"]                                                    = "Andere"
 
 -- =====================================================================
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
@@ -73,7 +73,7 @@ L["FOCUS_RESET_DEFAULT"]                                      = "Auf Standard zu
 -- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
-L["FOCUS_SEARCH_SETTINGS"]                                    = "Einstellungen durchsuchen..."
+L["SEARCH_SETTINGS"]                                    = "Einstellungen durchsuchen..."
 L["SEARCH_FONTS"]                                             = "Schriftarten durchsuchen..."
 
 -- =====================================================================

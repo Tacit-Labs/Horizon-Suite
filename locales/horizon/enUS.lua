@@ -28,7 +28,6 @@ L["NAME_GITHUB"]                                              = "GitHub"
 L["NAME_CURSEFORGE"]                                          = "CurseForge"
 L["NAME_WAGO"]                                                = "Wago"
 L["NAME_TOMTOM"]                                              = "TomTom"
-L["OTHER"]                                                    = "Other"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -39,6 +38,7 @@ L["PER_CATEGORY"]                                             = "Per Category"
 L["GROUPING_OVERRIDES"]                                       = "Grouping Overrides"
 L["SECTION_OVERRIDES"]                                        = "Section Overrides"
 L["OTHER_COLOURS"]                                            = "Other Colours"
+L["OTHER"]                                                    = "Other"
 
 -- =====================================================================
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
@@ -74,7 +74,7 @@ L["FOCUS_RESET_DEFAULT"]                                      = "Reset to defaul
 -- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
-L["FOCUS_SEARCH_SETTINGS"]                                    = "Search Settings..."
+L["SEARCH_SETTINGS"]                                    = "Search Settings..."
 L["SEARCH_FONTS"]                                             = "Search Fonts..."
 
 -- =====================================================================
