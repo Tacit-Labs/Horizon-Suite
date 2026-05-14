@@ -1023,7 +1023,7 @@ L["FOCUS_CLASS_COLOURS_DASHBOARD"]                            = "Couleurs de cla
 -- =====================================================================
 -- OptionsEssence.lua — Essence options panel
 -- =====================================================================
--- L["ESSENCE_CAT_DESC"]                                         = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
+-- L["ESSENCE_DESC"]                                         = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
 -- L["ESSENCE_LOCK_POSITION"]                                    = "Lock Position"
 -- L["ESSENCE_LOCK_POSITION_DESC"]                               = "Prevent dragging the panel."
 -- L["ESSENCE_RESET_POSITION_DESC"]                              = "Snap the panel back to screen centre."
