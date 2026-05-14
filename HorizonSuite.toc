@@ -10,14 +10,14 @@
 ## X-Wago-ID: jK8gY56y
 
 HorizonSuite.lua
-localisation/LocaleCore.lua
-localisation/horizon/enUS.lua
-localisation/horizon/deDE.lua
-localisation/horizon/esES.lua
-localisation/horizon/frFR.lua
-localisation/horizon/koKR.lua
-localisation/horizon/ptBR.lua
-localisation/horizon/zhCN.lua
+locales/LocaleCore.lua
+locales/horizon/enUS.lua
+locales/horizon/deDE.lua
+locales/horizon/esES.lua
+locales/horizon/frFR.lua
+locales/horizon/koKR.lua
+locales/horizon/ptBR.lua
+locales/horizon/zhCN.lua
 Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua

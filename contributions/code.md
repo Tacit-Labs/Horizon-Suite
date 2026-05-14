@@ -22,7 +22,7 @@ This is ***exclusively*** for game/AddOn-breaking bugs, not small fixes
 ---
 
 # `Displayed Strings` (any visible to the end-user)
-Use `localisation` keys (`L["TERM"]`) within the code and add it to **`localisation/horizon/enUS.lua`**.
+Use `localisation` keys (`L["TERM"]`) within the code and add it to **`locales/horizon/enUS.lua`**.
 Every key shares the same format. It is **crucial** that the coding syntax remains the same.
 ```
 L["DEFINED_TERM"]                                                = "Translated into the respective language, English by default."

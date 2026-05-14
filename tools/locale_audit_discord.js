@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Locale audit → Discord embed payload (localisation/horizon/).
+  Locale audit → Discord embed payload (locales/horizon/).
   Usage: node tools/locale_audit_discord.js
  */
 
@@ -10,7 +10,7 @@ const { parseEnUS, parseLocaleTranslations } = require('./lib/parseLocalisationE
 const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOC = path.join(ROOT, 'localisation/horizon');
+const LOC = path.join(ROOT, 'locales/horizon');
 
 const LOCALES = [
     { code: 'deDE', flag: '\uD83C\uDDE9\uD83C\uDDEA', name: 'German' },
