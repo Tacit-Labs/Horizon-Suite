@@ -3133,7 +3133,7 @@ local function OnSearchTextChanged(text)
     end
 end
 
-local searchInput = OptionsWidgets_CreateSearchInput(searchRow, OnSearchTextChanged, L["FOCUS_SEARCH_SETTINGS"])
+local searchInput = OptionsWidgets_CreateSearchInput(searchRow, OnSearchTextChanged, L["SEARCH_SETTINGS"])
 searchInput.clearBtn:SetFrameLevel(searchInput.edit:GetFrameLevel() + 1)
 searchInput.edit:SetScript("OnEscapePressed", function()
     searchInput.edit:SetText("")
