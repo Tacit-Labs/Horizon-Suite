@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Shared option-descriptor helpers
-    Exports font/outline helpers used by multiple module option files.
+    Exports font/outline helpers and BrandModule used by multiple module option files.
     Must load after OptionsData.lua and before any module options file.
 ]]
 local addon = _G.HorizonSuite
@@ -40,7 +40,15 @@ local OUTLINE_OPTIONS = {
     { L["FOCUS_SLUG_THICK_OUTLINE"] or "SLUG Thick Outline", "THICKOUTLINE, SLUG" },
 }
 
+local function BrandModule(moduleKey)
+    if addon.GetModuleDisplayName then return addon.GetModuleDisplayName(moduleKey) end
+    local t = addon.BrandDisplay and addon.BrandDisplay.module
+    if not moduleKey or not t then return nil end
+    return t[moduleKey]
+end
+
 addon.FONT_USE_GLOBAL                  = FONT_USE_GLOBAL
 addon.GetPerElementFontDropdownOptions = GetPerElementFontDropdownOptions
 addon.DisplayPerElementFont            = DisplayPerElementFont
 addon.OUTLINE_OPTIONS                  = OUTLINE_OPTIONS
+addon.BrandModule                      = BrandModule
