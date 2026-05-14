@@ -44,54 +44,6 @@ local TYPOGRAPHY_KEYS = {
     fontOutline = true,
 }
 
-local FOCUS_CLICK_KEYS = {
-    focusClickProfile     = true,
-    focusIconClickAction  = true,
-    focusClick_left       = true,
-    focusClick_shiftLeft  = true,
-    focusClick_ctrlLeft   = true,
-    focusClick_altLeft    = true,
-    focusClick_right      = true,
-    focusClick_shiftRight = true,
-    focusClick_ctrlRight  = true,
-    focusClick_altRight   = true,
-}
-
--- Keys whose values are baked into a formatted string inside UpdateMplusBlockDisplay
--- (|cff...|r markup) rather than applied via SetTextColor in ApplyMplusTypography.
--- Changing one of these requires re-running the display, not just typography.
-local MPLUS_EMBEDDED_MARKUP_KEYS = {
-    mplusShowSplitTimer = true,
-    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
-    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
-}
-
-local MPLUS_TYPOGRAPHY_KEYS = {
-    fontPath = true,
-    fontOutline = true,
-    shadowOffsetX = true,
-    shadowOffsetY = true,
-    showTextShadow = true,
-    shadowAlpha = true,
-    mplusDungeonSize = true,
-    mplusDungeonColorR = true, mplusDungeonColorG = true, mplusDungeonColorB = true,
-    mplusTimerSize = true,
-    mplusTimerColorR = true, mplusTimerColorG = true, mplusTimerColorB = true,
-    mplusTimerOvertimeColorR = true, mplusTimerOvertimeColorG = true, mplusTimerOvertimeColorB = true,
-    mplusShowSplitTimer = true,
-    mplusSplitSize = true,
-    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
-    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
-    mplusProgressSize = true,
-    mplusProgressColorR = true, mplusProgressColorG = true, mplusProgressColorB = true,
-    mplusAffixSize = true,
-    mplusAffixColorR = true, mplusAffixColorG = true, mplusAffixColorB = true,
-    mplusBossSize = true,
-    mplusBossColorR = true, mplusBossColorG = true, mplusBossColorB = true,
-    mplusBarColorR = true, mplusBarColorG = true, mplusBarColorB = true, mplusBarColorA = true,
-    mplusBarDoneColorR = true, mplusBarDoneColorG = true, mplusBarDoneColorB = true, mplusBarDoneColorA = true,
-}
-
 -- Keys written by color pickers during drag. When _colorPickerLive is true and key is in this list,
 -- we skip NotifyMainAddon to avoid FullLayout spam; key-specific handlers (e.g. ApplyBackdropOpacity) still run.
 local COLOR_LIVE_KEYS = {
@@ -320,10 +272,10 @@ function OptionsData_SetDB(key, value)
     if TYPOGRAPHY_KEYS[key] and addon.UpdateFontObjectsFromDB then
         addon.UpdateFontObjectsFromDB()
     end
-    if MPLUS_TYPOGRAPHY_KEYS[key] and addon.ApplyMplusTypography then
+    if addon.MPLUS_TYPOGRAPHY_KEYS and addon.MPLUS_TYPOGRAPHY_KEYS[key] and addon.ApplyMplusTypography then
         addon.ApplyMplusTypography()
     end
-    if MPLUS_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateMplusBlock then
+    if addon.MPLUS_EMBEDDED_MARKUP_KEYS and addon.MPLUS_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateMplusBlock then
         addon.UpdateMplusBlock()
     end
     if addon.PRESENCE_KEYS and addon.PRESENCE_KEYS[key] and addon.Presence then
