@@ -193,7 +193,7 @@ function addon.DashboardWelcomeView_Init(env)
 
     local function ShowCopyURL(label, url)
         if addonRef.ShowURLCopyBox then
-            addonRef.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
+            addonRef.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"]):format(label))
         end
     end
 
@@ -1587,8 +1587,8 @@ function addon.DashboardWelcomeView_Init(env)
                     local ePrefix = pool.editorialFooterPrefixFs
                     local eLink = pool.editorialFooterLinkBtn
                     if eRow and ePrefix and eLink then
-                        ePrefix:SetText(metaStr ~= "" and metaStr or (L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"] or ""))
-                        eLink:SetLabel(L["DASH_NEWS_EDITORIAL_FOOTER_LINK"] or "Patch notes")
+                        ePrefix:SetText(metaStr ~= "" and metaStr or (L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]))
+                        eLink:SetLabel(L["DASH_NEWS_EDITORIAL_FOOTER_LINK"])
                         eLink:SetScript("OnClick", function()
                             if f.ShowPatchNotes then f.ShowPatchNotes() end
                         end)
@@ -1826,13 +1826,13 @@ function addon.DashboardWelcomeView_Init(env)
                         local rowEntry = entry
                         if entry.id == "class_icons" then
                             ePrefix:SetText(storyMeta)
-                            eLink:SetLabel(ctaText ~= "" and ctaText or (L["DASH_NEWS_CTA_VIEW_ARTIST"] or ""))
+                            eLink:SetLabel(ctaText ~= "" and ctaText or (L["DASH_NEWS_CTA_VIEW_ARTIST"]))
                             eLink:SetScript("OnClick", function()
                                 DispatchNewsAction(rowEntry)
                             end)
                         else
-                            ePrefix:SetText(L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"] or "")
-                            eLink:SetLabel(L["DASH_NEWS_EDITORIAL_FOOTER_LINK"] or "Patch notes")
+                            ePrefix:SetText(L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"])
+                            eLink:SetLabel(L["DASH_NEWS_EDITORIAL_FOOTER_LINK"])
                             eLink:SetScript("OnClick", function()
                                 if f.ShowPatchNotes then f.ShowPatchNotes() end
                             end)
@@ -2160,7 +2160,7 @@ function addon.DashboardWelcomeView_Init(env)
             if head then head:Show() end
             if headSub then
                 headSub:Show()
-                headSub:SetText(L[headSubKey] or L["DASH_WELCOME_HEAD_SUB"] or "Credits, community, and where to find help")
+                headSub:SetText(L[headSubKey] or L["DASH_WELCOME_HEAD_SUB"])
             end
             if searchBarShell then searchBarShell:Hide() end
             if f.HideSearchDropdown then f.HideSearchDropdown() end

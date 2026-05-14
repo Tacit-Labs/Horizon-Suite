@@ -169,8 +169,8 @@ function addon.DashboardDetailView_Init(env)
     --- Open Axis → Modules detail with the Module Toggles accordion expanded (same as Welcome “Open module toggles” link).
     --- @return nil
     local function NavigateToModuleToggles()
-        local togglesSection = L["MODULE_TOGGLES"] or "Module Toggles"
-        local modulesName = L["MODULES"] or "Modules"
+        local togglesSection = L["MODULE_TOGGLES"]
+        local modulesName = L["MODULES"]
         local entryFound
         local idx = addon.OptionsData_BuildSearchIndex and addon.OptionsData_BuildSearchIndex() or {}
         for _, e in ipairs(idx) do
@@ -201,7 +201,7 @@ function addon.DashboardDetailView_Init(env)
             end
         end
         if not entryFound then
-            local catName = L["AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            local catName = L["AXIS_GLOBAL_TOGGLES"]
             for _, cat in ipairs(addon.OptionCategories) do
                 if cat.key == "GlobalToggles" then
                     catName = type(cat.name) == "function" and cat.name() or cat.name or catName
@@ -239,7 +239,7 @@ function addon.DashboardDetailView_Init(env)
             end
         end
         if not entryFound then
-            local catName = L["AXIS_GLOBAL_TOGGLES"] or "Global Settings"
+            local catName = L["AXIS_GLOBAL_TOGGLES"]
             for _, cat in ipairs(addon.OptionCategories) do
                 if cat.key == "GlobalToggles" then
                     catName = type(cat.name) == "function" and cat.name() or cat.name or catName
@@ -398,7 +398,7 @@ function addon.DashboardDetailView_Init(env)
         if searchQuery == "" or #searchQuery < 2 then
             f.HideSearchDropdown()
             if searchView and searchView:IsShown() and searchEmptyHint then
-                searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"] or "Type at least two characters to search settings, modules, and options.")
+                searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"])
                 searchEmptyHint:Show()
             end
             return
@@ -432,9 +432,9 @@ function addon.DashboardDetailView_Init(env)
                 local fk = f.dashboardSearchModuleFilter or "all"
                 if fk ~= "all" then
                     local modLab = SearchFilterDisplayLabel(fk)
-                    searchEmptyHint:SetText(string.format(L["DASH_SEARCH_NO_RESULTS_IN_MODULE"] or "No matches in %s. Try All modules or different words.", modLab))
+                    searchEmptyHint:SetText(string.format(L["DASH_SEARCH_NO_RESULTS_IN_MODULE"], modLab))
                 else
-                    searchEmptyHint:SetText(L["DASH_SEARCH_NO_RESULTS"] or "No matching settings. Try different words.")
+                    searchEmptyHint:SetText(L["DASH_SEARCH_NO_RESULTS"])
                 end
                 searchEmptyHint:Show()
             end
@@ -1368,12 +1368,12 @@ function addon.DashboardDetailView_Init(env)
                     end
                 elseif opt.type == "moduleReloadPrompt" then
                     local container = CreateFrame("Frame", nil, currentCard.settingsContainer)
-                    local hintText = opt.hintText or L["MODULE_RELOAD_HINT"] or "Reload the interface to finish applying module changes."
+                    local hintText = opt.hintText or L["MODULE_RELOAD_HINT"]
                     local hint = MakeText(container, hintText, 12, 0.65, 0.68, 0.75, "LEFT")
                     hint:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
                     hint:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
                     hint:SetWordWrap(true)
-                    local reloadBtn = _G.OptionsWidgets_CreateButton(container, L["RELOAD_UI"] or "Reload UI", function()
+                    local reloadBtn = _G.OptionsWidgets_CreateButton(container, L["RELOAD_UI"], function()
                         ReloadUI()
                     end, { width = 130, height = 24 })
                     reloadBtn:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -10)
@@ -1584,12 +1584,12 @@ function addon.DashboardDetailView_Init(env)
                         local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                         local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                        local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"]) or "Stage") or ((addon.L and addon.L["FOCUS_ZONE"]) or "Zone")
+                        local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"])) or ((addon.L and addon.L["FOCUS_ZONE"]))
                         local catDefs = {
-                            { subKey = "section",   abbr = L["FOCUS_SECTION"] or "Section",   full = "Section",   def = unifiedDef },
-                            { subKey = "title",     abbr = L["FOCUS_TITLE"] or "Title",     full = "Title",     def = unifiedDef },
-                            { subKey = "zone",      abbr = (key == "SCENARIO") and (L["UI_STAGE"] or "Stage") or (L["FOCUS_ZONE"] or "Zone"), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
-                            { subKey = "objective", abbr = L["FOCUS_OBJECTIVE"] or "Objective", full = "Objective", def = unifiedDef },
+                            { subKey = "section",   abbr = L["FOCUS_SECTION"],   full = "Section",   def = unifiedDef },
+                            { subKey = "title",     abbr = L["FOCUS_TITLE"],     full = "Title",     def = unifiedDef },
+                            { subKey = "zone",      abbr = (key == "SCENARIO") and (L["UI_STAGE"]) or (L["FOCUS_ZONE"]), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                            { subKey = "objective", abbr = L["FOCUS_OBJECTIVE"], full = "Objective", def = unifiedDef },
                         }
 
                         card.swatches = {}

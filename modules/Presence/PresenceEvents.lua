@@ -245,7 +245,7 @@ local function ExecuteRareDefeatedCheck()
             if (rareDefeatedCooldowns[cooldownKey] or 0) + RARE_COOLDOWN <= now then
                 rareDefeatedCooldowns[cooldownKey] = now
                 local L = addon.L or {}
-                addon.Presence.QueueOrPlay("RARE_DEFEATED", L["PRESENCE_RARE_DEFEATED"] or "RARE DEFEATED", name, { source = "VIGNETTES_UPDATED" })
+                addon.Presence.QueueOrPlay("RARE_DEFEATED", L["PRESENCE_RARE_DEFEATED"], name, { source = "VIGNETTES_UPDATED" })
             end
         end
     end

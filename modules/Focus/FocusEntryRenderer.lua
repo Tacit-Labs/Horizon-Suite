@@ -362,14 +362,14 @@ end
 --- True if text contains the localized "abundance held" phrase (case-insensitive). Used for Abundance scenario.
 local function isAbundanceHeld(text)
     if not text or type(text) ~= "string" then return false end
-    local phrase = (addon.L and addon.L["UI_ABUNDANCE_HELD"]) or "abundance held"
+    local phrase = (addon.L and addon.L["UI_ABUNDANCE_HELD"])
     return text:lower():find(phrase:lower(), 1, true) ~= nil
 end
 
 --- True if text contains the localized "Abundance Bag" phrase (case-insensitive). Hide from inline; bar shows abundance held.
 local function isAbundanceBag(text)
     if not text or type(text) ~= "string" then return false end
-    local phrase = (addon.L and addon.L["UI_ABUNDANCE_BAG"]) or "Abundance Bag"
+    local phrase = (addon.L and addon.L["UI_ABUNDANCE_BAG"])
     return text:lower():find(phrase:lower(), 1, true) ~= nil
 end
 
@@ -1027,7 +1027,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         local obj = entry.objectives[1]
         local isAutoComplete = questData.isAutoComplete and true or false
         local L = addon.L or {}
-        local readyToTurnIn = StripLeadingDashes(L["UI_READY_TO_TURN_IN"] or "Ready to turn in")
+        local readyToTurnIn = StripLeadingDashes(L["UI_READY_TO_TURN_IN"])
         local firstLineText = isAutoComplete
             and (_G.QUEST_WATCH_QUEST_COMPLETE or "Quest Complete")
             or (addon.GetDB("objectivePrefixStyle", "none") == "numbers" and ("1. " .. readyToTurnIn)
@@ -1455,17 +1455,17 @@ local function ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor
             if firstPercent ~= nil then
                 barLabel = barLabel .. " (" .. tostring(firstPercent) .. "%)"
             end
-            if isAbundanceBagSel then barLabel = (addon.L and addon.L["UI_ABUNDANCE_BAG"] or "Abundance Bag") .. ": " .. barLabel end
-            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"] or "abundance held") end
+            if isAbundanceBagSel then barLabel = (addon.L and addon.L["UI_ABUNDANCE_BAG"]) .. ": " .. barLabel end
+            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"]) end
         elseif useXyFormat then
             local nf = math.min(selectedObj.numFulfilled, selectedObj.numRequired)
             barLabel = FormatProgressPair(nf, selectedObj.numRequired)
-            if isAbundanceBagSel then barLabel = (addon.L and addon.L["UI_ABUNDANCE_BAG"] or "Abundance Bag") .. ": " .. barLabel end
-            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"] or "abundance held") end
+            if isAbundanceBagSel then barLabel = (addon.L and addon.L["UI_ABUNDANCE_BAG"]) .. ": " .. barLabel end
+            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"]) end
         else
             barLabel = firstPercent ~= nil and (tostring(firstPercent) .. "%") or ""
-            if isAbundanceBagSel then barLabel = (addon.L and addon.L["UI_ABUNDANCE_BAG"] or "Abundance Bag") .. ": " .. barLabel end
-            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"] or "abundance held") end
+            if isAbundanceBagSel then barLabel = (addon.L and addon.L["UI_ABUNDANCE_BAG"]) .. ": " .. barLabel end
+            if isAbundanceHeldSel then barLabel = barLabel .. " " .. (addon.L and addon.L["UI_ABUNDANCE_HELD"]) end
         end
         entry.wqProgressText:SetText(barLabel)
         entry.wqProgressText:ClearAllPoints()
@@ -2099,7 +2099,7 @@ local function PopulateEntry(entry, questData, groupKey)
     local playerZone = addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName() or nil
     local inCurrentZone = questData.isNearby or (questData.zoneName and playerZone and questData.zoneName:lower() == playerZone:lower())
     -- Prey activities: "Activity" is a semantic label, not a zone—always show it even when in-zone
-    local isActivityLabel = questData.zoneName and ((questData.zoneName == "Activity") or (addon.L and addon.L["FOCUS_ACTIVITY"] and questData.zoneName == addon.L["FOCUS_ACTIVITY"]))
+    local isActivityLabel = questData.zoneName and (questData.zoneName == "Activity" or questData.zoneName == L["FOCUS_ACTIVITY"])
     local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel)
     local shouldShowScenarioStage = questData.stageName and (questData.category == "SCENARIO" or questData.isScenarioMain)
         and (questData.title ~= questData.stageName)
@@ -2126,7 +2126,7 @@ local function PopulateEntry(entry, questData, groupKey)
     elseif shouldShowScenarioStage then
         local stageLabel = questData.stageName
         if questData.stageIndex and questData.stageIndex > 0 then
-            local stageFmt = (addon.L and addon.L["UI_STAGE_X_X"]) or "Stage %d: %s"
+            local stageFmt = (addon.L and addon.L["UI_STAGE_X_X"])
             stageLabel = stageFmt:format(questData.stageIndex, questData.stageName)
         end
         entry.zoneText:SetText(stageLabel)

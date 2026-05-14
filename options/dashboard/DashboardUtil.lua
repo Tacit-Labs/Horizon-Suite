@@ -589,23 +589,23 @@ function addon.Dashboard_CreateCommunityFooter(parent, env)
     local MakeText = env.MakeText
 
     local linkData = {
-        { label = L["NAME_DISCORD"] or "Discord", url = "https://discord.gg/nFabdZmvSB", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
-        { label = L["NAME_KO_FI"] or "Ko-fi", url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
-        { label = L["NAME_PATREON"] or "Patreon", url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
-        { label = L["NAME_GITHUB"] or "GitHub", url = "https://github.com/Tacit-Labs/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
-        { label = L["NAME_CURSEFORGE"] or "CurseForge", url = "https://www.curseforge.com/projects/1457844", icon = DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga" },
-        { label = L["NAME_WAGO"] or "Wago", url = "https://addons.wago.io/addons/jK8gY56y", icon = DASHBOARD_FOOTER_MEDIA .. "wago.tga" },
+        { label = L["NAME_DISCORD"], url = "https://discord.gg/nFabdZmvSB", icon = DASHBOARD_FOOTER_MEDIA .. "discord.tga" },
+        { label = L["NAME_KO_FI"], url = "https://ko-fi.com/horizonsuite", icon = DASHBOARD_FOOTER_MEDIA .. "kofi.tga" },
+        { label = L["NAME_PATREON"], url = "https://patreon.com/HorizonSuite", icon = DASHBOARD_FOOTER_MEDIA .. "patreon.tga" },
+        { label = L["NAME_GITHUB"], url = "https://github.com/Tacit-Labs/Horizon-Suite", icon = DASHBOARD_FOOTER_MEDIA .. "github.tga" },
+        { label = L["NAME_CURSEFORGE"], url = "https://www.curseforge.com/projects/1457844", icon = DASHBOARD_FOOTER_MEDIA .. "CurseForge.tga" },
+        { label = L["NAME_WAGO"], url = "https://addons.wago.io/addons/jK8gY56y", icon = DASHBOARD_FOOTER_MEDIA .. "wago.tga" },
     }
 
     local footerTopRule = parent:CreateTexture(nil, "ARTWORK")
     footerTopRule:SetHeight(1)
     footerTopRule:SetColorTexture(0.22, 0.24, 0.30, 0.85)
 
-    local communityHdr = MakeText(parent, L["DASH_WELCOME_COMMUNITY_HEADING"] or "Community & Support", 14, 0.52, 0.56, 0.62, "CENTER")
+    local communityHdr = MakeText(parent, L["DASH_WELCOME_COMMUNITY_HEADING"], 14, 0.52, 0.56, 0.62, "CENTER")
 
     local function ShowCopyURL(label, url)
         if env.addon and env.addon.ShowURLCopyBox then
-            env.addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"] or "Copy link — %s"):format(label))
+            env.addon.ShowURLCopyBox(url, (L["DASH_COPY_LINK_X"]):format(label))
         end
     end
 

@@ -90,7 +90,7 @@ local function ShowGameTooltip(ownerFrame, anchor)
     GameTooltip:SetText(title, nil, nil, nil, nil, false)
     if addon.PatchNotes_HasUnread and addon.PatchNotes_HasUnread() then
         local L = addon.L
-        local hint = (L and L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]) or "New patch notes — open Axis and choose Patch Notes."
+        local hint = (L and L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"])
         GameTooltip:AddLine(hint, 0.75, 0.92, 0.78, true)
     end
     GameTooltip:Show()

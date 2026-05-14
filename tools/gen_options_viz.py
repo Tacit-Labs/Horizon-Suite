@@ -51,12 +51,12 @@ def extract_str(text: str, field: str) -> str | None:
     """
     Extract a string field value from a chunk of Lua option text.
     Handles:
-      field = L["KEY"] or "fallback"
+      field = L["KEY"]
       field = "direct string"
       field = BrandModule("modulename")
       field = L["KEY"]
     """
-    # L["KEY"] or "fallback"
+    # L["KEY"]
     m = re.search(rf'\b{field}\s*=\s*L\["[^"]+"\]\s*or\s*"([^"]*)"', text)
     if m:
         return m.group(1).strip()

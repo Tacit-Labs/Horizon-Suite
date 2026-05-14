@@ -234,8 +234,8 @@ local function CreateQuestEntry(parent, index)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         local L = addon.L
         addon.focus.AnchorTooltip(GameTooltip, self)
-        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TITLE"]) or "Search Auction House", 1, 1, 1)
-        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]) or "Left-click: one craft with quality and tier when supported.\nRight-click: craft count and tier menu (1–5, or Any for no filters).\nThe Auction House must be open.", 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TITLE"]), 1, 1, 1)
+        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]), 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     e.ahBtn:SetScript("OnLeave", function(self)
