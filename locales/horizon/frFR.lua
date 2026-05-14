@@ -1019,6 +1019,22 @@ L["FOCUS_CLASS_COLOURS_DASHBOARD"]                            = "Couleurs de cla
 -- L["INSIGHT_CLASS_COLOURS_DESC"]                            = "Use class colour for player tooltip name, class line, and border."
 -- L["CACHE_CLASS_COLOURS_DESC"]                              = "Tint Cache loot icon glow and edit/anchor borders with your class colour."
 -- L["ESSENCE_CLASS_COLOURS_DESC"]                            = "Tint the character name on the Essence sheet with your class colour."
+
+-- =====================================================================
+-- OptionsEssence.lua — Essence options panel
+-- =====================================================================
+-- L["ESSENCE_CAT_DESC"]                                         = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
+-- L["ESSENCE_LOCK_POSITION"]                                    = "Lock Position"
+-- L["ESSENCE_LOCK_POSITION_DESC"]                               = "Prevent dragging the panel."
+-- L["ESSENCE_RESET_POSITION_DESC"]                              = "Snap the panel back to screen centre."
+-- L["ESSENCE_PVP_TITLE"]                                        = "PvP Title"
+-- L["ESSENCE_PVP_TITLE_DESC"]                                   = "Show the character's PvP title above the identity line."
+-- L["ESSENCE_STAT_BARS"]                                        = "Secondary Stat Bars"
+-- L["ESSENCE_STAT_BARS_DESC"]                                   = "Show Crit, Haste, Mastery, and Versatility bars."
+-- L["ESSENCE_ILVL_BADGE"]                                       = "Item Level Badge on Gear Slots"
+-- L["ESSENCE_ILVL_BADGE_DESC"]                                  = "Show the item level on each equipped gear slot."
+-- L["ESSENCE_STAT_CAP"]                                         = "Stat Bar Cap (%)"
+-- L["ESSENCE_STAT_CAP_DESC"]                                    = "The percentage shown as a full bar. Lower = more detail at common stat values."
 L["AXIS_CLASS_COLOURS_DESC"]                                  = "Colore les éléments du Tableau de bord, des séparateurs et des surlignages avec la couleur de votre classe."
 -- L["DASH_THEME"]                                            = "Theme"
 -- L["FOCUS_DASHBOARD_BACKGROUND"]                            = "Dashboard Background"

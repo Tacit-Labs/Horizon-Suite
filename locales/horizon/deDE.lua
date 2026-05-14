@@ -1021,6 +1021,22 @@ L["VISTA_CLASS_COLOURS_DESC"]                                 = "Klassenfärbung
 L["INSIGHT_CLASS_COLOURS_DESC"]                               = "Klassenfärbung für Insight-Tooltips: Spielernamen, Klassentext und Umrandung."
 L["CACHE_CLASS_COLOURS_DESC"]                                 = "Klassenfärbung für Cache-Beuteanzeige: Symbolleuchten und Bearbeitungs-/Ankerumrandungen."
 L["ESSENCE_CLASS_COLOURS_DESC"]                               = "Klassenfärbung für Essence-Charakterdatenblatt: Charakternamename."
+
+-- =====================================================================
+-- OptionsEssence.lua — Essence options panel
+-- =====================================================================
+-- L["ESSENCE_CAT_DESC"]                                         = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
+-- L["ESSENCE_LOCK_POSITION"]                                    = "Lock Position"
+-- L["ESSENCE_LOCK_POSITION_DESC"]                               = "Prevent dragging the panel."
+-- L["ESSENCE_RESET_POSITION_DESC"]                              = "Snap the panel back to screen centre."
+-- L["ESSENCE_PVP_TITLE"]                                        = "PvP Title"
+-- L["ESSENCE_PVP_TITLE_DESC"]                                   = "Show the character's PvP title above the identity line."
+-- L["ESSENCE_STAT_BARS"]                                        = "Secondary Stat Bars"
+-- L["ESSENCE_STAT_BARS_DESC"]                                   = "Show Crit, Haste, Mastery, and Versatility bars."
+-- L["ESSENCE_ILVL_BADGE"]                                       = "Item Level Badge on Gear Slots"
+-- L["ESSENCE_ILVL_BADGE_DESC"]                                  = "Show the item level on each equipped gear slot."
+-- L["ESSENCE_STAT_CAP"]                                         = "Stat Bar Cap (%)"
+-- L["ESSENCE_STAT_CAP_DESC"]                                    = "The percentage shown as a full bar. Lower = more detail at common stat values."
 L["AXIS_CLASS_COLOURS_DESC"]                                  = "Dashboard-Akzente, Trennlinien und Hervorhebungen mit Klassenfarbe einfärben."
 L["DASH_THEME"]                                               = "Motiv"
 L["FOCUS_DASHBOARD_BACKGROUND"]                               = "Dashboard-Hintergrund"
