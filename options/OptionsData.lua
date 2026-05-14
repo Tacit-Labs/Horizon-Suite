@@ -65,82 +65,6 @@ local FOCUS_CLICK_KEYS = {
     focusClick_altRight   = true,
 }
 
-local INSIGHT_KEYS = {
-    insightAnchorMode       = true,
-    insightCursorSide       = true,
-    insightFixedPoint       = true,
-    insightFixedX           = true,
-    insightFixedY           = true,
-    insightCursorOffsetX    = true,
-    insightCursorOffsetY    = true,
-    insightFocusDynamicInFixed = true,
-    insightHideTooltipsInCombat = true,
-    insightBgOpacity       = true,
-    insightShowMount            = true,
-    insightShowIlvl             = true,
-    insightItemLevelMode        = true,
-    insightShowSpecRole         = true,
-    insightShowCharacterTitle   = true,
-    insightRealmNameMode        = true,
-    insightRaceIcons            = true,
-    insightPlayerNameColor      = true,
-    insightPlayerNameGradient   = true,
-    insightTitleColorMode       = true,
-    insightTitleMatchNameColor  = true,
-    insightTitleColor           = true,
-    insightTitleColorR          = true,
-    insightTitleColorG          = true,
-    insightTitleColorB          = true,
-    insightShowHonorLevel       = true,
-    insightHonorLevelMode       = true,
-    insightShowStatusBadges     = true,
-    insightStatusBadgeCombat    = true,
-    insightStatusBadgeAFK       = true,
-    insightStatusBadgeDND       = true,
-    insightStatusBadgePVP       = true,
-    insightStatusBadgeGroup     = true,
-    insightStatusBadgeFriend    = true,
-    insightStatusBadgeTargeting = true,
-    insightShowMythicScore  = true,
-    insightMythicScoreMode  = true,
-    insightRatingsIcons     = true,
-    insightShowTransmog     = true,
-    insightShowGuildRank    = true,
-    insightSeparatorMode    = true,
-    insightBlankSeparator   = true,
-    insightShowIcons       = true,
-    insightClassIconSource = true,
-    insightFontPath        = true,
-    insightHeaderSize      = true,
-    insightBodySize        = true,
-    insightBadgesSize      = true,
-    insightStatsSize       = true,
-    insightMountSize       = true,
-    insightTransmogSize    = true,
-    insightMountOwnershipDisplay = true,
-    -- NPC tooltip
-    insightNpcReactionBorder    = true,
-    insightNpcReactionName      = true,
-    insightNpcShowLevelLine     = true,
-    insightNpcShowIcons         = true,
-    insightNpcHeaderSize        = true,
-    insightNpcBodySize          = true,
-    -- Item tooltip
-    insightItemQualityBorder    = true,
-    insightItemNameGradient     = true,
-    insightItemSectionSpacing   = true,
-    insightItemHeaderSize       = true,
-    insightItemBodySize         = true,
-    insightItemTransmogSize     = true,
-    -- Player tooltip (per-type font sizes)
-    insightPlayerHeaderSize     = true,
-    insightPlayerBodySize       = true,
-    insightPlayerBadgesSize     = true,
-    insightPlayerStatsSize      = true,
-    insightPlayerMountSize      = true,
-
-}
-
 local ESSENCE_KEYS = {
     essenceX             = true,
     essenceY             = true,
@@ -427,7 +351,7 @@ function OptionsData_SetDB(key, value)
         if addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
         if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
     end
-    if INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
+    if addon.INSIGHT_KEYS and addon.INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
         addon.Insight.ApplyInsightOptions()
     end
     if ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
