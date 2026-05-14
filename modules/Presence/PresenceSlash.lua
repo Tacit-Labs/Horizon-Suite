@@ -13,6 +13,12 @@ local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r
 --- @return boolean
 local function HandlePresenceSlash(msg)
     local cmd = strtrim(msg or ""):lower()
+    -- Accept optional leading "test " prefix (matches PR test-plan phrasing).
+    cmd = cmd:gsub("^test%s+", "")
+    -- Long-form aliases for parity with documentation.
+    if cmd == "worldquest" then cmd = "wq"
+    elseif cmd == "worldquestaccept" then cmd = "wqaccept"
+    end
 
     if cmd == "level" then
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("LEVEL_UP") end
@@ -23,6 +29,9 @@ local function HandlePresenceSlash(msg)
     elseif cmd == "quest" then
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("QUEST_COMPLETE") end
     elseif cmd == "wq" then
+        if addon.GetDB and addon.GetDB("presenceWorldQuestSound", true) and SOUNDKIT and SOUNDKIT.UI_WORLDQUEST_COMPLETE then
+            PlaySound(SOUNDKIT.UI_WORLDQUEST_COMPLETE)
+        end
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("WORLD_QUEST") end
     elseif cmd == "wqaccept" then
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("WORLD_QUEST_ACCEPT") end
