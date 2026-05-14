@@ -13,7 +13,7 @@ local categories = {
     {
         key       = "Essence",
         name      = L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
-        desc      = L["ESSENCE_CAT_DESC"],
+        desc      = L["ESSENCE_DESC"],
         moduleKey = "essence",
         options   = {
             { type = "section", name = L["AXIS_POSITION"] },
