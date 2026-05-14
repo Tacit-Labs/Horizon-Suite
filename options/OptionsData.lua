@@ -107,25 +107,6 @@ local CLASS_COLOR_KEYS = {
     classColorCache = true,
 }
 
-local DASHBOARD_CLASS_ICON_KEYS = {
-    dashboardClassIconSource = true,
-    dashboardShowClassIcon = true,
-}
-
-local DASHBOARD_BACKGROUND_KEYS = {
-    dashboardBackgroundTheme = true,
-    dashboardBackgroundOpacity = true,
-    dashboardBackgroundClassOverride = true,
-}
-
-local DASHBOARD_TYPOGRAPHY_KEYS = {
-    dashboardFontPath = true,
-    dashboardFontSize = true,
-    dashboardTextOutline = true,
-    dashboardTextShadow = true,
-    dashboardHeadingColor = true,
-}
-
 function OptionsData_GetDB(key, default)
     return addon.GetDB(key, default)
 end
@@ -176,13 +157,13 @@ function OptionsData_SetDB(key, value)
     if addon.CACHE_KEYS and addon.CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
         addon.Cache.ApplyCacheOptions()
     end
-    if DASHBOARD_CLASS_ICON_KEYS[key] then
+    if addon.DASHBOARD_CLASS_ICON_KEYS and addon.DASHBOARD_CLASS_ICON_KEYS[key] then
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
     end
-    if DASHBOARD_BACKGROUND_KEYS[key] then
+    if addon.DASHBOARD_BACKGROUND_KEYS and addon.DASHBOARD_BACKGROUND_KEYS[key] then
         if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
     end
-    if DASHBOARD_TYPOGRAPHY_KEYS[key] then
+    if addon.DASHBOARD_TYPOGRAPHY_KEYS and addon.DASHBOARD_TYPOGRAPHY_KEYS[key] then
         if addon.ApplyDashboardTypography then addon.ApplyDashboardTypography() end
     end
     if CLASS_COLOR_KEYS[key] then
