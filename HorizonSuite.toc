@@ -125,6 +125,7 @@ options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
 options/modules/defaults/OptionsDefaultsEssence.lua
 options/modules/defaults/OptionsDefaultsCache.lua
+options/modules/defaults/OptionsDefaultsVista.lua
 options/modules/defaults/OptionsDefaultsFocus.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua
