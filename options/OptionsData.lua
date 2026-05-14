@@ -44,14 +44,6 @@ local TYPOGRAPHY_KEYS = {
     fontOutline = true,
 }
 
-local CACHE_KEYS = {
-    cachePoint    = true,
-    cacheRelPoint = true,
-    cacheX        = true,
-    cacheY        = true,
-    cacheFontPath = true,
-}
-
 local FOCUS_CLICK_KEYS = {
     focusClickProfile     = true,
     focusIconClickAction  = true,
@@ -344,7 +336,7 @@ function OptionsData_SetDB(key, value)
     if addon.ESSENCE_KEYS and addon.ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
         addon.Essence.ApplyEssenceOptions()
     end
-    if CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
+    if addon.CACHE_KEYS and addon.CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
         addon.Cache.ApplyCacheOptions()
     end
     if DASHBOARD_CLASS_ICON_KEYS[key] then
