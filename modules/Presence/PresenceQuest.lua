@@ -541,6 +541,9 @@ local function Quest_OnQuestTurnedIn(questID)
         if IsDNTQuest(questName) then return end
         if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true)) then return end
+            if addon.GetDB and addon.GetDB("presenceWorldQuestSound", true) and SOUNDKIT and SOUNDKIT.UI_WORLDQUEST_COMPLETE then
+                PlaySound(SOUNDKIT.UI_WORLDQUEST_COMPLETE)
+            end
             addon.Presence.QueueOrPlay("WORLD_QUEST", L["PRESENCE_WORLD_QUEST_COMPLETE"] or "WORLD QUEST COMPLETE", questName, opts)
             DisposeQuestState(questID)
             return

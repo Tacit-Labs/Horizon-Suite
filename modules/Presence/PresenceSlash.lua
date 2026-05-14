@@ -23,6 +23,9 @@ local function HandlePresenceSlash(msg)
     elseif cmd == "quest" then
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("QUEST_COMPLETE") end
     elseif cmd == "wq" then
+        if addon.GetDB and addon.GetDB("presenceWorldQuestSound", true) and SOUNDKIT and SOUNDKIT.UI_WORLDQUEST_COMPLETE then
+            PlaySound(SOUNDKIT.UI_WORLDQUEST_COMPLETE)
+        end
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("WORLD_QUEST") end
     elseif cmd == "wqaccept" then
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("WORLD_QUEST_ACCEPT") end
