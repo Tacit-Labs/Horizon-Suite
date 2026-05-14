@@ -8,13 +8,6 @@ local addon = _G.HorizonSuite
 if not addon then return end
 if not _G[addon.DATABASE] then _G[addon.DATABASE] = {} end
 
-local L = addon.L
-local function BrandModule(moduleKey)
-    if addon.GetModuleDisplayName then return addon.GetModuleDisplayName(moduleKey) end
-    local t = addon.BrandDisplay and addon.BrandDisplay.module
-    if not moduleKey or not t then return nil end
-    return t[moduleKey]
-end
 -- ---------------------------------------------------------------------------
 -- DB helpers
 -- ---------------------------------------------------------------------------
@@ -341,9 +334,9 @@ function OptionsData_BuildSearchIndex()
         local moduleKey = cat.moduleKey
         local moduleLabel
         if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
-            moduleLabel = BrandModule("axis") or "Axis"
+            moduleLabel = addon.BrandModule and addon.BrandModule("axis") or "Axis"
         else
-            moduleLabel = BrandModule(moduleKey) or L["MODULES"]
+            moduleLabel = addon.BrandModule and addon.BrandModule(moduleKey) or (addon.L and addon.L["MODULES"])
         end
         local catNameRaw = type(cat.name) == "function" and cat.name() or cat.name
         local catNameStr = tostring(catNameRaw or "")
@@ -393,7 +386,6 @@ local function getVisibleCategories()
 end
 
 -- Export for panel and module option files
-addon.BrandModule = BrandModule
 addon.OptionsData_GetDB = OptionsData_GetDB
 addon.OptionsData_SetDB = OptionsData_SetDB
 addon.OptionsData_GetFontList = function()
