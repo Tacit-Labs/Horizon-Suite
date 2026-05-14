@@ -65,19 +65,6 @@ local FOCUS_CLICK_KEYS = {
     focusClick_altRight   = true,
 }
 
-local ESSENCE_KEYS = {
-    essenceX             = true,
-    essenceY             = true,
-    essencePoint         = true,
-    essenceScale         = true,
-    essenceShowModel     = true,
-    essenceLockPosition  = true,
-    essenceStatCap       = true,
-    essenceShowIlvlBadge = true,
-    essenceShowTitle     = true,
-    essenceShowStatBars  = true,
-}
-
 -- Keys whose values are baked into a formatted string inside UpdateMplusBlockDisplay
 -- (|cff...|r markup) rather than applied via SetTextColor in ApplyMplusTypography.
 -- Changing one of these requires re-running the display, not just typography.
@@ -354,7 +341,7 @@ function OptionsData_SetDB(key, value)
     if addon.INSIGHT_KEYS and addon.INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
         addon.Insight.ApplyInsightOptions()
     end
-    if ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
+    if addon.ESSENCE_KEYS and addon.ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
         addon.Essence.ApplyEssenceOptions()
     end
     if CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
