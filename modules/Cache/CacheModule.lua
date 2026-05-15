@@ -12,7 +12,6 @@ addon:RegisterModule("cache", {
     order       = 30,
 
     OnInit = function()
-        -- Frame/pool created at load in CacheCore; no extra init needed
     end,
 
     OnEnable = function()

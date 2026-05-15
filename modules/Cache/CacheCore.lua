@@ -494,11 +494,6 @@ function Cache.ShowToast(data)
 
     PlayToastSound(data)
 
-    if (data.quality == 4 or data.quality == 5) and Cache.KillDynamicItemRevealPopup then
-        C_Timer.After(0.1, Cache.KillDynamicItemRevealPopup)
-        C_Timer.After(0.4, Cache.KillDynamicItemRevealPopup)
-    end
-
     state.activeCount = state.activeCount + 1
 end
 
@@ -514,9 +509,8 @@ function Cache.ToggleEditMode()
         Frame:Show()
         print("|cFF00CCFFHorizon Suite - Cache:|r Edit mode |cFF00FF00ON|r - drag the box to reposition.")
         Cache.ShowToast({
-            icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
-            r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0,
-            holdDur = Cache.HOLD_EPIC, quality = 4,
+            kind = "item", icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
+            r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0, quality = 4,
         })
     else
         editOverlay:Hide()

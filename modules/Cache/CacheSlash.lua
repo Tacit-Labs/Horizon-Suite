@@ -43,7 +43,7 @@ local function MakeToast(tpl)
     for k, v in pairs(tpl) do d[k] = v end
     d.holdDur = Y.GetHoldDur(d.kind, d.quality)
     if d.kind == "money" and not d.text then
-        d.text = Y.FormatMoney(52, 17, 63)
+        d.text = Y.FormatMoney and Y.FormatMoney(52, 17, 63) or "52g 17s 63c"
     end
     return d
 end
@@ -53,6 +53,14 @@ end
 -- ============================================================================
 
 function Y.PreviewToasts()
+    if not addon:IsModuleEnabled("cache") then
+        HSPrint("Cache: Module is disabled — enable it first.")
+        return
+    end
+    if not Y.IsReady or not Y.IsReady() then
+        HSPrint("Cache: Frames not yet initialized.")
+        return
+    end
     if not addon.GetDB then return end
     local queue = {}
     if addon.GetDB("cacheShowItems", true) ~= false then

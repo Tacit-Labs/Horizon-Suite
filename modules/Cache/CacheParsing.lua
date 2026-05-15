@@ -177,18 +177,12 @@ function Y.ParseItemLoot(msg)
     local r, g, b = GetQualityColor(itemQuality)
     local br, bg, bb = GetBorderColor(itemQuality)
 
-    local holdDur = Y.HOLD_ITEM
-    if itemQuality == 5 then holdDur = Y.HOLD_LEGENDARY
-    elseif itemQuality == 4 then holdDur = Y.HOLD_EPIC
-    end
-
     return {
         kind    = "item",
         icon    = itemTexture or Y.UNKNOWN_ICON,
         text    = displayText,
         r = r, g = g, b = b,
         br = br, bg = bg, bb = bb,
-        holdDur = holdDur,
         quality = itemQuality,
     }
 end
@@ -206,7 +200,6 @@ function Y.ParseMoney(msg)
         text    = Y.FormatMoney(gold, silver, copper),
         r = Y.MONEY_COLOR[1], g = Y.MONEY_COLOR[2], b = Y.MONEY_COLOR[3],
         br = Y.MONEY_COLOR[1], bg = Y.MONEY_COLOR[2], bb = Y.MONEY_COLOR[3],
-        holdDur = Y.HOLD_MONEY,
     }
 end
 
@@ -244,7 +237,6 @@ function Y.ParseCurrency(msg)
         text    = displayText,
         r = Y.CURRENCY_COLOR[1], g = Y.CURRENCY_COLOR[2], b = Y.CURRENCY_COLOR[3],
         br = Y.CURRENCY_COLOR[1], bg = Y.CURRENCY_COLOR[2], bb = Y.CURRENCY_COLOR[3],
-        holdDur = Y.HOLD_CURRENCY,
     }
 end
 
@@ -261,7 +253,6 @@ function Y.ParseReputation(msg)
                 text    = "+" .. amount .. " " .. faction,
                 r = Y.REP_GAIN_COLOR[1], g = Y.REP_GAIN_COLOR[2], b = Y.REP_GAIN_COLOR[3],
                 br = Y.REP_GAIN_COLOR[1], bg = Y.REP_GAIN_COLOR[2], bb = Y.REP_GAIN_COLOR[3],
-                holdDur = Y.HOLD_REP,
             }
         end
     end
@@ -276,7 +267,6 @@ function Y.ParseReputation(msg)
                 text    = "-" .. amount .. " " .. faction,
                 r = Y.REP_LOSS_COLOR[1], g = Y.REP_LOSS_COLOR[2], b = Y.REP_LOSS_COLOR[3],
                 br = Y.REP_LOSS_COLOR[1], bg = Y.REP_LOSS_COLOR[2], bb = Y.REP_LOSS_COLOR[3],
-                holdDur = Y.HOLD_REP,
             }
         end
     end
@@ -290,7 +280,6 @@ function Y.ParseReputation(msg)
                 text    = faction,
                 r = Y.REP_GAIN_COLOR[1], g = Y.REP_GAIN_COLOR[2], b = Y.REP_GAIN_COLOR[3],
                 br = Y.REP_GAIN_COLOR[1], bg = Y.REP_GAIN_COLOR[2], bb = Y.REP_GAIN_COLOR[3],
-                holdDur = Y.HOLD_REP,
             }
         end
     end
