@@ -11,106 +11,110 @@ local y = addon.cache
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
+-- ============================================================================
+-- SAMPLE DATA
+-- Used by both PreviewToasts and individual test commands.
+-- ============================================================================
+
+local SAMPLE = {
+    item = {
+        { kind="item", icon=135352, text="Thunderfury, Blessed Blade of the Windseeker",
+          r=1.00, g=0.50, b=0.00, br=1.00, bg=0.60, bb=0.00, quality=5 },
+        { kind="item", icon=135349, text="Ashkandur, Fall of the Brotherhood",
+          r=0.64, g=0.21, b=0.93, br=0.77, bg=0.25, bb=1.00, quality=4 },
+        { kind="item", icon=133727, text="Enchanted Opal x2",
+          r=0.00, g=0.44, b=0.87, br=0.00, bg=0.53, bb=1.00, quality=3 },
+        { kind="item", icon=133589, text="Dreamfoil x5",
+          r=1.00, g=1.00, b=1.00, br=1.00, bg=1.00, bb=1.00, quality=1 },
+    },
+    money    = { kind="money",    icon=Y.MONEY_ICON, text=nil,
+                 r=Y.MONEY_COLOR[1],    g=Y.MONEY_COLOR[2],    b=Y.MONEY_COLOR[3],
+                 br=Y.MONEY_COLOR[1],   bg=Y.MONEY_COLOR[2],   bb=Y.MONEY_COLOR[3] },
+    currency = { kind="currency", icon=135884,        text="+150 Conquest",
+                 r=Y.CURRENCY_COLOR[1], g=Y.CURRENCY_COLOR[2], b=Y.CURRENCY_COLOR[3],
+                 br=Y.CURRENCY_COLOR[1],bg=Y.CURRENCY_COLOR[2],bb=Y.CURRENCY_COLOR[3] },
+    rep      = { kind="rep",      icon=Y.REP_ICON,    text="+350 Valdrakken Accord",
+                 r=Y.REP_GAIN_COLOR[1], g=Y.REP_GAIN_COLOR[2], b=Y.REP_GAIN_COLOR[3],
+                 br=Y.REP_GAIN_COLOR[1],bg=Y.REP_GAIN_COLOR[2],bb=Y.REP_GAIN_COLOR[3] },
+}
+
+local function MakeToast(tpl)
+    local d = {}
+    for k, v in pairs(tpl) do d[k] = v end
+    d.holdDur = Y.GetHoldDur(d.kind, d.quality)
+    if d.kind == "money" and not d.text then
+        d.text = Y.FormatMoney(52, 17, 63)
+    end
+    return d
+end
+
+-- ============================================================================
+-- PREVIEW  — respects current show-toggles and hold durations
+-- ============================================================================
+
+function Y.PreviewToasts()
+    if not addon.GetDB then return end
+    local queue = {}
+    if addon.GetDB("cacheShowItems", true) ~= false then
+        -- show one item per visible quality threshold
+        local minQ = tonumber(addon.GetDB("cacheMinQuality", 0)) or 0
+        for _, tpl in ipairs(SAMPLE.item) do
+            if (tpl.quality or 1) >= minQ then
+                queue[#queue + 1] = MakeToast(tpl)
+                break
+            end
+        end
+    end
+    if addon.GetDB("cacheShowMoney",    true) ~= false then queue[#queue + 1] = MakeToast(SAMPLE.money)    end
+    if addon.GetDB("cacheShowCurrency", true) ~= false then queue[#queue + 1] = MakeToast(SAMPLE.currency) end
+    if addon.GetDB("cacheShowRep",      true) ~= false then queue[#queue + 1] = MakeToast(SAMPLE.rep)      end
+    if #queue == 0 then HSPrint("Cache: All toast types are disabled."); return end
+    for i, data in ipairs(queue) do
+        C_Timer.After((i - 1) * 0.3, function() Y.ShowToast(data) end)
+    end
+end
+
 --- Handle /horizon cache [cmd] subcommands. Returns true if handled.
---- @param msg string Subcommand (item, gold, currency, rep, all, toggle, edit, reset, debug, help)
+--- @param msg string Subcommand
 --- @return boolean
 function Y.HandleCacheSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "item" then
-        Y.ShowToast({
-            icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
-            r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0,
-            holdDur = Y.HOLD_EPIC, quality = 4,
-        })
+        Y.ShowToast(MakeToast(SAMPLE.item[2]))  -- epic (index 2)
         return true
     end
 
     if cmd == "gold" or cmd == "money" then
-        Y.ShowToast({
-            icon = Y.MONEY_ICON, text = Y.FormatMoney(127, 43, 85),
-            r = Y.MONEY_COLOR[1], g = Y.MONEY_COLOR[2], b = Y.MONEY_COLOR[3],
-            br = Y.MONEY_COLOR[1], bg = Y.MONEY_COLOR[2], bb = Y.MONEY_COLOR[3],
-            holdDur = Y.HOLD_MONEY,
-        })
+        Y.ShowToast(MakeToast(SAMPLE.money))
         return true
     end
 
     if cmd == "currency" then
-        Y.ShowToast({
-            icon = 135884, text = "+150 Conquest",
-            r = Y.CURRENCY_COLOR[1], g = Y.CURRENCY_COLOR[2], b = Y.CURRENCY_COLOR[3],
-            br = Y.CURRENCY_COLOR[1], bg = Y.CURRENCY_COLOR[2], bb = Y.CURRENCY_COLOR[3],
-            holdDur = Y.HOLD_CURRENCY,
-        })
+        Y.ShowToast(MakeToast(SAMPLE.currency))
         return true
     end
 
     if cmd == "rep" then
-        Y.ShowToast({
-            icon = Y.REP_ICON, text = "+200 The Assembly of the Deeps",
-            r = Y.REP_GAIN_COLOR[1], g = Y.REP_GAIN_COLOR[2], b = Y.REP_GAIN_COLOR[3],
-            br = Y.REP_GAIN_COLOR[1], bg = Y.REP_GAIN_COLOR[2], bb = Y.REP_GAIN_COLOR[3],
-            holdDur = Y.HOLD_REP,
-        })
+        Y.ShowToast(MakeToast(SAMPLE.rep))
+        return true
+    end
+
+    if cmd == "preview" then
+        Y.PreviewToasts()
         return true
     end
 
     if cmd == "all" then
         HSPrint("Cache: Demo reel...")
         local demos = {
-            function()
-                Y.ShowToast({
-                    icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
-                    r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0,
-                    holdDur = Y.HOLD_EPIC, quality = 4,
-                })
-            end,
-            function()
-                Y.ShowToast({
-                    icon = 133727, text = "Enchanted Opal x2",
-                    r = 0.00, g = 0.44, b = 0.87, br = 0.00, bg = 0.53, bb = 1.00,
-                    holdDur = Y.HOLD_ITEM,
-                })
-            end,
-            function()
-                Y.ShowToast({
-                    icon = 133589, text = "Dreamfoil x5",
-                    r = 1, g = 1, b = 1, br = 1, bg = 1, bb = 1,
-                    holdDur = Y.HOLD_ITEM,
-                })
-            end,
-            function()
-                Y.ShowToast({
-                    icon = Y.MONEY_ICON, text = Y.FormatMoney(52, 17, 63),
-                    r = Y.MONEY_COLOR[1], g = Y.MONEY_COLOR[2], b = Y.MONEY_COLOR[3],
-                    br = Y.MONEY_COLOR[1], bg = Y.MONEY_COLOR[2], bb = Y.MONEY_COLOR[3],
-                    holdDur = Y.HOLD_MONEY,
-                })
-            end,
-            function()
-                Y.ShowToast({
-                    icon = 135884, text = "+150 Conquest",
-                    r = Y.CURRENCY_COLOR[1], g = Y.CURRENCY_COLOR[2], b = Y.CURRENCY_COLOR[3],
-                    br = Y.CURRENCY_COLOR[1], bg = Y.CURRENCY_COLOR[2], bb = Y.CURRENCY_COLOR[3],
-                    holdDur = Y.HOLD_CURRENCY,
-                })
-            end,
-            function()
-                Y.ShowToast({
-                    icon = Y.REP_ICON, text = "+200 The Assembly of the Deeps",
-                    r = Y.REP_GAIN_COLOR[1], g = Y.REP_GAIN_COLOR[2], b = Y.REP_GAIN_COLOR[3],
-                    br = Y.REP_GAIN_COLOR[1], bg = Y.REP_GAIN_COLOR[2], bb = Y.REP_GAIN_COLOR[3],
-                    holdDur = Y.HOLD_REP,
-                })
-            end,
-            function()
-                Y.ShowToast({
-                    icon = 135352, text = "Thunderfury, Blessed Blade of the Windseeker",
-                    r = 1.00, g = 0.50, b = 0.00, br = 1.00, bg = 0.60, bb = 0.00,
-                    holdDur = Y.HOLD_LEGENDARY, quality = 5,
-                })
-            end,
+            function() Y.ShowToast(MakeToast(SAMPLE.item[2])) end,  -- epic
+            function() Y.ShowToast(MakeToast(SAMPLE.item[3])) end,  -- rare
+            function() Y.ShowToast(MakeToast(SAMPLE.item[4])) end,  -- common
+            function() Y.ShowToast(MakeToast(SAMPLE.money))   end,
+            function() Y.ShowToast(MakeToast(SAMPLE.currency)) end,
+            function() Y.ShowToast(MakeToast(SAMPLE.rep))     end,
+            function() Y.ShowToast(MakeToast(SAMPLE.item[1])) end,  -- legendary last
         }
         for i, fn in ipairs(demos) do
             C_Timer.After((i - 1) * 0.4, fn)
@@ -147,11 +151,12 @@ function Y.HandleCacheSlash(msg)
     if cmd == "" or cmd == "help" then
         HSPrint("Cache commands:")
         HSPrint("  /h cache          - Show this help")
-        HSPrint("  /h cache item     - Test item toast")
+        HSPrint("  /h cache preview  - Preview enabled toast types")
+        HSPrint("  /h cache item     - Test item toast (epic)")
         HSPrint("  /h cache gold     - Test money toast")
         HSPrint("  /h cache currency - Test currency toast")
         HSPrint("  /h cache rep      - Test reputation toast")
-        HSPrint("  /h cache all      - Demo reel (all types)")
+        HSPrint("  /h cache all      - Full demo reel (all types)")
         HSPrint("  /h cache toggle   - Enable / disable Cache module")
         HSPrint("  /h cache edit     - Toggle edit mode (show bounding box)")
         HSPrint("  /h cache move     - Show anchor to set position")
