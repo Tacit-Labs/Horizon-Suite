@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.18.2"] = {
+        date = "2026-05-15",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: quest entries no longer throw a Lua error when the tracked quest's zone is anything other than \"Activity\" (regression from 4.18.1).",
+            },
+        },
+    },
+
     ["4.18.1"] = {
         date = "2026-05-15",
         {

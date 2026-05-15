@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.18.2] – 2026-05-15
+
+### 🐛 Fixes
+- **(Focus)** Quest entries no longer throw "attempt to index a nil value" when the tracked quest's zone is anything other than "Activity" (regression from 4.18.1 locale-fallback hardening).
+
+---
+
 ## [4.18.1] – 2026-05-15
 
 ### 🔧 Improvements
