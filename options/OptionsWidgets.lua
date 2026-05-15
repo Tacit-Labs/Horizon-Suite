@@ -716,7 +716,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local ph = searchEdit:CreateFontString(nil, "OVERLAY")
         SetSafeFont(ph, Def.FontPath, Def.LabelSize, nil)
         SetTextColor(ph, Def.TextColorSection)
-        ph:SetText(L["SEARCH_FONTS"] or "Search fonts...")
+        ph:SetText(L["SEARCH_FONTS"])
         ph:SetPoint("LEFT", searchEdit, "LEFT", 8, 0)
         ph:SetJustifyH("LEFT")
         searchEdit.placeholder = ph
@@ -2204,7 +2204,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             local emptyLabel = listFrame:CreateFontString(nil, "OVERLAY")
             SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, nil)
             SetTextColor(emptyLabel, Def.TextColorSection)
-            emptyLabel:SetText(addon.L and addon.L["HIDDEN_QUESTS"] or "No hidden quests.")
+            emptyLabel:SetText(addon.L and addon.L["HIDDEN_QUESTS"])
             emptyLabel:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
             local emptyRow = CreateFrame("Frame", nil, listFrame)
             emptyRow:SetHeight(20)
@@ -2233,7 +2233,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             nameLbl:SetPoint("LEFT", row, "LEFT", 0, 0)
             nameLbl:SetJustifyH("LEFT")
 
-            local unblockBtn = _G.OptionsWidgets_CreateButton(row, addon.L and addon.L["UNBLOCK"] or "Unblock", function()
+            local unblockBtn = _G.OptionsWidgets_CreateButton(row, addon.L and addon.L["UNBLOCK"], function()
                 if addon.GetDB then
                     local bl = addon.GetDB("questBlacklist", nil)
                     if bl and type(bl) == "table" then

@@ -418,7 +418,7 @@ function addon.Presence.CreateTalkingHeadPreviewWidget(parent)
         nameText:SetFontObject(nil)  -- clear any inherited FontObject so SetFont applies directly
         nameText:SetFont(nameFont, nameSize, nameOutline)
         nameText:SetShadowOffset(1, -1)
-        nameText:SetText(UnitName("player") or L["TALKING_HEAD_PREVIEW_NPC_NAME"] or "You")
+        nameText:SetText(UnitName("player") or L["TALKING_HEAD_PREVIEW_NPC_NAME"])
         local nr = tonumber(GetOption("talkingHeadNameColorR", DEFAULTS.talkingHeadNameColorR)) or DEFAULTS.talkingHeadNameColorR
         local ng = tonumber(GetOption("talkingHeadNameColorG", DEFAULTS.talkingHeadNameColorG)) or DEFAULTS.talkingHeadNameColorG
         local nb = tonumber(GetOption("talkingHeadNameColorB", DEFAULTS.talkingHeadNameColorB)) or DEFAULTS.talkingHeadNameColorB
@@ -430,7 +430,7 @@ function addon.Presence.CreateTalkingHeadPreviewWidget(parent)
         dialogueText:SetFontObject(nil)
         dialogueText:SetFont(textFont, textSize, textOutline)
         dialogueText:SetShadowOffset(1, -1)
-        dialogueText:SetText(L["TALKING_HEAD_PREVIEW_DIALOGUE"] or "Azeroth needs heroes. Will you answer the call?")
+        dialogueText:SetText(L["TALKING_HEAD_PREVIEW_DIALOGUE"])
 
         local showPortrait = GetOption("talkingHeadShowPortrait", DEFAULTS.talkingHeadShowPortrait)
         portraitArea:SetShown(showPortrait)

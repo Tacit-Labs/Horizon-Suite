@@ -487,7 +487,7 @@ function addon.Dashboard_BuildMainFrame()
             searchBox:SetTextInsets(36, 6, 0, 0)
             searchBox:SetAutoFocus(false)
 
-            local sbPlaceholder = MakeText(searchBox, L["DASH_SEARCH_PLACEHOLDER"] or "Search settings...", 14, 0.45, 0.45, 0.5, "LEFT")
+            local sbPlaceholder = MakeText(searchBox, L["DASH_SEARCH_PLACEHOLDER"], 14, 0.45, 0.45, 0.5, "LEFT")
             sbPlaceholder:SetPoint("LEFT", 36, 0)
 
             local sbIcon = searchBox:CreateTexture(nil, "ARTWORK")
@@ -604,7 +604,7 @@ function addon.Dashboard_BuildMainFrame()
                     fk = "all"
                 end
                 if fk == "all" then
-                    searchModuleFilterLabel:SetText(L["DASH_SEARCH_FILTER_ALL"] or "All")
+                    searchModuleFilterLabel:SetText(L["DASH_SEARCH_FILTER_ALL"])
                 else
                     searchModuleFilterLabel:SetText(moduleLabels[fk] or fk)
                 end
@@ -616,7 +616,7 @@ function addon.Dashboard_BuildMainFrame()
                 searchModuleFilterLabel:SetTextColor(0.88, 0.9, 0.94, 1)
                 searchModuleFilterChev:SetTextColor(0.75, 0.78, 0.85, 1)
                 GameTooltip:SetOwner(searchModuleFilterBtn, "ANCHOR_RIGHT")
-                GameTooltip:SetText(L["DASH_SEARCH_FILTER_TOOLTIP"] or "Limit search to one module", nil, nil, nil, nil, true)
+                GameTooltip:SetText(L["DASH_SEARCH_FILTER_TOOLTIP"], nil, nil, nil, nil, true)
                 GameTooltip:Show()
             end)
             searchModuleFilterBtn:SetScript("OnLeave", function()
@@ -681,7 +681,7 @@ function addon.Dashboard_BuildMainFrame()
                 table.sort(moduleEntries, function(a, b)
                     return (a.label or ""):lower() < (b.label or ""):lower()
                 end)
-                local entries = { { key = "all", label = L["DASH_SEARCH_FILTER_ALL"] or "All" } }
+                local entries = { { key = "all", label = L["DASH_SEARCH_FILTER_ALL"] } }
                 for _, e in ipairs(moduleEntries) do
                     entries[#entries + 1] = e
                 end
@@ -886,11 +886,11 @@ function addon.Dashboard_BuildMainFrame()
                 searchDropdownContent:SetWidth(math.max(1, w - 24))
             end
 
-            local searchEmptyHint = MakeText(searchView, L["DASH_SEARCH_EMPTY_HINT"] or "", 14, 0.48, 0.5, 0.56, "CENTER")
+            local searchEmptyHint = MakeText(searchView, L["DASH_SEARCH_EMPTY_HINT"], 14, 0.48, 0.5, 0.56, "CENTER")
             searchEmptyHint:SetPoint("TOP", searchView, "TOP", 0, dashScrollTopOffset - 24)
             searchEmptyHint:SetWidth(math.max(200, contentWidth - 48))
             searchEmptyHint:SetWordWrap(true)
-            searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"] or "Type at least two characters to search settings, modules, and options.")
+            searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"])
             searchEmptyHint:Hide()
             f.searchEmptyHint = searchEmptyHint
 
@@ -937,7 +937,7 @@ function addon.Dashboard_BuildMainFrame()
             end
             addon.Dashboard_RegisterTypographyFontString(typoRefs, pnClHdrTxt, 12, "")
             pnClHdrTxt:SetPoint("CENTER", pnChangelogHeaderBtn, "CENTER", 0, 0)
-            pnClHdrTxt:SetText(L["DASH_FULL_CHANGELOG"] or "Full changelog")
+            pnClHdrTxt:SetText(L["DASH_FULL_CHANGELOG"])
             pnClHdrTxt:SetTextColor(0.92, 0.94, 0.98, 1)
             pnChangelogHeaderBtn:SetScript("OnEnter", function()
                 pnClHdrTxt:SetTextColor(1, 1, 1, 1)
@@ -1223,7 +1223,7 @@ function addon.Dashboard_BuildMainFrame()
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
-                    headSub:SetText(L["HOME_HEAD_SUB"] or "Enable and configure your modules")
+                    headSub:SetText(L["HOME_HEAD_SUB"])
                 end
                 if searchBarShell then searchBarShell:Hide() end
                 f.currentModuleKey = nil
@@ -1470,7 +1470,7 @@ function addon.Dashboard_BuildMainFrame()
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
-                    headSub:SetText(L["DASH_PATCH_NOTES_HEAD_SUB"] or "Release history and recent changes")
+                    headSub:SetText(L["DASH_PATCH_NOTES_HEAD_SUB"])
                 end
                 if searchBarShell then searchBarShell:Hide() end
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
@@ -1484,7 +1484,7 @@ function addon.Dashboard_BuildMainFrame()
                     BuildPatchNotesContent(targetVer)
                 end
 
-                local patchNotesTitle = string.upper(L["DASH_WHATS_NEW"] or "Patch Notes")
+                local patchNotesTitle = string.upper(L["DASH_WHATS_NEW"])
                 detailTitle:SetText(patchNotesTitle .. (ver ~= "" and ("  |cFF888899v"..ver.."|r") or ""))
                 detailTitle:Show()
                 detailTitleUnderline:Show()
@@ -1527,7 +1527,7 @@ function addon.Dashboard_BuildMainFrame()
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
-                    headSub:SetText(L["DASH_NEWS_HEAD_SUB"] or "Latest updates & community highlights")
+                    headSub:SetText(L["DASH_NEWS_HEAD_SUB"])
                 end
                 if searchBarShell then searchBarShell:Hide() end
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
@@ -1562,11 +1562,11 @@ function addon.Dashboard_BuildMainFrame()
                 if head then head:Show() end
                 if headSub then
                     headSub:Show()
-                    headSub:SetText(L["DASH_SEARCH_HEAD_SUB"] or "Find any setting quickly")
+                    headSub:SetText(L["DASH_SEARCH_HEAD_SUB"])
                 end
                 if searchBarShell then searchBarShell:Show() end
                 if f.searchEmptyHint then
-                    f.searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"] or "Type at least two characters to search settings, modules, and options.")
+                    f.searchEmptyHint:SetText(L["DASH_SEARCH_EMPTY_HINT"])
                     f.searchEmptyHint:Show()
                 end
                 if f.DockSearchDropdownForSearchView then f.DockSearchDropdownForSearchView() end
@@ -1585,7 +1585,7 @@ function addon.Dashboard_BuildMainFrame()
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["MODULES"] or "Modules", ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["cache"] = addon.Dashboard_BrandModule("cache"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
+            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["MODULES"], ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["cache"] = addon.Dashboard_BrandModule("cache"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
             f.dashboardMODULE_LABELS = MODULE_LABELS
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
@@ -1641,7 +1641,7 @@ function addon.Dashboard_BuildMainFrame()
             local yOff = 0
 
             -- Welcome (first row — overview for new and returning users)
-            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"] or "Welcome", "INV_Misc_Book_09", function()
+            local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"], "INV_Misc_Book_09", function()
                 if f.ShowWelcome then f.ShowWelcome() end
             end)
             welcomeBtn:SetPoint("TOPLEFT", sidebarScrollContent, "TOPLEFT", 0, -SIDEBAR_TOP_PAD)
@@ -1652,7 +1652,7 @@ function addon.Dashboard_BuildMainFrame()
             yOff = SIDEBAR_TOP_PAD + TAB_ROW_HEIGHT
 
             -- News (Blizzard atlas; same family as Focus campaign quest icon; fallback if atlas fails)
-            local newsBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_NEWS_TAB"] or "News", {
+            local newsBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_NEWS_TAB"], {
                 atlas = "Quest-Campaign-Available",
                 fallback = "INV_Misc_StarFall_Blue",
             }, function()
@@ -1666,7 +1666,7 @@ function addon.Dashboard_BuildMainFrame()
             yOff = yOff + TAB_ROW_HEIGHT
 
             -- Patch Notes (pinned bottom) + Search (pinned above Patch Notes)
-            local whatsNewBase = L["DASH_WHATS_NEW"] or "What's New"
+            local whatsNewBase = L["DASH_WHATS_NEW"]
             local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, "INV_Scroll_05", function()
                 if addon.PatchNotes_MarkWhatsNewSidebarClicked then
                     addon.PatchNotes_MarkWhatsNewSidebarClicked()
@@ -1678,7 +1678,7 @@ function addon.Dashboard_BuildMainFrame()
             whatsNewBtn._sidebarViewGetter = function() return sidebarState.view end
             f.whatsnewSidebarBtn = whatsNewBtn
 
-            local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"] or "Search", "INV_Misc_Spyglass_03", function()
+            local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"], "INV_Misc_Spyglass_03", function()
                 if f.ShowSearch then f.ShowSearch() end
             end, TAB_ROW_HEIGHT)
             f.searchSidebarBtn = searchSidebarBtn

@@ -354,9 +354,9 @@ local function GetMountOwnershipDisplay(isCollected)
         return suffix, nil
     end
     if isCollected then
-        return nil, "|cff55ff55" .. ((L and L["INSIGHT_MOUNT_OWNED"]) or "You own this mount") .. "|r"
+        return nil, "|cff55ff55" .. ((L and L["INSIGHT_MOUNT_OWNED"])) .. "|r"
     end
-    return nil, "|cffff5555" .. ((L and L["INSIGHT_MOUNT_NOT_OWNED"]) or "You don't own this mount") .. "|r"
+    return nil, "|cffff5555" .. ((L and L["INSIGHT_MOUNT_NOT_OWNED"])) .. "|r"
 end
 
 -- ============================================================================

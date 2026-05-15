@@ -146,7 +146,7 @@ function addon.OpenVistaDrawerIconPicker()
         pf.title:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
         SetTextColor(pf.title, Def.TextColorTitleBar or { 0.9, 0.92, 0.96, 1 })
         pf.title:SetPoint("TOPLEFT", pf, "TOPLEFT", 14, -12)
-        pf.title:SetText(L["VISTA_DRAWER_BUTTON_ICON"] or "Drawer Button Icon")
+        pf.title:SetText(L["VISTA_DRAWER_BUTTON_ICON"])
 
         pf.close = CreateFrame("Button", nil, pf)
         pf.close:SetSize(22, 22)
@@ -270,7 +270,7 @@ function addon.OpenVistaDrawerIconPicker()
         pf.apply.text = pf.apply:CreateFontString(nil, "OVERLAY")
         pf.apply.text:SetFont(Def.FontPath or "Fonts\\FRIZQT__.TTF", Def.LabelSize or 13, "OUTLINE")
         pf.apply.text:SetPoint("CENTER")
-        pf.apply.text:SetText(L["APPLY"] or "Apply")
+        pf.apply.text:SetText(L["APPLY"])
         SetTextColor(pf.apply.text, Def.TextColorLabel or { 0.84, 0.84, 0.88, 1 })
     end
 
@@ -1850,7 +1850,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                 local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"]) or "Stage") or ((addon.L and addon.L["FOCUS_ZONE"]) or "Zone")
+                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"])) or ((addon.L and addon.L["FOCUS_ZONE"]))
                 local catDefs = {
                     { subKey = "section",   abbr = "Sec",   full = "Section",   def = unifiedDef },
                     { subKey = "title",     abbr = "Title", full = "Title",     def = unifiedDef },
@@ -3133,7 +3133,7 @@ local function OnSearchTextChanged(text)
     end
 end
 
-local searchInput = OptionsWidgets_CreateSearchInput(searchRow, OnSearchTextChanged, L["FOCUS_SEARCH_SETTINGS"])
+local searchInput = OptionsWidgets_CreateSearchInput(searchRow, OnSearchTextChanged, L["SEARCH_SETTINGS"])
 searchInput.clearBtn:SetFrameLevel(searchInput.edit:GetFrameLevel() + 1)
 searchInput.edit:SetScript("OnEscapePressed", function()
     searchInput.edit:SetText("")

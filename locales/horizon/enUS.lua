@@ -28,7 +28,6 @@ L["NAME_GITHUB"]                                              = "GitHub"
 L["NAME_CURSEFORGE"]                                          = "CurseForge"
 L["NAME_WAGO"]                                                = "Wago"
 L["NAME_TOMTOM"]                                              = "TomTom"
-L["OTHER"]                                                    = "Other"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -39,6 +38,7 @@ L["PER_CATEGORY"]                                             = "Per Category"
 L["GROUPING_OVERRIDES"]                                       = "Grouping Overrides"
 L["SECTION_OVERRIDES"]                                        = "Section Overrides"
 L["OTHER_COLOURS"]                                            = "Other Colours"
+L["OTHER"]                                                    = "Other"
 
 -- =====================================================================
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
@@ -74,7 +74,7 @@ L["FOCUS_RESET_DEFAULT"]                                      = "Reset to defaul
 -- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
-L["FOCUS_SEARCH_SETTINGS"]                                    = "Search Settings..."
+L["SEARCH_SETTINGS"]                                    = "Search Settings..."
 L["SEARCH_FONTS"]                                             = "Search Fonts..."
 
 -- =====================================================================
@@ -205,13 +205,13 @@ L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Thank you to 
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Localisations"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
 
-• German (deDE) — `localisation/horizon/deDE.lua`
-• English (enUS) — `localisation/horizon/enUS.lua`
-• Spanish (esES) — `localisation/horizon/esES.lua`
-• French (frFR) — `localisation/horizon/frFR.lua`
-• Korean (koKR) — `localisation/horizon/koKR.lua`
-• Brazilian Portuguese (ptBR) — `localisation/horizon/ptBR.lua`
-• Chinese (zhCN) — `localisation/horizon/zhCN.lua`
+• German (deDE) — `locales/horizon/deDE.lua`
+• English (enUS) — `locales/horizon/enUS.lua`
+• Spanish (esES) — `locales/horizon/esES.lua`
+• French (frFR) — `locales/horizon/frFR.lua`
+• Korean (koKR) — `locales/horizon/koKR.lua`
+• Brazilian Portuguese (ptBR) — `locales/horizon/ptBR.lua`
+• Chinese (zhCN) — `locales/horizon/zhCN.lua`
 
 See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
@@ -1264,6 +1264,8 @@ L["PRESENCE_SHOW_QUEST_COMPLETE"]                             = "Show quest comp
 L["PRESENCE_NOTIFICATION_COMPLETING_A_QUEST"]                 = "Show notification when completing a quest."
 L["PRESENCE_SHOW_WORLD_QUEST_COMPLETE"]                       = "Show world quest complete"
 L["PRESENCE_NOTIFICATION_COMPLETING_A_WORLD_QUEST"]           = "Show notification when completing a world quest."
+L["PRESENCE_WORLD_QUEST_SOUND"]                               = "World Quest Sound"
+L["PRESENCE_WORLD_QUEST_SOUND_DESC"]                          = "Play the default sound when a world quest completes."
 L["PRESENCE_QUEST_PROGRESS"]                                  = "Show quest progress"
 L["PRESENCE_NOTIFICATION_QUEST_OBJECTIVES_UPDATE"]            = "Show notification when quest objectives update."
 L["PRESENCE_OBJECTIVE"]                                       = "Objective Only"
@@ -1953,7 +1955,7 @@ L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"]                          = "Number of craft
 L["FOCUS_AH_CRAFT_HINT_TIER"]                                 = "Optional crafting tier (1–5) on every row. Choose Any for no item-quality or tier filters (widest search)."
 L["FOCUS_AH_CRAFT_TIER_ANY"]                                  = "Any tier"
 L["FOCUS_AH_CRAFT_TIER_N"]                                    = "Tier %d"
-L["FOCUS_AH_CRAFT_COUNT_INVALID"]                             = "Enter a whole number from 1 to 999."
+L["FOCUS_AH_CRAFT_COUNT_INVALID"]                             = "Enter a whole number from 1 to %d."
 L["RECENT_PROGRESS_TOP"]                                      = "Show recent progress at the top."
 L["RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]                    = "Show recipe icon next to title. Requires quest type icons in Display."
 L["SECTION_DIVIDERS"]                                         = "Show Section Dividers"

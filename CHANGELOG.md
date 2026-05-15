@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [4.18.1] – 2026-05-15
+
+### 🔧 Improvements
+- **(Localisation)** Strings now fall back to English only when a locale key is missing, surfacing untranslated entries instead of masking them with English text.
+
+### 🐛 Fixes
+- **(Presence)** World Quest complete sound is no longer suppressed when the Presence banner replaces the default Blizzard banner.
+
+---
+
 ## [4.18.0] – 2026-05-14
 
 ### ✨ New Features

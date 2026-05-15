@@ -27,7 +27,6 @@ addon.StandardFont = UNIT_NAME_FONT
 -- L["NAME_CURSEFORGE"]                                       = "CurseForge"
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
-L["OTHER"]                                                    = "Andere"
 
 -- =====================================================================
 -- OptionsPanel.lua — Section headers
@@ -38,6 +37,7 @@ L["PER_CATEGORY"]                                             = "Pro Kategorie"
 L["GROUPING_OVERRIDES"]                                       = "Gruppenübersteuerung"
 L["SECTION_OVERRIDES"]                                        = "Abschnittsübersteuerung"
 L["OTHER_COLOURS"]                                            = "Weitere Farben"
+L["OTHER"]                                                    = "Andere"
 
 -- =====================================================================
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
@@ -73,7 +73,7 @@ L["FOCUS_RESET_DEFAULT"]                                      = "Auf Standard zu
 -- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
-L["FOCUS_SEARCH_SETTINGS"]                                    = "Einstellungen durchsuchen..."
+L["SEARCH_SETTINGS"]                                    = "Einstellungen durchsuchen..."
 L["SEARCH_FONTS"]                                             = "Schriftarten durchsuchen..."
 
 -- =====================================================================
@@ -205,13 +205,13 @@ L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Vielen Dank a
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Lokalisierungen"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[Die Addon-Oberfläche ist lokalisiert für:
 
-• Deutsch (deDE) — `localisation/horizon/deDE.lua`
-• Englisch (enUS) — `localisation/horizon/enUS.lua`
-• Spanisch (esES) — `localisation/horizon/esES.lua`
-• Französisch (frFR) — `localisation/horizon/frFR.lua`
-• Koreanisch (koKR) — `localisation/horizon/koKR.lua`
-• Brasilianisch-Portugiesisch (ptBR) — `localisation/horizon/ptBR.lua`
-• Chinesisch (zhCN) — `localisation/horizon/zhCN.lua`
+• Deutsch (deDE) — `locales/horizon/deDE.lua`
+• Englisch (enUS) — `locales/horizon/enUS.lua`
+• Spanisch (esES) — `locales/horizon/esES.lua`
+• Französisch (frFR) — `locales/horizon/frFR.lua`
+• Koreanisch (koKR) — `locales/horizon/koKR.lua`
+• Brasilianisch-Portugiesisch (ptBR) — `locales/horizon/ptBR.lua`
+• Chinesisch (zhCN) — `locales/horizon/zhCN.lua`
 
 Beiträge für zusätzliche Lokalisierungen sind via Discord willkommen.]=]
 
@@ -1943,7 +1943,7 @@ L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"]                          = "Anzahl der Fert
 L["FOCUS_AH_CRAFT_HINT_TIER"]                                 = "Optionale Qualitätsstufestufe (1–5) in jeder Zeile. Für breiteres Suchfeld 'Beliebige Stufe' wählen."
 L["FOCUS_AH_CRAFT_TIER_ANY"]                                  = "Beliebige Stufe"
 L["FOCUS_AH_CRAFT_TIER_N"]                                    = "Stufe %d"
-L["FOCUS_AH_CRAFT_COUNT_INVALID"]                             = "Ganzzahl zwischen 1 und 999."
+L["FOCUS_AH_CRAFT_COUNT_INVALID"]                             = "Ganzzahl zwischen 1 und %d."
 L["RECENT_PROGRESS_TOP"]                                      = "Kürzlichen Fortschritt oben auflisten."
 L["RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]                    = "Rezeptsymbol neben Titel anzeigen. Erfordert aktivierte Symbole für  Quest-Typen."
 L["SECTION_DIVIDERS"]                                         = "Trenner für Abschnitte anzeigen"

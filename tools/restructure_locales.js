@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Sync localisation/horizon/{locale}.lua to match localisation/horizon/enUS.lua key order and sections.
+ * Sync locales/horizon/{locale}.lua to match locales/horizon/enUS.lua key order and sections.
  * Normalizes enUS first (removes per-key `-- Context:` lines; drops blank lines between keys;
  * aligns `=` and values in a fixed column from max `L["KEY"]` width).
  * Untranslated keys become commented-out assignments (leading `--` only; runtime falls back to enUS).
@@ -21,7 +21,7 @@ const {
 const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOC = path.join(ROOT, 'localisation/horizon');
+const LOC = path.join(ROOT, 'locales/horizon');
 const enUSPath = path.join(LOC, 'enUS.lua');
 
 const LOCALES = ['deDE', 'frFR', 'koKR', 'ptBR', 'esES', 'zhCN'];
@@ -118,7 +118,7 @@ function generateTemplate(entries, maxLhsLen) {
     const lines = [];
     lines.push('--[[');
     lines.push('    Horizon Suite — Translation template (not loaded by the addon).');
-    lines.push('    Copy to localisation/horizon/*.lua, set GetLocale() guard, translate values.');
+    lines.push('    Copy to locales/horizon/*.lua, set GetLocale() guard, translate values.');
     lines.push(']]');
     lines.push('');
     lines.push('if GetLocale() ~= "LOCALE_CODE" then return end');
@@ -158,7 +158,7 @@ function generateTemplate(entries, maxLhsLen) {
     return lines.join('\n') + '\n';
 }
 
-console.log('Parsing localisation/horizon/enUS.lua...');
+console.log('Parsing locales/horizon/enUS.lua...');
 const { entries, keys } = parseEnUS(enUSPath);
 const maxLhsLen = computeMaxLhsLen(entries);
 console.log(`  Keys: ${keys.length}`);

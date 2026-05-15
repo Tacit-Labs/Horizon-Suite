@@ -137,7 +137,7 @@ local function BuildModal()
     local brand = f:CreateFontString(nil, "OVERLAY")
     brand:SetFont("Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
     brand:SetPoint("TOPLEFT", logo, "TOPRIGHT", 10, -2)
-    brand:SetText((L["NAME_ADDON"] or "Horizon Suite"):upper())
+    brand:SetText((L["NAME_ADDON"]):upper())
     brand:SetTextColor(0.88, 0.88, 0.92)
     f._brand = brand
 
@@ -145,7 +145,7 @@ local function BuildModal()
     local title = f:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\ARIALN.TTF", 11, "")
     title:SetPoint("TOPLEFT", brand, "BOTTOMLEFT", 0, -3)
-    title:SetText(L["DASH_WHATS_NEW"] or "What's New")
+    title:SetText(L["DASH_WHATS_NEW"])
     f._title = title
 
     local versionLabel = f:CreateFontString(nil, "OVERLAY")
@@ -212,7 +212,7 @@ local function BuildModal()
     -- every Horizon popup's footer feels uniform.
     local viewAll = CreateModalFooterButton(
         f,
-        L["DASH_PATCH_NOTES_VIEW_ALL"] or "View all patch notes",
+        L["DASH_PATCH_NOTES_VIEW_ALL"],
         function()
             if modal and modal.frame   then modal.frame:Hide()   end
             if modal and modal.blocker then modal.blocker:Hide() end
@@ -225,7 +225,7 @@ local function BuildModal()
 
     local dismiss = CreateModalFooterButton(
         f,
-        L["DASH_PATCH_NOTES_DISMISS"] or "Dismiss",
+        L["DASH_PATCH_NOTES_DISMISS"],
         function() addon.PatchNotes_HideModal() end
     )
     dismiss:SetPoint("BOTTOM", f, "BOTTOM",

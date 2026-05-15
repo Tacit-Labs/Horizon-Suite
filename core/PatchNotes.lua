@@ -176,8 +176,8 @@ function addon.PatchNotes_RefreshAttentionIndicators()
     local btn = dash and dash.whatsnewSidebarBtn
     if btn and btn.label then
         local L = addon.L
-        local base = btn._whatsNewBaseText or (L and L["DASH_WHATS_NEW"]) or "Patch Notes"
-        local suffix = (L and L["DASH_WHATS_NEW_UNREAD_SUFFIX"]) or " (New!)"
+        local base = btn._whatsNewBaseText or (L and L["DASH_WHATS_NEW"])
+        local suffix = (L and L["DASH_WHATS_NEW_UNREAD_SUFFIX"])
         local sidebarAttention = addon.PatchNotes_HasUnreadSidebarAttention and addon.PatchNotes_HasUnreadSidebarAttention()
         if sidebarAttention then
             btn.label:SetText(base .. suffix)
