@@ -46,13 +46,24 @@ local function BuildPattern(fmtStr)
     return "^" .. s
 end
 
--- Build coin texture strings at call time using the live font size.
+-- Coin textures are cached and rebuilt only when the font size changes
+-- (triggered by Cache.InvalidateCoinTextures called from ApplyScale).
+local cachedCoinGold, cachedCoinSilver, cachedCoinCopper
+local cachedCoinSz = -1
+
 local function MakeCoinTextures()
     local sz = Y.FONT_SIZE
-    return
-        format("|TInterface\\MoneyFrame\\UI-GoldIcon:%d:%d:0:0|t",   sz, sz),
-        format("|TInterface\\MoneyFrame\\UI-SilverIcon:%d:%d:0:0|t", sz, sz),
-        format("|TInterface\\MoneyFrame\\UI-CopperIcon:%d:%d:0:0|t", sz, sz)
+    if sz ~= cachedCoinSz then
+        cachedCoinGold   = format("|TInterface\\MoneyFrame\\UI-GoldIcon:%d:%d:0:0|t",   sz, sz)
+        cachedCoinSilver = format("|TInterface\\MoneyFrame\\UI-SilverIcon:%d:%d:0:0|t", sz, sz)
+        cachedCoinCopper = format("|TInterface\\MoneyFrame\\UI-CopperIcon:%d:%d:0:0|t", sz, sz)
+        cachedCoinSz = sz
+    end
+    return cachedCoinGold, cachedCoinSilver, cachedCoinCopper
+end
+
+function Y.InvalidateCoinTextures()
+    cachedCoinSz = -1
 end
 
 -- Safe string match — guards against WoW "secret string" crashes in certain lockdown contexts.
@@ -172,6 +183,7 @@ function Y.ParseItemLoot(msg)
     end
 
     return {
+        kind    = "item",
         icon    = itemTexture or Y.UNKNOWN_ICON,
         text    = displayText,
         r = r, g = g, b = b,
@@ -189,6 +201,7 @@ function Y.ParseMoney(msg)
     if gold == 0 and silver == 0 and copper == 0 then return nil end
 
     return {
+        kind    = "money",
         icon    = Y.MONEY_ICON,
         text    = Y.FormatMoney(gold, silver, copper),
         r = Y.MONEY_COLOR[1], g = Y.MONEY_COLOR[2], b = Y.MONEY_COLOR[3],
@@ -226,6 +239,7 @@ function Y.ParseCurrency(msg)
     local displayText = "+" .. qty .. " " .. name
 
     return {
+        kind    = "currency",
         icon    = iconFileID or Y.UNKNOWN_ICON,
         text    = displayText,
         r = Y.CURRENCY_COLOR[1], g = Y.CURRENCY_COLOR[2], b = Y.CURRENCY_COLOR[3],
@@ -242,6 +256,7 @@ function Y.ParseReputation(msg)
         if faction then
             amount = tonumber(amount) or 0
             return {
+                kind    = "rep",
                 icon    = Y.REP_ICON,
                 text    = "+" .. amount .. " " .. faction,
                 r = Y.REP_GAIN_COLOR[1], g = Y.REP_GAIN_COLOR[2], b = Y.REP_GAIN_COLOR[3],
@@ -256,6 +271,7 @@ function Y.ParseReputation(msg)
         if faction then
             amount = tonumber(amount) or 0
             return {
+                kind    = "rep",
                 icon    = Y.REP_ICON,
                 text    = "-" .. amount .. " " .. faction,
                 r = Y.REP_LOSS_COLOR[1], g = Y.REP_LOSS_COLOR[2], b = Y.REP_LOSS_COLOR[3],
@@ -269,6 +285,7 @@ function Y.ParseReputation(msg)
         faction = SafeMatch(msg, repGainGenPat)
         if faction then
             return {
+                kind    = "rep",
                 icon    = Y.REP_ICON,
                 text    = faction,
                 r = Y.REP_GAIN_COLOR[1], g = Y.REP_GAIN_COLOR[2], b = Y.REP_GAIN_COLOR[3],

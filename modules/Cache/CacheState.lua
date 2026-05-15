@@ -78,6 +78,9 @@ Y.FLASH_DUR              = 0.15
 
 Y.SOUND_EPIC      = (SOUNDKIT and SOUNDKIT.UI_CHALLENGES_NEW_RECORD) or 33338
 Y.SOUND_LEGENDARY = (SOUNDKIT and SOUNDKIT.UI_LEGENDARY_LOOT_TOAST) or 63971
+Y.SOUND_MONEY     = (SOUNDKIT and SOUNDKIT.UI_BNET_TOAST_DEFAULT) or 80638
+Y.SOUND_CURRENCY  = (SOUNDKIT and SOUNDKIT.UI_BNET_TOAST_DEFAULT) or 80638
+Y.SOUND_REP       = (SOUNDKIT and SOUNDKIT.UI_BNET_TOAST_DEFAULT) or 80638
 
 Y.QUALITY_COLORS = {
     [0] = {0.62, 0.62, 0.62},
@@ -114,6 +117,29 @@ y.editMode    = y.editMode or false
 -- ============================================================================
 -- DB ACCESSORS
 -- ============================================================================
+
+-- ============================================================================
+-- DB KEY REGISTRY
+-- Add any new Cache DB key here so OptionsData.lua reacts to it without
+-- needing its own manual allowlist.
+-- ============================================================================
+
+Y.DB_KEYS = {
+    cachePoint        = true,
+    cacheRelPoint     = true,
+    cacheX            = true,
+    cacheY            = true,
+    cacheFontPath     = true,
+    cacheShowItems    = true,
+    cacheShowMoney    = true,
+    cacheShowCurrency = true,
+    cacheShowRep      = true,
+    cacheSoundEnabled = true,
+    cacheSoundItems   = true,
+    cacheSoundMoney   = true,
+    cacheSoundCurrency = true,
+    cacheSoundRep     = true,
+}
 
 --- Get position from profile (or defaults).
 --- @return point string|nil, relPoint string|nil, x number|nil, y number|nil

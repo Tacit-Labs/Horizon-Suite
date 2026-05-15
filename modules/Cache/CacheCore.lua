@@ -9,6 +9,22 @@ if not addon or not addon.Cache then return end
 local Cache = addon.Cache
 local state = addon.cache
 
+-- ============================================================================
+-- MODULE-LEVEL HELPERS
+-- ============================================================================
+
+local function S(v)
+    return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache")
+end
+
+local function HSPrint(msg)
+    if addon.HSPrint then
+        addon.HSPrint(msg)
+    else
+        print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or ""))
+    end
+end
+
 local function easeOut(t)  return 1 - (1 - t) * (1 - t) end
 local function easeIn(t)   return t * t end
 local function easeInOut(t)
@@ -23,6 +39,10 @@ end
 local Frame, anchorFrame, editOverlay, editTitle, editHint, anchorLabel, anchorHint
 local framesCreated = false
 
+-- Forward-declare so the OnUpdate closure inside InitFrames can reference it
+-- before the function body is defined below.
+local UpdateEntry
+
 local CACHE_ANCHOR_BACKDROP = {
     bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
     edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -30,14 +50,29 @@ local CACHE_ANCHOR_BACKDROP = {
     insets   = { left = 0, right = 0, top = 0, bottom = 0 },
 }
 
---- Apply stored anchor position to frame.
+-- ============================================================================
+-- READY GUARD
+-- ============================================================================
+
+local function IsReady() return framesCreated end
+
+--- Returns true once InitFrames has run. External callers (events, slash) can
+--- check this instead of knowing the internal framesCreated flag.
+Cache.IsReady = IsReady
+
+-- ============================================================================
+-- POSITION
+-- ============================================================================
+
+--- Apply stored anchor position to a frame. Safe to call before InitFrames
+--- (used by external callers); no-ops on nil.
 --- @param frame table Frame to position
 function Cache.ApplyStoredAnchor(frame)
     if not frame then return end
     local point, relPoint, x, yPos = Cache.GetPosition()
-    point = point or Cache.DEFAULT_ANCHOR
+    point   = point   or Cache.DEFAULT_ANCHOR
     relPoint = relPoint or Cache.DEFAULT_ANCHOR
-    x = tonumber(x) or Cache.DEFAULT_X
+    x    = tonumber(x)    or Cache.DEFAULT_X
     yPos = tonumber(yPos) or Cache.DEFAULT_Y
     frame:ClearAllPoints()
     frame:SetPoint(point, UIParent, relPoint, x, yPos)
@@ -49,8 +84,11 @@ local function SaveFramePosition()
     Cache.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
 end
 
+-- ============================================================================
+-- POOL ENTRY FACTORY
+-- ============================================================================
+
 local function CreateToastEntry(parent)
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT))
 
@@ -92,19 +130,19 @@ local function CreateToastEntry(parent)
     f:Hide()
 
     return {
-        frame    = f,
-        iconBg   = iconBg,
-        icon     = icon,
-        shine    = shine,
-        shadow   = shadow,
-        text     = text,
-        active   = false,
-        elapsed  = 0,
-        holdDur  = Cache.HOLD_ITEM,
-        quality  = nil,
-        stackY   = 0,
-        smoothY  = 0,
-        driftY   = 0,
+        frame   = f,
+        iconBg  = iconBg,
+        icon    = icon,
+        shine   = shine,
+        shadow  = shadow,
+        text    = text,
+        active  = false,
+        elapsed = 0,
+        holdDur = Cache.HOLD_ITEM,
+        quality = nil,
+        stackY  = 0,
+        smoothY = 0,
+        driftY  = 0,
     }
 end
 
@@ -115,8 +153,6 @@ end
 function Cache.InitFrames()
     if framesCreated then return end
     framesCreated = true
-
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
 
     Frame = CreateFrame("Frame", nil, UIParent)
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
@@ -204,7 +240,6 @@ function Cache.InitFrames()
     anchorFrame:SetScript("OnMouseUp", function(self, button)
         if button == "RightButton" then
             self:Hide()
-            local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
             HSPrint("Cache: Position saved.")
         end
     end)
@@ -214,7 +249,7 @@ function Cache.InitFrames()
         state.pool[i] = CreateToastEntry(Frame)
     end
 
-    -- OnUpdate
+    -- OnUpdate — UpdateEntry is forward-declared above InitFrames
     Frame:SetScript("OnUpdate", function(self, dt)
         if state.activeCount == 0 then
             if not state.editMode then self:Hide() end
@@ -238,10 +273,10 @@ end
 -- ============================================================================
 
 local function ApplyCacheClassChrome()
-    if not framesCreated then return end
+    if not IsReady() then return end
     local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
     local br, bg, bb, ba = 0.50, 0.70, 1.0, 0.60
-    local er, eg, eb, ea = 0.4, 0.8, 1.0, 0.8
+    local er, eg, eb, ea = 0.4,  0.8,  1.0, 0.8
     if ycc then
         br, bg, bb = ycc[1], ycc[2], ycc[3]
         er, eg, eb = ycc[1], ycc[2], ycc[3]
@@ -262,11 +297,15 @@ local function AcquireEntry()
     for i = 1, Cache.POOL_SIZE do
         if not state.pool[i].active then return state.pool[i] end
     end
-    local best, bestT = 1, 0
+    -- Pool full: evict the entry with the least remaining display time
+    -- (closest to expiry), not the one with the most elapsed.
+    local best, bestRemaining = 1, math.huge
     for i = 1, Cache.POOL_SIZE do
-        if state.pool[i].elapsed > bestT then
-            best  = i
-            bestT = state.pool[i].elapsed
+        local e = state.pool[i]
+        local remaining = e.holdDur - e.elapsed
+        if remaining < bestRemaining then
+            best          = i
+            bestRemaining = remaining
         end
     end
     local entry = state.pool[best]
@@ -277,7 +316,8 @@ local function AcquireEntry()
     return entry
 end
 
-function UpdateEntry(entry, dt)
+-- Assigned here so the forward declaration above is satisfied.
+UpdateEntry = function(entry, dt)
     if not entry.active then return end
 
     entry.elapsed = entry.elapsed + dt
@@ -288,14 +328,14 @@ function UpdateEntry(entry, dt)
     local popPeak = 1
     if entry.quality == 5 then
         entranceDur = Cache.ENTRANCE_DUR_LEGENDARY
-        popPeak = Cache.POP_SCALE_PEAK_LEGEND
+        popPeak     = Cache.POP_SCALE_PEAK_LEGEND
     elseif entry.quality == 4 then
         entranceDur = Cache.ENTRANCE_DUR_EPIC
-        popPeak = Cache.POP_SCALE_PEAK_EPIC
+        popPeak     = Cache.POP_SCALE_PEAK_EPIC
     end
 
     local entEnd  = entranceDur
-    local holdEnd = entEnd + entry.holdDur
+    local holdEnd = entEnd  + entry.holdDur
     local fadeEnd = holdEnd + Cache.EXIT_DUR
 
     local alpha, slideX, scale
@@ -324,9 +364,9 @@ function UpdateEntry(entry, dt)
 
     elseif t < fadeEnd then
         local p = easeIn((t - holdEnd) / Cache.EXIT_DUR)
-        alpha  = 1 - p
-        slideX = 0
-        scale  = 1
+        alpha        = 1 - p
+        slideX       = 0
+        scale        = 1
         entry.driftY = entry.driftY + (Cache.EXIT_DRIFT / Cache.EXIT_DUR) * dt
 
     else
@@ -334,7 +374,7 @@ function UpdateEntry(entry, dt)
         entry.frame:Hide()
         entry.frame:SetAlpha(0)
         entry.frame:SetScale(1)
-        if entry.shine then entry.shine:Hide() end
+        if entry.shine  then entry.shine:Hide()         end
         if entry.iconBg then entry.iconBg:SetAlpha(0.8) end
         state.activeCount = state.activeCount - 1
         return
@@ -351,7 +391,7 @@ function UpdateEntry(entry, dt)
     end
 
     if isEpicOrLegendary and t >= entEnd and t < holdEnd and entry.iconBg then
-        local pulse = 0.5 + 0.5 * math.sin(t * Cache.BORDER_PULSE_SPEED * 6.283185307)
+        local pulse     = 0.5 + 0.5 * math.sin(t * Cache.BORDER_PULSE_SPEED * 6.283185307)
         local glowAlpha = 1 - Cache.BORDER_PULSE_ALPHA + Cache.BORDER_PULSE_ALPHA * pulse
         entry.iconBg:SetAlpha(glowAlpha)
     elseif entry.iconBg then
@@ -373,16 +413,44 @@ function UpdateEntry(entry, dt)
 end
 
 -- ============================================================================
--- SHOW TOAST & HELPERS
+-- SOUND DISPATCH
+-- ============================================================================
+
+local function PlayToastSound(data)
+    if not addon.GetDB then return end
+    if addon.GetDB("cacheSoundEnabled", true) == false then return end
+    local kind  = data.kind
+    local sound
+    if kind == "item" then
+        if addon.GetDB("cacheSoundItems", true) ~= false then
+            if data.quality == 5 then
+                sound = Cache.SOUND_LEGENDARY
+            elseif data.quality == 4 then
+                sound = Cache.SOUND_EPIC
+            end
+        end
+    elseif kind == "money" then
+        if addon.GetDB("cacheSoundMoney", false) ~= false then sound = Cache.SOUND_MONEY end
+    elseif kind == "currency" then
+        if addon.GetDB("cacheSoundCurrency", false) ~= false then sound = Cache.SOUND_CURRENCY end
+    elseif kind == "rep" then
+        if addon.GetDB("cacheSoundRep", false) ~= false then sound = Cache.SOUND_REP end
+    end
+    if sound and PlaySound then
+        pcall(PlaySound, sound)
+    end
+end
+
+-- ============================================================================
+-- SHOW TOAST
 -- ============================================================================
 
 function Cache.ShowToast(data)
     if not addon:IsModuleEnabled("cache") or not data then return end
-    if not framesCreated then return end
+    if not IsReady() then return end
 
     local entry = AcquireEntry()
 
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
     for i = 1, Cache.POOL_SIZE do
         if state.pool[i].active then
             state.pool[i].stackY = state.pool[i].stackY + S(Cache.LINE_HEIGHT)
@@ -391,55 +459,55 @@ function Cache.ShowToast(data)
 
     entry.icon:SetTexture(data.icon)
     entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
-
     entry.text:SetText(data.text)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
     entry.shadow:SetText(data.text)
 
-    entry.active   = true
-    entry.elapsed  = 0
-    entry.holdDur  = data.holdDur
-    entry.quality  = data.quality
-    entry.stackY   = 0
-    entry.smoothY  = 0
-    entry.driftY   = 0
+    entry.active  = true
+    entry.elapsed = 0
+    entry.holdDur = data.holdDur
+    entry.quality = data.quality
+    entry.stackY  = 0
+    entry.smoothY = 0
+    entry.driftY  = 0
 
     entry.frame:SetAlpha(0)
     entry.frame:SetScale(1)
     entry.shine:SetAlpha(0)
     entry.shine:Hide()
+
     local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
     if ycc then
         entry.shine:SetVertexColor(ycc[1], ycc[2], ycc[3])
     else
         entry.shine:SetVertexColor(1, 1, 1)
     end
+
     entry.frame:ClearAllPoints()
     entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT", Cache.SLIDE_DIST, 0)
     entry.frame:Show()
     Frame:Show()
 
-    if data.quality == 5 and Cache.SOUND_LEGENDARY and PlaySound then
-        pcall(PlaySound, Cache.SOUND_LEGENDARY)
-    elseif data.quality == 4 and Cache.SOUND_EPIC and PlaySound then
-        pcall(PlaySound, Cache.SOUND_EPIC)
-    end
+    PlayToastSound(data)
 
-    if data.quality == 4 or data.quality == 5 then
-        if Cache.KillDynamicItemRevealPopup then
-            C_Timer.After(0.1, function() Cache.KillDynamicItemRevealPopup() end)
-            C_Timer.After(0.4, function() Cache.KillDynamicItemRevealPopup() end)
-        end
+    if (data.quality == 4 or data.quality == 5) and Cache.KillDynamicItemRevealPopup then
+        C_Timer.After(0.1, Cache.KillDynamicItemRevealPopup)
+        C_Timer.After(0.4, Cache.KillDynamicItemRevealPopup)
     end
 
     state.activeCount = state.activeCount + 1
 end
 
+-- ============================================================================
+-- PUBLIC API
+-- ============================================================================
+
 function Cache.ToggleEditMode()
-    if not framesCreated then return end
+    if not IsReady() then return end
     state.editMode = not state.editMode
     if state.editMode then
         editOverlay:Show()
+        Frame:Show()
         print("|cFF00CCFFHorizon Suite - Cache:|r Edit mode |cFF00FF00ON|r - drag the box to reposition.")
         Cache.ShowToast({
             icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
@@ -453,87 +521,81 @@ function Cache.ToggleEditMode()
 end
 
 function Cache.RestoreSavedPosition()
-    if not framesCreated then return end
+    if not IsReady() then return end
     Cache.ApplyStoredAnchor(Frame)
 end
 
 function Cache.ResetPosition()
-    if not framesCreated then return end
+    if not IsReady() then return end
     Frame:ClearAllPoints()
     Frame:SetPoint(Cache.DEFAULT_ANCHOR, UIParent, Cache.DEFAULT_ANCHOR, Cache.DEFAULT_X, Cache.DEFAULT_Y)
     Cache.ClearPosition()
 end
 
 function Cache.ClearActiveToasts()
-    if not framesCreated then return end
+    if not IsReady() then return end
     for i = 1, Cache.POOL_SIZE do
-        if state.pool[i].active then
-            state.pool[i].active = false
-            state.pool[i].frame:Hide()
-            state.pool[i].frame:SetAlpha(0)
+        local e = state.pool[i]
+        if e.active then
+            e.active = false
+            e.frame:Hide()
+            e.frame:SetAlpha(0)
         end
     end
     state.activeCount = 0
 end
 
 function Cache.SetFrameVisible(visible)
-    if not framesCreated then return end
-    if visible then
-        Frame:Show()
-    else
-        Frame:Hide()
-    end
+    if not IsReady() then return end
+    if visible then Frame:Show() else Frame:Hide() end
 end
 
 function Cache.ToggleAnchorFrame()
-    if not framesCreated then return end
+    if not IsReady() then return end
     if anchorFrame:IsShown() then
         anchorFrame:Hide()
-        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
         HSPrint("Cache: Anchor hidden. Position saved.")
     else
         if InCombatLockdown() then return end
         Cache.ApplyStoredAnchor(anchorFrame)
         anchorFrame:Show()
-        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
         HSPrint("Cache: Drag the anchor, then right-click to confirm.")
     end
 end
 
 function Cache.HideAnchorFrame()
-    if not framesCreated then return end
+    if not IsReady() then return end
     anchorFrame:Hide()
 end
 
 function Cache.ApplyCacheOptions()
-    if not framesCreated then return end
+    if not IsReady() then return end
     ApplyCacheClassChrome()
-    if anchorFrame:IsShown() then
-        Cache.ApplyStoredAnchor(anchorFrame)
-    end
+    if anchorFrame:IsShown() then Cache.ApplyStoredAnchor(anchorFrame) end
     Cache.ApplyStoredAnchor(Frame)
     if Cache.ApplyScale then Cache.ApplyScale() end
 end
 
---- Re-apply scale and font to frame, pool entries, and edit-mode overlays.
+--- Re-apply scale and font to all pool entries and overlay labels.
+--- Called when UI scale or cacheFontPath changes.
 function Cache.ApplyScale()
-    if not framesCreated then return end
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
+    if Cache.InvalidateCoinTextures then Cache.InvalidateCoinTextures() end
+    if not IsReady() then return end
     local fontPath = Cache.GetFontPath()
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
     for i = 1, Cache.POOL_SIZE do
-        local entry = state.pool[i]
-        if entry then
-            if entry.frame then entry.frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT)) end
-            if entry.iconBg then entry.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
-            if entry.icon then entry.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
-            if entry.shine then entry.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
-            if entry.text then entry.text:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
-            if entry.shadow then entry.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
+        local e = state.pool[i]
+        if e then
+            if e.frame  then e.frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT)) end
+            if e.iconBg then e.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
+            if e.icon   then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
+            if e.shine  then e.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
+            if e.text   then e.text:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
+            if e.shadow then e.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
         end
     end
-    if editTitle then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
-    if editHint then editHint:SetFont(fontPath, S(10), "OUTLINE") end
+    if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
+    if editHint    then editHint:SetFont(fontPath,  S(10), "OUTLINE") end
     if anchorLabel then anchorLabel:SetFont(fontPath, S(12), "OUTLINE") end
-    if anchorHint then anchorHint:SetFont(fontPath, S(10), "OUTLINE") end
+    if anchorHint  then anchorHint:SetFont(fontPath,  S(10), "OUTLINE") end
 end
