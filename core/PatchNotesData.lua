@@ -14,6 +14,22 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["4.18.1"] = {
+        date = "2026-05-15",
+        {
+            section = "Improvements",
+            bullets = {
+                "Localisation: strings now fall back to English only when a locale key is missing, surfacing untranslated entries instead of masking them with English text.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Presence: World Quest complete sound is no longer suppressed when the Presence banner replaces the default Blizzard banner.",
+            },
+        },
+    },
+
     ["4.18.0"] = {
         date = "2026-05-14",
         {
