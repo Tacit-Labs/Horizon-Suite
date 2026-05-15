@@ -119,7 +119,12 @@ local function OnEvent(self, event, msg, ...)
                 .. " msg=" .. tostring(msg):sub(1, 120))
         end
         local data = Y.ParseItemLoot(msg)
-        if data then EnqueueLootToast(data) end
+        if data then
+            local minQ = (addon.GetDB and tonumber(addon.GetDB("cacheMinQuality", 0))) or 0
+            if (data.quality or 1) >= minQ then
+                EnqueueLootToast(data)
+            end
+        end
 
     elseif event == "CHAT_MSG_MONEY" then
         if not y.patternsOK then return end

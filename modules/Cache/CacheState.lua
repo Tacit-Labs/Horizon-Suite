@@ -125,21 +125,51 @@ y.editMode    = y.editMode or false
 -- ============================================================================
 
 Y.DB_KEYS = {
-    cachePoint        = true,
-    cacheRelPoint     = true,
-    cacheX            = true,
-    cacheY            = true,
-    cacheFontPath     = true,
-    cacheShowItems    = true,
-    cacheShowMoney    = true,
-    cacheShowCurrency = true,
-    cacheShowRep      = true,
-    cacheSoundEnabled = true,
-    cacheSoundItems   = true,
-    cacheSoundMoney   = true,
+    cachePoint         = true,
+    cacheRelPoint      = true,
+    cacheX             = true,
+    cacheY             = true,
+    cacheFontPath      = true,
+    cacheShowItems     = true,
+    cacheShowMoney     = true,
+    cacheShowCurrency  = true,
+    cacheShowRep       = true,
+    cacheMinQuality    = true,
+    cacheMaxVisible    = true,
+    cacheHoldItem      = true,
+    cacheHoldMoney     = true,
+    cacheHoldCurrency  = true,
+    cacheHoldRep       = true,
+    cacheSoundEnabled  = true,
+    cacheSoundChannel  = true,
+    cacheSoundItems    = true,
+    cacheSoundMoney    = true,
     cacheSoundCurrency = true,
-    cacheSoundRep     = true,
+    cacheSoundRep      = true,
 }
+
+--- Return the hold duration for a toast, reading from DB when available.
+--- Falls back to the module constants so behaviour is unchanged with no saved value.
+--- @param kind string  "item"|"money"|"currency"|"rep"
+--- @param quality number|nil  item quality (only relevant for kind=="item")
+--- @return number seconds
+function Y.GetHoldDur(kind, quality)
+    if kind == "money" then
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldMoney",    Y.HOLD_MONEY)))    or Y.HOLD_MONEY
+    elseif kind == "currency" then
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldCurrency", Y.HOLD_CURRENCY))) or Y.HOLD_CURRENCY
+    elseif kind == "rep" then
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      Y.HOLD_REP)))      or Y.HOLD_REP
+    else
+        local base = (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", Y.HOLD_ITEM))) or Y.HOLD_ITEM
+        if quality == 5 then
+            return base + (Y.HOLD_LEGENDARY - Y.HOLD_ITEM)
+        elseif quality == 4 then
+            return base + (Y.HOLD_EPIC - Y.HOLD_ITEM)
+        end
+        return base
+    end
+end
 
 --- Get position from profile (or defaults).
 --- @return point string|nil, relPoint string|nil, x number|nil, y number|nil

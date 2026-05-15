@@ -294,13 +294,16 @@ Cache.ApplyCacheClassChrome = ApplyCacheClassChrome
 -- ============================================================================
 
 local function AcquireEntry()
-    for i = 1, Cache.POOL_SIZE do
+    local cap = math.max(1, math.min(
+        Cache.POOL_SIZE,
+        (addon.GetDB and tonumber(addon.GetDB("cacheMaxVisible", Cache.POOL_SIZE))) or Cache.POOL_SIZE
+    ))
+    for i = 1, cap do
         if not state.pool[i].active then return state.pool[i] end
     end
-    -- Pool full: evict the entry with the least remaining display time
-    -- (closest to expiry), not the one with the most elapsed.
+    -- Pool full (within cap): evict the entry with the least remaining display time.
     local best, bestRemaining = 1, math.huge
-    for i = 1, Cache.POOL_SIZE do
+    for i = 1, cap do
         local e = state.pool[i]
         local remaining = e.holdDur - e.elapsed
         if remaining < bestRemaining then
@@ -437,7 +440,8 @@ local function PlayToastSound(data)
         if addon.GetDB("cacheSoundRep", false) ~= false then sound = Cache.SOUND_REP end
     end
     if sound and PlaySound then
-        pcall(PlaySound, sound)
+        local ch = (addon.GetDB and addon.GetDB("cacheSoundChannel", "SFX")) or "SFX"
+        pcall(PlaySound, sound, ch)
     end
 end
 
@@ -465,7 +469,7 @@ function Cache.ShowToast(data)
 
     entry.active  = true
     entry.elapsed = 0
-    entry.holdDur = data.holdDur
+    entry.holdDur = Cache.GetHoldDur(data.kind, data.quality)
     entry.quality = data.quality
     entry.stackY  = 0
     entry.smoothY = 0
