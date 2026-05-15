@@ -135,6 +135,7 @@ Y.DB_KEYS = {
     cacheShowCurrency  = true,
     cacheShowRep       = true,
     cacheMinQuality    = true,
+    cacheToastOpacity  = true,
     cacheMaxVisible    = true,
     cacheHoldItem      = true,
     cacheHoldMoney     = true,

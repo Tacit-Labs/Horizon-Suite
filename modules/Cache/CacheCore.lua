@@ -130,19 +130,20 @@ local function CreateToastEntry(parent)
     f:Hide()
 
     return {
-        frame   = f,
-        iconBg  = iconBg,
-        icon    = icon,
-        shine   = shine,
-        shadow  = shadow,
-        text    = text,
-        active  = false,
-        elapsed = 0,
-        holdDur = Cache.HOLD_ITEM,
-        quality = nil,
-        stackY  = 0,
-        smoothY = 0,
-        driftY  = 0,
+        frame    = f,
+        iconBg   = iconBg,
+        icon     = icon,
+        shine    = shine,
+        shadow   = shadow,
+        text     = text,
+        active   = false,
+        elapsed  = 0,
+        holdDur  = Cache.HOLD_ITEM,
+        quality  = nil,
+        maxAlpha = 1,
+        stackY   = 0,
+        smoothY  = 0,
+        driftY   = 0,
     }
 end
 
@@ -341,11 +342,12 @@ UpdateEntry = function(entry, dt)
     local holdEnd = entEnd  + entry.holdDur
     local fadeEnd = holdEnd + Cache.EXIT_DUR
 
+    local maxA  = entry.maxAlpha or 1
     local alpha, slideX, scale
 
     if t < entEnd then
         local p = easeOut(t / entranceDur)
-        alpha  = p
+        alpha  = p * maxA
         slideX = Cache.SLIDE_DIST * (1 - p)
         if isEpicOrLegendary then
             local settleStart = 1 - Cache.POP_SETTLE_FRAC
@@ -361,13 +363,13 @@ UpdateEntry = function(entry, dt)
         end
 
     elseif t < holdEnd then
-        alpha  = 1
+        alpha  = maxA
         slideX = 0
         scale  = 1
 
     elseif t < fadeEnd then
         local p = easeIn((t - holdEnd) / Cache.EXIT_DUR)
-        alpha        = 1 - p
+        alpha        = (1 - p) * maxA
         slideX       = 0
         scale        = 1
         entry.driftY = entry.driftY + (Cache.EXIT_DRIFT / Cache.EXIT_DUR) * dt
@@ -467,13 +469,15 @@ function Cache.ShowToast(data)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
     entry.shadow:SetText(data.text)
 
-    entry.active  = true
-    entry.elapsed = 0
-    entry.holdDur = Cache.GetHoldDur(data.kind, data.quality)
-    entry.quality = data.quality
-    entry.stackY  = 0
-    entry.smoothY = 0
-    entry.driftY  = 0
+    entry.active   = true
+    entry.elapsed  = 0
+    entry.holdDur  = Cache.GetHoldDur(data.kind, data.quality)
+    entry.quality  = data.quality
+    entry.maxAlpha = math.max(0.1, math.min(1.0,
+        (addon.GetDB and tonumber(addon.GetDB("cacheToastOpacity", 100)) or 100) / 100))
+    entry.stackY   = 0
+    entry.smoothY  = 0
+    entry.driftY   = 0
 
     entry.frame:SetAlpha(0)
     entry.frame:SetScale(1)
