@@ -29,6 +29,7 @@ core/Core.lua
 core/UrlCopyDialog.lua
 core/ProfileIO.lua
 core/CoreSlash.lua
+core/Logger.lua
 core/PatchNotesData.lua
 core/PatchNotes.lua
 core/NewSettings.lua
