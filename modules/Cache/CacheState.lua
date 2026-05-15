@@ -66,6 +66,26 @@ Y.HOLD_MONEY      = 2.5
 Y.HOLD_CURRENCY   = 3.0
 Y.HOLD_REP        = 3.5
 
+Y.DEFAULTS = {
+    cacheShowItems     = true,
+    cacheShowMoney     = true,
+    cacheShowCurrency  = true,
+    cacheShowRep       = true,
+    cacheMinQuality    = 0,
+    cacheToastOpacity  = 100,
+    cacheMaxVisible    = Y.POOL_SIZE,
+    cacheHoldItem      = Y.HOLD_ITEM,
+    cacheHoldMoney     = Y.HOLD_MONEY,
+    cacheHoldCurrency  = Y.HOLD_CURRENCY,
+    cacheHoldRep       = Y.HOLD_REP,
+    cacheSoundEnabled  = true,
+    cacheSoundChannel  = "SFX",
+    cacheSoundItems    = true,
+    cacheSoundMoney    = false,
+    cacheSoundCurrency = false,
+    cacheSoundRep      = false,
+}
+
 Y.ENTRANCE_DUR_EPIC      = 0.45
 Y.ENTRANCE_DUR_LEGENDARY = 0.6
 Y.POP_SCALE_START        = 0.75
@@ -156,13 +176,13 @@ Y.DB_KEYS = {
 --- @return number seconds
 function Y.GetHoldDur(kind, quality)
     if kind == "money" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldMoney",    Y.HOLD_MONEY)))    or Y.HOLD_MONEY
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldMoney",    Y.DEFAULTS.cacheHoldMoney)))    or Y.DEFAULTS.cacheHoldMoney
     elseif kind == "currency" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldCurrency", Y.HOLD_CURRENCY))) or Y.HOLD_CURRENCY
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldCurrency", Y.DEFAULTS.cacheHoldCurrency))) or Y.DEFAULTS.cacheHoldCurrency
     elseif kind == "rep" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      Y.HOLD_REP)))      or Y.HOLD_REP
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      Y.DEFAULTS.cacheHoldRep)))      or Y.DEFAULTS.cacheHoldRep
     else
-        local base = (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", Y.HOLD_ITEM))) or Y.HOLD_ITEM
+        local base = (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", Y.DEFAULTS.cacheHoldItem))) or Y.DEFAULTS.cacheHoldItem
         if quality == 5 then
             return base + (Y.HOLD_LEGENDARY - Y.HOLD_ITEM)
         elseif quality == 4 then

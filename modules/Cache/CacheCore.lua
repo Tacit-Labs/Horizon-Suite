@@ -297,7 +297,7 @@ Cache.ApplyCacheClassChrome = ApplyCacheClassChrome
 local function AcquireEntry()
     local cap = math.max(1, math.min(
         Cache.POOL_SIZE,
-        (addon.GetDB and tonumber(addon.GetDB("cacheMaxVisible", Cache.POOL_SIZE))) or Cache.POOL_SIZE
+        (addon.GetDB and tonumber(addon.GetDB("cacheMaxVisible", Cache.DEFAULTS.cacheMaxVisible))) or Cache.DEFAULTS.cacheMaxVisible
     ))
     for i = 1, cap do
         if not state.pool[i].active then return state.pool[i] end
@@ -423,11 +423,11 @@ end
 
 local function PlayToastSound(data)
     if not addon.GetDB then return end
-    if addon.GetDB("cacheSoundEnabled", true) == false then return end
+    if addon.GetDB("cacheSoundEnabled", Cache.DEFAULTS.cacheSoundEnabled) == false then return end
     local kind  = data.kind
     local sound
     if kind == "item" then
-        if addon.GetDB("cacheSoundItems", true) ~= false then
+        if addon.GetDB("cacheSoundItems", Cache.DEFAULTS.cacheSoundItems) ~= false then
             if data.quality == 5 then
                 sound = Cache.SOUND_LEGENDARY
             elseif data.quality == 4 then
@@ -435,14 +435,14 @@ local function PlayToastSound(data)
             end
         end
     elseif kind == "money" then
-        if addon.GetDB("cacheSoundMoney", false) ~= false then sound = Cache.SOUND_MONEY end
+        if addon.GetDB("cacheSoundMoney", Cache.DEFAULTS.cacheSoundMoney) ~= false then sound = Cache.SOUND_MONEY end
     elseif kind == "currency" then
-        if addon.GetDB("cacheSoundCurrency", false) ~= false then sound = Cache.SOUND_CURRENCY end
+        if addon.GetDB("cacheSoundCurrency", Cache.DEFAULTS.cacheSoundCurrency) ~= false then sound = Cache.SOUND_CURRENCY end
     elseif kind == "rep" then
-        if addon.GetDB("cacheSoundRep", false) ~= false then sound = Cache.SOUND_REP end
+        if addon.GetDB("cacheSoundRep", Cache.DEFAULTS.cacheSoundRep) ~= false then sound = Cache.SOUND_REP end
     end
     if sound and PlaySound then
-        local ch = (addon.GetDB and addon.GetDB("cacheSoundChannel", "SFX")) or "SFX"
+        local ch = (addon.GetDB and addon.GetDB("cacheSoundChannel", Cache.DEFAULTS.cacheSoundChannel)) or Cache.DEFAULTS.cacheSoundChannel
         pcall(PlaySound, sound, ch)
     end
 end
@@ -473,8 +473,8 @@ function Cache.ShowToast(data)
     entry.elapsed  = 0
     entry.holdDur  = Cache.GetHoldDur(data.kind, data.quality)
     entry.quality  = data.quality
-    entry.maxAlpha = math.max(0.1, math.min(1.0,
-        (addon.GetDB and tonumber(addon.GetDB("cacheToastOpacity", 100)) or 100) / 100))
+    entry.maxAlpha = math.max(0, math.min(1.0,
+        (addon.GetDB and tonumber(addon.GetDB("cacheToastOpacity", Cache.DEFAULTS.cacheToastOpacity)) or Cache.DEFAULTS.cacheToastOpacity) / 100))
     entry.stackY   = 0
     entry.smoothY  = 0
     entry.driftY   = 0
