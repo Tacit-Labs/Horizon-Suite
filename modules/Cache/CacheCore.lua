@@ -17,8 +17,11 @@ local function easeInOut(t)
 end
 
 -- ============================================================================
--- FRAME & POOL
+-- FRAME REFERENCES (nil until InitFrames)
 -- ============================================================================
+
+local Frame, anchorFrame, editOverlay, editTitle, editHint, anchorLabel, anchorHint
+local framesCreated = false
 
 local CACHE_ANCHOR_BACKDROP = {
     bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
@@ -40,160 +43,10 @@ function Cache.ApplyStoredAnchor(frame)
     frame:SetPoint(point, UIParent, relPoint, x, yPos)
 end
 
-local Frame = CreateFrame("Frame", nil, UIParent)
-do
-    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
-    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
-end
-Cache.ApplyStoredAnchor(Frame)
-Frame:Hide()
-
-Frame:SetMovable(true)
-Frame:EnableMouse(true)
-Frame:RegisterForDrag("LeftButton")
-Frame:SetClampedToScreen(true)
-
 local function SaveFramePosition()
     local point, _, relPoint, x, yPos = Frame:GetPoint()
     if not point or not relPoint then return end
     Cache.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
-end
-
-Frame:SetScript("OnDragStart", function(self)
-    if InCombatLockdown() then return end
-    self:StartMoving()
-end)
-
-Frame:SetScript("OnDragStop", function(self)
-    if InCombatLockdown() then return end
-    self:StopMovingOrSizing()
-    SaveFramePosition()
-end)
-
--- Edit overlay
-local editOverlay = CreateFrame("Frame", nil, Frame, "BackdropTemplate")
-editOverlay:SetAllPoints(Frame)
-editOverlay:SetBackdrop({
-    bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    edgeSize = 12,
-    insets   = { left = 2, right = 2, top = 2, bottom = 2 },
-})
-editOverlay:SetBackdropColor(0, 0, 0, 0.5)
-editOverlay:SetBackdropBorderColor(0.4, 0.8, 1.0, 0.8)
-editOverlay:SetFrameLevel(Frame:GetFrameLevel() + 10)
-editOverlay:EnableMouse(false)
-
-local editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
-editTitle:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(14, "cache"), "OUTLINE")
-editTitle:SetTextColor(0.4, 0.8, 1.0, 1)
-editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
-editTitle:SetText("LOOT TOAST AREA")
-
-local editHint = editOverlay:CreateFontString(nil, "OVERLAY")
-editHint:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
-editHint:SetTextColor(0.7, 0.7, 0.7, 1)
-editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
-editHint:SetText("Drag to reposition  |  /h cache edit to hide")
-
-editOverlay:Hide()
-
--- ============================================================================
--- ANCHOR FRAME
--- ============================================================================
-
-local anchorFrame = CreateFrame("Frame", "HorizonSuiteCacheAnchor", UIParent, "BackdropTemplate")
-anchorFrame:SetSize(160, 40)
-anchorFrame:SetPoint(Cache.DEFAULT_ANCHOR, UIParent, Cache.DEFAULT_ANCHOR, Cache.DEFAULT_X, Cache.DEFAULT_Y)
-anchorFrame:SetBackdrop(CACHE_ANCHOR_BACKDROP)
-anchorFrame:SetBackdropColor(0, 0, 0, 0.85)
-anchorFrame:SetBackdropBorderColor(0.50, 0.70, 1.0, 0.60)
-anchorFrame:SetMovable(true)
-anchorFrame:EnableMouse(true)
-anchorFrame:RegisterForDrag("LeftButton")
-anchorFrame:SetClampedToScreen(true)
-anchorFrame:SetFrameStrata("DIALOG")
-anchorFrame:Hide()
-
-local anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
-anchorLabel:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(12, "cache"), "OUTLINE")
-anchorLabel:SetPoint("CENTER")
-anchorLabel:SetTextColor(0.50, 0.70, 1.0, 1)
-anchorLabel:SetText("LOOT TOAST ANCHOR")
-
-local anchorHint = anchorFrame:CreateFontString(nil, "OVERLAY")
-anchorHint:SetFont(Cache.GetFontPath(), (addon.ScaledForModule or addon.Scaled or function(v) return v end)(10, "cache"), "OUTLINE")
-anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
-anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
-anchorHint:SetText("Drag to move · Right-click to confirm")
-
-local function ApplyCacheClassChrome()
-    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
-    local br, bg, bb, ba = 0.50, 0.70, 1.0, 0.60
-    local er, eg, eb, ea = 0.4, 0.8, 1.0, 0.8
-    if ycc then
-        br, bg, bb = ycc[1], ycc[2], ycc[3]
-        er, eg, eb = ycc[1], ycc[2], ycc[3]
-    end
-    anchorFrame:SetBackdropBorderColor(br, bg, bb, ba)
-    anchorLabel:SetTextColor(br, bg, bb, 1)
-    editOverlay:SetBackdropBorderColor(er, eg, eb, ea)
-    editTitle:SetTextColor(er, eg, eb, 1)
-end
-
-Cache.ApplyCacheClassChrome = ApplyCacheClassChrome
-
-anchorFrame:SetScript("OnDragStart", function(self)
-    if not InCombatLockdown() then self:StartMoving() end
-end)
-anchorFrame:SetScript("OnDragStop", function(self)
-    if InCombatLockdown() then return end
-    self:StopMovingOrSizing()
-    local point, _, relPoint, x, yPos = self:GetPoint()
-    Cache.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
-    Cache.ApplyStoredAnchor(Frame)
-end)
-anchorFrame:SetScript("OnMouseUp", function(self, button)
-    if button == "RightButton" then
-        self:Hide()
-        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
-        HSPrint("Cache: Position saved.")
-    end
-end)
-
-local function ShowAnchorFrame()
-    if InCombatLockdown() then return end
-    Cache.ApplyStoredAnchor(anchorFrame)
-    anchorFrame:Show()
-    local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
-    HSPrint("Cache: Drag the anchor, then right-click to confirm.")
-end
-
-local function HideAnchorFrame()
-    anchorFrame:Hide()
-end
-
-function Cache.ToggleAnchorFrame()
-    if anchorFrame:IsShown() then
-        HideAnchorFrame()
-        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
-        HSPrint("Cache: Anchor hidden. Position saved.")
-    else
-        ShowAnchorFrame()
-    end
-end
-
-function Cache.HideAnchorFrame()
-    HideAnchorFrame()
-end
-
-function Cache.ApplyCacheOptions()
-    ApplyCacheClassChrome()
-    if anchorFrame:IsShown() then
-        Cache.ApplyStoredAnchor(anchorFrame)
-    end
-    Cache.ApplyStoredAnchor(Frame)
-    if Cache.ApplyScale then Cache.ApplyScale() end
 end
 
 local function CreateToastEntry(parent)
@@ -255,9 +108,151 @@ local function CreateToastEntry(parent)
     }
 end
 
-for i = 1, Cache.POOL_SIZE do
-    state.pool[i] = CreateToastEntry(Frame)
+-- ============================================================================
+-- LAZY INIT — called once from OnEnable (DB is ready at that point)
+-- ============================================================================
+
+function Cache.InitFrames()
+    if framesCreated then return end
+    framesCreated = true
+
+    local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
+
+    Frame = CreateFrame("Frame", nil, UIParent)
+    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
+    Cache.ApplyStoredAnchor(Frame)
+    Frame:Hide()
+
+    Frame:SetMovable(true)
+    Frame:EnableMouse(true)
+    Frame:RegisterForDrag("LeftButton")
+    Frame:SetClampedToScreen(true)
+
+    Frame:SetScript("OnDragStart", function(self)
+        if InCombatLockdown() then return end
+        self:StartMoving()
+    end)
+    Frame:SetScript("OnDragStop", function(self)
+        if InCombatLockdown() then return end
+        self:StopMovingOrSizing()
+        SaveFramePosition()
+    end)
+
+    -- Edit overlay
+    editOverlay = CreateFrame("Frame", nil, Frame, "BackdropTemplate")
+    editOverlay:SetAllPoints(Frame)
+    editOverlay:SetBackdrop({
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets   = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    editOverlay:SetBackdropColor(0, 0, 0, 0.5)
+    editOverlay:SetBackdropBorderColor(0.4, 0.8, 1.0, 0.8)
+    editOverlay:SetFrameLevel(Frame:GetFrameLevel() + 10)
+    editOverlay:EnableMouse(false)
+
+    editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
+    editTitle:SetFont(Cache.GetFontPath(), S(14), "OUTLINE")
+    editTitle:SetTextColor(0.4, 0.8, 1.0, 1)
+    editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
+    editTitle:SetText("LOOT TOAST AREA")
+
+    editHint = editOverlay:CreateFontString(nil, "OVERLAY")
+    editHint:SetFont(Cache.GetFontPath(), S(10), "OUTLINE")
+    editHint:SetTextColor(0.7, 0.7, 0.7, 1)
+    editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
+    editHint:SetText("Drag to reposition  |  /h cache edit to hide")
+
+    editOverlay:Hide()
+
+    -- Anchor frame
+    anchorFrame = CreateFrame("Frame", "HorizonSuiteCacheAnchor", UIParent, "BackdropTemplate")
+    anchorFrame:SetSize(160, 40)
+    anchorFrame:SetBackdrop(CACHE_ANCHOR_BACKDROP)
+    anchorFrame:SetBackdropColor(0, 0, 0, 0.85)
+    anchorFrame:SetBackdropBorderColor(0.50, 0.70, 1.0, 0.60)
+    anchorFrame:SetMovable(true)
+    anchorFrame:EnableMouse(true)
+    anchorFrame:RegisterForDrag("LeftButton")
+    anchorFrame:SetClampedToScreen(true)
+    anchorFrame:SetFrameStrata("DIALOG")
+    anchorFrame:Hide()
+
+    anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
+    anchorLabel:SetFont(Cache.GetFontPath(), S(12), "OUTLINE")
+    anchorLabel:SetPoint("CENTER")
+    anchorLabel:SetTextColor(0.50, 0.70, 1.0, 1)
+    anchorLabel:SetText("LOOT TOAST ANCHOR")
+
+    anchorHint = anchorFrame:CreateFontString(nil, "OVERLAY")
+    anchorHint:SetFont(Cache.GetFontPath(), S(10), "OUTLINE")
+    anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
+    anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
+    anchorHint:SetText("Drag to move · Right-click to confirm")
+
+    anchorFrame:SetScript("OnDragStart", function(self)
+        if not InCombatLockdown() then self:StartMoving() end
+    end)
+    anchorFrame:SetScript("OnDragStop", function(self)
+        if InCombatLockdown() then return end
+        self:StopMovingOrSizing()
+        local point, _, relPoint, x, yPos = self:GetPoint()
+        Cache.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
+        Cache.ApplyStoredAnchor(Frame)
+    end)
+    anchorFrame:SetScript("OnMouseUp", function(self, button)
+        if button == "RightButton" then
+            self:Hide()
+            local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
+            HSPrint("Cache: Position saved.")
+        end
+    end)
+
+    -- Pool
+    for i = 1, Cache.POOL_SIZE do
+        state.pool[i] = CreateToastEntry(Frame)
+    end
+
+    -- OnUpdate
+    Frame:SetScript("OnUpdate", function(self, dt)
+        if state.activeCount == 0 then
+            if not state.editMode then self:Hide() end
+            return
+        end
+        for i = 1, Cache.POOL_SIZE do
+            if state.pool[i].active then
+                UpdateEntry(state.pool[i], dt)
+            end
+        end
+        if state.activeCount == 0 and not state.editMode then self:Hide() end
+    end)
+
+    Cache.Frame = Frame
+
+    Cache.ApplyCacheClassChrome()
 end
+
+-- ============================================================================
+-- CLASS CHROME
+-- ============================================================================
+
+local function ApplyCacheClassChrome()
+    if not framesCreated then return end
+    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
+    local br, bg, bb, ba = 0.50, 0.70, 1.0, 0.60
+    local er, eg, eb, ea = 0.4, 0.8, 1.0, 0.8
+    if ycc then
+        br, bg, bb = ycc[1], ycc[2], ycc[3]
+        er, eg, eb = ycc[1], ycc[2], ycc[3]
+    end
+    anchorFrame:SetBackdropBorderColor(br, bg, bb, ba)
+    anchorLabel:SetTextColor(br, bg, bb, 1)
+    editOverlay:SetBackdropBorderColor(er, eg, eb, ea)
+    editTitle:SetTextColor(er, eg, eb, 1)
+end
+
+Cache.ApplyCacheClassChrome = ApplyCacheClassChrome
 
 -- ============================================================================
 -- POOL & ANIMATION
@@ -282,7 +277,7 @@ local function AcquireEntry()
     return entry
 end
 
-local function UpdateEntry(entry, dt)
+function UpdateEntry(entry, dt)
     if not entry.active then return end
 
     entry.elapsed = entry.elapsed + dt
@@ -377,25 +372,13 @@ local function UpdateEntry(entry, dt)
                          slideX, entry.smoothY + entry.driftY)
 end
 
-Frame:SetScript("OnUpdate", function(self, dt)
-    if state.activeCount == 0 then
-        if not state.editMode then self:Hide() end
-        return
-    end
-    for i = 1, Cache.POOL_SIZE do
-        if state.pool[i].active then
-            UpdateEntry(state.pool[i], dt)
-        end
-    end
-    if state.activeCount == 0 and not state.editMode then self:Hide() end
-end)
-
 -- ============================================================================
 -- SHOW TOAST & HELPERS
 -- ============================================================================
 
 function Cache.ShowToast(data)
     if not addon:IsModuleEnabled("cache") or not data then return end
+    if not framesCreated then return end
 
     local entry = AcquireEntry()
 
@@ -453,6 +436,7 @@ function Cache.ShowToast(data)
 end
 
 function Cache.ToggleEditMode()
+    if not framesCreated then return end
     state.editMode = not state.editMode
     if state.editMode then
         editOverlay:Show()
@@ -469,16 +453,19 @@ function Cache.ToggleEditMode()
 end
 
 function Cache.RestoreSavedPosition()
+    if not framesCreated then return end
     Cache.ApplyStoredAnchor(Frame)
 end
 
 function Cache.ResetPosition()
+    if not framesCreated then return end
     Frame:ClearAllPoints()
     Frame:SetPoint(Cache.DEFAULT_ANCHOR, UIParent, Cache.DEFAULT_ANCHOR, Cache.DEFAULT_X, Cache.DEFAULT_Y)
     Cache.ClearPosition()
 end
 
 function Cache.ClearActiveToasts()
+    if not framesCreated then return end
     for i = 1, Cache.POOL_SIZE do
         if state.pool[i].active then
             state.pool[i].active = false
@@ -490,6 +477,7 @@ function Cache.ClearActiveToasts()
 end
 
 function Cache.SetFrameVisible(visible)
+    if not framesCreated then return end
     if visible then
         Frame:Show()
     else
@@ -497,9 +485,39 @@ function Cache.SetFrameVisible(visible)
     end
 end
 
+function Cache.ToggleAnchorFrame()
+    if not framesCreated then return end
+    if anchorFrame:IsShown() then
+        anchorFrame:Hide()
+        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
+        HSPrint("Cache: Anchor hidden. Position saved.")
+    else
+        if InCombatLockdown() then return end
+        Cache.ApplyStoredAnchor(anchorFrame)
+        anchorFrame:Show()
+        local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
+        HSPrint("Cache: Drag the anchor, then right-click to confirm.")
+    end
+end
+
+function Cache.HideAnchorFrame()
+    if not framesCreated then return end
+    anchorFrame:Hide()
+end
+
+function Cache.ApplyCacheOptions()
+    if not framesCreated then return end
+    ApplyCacheClassChrome()
+    if anchorFrame:IsShown() then
+        Cache.ApplyStoredAnchor(anchorFrame)
+    end
+    Cache.ApplyStoredAnchor(Frame)
+    if Cache.ApplyScale then Cache.ApplyScale() end
+end
+
 --- Re-apply scale and font to frame, pool entries, and edit-mode overlays.
---- Called when UI scale or the cacheFontPath option changes.
 function Cache.ApplyScale()
+    if not framesCreated then return end
     local S = function(v) return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache") end
     local fontPath = Cache.GetFontPath()
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
@@ -519,5 +537,3 @@ function Cache.ApplyScale()
     if anchorLabel then anchorLabel:SetFont(fontPath, S(12), "OUTLINE") end
     if anchorHint then anchorHint:SetFont(fontPath, S(10), "OUTLINE") end
 end
-
-Cache.Frame = Frame

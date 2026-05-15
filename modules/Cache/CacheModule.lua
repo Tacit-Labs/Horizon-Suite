@@ -17,6 +17,7 @@ addon:RegisterModule("cache", {
 
     OnEnable = function()
         if addon.Cache then
+            if addon.Cache.InitFrames then addon.Cache.InitFrames() end
             if addon.Cache.EnableEvents then addon.Cache.EnableEvents() end
             if addon.Cache.SuppressBlizzard then addon.Cache.SuppressBlizzard() end
             if addon.Cache.SetFrameVisible then addon.Cache.SetFrameVisible(true) end

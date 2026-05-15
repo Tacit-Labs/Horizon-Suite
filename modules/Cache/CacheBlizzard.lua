@@ -13,25 +13,42 @@ local Y = addon.Cache
 local hiddenParent = CreateFrame("Frame")
 hiddenParent:Hide()
 
-local popupKillTicker
+-- Track original parents so RestoreBlizzard can fully undo the suppression.
+local killedFrames = {}
 
 local function KillBlizzardFrame(frame)
     if not frame then return end
+    if killedFrames[frame] then return end  -- already killed; don't double-record
+    local originalParent = frame:GetParent()
+    killedFrames[frame] = { parent = originalParent or UIParent }
     pcall(function()
         if frame.UnregisterAllEvents then frame:UnregisterAllEvents() end
         frame:SetParent(hiddenParent)
         frame:Hide()
         frame:SetAlpha(0)
     end)
+    -- Patch OnShow so any Blizzard-internal Show() call is a no-op while suppressed.
     pcall(function()
         if frame.SetScript then
-            frame:SetScript("OnShow", function(self)
-                self:Hide()
-            end)
+            frame:SetScript("OnShow", function(self) self:Hide() end)
         end
     end)
 end
 
+local function RestoreBlizzardFrame(frame, info)
+    if not frame then return end
+    pcall(function()
+        frame:SetParent(info.parent or UIParent)
+        frame:SetAlpha(1)
+        -- Remove our auto-hide patch so Blizzard's own logic can show the frame again.
+        if frame.SetScript then
+            frame:SetScript("OnShow", nil)
+        end
+    end)
+end
+
+-- KillDynamicItemRevealPopup is called from ShowToast (CacheCore) at 0.1s and 0.4s
+-- after any epic/legendary toast, so no persistent ticker is needed.
 function Y.KillDynamicItemRevealPopup()
     pcall(function()
         if not UIParent or not UIParent.GetChildren then return end
@@ -51,9 +68,14 @@ end
 local function SuppressAlertSystem(system)
     if not system then return end
     pcall(function()
-        if system.SetEnabled then
-            system:SetEnabled(false)
-        end
+        if system.SetEnabled then system:SetEnabled(false) end
+    end)
+end
+
+local function RestoreAlertSystem(system)
+    if not system then return end
+    pcall(function()
+        if system.SetEnabled then system:SetEnabled(true) end
     end)
 end
 
@@ -81,31 +103,16 @@ function Y.SuppressBlizzard()
     end)
 
     Y.KillDynamicItemRevealPopup()
-    if not popupKillTicker and C_Timer and C_Timer.NewTicker then
-        popupKillTicker = C_Timer.NewTicker(0.5, function()
-            Y.KillDynamicItemRevealPopup()
-        end)
-    end
 end
 
 function Y.RestoreBlizzard()
-    pcall(function()
-        if LootAlertSystem and LootAlertSystem.SetEnabled then
-            LootAlertSystem:SetEnabled(true)
-        end
-        if LootUpgradeAlertSystem and LootUpgradeAlertSystem.SetEnabled then
-            LootUpgradeAlertSystem:SetEnabled(true)
-        end
-        if MoneyWonAlertSystem and MoneyWonAlertSystem.SetEnabled then
-            MoneyWonAlertSystem:SetEnabled(true)
-        end
-        if LootWonAlertSystem and LootWonAlertSystem.SetEnabled then
-            LootWonAlertSystem:SetEnabled(true)
-        end
-    end)
+    RestoreAlertSystem(LootAlertSystem)
+    RestoreAlertSystem(LootUpgradeAlertSystem)
+    RestoreAlertSystem(MoneyWonAlertSystem)
+    RestoreAlertSystem(LootWonAlertSystem)
 
-    if popupKillTicker and popupKillTicker.Cancel then
-        popupKillTicker:Cancel()
-        popupKillTicker = nil
+    for frame, info in pairs(killedFrames) do
+        RestoreBlizzardFrame(frame, info)
     end
+    killedFrames = {}
 end

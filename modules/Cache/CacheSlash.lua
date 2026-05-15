@@ -156,6 +156,7 @@ function Y.HandleCacheSlash(msg)
         HSPrint("  /h cache edit     - Toggle edit mode (show bounding box)")
         HSPrint("  /h cache move     - Show anchor to set position")
         HSPrint("  /h cache reset    - Reset position to default")
+        HSPrint("  /h debug cache debug - Toggle loot event logging")
         return true
     end
 
