@@ -7,6 +7,7 @@ local addon = _G.HorizonSuite
 if not addon then return end
 
 addon.CACHE_DEFAULTS = {
+    cacheFontPath      = "__global__",
     cacheShowItems     = true,
     cacheShowMoney     = true,
     cacheShowCurrency  = true,

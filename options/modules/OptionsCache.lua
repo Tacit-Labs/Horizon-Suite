@@ -162,12 +162,7 @@ local categories = {
                 searchable = true,
                 options = function() return GetPerElementFontDropdownOptions("cacheFontPath") end,
                 get = function() return getDB("cacheFontPath", FONT_USE_GLOBAL) end,
-                set = function(v)
-                    setDB("cacheFontPath", v)
-                    -- Belt-and-suspenders: cascade through ApplyCacheOptions → ApplyScale is correct,
-                    -- but an explicit call ensures the font updates even if IsReady() is briefly stale.
-                    if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
-                end,
+                set = function(v) setDB("cacheFontPath", v) end,
                 displayFn = DisplayPerElementFont,
                 fontPreviewInList = true,
             },
