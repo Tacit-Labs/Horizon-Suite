@@ -62,10 +62,11 @@ Y.NUDGE_SPEED     = 10
 Y.HOLD_ITEM       = 5.0
 Y.HOLD_EPIC       = 6.5
 Y.HOLD_LEGENDARY  = 8.0
-Y.HOLD_MONEY      = 2.5
+Y.HOLD_MONEY      = 3.0
 Y.HOLD_CURRENCY   = 3.0
-Y.HOLD_REP        = 3.5
+Y.HOLD_REP        = 3.0
 
+-- Single source of truth for option defaults — referenced by CacheCore and OptionsData so values never drift.
 Y.DEFAULTS = {
     cacheShowItems     = true,
     cacheShowMoney     = true,
@@ -183,6 +184,7 @@ function Y.GetHoldDur(kind, quality)
         return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      Y.DEFAULTS.cacheHoldRep)))      or Y.DEFAULTS.cacheHoldRep
     else
         local base = (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", Y.DEFAULTS.cacheHoldItem))) or Y.DEFAULTS.cacheHoldItem
+        -- Epic/legendary bonus is additive so raising the base hold also raises their hold proportionally.
         if quality == 5 then
             return base + (Y.HOLD_LEGENDARY - Y.HOLD_ITEM)
         elseif quality == 4 then

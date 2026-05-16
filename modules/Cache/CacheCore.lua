@@ -473,7 +473,9 @@ function Cache.ShowToast(data)
     entry.elapsed  = 0
     entry.holdDur  = Cache.GetHoldDur(data.kind, data.quality)
     entry.quality  = data.quality
-    entry.maxAlpha = math.max(0, math.min(1.0,
+    -- Snapshot opacity at show-time so each toast has consistent alpha throughout its lifecycle
+    -- without a per-frame DB read.
+    entry.maxAlpha = math.max(0.1, math.min(1.0,
         (addon.GetDB and tonumber(addon.GetDB("cacheToastOpacity", Cache.DEFAULTS.cacheToastOpacity)) or Cache.DEFAULTS.cacheToastOpacity) / 100))
     entry.stackY   = 0
     entry.smoothY  = 0
