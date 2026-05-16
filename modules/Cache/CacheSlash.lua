@@ -26,6 +26,8 @@ local SAMPLE = {
           r=0.00, g=0.44, b=0.87, br=0.00, bg=0.53, bb=1.00, quality=3 },
         { kind="item", icon=133589, text="Dreamfoil x5",
           r=1.00, g=1.00, b=1.00, br=1.00, bg=1.00, bb=1.00, quality=1 },
+        { kind="item", icon=134432, text="Cracked Buckler",
+          r=0.62, g=0.62, b=0.62, br=0.65, bg=0.65, bb=0.65, quality=0 },
     },
     money    = { kind="money",    icon=Y.MONEY_ICON, text=nil,
                  r=Y.MONEY_COLOR[1],    g=Y.MONEY_COLOR[2],    b=Y.MONEY_COLOR[3],
@@ -64,12 +66,10 @@ function Y.PreviewToasts()
     if not addon.GetDB then return end
     local queue = {}
     if addon.GetDB("cacheShowItems", true) ~= false then
-        -- show one item per visible quality threshold
         local minQ = tonumber(addon.GetDB("cacheMinQuality", 0)) or 0
         for _, tpl in ipairs(SAMPLE.item) do
             if (tpl.quality or 1) >= minQ then
                 queue[#queue + 1] = MakeToast(tpl)
-                break
             end
         end
     end
