@@ -841,6 +841,8 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                     objText = ("%d. %s"):format(shownObjs + 1, objText)
                 elseif prefixStyle == "hyphens" then
                     objText = "- " .. objText
+                elseif prefixStyle == "bulletPoints" then
+                    objText = "• " .. objText
                 end
             end
             objText = ApplyObjectiveProgressNumberColoring(objText, nf, nr, oData, effectiveDoneColor)
