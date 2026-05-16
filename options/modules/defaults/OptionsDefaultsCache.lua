@@ -32,6 +32,19 @@ addon.CACHE_DEFAULTS = {
     cacheSoundRep      = false,
 }
 
+addon.CACHE_LIMITS = {
+    cacheToastOpacity  = { min = 10,  max = 100  },
+    cacheMaxVisible    = { min = 1,   max = 15   },
+    cacheUIScale       = { min = 0.5, max = 2.0  },
+    cacheHoldItem      = { min = 1,   max = 12   },
+    cacheHoldEpic      = { min = 1,   max = 12   },
+    cacheHoldLegendary = { min = 1,   max = 12   },
+    cacheHoldMoney     = { min = 1,   max = 12   },
+    cacheHoldCurrency  = { min = 1,   max = 12   },
+    cacheHoldRep       = { min = 1,   max = 12   },
+    cacheFontSize      = { min = 8,   max = 20   },
+}
+
 -- Position keys have no meaningful defaults (nil = use anchor frame position).
 addon.CACHE_KEYS = { cachePoint = true, cacheRelPoint = true, cacheX = true, cacheY = true }
 for k in pairs(addon.CACHE_DEFAULTS) do addon.CACHE_KEYS[k] = true end

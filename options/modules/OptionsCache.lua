@@ -11,6 +11,14 @@ local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local FONT_USE_GLOBAL                  = addon.FONT_USE_GLOBAL
 local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
 local DisplayPerElementFont            = addon.DisplayPerElementFont
+local LIMITS                           = addon.CACHE_LIMITS
+
+local function clamp(v, key) local lim = LIMITS[key]; return math.max(lim.min, math.min(lim.max, v)) end
+local function getSlider(key)
+    local lim = LIMITS[key]
+    local v = tonumber(getDB(key, addon.CACHE_DEFAULTS[key])) or addon.CACHE_DEFAULTS[key]
+    return math.max(lim.min, math.min(lim.max, v))
+end
 
 local categories = {
     {
@@ -28,19 +36,19 @@ local categories = {
             end },
             { type = "section", name = L["CACHE_MAX_VISIBLE_SECTION"] },
             { type = "slider", name = L["CACHE_TOAST_OPACITY"], desc = L["CACHE_TOAST_OPACITY_DESC"], dbKey = "cacheToastOpacity",
-                min = 10, max = 100, step = 5,
-                get = function() return math.max(10, math.min(100, tonumber(getDB("cacheToastOpacity", addon.CACHE_DEFAULTS.cacheToastOpacity)) or addon.CACHE_DEFAULTS.cacheToastOpacity)) end,
-                set = function(v) setDB("cacheToastOpacity", math.max(10, math.min(100, v))) end,
+                min = LIMITS.cacheToastOpacity.min, max = LIMITS.cacheToastOpacity.max, step = 5,
+                get = function() return getSlider("cacheToastOpacity") end,
+                set = function(v) setDB("cacheToastOpacity", clamp(v, "cacheToastOpacity")) end,
             },
             { type = "slider", name = L["CACHE_MAX_VISIBLE"], desc = L["CACHE_MAX_VISIBLE_DESC"], dbKey = "cacheMaxVisible",
-                min = 1, max = 15, step = 1,
-                get = function() return math.max(1, math.min(15, tonumber(getDB("cacheMaxVisible", addon.CACHE_DEFAULTS.cacheMaxVisible)) or addon.CACHE_DEFAULTS.cacheMaxVisible)) end,
-                set = function(v) setDB("cacheMaxVisible", math.max(1, math.min(15, v))) end,
+                min = LIMITS.cacheMaxVisible.min, max = LIMITS.cacheMaxVisible.max, step = 1,
+                get = function() return getSlider("cacheMaxVisible") end,
+                set = function(v) setDB("cacheMaxVisible", clamp(v, "cacheMaxVisible")) end,
             },
             { type = "slider", name = L["CACHE_TOAST_SCALE"], desc = L["CACHE_TOAST_SCALE_DESC"], dbKey = "cacheUIScale",
-                min = 0.5, max = 2.0, step = 0.05,
-                get = function() return math.max(0.5, math.min(2.0, tonumber(getDB("cacheUIScale", addon.CACHE_DEFAULTS.cacheUIScale)) or addon.CACHE_DEFAULTS.cacheUIScale)) end,
-                set = function(v) setDB("cacheUIScale", math.max(0.5, math.min(2.0, v))) end,
+                min = LIMITS.cacheUIScale.min, max = LIMITS.cacheUIScale.max, step = 0.05,
+                get = function() return getSlider("cacheUIScale") end,
+                set = function(v) setDB("cacheUIScale", clamp(v, "cacheUIScale")) end,
             },
         },
     },
@@ -80,45 +88,45 @@ local categories = {
         options = {
             { type = "section", name = L["CACHE_HOLD_DURATIONS"] },
             { type = "slider", name = L["CACHE_HOLD_ITEM"],      desc = L["CACHE_HOLD_ITEM_DESC"],      dbKey = "cacheHoldItem",
-                min = 1, max = 12, step = 0.5,
-                get = function() return math.max(1, math.min(12, tonumber(getDB("cacheHoldItem",      addon.CACHE_DEFAULTS.cacheHoldItem))      or addon.CACHE_DEFAULTS.cacheHoldItem))      end,
-                set = function(v) setDB("cacheHoldItem",      math.max(1, math.min(12, v))) end,
+                min = LIMITS.cacheHoldItem.min, max = LIMITS.cacheHoldItem.max, step = 0.5,
+                get = function() return getSlider("cacheHoldItem") end,
+                set = function(v) setDB("cacheHoldItem", clamp(v, "cacheHoldItem")) end,
                 disabled = function()
                     local minQ = tonumber(getDB("cacheMinQuality", addon.CACHE_DEFAULTS.cacheMinQuality)) or 0
                     return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false or minQ > 3
                 end,
             },
             { type = "slider", name = L["CACHE_HOLD_EPIC"],      desc = L["CACHE_HOLD_EPIC_DESC"],      dbKey = "cacheHoldEpic",
-                min = 1, max = 12, step = 0.5,
-                get = function() return math.max(1, math.min(12, tonumber(getDB("cacheHoldEpic",      addon.CACHE_DEFAULTS.cacheHoldEpic))      or addon.CACHE_DEFAULTS.cacheHoldEpic))      end,
-                set = function(v) setDB("cacheHoldEpic",      math.max(1, math.min(12, v))) end,
+                min = LIMITS.cacheHoldEpic.min, max = LIMITS.cacheHoldEpic.max, step = 0.5,
+                get = function() return getSlider("cacheHoldEpic") end,
+                set = function(v) setDB("cacheHoldEpic", clamp(v, "cacheHoldEpic")) end,
                 disabled = function()
                     local minQ = tonumber(getDB("cacheMinQuality", addon.CACHE_DEFAULTS.cacheMinQuality)) or 0
                     return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false or minQ > 4
                 end,
             },
             { type = "slider", name = L["CACHE_HOLD_LEGENDARY"], desc = L["CACHE_HOLD_LEGENDARY_DESC"], dbKey = "cacheHoldLegendary",
-                min = 1, max = 12, step = 0.5,
-                get = function() return math.max(1, math.min(12, tonumber(getDB("cacheHoldLegendary", addon.CACHE_DEFAULTS.cacheHoldLegendary)) or addon.CACHE_DEFAULTS.cacheHoldLegendary)) end,
-                set = function(v) setDB("cacheHoldLegendary", math.max(1, math.min(12, v))) end,
+                min = LIMITS.cacheHoldLegendary.min, max = LIMITS.cacheHoldLegendary.max, step = 0.5,
+                get = function() return getSlider("cacheHoldLegendary") end,
+                set = function(v) setDB("cacheHoldLegendary", clamp(v, "cacheHoldLegendary")) end,
                 disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end,
             },
             { type = "slider", name = L["CACHE_HOLD_MONEY"],    desc = L["CACHE_HOLD_MONEY_DESC"],    dbKey = "cacheHoldMoney",
-                min = 1, max = 12, step = 0.5,
-                get = function() return math.max(1, math.min(12, tonumber(getDB("cacheHoldMoney",    addon.CACHE_DEFAULTS.cacheHoldMoney))    or addon.CACHE_DEFAULTS.cacheHoldMoney))    end,
-                set = function(v) setDB("cacheHoldMoney",    math.max(1, math.min(12, v))) end,
+                min = LIMITS.cacheHoldMoney.min, max = LIMITS.cacheHoldMoney.max, step = 0.5,
+                get = function() return getSlider("cacheHoldMoney") end,
+                set = function(v) setDB("cacheHoldMoney", clamp(v, "cacheHoldMoney")) end,
                 disabled = function() return getDB("cacheShowMoney", addon.CACHE_DEFAULTS.cacheShowMoney) == false end,
             },
             { type = "slider", name = L["CACHE_HOLD_CURRENCY"], desc = L["CACHE_HOLD_CURRENCY_DESC"], dbKey = "cacheHoldCurrency",
-                min = 1, max = 12, step = 0.5,
-                get = function() return math.max(1, math.min(12, tonumber(getDB("cacheHoldCurrency", addon.CACHE_DEFAULTS.cacheHoldCurrency)) or addon.CACHE_DEFAULTS.cacheHoldCurrency)) end,
-                set = function(v) setDB("cacheHoldCurrency", math.max(1, math.min(12, v))) end,
+                min = LIMITS.cacheHoldCurrency.min, max = LIMITS.cacheHoldCurrency.max, step = 0.5,
+                get = function() return getSlider("cacheHoldCurrency") end,
+                set = function(v) setDB("cacheHoldCurrency", clamp(v, "cacheHoldCurrency")) end,
                 disabled = function() return getDB("cacheShowCurrency", addon.CACHE_DEFAULTS.cacheShowCurrency) == false end,
             },
             { type = "slider", name = L["CACHE_HOLD_REP"],      desc = L["CACHE_HOLD_REP_DESC"],      dbKey = "cacheHoldRep",
-                min = 1, max = 12, step = 0.5,
-                get = function() return math.max(1, math.min(12, tonumber(getDB("cacheHoldRep",      addon.CACHE_DEFAULTS.cacheHoldRep))      or addon.CACHE_DEFAULTS.cacheHoldRep))      end,
-                set = function(v) setDB("cacheHoldRep",      math.max(1, math.min(12, v))) end,
+                min = LIMITS.cacheHoldRep.min, max = LIMITS.cacheHoldRep.max, step = 0.5,
+                get = function() return getSlider("cacheHoldRep") end,
+                set = function(v) setDB("cacheHoldRep", clamp(v, "cacheHoldRep")) end,
                 disabled = function() return getDB("cacheShowRep", addon.CACHE_DEFAULTS.cacheShowRep) == false end,
             },
         },
@@ -161,9 +169,9 @@ local categories = {
                 set = function(v) setDB("cacheTextOutline", v) end,
             },
             { type = "slider", name = L["CACHE_FONT_SIZE"], desc = L["CACHE_FONT_SIZE_DESC"], dbKey = "cacheFontSize",
-                min = 8, max = 28, step = 1,
-                get = function() return math.max(8, math.min(28, tonumber(getDB("cacheFontSize", addon.CACHE_DEFAULTS.cacheFontSize)) or addon.CACHE_DEFAULTS.cacheFontSize)) end,
-                set = function(v) setDB("cacheFontSize", math.max(8, math.min(28, v))) end,
+                min = LIMITS.cacheFontSize.min, max = LIMITS.cacheFontSize.max, step = 1,
+                get = function() return getSlider("cacheFontSize") end,
+                set = function(v) setDB("cacheFontSize", clamp(v, "cacheFontSize")) end,
             },
             { type = "dropdown",
                 name = L["CACHE_FONT"],

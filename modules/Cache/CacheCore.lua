@@ -14,7 +14,8 @@ local state = addon.cache
 -- ============================================================================
 
 local function S(v)
-    local scale = math.max(0.5, math.min(2.0,
+    local lim = addon.CACHE_LIMITS.cacheUIScale
+    local scale = math.max(lim.min, math.min(lim.max,
         tonumber(addon.GetDB and addon.GetDB("cacheUIScale", addon.CACHE_DEFAULTS.cacheUIScale)) or 1))
     return v * scale
 end
@@ -185,6 +186,12 @@ function Cache.InitFrames()
         if InCombatLockdown() then return end
         self:StopMovingOrSizing()
         SaveFramePosition()
+    end)
+    Frame:SetScript("OnMouseUp", function(self, button)
+        if button == "RightButton" and not state.editMode then
+            Cache.ClearActiveToasts()
+            self:Hide()
+        end
     end)
 
     -- Edit overlay
