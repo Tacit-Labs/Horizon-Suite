@@ -106,10 +106,17 @@ function Cache.ApplyStoredAnchor(frame)
     frame:SetPoint(point, UIParent, relPoint, x, yPos)
 end
 
+-- After StartMoving/StopMovingOrSizing, WoW internally re-anchors to
+-- ("TOPLEFT", UIParent, "BOTTOMLEFT", screenX, screenTopY), making GetPoint()
+-- return TOPLEFT. Saving that causes Frame to grow downward and toasts to
+-- appear below the anchor. Normalize to BOTTOMRIGHT/BOTTOMRIGHT instead.
 local function SaveFramePosition()
-    local point, _, relPoint, x, yPos = Frame:GetPoint()
-    if not point or not relPoint then return end
-    Cache.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
+    local right  = Frame:GetRight()
+    local bottom = Frame:GetBottom()
+    if not right or not bottom then return end
+    local x = math.floor(right  - UIParent:GetRight()  + 0.5)
+    local y = math.floor(bottom - UIParent:GetBottom() + 0.5)
+    Cache.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
 end
 
 -- ============================================================================
@@ -268,8 +275,11 @@ function Cache.InitFrames()
     anchorFrame:SetScript("OnDragStop", function(self)
         if InCombatLockdown() then return end
         self:StopMovingOrSizing()
-        local point, _, relPoint, x, yPos = self:GetPoint()
-        Cache.SavePosition(point, relPoint, math.floor(x + 0.5), math.floor(yPos + 0.5))
+        local right  = self:GetRight()  or 0
+        local bottom = self:GetBottom() or 0
+        local x = math.floor(right  - UIParent:GetRight()  + 0.5)
+        local y = math.floor(bottom - UIParent:GetBottom() + 0.5)
+        Cache.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
         Cache.ApplyStoredAnchor(Frame)
     end)
     anchorFrame:SetScript("OnMouseUp", function(self, button)
