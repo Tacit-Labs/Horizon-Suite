@@ -14,7 +14,13 @@ local state = addon.cache
 -- ============================================================================
 
 local function S(v)
-    return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "cache")
+    local scale = math.max(0.5, math.min(2.0,
+        tonumber(addon.GetDB and addon.GetDB("cacheUIScale", addon.CACHE_DEFAULTS.cacheUIScale)) or 1))
+    return v * scale
+end
+
+local function GetFontSize()
+    return tonumber(addon.GetDB and addon.GetDB("cacheFontSize", addon.CACHE_DEFAULTS.cacheFontSize)) or addon.CACHE_DEFAULTS.cacheFontSize
 end
 
 local function HSPrint(msg)
@@ -117,7 +123,7 @@ local function CreateToastEntry(parent)
 
     local flags = GetFontFlags()
     local shadow = f:CreateFontString(nil, "BORDER")
-    shadow:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), flags)
+    shadow:SetFont(Cache.GetFontPath(), S(GetFontSize()), flags)
     shadow:SetTextColor(0, 0, 0, 0.7)
     shadow:SetJustifyH("LEFT")
     shadow:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP) + 1, -1)
@@ -125,7 +131,7 @@ local function CreateToastEntry(parent)
     shadow:SetWordWrap(false)
 
     local text = f:CreateFontString(nil, "OVERLAY")
-    text:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), flags)
+    text:SetFont(Cache.GetFontPath(), S(GetFontSize()), flags)
     text:SetTextColor(1, 1, 1, 1)
     text:SetJustifyH("LEFT")
     text:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP), 0)
@@ -471,9 +477,9 @@ function Cache.ShowToast(data)
 
     local fontPath = Cache.GetFontPath()
     local flags    = GetFontFlags()
-    local ok1 = entry.text:SetFont(fontPath, S(Cache.FONT_SIZE), flags)
-    local ok2 = entry.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), flags)
-    HSPrint("Cache font: " .. tostring(fontPath) .. " | size=" .. tostring(S(Cache.FONT_SIZE)) .. " | ok=" .. tostring(ok1) .. "/" .. tostring(ok2))
+    local fontSize = S(GetFontSize())
+    entry.text:SetFont(fontPath, fontSize, flags)
+    entry.shadow:SetFont(fontPath, fontSize, flags)
 
     entry.icon:SetTexture(data.icon)
     entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
@@ -599,6 +605,7 @@ function Cache.ApplyScale()
     if not IsReady() then return end
     local fontPath = Cache.GetFontPath()
     local flags    = GetFontFlags()
+    local fontSize = S(GetFontSize())
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
     for i = 1, Cache.POOL_SIZE do
         local e = state.pool[i]
@@ -607,8 +614,8 @@ function Cache.ApplyScale()
             if e.iconBg then e.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
             if e.icon   then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
             if e.shine  then e.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
-            if e.text   then e.text:SetFont(fontPath, S(Cache.FONT_SIZE), flags) end
-            if e.shadow then e.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), flags) end
+            if e.text   then e.text:SetFont(fontPath, fontSize, flags) end
+            if e.shadow then e.shadow:SetFont(fontPath, fontSize, flags) end
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end

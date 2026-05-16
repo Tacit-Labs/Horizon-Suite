@@ -8,6 +8,8 @@ if not addon then return end
 
 addon.CACHE_DEFAULTS = {
     cacheFontPath      = "__global__",
+    cacheFontSize      = 16,
+    cacheUIScale       = 1.0,
     cacheShowItems     = true,
     cacheShowMoney     = true,
     cacheShowCurrency  = true,
