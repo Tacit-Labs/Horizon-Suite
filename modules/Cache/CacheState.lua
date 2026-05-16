@@ -66,30 +66,6 @@ Y.HOLD_MONEY      = 3.0
 Y.HOLD_CURRENCY   = 3.0
 Y.HOLD_REP        = 3.0
 
--- Single source of truth for option defaults — referenced by CacheCore and OptionsData so values never drift.
-Y.DEFAULTS = {
-    cacheShowItems     = true,
-    cacheShowMoney     = true,
-    cacheShowCurrency  = true,
-    cacheShowRep       = true,
-    cacheMinQuality    = 0,
-    cacheToastOpacity  = 100,
-    cacheMaxVisible    = Y.POOL_SIZE,
-    cacheHoldItem      = Y.HOLD_ITEM,
-    cacheHoldEpic      = Y.HOLD_EPIC,
-    cacheHoldLegendary = Y.HOLD_LEGENDARY,
-    cacheHoldMoney     = Y.HOLD_MONEY,
-    cacheHoldCurrency  = Y.HOLD_CURRENCY,
-    cacheHoldRep       = Y.HOLD_REP,
-    cacheTextOutline   = true,
-    cacheSoundEnabled  = true,
-    cacheSoundChannel  = "SFX",
-    cacheSoundItems    = true,
-    cacheSoundMoney    = false,
-    cacheSoundCurrency = false,
-    cacheSoundRep      = false,
-}
-
 Y.ENTRANCE_DUR_EPIC      = 0.45
 Y.ENTRANCE_DUR_LEGENDARY = 0.6
 Y.POP_SCALE_START        = 0.75
@@ -182,19 +158,20 @@ Y.DB_KEYS = {
 --- @param quality number|nil  item quality (only relevant for kind=="item")
 --- @return number seconds
 function Y.GetHoldDur(kind, quality)
+    local D = addon.CACHE_DEFAULTS
     if kind == "money" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldMoney",    Y.DEFAULTS.cacheHoldMoney)))    or Y.DEFAULTS.cacheHoldMoney
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldMoney",    D.cacheHoldMoney)))    or D.cacheHoldMoney
     elseif kind == "currency" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldCurrency", Y.DEFAULTS.cacheHoldCurrency))) or Y.DEFAULTS.cacheHoldCurrency
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldCurrency", D.cacheHoldCurrency))) or D.cacheHoldCurrency
     elseif kind == "rep" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      Y.DEFAULTS.cacheHoldRep)))      or Y.DEFAULTS.cacheHoldRep
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      D.cacheHoldRep)))      or D.cacheHoldRep
     else
         if quality == 5 then
-            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldLegendary", Y.DEFAULTS.cacheHoldLegendary))) or Y.DEFAULTS.cacheHoldLegendary
+            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldLegendary", D.cacheHoldLegendary))) or D.cacheHoldLegendary
         elseif quality == 4 then
-            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldEpic",      Y.DEFAULTS.cacheHoldEpic)))      or Y.DEFAULTS.cacheHoldEpic
+            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldEpic",      D.cacheHoldEpic)))      or D.cacheHoldEpic
         end
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", Y.DEFAULTS.cacheHoldItem))) or Y.DEFAULTS.cacheHoldItem
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", D.cacheHoldItem))) or D.cacheHoldItem
     end
 end
 
