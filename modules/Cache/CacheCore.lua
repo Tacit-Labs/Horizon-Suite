@@ -300,6 +300,10 @@ function Cache.InitFrames()
     Cache.Frame = Frame
 
     Cache.ApplyCacheClassChrome()
+
+    -- Re-apply fonts after the current event handler returns so our settings
+    -- land after any typography addon that hooks synchronously at login.
+    C_Timer.After(0, function() if Cache.ApplyScale then Cache.ApplyScale() end end)
 end
 
 -- ============================================================================
@@ -619,7 +623,9 @@ function Cache.ApplyScale()
     if Cache.InvalidateCoinTextures then Cache.InvalidateCoinTextures() end
     if not IsReady() then return end
     UpdateCacheFontObject()
-    local fontPath = Cache.GetFontPath()
+    local fontPath  = Cache.GetFontPath()
+    local fontSize  = S(GetFontSize())
+    local fontFlags = GetFontFlags()
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
     for i = 1, Cache.POOL_SIZE do
         local e = state.pool[i]
@@ -628,6 +634,10 @@ function Cache.ApplyScale()
             if e.iconBg then e.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
             if e.icon   then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
             if e.shine  then e.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
+            -- Explicit per-FontString SetFont overrides any direct-set override a
+            -- third-party addon may have applied on top of our FontObject.
+            if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end
+            if e.text   then e.text:SetFont(fontPath, fontSize, fontFlags) end
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
