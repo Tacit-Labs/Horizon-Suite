@@ -62,6 +62,11 @@ end
 local Frame, anchorFrame, editOverlay, editTitle, editHint, anchorLabel, anchorHint
 local framesCreated = false
 
+local function UpdateFrameSize()
+    if not Frame then return end
+    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * math.max(1, state.activeCount))
+end
+
 -- Forward-declare so the OnUpdate closure inside InitFrames can reference it
 -- before the function body is defined below.
 local UpdateEntry
@@ -179,7 +184,7 @@ function Cache.InitFrames()
     framesCreated = true
 
     Frame = CreateFrame("Frame", nil, UIParent)
-    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
+    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT))
     Cache.ApplyStoredAnchor(Frame)
     Frame:Hide()
 
@@ -419,6 +424,7 @@ UpdateEntry = function(entry, dt)
         if entry.shine  then entry.shine:Hide()         end
         if entry.iconBg then entry.iconBg:SetAlpha(0.8) end
         state.activeCount = state.activeCount - 1
+        UpdateFrameSize()
         return
     end
 
@@ -538,6 +544,7 @@ function Cache.ShowToast(data)
     PlayToastSound(data)
 
     state.activeCount = state.activeCount + 1
+    UpdateFrameSize()
 end
 
 -- ============================================================================
@@ -626,7 +633,7 @@ function Cache.ApplyScale()
     local fontPath  = Cache.GetFontPath()
     local fontSize  = S(GetFontSize())
     local fontFlags = GetFontFlags()
-    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
+    UpdateFrameSize()
     for i = 1, Cache.POOL_SIZE do
         local e = state.pool[i]
         if e then
