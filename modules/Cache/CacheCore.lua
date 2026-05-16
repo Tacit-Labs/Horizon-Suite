@@ -25,6 +25,11 @@ local function HSPrint(msg)
     end
 end
 
+local function GetFontFlags()
+    if not addon.GetDB then return "OUTLINE" end
+    return addon.GetDB("cacheTextOutline", Cache.DEFAULTS.cacheTextOutline) ~= false and "OUTLINE" or ""
+end
+
 local function easeOut(t)  return 1 - (1 - t) * (1 - t) end
 local function easeIn(t)   return t * t end
 local function easeInOut(t)
@@ -110,8 +115,9 @@ local function CreateToastEntry(parent)
     shine:SetAlpha(0)
     shine:Hide()
 
+    local flags = GetFontFlags()
     local shadow = f:CreateFontString(nil, "BORDER")
-    shadow:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), "OUTLINE")
+    shadow:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), flags)
     shadow:SetTextColor(0, 0, 0, 0.7)
     shadow:SetJustifyH("LEFT")
     shadow:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP) + 1, -1)
@@ -119,7 +125,7 @@ local function CreateToastEntry(parent)
     shadow:SetWordWrap(false)
 
     local text = f:CreateFontString(nil, "OVERLAY")
-    text:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), "OUTLINE")
+    text:SetFont(Cache.GetFontPath(), S(Cache.FONT_SIZE), flags)
     text:SetTextColor(1, 1, 1, 1)
     text:SetJustifyH("LEFT")
     text:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP), 0)
@@ -586,6 +592,7 @@ function Cache.ApplyScale()
     if Cache.InvalidateCoinTextures then Cache.InvalidateCoinTextures() end
     if not IsReady() then return end
     local fontPath = Cache.GetFontPath()
+    local flags    = GetFontFlags()
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
     for i = 1, Cache.POOL_SIZE do
         local e = state.pool[i]
@@ -594,8 +601,8 @@ function Cache.ApplyScale()
             if e.iconBg then e.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
             if e.icon   then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
             if e.shine  then e.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
-            if e.text   then e.text:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
-            if e.shadow then e.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), "OUTLINE") end
+            if e.text   then e.text:SetFont(fontPath, S(Cache.FONT_SIZE), flags) end
+            if e.shadow then e.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), flags) end
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end

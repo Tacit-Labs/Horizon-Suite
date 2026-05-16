@@ -76,9 +76,12 @@ Y.DEFAULTS = {
     cacheToastOpacity  = 100,
     cacheMaxVisible    = Y.POOL_SIZE,
     cacheHoldItem      = Y.HOLD_ITEM,
+    cacheHoldEpic      = Y.HOLD_EPIC,
+    cacheHoldLegendary = Y.HOLD_LEGENDARY,
     cacheHoldMoney     = Y.HOLD_MONEY,
     cacheHoldCurrency  = Y.HOLD_CURRENCY,
     cacheHoldRep       = Y.HOLD_REP,
+    cacheTextOutline   = true,
     cacheSoundEnabled  = true,
     cacheSoundChannel  = "SFX",
     cacheSoundItems    = true,
@@ -159,9 +162,12 @@ Y.DB_KEYS = {
     cacheToastOpacity  = true,
     cacheMaxVisible    = true,
     cacheHoldItem      = true,
+    cacheHoldEpic      = true,
+    cacheHoldLegendary = true,
     cacheHoldMoney     = true,
     cacheHoldCurrency  = true,
     cacheHoldRep       = true,
+    cacheTextOutline   = true,
     cacheSoundEnabled  = true,
     cacheSoundChannel  = true,
     cacheSoundItems    = true,
@@ -183,14 +189,12 @@ function Y.GetHoldDur(kind, quality)
     elseif kind == "rep" then
         return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      Y.DEFAULTS.cacheHoldRep)))      or Y.DEFAULTS.cacheHoldRep
     else
-        local base = (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", Y.DEFAULTS.cacheHoldItem))) or Y.DEFAULTS.cacheHoldItem
-        -- Epic/legendary bonus is additive so raising the base hold also raises their hold proportionally.
         if quality == 5 then
-            return base + (Y.HOLD_LEGENDARY - Y.HOLD_ITEM)
+            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldLegendary", Y.DEFAULTS.cacheHoldLegendary))) or Y.DEFAULTS.cacheHoldLegendary
         elseif quality == 4 then
-            return base + (Y.HOLD_EPIC - Y.HOLD_ITEM)
+            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldEpic",      Y.DEFAULTS.cacheHoldEpic)))      or Y.DEFAULTS.cacheHoldEpic
         end
-        return base
+        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", Y.DEFAULTS.cacheHoldItem))) or Y.DEFAULTS.cacheHoldItem
     end
 end
 
