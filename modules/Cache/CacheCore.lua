@@ -469,12 +469,11 @@ function Cache.ShowToast(data)
         end
     end
 
-    -- Apply font at show-time so per-module font/outline changes take effect immediately.
-    -- Setting it only in ApplyScale (on hidden frames) is unreliable — WoW resets it on show.
     local fontPath = Cache.GetFontPath()
     local flags    = GetFontFlags()
-    entry.text:SetFont(fontPath, S(Cache.FONT_SIZE), flags)
-    entry.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), flags)
+    local ok1 = entry.text:SetFont(fontPath, S(Cache.FONT_SIZE), flags)
+    local ok2 = entry.shadow:SetFont(fontPath, S(Cache.FONT_SIZE), flags)
+    HSPrint("Cache font: " .. tostring(fontPath) .. " | size=" .. tostring(S(Cache.FONT_SIZE)) .. " | ok=" .. tostring(ok1) .. "/" .. tostring(ok2))
 
     entry.icon:SetTexture(data.icon)
     entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
