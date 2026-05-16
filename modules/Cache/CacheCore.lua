@@ -37,6 +37,17 @@ local function GetFontFlags()
     return addon.GetDB("cacheTextOutline", addon.CACHE_DEFAULTS.cacheTextOutline) ~= false and "OUTLINE" or ""
 end
 
+-- Shared FontObject for all pool text/shadow FontStrings.
+-- Updating it propagates to every FontString using SetFontObject(CacheFontObj) automatically,
+-- without touching individual FontStrings — and survives same-tick overrides from other addons
+-- that hook SetFont on specific FontStrings.
+local CacheFontObj
+
+local function UpdateCacheFontObject()
+    if not CacheFontObj then return end
+    CacheFontObj:SetFont(Cache.GetFontPath(), S(GetFontSize()), GetFontFlags())
+end
+
 local function easeOut(t)  return 1 - (1 - t) * (1 - t) end
 local function easeIn(t)   return t * t end
 local function easeInOut(t)
@@ -122,9 +133,8 @@ local function CreateToastEntry(parent)
     shine:SetAlpha(0)
     shine:Hide()
 
-    local flags = GetFontFlags()
     local shadow = f:CreateFontString(nil, "BORDER")
-    shadow:SetFont(Cache.GetFontPath(), S(GetFontSize()), flags)
+    shadow:SetFontObject(CacheFontObj)
     shadow:SetTextColor(0, 0, 0, 0.7)
     shadow:SetJustifyH("LEFT")
     shadow:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP) + 1, -1)
@@ -132,7 +142,7 @@ local function CreateToastEntry(parent)
     shadow:SetWordWrap(false)
 
     local text = f:CreateFontString(nil, "OVERLAY")
-    text:SetFont(Cache.GetFontPath(), S(GetFontSize()), flags)
+    text:SetFontObject(CacheFontObj)
     text:SetTextColor(1, 1, 1, 1)
     text:SetJustifyH("LEFT")
     text:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP), 0)
@@ -263,6 +273,10 @@ function Cache.InitFrames()
             HSPrint("Cache: Position saved.")
         end
     end)
+
+    -- Shared FontObject — must exist before pool entries are created.
+    CacheFontObj = _G["HorizonSuiteCacheFont"] or CreateFont("HorizonSuiteCacheFont")
+    UpdateCacheFontObject()
 
     -- Pool
     for i = 1, Cache.POOL_SIZE do
@@ -482,12 +496,6 @@ function Cache.ShowToast(data)
         end
     end
 
-    local fontPath = Cache.GetFontPath()
-    local flags    = GetFontFlags()
-    local fontSize = S(GetFontSize())
-    entry.text:SetFont(fontPath, fontSize, flags)
-    entry.shadow:SetFont(fontPath, fontSize, flags)
-
     entry.icon:SetTexture(data.icon)
     entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
     entry.text:SetText(data.text)
@@ -610,9 +618,8 @@ end
 function Cache.ApplyScale()
     if Cache.InvalidateCoinTextures then Cache.InvalidateCoinTextures() end
     if not IsReady() then return end
+    UpdateCacheFontObject()
     local fontPath = Cache.GetFontPath()
-    local flags    = GetFontFlags()
-    local fontSize = S(GetFontSize())
     Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * Cache.POOL_SIZE)
     for i = 1, Cache.POOL_SIZE do
         local e = state.pool[i]
@@ -621,8 +628,6 @@ function Cache.ApplyScale()
             if e.iconBg then e.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
             if e.icon   then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
             if e.shine  then e.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
-            if e.text   then e.text:SetFont(fontPath, fontSize, flags) end
-            if e.shadow then e.shadow:SetFont(fontPath, fontSize, flags) end
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
