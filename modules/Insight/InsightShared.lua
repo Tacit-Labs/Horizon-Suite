@@ -366,6 +366,49 @@ function Insight.ApplyBackdrop(tooltip)
     tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
 end
 
+-- Per-FontString hook that re-asserts our font path whenever a font-replacement
+-- addon (e.g. Platynator) overrides SetFont or SetFontObject on that string.
+-- Size is nil so per-line size choices (header/body/badges) go through unchanged.
+-- Mirrors LockDirectFont in PresenceTalkingHead.lua.
+local function LockDirectFont(fontString, getFont)
+    local busyObj  = false
+    local busyFont = false
+
+    hooksecurefunc(fontString, "SetFontObject", function(self, obj)
+        if busyObj or not obj then return end
+        local path, size, flags = getFont()
+        if not path then return end
+        local _, curSize, curFlags = self:GetFont()
+        busyObj = true
+        self:SetFontObject(nil)
+        self:SetFont(path, size or curSize or 12, flags or curFlags or "OUTLINE")
+        busyObj = false
+    end)
+
+    hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
+        if busyFont then return end
+        local targetPath, targetSize, targetFlags = getFont()
+        if not targetPath or path == targetPath then return end
+        busyFont = true
+        self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
+        busyFont = false
+    end)
+end
+
+-- Weak-keyed table so GC'd FontStrings are released automatically.
+local lockedInsightFontStrings = setmetatable({}, { __mode = "k" })
+
+local function GetInsightFont()
+    if not Insight.IsInsightEnabled() then return nil end
+    return GetInsightFontPath(), nil, "OUTLINE"
+end
+
+local function LockInsightFontString(fs)
+    if not fs or lockedInsightFontStrings[fs] then return end
+    lockedInsightFontStrings[fs] = true
+    LockDirectFont(fs, GetInsightFont)
+end
+
 local function StyleFonts(tooltip)
     if not tooltip then return end
     Insight.ApplyNativeTooltipScale(tooltip)
@@ -400,8 +443,8 @@ local function StyleFonts(tooltip)
         local tag    = tags and tags[i]
         local sz     = tag and sizeForTag[tag] or ((i == 1) and headerSz or bodySz)
         local rightSz = tag and sizeForTag[tag] or bodySz
-        if left  then left:SetFont(GetInsightFontPath(),  S(sz),      "OUTLINE") end
-        if right then right:SetFont(GetInsightFontPath(), S(rightSz), "OUTLINE") end
+        if left  then left:SetFont(GetInsightFontPath(),  S(sz),      "OUTLINE"); LockInsightFontString(left)  end
+        if right then right:SetFont(GetInsightFontPath(), S(rightSz), "OUTLINE"); LockInsightFontString(right) end
     end)
 end
 

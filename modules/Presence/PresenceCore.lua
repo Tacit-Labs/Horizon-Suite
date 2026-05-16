@@ -351,6 +351,43 @@ local function getPresenceSubtitleFontOutline()
     return raw
 end
 
+-- Per-FontString hook that re-asserts our desired font path whenever a
+-- font-replacement addon (e.g. Platynator) overrides SetFont or SetFontObject.
+-- Size is nil so PlayCinematic's variant-sized SetSafeFont calls go through unchanged;
+-- the lock only protects the font path. Mirrors LockDirectFont in PresenceTalkingHead.lua.
+local function LockDirectFont(fontString, getFont)
+    local busyObj  = false
+    local busyFont = false
+
+    hooksecurefunc(fontString, "SetFontObject", function(self, obj)
+        if busyObj or not obj then return end
+        local path, size, flags = getFont()
+        if not path then return end
+        local _, curSize, curFlags = self:GetFont()
+        busyObj = true
+        self:SetFontObject(nil)
+        self:SetFont(path, size or curSize or 12, flags or curFlags or "OUTLINE")
+        busyObj = false
+    end)
+
+    hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
+        if busyFont then return end
+        local targetPath, targetSize, targetFlags = getFont()
+        if not targetPath or path == targetPath then return end
+        busyFont = true
+        self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
+        busyFont = false
+    end)
+end
+
+local function GetPresenceTitleFont()
+    return getPresenceTitleFontPath(), nil, getPresenceTitleFontOutline()
+end
+
+local function GetPresenceSubFont()
+    return getPresenceSubtitleFontPath(), nil, getPresenceSubtitleFontOutline()
+end
+
 -- Variant-based sizes: large (sz 48), medium (sz 36), small (sz 28). Each has primary + secondary.
 local VARIANT_DEFAULTS = {
     large  = { primary = 48, secondary = 24 },
@@ -517,6 +554,13 @@ local function CreateLayer(parent)
     L.discoveryShadow:SetPoint("CENTER", L.discoveryText, "CENTER", shadowX, shadowY)
     L.discoveryText:SetAlpha(0)
     L.discoveryShadow:SetAlpha(0)
+
+    LockDirectFont(L.titleShadow,     GetPresenceTitleFont)
+    LockDirectFont(L.titleText,       GetPresenceTitleFont)
+    LockDirectFont(L.subShadow,       GetPresenceSubFont)
+    LockDirectFont(L.subText,         GetPresenceSubFont)
+    LockDirectFont(L.discoveryShadow, GetPresenceSubFont)
+    LockDirectFont(L.discoveryText,   GetPresenceSubFont)
 
     return L
 end
