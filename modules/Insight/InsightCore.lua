@@ -189,6 +189,7 @@ local function HookGameTooltipLifecycle()
     hooksecurefunc(GameTooltip, "SetUnit", function(self)
         self._insightUnitTooltipInstance = nil
     end)
+
 end
 
 local function HookTooltipLifecycle(tt)
@@ -696,6 +697,45 @@ function Insight.EnsurePreviewTab(dashFrame)
 end
 
 -- ============================================================================
+-- TRP3 SUPPRESSOR
+-- ============================================================================
+
+--- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
+--- own frame is suppressed and Insight's enriched GameTooltip stays visible.
+--- Called once when "totalRP3" finishes loading (or at Init if already loaded).
+function Insight.InstallTRP3Suppressor()
+    local trp3Tooltip = _G["TRP3_CharacterTooltip"]
+    if not trp3Tooltip or Insight._trp3HookInstalled then return end
+    Insight._trp3HookInstalled = true
+
+    -- Override GameTooltip.Hide so TRP3's shouldHideGameTooltip path cannot
+    -- clear Insight's tooltip content.  hooksecurefunc fires *after* the hide
+    -- has already happened (too late); this override runs *instead of* it when
+    -- the suppression flag is armed.
+    local _origGTHide = GameTooltip.Hide
+    GameTooltip.Hide = function(self, ...)
+        if Insight._suppressTRP3Hide and Insight.IsInsightEnabled() then
+            Insight._suppressTRP3Hide = false
+            return  -- swallow TRP3's hide; GameTooltip content stays intact
+        end
+        return _origGTHide(self, ...)
+    end
+
+    hooksecurefunc(trp3Tooltip, "Show", function(self)
+        if not Insight.IsInsightEnabled() then return end
+        -- Suppress TRP3's frame; our GameTooltip already carries TRP3 RP data.
+        self:Hide()
+        -- Arm the GameTooltip.Hide override for TRP3's synchronous Hide() call
+        -- that follows immediately inside show().
+        Insight._suppressTRP3Hide = true
+        -- Safety: clear next frame in case TRP3's config skips the Hide call.
+        C_Timer.After(0, function()
+            Insight._suppressTRP3Hide = false
+        end)
+    end)
+end
+
+-- ============================================================================
 -- INIT / DISABLE / APPLY
 -- ============================================================================
 
@@ -777,6 +817,21 @@ function Insight.Init()
         end)
     end
 
+    -- If totalRP3 loaded before Insight, ADDON_LOADED already fired; hook now.
+    local trp3AlreadyLoaded = false
+    if C_AddOns and C_AddOns.IsAddOnLoaded then
+        pcall(function()
+            if C_AddOns.IsAddOnLoaded("totalRP3") then
+                trp3AlreadyLoaded = true
+            else
+                trp3AlreadyLoaded = false
+            end
+        end)
+    end
+    if trp3AlreadyLoaded then
+        Insight.InstallTRP3Suppressor()
+    end
+
     if addon.DashboardPreview and addon.DashboardPreview.Register then
         addon.DashboardPreview.Register("insight", {
             width = GetPreviewPulloutWidth,
@@ -824,7 +879,15 @@ eventFrame:RegisterEvent("INSPECT_ACHIEVEMENT_READY")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("MODIFIER_STATE_CHANGED")
+eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:SetScript("OnEvent", function(self, event, guid)
+    if event == "ADDON_LOADED" then
+        -- guid here is the addon name arg from ADDON_LOADED
+        if guid == "totalRP3" then
+            Insight.InstallTRP3Suppressor()
+        end
+        return
+    end
     if event == "MODIFIER_STATE_CHANGED" then
         local key = guid  -- first arg is key name e.g. "LSHIFT"
         if key ~= "LSHIFT" and key ~= "RSHIFT" then return end
@@ -978,6 +1041,7 @@ local function HandleInsightDebugSlash(msg)
             "  status    - Print config + cache count",
             "  lsm       - Test LibSharedMedia classicon registration",
             "  path      - Show class icon paths (Rondo + custom sample)",
+            "  trp3      - Diagnose TRP3 data for current mouseover unit",
         })
         return
     end
@@ -1043,6 +1107,173 @@ local function HandleInsightDebugSlash(msg)
         else
             Insight.Print("  (none registered; RondoMedia or Horizon Suite will register on init)")
         end
+        return
+    end
+
+    if cmd == "trp3" then
+        local unit = "mouseover"
+        Insight.Print("--- TRP3 Debug for unit: " .. unit .. " ---")
+
+        if not TRP3_API then
+            Insight.Print("  TRP3_API: NIL (addon not loaded?)")
+            return
+        end
+        Insight.Print("  TRP3_API: OK")
+
+        local getUnitID = TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.getUnitID
+        if not getUnitID then
+            Insight.Print("  TRP3_API.utils.str.getUnitID: NIL")
+            return
+        end
+        Insight.Print("  getUnitID func: OK")
+
+        local ok, unitID = pcall(getUnitID, unit)
+        if not ok then
+            Insight.Print("  getUnitID() error: " .. tostring(unitID))
+            return
+        end
+        Insight.Print("  unitID = " .. tostring(unitID))
+        if not unitID or unitID == "" then
+            Insight.Print("  -> unitID empty, returning nil")
+            return
+        end
+
+        local isKnown = TRP3_API.register and TRP3_API.register.isUnitIDKnown
+        if not isKnown then
+            Insight.Print("  TRP3_API.register.isUnitIDKnown: NIL")
+        else
+            local ok2, known = pcall(isKnown, unitID)
+            if not ok2 then
+                Insight.Print("  isUnitIDKnown = pcall error: " .. tostring(known))
+            elseif known then
+                Insight.Print("  isUnitIDKnown = true")
+            else
+                Insight.Print("  isUnitIDKnown = false (unit not in TRP3 register)")
+            end
+            if not (ok2 and known) then
+                if UnitIsUnit(unit, "player") then
+                    Insight.Print("  -> local player; using TRP3_API.profile path")
+                else
+                    Insight.Print("  -> unit not known to TRP3, returning nil")
+                    return
+                end
+            end
+        end
+
+        -- Resolve profile: local player via TRP3_API.profile, others via register
+        local profile
+        if UnitIsUnit(unit, "player") then
+            local getPlayerProfile = TRP3_API.profile and TRP3_API.profile.getPlayerCurrentProfile
+            if not getPlayerProfile then
+                Insight.Print("  TRP3_API.profile.getPlayerCurrentProfile: NIL")
+                return
+            end
+            local ok3, p = pcall(getPlayerProfile)
+            if not ok3 then
+                Insight.Print("  getPlayerCurrentProfile() error: " .. tostring(p))
+                return
+            end
+            profile = p
+            Insight.Print("  getPlayerCurrentProfile() = " .. (profile and "table" or "nil"))
+        else
+            local getProfile = TRP3_API.register and TRP3_API.register.getUnitIDCurrentProfile
+            if not getProfile then
+                Insight.Print("  TRP3_API.register.getUnitIDCurrentProfile: NIL")
+                return
+            end
+            local ok3, p = pcall(getProfile, unitID)
+            if not ok3 then
+                Insight.Print("  getUnitIDCurrentProfile() error: " .. tostring(p))
+                return
+            end
+            profile = p
+            Insight.Print("  getUnitIDCurrentProfile() = " .. (profile and "table" or "nil"))
+        end
+        if not profile then return end
+
+        -- Dump raw top-level keys
+        local profileKeys = {}
+        for k, v in pairs(profile) do
+            table.insert(profileKeys, tostring(k) .. "=" .. type(v))
+        end
+        Insight.Print("  profile keys: " .. table.concat(profileKeys, ", "))
+
+        -- Local player profile nests data under .player; register profiles are flat
+        local profileData = UnitIsUnit(unit, "player") and (profile.player or {}) or profile
+        local char   = profileData.characteristics or {}
+        local status = profileData.character       or {}
+
+        -- Dump all keys in characteristics
+        local charKeys = {}
+        for k, v in pairs(char) do
+            local val = type(v) == "string" and v:sub(1, 20) or tostring(v)
+            table.insert(charKeys, tostring(k) .. "=" .. val)
+        end
+        Insight.Print("  characteristics keys: " .. (next(charKeys) and table.concat(charKeys, ", ") or "(empty)"))
+
+        -- Dump all keys in character/status
+        local statKeys = {}
+        for k, v in pairs(status) do
+            local val = type(v) == "string" and v:sub(1, 20) or tostring(v)
+            table.insert(statKeys, tostring(k) .. "=" .. val)
+        end
+        Insight.Print("  character keys: " .. (next(statKeys) and table.concat(statKeys, ", ") or "(empty)"))
+
+        Insight.Print("  char.RA (race)  = " .. tostring(char.RA))
+        Insight.Print("  char.CL (class) = " .. tostring(char.CL))
+        Insight.Print("  char.IC (icon)  = " .. tostring(char.IC))
+        Insight.Print("  status.RP (IC)  = " .. tostring(status.RP))
+        Insight.Print("  status.CU (curr)= " .. tostring(status.CU and status.CU:sub(1,40) or nil))
+
+        local getCompleteName = TRP3_API.register and TRP3_API.register.getCompleteName
+        if getCompleteName then
+            local ok4, name = pcall(getCompleteName, char, UnitName(unit) or "", false)
+            Insight.Print("  getCompleteName = " .. tostring(ok4 and name or ("error: " .. tostring(name))))
+        else
+            Insight.Print("  TRP3_API.register.getCompleteName: NIL")
+        end
+
+        if AddOn_TotalRP3 and AddOn_TotalRP3.Player and AddOn_TotalRP3.Player.CreateFromCharacterID then
+            Insight.Print("  AddOn_TotalRP3.Player.CreateFromCharacterID: OK")
+            local ok5, player = pcall(AddOn_TotalRP3.Player.CreateFromCharacterID, unitID)
+            if ok5 and player then
+                Insight.Print("  player object: OK")
+                if player.GetCustomColorForDisplay then
+                    local ok6, color = pcall(player.GetCustomColorForDisplay, player)
+                    Insight.Print("  customColor = " .. (ok6 and color and string.format("r=%.2f g=%.2f b=%.2f", color.r, color.g, color.b) or tostring(ok6 and color or ("error: " .. tostring(color)))))
+                end
+                if player.GetCustomPronouns then
+                    local ok7, p = pcall(player.GetCustomPronouns, player)
+                    Insight.Print("  pronouns = " .. tostring(ok7 and p or ("error: " .. tostring(p))))
+                end
+                if player.GetCustomGuildMembership then
+                    local ok8, g = pcall(player.GetCustomGuildMembership, player)
+                    if ok8 and g then
+                        Insight.Print("  customGuild.name = " .. tostring(g.name) .. " rank = " .. tostring(g.rank))
+                    else
+                        Insight.Print("  customGuild = " .. tostring(ok8 and g or ("error: " .. tostring(g))))
+                    end
+                end
+                if player.GetRoleplayStatus then
+                    local ok9, s = pcall(player.GetRoleplayStatus, player)
+                    Insight.Print("  GetRoleplayStatus = " .. tostring(ok9 and s or ("error: " .. tostring(s))))
+                else
+                    Insight.Print("  GetRoleplayStatus: NIL")
+                end
+                if player.GetCustomIcon then
+                    local ok10, ic = pcall(player.GetCustomIcon, player)
+                    Insight.Print("  GetCustomIcon = " .. tostring(ok10 and ic or ("error: " .. tostring(ic))))
+                else
+                    Insight.Print("  GetCustomIcon: NIL")
+                end
+            else
+                Insight.Print("  CreateFromCharacterID error: " .. tostring(player))
+            end
+        else
+            Insight.Print("  AddOn_TotalRP3.Player.CreateFromCharacterID: NIL")
+        end
+
+        Insight.Print("--- end TRP3 debug ---")
         return
     end
 

@@ -1,4 +1,4 @@
-﻿--[[
+--[[
     Horizon Suite - Options Data
     Core DB helpers and per-key routing (SetDB side-effects).
     Initialises the empty OptionCategories table that self-registering module

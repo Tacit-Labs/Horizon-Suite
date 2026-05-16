@@ -105,6 +105,15 @@ local function ShowIcons()        return addon.GetDB("insightShowIcons",        
 local function ShowRaceIcons()    return ShowIcons() and addon.GetDB("insightRaceIcons", true) end
 local function ShowRatingsIcons() return addon.GetDB("insightRatingsIcons",     true)  end
 
+local function ShowTRP3RPName()      return addon.GetDB("insightTRP3RPName",      true) end
+local function ShowTRP3CustomColor() return addon.GetDB("insightTRP3CustomColor", true) end
+local function ShowTRP3Pronouns()    return addon.GetDB("insightTRP3Pronouns",    true) end
+local function ShowTRP3ICStatus()    return addon.GetDB("insightTRP3ICStatus",    true) end
+local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass",   true) end
+local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
+local function ShowTRP3Currently()   return addon.GetDB("insightTRP3Currently",   true) end
+local function ShowTRP3Icon()        return addon.GetDB("insightTRP3Icon",        true) end
+
 local function SpecIconMarkup(specIcon, size)
     if not specIcon then return "" end
     size = tonumber(size) or 14
@@ -817,6 +826,112 @@ function Insight.CacheAchievementPoints(unit)
 end
 
 -- ============================================================================
+-- TRP3 DATA FETCH
+-- ============================================================================
+
+--- Fetch Total RP 3 profile fields for a unit token. Returns a table of RP data
+--- or nil when TRP3 is not loaded / the unit has no TRP3 profile.
+--- All access is pcall-wrapped for Midnight safety.
+function Insight.GetTRP3PlayerData(unit)
+    if not TRP3_API then return nil end
+    local ok, result = pcall(function()
+        local getUnitID = TRP3_API.utils and TRP3_API.utils.str and TRP3_API.utils.str.getUnitID
+        if not getUnitID then return nil end
+        local unitID = getUnitID(unit)
+        if not unitID or unitID == "" then return nil end
+
+        -- Local player profiles live in TRP3_API.profile, not the register.
+        -- Other players are looked up via the register.
+        local profile
+        if UnitIsUnit(unit, "player") then
+            local getPlayerProfile = TRP3_API.profile and TRP3_API.profile.getPlayerCurrentProfile
+            if not getPlayerProfile then return nil end
+            profile = getPlayerProfile()
+        else
+            local isKnown = TRP3_API.register and TRP3_API.register.isUnitIDKnown
+            if not (isKnown and isKnown(unitID)) then return nil end
+            local getProfile = TRP3_API.register.getUnitIDCurrentProfile
+            profile = getProfile and getProfile(unitID)
+        end
+        if not profile then return nil end
+        -- Local player profiles nest data under profile.player; register profiles are flat.
+        local profileData = UnitIsUnit(unit, "player") and (profile.player or {}) or profile
+        local char   = profileData.characteristics or {}
+        local status = profileData.character       or {}
+        local data   = {}
+        -- RP name (complete name including first name, last name, title prefix)
+        local getCompleteName = TRP3_API.register and TRP3_API.register.getCompleteName
+        if getCompleteName then
+            local defaultName = UnitName(unit) or ""
+            local name = getCompleteName(char, defaultName, false)
+            if name and name ~= "" and name ~= defaultName then
+                data.rpName = name
+            end
+        end
+        -- Custom race and class
+        if char.RA and char.RA ~= "" then data.customRace  = char.RA end
+        if char.CL and char.CL ~= "" then data.customClass = char.CL end
+        -- Character icon
+        if char.IC and char.IC ~= "" then data.icon = char.IC end
+        -- Currently text
+        if status.CU and status.CU ~= "" then
+            local cu = strtrim(status.CU)
+            if cu ~= "" then data.currently = cu end
+        end
+        -- Player object APIs (color, pronouns, guild, IC status, icon fallback)
+        if AddOn_TotalRP3 and AddOn_TotalRP3.Player and AddOn_TotalRP3.Player.CreateFromCharacterID then
+            local player = AddOn_TotalRP3.Player.CreateFromCharacterID(unitID)
+            if player then
+                if player.GetCustomColorForDisplay then
+                    local color = player:GetCustomColorForDisplay()
+                    if color then
+                        data.customColorR = color.r
+                        data.customColorG = color.g
+                        data.customColorB = color.b
+                    end
+                end
+                if player.GetCustomPronouns then
+                    local pronouns = player:GetCustomPronouns()
+                    if pronouns and pronouns ~= "" then
+                        data.pronouns = pronouns
+                    end
+                end
+                if player.GetCustomGuildMembership then
+                    local guild = player:GetCustomGuildMembership()
+                    if guild and guild.name and guild.name ~= "" then
+                        data.customGuild = strtrim(guild.name)
+                        if guild.rank and guild.rank ~= "" then
+                            data.customGuildRank = strtrim(guild.rank)
+                        end
+                    end
+                end
+                -- IC/OOC status via Player object (more reliable than raw profile key)
+                if player.GetRoleplayStatus then
+                    local rpStatus = player:GetRoleplayStatus()
+                    -- AddOn_TotalRP3.Enums.ROLEPLAY_STATUS: IN_CHARACTER=1, OUT_OF_CHARACTER=2
+                    if rpStatus then
+                        data.isIC = (rpStatus == 1)
+                    end
+                elseif status.RP ~= nil then
+                    data.isIC = (status.RP == 1)
+                end
+                -- Icon via Player object if not already found in characteristics
+                if not data.icon and player.GetCustomIcon then
+                    local icon = player:GetCustomIcon()
+                    if icon and icon ~= "" then data.icon = icon end
+                end
+            end
+        elseif status.RP ~= nil then
+            data.isIC = (status.RP == 1)
+        end
+        if not next(data) then return nil end
+        return data
+    end)
+    if not ok or type(result) ~= "table" then return nil end
+    return result
+end
+
+-- ============================================================================
 -- PROCESS PLAYER TOOLTIP
 -- ============================================================================
 
@@ -856,6 +971,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
     end)
     local guildName, guildRankName, guildRealm = GetSafeGuildInfo(unit)
+    local trp3Data = Insight.GetTRP3PlayerData(unit)
     if classColor then
         local modcc = addon.GetModuleClassColor and addon.GetModuleClassColor("insight")
         if not modcc then classColor = nil end
@@ -912,6 +1028,12 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             nameG = (fc and fc[2]) or (classColor and classColor.g) or 1
             nameB = (fc and fc[3]) or (classColor and classColor.b) or 1
         end
+        -- TRP3 custom name colour overrides faction/class colour when enabled
+        if trp3Data and trp3Data.customColorR and ShowTRP3CustomColor() then
+            nameR = trp3Data.customColorR
+            nameG = trp3Data.customColorG
+            nameB = trp3Data.customColorB
+        end
         local useGradient = (nameMode == "class")
             and addon.GetDB("insightPlayerNameGradient", false)
         if ShowCharacterTitle() then
@@ -934,7 +1056,31 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 nameLeft:SetTextColor(nameR, nameG, nameB)
             end
         end
-        nameLeft:SetText(icon .. displayText .. GetInlineStatusTag(unit))
+        -- TRP3 RP name: replace WoW character name with RP name when available
+        if trp3Data and trp3Data.rpName and ShowTRP3RPName() then
+            if useGradient then
+                displayText = Insight.BuildNameGradient(trp3Data.rpName, nameR, nameG, nameB)
+                nameLeft:SetTextColor(1, 1, 1, 1)
+            else
+                displayText = FormatNameSpan(trp3Data.rpName, nameR, nameG, nameB, false)
+                nameLeft:SetTextColor(nameR, nameG, nameB)
+            end
+        end
+        -- Build TRP3 suffix: pronouns and IC/OOC badge
+        local trp3Suffix = ""
+        if trp3Data then
+            if trp3Data.pronouns and ShowTRP3Pronouns() then
+                trp3Suffix = trp3Suffix .. " |cffaaaaaa(" .. trp3Data.pronouns .. ")|r"
+            end
+            if trp3Data.isIC ~= nil and ShowTRP3ICStatus() then
+                trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+            end
+        end
+        local trp3IconMarkup = ""
+        if trp3Data and trp3Data.icon and ShowTRP3Icon() then
+            trp3IconMarkup = "|TInterface\\Icons\\" .. trp3Data.icon .. ":14:14:0:0|t "
+        end
+        nameLeft:SetText(icon .. trp3IconMarkup .. displayText .. GetInlineStatusTag(unit) .. trp3Suffix)
     end
 
     -- 2. Border tint
@@ -1029,6 +1175,36 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end)
     end
 
+    -- TRP3 custom RP guild (separate from WoW guild)
+    if trp3Data and trp3Data.customGuild and ShowTRP3Guild() then
+        Insight.TagLines(tooltip, "identity", function()
+            local guildLine = "|cff00ccff<" .. trp3Data.customGuild .. ">|r"
+            if trp3Data.customGuildRank and trp3Data.customGuildRank ~= "" then
+                guildLine = guildLine .. " |cffaaaaaa" .. trp3Data.customGuildRank .. "|r"
+            end
+            tooltip:AddLine(guildLine, 1, 1, 1)
+        end)
+    end
+
+    -- TRP3 custom race and/or class
+    if trp3Data and ShowTRP3RaceClass() and (trp3Data.customRace or trp3Data.customClass) then
+        Insight.TagLines(tooltip, "identity", function()
+            local racePart  = trp3Data.customRace  or ""
+            local classPart = trp3Data.customClass  or ""
+            if classColor and classPart ~= "" then
+                local hex = string.format("%02x%02x%02x",
+                    math.floor(classColor.r * 255),
+                    math.floor(classColor.g * 255),
+                    math.floor(classColor.b * 255))
+                classPart = "|cff" .. hex .. classPart .. "|r"
+            end
+            local line = strtrim(racePart .. (classPart ~= "" and (" " .. classPart) or ""))
+            if line ~= "" then
+                tooltip:AddLine(line, 1, 0.82, 0)
+            end
+        end)
+    end
+
     -- 4. Status badges (part of identity section)
     Insight.AddStatusBadgesBlock(tooltip, unit)
 
@@ -1037,6 +1213,17 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
 
     -- 6. Mount block
     Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
+
+    -- 7. TRP3 Currently block
+    if trp3Data and trp3Data.currently and ShowTRP3Currently() then
+        Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
+        Insight.TagLines(tooltip, "trp3currently", function()
+            tooltip:AddLine("Currently:", 0.7, 0.7, 0.7)
+            local text = trp3Data.currently
+            if #text > 300 then text = text:sub(1, 300) .. "..." end
+            tooltip:AddLine(text, 0.9, 0.85, 0.7)
+        end)
+    end
 
     return true
 end
