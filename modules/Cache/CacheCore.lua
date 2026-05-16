@@ -575,9 +575,11 @@ end
 
 function Cache.ResetPosition()
     if not IsReady() then return end
-    Frame:ClearAllPoints()
-    Frame:SetPoint(Cache.DEFAULT_ANCHOR, UIParent, Cache.DEFAULT_ANCHOR, Cache.DEFAULT_X, Cache.DEFAULT_Y)
     Cache.ClearPosition()
+    Cache.ApplyStoredAnchor(Frame)
+    if anchorFrame and anchorFrame:IsShown() then
+        Cache.ApplyStoredAnchor(anchorFrame)
+    end
 end
 
 function Cache.ClearActiveToasts()
