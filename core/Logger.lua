@@ -1,6 +1,25 @@
 --[[
     Horizon Suite - Logger
-    Development-only. Set DEV_MODE = true locally to enable; do not commit as true.
+    Development-only structured logger with a fixed-size ring buffer.
+
+    WARNING: DEV_MODE must remain false in committed code. Setting it to true
+    activates live chat output and registers a slash command on every session,
+    which will expose debug noise to end users.
+
+    Usage (DEV_MODE = true only):
+        addon.Log.debug("MyModule", "entered ShowToast")
+        addon.Log.info ("MyModule", "pool acquired entry #3")
+        addon.Log.warn ("MyModule", "quality nil, defaulting to 1")
+        addon.Log.error("MyModule", "frame is nil — InitFrames not called?")
+        addon.Log.dump()   -- print all buffered entries to chat
+        addon.Log.clear()  -- wipe the ring buffer
+
+    In-game slash commands (DEV_MODE = true only):
+        /h debug logger        -- dump the buffer (same as dump)
+        /h debug logger dump   -- print all buffered log entries to chat
+        /h debug logger clear  -- wipe the ring buffer
+
+    When DEV_MODE = false all methods are noop — zero runtime cost.
 ]]
 
 local addon = _G.HorizonSuite
@@ -12,8 +31,8 @@ local buffer, head, count = {}, 1, 0
 
 local LEVEL_FMT = {
     DEBUG = "|cFF888888[DEBUG]|r",
-    INFO  = "|cFF00CCFF[INFO ]|r",
-    WARN  = "|cFFFFCC00[WARN ]|r",
+    INFO  = "|cFF00CCFF[INFO]|r",
+    WARN  = "|cFFFFCC00[WARN]|r",
     ERROR = "|cFFFF4444[ERROR]|r",
 }
 
@@ -60,6 +79,7 @@ if DEV_MODE then
         end
     end)
 else
+    -- noop is a WoW FrameXML global (equivalent to `function() end`)
     Log.debug = noop
     Log.info  = noop
     Log.warn  = noop
