@@ -21,10 +21,14 @@ local function GetInsightFontPath()
     local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
     if global then return global end
     local raw = addon.GetDB and addon.GetDB("insightFontPath", INSIGHT_FONT_USE_GLOBAL) or INSIGHT_FONT_USE_GLOBAL
-    if raw == INSIGHT_FONT_USE_GLOBAL or not raw or raw == "" then
-        return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+    if raw ~= INSIGHT_FONT_USE_GLOBAL and raw ~= "" then
+        return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
     end
-    return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
+    local base = addon.GetDB and addon.GetDB("fontPath", nil)
+    if base and base ~= "" then
+        return (addon.ResolveFontPath and addon.ResolveFontPath(base)) or base
+    end
+    return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 end
 
 local function GetInsightHeaderSize()

@@ -12,14 +12,15 @@ if not _G[addon.DATABASE] then _G[addon.DATABASE] = {} end
 -- ---------------------------------------------------------------------------
 -- Migration: early global-font implementation used fontPath as the override key.
 -- If useGlobalFont is true but globalOverrideFontPath was never written, the saved
--- fontPath is the old override value.  Move it to the dedicated key and clear fontPath
--- so the per-module fallback no longer shadows the override on disable.
+-- fontPath is the old override value.  Copy it to the dedicated key.
+-- fontPath is intentionally kept: it serves as the per-module "Global Font" sentinel
+-- fallback (Cache, Vista, Presence, Insight all fall through to fontPath when their
+-- own per-module key is "__global__" and the override is off).
 -- ---------------------------------------------------------------------------
 do
     local db = _G[addon.DATABASE]
     if db and db.useGlobalFont and db.globalOverrideFontPath == nil and db.fontPath ~= nil then
         db.globalOverrideFontPath = db.fontPath
-        db.fontPath = nil
     end
 end
 
