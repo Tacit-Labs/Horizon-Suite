@@ -13,22 +13,6 @@ local eventFrame
 local eventsRegistered = false
 
 -- ============================================================================
--- COMBAT DEFERRAL
--- ============================================================================
-
-local inCombat = false
-local combatQueue = {}
-
-local function FlushCombatQueue()
-    if #combatQueue == 0 then return end
-    local queue = combatQueue
-    combatQueue = {}
-    for i, data in ipairs(queue) do
-        C_Timer.After((i - 1) * 0.08, function() Y.ShowToast(data) end)
-    end
-end
-
--- ============================================================================
 -- COALESCING QUEUE
 -- Loot events arriving in the same tick are staggered so the pool stack
 -- animation doesn't receive them all at position 0 simultaneously.
@@ -43,17 +27,11 @@ local function FlushLootQueue()
     local queue = lootQueue
     lootQueue = {}
     for i, data in ipairs(queue) do
-        if inCombat then
-            combatQueue[#combatQueue + 1] = data
-        elseif i == 1 then
+        if i == 1 then
             Y.ShowToast(data)
         else
             C_Timer.After((i - 1) * COALESCE_STAGGER, function()
-                if inCombat then
-                    combatQueue[#combatQueue + 1] = data
-                else
-                    Y.ShowToast(data)
-                end
+                Y.ShowToast(data)
             end)
         end
     end
@@ -70,7 +48,6 @@ end
 local function ClearQueues()
     lootQueue        = {}
     lootFlushPending = false
-    combatQueue      = {}
 end
 
 -- ============================================================================
@@ -96,14 +73,6 @@ end
 handlers.PLAYER_LOGIN          = OnPlayerReady
 handlers.PLAYER_ENTERING_WORLD = OnPlayerReady
 
-handlers.PLAYER_REGEN_DISABLED = function()
-    inCombat = true
-end
-
-handlers.PLAYER_REGEN_ENABLED = function()
-    inCombat = false
-    C_Timer.After(0.5, FlushCombatQueue)
-end
 
 handlers.CHAT_MSG_LOOT = function(msg, ...)
     if not y.patternsOK then return end
@@ -149,11 +118,7 @@ handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(msg)
     if addon.GetDB("cacheShowRep", true) == false then return end
     local data = Y.ParseReputation(msg)
     if data then
-        if inCombat then
-            combatQueue[#combatQueue + 1] = data
-        else
-            Y.ShowToast(data)
-        end
+        Y.ShowToast(data)
     end
 end
 
@@ -191,8 +156,6 @@ function Y.EnableEvents()
     eventFrame:RegisterEvent("ADDON_LOADED")
     eventFrame:RegisterEvent("PLAYER_LOGIN")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-    eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     eventFrame:RegisterEvent("CHAT_MSG_LOOT")
     eventFrame:RegisterEvent("CHAT_MSG_MONEY")
     eventFrame:RegisterEvent("CHAT_MSG_CURRENCY")
@@ -210,6 +173,5 @@ function Y.DisableEvents()
         eventFrame:UnregisterAllEvents()
     end
     ClearQueues()
-    inCombat = false
     eventsRegistered = false
 end
