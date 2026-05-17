@@ -428,6 +428,51 @@ local function AcquireEntry()
     return entry
 end
 
+local function GetQualityEntrance(quality)
+    if quality == 5 then return Cache.ENTRANCE_DUR_LEGENDARY, Cache.POP_SCALE_PEAK_LEGEND, true end
+    if quality == 4 then return Cache.ENTRANCE_DUR_EPIC,      Cache.POP_SCALE_PEAK_EPIC,   true end
+    return Cache.ENTRANCE_DUR, 1, false
+end
+
+local function CalcEntranceScale(p, isEpicOrLegendary, popPeak)
+    if not isEpicOrLegendary then return 1 end
+    local settleStart = 1 - Cache.POP_SETTLE_FRAC
+    if p <= settleStart then
+        return Cache.POP_SCALE_START + (popPeak - Cache.POP_SCALE_START) * Ease(p / settleStart)
+    end
+    return popPeak + (1 - popPeak) * Ease((p - settleStart) / Cache.POP_SETTLE_FRAC, "inOut")
+end
+
+local function UpdateShine(entry, t)
+    if not entry.shine then return end
+    local cacheCC = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
+    if (entry.quality == 5 or (entry.quality == 4 and cacheCC)) and t < Cache.FLASH_DUR then
+        entry.shine:Show()
+        entry.shine:SetAlpha(1 - Ease(t / Cache.FLASH_DUR))
+    else
+        entry.shine:Hide()
+    end
+end
+
+local function UpdateIconGlow(entry, t, isEpicOrLegendary, entEnd, holdEnd)
+    if not entry.iconBg then return end
+    if isEpicOrLegendary and t >= entEnd and t < holdEnd then
+        local pulse = 0.5 + 0.5 * math.sin(t * Cache.BORDER_PULSE_SPEED * 6.283185307)
+        entry.iconBg:SetAlpha(1 - Cache.BORDER_PULSE_ALPHA + Cache.BORDER_PULSE_ALPHA * pulse)
+    else
+        entry.iconBg:SetAlpha(0.8)
+    end
+end
+
+local function SmoothStack(entry, dt)
+    local gap = entry.stackY - entry.smoothY
+    if math.abs(gap) > 0.5 then
+        entry.smoothY = entry.smoothY + gap * math.min(Cache.NUDGE_SPEED * dt, 1)
+    else
+        entry.smoothY = entry.stackY
+    end
+end
+
 -- Assigned here so the forward declaration above is satisfied.
 UpdateEntry = function(entry, dt)
     if not entry.active then return end
@@ -435,40 +480,18 @@ UpdateEntry = function(entry, dt)
     entry.elapsed = entry.elapsed + dt
     local t = entry.elapsed
 
-    local isEpicOrLegendary = (entry.quality == 4 or entry.quality == 5)
-    local entranceDur = Cache.ENTRANCE_DUR
-    local popPeak = 1
-    if entry.quality == 5 then
-        entranceDur = Cache.ENTRANCE_DUR_LEGENDARY
-        popPeak     = Cache.POP_SCALE_PEAK_LEGEND
-    elseif entry.quality == 4 then
-        entranceDur = Cache.ENTRANCE_DUR_EPIC
-        popPeak     = Cache.POP_SCALE_PEAK_EPIC
-    end
-
+    local entranceDur, popPeak, isEpicOrLegendary = GetQualityEntrance(entry.quality)
     local entEnd  = entranceDur
     local holdEnd = entEnd  + entry.holdDur
     local fadeEnd = holdEnd + Cache.EXIT_DUR
-
-    local maxA  = entry.maxAlpha or 1
+    local maxA    = entry.maxAlpha or 1
     local alpha, slideX, scale
 
     if t < entEnd then
         local p = Ease(t / entranceDur)
         alpha  = p * maxA
         slideX = Cache.SLIDE_DIST * (1 - p)
-        if isEpicOrLegendary then
-            local settleStart = 1 - Cache.POP_SETTLE_FRAC
-            if p <= settleStart then
-                local q = p / settleStart
-                scale = Cache.POP_SCALE_START + (popPeak - Cache.POP_SCALE_START) * Ease(q)
-            else
-                local q = (p - settleStart) / Cache.POP_SETTLE_FRAC
-                scale = popPeak + (1 - popPeak) * Ease(q, "inOut")
-            end
-        else
-            scale = 1
-        end
+        scale  = CalcEntranceScale(p, isEpicOrLegendary, popPeak)
 
     elseif t < holdEnd then
         alpha  = maxA
@@ -494,36 +517,14 @@ UpdateEntry = function(entry, dt)
         return
     end
 
-    local cacheCC = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
-    if entry.shine and (entry.quality == 5 or (entry.quality == 4 and cacheCC)) then
-        if t < Cache.FLASH_DUR then
-            entry.shine:Show()
-            entry.shine:SetAlpha(1 - Ease(t / Cache.FLASH_DUR))
-        else
-            entry.shine:Hide()
-        end
-    end
-
-    if isEpicOrLegendary and t >= entEnd and t < holdEnd and entry.iconBg then
-        local pulse     = 0.5 + 0.5 * math.sin(t * Cache.BORDER_PULSE_SPEED * 6.283185307)
-        local glowAlpha = 1 - Cache.BORDER_PULSE_ALPHA + Cache.BORDER_PULSE_ALPHA * pulse
-        entry.iconBg:SetAlpha(glowAlpha)
-    elseif entry.iconBg then
-        entry.iconBg:SetAlpha(0.8)
-    end
-
-    local gap = entry.stackY - entry.smoothY
-    if math.abs(gap) > 0.5 then
-        entry.smoothY = entry.smoothY + gap * math.min(Cache.NUDGE_SPEED * dt, 1)
-    else
-        entry.smoothY = entry.stackY
-    end
+    UpdateShine(entry, t)
+    UpdateIconGlow(entry, t, isEpicOrLegendary, entEnd, holdEnd)
+    SmoothStack(entry, dt)
 
     entry.frame:SetAlpha(alpha)
     entry.frame:SetScale(scale or 1)
     entry.frame:ClearAllPoints()
-    entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT",
-                         slideX, entry.smoothY + entry.driftY)
+    entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT", slideX, entry.smoothY + entry.driftY)
 end
 
 -- ============================================================================
