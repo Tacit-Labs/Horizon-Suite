@@ -196,6 +196,7 @@ local function CreateToastEntry(parent)
     LockDirectFont(text,   GetToastFont)
 
     f:EnableMouse(true)
+    f:SetPropagateMouseClicks(true)
     f:SetScript("OnEnter", function(self)
         if not self._itemLink then return end
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
