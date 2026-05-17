@@ -74,94 +74,104 @@ local function ClearQueues()
 end
 
 -- ============================================================================
--- EVENT HANDLER
+-- EVENT HANDLERS
 -- ============================================================================
 
-local function OnEvent(self, event, msg, ...)
-    if event == "ADDON_LOADED" then
-        -- Re-suppress after lazy Blizzard frames load in.
-        local loaded = msg
-        if (loaded == "Blizzard_AlertFrames" or loaded == "Blizzard_LootFrame")
-            and addon:IsModuleEnabled("cache") and Y.SuppressBlizzard
-        then
-            Y.SuppressBlizzard()
-        end
+local handlers = {}
 
-    elseif event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
-        y.playerGUID = UnitGUID("player")
-        if not y.patternsOK and Y.InitPatterns then
-            Y.InitPatterns()
-        end
-        if addon:IsModuleEnabled("cache") and Y.SuppressBlizzard then
-            Y.SuppressBlizzard()
-        end
-
-    elseif event == "PLAYER_REGEN_DISABLED" then
-        inCombat = true
-
-    elseif event == "PLAYER_REGEN_ENABLED" then
-        inCombat = false
-        C_Timer.After(0.5, FlushCombatQueue)
-
-    elseif event == "CHAT_MSG_LOOT" then
-        if not y.patternsOK then return end
-        if addon.GetDB("cacheShowItems", true) == false then return end
-        local guid = select(11, ...)
-        if guid == "" then guid = nil end
-        if guid and y.playerGUID then
-            if guid ~= y.playerGUID then return end
-        elseif not Y.IsSelfLoot(msg) then
-            return
-        end
-        if Y.IsPushedLoot(msg) and addon.GetDB("cacheShowPushedItems", addon.CACHE_DEFAULTS.cacheShowPushedItems) == false then return end
-        if y.debugMode then
-            print("|cFF00CCFFCache debug LOOT:|r guid=" .. tostring(guid)
-                .. " match=" .. tostring(guid == y.playerGUID)
-                .. " msg=" .. tostring(msg):sub(1, 120))
-        end
-        local data = Y.ParseItemLoot(msg)
-        if data then
-            local minQ = (addon.GetDB and tonumber(addon.GetDB("cacheMinQuality", 0))) or 0
-            if (data.quality or 1) >= minQ then
-                EnqueueLootToast(data)
-            end
-        end
-
-    elseif event == "CHAT_MSG_MONEY" then
-        if not y.patternsOK then return end
-        if addon.GetDB("cacheShowMoney", true) == false then return end
-        local data = Y.ParseMoney(msg)
-        if data then EnqueueLootToast(data) end
-
-    elseif event == "CHAT_MSG_CURRENCY" then
-        if not y.patternsOK then return end
-        if addon.GetDB("cacheShowCurrency", true) == false then return end
-        local data = Y.ParseCurrency(msg)
-        if data then EnqueueLootToast(data) end
-
-    elseif event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
-        if not y.patternsOK then return end
-        if addon.GetDB("cacheShowRep", true) == false then return end
-        local data = Y.ParseReputation(msg)
-        if data then
-            if inCombat then
-                combatQueue[#combatQueue + 1] = data
-            else
-                Y.ShowToast(data)
-            end
-        end
-
-    -- Epic/legendary loot toast events: kill the Blizzard popup without polling.
-    elseif event == "SHOW_LOOT_TOAST"
-        or event == "SHOW_LOOT_TOAST_UPGRADE"
-        or event == "SHOW_LOOT_TOAST_LEGENDARY_LOOTED"
-        or event == "LOOT_ITEM_ROLL_WON"
+handlers.ADDON_LOADED = function(msg)
+    -- Re-suppress after lazy Blizzard frames load in.
+    if (msg == "Blizzard_AlertFrames" or msg == "Blizzard_LootFrame")
+        and addon:IsModuleEnabled("cache") and Y.SuppressBlizzard
     then
-        if Y.KillDynamicItemRevealPopup then
-            C_Timer.After(0.1, Y.KillDynamicItemRevealPopup)
-            C_Timer.After(0.4, Y.KillDynamicItemRevealPopup)
+        Y.SuppressBlizzard()
+    end
+end
+
+local function OnPlayerReady()
+    y.playerGUID = UnitGUID("player")
+    if not y.patternsOK and Y.InitPatterns then Y.InitPatterns() end
+    if addon:IsModuleEnabled("cache") and Y.SuppressBlizzard then Y.SuppressBlizzard() end
+end
+handlers.PLAYER_LOGIN          = OnPlayerReady
+handlers.PLAYER_ENTERING_WORLD = OnPlayerReady
+
+handlers.PLAYER_REGEN_DISABLED = function()
+    inCombat = true
+end
+
+handlers.PLAYER_REGEN_ENABLED = function()
+    inCombat = false
+    C_Timer.After(0.5, FlushCombatQueue)
+end
+
+handlers.CHAT_MSG_LOOT = function(msg, ...)
+    if not y.patternsOK then return end
+    if addon.GetDB("cacheShowItems", true) == false then return end
+    local guid = select(11, ...)
+    if guid == "" then guid = nil end
+    if guid and y.playerGUID then
+        if guid ~= y.playerGUID then return end
+    elseif not Y.IsSelfLoot(msg) then
+        return
+    end
+    if Y.IsPushedLoot(msg) and addon.GetDB("cacheShowPushedItems", addon.CACHE_DEFAULTS.cacheShowPushedItems) == false then return end
+    if y.debugMode then
+        print("|cFF00CCFFCache debug LOOT:|r guid=" .. tostring(guid)
+            .. " match=" .. tostring(guid == y.playerGUID)
+            .. " msg=" .. tostring(msg):sub(1, 120))
+    end
+    local data = Y.ParseItemLoot(msg)
+    if data then
+        local minQ = (addon.GetDB and tonumber(addon.GetDB("cacheMinQuality", 0))) or 0
+        if (data.quality or 1) >= minQ then
+            EnqueueLootToast(data)
         end
     end
+end
+
+handlers.CHAT_MSG_MONEY = function(msg)
+    if not y.patternsOK then return end
+    if addon.GetDB("cacheShowMoney", true) == false then return end
+    local data = Y.ParseMoney(msg)
+    if data then EnqueueLootToast(data) end
+end
+
+handlers.CHAT_MSG_CURRENCY = function(msg)
+    if not y.patternsOK then return end
+    if addon.GetDB("cacheShowCurrency", true) == false then return end
+    local data = Y.ParseCurrency(msg)
+    if data then EnqueueLootToast(data) end
+end
+
+handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(msg)
+    if not y.patternsOK then return end
+    if addon.GetDB("cacheShowRep", true) == false then return end
+    local data = Y.ParseReputation(msg)
+    if data then
+        if inCombat then
+            combatQueue[#combatQueue + 1] = data
+        else
+            Y.ShowToast(data)
+        end
+    end
+end
+
+-- Epic/legendary loot toast events: kill the Blizzard popup without polling.
+local function OnBlizzardLootToast()
+    if Y.KillDynamicItemRevealPopup then
+        C_Timer.After(0.1, Y.KillDynamicItemRevealPopup)
+        C_Timer.After(0.4, Y.KillDynamicItemRevealPopup)
+    end
+end
+handlers.SHOW_LOOT_TOAST                  = OnBlizzardLootToast
+handlers.SHOW_LOOT_TOAST_UPGRADE          = OnBlizzardLootToast
+handlers.SHOW_LOOT_TOAST_LEGENDARY_LOOTED = OnBlizzardLootToast
+handlers.LOOT_ITEM_ROLL_WON               = OnBlizzardLootToast
+
+local function OnEvent(_, event, msg, ...)
+    local handler = handlers[event]
+    if handler then handler(msg, ...) end
 end
 
 -- ============================================================================
