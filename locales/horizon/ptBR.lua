@@ -1,4 +1,4 @@
-if GetLocale() ~= "ptBR" then return end
+﻿if GetLocale() ~= "ptBR" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -437,6 +437,12 @@ L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"]                       = "Escala do módu
 -- L["CACHE_SHOW_CURRENCY_DESC"]                              = "Show a toast when you receive a currency."
 -- L["CACHE_SHOW_REP"]                                        = "Reputation Toasts"
 -- L["CACHE_SHOW_REP_DESC"]                                   = "Show a toast when your reputation changes."
+-- L["CACHE_STACKING_SECTION"]                               = "Stacking"
+-- L["CACHE_STACK_DUPLICATES"]                               = "Stack duplicate loots"
+-- L["CACHE_STACK_DUPLICATES_DESC"]                          = "When the same item or currency drops multiple times while a toast is still visible, update the count on the existing row instead of creating a new one."
+-- L["CACHE_CONDENSE_JUNK"]                                  = "Condense junk items"
+-- L["CACHE_CONDENSE_JUNK_DESC"]                             = "Merge all grey quality items into a single row showing a combined count (e.g. Junk x12)."
+-- L["CACHE_JUNK_LABEL"]                                     = "Junk"
 -- L["CACHE_BLIZZARD_SECTION"]                               = "Blizzard Toasts"
 -- L["CACHE_SUPPRESS_BLIZZARD"]                              = "Hide Default Blizzard Toasts"
 -- L["CACHE_SUPPRESS_BLIZZARD_DESC"]                         = "Suppress Blizzard's built-in loot alert toasts. When enabled, Cache notifications replace them entirely. When disabled, both systems show simultaneously."

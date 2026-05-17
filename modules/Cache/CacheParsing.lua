@@ -190,14 +190,21 @@ function Y.ParseItemLoot(msg)
     local r, g, b = GetQualityColor(itemQuality)
     local br, bg, bb = GetBorderColor(itemQuality)
 
+    local itemID
+    local ok, res = pcall(function() return itemLink:match("|Hitem:(%d+):") end)
+    if ok and res then itemID = tonumber(res) end
+
     return {
-        kind    = "item",
-        link    = itemLink,
-        icon    = itemTexture or Y.UNKNOWN_ICON,
-        text    = displayText,
+        kind     = "item",
+        link     = itemLink,
+        icon     = itemTexture or Y.UNKNOWN_ICON,
+        text     = displayText,
+        baseName = itemName,
+        count    = qty,
+        itemKey  = itemID and ("item_" .. itemID) or nil,
         r = r, g = g, b = b,
         br = br, bg = bg, bb = bb,
-        quality = itemQuality,
+        quality  = itemQuality,
     }
 end
 
@@ -246,9 +253,12 @@ function Y.ParseCurrency(msg)
     local displayText = "+" .. qty .. " " .. name
 
     return {
-        kind    = "currency",
-        icon    = iconFileID or Y.UNKNOWN_ICON,
-        text    = displayText,
+        kind     = "currency",
+        icon     = iconFileID or Y.UNKNOWN_ICON,
+        text     = displayText,
+        baseName = name,
+        count    = qty,
+        itemKey  = "currency_" .. currencyID,
         r = Y.CURRENCY_COLOR[1], g = Y.CURRENCY_COLOR[2], b = Y.CURRENCY_COLOR[3],
         br = Y.CURRENCY_COLOR[1], bg = Y.CURRENCY_COLOR[2], bb = Y.CURRENCY_COLOR[3],
     }

@@ -560,12 +560,75 @@ local function PlayToastSound(data)
 end
 
 -- ============================================================================
+-- STACKING / MERGE
+-- ============================================================================
+
+local JUNK_KEY = "__junk__"
+
+local function GetEffectiveItemKey(data)
+    if not data.itemKey then return nil end
+    if data.kind == "item" and data.quality == 0 then
+        if addon.GetDB and addon.GetDB("cacheCondenseJunk", addon.CACHE_DEFAULTS.cacheCondenseJunk) ~= false then
+            return JUNK_KEY
+        end
+    end
+    if addon.GetDB and addon.GetDB("cacheStackDuplicates", addon.CACHE_DEFAULTS.cacheStackDuplicates) ~= false then
+        return data.itemKey
+    end
+    return nil
+end
+
+local function BuildMergedText(data, effectiveKey, totalCount)
+    if effectiveKey == JUNK_KEY then
+        return (addon.L and addon.L["CACHE_JUNK_LABEL"] or "Junk") .. " x" .. totalCount
+    end
+    if data.kind == "item" then
+        return totalCount > 1 and (data.baseName .. " x" .. totalCount) or data.baseName
+    end
+    if data.kind == "currency" then
+        return "+" .. totalCount .. " " .. (data.baseName or "")
+    end
+    return data.text
+end
+
+local function TryMergeToast(data, effectiveKey)
+    local cap = math.max(1, math.min(
+        Cache.POOL_SIZE,
+        (addon.GetDB and tonumber(addon.GetDB("cacheMaxVisible", addon.CACHE_DEFAULTS.cacheMaxVisible))) or addon.CACHE_DEFAULTS.cacheMaxVisible
+    ))
+    for i = 1, cap do
+        local e = state.pool[i]
+        if e.active and e._itemKey == effectiveKey then
+            local newCount = (e._count or 1) + (data.count or 1)
+            e._count = newCount
+            local newText = BuildMergedText(data, effectiveKey, newCount)
+            e.text:SetText(newText)
+            e.shadow:SetText(newText)
+            if effectiveKey == JUNK_KEY then
+                e.icon:SetTexture(data.icon)
+                e.frame._itemLink = data.link
+            end
+            -- Jump to hold phase and reset hold timer so entry stays visible
+            local entranceDur = GetQualityEntrance(e.quality)
+            e.elapsed = entranceDur
+            e.driftY  = 0
+            e.holdDur = Cache.GetHoldDur(data.kind, data.quality)
+            return true
+        end
+    end
+    return false
+end
+
+-- ============================================================================
 -- SHOW TOAST
 -- ============================================================================
 
 function Cache.ShowToast(data)
     if not addon:IsModuleEnabled("cache") or not data then return end
     if not IsReady() then return end
+
+    local effectiveKey = GetEffectiveItemKey(data)
+    if effectiveKey and TryMergeToast(data, effectiveKey) then return end
 
     local entry = AcquireEntry()
 
@@ -575,12 +638,19 @@ function Cache.ShowToast(data)
         end
     end
 
+    local initialCount = data.count or 1
+    local displayText = effectiveKey
+        and BuildMergedText(data, effectiveKey, initialCount)
+        or  data.text
+
     entry.icon:SetTexture(data.icon)
     entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
-    entry.text:SetText(data.text)
+    entry.text:SetText(displayText)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
-    entry.shadow:SetText(data.text)
+    entry.shadow:SetText(displayText)
     entry.frame._itemLink = data.link
+    entry._itemKey  = effectiveKey
+    entry._count    = initialCount
 
     entry.active   = true
     entry.elapsed  = 0

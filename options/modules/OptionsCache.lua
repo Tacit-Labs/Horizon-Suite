@@ -64,6 +64,9 @@ local categories = {
             { type = "toggle", name = L["CACHE_SHOW_MONEY"],    desc = L["CACHE_SHOW_MONEY_DESC"],    dbKey = "cacheShowMoney",    get = function() return getDB("cacheShowMoney",    addon.CACHE_DEFAULTS.cacheShowMoney)    end, set = function(v) setDB("cacheShowMoney",    v) end },
             { type = "toggle", name = L["CACHE_SHOW_CURRENCY"], desc = L["CACHE_SHOW_CURRENCY_DESC"], dbKey = "cacheShowCurrency", get = function() return getDB("cacheShowCurrency", addon.CACHE_DEFAULTS.cacheShowCurrency) end, set = function(v) setDB("cacheShowCurrency", v) end },
             { type = "toggle", name = L["CACHE_SHOW_REP"],      desc = L["CACHE_SHOW_REP_DESC"],      dbKey = "cacheShowRep",      get = function() return getDB("cacheShowRep",      addon.CACHE_DEFAULTS.cacheShowRep)      end, set = function(v) setDB("cacheShowRep",      v) end },
+            { type = "section", name = L["CACHE_STACKING_SECTION"] },
+            { type = "toggle", name = L["CACHE_STACK_DUPLICATES"], desc = L["CACHE_STACK_DUPLICATES_DESC"], dbKey = "cacheStackDuplicates", get = function() return getDB("cacheStackDuplicates", addon.CACHE_DEFAULTS.cacheStackDuplicates) end, set = function(v) setDB("cacheStackDuplicates", v) end },
+            { type = "toggle", name = L["CACHE_CONDENSE_JUNK"],    desc = L["CACHE_CONDENSE_JUNK_DESC"],    dbKey = "cacheCondenseJunk",    get = function() return getDB("cacheCondenseJunk",    addon.CACHE_DEFAULTS.cacheCondenseJunk)    end, set = function(v) setDB("cacheCondenseJunk",    v) end, disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end },
             { type = "dropdown", name = L["CACHE_MIN_QUALITY"], desc = L["CACHE_MIN_QUALITY_DESC"], dbKey = "cacheMinQuality",
                 options = function()
                     return {
