@@ -404,11 +404,15 @@ Cache.ApplyCacheClassChrome = ApplyCacheClassChrome
 -- POOL & ANIMATION
 -- ============================================================================
 
-local function AcquireEntry()
-    local cap = math.max(1, math.min(
+local function GetPoolCap()
+    return math.max(1, math.min(
         Cache.POOL_SIZE,
         (addon.GetDB and tonumber(addon.GetDB("cacheMaxVisible", addon.CACHE_DEFAULTS.cacheMaxVisible))) or addon.CACHE_DEFAULTS.cacheMaxVisible
     ))
+end
+
+local function AcquireEntry()
+    local cap = GetPoolCap()
     for i = 1, cap do
         if not state.pool[i].active then return state.pool[i] end
     end
@@ -592,10 +596,7 @@ local function BuildMergedText(data, effectiveKey, totalCount)
 end
 
 local function TryMergeToast(data, effectiveKey)
-    local cap = math.max(1, math.min(
-        Cache.POOL_SIZE,
-        (addon.GetDB and tonumber(addon.GetDB("cacheMaxVisible", addon.CACHE_DEFAULTS.cacheMaxVisible))) or addon.CACHE_DEFAULTS.cacheMaxVisible
-    ))
+    local cap = GetPoolCap()
     for i = 1, cap do
         local e = state.pool[i]
         if e.active and e._itemKey == effectiveKey then
@@ -727,7 +728,9 @@ function Cache.ClearActiveToasts()
     for i = 1, Cache.POOL_SIZE do
         local e = state.pool[i]
         if e.active then
-            e.active = false
+            e.active   = false
+            e._itemKey = nil
+            e._count   = nil
             e.frame:Hide()
             e.frame:SetAlpha(0)
         end

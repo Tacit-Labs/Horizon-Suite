@@ -228,12 +228,7 @@ function Y.ParseCurrency(msg)
     local currencyID = tonumber(SafeMatch(msg, "|Hcurrency:(%d+)"))
     if not currencyID then return nil end
 
-    -- Quantity appears after the closing link tag, same anchor as items.
-    local qty
-    local ok, res = pcall(function()
-        return msg:match("|h|r%s*x(%d+)") or msg:match("|h%s*x(%d+)")
-    end)
-    qty = (ok and tonumber(res)) or 1
+    local qty = ExtractQty(msg)
 
     local name, iconFileID
 

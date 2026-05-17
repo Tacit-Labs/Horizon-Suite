@@ -22,7 +22,6 @@ local function KillBlizzardFrame(frame)
     local originalParent = frame:GetParent()
     killedFrames[frame] = { parent = originalParent or UIParent }
     pcall(function()
-        if frame.UnregisterAllEvents then frame:UnregisterAllEvents() end
         frame:SetParent(hiddenParent)
         frame:Hide()
         frame:SetAlpha(0)
