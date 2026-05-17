@@ -45,26 +45,25 @@ end
 -- addon (e.g. Platynator) overrides SetFont or SetFontObject on that string.
 -- Mirrors the LockDirectFont pattern used in PresenceTalkingHead.lua.
 local function LockDirectFont(fontString, getFont)
-    local busyObj  = false
-    local busyFont = false
+    local busy = false
 
     hooksecurefunc(fontString, "SetFontObject", function(self, obj)
-        if busyObj or not obj then return end
+        if busy or not obj then return end
         local path, size, flags = getFont()
         if not path then return end
-        busyObj = true
+        busy = true
         self:SetFontObject(nil)
         self:SetFont(path, size, flags or "OUTLINE")
-        busyObj = false
+        busy = false
     end)
 
     hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
-        if busyFont then return end
+        if busy then return end
         local targetPath, targetSize, targetFlags = getFont()
         if not targetPath or path == targetPath then return end
-        busyFont = true
+        busy = true
         self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
-        busyFont = false
+        busy = false
     end)
 end
 
