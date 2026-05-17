@@ -11,28 +11,18 @@ local function getDB(k, d) return addon.GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local BrandModule     = addon.BrandModule
 local OUTLINE_OPTIONS = addon.OUTLINE_OPTIONS
-
-local defaultDashboardFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
-
+local FONT_USE_GLOBAL = addon.FONT_USE_GLOBAL
 
 local function GetDashboardFontDropdownOptions()
     if addon.RefreshFontList then addon.RefreshFontList() end
     local list = (addon.GetFontList and addon.GetFontList()) or {}
-    local saved = getDB("dashboardFontPath", defaultDashboardFontPath)
-    if addon.GetFontNameForPath then
-        local mapped = addon.GetFontNameForPath(saved)
-        if mapped and mapped ~= "" and mapped ~= "Custom" and mapped ~= saved then
-            local path = addon.ResolveFontPath and addon.ResolveFontPath(mapped) or nil
-            if path and path == saved then
-                saved = mapped
-            end
-        end
+    local out = { { L["FOCUS_GLOBAL_FONT"], FONT_USE_GLOBAL } }
+    for i = 1, #list do out[#out + 1] = list[i] end
+    local saved = getDB("dashboardFontPath", FONT_USE_GLOBAL)
+    if saved == FONT_USE_GLOBAL then return out end
+    for _, o in ipairs(out) do
+        if o[2] == saved then return out end
     end
-    for _, o in ipairs(list) do
-        if o[2] == saved then return list end
-    end
-    local out = {}
-    for i = 1, #list do out[i] = list[i] end
     out[#out + 1] = { L["FOCUS_CUSTOM"], saved }
     return out
 end
@@ -193,7 +183,7 @@ local categories = {
                 dbKey = "dashboardFontPath",
                 searchable = true,
                 options = GetDashboardFontDropdownOptions,
-                get = function() return getDB("dashboardFontPath", defaultDashboardFontPath) end,
+                get = function() return getDB("dashboardFontPath", FONT_USE_GLOBAL) end,
                 set = function(v) setDB("dashboardFontPath", v) end,
                 displayFn = addon.GetFontNameForPath,
                 fontPreviewInList = true,
