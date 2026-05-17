@@ -113,6 +113,7 @@ local function OnEvent(self, event, msg, ...)
         elseif not Y.IsSelfLoot(msg) then
             return
         end
+        if Y.IsPushedLoot(msg) and addon.GetDB("cacheShowPushedItems", addon.CACHE_DEFAULTS.cacheShowPushedItems) == false then return end
         if y.debugMode then
             print("|cFF00CCFFCache debug LOOT:|r guid=" .. tostring(guid)
                 .. " match=" .. tostring(guid == y.playerGUID)

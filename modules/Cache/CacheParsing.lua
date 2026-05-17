@@ -10,7 +10,8 @@ local Y = addon.Cache
 local y = addon.cache
 
 -- Pattern tables (filled by InitPatterns)
-local selfLootPats = {}
+local selfLootPats   = {}
+local pushedLootPats = {}
 local goldPat, silverPat, copperPat
 local repGainPat, repLossPat, repGainGenPat
 
@@ -79,15 +80,17 @@ end
 -- ============================================================================
 
 function Y.InitPatterns()
-    selfLootPats = {}
-    local selfGlobals = {
-        "LOOT_ITEM_SELF", "LOOT_ITEM_SELF_MULTIPLE",
-        "LOOT_ITEM_PUSHED_SELF", "LOOT_ITEM_PUSHED_SELF_MULTIPLE",
-    }
-    for _, name in ipairs(selfGlobals) do
-        local str = _G[name]
-        local pat = BuildPattern(str)
+    selfLootPats   = {}
+    pushedLootPats = {}
+    local genuineGlobals = { "LOOT_ITEM_SELF", "LOOT_ITEM_SELF_MULTIPLE" }
+    local pushedGlobals  = { "LOOT_ITEM_PUSHED_SELF", "LOOT_ITEM_PUSHED_SELF_MULTIPLE" }
+    for _, name in ipairs(genuineGlobals) do
+        local pat = BuildPattern(_G[name])
         if pat then selfLootPats[#selfLootPats + 1] = pat end
+    end
+    for _, name in ipairs(pushedGlobals) do
+        local pat = BuildPattern(_G[name])
+        if pat then pushedLootPats[#pushedLootPats + 1] = pat end
     end
 
     if GOLD_AMOUNT   then goldPat   = GOLD_AMOUNT:gsub("%%d", "(%%d+)")   end
@@ -99,11 +102,21 @@ function Y.InitPatterns()
     if FACTION_STANDING_INCREASED_GENERIC then repGainGenPat = BuildPattern(FACTION_STANDING_INCREASED_GENERIC) end
 
     y.patternsOK = true
-    y.selfLootPatCount = #selfLootPats
+    y.selfLootPatCount = #selfLootPats + #pushedLootPats
 end
 
 function Y.IsSelfLoot(msg)
     for _, pat in ipairs(selfLootPats) do
+        if SafeMatch(msg, pat) then return true end
+    end
+    for _, pat in ipairs(pushedLootPats) do
+        if SafeMatch(msg, pat) then return true end
+    end
+    return false
+end
+
+function Y.IsPushedLoot(msg)
+    for _, pat in ipairs(pushedLootPats) do
         if SafeMatch(msg, pat) then return true end
     end
     return false
