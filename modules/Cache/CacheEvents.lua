@@ -82,16 +82,16 @@ local handlers = {}
 handlers.ADDON_LOADED = function(msg)
     -- Re-suppress after lazy Blizzard frames load in.
     if (msg == "Blizzard_AlertFrames" or msg == "Blizzard_LootFrame")
-        and addon:IsModuleEnabled("cache") and Y.SuppressBlizzard
+        and addon:IsModuleEnabled("cache") and Y.ApplyBlizzardSuppression
     then
-        Y.SuppressBlizzard()
+        Y.ApplyBlizzardSuppression()
     end
 end
 
 local function OnPlayerReady()
     y.playerGUID = UnitGUID("player")
     if not y.patternsOK and Y.InitPatterns then Y.InitPatterns() end
-    if addon:IsModuleEnabled("cache") and Y.SuppressBlizzard then Y.SuppressBlizzard() end
+    if addon:IsModuleEnabled("cache") and Y.ApplyBlizzardSuppression then Y.ApplyBlizzardSuppression() end
 end
 handlers.PLAYER_LOGIN          = OnPlayerReady
 handlers.PLAYER_ENTERING_WORLD = OnPlayerReady

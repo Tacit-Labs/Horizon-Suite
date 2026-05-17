@@ -31,6 +31,7 @@ addon.CACHE_DEFAULTS = {
     cacheSoundMoney    = false,
     cacheSoundCurrency = false,
     cacheSoundRep      = false,
+    cacheSuppressBlizzard = true,
 }
 
 addon.CACHE_LIMITS = {

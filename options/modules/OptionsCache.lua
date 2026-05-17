@@ -79,6 +79,8 @@ local categories = {
                 set = function(v) setDB("cacheMinQuality", v) end,
                 disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end,
             },
+            { type = "section", name = L["CACHE_BLIZZARD_SECTION"] },
+            { type = "toggle", name = L["CACHE_SUPPRESS_BLIZZARD"], desc = L["CACHE_SUPPRESS_BLIZZARD_DESC"], dbKey = "cacheSuppressBlizzard", get = function() return getDB("cacheSuppressBlizzard", addon.CACHE_DEFAULTS.cacheSuppressBlizzard) end, set = function(v) setDB("cacheSuppressBlizzard", v) end },
         },
     },
     {

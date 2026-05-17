@@ -10,6 +10,20 @@ if not addon then return end
 if not _G[addon.DATABASE] then _G[addon.DATABASE] = {} end
 
 -- ---------------------------------------------------------------------------
+-- Migration: early global-font implementation used fontPath as the override key.
+-- If useGlobalFont is true but globalOverrideFontPath was never written, the saved
+-- fontPath is the old override value.  Move it to the dedicated key and clear fontPath
+-- so the per-module fallback no longer shadows the override on disable.
+-- ---------------------------------------------------------------------------
+do
+    local db = _G[addon.DATABASE]
+    if db and db.useGlobalFont and db.globalOverrideFontPath == nil and db.fontPath ~= nil then
+        db.globalOverrideFontPath = db.fontPath
+        db.fontPath = nil
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- SetDB routing
 -- ---------------------------------------------------------------------------
 
@@ -44,11 +58,25 @@ function OptionsData_SetDB(key, value)
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
     end
-    if (key == "fontPath" or key == "titleFontPath" or key == "zoneFontPath" or key == "objectiveFontPath" or key == "sectionFontPath" or key == "progressBarFontPath" or key == "timerFontPath" or key == "optionsFontPath" or key == "presenceTitleFontPath" or key == "presenceSubtitleFontPath" or key == "insightFontPath") and updateOptionsPanelFontsRef then
+    if (key == "fontPath" or key == "titleFontPath" or key == "zoneFontPath" or key == "objectiveFontPath" or key == "sectionFontPath" or key == "progressBarFontPath" or key == "timerFontPath" or key == "optionsFontPath" or key == "presenceTitleFontPath" or key == "presenceSubtitleFontPath" or key == "insightFontPath" or key == "useGlobalFont" or key == "globalOverrideFontPath") and updateOptionsPanelFontsRef then
         updateOptionsPanelFontsRef()
     end
     if TYPOGRAPHY_KEYS[key] and addon.UpdateFontObjectsFromDB then
         addon.UpdateFontObjectsFromDB()
+    end
+    -- When the global-font override toggle changes, or when fontPath changes while
+    -- the override is active, push the new font through every module immediately.
+    -- (useGlobalFont is in TYPOGRAPHY_KEYS so UpdateFontObjectsFromDB already ran;
+    --  this block handles the per-module apply functions that sit outside that path.)
+    if key == "useGlobalFont" or (key == "globalOverrideFontPath" and addon.GetDB and addon.GetDB("useGlobalFont", false)) then
+        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+        if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+        if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
+        if addon.Essence and addon.Essence.ApplyEssenceOptions then addon.Essence.ApplyEssenceOptions() end
+        if addon.Vista and addon.Vista.ApplyOptions then
+            local k = key
+            C_Timer.After(0, function() if addon.Vista and addon.Vista.ApplyOptions then addon.Vista.ApplyOptions(k) end end)
+        end
     end
     if addon.MPLUS_TYPOGRAPHY_KEYS and addon.MPLUS_TYPOGRAPHY_KEYS[key] and addon.ApplyMplusTypography then
         addon.ApplyMplusTypography()

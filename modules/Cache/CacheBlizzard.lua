@@ -105,6 +105,14 @@ function Y.SuppressBlizzard()
     Y.KillDynamicItemRevealPopup()
 end
 
+function Y.ApplyBlizzardSuppression()
+    if addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true) then
+        Y.SuppressBlizzard()
+    else
+        Y.RestoreBlizzard()
+    end
+end
+
 function Y.RestoreBlizzard()
     RestoreAlertSystem(LootAlertSystem)
     RestoreAlertSystem(LootUpgradeAlertSystem)

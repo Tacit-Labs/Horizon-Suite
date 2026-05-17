@@ -26,6 +26,8 @@ local FONT_USE_GLOBAL = "__global__"
 --- per-module DB key → global fontPath DB → addon.GetDefaultFontPath() → Y.FONT_PATH.
 --- @return string font file path
 function Y.GetFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = (addon.GetDB and addon.GetDB("cacheFontPath", FONT_USE_GLOBAL)) or FONT_USE_GLOBAL
     if raw == FONT_USE_GLOBAL or raw == nil or raw == "" then
         raw = (addon.GetDB and addon.GetDB("fontPath", nil)) or nil

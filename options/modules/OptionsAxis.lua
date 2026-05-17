@@ -13,6 +13,20 @@ local BrandModule     = addon.BrandModule
 local OUTLINE_OPTIONS = addon.OUTLINE_OPTIONS
 local FONT_USE_GLOBAL = addon.FONT_USE_GLOBAL
 
+local function GetGlobalFontDropdownOptions()
+    if addon.RefreshFontList then addon.RefreshFontList() end
+    local list = (addon.GetFontList and addon.GetFontList()) or {}
+    local saved = getDB("globalOverrideFontPath", nil)
+    if not saved or saved == "" then return list end
+    for _, o in ipairs(list) do
+        if o[2] == saved then return list end
+    end
+    local out = {}
+    for i = 1, #list do out[i] = list[i] end
+    out[#out + 1] = { L["FOCUS_CUSTOM"], saved }
+    return out
+end
+
 local function GetDashboardFontDropdownOptions()
     if addon.RefreshFontList then addon.RefreshFontList() end
     local list = (addon.GetFontList and addon.GetFontList()) or {}
@@ -364,7 +378,30 @@ local categories = {
             opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] or "Global Font (Coming Soon!)" }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] }
+            local isGlobalFontOn = function() return getDB("useGlobalFont", false) end
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["AXIS_USE_GLOBAL_FONT"],
+                desc = L["AXIS_USE_GLOBAL_FONT_DESC"],
+                dbKey = "useGlobalFont",
+                get = isGlobalFontOn,
+                set = function(v) setDB("useGlobalFont", v) end,
+                refreshIds = { "globalOverrideFontPath" },
+            }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["AXIS_GLOBAL_FONT_PICKER"],
+                desc = L["AXIS_GLOBAL_FONT_PICKER_DESC"],
+                dbKey = "globalOverrideFontPath",
+                searchable = true,
+                disabled = function() return not isGlobalFontOn() end,
+                options = GetGlobalFontDropdownOptions,
+                get = function() return getDB("globalOverrideFontPath", nil) end,
+                set = function(v) setDB("globalOverrideFontPath", v) end,
+                displayFn = addon.GetFontNameForPath,
+                fontPreviewInList = true,
+            }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] or "Global Scale" }
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end

@@ -323,17 +323,23 @@ local function SetSafeFont(fs, path, size, flags)
 end
 
 local function getPresenceFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("fontPath", defaultFontPath) or defaultFontPath
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
 local function getPresenceTitleFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("presenceTitleFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
     if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
 local function getPresenceSubtitleFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("presenceSubtitleFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
     if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
@@ -1579,12 +1585,30 @@ end
 -- ============================================================================
 
 --- Re-apply frame position and scale from DB. Call when presence options change.
+--- Also re-applies fonts to any currently-showing toast layers so that global font
+--- toggle changes take effect immediately without waiting for the next toast.
 --- @return nil
 local function ApplyPresenceOptions()
     if not F then return end
     F:ClearAllPoints()
     F:SetPoint("TOP", 0, getFrameY())
     F:SetScale(getFrameScale())
+    local function reapplyLayerFonts(layer)
+        if not layer then return end
+        local function fix(fs, getPath, getOutline)
+            if not fs then return end
+            local _, sz = fs:GetFont()
+            if sz then SetSafeFont(fs, getPath(), sz, getOutline()) end
+        end
+        fix(layer.titleText,       getPresenceTitleFontPath,    getPresenceTitleFontOutline)
+        fix(layer.titleShadow,     getPresenceTitleFontPath,    getPresenceTitleFontOutline)
+        fix(layer.subText,         getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.subShadow,       getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.discoveryText,   getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.discoveryShadow, getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+    end
+    reapplyLayerFonts(curLayer)
+    reapplyLayerFonts(oldLayer)
 end
 
 --- Returns the typeName of the currently playing or holding cinematic.

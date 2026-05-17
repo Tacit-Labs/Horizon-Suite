@@ -692,6 +692,7 @@ function Cache.ApplyCacheOptions()
     if anchorFrame:IsShown() then Cache.ApplyStoredAnchor(anchorFrame) end
     Cache.ApplyStoredAnchor(Frame)
     if Cache.ApplyScale then Cache.ApplyScale() end
+    if Cache.ApplyBlizzardSuppression then Cache.ApplyBlizzardSuppression() end
 end
 
 --- Re-apply scale and font to all pool entries and overlay labels.
