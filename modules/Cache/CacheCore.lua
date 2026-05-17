@@ -78,11 +78,14 @@ local function UpdateCacheFontObject()
     CacheFontObj:SetFont(Cache.GetFontPath(), S(GetFontSize()), GetFontFlags())
 end
 
-local function easeOut(t)  return 1 - (1 - t) * (1 - t) end
-local function easeIn(t)   return t * t end
-local function easeInOut(t)
-    if t < 0.5 then return 2 * t * t end
-    return 1 - ((-2 * t + 2) * (-2 * t + 2)) / 2
+-- mode: "in" = ease-in, "inOut" = ease-in-out, default = ease-out (quadratic)
+local function Ease(t, mode)
+    if mode == "in"    then return t * t end
+    if mode == "inOut" then
+        if t < 0.5 then return 2 * t * t end
+        return 1 - ((-2 * t + 2) * (-2 * t + 2)) / 2
+    end
+    return 1 - (1 - t) * (1 - t)
 end
 
 -- ============================================================================
@@ -451,17 +454,17 @@ UpdateEntry = function(entry, dt)
     local alpha, slideX, scale
 
     if t < entEnd then
-        local p = easeOut(t / entranceDur)
+        local p = Ease(t / entranceDur)
         alpha  = p * maxA
         slideX = Cache.SLIDE_DIST * (1 - p)
         if isEpicOrLegendary then
             local settleStart = 1 - Cache.POP_SETTLE_FRAC
             if p <= settleStart then
                 local q = p / settleStart
-                scale = Cache.POP_SCALE_START + (popPeak - Cache.POP_SCALE_START) * easeOut(q)
+                scale = Cache.POP_SCALE_START + (popPeak - Cache.POP_SCALE_START) * Ease(q)
             else
                 local q = (p - settleStart) / Cache.POP_SETTLE_FRAC
-                scale = popPeak + (1 - popPeak) * easeInOut(q)
+                scale = popPeak + (1 - popPeak) * Ease(q, "inOut")
             end
         else
             scale = 1
@@ -473,7 +476,7 @@ UpdateEntry = function(entry, dt)
         scale  = 1
 
     elseif t < fadeEnd then
-        local p = easeIn((t - holdEnd) / Cache.EXIT_DUR)
+        local p = Ease((t - holdEnd) / Cache.EXIT_DUR, "in")
         alpha        = (1 - p) * maxA
         slideX       = 0
         scale        = 1
@@ -495,7 +498,7 @@ UpdateEntry = function(entry, dt)
     if entry.shine and (entry.quality == 5 or (entry.quality == 4 and cacheCC)) then
         if t < Cache.FLASH_DUR then
             entry.shine:Show()
-            entry.shine:SetAlpha(1 - easeOut(t / Cache.FLASH_DUR))
+            entry.shine:SetAlpha(1 - Ease(t / Cache.FLASH_DUR))
         else
             entry.shine:Hide()
         end
