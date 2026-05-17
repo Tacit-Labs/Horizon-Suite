@@ -75,25 +75,58 @@ function Y.KillDynamicItemRevealPopup()
     end)
 end
 
+-- All alert systems we have suppressed, keyed by system object.
+-- Used by RestoreBlizzard to re-enable them without needing to know their names.
+local suppressedSystems = {}
+
 local function SuppressAlertSystem(system)
     if not system then return end
     pcall(function()
-        if system.SetEnabled then system:SetEnabled(false) end
+        if system.SetEnabled then
+            system:SetEnabled(false)
+            suppressedSystems[system] = true
+        end
     end)
 end
 
-local function RestoreAlertSystem(system)
-    if not system then return end
+-- Hook AlertFrame_RegisterQueuedAlertSystem once so any alert system that loads
+-- lazily (e.g. from an addon that initialises after us) is suppressed automatically.
+local alertHookInstalled = false
+
+local function InstallAlertHook()
+    if alertHookInstalled then return end
+    alertHookInstalled = true
     pcall(function()
-        if system.SetEnabled then system:SetEnabled(true) end
+        if AlertFrame_RegisterQueuedAlertSystem then
+            hooksecurefunc("AlertFrame_RegisterQueuedAlertSystem", function(system)
+                if addon:IsModuleEnabled("cache")
+                    and addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true)
+                then
+                    SuppressAlertSystem(system)
+                end
+            end)
+        end
     end)
 end
 
 function Y.SuppressBlizzard()
+    InstallAlertHook()
+
+    -- Known systems by global name
     SuppressAlertSystem(LootAlertSystem)
     SuppressAlertSystem(LootUpgradeAlertSystem)
     SuppressAlertSystem(MoneyWonAlertSystem)
     SuppressAlertSystem(LootWonAlertSystem)
+    SuppressAlertSystem(BonusRollLootWonAlertSystem)
+
+    -- Sweep every system registered with AlertFrame — catches anything not covered above.
+    pcall(function()
+        if AlertFrame and AlertFrame.alertSystems then
+            for _, system in ipairs(AlertFrame.alertSystems) do
+                SuppressAlertSystem(system)
+            end
+        end
+    end)
 
     KillBlizzardFrame(LootFrame)
     KillBlizzardFrame(LootAlertFrame)
@@ -125,10 +158,10 @@ function Y.ApplyBlizzardSuppression()
 end
 
 function Y.RestoreBlizzard()
-    RestoreAlertSystem(LootAlertSystem)
-    RestoreAlertSystem(LootUpgradeAlertSystem)
-    RestoreAlertSystem(MoneyWonAlertSystem)
-    RestoreAlertSystem(LootWonAlertSystem)
+    for system in pairs(suppressedSystems) do
+        pcall(function() if system.SetEnabled then system:SetEnabled(true) end end)
+    end
+    suppressedSystems = {}
 
     for frame, info in pairs(killedFrames) do
         RestoreBlizzardFrame(frame, info)
