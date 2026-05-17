@@ -58,7 +58,7 @@ local handlers = {}
 
 handlers.ADDON_LOADED = function(msg)
     -- Re-suppress after lazy Blizzard frames load in.
-    if (msg == "Blizzard_AlertFrames" or msg == "Blizzard_LootFrame")
+    if (msg == "Blizzard_AlertFrames" or msg == "Blizzard_LootFrame" or msg == "Blizzard_ContainerOpeningUI")
         and addon:IsModuleEnabled("cache") and Y.ApplyBlizzardSuppression
     then
         Y.ApplyBlizzardSuppression()
@@ -123,10 +123,14 @@ handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(msg)
 end
 
 -- Epic/legendary loot toast events: kill the Blizzard popup without polling.
+-- Extra delays cover animated reward caches (Delve Bountiful Chest, etc.) that
+-- show their popup after a multi-second opening animation.
 local function OnBlizzardLootToast()
     if Y.KillDynamicItemRevealPopup then
         C_Timer.After(0.1, Y.KillDynamicItemRevealPopup)
         C_Timer.After(0.4, Y.KillDynamicItemRevealPopup)
+        C_Timer.After(0.8, Y.KillDynamicItemRevealPopup)
+        C_Timer.After(1.5, Y.KillDynamicItemRevealPopup)
     end
 end
 handlers.SHOW_LOOT_TOAST                  = OnBlizzardLootToast

@@ -47,15 +47,26 @@ local function RestoreBlizzardFrame(frame, info)
     end)
 end
 
--- KillDynamicItemRevealPopup is called from ShowToast (CacheCore) at 0.1s and 0.4s
--- after any epic/legendary toast, so no persistent ticker is needed.
+-- Strata levels where item-reveal popups may appear (varies by WoW version/context).
+local POPUP_STRATA = { FULLSCREEN_DIALOG = true, DIALOG = true, FULLSCREEN = true }
+
+-- KillDynamicItemRevealPopup is called after SHOW_LOOT_TOAST* events.
+-- Scans UIParent children at elevated strata for item reveal popups and
+-- explicitly suppresses ContainerOpeningUI (Delve/reward cache opening frame).
 function Y.KillDynamicItemRevealPopup()
     pcall(function()
+        -- Reward cache opening frame (Delve Bountiful Chest, etc.)
+        if ContainerOpeningUI then KillBlizzardFrame(ContainerOpeningUI) end
+
         if not UIParent or not UIParent.GetChildren then return end
         for _, frame in ipairs({ UIParent:GetChildren() }) do
-            if frame and frame.GetFrameStrata and frame:GetFrameStrata() == "FULLSCREEN_DIALOG" then
-                for _, sub in ipairs({ frame:GetChildren() }) do
-                    if sub and sub.GetName and sub:GetName() == "ItemName" then
+            if frame and frame.GetFrameStrata and POPUP_STRATA[frame:GetFrameStrata()] then
+                local children = frame.GetChildren and { frame:GetChildren() } or {}
+                for _, sub in ipairs(children) do
+                    local name = sub and sub.GetName and sub:GetName()
+                    -- Match "ItemName", "ItemButton", "Item" child patterns used across
+                    -- different WoW versions for item reveal popups.
+                    if name and (name == "ItemName" or name:find("^Item")) then
                         KillBlizzardFrame(frame)
                         break
                     end
@@ -90,6 +101,7 @@ function Y.SuppressBlizzard()
     KillBlizzardFrame(MoneyWonAlertFrame)
     KillBlizzardFrame(LootUpgradeAlertFrame)
     KillBlizzardFrame(LootWonAlertFrame)
+    pcall(function() if ContainerOpeningUI then KillBlizzardFrame(ContainerOpeningUI) end end)
 
     pcall(function()
         if AlertFrame and AlertFrame.GetChildren then
