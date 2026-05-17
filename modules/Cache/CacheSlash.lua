@@ -63,6 +63,7 @@ function Y.PreviewToasts()
         HSPrint("Cache: Frames not yet initialized.")
         return
     end
+    if Y.ClearActiveToasts then Y.ClearActiveToasts() end
     if not addon.GetDB then return end
     local queue = {}
     if addon.GetDB("cacheShowItems", true) ~= false then
