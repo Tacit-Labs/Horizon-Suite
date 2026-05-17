@@ -255,7 +255,7 @@ function Cache.InitFrames()
     Frame:SetClampedToScreen(true)
 
     Frame:SetScript("OnDragStart", function(self)
-        if InCombatLockdown() then return end
+        if InCombatLockdown() or not state.editMode then return end
         self:StartMoving()
     end)
     Frame:SetScript("OnDragStop", function(self)
