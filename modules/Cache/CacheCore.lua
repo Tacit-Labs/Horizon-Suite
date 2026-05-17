@@ -195,6 +195,25 @@ local function CreateToastEntry(parent)
     LockDirectFont(shadow, GetToastFont)
     LockDirectFont(text,   GetToastFont)
 
+    f:EnableMouse(true)
+    f:SetScript("OnEnter", function(self)
+        if not self._itemLink then return end
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:SetHyperlink(self._itemLink)
+        GameTooltip:Show()
+    end)
+    f:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    f:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" and IsControlKeyDown() and self._itemLink then
+            DressUpItemLink(self._itemLink)
+        elseif button == "RightButton" and not state.editMode then
+            Cache.ClearActiveToasts()
+            Frame:Hide()
+        end
+    end)
+
     f:SetAlpha(0)
     f:Hide()
 
@@ -555,6 +574,7 @@ function Cache.ShowToast(data)
     entry.text:SetText(data.text)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
     entry.shadow:SetText(data.text)
+    entry.frame._itemLink = data.link
 
     entry.active   = true
     entry.elapsed  = 0

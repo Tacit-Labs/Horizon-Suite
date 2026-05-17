@@ -179,6 +179,7 @@ function Y.ParseItemLoot(msg)
 
     return {
         kind    = "item",
+        link    = itemLink,
         icon    = itemTexture or Y.UNKNOWN_ICON,
         text    = displayText,
         r = r, g = g, b = b,
