@@ -197,23 +197,24 @@ local function CreateToastEntry(parent)
     LockDirectFont(shadow, GetToastFont)
     LockDirectFont(text,   GetToastFont)
 
-    f:EnableMouse(true)
-    f:SetPropagateMouseClicks(true)
-    f:SetScript("OnEnter", function(self)
-        if not self._itemLink then return end
+    -- Transparent button child: handles hover tooltip and Ctrl+Left item preview while
+    -- propagating all other clicks through to the game engine (camera rotation, etc.).
+    local clickBtn = CreateFrame("Button", nil, f)
+    clickBtn:SetAllPoints(f)
+    clickBtn:SetPropagateMouseClicks(true)
+    clickBtn:RegisterForClicks("AnyUp")
+    clickBtn:SetScript("OnEnter", function(self)
+        if not f._itemLink then return end
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:SetHyperlink(self._itemLink)
+        GameTooltip:SetHyperlink(f._itemLink)
         GameTooltip:Show()
     end)
-    f:SetScript("OnLeave", function()
+    clickBtn:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
-    f:SetScript("OnMouseUp", function(self, button)
-        if button == "LeftButton" and IsControlKeyDown() and self._itemLink then
-            DressUpItemLink(self._itemLink)
-        elseif button == "RightButton" and not state.editMode then
-            Cache.ClearActiveToasts()
-            Frame:Hide()
+    clickBtn:SetScript("OnClick", function(_, button)
+        if button == "LeftButton" and IsControlKeyDown() and f._itemLink then
+            DressUpItemLink(f._itemLink)
         end
     end)
 
@@ -255,6 +256,7 @@ function Cache.InitFrames()
     Frame:EnableMouse(true)
     Frame:RegisterForDrag("LeftButton")
     Frame:SetClampedToScreen(true)
+    Frame:SetPropagateMouseClicks(true)
 
     Frame:SetScript("OnDragStart", function(self)
         if InCombatLockdown() or not state.editMode then return end
