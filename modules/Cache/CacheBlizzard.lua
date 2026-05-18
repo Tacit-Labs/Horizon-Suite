@@ -109,6 +109,21 @@ local alertRegHookInstalled     = false  -- AlertFrame_RegisterQueuedAlertSystem
 local alertAnchorsHookInstalled = false  -- AlertFrame:UpdateAnchors
 local alertShowHookInstalled    = false  -- AlertFrame_ShowNewAlertFrame
 
+-- Events that drive AlertFrame's loot/bonus-loot toast systems.
+-- Unregistering these from AlertFrame prevents it from ever creating toast frames
+-- in the first place — the same approach used by Plumber's loot suppression.
+local ALERT_FRAME_EVENTS = {
+    "SHOW_LOOT_TOAST",
+    "SHOW_LOOT_TOAST_UPGRADE",
+    "SHOW_LOOT_TOAST_LEGENDARY_LOOTED",
+    "LOOT_ITEM_ROLL_WON",
+    "BONUS_LOOT_ITEM_RECEIVED",
+}
+
+-- Track which events we successfully unregistered so RestoreBlizzard only
+-- re-registers ones it actually removed (avoids double-registering).
+local unregisteredAlertEvents = {}
+
 local function IsLootAlertFrame(alertFrame)
     if not alertFrame or not alertFrame.GetChildren then return false end
     for _, child in ipairs({ alertFrame:GetChildren() }) do
@@ -187,6 +202,21 @@ local function InstallAlertHook()
 end
 
 function Y.SuppressBlizzard()
+    -- Unregister loot events from AlertFrame so it never creates toast frames.
+    -- This is the root-cause fix: Blizzard's AlertFrame processes SHOW_LOOT_TOAST
+    -- synchronously, creating and showing frames before any post-hook can react.
+    -- Removing the event registration prevents that entire path from running.
+    pcall(function()
+        if AlertFrame and AlertFrame.UnregisterEvent then
+            for _, event in ipairs(ALERT_FRAME_EVENTS) do
+                if AlertFrame:IsEventRegistered(event) then
+                    AlertFrame:UnregisterEvent(event)
+                    unregisteredAlertEvents[event] = true
+                end
+            end
+        end
+    end)
+
     InstallAlertHook()
     InstallAlertShowHook()
 
@@ -236,6 +266,16 @@ function Y.ApplyBlizzardSuppression()
 end
 
 function Y.RestoreBlizzard()
+    -- Re-register the loot events we removed from AlertFrame.
+    pcall(function()
+        if AlertFrame and AlertFrame.RegisterEvent then
+            for event in pairs(unregisteredAlertEvents) do
+                pcall(function() AlertFrame:RegisterEvent(event) end)
+            end
+        end
+    end)
+    unregisteredAlertEvents = {}
+
     -- Collect first, then clear the table before calling SetEnabled(true) so
     -- the re-enablement hooks installed by SuppressAlertSystem don't fight the restore.
     local toRestore = {}
