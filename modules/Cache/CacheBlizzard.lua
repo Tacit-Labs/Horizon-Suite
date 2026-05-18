@@ -123,16 +123,10 @@ local function SuppressAlertSystem(system)
     end)
 end
 
--- Hook AlertFrame_RegisterQueuedAlertSystem once so any alert system that loads
--- lazily (e.g. from an addon that initialises after us) is suppressed automatically.
-local alertHookInstalled = false
-
--- Hook AlertFrame_ShowNewAlertFrame so loot-type toasts are hidden the instant
--- Blizzard tries to display them — before the next render cycle.
--- This catches cases where SuppressAlertSystem loses the race (the system
--- re-enables itself synchronously inside SetEnabled, showing the frame before
--- our post-hook fires).
-local alertShowHookInstalled = false
+-- Per-hook guard flags — separate so a nil global for one hook doesn't block the other.
+local alertRegHookInstalled     = false  -- AlertFrame_RegisterQueuedAlertSystem
+local alertAnchorsHookInstalled = false  -- AlertFrame:UpdateAnchors
+local alertShowHookInstalled    = false  -- AlertFrame_ShowNewAlertFrame
 
 local function IsLootAlertFrame(alertFrame)
     if not alertFrame or not alertFrame.GetChildren then return false end
@@ -150,7 +144,6 @@ end
 
 local function InstallAlertShowHook()
     if alertShowHookInstalled then return end
-    alertShowHookInstalled = true
     pcall(function()
         if not AlertFrame_ShowNewAlertFrame then return end
         hooksecurefunc("AlertFrame_ShowNewAlertFrame", function(alertFrame)
@@ -162,16 +155,15 @@ local function InstallAlertShowHook()
                 alertFrame:SetAlpha(0)
             end
         end)
+        alertShowHookInstalled = true
     end)
 end
 
 local function InstallAlertHook()
-    if alertHookInstalled then return end
-    alertHookInstalled = true
-
     -- Suppress any alert system that registers lazily after our initial pass.
-    pcall(function()
-        if AlertFrame_RegisterQueuedAlertSystem then
+    if not alertRegHookInstalled then
+        pcall(function()
+            if not AlertFrame_RegisterQueuedAlertSystem then return end
             hooksecurefunc("AlertFrame_RegisterQueuedAlertSystem", function(system)
                 if addon:IsModuleEnabled("cache")
                     and addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true)
@@ -179,14 +171,16 @@ local function InstallAlertHook()
                     SuppressAlertSystem(system)
                 end
             end)
-        end
-    end)
+            alertRegHookInstalled = true
+        end)
+    end
 
     -- AlertFrame:UpdateAnchors is called every time it positions a new alert frame.
     -- Hooking it lets us kill pool frames (which have no global name) the moment
     -- AlertFrame tries to lay them out — proactive rather than reactive.
-    pcall(function()
-        if AlertFrame and AlertFrame.UpdateAnchors then
+    if not alertAnchorsHookInstalled then
+        pcall(function()
+            if not (AlertFrame and AlertFrame.UpdateAnchors) then return end
             hooksecurefunc(AlertFrame, "UpdateAnchors", function()
                 if not (addon:IsModuleEnabled("cache")
                     and addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true))
@@ -194,12 +188,11 @@ local function InstallAlertHook()
                 pcall(function()
                     if not UIParent or not UIParent.GetChildren then return end
                     for _, frame in ipairs({ UIParent:GetChildren() }) do
-                        if frame and frame.IsShown and frame:IsShown() and frame.GetNumPoints then
+                        if frame and frame.GetNumPoints then
                             for p = 1, frame:GetNumPoints() do
                                 local ok, _, relativeTo = pcall(frame.GetPoint, frame, p)
                                 if ok and relativeTo == AlertFrame then
-                                    frame:Hide()
-                                    frame:SetAlpha(0)
+                                    KillBlizzardFrame(frame)
                                     break
                                 end
                             end
@@ -207,8 +200,9 @@ local function InstallAlertHook()
                     end
                 end)
             end)
-        end
-    end)
+            alertAnchorsHookInstalled = true
+        end)
+    end
 end
 
 function Y.SuppressBlizzard()
