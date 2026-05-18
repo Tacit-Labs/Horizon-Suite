@@ -228,8 +228,7 @@ local lastInspect = 0
 local achievementCache = {}
 Insight.achievementCache = achievementCache
 
-local lastAchievementRequest     = 0
-local lastAchievementRequestGuid = nil
+local lastAchievementRequest = 0
 
 function Insight.PruneInspectCache()
     local now   = GetTime()
@@ -348,7 +347,6 @@ local function RequestAchievementComparison(unit)
     local now = GetTime()
     if now - lastAchievementRequest < ACHIEVEMENT_THROTTLE then return end
     lastAchievementRequest = now
-    pcall(function() lastAchievementRequestGuid = UnitGUID(unit) end)
     if SetAchievementComparisonUnit then
         pcall(SetAchievementComparisonUnit, unit)
     end
@@ -808,7 +806,6 @@ function Insight.CacheAchievementPoints(unit)
     pcall(function()
         local g = UnitGUID(unit)
         if not g then return end
-        if lastAchievementRequestGuid and g ~= lastAchievementRequestGuid then return end
         if not GetComparisonAchievementPoints then return end
         local points = GetComparisonAchievementPoints()
         if not points or points <= 0 then return end
