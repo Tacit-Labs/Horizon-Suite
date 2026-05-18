@@ -9,9 +9,13 @@ if not addon or not addon.OptionCategories then return end
 local L = addon.L
 local function getDB(k, d) return addon.GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
-local BrandModule     = addon.BrandModule
-local OUTLINE_OPTIONS = addon.OUTLINE_OPTIONS
-local FONT_USE_GLOBAL = addon.FONT_USE_GLOBAL
+local BrandModule       = addon.BrandModule
+local OUTLINE_OPTIONS   = addon.OUTLINE_OPTIONS
+local FONT_USE_GLOBAL   = addon.FONT_USE_GLOBAL
+local Section           = addon.Section
+local ModuleReloadPrompt = addon.ModuleReloadPrompt
+local Button            = addon.Button
+local Toggle            = addon.Toggle
 
 local function GetGlobalFontDropdownOptions()
     if addon.RefreshFontList then addon.RefreshFontList() end
@@ -64,14 +68,14 @@ local categories = {
                 addon:SetModuleEnabled(moduleKey, v, defer and { deferReload = true } or nil)
             end
             local opts = {
-                { type = "section", name = L["MODULE_TOGGLES"] or "Module Toggles" },
+                Section(L["MODULE_TOGGLES"] or "Module Toggles"),
                 { type = "toggle", name = BrandModule("focus"), desc = L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"], dbKey = "_module_focus", get = function() return addon:IsModuleEnabled("focus") end, set = function(v) setModuleFromOptions("focus", v) end },
                 { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
                 { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"] or "Minimap with zone text, coords, time, and button collector.", dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) setModuleFromOptions("vista", v) end },
                 { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLOURS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) setModuleFromOptions("insight", v) end },
                 { type = "toggle", name = (BrandModule("cache") or "Cache") .. previewSuffix, desc = (L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"] or "") .. previewDescSuffix, dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
                 { type = "toggle", name = (BrandModule("essence") or "Essence") .. previewSuffix, desc = (L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] or "Custom character sheet with 3D model, item level, stats, and gear grid.") .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
-                { type = "moduleReloadPrompt" },
+                ModuleReloadPrompt(),
             }
             return opts
         end)(),
@@ -83,7 +87,7 @@ local categories = {
         moduleKey = nil,
         options = function()
             local opts = {}
-            opts[#opts + 1] = { type = "section", name = L["AXIS_DASHBOARD_SECTION"] or "Dashboard" }
+            opts[#opts + 1] = Section(L["AXIS_DASHBOARD_SECTION"] or "Dashboard")
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["AXIS_MODULE_NAME_DISPLAY"] or "Module Name Style",
@@ -273,15 +277,8 @@ local categories = {
                 end,
                 refreshIds = dashboardTypoRefreshIds,
             }
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"] or "Show Patch Notes Popup After Update",
-                desc = L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"] or "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes.",
-                dbKey = "autoShowPatchNotesOnLogin",
-                get = function() return getDB("autoShowPatchNotesOnLogin", true) end,
-                set = function(v) setDB("autoShowPatchNotesOnLogin", v) end,
-            }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"] or "Class Theme" }
+            opts[#opts + 1] = Toggle(L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"] or "Show Patch Notes Popup After Update", L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"] or "When on, Axis opens to Patch Notes once after each new addon version. When off, a green dot appears on the Horizon minimap icon until you open Patch Notes.", "autoShowPatchNotesOnLogin", true)
+            opts[#opts + 1] = Section(L["AXIS_CLASS_THEME_SECTION"] or "Class Theme")
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
                 "classColorFocus", "classColorPresence", "classColorCache",
@@ -326,26 +323,8 @@ local categories = {
                 end,
                 refreshIds = { "_classColorAll", "classColorDashboard", "dashboardShowClassIcon", "dashboardClassIconSource", "dashboardBackgroundClassOverride" },
             }
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["AXIS_DASHBOARD_CLASS_COLOURS"] or "Class Colours",
-                desc = L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour.",
-                dbKey = "classColorDashboard",
-                get = function() return getDB("classColorDashboard", false) end,
-                set = function(v) setDB("classColorDashboard", v) end,
-                visibleWhen = isDashboardClassThemeOn,
-                refreshIds = { "_classColorAll" },
-            }
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["AXIS_DASHBOARD_CLASS_ICON"] or "Dashboard Class Icon",
-                desc = L["AXIS_DASHBOARD_CLASS_ICON_DESC"] or "Show a class icon on the Dashboard. Independent of class colour tinting and of the class background override.",
-                dbKey = "dashboardShowClassIcon",
-                get = function() return getDB("dashboardShowClassIcon", false) end,
-                set = function(v) setDB("dashboardShowClassIcon", v) end,
-                visibleWhen = isDashboardClassThemeOn,
-                refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource" },
-            }
+            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_CLASS_COLOURS"] or "Class Colours", L["AXIS_CLASS_COLOURS_DESC"] or "Tint dashboard accents, dividers, and highlights with your class colour.", "classColorDashboard", false, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_CLASS_ICON"] or "Dashboard Class Icon", L["AXIS_DASHBOARD_CLASS_ICON_DESC"] or "Show a class icon on the Dashboard. Independent of class colour tinting and of the class background override.", "dashboardShowClassIcon", false, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource" } })
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["DASHBOARD_CLASS_ICON_STYLE"] or "Dashboard Class Icon Style",
@@ -362,33 +341,16 @@ local categories = {
                 visibleWhen = function() return isDashboardClassThemeOn() and getDB("dashboardShowClassIcon", false) end,
                 refreshIds = { "dashboardShowClassIcon" },
             }
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE"] or "Override Background to Class Background",
-                desc = L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE_DESC"] or "Replace the Dashboard background with a class-themed background. Independent of class colour tinting and of the class icon.",
-                dbKey = "dashboardBackgroundClassOverride",
-                get = function() return getDB("dashboardBackgroundClassOverride", false) end,
-                set = function(v) setDB("dashboardBackgroundClassOverride", v) end,
-                visibleWhen = isDashboardClassThemeOn,
-                refreshIds = { "dashboardBackgroundTheme" },
-            }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"] or "Tint Presence toast title and divider with your class colour.", dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"] or "Use class colour for player tooltip name, class line, and border.", dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"] or "Tint the character name on the Essence sheet with your class colour.", dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] }
+            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE"] or "Override Background to Class Background", L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE_DESC"] or "Replace the Dashboard background with a class-themed background. Independent of class colour tinting and of the class icon.", "dashboardBackgroundClassOverride", false, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "dashboardBackgroundTheme" } })
+            opts[#opts + 1] = Toggle(BrandModule("focus"), L["FOCUS_CLASS_COLOURS_DESC"] or "Tint Focus header title, category section headers, main and between-section dividers, and super-tracked highlight bars and borders with your class colour.", "classColorFocus", false, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("presence"), L["PRESENCE_CLASS_COLOURS_DESC"] or "Tint Presence toast title and divider with your class colour.", "classColorPresence", false, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("vista"), L["VISTA_CLASS_COLOURS_DESC"] or "Tint Vista minimap, addon-bar, and panel borders and text with your class colour.", "classColorVista", false, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("insight"), L["INSIGHT_CLASS_COLOURS_DESC"] or "Use class colour for player tooltip name, class line, and border.", "classColorInsight", false, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("cache"), L["CACHE_CLASS_COLOURS_DESC"] or "Tint Cache loot icon glow and edit/anchor borders with your class colour.", "classColorCache", false, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("essence"), L["ESSENCE_CLASS_COLOURS_DESC"] or "Tint the character name on the Essence sheet with your class colour.", "classColorEssence", false, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Section(L["AXIS_GLOBAL_FONT_SECTION"])
             local isGlobalFontOn = function() return getDB("useGlobalFont", false) end
-            opts[#opts + 1] = {
-                type = "toggle",
-                name = L["AXIS_USE_GLOBAL_FONT"],
-                desc = L["AXIS_USE_GLOBAL_FONT_DESC"],
-                dbKey = "useGlobalFont",
-                get = isGlobalFontOn,
-                set = function(v) setDB("useGlobalFont", v) end,
-                refreshIds = { "globalOverrideFontPath" },
-            }
+            opts[#opts + 1] = Toggle(L["AXIS_USE_GLOBAL_FONT"], L["AXIS_USE_GLOBAL_FONT_DESC"], "useGlobalFont", false, { refreshIds = { "globalOverrideFontPath" } })
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["AXIS_GLOBAL_FONT_PICKER"],
@@ -402,7 +364,7 @@ local categories = {
                 displayFn = addon.GetFontNameForPath,
                 fontPreviewInList = true,
             }
-            opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] or "Global Scale" }
+            opts[#opts + 1] = Section(L["AXIS_GLOBAL_SCALE_SECTION"] or "Global Scale")
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
                 if addon.ApplyDimensions then addon.ApplyDimensions() end
@@ -492,7 +454,7 @@ local categories = {
                     and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
                              and getDB("vistaCollectHorizonMinimapButton", true))
             end
-            opts[#opts + 1] = { type = "section", name = L["AXIS_MINIMAP_ICON_SECTION"] or "Minimap Icon" }
+            opts[#opts + 1] = Section(L["AXIS_MINIMAP_ICON_SECTION"] or "Minimap Icon")
             opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"] or "Show minimap icon", desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"] or "Show a clickable icon on the minimap that opens the options panel.", dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
                 -- Write DB synchronously so dependents' refreshIds see the new value immediately.
                 setDB("hideMinimapButton", not v)
@@ -525,7 +487,7 @@ local categories = {
                     -- Re-place the button: circular reads angle / square reads x/y.
                     if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end
                 end }
-            opts[#opts + 1] = { type = "button", dbKey = "__minimapButtonReset", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); setDB("minimapButtonAngle", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
+            opts[#opts + 1] = Button(L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"] or "Reset minimap button position", L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"] or "Reset the minimap button to the default position (bottom-left).", function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); setDB("minimapButtonAngle", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end, { dbKey = "__minimapButtonReset", visibleWhen = isMinimapStandalone })
             return opts
         end,
     },
@@ -549,7 +511,7 @@ local categories = {
             end
 
             -- Section A: Global switch + current profile
-            opts[#opts + 1] = { type = "section", name = L["PROFILES"] or "Profiles" }
+            opts[#opts + 1] = Section(L["PROFILES"] or "Profiles")
 
             opts[#opts + 1] = {
                 type = "toggle",
@@ -597,15 +559,9 @@ local categories = {
                     end,
                 }
 
-                opts[#opts + 1] = {
-                    type = "button",
-                    name = L["DEFAULT"] or "New from Default",
-                    desc = L["AXIS_CREATES_A_PROFILE_DEFAULT_SETTINGS"] or "Creates a new profile with all default settings.",
-                    dbKey = "_profiles_create_new",
-                    onClick = function()
-                        if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup("Default") end
-                    end,
-                }
+                opts[#opts + 1] = Button(L["DEFAULT"] or "New from Default", L["AXIS_CREATES_A_PROFILE_DEFAULT_SETTINGS"] or "Creates a new profile with all default settings.", function()
+                    if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup("Default") end
+                end, { dbKey = "_profiles_create_new" })
 
                 opts[#opts + 1] = {
                     type = "dropdown",
@@ -627,16 +583,10 @@ local categories = {
                     set = function(v) addon._profileCopyFrom = v end,
                 }
 
-                opts[#opts + 1] = {
-                    type = "button",
-                    name = L["AXIS_COPY_SELECTED"] or "Copy from selected",
-                    desc = L["AXIS_CREATES_A_PROFILE_COPIED_SELECTED_SOURC"] or "Creates a new profile copied from the selected source profile.",
-                    dbKey = "_profiles_copy_selected",
-                    onClick = function()
-                        local src = addon._profileCopyFrom or (addon.GetActiveProfileKey and addon.GetActiveProfileKey())
-                        if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup(src) end
-                    end,
-                }
+                opts[#opts + 1] = Button(L["AXIS_COPY_SELECTED"] or "Copy from selected", L["AXIS_CREATES_A_PROFILE_COPIED_SELECTED_SOURC"] or "Creates a new profile copied from the selected source profile.", function()
+                    local src = addon._profileCopyFrom or (addon.GetActiveProfileKey and addon.GetActiveProfileKey())
+                    if addon.ShowCreateProfilePopup then addon.ShowCreateProfilePopup(src) end
+                end, { dbKey = "_profiles_copy_selected" })
 
                 opts[#opts + 1] = {
                     type = "dropdown",
@@ -675,39 +625,30 @@ local categories = {
                     set = function(v) addon._profileDeleteKey = v end,
                 }
 
-                opts[#opts + 1] = {
-                    type = "button",
-                    name = L["AXIS_DELETE_SELECTED_PROFILE"] or "Delete selected profile",
-                    desc = L["AXIS_DELETES_SELECTED_PROFILE"] or "Deletes the selected profile.",
-                    dbKey = "_profiles_delete_btn",
-                    onClick = function()
-                        local k = addon._profileDeleteKey
-                        if not k or k == "" then
-                            local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
-                            local list = addon.ListProfiles and addon.ListProfiles() or {}
-                            for _, kk in ipairs(list) do
-                                if kk ~= current then k = kk; addon._profileDeleteKey = kk; break end
-                            end
+                opts[#opts + 1] = Button(L["AXIS_DELETE_SELECTED_PROFILE"] or "Delete selected profile", L["AXIS_DELETES_SELECTED_PROFILE"] or "Deletes the selected profile.", function()
+                    local k = addon._profileDeleteKey
+                    if not k or k == "" then
+                        local current = addon.GetActiveProfileKey and addon.GetActiveProfileKey() or nil
+                        local list = addon.ListProfiles and addon.ListProfiles() or {}
+                        for _, kk in ipairs(list) do
+                            if kk ~= current then k = kk; addon._profileDeleteKey = kk; break end
                         end
-                        if not k or k == "" then return end
-                        if addon.ShowDeleteProfilePopup then
-                            addon.ShowDeleteProfilePopup(k)
-                            return
-                        end
-                        if addon.DeleteProfile and addon.DeleteProfile(k) then
-                            addon._profileDeleteKey = nil
-                            if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
-                        end
-                    end,
-                }
+                    end
+                    if not k or k == "" then return end
+                    if addon.ShowDeleteProfilePopup then
+                        addon.ShowDeleteProfilePopup(k)
+                        return
+                    end
+                    if addon.DeleteProfile and addon.DeleteProfile(k) then
+                        addon._profileDeleteKey = nil
+                        if addon.OnActiveProfileChanged then addon.OnActiveProfileChanged() end
+                    end
+                end, { dbKey = "_profiles_delete_btn" })
 
-                opts[#opts + 1] = {
-                    type = "moduleReloadPrompt",
-                    hintText = L["PROFILE_RELOAD_HINT"] or "Reload the interface to finish applying profile changes.",
-                }
+                opts[#opts + 1] = ModuleReloadPrompt({ hintText = L["PROFILE_RELOAD_HINT"] or "Reload the interface to finish applying profile changes." })
 
                 -- Section B: Per-spec switch + spec dropdowns
-                opts[#opts + 1] = { type = "section", name = L["AXIS_SPEC_PROFILES"] or "Spec Profiles" }
+                opts[#opts + 1] = Section(L["AXIS_SPEC_PROFILES"] or "Spec Profiles")
 
                 opts[#opts + 1] = {
                     type = "toggle",
@@ -810,13 +751,10 @@ local categories = {
                     }
                 end
 
-                opts[#opts + 1] = {
-                    type = "moduleReloadPrompt",
-                    hintText = L["PROFILE_RELOAD_HINT"] or "Reload the interface to finish applying profile changes.",
-                }
+                opts[#opts + 1] = ModuleReloadPrompt({ hintText = L["PROFILE_RELOAD_HINT"] or "Reload the interface to finish applying profile changes." })
 
                 -- Section C: Sharing (export / import)
-                opts[#opts + 1] = { type = "section", name = L["AXIS_SHARING"] or "Sharing" }
+                opts[#opts + 1] = Section(L["AXIS_SHARING"] or "Sharing")
 
                 opts[#opts + 1] = {
                     type = "dropdown",
@@ -894,26 +832,21 @@ local categories = {
                     end,
                 }
 
-                opts[#opts + 1] = {
-                    type = "button",
-                    name = L["AXIS_IMPORT_PROFILE"] or "Import profile",
-                    dbKey = "_profiles_import_btn",
-                    onClick = function()
-                        local str = addon._profileImportString
-                        if not str or str == "" then
-                            if addon.HSPrint then addon.HSPrint("No import string provided.") end
-                            return
-                        end
-                        if not (addon.ValidateProfileString and addon.ValidateProfileString(str)) then
-                            if addon.HSPrint then addon.HSPrint("Invalid profile string.") end
-                            return
-                        end
-                        addon._profileImportSourceString = str
-                        if StaticPopup_Show then
-                            StaticPopup_Show("HORIZONSUITE_IMPORT_PROFILE")
-                        end
-                    end,
-                }
+                opts[#opts + 1] = Button(L["AXIS_IMPORT_PROFILE"] or "Import profile", nil, function()
+                    local str = addon._profileImportString
+                    if not str or str == "" then
+                        if addon.HSPrint then addon.HSPrint("No import string provided.") end
+                        return
+                    end
+                    if not (addon.ValidateProfileString and addon.ValidateProfileString(str)) then
+                        if addon.HSPrint then addon.HSPrint("Invalid profile string.") end
+                        return
+                    end
+                    addon._profileImportSourceString = str
+                    if StaticPopup_Show then
+                        StaticPopup_Show("HORIZONSUITE_IMPORT_PROFILE")
+                    end
+                end, { dbKey = "_profiles_import_btn" })
 
                 return opts
         end,

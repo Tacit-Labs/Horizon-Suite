@@ -1,13 +1,15 @@
 --[[
     Horizon Suite - Shared option-descriptor helpers
-    Exports font/outline helpers and BrandModule used by multiple module option files.
-    Must load after OptionsData.lua and before any module options file.
+    Exports font/outline helpers, BrandModule, and option-descriptor builders used by
+    multiple module option files. Must load after OptionsData.lua and before any module
+    options file.
 ]]
 local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = addon.L
 local function getDB(k, d) return addon.GetDB(k, d) end
+local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 
 local FONT_USE_GLOBAL = "__global__"
 
@@ -47,8 +49,57 @@ local function BrandModule(moduleKey)
     return t[moduleKey]
 end
 
+local function merge(t, opts)
+    if opts then for k, v in pairs(opts) do t[k] = v end end
+    return t
+end
+
+local function Section(name, opts)
+    return merge({ type = "section", name = name }, opts)
+end
+
+local function Header(name)
+    return { type = "header", name = name }
+end
+
+local function ModuleReloadPrompt(opts)
+    return merge({ type = "moduleReloadPrompt" }, opts)
+end
+
+local function Button(name, desc, onClick, opts)
+    return merge({ type = "button", name = name, desc = desc, onClick = onClick }, opts)
+end
+
+local function Toggle(name, desc, dbKey, default, opts)
+    return merge({
+        type = "toggle", name = name, desc = desc, dbKey = dbKey,
+        get = function() return getDB(dbKey, default) end,
+        set = function(v) setDB(dbKey, v) end,
+    }, opts)
+end
+
+local function Slider(name, desc, dbKey, min, max, default, opts)
+    return merge({
+        type = "slider", name = name, desc = desc, dbKey = dbKey,
+        min = min, max = max,
+        get = function() return getDB(dbKey, default) end,
+        set = function(v) setDB(dbKey, v) end,
+    }, opts)
+end
+
+local function Color(name, desc, dbKey, default, opts)
+    return merge({ type = "color", name = name, desc = desc, dbKey = dbKey, default = default }, opts)
+end
+
 addon.FONT_USE_GLOBAL                  = FONT_USE_GLOBAL
 addon.GetPerElementFontDropdownOptions = GetPerElementFontDropdownOptions
 addon.DisplayPerElementFont            = DisplayPerElementFont
 addon.OUTLINE_OPTIONS                  = OUTLINE_OPTIONS
 addon.BrandModule                      = BrandModule
+addon.Section                          = Section
+addon.Header                           = Header
+addon.ModuleReloadPrompt               = ModuleReloadPrompt
+addon.Button                           = Button
+addon.Toggle                           = Toggle
+addon.Slider                           = Slider
+addon.Color                            = Color

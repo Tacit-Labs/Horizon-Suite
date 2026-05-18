@@ -11,6 +11,7 @@ local D = addon.Presence.TalkingHeadDefaults
 
 local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
+local Section = addon.Section
 
 local function updateTalkingHead()
     if addon.Presence and addon.Presence.UpdateTalkingHead then
@@ -47,7 +48,7 @@ local category = {
     desc      = L["TALKING_HEAD_CATEGORY_DESC"],
     moduleKey = "presence",
     options   = {
-        { type = "section", name = L["AXIS_GENERAL"] },
+        Section(L["AXIS_GENERAL"]),
         {
             type  = "toggle",
             name  = L["TALKING_HEAD_ENABLE"],
@@ -78,7 +79,7 @@ local category = {
                 "talkingHeadContentSection", "talkingHeadFrameSection", "talkingHeadPreviewSection", "talkingHeadPreview",
             },
         },
-        { type = "section", name = L["TALKING_HEAD_FRAME_CONTENT"], dbKey = "talkingHeadContentSection", visibleWhen = isCustomising },
+        Section(L["TALKING_HEAD_FRAME_CONTENT"], { dbKey = "talkingHeadContentSection", visibleWhen = isCustomising }),
         {
             type              = "dropdown",
             name              = L["TALKING_HEAD_NAME_FONT"],
@@ -182,7 +183,7 @@ local category = {
             refreshIds = { "talkingHeadPreview" },
             visibleWhen = function() return isCustomising() and getDB("talkingHeadShowPortrait", D.talkingHeadShowPortrait) end,
         },
-        { type = "section", name = L["TALKING_HEAD_FRAME"], dbKey = "talkingHeadFrameSection", visibleWhen = isCustomising },
+        Section(L["TALKING_HEAD_FRAME"], { dbKey = "talkingHeadFrameSection", visibleWhen = isCustomising }),
         {
             type  = "toggle",
             name  = L["TALKING_HEAD_SHOW_BG"],
@@ -213,7 +214,7 @@ local category = {
             set         = function(v) setDB("talkingHeadScale", math.max(0.5, math.min(2.0, v))); updateTalkingHead() end,
             visibleWhen = isCustomising,
         },
-        { type = "section", name = L["TALKING_HEAD_CONTENT_PREVIEW"], dbKey = "talkingHeadPreviewSection", visibleWhen = isCustomising },
+        Section(L["TALKING_HEAD_CONTENT_PREVIEW"], { dbKey = "talkingHeadPreviewSection", visibleWhen = isCustomising }),
         { type = "talkingHeadPreview", visibleWhen = isCustomising },
     },
 }
