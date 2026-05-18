@@ -9,7 +9,7 @@ if not addon then return end
 
 local L = addon.L or {}
 
-local ADDON_NAME = "Horizon Suite"
+local ADDON_NAME = L["NAME_ADDON"]
 local PANEL_NAME = "HorizonSuiteSettingsPanel"
 
 local function ShowOptions()
