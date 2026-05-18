@@ -104,8 +104,8 @@ local function GetFocusClickProfileDropdownOptions()
         local soon = L["FOCUS_COMING_SOON"]
         return {
             { L["FOCUS_PROFILE_BLIZZARD_DEFAULT"],                           "blizzardDefault" },
-            { (L["FOCUS_PROFILE_HORIZON_PLUS"]) .. " — " .. soon, "horizonPlus", true },
-            { (L["FOCUS_PROFILE_CUSTOM"]) .. " — " .. soon, "custom", true },
+            { L["FOCUS_PROFILE_HORIZON_PLUS"] .. " — " .. soon, "horizonPlus", true },
+            { L["FOCUS_PROFILE_CUSTOM"] .. " — " .. soon, "custom", true },
         }
     end
     return {
