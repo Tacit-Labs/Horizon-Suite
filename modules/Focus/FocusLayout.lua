@@ -380,8 +380,7 @@ local function FullLayout()
         if hideOptBtn then
             addon.optionsBtn:Hide()
         else
-            addon.optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
-            if addon.optionsShadow then addon.optionsShadow:SetText(addon.PlainTextForShadowFontString(addon.L["PRESENCE_OPTIONS"])) end
+            addon.SetTextWithShadow(addon.optionsLabel, addon.optionsShadow, addon.L["PRESENCE_OPTIONS"])
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
             addon.optionsBtn:Show()
             -- Visible on hover only: use alpha so frames stay in layout and remain clickable
@@ -397,8 +396,7 @@ local function FullLayout()
         addon.headerText:Show()
         addon.headerShadow:Show()
         local headerStr = addon.ApplyTextCase(addon.L["PRESENCE_OBJECTIVES"], "headerTextCase", "upper")
-        addon.headerText:SetText(headerStr)
-        addon.headerShadow:SetText(addon.PlainTextForShadowFontString(headerStr))
+        addon.SetTextWithShadow(addon.headerText, addon.headerShadow, headerStr)
         if addon.GetDB("showQuestCount", true) then addon.countText:Show(); addon.countShadow:Show() else addon.countText:Hide(); addon.countShadow:Hide() end
         addon.chevron:Show()
         if hideOptBtn then
@@ -406,8 +404,7 @@ local function FullLayout()
         else
             addon.optionsBtn:SetAlpha(1)
             addon.optionsBtn:Show()
-            addon.optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
-            if addon.optionsShadow then addon.optionsShadow:SetText(addon.PlainTextForShadowFontString(addon.L["PRESENCE_OPTIONS"])) end
+            addon.SetTextWithShadow(addon.optionsLabel, addon.optionsShadow, addon.L["PRESENCE_OPTIONS"])
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
         end
         local showDiv = addon.GetDB("showHeaderDivider", true)
