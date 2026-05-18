@@ -1,4 +1,4 @@
---[[
+﻿--[[
     Horizon Suite - Focus - Options categories
     Self-registers into addon.OptionCategories after OptionsData.lua runs.
 ]]
@@ -101,11 +101,11 @@ end
 --- @return table
 local function GetFocusClickProfileDropdownOptions()
     if FocusClickProfileChoiceHidden() then
-        local soon = L["FOCUS_COMING_SOON"] or "Coming soon"
+        local soon = L["FOCUS_COMING_SOON"]
         return {
             { L["FOCUS_PROFILE_BLIZZARD_DEFAULT"],                           "blizzardDefault" },
-            { (L["FOCUS_PROFILE_HORIZON_PLUS"] or "Horizon+") .. " — " .. soon, "horizonPlus", true },
-            { (L["FOCUS_PROFILE_CUSTOM"] or "Custom") .. " — " .. soon, "custom", true },
+            { (L["FOCUS_PROFILE_HORIZON_PLUS"]) .. " — " .. soon, "horizonPlus", true },
+            { (L["FOCUS_PROFILE_CUSTOM"]) .. " — " .. soon, "custom", true },
         }
     end
     return {
@@ -193,9 +193,9 @@ local categories = {
             { type = "dropdown", name = L["FOCUS_GROW_HEADER"], desc = L["KEEP_HEADER_BOTTOM_TOP_UNTIL_COLLAPSED"], tooltip = L["FOCUS_GROWING_UPWARD_KEEP_HEADER_BOTTOM_TOP"], dbKey = "growUpHeaderMode", options = { { L["FOCUS_HEADER_BOTTOM"], "always" }, { L["FOCUS_HEADER_SLIDES_COLLAPSE"], "collapse" } }, get = function() return getDB("growUpHeaderMode", "always") end, set = function(v) setDB("growUpHeaderMode", v); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return getDB("growUp", false) end },
             { type = "toggle", name = L["FOCUS_START_COLLAPSED"], desc = L["FOCUS_START_HEADER_SHOWN_UNTIL_YOU_EXPAND"], dbKey = "collapsed", get = function() return getDB("collapsed", false) end, set = function(v) setDB("collapsed", v) end },
             Section(L["FOCUS_DIMENSIONS"]),
-            { type = "toggle", name = L["FOCUS_DYNAMIC_WIDTH"] or "Shrink to Fit Content", desc = L["FOCUS_DYNAMIC_WIDTH_DESC"] or "Resize the tracker to fit the longest visible row, up to the maximum width below.", dbKey = "focusDynamicWidth", get = function() return getDB("focusDynamicWidth", false) end, set = function(v) setDB("focusDynamicWidth", v); OptionsData_NotifyMainAddon() end, refreshIds = { "panelWidth", "focusDynamicWidthMax", "lockPosition" } },
+            { type = "toggle", name = L["FOCUS_DYNAMIC_WIDTH"], desc = L["FOCUS_DYNAMIC_WIDTH_DESC"], dbKey = "focusDynamicWidth", get = function() return getDB("focusDynamicWidth", false) end, set = function(v) setDB("focusDynamicWidth", v); OptionsData_NotifyMainAddon() end, refreshIds = { "panelWidth", "focusDynamicWidthMax", "lockPosition" } },
             { type = "slider", name = L["FOCUS_PANEL_WIDTH"], desc = L["FOCUS_TRACKER_WIDTH_PIXELS"], dbKey = "panelWidth", min = 180, max = 800, get = function() return getDB("panelWidth", 260) end, set = function(v) setDB("panelWidth", math.max(180, math.min(800, v))) end, visibleWhen = function() return not getDB("focusDynamicWidth", false) end },
-            { type = "slider", name = L["FOCUS_DYNAMIC_WIDTH_MAX"] or "Maximum Width When Dynamic", desc = L["FOCUS_DYNAMIC_WIDTH_MAX_DESC"] or "Caps how wide the tracker can grow when shrink-to-fit is on.", dbKey = "focusDynamicWidthMax", min = 200, max = 800, get = function() return getDB("focusDynamicWidthMax", 400) end, set = function(v) setDB("focusDynamicWidthMax", math.max(200, math.min(800, v))); OptionsData_NotifyMainAddon() end, visibleWhen = function() return getDB("focusDynamicWidth", false) end },
+            { type = "slider", name = L["FOCUS_DYNAMIC_WIDTH_MAX"], desc = L["FOCUS_DYNAMIC_WIDTH_MAX_DESC"], dbKey = "focusDynamicWidthMax", min = 200, max = 800, get = function() return getDB("focusDynamicWidthMax", 400) end, set = function(v) setDB("focusDynamicWidthMax", math.max(200, math.min(800, v))); OptionsData_NotifyMainAddon() end, visibleWhen = function() return getDB("focusDynamicWidth", false) end },
             { type = "slider", name = L["FOCUS_MAX_CONTENT_HEIGHT"], desc = L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"], dbKey = "maxContentHeight", min = 200, max = 1500, get = function() return getDB("maxContentHeight", 480) end, set = function(v) setDB("maxContentHeight", math.max(200, math.min(1500, v))) end },
             { type = "toggle", name = L["FOCUS_STATIC_BACKGROUND"], desc = L["FOCUS_STATIC_BACKGROUND_DESC"], dbKey = "staticBackgroundEnabled", get = function() return getDB("staticBackgroundEnabled", false) end, set = function(v) setDB("staticBackgroundEnabled", v); if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "staticPanelHeight" } },
             { type = "slider", name = L["FOCUS_STATIC_PANEL_HEIGHT"], desc = L["FOCUS_STATIC_PANEL_HEIGHT_DESC"], dbKey = "staticPanelHeight", min = 50, max = 1500, get = function() return math.max(50, math.min(1500, tonumber(getDB("staticPanelHeight", 400)) or 400)) end, set = function(v) setDB("staticPanelHeight", math.max(50, math.min(1500, v))); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return getDB("staticBackgroundEnabled", false) end },
@@ -507,7 +507,7 @@ local categories = {
     {
         key = "SortingFiltering",
         name = L["SORTING_FILTERING"],
-        desc = L["ORGANIZE_HIDE_TRACKED_ENTRIES_YOUR_PREFERENCE"] or "Organize and hide tracked entries to your preference.",
+        desc = L["ORGANIZE_HIDE_TRACKED_ENTRIES_YOUR_PREFERENCE"],
         moduleKey = "focus",
         options = {
             Section(L["FOCUS_FILTERING"]),
@@ -530,7 +530,7 @@ local categories = {
     {
         key = "Typography",
         name = L["DASH_TYPOGRAPHY"],
-        desc = L["ADJUST_FONTS_SIZES_CASING_DROP_SHADOWS"] or "Adjust fonts, sizes, casing, and drop shadows.",
+        desc = L["ADJUST_FONTS_SIZES_CASING_DROP_SHADOWS"],
         moduleKey = "focus",
         options = {
             Section(L["FOCUS_FONT_FAMILIES"]),
@@ -583,7 +583,7 @@ local categories = {
     {
         key = "Animations",
         name = L["FOCUS_ANIMATIONS"],
-        desc = L["TUNE_SLIDE_FADE_EFFECTS_PLUS_OBJECTIVE"] or "Tune slide and fade effects, plus objective progress flashes.",
+        desc = L["TUNE_SLIDE_FADE_EFFECTS_PLUS_OBJECTIVE"],
         moduleKey = "focus",
         options = {
             Section(L["FOCUS_ANIMATIONS"]),
@@ -597,7 +597,7 @@ local categories = {
     {
         key = "Instances",
         name = L["FOCUS_INSTANCES"],
-        desc = L["CONTROL_TRACKER_VISIBILITY_WITHIN_DUNGEONS_RAIDS"] or "Control tracker visibility within dungeons, raids, and PvP.",
+        desc = L["CONTROL_TRACKER_VISIBILITY_WITHIN_DUNGEONS_RAIDS"],
         moduleKey = "focus",
         options = {
             Section(L["DASH_VISIBILITY"]),
@@ -669,7 +669,7 @@ local categories = {
     {
         key = "ContentTypes",
         name = L["FOCUS_CONTENT"],
-        desc = L["TOGGLE_TRACKING_WORLD_QUESTS_RARES_ACHIEVEMENTS"] or "Toggle tracking for world quests, rares, achievements, and more.",
+        desc = L["TOGGLE_TRACKING_WORLD_QUESTS_RARES_ACHIEVEMENTS"],
         moduleKey = "focus",
         options = {
             Section(L["FOCUS_WORLD_QUESTS"]),
@@ -678,8 +678,8 @@ local categories = {
             Toggle(L["FOCUS_RARE_BOSSES"], L["UI_RARE_BOSS_VIGNETTES_LIST"], "showRareBosses", true),
             Toggle(L["UI_RARE_LOOT"], L["UI_TREASURE_ITEM_VIGNETTES_RARE_LOOT"], "showRareLoot", false),
             Toggle(L["RARE_SOUND_ALERT"], L["UI_PLAY_A_SOUND_A_RARE"], "rareAddedSound", true, { refreshIds = { "rareAddedSoundChoice", "rareAddedSoundVolume" } }),
-            { type = "dropdown", name = L["RARE_ADDED_SOUND_CHOICE"] or "Rare added sound choice", desc = L["SOUND_PLAYED_A_RARE_BOSS_APPEARS"], tooltip = L["CHOOSE_WHICH_SOUND_PLAY_A_RARE"], dbKey = "rareAddedSoundChoice", options = function() return addon.GetSoundDropdownOptions and addon.GetSoundDropdownOptions() or { { "Default", "default" } } end, get = function() return getDB("rareAddedSoundChoice", "default") end, set = function(v) setDB("rareAddedSoundChoice", v); if addon.PlayRareAddedSound then addon.PlayRareAddedSound() end end, visibleWhen = function() return getDB("rareAddedSound", true) end },
-            { type = "slider", name = L["UI_RARE_SOUND_VOLUME"] or "Rare sound volume", desc = L["UI_VOLUME_OF_RARE_ALERT_SOUND"], tooltip = L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"], dbKey = "rareAddedSoundVolume", min = 50, max = 200, get = function() return math.max(50, math.min(200, tonumber(getDB("rareAddedSoundVolume", 100)) or 100)) end, set = function(v) setDB("rareAddedSoundVolume", math.max(50, math.min(200, v))) end, visibleWhen = function() return getDB("rareAddedSound", true) end, id = "rareAddedSoundVolume" },
+            { type = "dropdown", name = L["RARE_ADDED_SOUND_CHOICE"], desc = L["SOUND_PLAYED_A_RARE_BOSS_APPEARS"], tooltip = L["CHOOSE_WHICH_SOUND_PLAY_A_RARE"], dbKey = "rareAddedSoundChoice", options = function() return addon.GetSoundDropdownOptions and addon.GetSoundDropdownOptions() or { { "Default", "default" } } end, get = function() return getDB("rareAddedSoundChoice", "default") end, set = function(v) setDB("rareAddedSoundChoice", v); if addon.PlayRareAddedSound then addon.PlayRareAddedSound() end end, visibleWhen = function() return getDB("rareAddedSound", true) end },
+            { type = "slider", name = L["UI_RARE_SOUND_VOLUME"], desc = L["UI_VOLUME_OF_RARE_ALERT_SOUND"], tooltip = L["UI_BOOST_REDUCE_RARE_ALERT_VOLUME"], dbKey = "rareAddedSoundVolume", min = 50, max = 200, get = function() return math.max(50, math.min(200, tonumber(getDB("rareAddedSoundVolume", 100)) or 100)) end, set = function(v) setDB("rareAddedSoundVolume", math.max(50, math.min(200, v))) end, visibleWhen = function() return getDB("rareAddedSound", true) end, id = "rareAddedSoundVolume" },
             Section(L["FOCUS_ACHIEVEMENTS"]),
             Toggle(L["FOCUS_ACHIEVEMENTS"], L["FOCUS_TRACKED_ACHIEVEMENTS_LIST"], "showAchievements", true, { refreshIds = { "showCompletedAchievements", "showAchievementIcons", "achievementOnlyMissingRequirements", "showAchievementProgressBars" } }),
             Toggle(L["INCLUDE_COMPLETED"], L["COMPLETED_ACHIEVEMENTS_LIST"], "showCompletedAchievements", false, { id = "showCompletedAchievements", visibleWhen = function() return getDB("showAchievements", true) end, tooltip = L["PROGRESS_TRACKED_ACHIEVEMENTS_SHOWN"] }),
@@ -697,19 +697,19 @@ local categories = {
             Toggle(L["INCLUDE_COMPLETED"], L["FOCUS_INCLUDE_COLLECTED_APPEARANCES_TRACKER"], "showCollectedAppearances", false, { id = "showCollectedAppearances", visibleWhen = function() return getDB("showAppearances", true) end }),
             Toggle(L["FOCUS_APPEARANCE_ICONS"], L["FOCUS_APPEARANCE_ICON_NEXT_TITLE"], "showAppearanceIcons", true, { id = "showAppearanceIcons", visibleWhen = function() return getDB("showAppearances", true) end, tooltip = L["REQUIRES_QUEST_TYPE_ICONS_ENABLED_DISPLAY"] }),
             Toggle(L["FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON"], L["FOCUS_APPEARANCE_USE_TRANSMOG_TYPE_ICON_DESC"], "appearanceIconsUseTransmogTypeIcon", true, { id = "appearanceIconsUseTransmogTypeIcon", visibleWhen = function() return getDB("showAppearances", true) and getDB("showAppearanceIcons", true) end, tooltip = L["REQUIRES_QUEST_TYPE_ICONS_ENABLED_DISPLAY"] }),
-            Section(L["RECIPES"] or "Recipes"),
-            Toggle(L["RECIPES"] or "Recipes", (L and L["TRACKED_PROFESSION_RECIPES_LIST"]) or "Show tracked profession recipes in the list.", "showRecipes", true, { refreshIds = { "showRecipeReagents", "recipeReagentsFullDetail", "showOptionalReagents", "showFinishingReagents", "showChoiceSlots", "showRecipeIcons", "recipeRarityColors", "showCraftableCount", "showRecipeQualityInfo", "showRecipeRequirements" } }),
-            Toggle(L["REAGENTS"] or "Reagents", (L and L["REAGENT_SHOPPING_LIST_RECIPE"]) or "Show reagent shopping list for each recipe.", "showRecipeReagents", true, { id = "showRecipeReagents", visibleWhen = function() return getDB("showRecipes", true) end }),
-            Toggle(L["FOCUS_RECIPE_REAGENTS_FULL_DETAIL"] or "Full reagent detail", (L and L["FOCUS_RECIPE_REAGENTS_FULL_DETAIL_DESC"]) or "List every schematic slot.", "recipeReagentsFullDetail", false, { id = "recipeReagentsFullDetail", visibleWhen = function() return getDB("showRecipes", true) and getDB("showRecipeReagents", true) end, refreshIds = { "showOptionalReagents", "showFinishingReagents", "showChoiceSlots" } }),
-            Toggle(L["FOCUS_OPTIONAL_REAGENTS"] or "Optional reagents", (L and L["OPTIONAL_REAGENT_SLOTS"]) or "Show optional reagent slots.", "showOptionalReagents", true, { id = "showOptionalReagents", visibleWhen = function() return getDB("showRecipes", true) and getDB("recipeReagentsFullDetail", false) end }),
-            Toggle(L["FOCUS_FINISHING_REAGENTS"] or "Finishing reagents", (L and L["FINISHING_REAGENT_SLOTS"]) or "Show finishing reagent slots.", "showFinishingReagents", true, { id = "showFinishingReagents", visibleWhen = function() return getDB("showRecipes", true) and getDB("recipeReagentsFullDetail", false) end }),
-            Toggle(L["CHOICE_SLOTS"] or "Choice slots", (L and L["COLLAPSIBLE_CHOICE_REAGENT_SLOTS"]) or "Show collapsible choice reagent slots.", "showChoiceSlots", true, { id = "showChoiceSlots", visibleWhen = function() return getDB("showRecipes", true) and getDB("recipeReagentsFullDetail", false) end }),
-            Toggle(L["RECIPE_ICONS"] or "Recipe icons", (L and L["RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]) or "Show recipe icon next to title. Requires quest type icons in Display.", "showRecipeIcons", true, { id = "showRecipeIcons", visibleWhen = function() return getDB("showRecipes", true) end }),
-            Toggle(L["RARITY_COLOURS"] or "Rarity colors", (L and L["COLOUR_RECIPE_TITLES_OUTPUT_ITEM_RARITY"]) or "Color recipe titles by output item rarity.", "recipeRarityColors", true, { id = "recipeRarityColors", visibleWhen = function() return getDB("showRecipes", true) end }),
-            Toggle(L["CRAFTABLE_COUNT"] or "Craftable count", (L and L["MANY_TIMES_RECIPE_CRAFTED"]) or "Show how many times the recipe can be crafted.", "showCraftableCount", true, { id = "showCraftableCount", visibleWhen = function() return getDB("showRecipes", true) end }),
-            Toggle(L["QUALITY_INFO"] or "Quality info", (L and L["RECIPES_TIER_QUALITY_PIPS"]) or "Show quality tier pips for recipes that support qualities.", "showRecipeQualityInfo", false, { id = "showRecipeQualityInfo", visibleWhen = function() return getDB("showRecipes", true) end }),
-            Toggle(L["REQUIREMENTS"] or "Requirements", (L and L["UNMET_CRAFTING_STATION_REQUIREMENTS"]) or "Show unmet crafting station requirements.", "showRecipeRequirements", false, { id = "showRecipeRequirements", visibleWhen = function() return getDB("showRecipes", true) end }),
-            Toggle(L["FOCUS_AUCTIONATOR_SEARCH"] or "Auctionator search button", (L and L["FOCUS_AUCTIONATOR_SEARCH_DESC"]) or "Show a button on recipe entries to search for required reagents in the Auction House (requires Auctionator).", "showAHSearchButton", true, { id = "showAHSearchButton", visibleWhen = function() return getDB("showRecipes", true) end }),
+            Section(L["RECIPES"]),
+            Toggle(L["RECIPES"], L["TRACKED_PROFESSION_RECIPES_LIST"], "showRecipes", true, { refreshIds = { "showRecipeReagents", "recipeReagentsFullDetail", "showOptionalReagents", "showFinishingReagents", "showChoiceSlots", "showRecipeIcons", "recipeRarityColors", "showCraftableCount", "showRecipeQualityInfo", "showRecipeRequirements" } }),
+            Toggle(L["REAGENTS"], L["REAGENT_SHOPPING_LIST_RECIPE"], "showRecipeReagents", true, { id = "showRecipeReagents", visibleWhen = function() return getDB("showRecipes", true) end }),
+            Toggle(L["FOCUS_RECIPE_REAGENTS_FULL_DETAIL"], L["FOCUS_RECIPE_REAGENTS_FULL_DETAIL_DESC"], "recipeReagentsFullDetail", false, { id = "recipeReagentsFullDetail", visibleWhen = function() return getDB("showRecipes", true) and getDB("showRecipeReagents", true) end, refreshIds = { "showOptionalReagents", "showFinishingReagents", "showChoiceSlots" } }),
+            Toggle(L["FOCUS_OPTIONAL_REAGENTS"], L["OPTIONAL_REAGENT_SLOTS"], "showOptionalReagents", true, { id = "showOptionalReagents", visibleWhen = function() return getDB("showRecipes", true) and getDB("recipeReagentsFullDetail", false) end }),
+            Toggle(L["FOCUS_FINISHING_REAGENTS"], L["FINISHING_REAGENT_SLOTS"], "showFinishingReagents", true, { id = "showFinishingReagents", visibleWhen = function() return getDB("showRecipes", true) and getDB("recipeReagentsFullDetail", false) end }),
+            Toggle(L["CHOICE_SLOTS"], L["COLLAPSIBLE_CHOICE_REAGENT_SLOTS"], "showChoiceSlots", true, { id = "showChoiceSlots", visibleWhen = function() return getDB("showRecipes", true) and getDB("recipeReagentsFullDetail", false) end }),
+            Toggle(L["RECIPE_ICONS"], L["RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"], "showRecipeIcons", true, { id = "showRecipeIcons", visibleWhen = function() return getDB("showRecipes", true) end }),
+            Toggle(L["RARITY_COLOURS"], L["COLOUR_RECIPE_TITLES_OUTPUT_ITEM_RARITY"], "recipeRarityColors", true, { id = "recipeRarityColors", visibleWhen = function() return getDB("showRecipes", true) end }),
+            Toggle(L["CRAFTABLE_COUNT"], L["MANY_TIMES_RECIPE_CRAFTED"], "showCraftableCount", true, { id = "showCraftableCount", visibleWhen = function() return getDB("showRecipes", true) end }),
+            Toggle(L["QUALITY_INFO"], L["RECIPES_TIER_QUALITY_PIPS"], "showRecipeQualityInfo", false, { id = "showRecipeQualityInfo", visibleWhen = function() return getDB("showRecipes", true) end }),
+            Toggle(L["REQUIREMENTS"], L["UNMET_CRAFTING_STATION_REQUIREMENTS"], "showRecipeRequirements", false, { id = "showRecipeRequirements", visibleWhen = function() return getDB("showRecipes", true) end }),
+            Toggle(L["FOCUS_AUCTIONATOR_SEARCH"], L["FOCUS_AUCTIONATOR_SEARCH_DESC"], "showAHSearchButton", true, { id = "showAHSearchButton", visibleWhen = function() return getDB("showRecipes", true) end }),
             Section(L["FOCUS_ADVENTURE_GUIDE"]),
             Toggle(L["TRAVELERS_LOG"], L["TRACKED_OBJECTIVES_ADVENTURE_GUIDE"], "showAdventureGuide", true, { refreshIds = { "autoRemoveCompletedAdventureGuide" } }),
             Toggle(L["UNTRACK_COMPLETE"], L["AUTO_UNTRACK_FINISHED_ACTIVITIES"], "autoRemoveCompletedAdventureGuide", true, { id = "autoRemoveCompletedAdventureGuide", visibleWhen = function() return getDB("showAdventureGuide", true) end }),
@@ -722,7 +722,7 @@ local categories = {
     {
         key = "Colors",
         name = L["DASH_COLOURS"],
-        desc = L["PERSONALIZE_COLOUR_PALETTE_TRACKER_TEXT_ELEMENTS"] or "Personalize the color palette for tracker text elements.",
+        desc = L["PERSONALIZE_COLOUR_PALETTE_TRACKER_TEXT_ELEMENTS"],
         moduleKey = "focus",
         options = {
             { type = "colorMatrixFull", name = L["DASH_COLOURS"], dbKey = "colorMatrix" },
@@ -730,11 +730,11 @@ local categories = {
     },
     {
         key = "HiddenQuests",
-        name = L["FOCUS_HIDDEN_QUESTS"] or "Hidden Quests",
-        desc = L["REVIEW_MANAGE_QUESTS_YOU_MANUALLY_UNTRACKED"] or "Review and manage quests you have manually untracked or blacklisted.",
+        name = L["FOCUS_HIDDEN_QUESTS"],
+        desc = L["REVIEW_MANAGE_QUESTS_YOU_MANUALLY_UNTRACKED"],
         moduleKey = "focus",
         options = {
-            { type = "blacklistGrid", name = L["FOCUS_BLACKLISTED_QUESTS"], desc = L["FOCUS_QUESTS_HIDDEN_RIGHT_CLICK_UNTRACK"], tooltip = L["ENABLE_BLACKLIST_UNTRACKED_INTERACTIONS_ADD_QUEST"] or "Enable 'Blacklist untracked' in Interactions to add quests here." },
+            { type = "blacklistGrid", name = L["FOCUS_BLACKLISTED_QUESTS"], desc = L["FOCUS_QUESTS_HIDDEN_RIGHT_CLICK_UNTRACK"], tooltip = L["ENABLE_BLACKLIST_UNTRACKED_INTERACTIONS_ADD_QUEST"] },
         },
     },
 }

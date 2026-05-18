@@ -1,4 +1,4 @@
---[[
+﻿--[[
     Horizon Suite - Shared option-descriptor helpers
     Exports font/outline helpers, BrandModule, and option-descriptor builders used by
     multiple module option files. Must load after OptionsData.lua and before any module
@@ -37,9 +37,9 @@ local OUTLINE_OPTIONS = {
     { L["FOCUS_OUTLINE_NONE"], "" },
     { L["FOCUS_OUTLINE"], "OUTLINE" },
     { L["FOCUS_THICK_OUTLINE"], "THICKOUTLINE" },
-    { L["FOCUS_SLUG"] or "SLUG", "SLUG" },
-    { L["FOCUS_SLUG_OUTLINE"] or "SLUG Outline", "OUTLINE, SLUG" },
-    { L["FOCUS_SLUG_THICK_OUTLINE"] or "SLUG Thick Outline", "THICKOUTLINE, SLUG" },
+    { L["FOCUS_SLUG"], "SLUG" },
+    { L["FOCUS_SLUG_OUTLINE"], "OUTLINE, SLUG" },
+    { L["FOCUS_SLUG_THICK_OUTLINE"], "THICKOUTLINE, SLUG" },
 }
 
 local function BrandModule(moduleKey)
