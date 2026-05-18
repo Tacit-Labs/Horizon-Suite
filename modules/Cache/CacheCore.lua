@@ -156,23 +156,60 @@ end
 -- POOL ENTRY FACTORY
 -- ============================================================================
 
+-- Fraction of icon size used as the overlap/step between stacked layers.
+-- Mirrors Plumber's overlapRatio so the whole stack fits within the original icon bounding box.
+local STACK_OVERLAP = 0.15
+
 local function CreateToastEntry(parent)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT))
 
+    -- Fixed invisible texture used purely as a stable anchor for text/shadow.
+    -- iconBg (and its stack siblings) reposition during the fan layout, but
+    -- text must never move, so it anchors here instead.
+    local iconBgAnchor = f:CreateTexture(nil, "BACKGROUND")
+    iconBgAnchor:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
+    iconBgAnchor:SetPoint("LEFT", f, "LEFT", 0, 0)
+    iconBgAnchor:SetAlpha(0)
+
+    -- Stack backgrounds — created back-to-front so BORDER z-order matches icon depth.
+    local iconBg3 = f:CreateTexture(nil, "BORDER")
+    iconBg3:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
+    iconBg3:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
+    iconBg3:Hide()
+
+    local iconBg2 = f:CreateTexture(nil, "BORDER")
+    iconBg2:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
+    iconBg2:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
+    iconBg2:Hide()
+
+    -- Main (front) background — starts centered on the anchor; repositioned by UpdateStackIcons.
     local iconBg = f:CreateTexture(nil, "BORDER")
     iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
-    iconBg:SetPoint("LEFT", f, "LEFT", 0, 0)
+    iconBg:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     iconBg:SetColorTexture(1, 1, 1, 0.8)
+
+    -- Stack icons — back-to-front so ARTWORK z-order mirrors depth.
+    local icon3 = f:CreateTexture(nil, "ARTWORK")
+    icon3:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE))
+    icon3:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
+    icon3:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    icon3:Hide()
+
+    local icon2 = f:CreateTexture(nil, "ARTWORK")
+    icon2:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE))
+    icon2:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
+    icon2:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    icon2:Hide()
 
     local icon = f:CreateTexture(nil, "ARTWORK")
     icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE))
-    icon:SetPoint("CENTER", iconBg, "CENTER", 0, 0)
+    icon:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
     local shine = f:CreateTexture(nil, "OVERLAY")
     shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8))
-    shine:SetPoint("CENTER", iconBg, "CENTER", 0, 0)
+    shine:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     shine:SetTexture("Interface\\Cooldown\\star4")
     shine:SetBlendMode("ADD")
     shine:SetAlpha(0)
@@ -182,7 +219,7 @@ local function CreateToastEntry(parent)
     shadow:SetFontObject(CacheFontObj)
     shadow:SetTextColor(0, 0, 0, 0.7)
     shadow:SetJustifyH("LEFT")
-    shadow:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP) + 1, -1)
+    shadow:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Cache.ICON_GAP) + 1, -1)
     shadow:SetPoint("RIGHT", f, "RIGHT", 1, -1)
     shadow:SetWordWrap(false)
 
@@ -190,7 +227,7 @@ local function CreateToastEntry(parent)
     text:SetFontObject(CacheFontObj)
     text:SetTextColor(1, 1, 1, 1)
     text:SetJustifyH("LEFT")
-    text:SetPoint("LEFT", iconBg, "RIGHT", S(Cache.ICON_GAP), 0)
+    text:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Cache.ICON_GAP), 0)
     text:SetPoint("RIGHT", f, "RIGHT", 0, 0)
     text:SetWordWrap(false)
 
@@ -222,17 +259,22 @@ local function CreateToastEntry(parent)
     f:Hide()
 
     return {
-        frame    = f,
-        iconBg   = iconBg,
-        icon     = icon,
-        shine    = shine,
-        shadow   = shadow,
-        text     = text,
-        active   = false,
-        elapsed  = 0,
-        holdDur  = Cache.HOLD_ITEM,
-        quality  = nil,
-        maxAlpha = 1,
+        frame       = f,
+        iconBgAnchor = iconBgAnchor,
+        iconBg      = iconBg,
+        iconBg2     = iconBg2,
+        iconBg3     = iconBg3,
+        icon        = icon,
+        icon2       = icon2,
+        icon3       = icon3,
+        shine       = shine,
+        shadow      = shadow,
+        text        = text,
+        active      = false,
+        elapsed     = 0,
+        holdDur     = Cache.HOLD_ITEM,
+        quality     = nil,
+        maxAlpha    = 1,
         stackY   = 0,
         smoothY  = 0,
         driftY   = 0,
@@ -518,6 +560,10 @@ UpdateEntry = function(entry, dt)
         entry.frame:SetScale(1)
         if entry.shine  then entry.shine:Hide()         end
         if entry.iconBg then entry.iconBg:SetAlpha(0.8) end
+        if entry.icon2   then entry.icon2:Hide()   end
+        if entry.icon3   then entry.icon3:Hide()   end
+        if entry.iconBg2 then entry.iconBg2:Hide() end
+        if entry.iconBg3 then entry.iconBg3:Hide() end
         state.activeCount = state.activeCount - 1
         UpdateFrameSize()
         return
@@ -584,6 +630,10 @@ end
 
 local function BuildMergedText(data, effectiveKey, totalCount)
     if effectiveKey == JUNK_KEY then
+        -- Show the real item name until a second junk item merges in.
+        if totalCount == 1 then
+            return data.baseName or data.text
+        end
         return (addon.L and addon.L["CACHE_JUNK_LABEL"] or "Junk") .. " x" .. totalCount
     end
     if data.kind == "item" then
@@ -595,6 +645,72 @@ local function BuildMergedText(data, effectiveKey, totalCount)
     return data.text
 end
 
+-- Layout all stack layers (icon + background per layer) using Plumber's diagonal-fan approach.
+-- Each layer gets its own border/background so they look like individual item slots.
+-- count < 2 restores everything to single-icon state.
+local function UpdateStackIcons(entry, count)
+    local numIcons = math.min(count, 3)
+    local iconLayers = { entry.icon,   entry.icon2,   entry.icon3   }  -- front → back
+    local bgLayers   = { entry.iconBg, entry.iconBg2, entry.iconBg3 }
+    local bgBase     = S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)
+    local szBase     = S(Cache.ICON_SIZE)
+    local anchor     = entry.iconBgAnchor or entry.iconBg  -- fallback for safety
+
+    if numIcons < 2 then
+        -- Single icon: restore front icon/bg to full size, hide the rest.
+        entry.iconBg:SetSize(bgBase, bgBase)
+        entry.iconBg:ClearAllPoints()
+        entry.iconBg:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+        entry.iconBg:SetAlpha(0.8)
+        entry.icon:SetSize(szBase, szBase)
+        entry.icon:SetAlpha(1)
+        entry.icon:ClearAllPoints()
+        entry.icon:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+        if entry.icon2   then entry.icon2:Hide()   end
+        if entry.icon3   then entry.icon3:Hide()   end
+        if entry.iconBg2 then entry.iconBg2:Hide() end
+        if entry.iconBg3 then entry.iconBg3:Hide() end
+        return
+    end
+
+    local iconSize   = szBase / (1 + (numIcons - 1) * STACK_OVERLAP)
+    local iconOffset = iconSize * STACK_OVERLAP
+    local stackSpan  = (numIcons - 1) * iconOffset
+    local bgSize     = iconSize + S(Cache.BORDER_PAD * 2)
+    local br = entry._bgR or 1
+    local bg = entry._bgG or 1
+    local bb = entry._bgB or 1
+
+    for pos = 0, numIcons - 1 do
+        local ico = iconLayers[pos + 1]
+        local ibg = bgLayers[pos + 1]
+        local cx  = -stackSpan / 2 + pos * iconOffset
+        local cy  =  stackSpan / 2 - pos * iconOffset
+        local a   = 1 - pos * 0.2   -- front=1.0, mid=0.8, back=0.6
+
+        if ico then
+            ico:SetSize(iconSize, iconSize)
+            ico:ClearAllPoints()
+            ico:SetPoint("CENTER", anchor, "CENTER", cx, cy)
+            ico:SetAlpha(a)
+            ico:Show()
+        end
+        if ibg then
+            ibg:SetSize(bgSize, bgSize)
+            ibg:ClearAllPoints()
+            ibg:SetPoint("CENTER", anchor, "CENTER", cx, cy)
+            ibg:SetColorTexture(br, bg, bb, 0.8 * a)
+            ibg:Show()
+        end
+    end
+
+    -- Hide layers not needed at this count.
+    for i = numIcons + 1, 3 do
+        if iconLayers[i] then iconLayers[i]:Hide() end
+        if bgLayers[i]   then bgLayers[i]:Hide()   end
+    end
+end
+
 local function TryMergeToast(data, effectiveKey)
     local cap = GetPoolCap()
     for i = 1, cap do
@@ -602,13 +718,33 @@ local function TryMergeToast(data, effectiveKey)
         if e.active and e._itemKey == effectiveKey then
             local newCount = (e._count or 1) + (data.count or 1)
             e._count = newCount
-            local newText = BuildMergedText(data, effectiveKey, newCount)
+            local newText
+            if effectiveKey == JUNK_KEY and e._origItemKey then
+                if e._origItemKey == data.itemKey then
+                    -- Same junk item looted again — keep its real name.
+                    newText = newCount > 1
+                        and ((data.baseName or data.text) .. " x" .. newCount)
+                        or  (data.baseName or data.text)
+                else
+                    -- A different junk item arrived — switch to the generic label
+                    -- and clear _origItemKey so further merges also use it.
+                    e._origItemKey = nil
+                    newText = BuildMergedText(data, effectiveKey, newCount)
+                end
+            else
+                newText = BuildMergedText(data, effectiveKey, newCount)
+            end
             e.text:SetText(newText)
             e.shadow:SetText(newText)
             if effectiveKey == JUNK_KEY then
+                -- Shift icon layers so each junk item keeps its own icon.
+                -- icon3 ← icon2's texture, icon2 ← main icon's texture, main ← new item.
+                if e.icon3 and e.icon2 then e.icon3:SetTexture(e.icon2:GetTexture()) end
+                if e.icon2 then e.icon2:SetTexture(e.icon:GetTexture()) end
                 e.icon:SetTexture(data.icon)
                 e.frame._itemLink = data.link
             end
+            UpdateStackIcons(e, effectiveKey == JUNK_KEY and newCount or 0)
             -- Jump to hold phase and reset hold timer so entry stays visible
             local entranceDur = GetQualityEntrance(e.quality)
             e.elapsed = entranceDur
@@ -646,12 +782,17 @@ function Cache.ShowToast(data)
 
     entry.icon:SetTexture(data.icon)
     entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
+    entry._bgR, entry._bgG, entry._bgB = data.br, data.bg, data.bb
     entry.text:SetText(displayText)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
     entry.shadow:SetText(displayText)
     entry.frame._itemLink = data.link
-    entry._itemKey  = effectiveKey
-    entry._count    = initialCount
+    entry._itemKey     = effectiveKey
+    entry._count       = initialCount
+    -- For junk entries remember the originating item so TryMergeToast can tell
+    -- whether a subsequent loot is the same item (keep name) or a different one (switch to "Junk").
+    entry._origItemKey = (effectiveKey == JUNK_KEY) and data.itemKey or nil
+    UpdateStackIcons(entry, effectiveKey == JUNK_KEY and initialCount or 0)
 
     entry.active   = true
     entry.elapsed  = 0
@@ -733,6 +874,10 @@ function Cache.ClearActiveToasts()
             e._count   = nil
             e.frame:Hide()
             e.frame:SetAlpha(0)
+            if e.icon2   then e.icon2:Hide()   end
+            if e.icon3   then e.icon3:Hide()   end
+            if e.iconBg2 then e.iconBg2:Hide() end
+            if e.iconBg3 then e.iconBg3:Hide() end
         end
     end
     state.activeCount = 0
@@ -783,9 +928,18 @@ function Cache.ApplyScale()
     for i = 1, Cache.POOL_SIZE do
         local e = state.pool[i]
         if e then
-            if e.frame  then e.frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT)) end
-            if e.iconBg then e.iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)) end
-            if e.icon   then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
+            if e.frame       then e.frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT)) end
+            local bgSz = S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)
+            if e.iconBgAnchor then e.iconBgAnchor:SetSize(bgSz, bgSz) end
+            if e.iconBg       then e.iconBg:SetSize(bgSz, bgSz) end
+            -- For active junk stacks re-run the layout so sizes/positions rescale correctly.
+            if e.active and e._itemKey == JUNK_KEY and e._count and e._count >= 2 then
+                UpdateStackIcons(e, e._count)
+            else
+                if e.icon3 then e.icon3:Hide() end
+                if e.icon2 then e.icon2:Hide() end
+                if e.icon  then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
+            end
             if e.shine  then e.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
             -- Explicit per-FontString SetFont overrides any direct-set override a
             -- third-party addon may have applied on top of our FontObject.
