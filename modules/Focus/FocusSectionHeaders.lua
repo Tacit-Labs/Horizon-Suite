@@ -50,7 +50,7 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     label = addon.ApplyTextCase(label, "sectionHeaderTextCase", "upper")
     local color = addon.GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     s.text:SetText(label)
-    s.shadow:SetText(label)
+    s.shadow:SetText(addon.PlainTextForShadowFontString(label))
     local secA = addon.SECTION_COLOR_A or 1
     if addon.ShouldDimSectionHeaderForSuperTrack(groupKey, focusedGroupKey) then
         secA = secA * addon.GetDimAlpha()

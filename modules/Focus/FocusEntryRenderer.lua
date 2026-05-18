@@ -1037,7 +1037,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         obj.text:SetWidth(completeRowW)
         obj.shadow:SetWidth(completeRowW)
         obj.text:SetText(firstLineText)
-        obj.shadow:SetText(firstLineText)
+        obj.shadow:SetText(addon.PlainTextForShadowFontString(firstLineText))
         obj._hsFinished = true
         obj._hsAlpha = 1
         obj.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
@@ -1064,7 +1064,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             obj2.text:SetWidth(objTextWidth)
             obj2.shadow:SetWidth(objTextWidth)
             obj2.text:SetText(clickText)
-            obj2.shadow:SetText(clickText)
+            obj2.shadow:SetText(addon.PlainTextForShadowFontString(clickText))
             obj2._hsFinished = true
             obj2._hsAlpha = 1
             obj2.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
@@ -1880,11 +1880,11 @@ local function PopulateEntry(entry, questData, groupKey)
         displayTitle = ("%s [%d]"):format(displayTitle, questData.level)
     end
     entry.titleText:SetText(displayTitle)
-    entry.titleShadow:SetText(displayTitle)
+    entry.titleShadow:SetText(addon.PlainTextForShadowFontString(displayTitle))
 
     if delveLivesActive and entry.delveLivesText then
         entry.delveLivesText:SetText(delveLivesStr)
-        if entry.delveLivesShadow then entry.delveLivesShadow:SetText(delveLivesStr) end
+        if entry.delveLivesShadow then entry.delveLivesShadow:SetText(addon.PlainTextForShadowFontString(delveLivesStr)) end
         entry.delveLivesText:ClearAllPoints()
         entry.delveLivesText:SetPoint("TOPLEFT", entry.titleText, "TOPRIGHT", S(4), 0)
         entry.delveLivesText:Show()
@@ -1900,7 +1900,7 @@ local function PopulateEntry(entry, questData, groupKey)
 
     if delveGroupsActive and entry.delveGroupsText then
         entry.delveGroupsText:SetText(delveGroupsStr)
-        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetText(delveGroupsStr) end
+        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetText(addon.PlainTextForShadowFontString(delveGroupsStr)) end
         entry.delveGroupsText:ClearAllPoints()
         local anchor = (delveLivesActive and entry.delveLivesText) and entry.delveLivesText or entry.titleText
         entry.delveGroupsText:SetPoint("TOPLEFT", anchor, "TOPRIGHT", S(4), 0)
@@ -2109,7 +2109,7 @@ local function PopulateEntry(entry, questData, groupKey)
             zoneLabel = ("[Off-map] %s"):format(zoneLabel)
         end
         entry.zoneText:SetText(zoneLabel)
-        entry.zoneShadow:SetText(zoneLabel)
+        entry.zoneShadow:SetText(addon.PlainTextForShadowFontString(zoneLabel))
         local zoneColor = (addon.GetZoneColor and addon.GetZoneColor(effectiveCat)) or addon.ZONE_COLOR
         if addon.ShouldApplySuperTrackQuestDim(questData) then
             zoneColor = addon.ApplyDimColor(zoneColor)
@@ -2130,7 +2130,7 @@ local function PopulateEntry(entry, questData, groupKey)
             stageLabel = stageFmt:format(questData.stageIndex, questData.stageName)
         end
         entry.zoneText:SetText(stageLabel)
-        entry.zoneShadow:SetText(stageLabel)
+        entry.zoneShadow:SetText(addon.PlainTextForShadowFontString(stageLabel))
         local stageColor = (addon.GetScenarioStageColor and addon.GetScenarioStageColor()) or addon.ZONE_COLOR or { 0.55, 0.65, 0.75 }
         if addon.ShouldApplySuperTrackQuestDim(questData) then
             stageColor = addon.ApplyDimColor(stageColor)
