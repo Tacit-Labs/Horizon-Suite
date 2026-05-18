@@ -205,6 +205,12 @@ local function ShowHonorLevel()
     return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
 end
 
+local function ShowAchievementPoints()
+    local mode = GetInsightDisplayMode("insightAchievementPointsMode", "insightShowAchievementPoints")
+    if mode == "hide" then return false end
+    return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
+end
+
 -- ============================================================================
 -- INSPECT CACHE
 -- ============================================================================
@@ -671,6 +677,23 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
         end)
     end
 
+    if ShowAchievementPoints() then
+        local isSelf = false
+        pcall(function()
+            if UnitIsUnit(unit, "player") then isSelf = true else isSelf = false end
+        end)
+        if isSelf then
+            local ok, points = pcall(GetTotalAchievementPoints)
+            if ok and points and points > 0 then
+                EnsureStatsSep()
+                Insight.TagLines(tooltip, "stats", function()
+                    local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.ACHIEVEMENT_ICON or ""
+                    tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(points), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
+                end)
+            end
+        end
+    end
+
     if cached then
         if ShowIlvl() and cached.ilvl then
             Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
@@ -1046,6 +1069,14 @@ function Insight.RenderTestTooltipContent(tooltip)
         Insight.TagLines(tooltip, "stats", function()
             local icon = (showIcons and ShowRatingsIcons()) and Insight.HONOR_ICON or ""
             tooltip:AddLine(icon .. "Honor Level: " .. Insight.FormatNumberWithCommas(247), fc[1], fc[2], fc[3])
+        end)
+    end
+
+    if ShowAchievementPoints() then
+        ensureStatsSep()
+        Insight.TagLines(tooltip, "stats", function()
+            local icon = (showIcons and ShowRatingsIcons()) and Insight.ACHIEVEMENT_ICON or ""
+            tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(28650), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
         end)
     end
 

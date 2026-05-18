@@ -105,9 +105,11 @@ Insight.ROLE_COLORS = {
     DAMAGER = { 1.00, 0.55, 0.20 },
 }
 
-Insight.MYTHIC_ICON = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:0:0:64:64:5:59:5:59|t "
-Insight.HONOR_ICON  = "|T132147:14:14:0:0:64:64:5:59:5:59|t "
-Insight.ILVL_ICON   = "|T1030901:14:14:0:0:64:64:5:59:5:59|t "
+Insight.MYTHIC_ICON       = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:0:0:64:64:5:59:5:59|t "
+Insight.HONOR_ICON        = "|T132147:14:14:0:0:64:64:5:59:5:59|t "
+Insight.ILVL_ICON         = "|T1030901:14:14:0:0:64:64:5:59:5:59|t "
+Insight.ACHIEVEMENT_ICON  = "|TInterface\\Icons\\achievement_general:14:14:0:0:64:64:5:59:5:59|t "
+Insight.ACHIEVEMENT_POINTS_COLOR = { 1.00, 0.82, 0.00 }
 Insight.SEPARATOR   = string.rep("-", 22)
 Insight.SEP_COLOR   = { 0.18, 0.18, 0.18 }
 

@@ -34,6 +34,7 @@ addon.INSIGHT_KEYS = {
     insightTitleColorB           = true,
     insightShowHonorLevel        = true,
     insightHonorLevelMode        = true,
+    insightAchievementPointsMode = false,
     insightShowStatusBadges      = true,
     insightStatusBadgeCombat     = true,
     insightStatusBadgeAFK        = true,
