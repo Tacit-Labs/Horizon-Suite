@@ -50,9 +50,8 @@ end
 local POPUP_STRATA = { FULLSCREEN_DIALOG = true, DIALOG = true, FULLSCREEN = true }
 
 -- KillDynamicItemRevealPopup is called by the rolling ticker after any loot/reward event.
--- Kills ContainerOpeningUI and any shown UIParent child at elevated strata that belongs
--- to the AlertFrame pool (identified by its anchor to AlertFrame — pool frames have no
--- global name so child-name checks don't work for them).
+-- Handles non-AlertFrame popup paths (ContainerOpeningUI, ItemDisplay.xml-style popups).
+-- AlertFrame-based toasts are suppressed earlier by InstallAlertShowHook.
 function Y.KillDynamicItemRevealPopup()
     pcall(function()
         -- Reward cache opening frame (Delve Bountiful Chest, etc.)
@@ -60,33 +59,15 @@ function Y.KillDynamicItemRevealPopup()
 
         if not UIParent or not UIParent.GetChildren then return end
         for _, frame in ipairs({ UIParent:GetChildren() }) do
-            if frame and frame.GetFrameStrata and POPUP_STRATA[frame:GetFrameStrata()]
-                and frame.IsShown and frame:IsShown()
-            then
-                local killed = false
-                -- AlertFrame pool frames (loot/money toasts) are anonymous — GetName()
-                -- returns nil. Identify them by their SetPoint anchor to AlertFrame.
-                if AlertFrame and frame.GetNumPoints then
-                    for p = 1, frame:GetNumPoints() do
-                        local ok, _, relativeTo = pcall(frame.GetPoint, frame, p)
-                        if ok and relativeTo == AlertFrame then
-                            KillBlizzardFrame(frame)
-                            killed = true
-                            break
-                        end
-                    end
-                end
-                -- Fallback: named frames whose children match Item*/lootItem patterns.
-                -- "ItemName", "ItemButton", "Item*" — ItemDisplay.xml style
-                -- "lootItem" — AlertFrameSystems.xml bonus-loot style
-                if not killed then
-                    local children = frame.GetChildren and { frame:GetChildren() } or {}
-                    for _, sub in ipairs(children) do
-                        local name = sub and sub.GetName and sub:GetName()
-                        if name and (name == "ItemName" or name == "lootItem" or name:find("^Item")) then
-                            KillBlizzardFrame(frame)
-                            break
-                        end
+            if frame and frame.GetFrameStrata and POPUP_STRATA[frame:GetFrameStrata()] then
+                local children = frame.GetChildren and { frame:GetChildren() } or {}
+                for _, sub in ipairs(children) do
+                    local name = sub and sub.GetName and sub:GetName()
+                    -- "ItemName", "Item*" — ItemDisplay.xml style
+                    -- "lootItem"          — AlertFrameSystems.xml bonus-loot style
+                    if name and (name == "ItemName" or name == "lootItem" or name:find("^Item")) then
+                        KillBlizzardFrame(frame)
+                        break
                     end
                 end
             end
