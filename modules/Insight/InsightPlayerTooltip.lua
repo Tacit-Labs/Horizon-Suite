@@ -8,8 +8,9 @@ local addon = _G.HorizonSuite
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
-local INSPECT_THROTTLE = 1.5
-local CACHE_TTL        = 300
+local INSPECT_THROTTLE      = 1.5
+local ACHIEVEMENT_THROTTLE  = 2.0
+local CACHE_TTL             = 300
 local CACHE_MAX             = 100
 
 local MOUNT_READY_TEX  = "Interface\\RaidFrame\\ReadyCheck-Ready"
@@ -220,6 +221,15 @@ Insight.inspectCache = inspectCache
 
 local lastInspect = 0
 
+-- ============================================================================
+-- ACHIEVEMENT CACHE
+-- ============================================================================
+
+local achievementCache = {}
+Insight.achievementCache = achievementCache
+
+local lastAchievementRequest = 0
+
 function Insight.PruneInspectCache()
     local now   = GetTime()
     local count = 0
@@ -240,6 +250,25 @@ function Insight.PruneInspectCache()
     end
 end
 
+function Insight.PruneAchievementCache()
+    local now   = GetTime()
+    local count = 0
+    local oldest, oldestKey
+    for guid, entry in pairs(achievementCache) do
+        if now - entry.time > CACHE_TTL then
+            achievementCache[guid] = nil
+        else
+            count = count + 1
+            if not oldest or entry.time < oldest then
+                oldest    = entry.time
+                oldestKey = guid
+            end
+        end
+    end
+    if count > CACHE_MAX and oldestKey then
+        achievementCache[oldestKey] = nil
+    end
+end
 
 -- Midnight: UnitGUID and cache keys must not be truth-tested or compared outside pcall (secret string).
 local function GetInspectCachedForUnit(unit)
@@ -307,6 +336,24 @@ local function RequestInspect(unit)
     NotifyInspect(unit)
 end
 
+local function RequestAchievementComparison(unit)
+    local allowRequest = false
+    pcall(function()
+        if not UnitIsPlayer(unit) then return end
+        if UnitIsUnit(unit, "player") then return end
+        allowRequest = true
+    end)
+    if not allowRequest then return end
+    local now = GetTime()
+    if now - lastAchievementRequest < ACHIEVEMENT_THROTTLE then return end
+    lastAchievementRequest = now
+    if SetAchievementComparisonUnit then
+        if ClearAchievementComparisonUnit then
+            pcall(ClearAchievementComparisonUnit)
+        end
+        pcall(SetAchievementComparisonUnit, unit)
+    end
+end
 
 -- ============================================================================
 -- MOUNT SCANNER
@@ -680,19 +727,27 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
     end
 
     if ShowAchievementPoints() then
-        local isSelf = false
+        local achievedPoints = nil
         pcall(function()
-            if UnitIsUnit(unit, "player") then isSelf = true else isSelf = false end
-        end)
-        if isSelf then
-            local ok, points = pcall(GetTotalAchievementPoints)
-            if ok and points and points > 0 then
-                EnsureStatsSep()
-                Insight.TagLines(tooltip, "stats", function()
-                    local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.ACHIEVEMENT_ICON or ""
-                    tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(points), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
-                end)
+            if UnitIsUnit(unit, "player") then
+                local ok, pts = pcall(GetTotalAchievementPoints)
+                if ok and pts and pts > 0 then achievedPoints = pts end
+            else
+                local g = UnitGUID(unit)
+                local cachedAch = g and achievementCache[g]
+                if cachedAch then
+                    achievedPoints = cachedAch.points
+                else
+                    RequestAchievementComparison(unit)
+                end
             end
+        end)
+        if achievedPoints then
+            EnsureStatsSep()
+            Insight.TagLines(tooltip, "stats", function()
+                local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.ACHIEVEMENT_ICON or ""
+                tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(achievedPoints), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
+            end)
         end
     end
 
@@ -749,6 +804,17 @@ function Insight.CacheInspect(guid, unit)
     CacheInspect(guid, unit)
 end
 
+--- Cache achievement points for unit; used by INSPECT_ACHIEVEMENT_READY handler.
+function Insight.CacheAchievementPoints(unit)
+    pcall(function()
+        local g = UnitGUID(unit)
+        if not g then return end
+        if not GetComparisonAchievementPoints then return end
+        local points = GetComparisonAchievementPoints()
+        if not points or points <= 0 then return end
+        achievementCache[g] = { points = points, time = GetTime() }
+    end)
+end
 
 -- ============================================================================
 -- PROCESS PLAYER TOOLTIP
