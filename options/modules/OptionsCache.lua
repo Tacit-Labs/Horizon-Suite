@@ -11,6 +11,9 @@ local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local FONT_USE_GLOBAL                  = addon.FONT_USE_GLOBAL
 local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
 local DisplayPerElementFont            = addon.DisplayPerElementFont
+local Section                          = addon.Section
+local Button                           = addon.Button
+local Toggle                           = addon.Toggle
 local LIMITS                           = addon.CACHE_LIMITS
 
 local function clamp(v, key) local lim = LIMITS[key]; return math.max(lim.min, math.min(lim.max, v)) end
@@ -27,14 +30,14 @@ local categories = {
         desc = L["POSITIONING_VISIBILITY_CACHE_LOOT_TOAST_SYS"],
         moduleKey = "cache",
         options = {
-            { type = "section", name = L["AXIS_POSITION"] },
-            { type = "button", name = L["AXIS_ANCHOR_MOVE"], desc = L["AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION"], onClick = function()
+            Section(L["AXIS_POSITION"]),
+            Button(L["AXIS_ANCHOR_MOVE"], L["AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION"], function()
                 if addon.Cache and addon.Cache.ToggleAnchorFrame then addon.Cache.ToggleAnchorFrame() end
-            end },
-            { type = "button", name = L["AXIS_RESET_POSITION"], desc = L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"], onClick = function()
+            end),
+            Button(L["AXIS_RESET_POSITION"], L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"], function()
                 if addon.Cache and addon.Cache.ResetPosition then addon.Cache.ResetPosition() end
-            end },
-            { type = "section", name = L["CACHE_MAX_VISIBLE_SECTION"] },
+            end),
+            Section(L["CACHE_MAX_VISIBLE_SECTION"]),
             { type = "slider", name = L["CACHE_TOAST_OPACITY"], desc = L["CACHE_TOAST_OPACITY_DESC"], dbKey = "cacheToastOpacity",
                 min = LIMITS.cacheToastOpacity.min, max = LIMITS.cacheToastOpacity.max, step = 5,
                 get = function() return getSlider("cacheToastOpacity") end,
@@ -58,15 +61,15 @@ local categories = {
         desc = L["CACHE_TOAST_TYPES_PAGE_DESC"],
         moduleKey = "cache",
         options = {
-            { type = "section", name = L["CACHE_TOAST_TYPES"] },
-            { type = "toggle", name = L["CACHE_SHOW_ITEMS"],        desc = L["CACHE_SHOW_ITEMS_DESC"],        dbKey = "cacheShowItems",        get = function() return getDB("cacheShowItems",        addon.CACHE_DEFAULTS.cacheShowItems)        end, set = function(v) setDB("cacheShowItems",        v) end, refreshIds = { "cacheMinQuality", "cacheShowPushedItems" } },
-            { type = "toggle", name = L["CACHE_SHOW_PUSHED_ITEMS"], desc = L["CACHE_SHOW_PUSHED_ITEMS_DESC"], dbKey = "cacheShowPushedItems", get = function() return getDB("cacheShowPushedItems", addon.CACHE_DEFAULTS.cacheShowPushedItems) end, set = function(v) setDB("cacheShowPushedItems", v) end, disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end },
-            { type = "toggle", name = L["CACHE_SHOW_MONEY"],    desc = L["CACHE_SHOW_MONEY_DESC"],    dbKey = "cacheShowMoney",    get = function() return getDB("cacheShowMoney",    addon.CACHE_DEFAULTS.cacheShowMoney)    end, set = function(v) setDB("cacheShowMoney",    v) end },
-            { type = "toggle", name = L["CACHE_SHOW_CURRENCY"], desc = L["CACHE_SHOW_CURRENCY_DESC"], dbKey = "cacheShowCurrency", get = function() return getDB("cacheShowCurrency", addon.CACHE_DEFAULTS.cacheShowCurrency) end, set = function(v) setDB("cacheShowCurrency", v) end },
-            { type = "toggle", name = L["CACHE_SHOW_REP"],      desc = L["CACHE_SHOW_REP_DESC"],      dbKey = "cacheShowRep",      get = function() return getDB("cacheShowRep",      addon.CACHE_DEFAULTS.cacheShowRep)      end, set = function(v) setDB("cacheShowRep",      v) end },
-            { type = "section", name = L["CACHE_STACKING_SECTION"] },
-            { type = "toggle", name = L["CACHE_STACK_DUPLICATES"], desc = L["CACHE_STACK_DUPLICATES_DESC"], dbKey = "cacheStackDuplicates", get = function() return getDB("cacheStackDuplicates", addon.CACHE_DEFAULTS.cacheStackDuplicates) end, set = function(v) setDB("cacheStackDuplicates", v) end },
-            { type = "toggle", name = L["CACHE_CONDENSE_JUNK"],    desc = L["CACHE_CONDENSE_JUNK_DESC"],    dbKey = "cacheCondenseJunk",    get = function() return getDB("cacheCondenseJunk",    addon.CACHE_DEFAULTS.cacheCondenseJunk)    end, set = function(v) setDB("cacheCondenseJunk",    v) end, disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end },
+            Section(L["CACHE_TOAST_TYPES"]),
+            Toggle(L["CACHE_SHOW_ITEMS"],        L["CACHE_SHOW_ITEMS_DESC"],        "cacheShowItems",        addon.CACHE_DEFAULTS.cacheShowItems,        { refreshIds = { "cacheMinQuality", "cacheShowPushedItems" } }),
+            Toggle(L["CACHE_SHOW_PUSHED_ITEMS"], L["CACHE_SHOW_PUSHED_ITEMS_DESC"], "cacheShowPushedItems",  addon.CACHE_DEFAULTS.cacheShowPushedItems,  { disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end }),
+            Toggle(L["CACHE_SHOW_MONEY"],    L["CACHE_SHOW_MONEY_DESC"],    "cacheShowMoney",    addon.CACHE_DEFAULTS.cacheShowMoney),
+            Toggle(L["CACHE_SHOW_CURRENCY"], L["CACHE_SHOW_CURRENCY_DESC"], "cacheShowCurrency", addon.CACHE_DEFAULTS.cacheShowCurrency),
+            Toggle(L["CACHE_SHOW_REP"],      L["CACHE_SHOW_REP_DESC"],      "cacheShowRep",      addon.CACHE_DEFAULTS.cacheShowRep),
+            Section(L["CACHE_STACKING_SECTION"]),
+            Toggle(L["CACHE_STACK_DUPLICATES"], L["CACHE_STACK_DUPLICATES_DESC"], "cacheStackDuplicates", addon.CACHE_DEFAULTS.cacheStackDuplicates),
+            Toggle(L["CACHE_CONDENSE_JUNK"],    L["CACHE_CONDENSE_JUNK_DESC"],    "cacheCondenseJunk",    addon.CACHE_DEFAULTS.cacheCondenseJunk,    { disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end }),
             { type = "dropdown", name = L["CACHE_MIN_QUALITY"], desc = L["CACHE_MIN_QUALITY_DESC"], dbKey = "cacheMinQuality",
                 options = function()
                     return {
@@ -82,8 +85,8 @@ local categories = {
                 set = function(v) setDB("cacheMinQuality", v) end,
                 disabled = function() return getDB("cacheShowItems", addon.CACHE_DEFAULTS.cacheShowItems) == false end,
             },
-            { type = "section", name = L["CACHE_BLIZZARD_SECTION"] },
-            { type = "toggle", name = L["CACHE_SUPPRESS_BLIZZARD"], desc = L["CACHE_SUPPRESS_BLIZZARD_DESC"], dbKey = "cacheSuppressBlizzard", get = function() return getDB("cacheSuppressBlizzard", addon.CACHE_DEFAULTS.cacheSuppressBlizzard) end, set = function(v) setDB("cacheSuppressBlizzard", v) end },
+            Section(L["CACHE_BLIZZARD_SECTION"]),
+            Toggle(L["CACHE_SUPPRESS_BLIZZARD"], L["CACHE_SUPPRESS_BLIZZARD_DESC"], "cacheSuppressBlizzard", addon.CACHE_DEFAULTS.cacheSuppressBlizzard),
         },
     },
     {
@@ -92,7 +95,7 @@ local categories = {
         desc = L["CACHE_HOLD_DURATIONS_PAGE_DESC"],
         moduleKey = "cache",
         options = {
-            { type = "section", name = L["CACHE_HOLD_DURATIONS"] },
+            Section(L["CACHE_HOLD_DURATIONS"]),
             { type = "slider", name = L["CACHE_HOLD_ITEM"],      desc = L["CACHE_HOLD_ITEM_DESC"],      dbKey = "cacheHoldItem",
                 min = LIMITS.cacheHoldItem.min, max = LIMITS.cacheHoldItem.max, step = 0.5,
                 get = function() return getSlider("cacheHoldItem") end,
@@ -143,8 +146,8 @@ local categories = {
         desc = L["CACHE_SOUNDS_PAGE_DESC"],
         moduleKey = "cache",
         options = {
-            { type = "section", name = L["CACHE_SOUNDS"] },
-            { type = "toggle", name = L["CACHE_SOUND_ENABLED"],  desc = L["CACHE_SOUND_ENABLED_DESC"],  dbKey = "cacheSoundEnabled",  get = function() return getDB("cacheSoundEnabled",  addon.CACHE_DEFAULTS.cacheSoundEnabled)  end, set = function(v) setDB("cacheSoundEnabled",  v) end },
+            Section(L["CACHE_SOUNDS"]),
+            Toggle(L["CACHE_SOUND_ENABLED"], L["CACHE_SOUND_ENABLED_DESC"], "cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled),
             { type = "dropdown", name = L["CACHE_SOUND_CHANNEL"], desc = L["CACHE_SOUND_CHANNEL_DESC"], dbKey = "cacheSoundChannel",
                 options = {
                     { L["CACHE_SOUND_CH_SFX"],      "SFX"      },
@@ -157,10 +160,10 @@ local categories = {
                 set = function(v) setDB("cacheSoundChannel", v) end,
                 visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end,
             },
-            { type = "toggle", name = L["CACHE_SOUND_ITEMS"],    desc = L["CACHE_SOUND_ITEMS_DESC"],    dbKey = "cacheSoundItems",    get = function() return getDB("cacheSoundItems",    addon.CACHE_DEFAULTS.cacheSoundItems)    end, set = function(v) setDB("cacheSoundItems",    v) end, visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end },
-            { type = "toggle", name = L["CACHE_SOUND_MONEY"],    desc = L["CACHE_SOUND_MONEY_DESC"],    dbKey = "cacheSoundMoney",    get = function() return getDB("cacheSoundMoney",    addon.CACHE_DEFAULTS.cacheSoundMoney)    end, set = function(v) setDB("cacheSoundMoney",    v) end, visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end },
-            { type = "toggle", name = L["CACHE_SOUND_CURRENCY"], desc = L["CACHE_SOUND_CURRENCY_DESC"], dbKey = "cacheSoundCurrency", get = function() return getDB("cacheSoundCurrency", addon.CACHE_DEFAULTS.cacheSoundCurrency) end, set = function(v) setDB("cacheSoundCurrency", v) end, visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end },
-            { type = "toggle", name = L["CACHE_SOUND_REP"],      desc = L["CACHE_SOUND_REP_DESC"],      dbKey = "cacheSoundRep",      get = function() return getDB("cacheSoundRep",      addon.CACHE_DEFAULTS.cacheSoundRep)      end, set = function(v) setDB("cacheSoundRep",      v) end, visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end },
+            Toggle(L["CACHE_SOUND_ITEMS"],    L["CACHE_SOUND_ITEMS_DESC"],    "cacheSoundItems",    addon.CACHE_DEFAULTS.cacheSoundItems,    { visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end }),
+            Toggle(L["CACHE_SOUND_MONEY"],    L["CACHE_SOUND_MONEY_DESC"],    "cacheSoundMoney",    addon.CACHE_DEFAULTS.cacheSoundMoney,    { visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end }),
+            Toggle(L["CACHE_SOUND_CURRENCY"], L["CACHE_SOUND_CURRENCY_DESC"], "cacheSoundCurrency", addon.CACHE_DEFAULTS.cacheSoundCurrency, { visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end }),
+            Toggle(L["CACHE_SOUND_REP"],      L["CACHE_SOUND_REP_DESC"],      "cacheSoundRep",      addon.CACHE_DEFAULTS.cacheSoundRep,      { visibleWhen = function() return getDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) ~= false end }),
         },
     },
     {
@@ -169,7 +172,7 @@ local categories = {
         desc = L["CACHE_TYPOGRAPHY_PAGE_DESC"],
         moduleKey = "cache",
         options = {
-            { type = "section", name = L["DASH_TYPOGRAPHY"] },
+            Section(L["DASH_TYPOGRAPHY"]),
             { type = "toggle", name = L["CACHE_TEXT_OUTLINE"], desc = L["CACHE_TEXT_OUTLINE_DESC"], dbKey = "cacheTextOutline",
                 get = function() return getDB("cacheTextOutline", addon.CACHE_DEFAULTS.cacheTextOutline) ~= false end,
                 set = function(v) setDB("cacheTextOutline", v) end,
@@ -198,10 +201,10 @@ local categories = {
         desc = L["CACHE_PREVIEW_PAGE_DESC"],
         moduleKey = "cache",
         options = {
-            { type = "section", name = L["CACHE_PREVIEW_SECTION"] },
-            { type = "button", name = L["CACHE_PREVIEW"], desc = L["CACHE_PREVIEW_DESC"], onClick = function()
+            Section(L["CACHE_PREVIEW_SECTION"]),
+            Button(L["CACHE_PREVIEW"], L["CACHE_PREVIEW_DESC"], function()
                 if addon.Cache and addon.Cache.PreviewToasts then addon.Cache.PreviewToasts() end
-            end },
+            end),
         },
     },
 }
