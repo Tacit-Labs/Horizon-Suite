@@ -49,9 +49,10 @@ end
 -- Strata levels where item-reveal popups may appear (varies by WoW version/context).
 local POPUP_STRATA = { FULLSCREEN_DIALOG = true, DIALOG = true, FULLSCREEN = true }
 
--- KillDynamicItemRevealPopup is called after SHOW_LOOT_TOAST* events.
--- Scans UIParent children at elevated strata for item reveal popups and
--- explicitly suppresses ContainerOpeningUI (Delve/reward cache opening frame).
+-- KillDynamicItemRevealPopup is called by the rolling ticker after any loot/reward event.
+-- Kills ContainerOpeningUI and any shown UIParent child at elevated strata that belongs
+-- to the AlertFrame pool (identified by its anchor to AlertFrame — pool frames have no
+-- global name so child-name checks don't work for them).
 function Y.KillDynamicItemRevealPopup()
     pcall(function()
         -- Reward cache opening frame (Delve Bountiful Chest, etc.)
@@ -59,15 +60,31 @@ function Y.KillDynamicItemRevealPopup()
 
         if not UIParent or not UIParent.GetChildren then return end
         for _, frame in ipairs({ UIParent:GetChildren() }) do
-            if frame and frame.GetFrameStrata and POPUP_STRATA[frame:GetFrameStrata()] then
-                local children = frame.GetChildren and { frame:GetChildren() } or {}
-                for _, sub in ipairs(children) do
-                    local name = sub and sub.GetName and sub:GetName()
-                    -- Match "ItemName", "ItemButton", "Item" child patterns used across
-                    -- different WoW versions for item reveal popups.
-                    if name and (name == "ItemName" or name:find("^Item")) then
-                        KillBlizzardFrame(frame)
-                        break
+            if frame and frame.GetFrameStrata and POPUP_STRATA[frame:GetFrameStrata()]
+                and frame.IsShown and frame:IsShown()
+            then
+                local killed = false
+                -- AlertFrame pool frames (loot/money toasts) are anonymous — GetName()
+                -- returns nil. Identify them by their SetPoint anchor to AlertFrame.
+                if AlertFrame and frame.GetNumPoints then
+                    for p = 1, frame:GetNumPoints() do
+                        local ok, _, relativeTo = pcall(frame.GetPoint, frame, p)
+                        if ok and relativeTo == AlertFrame then
+                            KillBlizzardFrame(frame)
+                            killed = true
+                            break
+                        end
+                    end
+                end
+                -- Fallback: named frames whose children match Item* patterns.
+                if not killed then
+                    local children = frame.GetChildren and { frame:GetChildren() } or {}
+                    for _, sub in ipairs(children) do
+                        local name = sub and sub.GetName and sub:GetName()
+                        if name and (name == "ItemName" or name:find("^Item")) then
+                            KillBlizzardFrame(frame)
+                            break
+                        end
                     end
                 end
             end
@@ -111,6 +128,8 @@ local alertHookInstalled = false
 local function InstallAlertHook()
     if alertHookInstalled then return end
     alertHookInstalled = true
+
+    -- Suppress any alert system that registers lazily after our initial pass.
     pcall(function()
         if AlertFrame_RegisterQueuedAlertSystem then
             hooksecurefunc("AlertFrame_RegisterQueuedAlertSystem", function(system)
@@ -119,6 +138,34 @@ local function InstallAlertHook()
                 then
                     SuppressAlertSystem(system)
                 end
+            end)
+        end
+    end)
+
+    -- AlertFrame:UpdateAnchors is called every time it positions a new alert frame.
+    -- Hooking it lets us kill pool frames (which have no global name) the moment
+    -- AlertFrame tries to lay them out — proactive rather than reactive.
+    pcall(function()
+        if AlertFrame and AlertFrame.UpdateAnchors then
+            hooksecurefunc(AlertFrame, "UpdateAnchors", function()
+                if not (addon:IsModuleEnabled("cache")
+                    and addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true))
+                then return end
+                pcall(function()
+                    if not UIParent or not UIParent.GetChildren then return end
+                    for _, frame in ipairs({ UIParent:GetChildren() }) do
+                        if frame and frame.IsShown and frame:IsShown() and frame.GetNumPoints then
+                            for p = 1, frame:GetNumPoints() do
+                                local ok, _, relativeTo = pcall(frame.GetPoint, frame, p)
+                                if ok and relativeTo == AlertFrame then
+                                    frame:Hide()
+                                    frame:SetAlpha(0)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end)
             end)
         end
     end)
