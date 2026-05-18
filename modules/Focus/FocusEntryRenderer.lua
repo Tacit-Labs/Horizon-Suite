@@ -4,7 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- Middle dot between delve affix names; rendered in default game FontStrings (affixSepSegs), not the user title font.
 local DELVE_AFFIX_SEPARATOR_TEXT = "  ·  "
 
@@ -2101,7 +2101,7 @@ local function PopulateEntry(entry, questData, groupKey)
     local playerZone = addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName() or nil
     local inCurrentZone = questData.isNearby or (questData.zoneName and playerZone and questData.zoneName:lower() == playerZone:lower())
     -- Prey activities: "Activity" is a semantic label, not a zone—always show it even when in-zone
-    local isActivityLabel = questData.zoneName and (questData.zoneName == "Activity" or questData.zoneName == L["FOCUS_ACTIVITY"])
+    local isActivityLabel = L["FOCUS_ACTIVITY"]
     local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel)
     local shouldShowScenarioStage = questData.stageName and (questData.category == "SCENARIO" or questData.isScenarioMain)
         and (questData.title ~= questData.stageName)
