@@ -79,12 +79,27 @@ end
 -- Used by RestoreBlizzard to re-enable them without needing to know their names.
 local suppressedSystems = {}
 
+-- Tracks which systems already have the re-enablement hook installed
+-- so we don't double-hook across multiple SuppressBlizzard calls.
+local reenableGuard = {}
+
 local function SuppressAlertSystem(system)
     if not system then return end
     pcall(function()
-        if system.SetEnabled then
-            system:SetEnabled(false)
-            suppressedSystems[system] = true
+        if not system.SetEnabled then return end
+        system:SetEnabled(false)
+        suppressedSystems[system] = true
+        -- Intercept any future SetEnabled(true) call Blizzard makes mid-session.
+        -- The hook fires after the original; checking suppressedSystems[self] means
+        -- we only fight back while suppression is active — RestoreBlizzard clears
+        -- the table first so re-enablement during restore is never blocked.
+        if not reenableGuard[system] then
+            reenableGuard[system] = true
+            hooksecurefunc(system, "SetEnabled", function(self, enabled)
+                if enabled and suppressedSystems[self] then
+                    self:SetEnabled(false)
+                end
+            end)
         end
     end)
 end
@@ -158,10 +173,14 @@ function Y.ApplyBlizzardSuppression()
 end
 
 function Y.RestoreBlizzard()
-    for system in pairs(suppressedSystems) do
+    -- Collect first, then clear the table before calling SetEnabled(true) so
+    -- the re-enablement hooks installed by SuppressAlertSystem don't fight the restore.
+    local toRestore = {}
+    for system in pairs(suppressedSystems) do toRestore[#toRestore + 1] = system end
+    suppressedSystems = {}
+    for _, system in ipairs(toRestore) do
         pcall(function() if system.SetEnabled then system:SetEnabled(true) end end)
     end
-    suppressedSystems = {}
 
     for frame, info in pairs(killedFrames) do
         RestoreBlizzardFrame(frame, info)

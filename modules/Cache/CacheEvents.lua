@@ -122,21 +122,36 @@ handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(msg)
     end
 end
 
--- Epic/legendary loot toast events: kill the Blizzard popup without polling.
--- Extra delays cover animated reward caches (Delve Bountiful Chest, etc.) that
--- show their popup after a multi-second opening animation.
-local function OnBlizzardLootToast()
-    if Y.KillDynamicItemRevealPopup then
-        C_Timer.After(0.1, Y.KillDynamicItemRevealPopup)
-        C_Timer.After(0.4, Y.KillDynamicItemRevealPopup)
-        C_Timer.After(0.8, Y.KillDynamicItemRevealPopup)
-        C_Timer.After(1.5, Y.KillDynamicItemRevealPopup)
-    end
+-- Rolling kill ticker: fires KillDynamicItemRevealPopup every 0.2s for 5s.
+-- Covers animated chests (slow reveal), instant event rewards, and anything
+-- in between. Any new loot/reward event resets and extends the window.
+local killTicker = nil
+local KILL_INTERVAL = 0.2
+local KILL_DURATION = 5.0
+
+local function StartKillTicker()
+    if not Y.KillDynamicItemRevealPopup then return end
+    if killTicker then killTicker:Cancel(); killTicker = nil end
+    Y.KillDynamicItemRevealPopup()  -- immediate pass before first tick
+    local elapsed = 0
+    killTicker = C_Timer.NewTicker(KILL_INTERVAL, function()
+        elapsed = elapsed + KILL_INTERVAL
+        Y.KillDynamicItemRevealPopup()
+        if elapsed >= KILL_DURATION then
+            if killTicker then killTicker:Cancel() end
+            killTicker = nil
+        end
+    end)
 end
+
+local function OnBlizzardLootToast() StartKillTicker() end
 handlers.SHOW_LOOT_TOAST                  = OnBlizzardLootToast
 handlers.SHOW_LOOT_TOAST_UPGRADE          = OnBlizzardLootToast
 handlers.SHOW_LOOT_TOAST_LEGENDARY_LOOTED = OnBlizzardLootToast
 handlers.LOOT_ITEM_ROLL_WON               = OnBlizzardLootToast
+-- Scenario/quest completions can reward items via popups that bypass SHOW_LOOT_TOAST.
+handlers.SCENARIO_COMPLETED               = OnBlizzardLootToast
+handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
 
 local function OnEvent(_, event, msg, ...)
     local handler = handlers[event]
@@ -168,6 +183,8 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_LOOT_TOAST_UPGRADE")
     pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_LOOT_TOAST_LEGENDARY_LOOTED")
     pcall(eventFrame.RegisterEvent, eventFrame, "LOOT_ITEM_ROLL_WON")
+    pcall(eventFrame.RegisterEvent, eventFrame, "SCENARIO_COMPLETED")
+    pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
     eventsRegistered = true
 end
 
