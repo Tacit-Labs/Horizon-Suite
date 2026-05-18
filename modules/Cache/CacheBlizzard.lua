@@ -76,12 +76,14 @@ function Y.KillDynamicItemRevealPopup()
                         end
                     end
                 end
-                -- Fallback: named frames whose children match Item* patterns.
+                -- Fallback: named frames whose children match Item*/lootItem patterns.
+                -- "ItemName", "ItemButton", "Item*" — ItemDisplay.xml style
+                -- "lootItem" — AlertFrameSystems.xml bonus-loot style
                 if not killed then
                     local children = frame.GetChildren and { frame:GetChildren() } or {}
                     for _, sub in ipairs(children) do
                         local name = sub and sub.GetName and sub:GetName()
-                        if name and (name == "ItemName" or name:find("^Item")) then
+                        if name and (name == "ItemName" or name == "lootItem" or name:find("^Item")) then
                             KillBlizzardFrame(frame)
                             break
                         end
@@ -124,6 +126,44 @@ end
 -- Hook AlertFrame_RegisterQueuedAlertSystem once so any alert system that loads
 -- lazily (e.g. from an addon that initialises after us) is suppressed automatically.
 local alertHookInstalled = false
+
+-- Hook AlertFrame_ShowNewAlertFrame so loot-type toasts are hidden the instant
+-- Blizzard tries to display them — before the next render cycle.
+-- This catches cases where SuppressAlertSystem loses the race (the system
+-- re-enables itself synchronously inside SetEnabled, showing the frame before
+-- our post-hook fires).
+local alertShowHookInstalled = false
+
+local function IsLootAlertFrame(alertFrame)
+    if not alertFrame or not alertFrame.GetChildren then return false end
+    for _, child in ipairs({ alertFrame:GetChildren() }) do
+        -- Check child name patterns (loot/item toast structures)
+        local name = child and child.GetName and child:GetName()
+        if name and (name == "ItemName" or name == "lootItem"
+            or name:find("^Item") or name:lower():find("loot"))
+        then
+            return true
+        end
+    end
+    return false
+end
+
+local function InstallAlertShowHook()
+    if alertShowHookInstalled then return end
+    alertShowHookInstalled = true
+    pcall(function()
+        if not AlertFrame_ShowNewAlertFrame then return end
+        hooksecurefunc("AlertFrame_ShowNewAlertFrame", function(alertFrame)
+            if not alertFrame then return end
+            if not addon:IsModuleEnabled("cache") then return end
+            if not (addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true)) then return end
+            if IsLootAlertFrame(alertFrame) then
+                alertFrame:Hide()
+                alertFrame:SetAlpha(0)
+            end
+        end)
+    end)
+end
 
 local function InstallAlertHook()
     if alertHookInstalled then return end
@@ -173,6 +213,7 @@ end
 
 function Y.SuppressBlizzard()
     InstallAlertHook()
+    InstallAlertShowHook()
 
     -- Known systems by global name
     SuppressAlertSystem(LootAlertSystem)

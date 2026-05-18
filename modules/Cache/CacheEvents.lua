@@ -133,6 +133,9 @@ local function StartKillTicker()
     if not Y.KillDynamicItemRevealPopup then return end
     if killTicker then killTicker:Cancel(); killTicker = nil end
     Y.KillDynamicItemRevealPopup()  -- immediate pass before first tick
+    -- Deferred pass: catches frames Blizzard creates in the same event cycle as us,
+    -- after all same-tick handlers have finished.
+    C_Timer.After(0, function() if Y.KillDynamicItemRevealPopup then Y.KillDynamicItemRevealPopup() end end)
     local elapsed = 0
     killTicker = C_Timer.NewTicker(KILL_INTERVAL, function()
         elapsed = elapsed + KILL_INTERVAL
@@ -149,6 +152,7 @@ handlers.SHOW_LOOT_TOAST                  = OnBlizzardLootToast
 handlers.SHOW_LOOT_TOAST_UPGRADE          = OnBlizzardLootToast
 handlers.SHOW_LOOT_TOAST_LEGENDARY_LOOTED = OnBlizzardLootToast
 handlers.LOOT_ITEM_ROLL_WON               = OnBlizzardLootToast
+handlers.BONUS_LOOT_ITEM_RECEIVED         = OnBlizzardLootToast
 -- Scenario/quest completions can reward items via popups that bypass SHOW_LOOT_TOAST.
 handlers.SCENARIO_COMPLETED               = OnBlizzardLootToast
 handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
@@ -183,6 +187,7 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_LOOT_TOAST_UPGRADE")
     pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_LOOT_TOAST_LEGENDARY_LOOTED")
     pcall(eventFrame.RegisterEvent, eventFrame, "LOOT_ITEM_ROLL_WON")
+    pcall(eventFrame.RegisterEvent, eventFrame, "BONUS_LOOT_ITEM_RECEIVED")
     pcall(eventFrame.RegisterEvent, eventFrame, "SCENARIO_COMPLETED")
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
     eventsRegistered = true
