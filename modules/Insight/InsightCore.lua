@@ -807,7 +807,6 @@ end
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("INSPECT_READY")
-eventFrame:RegisterEvent("INSPECT_ACHIEVEMENT_READY")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("MODIFIER_STATE_CHANGED")
@@ -871,17 +870,6 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
             end
         end
         if Insight.PruneInspectCache then Insight.PruneInspectCache() end
-        return
-    end
-    if event == "INSPECT_ACHIEVEMENT_READY" then
-        if not Insight.IsInsightEnabled() then return end
-        if SafeUnitExistsKnown("mouseover") ~= true then return end
-        if not UnitIsPlayer("mouseover") then return end
-        if Insight.CacheAchievementPoints then Insight.CacheAchievementPoints("mouseover") end
-        if TooltipPlainShown(GameTooltip) and GameTooltip._insightUnitTooltip then
-            GameTooltip:SetUnit("mouseover")
-        end
-        if Insight.PruneAchievementCache then Insight.PruneAchievementCache() end
     end
 end)
 
