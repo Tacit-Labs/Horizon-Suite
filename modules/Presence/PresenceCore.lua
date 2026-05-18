@@ -323,17 +323,23 @@ local function SetSafeFont(fs, path, size, flags)
 end
 
 local function getPresenceFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("fontPath", defaultFontPath) or defaultFontPath
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
 local function getPresenceTitleFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("presenceTitleFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
     if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
 local function getPresenceSubtitleFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("presenceSubtitleFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
     if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
@@ -349,6 +355,43 @@ local function getPresenceSubtitleFontOutline()
     local raw = addon.GetDB and addon.GetDB("presenceSubtitleFontOutline", "OUTLINE")
     if raw == nil then return "OUTLINE" end
     return raw
+end
+
+-- Per-FontString hook that re-asserts our desired font path whenever a
+-- font-replacement addon (e.g. Platynator) overrides SetFont or SetFontObject.
+-- Size is nil so PlayCinematic's variant-sized SetSafeFont calls go through unchanged;
+-- the lock only protects the font path. Mirrors LockDirectFont in PresenceTalkingHead.lua.
+local function LockDirectFont(fontString, getFont)
+    local busyObj  = false
+    local busyFont = false
+
+    hooksecurefunc(fontString, "SetFontObject", function(self, obj)
+        if busyObj or not obj then return end
+        local path, size, flags = getFont()
+        if not path then return end
+        local _, curSize, curFlags = self:GetFont()
+        busyObj = true
+        self:SetFontObject(nil)
+        self:SetFont(path, size or curSize or 12, flags or curFlags or "OUTLINE")
+        busyObj = false
+    end)
+
+    hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
+        if busyFont then return end
+        local targetPath, targetSize, targetFlags = getFont()
+        if not targetPath or path == targetPath then return end
+        busyFont = true
+        self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
+        busyFont = false
+    end)
+end
+
+local function GetPresenceTitleFont()
+    return getPresenceTitleFontPath(), nil, getPresenceTitleFontOutline()
+end
+
+local function GetPresenceSubFont()
+    return getPresenceSubtitleFontPath(), nil, getPresenceSubtitleFontOutline()
 end
 
 -- Variant-based sizes: large (sz 48), medium (sz 36), small (sz 28). Each has primary + secondary.
@@ -517,6 +560,13 @@ local function CreateLayer(parent)
     L.discoveryShadow:SetPoint("CENTER", L.discoveryText, "CENTER", shadowX, shadowY)
     L.discoveryText:SetAlpha(0)
     L.discoveryShadow:SetAlpha(0)
+
+    LockDirectFont(L.titleShadow,     GetPresenceTitleFont)
+    LockDirectFont(L.titleText,       GetPresenceTitleFont)
+    LockDirectFont(L.subShadow,       GetPresenceSubFont)
+    LockDirectFont(L.subText,         GetPresenceSubFont)
+    LockDirectFont(L.discoveryShadow, GetPresenceSubFont)
+    LockDirectFont(L.discoveryText,   GetPresenceSubFont)
 
     return L
 end
@@ -1535,12 +1585,30 @@ end
 -- ============================================================================
 
 --- Re-apply frame position and scale from DB. Call when presence options change.
+--- Also re-applies fonts to any currently-showing toast layers so that global font
+--- toggle changes take effect immediately without waiting for the next toast.
 --- @return nil
 local function ApplyPresenceOptions()
     if not F then return end
     F:ClearAllPoints()
     F:SetPoint("TOP", 0, getFrameY())
     F:SetScale(getFrameScale())
+    local function reapplyLayerFonts(layer)
+        if not layer then return end
+        local function fix(fs, getPath, getOutline)
+            if not fs then return end
+            local _, sz = fs:GetFont()
+            if sz then SetSafeFont(fs, getPath(), sz, getOutline()) end
+        end
+        fix(layer.titleText,       getPresenceTitleFontPath,    getPresenceTitleFontOutline)
+        fix(layer.titleShadow,     getPresenceTitleFontPath,    getPresenceTitleFontOutline)
+        fix(layer.subText,         getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.subShadow,       getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.discoveryText,   getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.discoveryShadow, getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+    end
+    reapplyLayerFonts(curLayer)
+    reapplyLayerFonts(oldLayer)
 end
 
 --- Returns the typeName of the currently playing or holding cinematic.

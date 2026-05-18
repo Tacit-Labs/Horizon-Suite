@@ -672,7 +672,8 @@ for i = 1, addon.SECTION_POOL_SIZE do
 end
 
 local function UpdateFontObjectsFromDB()
-    local fontPath   = addon.ResolveFontPath and addon.ResolveFontPath(addon.GetDB("fontPath", addon.GetDefaultFontPath())) or addon.GetDB("fontPath", addon.GetDefaultFontPath())
+    local activeGlobal = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    local fontPath = activeGlobal or (addon.ResolveFontPath and addon.ResolveFontPath(addon.GetDB("fontPath", addon.GetDefaultFontPath())) or addon.GetDB("fontPath", addon.GetDefaultFontPath()))
     local outline    = addon.GetDB("fontOutline", "OUTLINE")
     local fontOffset  = tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0
     local headerSz   = math.max(8, (tonumber(addon.GetDB("headerFontSize", 16)) or 16) + fontOffset)
@@ -682,7 +683,7 @@ local function UpdateFontObjectsFromDB()
     local sectionSz  = math.max(8, (tonumber(addon.GetDB("sectionFontSize", 10)) or 10) + fontOffset)
 
     local GLOBAL_SENTINEL = "__global__"
-    local usePer = addon.GetDB("usePerElementFonts", false)
+    local usePer = not activeGlobal and addon.GetDB("usePerElementFonts", false)
     local titleFontRaw   = addon.GetDB("titleFontPath", GLOBAL_SENTINEL)
     local zoneFontRaw    = addon.GetDB("zoneFontPath", GLOBAL_SENTINEL)
     local objFontRaw     = addon.GetDB("objectiveFontPath", GLOBAL_SENTINEL)

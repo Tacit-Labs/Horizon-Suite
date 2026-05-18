@@ -9,6 +9,8 @@ if not addon then return end
 -- Keys that drive UpdateFontObjectsFromDB when changed.
 addon.TYPOGRAPHY_KEYS = {
     fontPath = true,
+    useGlobalFont = true,
+    globalOverrideFontPath = true,
     usePerElementFonts = true,
     titleFontPath = true,
     presenceTitleFontPath = true,
