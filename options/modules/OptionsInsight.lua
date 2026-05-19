@@ -129,24 +129,36 @@ local categories = {
             Slider(L["INSIGHT_MOUNT_SIZE"], L["INSIGHT_MOUNT_FONT_SIZE"],  "insightPlayerMountSize",   LIM.insightPlayerMountSize.min,   LIM.insightPlayerMountSize.max,   D.insightPlayerMountSize),
         },
     },
-{
+    {
         key = "InsightTRP3",
-        name = "Total RP 3",
-        desc = "Integrate Total RP 3 character profiles into Insight player tooltips. TRP3's tooltip frame is suppressed; all RP data appears inside Insight's styled GameTooltip.",
+        name = L["INSIGHT_CATEGORY_TRP3"],
+        desc = L["INSIGHT_CATEGORY_TRP3_DESC"],
+        hidden = function()
+            -- Show if TRP3 is already active this session
+            if TRP3_API then return false end
+            -- Show if TRP3 is installed and enabled (handles HS loading before TRP3)
+            if C_AddOns and C_AddOns.GetAddOnInfo then
+                local ok, _, _, _, loadable = pcall(C_AddOns.GetAddOnInfo, "totalRP3")
+                if ok and loadable then return false end
+            end
+            return true
+        end,
         moduleKey = "insight",
         dashboardPreviewMode = "player",
         options = {
-            { type = "section", name = "Total RP 3" },
-            { type = "toggle", name = "RP name",             desc = "Replace the WoW character name with the player's TRP3 RP name when available.",                                   dbKey = "insightTRP3RPName",      get = function() return getDB("insightTRP3RPName",      true) end, set = function(v) setDB("insightTRP3RPName",      v) end },
-            { type = "toggle", name = "Custom colour",       desc = "Use the player's TRP3 custom name colour instead of their faction or class colour.",                               dbKey = "insightTRP3CustomColor", get = function() return getDB("insightTRP3CustomColor", true) end, set = function(v) setDB("insightTRP3CustomColor", v) end },
-            { type = "toggle", name = "Pronouns",            desc = "Show the player's TRP3 pronouns in the name line.",                                                                dbKey = "insightTRP3Pronouns",    get = function() return getDB("insightTRP3Pronouns",    true) end, set = function(v) setDB("insightTRP3Pronouns",    v) end },
-            { type = "toggle", name = "IC / OOC status",     desc = "Show a green [IC] or red [OOC] badge on the name line for players using Total RP 3.",                             dbKey = "insightTRP3ICStatus",    get = function() return getDB("insightTRP3ICStatus",    true) end, set = function(v) setDB("insightTRP3ICStatus",    v) end },
-            { type = "toggle", name = "Custom race & class", desc = "Show the player's TRP3 custom race and/or class below the standard race/class line.",                             dbKey = "insightTRP3RaceClass",   get = function() return getDB("insightTRP3RaceClass",   true) end, set = function(v) setDB("insightTRP3RaceClass",   v) end },
-            { type = "toggle", name = "Custom guild",        desc = "Show the player's TRP3 RP guild name when they have one (may differ from their WoW guild).",                      dbKey = "insightTRP3Guild",       get = function() return getDB("insightTRP3Guild",       true) end, set = function(v) setDB("insightTRP3Guild",       v) end },
-            { type = "toggle", name = "Currently",           desc = "Show the player's TRP3 'Currently' status text as a block at the bottom of the tooltip.",                        dbKey = "insightTRP3Currently",   get = function() return getDB("insightTRP3Currently",   true) end, set = function(v) setDB("insightTRP3Currently",   v) end },
-            { type = "toggle", name = "Character icon",      desc = "Show the player's TRP3 character icon as a small inline image before their name.",                                  dbKey = "insightTRP3Icon",        get = function() return getDB("insightTRP3Icon",        true) end, set = function(v) setDB("insightTRP3Icon",        v) end },
+            { type = "section", name = "Total RP 3", headerToggle = { dbKey = "insightTRP3Enabled", default = true }, dbKey = "insightTRP3Section" },
+            { type = "toggle", name = "RP Name",             desc = "Replace the WoW character name with the player's TRP3 RP name when available.",                                   dbKey = "insightTRP3RPName",       get = function() return getDB("insightTRP3RPName",       true)  end, set = function(v) setDB("insightTRP3RPName",       v) end, refreshIds = { "insightTRP3Section" } },
+            { type = "toggle", name = "Character Icon",      desc = "Show the player's TRP3 character icon before their name, replacing the faction symbol.",                          dbKey = "insightTRP3Icon",         get = function() return getDB("insightTRP3Icon",         true)  end, set = function(v) setDB("insightTRP3Icon",         v) end, visibleWhen = function() return getDB("insightTRP3RPName", true) end },
+            { type = "toggle", name = "Custom Colour",       desc = "Use the player's TRP3 custom name colour instead of their faction or class colour.",                               dbKey = "insightTRP3CustomColor",  get = function() return getDB("insightTRP3CustomColor",  true)  end, set = function(v) setDB("insightTRP3CustomColor",  v) end },
+            { type = "toggle", name = "Pronouns",            desc = "Show the player's TRP3 pronouns in the name line.",                                                                dbKey = "insightTRP3Pronouns",     get = function() return getDB("insightTRP3Pronouns",    true)  end, set = function(v) setDB("insightTRP3Pronouns",    v) end },
+            { type = "toggle", name = "IC / OOC Status",     desc = "Show a green [IC] or red [OOC] badge on the name line for players using Total RP 3.",                             dbKey = "insightTRP3ICStatus",     get = function() return getDB("insightTRP3ICStatus",    true)  end, set = function(v) setDB("insightTRP3ICStatus",    v) end, refreshIds = { "insightTRP3Section" } },
+            { type = "toggle", name = "Use Icon Indicator",  desc = "Show a colored green or red dot instead of [IC] / [OOC] text on the name line.",                                  dbKey = "insightTRP3ICStatusIcon", get = function() return getDB("insightTRP3ICStatusIcon", false) end, set = function(v) setDB("insightTRP3ICStatusIcon", v) end, visibleWhen = function() return getDB("insightTRP3ICStatus", true) end },
+            { type = "toggle",   name = "Full Title",          desc = "Show the player's TRP3 full title (e.g. < Keeper of the Dawnguard >) as a line below the name.",                           dbKey = "insightTRP3Title",        get = function() return getDB("insightTRP3Title",        true)  end, set = function(v) setDB("insightTRP3Title",        v) end },
+            { type = "toggle",   name = "Custom Race & Class", desc = "Show the player's TRP3 race/class near the bottom when available. The native race/class line moves there as a fallback.", dbKey = "insightTRP3RaceClass", get = function() return getDB("insightTRP3RaceClass", true) end, set = function(v) setDB("insightTRP3RaceClass", v) end },
+            { type = "toggle",   name = "Custom Guild",        desc = "Show the player's TRP3 guild near the bottom when available. The native guild line moves there as a fallback.",            dbKey = "insightTRP3Guild",     get = function() return getDB("insightTRP3Guild",     true) end, set = function(v) setDB("insightTRP3Guild",     v) end },
+            { type = "toggle",   name = "Currently",           desc = "Show the player's TRP3 'Currently' status text as a block at the bottom of the tooltip.",                      dbKey = "insightTRP3Currently",    get = function() return getDB("insightTRP3Currently",   true)  end, set = function(v) setDB("insightTRP3Currently",   v) end },
         },
-},
+    },
     {
         key = "InsightNpc",
         name = L["INSIGHT_CATEGORY_NPC"],
