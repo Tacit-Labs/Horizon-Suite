@@ -777,7 +777,9 @@ function addon.DashboardDetailView_Init(env)
         end
     end
 
-    local function CreateAccordionCard(parent, title)
+    --- headerToggleCfg (optional): { dbKey=string, default=boolean }
+    --- Adds a mini pill toggle to the card header wired to a DB key.
+    local function CreateAccordionCard(parent, title, headerToggleCfg)
         local card = CreateFrame("Frame", nil, parent)
         card:SetHeight(60)
         card:SetPoint("LEFT", parent, "LEFT", 0, 0)
@@ -808,13 +810,132 @@ function addon.DashboardDetailView_Init(env)
         accent:SetColorTexture(cr, cg, cb, 1)
         tinsert(dashAccentRefs.cardAccents, accent)
 
-        -- Chevron indicator
-        local chevron = MakeText(card, "+", 14, 0.5, 0.5, 0.55, "RIGHT")
-        chevron:SetPoint("TOPRIGHT", -25, -23)
-
         -- Title
         local lbl = MakeText(card, title:upper(), 15, 0.9, 0.9, 0.95, "LEFT")
         lbl:SetPoint("TOPLEFT", 35, -22)
+
+        -- Forward-declare so ExpandCollapseCard and headerToggleInit can reference it
+        -- before the actual definition (which needs sc/chevron to be in scope).
+        local updateExpandedVisuals
+
+        -- Shared expand/collapse logic used by both headerBtn and the header pill toggle
+        local function ExpandCollapseCard(targetExpanded)
+            if card.anim:IsPlaying() then return end
+            if targetExpanded == card.expanded then return end
+            card.expanded = targetExpanded
+            updateExpandedVisuals()
+            card.anim:Play()
+        end
+
+        -- Header toggle pill (replaces chevron when headerToggleCfg provided)
+        local chevron
+        if headerToggleCfg and headerToggleCfg.dbKey then
+            local htDbKey   = headerToggleCfg.dbKey
+            local htDefault = headerToggleCfg.default
+            if htDefault == nil then htDefault = true end
+
+            -- Full-size pill matching OptionsWidgets toggle (48×22, thumb 18, inset 2)
+            local tW, tH, tInset, tThumb = 48, 22, 2, 18
+            local tFillW   = tW - 2 * tInset
+            local pillTravel = tFillW - tThumb
+
+            local pillFrame = CreateFrame("Frame", nil, card)
+            pillFrame:SetSize(tW, tH)
+            pillFrame:SetPoint("TOPRIGHT", card, "TOPRIGHT", -20, -19)
+            pillFrame:SetFrameLevel(card:GetFrameLevel() + 6)
+
+            local tOn  = (WDef and WDef.TrackOn)    or { 0.48, 0.58, 0.82, 0.85 }
+            local tOff = (WDef and WDef.TrackOff)   or { 0.14, 0.14, 0.18, 0.95 }
+            local tTh  = (WDef and WDef.ThumbColor) or { 1, 1, 1, 0.98 }
+
+            local trackBg = pillFrame:CreateTexture(nil, "BACKGROUND")
+            trackBg:SetPoint("TOPLEFT",     pillFrame, "TOPLEFT",     tInset, -tInset)
+            trackBg:SetPoint("BOTTOMRIGHT", pillFrame, "BOTTOMRIGHT", -tInset, tInset)
+            trackBg:SetColorTexture(tOff[1], tOff[2], tOff[3], tOff[4])
+
+            local trackFill = pillFrame:CreateTexture(nil, "ARTWORK")
+            trackFill:SetPoint("TOPLEFT",    pillFrame, "TOPLEFT",    tInset,  -tInset)
+            trackFill:SetPoint("BOTTOMLEFT", pillFrame, "BOTTOMLEFT", tInset,   tInset)
+            trackFill:SetWidth(0)
+            trackFill:SetColorTexture(tOn[1], tOn[2], tOn[3], tOn[4] or 0.85)
+
+            local thumb = pillFrame:CreateTexture(nil, "OVERLAY")
+            thumb:SetSize(tThumb, tThumb)
+            thumb:SetColorTexture(tTh[1], tTh[2], tTh[3], tTh[4] or 0.98)
+
+            local pillPos = 0
+            local pillAnimStart, pillAnimFrom, pillAnimTo
+
+            local function UpdatePillVisuals(t)
+                trackFill:SetWidth(t * tFillW)
+                thumb:ClearAllPoints()
+                thumb:SetPoint("CENTER", pillFrame, "LEFT", tInset + tThumb / 2 + t * pillTravel, 0)
+            end
+
+            local function GetPillValue()
+                return _G.OptionsData_GetDB(htDbKey, htDefault)
+            end
+
+            local function RefreshPill()
+                local on = GetPillValue()
+                pillPos = on and 1 or 0
+                UpdatePillVisuals(pillPos)
+            end
+            RefreshPill()
+
+            -- Store handler in a local so re-triggering after nil-clear always works
+            local pillOnUpdate
+            pillOnUpdate = function(self)
+                if not pillAnimStart then return end
+                local t = math.min((GetTime() - pillAnimStart) / 0.12, 1)
+                UpdatePillVisuals(pillAnimFrom + (pillAnimTo - pillAnimFrom) * t)
+                if t >= 1 then
+                    pillPos       = pillAnimTo
+                    pillAnimStart = nil
+                    self:SetScript("OnUpdate", nil)
+                end
+            end
+
+            local pillBtn = CreateFrame("Button", nil, card)
+            pillBtn:SetAllPoints(pillFrame)
+            pillBtn:SetFrameLevel(card:GetFrameLevel() + 7)
+            pillBtn:SetScript("OnClick", function()
+                local newVal = not GetPillValue()
+                _G.OptionsData_SetDB(htDbKey, newVal)
+                -- Animate pill (re-set from stored ref so it works on every click)
+                pillAnimFrom  = pillPos
+                pillAnimTo    = newVal and 1 or 0
+                pillAnimStart = GetTime()
+                pillFrame:SetScript("OnUpdate", pillOnUpdate)
+                -- Expand/collapse card to match toggle state
+                ExpandCollapseCard(newVal)
+                -- Refresh preview
+                if addon.Insight and addon.Insight.ApplyInsightOptions then
+                    addon.Insight.ApplyInsightOptions()
+                end
+            end)
+
+            card.headerToggleEnabled = GetPillValue
+
+            card.headerToggleRefresh = RefreshPill
+            -- Initialize card expanded state from DB value (applied after fullHeight is known)
+            card.headerToggleInit = function()
+                local on = GetPillValue()
+                if on ~= card.expanded then
+                    card.expanded = on
+                    local h = on and (card.fullHeight or card.collapsedHeight) or card.collapsedHeight
+                    card:SetHeight(h)
+                    card.settingsContainer:SetAlpha(on and 1 or 0)
+                    card.settingsContainer:SetShown(on)
+                    updateExpandedVisuals()
+                    UpdateDetailLayout()
+                end
+            end
+        else
+            -- Standard chevron indicator for cards without a header toggle
+            chevron = MakeText(card, "+", 14, 0.5, 0.5, 0.55, "RIGHT")
+            chevron:SetPoint("TOPRIGHT", -25, -23)
+        end
 
         local headerBtn = CreateFrame("Button", nil, card)
         headerBtn:SetPoint("TOPLEFT", 0, 0)
@@ -840,13 +961,13 @@ function addon.DashboardDetailView_Init(env)
         sc:SetAlpha(0)
         card.settingsContainer = sc
 
-        local function updateExpandedVisuals()
+        updateExpandedVisuals = function()
             if card.expanded then
                 cBg:SetColorTexture(SBgExpandedR, SBgExpandedG, SBgExpandedB, SBgA)
-                chevron:SetText("-")
+                if chevron then chevron:SetText("-") end
             else
                 cBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
-                chevron:SetText("+")
+                if chevron then chevron:SetText("+") end
             end
         end
 
@@ -881,6 +1002,8 @@ function addon.DashboardDetailView_Init(env)
         end)
 
         headerBtn:SetScript("OnClick", function()
+            -- Block expand when a header toggle exists and is disabled
+            if card.headerToggleEnabled and not card.headerToggleEnabled() then return end
             if card.anim:IsPlaying() then return end
             card.expanded = not card.expanded
             updateExpandedVisuals()
@@ -1006,7 +1129,10 @@ function addon.DashboardDetailView_Init(env)
             end
             card.contentHeight = yOff
             card.fullHeight = yOff + 80
-            if not skipHeightApply and card.expanded then
+            if card.headerToggleInit then
+                card.headerToggleInit()
+                card.headerToggleInit = nil  -- run once
+            elseif not skipHeightApply and card.expanded then
                 card:SetHeight(card.fullHeight)
             end
             if card.visibleWhen then
@@ -1252,7 +1378,7 @@ function addon.DashboardDetailView_Init(env)
                     RelayoutCard(currentCard, false)
                 end
 
-                currentCard = CreateAccordionCard(detailContent, opt.name)
+                currentCard = CreateAccordionCard(detailContent, opt.name, opt.headerToggle)
                 currentCard.contentHeight = 0
                 currentCard.optionIds = {}
                 currentCard.widgetList = {}

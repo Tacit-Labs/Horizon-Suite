@@ -113,6 +113,7 @@ local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass", 
 local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
 local function ShowTRP3Currently()   return addon.GetDB("insightTRP3Currently",   true) end
 local function ShowTRP3Icon()        return addon.GetDB("insightTRP3Icon",        true) end
+local function ShowTRP3()           return addon.GetDB("insightTRP3Enabled",     true) end
 
 local function SpecIconMarkup(specIcon, size)
     if not specIcon then return "" end
@@ -971,7 +972,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
     end)
     local guildName, guildRankName, guildRealm = GetSafeGuildInfo(unit)
-    local trp3Data = Insight.GetTRP3PlayerData(unit)
+    local trp3Data = ShowTRP3() and Insight.GetTRP3PlayerData(unit) or nil
     if classColor then
         local modcc = addon.GetModuleClassColor and addon.GetModuleClassColor("insight")
         if not modcc then classColor = nil end
@@ -1080,7 +1081,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         if trp3Data and trp3Data.icon and ShowTRP3Icon() then
             trp3IconMarkup = "|TInterface\\Icons\\" .. trp3Data.icon .. ":14:14:0:0|t "
         end
-        nameLeft:SetText(icon .. trp3IconMarkup .. displayText .. GetInlineStatusTag(unit) .. trp3Suffix)
+        -- TRP3 icon replaces the faction symbol; fall back to faction when no TRP3 icon
+        local namePrefix = (trp3IconMarkup ~= "" and trp3IconMarkup) or icon
+        nameLeft:SetText(namePrefix .. displayText .. GetInlineStatusTag(unit) .. trp3Suffix)
     end
 
     -- 2. Border tint
@@ -1248,14 +1251,79 @@ function Insight.RenderTestTooltipContent(tooltip)
     local useGradient = (nameMode == "class")
         and addon.GetDB("insightPlayerNameGradient", false)
 
+    -- TRP3 mock data (mirrors what GetTRP3PlayerData would return for a player with a full profile)
+    local previewTRP3 = (TRP3_API ~= nil and ShowTRP3()) and {
+        rpName      = "Aelindra Dawnwhisper",
+        pronouns    = "she/her",
+        isIC        = true,
+        customColorR = 0.72, customColorG = 0.53, customColorB = 1.0,
+        customRace  = "Sin'dorei",
+        customClass = "Arcane Weaver",
+        customGuild = "Dawnguard Covenant",
+        customGuildRank = "Keeper",
+        currently   = "Studying ancient texts in the library, searching for answers...",
+        icon        = "spell_arcane_arcane01",
+    } or nil
+
     -- 1. Name line (character title optional — same as live)
-    local previewName, previewRealmSuffix = GetRealmDisplayParts("Horizonaut-Stormrage")
-    local inlineStatusTag = GetPreviewInlineStatusTag()
-    local nameSpan = FormatNameSpan(previewName .. previewRealmSuffix, nameR, nameG, nameB, useGradient)
-    if ShowCharacterTitle() then
-        tooltip:AddLine(facIcon .. FormatTitleNameSpan("Duelist", previewName, "prefix", nameR, nameG, nameB, useGradient, previewRealmSuffix) .. inlineStatusTag, nameR, nameG, nameB)
+    -- When TRP3 is active the preview character is Aelindra (Blood Elf) so the RP name
+    -- toggle clearly shows "Aelindra" → "Aelindra Dawnwhisper".
+    local previewName, previewRealmSuffix
+    if previewTRP3 then
+        previewName, previewRealmSuffix = "Aelindra", ""
     else
-        tooltip:AddLine(facIcon .. nameSpan .. inlineStatusTag, nameR, nameG, nameB)
+        previewName, previewRealmSuffix = GetRealmDisplayParts("Horizonaut-Stormrage")
+    end
+    local inlineStatusTag = GetPreviewInlineStatusTag()
+
+    -- TRP3 custom colour override
+    if previewTRP3 and previewTRP3.customColorR and ShowTRP3CustomColor() then
+        nameR = previewTRP3.customColorR
+        nameG = previewTRP3.customColorG
+        nameB = previewTRP3.customColorB
+    end
+
+    -- TRP3 RP name replaces the WoW character name
+    local displayName = previewName .. previewRealmSuffix
+    if previewTRP3 and previewTRP3.rpName and ShowTRP3RPName() then
+        displayName = previewTRP3.rpName
+    end
+
+    local nameSpan
+    if useGradient then
+        nameSpan = Insight.BuildNameGradient(displayName, nameR, nameG, nameB)
+    else
+        nameSpan = FormatNameSpan(displayName, nameR, nameG, nameB, false)
+    end
+
+    -- TRP3 pronouns + IC/OOC suffix
+    local trp3Suffix = ""
+    if previewTRP3 then
+        if previewTRP3.pronouns and ShowTRP3Pronouns() then
+            trp3Suffix = trp3Suffix .. " |cffaaaaaa(" .. previewTRP3.pronouns .. ")|r"
+        end
+        if previewTRP3.isIC ~= nil and ShowTRP3ICStatus() then
+            trp3Suffix = trp3Suffix .. (previewTRP3.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+        end
+    end
+
+    -- TRP3 character icon
+    local trp3IconMarkup = ""
+    if previewTRP3 and previewTRP3.icon and ShowTRP3Icon() then
+        trp3IconMarkup = "|TInterface\\Icons\\" .. previewTRP3.icon .. ":14:14:0:0|t "
+    end
+
+    -- TRP3 icon replaces the faction symbol in preview too
+    local namePrefix = (trp3IconMarkup ~= "" and trp3IconMarkup) or facIcon
+    if ShowCharacterTitle() then
+        local titleSpan = FormatTitleNameSpan("Duelist", displayName, "prefix", nameR, nameG, nameB, useGradient, "")
+        tooltip:AddLine(namePrefix .. titleSpan .. inlineStatusTag .. trp3Suffix, nameR, nameG, nameB)
+    else
+        if useGradient then
+            tooltip:AddLine(namePrefix .. nameSpan .. inlineStatusTag .. trp3Suffix, 1, 1, 1)
+        else
+            tooltip:AddLine(namePrefix .. nameSpan .. inlineStatusTag .. trp3Suffix, nameR, nameG, nameB)
+        end
     end
 
     -- 2. Guild (rank line only when guild rank toggle on — live augments guild line)
@@ -1264,10 +1332,36 @@ function Insight.RenderTestTooltipContent(tooltip)
     else
         tooltip:AddLine("<Ascension>", testSepR, testSepG, testSepB)
     end
+    -- TRP3 custom guild
+    if previewTRP3 and previewTRP3.customGuild and ShowTRP3Guild() then
+        Insight.TagLines(tooltip, "identity", function()
+            local guildLine = "|cff00ccff<" .. previewTRP3.customGuild .. ">|r"
+            if previewTRP3.customGuildRank and previewTRP3.customGuildRank ~= "" then
+                guildLine = guildLine .. " |cffaaaaaa" .. previewTRP3.customGuildRank .. "|r"
+            end
+            tooltip:AddLine(guildLine, 1, 1, 1)
+        end)
+    end
 
     local testIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
-    local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH_PREFIX .. "human-male.tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
-    tooltip:AddLine(raceIconStr .. "Level 80 Human", 1, 0.82, 0)
+    local previewRaceFile = previewTRP3 and "bloodelf-female" or "human-male"
+    local previewRaceName = previewTRP3 and "Blood Elf" or "Human"
+    local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH_PREFIX .. previewRaceFile .. ".tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
+    tooltip:AddLine(raceIconStr .. "Level 80 " .. previewRaceName, 1, 0.82, 0)
+    -- TRP3 custom race & class
+    if previewTRP3 and ShowTRP3RaceClass() and (previewTRP3.customRace or previewTRP3.customClass) then
+        Insight.TagLines(tooltip, "identity", function()
+            local racePart  = previewTRP3.customRace  or ""
+            local classPart = previewTRP3.customClass or ""
+            if classPart ~= "" then
+                local hex = string.format("%02x%02x%02x",
+                    math.floor(testSepR * 255), math.floor(testSepG * 255), math.floor(testSepB * 255))
+                classPart = "|cff" .. hex .. classPart .. "|r"
+            end
+            local line = strtrim(racePart .. (classPart ~= "" and (" " .. classPart) or ""))
+            if line ~= "" then tooltip:AddLine(line, 1, 0.82, 0) end
+        end)
+    end
 
     local classIconStr = ""
     if showIcons then
@@ -1358,6 +1452,15 @@ function Insight.RenderTestTooltipContent(tooltip)
             if ownTextLine then
                 tooltip:AddLine(ownTextLine, 1, 1, 1)
             end
+        end)
+    end
+
+    -- TRP3 Currently block
+    if previewTRP3 and previewTRP3.currently and ShowTRP3Currently() then
+        Insight.AddSectionSeparator(tooltip, testSepR, testSepG, testSepB)
+        Insight.TagLines(tooltip, "trp3currently", function()
+            tooltip:AddLine("Currently:", 0.7, 0.7, 0.7)
+            tooltip:AddLine(previewTRP3.currently, 0.9, 0.85, 0.7)
         end)
     end
 end
