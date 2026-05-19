@@ -99,6 +99,8 @@ end
 -- "Friz Quadrata TT") are converted to actual file paths before being passed
 -- to FontString:SetFont().
 local function ResolveFont(dbKey)
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local v = DB(dbKey, FONT_USE_GLOBAL)
     if v == FONT_USE_GLOBAL or v == nil or v == "" then
         -- Fall back to the addon global font setting (also may be an LSM key)
