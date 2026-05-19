@@ -109,6 +109,7 @@ local function ShowTRP3RPName()      return addon.GetDB("insightTRP3RPName",    
 local function ShowTRP3CustomColor() return addon.GetDB("insightTRP3CustomColor", true) end
 local function ShowTRP3Pronouns()    return addon.GetDB("insightTRP3Pronouns",    true) end
 local function ShowTRP3ICStatus()    return addon.GetDB("insightTRP3ICStatus",    true) end
+local function ShowTRP3ICStatusIcon() return addon.GetDB("insightTRP3ICStatusIcon", false) end
 local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass",   true) end
 local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
 local function ShowTRP3Currently()   return addon.GetDB("insightTRP3Currently",   true) end
@@ -1074,7 +1075,11 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 trp3Suffix = trp3Suffix .. " |cffaaaaaa(" .. trp3Data.pronouns .. ")|r"
             end
             if trp3Data.isIC ~= nil and ShowTRP3ICStatus() then
-                trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+                if ShowTRP3ICStatusIcon() then
+                    trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55●|r" or " |cffff5555●|r")
+                else
+                    trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+                end
             end
         end
         local trp3IconMarkup = ""
@@ -1303,7 +1308,11 @@ function Insight.RenderTestTooltipContent(tooltip)
             trp3Suffix = trp3Suffix .. " |cffaaaaaa(" .. previewTRP3.pronouns .. ")|r"
         end
         if previewTRP3.isIC ~= nil and ShowTRP3ICStatus() then
-            trp3Suffix = trp3Suffix .. (previewTRP3.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+            if ShowTRP3ICStatusIcon() then
+                trp3Suffix = trp3Suffix .. (previewTRP3.isIC and " |cff55ff55●|r" or " |cffff5555●|r")
+            else
+                trp3Suffix = trp3Suffix .. (previewTRP3.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+            end
         end
     end
 
