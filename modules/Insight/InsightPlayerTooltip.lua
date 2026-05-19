@@ -1076,7 +1076,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             end
             if trp3Data.isIC ~= nil and ShowTRP3ICStatus() then
                 if ShowTRP3ICStatusIcon() then
-                    trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55●|r" or " |cffff5555●|r")
+                    trp3Suffix = trp3Suffix .. (trp3Data.isIC
+                        and " |TInterface\\FriendsFrame\\StatusIcon-Online:12:12:0:0|t"
+                        or  " |TInterface\\FriendsFrame\\StatusIcon-Busy:12:12:0:0|t")
                 else
                     trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
                 end
@@ -1309,7 +1311,9 @@ function Insight.RenderTestTooltipContent(tooltip)
         end
         if previewTRP3.isIC ~= nil and ShowTRP3ICStatus() then
             if ShowTRP3ICStatusIcon() then
-                trp3Suffix = trp3Suffix .. (previewTRP3.isIC and " |cff55ff55●|r" or " |cffff5555●|r")
+                trp3Suffix = trp3Suffix .. (previewTRP3.isIC
+                    and " |TInterface\\FriendsFrame\\StatusIcon-Online:12:12:0:0|t"
+                    or  " |TInterface\\FriendsFrame\\StatusIcon-Busy:12:12:0:0|t")
             else
                 trp3Suffix = trp3Suffix .. (previewTRP3.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
             end
