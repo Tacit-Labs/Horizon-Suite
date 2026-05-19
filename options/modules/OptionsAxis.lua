@@ -455,7 +455,7 @@ local categories = {
             local function isMinimapStandalone()
                 return not getDB("hideMinimapButton", D.hideMinimapButton)
                     and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
-                             and getDB("vistaCollectHorizonMinimapButton", true))
+                             and getDB("vistaCollectHorizonMinimapButton", addon.VISTA_DEFAULTS.vistaCollectHorizonMinimapButton))
             end
             opts[#opts + 1] = Section(L["AXIS_MINIMAP_ICON_SECTION"])
             opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"], desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"], dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", D.hideMinimapButton) end, set = function(v)

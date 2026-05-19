@@ -25,6 +25,7 @@ local DEFAULTS = {
     talkingHeadTextOutline        = true,
 }
 addon.Presence.TalkingHeadDefaults = DEFAULTS
+addon.TALKING_HEAD_DEFAULTS = DEFAULTS
 
 -- ============================================================================
 -- HELPERS

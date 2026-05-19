@@ -144,6 +144,7 @@ addon.FOCUS_DEFAULTS = {
     dimDesaturate             = false,
     highlightAlpha            = 0.25,
     highlightBarWidth         = 2,
+    useCompletedObjectiveColor = true,
     -- Click options
     focusClickProfile         = "blizzardDefault",
     focusIconClickAction      = "superTrack",

@@ -7,7 +7,7 @@ local addon = _G.HorizonSuite
 if not addon or not addon.OptionCategories then return end
 
 local L = addon.L
-local D   = addon.Presence.TalkingHeadDefaults
+local D   = addon.TALKING_HEAD_DEFAULTS
 local LIM = addon.TALKING_HEAD_LIMITS
 local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
 
@@ -23,7 +23,7 @@ end
 
 local function isCustomising() return getDB("talkingHeadCustomise", D.talkingHeadCustomise) end
 
-local FONT_USE_GLOBAL = "__global__"
+local FONT_USE_GLOBAL = addon.FONT_USE_GLOBAL
 
 local function GetFontOptions(dbKey)
     if addon.RefreshFontList then addon.RefreshFontList() end
