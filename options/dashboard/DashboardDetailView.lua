@@ -579,6 +579,7 @@ function addon.DashboardDetailView_Init(env)
         if moduleKey == "axis" and cat.key == "Modules" then
             return false
         end
+        if cat.hidden and cat.hidden() then return false end
         return true
     end
 
