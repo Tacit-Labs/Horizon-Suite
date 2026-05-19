@@ -131,7 +131,7 @@ function addon.Dashboard_BuildMainFrame()
             f.dashboardModuleLabels = moduleLabels
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
-            local PREVIEW_MODULE_KEYS = { cache = true, essence = true }
+            local PREVIEW_MODULE_KEYS = { essence = true }
             -- Coming-soon modules: planned but with no in-game content yet.
             local COMING_SOON_MODULE_KEYS = { meridian = true }
 

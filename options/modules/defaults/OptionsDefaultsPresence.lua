@@ -1,0 +1,58 @@
+--[[
+    Horizon Suite - Presence - SetDB routing keys
+    Exports PRESENCE_KEYS used by OptionsData_SetDB to trigger
+    Presence.ApplyPresenceOptions when any presence setting changes.
+]]
+local addon = _G.HorizonSuite
+if not addon then return end
+
+addon.PRESENCE_KEYS = {
+    presenceFrameY = true,
+    presenceFrameScale = true,
+    presenceBossEmoteColor = true,
+    presenceDiscoveryColor = true,
+    presenceZoneChange = true,
+    presenceSubzoneChange = true,
+    presenceHideZoneForSubzone = true,
+    presenceSuppressZoneInMplus = true,
+    presenceLevelUp = true,
+    presenceBossEmote = true,
+    presenceAchievement = true,
+    presenceAchievementProgress = false,
+    presenceQuestEvents = true,
+    presenceQuestAccept = true,
+    presenceWorldQuestAccept = true,
+    presenceQuestComplete = true,
+    presenceWorldQuest = true,
+    presenceQuestUpdate = true,
+    presenceScenarioStart = true,
+    presenceScenarioUpdate = true,
+    presenceScenarioComplete = true,
+    presenceRareDefeated = true,
+    presenceAnimations = true,
+    presenceEntranceDur = true,
+    presenceExitDur = true,
+    presenceHoldScale = true,
+    presencePrimaryLargeSz = true,
+    presenceSecondaryLargeSz = true,
+    presencePrimaryMediumSz = true,
+    presenceSecondaryMediumSz = true,
+    presencePrimarySmallSz = true,
+    presenceSecondarySmallSz = true,
+    presenceTitleFontPath = true,
+    presenceSubtitleFontPath = true,
+    presenceTitleFontOutline = true,
+    presenceSubtitleFontOutline = true,
+    presenceZoneTypeColoring = true,
+    presenceZoneColorFriendly = true,
+    presenceZoneColorHostile = true,
+    presenceZoneColorContested = true,
+    presenceZoneColorSanctuary = true,
+    presenceSuppressInDungeon = true,
+    presenceSuppressInRaid = true,
+    presenceSuppressInDelve = false,
+    presenceSuppressInPvP = true,
+    presenceSuppressInBattleground = true,
+    presenceHideQuestUpdateTitle = true,
+    presencePreviewType = true,
+}

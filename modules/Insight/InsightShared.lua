@@ -18,11 +18,17 @@ Insight.FONT_PATH       = "Fonts\\FRIZQT__.TTF"
 local INSIGHT_FONT_USE_GLOBAL = "__global__"
 
 local function GetInsightFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("insightFontPath", INSIGHT_FONT_USE_GLOBAL) or INSIGHT_FONT_USE_GLOBAL
-    if raw == INSIGHT_FONT_USE_GLOBAL or not raw or raw == "" then
-        return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+    if raw ~= INSIGHT_FONT_USE_GLOBAL and raw ~= "" then
+        return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
     end
-    return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
+    local base = addon.GetDB and addon.GetDB("fontPath", nil)
+    if base and base ~= "" then
+        return (addon.ResolveFontPath and addon.ResolveFontPath(base)) or base
+    end
+    return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 end
 
 local function GetInsightHeaderSize()
@@ -99,9 +105,11 @@ Insight.ROLE_COLORS = {
     DAMAGER = { 1.00, 0.55, 0.20 },
 }
 
-Insight.MYTHIC_ICON = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:0:0:64:64:5:59:5:59|t "
-Insight.HONOR_ICON  = "|T132147:14:14:0:0:64:64:5:59:5:59|t "
-Insight.ILVL_ICON   = "|T1030901:14:14:0:0:64:64:5:59:5:59|t "
+Insight.MYTHIC_ICON       = "|TInterface\\Icons\\achievement_challengemode_gold:14:14:0:0:64:64:5:59:5:59|t "
+Insight.HONOR_ICON        = "|T132147:14:14:0:0:64:64:5:59:5:59|t "
+Insight.ILVL_ICON         = "|T1030901:14:14:0:0:64:64:5:59:5:59|t "
+Insight.ACHIEVEMENT_ICON  = "|TInterface\\Icons\\achievement_dungeon_heroic_gloryoftheraider:14:14:0:0:64:64:5:59:5:59|t "
+Insight.ACHIEVEMENT_POINTS_COLOR = { 1.00, 0.82, 0.00 }
 Insight.SEPARATOR   = string.rep("-", 22)
 Insight.SEP_COLOR   = { 0.18, 0.18, 0.18 }
 
@@ -366,6 +374,49 @@ function Insight.ApplyBackdrop(tooltip)
     tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
 end
 
+-- Per-FontString hook that re-asserts our font path whenever a font-replacement
+-- addon (e.g. Platynator) overrides SetFont or SetFontObject on that string.
+-- Size is nil so per-line size choices (header/body/badges) go through unchanged.
+-- Mirrors LockDirectFont in PresenceTalkingHead.lua.
+local function LockDirectFont(fontString, getFont)
+    local busyObj  = false
+    local busyFont = false
+
+    hooksecurefunc(fontString, "SetFontObject", function(self, obj)
+        if busyObj or not obj then return end
+        local path, size, flags = getFont()
+        if not path then return end
+        local _, curSize, curFlags = self:GetFont()
+        busyObj = true
+        self:SetFontObject(nil)
+        self:SetFont(path, size or curSize or 12, flags or curFlags or "OUTLINE")
+        busyObj = false
+    end)
+
+    hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
+        if busyFont then return end
+        local targetPath, targetSize, targetFlags = getFont()
+        if not targetPath or path == targetPath then return end
+        busyFont = true
+        self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
+        busyFont = false
+    end)
+end
+
+-- Weak-keyed table so GC'd FontStrings are released automatically.
+local lockedInsightFontStrings = setmetatable({}, { __mode = "k" })
+
+local function GetInsightFont()
+    if not Insight.IsInsightEnabled() then return nil end
+    return GetInsightFontPath(), nil, "OUTLINE"
+end
+
+local function LockInsightFontString(fs)
+    if not fs or lockedInsightFontStrings[fs] then return end
+    lockedInsightFontStrings[fs] = true
+    LockDirectFont(fs, GetInsightFont)
+end
+
 local function StyleFonts(tooltip)
     if not tooltip then return end
     Insight.ApplyNativeTooltipScale(tooltip)
@@ -400,8 +451,8 @@ local function StyleFonts(tooltip)
         local tag    = tags and tags[i]
         local sz     = tag and sizeForTag[tag] or ((i == 1) and headerSz or bodySz)
         local rightSz = tag and sizeForTag[tag] or bodySz
-        if left  then left:SetFont(GetInsightFontPath(),  S(sz),      "OUTLINE") end
-        if right then right:SetFont(GetInsightFontPath(), S(rightSz), "OUTLINE") end
+        if left  then left:SetFont(GetInsightFontPath(),  S(sz),      "OUTLINE"); LockInsightFontString(left)  end
+        if right then right:SetFont(GetInsightFontPath(), S(rightSz), "OUTLINE"); LockInsightFontString(right) end
     end)
 end
 
