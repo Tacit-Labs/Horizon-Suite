@@ -110,8 +110,55 @@ local function ShowTRP3CustomColor() return addon.GetDB("insightTRP3CustomColor"
 local function ShowTRP3Pronouns()    return addon.GetDB("insightTRP3Pronouns",    true) end
 local function ShowTRP3ICStatus()    return addon.GetDB("insightTRP3ICStatus",    true) end
 local function ShowTRP3ICStatusIcon() return addon.GetDB("insightTRP3ICStatusIcon", false) end
+local function ShowTRP3Title()        return addon.GetDB("insightTRP3Title",        true) end
 local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass",   true) end
 local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
+--- Build the combined race / class / level line.
+--- When trp3d has custom race/class, those are used with TRP3 colour logic.
+--- When trp3d has no custom fields (or is nil), wowFallback provides the WoW race/class strings.
+--- Race and level render in white; class gets TRP3 custom colour (if enabled) or WoW class colour.
+--- @param trp3d      table|nil   TRP3 player data from GetTRP3PlayerData (nil = WoW-only line)
+--- @param classCol   table|nil   classColor {r,g,b} for class colour fallback
+--- @param unitToken  string|nil  Unit token for live UnitLevel
+--- @param wowFallback table|nil  { race=string, class=string } used when trp3d has no custom data
+--- @return string
+local function BuildCombinedRaceClassLine(trp3d, classCol, unitToken, wowFallback)
+    local racePart, rawClass, useCustomColor
+    if trp3d and (trp3d.customRace or trp3d.customClass) then
+        racePart       = (trp3d.customRace  ~= nil and trp3d.customRace  ~= "") and trp3d.customRace  or ""
+        rawClass       = (trp3d.customClass ~= nil and trp3d.customClass ~= "") and trp3d.customClass or ""
+        useCustomColor = trp3d.customColorR and ShowTRP3CustomColor()
+    elseif wowFallback then
+        racePart = wowFallback.race  or ""
+        rawClass  = wowFallback.class or ""
+    else
+        return ""
+    end
+    local classPart = ""
+    if rawClass ~= "" then
+        local cr, cg, cb
+        if useCustomColor then
+            cr, cg, cb = trp3d.customColorR, trp3d.customColorG, trp3d.customColorB
+        elseif classCol then
+            cr, cg, cb = classCol.r, classCol.g, classCol.b
+        end
+        if cr and cg and cb then
+            local hex = string.format("%02x%02x%02x",
+                math.floor(cr * 255),
+                math.floor(cg * 255),
+                math.floor(cb * 255))
+            classPart = "|cff" .. hex .. rawClass .. "|r"
+        else
+            classPart = rawClass
+        end
+    end
+    local level = nil
+    if unitToken then pcall(function() level = UnitLevel(unitToken) end) end
+    local line = racePart
+    if classPart ~= "" then line = line .. (racePart ~= "" and " " or "") .. classPart end
+    if level and level > 0 then line = line .. "  Level " .. tostring(level) end
+    return line
+end
 local function ShowTRP3Currently()   return addon.GetDB("insightTRP3Currently",   true) end
 local function ShowTRP3Icon()        return addon.GetDB("insightTRP3Icon",        true) end
 local function ShowTRP3()           return addon.GetDB("insightTRP3Enabled",     true) end
@@ -856,11 +903,16 @@ function Insight.GetTRP3PlayerData(unit)
             profile = getProfile and getProfile(unitID)
         end
         if not profile then return nil end
-        -- Local player profiles nest data under profile.player; register profiles are flat.
-        local profileData = UnitIsUnit(unit, "player") and (profile.player or {}) or profile
+        -- Some TRP3 APIs return profile data flat, while others nest it under profile.player.
+        local profileData = profile.player or profile
         local char   = profileData.characteristics or {}
         local status = profileData.character       or {}
         local data   = {}
+        local function cleanProfileValue(value)
+            if not value or value == "" then return nil end
+            local cleaned = strtrim(value)
+            return cleaned ~= "" and cleaned or nil
+        end
         -- RP name (complete name including first name, last name, title prefix)
         local getCompleteName = TRP3_API.register and TRP3_API.register.getCompleteName
         if getCompleteName then
@@ -871,8 +923,13 @@ function Insight.GetTRP3PlayerData(unit)
             end
         end
         -- Custom race and class
-        if char.RA and char.RA ~= "" then data.customRace  = char.RA end
-        if char.CL and char.CL ~= "" then data.customClass = char.CL end
+        data.customRace = cleanProfileValue(char.RA)
+        data.customClass = cleanProfileValue(char.CL)
+        -- Full title (shown beneath the name line)
+        if char.FT and char.FT ~= "" then
+            local ft = strtrim(char.FT)
+            if ft ~= "" then data.fullTitle = ft end
+        end
         -- Character icon
         if char.IC and char.IC ~= "" then data.icon = char.IC end
         -- Currently text
@@ -897,6 +954,12 @@ function Insight.GetTRP3PlayerData(unit)
                     if pronouns and pronouns ~= "" then
                         data.pronouns = pronouns
                     end
+                end
+                if not data.customRace and player.GetCustomRace then
+                    data.customRace = cleanProfileValue(player:GetCustomRace())
+                end
+                if not data.customClass and player.GetCustomClass then
+                    data.customClass = cleanProfileValue(player:GetCustomClass())
                 end
                 if player.GetCustomGuildMembership then
                     local guild = player:GetCustomGuildMembership()
@@ -1098,13 +1161,21 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         tooltip:SetBackdropBorderColor(classColor.r, classColor.g, classColor.b, 0.60)
     end
 
+    -- Move native identity lines down when the matching TRP3 toggle is active.
+    -- Race/class: active whenever trp3Data exists (even without custom fields — WoW data shown in TRP3 format).
+    -- Bottom rendering uses TRP3 data when present, then native data as fallback.
+    local moveRaceClassToBottom = ShowTRP3() and ShowTRP3RaceClass()
+    local moveGuildToBottom = ShowTRP3() and ShowTRP3Guild()
+
     -- 3. Clean up Blizzard lines (skip line 1; name already styled)
     local classLineStyled = false
     local guildLineStyled = false
     local guildRankDisplay = ShowGuildRank() and GetGuildRankDisplay(guildRankName, guildRealm)
     local raceNameSafe = nil
     pcall(function()
-        raceNameSafe = UnitRace(unit)
+        -- UnitRace returns a secret string in TWW Midnight; pass through SafePlainString
+        -- (same treatment as classNameSafe) so text:find() works without erroring.
+        raceNameSafe = SafePlainString(UnitRace(unit))
     end)
     local raceIconStyled = false
     local raceIconPrefix = ""
@@ -1129,15 +1200,28 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 lineLeft:SetText("")
             elseif IsGuildLine(text, guildName, guildRealm) then
                 guildLineStyled = true
-                local guildDisplayLine = GetGuildDisplayLine(guildName, guildRankDisplay)
-                if guildDisplayLine then
-                    lineLeft:SetText(guildDisplayLine)
-                    lineLeft:SetTextColor(1, 1, 1)
+                if moveGuildToBottom then
+                    lineLeft:SetText("")
+                else
+                    local guildDisplayLine = GetGuildDisplayLine(guildName, guildRankDisplay)
+                    if guildDisplayLine then
+                        lineLeft:SetText(guildDisplayLine)
+                        lineLeft:SetTextColor(1, 1, 1)
+                    end
                 end
-            elseif not raceIconStyled and raceIconPrefix ~= "" and raceNameSafe and text ~= "" and text:find(raceNameSafe, 1, true) and not text:find("|T", 1, true) and not text:find("|A", 1, true) then
+            elseif not raceIconStyled and raceNameSafe and text ~= "" and text:find(raceNameSafe, 1, true) and not text:find("|T", 1, true) and not text:find("|A", 1, true) then
                 raceIconStyled = true
-                lineLeft:SetText(raceIconPrefix .. text)
+                if moveRaceClassToBottom then
+                    lineLeft:SetText("")
+                elseif raceIconPrefix ~= "" then
+                    lineLeft:SetText(raceIconPrefix .. text)
+                end
             elseif classNameSafe and text ~= "" and text:find(classNameSafe, 1, true) then
+                if moveRaceClassToBottom then
+                    lineLeft:SetText("")
+                    classLineStyled = true
+                    do return end
+                end
                 classLineStyled = true
                 if classColor then
                     lineLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
@@ -1179,44 +1263,45 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         -- On taint/secret string, pcall catches; skip styling for this line
     end)
 
-    if guildName and guildRankDisplay and not guildLineStyled then
+    if guildName and guildName ~= "" and not guildLineStyled and not moveGuildToBottom then
         Insight.TagLines(tooltip, "identity", function()
             tooltip:AddLine(GetGuildDisplayLine(guildName, guildRankDisplay), 1, 1, 1)
         end)
     end
 
-    -- TRP3 custom RP guild (separate from WoW guild)
-    if trp3Data and trp3Data.customGuild and ShowTRP3Guild() then
+    if trp3Data and trp3Data.fullTitle and ShowTRP3Title() then
         Insight.TagLines(tooltip, "identity", function()
-            local guildLine = "|cff00ccff<" .. trp3Data.customGuild .. ">|r"
-            if trp3Data.customGuildRank and trp3Data.customGuildRank ~= "" then
-                guildLine = guildLine .. " |cffaaaaaa" .. trp3Data.customGuildRank .. "|r"
-            end
-            tooltip:AddLine(guildLine, 1, 1, 1)
-        end)
-    end
-
-    -- TRP3 custom race and/or class
-    if trp3Data and ShowTRP3RaceClass() and (trp3Data.customRace or trp3Data.customClass) then
-        Insight.TagLines(tooltip, "identity", function()
-            local racePart  = trp3Data.customRace  or ""
-            local classPart = trp3Data.customClass  or ""
-            if classColor and classPart ~= "" then
-                local hex = string.format("%02x%02x%02x",
-                    math.floor(classColor.r * 255),
-                    math.floor(classColor.g * 255),
-                    math.floor(classColor.b * 255))
-                classPart = "|cff" .. hex .. classPart .. "|r"
-            end
-            local line = strtrim(racePart .. (classPart ~= "" and (" " .. classPart) or ""))
-            if line ~= "" then
-                tooltip:AddLine(line, 1, 0.82, 0)
-            end
+            tooltip:AddLine("< " .. trp3Data.fullTitle .. " >", 0.75, 0.85, 1.0)
         end)
     end
 
     -- 4. Status badges (part of identity section)
     Insight.AddStatusBadgesBlock(tooltip, unit)
+
+    if moveRaceClassToBottom then
+        Insight.TagLines(tooltip, "identity", function()
+            local raceClassLine = BuildCombinedRaceClassLine(trp3Data, classColor, unit, { race = raceNameSafe, class = classNameSafe })
+            if raceClassLine and raceClassLine ~= "" then
+                tooltip:AddLine(raceClassLine, 1, 1, 1)
+            end
+        end)
+    end
+
+    if moveGuildToBottom then
+        Insight.TagLines(tooltip, "identity", function()
+            local guildLine
+            if trp3Data and trp3Data.customGuild and trp3Data.customGuild ~= "" and trp3Data.customGuildRank and trp3Data.customGuildRank ~= "" then
+                guildLine = trp3Data.customGuildRank .. " of |cff00ccff" .. trp3Data.customGuild .. "|r"
+            elseif trp3Data and trp3Data.customGuild and trp3Data.customGuild ~= "" then
+                guildLine = "|cff00ccff" .. trp3Data.customGuild .. "|r"
+            else
+                guildLine = GetGuildDisplayLine(guildName, guildRankDisplay)
+            end
+            if guildLine and guildLine ~= "" then
+                tooltip:AddLine(guildLine, 1, 1, 1)
+            end
+        end)
+    end
 
     -- 5. Stats block (M+ score, item level)
     Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
@@ -1266,6 +1351,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         customColorR = 0.72, customColorG = 0.53, customColorB = 1.0,
         customRace  = "Sin'dorei",
         customClass = "Arcane Weaver",
+        fullTitle   = "Keeper of the Dawnguard",
         customGuild = "Dawnguard Covenant",
         customGuildRank = "Keeper",
         currently   = "Studying ancient texts in the library, searching for answers...",
@@ -1339,42 +1425,40 @@ function Insight.RenderTestTooltipContent(tooltip)
         end
     end
 
-    -- 2. Guild (rank line only when guild rank toggle on — live augments guild line)
-    if ShowGuildRank() then
-        tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", testSepR, testSepG, testSepB)
+    -- 2. Guild / Full Title / Race+Class block
+    local previewMoveGuildToBottom = previewTRP3 and ShowTRP3Guild()
+    local previewMoveRaceClassToBottom = previewTRP3 and ShowTRP3RaceClass()
+    local previewClassCol = { r = testSepR, g = testSepG, b = testSepB }
+
+    local previewHasTitle = previewTRP3 and previewTRP3.fullTitle and ShowTRP3Title()
+    if previewHasTitle then
+        -- Full title replaces the WoW guild line — sits right under the name
+        tooltip:AddLine("< " .. previewTRP3.fullTitle .. " >", 0.75, 0.85, 1.0)
+        -- Spacer between title and race/class (mirrors the blank race-slot in the live path)
     else
-        tooltip:AddLine("<Ascension>", testSepR, testSepG, testSepB)
-    end
-    -- TRP3 custom guild
-    if previewTRP3 and previewTRP3.customGuild and ShowTRP3Guild() then
-        Insight.TagLines(tooltip, "identity", function()
-            local guildLine = "|cff00ccff<" .. previewTRP3.customGuild .. ">|r"
-            if previewTRP3.customGuildRank and previewTRP3.customGuildRank ~= "" then
-                guildLine = guildLine .. " |cffaaaaaa" .. previewTRP3.customGuildRank .. "|r"
-            end
-            tooltip:AddLine(guildLine, 1, 1, 1)
-        end)
+        -- WoW guild shown in TRP3 "Rank of Guild" format (TRP3 active) or legacy format (not active)
+        if previewMoveGuildToBottom then
+            -- Moved to the bottom identity block.
+        elseif previewTRP3 then
+            local previewGuildLine = ShowGuildRank()
+                and ("Officer of |cff00ccff" .. "Ascension" .. "|r")
+                or ("|cff00ccff" .. "Ascension" .. "|r")
+            tooltip:AddLine(previewGuildLine, 1, 1, 1)
+        elseif ShowGuildRank() then
+            tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", testSepR, testSepG, testSepB)
+        else
+            tooltip:AddLine("<Ascension>", testSepR, testSepG, testSepB)
+        end
     end
 
     local testIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
     local previewRaceFile = previewTRP3 and "bloodelf-female" or "human-male"
     local previewRaceName = previewTRP3 and "Blood Elf" or "Human"
     local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH_PREFIX .. previewRaceFile .. ".tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
-    tooltip:AddLine(raceIconStr .. "Level 80 " .. previewRaceName, 1, 0.82, 0)
-    -- TRP3 custom race & class
-    if previewTRP3 and ShowTRP3RaceClass() and (previewTRP3.customRace or previewTRP3.customClass) then
-        Insight.TagLines(tooltip, "identity", function()
-            local racePart  = previewTRP3.customRace  or ""
-            local classPart = previewTRP3.customClass or ""
-            if classPart ~= "" then
-                local hex = string.format("%02x%02x%02x",
-                    math.floor(testSepR * 255), math.floor(testSepG * 255), math.floor(testSepB * 255))
-                classPart = "|cff" .. hex .. classPart .. "|r"
-            end
-            local line = strtrim(racePart .. (classPart ~= "" and (" " .. classPart) or ""))
-            if line ~= "" then tooltip:AddLine(line, 1, 0.82, 0) end
-        end)
+    if not previewMoveRaceClassToBottom then
+        tooltip:AddLine(raceIconStr .. "Level 80 " .. previewRaceName, 1, 0.82, 0)
     end
+    -- TRP3 RP guild — "Rank of Guild" format
 
     local classIconStr = ""
     if showIcons then
@@ -1395,7 +1479,9 @@ function Insight.RenderTestTooltipContent(tooltip)
         local previewRoleHex = string.format("%02x%02x%02x", math.floor(previewRc[1] * 255), math.floor(previewRc[2] * 255), math.floor(previewRc[3] * 255))
         previewRoleSuffix = "  |cff" .. previewRoleHex .. "Tank|r"
     end
-    tooltip:AddLine(classIconStr .. "Blood Death Knight" .. previewRoleSuffix, 0.77, 0.12, 0.23)
+    if not previewMoveRaceClassToBottom then
+        tooltip:AddLine(classIconStr .. "Blood Death Knight" .. previewRoleSuffix, 0.77, 0.12, 0.23)
+    end
 
     -- 4. Status badges (AddStatusBadgesBlock)
     if ShowStatusBadges() then
@@ -1413,6 +1499,24 @@ function Insight.RenderTestTooltipContent(tooltip)
     end
 
     -- 5. Stats (M+ / ilvl — EnsureStatsSep pattern from AddStatsBlock)
+    if previewMoveRaceClassToBottom then
+        local raceClassLine = BuildCombinedRaceClassLine(previewTRP3, previewClassCol, nil, { race = "Blood Elf", class = "Death Knight" })
+        if raceClassLine and raceClassLine ~= "" then
+            tooltip:AddLine(raceClassLine, 1, 1, 1)
+        end
+    end
+    if previewMoveGuildToBottom then
+        local guildLine
+        if previewTRP3.customGuild and previewTRP3.customGuild ~= "" and previewTRP3.customGuildRank and previewTRP3.customGuildRank ~= "" then
+            guildLine = previewTRP3.customGuildRank .. " of |cff00ccff" .. previewTRP3.customGuild .. "|r"
+        elseif previewTRP3.customGuild and previewTRP3.customGuild ~= "" then
+            guildLine = "|cff00ccff" .. previewTRP3.customGuild .. "|r"
+        else
+            guildLine = ShowGuildRank() and "<Ascension>  |cffaaaaaaOfficer|r" or "<Ascension>"
+        end
+        tooltip:AddLine(guildLine, 1, 1, 1)
+    end
+
     local hasStats = false
     local function ensureStatsSep()
         if not hasStats then
