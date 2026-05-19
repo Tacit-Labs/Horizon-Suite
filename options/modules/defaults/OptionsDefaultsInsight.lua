@@ -80,6 +80,19 @@ addon.INSIGHT_KEYS = {
     insightPlayerBadgesSize      = true,
     insightPlayerStatsSize       = true,
     insightPlayerMountSize       = true,
+    -- Total RP 3 integration
+    insightTRP3Enabled          = true,
+    insightTRP3RPName           = true,
+    insightTRP3CustomColor      = true,
+    insightTRP3Pronouns         = true,
+    insightTRP3ICStatus         = true,
+    insightTRP3Currently        = true,
+    insightTRP3Icon             = true,
+    insightTRP3ICStatusIcon     = true,
+    insightTRP3Title            = true,
+    insightTRP3RaceClass        = true,
+    insightTRP3Guild            = true,
+
 }
 
 addon.INSIGHT_DEFAULTS = {
