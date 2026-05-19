@@ -281,6 +281,21 @@ local categories = {
                 refreshIds = dashboardTypoRefreshIds,
             }
             opts[#opts + 1] = Toggle(L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"], L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"], "autoShowPatchNotesOnLogin", D.autoShowPatchNotesOnLogin)
+            opts[#opts + 1] = Section(L["AXIS_SIDEBAR_SECTION"])
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["AXIS_SIDEBAR_COLLAPSE_MODE"],
+                desc = L["AXIS_SIDEBAR_COLLAPSE_MODE_DESC"],
+                tooltip = L["AXIS_SIDEBAR_COLLAPSE_MODE_TOOLTIP"],
+                dbKey = "sidebarCollapseMode",
+                options = {
+                    { L["AXIS_SIDEBAR_COLLAPSE_AUTO"],      "auto"     },
+                    { L["AXIS_SIDEBAR_COLLAPSE_MANUAL"],    "manual"   },
+                    { L["AXIS_SIDEBAR_COLLAPSE_AXIS_PLUS"], "axisPlus" },
+                },
+                get = function() return getDB("sidebarCollapseMode", D.sidebarCollapseMode) end,
+                set = function(v) setDB("sidebarCollapseMode", v) end,
+            }
             opts[#opts + 1] = Section(L["AXIS_CLASS_THEME_SECTION"])
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",

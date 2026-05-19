@@ -1639,6 +1639,7 @@ function addon.Dashboard_BuildMainFrame()
 
             local lastSidebarRow = nil
             local yOff = 0
+            local LayoutSidebar
 
             -- Welcome (first row — overview for new and returning users)
             local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"], "INV_Misc_Book_09", function()
@@ -1831,8 +1832,19 @@ function addon.Dashboard_BuildMainFrame()
                         tinsert(sidebarRows, g.row)
 
                         header:SetScript("OnClick", function()
+                            local collapseMode = (addon.GetDB and addon.GetDB("sidebarCollapseMode", "auto")) or "auto"
                             if mk == "axis" then
                                 f.ShowDashboard()
+                            elseif not GetGroupCollapsed(mk) and (collapseMode == "manual" or sidebarState.activeModuleKey == mk) then
+                                SetGroupCollapsed(mk, true)
+                                if g.tabsContainer then
+                                    g.tabsContainer:SetScript("OnUpdate", nil)
+                                    g.tabsContainer:SetHeight(0)
+                                    SetGroupChildrenShown(g, false)
+                                end
+                                if header.chevron then header.chevron:SetText("+") end
+                                if header.updateSpacer then header.updateSpacer() end
+                                if LayoutSidebar then LayoutSidebar() end
                             else
                                 f.OpenModule(modName, mk)
                             end
@@ -1885,7 +1897,7 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             --- Reflow sidebar scroll content height from top to last row.
-            local function LayoutSidebar()
+            LayoutSidebar = function()
                 if not sidebarScrollContent or not lastSidebarRow then return end
                 local top = sidebarScrollContent:GetTop()
                 local bottom = lastSidebarRow:GetBottom()
@@ -1898,16 +1910,19 @@ function addon.Dashboard_BuildMainFrame()
             --- Apply sidebarState to UI: active button, expanded groups, spacers.
             local function ApplySidebarState()
                 local targetMk = sidebarState.activeModuleKey
+                local collapseMode = (addon.GetDB and addon.GetDB("sidebarCollapseMode", "auto")) or "auto"
                 for _, mk in ipairs(groupOrder) do
                     local g = groups[mk]
                     if g and g.tabsContainer and g.fullHeight then
-                        if targetMk and mk == targetMk then
+                        local isTarget   = targetMk and mk == targetMk
+                        local alwaysOpen = collapseMode == "axisPlus" and mk == "axis"
+                        if isTarget or alwaysOpen then
                             SetGroupCollapsed(mk, false)
                             g.tabsContainer:SetScript("OnUpdate", nil)
                             g.tabsContainer:SetHeight(g.fullHeight)
                             SetGroupChildrenShown(g, true)
                             if g.header and g.header.chevron then g.header.chevron:SetText("-") end
-                        elseif not GetGroupCollapsed(mk) then
+                        elseif collapseMode ~= "manual" and not GetGroupCollapsed(mk) then
                             SetGroupCollapsed(mk, true)
                             g.tabsContainer:SetScript("OnUpdate", nil)
                             g.tabsContainer:SetHeight(0)

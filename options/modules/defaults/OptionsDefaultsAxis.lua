@@ -59,6 +59,7 @@ addon.AXIS_DEFAULTS = {
     minimapButtonShowOnlyOnMinimapHover = false,
     minimapButtonLocked            = false,
     minimapButtonCircular          = false,
+    sidebarCollapseMode            = "auto",
 }
 
 addon.AXIS_LIMITS = {
