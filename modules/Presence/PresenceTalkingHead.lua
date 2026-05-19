@@ -3,29 +3,7 @@ if not addon then return end
 
 addon.Presence = addon.Presence or {}
 
--- ============================================================================
--- DEFAULTS — single source of truth for all TalkingHead option defaults
--- ============================================================================
-
-local DEFAULTS = {
-    talkingHeadEnabled            = true,
-    talkingHeadCustomise          = true,
-    talkingHeadShowPortrait       = true,
-    talkingHeadShowPortraitBorder = true,
-    talkingHeadBackground         = false,
-    talkingHeadCloseButton        = false,
-    talkingHeadMuteVoice          = false,
-    talkingHeadScale              = 1.0,
-    talkingHeadNameSize           = 16,
-    talkingHeadNameOutline        = true,
-    talkingHeadNameColorR         = 0.55,
-    talkingHeadNameColorG         = 0.65,
-    talkingHeadNameColorB         = 0.75,
-    talkingHeadTextSize           = 14,
-    talkingHeadTextOutline        = true,
-}
-addon.Presence.TalkingHeadDefaults = DEFAULTS
-addon.TALKING_HEAD_DEFAULTS = DEFAULTS
+local DEFAULTS = addon.TALKING_HEAD_DEFAULTS
 
 -- ============================================================================
 -- HELPERS

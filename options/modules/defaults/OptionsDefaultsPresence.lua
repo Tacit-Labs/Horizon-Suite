@@ -108,8 +108,3 @@ addon.PRESENCE_LIMITS = {
     presenceSecondarySmallSz  = { min = 12,   max = 40  },
 }
 
-addon.TALKING_HEAD_LIMITS = {
-    talkingHeadNameSize = { min = 10,  max = 24  },
-    talkingHeadTextSize = { min = 10,  max = 20  },
-    talkingHeadScale    = { min = 0.5, max = 2.0 },
-}

@@ -85,6 +85,7 @@ modules/Presence/PresenceEvents.lua
 modules/Presence/PresenceErrors.lua
 modules/Presence/PresenceSlash.lua
 modules/Presence/PresenceModule.lua
+options/modules/defaults/OptionsDefaultsPresenceTalkingHead.lua
 modules/Presence/PresenceTalkingHead.lua
 
 modules/Cache/CacheState.lua
