@@ -237,6 +237,12 @@ local function createPanel(tag, title, opts)
     end
 
     function panel.Show()
+        if not addon.Log.isDevMode() then
+            if addon.HSPrint then
+                addon.HSPrint("|cFFFFCC00" .. title .. ": debug panel requires DEV_MODE = true in core/Logger.lua|r")
+            end
+            return
+        end
         ensureFrame()
         frame.msg:Clear()
         frame.msg:SetMaxLines(maxLines)

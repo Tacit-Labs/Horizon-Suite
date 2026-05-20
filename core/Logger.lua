@@ -92,6 +92,8 @@ Log.info  = function(tag, msg) if active(tag) then write("INFO",  tag, msg) end 
 Log.warn  = function(tag, msg) if active(tag) then write("WARN",  tag, msg) end end
 Log.error = function(tag, msg) if active(tag) then write("ERROR", tag, msg) end end
 
+Log.isDevMode = function() return DEV_MODE end
+
 Log.enableTag = function(tag, enabled)
     enabledTags[tag] = enabled and true or nil
 end
