@@ -5,7 +5,7 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 --- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
 --- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
 --- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
@@ -1584,11 +1584,11 @@ function addon.DashboardDetailView_Init(env)
                         local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                         local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                        local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"])) or ((addon.L and addon.L["FOCUS_ZONE"]))
+                        local zoneLabel = key == "SCENARIO" and L["UI_STAGE"] or L["FOCUS_ZONE"]
                         local catDefs = {
                             { subKey = "section",   abbr = L["FOCUS_SECTION"],   full = "Section",   def = unifiedDef },
                             { subKey = "title",     abbr = L["FOCUS_TITLE"],     full = "Title",     def = unifiedDef },
-                            { subKey = "zone",      abbr = (key == "SCENARIO") and (L["UI_STAGE"]) or (L["FOCUS_ZONE"]), full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
+                            { subKey = "zone",      abbr = key == "SCENARIO" and L["UI_STAGE"] or L["FOCUS_ZONE"], full = zoneLabel, def = addon.ZONE_COLOR or { 0.55, 0.65, 0.75 } },
                             { subKey = "objective", abbr = L["FOCUS_OBJECTIVE"], full = "Objective", def = unifiedDef },
                         }
 
