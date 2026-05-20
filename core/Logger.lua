@@ -11,8 +11,11 @@
     which will expose debug noise to end users.
 
     Usage:
+        -- Modules register their tag and its saved-variable DB key once:
+        addon.Log.registerTag("mymodule", "mymoduleDebugLive")
+        -- Core calls addon.Log.syncFromDB() on PLAYER_LOGIN to restore all tags.
+
         -- Runtime-gated (zero-overhead when tag is off):
-        addon.Log.enableTag("mymodule", true)
         addon.Log.debug("mymodule", "entered ShowToast")
         addon.Log.isEnabled("mymodule")  -- true while enabled
 
@@ -24,15 +27,18 @@
         addon.Log.clear()  -- wipe the ring buffer
 
     Listener API (for in-game visual panels):
-        local function onPresenceLog(level, tag, ts, msg, line) ... end
-        addon.Log.addListener("presence", onPresenceLog)
-        addon.Log.removeListener("presence", onPresenceLog)
+        local function onMyLog(level, tag, ts, msg, line) ... end
+        addon.Log.addListener("mymodule", onMyLog)
+        addon.Log.removeListener("mymodule", onMyLog)
         -- Listeners receive calls only while the tag is enabled.
 
     In-game slash commands (DEV_MODE = true only):
         /h debug logger        -- dump the buffer (same as dump)
         /h debug logger dump   -- print all buffered log entries to chat
         /h debug logger clear  -- wipe the ring buffer
+
+    Registered tag → DB key mappings (add new module debug keys here):
+        "presence"  →  "presenceDebugLive"
 ]]
 
 local addon = _G.HorizonSuite
@@ -53,6 +59,7 @@ local PREFIX = "|cFF00CCFFHorizonSuite|r "
 
 local enabledTags = {}  -- [tag] = true  (runtime-enabled tags)
 local listeners   = {}  -- [tag] = { fn, fn, ... }
+local tagDbKeys   = {}  -- [tag] = dbKey  (registered via Log.registerTag)
 
 local function active(tag)
     if DEV_MODE then return true end
@@ -107,6 +114,21 @@ Log.removeListener = function(tag, fn)
             if #list == 0 then listeners[tag] = nil end
             return
         end
+    end
+end
+
+-- Register a tag and its saved-variable DB key so syncFromDB can restore it.
+-- Call once per module during initialization (before PLAYER_LOGIN).
+Log.registerTag = function(tag, dbKey)
+    tagDbKeys[tag] = dbKey
+end
+
+-- Restore all registered tag states from the saved DB.
+-- Called by Core on PLAYER_LOGIN, after the character profile is resolved.
+Log.syncFromDB = function()
+    if not addon.GetDB then return end
+    for tag, dbKey in pairs(tagDbKeys) do
+        Log.enableTag(tag, addon.GetDB(dbKey, false) or nil)
     end
 end
 

@@ -2216,10 +2216,7 @@ local function TogglePreviewPopout()
     if frame.Refresh then frame:Refresh() end
 end
 
--- Restore presenceDebugLive state from saved DB so the tag is active on next login if it was left on.
-if addon.GetDB and addon.GetDB("presenceDebugLive", false) then
-    addon.Log.enableTag("presence", true)
-end
+addon.Log.registerTag("presence", "presenceDebugLive")
 
 addon.Presence.Init               = Init
 addon.Presence.ApplyPresenceOptions = ApplyPresenceOptions
