@@ -112,7 +112,6 @@ end
 
 function OptionsData_BuildSearchIndex()
     local index = {}
-    local L = addon.L
     local cats = addon.OptionCategories
     for catIdx, cat in ipairs(cats) do
         local currentSection = ""
