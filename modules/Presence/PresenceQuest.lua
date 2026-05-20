@@ -6,7 +6,7 @@
 
 local addon = _G.HorizonSuite
 if not addon or not addon.Presence then return end
-
+local L = addon.L
 -- Live-debug trace (no-op unless the presence log tag is enabled — avoids string work when off).
 local function DbgWQ(...)
     if not addon.Log.isEnabled("presence") then return end
@@ -77,7 +77,6 @@ do
         end
     end
 
-    local L = addon.L or {}
     if L["PRESENCE_QUEST_COMPLETE"] and type(L["PRESENCE_QUEST_COMPLETE"]) == "string" then
         local clean = strtrim(L["PRESENCE_QUEST_COMPLETE"])
         if clean ~= "" and #clean > 2 then
@@ -370,7 +369,6 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
 
     if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestUpdate", "presenceQuestEvents", true)) then return end
     if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
-    local L = addon.L or {}
     local questName = (C_QuestLog and C_QuestLog.GetTitleForQuestID) and Strip(C_QuestLog.GetTitleForQuestID(questID) or "") or ""
     if IsDNTQuest(questName) then return end
     local title = (questName ~= "" and questName) or L["PRESENCE_QUEST_UPDATE"]
@@ -511,16 +509,13 @@ local function Quest_OnQuestAccepted(questID)
         if IsDNTQuest(questName) then return end
         if addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceWorldQuestAccept", "presenceQuestEvents", true)) then return end
-            local L = addon.L or {}
             addon.Presence.QueueOrPlay("WORLD_QUEST_ACCEPT", L["PRESENCE_WORLD_QUEST_ACCEPTED"], questName, opts)
         else
             if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)) then return end
-            local L = addon.L or {}
             addon.Presence.QueueOrPlay("QUEST_ACCEPT", L["PRESENCE_QUEST_ACCEPTED"], questName, opts)
         end
     else
         if not (addon.Presence and addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled("presenceQuestAccept", "presenceQuestEvents", true)) then return end
-        local L = addon.L or {}
         addon.Presence.QueueOrPlay("QUEST_ACCEPT", L["PRESENCE_QUEST_ACCEPTED"], L["PRESENCE_NEW_QUEST"], opts)
     end
 end
@@ -529,7 +524,6 @@ end
 --- @param questID number
 local function Quest_OnQuestTurnedIn(questID)
     if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
-    local L = addon.L or {}
     local opts = (questID and { questID = questID }) or {}
     local questName = "Objective"
     if C_QuestLog then
@@ -643,7 +637,6 @@ local function Quest_OnUIInfoMessage(msgType, msg)
                 return
             end
             DbgWQ("UI_INFO_MESSAGE standalone popup:", "sub=", normalized)
-            local L = addon.L or {}
             addon.Presence.QueueOrPlay("QUEST_UPDATE", L["PRESENCE_QUEST_UPDATE"], normalized, { source = "UI_INFO_MESSAGE" })
         end)
     end
