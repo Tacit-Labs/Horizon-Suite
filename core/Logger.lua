@@ -1,25 +1,38 @@
 --[[
     Horizon Suite - Logger
-    Development-only structured logger with a fixed-size ring buffer.
+    Structured logger with a fixed-size ring buffer.
+
+    Runtime per-tag enables and listener callbacks allow modules to gate
+    logging at runtime (e.g. Presence live debug panel) without needing
+    DEV_MODE = true.
 
     WARNING: DEV_MODE must remain false in committed code. Setting it to true
     activates live chat output and registers a slash command on every session,
     which will expose debug noise to end users.
 
-    Usage (DEV_MODE = true only):
-        addon.Log.debug("MyModule", "entered ShowToast")
+    Usage:
+        -- Runtime-gated (zero-overhead when tag is off):
+        addon.Log.enableTag("mymodule", true)
+        addon.Log.debug("mymodule", "entered ShowToast")
+        addon.Log.isEnabled("mymodule")  -- true while enabled
+
+        -- DEV_MODE = true adds chat output and /h debug logger commands:
         addon.Log.info ("MyModule", "pool acquired entry #3")
         addon.Log.warn ("MyModule", "quality nil, defaulting to 1")
         addon.Log.error("MyModule", "frame is nil — InitFrames not called?")
         addon.Log.dump()   -- print all buffered entries to chat
         addon.Log.clear()  -- wipe the ring buffer
 
+    Listener API (for in-game visual panels):
+        local function onPresenceLog(level, tag, ts, msg, line) ... end
+        addon.Log.addListener("presence", onPresenceLog)
+        addon.Log.removeListener("presence", onPresenceLog)
+        -- Listeners receive calls only while the tag is enabled.
+
     In-game slash commands (DEV_MODE = true only):
         /h debug logger        -- dump the buffer (same as dump)
         /h debug logger dump   -- print all buffered log entries to chat
         /h debug logger clear  -- wipe the ring buffer
-
-    When DEV_MODE = false all methods are noop — zero runtime cost.
 ]]
 
 local addon = _G.HorizonSuite
@@ -38,23 +51,66 @@ local LEVEL_FMT = {
 
 local PREFIX = "|cFF00CCFFHorizonSuite|r "
 
+local enabledTags = {}  -- [tag] = true  (runtime-enabled tags)
+local listeners   = {}  -- [tag] = { fn, fn, ... }
+
+local function active(tag)
+    if DEV_MODE then return true end
+    return enabledTags[tag] == true
+end
+
 local function write(level, tag, msg)
-    local ts    = ("%.2f"):format(GetTime())
-    local entry = ("[%s] %s [%s] %s"):format(ts, LEVEL_FMT[level], tostring(tag or "?"), tostring(msg or ""))
-    buffer[head] = entry
-    head  = (head % BUFFER_MAX) + 1
-    if count < BUFFER_MAX then count = count + 1 end
-    print(PREFIX .. entry)
+    local ts   = ("%.2f"):format(GetTime())
+    local line = ("[%s] %s [%s] %s"):format(ts, LEVEL_FMT[level], tostring(tag or "?"), tostring(msg or ""))
+
+    if DEV_MODE then
+        buffer[head] = line
+        head  = (head % BUFFER_MAX) + 1
+        if count < BUFFER_MAX then count = count + 1 end
+        print(PREFIX .. line)
+    end
+
+    local tl = listeners[tag]
+    if tl then
+        for i = 1, #tl do
+            tl[i](level, tag, ts, tostring(msg or ""), line)
+        end
+    end
 end
 
 local Log = {}
 
-if DEV_MODE then
-    Log.debug = function(tag, msg) write("DEBUG", tag, msg) end
-    Log.info  = function(tag, msg) write("INFO",  tag, msg) end
-    Log.warn  = function(tag, msg) write("WARN",  tag, msg) end
-    Log.error = function(tag, msg) write("ERROR", tag, msg) end
+Log.debug = function(tag, msg) if active(tag) then write("DEBUG", tag, msg) end end
+Log.info  = function(tag, msg) if active(tag) then write("INFO",  tag, msg) end end
+Log.warn  = function(tag, msg) if active(tag) then write("WARN",  tag, msg) end end
+Log.error = function(tag, msg) if active(tag) then write("ERROR", tag, msg) end end
 
+Log.enableTag = function(tag, enabled)
+    enabledTags[tag] = enabled and true or nil
+end
+
+Log.isEnabled = function(tag)
+    return active(tag)
+end
+
+Log.addListener = function(tag, fn)
+    if not listeners[tag] then listeners[tag] = {} end
+    listeners[tag][#listeners[tag] + 1] = fn
+end
+
+Log.removeListener = function(tag, fn)
+    local list = listeners[tag]
+    if not list then return end
+    for i, f in ipairs(list) do
+        if f == fn then
+            table.remove(list, i)
+            if #list == 0 then listeners[tag] = nil end
+            return
+        end
+    end
+end
+
+if DEV_MODE then
     Log.dump = function()
         if count == 0 then print(PREFIX .. "Log buffer is empty.") return end
         local start = (count < BUFFER_MAX) and 1 or head
@@ -80,10 +136,6 @@ if DEV_MODE then
     end)
 else
     -- noop is a WoW FrameXML global (equivalent to `function() end`)
-    Log.debug = noop
-    Log.info  = noop
-    Log.warn  = noop
-    Log.error = noop
     Log.dump  = noop
     Log.clear = noop
 end

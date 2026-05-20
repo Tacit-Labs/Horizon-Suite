@@ -603,25 +603,20 @@ local debugLogHead   = 1
 local debugLogCount  = 0
 local debugLogFrame
 
-local function IsDebugLive_Internal()
-    return addon.GetDB and addon.GetDB("presenceDebugLive", false)
+local function IsDebugLive()
+    return addon.Log and addon.Log.isEnabled("presence")
 end
-local IsDebugLive = IsDebugLive_Internal
 
-local function PresenceDebugLog_Internal(msg)
-    if not IsDebugLive_Internal() then return end
-    local ts = ("%.1f"):format(GetTime() or 0)
-    local line = "[" .. ts .. "] " .. tostring(msg or "")
-
+-- Feed the Presence ring buffer and visual panel whenever the "presence" log tag is written.
+-- Registered unconditionally; active() in Logger gates actual calls to addon.Log.enableTag.
+addon.Log.addListener("presence", function(level, tag, ts, msg, line)
     debugLogBuffer[debugLogHead] = line
     debugLogHead  = (debugLogHead % DEBUG_LOG_MAX) + 1
     if debugLogCount < DEBUG_LOG_MAX then debugLogCount = debugLogCount + 1 end
-
     if debugLogFrame and debugLogFrame.msg then
         debugLogFrame.msg:AddMessage(line, 0.7, 0.9, 1, 1)
     end
-end
-local PresenceDebugLog = PresenceDebugLog_Internal
+end)
 
 --- Build the live debug log as plain text (oldest line first), matching ring-buffer order.
 --- @return string
@@ -848,9 +843,10 @@ end
 
 local function SetDebugLive(v)
     if addon.SetDB then addon.SetDB("presenceDebugLive", v) end
+    addon.Log.enableTag("presence", v or nil)
     if v then
         ShowDebugPanel()
-        PresenceDebugLog("Live debug enabled")
+        addon.Log.debug("presence", "Live debug enabled")
     else
         HideDebugPanel()
     end
@@ -1226,7 +1222,7 @@ onComplete = function()
     F:Hide()
 
     if doneTitle then
-        PresenceDebugLog(("Complete %s \"%s\" | \"%s\"; queue=%d"):format(tostring(doneType or "?"), tostring(doneTitle or ""):gsub('"', "'"), tostring(doneSub):gsub('"', "'"), #queue))
+        addon.Log.debug("presence",("Complete %s \"%s\" | \"%s\"; queue=%d"):format(tostring(doneType or "?"), tostring(doneTitle or ""):gsub('"', "'"), tostring(doneSub):gsub('"', "'"), #queue))
     end
 
     if #queue > 0 then
@@ -1316,7 +1312,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
 
     if IsDebugLive() then
         local src = (opts.source and (" via %s"):format(opts.source)) or ""
-        PresenceDebugLog(("Play %s \"%s\" | \"%s\" phase=%s%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), anim.phase, src))
+        addon.Log.debug("presence",("Play %s \"%s\" | \"%s\" phase=%s%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), anim.phase, src))
     end
 
     F:SetScript("OnUpdate", PresenceOnUpdate)
@@ -1439,7 +1435,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
                 end
                 if IsDebugLive() then
                     local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                    PresenceDebugLog(("LiveUpdate %s \"%s\"%s"):format(typeName, tostring(newSub):gsub('"', "'"), src))
+                    addon.Log.debug("presence",("LiveUpdate %s \"%s\"%s"):format(typeName, tostring(newSub):gsub('"', "'"), src))
                 end
             end
             return
@@ -1453,7 +1449,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
         if cfg.pri > active.pri then
             if IsDebugLive() then
                 local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                PresenceDebugLog(("Preempt %s (pri=%d) over %s (pri=%d)%s"):format(typeName, cfg.pri, activeTypeName or "?", active.pri, src))
+                addon.Log.debug("presence",("Preempt %s (pri=%d) over %s (pri=%d)%s"):format(typeName, cfg.pri, activeTypeName or "?", active.pri, src))
             end
             interruptCurrent()
             PlayCinematic(typeName, title, subtitle, opts)
@@ -1472,7 +1468,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
                         queue[i] = { typeName, title, subtitle, opts }
                         if IsDebugLive() then
                             local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                            PresenceDebugLog(("QueueReplace[%d] %s | \"%s\"%s"):format(i, typeName, tostring(subtitle or ""):gsub('"', "'"), src))
+                            addon.Log.debug("presence",("QueueReplace[%d] %s | \"%s\"%s"):format(i, typeName, tostring(subtitle or ""):gsub('"', "'"), src))
                         end
                         return
                     end
@@ -1482,18 +1478,18 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
             queue[#queue + 1] = { typeName, title, subtitle, opts }
             if IsDebugLive() then
                 local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                PresenceDebugLog(("Queued %s | \"%s\" | \"%s\" (q=%d)%s"):format(typeName, tostring(title):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), #queue, src))
+                addon.Log.debug("presence",("Queued %s | \"%s\" | \"%s\" (q=%d)%s"):format(typeName, tostring(title):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), #queue, src))
             end
         else
             if IsDebugLive() then
                 local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                PresenceDebugLog(("QueueFull – dropped %s%s"):format(typeName, src))
+                addon.Log.debug("presence",("QueueFull – dropped %s%s"):format(typeName, src))
             end
         end
     else
         if IsDebugLive() then
             local src = (opts.source and (" via %s"):format(opts.source)) or ""
-            PresenceDebugLog(("QueueOrPlay: play %s | \"%s\" | \"%s\"%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), src))
+            addon.Log.debug("presence",("QueueOrPlay: play %s | \"%s\" | \"%s\"%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), src))
         end
         PlayCinematic(typeName, title, subtitle, opts)
     end
@@ -2220,6 +2216,11 @@ local function TogglePreviewPopout()
     if frame.Refresh then frame:Refresh() end
 end
 
+-- Restore presenceDebugLive state from saved DB so the tag is active on next login if it was left on.
+if addon.GetDB and addon.GetDB("presenceDebugLive", false) then
+    addon.Log.enableTag("presence", true)
+end
+
 addon.Presence.Init               = Init
 addon.Presence.ApplyPresenceOptions = ApplyPresenceOptions
 addon.Presence.QueueOrPlay        = QueueOrPlay
@@ -2229,10 +2230,7 @@ addon.Presence.ShowDiscoveryLine  = ShowDiscoveryLine
 addon.Presence.SetPendingDiscovery = SetPendingDiscovery
 addon.Presence.HideAndClear       = HideAndClear
 addon.Presence.DumpDebug          = DumpDebug
---- Append a line to the Presence live debug ring buffer when `presenceDebugLive` is on.
---- @param msg string
---- @return nil
-addon.Presence.DebugLog           = PresenceDebugLog
+addon.Presence.DebugLog           = function(msg) addon.Log.debug("presence", msg) end
 addon.Presence.IsDebugLive        = IsDebugLive
 addon.Presence.SetDebugLive       = SetDebugLive
 addon.Presence.ToggleDebugLive    = ToggleDebugLive
