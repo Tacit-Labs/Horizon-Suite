@@ -241,6 +241,9 @@ function OptionsData_NotifyMainAddon()
 end
 
 
+local getDB = OptionsData_GetDB
+local setDB = OptionsData_SetDB
+
 -- ---------------------------------------------------------------------------
 -- OptionCategories: populated at load time by self-registering module files
 -- in TOC order. Read-only after initial load.
@@ -278,6 +281,25 @@ local OptionCategories = {
         desc = L["AXIS_SUITE_WIDE_CLASS_COLOUR_TINTING_UI"],
         moduleKey = nil,
         options = function()
+            local BM = addon.BrandModule
+            local OUTLINE_OPTIONS = addon.OUTLINE_OPTIONS
+            local VALID_OUTLINE_VALUES = addon.VALID_OUTLINE_VALUES
+            local FONT_USE_GLOBAL = addon.FONT_USE_GLOBAL
+            local D = addon.AXIS_DEFAULTS
+            local defaultDashboardFontPath = D and D.dashboardFontPath or "__global__"
+            local function GetDashboardFontDropdownOptions()
+                if addon.RefreshFontList then addon.RefreshFontList() end
+                local list = (addon.GetFontList and addon.GetFontList()) or {}
+                local out = { { L["FOCUS_GLOBAL_FONT"], FONT_USE_GLOBAL } }
+                for i = 1, #list do out[#out + 1] = list[i] end
+                local saved = getDB("dashboardFontPath", defaultDashboardFontPath)
+                if saved == FONT_USE_GLOBAL then return out end
+                for _, o in ipairs(out) do
+                    if o[2] == saved then return out end
+                end
+                out[#out + 1] = { L["FOCUS_CUSTOM"], saved }
+                return out
+            end
             local opts = {}
             opts[#opts + 1] = { type = "section", name = L["AXIS_DASHBOARD_SECTION"] }
             opts[#opts + 1] = {
@@ -568,12 +590,12 @@ local OptionCategories = {
                 visibleWhen = isDashboardClassThemeOn,
                 refreshIds = { "dashboardBackgroundTheme" },
             }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"], dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"], dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"], dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"], dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"], dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BrandModule("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("focus"), desc = L["FOCUS_CLASS_COLOURS_DESC"], dbKey = "classColorFocus", get = function() return getDB("classColorFocus", false) end, set = function(v) setDB("classColorFocus", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"], dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"], dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"], dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"], dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] }
             local function refreshAllScaling()
