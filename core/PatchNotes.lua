@@ -8,7 +8,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- ============================================================================
 -- VERSION / DB (root saved variables, not per-profile)
 -- ============================================================================
@@ -175,9 +175,8 @@ function addon.PatchNotes_RefreshAttentionIndicators()
     local dash = _G.HorizonSuiteDashboard
     local btn = dash and dash.whatsnewSidebarBtn
     if btn and btn.label then
-        local L = addon.L
-        local base = btn._whatsNewBaseText or (L and L["DASH_WHATS_NEW"])
-        local suffix = (L and L["DASH_WHATS_NEW_UNREAD_SUFFIX"])
+        local base = L["DASH_WHATS_NEW"]
+        local suffix = L["DASH_WHATS_NEW_UNREAD_SUFFIX"]
         local sidebarAttention = addon.PatchNotes_HasUnreadSidebarAttention and addon.PatchNotes_HasUnreadSidebarAttention()
         if sidebarAttention then
             btn.label:SetText(base .. suffix)
