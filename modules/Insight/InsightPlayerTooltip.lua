@@ -90,11 +90,12 @@ local function ShowCharacterTitle()   return addon.GetDB("insightShowCharacterTi
 local function ShowStatusBadges()     return addon.GetDB("insightShowStatusBadges",     true)  end
 local function ShowStatusBadgeCombat()    return addon.GetDB("insightStatusBadgeCombat",    true) end
 local function ShowStatusBadgeAFK()       return addon.GetDB("insightStatusBadgeAFK",        true) end
-local function ShowStatusBadgeDND()       return addon.GetDB("insightStatusBadgeDND",        true) end
+local function ShowStatusBadgeDND()       return ShowStatusBadgeAFK() end
 local function ShowStatusBadgePVP()       return addon.GetDB("insightStatusBadgePVP",        true) end
 local function ShowStatusBadgeGroup()     return addon.GetDB("insightStatusBadgeGroup",      true) end
 local function ShowStatusBadgeFriend()    return addon.GetDB("insightStatusBadgeFriend",     true) end
 local function ShowStatusBadgeTargeting() return addon.GetDB("insightStatusBadgeTargeting",  true) end
+local function ShowStatusBadgeAFKInHeader() return addon.GetDB("insightStatusBadgeAFKInHeader", false) end
 local function ShowMythicScore()
     local mode = GetInsightDisplayMode("insightMythicScoreMode", "insightShowMythicScore")
     if mode == "hide" then return false end
@@ -654,10 +655,12 @@ local function GetInlineStatusTag(unit)
     if not ShowStatusBadges() then return "" end
     local tag = nil
     pcall(function()
-        if ShowStatusBadgeAFK() and UnitIsAFK(unit) then
-            tag = "|cffffff55[AFK]|r"
-        elseif ShowStatusBadgeDND() and UnitIsDND(unit) then
-            tag = "|cffaaaaaa[DND]|r"
+        if ShowStatusBadgeAFK() and ShowStatusBadgeAFKInHeader() then
+            if UnitIsAFK(unit) then
+                tag = "|cffffff55[AFK]|r"
+            elseif UnitIsDND(unit) then
+                tag = "|cffaaaaaa[DND]|r"
+            end
         end
     end)
     return tag and (" " .. tag) or ""
@@ -665,8 +668,7 @@ end
 
 local function GetPreviewInlineStatusTag()
     if not ShowStatusBadges() then return "" end
-    if ShowStatusBadgeAFK() then return " |cffffff55[AFK]|r" end
-    if ShowStatusBadgeDND() then return " |cffaaaaaa[DND]|r" end
+    if ShowStatusBadgeAFK() and ShowStatusBadgeAFKInHeader() then return " |cffffff55[AFK]|r" end
     return ""
 end
 
@@ -727,6 +729,8 @@ function Insight.AddStatusBadgesBlock(tooltip, unit)
     if not ShowStatusBadges() then return end
     local badges = {}
     pcall(function()
+        if ShowStatusBadgeAFK() and not ShowStatusBadgeAFKInHeader() and UnitIsAFK(unit) then badges[#badges + 1] = "|cffffff55[AFK]|r" end
+        if ShowStatusBadgeAFK() and not ShowStatusBadgeAFKInHeader() and UnitIsDND(unit) then badges[#badges + 1] = "|cffaaaaaa[DND]|r" end
         if ShowStatusBadgeCombat() and UnitAffectingCombat(unit) then badges[#badges + 1] = "|cffff4444[Combat]|r"    end
         if ShowStatusBadgePVP()    and UnitIsPVP(unit)           then badges[#badges + 1] = "|cffff8c00[PvP]|r"       end
         if ShowStatusBadgeGroup() then
@@ -1309,9 +1313,6 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
     end
 
-    -- 4. Status badges (part of identity section)
-    Insight.AddStatusBadgesBlock(tooltip, unit)
-
     if moveRaceClassToBottom then
         Insight.TagLines(tooltip, "identity", function()
             local raceClassLine = BuildCombinedRaceClassLine(trp3Data, classColor, unit, { race = raceNameSafe, class = classNameSafe })
@@ -1336,6 +1337,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             end
         end)
     end
+
+    -- 4. Status badges — below identity block
+    Insight.AddStatusBadgesBlock(tooltip, unit)
 
     -- 5. Stats block (M+ score, item level)
     Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
@@ -1446,7 +1450,7 @@ function Insight.RenderTestTooltipContent(tooltip)
     -- TRP3 icon replaces the faction symbol in preview too
     local namePrefix = (trp3IconMarkup ~= "" and trp3IconMarkup) or facIcon
     if ShowCharacterTitle() then
-        local titleSpan = FormatTitleNameSpan("Duelist", displayName, "prefix", nameR, nameG, nameB, useGradient, "")
+        local titleSpan = FormatTitleNameSpan("Arcanist", displayName, "prefix", nameR, nameG, nameB, useGradient, "")
         tooltip:AddLine(namePrefix .. titleSpan .. inlineStatusTag .. trp3Suffix, nameR, nameG, nameB)
     else
         if useGradient then
@@ -1519,21 +1523,6 @@ function Insight.RenderTestTooltipContent(tooltip)
         tooltip:AddLine(classIconStr .. "Blood Death Knight" .. previewRoleSuffix, 0.77, 0.12, 0.23)
     end
 
-    -- 4. Status badges (AddStatusBadgesBlock)
-    if ShowStatusBadges() then
-        local previewBadges = {}
-        if ShowStatusBadgeCombat()    then previewBadges[#previewBadges + 1] = "|cffff4444[Combat]|r"       end
-        if ShowStatusBadgePVP()       then previewBadges[#previewBadges + 1] = "|cffff8c00[PvP]|r"         end
-        if ShowStatusBadgeGroup()     then previewBadges[#previewBadges + 1] = "|cff88ddff[Party]|r"       end
-        if ShowStatusBadgeFriend()    then previewBadges[#previewBadges + 1] = "|cff55ff55[Friend]|r"      end
-        if ShowStatusBadgeTargeting() then previewBadges[#previewBadges + 1] = "|cffff4466[Targeting You]|r" end
-        if #previewBadges > 0 then
-            Insight.TagLines(tooltip, "badges", function()
-                tooltip:AddLine(table.concat(previewBadges, "  "), 1, 1, 1)
-            end)
-        end
-    end
-
     -- 5. Stats (M+ / ilvl — EnsureStatsSep pattern from AddStatsBlock)
     if previewMoveRaceClassToBottom then
         local raceClassLine = BuildCombinedRaceClassLine(previewTRP3, previewClassCol, nil, { race = "Blood Elf", class = "Death Knight" })
@@ -1551,6 +1540,22 @@ function Insight.RenderTestTooltipContent(tooltip)
             guildLine = ShowGuildRank() and "<Ascension>  |cffaaaaaaOfficer|r" or "<Ascension>"
         end
         tooltip:AddLine(guildLine, 1, 1, 1)
+    end
+
+    -- 4. Status badges — below identity block
+    if ShowStatusBadges() then
+        local previewBadges = {}
+        if ShowStatusBadgeAFK() and not ShowStatusBadgeAFKInHeader() then previewBadges[#previewBadges + 1] = "|cffffff55[AFK]|r"         end
+        if ShowStatusBadgeCombat()    then previewBadges[#previewBadges + 1] = "|cffff4444[Combat]|r"       end
+        if ShowStatusBadgePVP()       then previewBadges[#previewBadges + 1] = "|cffff8c00[PvP]|r"         end
+        if ShowStatusBadgeGroup()     then previewBadges[#previewBadges + 1] = "|cff88ddff[Party]|r"       end
+        if ShowStatusBadgeFriend()    then previewBadges[#previewBadges + 1] = "|cff55ff55[Friend]|r"      end
+        if ShowStatusBadgeTargeting() then previewBadges[#previewBadges + 1] = "|cffff4466[Targeting You]|r" end
+        if #previewBadges > 0 then
+            Insight.TagLines(tooltip, "badges", function()
+                tooltip:AddLine(table.concat(previewBadges, "  "), 1, 1, 1)
+            end)
+        end
     end
 
     local hasStats = false
