@@ -323,17 +323,23 @@ local function SetSafeFont(fs, path, size, flags)
 end
 
 local function getPresenceFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("fontPath", defaultFontPath) or defaultFontPath
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
 local function getPresenceTitleFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("presenceTitleFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
     if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
 end
 
 local function getPresenceSubtitleFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
     local raw = addon.GetDB and addon.GetDB("presenceSubtitleFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
     if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
     return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
@@ -349,6 +355,43 @@ local function getPresenceSubtitleFontOutline()
     local raw = addon.GetDB and addon.GetDB("presenceSubtitleFontOutline", "OUTLINE")
     if raw == nil then return "OUTLINE" end
     return raw
+end
+
+-- Per-FontString hook that re-asserts our desired font path whenever a
+-- font-replacement addon (e.g. Platynator) overrides SetFont or SetFontObject.
+-- Size is nil so PlayCinematic's variant-sized SetSafeFont calls go through unchanged;
+-- the lock only protects the font path. Mirrors LockDirectFont in PresenceTalkingHead.lua.
+local function LockDirectFont(fontString, getFont)
+    local busyObj  = false
+    local busyFont = false
+
+    hooksecurefunc(fontString, "SetFontObject", function(self, obj)
+        if busyObj or not obj then return end
+        local path, size, flags = getFont()
+        if not path then return end
+        local _, curSize, curFlags = self:GetFont()
+        busyObj = true
+        self:SetFontObject(nil)
+        self:SetFont(path, size or curSize or 12, flags or curFlags or "OUTLINE")
+        busyObj = false
+    end)
+
+    hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
+        if busyFont then return end
+        local targetPath, targetSize, targetFlags = getFont()
+        if not targetPath or path == targetPath then return end
+        busyFont = true
+        self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
+        busyFont = false
+    end)
+end
+
+local function GetPresenceTitleFont()
+    return getPresenceTitleFontPath(), nil, getPresenceTitleFontOutline()
+end
+
+local function GetPresenceSubFont()
+    return getPresenceSubtitleFontPath(), nil, getPresenceSubtitleFontOutline()
 end
 
 -- Variant-based sizes: large (sz 48), medium (sz 36), small (sz 28). Each has primary + secondary.
@@ -518,6 +561,13 @@ local function CreateLayer(parent)
     L.discoveryText:SetAlpha(0)
     L.discoveryShadow:SetAlpha(0)
 
+    LockDirectFont(L.titleShadow,     GetPresenceTitleFont)
+    LockDirectFont(L.titleText,       GetPresenceTitleFont)
+    LockDirectFont(L.subShadow,       GetPresenceSubFont)
+    LockDirectFont(L.subText,         GetPresenceSubFont)
+    LockDirectFont(L.discoveryShadow, GetPresenceSubFont)
+    LockDirectFont(L.discoveryText,   GetPresenceSubFont)
+
     return L
 end
 
@@ -544,265 +594,30 @@ local QUEST_UPDATE_DEDUPE_TIME = 1.5
 local lastQuestUpdateNorm, lastQuestUpdateTime
 
 -- ============================================================================
--- LIVE DEBUG LOG  (ring-buffer – avoids O(n) table.remove(1))
+-- LIVE DEBUG LOG  (via addon.Log + generic panel from LoggerPanel.lua)
 -- ============================================================================
 
-local DEBUG_LOG_MAX = 500
-local debugLogBuffer = {}
-local debugLogHead   = 1
-local debugLogCount  = 0
-local debugLogFrame
-
-local function IsDebugLive_Internal()
-    return addon.GetDB and addon.GetDB("presenceDebugLive", false)
-end
-local IsDebugLive = IsDebugLive_Internal
-
-local function PresenceDebugLog_Internal(msg)
-    if not IsDebugLive_Internal() then return end
-    local ts = ("%.1f"):format(GetTime() or 0)
-    local line = "[" .. ts .. "] " .. tostring(msg or "")
-
-    debugLogBuffer[debugLogHead] = line
-    debugLogHead  = (debugLogHead % DEBUG_LOG_MAX) + 1
-    if debugLogCount < DEBUG_LOG_MAX then debugLogCount = debugLogCount + 1 end
-
-    if debugLogFrame and debugLogFrame.msg then
-        debugLogFrame.msg:AddMessage(line, 0.7, 0.9, 1, 1)
-    end
-end
-local PresenceDebugLog = PresenceDebugLog_Internal
-
---- Build the live debug log as plain text (oldest line first), matching ring-buffer order.
---- @return string
-local function GetPresenceDebugLogText()
-    if debugLogCount == 0 then return "" end
-    local start = (debugLogCount < DEBUG_LOG_MAX) and 1 or debugLogHead
-    local lines = {}
-    for i = 0, debugLogCount - 1 do
-        local idx = ((start - 1 + i) % DEBUG_LOG_MAX) + 1
-        local line = debugLogBuffer[idx]
-        if line then lines[#lines + 1] = line end
-    end
-    return table.concat(lines, "\n")
+local function IsDebugLive()
+    return addon.Log and addon.Log.isEnabled("presence")
 end
 
-local copyFallbackFrame
-
---- When C_CopyToClipboard is unavailable, show scrollable text so the user can Ctrl+C manually.
---- @param text string
---- @return nil
-local function ShowPresenceDebugCopyFallback(text)
-    if not text or text == "" then return end
-    if not copyFallbackFrame then
-        copyFallbackFrame = CreateFrame("Frame", "HorizonSuitePresenceDebugCopyFrame", UIParent)
-        copyFallbackFrame:SetSize(520, 380)
-        copyFallbackFrame:SetPoint("CENTER")
-        copyFallbackFrame:SetFrameStrata("FULLSCREEN_DIALOG")
-        copyFallbackFrame:SetClampedToScreen(true)
-        local bg = copyFallbackFrame:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints(copyFallbackFrame)
-        bg:SetColorTexture(0.05, 0.05, 0.08, 0.98)
-        local hdr = copyFallbackFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        hdr:SetPoint("TOP", 0, -16)
-        hdr:SetText("Copy log — Ctrl+C, then Close")
-        local closeBtn = CreateFrame("Button", nil, copyFallbackFrame, "UIPanelButtonTemplate")
-        closeBtn:SetSize(100, 22)
-        closeBtn:SetPoint("BOTTOM", 0, 14)
-        closeBtn:SetText("Close")
-        closeBtn:SetScript("OnClick", function()
-            copyFallbackFrame:Hide()
-        end)
-        local scroll = CreateFrame("ScrollFrame", nil, copyFallbackFrame, "UIPanelScrollFrameTemplate")
-        scroll:SetPoint("TOPLEFT", 14, -42)
-        scroll:SetPoint("BOTTOMRIGHT", -28, 46)
-        local edit = CreateFrame("EditBox", nil, scroll)
-        edit:SetMultiLine(true)
-        edit:SetAutoFocus(true)
-        edit:SetFontObject(GameFontNormalSmall)
-        edit:SetWidth(440)
-        edit:SetTextInsets(6, 6, 6, 6)
-        edit:SetMaxLetters(999999)
-        edit:SetScript("OnEscapePressed", function()
-            copyFallbackFrame:Hide()
-        end)
-        scroll:SetScrollChild(edit)
-        copyFallbackFrame.scroll = scroll
-        copyFallbackFrame.edit = edit
-        -- EditBox has no GetStringHeight; measure wrapped height with a matching FontString.
-        local measureFS = copyFallbackFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-        measureFS:SetWordWrap(true)
-        measureFS:SetAlpha(0)
-        measureFS:SetPoint("TOPLEFT", copyFallbackFrame, "TOPLEFT", 0, 0)
-        copyFallbackFrame.measureFS = measureFS
-    end
-    local edit = copyFallbackFrame.edit
-    local scroll = copyFallbackFrame.scroll
-    local scrollW = scroll and scroll:GetWidth() or 440
-    local editWidth = math.max(200, scrollW - 24)
-    edit:SetWidth(editWidth)
-    edit:SetText(text)
-    local innerW = math.max(50, editWidth - 12)
-    local measureFS = copyFallbackFrame.measureFS
-    local h = 0
-    if measureFS then
-        measureFS:SetWidth(innerW)
-        measureFS:SetText(text)
-        h = measureFS:GetStringHeight() or 0
-    end
-    if h > 0 then
-        edit:SetHeight(math.min(12000, math.max(120, h + 24)))
-    else
-        edit:SetHeight(280)
-    end
-    if scroll.UpdateScrollChildRect then
-        scroll:UpdateScrollChildRect()
-    end
-    scroll:SetVerticalScroll(0)
-    copyFallbackFrame:Show()
-    edit:SetFocus()
-    edit:HighlightText()
-end
-
---- Copy live debug log to the system clipboard, or open a selectable buffer as fallback.
---- @return nil
-local function CopyPresenceDebugLog()
-    local text = GetPresenceDebugLogText()
-    local p = addon.HSPrint or function(m) print("|cFF00CCFFHorizon Suite:|r " .. tostring(m or "")) end
-    if text == "" then
-        p("Presence debug log is empty.")
-        return
-    end
-    if C_CopyToClipboard then
-        local ok, err = pcall(C_CopyToClipboard, text)
-        if ok then
-            p("Presence debug log copied to clipboard.")
-            return
+local presencePanel = addon.Log.createPanel("presence", "Presence Live Debug", {
+    maxLines = 500,
+    onClose  = function()
+        if addon.Presence and addon.Presence.SetDebugLive then
+            addon.Presence.SetDebugLive(false)
         end
-        p("Clipboard copy failed: " .. tostring(err) .. " — opening copy window.")
-    end
-    ShowPresenceDebugCopyFallback(text)
-end
-
-local function CreateDebugPanel()
-    if debugLogFrame then return end
-
-    local panel = CreateFrame("Frame", "HorizonSuitePresenceDebugFrame", UIParent)
-    panel:SetSize(420, 320)
-    panel:SetPoint("CENTER", 0, 0)
-    panel:SetFrameStrata("DIALOG")
-    panel:SetClampedToScreen(true)
-    panel:SetMovable(true)
-    panel:EnableMouse(true)
-    panel:RegisterForDrag("LeftButton")
-    panel:Hide()
-
-    local bg = panel:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(panel)
-    bg:SetColorTexture(0.05, 0.05, 0.08, 0.95)
-
-    local border = CreateFrame("Frame", nil, panel)
-    border:SetPoint("TOPLEFT", -1, 1)
-    border:SetPoint("BOTTOMRIGHT", 1, -1)
-    if addon.CreateBorder then addon.CreateBorder(border, { 0.2, 0.2, 0.25, 1 }) end
-
-    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", 10, -10)
-    title:SetText("Presence Live Debug")
-    title:SetTextColor(0.7, 0.9, 1)
-
-    local closeBtn = CreateFrame("Button", nil, panel)
-    closeBtn:SetSize(24, 24)
-    closeBtn:SetPoint("TOPRIGHT", -8, -8)
-    closeBtn:SetScript("OnClick", function()
-        if addon.Presence.SetDebugLive then addon.Presence.SetDebugLive(false) end
-        panel:Hide()
-    end)
-    local closeTex = closeBtn:CreateTexture(nil, "OVERLAY")
-    closeTex:SetAllPoints(closeBtn)
-    closeTex:SetColorTexture(0.5, 0.2, 0.2, 0.8)
-
-    local copyBtn = CreateFrame("Button", nil, panel)
-    copyBtn:SetSize(60, 22)
-    copyBtn:SetPoint("TOPRIGHT", -105, -10)
-    copyBtn:SetScript("OnClick", function()
-        CopyPresenceDebugLog()
-    end)
-    local copyTex = copyBtn:CreateTexture(nil, "BACKGROUND")
-    copyTex:SetAllPoints(copyBtn)
-    copyTex:SetColorTexture(0.15, 0.25, 0.35, 0.9)
-    local copyLabel = copyBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    copyLabel:SetPoint("CENTER", 0, 0)
-    copyLabel:SetText("Copy")
-
-    -- Create msg before Clear's handler so the closure captures this local (not global msg).
-    local msg = CreateFrame("ScrollingMessageFrame", nil, panel)
-    msg:SetPoint("TOPLEFT", 8, -36)
-    msg:SetPoint("BOTTOMRIGHT", -8, 8)
-    msg:SetFontObject(GameFontNormalSmall)
-    msg:SetFading(false)
-    msg:SetMaxLines(DEBUG_LOG_MAX)
-    msg:EnableMouseWheel(true)
-    msg:SetScript("OnMouseWheel", function(_, delta)
-        local scroll = msg:GetScrollOffset()
-        msg:SetScrollOffset(scroll - delta)
-    end)
-
-    local clearBtn = CreateFrame("Button", nil, panel)
-    clearBtn:SetSize(60, 22)
-    clearBtn:SetPoint("TOPRIGHT", -40, -10)
-    clearBtn:SetScript("OnClick", function()
-        debugLogBuffer = {}
-        debugLogHead   = 1
-        debugLogCount  = 0
-        msg:Clear()
-        msg:SetMaxLines(DEBUG_LOG_MAX)
-    end)
-    local clearTex = clearBtn:CreateTexture(nil, "BACKGROUND")
-    clearTex:SetAllPoints(clearBtn)
-    clearTex:SetColorTexture(0.2, 0.2, 0.25, 0.9)
-    local clearLabel = clearBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    clearLabel:SetPoint("CENTER", 0, 0)
-    clearLabel:SetText("Clear")
-
-    panel:SetScript("OnDragStart", function()
-        if InCombatLockdown() then return end
-        panel:StartMoving()
-    end)
-    panel:SetScript("OnDragStop", function()
-        if InCombatLockdown() then return end
-        panel:StopMovingOrSizing()
-    end)
-
-    debugLogFrame = panel
-    debugLogFrame.msg = msg
-end
-
-local function ShowDebugPanel()
-    CreateDebugPanel()
-    if debugLogFrame then
-        debugLogFrame.msg:SetMaxLines(DEBUG_LOG_MAX)
-        local start = (debugLogCount < DEBUG_LOG_MAX) and 1 or debugLogHead
-        for i = 0, debugLogCount - 1 do
-            local idx = ((start - 1 + i) % DEBUG_LOG_MAX) + 1
-            local line = debugLogBuffer[idx]
-            if line then debugLogFrame.msg:AddMessage(line, 0.7, 0.9, 1, 1) end
-        end
-        debugLogFrame:Show()
-    end
-end
-
-local function HideDebugPanel()
-    if debugLogFrame then debugLogFrame:Hide() end
-end
+    end,
+})
 
 local function SetDebugLive(v)
     if addon.SetDB then addon.SetDB("presenceDebugLive", v) end
+    addon.Log.enableTag("presence", v or nil)
     if v then
-        ShowDebugPanel()
-        PresenceDebugLog("Live debug enabled")
+        presencePanel.Show()
+        addon.Log.debug("presence", "Live debug enabled")
     else
-        HideDebugPanel()
+        presencePanel.Hide()
     end
 end
 
@@ -1176,7 +991,7 @@ onComplete = function()
     F:Hide()
 
     if doneTitle then
-        PresenceDebugLog(("Complete %s \"%s\" | \"%s\"; queue=%d"):format(tostring(doneType or "?"), tostring(doneTitle or ""):gsub('"', "'"), tostring(doneSub):gsub('"', "'"), #queue))
+        addon.Log.debug("presence",("Complete %s \"%s\" | \"%s\"; queue=%d"):format(tostring(doneType or "?"), tostring(doneTitle or ""):gsub('"', "'"), tostring(doneSub):gsub('"', "'"), #queue))
     end
 
     if #queue > 0 then
@@ -1266,7 +1081,7 @@ PlayCinematic = function(typeName, title, subtitle, opts)
 
     if IsDebugLive() then
         local src = (opts.source and (" via %s"):format(opts.source)) or ""
-        PresenceDebugLog(("Play %s \"%s\" | \"%s\" phase=%s%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), anim.phase, src))
+        addon.Log.debug("presence",("Play %s \"%s\" | \"%s\" phase=%s%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), anim.phase, src))
     end
 
     F:SetScript("OnUpdate", PresenceOnUpdate)
@@ -1389,7 +1204,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
                 end
                 if IsDebugLive() then
                     local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                    PresenceDebugLog(("LiveUpdate %s \"%s\"%s"):format(typeName, tostring(newSub):gsub('"', "'"), src))
+                    addon.Log.debug("presence",("LiveUpdate %s \"%s\"%s"):format(typeName, tostring(newSub):gsub('"', "'"), src))
                 end
             end
             return
@@ -1403,7 +1218,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
         if cfg.pri > active.pri then
             if IsDebugLive() then
                 local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                PresenceDebugLog(("Preempt %s (pri=%d) over %s (pri=%d)%s"):format(typeName, cfg.pri, activeTypeName or "?", active.pri, src))
+                addon.Log.debug("presence",("Preempt %s (pri=%d) over %s (pri=%d)%s"):format(typeName, cfg.pri, activeTypeName or "?", active.pri, src))
             end
             interruptCurrent()
             PlayCinematic(typeName, title, subtitle, opts)
@@ -1422,7 +1237,7 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
                         queue[i] = { typeName, title, subtitle, opts }
                         if IsDebugLive() then
                             local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                            PresenceDebugLog(("QueueReplace[%d] %s | \"%s\"%s"):format(i, typeName, tostring(subtitle or ""):gsub('"', "'"), src))
+                            addon.Log.debug("presence",("QueueReplace[%d] %s | \"%s\"%s"):format(i, typeName, tostring(subtitle or ""):gsub('"', "'"), src))
                         end
                         return
                     end
@@ -1432,18 +1247,18 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
             queue[#queue + 1] = { typeName, title, subtitle, opts }
             if IsDebugLive() then
                 local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                PresenceDebugLog(("Queued %s | \"%s\" | \"%s\" (q=%d)%s"):format(typeName, tostring(title):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), #queue, src))
+                addon.Log.debug("presence",("Queued %s | \"%s\" | \"%s\" (q=%d)%s"):format(typeName, tostring(title):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), #queue, src))
             end
         else
             if IsDebugLive() then
                 local src = (opts.source and (" via %s"):format(opts.source)) or ""
-                PresenceDebugLog(("QueueFull – dropped %s%s"):format(typeName, src))
+                addon.Log.debug("presence",("QueueFull – dropped %s%s"):format(typeName, src))
             end
         end
     else
         if IsDebugLive() then
             local src = (opts.source and (" via %s"):format(opts.source)) or ""
-            PresenceDebugLog(("QueueOrPlay: play %s | \"%s\" | \"%s\"%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), src))
+            addon.Log.debug("presence",("QueueOrPlay: play %s | \"%s\" | \"%s\"%s"):format(typeName, tostring(title or ""):gsub('"', "'"), tostring(subtitle or ""):gsub('"', "'"), src))
         end
         PlayCinematic(typeName, title, subtitle, opts)
     end
@@ -1535,12 +1350,30 @@ end
 -- ============================================================================
 
 --- Re-apply frame position and scale from DB. Call when presence options change.
+--- Also re-applies fonts to any currently-showing toast layers so that global font
+--- toggle changes take effect immediately without waiting for the next toast.
 --- @return nil
 local function ApplyPresenceOptions()
     if not F then return end
     F:ClearAllPoints()
     F:SetPoint("TOP", 0, getFrameY())
     F:SetScale(getFrameScale())
+    local function reapplyLayerFonts(layer)
+        if not layer then return end
+        local function fix(fs, getPath, getOutline)
+            if not fs then return end
+            local _, sz = fs:GetFont()
+            if sz then SetSafeFont(fs, getPath(), sz, getOutline()) end
+        end
+        fix(layer.titleText,       getPresenceTitleFontPath,    getPresenceTitleFontOutline)
+        fix(layer.titleShadow,     getPresenceTitleFontPath,    getPresenceTitleFontOutline)
+        fix(layer.subText,         getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.subShadow,       getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.discoveryText,   getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.discoveryShadow, getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+    end
+    reapplyLayerFonts(curLayer)
+    reapplyLayerFonts(oldLayer)
 end
 
 --- Returns the typeName of the currently playing or holding cinematic.
@@ -2152,6 +1985,8 @@ local function TogglePreviewPopout()
     if frame.Refresh then frame:Refresh() end
 end
 
+addon.Log.registerTag("presence", "presenceDebugLive")
+
 addon.Presence.Init               = Init
 addon.Presence.ApplyPresenceOptions = ApplyPresenceOptions
 addon.Presence.QueueOrPlay        = QueueOrPlay
@@ -2161,15 +1996,12 @@ addon.Presence.ShowDiscoveryLine  = ShowDiscoveryLine
 addon.Presence.SetPendingDiscovery = SetPendingDiscovery
 addon.Presence.HideAndClear       = HideAndClear
 addon.Presence.DumpDebug          = DumpDebug
---- Append a line to the Presence live debug ring buffer when `presenceDebugLive` is on.
---- @param msg string
---- @return nil
-addon.Presence.DebugLog           = PresenceDebugLog
+addon.Presence.DebugLog           = function(msg) addon.Log.debug("presence", msg) end
 addon.Presence.IsDebugLive        = IsDebugLive
 addon.Presence.SetDebugLive       = SetDebugLive
 addon.Presence.ToggleDebugLive    = ToggleDebugLive
-addon.Presence.ShowDebugPanel     = ShowDebugPanel
-addon.Presence.HideDebugPanel     = HideDebugPanel
+addon.Presence.ShowDebugPanel     = presencePanel.Show
+addon.Presence.HideDebugPanel     = presencePanel.Hide
 addon.Presence.GetActiveTypeName  = GetActiveTypeName
 addon.Presence.DISCOVERY_WAIT     = 0.15
 

@@ -2244,6 +2244,8 @@ do
             addon._earlyLoadProfile = nil
         end
 
+        if addon.Log and addon.Log.syncFromDB then addon.Log.syncFromDB() end
+
         if addon.RefreshFontList then addon.RefreshFontList() end
 
         local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)

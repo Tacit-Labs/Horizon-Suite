@@ -109,8 +109,19 @@ local function OnSlashCommand(msg)
         local moduleKey, subMsg = rest:match("^(%S+)%s*(.*)$")
         moduleKey = (moduleKey or ""):lower()
         subMsg = strtrim(subMsg or "")
-        if moduleKey == "" then
-            HSPrint("Usage: /h debug <focus|presence|vista|cache|insight|locale> [cmd]")
+        if moduleKey == "" or moduleKey == "help" then
+            local devState = addon.Log and addon.Log.isDevMode()
+                and "|cFF00FF00enabled|r" or "|cFFFF4444disabled|r (set DEV_MODE = true in core/Logger.lua)|r"
+            HSPrint("Horizon Suite — Debug commands")
+            HSPrint("  DEV_MODE: " .. devState)
+            HSPrint(" ")
+            HSPrint("  /h debug <module> [cmd]       - Run a module debug command")
+            HSPrint("  /h debug <module> help         - List commands for that module")
+            HSPrint("  /h debug <module> debuglive    - Toggle live debug panel (DEV_MODE required)")
+            HSPrint("  /h debug locale                - Toggle missing-locale key logging")
+            HSPrint("  /h debug logger [dump|clear]   - Inspect/clear the log ring buffer (DEV_MODE required)")
+            HSPrint(" ")
+            HSPrint("  Modules: focus, presence, vista, cache, insight, essence")
             return
         end
         -- Core debug: locale

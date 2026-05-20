@@ -1,441 +1,38 @@
 --[[
-    Horizon Suite - Focus - Options Data
-    OptionCategories (Insight: InsightGlobal, InsightPlayer, InsightNpc, InsightItem + others), getDB/setDB/notifyMainAddon, search index.
+    Horizon Suite - Options Data
+    Core DB helpers and per-key routing (SetDB side-effects).
+    Initialises the empty OptionCategories table that self-registering module
+    files populate. Search index lives in OptionsSearch.lua.
 ]]
 
 local addon = _G.HorizonSuite
 if not addon then return end
 if not _G[addon.DATABASE] then _G[addon.DATABASE] = {} end
 
-local L = addon.L
-local function BrandModule(moduleKey)
-    if addon.GetModuleDisplayName then return addon.GetModuleDisplayName(moduleKey) end
-    local t = addon.BrandDisplay and addon.BrandDisplay.module
-    if not moduleKey or not t then return nil end
-    return t[moduleKey]
+-- ---------------------------------------------------------------------------
+-- Migration: early global-font implementation used fontPath as the override key.
+-- If useGlobalFont is true but globalOverrideFontPath was never written, the saved
+-- fontPath is the old override value.  Copy it to the dedicated key.
+-- fontPath is intentionally kept: it serves as the per-module "Global Font" sentinel
+-- fallback (Cache, Vista, Presence, Insight all fall through to fontPath when their
+-- own per-module key is "__global__" and the override is off).
+-- ---------------------------------------------------------------------------
+do
+    local db = _G[addon.DATABASE]
+    if db and db.useGlobalFont and db.globalOverrideFontPath == nil and db.fontPath ~= nil then
+        db.globalOverrideFontPath = db.fontPath
+    end
 end
+
 -- ---------------------------------------------------------------------------
--- DB helpers
+-- SetDB routing
 -- ---------------------------------------------------------------------------
 
-local TYPOGRAPHY_KEYS = {
-    fontPath = true,
-    usePerElementFonts = true,
-    titleFontPath = true,
-    presenceTitleFontPath = true,
-    presenceSubtitleFontPath = true,
-    presenceTitleFontOutline = true,
-    presenceSubtitleFontOutline = true,
-    zoneFontPath = true,
-    objectiveFontPath = true,
-    sectionFontPath = true,
-    progressBarFontPath = true,
-    timerFontPath = true,
-    optionsFontPath = true,
-    headerFontSize = true,
-    titleFontSize = true,
-    objectiveFontSize = true,
-    zoneFontSize = true,
-    sectionFontSize = true,
-    progressBarFontSize = true,
-    timerFontSize = true,
-    optionsFontSize = true,
-    fontOutline = true,
-}
-
-local CACHE_KEYS = {
-    cachePoint    = true,
-    cacheRelPoint = true,
-    cacheX        = true,
-    cacheY        = true,
-    cacheFontPath = true,
-}
-
-local FOCUS_CLICK_KEYS = {
-    focusClickProfile     = true,
-    focusIconClickAction  = true,
-    focusClick_left       = true,
-    focusClick_shiftLeft  = true,
-    focusClick_ctrlLeft   = true,
-    focusClick_altLeft    = true,
-    focusClick_right      = true,
-    focusClick_shiftRight = true,
-    focusClick_ctrlRight  = true,
-    focusClick_altRight   = true,
-}
-
-local INSIGHT_KEYS = {
-    insightAnchorMode       = true,
-    insightCursorSide       = true,
-    insightFixedPoint       = true,
-    insightFixedX           = true,
-    insightFixedY           = true,
-    insightCursorOffsetX    = true,
-    insightCursorOffsetY    = true,
-    insightFocusDynamicInFixed = true,
-    insightHideTooltipsInCombat = true,
-    insightBgOpacity       = true,
-    insightShowMount            = true,
-    insightShowIlvl             = true,
-    insightItemLevelMode        = true,
-    insightShowSpecRole         = true,
-    insightShowCharacterTitle   = true,
-    insightRealmNameMode        = true,
-    insightRaceIcons            = true,
-    insightPlayerNameColor      = true,
-    insightPlayerNameGradient   = true,
-    insightTitleColorMode       = true,
-    insightTitleMatchNameColor  = true,
-    insightTitleColor           = true,
-    insightTitleColorR          = true,
-    insightTitleColorG          = true,
-    insightTitleColorB          = true,
-    insightShowHonorLevel       = true,
-    insightHonorLevelMode       = true,
-    insightShowStatusBadges     = true,
-    insightStatusBadgeCombat    = true,
-    insightStatusBadgeAFK       = true,
-    insightStatusBadgeDND       = true,
-    insightStatusBadgePVP       = true,
-    insightStatusBadgeGroup     = true,
-    insightStatusBadgeFriend    = true,
-    insightStatusBadgeTargeting = true,
-    insightShowMythicScore  = true,
-    insightMythicScoreMode  = true,
-    insightRatingsIcons     = true,
-    insightShowTransmog     = true,
-    insightShowGuildRank    = true,
-    insightSeparatorMode    = true,
-    insightBlankSeparator   = true,
-    insightShowIcons       = true,
-    insightClassIconSource = true,
-    insightFontPath        = true,
-    insightHeaderSize      = true,
-    insightBodySize        = true,
-    insightBadgesSize      = true,
-    insightStatsSize       = true,
-    insightMountSize       = true,
-    insightTransmogSize    = true,
-    insightMountOwnershipDisplay = true,
-    -- NPC tooltip
-    insightNpcReactionBorder    = true,
-    insightNpcReactionName      = true,
-    insightNpcShowLevelLine     = true,
-    insightNpcShowIcons         = true,
-    insightNpcHeaderSize        = true,
-    insightNpcBodySize          = true,
-    -- Item tooltip
-    insightItemQualityBorder    = true,
-    insightItemNameGradient     = true,
-    insightItemSectionSpacing   = true,
-    insightItemHeaderSize       = true,
-    insightItemBodySize         = true,
-    insightItemTransmogSize     = true,
-    -- Player tooltip (per-type font sizes)
-    insightPlayerHeaderSize     = true,
-    insightPlayerBodySize       = true,
-    insightPlayerBadgesSize     = true,
-    insightPlayerStatsSize      = true,
-    insightPlayerMountSize      = true,
-
-}
-
-local ESSENCE_KEYS = {
-    essenceX             = true,
-    essenceY             = true,
-    essencePoint         = true,
-    essenceScale         = true,
-    essenceShowModel     = true,
-    essenceLockPosition  = true,
-    essenceStatCap       = true,
-    essenceShowIlvlBadge = true,
-    essenceShowTitle     = true,
-    essenceShowStatBars  = true,
-}
-
-local PRESENCE_KEYS = {
-    presenceFrameY = true,
-    presenceFrameScale = true,
-    presenceBossEmoteColor = true,
-    presenceDiscoveryColor = true,
-    presenceZoneChange = true,
-    presenceSubzoneChange = true,
-    presenceHideZoneForSubzone = true,
-    presenceSuppressZoneInMplus = true,
-    presenceLevelUp = true,
-    presenceBossEmote = true,
-    presenceAchievement = true,
-    presenceAchievementProgress = false,
-    presenceQuestEvents = true,
-    presenceQuestAccept = true,
-    presenceWorldQuestAccept = true,
-    presenceQuestComplete = true,
-    presenceWorldQuest = true,
-    presenceWorldQuestSound = true,
-    presenceQuestUpdate = true,
-    presenceScenarioStart = true,
-    presenceScenarioUpdate = true,
-    presenceScenarioComplete = true,
-    presenceRareDefeated = true,
-    presenceAnimations = true,
-    presenceEntranceDur = true,
-    presenceExitDur = true,
-    presenceHoldScale = true,
-    presencePrimaryLargeSz = true,
-    presenceSecondaryLargeSz = true,
-    presencePrimaryMediumSz = true,
-    presenceSecondaryMediumSz = true,
-    presencePrimarySmallSz = true,
-    presenceSecondarySmallSz = true,
-    presenceTitleFontPath = true,
-    presenceSubtitleFontPath = true,
-    presenceTitleFontOutline = true,
-    presenceSubtitleFontOutline = true,
-    presenceZoneTypeColoring = true,
-    presenceZoneColorFriendly = true,
-    presenceZoneColorHostile = true,
-    presenceZoneColorContested = true,
-    presenceZoneColorSanctuary = true,
-    presenceSuppressInDungeon = true,
-    presenceSuppressInRaid = true,
-    presenceSuppressInDelve = false,
-    presenceSuppressInPvP = true,
-    presenceSuppressInBattleground = true,
-    presenceHideQuestUpdateTitle = true,
-    presencePreviewType = true,
-}
-
--- Keys whose values are baked into a formatted string inside UpdateMplusBlockDisplay
--- (|cff...|r markup) rather than applied via SetTextColor in ApplyMplusTypography.
--- Changing one of these requires re-running the display, not just typography.
-local MPLUS_EMBEDDED_MARKUP_KEYS = {
-    mplusShowSplitTimer = true,
-    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
-    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
-}
-
-local MPLUS_TYPOGRAPHY_KEYS = {
-    fontPath = true,
-    fontOutline = true,
-    shadowOffsetX = true,
-    shadowOffsetY = true,
-    showTextShadow = true,
-    shadowAlpha = true,
-    mplusDungeonSize = true,
-    mplusDungeonColorR = true, mplusDungeonColorG = true, mplusDungeonColorB = true,
-    mplusTimerSize = true,
-    mplusTimerColorR = true, mplusTimerColorG = true, mplusTimerColorB = true,
-    mplusTimerOvertimeColorR = true, mplusTimerOvertimeColorG = true, mplusTimerOvertimeColorB = true,
-    mplusShowSplitTimer = true,
-    mplusSplitSize = true,
-    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
-    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
-    mplusProgressSize = true,
-    mplusProgressColorR = true, mplusProgressColorG = true, mplusProgressColorB = true,
-    mplusAffixSize = true,
-    mplusAffixColorR = true, mplusAffixColorG = true, mplusAffixColorB = true,
-    mplusBossSize = true,
-    mplusBossColorR = true, mplusBossColorG = true, mplusBossColorB = true,
-    mplusBarColorR = true, mplusBarColorG = true, mplusBarColorB = true, mplusBarColorA = true,
-    mplusBarDoneColorR = true, mplusBarDoneColorG = true, mplusBarDoneColorB = true, mplusBarDoneColorA = true,
-}
-
--- Keys written by color pickers during drag. When _colorPickerLive is true and key is in this list,
--- we skip NotifyMainAddon to avoid FullLayout spam; key-specific handlers (e.g. ApplyBackdropOpacity) still run.
-local COLOR_LIVE_KEYS = {
-    backdropOpacity = true, backdropColorR = true, backdropColorG = true, backdropColorB = true,
-    headerColor = true, headerDividerColor = true,
-    colorMatrix = true,
-    highlightColor = true, completedObjectiveColor = true, sectionColors = true,
-    objectiveProgressFlashColor = true, presenceBossEmoteColor = true, presenceDiscoveryColor = true,
-    mplusDungeonColorR = true, mplusDungeonColorG = true, mplusDungeonColorB = true,
-    mplusTimerColorR = true, mplusTimerColorG = true, mplusTimerColorB = true,
-    mplusTimerOvertimeColorR = true, mplusTimerOvertimeColorG = true, mplusTimerOvertimeColorB = true,
-    mplusSplitColorR = true, mplusSplitColorG = true, mplusSplitColorB = true,
-    mplusSplitPastColorR = true, mplusSplitPastColorG = true, mplusSplitPastColorB = true,
-    mplusProgressColorR = true, mplusProgressColorG = true, mplusProgressColorB = true,
-    mplusBarColorR = true, mplusBarColorG = true, mplusBarColorB = true, mplusBarColorA = true,
-    mplusBarDoneColorR = true, mplusBarDoneColorG = true, mplusBarDoneColorB = true, mplusBarDoneColorA = true,
-    mplusAffixColorR = true, mplusAffixColorG = true, mplusAffixColorB = true,
-    mplusBossColorR = true, mplusBossColorG = true, mplusBossColorB = true,
-    progressBarFillColor = true, progressBarTextColor = true,
-    progressBarUseCategoryColor = true,
-    presenceZoneColorFriendly = true, presenceZoneColorHostile = true,
-    presenceZoneColorContested = true, presenceZoneColorSanctuary = true,
-    sectionDividerColor = true,
-    vistaBorderColorR = true, vistaBorderColorG = true, vistaBorderColorB = true, vistaBorderColorA = true,
-    vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
-    vistaCoordColorR = true, vistaCoordColorG = true, vistaCoordColorB = true,
-    vistaTimeColorR = true, vistaTimeColorG = true, vistaTimeColorB = true,
-    vistaPerfColorR = true, vistaPerfColorG = true, vistaPerfColorB = true,
-    vistaDiffColorR = true, vistaDiffColorG = true, vistaDiffColorB = true,
-    vistaPanelBgR = true, vistaPanelBgG = true, vistaPanelBgB = true, vistaPanelBgA = true,
-    vistaPanelBorderR = true, vistaPanelBorderG = true, vistaPanelBorderB = true, vistaPanelBorderA = true,
-    vistaBarBgR = true, vistaBarBgG = true, vistaBarBgB = true, vistaBarBgA = true,
-    vistaBarBorderR = true, vistaBarBorderG = true, vistaBarBorderB = true, vistaBarBorderA = true,
-}
-
--- Vista option keys — trigger Vista.ApplyOptions when changed
-local VISTA_KEYS = {
-    vistaMapSize = true,
-    vistaCircular = true,
-    vistaBorderShow = true, vistaBorderWidth = true,
-    vistaBorderColorR = true, vistaBorderColorG = true, vistaBorderColorB = true, vistaBorderColorA = true,
-    vistaZoneFontPath = true, vistaZoneFontSize = true,
-    vistaCoordFontPath = true, vistaCoordFontSize = true,
-    vistaTimeFontPath = true, vistaTimeFontSize = true,
-    vistaPerfFontPath = true, vistaPerfFontSize = true,
-    vistaShowZoneText = true, vistaShowCoordText = true, vistaShowTimeText = true,     vistaShowPerfText = true,
-    vistaTimeUseLocal = true, vistaTime24Hour = true,
-    vistaZoneDisplayMode = true,
-    vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true, vistaDiffVerticalPos = true,
-    vistaShowDefaultMinimapButtons = true,  -- legacy key kept for compatibility
-    vistaLock = true,
-    vistaPoint = true, vistaRelPoint = true, vistaX = true, vistaY = true,
-    vistaDrawerBtnX = true, vistaDrawerBtnY = true,
-    vistaShowTracking = true, vistaMouseoverTracking = true,
-    vistaShowCalendar = true, vistaMouseoverCalendar = true,
-    vistaQueueBtnX = true, vistaQueueBtnY = true,
-    -- Draggable element positions (stored by MakeDraggable on drag-stop)
-    vistaEX_zone = true, vistaEY_zone = true,
-    vistaEX_coord = true, vistaEY_coord = true,
-    vistaEX_time = true, vistaEY_time = true,
-    vistaEX_perf = true, vistaEY_perf = true,
-    vistaEX_diff = true, vistaEY_diff = true,
-    -- Proxy button positions (tracking + calendar + queue only; landing page removed)
-    ["vistaEX_proxy_tracking"] = true, ["vistaEY_proxy_tracking"] = true,
-    ["vistaEX_proxy_calendar"] = true, ["vistaEY_proxy_calendar"] = true,
-    ["vistaEX_proxy_queue"]    = true, ["vistaEY_proxy_queue"]    = true,
-    ["vistaEX_proxy_mail"]     = true, ["vistaEY_proxy_mail"]     = true,
-    ["vistaEX_proxy_craftingOrder"] = true, ["vistaEY_proxy_craftingOrder"] = true,
-    -- Lock toggles
-    vistaLocked_zone = true, vistaLocked_coord = true, vistaLocked_time = true, vistaLocked_perf = true,
-    vistaLocked_diff = true,
-    ["vistaLocked_proxy_tracking"] = true,
-    ["vistaLocked_proxy_calendar"] = true,
-    ["vistaLocked_proxy_queue"]    = true,
-    ["vistaLocked_proxy_mail"]     = true,
-    ["vistaLocked_proxy_craftingOrder"] = true,
-    ["vistaQueueHandlingDisabled"] = true,
-    ["vistaCoordPrecision"] = true,
-    -- Addon button layout
-    vistaBtnLayoutCols = true, vistaBtnLayoutDir = true,
-    vistaMouseoverLocked = true, vistaMouseoverBarX = true, vistaMouseoverBarY = true,
-    vistaMouseoverBarVisible = true,
-    vistaMouseoverCloseDelay = true, vistaRightClickCloseDelay = true, vistaDrawerCloseDelay = true,
-    vistaBarBgR = true, vistaBarBgG = true, vistaBarBgB = true, vistaBarBgA = true,
-    vistaBarBorderShow = true,
-    vistaBarBorderR = true, vistaBarBorderG = true, vistaBarBorderB = true, vistaBarBorderA = true,
-    vistaRightClickLocked = true, vistaRightClickPanelX = true, vistaRightClickPanelY = true,
-    vistaButtonMode = true, vistaHandleAddonButtons = true,
-    vistaCollectHorizonMinimapButton = true, vistaButtonSortAlpha = true,
-    vistaDrawerButtonLocked = true, vistaDrawerIcon = true, vistaButtonWhitelist = true,
-    vistaMailBlink = true,
-    vistaCraftingOrderBlink = true,
-    -- Button sizes (separate per type)
-    vistaTrackingBtnSize = true, vistaCalendarBtnSize = true, vistaQueueBtnSize = true,
-    vistaMailIconSize = true, vistaCraftingOrderIconSize = true, vistaAddonBtnSize = true,
-    -- Text colors
-    vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
-    vistaCoordColorR = true, vistaCoordColorG = true, vistaCoordColorB = true,
-    vistaTimeColorR = true, vistaTimeColorG = true, vistaTimeColorB = true,
-    vistaDiffColorR = true, vistaDiffColorG = true, vistaDiffColorB = true,
-    vistaDiffFontPath = true, vistaDiffFontSize = true,
-    vistaLocked_diff = true,
-    vistaDiffColor_mythic_R = true, vistaDiffColor_mythic_G = true, vistaDiffColor_mythic_B = true,
-    vistaDiffColor_heroic_R = true, vistaDiffColor_heroic_G = true, vistaDiffColor_heroic_B = true,
-    vistaDiffColor_normal_R = true, vistaDiffColor_normal_G = true, vistaDiffColor_normal_B = true,
-    vistaDiffColor_looking_for_raid_R = true, vistaDiffColor_looking_for_raid_G = true, vistaDiffColor_looking_for_raid_B = true,
-    -- Panel colors
-    vistaPanelBgR = true, vistaPanelBgG = true, vistaPanelBgB = true, vistaPanelBgA = true,
-    vistaPanelBorderR = true, vistaPanelBorderG = true, vistaPanelBorderB = true, vistaPanelBorderA = true,
-}
--- Vista border color keys: live updates without full layout
-local VISTA_COLOR_LIVE_KEYS = {
-    vistaBorderColorR = true, vistaBorderColorG = true, vistaBorderColorB = true, vistaBorderColorA = true,
-    vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
-    vistaCoordColorR = true, vistaCoordColorG = true, vistaCoordColorB = true,
-    vistaTimeColorR = true, vistaTimeColorG = true, vistaTimeColorB = true,
-    vistaPerfColorR = true, vistaPerfColorG = true, vistaPerfColorB = true,
-    vistaDiffColorR = true, vistaDiffColorG = true, vistaDiffColorB = true,
-    vistaDiffColor_mythic_R = true, vistaDiffColor_mythic_G = true, vistaDiffColor_mythic_B = true,
-    vistaDiffColor_heroic_R = true, vistaDiffColor_heroic_G = true, vistaDiffColor_heroic_B = true,
-    vistaDiffColor_normal_R = true, vistaDiffColor_normal_G = true, vistaDiffColor_normal_B = true,
-    vistaDiffColor_looking_for_raid_R = true, vistaDiffColor_looking_for_raid_G = true, vistaDiffColor_looking_for_raid_B = true,
-    vistaPanelBgR = true, vistaPanelBgG = true, vistaPanelBgB = true, vistaPanelBgA = true,
-    vistaPanelBorderR = true, vistaPanelBorderG = true, vistaPanelBorderB = true, vistaPanelBorderA = true,
-    vistaBarBgR = true, vistaBarBgG = true, vistaBarBgB = true, vistaBarBgA = true,
-    vistaBarBorderR = true, vistaBarBorderG = true, vistaBarBorderB = true, vistaBarBorderA = true,
-}
-
--- Scale keys managed by debounced callbacks in the slider set lambdas.
--- OptionsData_SetDB must NOT call OptionsData_NotifyMainAddon for these —
--- doing so would trigger FullLayout synchronously on every integer drag step,
--- defeating the debounce entirely.
-local SCALE_DEBOUNCE_KEYS = {
-    globalUIScale   = true,
-    focusUIScale    = true,
-    presenceUIScale = true,
-    vistaUIScale    = true,
-    insightUIScale  = true,
-    cacheUIScale    = true,
-    vistaBorderWidth = true,
-    vistaAddonBtnSize = true,
-    vistaBtnLayoutCols = true,
-}
-
--- Vista-only keys: Vista.ApplyOptions / ApplyLockOnlyOptions already ran above; Focus does not read vista*
--- for layout. Skip OptionsData_NotifyMainAddon (FullLayout) so dashboard toggles stay smooth.
--- Add exceptions here only if a Vista key must still rebuild the tracker or global dimensions.
-local VISTA_KEYS_REQUIRE_NOTIFY = {
-}
-
--- Vista position / drag locks: use Vista.ApplyLockOnlyOptions and skip FullLayout (Focus rebuild is unnecessary).
-local VISTA_SKIP_FULL_LAYOUT_KEYS = {
-    vistaLocked_zone = true,
-    vistaLocked_coord = true,
-    vistaLocked_time = true,
-    vistaLocked_perf = true,
-    vistaLocked_diff = true,
-    ["vistaLocked_proxy_tracking"] = true,
-    ["vistaLocked_proxy_calendar"] = true,
-    ["vistaLocked_proxy_queue"]    = true,
-    ["vistaLocked_proxy_mail"]     = true,
-    ["vistaLocked_proxy_craftingOrder"] = true,
-    ["vistaQueueHandlingDisabled"] = true,
-    vistaMouseoverLocked = true,
-    vistaRightClickLocked = true,
-    vistaDrawerButtonLocked = true,
-}
-
-local CLASS_COLOR_KEYS = {
-    classColorDashboard = true,
-    classColorVista = true,
-    classColorInsight = true,
-    classColorEssence = true,
-    classColorFocus = true,
-    classColorPresence = true,
-    classColorCache = true,
-}
-
-local DASHBOARD_CLASS_ICON_KEYS = {
-    dashboardClassIconSource = true,
-    dashboardShowClassIcon = true,
-}
-
-local DASHBOARD_BACKGROUND_KEYS = {
-    dashboardBackgroundTheme = true,
-    dashboardBackgroundOpacity = true,
-    dashboardBackgroundClassOverride = true,
-}
-
-local DASHBOARD_TYPOGRAPHY_KEYS = {
-    dashboardFontPath = true,
-    dashboardFontSize = true,
-    dashboardTextOutline = true,
-    dashboardTextShadow = true,
-    dashboardHeadingColor = true,
-}
+-- Populated by OptionsDefaults.lua (loads before this file)
+local TYPOGRAPHY_KEYS      = addon.TYPOGRAPHY_KEYS
+local COLOR_LIVE_KEYS      = addon.COLOR_LIVE_KEYS
+local SCALE_DEBOUNCE_KEYS  = addon.SCALE_DEBOUNCE_KEYS
+local CLASS_COLOR_KEYS     = addon.CLASS_COLOR_KEYS
 
 function OptionsData_GetDB(key, default)
     return addon.GetDB(key, default)
@@ -462,38 +59,52 @@ function OptionsData_SetDB(key, value)
         addon.focus.nearbyQuestCache = nil
         addon.focus.nearbyTaskQuestCache = nil
     end
-    if (key == "fontPath" or key == "titleFontPath" or key == "zoneFontPath" or key == "objectiveFontPath" or key == "sectionFontPath" or key == "progressBarFontPath" or key == "timerFontPath" or key == "optionsFontPath" or key == "presenceTitleFontPath" or key == "presenceSubtitleFontPath" or key == "insightFontPath") and updateOptionsPanelFontsRef then
+    if (key == "fontPath" or key == "titleFontPath" or key == "zoneFontPath" or key == "objectiveFontPath" or key == "sectionFontPath" or key == "progressBarFontPath" or key == "timerFontPath" or key == "optionsFontPath" or key == "presenceTitleFontPath" or key == "presenceSubtitleFontPath" or key == "insightFontPath" or key == "useGlobalFont" or key == "globalOverrideFontPath") and updateOptionsPanelFontsRef then
         updateOptionsPanelFontsRef()
     end
     if TYPOGRAPHY_KEYS[key] and addon.UpdateFontObjectsFromDB then
         addon.UpdateFontObjectsFromDB()
     end
-    if MPLUS_TYPOGRAPHY_KEYS[key] and addon.ApplyMplusTypography then
+    -- When the global-font override toggle changes, or when fontPath changes while
+    -- the override is active, push the new font through every module immediately.
+    -- (useGlobalFont is in TYPOGRAPHY_KEYS so UpdateFontObjectsFromDB already ran;
+    --  this block handles the per-module apply functions that sit outside that path.)
+    if key == "useGlobalFont" or (key == "globalOverrideFontPath" and addon.GetDB and addon.GetDB("useGlobalFont", false)) then
+        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+        if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
+        if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
+        if addon.Essence and addon.Essence.ApplyEssenceOptions then addon.Essence.ApplyEssenceOptions() end
+        if addon.Vista and addon.Vista.ApplyOptions then
+            local k = key
+            C_Timer.After(0, function() if addon.Vista and addon.Vista.ApplyOptions then addon.Vista.ApplyOptions(k) end end)
+        end
+    end
+    if addon.MPLUS_TYPOGRAPHY_KEYS and addon.MPLUS_TYPOGRAPHY_KEYS[key] and addon.ApplyMplusTypography then
         addon.ApplyMplusTypography()
     end
-    if MPLUS_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateMplusBlock then
+    if addon.MPLUS_EMBEDDED_MARKUP_KEYS and addon.MPLUS_EMBEDDED_MARKUP_KEYS[key] and addon.UpdateMplusBlock then
         addon.UpdateMplusBlock()
     end
-    if PRESENCE_KEYS[key] and addon.Presence then
+    if addon.PRESENCE_KEYS and addon.PRESENCE_KEYS[key] and addon.Presence then
         if addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
         if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
     end
-    if INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
+    if addon.INSIGHT_KEYS and addon.INSIGHT_KEYS[key] and addon.Insight and addon.Insight.ApplyInsightOptions then
         addon.Insight.ApplyInsightOptions()
     end
-    if ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
+    if addon.ESSENCE_KEYS and addon.ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
         addon.Essence.ApplyEssenceOptions()
     end
-    if CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
+    if addon.CACHE_KEYS and addon.CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
         addon.Cache.ApplyCacheOptions()
     end
-    if DASHBOARD_CLASS_ICON_KEYS[key] then
+    if addon.DASHBOARD_CLASS_ICON_KEYS and addon.DASHBOARD_CLASS_ICON_KEYS[key] then
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
     end
-    if DASHBOARD_BACKGROUND_KEYS[key] then
+    if addon.DASHBOARD_BACKGROUND_KEYS and addon.DASHBOARD_BACKGROUND_KEYS[key] then
         if addon.ApplyDashboardBackground then addon.ApplyDashboardBackground() end
     end
-    if DASHBOARD_TYPOGRAPHY_KEYS[key] then
+    if addon.DASHBOARD_TYPOGRAPHY_KEYS and addon.DASHBOARD_TYPOGRAPHY_KEYS[key] then
         if addon.ApplyDashboardTypography then addon.ApplyDashboardTypography() end
     end
     if CLASS_COLOR_KEYS[key] then
@@ -523,12 +134,12 @@ function OptionsData_SetDB(key, value)
             addon.Cache.ApplyCacheOptions()
         end
     end
-    if VISTA_KEYS[key] and addon.Vista then
-        if addon._colorPickerLive and VISTA_COLOR_LIVE_KEYS[key] then
+    if addon.VISTA_KEYS and addon.VISTA_KEYS[key] and addon.Vista then
+        if addon._colorPickerLive and addon.VISTA_COLOR_LIVE_KEYS and addon.VISTA_COLOR_LIVE_KEYS[key] then
             if addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
         elseif addon.Vista.ApplyOptions or addon.Vista.ApplyLockOnlyOptions then
             local fn
-            if VISTA_SKIP_FULL_LAYOUT_KEYS[key] and addon.Vista.ApplyLockOnlyOptions then
+            if addon.VISTA_SKIP_FULL_LAYOUT_KEYS and addon.VISTA_SKIP_FULL_LAYOUT_KEYS[key] and addon.Vista.ApplyLockOnlyOptions then
                 fn = addon.Vista.ApplyLockOnlyOptions
             else
                 local vistaKey = key
@@ -591,7 +202,7 @@ function OptionsData_SetDB(key, value)
     if key == "minimapButtonShowOnlyOnMinimapHover" and addon.MinimapButton_UpdateVisibility then
         addon.MinimapButton_UpdateVisibility()
     end
-    if VISTA_KEYS[key] and not VISTA_KEYS_REQUIRE_NOTIFY[key] then return end
+    if addon.VISTA_KEYS and addon.VISTA_KEYS[key] and not (addon.VISTA_KEYS_REQUIRE_NOTIFY and addon.VISTA_KEYS_REQUIRE_NOTIFY[key]) then return end
     if key:sub(1, 19) == "vistaButtonManaged_" then return end
     OptionsData_NotifyMainAddon()
 end
@@ -628,264 +239,10 @@ function OptionsData_NotifyMainAddon()
     if fullLayout and not InCombatLockdown() then fullLayout() end
 end
 
--- ---------------------------------------------------------------------------
--- Option value helpers (used in category descriptors)
--- ---------------------------------------------------------------------------
-
-local function getDB(k, d) return addon.GetDB(k, d) end
-local function setDB(k, v) return OptionsData_SetDB(k, v) end
-
---- Returns dropdown options for a given combo key, delegating to FocusClickConfig.
---- Custom profile uses the full action list on every combo; presets use curated COMBO_OPTIONS.
---- @param comboKey string e.g. "left", "shiftLeft"
---- @return table { {label, value}, ... }
-local function GetComboActionOptions(comboKey)
-    local cfg = addon.focus and addon.focus.clickConfig
-    if not cfg then return {} end
-    if getDB("focusClickProfile", "blizzardDefault") == "custom" and cfg.GetAllComboActionOptions then
-        return cfg.GetAllComboActionOptions()
-    end
-    if cfg.GetComboOptions then
-        return cfg.GetComboOptions(comboKey)
-    end
-    return {}
-end
-
---- Returns dropdown options for the shared quest/appearance icon click action.
---- @return table { {label, value}, ... }
-local function GetIconClickActionOptions()
-    local cfg = addon.focus and addon.focus.clickConfig
-    if cfg and cfg.GetIconActionOptions then
-        return cfg.GetIconActionOptions()
-    end
-    return {}
-end
-
---- Resolved action for options UI: per-combo DB when Custom (defaults match Blizzard+); else built-in preset.
---- @param comboKey string
---- @param dbKey string SavedVariables key e.g. focusClick_left
---- @return string
-local function GetEffectiveFocusClickAction(comboKey, dbKey)
-    local prof = getDB("focusClickProfile", "blizzardDefault")
-    local cfg = addon.focus and addon.focus.clickConfig
-    local normalizeAction = cfg and cfg.NormalizeAction
-    local profiles = cfg and cfg.PROFILES
-    local blizz = profiles and profiles.blizzardDefault
-    local customDefault = (blizz and blizz[comboKey]) or "none"
-
-    if prof == "custom" then
-        local raw = getDB(dbKey, customDefault)
-        return normalizeAction and normalizeAction(raw) or raw
-    end
-    if not profiles then return customDefault end
-    local t = profiles[prof] or profiles.blizzardDefault
-    local v = t and t[comboKey]
-    if normalizeAction then
-        v = normalizeAction(v)
-    end
-    if type(v) == "string" and v ~= "" then return v end
-    return (t and t[comboKey]) or customDefault
-end
-
---- Resolved icon click action for options UI: fixed default for presets, DB-backed for Custom.
---- @return string
-local function GetEffectiveFocusIconClickAction()
-    local prof = getDB("focusClickProfile", "blizzardDefault")
-    if prof ~= "custom" then
-        return "superTrack"
-    end
-    local cfg = addon.focus and addon.focus.clickConfig
-    local normalizeAction = cfg and cfg.NormalizeIconAction
-    local raw = getDB("focusIconClickAction", "superTrack")
-    return normalizeAction and normalizeAction(raw) or raw
-end
-
---- When true, per-combo dropdowns are read-only (preset profile selected).
---- @return boolean
-local function FocusClickPresetCombosLocked()
-    return getDB("focusClickProfile", "blizzardDefault") ~= "custom"
-end
-
---- True while Focus locks click profile to Blizzard (Horizon+ / Custom hidden).
---- @return boolean
-local function FocusClickProfileChoiceHidden()
-    local c = addon.focus and addon.focus.clickConfig
-    return c and c.profilesLockedToBlizzard
-end
-
---- Click profile dropdown: all presets listed; when locked, only Blizzard+ is selectable (others show "Coming soon").
---- @return table
-local function GetFocusClickProfileDropdownOptions()
-    if FocusClickProfileChoiceHidden() then
-        local soon = L["FOCUS_COMING_SOON"]
-        return {
-            { L["FOCUS_PROFILE_BLIZZARD_DEFAULT"],                           "blizzardDefault" },
-            { (L["FOCUS_PROFILE_HORIZON_PLUS"]) .. " — " .. soon, "horizonPlus", true },
-            { (L["FOCUS_PROFILE_CUSTOM"]) .. " — " .. soon, "custom", true },
-        }
-    end
-    return {
-        { L["FOCUS_PROFILE_HORIZON_PLUS"],     "horizonPlus" },
-        { L["FOCUS_PROFILE_BLIZZARD_DEFAULT"], "blizzardDefault" },
-        { L["FOCUS_PROFILE_CUSTOM"],           "custom" },
-    }
-end
-
-local defaultFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
-local defaultDashboardFontPath = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
-
-local function GetFontDropdownOptions()
-    if addon.RefreshFontList then addon.RefreshFontList() end
-    local list = (addon.GetFontList and addon.GetFontList()) or {}
-
-
-    local saved = getDB("fontPath", defaultFontPath)
-    -- Back-compat: if saved value is a concrete font file path, try to map it
-    -- back to the corresponding LSM key so the dropdown can select it.
-    if addon.GetFontNameForPath then
-        local mapped = addon.GetFontNameForPath(saved)
-        if mapped and mapped ~= "" and mapped ~= "Custom" and mapped ~= saved then
-            local path = addon.ResolveFontPath and addon.ResolveFontPath(mapped) or nil
-            if path and path == saved then
-                saved = mapped
-            end
-        end
-    end
-    for _, o in ipairs(list) do
-        if o[2] == saved then return list end
-    end
-    local out = {}
-    for i = 1, #list do out[i] = list[i] end
-    -- If it's not one of our known choices, keep it selectable as "Custom".
-    out[#out + 1] = { L["FOCUS_CUSTOM"], saved }
-    return out
-end
-
-local function GetDashboardFontDropdownOptions()
-    if addon.RefreshFontList then addon.RefreshFontList() end
-    local list = (addon.GetFontList and addon.GetFontList()) or {}
-    local saved = getDB("dashboardFontPath", defaultDashboardFontPath)
-    if addon.GetFontNameForPath then
-        local mapped = addon.GetFontNameForPath(saved)
-        if mapped and mapped ~= "" and mapped ~= "Custom" and mapped ~= saved then
-            local path = addon.ResolveFontPath and addon.ResolveFontPath(mapped) or nil
-            if path and path == saved then
-                saved = mapped
-            end
-        end
-    end
-    for _, o in ipairs(list) do
-        if o[2] == saved then return list end
-    end
-    local out = {}
-    for i = 1, #list do out[i] = list[i] end
-    out[#out + 1] = { L["FOCUS_CUSTOM"], saved }
-    return out
-end
-
-local FONT_USE_GLOBAL = "__global__"
-
-local function GetPerElementFontDropdownOptions(dbKey)
-    if addon.RefreshFontList then addon.RefreshFontList() end
-    local list = (addon.GetFontList and addon.GetFontList()) or {}
-    local out = { { L["FOCUS_GLOBAL_FONT"], FONT_USE_GLOBAL } }
-    for i = 1, #list do out[#out + 1] = list[i] end
-    local saved = getDB(dbKey, FONT_USE_GLOBAL)
-    if saved == FONT_USE_GLOBAL then return out end
-    for _, o in ipairs(out) do
-        if o[2] == saved then return out end
-    end
-    out[#out + 1] = { L["FOCUS_CUSTOM"], saved }
-    return out
-end
-
-local function DisplayPerElementFont(value)
-    if value == FONT_USE_GLOBAL then return L["FOCUS_GLOBAL_FONT"] end
-    if addon.GetFontNameForPath then return addon.GetFontNameForPath(value) end
-    return value
-end
-
-local function GetPresencePreviewDropdownOptions()
-    local Presence = addon.Presence
-    if not Presence or not Presence.PREVIEW_TYPE_ORDER or not Presence.PREVIEW_TYPE_LABELS then
-        return { { L["PRESENCE_LEVEL_UP_TOGGLE"], "LEVEL_UP" } }
-    end
-    local out = {}
-    for _, typeName in ipairs(Presence.PREVIEW_TYPE_ORDER) do
-        local labelKey = Presence.PREVIEW_TYPE_LABELS[typeName]
-        local label = labelKey and (L[labelKey] or labelKey) or typeName
-        out[#out + 1] = { label, typeName }
-    end
-    return out
-end
-
-local OUTLINE_OPTIONS = {
-    { L["FOCUS_OUTLINE_NONE"], "" },
-    { L["FOCUS_OUTLINE"], "OUTLINE" },
-    { L["FOCUS_THICK_OUTLINE"], "THICKOUTLINE" },
-    { L["FOCUS_SLUG"], "SLUG" },
-    { L["FOCUS_SLUG_OUTLINE"], "OUTLINE, SLUG" },
-    { L["FOCUS_SLUG_THICK_OUTLINE"], "THICKOUTLINE, SLUG" },
-}
-local VALID_OUTLINE_VALUES = {
-    [""] = true,
-    OUTLINE = true,
-    THICKOUTLINE = true,
-    SLUG = true,
-    ["OUTLINE, SLUG"] = true,
-    ["THICKOUTLINE, SLUG"] = true,
-}
-local HIGHLIGHT_OPTIONS = {
-    { L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"], "bar-left" },
-    { L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"], "bar-right" },
-    { L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"], "bar-top" },
-    { L["FOCUS_HIGHLIGHT_BAR_BOTTOM_EDGE"], "bar-bottom" },
-    { L["FOCUS_HIGHLIGHT_OUTLINE_ONLY"], "outline" },
-    { L["FOCUS_HIGHLIGHT_SOFT_GLOW"], "glow" },
-    { L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"], "bar-both" },
-    { L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"], "pill-left" },
-    { L["FOCUS_HIGHLIGHT"], "highlight" },
-}
-local MPLUS_POSITION_OPTIONS = {
-    { L["FOCUS_MYTHICPLUS_POSITION_TOP"], "top" },
-    { L["FOCUS_MYTHICPLUS_POSITION_BOTTOM"], "bottom" },
-}
-local MPLUS_FONT_OPTIONS = {
-    { "Title Font", "TitleFont" },
-    { "Objective Font", "ObjFont" },
-    { "Section Font", "SectionFont" },
-    { "Detail Font", "DetailFont" },
-}
-local TEXT_CASE_OPTIONS = {
-    { L["FOCUS_TEXT_LOWER_CASE"], "lower" },
-    { L["FOCUS_TEXT_UPPER_CASE"], "upper" },
-    { L["FOCUS_TEXT_PROPER_CASE"], "proper" },
-}
-local INSIGHT_FORCE_MODIFIER_OPTIONS = {
-    { L["INSIGHT_DISPLAY_MODE_HIDE"],             "hide" },
-    { L["INSIGHT_DISPLAY_MODE_SHOW"],             "force" },
-    { L["INSIGHT_DISPLAY_MODE_MODIFIER"],     "modifier" },
-}
--- Use addon.QUEST_COLORS from Config as single source for quest type colors.
-local COLOR_KEYS_ORDER = { "DEFAULT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "WORLD", "DELVES", "SCENARIO", "RAID", "ACHIEVEMENT", "APPEARANCE", "WEEKLY", "PREY", "DAILY", "COMPLETE", "RARE" }
-local ZONE_COLOR_DEFAULT = { 0.55, 0.65, 0.75 }
-local OBJ_COLOR_DEFAULT = { 0.78, 0.78, 0.78 }
-local OBJ_DONE_COLOR_DEFAULT = { 0.20, 1.00, 0.40 }  -- matches Ready to Turn In #33FF66
-local HIGHLIGHT_COLOR_DEFAULT = { 0.4, 0.7, 1 }
-
-local VALID_HIGHLIGHT_STYLES = {
-    ["bar-left"] = true, ["bar-right"] = true, ["bar-top"] = true, ["bar-bottom"] = true,
-    ["outline"] = true, ["glow"] = true, ["bar-both"] = true, ["pill-left"] = true, ["highlight"] = true,
-}
-local function getActiveQuestHighlight()
-    local v = addon.NormalizeHighlightStyle(getDB("activeQuestHighlight", "bar-left"))
-    if not VALID_HIGHLIGHT_STYLES[v] then return "bar-left" end
-    return v
-end
 
 -- ---------------------------------------------------------------------------
--- OptionCategories: Axis hub first (Modules, Global Toggles, Profiles), then per-module tabs
--- (Focus, Presence, …), Insight (Global / Player / NPC / Item), Vista …, Cache
+-- OptionCategories: populated at load time by self-registering module files
+-- in TOC order. Read-only after initial load.
 -- ---------------------------------------------------------------------------
 
 local OptionCategories = {
@@ -1887,7 +1244,7 @@ local OptionCategories = {
             { type = "toggle", name = L["ZONE_LABELS"], desc = L["FOCUS_ZONE_NAME_UNDER_QUEST_TITLE"], dbKey = "showZoneLabels", get = function() return getDB("showZoneLabels", true) end, set = function(v) setDB("showZoneLabels", v) end },
             { type = "section", name = L["FOCUS_ENTRY_DETAILS"] },
             { type = "toggle", name = L["ENTRY_NUMBERS"], desc = L["FOCUS_PREFIX_QUEST_TITLES_WITHIN_CATEGORY"], dbKey = "showCategoryEntryNumbers", get = function() return getDB("showCategoryEntryNumbers", true) end, set = function(v) setDB("showCategoryEntryNumbers", v) end },
-            { type = "dropdown", name = L["FOCUS_OBJECTIVE_PREFIX"], desc = L["FOCUS_PREFIX_OBJECTIVE_A_NUMBER_HYPHEN"], dbKey = "objectivePrefixStyle", options = { { L["FOCUS_OUTLINE_NONE"], "none" }, { L["FOCUS_NUMBERS"], "numbers" }, { L["FOCUS_HYPHENS"], "hyphens" } }, get = function() return getDB("objectivePrefixStyle", "none") end, set = function(v) setDB("objectivePrefixStyle", v) end },
+            { type = "dropdown", name = L["FOCUS_OBJECTIVE_PREFIX"], desc = L["FOCUS_OBJECTIVE_PREFIX_DESC"], dbKey = "objectivePrefixStyle", options = { { L["FOCUS_OUTLINE_NONE"], "none" }, { L["FOCUS_NUMBERS"], "numbers" }, { L["FOCUS_HYPHENS"], "hyphens" }, { L["FOCUS_BULLET_POINTS"], "bulletPoints" } }, get = function() return getDB("objectivePrefixStyle", "none") end, set = function(v) setDB("objectivePrefixStyle", v) end },
             { type = "toggle", name = L["FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLOURS"], desc = L["FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLOURS_DESC"], dbKey = "objectiveProgressNumberColors", get = function() return getDB("objectiveProgressNumberColors", true) end, set = function(v) setDB("objectiveProgressNumberColors", v) end },
             { type = "toggle", name = L["COMPLETED_COUNT"], desc = L["FOCUS_X_Y_PROGRESS_QUEST_TITLE"], dbKey = "showCompletedCount", get = function() return getDB("showCompletedCount", false) end, set = function(v) setDB("showCompletedCount", v) end },
             { type = "dropdown", name = L["FOCUS_COMPLETED_OBJECTIVES"], desc = L["DISPLAY_COMPLETED_OBJECTIVES"], tooltip = L["FOCUS_MULTI_OBJECTIVE_QUESTS_DISPLAY_OBJECTIVES"], dbKey = "questCompletedObjectiveDisplay", options = { { L["FOCUS_ALL"], "off" }, { L["FOCUS_FADE_COMPLETED"], "fade" }, { L["FOCUS_HIDE_COMPLETED"], "hide" } }, get = function() return getDB("questCompletedObjectiveDisplay", "off") end, set = function(v) setDB("questCompletedObjectiveDisplay", v) end },
@@ -3431,165 +2788,6 @@ local OptionCategories = {
     },
 }
 
--- ---------------------------------------------------------------------------
--- Search index: flatten all options for search (name + desc + section)
--- Includes optionId, sectionName, categoryIndex for navigation.
--- Match uses word tokens (alphanumeric runs) with prefix matching; see OptionsData_SearchEntryScore.
--- ---------------------------------------------------------------------------
-
-local function TokenizeSearchCorpus(str)
-    local t = {}
-    if not str or str == "" then return t end
-    local lower = str:lower()
-    for word in string.gmatch(lower, "%w+") do
-        t[#t + 1] = word
-    end
-    return t
-end
-
-local function ParseSearchQueryTerms(query)
-    local terms = {}
-    if not query or query == "" then return terms end
-    local q = query:lower()
-    q = q:gsub("^%s+", ""):gsub("%s+$", "")
-    for word in string.gmatch(q, "%w+") do
-        terms[#terms + 1] = word
-    end
-    return terms
-end
-
--- Best score for one query term against a token list (exact word or whole-token prefix if term length >= 2).
-local function TermScoreAgainstTokens(term, tokens, exactScore, prefixScore)
-    local best = 0
-    if not tokens then return 0 end
-    for i = 1, #tokens do
-        local w = tokens[i]
-        if w == term then
-            if exactScore > best then best = exactScore end
-        elseif #term >= 2 and #w >= #term and string.sub(w, 1, #term) == term then
-            if prefixScore > best then best = prefixScore end
-        end
-    end
-    return best
-end
-
---- Score an index entry for a lowercased search string; nil if no match.
---- Multi-word queries require every term to match some token (AND). Higher = better (name > section > category > module > option id > desc).
---- @param entry table Row from OptionsData_BuildSearchIndex()
---- @param queryLower string Trimmed, lowercased query
---- @return number|nil
-function OptionsData_SearchEntryScore(entry, queryLower)
-    if not entry or not queryLower or queryLower == "" then return nil end
-    local terms = ParseSearchQueryTerms(queryLower)
-    if #terms == 0 then return nil end
-    local total = 0
-    for ti = 1, #terms do
-        local term = terms[ti]
-        local best = 0
-        local function bump(tokens, exactPts, prefixPts)
-            local s = TermScoreAgainstTokens(term, tokens, exactPts, prefixPts)
-            if s > best then best = s end
-        end
-        bump(entry.searchTokensName, 1000, 700)
-        bump(entry.searchTokensSection, 400, 280)
-        bump(entry.searchTokensCategory, 350, 240)
-        bump(entry.searchTokensModule, 300, 200)
-        bump(entry.searchTokensOptionId, 180, 120)
-        bump(entry.searchTokensDesc, 150, 100)
-        if best == 0 then return nil end
-        total = total + best
-    end
-    return total
-end
-
-local function StripSearchDisplayFormatting(s)
-    if s == nil then return "" end
-    s = tostring(s)
-    s = s:gsub("|c%x%x%x%x%x%x%x", ""):gsub("|r", "")
-    s = s:gsub("|n", " ")
-    s = s:gsub("|T[^|]-|t", "")
-    return s
-end
-
-local function NormalizeSearchDisplayWhitespace(s)
-    s = s:gsub("%s+", " ")
-    return s:gsub("^%s+", ""):gsub("%s+$", "")
-end
-
---- Plain-text option description and tooltip for search dropdown rows (why this matched).
---- @param opt table Option definition from OptionCategories
---- @param maxLen number|nil Max characters before "..." (default 140)
---- @return string
-function OptionsData_SearchResultDetailText(opt, maxLen)
-    if not opt then return "" end
-    maxLen = maxLen or 140
-    local rawD = type(opt.desc) == "function" and opt.desc() or opt.desc
-    local rawT = type(opt.tooltip) == "function" and opt.tooltip() or opt.tooltip
-    local d = NormalizeSearchDisplayWhitespace(StripSearchDisplayFormatting(rawD))
-    local t = NormalizeSearchDisplayWhitespace(StripSearchDisplayFormatting(rawT))
-    local combined
-    if d ~= "" and t ~= "" and t ~= d then
-        combined = d .. " · " .. t
-    elseif d ~= "" then
-        combined = d
-    else
-        combined = t
-    end
-    if #combined <= maxLen then return combined end
-    return string.sub(combined, 1, maxLen - 3) .. "..."
-end
-
-function OptionsData_BuildSearchIndex()
-    local index = {}
-    local cats = addon.OptionCategories
-    for catIdx, cat in ipairs(cats) do
-        local currentSection = ""
-        local moduleKey = cat.moduleKey
-        local moduleLabel
-        if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
-            moduleLabel = BrandModule("axis") or "Axis"
-        else
-            moduleLabel = BrandModule(moduleKey) or L["MODULES"]
-        end
-        local catNameRaw = type(cat.name) == "function" and cat.name() or cat.name
-        local catNameStr = tostring(catNameRaw or "")
-        local catNameLower = catNameStr:lower()
-        local catOpts = type(cat.options) == "function" and cat.options() or cat.options
-        for _, opt in ipairs(catOpts) do
-            if opt.type == "section" then
-                currentSection = type(opt.name) == "function" and opt.name() or opt.name or ""
-            elseif opt.type ~= "section" and opt.type ~= "header" and opt.type ~= "moduleReloadPrompt" then
-                local rawName = type(opt.name) == "function" and opt.name() or opt.name
-                local name = (rawName or ""):lower()
-                local desc = ((opt.desc or "") .. " " .. (opt.tooltip or "")):lower()
-                local sectionLower = (currentSection or ""):lower()
-                local moduleLower = (moduleLabel or ""):lower()
-                local searchText = name .. " " .. desc .. " " .. sectionLower .. " " .. moduleLower
-                local optionId = opt.dbKey or (cat.key .. "_" .. (rawName or ""):gsub("%s+", "_"))
-                local idForTokens = tostring(optionId or ""):lower():gsub("_+", " ")
-                index[#index + 1] = {
-                    categoryKey = cat.key,
-                    categoryName = cat.name,
-                    categoryIndex = catIdx,
-                    moduleKey = moduleKey,
-                    moduleLabel = moduleLabel,
-                    sectionName = currentSection,
-                    option = opt,
-                    optionId = optionId,
-                    searchText = searchText,
-                    searchTokensName = TokenizeSearchCorpus(name),
-                    searchTokensDesc = TokenizeSearchCorpus(desc),
-                    searchTokensSection = TokenizeSearchCorpus(sectionLower),
-                    searchTokensModule = TokenizeSearchCorpus(moduleLower),
-                    searchTokensCategory = TokenizeSearchCorpus(catNameLower),
-                    searchTokensOptionId = TokenizeSearchCorpus(idForTokens),
-                }
-            end
-        end
-    end
-    return index
-end
-
 local function getVisibleCategories()
     local out = {}
     for _, cat in ipairs(OptionCategories) do
@@ -3598,22 +2796,13 @@ local function getVisibleCategories()
     return out
 end
 
--- Export for panel
+-- Export for panel and module option files
 addon.OptionsData_GetDB = OptionsData_GetDB
 addon.OptionsData_SetDB = OptionsData_SetDB
 addon.OptionsData_GetFontList = function()
     if addon.RefreshFontList then addon.RefreshFontList() end
     return (addon.GetFontList and addon.GetFontList()) or {}
 end
-addon.OptionsData_NotifyMainAddon = OptionsData_NotifyMainAddon
+addon.OptionsData_NotifyMainAddon   = OptionsData_NotifyMainAddon
 addon.OptionsData_SetUpdateFontsRef = OptionsData_SetUpdateFontsRef
-addon.GetPresencePreviewDropdownOptions = GetPresencePreviewDropdownOptions
-addon.OptionCategories = getVisibleCategories()
-addon.OptionsData_BuildSearchIndex = OptionsData_BuildSearchIndex
-addon.OptionsData_SearchEntryScore = OptionsData_SearchEntryScore
-addon.OptionsData_SearchResultDetailText = OptionsData_SearchResultDetailText
-addon.COLOR_KEYS_ORDER = COLOR_KEYS_ORDER
-addon.ZONE_COLOR_DEFAULT = ZONE_COLOR_DEFAULT
-addon.OBJ_COLOR_DEFAULT = OBJ_COLOR_DEFAULT
-addon.OBJ_DONE_COLOR_DEFAULT = OBJ_DONE_COLOR_DEFAULT
-addon.HIGHLIGHT_COLOR_DEFAULT = HIGHLIGHT_COLOR_DEFAULT
+addon.OptionCategories              = getVisibleCategories()

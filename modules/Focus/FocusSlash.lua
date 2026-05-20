@@ -122,6 +122,7 @@ end
 
 local function ShowFocusDebugHelp()
     HSPrint("Focus debug commands (/h debug focus [cmd] — or /hfs delvedebug for delve diagnostics):")
+    HSPrint("  debuglive  - Toggle live debug log panel")
     HSPrint("  scendebug - Scenario timer debug (also: /h scenario debug)")
     HSPrint("  devmode - Show Blizzard tracker alongside Focus for comparison")
     HSPrint("  wqdebug, nearbydebug, headercountdebug, groupdebug")
@@ -503,7 +504,16 @@ local function HandleFocusDebugSlash(msg)
         return
     end
 
-    if cmd == "wqdebug" then
+    if cmd == "debuglive" then
+        if not addon.Log.isDevMode() then
+            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
+            return
+        end
+        local v = not addon.Log.isEnabled("focus")
+        if addon.focus and addon.focus.SetDebugLive then addon.focus.SetDebugLive(v) end
+        HSPrint("Focus debug log: " .. (v and "on" or "off"))
+
+    elseif cmd == "wqdebug" then
         if addon.DumpWorldQuestDiscovery then
             addon.DumpWorldQuestDiscovery()
         else

@@ -10,6 +10,14 @@ if not addon then return end
 addon.Essence = addon.Essence or {}
 local Essence = addon.Essence
 
+local essencePanel = addon.Log.createPanel("essence", "Essence Debug", { maxLines = 300,
+    onClose = function()
+        if addon.SetDB then addon.SetDB("essenceDebugLive", false) end
+        addon.Log.enableTag("essence", nil)
+    end,
+})
+addon.Log.registerTag("essence", "essenceDebugLive")
+
 -- ============================================================================
 -- LAYOUT CONSTANTS (unscaled pixels)
 -- ============================================================================
@@ -648,13 +656,14 @@ end)
 
 function Essence.Init()
     if Essence._initialized then
-        -- Re-enable after disable: re-register events and re-apply position
         RegisterEssenceEvents()
         InstallCharFrameHook()
         Essence.ApplyPosition()
+        addon.Log.debug("essence", "Re-enabled")
         return
     end
     Essence._initialized = true
+    addon.Log.debug("essence", "Init")
 
     BuildFrame()
     RegisterEssenceEvents()
@@ -663,8 +672,19 @@ function Essence.Init()
 end
 
 function Essence.Disable()
+    addon.Log.debug("essence", "Disable")
     if frame then frame:Hide() end
     eventFrame:UnregisterAllEvents()
 end
+
+local function SetEssenceDebugLive(v)
+    if addon.SetDB then addon.SetDB("essenceDebugLive", v) end
+    addon.Log.enableTag("essence", v or nil)
+    if v then essencePanel.Show(); addon.Log.debug("essence", "Live debug enabled")
+    else essencePanel.Hide() end
+end
+Essence.SetDebugLive  = SetEssenceDebugLive
+Essence.ShowDebugPanel = essencePanel.Show
+Essence.HideDebugPanel = essencePanel.Hide
 
 addon.Essence = Essence

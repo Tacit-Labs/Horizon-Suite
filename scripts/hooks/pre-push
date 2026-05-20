@@ -1,0 +1,9 @@
+#!/bin/sh
+# Block pushing when DEV_MODE = true is present in core/Logger.lua.
+if git show HEAD:core/Logger.lua 2>/dev/null | grep -q "^local DEV_MODE = true"; then
+    echo ""
+    echo "  ERROR: DEV_MODE = true in core/Logger.lua — set it back to false before pushing."
+    echo ""
+    exit 1
+fi
+exit 0
