@@ -5,7 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- ============================================================================
 -- REAGENT TYPE CONSTANTS
 -- ============================================================================
@@ -418,12 +418,11 @@ local function BuildRecipeObjectivesFull(recipeID, isRecraft, schematic)
         end
     end
 
-    local L = addon.L
     if #optionalRaw > 0 then
-        DedupeAndAppend(optionalRaw, objectives, (L and L["FOCUS_OPTIONAL_REAGENTS"]), "optional")
+        DedupeAndAppend(optionalRaw, objectives, (L["FOCUS_OPTIONAL_REAGENTS"]), "optional")
     end
     if #finishingRaw > 0 then
-        DedupeAndAppend(finishingRaw, objectives, (L and L["FOCUS_FINISHING_REAGENTS"]), "finishing")
+        DedupeAndAppend(finishingRaw, objectives, (L["FOCUS_FINISHING_REAGENTS"]), "finishing")
     end
 
     return objectives
