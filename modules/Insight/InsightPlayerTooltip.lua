@@ -1369,14 +1369,14 @@ function Insight.RenderTestTooltipContent(tooltip)
     Insight.sepR, Insight.sepG, Insight.sepB = testSepR, testSepG, testSepB
 
     local showIcons = ShowIcons()
-    local fc = Insight.FACTION_COLORS["Alliance"]
+    local fc = Insight.FACTION_COLORS["Horde"]
     local nameModeRaw = addon.GetDB("insightPlayerNameColor", "faction")
     local nameMode = (nameModeRaw == "class") and "class" or "faction"
     local nameR, nameG, nameB = fc[1], fc[2], fc[3]
     if nameMode == "class" then
         nameR, nameG, nameB = testSepR, testSepG, testSepB
     end
-    local facIcon = showIcons and (Insight.FACTION_ICONS["Alliance"] or "") or ""
+    local facIcon = showIcons and (Insight.FACTION_ICONS["Horde"] or "") or ""
 
     local useGradient = (nameMode == "class")
         and addon.GetDB("insightPlayerNameGradient", false)
