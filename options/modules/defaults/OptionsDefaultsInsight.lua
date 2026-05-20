@@ -92,6 +92,7 @@ addon.INSIGHT_KEYS = {
     insightTRP3Title            = true,
     insightTRP3RaceClass        = true,
     insightTRP3Guild            = true,
+    insightTRP3BorderColor      = true,
 
 }
 

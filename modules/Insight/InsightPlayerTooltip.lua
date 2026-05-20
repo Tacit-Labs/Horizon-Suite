@@ -110,6 +110,7 @@ local function ShowTRP3CustomColor() return addon.GetDB("insightTRP3CustomColor"
 local function ShowTRP3Pronouns()    return addon.GetDB("insightTRP3Pronouns",    true) end
 local function ShowTRP3ICStatus()    return addon.GetDB("insightTRP3ICStatus",    true) end
 local function ShowTRP3ICStatusIcon() return addon.GetDB("insightTRP3ICStatusIcon", false) end
+local function ShowTRP3BorderColor()  return addon.GetDB("insightTRP3BorderColor",  false) end
 local function ShowTRP3Title()        return addon.GetDB("insightTRP3Title",        true) end
 local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass",   true) end
 local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
@@ -1157,7 +1158,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end
 
     -- 2. Border tint
-    if classColor then
+    if trp3Data and trp3Data.customColorR and ShowTRP3BorderColor() then
+        tooltip:SetBackdropBorderColor(trp3Data.customColorR, trp3Data.customColorG, trp3Data.customColorB, 0.60)
+    elseif classColor then
         tooltip:SetBackdropBorderColor(classColor.r, classColor.g, classColor.b, 0.60)
     end
 

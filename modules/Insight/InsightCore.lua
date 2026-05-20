@@ -262,6 +262,13 @@ end
 local function ReapplyUnitTooltipBorder(tooltip, unit, isPlayer)
     if not tooltip or not tooltip.SetBackdropBorderColor or not unit or SafeUnitExistsKnown(unit) ~= true then return end
     if isPlayer then
+        if addon.GetDB("insightTRP3BorderColor", false) and addon.GetDB("insightTRP3Enabled", true) and Insight.GetTRP3PlayerData then
+            local trp3d = Insight.GetTRP3PlayerData(unit)
+            if trp3d and trp3d.customColorR then
+                tooltip:SetBackdropBorderColor(trp3d.customColorR, trp3d.customColorG, trp3d.customColorB, 0.60)
+                return
+            end
+        end
         local classFile = select(2, UnitClass(unit))
         local classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
         if classColor and addon.GetModuleClassColor and addon.GetModuleClassColor("insight") then
@@ -658,7 +665,9 @@ local function RefreshPullout()
     pulloutMock._insightTooltipType = (mode == "player" or mode == "npc" or mode == "item") and mode or nil
     Insight.StyleFonts(pulloutMock)
     local br, bg, bb, ba = 0.77, 0.12, 0.23, 0.60
-    if mode == "npc" and FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then
+    if mode == "player" and TRP3_API and addon.GetDB("insightTRP3Enabled", true) and addon.GetDB("insightTRP3BorderColor", false) then
+        br, bg, bb = 0.72, 0.53, 1.0
+    elseif mode == "npc" and FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then
         local c = FACTION_BAR_COLORS[2]
         br, bg, bb = c.r, c.g, c.b
     elseif mode == "item" then

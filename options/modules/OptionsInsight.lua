@@ -151,6 +151,7 @@ local categories = {
             Toggle(L["INSIGHT_TRP3_TITLE"], L["INSIGHT_TRP3_TITLE_DESC"], "insightTRP3Title", true),
             { type = "toggle", name = L["INSIGHT_TRP3_NAME"],             desc = L["INSIGHT_TRP3_NAME_DESC"],                                   dbKey = "insightTRP3RPName",       get = function() return getDB("insightTRP3RPName",       true)  end, set = function(v) setDB("insightTRP3RPName",       v) end, refreshIds = { "insightTRP3Section" } },
             Toggle(L["INSIGHT_TITLE_CUSTOM_COLOUR"], L["INSIGHT_TRP3_COLOUR_DESC"], "insightTRP3CustomColor", true),
+            Toggle(L["INSIGHT_TRP3_BORDER_COLOR"], L["INSIGHT_TRP3_BORDER_COLOR_DESC"], "insightTRP3BorderColor", false),
             { type = "toggle", name = L["INSIGHT_TRP3_STATUS"],     desc = L["INSIGHT_TRP3_STATUS_DESC"],                             dbKey = "insightTRP3ICStatus",     get = function() return getDB("insightTRP3ICStatus",    true)  end, set = function(v) setDB("insightTRP3ICStatus",    v) end, refreshIds = { "insightTRP3Section" } },
             { type = "toggle", name = L["INSIGHT_TRP3_STATUS_ICON"],  desc = L["INSIGHT_TRP3_STATUS_ICON_DESC"],                                  dbKey = "insightTRP3ICStatusIcon", get = function() return getDB("insightTRP3ICStatusIcon", false) end, set = function(v) setDB("insightTRP3ICStatusIcon", v) end, visibleWhen = function() return getDB("insightTRP3ICStatus", true) end },
             Toggle(L["INSIGHT_TRP3_PRONOUNS"], L["INSIGHT_TRP3_PRONOUNS_DESC"], "insightTRP3Pronouns", true),
