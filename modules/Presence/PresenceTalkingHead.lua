@@ -1,6 +1,6 @@
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 addon.Presence = addon.Presence or {}
 
 local DEFAULTS = addon.TALKING_HEAD_DEFAULTS
@@ -327,8 +327,6 @@ local PREVIEW_PORTRAIT_W = 110
 
 function addon.Presence.CreateTalkingHeadPreviewWidget(parent)
     if not parent then return nil end
-
-    local L = addon.L
 
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetHeight(PREVIEW_HEIGHT)
