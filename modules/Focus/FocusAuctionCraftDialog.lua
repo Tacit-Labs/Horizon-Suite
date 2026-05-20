@@ -8,7 +8,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 local AH_CRAFT_W        = addon.Scaled(420)
 local AH_CRAFT_PAD      = addon.Scaled(16)
 local AH_CRAFT_ACCENT_H = addon.Scaled(3)
@@ -352,9 +352,9 @@ local function EnsureAhCraftFrame()
 
     local function tierRowLabel(L, tierVal)
         if tierVal == nil then
-            return (L and L["FOCUS_AH_CRAFT_TIER_ANY"])
+            return L["FOCUS_AH_CRAFT_TIER_ANY"]
         end
-        local pat = L and L["FOCUS_AH_CRAFT_TIER_N"]
+        local pat = L["FOCUS_AH_CRAFT_TIER_N"]
         if pat and type(pat) == "string" then
             local ok, s = pcall(string.format, pat, tierVal)
             if ok and s then return s end
@@ -363,7 +363,6 @@ local function EnsureAhCraftFrame()
     end
 
     local function refreshTierButtonDisplay()
-        local L = addon.L
         local t = f.selectedCraftingTier
         if type(t) ~= "number" or t < 1 or t > AH_TIER_MAX then
             f.tierBtn.icon:Hide()
@@ -410,7 +409,6 @@ local function EnsureAhCraftFrame()
     end
 
     local function syncTierMenuLabels()
-        local L = addon.L
         for idx = 0, AH_TIER_MAX do
             local row = f.tierMenuRows[idx + 1]
             if row then
@@ -451,7 +449,6 @@ local function EnsureAhCraftFrame()
         local entry = f._entry
         if not entry then return end
         CloseTierMenu()
-        local L = addon.L
         local text = f.ebCraft:GetText() or ""
         local n = tonumber(text)
         local maxN = addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX or 999
@@ -499,16 +496,15 @@ end
 function addon.focus.ShowAuctionCraftDialog(entry)
     if not entry then return end
     local f = EnsureAhCraftFrame()
-    local L = addon.L
     local ar, ag, ab = GetAccentRGB()
     if f.accentStrip then f.accentStrip:SetColorTexture(ar, ag, ab, 1) end
     if f.subtitleLbl then
-        f.subtitleLbl:SetText((L and L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"]))
+        f.subtitleLbl:SetText(L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"])
         f.subtitleLbl:SetTextColor(ar, ag, ab, 1)
     end
-    f.hintCraft:SetText((L and L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"])
+    f.hintCraft:SetText(L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"])
         or "How many crafts to buy materials for (1–999). Quantities in the list are multiplied by this.")
-    f.hintTier:SetText((L and L["FOCUS_AH_CRAFT_HINT_TIER"])
+    f.hintTier:SetText(L["FOCUS_AH_CRAFT_HINT_TIER"])
         or "Optional crafting tier on every row. Leave as Any for no quality or tier filters.")
 
     f.SyncTierMenuLabels()
