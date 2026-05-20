@@ -43,7 +43,7 @@
 
 local addon = _G.HorizonSuite
 
-local DEV_MODE = false
+local DEV_MODE = true
 
 local BUFFER_MAX = 100
 local buffer, head, count = {}, 1, 0
@@ -100,7 +100,7 @@ Log.enableTag = function(tag, enabled)
 end
 
 Log.isEnabled = function(tag)
-    return active(tag)
+    return enabledTags[tag] == true
 end
 
 Log.addListener = function(tag, fn)
