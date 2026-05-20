@@ -11,6 +11,9 @@ local CATEGORY_SORT_FALLBACK = 99
 local DEFAULT_GROUP = "DEFAULT"
 local UNKNOWN_TITLE_PLACEHOLDER = "..."
 
+-- Sibling-addon entry providers registered via addon.RegisterFocusEntryProvider.
+local externalProviders = {}
+
 -- Entry sort mode: alpha, questType, zone, level (DB key entrySortMode, default questType)
 local VALID_ENTRY_SORT = { alpha = true, questType = true, zone = true, level = true }
 
@@ -695,11 +698,31 @@ local function ReadTrackedQuests()
         end
     end
 
+    -- 8. External providers (e.g. Horizon-RareScanner)
+    for _, provider in ipairs(externalProviders) do
+        local ok, entries = pcall(provider)
+        if ok and entries then
+            for _, e in ipairs(entries) do
+                quests[#quests + 1] = e
+            end
+        end
+    end
+
     if addon.testQuestItem then
         table.insert(quests, 1, addon.testQuestItem)
     end
 
     return quests
+end
+
+--- Register an external entry provider for the Focus tracker.
+--- The provider is a function() → table of normalized entry tables.
+--- Called once per tracker refresh; errors are caught and silently dropped.
+--- @param fn function
+function addon.RegisterFocusEntryProvider(fn)
+    if type(fn) == "function" then
+        externalProviders[#externalProviders + 1] = fn
+    end
 end
 
 addon.ReadTrackedQuests   = ReadTrackedQuests
