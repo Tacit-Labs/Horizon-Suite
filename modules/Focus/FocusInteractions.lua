@@ -89,10 +89,10 @@ local function AppendWoWheadLineToTooltip(entry)
     if not addon.GetDB("focusShowWoWheadLink", true) then return end
     local url = addon.GetWoWheadURL(entry)
     if not url then return end
-    local text = (addon.L and addon.L["FOCUS_VIEW_WOWHEAD"])
+    local text = L["FOCUS_VIEW_WOWHEAD"]
     local hint = addon.focus.GetWoWheadClickBindingHint and addon.focus.GetWoWheadClickBindingHint() or ""
     if hint == "" then
-        hint = (addon.L and addon.L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"])
+        hint = L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]
     end
     local line = ("|cff00b4ff|Hurl:%s|h[%s]|h|r |cff888888(%s)|r"):format(url, text, hint)
     GameTooltip:AddLine(" ")
@@ -159,7 +159,6 @@ end
 --- @param anchor frame|nil Frame to anchor menu to; if nil, uses cursor
 local function ShowQuestContextMenu(questID, questName, anchor)
     if not questID then return end
-    local L = addon.L or {}
     local menuList = {}
     if C_QuestLog and C_QuestLog.IsPushableQuest and C_QuestLog.IsPushableQuest(questID) then
         local inGroup = (GetNumGroupMembers and GetNumGroupMembers() > 1) or (UnitInParty and UnitInParty("player"))
@@ -431,7 +430,6 @@ end
 --- @param anchor Frame|nil Pool entry frame (for cached item link when opening dressing room).
 local function ShowAppearanceContextMenu(appearanceID, anchor)
     if not appearanceID then return end
-    local L = addon.L or {}
     local menuList = {
         {
             text = L["FOCUS_SHOW_APPEARANCE_WARDROBE"],
@@ -794,7 +792,6 @@ local function RunEasyMenuTracked(menuList, frameName, anchor)
 end
 
 local function ShowTrackedAchievementContextMenu(entry, anchor)
-    local L = addon.L or {}
     local aid = entry.achievementID
     if not aid then return end
     RunEasyMenuTracked({
@@ -812,7 +809,6 @@ local function ShowTrackedAchievementContextMenu(entry, anchor)
 end
 
 local function ShowTrackedEndeavorContextMenu(entry, anchor)
-    local L = addon.L or {}
     if not entry.endeavorID then return end
     RunEasyMenuTracked({
         {
@@ -829,7 +825,6 @@ local function ShowTrackedEndeavorContextMenu(entry, anchor)
 end
 
 local function ShowTrackedRecipeContextMenu(entry, anchor)
-    local L = addon.L or {}
     if not entry.recipeID then return end
     -- Copy IDs now: pool entry may be cleared before the menu item runs.
     local recipeID = entry.recipeID
@@ -849,7 +844,6 @@ local function ShowTrackedRecipeContextMenu(entry, anchor)
 end
 
 local function ShowTrackedDecorContextMenu(entry, anchor)
-    local L = addon.L or {}
     if not entry.decorID then return end
     RunEasyMenuTracked({
         {
@@ -876,7 +870,6 @@ local function ShowTrackedDecorContextMenu(entry, anchor)
 end
 
 local function ShowTrackedAdventureGuideContextMenu(entry, anchor)
-    local L = addon.L or {}
     if not entry.adventureGuideID then return end
     RunEasyMenuTracked({
         {
@@ -893,7 +886,6 @@ local function ShowTrackedAdventureGuideContextMenu(entry, anchor)
 end
 
 local function ShowTrackedRareContextMenu(entry, anchor)
-    local L = addon.L or {}
     RunEasyMenuTracked({
         {
             text = L["FOCUS_CONTEXT_SET_RARE_WAYPOINT"],
@@ -1054,8 +1046,7 @@ local function ExecuteTrackedContentAction(action, kind, entry)
         end
     elseif action == "share" then
         local printFn = addon.HSPrint or print
-        local L = addon.L or {}
-        printFn("|cffffcc00" .. (L["FOCUS_TRACKED_CONTENT_CANNOT_SHARE"]) .. "|r")
+        printFn("|cffffcc00" .. L["FOCUS_TRACKED_CONTENT_CANNOT_SHARE"] .. "|r")
     elseif action == "preview" then
         -- Mirror native Ctrl+Click previews: decor opens the housing preview, recipes open the inspect frame.
         -- Achievement / endeavor / advguide / rare have no standalone preview and fall through silently.
@@ -1547,8 +1538,7 @@ QUEST_ACTIONS["openDetails"] = function(entry)
     if InCombatLockdown() then
         QueueOpenQuestDetailsAfterCombat(entry.questID)
         local printFn = addon.HSPrint or print
-        local L = addon.L or {}
-        printFn("|cFF00CCFF" .. (L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"]) .. "|r")
+        printFn("|cFF00CCFF" .. L["FOCUS_QUEST_DETAILS_AFTER_COMBAT"] .. "|r")
         return
     end
     if addon.ToggleQuestDetails then
@@ -1602,17 +1592,16 @@ end
 
 QUEST_ACTIONS["share"] = function(entry)
     local printFn = addon.HSPrint or print
-    local L = addon.L or {}
     if C_QuestLog and C_QuestLog.IsPushableQuest and C_QuestLog.IsPushableQuest(entry.questID) then
         local inGroup = (GetNumGroupMembers and GetNumGroupMembers() > 1) or (UnitInParty and UnitInParty("player"))
         if inGroup and C_QuestLog.SetSelectedQuest and QuestLogPushQuest then
             C_QuestLog.SetSelectedQuest(entry.questID)
             QuestLogPushQuest()
         else
-            printFn("|cffffcc00" .. (L["FOCUS_REQUIRE_PARTY_SHARE"]) .. "|r")
+            printFn("|cffffcc00" .. L["FOCUS_REQUIRE_PARTY_SHARE"] .. "|r")
         end
     else
-        printFn("|cffffcc00" .. (L["FOCUS_CANNOT_SHARE_QUEST"]) .. "|r")
+        printFn("|cffffcc00" .. L["FOCUS_CANNOT_SHARE_QUEST"] .. "|r")
     end
 end
 
@@ -1681,8 +1670,7 @@ end
 
 APPEARANCE_ACTIONS["share"] = function(_)
     local printFn = addon.HSPrint or print
-    local L = addon.L or {}
-    printFn("|cffffcc00" .. (L["FOCUS_APPEARANCE_CANNOT_SHARE"]) .. "|r")
+    printFn("|cffffcc00" .. L["FOCUS_APPEARANCE_CANNOT_SHARE"] .. "|r")
 end
 
 APPEARANCE_ACTIONS["abandon"] = function(entry)
