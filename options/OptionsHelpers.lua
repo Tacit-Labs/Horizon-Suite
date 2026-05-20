@@ -41,6 +41,8 @@ local OUTLINE_OPTIONS = {
     { L["FOCUS_SLUG_OUTLINE"], "OUTLINE, SLUG" },
     { L["FOCUS_SLUG_THICK_OUTLINE"], "THICKOUTLINE, SLUG" },
 }
+local VALID_OUTLINE_VALUES = {}
+for _, pair in ipairs(OUTLINE_OPTIONS) do VALID_OUTLINE_VALUES[pair[2]] = true end
 
 local function BrandModule(moduleKey)
     if addon.GetModuleDisplayName then return addon.GetModuleDisplayName(moduleKey) end
@@ -95,6 +97,7 @@ addon.FONT_USE_GLOBAL                  = FONT_USE_GLOBAL
 addon.GetPerElementFontDropdownOptions = GetPerElementFontDropdownOptions
 addon.DisplayPerElementFont            = DisplayPerElementFont
 addon.OUTLINE_OPTIONS                  = OUTLINE_OPTIONS
+addon.VALID_OUTLINE_VALUES             = VALID_OUTLINE_VALUES
 addon.BrandModule                      = BrandModule
 addon.Section                          = Section
 addon.Header                           = Header
