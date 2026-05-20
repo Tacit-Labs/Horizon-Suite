@@ -43,7 +43,7 @@
 
 local addon = _G.HorizonSuite
 
-local DEV_MODE = true
+local DEV_MODE = false
 
 local BUFFER_MAX = 100
 local buffer, head, count = {}, 1, 0
