@@ -111,6 +111,11 @@ local function ShowTRP3Pronouns()    return addon.GetDB("insightTRP3Pronouns",  
 local function ShowTRP3ICStatus()    return addon.GetDB("insightTRP3ICStatus",    true) end
 local function ShowTRP3ICStatusIcon() return addon.GetDB("insightTRP3ICStatusIcon", false) end
 local function ShowTRP3BorderColor()  return addon.GetDB("insightTRP3BorderColor",  false) end
+
+local function ProperCasePronouns(s)
+    if not s or s == "" then return s end
+    return (s:gsub("([^/]+)", function(seg) return seg:sub(1, 1):upper() .. seg:sub(2) end))
+end
 local function ShowTRP3Title()        return addon.GetDB("insightTRP3Title",        true) end
 local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass",   true) end
 local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
@@ -1132,12 +1137,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 nameLeft:SetTextColor(nameR, nameG, nameB)
             end
         end
-        -- Build TRP3 suffix: pronouns and IC/OOC badge
+        -- Build TRP3 suffix: IC/OOC badge only (pronouns moved to title line)
         local trp3Suffix = ""
         if trp3Data then
-            if trp3Data.pronouns and ShowTRP3Pronouns() then
-                trp3Suffix = trp3Suffix .. " |cffaaaaaa(" .. trp3Data.pronouns .. ")|r"
-            end
             if trp3Data.isIC ~= nil and ShowTRP3ICStatus() then
                 if ShowTRP3ICStatusIcon() then
                     trp3Suffix = trp3Suffix .. (trp3Data.isIC
@@ -1274,7 +1276,15 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
 
     if trp3Data and trp3Data.fullTitle and ShowTRP3Title() then
         Insight.TagLines(tooltip, "identity", function()
-            tooltip:AddLine("< " .. trp3Data.fullTitle .. " >", 0.75, 0.85, 1.0)
+            local titleLine = "< " .. trp3Data.fullTitle .. " >"
+            if trp3Data.pronouns and ShowTRP3Pronouns() then
+                titleLine = titleLine .. "  |cffaaaaaa(" .. ProperCasePronouns(trp3Data.pronouns) .. ")|r"
+            end
+            tooltip:AddLine(titleLine, 0.75, 0.85, 1.0)
+        end)
+    elseif trp3Data and trp3Data.pronouns and ShowTRP3Pronouns() then
+        Insight.TagLines(tooltip, "identity", function()
+            tooltip:AddLine("|cffaaaaaa(" .. ProperCasePronouns(trp3Data.pronouns) .. ")|r", 1, 1, 1)
         end)
     end
 
@@ -1392,12 +1402,9 @@ function Insight.RenderTestTooltipContent(tooltip)
         nameSpan = FormatNameSpan(displayName, nameR, nameG, nameB, false)
     end
 
-    -- TRP3 pronouns + IC/OOC suffix
+    -- TRP3 IC/OOC suffix (pronouns moved to title line)
     local trp3Suffix = ""
     if previewTRP3 then
-        if previewTRP3.pronouns and ShowTRP3Pronouns() then
-            trp3Suffix = trp3Suffix .. " |cffaaaaaa(" .. previewTRP3.pronouns .. ")|r"
-        end
         if previewTRP3.isIC ~= nil and ShowTRP3ICStatus() then
             if ShowTRP3ICStatusIcon() then
                 trp3Suffix = trp3Suffix .. (previewTRP3.isIC
@@ -1434,10 +1441,15 @@ function Insight.RenderTestTooltipContent(tooltip)
     local previewClassCol = { r = testSepR, g = testSepG, b = testSepB }
 
     local previewHasTitle = previewTRP3 and previewTRP3.fullTitle and ShowTRP3Title()
+    local previewHasPronouns = previewTRP3 and previewTRP3.pronouns and ShowTRP3Pronouns()
     if previewHasTitle then
-        -- Full title replaces the WoW guild line — sits right under the name
-        tooltip:AddLine("< " .. previewTRP3.fullTitle .. " >", 0.75, 0.85, 1.0)
-        -- Spacer between title and race/class (mirrors the blank race-slot in the live path)
+        local titleLine = "< " .. previewTRP3.fullTitle .. " >"
+        if previewHasPronouns then
+            titleLine = titleLine .. "  |cffaaaaaa(" .. ProperCasePronouns(previewTRP3.pronouns) .. ")|r"
+        end
+        tooltip:AddLine(titleLine, 0.75, 0.85, 1.0)
+    elseif previewHasPronouns then
+        tooltip:AddLine("|cffaaaaaa(" .. ProperCasePronouns(previewTRP3.pronouns) .. ")|r", 1, 1, 1)
     else
         -- WoW guild shown in TRP3 "Rank of Guild" format (TRP3 active) or legacy format (not active)
         if previewMoveGuildToBottom then
