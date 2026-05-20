@@ -8,9 +8,10 @@ local addon = _G.HorizonSuite
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
-local INSPECT_THROTTLE = 1.5
-local CACHE_TTL        = 300
-local CACHE_MAX        = 100
+local INSPECT_THROTTLE      = 1.5
+local ACHIEVEMENT_THROTTLE  = 2.0
+local CACHE_TTL             = 300
+local CACHE_MAX             = 100
 
 local MOUNT_READY_TEX  = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local MOUNT_NOTREADY_TEX = "Interface\\RaidFrame\\ReadyCheck-NotReady"
@@ -205,6 +206,12 @@ local function ShowHonorLevel()
     return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
 end
 
+local function ShowAchievementPoints()
+    local mode = GetInsightDisplayMode("insightAchievementPointsMode", "insightShowAchievementPoints")
+    if mode == "hide" then return false end
+    return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
+end
+
 -- ============================================================================
 -- INSPECT CACHE
 -- ============================================================================
@@ -213,6 +220,15 @@ local inspectCache = {}
 Insight.inspectCache = inspectCache
 
 local lastInspect = 0
+
+-- ============================================================================
+-- ACHIEVEMENT CACHE
+-- ============================================================================
+
+local achievementCache = {}
+Insight.achievementCache = achievementCache
+
+local lastAchievementRequest = 0
 
 function Insight.PruneInspectCache()
     local now   = GetTime()
@@ -231,6 +247,26 @@ function Insight.PruneInspectCache()
     end
     if count > CACHE_MAX and oldestKey then
         inspectCache[oldestKey] = nil
+    end
+end
+
+function Insight.PruneAchievementCache()
+    local now   = GetTime()
+    local count = 0
+    local oldest, oldestKey
+    for guid, entry in pairs(achievementCache) do
+        if now - entry.time > CACHE_TTL then
+            achievementCache[guid] = nil
+        else
+            count = count + 1
+            if not oldest or entry.time < oldest then
+                oldest    = entry.time
+                oldestKey = guid
+            end
+        end
+    end
+    if count > CACHE_MAX and oldestKey then
+        achievementCache[oldestKey] = nil
     end
 end
 
@@ -298,6 +334,25 @@ local function RequestInspect(unit)
     if now - lastInspect < INSPECT_THROTTLE then return end
     lastInspect = now
     NotifyInspect(unit)
+end
+
+local function RequestAchievementComparison(unit)
+    local allowRequest = false
+    pcall(function()
+        if not UnitIsPlayer(unit) then return end
+        if UnitIsUnit(unit, "player") then return end
+        allowRequest = true
+    end)
+    if not allowRequest then return end
+    local now = GetTime()
+    if now - lastAchievementRequest < ACHIEVEMENT_THROTTLE then return end
+    lastAchievementRequest = now
+    if SetAchievementComparisonUnit then
+        if ClearAchievementComparisonUnit then
+            pcall(ClearAchievementComparisonUnit)
+        end
+        pcall(SetAchievementComparisonUnit, unit)
+    end
 end
 
 -- ============================================================================
@@ -671,6 +726,31 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
         end)
     end
 
+    if ShowAchievementPoints() then
+        local achievedPoints = nil
+        pcall(function()
+            if UnitIsUnit(unit, "player") then
+                local ok, pts = pcall(GetTotalAchievementPoints)
+                if ok and pts and pts > 0 then achievedPoints = pts end
+            else
+                local g = UnitGUID(unit)
+                local cachedAch = g and achievementCache[g]
+                if cachedAch then
+                    achievedPoints = cachedAch.points
+                else
+                    RequestAchievementComparison(unit)
+                end
+            end
+        end)
+        if achievedPoints then
+            EnsureStatsSep()
+            Insight.TagLines(tooltip, "stats", function()
+                local icon = (ShowIcons() and ShowRatingsIcons()) and Insight.ACHIEVEMENT_ICON or ""
+                tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(achievedPoints), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
+            end)
+        end
+    end
+
     if cached then
         if ShowIlvl() and cached.ilvl then
             Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
@@ -722,6 +802,18 @@ end
 --- Cache inspect for unit; used by INSPECT_READY handler.
 function Insight.CacheInspect(guid, unit)
     CacheInspect(guid, unit)
+end
+
+--- Cache achievement points for unit; used by INSPECT_ACHIEVEMENT_READY handler.
+function Insight.CacheAchievementPoints(unit)
+    pcall(function()
+        local g = UnitGUID(unit)
+        if not g then return end
+        if not GetComparisonAchievementPoints then return end
+        local points = GetComparisonAchievementPoints()
+        if not points or points <= 0 then return end
+        achievementCache[g] = { points = points, time = GetTime() }
+    end)
 end
 
 -- ============================================================================
@@ -1046,6 +1138,14 @@ function Insight.RenderTestTooltipContent(tooltip)
         Insight.TagLines(tooltip, "stats", function()
             local icon = (showIcons and ShowRatingsIcons()) and Insight.HONOR_ICON or ""
             tooltip:AddLine(icon .. "Honor Level: " .. Insight.FormatNumberWithCommas(247), fc[1], fc[2], fc[3])
+        end)
+    end
+
+    if ShowAchievementPoints() then
+        ensureStatsSep()
+        Insight.TagLines(tooltip, "stats", function()
+            local icon = (showIcons and ShowRatingsIcons()) and Insight.ACHIEVEMENT_ICON or ""
+            tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(28650), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
         end)
     end
 

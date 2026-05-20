@@ -12,13 +12,13 @@ addon:RegisterModule("cache", {
     order       = 30,
 
     OnInit = function()
-        -- Frame/pool created at load in CacheCore; no extra init needed
     end,
 
     OnEnable = function()
         if addon.Cache then
+            if addon.Cache.InitFrames then addon.Cache.InitFrames() end
             if addon.Cache.EnableEvents then addon.Cache.EnableEvents() end
-            if addon.Cache.SuppressBlizzard then addon.Cache.SuppressBlizzard() end
+            if addon.Cache.ApplyBlizzardSuppression then addon.Cache.ApplyBlizzardSuppression() end
             if addon.Cache.SetFrameVisible then addon.Cache.SetFrameVisible(true) end
             if addon.Cache.RestoreSavedPosition then addon.Cache.RestoreSavedPosition() end
             if addon.Cache.ApplyCacheClassChrome then addon.Cache.ApplyCacheClassChrome() end

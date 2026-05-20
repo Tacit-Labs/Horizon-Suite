@@ -7,18 +7,16 @@
 local addon = _G.HorizonSuite
 if not addon or not addon.Presence then return end
 
--- Live-debug trace (no-op unless presence debug live is on — avoids string work when off).
+-- Live-debug trace (no-op unless the presence log tag is enabled — avoids string work when off).
 local function DbgWQ(...)
-    if not (addon.Presence.IsDebugLive and addon.Presence.IsDebugLive()) then return end
-    local log = addon.Presence.DebugLog
-    if not log then return end
+    if not addon.Log.isEnabled("presence") then return end
     local n = select("#", ...)
     if n == 0 then return end
     local parts = {}
     for i = 1, n do
         parts[i] = tostring(select(i, ...))
     end
-    log(table.concat(parts, " "))
+    addon.Log.debug("presence", table.concat(parts, " "))
 end
 
 -- ============================================================================

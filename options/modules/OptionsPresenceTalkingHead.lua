@@ -7,10 +7,13 @@ local addon = _G.HorizonSuite
 if not addon or not addon.OptionCategories then return end
 
 local L = addon.L
-local D = addon.Presence.TalkingHeadDefaults
+local D   = addon.TALKING_HEAD_DEFAULTS
+local LIM = addon.TALKING_HEAD_LIMITS
+local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
 
 local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
+local Section = addon.Section
 
 local function updateTalkingHead()
     if addon.Presence and addon.Presence.UpdateTalkingHead then
@@ -20,7 +23,7 @@ end
 
 local function isCustomising() return getDB("talkingHeadCustomise", D.talkingHeadCustomise) end
 
-local FONT_USE_GLOBAL = "__global__"
+local FONT_USE_GLOBAL = addon.FONT_USE_GLOBAL
 
 local function GetFontOptions(dbKey)
     if addon.RefreshFontList then addon.RefreshFontList() end
@@ -47,7 +50,7 @@ local category = {
     desc      = L["TALKING_HEAD_CATEGORY_DESC"],
     moduleKey = "presence",
     options   = {
-        { type = "section", name = L["AXIS_GENERAL"] },
+        Section(L["AXIS_GENERAL"]),
         {
             type  = "toggle",
             name  = L["TALKING_HEAD_ENABLE"],
@@ -78,7 +81,7 @@ local category = {
                 "talkingHeadContentSection", "talkingHeadFrameSection", "talkingHeadPreviewSection", "talkingHeadPreview",
             },
         },
-        { type = "section", name = L["TALKING_HEAD_FRAME_CONTENT"], dbKey = "talkingHeadContentSection", visibleWhen = isCustomising },
+        Section(L["TALKING_HEAD_FRAME_CONTENT"], { dbKey = "talkingHeadContentSection", visibleWhen = isCustomising }),
         {
             type              = "dropdown",
             name              = L["TALKING_HEAD_NAME_FONT"],
@@ -98,10 +101,10 @@ local category = {
             name  = L["TALKING_HEAD_NAME_SIZE"],
             desc  = L["TALKING_HEAD_NAME_SIZE_DESC"],
             dbKey = "talkingHeadNameSize",
-            min   = 10,
-            max   = 24,
-            get        = function() return math.max(10, math.min(24, tonumber(getDB("talkingHeadNameSize", D.talkingHeadNameSize)) or D.talkingHeadNameSize)) end,
-            set        = function(v) setDB("talkingHeadNameSize", math.max(10, math.min(24, v))); updateTalkingHead() end,
+            min   = LIM.talkingHeadNameSize.min,
+            max   = LIM.talkingHeadNameSize.max,
+            get        = function() return math.max(LIM.talkingHeadNameSize.min, math.min(LIM.talkingHeadNameSize.max, tonumber(getDB("talkingHeadNameSize", D.talkingHeadNameSize)) or D.talkingHeadNameSize)) end,
+            set        = function(v) setDB("talkingHeadNameSize", clamp(v, "talkingHeadNameSize")); updateTalkingHead() end,
             refreshIds = { "talkingHeadPreview" },
             visibleWhen = isCustomising,
         },
@@ -145,10 +148,10 @@ local category = {
             name  = L["TALKING_HEAD_DIALOGUE_SIZE"],
             desc  = L["TALKING_HEAD_DIALOGUE_SIZE_DESC"],
             dbKey = "talkingHeadTextSize",
-            min   = 10,
-            max   = 20,
-            get        = function() return math.max(10, math.min(20, tonumber(getDB("talkingHeadTextSize", D.talkingHeadTextSize)) or D.talkingHeadTextSize)) end,
-            set        = function(v) setDB("talkingHeadTextSize", math.max(10, math.min(20, v))); updateTalkingHead() end,
+            min   = LIM.talkingHeadTextSize.min,
+            max   = LIM.talkingHeadTextSize.max,
+            get        = function() return math.max(LIM.talkingHeadTextSize.min, math.min(LIM.talkingHeadTextSize.max, tonumber(getDB("talkingHeadTextSize", D.talkingHeadTextSize)) or D.talkingHeadTextSize)) end,
+            set        = function(v) setDB("talkingHeadTextSize", clamp(v, "talkingHeadTextSize")); updateTalkingHead() end,
             refreshIds = { "talkingHeadPreview" },
             visibleWhen = isCustomising,
         },
@@ -182,7 +185,7 @@ local category = {
             refreshIds = { "talkingHeadPreview" },
             visibleWhen = function() return isCustomising() and getDB("talkingHeadShowPortrait", D.talkingHeadShowPortrait) end,
         },
-        { type = "section", name = L["TALKING_HEAD_FRAME"], dbKey = "talkingHeadFrameSection", visibleWhen = isCustomising },
+        Section(L["TALKING_HEAD_FRAME"], { dbKey = "talkingHeadFrameSection", visibleWhen = isCustomising }),
         {
             type  = "toggle",
             name  = L["TALKING_HEAD_SHOW_BG"],
@@ -206,14 +209,14 @@ local category = {
             name  = L["TALKING_HEAD_SCALE"],
             desc  = L["TALKING_HEAD_SCALE_DESC"],
             dbKey = "talkingHeadScale",
-            min   = 0.5,
-            max   = 2.0,
+            min   = LIM.talkingHeadScale.min,
+            max   = LIM.talkingHeadScale.max,
             step  = 0.1,
-            get         = function() return math.max(0.5, math.min(2.0, tonumber(getDB("talkingHeadScale", D.talkingHeadScale)) or D.talkingHeadScale)) end,
-            set         = function(v) setDB("talkingHeadScale", math.max(0.5, math.min(2.0, v))); updateTalkingHead() end,
+            get         = function() return math.max(LIM.talkingHeadScale.min, math.min(LIM.talkingHeadScale.max, tonumber(getDB("talkingHeadScale", D.talkingHeadScale)) or D.talkingHeadScale)) end,
+            set         = function(v) setDB("talkingHeadScale", clamp(v, "talkingHeadScale")); updateTalkingHead() end,
             visibleWhen = isCustomising,
         },
-        { type = "section", name = L["TALKING_HEAD_CONTENT_PREVIEW"], dbKey = "talkingHeadPreviewSection", visibleWhen = isCustomising },
+        Section(L["TALKING_HEAD_CONTENT_PREVIEW"], { dbKey = "talkingHeadPreviewSection", visibleWhen = isCustomising }),
         { type = "talkingHeadPreview", visibleWhen = isCustomising },
     },
 }
