@@ -5,7 +5,7 @@
 
 local addon = _G.HorizonSuite
 if not addon or not addon.Presence or not addon.RegisterSlashHandler then return end
-
+local L = addon.L
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
 --- Handle /horizon presence [cmd] subcommands. Returns true if handled, false to pass to parent handler.
@@ -55,7 +55,6 @@ local function HandlePresenceSlash(msg)
     elseif cmd == "discover" then
         if addon.Presence.PreviewToast then addon.Presence.PreviewToast("ZONE_CHANGE") end
     elseif cmd == "all" then
-        local L = addon.L or {}
         HSPrint(L["PRESENCE_PLAYING_DEMO_REEL_NOTIFICATION"])
         local demos = {
             { "ZONE_CHANGE",         GetZoneText() or "Valdrakken",     GetSubZoneText() or "Thaldraszus" },
@@ -79,7 +78,6 @@ local function HandlePresenceSlash(msg)
             end)
         end
     elseif cmd == "" or cmd == "help" then
-        local L = addon.L or {}
         HSPrint(L["PRESENCE_TEST_COMMANDS"])
         HSPrint(L["PRESENCE_H_HELP_TEST_CURRENT"])
         HSPrint(L["PRESENCE_H_ZONE_TEST"])
