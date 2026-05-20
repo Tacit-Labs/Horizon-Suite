@@ -95,6 +95,7 @@ Log.error = function(tag, msg) if active(tag) then write("ERROR", tag, msg) end 
 Log.isDevMode = function() return DEV_MODE end
 
 Log.enableTag = function(tag, enabled)
+    if not DEV_MODE then return end
     enabledTags[tag] = enabled and true or nil
 end
 
