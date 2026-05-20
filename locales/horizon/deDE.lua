@@ -73,7 +73,7 @@ L["FOCUS_RESET_DEFAULT"]                                      = "Auf Standard zu
 -- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
 -- =====================================================================
-L["FOCUS_SEARCH_SETTINGS"]                                    = "Einstellungen durchsuchen..."
+L["SEARCH_SETTINGS"]                                    = "Einstellungen durchsuchen..."
 L["SEARCH_FONTS"]                                             = "Schriftarten durchsuchen..."
 
 -- =====================================================================
