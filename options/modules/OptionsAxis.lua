@@ -63,8 +63,8 @@ local categories = {
         name = L["MODULES"],
         moduleKey = nil,
         options = (function()
-            local previewSuffix = " |cff228b22(" .. (L["PRESENCE_PREVIEW"]) .. ")|r"
-            local previewDescSuffix = "\n\n" .. (L["MODULE_PREVIEW_DISCLAIMER"])
+            local previewSuffix = " |cff228b22(" .. L["PRESENCE_PREVIEW"] .. ")|r"
+            local previewDescSuffix = "\n\n" .. L["MODULE_PREVIEW_DISCLAIMER"]
             local function setModuleFromOptions(moduleKey, v)
                 local dash = _G.HorizonSuiteDashboard
                 local defer = dash and dash:IsShown()
@@ -76,8 +76,8 @@ local categories = {
                 { type = "toggle", name = BrandModule("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
                 { type = "toggle", name = BrandModule("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"], dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) setModuleFromOptions("vista", v) end },
                 { type = "toggle", name = BrandModule("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLOURS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) setModuleFromOptions("insight", v) end },
-                { type = "toggle", name = BrandModule("cache") .. previewSuffix, desc = (L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]) .. previewDescSuffix, dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
-                { type = "toggle", name = BrandModule("essence") .. previewSuffix, desc = (L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"]) .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
+                { type = "toggle", name = BrandModule("cache") .. previewSuffix, desc = L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"] .. previewDescSuffix, dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
+                { type = "toggle", name = BrandModule("essence") .. previewSuffix, desc = L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"] .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
                 ModuleReloadPrompt(),
             }
             return opts
@@ -608,7 +608,7 @@ local categories = {
 
                 opts[#opts + 1] = {
                     type = "dropdown",
-                    name = "|cffff4040!|r " .. (L["AXIS_DELETE_PROFILE"]),
+                    name = "|cffff4040!|r " .. L["AXIS_DELETE_PROFILE"],
                     desc = L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"],
                     dbKey = "_profiles_delete",
                     options = function()
