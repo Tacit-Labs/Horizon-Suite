@@ -86,11 +86,17 @@ local function HandleVistaDebugSlash(msg)
 
     if cmd == "" or cmd == "help" then
         HSPrint("Vista debug commands (/h debug vista [cmd]):")
-        HSPrint("  buttons - Print minimap button count")
+        HSPrint("  debuglive - Toggle live debug log panel")
+        HSPrint("  buttons   - Print minimap button count")
         return
     end
 
-    if cmd == "buttons" then
+    if cmd == "debuglive" then
+        local v = not addon.Log.isEnabled("vista")
+        if Vista.SetDebugLive then Vista.SetDebugLive(v) end
+        HSPrint("Vista debug log: " .. (v and "on" or "off"))
+
+    elseif cmd == "buttons" then
         local n = Vista.CollectButtons()
         HSPrint("Vista: Buttons found: " .. tostring(n))
     else

@@ -4024,6 +4024,7 @@ end
 
 function Vista.Init()
     if not Minimap or not MinimapCluster then return end
+    addon.Log.debug("vista", "Init")
 
     -- Difficulty text used to save offsets relative to zone text; re-anchor to Minimap once per profile.
     do
@@ -4190,6 +4191,7 @@ end
 
 function Vista.Disable()
     if not Minimap or not MinimapCluster then return end
+    addon.Log.debug("vista", "Disable")
     if eventFrame then eventFrame:UnregisterAllEvents(); eventFrame:SetScript("OnEvent", nil) end
     if decor then decor:SetScript("OnUpdate", nil) end
     HideAllProxyButtons()
@@ -4200,7 +4202,9 @@ end
 
 function Vista.CollectButtons()
     CollectMinimapButtons()
-    return #collectedButtons + #drawerPanelButtons
+    local n = #collectedButtons + #drawerPanelButtons
+    addon.Log.debug("vista", "CollectButtons — " .. n .. " button(s)")
+    return n
 end
 
 function Vista.ApplyScale()
@@ -4351,6 +4355,25 @@ end
 
 function Vista.RefreshCraftingOrderAnchor()
     RefreshCraftingOrderAnchor()
+end
+
+local vistaPanel = addon.Log.createPanel("vista", "Vista Debug", { maxLines = 200,
+    onClose = function()
+        if addon.SetDB then addon.SetDB("vistaDebugLive", false) end
+        addon.Log.enableTag("vista", nil)
+    end,
+})
+addon.Log.registerTag("vista", "vistaDebugLive")
+
+function Vista.SetDebugLive(v)
+    if addon.SetDB then addon.SetDB("vistaDebugLive", v) end
+    addon.Log.enableTag("vista", v or nil)
+    if v then
+        vistaPanel.Show()
+        addon.Log.debug("vista", "Live debug enabled")
+    else
+        vistaPanel.Hide()
+    end
 end
 
 addon.Vista = Vista

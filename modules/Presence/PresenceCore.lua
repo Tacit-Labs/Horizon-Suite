@@ -594,261 +594,30 @@ local QUEST_UPDATE_DEDUPE_TIME = 1.5
 local lastQuestUpdateNorm, lastQuestUpdateTime
 
 -- ============================================================================
--- LIVE DEBUG LOG  (ring-buffer – avoids O(n) table.remove(1))
+-- LIVE DEBUG LOG  (via addon.Log + generic panel from LoggerPanel.lua)
 -- ============================================================================
-
-local DEBUG_LOG_MAX = 500
-local debugLogBuffer = {}
-local debugLogHead   = 1
-local debugLogCount  = 0
-local debugLogFrame
 
 local function IsDebugLive()
     return addon.Log and addon.Log.isEnabled("presence")
 end
 
--- Feed the Presence ring buffer and visual panel whenever the "presence" log tag is written.
--- Registered unconditionally; active() in Logger gates actual calls to addon.Log.enableTag.
-addon.Log.addListener("presence", function(level, tag, ts, msg, line)
-    debugLogBuffer[debugLogHead] = line
-    debugLogHead  = (debugLogHead % DEBUG_LOG_MAX) + 1
-    if debugLogCount < DEBUG_LOG_MAX then debugLogCount = debugLogCount + 1 end
-    if debugLogFrame and debugLogFrame.msg then
-        debugLogFrame.msg:AddMessage(line, 0.7, 0.9, 1, 1)
-    end
-end)
-
---- Build the live debug log as plain text (oldest line first), matching ring-buffer order.
---- @return string
-local function GetPresenceDebugLogText()
-    if debugLogCount == 0 then return "" end
-    local start = (debugLogCount < DEBUG_LOG_MAX) and 1 or debugLogHead
-    local lines = {}
-    for i = 0, debugLogCount - 1 do
-        local idx = ((start - 1 + i) % DEBUG_LOG_MAX) + 1
-        local line = debugLogBuffer[idx]
-        if line then lines[#lines + 1] = line end
-    end
-    return table.concat(lines, "\n")
-end
-
-local copyFallbackFrame
-
---- When C_CopyToClipboard is unavailable, show scrollable text so the user can Ctrl+C manually.
---- @param text string
---- @return nil
-local function ShowPresenceDebugCopyFallback(text)
-    if not text or text == "" then return end
-    if not copyFallbackFrame then
-        copyFallbackFrame = CreateFrame("Frame", "HorizonSuitePresenceDebugCopyFrame", UIParent)
-        copyFallbackFrame:SetSize(520, 380)
-        copyFallbackFrame:SetPoint("CENTER")
-        copyFallbackFrame:SetFrameStrata("FULLSCREEN_DIALOG")
-        copyFallbackFrame:SetClampedToScreen(true)
-        local bg = copyFallbackFrame:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints(copyFallbackFrame)
-        bg:SetColorTexture(0.05, 0.05, 0.08, 0.98)
-        local hdr = copyFallbackFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        hdr:SetPoint("TOP", 0, -16)
-        hdr:SetText("Copy log — Ctrl+C, then Close")
-        local closeBtn = CreateFrame("Button", nil, copyFallbackFrame, "UIPanelButtonTemplate")
-        closeBtn:SetSize(100, 22)
-        closeBtn:SetPoint("BOTTOM", 0, 14)
-        closeBtn:SetText("Close")
-        closeBtn:SetScript("OnClick", function()
-            copyFallbackFrame:Hide()
-        end)
-        local scroll = CreateFrame("ScrollFrame", nil, copyFallbackFrame, "UIPanelScrollFrameTemplate")
-        scroll:SetPoint("TOPLEFT", 14, -42)
-        scroll:SetPoint("BOTTOMRIGHT", -28, 46)
-        local edit = CreateFrame("EditBox", nil, scroll)
-        edit:SetMultiLine(true)
-        edit:SetAutoFocus(true)
-        edit:SetFontObject(GameFontNormalSmall)
-        edit:SetWidth(440)
-        edit:SetTextInsets(6, 6, 6, 6)
-        edit:SetMaxLetters(999999)
-        edit:SetScript("OnEscapePressed", function()
-            copyFallbackFrame:Hide()
-        end)
-        scroll:SetScrollChild(edit)
-        copyFallbackFrame.scroll = scroll
-        copyFallbackFrame.edit = edit
-        -- EditBox has no GetStringHeight; measure wrapped height with a matching FontString.
-        local measureFS = copyFallbackFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-        measureFS:SetWordWrap(true)
-        measureFS:SetAlpha(0)
-        measureFS:SetPoint("TOPLEFT", copyFallbackFrame, "TOPLEFT", 0, 0)
-        copyFallbackFrame.measureFS = measureFS
-    end
-    local edit = copyFallbackFrame.edit
-    local scroll = copyFallbackFrame.scroll
-    local scrollW = scroll and scroll:GetWidth() or 440
-    local editWidth = math.max(200, scrollW - 24)
-    edit:SetWidth(editWidth)
-    edit:SetText(text)
-    local innerW = math.max(50, editWidth - 12)
-    local measureFS = copyFallbackFrame.measureFS
-    local h = 0
-    if measureFS then
-        measureFS:SetWidth(innerW)
-        measureFS:SetText(text)
-        h = measureFS:GetStringHeight() or 0
-    end
-    if h > 0 then
-        edit:SetHeight(math.min(12000, math.max(120, h + 24)))
-    else
-        edit:SetHeight(280)
-    end
-    if scroll.UpdateScrollChildRect then
-        scroll:UpdateScrollChildRect()
-    end
-    scroll:SetVerticalScroll(0)
-    copyFallbackFrame:Show()
-    edit:SetFocus()
-    edit:HighlightText()
-end
-
---- Copy live debug log to the system clipboard, or open a selectable buffer as fallback.
---- @return nil
-local function CopyPresenceDebugLog()
-    local text = GetPresenceDebugLogText()
-    local p = addon.HSPrint or function(m) print("|cFF00CCFFHorizon Suite:|r " .. tostring(m or "")) end
-    if text == "" then
-        p("Presence debug log is empty.")
-        return
-    end
-    if C_CopyToClipboard then
-        local ok, err = pcall(C_CopyToClipboard, text)
-        if ok then
-            p("Presence debug log copied to clipboard.")
-            return
+local presencePanel = addon.Log.createPanel("presence", "Presence Live Debug", {
+    maxLines = 500,
+    onClose  = function()
+        if addon.Presence and addon.Presence.SetDebugLive then
+            addon.Presence.SetDebugLive(false)
         end
-        p("Clipboard copy failed: " .. tostring(err) .. " — opening copy window.")
-    end
-    ShowPresenceDebugCopyFallback(text)
-end
-
-local function CreateDebugPanel()
-    if debugLogFrame then return end
-
-    local panel = CreateFrame("Frame", "HorizonSuitePresenceDebugFrame", UIParent)
-    panel:SetSize(420, 320)
-    panel:SetPoint("CENTER", 0, 0)
-    panel:SetFrameStrata("DIALOG")
-    panel:SetClampedToScreen(true)
-    panel:SetMovable(true)
-    panel:EnableMouse(true)
-    panel:RegisterForDrag("LeftButton")
-    panel:Hide()
-
-    local bg = panel:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(panel)
-    bg:SetColorTexture(0.05, 0.05, 0.08, 0.95)
-
-    local border = CreateFrame("Frame", nil, panel)
-    border:SetPoint("TOPLEFT", -1, 1)
-    border:SetPoint("BOTTOMRIGHT", 1, -1)
-    if addon.CreateBorder then addon.CreateBorder(border, { 0.2, 0.2, 0.25, 1 }) end
-
-    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", 10, -10)
-    title:SetText("Presence Live Debug")
-    title:SetTextColor(0.7, 0.9, 1)
-
-    local closeBtn = CreateFrame("Button", nil, panel)
-    closeBtn:SetSize(24, 24)
-    closeBtn:SetPoint("TOPRIGHT", -8, -8)
-    closeBtn:SetScript("OnClick", function()
-        if addon.Presence.SetDebugLive then addon.Presence.SetDebugLive(false) end
-        panel:Hide()
-    end)
-    local closeTex = closeBtn:CreateTexture(nil, "OVERLAY")
-    closeTex:SetAllPoints(closeBtn)
-    closeTex:SetColorTexture(0.5, 0.2, 0.2, 0.8)
-
-    local copyBtn = CreateFrame("Button", nil, panel)
-    copyBtn:SetSize(60, 22)
-    copyBtn:SetPoint("TOPRIGHT", -105, -10)
-    copyBtn:SetScript("OnClick", function()
-        CopyPresenceDebugLog()
-    end)
-    local copyTex = copyBtn:CreateTexture(nil, "BACKGROUND")
-    copyTex:SetAllPoints(copyBtn)
-    copyTex:SetColorTexture(0.15, 0.25, 0.35, 0.9)
-    local copyLabel = copyBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    copyLabel:SetPoint("CENTER", 0, 0)
-    copyLabel:SetText("Copy")
-
-    -- Create msg before Clear's handler so the closure captures this local (not global msg).
-    local msg = CreateFrame("ScrollingMessageFrame", nil, panel)
-    msg:SetPoint("TOPLEFT", 8, -36)
-    msg:SetPoint("BOTTOMRIGHT", -8, 8)
-    msg:SetFontObject(GameFontNormalSmall)
-    msg:SetFading(false)
-    msg:SetMaxLines(DEBUG_LOG_MAX)
-    msg:EnableMouseWheel(true)
-    msg:SetScript("OnMouseWheel", function(_, delta)
-        local scroll = msg:GetScrollOffset()
-        msg:SetScrollOffset(scroll - delta)
-    end)
-
-    local clearBtn = CreateFrame("Button", nil, panel)
-    clearBtn:SetSize(60, 22)
-    clearBtn:SetPoint("TOPRIGHT", -40, -10)
-    clearBtn:SetScript("OnClick", function()
-        debugLogBuffer = {}
-        debugLogHead   = 1
-        debugLogCount  = 0
-        msg:Clear()
-        msg:SetMaxLines(DEBUG_LOG_MAX)
-    end)
-    local clearTex = clearBtn:CreateTexture(nil, "BACKGROUND")
-    clearTex:SetAllPoints(clearBtn)
-    clearTex:SetColorTexture(0.2, 0.2, 0.25, 0.9)
-    local clearLabel = clearBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    clearLabel:SetPoint("CENTER", 0, 0)
-    clearLabel:SetText("Clear")
-
-    panel:SetScript("OnDragStart", function()
-        if InCombatLockdown() then return end
-        panel:StartMoving()
-    end)
-    panel:SetScript("OnDragStop", function()
-        if InCombatLockdown() then return end
-        panel:StopMovingOrSizing()
-    end)
-
-    debugLogFrame = panel
-    debugLogFrame.msg = msg
-end
-
-local function ShowDebugPanel()
-    CreateDebugPanel()
-    if debugLogFrame then
-        debugLogFrame.msg:SetMaxLines(DEBUG_LOG_MAX)
-        local start = (debugLogCount < DEBUG_LOG_MAX) and 1 or debugLogHead
-        for i = 0, debugLogCount - 1 do
-            local idx = ((start - 1 + i) % DEBUG_LOG_MAX) + 1
-            local line = debugLogBuffer[idx]
-            if line then debugLogFrame.msg:AddMessage(line, 0.7, 0.9, 1, 1) end
-        end
-        debugLogFrame:Show()
-    end
-end
-
-local function HideDebugPanel()
-    if debugLogFrame then debugLogFrame:Hide() end
-end
+    end,
+})
 
 local function SetDebugLive(v)
     if addon.SetDB then addon.SetDB("presenceDebugLive", v) end
     addon.Log.enableTag("presence", v or nil)
     if v then
-        ShowDebugPanel()
+        presencePanel.Show()
         addon.Log.debug("presence", "Live debug enabled")
     else
-        HideDebugPanel()
+        presencePanel.Hide()
     end
 end
 
@@ -2231,8 +2000,8 @@ addon.Presence.DebugLog           = function(msg) addon.Log.debug("presence", ms
 addon.Presence.IsDebugLive        = IsDebugLive
 addon.Presence.SetDebugLive       = SetDebugLive
 addon.Presence.ToggleDebugLive    = ToggleDebugLive
-addon.Presence.ShowDebugPanel     = ShowDebugPanel
-addon.Presence.HideDebugPanel     = HideDebugPanel
+addon.Presence.ShowDebugPanel     = presencePanel.Show
+addon.Presence.HideDebugPanel     = presencePanel.Hide
 addon.Presence.GetActiveTypeName  = GetActiveTypeName
 addon.Presence.DISCOVERY_WAIT     = 0.15
 

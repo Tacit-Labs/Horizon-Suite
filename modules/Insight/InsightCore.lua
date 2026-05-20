@@ -9,6 +9,14 @@ local addon = _G.HorizonSuite
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
+local insightPanel = addon.Log.createPanel("insight", "Insight Debug", { maxLines = 300,
+    onClose = function()
+        if addon.SetDB then addon.SetDB("insightDebugLive", false) end
+        addon.Log.enableTag("insight", nil)
+    end,
+})
+addon.Log.registerTag("insight", "insightDebugLive")
+
 -- ============================================================================
 -- LOCAL REFS (from InsightShared)
 -- ============================================================================
@@ -71,6 +79,7 @@ local function HideStyledTooltipsIfCombatSuppressionActive()
     if not Insight.IsInsightEnabled() then return end
     if not addon.GetDB("insightHideTooltipsInCombat", false) then return end
     if not InCombatLockdown() then return end
+    addon.Log.debug("insight", "combat suppression — hiding styled tooltips")
     for _, tt in ipairs(tooltipsToStyle) do
         if tt and tt.Hide then
             pcall(tt.Hide, tt)
@@ -293,6 +302,7 @@ local function ProcessUnitTooltip(tooltip)
     if not Insight.IsInsightEnabled() or not tooltip then return end
     local unit = ResolveTooltipUnitToken(tooltip)
     if not unit then return end
+    addon.Log.debug("insight", "ProcessUnitTooltip unit=" .. tostring(unit))
 
     -- If Blizzard already showed the tooltip, a second Show() re-runs OnShow (backdrop) and flashes.
     local alreadyVisible = TooltipPlainShown(tooltip)
@@ -350,6 +360,7 @@ local function OnItemTooltip(tooltip, data)
     if not Insight.IsInsightEnabled() then return end
     local itemID = data and data.id
     if not itemID then return end
+    addon.Log.debug("insight", "OnItemTooltip id=" .. tostring(itemID))
 
     -- Base quality: prefer C_Item.GetItemInfo on the full hyperlink (it's
     -- link-aware, so bonus IDs that bump or drop quality — e.g. a Tarnished
@@ -721,6 +732,7 @@ function Insight.ApplyInsightOptions()
 end
 
 function Insight.Init()
+    addon.Log.debug("insight", "Init")
     if Insight.dashboardPreviewMode == nil then
         Insight.dashboardPreviewMode = "global"
     end
@@ -791,6 +803,7 @@ function Insight.Init()
 end
 
 function Insight.Disable()
+    addon.Log.debug("insight", "Disable")
     HideAnchorFrame()
     for _, tt in ipairs(tooltipsToStyle) do
         if tt then
@@ -827,6 +840,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         return
     end
     if event == "PLAYER_REGEN_DISABLED" then
+        addon.Log.debug("insight", "PLAYER_REGEN_DISABLED — combat started")
         HideStyledTooltipsIfCombatSuppressionActive()
         return
     end
@@ -960,10 +974,18 @@ local function HandleInsightDebugSlash(msg)
     if cmd == "" or cmd == "help" then
         Insight.PrintBlock({
             "Insight debug commands (/h debug insight [cmd]):",
-            "  status  - Print config + cache count",
-            "  lsm     - Test LibSharedMedia classicon registration",
-            "  path    - Show class icon paths (Rondo + custom sample)",
+            "  debuglive - Toggle live debug log panel",
+            "  status    - Print config + cache count",
+            "  lsm       - Test LibSharedMedia classicon registration",
+            "  path      - Show class icon paths (Rondo + custom sample)",
         })
+        return
+    end
+
+    if cmd == "debuglive" then
+        local v = not addon.Log.isEnabled("insight")
+        if Insight.SetDebugLive then Insight.SetDebugLive(v) end
+        Insight.Print("Insight debug log: " .. (v and "on" or "off"))
         return
     end
 
@@ -1037,6 +1059,16 @@ local function HandleInsightDebugSlash(msg)
         Insight.Print("Unknown debug command. Use /h debug insight for help.")
     end
 end
+
+local function SetInsightDebugLive(v)
+    if addon.SetDB then addon.SetDB("insightDebugLive", v) end
+    addon.Log.enableTag("insight", v or nil)
+    if v then insightPanel.Show(); addon.Log.debug("insight", "Live debug enabled")
+    else insightPanel.Hide() end
+end
+Insight.SetDebugLive  = SetInsightDebugLive
+Insight.ShowDebugPanel = insightPanel.Show
+Insight.HideDebugPanel = insightPanel.Hide
 
 if addon.RegisterSlashHandler then
     addon.RegisterSlashHandler("insight", HandleInsightSlash)

@@ -182,20 +182,21 @@ local function HandleCacheDebugSlash(msg)
 
     if cmd == "" or cmd == "help" then
         HSPrint("Cache debug commands (/h debug cache [cmd]):")
-        HSPrint("  debug - Toggle loot-event logging")
+        HSPrint("  debuglive - Toggle live debug log panel")
+        HSPrint("  status    - Print loot pattern and GUID state")
         return
     end
 
-    if cmd == "debug" then
-        y.debugMode = not y.debugMode
-        if y.debugMode then
-            HSPrint("Cache debug |cFF00FF00ON|r - loot events will print to chat.")
-            HSPrint("  playerGUID = " .. tostring(y.playerGUID))
-            HSPrint("  patternsOK = " .. tostring(y.patternsOK))
-            HSPrint("  selfLootPats = " .. tostring(y.selfLootPatCount or 0))
-        else
-            HSPrint("Cache debug |cFFFF0000OFF|r")
-        end
+    if cmd == "debuglive" then
+        local v = not addon.Log.isEnabled("cache")
+        if Y.SetDebugLive then Y.SetDebugLive(v) end
+        HSPrint("Cache debug log: " .. (v and "on" or "off"))
+
+    elseif cmd == "status" then
+        HSPrint("Cache status:")
+        HSPrint("  playerGUID   = " .. tostring(y.playerGUID))
+        HSPrint("  patternsOK   = " .. tostring(y.patternsOK))
+        HSPrint("  selfLootPats = " .. tostring(y.selfLootPatCount or 0))
     else
         HSPrint("Unknown debug command. Use /h debug cache for help.")
     end
