@@ -505,6 +505,10 @@ local function HandleFocusDebugSlash(msg)
     end
 
     if cmd == "debuglive" then
+        if not addon.Log.isDevMode() then
+            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
+            return
+        end
         local v = not addon.Log.isEnabled("focus")
         if addon.focus and addon.focus.SetDebugLive then addon.focus.SetDebugLive(v) end
         HSPrint("Focus debug log: " .. (v and "on" or "off"))

@@ -983,6 +983,10 @@ local function HandleInsightDebugSlash(msg)
     end
 
     if cmd == "debuglive" then
+        if not addon.Log.isDevMode() then
+            Insight.Print("Debug requires DEV_MODE = true in core/Logger.lua")
+            return
+        end
         local v = not addon.Log.isEnabled("insight")
         if Insight.SetDebugLive then Insight.SetDebugLive(v) end
         Insight.Print("Insight debug log: " .. (v and "on" or "off"))

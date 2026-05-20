@@ -188,6 +188,10 @@ local function HandleCacheDebugSlash(msg)
     end
 
     if cmd == "debuglive" then
+        if not addon.Log.isDevMode() then
+            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
+            return
+        end
         local v = not addon.Log.isEnabled("cache")
         if Y.SetDebugLive then Y.SetDebugLive(v) end
         HSPrint("Cache debug log: " .. (v and "on" or "off"))

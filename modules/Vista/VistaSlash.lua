@@ -92,6 +92,10 @@ local function HandleVistaDebugSlash(msg)
     end
 
     if cmd == "debuglive" then
+        if not addon.Log.isDevMode() then
+            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
+            return
+        end
         local v = not addon.Log.isEnabled("vista")
         if Vista.SetDebugLive then Vista.SetDebugLive(v) end
         HSPrint("Vista debug log: " .. (v and "on" or "off"))

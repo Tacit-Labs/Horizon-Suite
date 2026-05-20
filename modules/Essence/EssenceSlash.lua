@@ -45,6 +45,10 @@ local function HandleEssenceDebugSlash(msg)
     end
 
     if cmd == "debuglive" then
+        if not addon.Log.isDevMode() then
+            if addon.Print then addon.Print("Debug requires DEV_MODE = true in core/Logger.lua") end
+            return
+        end
         local v = not addon.Log.isEnabled("essence")
         if addon.Essence and addon.Essence.SetDebugLive then addon.Essence.SetDebugLive(v) end
         if addon.Print then addon.Print("Essence debug log: " .. (v and "on" or "off")) end
