@@ -8,6 +8,7 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 if not _G[addon.DATABASE] then _G[addon.DATABASE] = {} end
+local L = addon.L
 
 -- ---------------------------------------------------------------------------
 -- Migration: early global-font implementation used fontPath as the override key.
