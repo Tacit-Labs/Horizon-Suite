@@ -5,7 +5,7 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 -- ============================================================================
 -- CONFIGURATION (constants, colors, fonts, labels, group order)
 -- ============================================================================
@@ -637,35 +637,35 @@ end
 -- ============================================================================
 -- BRAND DISPLAY
 -- Fixed English product and module display names — NOT localised.
--- UI sentences/descriptions belong in addon.L; see contributions/translate.md.
+-- UI sentences/descriptions belong in locales; see contributions/translate.md.
 -- ============================================================================
 
 addon.BrandDisplay = {
     optionsTitle = "HORIZON SUITE",
     -- Short name for minimap icon tooltip title (not localised).
     minimapTooltipTitle = "Horizon",
-    productName = "Horizon Suite",
+    productName = L["NAME_ADDON"],
     horizonInsight = "Horizon Insight",
     module = {
-        axis = addon.L["NAME_ADDON_DASHBOARD"],
-        focus = addon.L["NAME_ADDON_OBJECTIVES"],
-        presence = addon.L["NAME_ADDON_TOASTS"],
-        vista = addon.L["NAME_ADDON_MINIMAP"],
-        insight = addon.L["NAME_ADDON_TOOLTIPS"],
-        cache = addon.L["NAME_ADDON_LOOT"],
-        essence = addon.L["NAME_ADDON_CHARACTER"],
-        meridian = addon.L["NAME_ADDON_C-----S"],
+        axis = L["NAME_ADDON_DASHBOARD"],
+        focus = L["NAME_ADDON_OBJECTIVES"],
+        presence = L["NAME_ADDON_TOASTS"],
+        vista = L["NAME_ADDON_MINIMAP"],
+        insight = L["NAME_ADDON_TOOLTIPS"],
+        cache = L["NAME_ADDON_LOOT"],
+        essence = L["NAME_ADDON_CHARACTER"],
+        meridian = L["NAME_ADDON_C-----S"],
     },
     -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
     simple = {
-        axis     = addon.L["AXIS_MODULE_NAME_SIMPLE_DASHBOARD"],
-        focus    = addon.L["AXIS_MODULE_NAME_SIMPLE_OBJECTIVES"],
-        presence = addon.L["AXIS_MODULE_NAME_SIMPLE_NOTIFICATIONS"],
-        vista    = addon.L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"],
-        insight  = addon.L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"],
-        cache    = addon.L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
-        essence  = addon.L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
-        meridian = addon.L["AXIS_MODULE_NAME_SIMPLE_C-----S"],
+        axis     = L["AXIS_MODULE_NAME_SIMPLE_DASHBOARD"],
+        focus    = L["AXIS_MODULE_NAME_SIMPLE_OBJECTIVES"],
+        presence = L["AXIS_MODULE_NAME_SIMPLE_NOTIFICATIONS"],
+        vista    = L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"],
+        insight  = L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"],
+        cache    = L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
+        essence  = L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
+        meridian = L["AXIS_MODULE_NAME_SIMPLE_C-----S"],
     },
 }
 
