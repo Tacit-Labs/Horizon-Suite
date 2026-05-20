@@ -373,7 +373,7 @@ function Insight.ApplyBackdrop(tooltip)
     tooltip:SetBackdropColor(r, g, b, a)
     tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
 end
-Insight.ApplyBackdrop = addon.Backdrop 
+
 -- Per-FontString hook that re-asserts our font path whenever a font-replacement
 -- addon (e.g. Platynator) overrides SetFont or SetFontObject on that string.
 -- Size is nil so per-line size choices (header/body/badges) go through unchanged.
