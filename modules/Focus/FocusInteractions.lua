@@ -4,7 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- INTERACTIONS
 -- ============================================================================
 
