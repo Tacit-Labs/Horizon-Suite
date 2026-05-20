@@ -133,6 +133,7 @@ options/modules/OptionsEssence.lua
 options/modules/OptionsVista.lua
 options/modules/OptionsCache.lua
 options/modules/OptionsPresenceTalkingHead.lua
+options/modules/OptionsFocusIntegrations.lua
 options/OptionsSearch.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua
