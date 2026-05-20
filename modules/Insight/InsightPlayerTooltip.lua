@@ -4,7 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 addon.Insight = addon.Insight or {}
 local Insight = addon.Insight
 
@@ -400,7 +400,6 @@ end
 local function GetMountOwnershipDisplay(isCollected)
     if isCollected ~= true and isCollected ~= false then return nil, nil end
     local mode = addon.GetDB("insightMountOwnershipDisplay", "text")
-    local L = addon.L
     if mode == "icons" then
         local sz = MountOwnershipIconSize()
         local path = isCollected and MOUNT_READY_TEX or MOUNT_NOTREADY_TEX
@@ -409,9 +408,9 @@ local function GetMountOwnershipDisplay(isCollected)
         return suffix, nil
     end
     if isCollected then
-        return nil, "|cff55ff55" .. ((L and L["INSIGHT_MOUNT_OWNED"])) .. "|r"
+        return nil, "|cff55ff55" .. L["INSIGHT_MOUNT_OWNED"] .. "|r"
     end
-    return nil, "|cffff5555" .. ((L and L["INSIGHT_MOUNT_NOT_OWNED"])) .. "|r"
+    return nil, "|cffff5555" .. L["INSIGHT_MOUNT_NOT_OWNED"] .. "|r"
 end
 
 -- ============================================================================
