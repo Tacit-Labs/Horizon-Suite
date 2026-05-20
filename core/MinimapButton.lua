@@ -7,7 +7,7 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 local Minimap = _G.Minimap
 if not Minimap then return end
 
@@ -89,8 +89,7 @@ local function ShowGameTooltip(ownerFrame, anchor)
     -- wrap=false: avoids first-show width glitch; ClearLines resets shared tooltip from prior UI.
     GameTooltip:SetText(title, nil, nil, nil, nil, false)
     if addon.PatchNotes_HasUnread and addon.PatchNotes_HasUnread() then
-        local L = addon.L
-        local hint = (L and L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"])
+        local hint = L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]
         GameTooltip:AddLine(hint, 0.75, 0.92, 0.78, true)
     end
     GameTooltip:Show()
