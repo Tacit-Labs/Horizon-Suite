@@ -18,7 +18,7 @@
 local addon = _G.HorizonSuite
 
 
-local L = (addon.L) or setmetatable({}, { __index = function(_, k) return k end })
+local L = addon.L
 
 local MODAL_W            = 544
 local MODAL_H            = 459

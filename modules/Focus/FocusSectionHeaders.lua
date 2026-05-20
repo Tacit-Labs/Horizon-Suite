@@ -4,7 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 local sectionPool = addon.sectionPool
 local scrollFrame = addon.scrollFrame
 
@@ -46,7 +46,7 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     until not (fadeOutKeys and s.groupKey and fadeOutKeys[s.groupKey])
     s.groupKey = groupKey
 
-    local label = addon.L[addon.SECTION_LABELS[groupKey] or groupKey]
+    local label = L[addon.SECTION_LABELS[groupKey] or groupKey]
     label = addon.ApplyTextCase(label, "sectionHeaderTextCase", "upper")
     local color = addon.GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     s.text:SetText(label)
