@@ -11,6 +11,9 @@ local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local Section = addon.Section
 local Button  = addon.Button
 local Toggle  = addon.Toggle
+local D   = addon.ESSENCE_DEFAULTS
+local LIM = addon.ESSENCE_LIMITS
+local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
 
 local categories = {
     {
@@ -20,16 +23,16 @@ local categories = {
         moduleKey = "essence",
         options   = {
             Section(L["AXIS_POSITION"]),
-            Toggle(L["ESSENCE_LOCK_POSITION"], L["ESSENCE_LOCK_POSITION_DESC"], "essenceLockPosition", false),
+            Toggle(L["ESSENCE_LOCK_POSITION"], L["ESSENCE_LOCK_POSITION_DESC"], "essenceLockPosition", D.essenceLockPosition),
             Button(L["AXIS_RESET_POSITION"], L["ESSENCE_RESET_POSITION_DESC"], function()
-                setDB("essencePoint", "CENTER"); setDB("essenceX", 0); setDB("essenceY", 0)
+                setDB("essencePoint", D.essencePoint); setDB("essenceX", D.essenceX); setDB("essenceY", D.essenceY)
                 if addon.Essence and addon.Essence.ApplyPosition then addon.Essence.ApplyPosition(true) end
             end),
             Section(L["DASH_APPEARANCE"]),
-            Toggle(L["ESSENCE_PVP_TITLE"],   L["ESSENCE_PVP_TITLE_DESC"],   "essenceShowTitle",     true),
-            Toggle(L["ESSENCE_STAT_BARS"],   L["ESSENCE_STAT_BARS_DESC"],   "essenceShowStatBars",  true),
-            Toggle(L["ESSENCE_ILVL_BADGE"],  L["ESSENCE_ILVL_BADGE_DESC"],  "essenceShowIlvlBadge", true),
-            { type = "slider", name = L["ESSENCE_STAT_CAP"], desc = L["ESSENCE_STAT_CAP_DESC"], dbKey = "essenceStatCap", min = 20, max = 100, step = 5, get = function() return tonumber(getDB("essenceStatCap", 50)) or 50 end, set = function(v) setDB("essenceStatCap", math.max(20, math.min(100, v))) end },
+            Toggle(L["ESSENCE_PVP_TITLE"],   L["ESSENCE_PVP_TITLE_DESC"],   "essenceShowTitle",     D.essenceShowTitle),
+            Toggle(L["ESSENCE_STAT_BARS"],   L["ESSENCE_STAT_BARS_DESC"],   "essenceShowStatBars",  D.essenceShowStatBars),
+            Toggle(L["ESSENCE_ILVL_BADGE"],  L["ESSENCE_ILVL_BADGE_DESC"],  "essenceShowIlvlBadge", D.essenceShowIlvlBadge),
+            { type = "slider", name = L["ESSENCE_STAT_CAP"], desc = L["ESSENCE_STAT_CAP_DESC"], dbKey = "essenceStatCap", min = LIM.essenceStatCap.min, max = LIM.essenceStatCap.max, step = 5, get = function() return tonumber(getDB("essenceStatCap", D.essenceStatCap)) or D.essenceStatCap end, set = function(v) setDB("essenceStatCap", clamp(v, "essenceStatCap")) end },
         },
     },
 }

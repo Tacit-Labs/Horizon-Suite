@@ -18,3 +18,18 @@ addon.ESSENCE_KEYS = {
     essenceShowTitle     = true,
     essenceShowStatBars  = true,
 }
+
+addon.ESSENCE_DEFAULTS = {
+    essenceLockPosition  = false,
+    essenceShowTitle     = true,
+    essenceShowStatBars  = true,
+    essenceShowIlvlBadge = true,
+    essenceStatCap       = 50,
+    essencePoint         = "CENTER",
+    essenceX             = 0,
+    essenceY             = 0,
+}
+
+addon.ESSENCE_LIMITS = {
+    essenceStatCap = { min = 20, max = 100 },
+}

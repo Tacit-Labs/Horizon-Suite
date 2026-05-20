@@ -16,6 +16,9 @@ local Section           = addon.Section
 local ModuleReloadPrompt = addon.ModuleReloadPrompt
 local Button            = addon.Button
 local Toggle            = addon.Toggle
+local D   = addon.AXIS_DEFAULTS
+local LIM = addon.AXIS_LIMITS
+local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
 
 local function GetGlobalFontDropdownOptions()
     if addon.RefreshFontList then addon.RefreshFontList() end
@@ -36,7 +39,7 @@ local function GetDashboardFontDropdownOptions()
     local list = (addon.GetFontList and addon.GetFontList()) or {}
     local out = { { L["FOCUS_GLOBAL_FONT"], FONT_USE_GLOBAL } }
     for i = 1, #list do out[#out + 1] = list[i] end
-    local saved = getDB("dashboardFontPath", FONT_USE_GLOBAL)
+    local saved = getDB("dashboardFontPath", D.dashboardFontPath)
     if saved == FONT_USE_GLOBAL then return out end
     for _, o in ipairs(out) do
         if o[2] == saved then return out end
@@ -98,7 +101,7 @@ local categories = {
                     { L["AXIS_MODULE_NAME_SUBTITLE"],    "subtitle"    },
                     { L["AXIS_MODULE_NAME_SIMPLE"], "simple" },
                 },
-                get = function() return getDB("moduleNameDisplay", "horizon") end,
+                get = function() return getDB("moduleNameDisplay", D.moduleNameDisplay) end,
                 set = function(v)
                     setDB("moduleNameDisplay", v)
                     local dash = _G.HorizonSuiteDashboard
@@ -157,7 +160,7 @@ local categories = {
                 searchable = true,
                 options = dashboardBackgroundDropdownOptions,
                 get = function()
-                    local v = getDB("dashboardBackgroundTheme", "midnight")
+                    local v = getDB("dashboardBackgroundTheme", D.dashboardBackgroundTheme)
                     if v == "solid" then
                         v = "horizon"
                     end
@@ -170,7 +173,7 @@ local categories = {
                             return v
                         end
                     end
-                    return "midnight"
+                    return D.dashboardBackgroundTheme
                 end,
                 set = function(v) setDB("dashboardBackgroundTheme", v) end,
                 refreshIds = { "dashboardBackgroundTheme" },
@@ -178,12 +181,12 @@ local categories = {
             opts[#opts + 1] = {
                 type = "slider", name = L["FOCUS_DASHBOARD_BACKGROUND_OPACITY"],
                 desc = L["FOCUS_ADJUST_OPACITY_OF_DASHBOARD_BACKGROUND"],
-                dbKey = "dashboardBackgroundOpacity", min = 50, max = 100, step = 1,
+                dbKey = "dashboardBackgroundOpacity", min = LIM.dashboardBackgroundOpacity.min, max = LIM.dashboardBackgroundOpacity.max, step = 1,
                 get = function()
-                    return math.floor((tonumber(getDB("dashboardBackgroundOpacity", 90)) or 90) + 0.5)
+                    return math.floor((tonumber(getDB("dashboardBackgroundOpacity", D.dashboardBackgroundOpacity)) or D.dashboardBackgroundOpacity) + 0.5)
                 end,
                 set = function(v)
-                    setDB("dashboardBackgroundOpacity", math.max(50, math.min(100, v)))
+                    setDB("dashboardBackgroundOpacity", clamp(v, "dashboardBackgroundOpacity"))
                 end,
                 refreshIds = { "dashboardBackgroundOpacity" },
             }
@@ -201,7 +204,7 @@ local categories = {
                 dbKey = "dashboardFontPath",
                 searchable = true,
                 options = GetDashboardFontDropdownOptions,
-                get = function() return getDB("dashboardFontPath", FONT_USE_GLOBAL) end,
+                get = function() return getDB("dashboardFontPath", D.dashboardFontPath) end,
                 set = function(v) setDB("dashboardFontPath", v) end,
                 displayFn = addon.GetFontNameForPath,
                 fontPreviewInList = true,
@@ -212,15 +215,15 @@ local categories = {
                 name = L["DASHBOARD_TYPO_SIZE"],
                 desc = L["DASHBOARD_TYPO_SIZE_DESC"],
                 dbKey = "dashboardFontSize",
-                min = 10,
-                max = 18,
+                min = LIM.dashboardFontSize.min,
+                max = LIM.dashboardFontSize.max,
                 step = 1,
                 get = function()
                     if addon.Dashboard_GetBodySize then return addon.Dashboard_GetBodySize() end
-                    return getDB("dashboardFontSize", 13)
+                    return getDB("dashboardFontSize", D.dashboardFontSize)
                 end,
                 set = function(v)
-                    setDB("dashboardFontSize", math.max(10, math.min(18, math.floor((tonumber(v) or 13) + 0.5))))
+                    setDB("dashboardFontSize", clamp(math.floor((tonumber(v) or D.dashboardFontSize) + 0.5), "dashboardFontSize"))
                 end,
                 refreshIds = dashboardTypoRefreshIds,
             }
@@ -232,7 +235,7 @@ local categories = {
                 options = OUTLINE_OPTIONS,
                 preserveOrder = true,
                 get = function()
-                    local v = getDB("dashboardTextOutline", 1)
+                    local v = getDB("dashboardTextOutline", D.dashboardTextOutline)
                     if VALID_OUTLINE_VALUES[v] then return v end
                     if v == true then return "OUTLINE" end
                     if v == false then return "" end
@@ -252,7 +255,7 @@ local categories = {
                 desc = L["DASHBOARD_TYPO_SHADOW_DESC"],
                 dbKey = "dashboardTextShadow",
                 get = function()
-                    local v = getDB("dashboardTextShadow", false)
+                    local v = getDB("dashboardTextShadow", D.dashboardTextShadow)
                     if type(v) == "number" then return v > 0 end
                     return v == true
                 end,
@@ -270,14 +273,29 @@ local categories = {
                     { L["DASHBOARD_TYPO_HEADING_COLOR_GOLD"],  "gold"  },
                 },
                 preserveOrder = true,
-                get = function() return getDB("dashboardHeadingColor", "white") end,
+                get = function() return getDB("dashboardHeadingColor", D.dashboardHeadingColor) end,
                 set = function(v)
                     setDB("dashboardHeadingColor", v)
                     if addon.Dashboard_RefreshHeadingColors then addon.Dashboard_RefreshHeadingColors() end
                 end,
                 refreshIds = dashboardTypoRefreshIds,
             }
-            opts[#opts + 1] = Toggle(L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"], L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"], "autoShowPatchNotesOnLogin", true)
+            opts[#opts + 1] = Toggle(L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN"], L["AXIS_AUTO_SHOW_PATCH_NOTES_ON_LOGIN_DESC"], "autoShowPatchNotesOnLogin", D.autoShowPatchNotesOnLogin)
+            opts[#opts + 1] = Section(L["AXIS_SIDEBAR_SECTION"])
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["AXIS_SIDEBAR_COLLAPSE_MODE"],
+                desc = L["AXIS_SIDEBAR_COLLAPSE_MODE_DESC"],
+                tooltip = L["AXIS_SIDEBAR_COLLAPSE_MODE_TOOLTIP"],
+                dbKey = "sidebarCollapseMode",
+                options = {
+                    { L["AXIS_SIDEBAR_COLLAPSE_AUTO"],      "auto"     },
+                    { L["AXIS_SIDEBAR_COLLAPSE_MANUAL"],    "manual"   },
+                    { L["AXIS_SIDEBAR_COLLAPSE_AXIS_PLUS"], "axisPlus" },
+                },
+                get = function() return getDB("sidebarCollapseMode", D.sidebarCollapseMode) end,
+                set = function(v) setDB("sidebarCollapseMode", v) end,
+            }
             opts[#opts + 1] = Section(L["AXIS_CLASS_THEME_SECTION"])
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
@@ -296,7 +314,7 @@ local categories = {
                 refreshIds = classColorAllRefreshIds,
                 get = function()
                     for _, k in ipairs(classColorKeys) do
-                        if not getDB(k, false) then return false end
+                        if not getDB(k, D[k]) then return false end
                     end
                     return true
                 end,
@@ -308,7 +326,7 @@ local categories = {
                     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
                 end,
             }
-            local function isDashboardClassThemeOn() return getDB("dashboardClassTheme", false) end
+            local function isDashboardClassThemeOn() return getDB("dashboardClassTheme", D.dashboardClassTheme) end
             opts[#opts + 1] = {
                 type = "toggle",
                 name = L["AXIS_CLASS_THEME_DASHBOARD"],
@@ -323,8 +341,8 @@ local categories = {
                 end,
                 refreshIds = { "_classColorAll", "classColorDashboard", "dashboardShowClassIcon", "dashboardClassIconSource", "dashboardBackgroundClassOverride" },
             }
-            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_CLASS_COLOURS"], L["AXIS_CLASS_COLOURS_DESC"], "classColorDashboard", false, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "_classColorAll" } })
-            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_CLASS_ICON"], L["AXIS_DASHBOARD_CLASS_ICON_DESC"], "dashboardShowClassIcon", false, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource" } })
+            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_CLASS_COLOURS"], L["AXIS_CLASS_COLOURS_DESC"], "classColorDashboard", D.classColorDashboard, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_CLASS_ICON"], L["AXIS_DASHBOARD_CLASS_ICON_DESC"], "dashboardShowClassIcon", D.dashboardShowClassIcon, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "dashboardShowClassIcon", "dashboardClassIconSource" } })
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["DASHBOARD_CLASS_ICON_STYLE"],
@@ -336,21 +354,21 @@ local categories = {
                     { L["AXIS_DEFAULT"], "default" },
                     { "RondoMedia", "rondomedia" },
                 },
-                get = function() return getDB("dashboardClassIconSource", "custom") end,
+                get = function() return getDB("dashboardClassIconSource", D.dashboardClassIconSource) end,
                 set = function(v) setDB("dashboardClassIconSource", v) end,
-                visibleWhen = function() return isDashboardClassThemeOn() and getDB("dashboardShowClassIcon", false) end,
+                visibleWhen = function() return isDashboardClassThemeOn() and getDB("dashboardShowClassIcon", D.dashboardShowClassIcon) end,
                 refreshIds = { "dashboardShowClassIcon" },
             }
-            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE"], L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE_DESC"], "dashboardBackgroundClassOverride", false, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "dashboardBackgroundTheme" } })
-            opts[#opts + 1] = Toggle(BrandModule("focus"), L["FOCUS_CLASS_COLOURS_DESC"], "classColorFocus", false, { refreshIds = { "_classColorAll" } })
-            opts[#opts + 1] = Toggle(BrandModule("presence"), L["PRESENCE_CLASS_COLOURS_DESC"], "classColorPresence", false, { refreshIds = { "_classColorAll" } })
-            opts[#opts + 1] = Toggle(BrandModule("vista"), L["VISTA_CLASS_COLOURS_DESC"], "classColorVista", false, { refreshIds = { "_classColorAll" } })
-            opts[#opts + 1] = Toggle(BrandModule("insight"), L["INSIGHT_CLASS_COLOURS_DESC"], "classColorInsight", false, { refreshIds = { "_classColorAll" } })
-            opts[#opts + 1] = Toggle(BrandModule("cache"), L["CACHE_CLASS_COLOURS_DESC"], "classColorCache", false, { refreshIds = { "_classColorAll" } })
-            opts[#opts + 1] = Toggle(BrandModule("essence"), L["ESSENCE_CLASS_COLOURS_DESC"], "classColorEssence", false, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE"], L["AXIS_DASHBOARD_BG_CLASS_OVERRIDE_DESC"], "dashboardBackgroundClassOverride", D.dashboardBackgroundClassOverride, { visibleWhen = isDashboardClassThemeOn, refreshIds = { "dashboardBackgroundTheme" } })
+            opts[#opts + 1] = Toggle(BrandModule("focus"), L["FOCUS_CLASS_COLOURS_DESC"], "classColorFocus", D.classColorFocus, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("presence"), L["PRESENCE_CLASS_COLOURS_DESC"], "classColorPresence", D.classColorPresence, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("vista"), L["VISTA_CLASS_COLOURS_DESC"], "classColorVista", D.classColorVista, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("insight"), L["INSIGHT_CLASS_COLOURS_DESC"], "classColorInsight", D.classColorInsight, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("cache"), L["CACHE_CLASS_COLOURS_DESC"], "classColorCache", D.classColorCache, { refreshIds = { "_classColorAll" } })
+            opts[#opts + 1] = Toggle(BrandModule("essence"), L["ESSENCE_CLASS_COLOURS_DESC"], "classColorEssence", D.classColorEssence, { refreshIds = { "_classColorAll" } })
             opts[#opts + 1] = Section(L["AXIS_GLOBAL_FONT_SECTION"])
-            local isGlobalFontOn = function() return getDB("useGlobalFont", false) end
-            opts[#opts + 1] = Toggle(L["AXIS_USE_GLOBAL_FONT"], L["AXIS_USE_GLOBAL_FONT_DESC"], "useGlobalFont", false, { refreshIds = { "globalOverrideFontPath" } })
+            local isGlobalFontOn = function() return getDB("useGlobalFont", D.useGlobalFont) end
+            opts[#opts + 1] = Toggle(L["AXIS_USE_GLOBAL_FONT"], L["AXIS_USE_GLOBAL_FONT_DESC"], "useGlobalFont", D.useGlobalFont, { refreshIds = { "globalOverrideFontPath" } })
             opts[#opts + 1] = {
                 type = "dropdown",
                 name = L["AXIS_GLOBAL_FONT_PICKER"],
@@ -387,13 +405,13 @@ local categories = {
                     applyFn()
                 end)
             end
-            local function isPerModule() return getDB("perModuleScaling", false) end
-            opts[#opts + 1] = { type = "slider", name = L["AXIS_GLOBAL_UI_SCALE"], desc = L["SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = 50, max = 200, tooltip = L["AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
+            local function isPerModule() return getDB("perModuleScaling", D.perModuleScaling) end
+            opts[#opts + 1] = { type = "slider", name = L["AXIS_GLOBAL_UI_SCALE"], desc = L["SCALE_UI_ELEMENTS"], dbKey = "globalUIScale_pct", min = LIM.globalUIScale_pct.min, max = LIM.globalUIScale_pct.max, tooltip = L["AXIS_DOESN_T_CHANGE_YOUR_CONFIGURED_VALUES"],
                 disabled = isPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("globalUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("globalUIScale", D.globalUIScale)) or D.globalUIScale) * 100 + 0.5)
                 end, set = function(v)
-                    local scale = math.max(50, math.min(200, v)) / 100
+                    local scale = clamp(v, "globalUIScale_pct") / 100
                     setDB("globalUIScale", scale)
                     debouncedRefresh("global", refreshAllScaling)
                 end }
@@ -403,59 +421,59 @@ local categories = {
             end,
             refreshIds = { "globalUIScale_pct", "focusUIScale_pct", "presenceUIScale_pct", "vistaUIScale_pct", "insightUIScale_pct", "cacheUIScale_pct" },
             }
-            opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = LIM.focusUIScale_pct.min, max = LIM.focusUIScale_pct.max,
                 visibleWhen = isPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("focusUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("focusUIScale", D.focusUIScale)) or D.focusUIScale) * 100 + 0.5)
                 end, set = function(v)
-                    setDB("focusUIScale", math.max(50, math.min(200, v)) / 100)
+                    setDB("focusUIScale", clamp(v, "focusUIScale_pct") / 100)
                     debouncedRefresh("focus", refreshAllScaling)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["PRESENCE_SCALE"], desc = L["AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["PRESENCE_SCALE"], desc = L["AXIS_SCALE_PRESENCE_CINEMATIC_TEXT"], dbKey = "presenceUIScale_pct", min = LIM.presenceUIScale_pct.min, max = LIM.presenceUIScale_pct.max,
                 visibleWhen = isPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("presenceUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("presenceUIScale", D.presenceUIScale)) or D.presenceUIScale) * 100 + 0.5)
                 end, set = function(v)
-                    setDB("presenceUIScale", math.max(50, math.min(200, v)) / 100)
+                    setDB("presenceUIScale", clamp(v, "presenceUIScale_pct") / 100)
                     debouncedRefresh("presence", function()
                         if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
                     end)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["VISTA_SCALE"], desc = L["AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["VISTA_SCALE"], desc = L["AXIS_SCALE_VISTA_MINIMAP_MODULE"], dbKey = "vistaUIScale_pct", min = LIM.vistaUIScale_pct.min, max = LIM.vistaUIScale_pct.max,
                 visibleWhen = isPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("vistaUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("vistaUIScale", D.vistaUIScale)) or D.vistaUIScale) * 100 + 0.5)
                 end, set = function(v)
-                    setDB("vistaUIScale", math.max(50, math.min(200, v)) / 100)
+                    setDB("vistaUIScale", clamp(v, "vistaUIScale_pct") / 100)
                     debouncedRefresh("vista", function()
                         if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
                     end)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["INSIGHT_SCALE"], desc = L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["INSIGHT_SCALE"], desc = L["AXIS_SCALE_INSIGHT_TOOLTIP_MODULE"], dbKey = "insightUIScale_pct", min = LIM.insightUIScale_pct.min, max = LIM.insightUIScale_pct.max,
                 visibleWhen = isPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("insightUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("insightUIScale", D.insightUIScale)) or D.insightUIScale) * 100 + 0.5)
                 end, set = function(v)
-                    setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
+                    setDB("insightUIScale", clamp(v, "insightUIScale_pct") / 100)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["CACHE_SCALE"], desc = L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["CACHE_SCALE"], desc = L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = LIM.cacheUIScale_pct.min, max = LIM.cacheUIScale_pct.max,
                 visibleWhen = isPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("cacheUIScale", D.cacheUIScale)) or D.cacheUIScale) * 100 + 0.5)
                 end, set = function(v)
-                    setDB("cacheUIScale", math.max(50, math.min(200, v)) / 100)
+                    setDB("cacheUIScale", clamp(v, "cacheUIScale_pct") / 100)
                     debouncedRefresh("cache", function()
                         if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
                     end)
                 end }
             -- Standalone: button is on the minimap, not collected by Vista.
             local function isMinimapStandalone()
-                return not getDB("hideMinimapButton", false)
+                return not getDB("hideMinimapButton", D.hideMinimapButton)
                     and not (addon.IsModuleEnabled and addon:IsModuleEnabled("vista")
-                             and getDB("vistaCollectHorizonMinimapButton", true))
+                             and getDB("vistaCollectHorizonMinimapButton", addon.VISTA_DEFAULTS.vistaCollectHorizonMinimapButton))
             end
             opts[#opts + 1] = Section(L["AXIS_MINIMAP_ICON_SECTION"])
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"], desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"], dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", false) end, set = function(v)
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_SHOW_MINIMAP_ICON"], desc = L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"], dbKey = "hideMinimapButton", get = function() return not getDB("hideMinimapButton", D.hideMinimapButton) end, set = function(v)
                 -- Write DB synchronously so dependents' refreshIds see the new value immediately.
                 setDB("hideMinimapButton", not v)
                 C_Timer.After(0, function()
@@ -468,19 +486,19 @@ local categories = {
             end,
             refreshIds = { "minimapButtonShowOnlyOnMinimapHover", "minimapButtonLocked", "__minimapButtonReset" },
             }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"], desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"], dbKey = "minimapButtonShowOnlyOnMinimapHover", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", false) end, set = function(v)
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER"], desc = L["PRESENCE_MINIMAP_ICON_SHOW_ONLY_ON_MINIMAP_HOVER_DESC"], dbKey = "minimapButtonShowOnlyOnMinimapHover", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonShowOnlyOnMinimapHover", D.minimapButtonShowOnlyOnMinimapHover) end, set = function(v)
                 C_Timer.After(0, function()
                     setDB("minimapButtonShowOnlyOnMinimapHover", v)
                     if addon.MinimapButton_UpdateVisibility then addon.MinimapButton_UpdateVisibility() end
                 end)
             end }
-            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"], desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"], dbKey = "minimapButtonLocked", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonLocked", false) end, set = function(v)
+            opts[#opts + 1] = { type = "toggle", name = L["PRESENCE_LOCK_MINIMAP_BUTTON_POSITION"], desc = L["PRESENCE_PREVENT_DRAGGING_HORIZON_MINIMAP_BUTTON"], dbKey = "minimapButtonLocked", visibleWhen = isMinimapStandalone, get = function() return getDB("minimapButtonLocked", D.minimapButtonLocked) end, set = function(v)
                 C_Timer.After(0, function() setDB("minimapButtonLocked", v) end)
             end }
             opts[#opts + 1] = { type = "toggle", name = L["AXIS_MINIMAP_ICON_CIRCULAR"],
                 desc = L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"],
                 dbKey = "minimapButtonCircular", visibleWhen = isMinimapStandalone,
-                get = function() return getDB("minimapButtonCircular", false) end,
+                get = function() return getDB("minimapButtonCircular", D.minimapButtonCircular) end,
                 set = function(v)
                     setDB("minimapButtonCircular", v)
                     if addon.MinimapButton_ApplyShape then addon.MinimapButton_ApplyShape() end

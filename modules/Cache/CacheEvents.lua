@@ -18,6 +18,14 @@ local eventsRegistered = false
 -- animation doesn't receive them all at position 0 simultaneously.
 -- ============================================================================
 
+local cachePanel = addon.Log.createPanel("cache", "Cache Debug", { maxLines = 300,
+    onClose = function()
+        if addon.SetDB then addon.SetDB("cacheDebugLive", false) end
+        addon.Log.enableTag("cache", nil)
+    end,
+})
+addon.Log.registerTag("cache", "cacheDebugLive")
+
 local COALESCE_STAGGER = 0.08
 local lootQueue        = {}
 local lootFlushPending = false
@@ -26,6 +34,7 @@ local function FlushLootQueue()
     lootFlushPending = false
     local queue = lootQueue
     lootQueue = {}
+    addon.Log.debug("cache", "FlushLootQueue — " .. #queue .. " item(s)")
     for i, data in ipairs(queue) do
         if i == 1 then
             Y.ShowToast(data)
@@ -39,6 +48,7 @@ end
 
 local function EnqueueLootToast(data)
     lootQueue[#lootQueue + 1] = data
+    addon.Log.debug("cache", "Enqueue — type=" .. tostring(data and data.type) .. " q=" .. #lootQueue)
     if not lootFlushPending then
         lootFlushPending = true
         C_Timer.After(0, FlushLootQueue)
@@ -85,16 +95,14 @@ handlers.CHAT_MSG_LOOT = function(msg, ...)
         return
     end
     if Y.IsPushedLoot(msg) and addon.GetDB("cacheShowPushedItems", addon.CACHE_DEFAULTS.cacheShowPushedItems) == false then return end
-    if y.debugMode then
-        print("|cFF00CCFFCache debug LOOT:|r guid=" .. tostring(guid)
-            .. " match=" .. tostring(guid == y.playerGUID)
-            .. " msg=" .. tostring(msg):sub(1, 120))
-    end
+    addon.Log.debug("cache", "LOOT guid=" .. tostring(guid) .. " match=" .. tostring(guid == y.playerGUID) .. " " .. tostring(msg):sub(1, 80))
     local data = Y.ParseItemLoot(msg)
     if data then
         local minQ = (addon.GetDB and tonumber(addon.GetDB("cacheMinQuality", 0))) or 0
         if (data.quality or 1) >= minQ then
             EnqueueLootToast(data)
+        else
+            addon.Log.debug("cache", "LOOT filtered — quality=" .. tostring(data.quality) .. " < minQ=" .. minQ)
         end
     end
 end
@@ -103,14 +111,20 @@ handlers.CHAT_MSG_MONEY = function(msg)
     if not y.patternsOK then return end
     if addon.GetDB("cacheShowMoney", true) == false then return end
     local data = Y.ParseMoney(msg)
-    if data then EnqueueLootToast(data) end
+    if data then
+        addon.Log.debug("cache", "MONEY — " .. tostring(msg):sub(1, 60))
+        EnqueueLootToast(data)
+    end
 end
 
 handlers.CHAT_MSG_CURRENCY = function(msg)
     if not y.patternsOK then return end
     if addon.GetDB("cacheShowCurrency", true) == false then return end
     local data = Y.ParseCurrency(msg)
-    if data then EnqueueLootToast(data) end
+    if data then
+        addon.Log.debug("cache", "CURRENCY — " .. tostring(msg):sub(1, 60))
+        EnqueueLootToast(data)
+    end
 end
 
 handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(msg)
@@ -118,6 +132,7 @@ handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(msg)
     if addon.GetDB("cacheShowRep", true) == false then return end
     local data = Y.ParseReputation(msg)
     if data then
+        addon.Log.debug("cache", "REP — " .. tostring(msg):sub(1, 60))
         Y.ShowToast(data)
     end
 end
@@ -200,4 +215,15 @@ function Y.DisableEvents()
     end
     ClearQueues()
     eventsRegistered = false
+end
+
+function Y.SetDebugLive(v)
+    if addon.SetDB then addon.SetDB("cacheDebugLive", v) end
+    addon.Log.enableTag("cache", v or nil)
+    if v then
+        cachePanel.Show()
+        addon.Log.debug("cache", "Live debug enabled")
+    else
+        cachePanel.Hide()
+    end
 end
