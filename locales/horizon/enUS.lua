@@ -1,4 +1,4 @@
-local addon = _G.HorizonSuite
+﻿local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = addon.L
@@ -2162,10 +2162,10 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- =====================================================================
 -- Integrations tab — Focus options
 -- =====================================================================
-L["FOCUS_INTEGRATIONS"]                                       = "Integrations"
-L["FOCUS_INTEGRATIONS_DESC"]                                  = "Configure companion addon integrations for the Focus tracker."
+L["FOCUS_INTEGRATION"]                                        = "Integrations"
+L["FOCUS_INTEGRATION_DESC"]                                   = "Configure companion addon integrations for the Focus tracker."
 L["FOCUS_INTEGRATION_RARESCANNER"]                            = "RareScanner"
-L["FOCUS_INTEGRATION_RARESCANNER_NOT_INSTALLED"]              = "Horizon - RareScanner is not installed."
+L["FOCUS_INTEGRATION_RARESCANNER_INVALID"]                  = "Horizon - RareScanner is not installed."
 L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES"]                 = "Show Rare Bosses"
 L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES_DESC"]            = "Show rare NPC alerts from RareScanner inside the Focus tracker."
 L["FOCUS_INTEGRATION_RARESCANNER_SHOW_TREASURES"]             = "Show Treasures"

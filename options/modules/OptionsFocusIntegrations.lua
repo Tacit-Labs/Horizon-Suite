@@ -12,7 +12,6 @@ local L       = addon.L
 local Section = addon.Section
 local Toggle  = addon.Toggle
 
-local function getDB(k, d) return addon.GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 
 -- ============================================================================
@@ -30,8 +29,8 @@ end
 
 addon.OptionCategories[#addon.OptionCategories + 1] = {
     key       = "Integrations",
-    name      = L["FOCUS_INTEGRATIONS"],
-    desc      = L["FOCUS_INTEGRATIONS_DESC"],
+    name      = L["FOCUS_INTEGRATION"],
+    desc      = L["FOCUS_INTEGRATION_DESC"],
     moduleKey = "focus",
     options   = {
         -- ----------------------------------------------------------------
@@ -42,7 +41,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         -- Shown only when the companion addon is absent, to guide the user.
         {
             type        = "section",
-            name        = L["FOCUS_INTEGRATION_RARESCANNER_NOT_INSTALLED"],
+            name        = L["FOCUS_INTEGRATION_RARESCANNER_INVALID"],
             visibleWhen = function() return not RareScannerIntegrationLoaded() end,
         },
 

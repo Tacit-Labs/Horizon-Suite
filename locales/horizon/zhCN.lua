@@ -2138,3 +2138,17 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["ZONE_TYPE_COLOURING"]                                   = "Zone Type Colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
 
+
+-- =====================================================================
+-- Integrations tab — Focus options
+-- =====================================================================
+-- L["FOCUS_INTEGRATION"]                                     = "Integrations"
+-- L["FOCUS_INTEGRATION_DESC"]                                = "Configure companion addon integrations for the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER"]                         = "RareScanner"
+-- L["FOCUS_INTEGRATION_RARESCANNER_INVALID"]               = "Horizon - RareScanner is not installed."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES"]              = "Show Rare Bosses"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES_DESC"]         = "Show rare NPC alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_TREASURES"]          = "Show Treasures"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_TREASURES_DESC"]     = "Show treasure and container alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_EVENTS"]             = "Show Events"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_EVENTS_DESC"]        = "Show rare event alerts from RareScanner inside the Focus tracker."
