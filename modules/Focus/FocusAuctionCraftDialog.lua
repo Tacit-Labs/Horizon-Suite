@@ -503,9 +503,7 @@ function addon.focus.ShowAuctionCraftDialog(entry)
         f.subtitleLbl:SetTextColor(ar, ag, ab, 1)
     end
     f.hintCraft:SetText(L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"])
-        or "How many crafts to buy materials for (1–999). Quantities in the list are multiplied by this.")
     f.hintTier:SetText(L["FOCUS_AH_CRAFT_HINT_TIER"])
-        or "Optional crafting tier on every row. Leave as Any for no quality or tier filters.")
 
     f.SyncTierMenuLabels()
 
