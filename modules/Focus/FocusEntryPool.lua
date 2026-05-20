@@ -4,9 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-local function T(key)
-    return (addon.L and addon.L[key]) or key
-end
+local L = addon.L
 
 -- ============================================================================
 -- ENTRY POOL
@@ -234,8 +232,8 @@ local function CreateQuestEntry(parent, index)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         local L = addon.L
         addon.focus.AnchorTooltip(GameTooltip, self)
-        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TITLE"]), 1, 1, 1)
-        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]), 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine(L["FOCUS_AH_SEARCH_TITLE"], 1, 1, 1)
+        GameTooltip:AddLine(L["FOCUS_AH_SEARCH_TOOLTIP"], 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     e.ahBtn:SetScript("OnLeave", function(self)
