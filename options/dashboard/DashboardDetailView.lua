@@ -725,6 +725,12 @@ function addon.DashboardDetailView_Init(env)
             if mk == "insight" and addon.Insight and addon.Insight.SetDashboardPreviewMode then
                 addon.Insight.SetDashboardPreviewMode("global")
             end
+            -- Hide the preview tab when landing on the tiles page (not when skipDetailBuild
+            -- is true, which means OpenModule is only being called as a transit step to build
+            -- the back-button tile context before OpenCategoryDetail shows the actual detail).
+            if not skipDetailBuild and addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                addon.DashboardPreview.SetActiveModuleKey(nil)
+            end
             -- SetSidebarState above ran before subCategoryView was shown; ApplySidebarState uses
             -- subCategoryView:IsShown() to prefer the module header over the first sub-row.
             SetSidebarState({ view = "module", activeModuleKey = mk, activeCategoryIndex = CLEAR })

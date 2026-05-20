@@ -11,7 +11,7 @@ addon.DashboardPreview = addon.DashboardPreview or {}
 local DP = addon.DashboardPreview
 
 local PULLOUT_ANIM_DUR = 0.20
-local TAB_W = 26
+local TAB_W = 52
 local TAB_H = 80
 
 local registrations = {}
@@ -39,6 +39,7 @@ end
 local tabBg        = nil
 local tabAccentBar = nil
 local tabIcon      = nil
+local tabLabel     = nil
 
 local pulloutState    = "closed" -- "closed" | "opening" | "open" | "closing"
 local pulloutProgress = 0
@@ -66,9 +67,11 @@ local function UpdateTabOpenState()
     if isOpen then
         tabAccentBar:SetColorTexture(0.55, 0.55, 0.60, 1.0)
         tabIcon:SetVertexColor(0.80, 0.80, 0.85)
+        if tabLabel then tabLabel:SetTextColor(0.75, 0.75, 0.80, 1) end
     else
         tabAccentBar:SetColorTexture(0.25, 0.25, 0.28, 0.60)
         tabIcon:SetVertexColor(0.45, 0.45, 0.50)
+        if tabLabel then tabLabel:SetTextColor(0.45, 0.45, 0.50, 1) end
     end
 end
 
@@ -403,16 +406,31 @@ local function EnsurePreviewTab(dashFrame)
     tabAccentBar:SetPoint("TOPLEFT", previewTabFrame, "TOPLEFT", 0, 0)
     tabAccentBar:SetColorTexture(0.25, 0.25, 0.28, 0.60)
 
-    -- Spyglass icon — centered in the tab.
+    -- Spyglass icon — upper half of the tab.
     tabIcon = previewTabFrame:CreateTexture(nil, "ARTWORK")
     tabIcon:SetSize(18, 18)
-    tabIcon:SetPoint("CENTER", previewTabFrame, "CENTER", 1, 0)
+    tabIcon:SetPoint("CENTER", previewTabFrame, "CENTER", 0, 16)
     tabIcon:SetTexture("Interface\\Icons\\INV_Misc_Spyglass_02")
     tabIcon:SetVertexColor(0.45, 0.45, 0.50)
+
+    -- Text label — lower half of the tab.
+    tabLabel = previewTabFrame:CreateFontString(nil, "OVERLAY")
+    do
+        local lf = (addon.Dashboard_EffectiveDashboardFontSize and addon.Dashboard_EffectiveDashboardFontSize(9)) or 9
+        local wf = (addon.Dashboard_GetWidgetOutlineFlags and addon.Dashboard_GetWidgetOutlineFlags()) or "OUTLINE"
+        local lFontPath = GetPulloutFontPath()
+        tabLabel:SetFont("Fonts\\FRIZQT__.TTF", lf, wf)  -- fallback so font is always set before SetText
+        pcall(function() tabLabel:SetFont(lFontPath, lf, wf) end)
+    end
+    tabLabel:SetTextColor(0.45, 0.45, 0.50, 1)
+    tabLabel:SetJustifyH("CENTER")
+    tabLabel:SetText("Tooltip\nPreview")
+    tabLabel:SetPoint("CENTER", previewTabFrame, "CENTER", 0, -14)
 
     previewTabFrame:SetScript("OnEnter", function()
         tabAccentBar:SetColorTexture(0.65, 0.65, 0.70, 1.0)
         tabIcon:SetVertexColor(0.95, 0.95, 1.00)
+        tabLabel:SetTextColor(0.90, 0.90, 0.95, 1)
         tabBg:SetColorTexture(0.12, 0.12, 0.16, 0.97)
         local def = activeModuleKey and registrations[activeModuleKey]
         local tTitle = (def and def.tabTooltipTitle) or "Preview"
@@ -426,6 +444,7 @@ local function EnsurePreviewTab(dashFrame)
     end)
     previewTabFrame:SetScript("OnLeave", function()
         tabBg:SetColorTexture(0.08, 0.08, 0.11, 0.97)
+        if tabLabel then tabLabel:SetTextColor(0.45, 0.45, 0.50, 1) end
         UpdateTabOpenState()
         GameTooltip:Hide()
     end)
