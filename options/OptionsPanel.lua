@@ -2094,7 +2094,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
 
             local completedObjRow  -- forward reference for parent-child wiring
-            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"], L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"], function() return getDB("useCompletedObjectiveColor", true) end, function(v)
+            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"], L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"], function() return getDB("useCompletedObjectiveColor", addon.FOCUS_DEFAULTS.useCompletedObjectiveColor) end, function(v)
                 setDB("useCompletedObjectiveColor", v)
                 notifyMainAddon()
                 if completedObjRow then completedObjRow:SetShown(v and true or false); RecalcCardHeight() end
@@ -2107,7 +2107,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local otherDefs = {
                 { dbKey = "highlightColor", label = L["FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
                 { dbKey = "completedObjectiveColor", label = L["FOCUS_COMPLETED_OBJECTIVE"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
-                { dbKey = "progressBarFillColor", label = L["FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
+                { dbKey = "progressBarFillColor", label = L["FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", addon.FOCUS_DEFAULTS.progressBarUseCategoryColor) end, hasAlpha = true },
                 { dbKey = "progressBarTextColor", label = L["FOCUS_PROGRESS_BAR_TEXT"], def = { 0.95, 0.95, 0.95 } },
             }
             for _, od in ipairs(otherDefs) do
@@ -2121,7 +2121,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             end
 
             -- Hide completed objective swatch if toggle is OFF
-            if completedObjRow and not getDB("useCompletedObjectiveColor", true) then
+            if completedObjRow and not getDB("useCompletedObjectiveColor", addon.FOCUS_DEFAULTS.useCompletedObjectiveColor) then
                 completedObjRow:Hide()
             end
 

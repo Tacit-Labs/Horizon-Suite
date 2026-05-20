@@ -30,6 +30,7 @@ core/UrlCopyDialog.lua
 core/ProfileIO.lua
 core/CoreSlash.lua
 core/Logger.lua
+core/LoggerPanel.lua
 core/PatchNotesData.lua
 core/PatchNotes.lua
 core/NewSettings.lua
@@ -85,6 +86,7 @@ modules/Presence/PresenceEvents.lua
 modules/Presence/PresenceErrors.lua
 modules/Presence/PresenceSlash.lua
 modules/Presence/PresenceModule.lua
+options/modules/defaults/OptionsDefaultsPresenceTalkingHead.lua
 modules/Presence/PresenceTalkingHead.lua
 
 modules/Cache/CacheState.lua
@@ -114,15 +116,7 @@ options/OptionsWidgets.lua
 options/OptionsDefaults.lua
 options/OptionsData.lua
 options/OptionsHelpers.lua
-options/modules/OptionsAxis.lua
-options/modules/OptionsFocus.lua
-options/modules/OptionsPresence.lua
-options/modules/OptionsInsight.lua
-options/modules/OptionsEssence.lua
-options/modules/OptionsVista.lua
 options/modules/defaults/OptionsDefaultsCache.lua
-options/modules/OptionsCache.lua
-options/modules/OptionsPresenceTalkingHead.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
 options/modules/defaults/OptionsDefaultsEssence.lua
@@ -131,6 +125,14 @@ options/modules/defaults/OptionsDefaultsFocus.lua
 options/modules/defaults/OptionsDefaultsAxis.lua
 options/modules/defaults/OptionsDefaultsFlow.lua
 options/modules/defaults/OptionsDefaultsMeridian.lua
+options/modules/OptionsAxis.lua
+options/modules/OptionsFocus.lua
+options/modules/OptionsPresence.lua
+options/modules/OptionsInsight.lua
+options/modules/OptionsEssence.lua
+options/modules/OptionsVista.lua
+options/modules/OptionsCache.lua
+options/modules/OptionsPresenceTalkingHead.lua
 options/OptionsSearch.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua

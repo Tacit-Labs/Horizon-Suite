@@ -91,11 +91,20 @@ layoutDirtyFrame:SetScript("OnUpdate", function(self)
     if addon.FullLayout then addon.FullLayout() end
 end)
 
+local focusPanel = addon.Log.createPanel("focus", "Focus Debug", { maxLines = 300,
+    onClose = function()
+        if addon.SetDB then addon.SetDB("focusDebugLive", false) end
+        addon.Log.enableTag("focus", nil)
+    end,
+})
+addon.Log.registerTag("focus", "focusDebugLive")
+
 local function ScheduleRefresh()
     if not addon.focus.enabled then return end
     if addon.focus.refreshPending then return end
     addon.focus.refreshPending = true
     layoutDirtyFrame:Show()
+    addon.Log.debug("focus", "ScheduleRefresh triggered")
 end
 
 addon.ScheduleRefresh = ScheduleRefresh
@@ -294,6 +303,7 @@ end
 
 local function OnPlayerRegenDisabled()
     local mode = addon.GetCombatVisibility()
+    addon.Log.debug("focus", "Combat start — mode=" .. tostring(mode))
     if (mode ~= "hide" and mode ~= "fade") or not addon.focus.enabled then return end
     addon.focus.combat.faded = nil
     addon.focus.combat.fadeFromAlpha = nil
@@ -313,6 +323,7 @@ local function OnPlayerRegenDisabled()
 end
 
 local function OnPlayerRegenEnabled()
+    addon.Log.debug("focus", "Combat end — layoutPending=" .. tostring(addon.focus.layoutPendingAfterCombat))
     local hadLayoutPending = addon.focus.layoutPendingAfterCombat
     local mode = addon.GetCombatVisibility()
     local combatAffectsTracker = (mode == "hide" or mode == "fade") and addon.focus.enabled
@@ -355,6 +366,7 @@ local INSTANCE_ENTER_RETRY_DELAYS = { 0.2, 0.5, 1.0 }
 
 local function OnInstanceEntered()
     if not addon.focus.enabled then return end
+    addon.Log.debug("focus", "Instance entered — scheduling retry ladder")
     for _, delay in ipairs(INSTANCE_ENTER_RETRY_DELAYS) do
         C_Timer.After(delay, function()
             if not addon.focus.enabled then return end
@@ -391,6 +403,7 @@ local function OnPlayerLoginOrEnteringWorld()
 end
 
 local function OnQuestTurnedIn(questID)
+    addon.Log.debug("focus", "Quest turned in — id=" .. tostring(questID))
     if not addon.focus.enabled then ScheduleRefresh(); return end
     if questID and addon.focus.questTimerCache then addon.focus.questTimerCache[questID] = nil end
     for i = 1, addon.POOL_SIZE do
@@ -414,6 +427,7 @@ local function OnQuestWatchUpdate(questID)
 end
 
 local function OnQuestAccepted(questID)
+    addon.Log.debug("focus", "Quest accepted — id=" .. tostring(questID))
     if not addon.focus.enabled then ScheduleRefresh(); return end
     if not questID or questID <= 0 then ScheduleRefresh(); return end
 
@@ -686,3 +700,19 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         ScheduleRefresh()
     end
 end)
+
+local function SetFocusDebugLive(v)
+    if addon.SetDB then addon.SetDB("focusDebugLive", v) end
+    addon.Log.enableTag("focus", v or nil)
+    if v then
+        focusPanel.Show()
+        addon.Log.debug("focus", "Live debug enabled")
+    else
+        focusPanel.Hide()
+    end
+end
+
+addon.focus = addon.focus or {}
+addon.focus.SetDebugLive  = SetFocusDebugLive
+addon.focus.ShowDebugPanel = focusPanel.Show
+addon.focus.HideDebugPanel = focusPanel.Hide

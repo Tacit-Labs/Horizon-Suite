@@ -48,3 +48,45 @@ Nobody can approve their own PR on the dev branch except for extenuating circums
 These circumstances include, but are not limited to, urgency that does not warrant a `hotfix/` branch and excess lack of activity from other developers.
 
 ---
+
+## `Debug / DEV_MODE`
+
+The addon ships with a structured logger in `core/Logger.lua`. A compile-time flag controls whether debug features are active:
+
+```lua
+local DEV_MODE = false   -- must stay false in committed code
+```
+
+### What DEV_MODE enables
+
+- All `addon.Log.debug / info / warn / error` calls fire and print to chat.
+- Per-module live debug panels (scrolling log window) can be toggled via slash commands.
+- The `/h debug logger` dump/clear commands become available.
+
+### How to use it locally
+
+1. Set `DEV_MODE = true` in `core/Logger.lua`.
+2. Reload the UI (`/reload`).
+3. Toggle a module's panel: `/h debug <module> debuglive`
+   - Modules: `focus`, `presence`, `vista`, `cache`, `insight`, `essence`
+   - `/h debug help` lists all commands and shows current DEV_MODE state.
+4. The panel is a draggable scrolling window. Use **Copy** to export its contents and **Clear** to reset it.
+
+### Pre-push hook (required setup)
+
+A git hook prevents accidentally pushing `DEV_MODE = true` to remote. Set it up once after cloning:
+
+```sh
+cp scripts/hooks/pre-push .git/hooks/pre-push
+chmod +x .git/hooks/pre-push
+```
+
+If you try to push with `DEV_MODE = true` still set, git will abort with:
+
+```text
+ERROR: DEV_MODE = true in core/Logger.lua — set it back to false before pushing.
+```
+
+Simply set it back to `false`, reload to confirm everything still works, then push.
+
+> Local commits with `DEV_MODE = true` are fine — the hook only blocks the push step.
