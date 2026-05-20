@@ -1028,7 +1028,6 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     if questData.isComplete and shownObjs == 0 then
         local obj = entry.objectives[1]
         local isAutoComplete = questData.isAutoComplete and true or false
-        local L = addon.L or {}
         local readyToTurnIn = StripLeadingDashes(L["UI_READY_TO_TURN_IN"])
         local firstLineText = isAutoComplete
             and (_G.QUEST_WATCH_QUEST_COMPLETE or "Quest Complete")
