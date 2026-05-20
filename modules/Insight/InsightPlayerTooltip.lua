@@ -1341,7 +1341,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     -- 4. Status badges — below identity block
     Insight.AddStatusBadgesBlock(tooltip, unit)
 
-    -- 5. Stats block (M+ score, item level)
+    -- 5. Ratings block (M+ score, honour level, achievement points, item level)
     Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
 
     -- 6. Mount block
@@ -1525,7 +1525,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         tooltip:AddLine(classIconStr .. "Blood Death Knight" .. previewRoleSuffix, 0.77, 0.12, 0.23)
     end
 
-    -- 5. Stats (M+ / ilvl — EnsureStatsSep pattern from AddStatsBlock)
+    -- 3a. TRP3 identity fallback (race/class and guild displaced to bottom)
     if previewMoveRaceClassToBottom then
         local raceClassLine = BuildCombinedRaceClassLine(previewTRP3, previewClassCol, nil, { race = "Blood Elf", class = "Death Knight" })
         if raceClassLine and raceClassLine ~= "" then
@@ -1560,6 +1560,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         end
     end
 
+    -- 5. Ratings (M+ score, honour level, achievement points, item level)
     local hasStats = false
     local function ensureStatsSep()
         if not hasStats then
