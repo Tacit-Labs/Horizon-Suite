@@ -4,6 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L      = addon.L
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
@@ -35,7 +36,7 @@ end
 -- ============================================================================
 
 local function ShowCoreHelp()
-    HSPrint("Horizon Suite")
+    HSPrint(L["NAME_ADDON"])
     HSPrint("  /h, /horizon         - This help")
     HSPrint("  /hedit, /h edit      - Open edit screen")
     HSPrint("  /hopt, /h options    - Open options")

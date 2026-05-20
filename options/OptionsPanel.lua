@@ -437,7 +437,7 @@ end
 -- Panel frame
 -- ---------------------------------------------------------------------------
 local panel = CreateFrame("Frame", "HorizonSuiteOptionsPanel", UIParent)
-panel.name = "Horizon Suite"
+panel.name = L["NAME_ADDON"]
 panel:SetSize(PAGE_WIDTH, PAGE_HEIGHT)
 panel:SetFrameStrata("DIALOG")
 panel:SetClampedToScreen(true)
