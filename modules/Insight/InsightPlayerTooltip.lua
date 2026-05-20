@@ -938,7 +938,7 @@ function Insight.GetTRP3PlayerData(unit)
         -- Full title (shown beneath the name line)
         if char.FT and char.FT ~= "" then
             local ft = strtrim(char.FT)
-            if ft ~= "" then data.fullTitle = ft end
+            if ft ~= "" then data.fullTitle = "< " .. ft .. " >" end
         end
         -- Character icon
         if char.IC and char.IC ~= "" then data.icon = char.IC end
@@ -1289,7 +1289,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end
 
     if trp3Data and trp3Data.fullTitle and ShowTRP3Title() then
-        local titleLine = "< " .. trp3Data.fullTitle .. " >"
+        local titleLine = trp3Data.fullTitle
         if trp3Data.pronouns and ShowTRP3Pronouns() then
             titleLine = titleLine .. "  |cffaaaaaa(" .. ProperCasePronouns(trp3Data.pronouns) .. ")|r"
         end
@@ -1378,7 +1378,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         customColorR = 0.72, customColorG = 0.53, customColorB = 1.0,
         customRace  = "Sin'dorei",
         customClass = "Arcane Weaver",
-        fullTitle   = "Keeper of the Dawnguard",
+        fullTitle   = "< Keeper of the Dawnguard >",
         customGuild = "Dawnguard Covenant",
         customGuildRank = "Keeper",
         currently   = "Studying ancient texts in the library, searching for answers...",
@@ -1429,7 +1429,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         nameSpan = FormatNameSpan(displayName, nameR, nameG, nameB, false)
     end
 
-    -- TRP3 IC/OOC suffix (pronouns moved to title line)
+    -- TRP3 IC/OOC suffix
     local trp3Suffix = ""
     if previewTRP3 then
         if previewTRP3.isIC ~= nil and ShowTRP3ICStatus() then
@@ -1470,7 +1470,7 @@ function Insight.RenderTestTooltipContent(tooltip)
     local previewHasTitle = previewTRP3 and previewTRP3.fullTitle and ShowTRP3Title()
     local previewHasPronouns = previewTRP3 and previewTRP3.pronouns and ShowTRP3Pronouns()
     if previewHasTitle then
-        local titleLine = "< " .. previewTRP3.fullTitle .. " >"
+        local titleLine = previewTRP3.fullTitle
         if previewHasPronouns then
             titleLine = titleLine .. "  |cffaaaaaa(" .. ProperCasePronouns(previewTRP3.pronouns) .. ")|r"
         end
