@@ -1369,17 +1369,6 @@ function Insight.RenderTestTooltipContent(tooltip)
     Insight.sepR, Insight.sepG, Insight.sepB = testSepR, testSepG, testSepB
 
     local showIcons = ShowIcons()
-    local fc = Insight.FACTION_COLORS["Horde"]
-    local nameModeRaw = addon.GetDB("insightPlayerNameColor", "faction")
-    local nameMode = (nameModeRaw == "class") and "class" or "faction"
-    local nameR, nameG, nameB = fc[1], fc[2], fc[3]
-    if nameMode == "class" then
-        nameR, nameG, nameB = testSepR, testSepG, testSepB
-    end
-    local facIcon = showIcons and (Insight.FACTION_ICONS["Horde"] or "") or ""
-
-    local useGradient = (nameMode == "class")
-        and addon.GetDB("insightPlayerNameGradient", false)
 
     -- TRP3 mock data (mirrors what GetTRP3PlayerData would return for a player with a full profile)
     local previewTRP3 = (TRP3_API ~= nil and ShowTRP3()) and {
@@ -1395,6 +1384,19 @@ function Insight.RenderTestTooltipContent(tooltip)
         currently   = "Studying ancient texts in the library, searching for answers...",
         icon        = "spell_arcane_arcane01",
     } or nil
+
+    local previewFaction = previewTRP3 and "Horde" or "Alliance"
+    local fc = Insight.FACTION_COLORS[previewFaction]
+    local nameModeRaw = addon.GetDB("insightPlayerNameColor", "faction")
+    local nameMode = (nameModeRaw == "class") and "class" or "faction"
+    local nameR, nameG, nameB = fc[1], fc[2], fc[3]
+    if nameMode == "class" then
+        nameR, nameG, nameB = testSepR, testSepG, testSepB
+    end
+    local facIcon = showIcons and (Insight.FACTION_ICONS[previewFaction] or "") or ""
+
+    local useGradient = (nameMode == "class")
+        and addon.GetDB("insightPlayerNameGradient", false)
 
     -- 1. Name line (character title optional — same as live)
     -- When TRP3 is active the preview character is Aelindra (Blood Elf) so the RP name
@@ -1450,7 +1452,7 @@ function Insight.RenderTestTooltipContent(tooltip)
     -- TRP3 icon replaces the faction symbol in preview too
     local namePrefix = (trp3IconMarkup ~= "" and trp3IconMarkup) or facIcon
     if ShowCharacterTitle() then
-        local titleSpan = FormatTitleNameSpan("Arcanist", displayName, "prefix", nameR, nameG, nameB, useGradient, "")
+        local titleSpan = FormatTitleNameSpan(previewTRP3 and "Arcanist" or "Duelist", displayName, "prefix", nameR, nameG, nameB, useGradient, "")
         tooltip:AddLine(namePrefix .. titleSpan .. inlineStatusTag .. trp3Suffix, nameR, nameG, nameB)
     else
         if useGradient then
