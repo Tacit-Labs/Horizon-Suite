@@ -643,6 +643,10 @@ local function GetPreviewPulloutWidth()
     local scalePerPoint = (mode == "npc" or mode == "item") and 10 or 20
     local maxWidth = (mode == "npc" or mode == "item") and 300 or PREVIEW_MAX_WIDTH
     local extra = math.max(0, fontSize - Insight.HEADER_SIZE) * scalePerPoint
+    -- Widen player preview when AFK/DND appears inline on the name line
+    if mode == "player" and addon.GetDB("insightStatusBadgeAFK", true) and addon.GetDB("insightStatusBadgeAFKInHeader", false) then
+        baseWidth = baseWidth + 55
+    end
     return math.floor(math.min(maxWidth, baseWidth + extra) + 0.5)
 end
 
