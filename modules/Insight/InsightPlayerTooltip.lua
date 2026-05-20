@@ -1173,6 +1173,13 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     local moveGuildToBottom = ShowTRP3() and ShowTRP3Guild()
 
     -- 3. Clean up Blizzard lines (skip line 1; name already styled)
+    -- When TRP3 title/pronouns need a line, we reuse the first cleared native line
+    -- (guild or race/class) so no empty FontString gap appears between name and title.
+    local trp3IdentityLine = nil
+    local needsTrp3IdentityLine = trp3Data and (
+        (trp3Data.fullTitle and ShowTRP3Title()) or
+        (trp3Data.pronouns  and ShowTRP3Pronouns())
+    )
     local classLineStyled = false
     local guildLineStyled = false
     local guildRankDisplay = ShowGuildRank() and GetGuildRankDisplay(guildRankName, guildRealm)
@@ -1206,6 +1213,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             elseif IsGuildLine(text, guildName, guildRealm) then
                 guildLineStyled = true
                 if moveGuildToBottom then
+                    if needsTrp3IdentityLine and not trp3IdentityLine then trp3IdentityLine = lineLeft end
                     lineLeft:SetText("")
                 else
                     local guildDisplayLine = GetGuildDisplayLine(guildName, guildRankDisplay)
@@ -1217,12 +1225,14 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             elseif not raceIconStyled and raceNameSafe and text ~= "" and text:find(raceNameSafe, 1, true) and not text:find("|T", 1, true) and not text:find("|A", 1, true) then
                 raceIconStyled = true
                 if moveRaceClassToBottom then
+                    if needsTrp3IdentityLine and not trp3IdentityLine then trp3IdentityLine = lineLeft end
                     lineLeft:SetText("")
                 elseif raceIconPrefix ~= "" then
                     lineLeft:SetText(raceIconPrefix .. text)
                 end
             elseif classNameSafe and text ~= "" and text:find(classNameSafe, 1, true) then
                 if moveRaceClassToBottom then
+                    if needsTrp3IdentityLine and not trp3IdentityLine then trp3IdentityLine = lineLeft end
                     lineLeft:SetText("")
                     classLineStyled = true
                     do return end
@@ -1275,17 +1285,28 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end
 
     if trp3Data and trp3Data.fullTitle and ShowTRP3Title() then
-        Insight.TagLines(tooltip, "identity", function()
-            local titleLine = "< " .. trp3Data.fullTitle .. " >"
-            if trp3Data.pronouns and ShowTRP3Pronouns() then
-                titleLine = titleLine .. "  |cffaaaaaa(" .. ProperCasePronouns(trp3Data.pronouns) .. ")|r"
-            end
-            tooltip:AddLine(titleLine, 0.75, 0.85, 1.0)
-        end)
+        local titleLine = "< " .. trp3Data.fullTitle .. " >"
+        if trp3Data.pronouns and ShowTRP3Pronouns() then
+            titleLine = titleLine .. "  |cffaaaaaa(" .. ProperCasePronouns(trp3Data.pronouns) .. ")|r"
+        end
+        if trp3IdentityLine then
+            trp3IdentityLine:SetText(titleLine)
+            trp3IdentityLine:SetTextColor(0.75, 0.85, 1.0, 1)
+        else
+            Insight.TagLines(tooltip, "identity", function()
+                tooltip:AddLine(titleLine, 0.75, 0.85, 1.0)
+            end)
+        end
     elseif trp3Data and trp3Data.pronouns and ShowTRP3Pronouns() then
-        Insight.TagLines(tooltip, "identity", function()
-            tooltip:AddLine("|cffaaaaaa(" .. ProperCasePronouns(trp3Data.pronouns) .. ")|r", 1, 1, 1)
-        end)
+        local pronounsText = "|cffaaaaaa(" .. ProperCasePronouns(trp3Data.pronouns) .. ")|r"
+        if trp3IdentityLine then
+            trp3IdentityLine:SetText(pronounsText)
+            trp3IdentityLine:SetTextColor(1, 1, 1, 1)
+        else
+            Insight.TagLines(tooltip, "identity", function()
+                tooltip:AddLine(pronounsText, 1, 1, 1)
+            end)
+        end
     end
 
     -- 4. Status badges (part of identity section)
