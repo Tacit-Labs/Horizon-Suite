@@ -4,7 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- ============================================================================
 -- DESIGN TOKENS
 -- ============================================================================
@@ -1150,7 +1150,7 @@ local function IsPreyQuest(questID)
     if not questID or not C_QuestLog or not C_QuestLog.GetTitleForQuestID then return false end
     local ok, title = pcall(C_QuestLog.GetTitleForQuestID, questID)
     if not ok or not title then return false end
-    local preyLabel = (addon.L and addon.L["UI_PREY"])
+    local preyLabel = L["UI_PREY"]
     return title:find(preyLabel, 1, true) ~= nil
 end
 
