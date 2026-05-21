@@ -1634,6 +1634,7 @@ function addon.Dashboard_BuildMainFrame()
                 if mk == "axis" and cat.key == "Modules" then
                     return false
                 end
+                if cat.hidden and cat.hidden() then return false end
                 return true
             end
 

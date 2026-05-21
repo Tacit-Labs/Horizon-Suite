@@ -100,14 +100,14 @@ local categories = {
                 return getDB("insightShowCharacterTitle", D.insightShowCharacterTitle) and mode == "custom"
             end }),
             Section(L["INSIGHT_SECTION_STATUS_PVP"]),
-            Toggle(L["STATUS_BADGES"], L["COMBAT_AFK_DND_PVP_PARTY_FRIENDS"], "insightShowStatusBadges", D.insightShowStatusBadges, { refreshIds = { "insightStatusBadgeCombat", "insightStatusBadgeAFK", "insightStatusBadgeDND", "insightStatusBadgePVP", "insightStatusBadgeGroup", "insightStatusBadgeFriend", "insightStatusBadgeTargeting" } }),
-            Toggle(L["INSIGHT_STATUS_BADGE_COMBAT"],           L["INSIGHT_STATUS_BADGE_COMBAT_DESC"],   "insightStatusBadgeCombat",    D.insightStatusBadgeCombat,    { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
-            Toggle(L["INSIGHT_STATUS_BADGE_AFK"],              L["INSIGHT_STATUS_BADGE_AFK_DESC"],      "insightStatusBadgeAFK",       D.insightStatusBadgeAFK,       { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
-            Toggle(L["INSIGHT_STATUS_BADGE_DND"],              L["INSIGHT_STATUS_BADGE_DND_DESC"],      "insightStatusBadgeDND",       D.insightStatusBadgeDND,       { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
-            Toggle(L["INSIGHT_STATUS_BADGE_PVP"],              L["INSIGHT_STATUS_BADGE_PVP_DESC"],      "insightStatusBadgePVP",       D.insightStatusBadgePVP,       { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
-            Toggle(L["INSIGHT_STATUS_BADGE_GROUP"],            L["INSIGHT_STATUS_BADGE_GROUP_DESC"],    "insightStatusBadgeGroup",     D.insightStatusBadgeGroup,     { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
-            Toggle(L["INSIGHT_STATUS_BADGE_FRIEND"],           L["INSIGHT_STATUS_BADGE_FRIEND_DESC"],   "insightStatusBadgeFriend",    D.insightStatusBadgeFriend,    { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
-            Toggle(L["INSIGHT_STATUS_BADGE_TARGETING"],        L["INSIGHT_STATUS_BADGE_TARGETING_DESC"],"insightStatusBadgeTargeting", D.insightStatusBadgeTargeting, { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
+            Toggle(L["STATUS_BADGES"], L["COMBAT_AFK_DND_PVP_PARTY_FRIENDS"], "insightShowStatusBadges", D.insightShowStatusBadges, { refreshIds = { "insightStatusBadgeCombat", "insightStatusBadgeAFK", "insightStatusBadgeAFKInHeader", "insightStatusBadgePVP", "insightStatusBadgeGroup", "insightStatusBadgeFriend", "insightStatusBadgeTargeting" } }),
+            Toggle(L["INSIGHT_STATUS_BADGE_COMBAT"],       L["INSIGHT_STATUS_BADGE_COMBAT_DESC"],         "insightStatusBadgeCombat",    D.insightStatusBadgeCombat,    { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
+            Toggle(L["INSIGHT_STATUS_BADGE_AFK"],          L["INSIGHT_STATUS_BADGE_AFK_DESC"],            "insightStatusBadgeAFK",       D.insightStatusBadgeAFK,       { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end, refreshIds = { "insightStatusBadgeAFKInHeader" } }),
+            Toggle(L["INSIGHT_STATUS_BADGE_AFK_IN_HEADER"],L["INSIGHT_STATUS_BADGE_AFK_IN_HEADER_DESC"], "insightStatusBadgeAFKInHeader", D.insightStatusBadgeAFKInHeader, { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) and getDB("insightStatusBadgeAFK", D.insightStatusBadgeAFK) end }),
+            Toggle(L["INSIGHT_STATUS_BADGE_PVP"],          L["INSIGHT_STATUS_BADGE_PVP_DESC"],            "insightStatusBadgePVP",       D.insightStatusBadgePVP,       { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
+            Toggle(L["INSIGHT_STATUS_BADGE_GROUP"],        L["INSIGHT_STATUS_BADGE_GROUP_DESC"],          "insightStatusBadgeGroup",     D.insightStatusBadgeGroup,     { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
+            Toggle(L["INSIGHT_STATUS_BADGE_FRIEND"],       L["INSIGHT_STATUS_BADGE_FRIEND_DESC"],         "insightStatusBadgeFriend",    D.insightStatusBadgeFriend,    { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
+            Toggle(L["INSIGHT_STATUS_BADGE_TARGETING"],    L["INSIGHT_STATUS_BADGE_TARGETING_DESC"],      "insightStatusBadgeTargeting", D.insightStatusBadgeTargeting, { visibleWhen = function() return getDB("insightShowStatusBadges", D.insightShowStatusBadges) end }),
             Section(L["INSIGHT_SECTION_RATINGS_GEAR"]),
             { type = "dropdown", name = L["MYTHIC_SCORE"], desc = L["INSIGHT_MYTHIC_SCORE_MODE_DESC"], dbKey = "insightMythicScoreMode", options = INSIGHT_FORCE_MODIFIER_OPTIONS, preserveOrder = true, get = function() local v = getDB("insightMythicScoreMode", nil); if v == "force" or v == "modifier" or v == "hide" then return v end; return getDB("insightShowMythicScore", D.insightShowMythicScore) and "force" or "hide" end, set = function(v) v = (v == "modifier") and "modifier" or (v == "force") and "force" or "hide"; setDB("insightMythicScoreMode", v); setDB("insightShowMythicScore", v == "force") end },
             { type = "dropdown", name = L["ITEM_LEVEL"], desc = L["INSIGHT_ITEM_LEVEL_MODE_DESC"], dbKey = "insightItemLevelMode", options = INSIGHT_FORCE_MODIFIER_OPTIONS, preserveOrder = true, get = function() local v = getDB("insightItemLevelMode", nil); if v == "force" or v == "modifier" or v == "hide" then return v end; return getDB("insightShowIlvl", D.insightShowIlvl) and "force" or "hide" end, set = function(v) v = (v == "modifier") and "modifier" or (v == "force") and "force" or "hide"; setDB("insightItemLevelMode", v); setDB("insightShowIlvl", v == "force") end },
@@ -127,6 +127,37 @@ local categories = {
             Slider(L["INSIGHT_BADGES_SIZE"],L["INSIGHT_BADGES_FONT_SIZE"], "insightPlayerBadgesSize",  LIM.insightPlayerBadgesSize.min,  LIM.insightPlayerBadgesSize.max,  D.insightPlayerBadgesSize),
             Slider(L["INSIGHT_STATS_SIZE"], L["INSIGHT_STATS_FONT_SIZE"],  "insightPlayerStatsSize",   LIM.insightPlayerStatsSize.min,   LIM.insightPlayerStatsSize.max,   D.insightPlayerStatsSize),
             Slider(L["INSIGHT_MOUNT_SIZE"], L["INSIGHT_MOUNT_FONT_SIZE"],  "insightPlayerMountSize",   LIM.insightPlayerMountSize.min,   LIM.insightPlayerMountSize.max,   D.insightPlayerMountSize),
+        },
+    },
+    {
+        key = "InsightTRP3",
+        name = L["INSIGHT_CATEGORY_TRP3"],
+        desc = L["INSIGHT_CATEGORY_TRP3_DESC"],
+        hidden = function()
+            -- Show if TRP3 is already active this session
+            if TRP3_API then return false end
+            -- Show if TRP3 is installed and enabled (handles HS loading before TRP3)
+            if C_AddOns and C_AddOns.GetAddOnInfo then
+                local ok, _, _, _, loadable = pcall(C_AddOns.GetAddOnInfo, "totalRP3")
+                if ok and loadable then return false end
+            end
+            return true
+        end,
+        moduleKey = "insight",
+        dashboardPreviewMode = "player",
+        options = {
+            { type = "section", name = L["INSIGHT_CATEGORY_TRP3"], headerToggle = { dbKey = "insightTRP3Enabled", default = true }, dbKey = "insightTRP3Section" },
+            { type = "toggle", name = L["INSIGHT_TRP3_CHARACTER_ICON"],      desc = L["INSIGHT_TRP3_CHARACTER_ICON_DESC"],                          dbKey = "insightTRP3Icon",         get = function() return getDB("insightTRP3Icon",         true)  end, set = function(v) setDB("insightTRP3Icon",         v) end, visibleWhen = function() return getDB("insightTRP3RPName", true) end },
+            Toggle(L["INSIGHT_TRP3_TITLE"], L["INSIGHT_TRP3_TITLE_DESC"], "insightTRP3Title", true),
+            { type = "toggle", name = L["INSIGHT_TRP3_NAME"],             desc = L["INSIGHT_TRP3_NAME_DESC"],                                   dbKey = "insightTRP3RPName",       get = function() return getDB("insightTRP3RPName",       true)  end, set = function(v) setDB("insightTRP3RPName",       v) end, refreshIds = { "insightTRP3Section" } },
+            Toggle(L["INSIGHT_TITLE_CUSTOM_COLOUR"], L["INSIGHT_TRP3_COLOUR_DESC"], "insightTRP3CustomColor", true),
+            Toggle(L["INSIGHT_TRP3_BORDER_COLOUR"], L["INSIGHT_TRP3_BORDER_COLOUR_DESC"], "insightTRP3BorderColor", false),
+            { type = "toggle", name = L["INSIGHT_TRP3_STATUS"],     desc = L["INSIGHT_TRP3_STATUS_DESC"],                             dbKey = "insightTRP3ICStatus",     get = function() return getDB("insightTRP3ICStatus",    true)  end, set = function(v) setDB("insightTRP3ICStatus",    v) end, refreshIds = { "insightTRP3Section" } },
+            { type = "toggle", name = L["INSIGHT_TRP3_STATUS_ICON"],  desc = L["INSIGHT_TRP3_STATUS_ICON_DESC"],                                  dbKey = "insightTRP3ICStatusIcon", get = function() return getDB("insightTRP3ICStatusIcon", false) end, set = function(v) setDB("insightTRP3ICStatusIcon", v) end, visibleWhen = function() return getDB("insightTRP3ICStatus", true) end },
+            Toggle(L["INSIGHT_TRP3_PRONOUNS"], L["INSIGHT_TRP3_PRONOUNS_DESC"], "insightTRP3Pronouns", true),
+            Toggle(L["INSIGHT_TRP3_RACE_CLASS"], L["INSIGHT_TRP3_RACE_CLASS_DESC"], "insightTRP3RaceClass", true),
+            Toggle(L["INSIGHT_TRP3_GUILD"], L["INSIGHT_TRP3_GUILD_DESC"], "insightTRP3Guild", true),
+            Toggle(L["INSIGHT_TRP3_CURRENTLY"], L["INSIGHT_TRP3_CURRENTLY_DESC"], "insightTRP3Currently", true),
         },
     },
     {
