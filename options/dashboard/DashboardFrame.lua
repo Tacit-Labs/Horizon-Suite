@@ -422,7 +422,7 @@ function addon.Dashboard_BuildMainFrame()
             local SetSidebarState
 
             -- Header
-            local head = MakeText(f, "Horizon Suite", 24, 1, 1, 1, "CENTER")
+            local head = MakeText(f, L["NAME_ADDON"], 24, 1, 1, 1, "CENTER")
             head:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_HEAD_TITLE_Y)
             local headSub = MakeText(f, "Select a module to configure", 13, 0.5, 0.5, 0.5, "CENTER")
             headSub:SetPoint("TOP", CONTENT_OFFSET / 2, DASH_HEAD_SUBTITLE_Y)
@@ -2361,7 +2361,7 @@ function addon.Dashboard_BuildMainFrame()
             grabber:SetScript("OnEnter", function(self)
                 if not _dragActive then setGripAlpha(0.9) end
                 GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-                GameTooltip:SetText(addon.L["DASH_RESIZE_TOOLTIP"], 1, 1, 1, 1)
+                GameTooltip:SetText(L["DASH_RESIZE_TOOLTIP"], 1, 1, 1, 1)
                 GameTooltip:Show()
             end)
 

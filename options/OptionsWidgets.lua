@@ -6,7 +6,6 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
 local L = addon.L
 
 -- Design tokens (Cinematic, Modern, Minimalistic). Panel can override FontPath/HeaderSize via SetDef.
@@ -636,7 +635,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local resetHi = resetBtn:CreateTexture(nil, "HIGHLIGHT")
         resetHi:SetAllPoints(resetBtn)
         resetHi:SetColorTexture(1, 1, 1, 0.15)
-        local resetTt = (resetButton.tooltip or (L and L["FOCUS_RESET_SPACING"])) or "Reset spacing"
+        local resetTt = (resetButton.tooltip or L["FOCUS_RESET_SPACING"])
         resetBtn:SetScript("OnEnter", function()
             GameTooltip:SetOwner(resetBtn, "ANCHOR_RIGHT")
             GameTooltip:SetText(resetTt, 1, 1, 1, 1, true)
@@ -2048,7 +2047,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         SetSafeFont(lab, Def.FontPath, Def.LabelSize, nil)
         lab:SetJustifyH("LEFT")
         SetTextColor(lab, Def.TextColorLabel)
-        lab:SetText(addon.L[(labelMap[key]) or key:gsub("^%l", string.upper)])
+        lab:SetText(L[(labelMap[key]) or key:gsub("^%l", string.upper)])
         lab:SetPoint("LEFT", row, "LEFT", 24, 0)
         row.label = lab
         local grip = row:CreateFontString(nil, "OVERLAY")
@@ -2204,7 +2203,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             local emptyLabel = listFrame:CreateFontString(nil, "OVERLAY")
             SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, nil)
             SetTextColor(emptyLabel, Def.TextColorSection)
-            emptyLabel:SetText(addon.L and addon.L["HIDDEN_QUESTS"])
+            emptyLabel:SetText(L["HIDDEN_QUESTS"])
             emptyLabel:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
             local emptyRow = CreateFrame("Frame", nil, listFrame)
             emptyRow:SetHeight(20)
@@ -2233,7 +2232,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             nameLbl:SetPoint("LEFT", row, "LEFT", 0, 0)
             nameLbl:SetJustifyH("LEFT")
 
-            local unblockBtn = _G.OptionsWidgets_CreateButton(row, addon.L and addon.L["UNBLOCK"], function()
+            local unblockBtn = _G.OptionsWidgets_CreateButton(row, L["UNBLOCK"], function()
                 if addon.GetDB then
                     local bl = addon.GetDB("questBlacklist", nil)
                     if bl and type(bl) == "table" then

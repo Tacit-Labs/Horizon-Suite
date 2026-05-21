@@ -4,7 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- ============================================================================
 -- LAYOUT ENGINE
 -- ============================================================================
@@ -395,7 +395,7 @@ local function FullLayout()
         addon.chevron:SetAlpha(1)
         addon.headerText:Show()
         addon.headerShadow:Show()
-        local headerStr = addon.ApplyTextCase(addon.L["PRESENCE_OBJECTIVES"], "headerTextCase", "upper")
+        local headerStr = addon.ApplyTextCase(L["PRESENCE_OBJECTIVES"], "headerTextCase", "upper")
         addon.SetTextWithShadow(addon.headerText, addon.headerShadow, headerStr)
         if addon.GetDB("showQuestCount", true) then addon.countText:Show(); addon.countShadow:Show() else addon.countText:Hide(); addon.countShadow:Hide() end
         addon.chevron:Show()
@@ -404,7 +404,7 @@ local function FullLayout()
         else
             addon.optionsBtn:SetAlpha(1)
             addon.optionsBtn:Show()
-            addon.SetTextWithShadow(addon.optionsLabel, addon.optionsShadow, addon.L["PRESENCE_OPTIONS"])
+            addon.SetTextWithShadow(addon.optionsLabel, addon.optionsShadow, L["PRESENCE_OPTIONS"])
             addon.optionsBtn:SetWidth(math.max(addon.optionsLabel:GetStringWidth() + 4, 44))
         end
         local showDiv = addon.GetDB("showHeaderDivider", true)

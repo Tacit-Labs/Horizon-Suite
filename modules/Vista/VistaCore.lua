@@ -6,7 +6,7 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 addon.Vista = addon.Vista or {}
 local Vista = addon.Vista
 
@@ -1566,7 +1566,7 @@ local function CreateCraftingOrderIndicator()
 
     craftingOrderAnchor:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
-        GameTooltip:SetText((addon.L and addon.L["VISTA_CRAFTING_ORDER_TOOLTIP"]))
+        GameTooltip:SetText(L["VISTA_CRAFTING_ORDER_TOOLTIP"])
         local total = 0
         local rows = {}
         if C_CraftingOrders and C_CraftingOrders.GetPersonalOrdersInfo then
@@ -1584,9 +1584,9 @@ local function CreateCraftingOrderIndicator()
             end
         end
         if total > 0 then
-            local fmt = (addon.L and addon.L["VISTA_CRAFTING_ORDER_PENDING_COUNT"])
+            local fmt = L["VISTA_CRAFTING_ORDER_PENDING_COUNT"]
             GameTooltip:AddLine(fmt:format(total), 1, 1, 1)
-            local rowFmt = (addon.L and addon.L["VISTA_CRAFTING_ORDER_PROFESSION_LINE"])
+            local rowFmt = L["VISTA_CRAFTING_ORDER_PROFESSION_LINE"]
             for _, row in ipairs(rows) do
                 local name = row.name or (UNKNOWN or "Unknown")
                 GameTooltip:AddLine(rowFmt:format(name, row.count), 0.85, 0.85, 0.85)

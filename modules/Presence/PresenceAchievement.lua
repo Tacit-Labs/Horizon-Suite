@@ -6,7 +6,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 local ACHIEVEMENT_PROGRESS_DEBOUNCE = 0.6
 local ACHIEVEMENT_PROGRESS_DEDUPE = 3
 
@@ -196,7 +196,6 @@ end
 function addon.Presence.Achievement_OnAchievementEarned(achID)
     if not IsTypeEnabled("presenceAchievement", nil, true) then return end
     local _, name = GetAchievementInfo(achID)
-    local L = addon.L or {}
     addon.Presence.QueueOrPlay("ACHIEVEMENT", L["PRESENCE_ACHIEVEMENT_EARNED"], Strip(name or ""))
 end
 

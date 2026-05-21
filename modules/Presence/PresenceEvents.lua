@@ -7,7 +7,7 @@
 
 local addon = _G.HorizonSuite
 if not addon or not addon.Presence then return end
-
+local L = addon.L
 local function Strip(s)
     return addon.Presence.StripMarkup and addon.Presence.StripMarkup(s) or (s or "")
 end
@@ -118,7 +118,6 @@ end
 local function OnPlayerLevelUp(_, level)
     if not IsPresenceTypeEnabled("presenceLevelUp", nil, true) then return end
     if addon.Presence.ApplyBlizzardSuppression then addon.Presence.ApplyBlizzardSuppression() end
-    local L = addon.L or {}
     addon.Presence.QueueOrPlay("LEVEL_UP", L["PRESENCE_LEVEL_UP"], L["PRESENCE_YOU_HAVE_REACHED_LEVEL_X"]:format(level or "??"))
 end
 
@@ -244,7 +243,6 @@ local function ExecuteRareDefeatedCheck()
             local cooldownKey = name
             if (rareDefeatedCooldowns[cooldownKey] or 0) + RARE_COOLDOWN <= now then
                 rareDefeatedCooldowns[cooldownKey] = now
-                local L = addon.L or {}
                 addon.Presence.QueueOrPlay("RARE_DEFEATED", L["PRESENCE_RARE_DEFEATED"], name, { source = "VIGNETTES_UPDATED" })
             end
         end

@@ -5,7 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- When true: only blizzardDefault is active; Horizon+ and Custom are hidden and DB is normalized.
 local FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD = false
 
@@ -267,7 +267,6 @@ local COMBO_LABEL_KEYS = {
 --- @return string Empty when no combo is bound to WoWhead.
 function addon.focus.GetWoWheadClickBindingHint(profile)
     local parts = {}
-    local L = addon.L
     for _, comboKey in ipairs(COMBO_KEYS) do
         local mouse = COMBO_MOUSE[comboKey]
         if mouse then
@@ -282,7 +281,7 @@ function addon.focus.GetWoWheadClickBindingHint(profile)
     if #parts == 0 then
         return ""
     end
-    local sep = (L and L["FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"])
+    local sep = L["FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]
     return table.concat(parts, sep)
 end
 
@@ -296,7 +295,6 @@ end
 --- @return table
 local function GetComboOptions(comboKey)
     local result = {}
-    local L = addon.L
     for _, actionKey in ipairs(COMBO_OPTIONS[comboKey] or {}) do
         local labelKey = ACTION_LABELS[actionKey]
         local label = (L and labelKey and L[labelKey]) or actionKey
@@ -309,7 +307,6 @@ end
 --- @return table Array of { displayLabel, actionKey }.
 local function GetAllComboActionOptions()
     local result = {}
-    local L = addon.L
     for _, actionKey in ipairs(ALL_COMBO_ACTION_KEYS) do
         local labelKey = ACTION_LABELS[actionKey]
         local label = (L and labelKey and L[labelKey]) or actionKey
@@ -322,7 +319,6 @@ end
 --- @return table Array of { displayLabel, actionKey }.
 local function GetIconActionOptions()
     local result = {}
-    local L = addon.L
     for _, actionKey in ipairs(ICON_ACTION_KEYS) do
         local labelKey = ACTION_LABELS[actionKey]
         local label = (L and labelKey and L[labelKey]) or actionKey

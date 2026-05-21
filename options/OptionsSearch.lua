@@ -7,7 +7,7 @@
 ]]
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 local function TokenizeSearchCorpus(str)
     local t = {}
     if not str or str == "" then return t end
@@ -112,7 +112,6 @@ end
 
 function OptionsData_BuildSearchIndex()
     local index = {}
-    local L = addon.L
     local cats = addon.OptionCategories
     for catIdx, cat in ipairs(cats) do
         local currentSection = ""
@@ -121,7 +120,7 @@ function OptionsData_BuildSearchIndex()
         if cat.key == "Profiles" or cat.key == "Modules" or cat.key == "GlobalToggles" then
             moduleLabel = addon.BrandModule and addon.BrandModule("axis") or "Axis"
         else
-            moduleLabel = addon.BrandModule and addon.BrandModule(moduleKey) or (L and L["MODULES"])
+            moduleLabel = addon.BrandModule and addon.BrandModule(moduleKey) or L["MODULES"]
         end
         local catNameRaw = type(cat.name) == "function" and cat.name() or cat.name
         local catNameStr = tostring(catNameRaw or "")

@@ -4,7 +4,7 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 -- Community & Support footer link icons (Welcome + Module Guide); keep paths in sync with media/dashboard/footer/
 local DASHBOARD_FOOTER_MEDIA = "Interface/AddOns/HorizonSuite/media/dashboard/footer/"
 -- Authoritative pixel size of each bundled footer .tga (aspect ratio). WoW GetTextureFileWidth/Height can reflect

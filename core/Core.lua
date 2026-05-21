@@ -5,7 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- ---------------------------------------------------------------------------
 -- Forward declarations (Lua local scoping)
 -- ---------------------------------------------------------------------------
@@ -1337,7 +1337,7 @@ local headerShadow = HS:CreateFontString(nil, "BORDER")
 headerShadow:SetFontObject(addon.HeaderFont)
 headerShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
 headerShadow:SetJustifyH("LEFT")
-headerShadow:SetText(addon.L["PRESENCE_OBJECTIVES"])
+headerShadow:SetText(L["PRESENCE_OBJECTIVES"])
 
 local headerText = HS:CreateFontString(nil, "OVERLAY")
 headerText:SetFontObject(addon.HeaderFont)
@@ -1347,7 +1347,7 @@ do
 end
 headerText:SetJustifyH("LEFT")
 headerText:SetPoint("TOPLEFT", HS, "TOPLEFT", addon.PADDING, -addon.PADDING)
-headerText:SetText(addon.L["PRESENCE_OBJECTIVES"])
+headerText:SetText(L["PRESENCE_OBJECTIVES"])
 headerShadow:SetPoint("CENTER", headerText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
 local countText = HS:CreateFontString(nil, "OVERLAY")
@@ -1383,7 +1383,7 @@ do
     optionsLabel:SetTextColor(ch[1], ch[2], ch[3], 1)
 end
 optionsLabel:SetJustifyH("RIGHT")
-optionsLabel:SetText(addon.L["PRESENCE_OPTIONS"])
+optionsLabel:SetText(L["PRESENCE_OPTIONS"])
 optionsBtn:SetSize(math.max(optionsLabel:GetStringWidth() + 4, 44), 20)
 optionsBtn:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
 optionsLabel:SetPoint("RIGHT", optionsBtn, "RIGHT", -2, 0)
@@ -1392,7 +1392,7 @@ local optionsShadow = optionsBtn:CreateFontString(nil, "BORDER")
 optionsShadow:SetFontObject(addon.OptionsFont)
 optionsShadow:SetTextColor(0, 0, 0, addon.SHADOW_A)
 optionsShadow:SetJustifyH("RIGHT")
-optionsShadow:SetText(addon.L["PRESENCE_OPTIONS"])
+optionsShadow:SetText(L["PRESENCE_OPTIONS"])
 optionsShadow:SetPoint("CENTER", optionsLabel, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
 -- Delayed tooltip hide: cancels if mouse re-enters within 0.15s (stops flicker when cursor briefly leaves)
@@ -1415,7 +1415,7 @@ optionsBtn:SetScript("OnEnter", function(self)
     end
     if GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:SetText(addon.L["PRESENCE_OPTIONS"], nil, nil, nil, nil, true)
+        GameTooltip:SetText(L["PRESENCE_OPTIONS"], nil, nil, nil, nil, true)
         GameTooltip:Show()
     end
 end)
@@ -1818,7 +1818,7 @@ resizeHandle:EnableMouse(true)
 resizeHandle:SetScript("OnEnter", function(self)
     if GameTooltip then
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
-        GameTooltip:SetText(addon.L["FOCUS_DRAG_RESIZE"], nil, nil, nil, nil, true)
+        GameTooltip:SetText(L["FOCUS_DRAG_RESIZE"], nil, nil, nil, nil, true)
         GameTooltip:Show()
     end
 end)
