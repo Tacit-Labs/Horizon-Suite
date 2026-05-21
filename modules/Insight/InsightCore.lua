@@ -1000,6 +1000,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         -- guid here is the addon name arg from ADDON_LOADED
         if guid == "totalRP3" then
             Insight.InstallTRP3Suppressor()
+            self:UnregisterEvent("ADDON_LOADED")
         end
         return
     end
