@@ -1461,32 +1461,20 @@ function addon.Dashboard_BuildMainFrame()
                 addon.DashboardModuleGuide_Init(guideEnv)
             end
 
-            -- Integrations view (third-party addon status list)
+            -- Integrations view (third-party addon status list). The view never
+            -- navigates away from itself, so we only pass the env keys it actually
+            -- reads — no sibling-view refs, no nav helpers.
             if addon.DashboardIntegrationsView_Init then
                 addon.DashboardIntegrationsView_Init({
                     f = f,
-                    addon = addon,
                     L = L,
                     contentWidth = contentWidth,
                     targetView = integrationsView,
-                    detailView = detailView,
-                    subCategoryView = subCategoryView,
-                    dashboardView = dashboardView,
-                    welcomeView = welcomeView,
-                    guideView = guideView,
-                    patchNotesView = patchNotesView,
-                    newsView = newsView,
                     integrationsView = integrationsView,
                     dashScrollTopOffset = dashScrollTopOffset,
                     dashAccentRefs = dashAccentRefs,
                     GetAccentColor = GetAccentColor,
                     MakeText = MakeText,
-                    HideContextHeader = HideContextHeader,
-                    setSidebarState = function(s) detailEnv.setSidebarState(s) end,
-                    CLEAR = CLEAR,
-                    searchBarShell = searchBarShell,
-                    head = head,
-                    headSub = headSub,
                     DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
                 })
             end

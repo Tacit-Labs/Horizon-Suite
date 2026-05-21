@@ -157,14 +157,16 @@ function addon.DashboardIntegrationsView_Init(env)
     local SUMMARY_HEIGHT      = 24
     local SCROLL_BODY_X_INSET = 28
     local SCROLL_TOP_PAD      = 4
+    local SCROLL_BOTTOM_PAD   = 20
+    local SCROLL_DELTA_MULT   = 30
 
-    -- { r, g, b, a, statusLocaleKey, glyph, pulseable }
+    -- { r, g, b, a, statusLocaleKey, pulseable }
     local STATUS_COLORS = {
-        enabled       = { 0.20, 0.75, 0.30, 0.85, "DASH_INT_STATUS_ENABLED",  "✓", true },
-        disabled      = { 0.95, 0.65, 0.20, 0.85, "DASH_INT_STATUS_DISABLED", "–", false },
-        missing       = { 0.90, 0.25, 0.25, 0.80, "DASH_INT_STATUS_MISSING",  "✗", false },
-        bundled       = { 0.20, 0.75, 0.30, 0.85, "DASH_INT_STATUS_BUNDLED",  "✓", true },
-        pendingReload = { 0.55, 0.55, 0.95, 0.85, "DASH_INT_STATUS_PENDING",  "↻", false },
+        enabled       = { 0.20, 0.75, 0.30, 0.85, "DASH_INT_STATUS_ENABLED",  true },
+        disabled      = { 0.95, 0.65, 0.20, 0.85, "DASH_INT_STATUS_DISABLED", false },
+        missing       = { 0.90, 0.25, 0.25, 0.80, "DASH_INT_STATUS_MISSING",  false },
+        bundled       = { 0.20, 0.75, 0.30, 0.85, "DASH_INT_STATUS_BUNDLED",  true },
+        pendingReload = { 0.55, 0.55, 0.95, 0.85, "DASH_INT_STATUS_PENDING",  false },
     }
 
     local function GetEffectiveState(row)
@@ -191,7 +193,7 @@ function addon.DashboardIntegrationsView_Init(env)
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local cur = self:GetVerticalScroll() or 0
         local maxS = math.max(0, scrollContent:GetHeight() - self:GetHeight())
-        self:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * 30)))
+        self:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * SCROLL_DELTA_MULT)))
     end)
 
     -- -----------------------------------------------------------------------
@@ -211,7 +213,7 @@ function addon.DashboardIntegrationsView_Init(env)
     local function MaybePulseTick(row, state)
         if pulsedThisShow then return end
         local def = STATUS_COLORS[state]
-        if not (def and def[7]) then return end
+        if not (def and def[6]) then return end
         if not row.pillText then return end
         local ag = row.pillPulse
         if not ag then
@@ -340,23 +342,22 @@ function addon.DashboardIntegrationsView_Init(env)
         icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
         -- Optional NEW badge before the title (matches the dashboard news-badge style:
-        -- cyan-tinted bg, light text, dynamic width sized to its label).
-        local newBadge, newBadgeW
+        -- cyan-tinted bg, light text). Fixed width — GetStringWidth at construction
+        -- time can return 0 before the engine lays out the fontstring.
+        local newBadge
         local seen = GetSeenMap()
         if entry.id and not seen[entry.id] then
             newBadge = CreateFrame("Frame", nil, row)
-            newBadge:SetHeight(NEW_BADGE_H)
+            newBadge:SetSize(NEW_BADGE_W, NEW_BADGE_H)
+            newBadge:SetPoint("TOPLEFT", row, "TOPLEFT", CARD_TITLE_X, CARD_TITLE_Y - 2)
             local nbBg = newBadge:CreateTexture(nil, "ARTWORK")
             nbBg:SetAllPoints()
             nbBg:SetColorTexture(0.20, 0.80, 0.90, 0.18)
             local nbText = MakeText(newBadge, L["DASH_INT_NEW_BADGE"] or "New", 10, 0.78, 0.91, 1, "CENTER")
             nbText:SetAllPoints()
-            newBadgeW = math.max(34, (nbText:GetStringWidth() or 0) + 18)
-            newBadge:SetWidth(newBadgeW)
-            newBadge:SetPoint("TOPLEFT", row, "TOPLEFT", CARD_TITLE_X, CARD_TITLE_Y - 2)
         end
 
-        local titleX = CARD_TITLE_X + (newBadge and (newBadgeW + 8) or 0)
+        local titleX = CARD_TITLE_X + (newBadge and (NEW_BADGE_W + 8) or 0)
 
         local title = MakeText(row, entry.displayName or entry.addonName or "?", 14, 1, 1, 1, "LEFT")
         title:SetPoint("TOPLEFT", titleX, CARD_TITLE_Y)
@@ -542,7 +543,7 @@ function addon.DashboardIntegrationsView_Init(env)
     for i, entry in ipairs(sorted) do
         rows[i] = CreateRow(entry, i)
     end
-    local totalH = SCROLL_TOP_PAD + SUMMARY_HEIGHT + CARD_GAP + (#rows * (CARD_H + CARD_GAP)) + 20
+    local totalH = SCROLL_TOP_PAD + SUMMARY_HEIGHT + CARD_GAP + (#rows * (CARD_H + CARD_GAP)) + SCROLL_BOTTOM_PAD
     scrollContent:SetHeight(totalH)
     RefreshSummary()
     -- The Integrations sidebar button is created LATER in the dashboard build
@@ -560,12 +561,14 @@ function addon.DashboardIntegrationsView_Init(env)
     eventFrame:RegisterEvent("ADDON_LOADED")
     eventFrame:SetScript("OnEvent", function(_, _, loadedName)
         if not integrationsView:IsShown() then return end
+        local matched = false
         for _, row in ipairs(rows) do
             if row._addonName == loadedName then
                 ApplyRowState(row)
+                matched = true
             end
         end
-        RefreshSummary()
+        if matched then RefreshSummary() end
     end)
 
     integrationsView:HookScript("OnShow", function()
