@@ -49,6 +49,17 @@ addon.DashboardIntegrationsFeed = {
         sort        = 400,
     },
     {
+        id          = "totalrp3",
+        addonName   = "totalRP3",
+        displayName = "Total RP 3",
+        descKey     = "DASH_INT_TRP3_DESC",
+        whatKey     = "DASH_INT_TRP3_WHAT",
+        url         = "https://www.curseforge.com/wow/addons/total-rp-3",
+        icon        = "INV_Misc_Book_09",
+        slashKey    = "TRP3",
+        sort        = 350,
+    },
+    {
         id          = "rondomedia",
         addonName   = "RondoMedia",
         displayName = "Rondo Media",
