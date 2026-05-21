@@ -11,8 +11,8 @@
       - Top summary line ("X of Y integrations active").
       - Addon's own IconTexture (from its TOC) when installed; curated fallback otherwise.
       - Version display next to title (from C_AddOns.GetAddOnMetadata "Version").
-      - "Install ↗" link when missing; "Enable ↻" + "Reload UI" when disabled.
-      - "Settings ⚙" link when installed and the integration has a registered slash key.
+      - "Install" link when missing; "Enable" + "Reload UI" when disabled.
+      - "Settings" link when installed and the integration has a registered slash key.
       - "NEW" badge for integrations the user hasn't seen yet (tracked in HorizonDB.integrationsSeen).
       - Subtle pulse on green ticks the first time the view is shown per session.
       - Refreshes on ADDON_LOADED while shown.
@@ -269,9 +269,9 @@ function addon.DashboardIntegrationsView_Init(env)
         -- Bottom-right contextual link visibility.
         -- Priorities:
         --   pendingReload → Reload UI
-        --   missing       → Install ↗ (if url)
-        --   disabled      → Enable ↻
-        --   enabled       → Settings ⚙ (if slashKey is registered)
+        --   missing       → Install (if url)
+        --   disabled      → Enable
+        --   enabled       → Settings (if slashKey is registered)
         if row.linkInstall then row.linkInstall:Hide() end
         if row.linkEnable  then row.linkEnable:Hide()  end
         if row.linkReload  then row.linkReload:Hide()  end
@@ -377,7 +377,7 @@ function addon.DashboardIntegrationsView_Init(env)
 
         if entry.url and addon.ShowURLCopyBox then
             linkInstall = MakeLink(row,
-                (L["DASH_INT_CTA_GET"] or "Install") .. "  ↗",
+                (L["DASH_INT_CTA_GET"] or "Install"),
                 function()
                     addon.ShowURLCopyBox(entry.url, entry.displayName or entry.addonName)
                 end,
@@ -387,7 +387,7 @@ function addon.DashboardIntegrationsView_Init(env)
 
         if C_AddOns and C_AddOns.EnableAddOn then
             linkEnable = MakeLink(row,
-                (L["DASH_INT_CTA_ENABLE"] or "Enable") .. "  ↻",
+                (L["DASH_INT_CTA_ENABLE"] or "Enable"),
                 function()
                     local ok = pcall(C_AddOns.EnableAddOn, entry.addonName)
                     if ok then
@@ -400,7 +400,7 @@ function addon.DashboardIntegrationsView_Init(env)
         end
 
         linkReload = MakeLink(row,
-            (L["DASH_INT_CTA_RELOAD"] or "Reload UI") .. "  ↻",
+            (L["DASH_INT_CTA_RELOAD"] or "Reload UI"),
             function()
                 if _G.ReloadUI then _G.ReloadUI() end
             end,
@@ -409,7 +409,7 @@ function addon.DashboardIntegrationsView_Init(env)
 
         if entry.slashKey then
             linkSettings = MakeLink(row,
-                (L["DASH_INT_CTA_SETTINGS"] or "Settings") .. "  ⚙",
+                (L["DASH_INT_CTA_SETTINGS"] or "Settings"),
                 function()
                     local fn = _G.SlashCmdList and _G.SlashCmdList[entry.slashKey]
                     if type(fn) == "function" then
@@ -456,6 +456,7 @@ function addon.DashboardIntegrationsView_Init(env)
         row._bundled       = entry.bundled and true or false
         row._icon          = icon
         row._fallbackIcon  = entry.icon
+        row._newBadge      = newBadge
 
         row:SetScript("OnEnter", function()
             if entry.descKey and L[entry.descKey] then
@@ -584,8 +585,10 @@ function addon.DashboardIntegrationsView_Init(env)
     -- (so the New badge stops showing for them in future sessions) and
     -- refresh the sidebar suffix so it clears immediately.
     integrationsView:HookScript("OnHide", function()
-        for _, entry in ipairs(sorted) do
+        for i, entry in ipairs(sorted) do
             if entry.id then MarkSeen(entry.id) end
+            local nb = rows[i] and rows[i]._newBadge
+            if nb then nb:Hide() end
         end
         RefreshSidebarBadge()
     end)
