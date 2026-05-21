@@ -1385,6 +1385,9 @@ function Insight.RenderTestTooltipContent(tooltip)
         icon        = "spell_arcane_arcane01",
     } or nil
 
+    -- Hardcoded for preview only: Horde when the TRP3 test profile is active (Blood Elf),
+    -- Alliance otherwise. Used solely to drive faction name colour when insightPlayerNameColor == "faction".
+    -- No live WoW API is called here.
     local previewFaction = previewTRP3 and "Horde" or "Alliance"
     local fc = Insight.FACTION_COLORS[previewFaction]
     local nameModeRaw = addon.GetDB("insightPlayerNameColor", "faction")
