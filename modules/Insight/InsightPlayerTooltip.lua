@@ -17,9 +17,9 @@ local MOUNT_READY_TEX  = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local MOUNT_NOTREADY_TEX = "Interface\\RaidFrame\\ReadyCheck-NotReady"
 local MOUNT_OWN_ICON_BASE = 14
 
-local RACE_ICON_PATH_PREFIX = "Interface\\AddOns\\" .. (addon.ADDON_NAME or "HorizonSuite") .. "\\media\\RaceIcons\\Charactercreate-races_"
+local RACE_ICON_PATH = "Interface\\AddOns\\" .. addon.ADDON_NAME .. "\\media\\RaceIcons\\Charactercreate-races_"
 
-local RACE_ICON_FILE_BASE = {
+local RACE_ICON_ID = {
     BloodElf            = "bloodelf",
     DarkIronDwarf       = "darkirondwarf",
     Draenei             = "draenei",
@@ -48,13 +48,6 @@ local RACE_ICON_FILE_BASE = {
     Haranir             = "haranir",
     Harronir            = "haranir",
     Harranir            = "haranir",
-}
-
-local RACE_ICON_GENDER_SUFFIX = {
-    Worgen = {
-        male = "male2",
-        female = "female2",
-    },
 }
 
 local DRACTHYR_VISAGE_AURA_SPELL_IDS = {
@@ -169,14 +162,13 @@ end
 
 local function RaceIconMarkup(unit, size)
     if not ShowRaceIcons() then return "" end
-    local raceName, raceFile, sex
+    local raceName, raceFile
     pcall(function()
         local localizedName, fileName = UnitRace(unit)
         raceName = localizedName
         raceFile = fileName
-        sex = UnitSex(unit)
     end)
-    local fileBase = raceFile and RACE_ICON_FILE_BASE[raceFile]
+    local fileBase = raceFile and RACE_ICON_ID[raceFile]
     if not fileBase then
         local raceKey = tostring(raceFile or raceName or ""):lower()
         if raceKey:find("haranir", 1, true) or raceKey:find("harronir", 1, true) or raceKey:find("harranir", 1, true) then
@@ -188,10 +180,8 @@ local function RaceIconMarkup(unit, size)
         fileBase = "dracthyr-visage"
     end
     size = tonumber(size) or 14
-    local gender = (sex == 3) and "female" or "male"
-    local suffixes = RACE_ICON_GENDER_SUFFIX[raceFile]
-    local genderSuffix = (suffixes and suffixes[gender]) or gender
-    return "|T" .. RACE_ICON_PATH_PREFIX .. fileBase .. "-" .. genderSuffix .. ".tga:" .. size .. ":" .. size .. ":0:0|t "
+    local gender = (UnitSex(unit) == 3) and "female" or "male"
+    return "|T" .. RACE_ICON_PATH .. fileBase .. "-" .. gender .. ".tga:" .. size .. ":" .. size .. ":0:0|t "
 end
 
 local function ShowIlvl()
@@ -1078,7 +1068,7 @@ function Insight.RenderTestTooltipContent(tooltip)
     end
 
     local testIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
-    local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH_PREFIX .. "human-male.tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
+    local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH .. "human-male.tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
     tooltip:AddLine(raceIconStr .. "Level 80 Human", 1, 0.82, 0)
 
     local classIconStr = ""
