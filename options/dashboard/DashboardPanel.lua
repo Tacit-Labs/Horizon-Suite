@@ -98,9 +98,10 @@ _G.HorizonSuite_ShowDashboard = addon.ShowDashboard
 -- Stale string values from earlier builds are coerced to { kind = <string> }.
 
 local SIMPLE_KIND_BY_FN = {
-    ShowNews       = "news",
-    ShowDashboard  = "dashboard",
-    ShowPatchNotes = "whatsnew",
+    ShowNews          = "news",
+    ShowDashboard     = "dashboard",
+    ShowPatchNotes    = "whatsnew",
+    ShowIntegrations  = "integrations",
 }
 
 local function ReadLastView(db)
@@ -153,6 +154,8 @@ local function ResolveEntryAction(frame)
             return frame.ShowDashboard
         elseif kind == "whatsnew" and frame.ShowPatchNotes then
             return frame.ShowPatchNotes
+        elseif kind == "integrations" and frame.ShowIntegrations then
+            return frame.ShowIntegrations
         elseif kind == "module" and frame.OpenModule and last.moduleKey then
             local name, mk = last.name or last.moduleKey, last.moduleKey
             return function() frame.OpenModule(name, mk) end

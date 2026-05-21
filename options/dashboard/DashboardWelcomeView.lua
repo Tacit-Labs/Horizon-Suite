@@ -2153,6 +2153,7 @@ function addon.DashboardWelcomeView_Init(env)
             if f.guideView then f.guideView:Hide() end
             patchNotesView:Hide()
             if env.newsView then env.newsView:Hide() end
+            if env.integrationsView then env.integrationsView:Hide() end
             if f.searchView then f.searchView:Hide() end
             welcomeView:SetAlpha(0)
             welcomeView:Show()
