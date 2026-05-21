@@ -229,7 +229,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🐛 Fixes
 
-- **(Focus)** Tracked recipe title and objective colours now follow the Axis Colors **Recipes** swatches instead of forcing the default sage-green.
+- **(Focus)** Tracked recipe title and objective colours now follow the Axis Colours **Recipes** swatches instead of forcing the default sage-green.
 - **(Axis)** Profile switching now fully refreshes class colours, frame positions, and imported settings without requiring a reload.
 
 ---
@@ -703,7 +703,7 @@ All notable changes to Horizon Suite are documented here.
 
 - **(Focus) Dev mode: show Blizzard tracker alongside Focus for comparison**
 - **(Focus) Objectives can render outside the tracker window**
-- **(Focus) Focus tracker header options: quest count, divider, color, height, options button**
+- **(Focus) Focus tracker header options: quest count, divider, colour, height, options button**
 - **(Focus) Groupings toggle on or off**
 - **(Core) Minimap icon and WoW settings panel integration**
 
@@ -712,7 +712,7 @@ All notable changes to Horizon Suite are documented here.
 - **(Core) Beta release zip no longer returns 404 when job artifacts expire**
 - **(Core) Discord issuelog: rename Improvements to Improvement Requests**
 - **(Core) Dashboard live refresh when modules are toggled**
-- **(Core) Refactor color matrix to compact cards and add Section Overrides**
+- **(Core) Refactor colour matrix to compact cards and add Section Overrides**
 - **(Core) Restructure locale system, add locale debug and CI audit, improve options panel and Focus grouping**
 - **(Core) Global font size offset and options panel visibility improvements**
 - **(Vista) Minimap button fades in on hover**
@@ -782,8 +782,8 @@ All notable changes to Horizon Suite are documented here.
 - **(Core) Sidebar scroll height and sub-button parenting during category collapse**
 - **(Presence) Live preview of Presence toast types in options with optional detached window**
 - **(Core) Dashboard chevrons and sidebar polish**
-- **(Presence) QUEST_UPDATE notifications use quest category color**
-- **(Insight) Character title in player tooltip name line with configurable color**
+- **(Presence) QUEST_UPDATE notifications use quest category colour**
+- **(Insight) Character title in player tooltip name line with configurable colour**
 - **(Presence) Presence individual notification sizes (large, medium, small)**
 - **(Focus) Prey quest detection: relax colon requirement and improve French (Traque) localization**
 
@@ -917,7 +917,7 @@ All notable changes to Horizon Suite are documented here.
 
 - **(Focus) Rare Loot section** — Show treasure and item vignettes in a separate Rare Loot list with a toggle.
 - **(Focus) TomTom waypoint when clicking rares or rare loot** — Set a TomTom waypoint when clicking a rare boss or rare loot item (requires TomTom addon; setting in options).
-- **(Focus) RARE color** — Warm orange for rares and rare loot, distinct from Current Quest coral.
+- **(Focus) RARE colour** — Warm orange for rares and rare loot, distinct from Current Quest coral.
 - **(Focus) Rare sound volume** — Slider to adjust rare alert volume (50–200%).
 
 ---
@@ -973,7 +973,7 @@ All notable changes to Horizon Suite are documented here.
 ### ✨ New Features
 
 - **(Focus) Sub-setting to filter progress bar by X/Y or percent-only objectives** — Dropdown under the progress bar toggle lets you show bars for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
-- **(Insight) NPC tooltips: reaction-colored border, level/classification/creature type, skull icon** — NPC tooltips now show a reaction-colored border, a single line with level (or skull for unknown), classification (Elite, Rare, etc.), and creature type (Humanoid, Beast, etc.).
+- **(Insight) NPC tooltips: reaction-coloured border, level/classification/creature type, skull icon** — NPC tooltips now show a reaction-coloured border, a single line with level (or skull for unknown), classification (Elite, Rare, etc.), and creature type (Humanoid, Beast, etc.).
 - **(Focus) Rare boss tracking activated in Midnight** — Rares in Midnight zones (e.g. Zul'Aman) now appear in the tracker.
 
 ---
@@ -1054,7 +1054,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🔧 Improvements
 
-- **(Core) Options panel: class color accent and Delves and Dungeons section rename** — Tint the options panel accent with your class color; renamed Delves section to Delves and Dungeons with updated descriptions.
+- **(Core) Options panel: class colour accent and Delves and Dungeons section rename** — Tint the options panel accent with your class colour; renamed Delves section to Delves and Dungeons with updated descriptions.
 - **(Focus) Focus Delve tier sometimes wrong or missing in tracker** — Uses ScenarioHeaderDelvesWidget tierText for accurate tier display in delves.
 - **(Focus) Focus tracker: improved collapse/expand behavior with grow-up header animations** — Clearer animated feedback when expanding/collapsing categories in grow-up layout.
 
@@ -1159,12 +1159,12 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
-- **(Focus) Inline timer display mode and urgency-based timer coloring** — Show countdown timers beside quest titles or as bars; optionally color by remaining time (green, yellow, red).
-- **(Focus) Alpha slider for progress bar and Mythic+ bar colors** — Make progress bars and M+ bars semi-transparent.
+- **(Focus) Inline timer display mode and urgency-based timer colouring** — Show countdown timers beside quest titles or as bars; optionally colour by remaining time (green, yellow, red).
+- **(Focus) Alpha slider for progress bar and Mythic+ bar colours** — Make progress bars and M+ bars semi-transparent.
 - **(Focus) Option to hide Focus tracker only in Mythic+** — Hide the tracker during Mythic+ runs while keeping it visible in normal, heroic, or mythic dungeons.
 - **(Focus) Per-difficulty instance visibility** — Choose which dungeon and raid difficulties show the Focus tracker (normal, heroic, mythic, Mythic+ separately).
-- **(Focus) Section dividers between categories** — Optional dividers with configurable color between tracker sections.
-- **(Presence) Zone title color by zone type** — Zone text changes color by affiliation: green friendly, red enemy, yellow neutral, light blue sanctuary; toggle to enable.
+- **(Focus) Section dividers between categories** — Optional dividers with configurable colour between tracker sections.
+- **(Presence) Zone title colour by zone type** — Zone text changes colour by affiliation: green friendly, red enemy, yellow neutral, light blue sanctuary; toggle to enable.
 - **(Presence) Option to disable Presence in battlegrounds** — Turn off zone and notification toasts during PvP matches.
 - **(Core) Improve Brazilian Portuguese localization and enUS base template** — Additional ptBR translations; enUS template for creating new locale files.
 
@@ -1173,7 +1173,7 @@ All notable changes to Horizon Suite are documented here.
 - **(Focus) Compact timer format for quests and scenarios** — Human-readable format (e.g. 2d 5h 30m, 45m 12s) instead of raw MM:SS.
 - **(Focus) Backdrop opacity and shadow alpha sliders use 0–100%** — Finer control with integer steps while storing values internally.
 - **(Focus) Untrack quest by re-clicking** — Defocus by clicking the same quest again.
-- **(Focus) Options to desaturate or adjust alpha for dimmed non-focused quests** — Additional dimming controls beyond color.
+- **(Focus) Options to desaturate or adjust alpha for dimmed non-focused quests** — Additional dimming controls beyond colour.
 - **(Focus) Completed nearby quests respect "Show nearby quests in their own group"** — Setting now applies consistently.
 - **(Vista) Restore flash when unlocking mouseover bar** — Brief flash helps find the bar when repositioning.
 - **(Insight) Tooltip polish** — Class-coloured separator lines, number formatting with commas, cursor tooltip clamping.
@@ -1225,7 +1225,7 @@ All notable changes to Horizon Suite are documented here.
 ### 🔧 Improvements
 
 - **(Vista) Configurable close delays** — Set how long the mouseover bar, right-click panel, and floating drawer stay open after the cursor leaves (0 = instant or never auto-close).
-- **(Vista) Configurable background and border for mouseover button bar** — Customize color and optional border for the addon button bar.
+- **(Vista) Configurable background and border for mouseover button bar** — Customize colour and optional border for the addon button bar.
 - **(Vista) Reposition addon button bar discoverability** — Tooltip and option description explain how to drag the bar to reposition when unlocked.
 
 ---
@@ -1261,7 +1261,7 @@ All notable changes to Horizon Suite are documented here.
 - **(Vista) Draggable difficulty text with lock option** — Drag Mythic/Heroic/Normal text to reposition; lock toggle in options.
 - **(Vista) Option to set coordinate precision (0, 1, or 2 decimal places)** — Choose how many decimal places for X and Y coordinates.
 - **(Focus) Option to use left-click for quest map and right-click for share/abandon on tracker quests** — Restore classic click behavior via a toggle.
-- **(Vista) Color difficulty text by difficulty with customizable colors** — Per-difficulty color pickers (e.g. Mythic purple, Heroic red).
+- **(Vista) Colour difficulty text by difficulty with customizable colours** — Per-difficulty colour pickers (e.g. Mythic purple, Heroic red).
 - **(Vista) Option to select zone display: general zone, subzone, or both** — Show zone only, subzone only, or both (e.g. Stormwind with Trade District below).
 - **(Vista) Option to select which addon buttons are managed vs always visible** — Mark buttons as always visible (e.g. Plumber expansion summary) or managed in the mouseover bar.
 - **(Vista) Separate addon button mouseover bar from zone text position** — Position zone text and addon buttons independently (e.g. zone at top, buttons at bottom).
@@ -1271,7 +1271,7 @@ All notable changes to Horizon Suite are documented here.
 
 - **(Vista) Correct zone/subzone display for interior zones** — Zone text shows the correct location in interior zones (e.g. inside buildings).
 - **(Vista) Suppress minimap ping when right-clicking to open addon panel** — Right-click opens the panel without pinging the minimap.
-- **(Focus) Option to change header divider color** — Customize the Focus tracker header divider color.
+- **(Focus) Option to change header divider colour** — Customize the Focus tracker header divider colour.
 
 ### 🐛 Fixes
 
@@ -1289,7 +1289,7 @@ All notable changes to Horizon Suite are documented here.
 ### 🔧 Improvements
 
 - **(Vista) Zone, coordinates, and clock above or below minimap** — Choose to place zone name, coordinates, and clock above or below the minimap in Vista options.
-- **(Focus) Scenario bars match progress bar styling** — Timer and progress bars in scenarios now use the same font, colors, and height as quest objective progress bars.
+- **(Focus) Scenario bars match progress bar styling** — Timer and progress bars in scenarios now use the same font, colours, and height as quest objective progress bars.
 - **(Presence) More reliable notification display** — Level-up, boss emotes, and scenario toasts display correctly when event frames load.
 
 ---
@@ -1309,7 +1309,7 @@ All notable changes to Horizon Suite are documented here.
 - **(Vista) Minimap sizing and free positioning.**
 - **(Vista) Minimap border thickness and visibility control.**
 - **(Vista) Replace MinimapButtonButton/Hiding bar with built-in opt-out list of addon buttons to show.**
-- **(Vista) Zone text control: position, background color and visibility, font size, font.**
+- **(Vista) Zone text control: position, background colour and visibility, font size, font.**
 - **(Vista) Coordinates text: position and styling; optional format (decimal precision, X/Y prefixes).**
 - **(Vista) Time/clock text: same controls as coords; optional format options.**
 - **(Vista) Default map button visibility, position, size, and custom icons.**
@@ -1472,7 +1472,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### ✨ New Features
 
-- **(Presence) Configurable colors, animations, and subtitle transitions for Presence notifications** — Tailor the look and feel of Presence toasts to match your UI theme. Per-type colors for boss emotes, discovery lines, and other categories; configurable animations; smooth subtitle fade when multi-line notifications update.
+- **(Presence) Configurable colours, animations, and subtitle transitions for Presence notifications** — Tailor the look and feel of Presence toasts to match your UI theme. Per-type colours for boss emotes, discovery lines, and other categories; configurable animations; smooth subtitle fade when multi-line notifications update.
 - **(Focus) Show achievement progress for numeric objectives in tracker** — Tracked achievements with numeric goals (e.g., collect 300 decors) now display current progress (e.g. 247/300) in the tracker at a glance.
 ---
 
@@ -1485,7 +1485,7 @@ All notable changes to Horizon Suite are documented here.
 - **(Focus) Show unaccepted quests in the current zone** — Quests available to accept in your current zone appear in the tracker.
 - **(Focus) Scenario start notification** — Entering a Delve, scenario, or dungeon triggers a Presence notification.
 - **(Focus) Deaths in M+ block** — The Mythic+ module now displays death count.
-- **(Focus) Separate font, size, and color for M+ module** — Typography for the M+ block can be customized separately from the main tracker.
+- **(Focus) Separate font, size, and colour for M+ module** — Typography for the M+ block can be customized separately from the main tracker.
 
 ### 🔧 Improvements
 
@@ -1496,7 +1496,7 @@ All notable changes to Horizon Suite are documented here.
 
 ### 🐛 Fixes
 
-- **(Core)** En Dash character now renders correctly in the Korean WoW client for collapsible color groups in options.
+- **(Core)** En Dash character now renders correctly in the Korean WoW client for collapsible colour groups in options.
 ---
 
 ## [1.2.2] – 2026-02-20
@@ -1518,8 +1518,8 @@ All notable changes to Horizon Suite are documented here.
 ### ✨ New Features
 
 - **(Focus) Per-objective progress (e.g. 15/18) on individual objectives** — Objectives with multiple instances (e.g. "Pressure Valve fixed", "Cache and Release" valves) now display numeric progress when the game provides it, so you can see partial completion at a glance.
-- **(Focus) Configurable fading animations and smoother transitions** — Adjust flash intensity (subtle, medium, strong) and optionally customize the flash color when objectives update; collapse/expand transitions are smoother.
-- **(Focus) Option to show tick instead of green color for completed objectives** — Toggle to display a checkmark instead of color for completed objectives, for easier scanning or different color schemes.
+- **(Focus) Configurable fading animations and smoother transitions** — Adjust flash intensity (subtle, medium, strong) and optionally customize the flash colour when objectives update; collapse/expand transitions are smoother.
+- **(Focus) Option to show tick instead of green colour for completed objectives** — Toggle to display a checkmark instead of colour for completed objectives, for easier scanning or different colour schemes.
 - **(Focus) Setting to hide or show the options button.**
 - **(Core) Add Korean language support.**
 
@@ -1532,7 +1532,7 @@ All notable changes to Horizon Suite are documented here.
 
 - **(Focus) Focus Tracker — ADDON_ACTION_BLOCKED** — Fixed error when changing options during combat; dimension changes are now deferred until after combat.
 - **(Focus) Scenario and Delve objectives now show per-objective progress (e.g. 0/5 Workers rescued)** — Objectives from Delves, scenarios, and dungeons now display the correct count.
-- **(Focus) Options to set header color and header height.**
+- **(Focus) Options to set header colour and header height.**
 ---
 
 ## [1.1.5] – 2026-02-19
@@ -1708,7 +1708,7 @@ All notable changes to Horizon Suite are documented here.
 - **Zone labels** — Refined how quest zone names are chosen so objectives show clearer, more accurate zone labels, especially when quests span parent/child maps.
 - **Mythic+ integration** — Improved how Mythic+ objectives and blocks behave in the tracker and options, with clearer descriptions and more consistent behaviour.
 - **Options usability** — Polished several option labels and descriptions (including Mythic+ and zone-related settings) to better explain what they do and how they interact.
-- **Options panel overhaul** — Fixed search so clicking a result now switches to the correct category and scrolls to that setting. Settings are reorganized into eight categories (Layout, Visibility, Display, Features, Typography, Appearance, Colors, Organization) for easier discovery. Toggles use a rounded pill style; search results show category and section with the option name emphasised.
+- **Options panel overhaul** — Fixed search so clicking a result now switches to the correct category and scrolls to that setting. Settings are reorganized into eight categories (Layout, Visibility, Display, Features, Typography, Appearance, Colours, Organization) for easier discovery. Toggles use a rounded pill style; search results show category and section with the option name emphasised.
 - **World quest map fallback removed** — World quests are now sourced only from live APIs (`GetTasksTable`, `C_QuestLog.GetQuestsOnMap`, `C_TaskQuest` map APIs, and waypoint fallback) without requiring the world map to be open. The previous map-open cache and heartbeat fallback have been removed.
 ---
 
@@ -1754,7 +1754,7 @@ All notable changes to Horizon Suite are documented here.
 ### ✨ New Features
 
 - **Hide in combat** — New option in General (Combat section): when enabled, the tracker panel and floating quest item button are hidden while in combat. When combat ends, visibility is restored according to your existing settings (instance visibility, collapsed state, quest content). When **Animations** is enabled, the tracker and floating button fade out over ~0.2s on entering combat and fade in on leaving combat.
-- **Focus category order** — The order of categories in the Focus list (Campaign, World Quests, Rares, etc.) can now be customised. In the options popout (Appearance), reorder categories via drag-and-drop; the new order is saved and used for section headers and section header colors. Use "Reset order" to restore the default order.
+- **Focus category order** — The order of categories in the Focus list (Campaign, World Quests, Rares, etc.) can now be customised. In the options popout (Appearance), reorder categories via drag-and-drop; the new order is saved and used for section headers and section header colours. Use "Reset order" to restore the default order.
 
 ### 🔧 Improvements
 

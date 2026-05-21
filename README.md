@@ -65,7 +65,7 @@ Cache - Loot Toasts
 
 Insight - Tooltips
 
-- **Cinematic tooltips** – Dark backdrop, class-colored player names and borders, faction icons, spec/role display, and fade-in animation.
+- **Cinematic tooltips** – Dark backdrop, class-coloured player names and borders, faction icons, spec/role display, and fade-in animation.
 - **Profile-backed settings** – Anchor mode (cursor or fixed) and position stored per profile.
 - **Hide tooltips in combat** – Optional toggle under Insight → Global Tooltips to close styled tooltip frames during combat.
 
@@ -84,7 +84,7 @@ Insight - Tooltips
 
 ## 📦 Modules & Roadmap
 
-**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colors, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, time, optional FPS/latency, addon button collector, and full customisation. **Cache** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
+**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colours, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, time, optional FPS/latency, addon button collector, and full customisation. **Cache** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
 
 ---
 

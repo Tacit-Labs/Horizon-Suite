@@ -5,6 +5,13 @@ Try to minimise the amount of symbols within file names.
 **`Files`** must use **lowercase** with individual words and **ProperCase** with multiple words.
 **`Branches`** must use **`lower-kebab-case`** (lowercase-words-connected-with-hyphens).
 
+Use the King's English when applicable except for the following instances:
+|WoW API||<span style="color:FF0000;">NOT</span>|
+|-|-|-|
+|SetColorTexture||SetColourTexture|
+|SetTextColor||SetTextColour|
+|SetShadowColor||SetShadowColour|
+
 ## Branch `Types` (Prefixes)
 ### Front-End
 **`fix`** `/` *addresses* an unexpected problem/behaviour
