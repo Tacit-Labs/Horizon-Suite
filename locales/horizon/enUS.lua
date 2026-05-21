@@ -215,6 +215,46 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI 
 
 See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
+-- =====================================================================
+-- options/dashboard/DashboardIntegrationsView.lua — third-party integrations list
+-- =====================================================================
+L["DASH_INTEGRATIONS_TAB"]                                    = "Integrations"
+L["DASH_INTEGRATIONS_HEAD_SUB"]                               = "Third-party addons that Horizon Suite plays nicely with"
+
+-- Summary line at the top of the page
+L["DASH_INT_SUMMARY"]                                         = "%d of %d integrations active"
+L["DASH_INT_SUMMARY_DISABLED"]                                = "%d disabled"
+L["DASH_INT_SUMMARY_EMPTY"]                                   = "These addons aren't installed yet — try them to unlock extra features."
+
+-- Status pill labels
+L["DASH_INT_STATUS_ENABLED"]                                  = "Installed"
+L["DASH_INT_STATUS_DISABLED"]                                 = "Disabled"
+L["DASH_INT_STATUS_MISSING"]                                  = "Not installed"
+L["DASH_INT_STATUS_BUNDLED"]                                  = "Bundled"
+L["DASH_INT_STATUS_PENDING"]                                  = "Reload needed"
+
+-- CTA labels
+L["DASH_INT_CTA_GET"]                                         = "Install"
+L["DASH_INT_CTA_ENABLE"]                                      = "Enable"
+L["DASH_INT_CTA_RELOAD"]                                      = "Reload UI"
+L["DASH_INT_CTA_SETTINGS"]                                    = "Settings"
+L["DASH_INT_NEW_BADGE"]                                       = "New"
+
+-- Per-integration copy
+L["DASH_INT_ATT_DESC"]                                        = "All The Things tracks every collectible in the game (mounts, pets, transmog, achievements, recipes)."
+L["DASH_INT_ATT_WHAT"]                                        = "Focus rare-mob tooltips show ATT's loot drops, transmog availability, and collection status."
+
+L["DASH_INT_AUCTIONATOR_DESC"]                                = "Auctionator is a streamlined auction house addon with shopping lists, posting, and price history."
+L["DASH_INT_AUCTIONATOR_WHAT"]                                = "Focus's craft dialog uses Auctionator to search reagent prices and check mat costs."
+
+L["DASH_INT_RONDOMEDIA_DESC"]                                 = "Rondo Media is a curated class icon set used by Horizon Suite when installed."
+L["DASH_INT_RONDOMEDIA_WHAT"]                                 = "Class icons in Insight tooltips and Focus rows."
+
+L["DASH_INT_WQT_DESC"]                                        = "World Quest Tracker is a popular world-quest filtering addon."
+L["DASH_INT_WQT_WHAT"]                                        = "Focus hides its tracker while WQT is open to keep the screen clean."
+
+L["DASH_INT_LSM_DESC"]                                        = "LibSharedMedia is a shared font and texture registry used across many addons."
+L["DASH_INT_LSM_WHAT"]                                        = "Adds extra font and statusbar texture options to Horizon Suite when installed."
 
 -- =====================================================================
 -- options/dashboard/ModuleGuide.lua — In-game module quick-start

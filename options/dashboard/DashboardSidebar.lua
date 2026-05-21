@@ -170,8 +170,9 @@ function addon.DashboardSidebar_CreateChrome(p)
     end
 
     local TAB_ROW_HEIGHT = 38
-    -- Space for pinned bottom rows (Search + Patch Notes).
-    local SIDEBAR_WHATSNEW_RESERVE = TAB_ROW_HEIGHT * 2
+    -- Reserve space at sidebar bottom for the pinned rows.
+    -- Currently: Patch Notes (y=0), Integrations (y=1*TAB_ROW_HEIGHT), Search (y=2*TAB_ROW_HEIGHT).
+    local SIDEBAR_WHATSNEW_RESERVE = TAB_ROW_HEIGHT * 3
 
     local function layoutUnderHeader()
         logoSep:ClearAllPoints()
