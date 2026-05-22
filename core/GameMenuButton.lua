@@ -76,7 +76,7 @@ local function CreateButton()
     if _G.HorizonSuiteGameMenuButton then return end
 
     local button = CreateFrame("Button", "HorizonSuiteGameMenuButton", GameMenuFrame, "MainMenuFrameButtonTemplate")
-    button:SetText(L["GAMEMENU_OPEN_HORIZON"])
+    button:SetText(L["AXIS_GAMEMENU_BUTTON"])
     button:SetScript("OnClick", OpenHorizon)
 
     local addonsBtn = FindAddonsButton()
