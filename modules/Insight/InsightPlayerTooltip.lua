@@ -203,14 +203,18 @@ local function UnitHasAuraBySpellID(unit, spellID)
         for i = 1, 40 do
             local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, i, "HELPFUL")
             if not ok or not aura then break end
-            if aura.spellId == spellID then return true end
+            local cmpOk, matched = pcall(function() return aura.spellId == spellID end)
+            if cmpOk and matched then return true end
+            if not cmpOk then break end  -- spellId is secret; all iterations will be, bail out
         end
     end
     if UnitAura then
         for i = 1, 40 do
             local ok, name, _, _, _, _, _, _, _, spellId = pcall(UnitAura, unit, i, "HELPFUL")
             if not ok or not name then break end
-            if spellId == spellID then return true end
+            local cmpOk, matched = pcall(function() return spellId == spellID end)
+            if cmpOk and matched then return true end
+            if not cmpOk then break end  -- spellId is secret; bail out
         end
     end
     if AuraUtil and AuraUtil.FindAuraByName then
