@@ -118,6 +118,9 @@ local ALERT_FRAME_EVENTS = {
     "SHOW_LOOT_TOAST_LEGENDARY_LOOTED",
     "LOOT_ITEM_ROLL_WON",
     "BONUS_LOOT_ITEM_RECEIVED",
+    -- TWW housing / warband-bank item push (event may not exist on older clients; safe to list)
+    "HOME_DECORATION_ADDED",
+    "SHOW_LOOT_TOAST_ITEM_PUSH",
 }
 
 -- Track which events we successfully unregistered so RestoreBlizzard only
@@ -125,12 +128,23 @@ local ALERT_FRAME_EVENTS = {
 local unregisteredAlertEvents = {}
 
 local function IsLootAlertFrame(alertFrame)
-    if not alertFrame or not alertFrame.GetChildren then return false end
+    if not alertFrame then return false end
+    -- Check the frame's own global name first (covers pool frames that do have names).
+    local frameName = alertFrame.GetName and alertFrame:GetName()
+    if frameName then
+        local nl = frameName:lower()
+        if nl:find("loot") or nl:find("moneywon") or nl:find("housing")
+           or nl:find("decoration") or nl:find("itempush")
+        then
+            return true
+        end
+    end
+    if not alertFrame.GetChildren then return false end
     for _, child in ipairs({ alertFrame:GetChildren() }) do
-        -- Check child name patterns (loot/item toast structures)
         local name = child and child.GetName and child:GetName()
         if name and (name == "ItemName" or name == "lootItem"
-            or name:find("^Item") or name:lower():find("loot"))
+            or name:find("^Item") or name:lower():find("loot")
+            or name:lower():find("housing") or name:lower():find("decoration"))
         then
             return true
         end
@@ -226,6 +240,13 @@ function Y.SuppressBlizzard()
     SuppressAlertSystem(MoneyWonAlertSystem)
     SuppressAlertSystem(LootWonAlertSystem)
     SuppressAlertSystem(BonusRollLootWonAlertSystem)
+    -- TWW housing / warband-bank item push systems (may not exist on all client versions).
+    pcall(function()
+        if _G.PlayerHousingItemAlertSystem then SuppressAlertSystem(_G.PlayerHousingItemAlertSystem) end
+        if _G.ItemPushAlertSystem          then SuppressAlertSystem(_G.ItemPushAlertSystem)          end
+        if _G.PlayerHousingItemAlertFrame  then KillBlizzardFrame(_G.PlayerHousingItemAlertFrame)    end
+        if _G.ItemPushAlertFrame           then KillBlizzardFrame(_G.ItemPushAlertFrame)             end
+    end)
 
     -- Sweep every system registered with AlertFrame — catches anything not covered above.
     pcall(function()

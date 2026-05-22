@@ -171,6 +171,9 @@ handlers.BONUS_LOOT_ITEM_RECEIVED         = OnBlizzardLootToast
 -- Scenario/quest completions can reward items via popups that bypass SHOW_LOOT_TOAST.
 handlers.SCENARIO_COMPLETED               = OnBlizzardLootToast
 handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
+-- TWW housing decorations and warband-bank item push toasts.
+handlers.HOME_DECORATION_ADDED            = OnBlizzardLootToast
+handlers.SHOW_LOOT_TOAST_ITEM_PUSH        = OnBlizzardLootToast
 
 local function OnEvent(_, event, msg, ...)
     local handler = handlers[event]
@@ -205,6 +208,8 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "BONUS_LOOT_ITEM_RECEIVED")
     pcall(eventFrame.RegisterEvent, eventFrame, "SCENARIO_COMPLETED")
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
+    pcall(eventFrame.RegisterEvent, eventFrame, "HOME_DECORATION_ADDED")
+    pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_LOOT_TOAST_ITEM_PUSH")
     eventsRegistered = true
 end
 
