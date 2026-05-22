@@ -108,17 +108,30 @@ end
 local alertRegHookInstalled     = false  -- AlertFrame_RegisterQueuedAlertSystem
 local alertAnchorsHookInstalled = false  -- AlertFrame:UpdateAnchors
 local alertShowHookInstalled    = false  -- AlertFrame_ShowNewAlertFrame
+local alertReregHookInstalled   = false  -- AlertFrame:RegisterEvent re-block
 
 -- Events that drive AlertFrame's loot/bonus-loot toast systems.
 -- Unregistering these from AlertFrame prevents it from ever creating toast frames
 -- in the first place — the same approach used by Plumber's loot suppression.
 local ALERT_FRAME_EVENTS = {
+    -- Standard loot toasts
     "SHOW_LOOT_TOAST",
     "SHOW_LOOT_TOAST_UPGRADE",
     "SHOW_LOOT_TOAST_LEGENDARY_LOOTED",
     "LOOT_ITEM_ROLL_WON",
     "BONUS_LOOT_ITEM_RECEIVED",
-    -- TWW housing / warband-bank item push (event may not exist on older clients; safe to list)
+    -- PvP loot
+    "SHOW_PVP_FACTION_LOOT_TOAST",
+    "SHOW_RATED_PVP_REWARD_TOAST",
+    -- Quest / scenario loot
+    "QUEST_LOOT_RECEIVED",
+    "SCENARIO_COMPLETED",
+    -- Specialised loot toasts
+    "AZERITE_EMPOWERED_ITEM_LOOTED",
+    "PERKS_PROGRAM_CURRENCY_AWARDED",
+    -- Housing
+    "INITIATIVE_TASK_COMPLETED",
+    -- TWW warband-bank item push (newer; safe to list even if absent on older clients)
     "HOME_DECORATION_ADDED",
     "SHOW_LOOT_TOAST_ITEM_PUSH",
 }
@@ -234,6 +247,36 @@ function Y.SuppressBlizzard()
     InstallAlertHook()
     InstallAlertShowHook()
 
+    -- Prevent AlertFrame from re-registering blacklisted events after our initial sweep.
+    -- Blizzard lazily loads some subsystems mid-session; this mirrors LS Toasts' approach.
+    if not alertReregHookInstalled then
+        pcall(function()
+            if not (AlertFrame and AlertFrame.RegisterEvent) then return end
+            hooksecurefunc(AlertFrame, "RegisterEvent", function(self, event)
+                if unregisteredAlertEvents[event] then
+                    self:UnregisterEvent(event)
+                end
+            end)
+            alertReregHookInstalled = true
+        end)
+    end
+
+    -- Suppress housing item toast fired via EventRegistry (not AlertFrame).
+    -- EventRegistry:UnregisterFrameEvent removes frame-based listeners;
+    -- nil-ing callback tables removes all Lua-side handlers for the event.
+    -- Mirrors the approach used by LS Toasts for NEW_HOUSING_ITEM_ACQUIRED.
+    pcall(function()
+        if not EventRegistry then return end
+        if EventRegistry.UnregisterFrameEvent then
+            EventRegistry:UnregisterFrameEvent("NEW_HOUSING_ITEM_ACQUIRED")
+        end
+        if EventRegistry.GetCallbackTables then
+            for _, tbl in ipairs(EventRegistry:GetCallbackTables()) do
+                tbl["NEW_HOUSING_ITEM_ACQUIRED"] = nil
+            end
+        end
+    end)
+
     -- Known systems by global name
     SuppressAlertSystem(LootAlertSystem)
     SuppressAlertSystem(LootUpgradeAlertSystem)
@@ -268,7 +311,8 @@ function Y.SuppressBlizzard()
         if AlertFrame and AlertFrame.GetChildren then
             for _, child in ipairs({ AlertFrame:GetChildren() }) do
                 local name = child and child.GetName and child:GetName()
-                if name and (name:match("Loot") or name:match("MoneyWon")) then
+                if name and (name:match("Loot") or name:match("MoneyWon")
+                    or name:match("Housing") or name:match("ItemPush") or name:match("PvP")) then
                     KillBlizzardFrame(child)
                 end
             end

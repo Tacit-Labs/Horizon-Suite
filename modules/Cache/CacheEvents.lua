@@ -171,7 +171,17 @@ handlers.BONUS_LOOT_ITEM_RECEIVED         = OnBlizzardLootToast
 -- Scenario/quest completions can reward items via popups that bypass SHOW_LOOT_TOAST.
 handlers.SCENARIO_COMPLETED               = OnBlizzardLootToast
 handlers.QUEST_TURNED_IN                  = OnBlizzardLootToast
--- TWW housing decorations and warband-bank item push toasts.
+-- PvP loot toasts.
+handlers.SHOW_PVP_FACTION_LOOT_TOAST      = OnBlizzardLootToast
+handlers.SHOW_RATED_PVP_REWARD_TOAST      = OnBlizzardLootToast
+-- Quest / specialised loot toasts.
+handlers.QUEST_LOOT_RECEIVED              = OnBlizzardLootToast
+handlers.AZERITE_EMPOWERED_ITEM_LOOTED    = OnBlizzardLootToast
+handlers.PERKS_PROGRAM_CURRENCY_AWARDED   = OnBlizzardLootToast
+-- Housing toasts (INITIATIVE_TASK_COMPLETED via AlertFrame; NEW_HOUSING_ITEM_ACQUIRED via EventRegistry).
+handlers.INITIATIVE_TASK_COMPLETED        = OnBlizzardLootToast
+handlers.NEW_HOUSING_ITEM_ACQUIRED        = OnBlizzardLootToast
+-- TWW warband-bank / decoration push.
 handlers.HOME_DECORATION_ADDED            = OnBlizzardLootToast
 handlers.SHOW_LOOT_TOAST_ITEM_PUSH        = OnBlizzardLootToast
 
@@ -208,6 +218,15 @@ function Y.EnableEvents()
     pcall(eventFrame.RegisterEvent, eventFrame, "BONUS_LOOT_ITEM_RECEIVED")
     pcall(eventFrame.RegisterEvent, eventFrame, "SCENARIO_COMPLETED")
     pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_TURNED_IN")
+    pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_PVP_FACTION_LOOT_TOAST")
+    pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_RATED_PVP_REWARD_TOAST")
+    pcall(eventFrame.RegisterEvent, eventFrame, "QUEST_LOOT_RECEIVED")
+    pcall(eventFrame.RegisterEvent, eventFrame, "AZERITE_EMPOWERED_ITEM_LOOTED")
+    pcall(eventFrame.RegisterEvent, eventFrame, "PERKS_PROGRAM_CURRENCY_AWARDED")
+    pcall(eventFrame.RegisterEvent, eventFrame, "INITIATIVE_TASK_COMPLETED")
+    -- NEW_HOUSING_ITEM_ACQUIRED fires via EventRegistry; suppressed in CacheBlizzard.lua.
+    -- Register it here too so the kill-ticker fires if the EventRegistry path slips through.
+    pcall(eventFrame.RegisterEvent, eventFrame, "NEW_HOUSING_ITEM_ACQUIRED")
     pcall(eventFrame.RegisterEvent, eventFrame, "HOME_DECORATION_ADDED")
     pcall(eventFrame.RegisterEvent, eventFrame, "SHOW_LOOT_TOAST_ITEM_PUSH")
     eventsRegistered = true
