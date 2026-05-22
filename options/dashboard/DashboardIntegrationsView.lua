@@ -8,10 +8,12 @@
 
     Features:
       - Per-row status pill (Installed / Disabled / Not installed / Bundled).
+        The pill doubles as the call-to-action when the integration is
+        actionable: missing → Install, disabled → Enable, pendingReload →
+        Reload UI. Click is bound to the pill itself; colour conveys state.
       - Top summary line ("X of Y integrations active").
       - Addon's own IconTexture (from its TOC) when installed; curated fallback otherwise.
       - Version display next to title (from C_AddOns.GetAddOnMetadata "Version").
-      - "Install" link when missing; "Enable" + "Reload UI" when disabled.
       - "Settings" link when installed and the integration has a registered slash key.
       - "NEW" badge for integrations the user hasn't seen yet (tracked in HorizonDB.integrationsSeen).
       - Subtle pulse on green ticks the first time the view is shown per session.
@@ -134,7 +136,11 @@ function addon.DashboardIntegrationsView_Init(env)
     local SBg = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
     local SBgA = SBg[4] * DASHBOARD_CONTENT_CARD_ALPHA_MULT
 
-    local CARD_H              = 100
+    -- CARD_H sized so all six rows fit inside the scroll viewport at the
+    -- default dashboard ratio (~552px tall): 6 rows + 5 gaps + summary + pad
+    -- ≈ 540px. Internal Y offsets tighten in step so title/body/pill remain
+    -- visually balanced inside the shorter card.
+    local CARD_H              = 76
     local CARD_GAP            = 8
     local CARD_X_INSET        = 18
     local CARD_ACCENT_W       = 3
@@ -142,12 +148,12 @@ function addon.DashboardIntegrationsView_Init(env)
     local CARD_ICON_X         = CARD_ACCENT_W + 12
     local CARD_ICON_PAD       = 1
     local CARD_TITLE_X        = CARD_ICON_X + CARD_ICON_SIZE + 12
-    local CARD_TITLE_Y        = -12
-    local CARD_BODY_Y         = -34
+    local CARD_TITLE_Y        = -10
+    local CARD_BODY_Y         = -30
     local CARD_PILL_W         = 100
     local CARD_PILL_H         = 22
     local CARD_PILL_X         = -14
-    local CARD_PILL_Y         = -12
+    local CARD_PILL_Y         = -8
     local CARD_VPILL_H        = 18
     local CARD_VPILL_GAP      = 4
     local CARD_LINK_X         = -14
@@ -196,6 +202,17 @@ function addon.DashboardIntegrationsView_Init(env)
         self:SetVerticalScroll(math.max(0, math.min(maxS, cur - delta * SCROLL_DELTA_MULT)))
     end)
 
+    -- Track the dashboard frame's resize so the inner scroll content stays
+    -- pinned to the live scroll viewport width. Rows anchor TOPLEFT/TOPRIGHT
+    -- against the summary (which is anchored to scrollContent), so resizing
+    -- scrollContent reflows body wrapping and pill/link positioning for free.
+    integrationsView:HookScript("OnSizeChanged", function()
+        local w = scrollFrame:GetWidth()
+        if w and w > 0 then
+            scrollContent:SetWidth(w)
+        end
+    end)
+
     -- -----------------------------------------------------------------------
     -- Summary header line ("X of Y integrations active")
     -- -----------------------------------------------------------------------
@@ -234,14 +251,38 @@ function addon.DashboardIntegrationsView_Init(env)
         ag:Play()
     end
 
+    -- State → action mapping. Each entry returns the CTA label and an action
+    -- callback, OR nil to keep the pill informational (no click handler bound).
+    local function ResolvePillAction(row, stateKey, defaultLabel)
+        if stateKey == "missing" and row._doInstall then
+            return L["DASH_INT_CTA_GET"] or "Install", row._doInstall
+        end
+        if stateKey == "disabled" and row._doEnable then
+            return L["DASH_INT_CTA_ENABLE"] or "Enable", row._doEnable
+        end
+        if stateKey == "pendingReload" and row._doReload then
+            return L["DASH_INT_CTA_RELOAD"] or "Reload UI", row._doReload
+        end
+        return defaultLabel, nil
+    end
+
     local function ApplyRowState(row)
         local stateKey = GetEffectiveState(row)
         local s = STATUS_COLORS[stateKey] or STATUS_COLORS.missing
         row.pillBg:SetColorTexture(s[1], s[2], s[3], s[4])
-        -- Label only — the pill colour already signals state, and including the
-        -- leading glyph (✓/–/✗) made the visible label feel off-centre.
-        row.pillText:SetText(L[s[5]] or "")
         row._state = stateKey
+        row._pillColor = s
+
+        -- Pill label + click action. When the integration is actionable
+        -- (missing / disabled / pendingReload) the pill itself becomes the CTA;
+        -- otherwise the pill stays informational (Installed / Bundled).
+        local defaultLabel = L[s[5]] or ""
+        local ctaLabel, action = ResolvePillAction(row, stateKey, defaultLabel)
+        row.pillText:SetText(ctaLabel)
+        row._pillAction = action
+        if row.pill.SetEnabled then
+            row.pill:SetEnabled(action ~= nil)
+        end
 
         -- Icon: addon's own IconTexture takes priority; fallback otherwise.
         if row._icon then
@@ -266,27 +307,16 @@ function addon.DashboardIntegrationsView_Init(env)
             end
         end
 
-        -- Bottom-right contextual link visibility.
-        -- Priorities:
-        --   pendingReload → Reload UI
-        --   missing       → Install (if url)
-        --   disabled      → Enable
-        --   enabled       → Settings (if slashKey is registered)
-        if row.linkInstall then row.linkInstall:Hide() end
-        if row.linkEnable  then row.linkEnable:Hide()  end
-        if row.linkReload  then row.linkReload:Hide()  end
-        if row.linkSettings then row.linkSettings:Hide() end
-
-        if stateKey == "pendingReload" and row.linkReload then
-            row.linkReload:Show()
-        elseif stateKey == "missing" and row.linkInstall then
-            row.linkInstall:Show()
-        elseif stateKey == "disabled" and row.linkEnable then
-            row.linkEnable:Show()
-        elseif stateKey == "enabled" and row.linkSettings then
-            local slashKey = row._slashKey
-            local registered = type(slashKey) == "string" and _G.SlashCmdList and _G.SlashCmdList[slashKey]
-            row.linkSettings:SetShown(registered and true or false)
+        -- Bottom-right Settings link (enabled state only — Install / Enable /
+        -- Reload UI all live on the pill now).
+        if row.linkSettings then
+            if stateKey == "enabled" then
+                local slashKey = row._slashKey
+                local registered = type(slashKey) == "string" and _G.SlashCmdList and _G.SlashCmdList[slashKey]
+                row.linkSettings:SetShown(registered and true or false)
+            else
+                row.linkSettings:Hide()
+            end
         end
 
         MaybePulseTick(row, stateKey)
@@ -372,41 +402,31 @@ function addon.DashboardIntegrationsView_Init(env)
         body:SetPoint("RIGHT", row, "RIGHT", CARD_PILL_X - CARD_PILL_W - 8, 0)
         body:SetWordWrap(true)
 
-        -- Bottom-right contextual links (only one is visible at a time per ApplyRowState).
-        local linkInstall, linkEnable, linkReload, linkSettings
-
+        -- Action closures stored on the row — driven by the status pill button
+        -- (see ResolvePillAction).
         if entry.url and addon.ShowURLCopyBox then
-            linkInstall = MakeLink(row,
-                (L["DASH_INT_CTA_GET"] or "Install"),
-                function()
-                    addon.ShowURLCopyBox(entry.url, entry.displayName or entry.addonName)
-                end,
-                { 0.75, 0.85, 1 }
-            )
+            row._doInstall = function()
+                addon.ShowURLCopyBox(entry.url, entry.displayName or entry.addonName)
+            end
         end
 
         if C_AddOns and C_AddOns.EnableAddOn then
-            linkEnable = MakeLink(row,
-                (L["DASH_INT_CTA_ENABLE"] or "Enable"),
-                function()
-                    local ok = pcall(C_AddOns.EnableAddOn, entry.addonName)
-                    if ok then
-                        row._pendingReload = true
-                        ApplyRowState(row)
-                    end
-                end,
-                { 0.95, 0.85, 0.45 }
-            )
+            row._doEnable = function()
+                local ok = pcall(C_AddOns.EnableAddOn, entry.addonName)
+                if ok then
+                    row._pendingReload = true
+                    ApplyRowState(row)
+                end
+            end
         end
 
-        linkReload = MakeLink(row,
-            (L["DASH_INT_CTA_RELOAD"] or "Reload UI"),
-            function()
-                if _G.ReloadUI then _G.ReloadUI() end
-            end,
-            { 0.55, 0.55, 0.95 }
-        )
+        row._doReload = function()
+            if _G.ReloadUI then _G.ReloadUI() end
+        end
 
+        -- Bottom-right Settings link — separate concern from install/enable, so
+        -- it stays in its existing position rather than moving onto the pill.
+        local linkSettings
         if entry.slashKey then
             linkSettings = MakeLink(row,
                 (L["DASH_INT_CTA_SETTINGS"] or "Settings"),
@@ -419,14 +439,12 @@ function addon.DashboardIntegrationsView_Init(env)
                 { 0.72, 0.72, 0.78 }
             )
         end
-
-        row.linkInstall  = linkInstall
-        row.linkEnable   = linkEnable
-        row.linkReload   = linkReload
         row.linkSettings = linkSettings
 
-        -- Status pill.
-        local pill = CreateFrame("Frame", nil, row)
+        -- Status pill — Button so it can act as the Install / Enable / Reload UI
+        -- CTA when the integration is in an actionable state. ApplyRowState
+        -- swaps the label and enabled flag based on the row's resolved state.
+        local pill = CreateFrame("Button", nil, row)
         pill:SetSize(CARD_PILL_W, CARD_PILL_H)
         pill:SetPoint("TOPRIGHT", CARD_PILL_X, CARD_PILL_Y)
         local pillBg = pill:CreateTexture(nil, "BACKGROUND")
@@ -434,6 +452,28 @@ function addon.DashboardIntegrationsView_Init(env)
         local pillText = MakeText(pill, "", 11, 1, 1, 1, "CENTER")
         pillText:SetAllPoints()
         pillText:SetJustifyV("MIDDLE")
+        pill:SetScript("OnEnter", function()
+            local c = row._pillColor
+            if row._pillAction and c then
+                pillBg:SetColorTexture(
+                    math.min(1, c[1] * 1.25),
+                    math.min(1, c[2] * 1.25),
+                    math.min(1, c[3] * 1.25),
+                    math.min(1, (c[4] or 0.85) + 0.1)
+                )
+            end
+        end)
+        pill:SetScript("OnLeave", function()
+            local c = row._pillColor
+            if c then
+                pillBg:SetColorTexture(c[1], c[2], c[3], c[4])
+            end
+        end)
+        pill:SetScript("OnClick", function()
+            if type(row._pillAction) == "function" then
+                row._pillAction()
+            end
+        end)
         row.pill, row.pillBg, row.pillText = pill, pillBg, pillText
 
         -- Version pill — sits directly beneath the status pill. Background is

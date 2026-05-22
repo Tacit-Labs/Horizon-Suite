@@ -2192,6 +2192,7 @@ function addon.Dashboard_BuildMainFrame()
             local _resizeViews = {
                 dashboardView, detailView, subCategoryView,
                 searchView, welcomeView, guideView, patchNotesView, newsView,
+                integrationsView,
             }
 
             --- Resize + reflow the dashboard to a new size ratio without navigating.
