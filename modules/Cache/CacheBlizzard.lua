@@ -108,7 +108,6 @@ end
 local alertRegHookInstalled     = false  -- AlertFrame_RegisterQueuedAlertSystem
 local alertAnchorsHookInstalled = false  -- AlertFrame:UpdateAnchors
 local alertShowHookInstalled    = false  -- AlertFrame_ShowNewAlertFrame
-local alertReregHookInstalled   = false  -- AlertFrame:RegisterEvent re-block
 
 -- Events that drive AlertFrame's loot/bonus-loot toast systems.
 -- Unregistering these from AlertFrame prevents it from ever creating toast frames
@@ -141,23 +140,12 @@ local ALERT_FRAME_EVENTS = {
 local unregisteredAlertEvents = {}
 
 local function IsLootAlertFrame(alertFrame)
-    if not alertFrame then return false end
-    -- Check the frame's own global name first (covers pool frames that do have names).
-    local frameName = alertFrame.GetName and alertFrame:GetName()
-    if frameName then
-        local nl = frameName:lower()
-        if nl:find("loot") or nl:find("moneywon") or nl:find("housing")
-           or nl:find("decoration") or nl:find("itempush")
-        then
-            return true
-        end
-    end
-    if not alertFrame.GetChildren then return false end
+    if not alertFrame or not alertFrame.GetChildren then return false end
     for _, child in ipairs({ alertFrame:GetChildren() }) do
+        -- Check child name patterns (loot/item toast structures)
         local name = child and child.GetName and child:GetName()
         if name and (name == "ItemName" or name == "lootItem"
-            or name:find("^Item") or name:lower():find("loot")
-            or name:lower():find("housing") or name:lower():find("decoration"))
+            or name:find("^Item") or name:lower():find("loot"))
         then
             return true
         end
@@ -247,49 +235,12 @@ function Y.SuppressBlizzard()
     InstallAlertHook()
     InstallAlertShowHook()
 
-    -- Prevent AlertFrame from re-registering blacklisted events after our initial sweep.
-    -- Blizzard lazily loads some subsystems mid-session; this mirrors LS Toasts' approach.
-    if not alertReregHookInstalled then
-        pcall(function()
-            if not (AlertFrame and AlertFrame.RegisterEvent) then return end
-            hooksecurefunc(AlertFrame, "RegisterEvent", function(self, event)
-                if unregisteredAlertEvents[event] then
-                    self:UnregisterEvent(event)
-                end
-            end)
-            alertReregHookInstalled = true
-        end)
-    end
-
-    -- Suppress housing item toast fired via EventRegistry (not AlertFrame).
-    -- EventRegistry:UnregisterFrameEvent removes frame-based listeners;
-    -- nil-ing callback tables removes all Lua-side handlers for the event.
-    -- Mirrors the approach used by LS Toasts for NEW_HOUSING_ITEM_ACQUIRED.
-    pcall(function()
-        if not EventRegistry then return end
-        if EventRegistry.UnregisterFrameEvent then
-            EventRegistry:UnregisterFrameEvent("NEW_HOUSING_ITEM_ACQUIRED")
-        end
-        if EventRegistry.GetCallbackTables then
-            for _, tbl in ipairs(EventRegistry:GetCallbackTables()) do
-                tbl["NEW_HOUSING_ITEM_ACQUIRED"] = nil
-            end
-        end
-    end)
-
     -- Known systems by global name
     SuppressAlertSystem(LootAlertSystem)
     SuppressAlertSystem(LootUpgradeAlertSystem)
     SuppressAlertSystem(MoneyWonAlertSystem)
     SuppressAlertSystem(LootWonAlertSystem)
     SuppressAlertSystem(BonusRollLootWonAlertSystem)
-    -- TWW housing / warband-bank item push systems (may not exist on all client versions).
-    pcall(function()
-        if _G.PlayerHousingItemAlertSystem then SuppressAlertSystem(_G.PlayerHousingItemAlertSystem) end
-        if _G.ItemPushAlertSystem          then SuppressAlertSystem(_G.ItemPushAlertSystem)          end
-        if _G.PlayerHousingItemAlertFrame  then KillBlizzardFrame(_G.PlayerHousingItemAlertFrame)    end
-        if _G.ItemPushAlertFrame           then KillBlizzardFrame(_G.ItemPushAlertFrame)             end
-    end)
 
     -- Sweep every system registered with AlertFrame — catches anything not covered above.
     pcall(function()
@@ -311,8 +262,7 @@ function Y.SuppressBlizzard()
         if AlertFrame and AlertFrame.GetChildren then
             for _, child in ipairs({ AlertFrame:GetChildren() }) do
                 local name = child and child.GetName and child:GetName()
-                if name and (name:match("Loot") or name:match("MoneyWon")
-                    or name:match("Housing") or name:match("ItemPush") or name:match("PvP")) then
+                if name and (name:match("Loot") or name:match("MoneyWon")) then
                     KillBlizzardFrame(child)
                 end
             end
