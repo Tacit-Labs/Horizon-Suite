@@ -139,17 +139,23 @@ L["DASH_NEWS_CTA_OPEN_PATCH_NOTES"]                           = "Open Patch Note
 L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "Axis • Coming Soon"
 L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                          = "Patch notes"
 L["DASH_NEWS_CTA_OPEN_GUIDE"]                                 = "Open Quick Start"
-L["DASH_NEWS_FEATURED_TITLE"]                        = "Gradient Tooltip Fonts, Dynamic Focus Tooltips, a New! Indicator, and Module Name Options"
-L["DASH_NEWS_FEATURED_TAGLINE"]                      = "Surprise! Customise your Insight tooltips with gradient font based on class-style character names and item quality. Highlight newly implemented features with a New! indicator, and experience dynamic tooltips in Focus that intelligently shift their anchor left or right based on screen position."
-L["DASH_NEWS_FEATURED_BODY"]                         = "Additionally, we've introduced a new |cffaaaaaaAxis > Module Name Style|r setting, allowing you to choose how module names are displayed: Horizon (code-name only, default), Subtitle (e.g., Vista – Minimap), or Simple/Simple (simplified, plain-language names)."
-L["DASH_NEWS_FEATURED_META"]                         = "Insight • Dynamic Tooltips • Gradient Font • Available Now"
-L["DASH_NEWS_HIGHLIGHT_TITLE"]                              = "A full Horizon class icon set is now bundled"
-L["DASH_NEWS_HIGHLIGHT_BODY"]                               = "The Horizon class icon set is in the build and ready to use. Open |cffaaaaaaAxis > Global Settings > Class Colours|r and set |cffaaaaaaDashboard class icon style|r to Horizon (shown when dashboard class colours are on)."
-L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis • Global Settings • Class Colours • Art by Gabriel C"
-L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "Edit Mode will be joining soon"
-L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = "We're lining up Horizon Suite with WoW's Edit Mode so you can place and arrange addon frames next to the rest of your HUD. For everything that has already shipped, |cffaaaaaaPatch Notes|r still has the full list."
-L["DASH_NEWS_ROADMAP_BOTTOM_TITLE"]                                 = "Handheld device support"
-L["DASH_NEWS_ROADMAP_BOTTOM_BODY"]                                  = "We're planning better support for smaller screens and handheld play: resize-friendly layouts, sensible defaults when the UI is scaled down, and fewer cramped panels. Details will land in |cffaaaaaaPatch Notes|r as pieces ship."
+L["DASH_NEWS_FEATURED_TITLE"]                        = "AddOn Integrations List"
+L["DASH_NEWS_FEATURED_TAGLINE"]                      =[=[Check out our new Integrations page where you can remain up to date on which AddOns are fully integrated into Horizon Suite!
+
+The page automatically detects which AddOns from the list are installed and will display an 'Install' link that will direct you to the CurseForge page for any AddOn that may be missing.
+
+One AddOn in particular has been long-awaited, |cfff5e1a4Total Roleplay 3|r! TRP3 is now fully integrated into Horizon's style of tooltips, allowing you to see only what you want during roleplay while still enjoying the minimalist aesthetic that Horizon offers.]=]
+L["DASH_NEWS_FEATURED_BODY"]                         = "Horizon can now be accessed through the Game Menu! Compatible with ElvUI's Game Menu button as well!"
+L["DASH_NEWS_FEATURED_META"]                         = "Axis   •   Integrations   •   Available Now"
+L["DASH_NEWS_HIGHLIGHT_TITLE"]                              = "Edit Mode is still in the works!"
+L["DASH_NEWS_HIGHLIGHT_BODY"]                               = "We're still working on lining up Horizon Suite with WoW's Edit Mode so you can place and arrange addon frames next to the rest of your HUD. For everything that has already shipped, |cffaaaaaaPatch Notes|r still has the full list."
+L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis   •   Quality of Life   •   Available Now"
+L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "Transforming 'Cache' into 'Flux'"
+L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = [=[Our original plan was to roll out 'Cache' as our official loot toast module, suggested in the modules list. However, we felt it necessary to broaden our horizons a bit (pun intended). We're incorporating what currently is Cache into our new module, 'Flux', which will contain quality of life improvements that don't particularly fit into any other module.
+
+The first example of which is that we're now accessible through Blizzard's native Game Menu with our own button! For those who use ElvUI, our menu button is also compatible with theirs, meaning nobody has to choose between the two.]=]
+L["DASH_NEWS_ROADMAP_BOTTOM_TITLE"]                                 = "Horizon Suite now has a Game Menu Button"
+L["DASH_NEWS_ROADMAP_BOTTOM_BODY"]                                  = "Our button is compatible with ElvUI's Game Menu Button as well so you don't have to choose between the two."
 L["DASH_NEWS_ROADMAP_META"]                               = "News hub • Editorial layout • Curated in addon"
 L["DASH_NEWS_QUICK_START_TITLE"]                              = "Need the quick tour again?"
 L["DASH_NEWS_QUICK_START_BODY"]                               = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
