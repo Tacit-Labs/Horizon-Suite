@@ -27,6 +27,51 @@ local function FindAddonsButton()
     end
 end
 
+-- Run one frame after OnShow so all other addons' hooks and Layout calls have
+-- settled. Find whichever button is visually directly above AddOns (could be
+-- Shop normally, or ElvUI's config button when ElvUI is installed) and anchor
+-- ourselves just below it. This is purely position-based so it works regardless
+-- of whether the other addon uses layoutIndex or SetPoint.
+local function PositionButton()
+    local btn = _G.HorizonSuiteGameMenuButton
+    if not btn then return end
+
+    local addonsBtn = FindAddonsButton()
+    if not addonsBtn then return end
+
+    local addonsTop = addonsBtn:GetTop()
+    if not addonsTop then return end
+
+    -- Walk all Button children; find the one whose bottom edge sits closest
+    -- above AddOns's top edge (excluding our own button and AddOns itself).
+    local prevBtn, prevBtnBottom
+    for _, child in ipairs({ GameMenuFrame:GetChildren() }) do
+        if child ~= btn and child ~= addonsBtn
+        and child:IsShown()
+        and child:GetObjectType() == "Button" then
+            local cB = child:GetBottom()
+            local cH = child:GetHeight()
+            if cB and cH and cH > 10 and cB > addonsTop then
+                if not prevBtnBottom or cB < prevBtnBottom then
+                    prevBtnBottom = cB
+                    prevBtn = child
+                end
+            end
+        end
+    end
+
+    btn:ClearAllPoints()
+    if prevBtn then
+        -- Split the available space between prevBtn and AddOns equally so the
+        -- gap above and below our button matches the surrounding button spacing.
+        local available = prevBtnBottom - addonsTop
+        local gap = math.floor(math.max(1, (available - btn:GetHeight()) / 2))
+        btn:SetPoint("TOP", prevBtn, "BOTTOM", 0, -gap)
+    else
+        btn:SetPoint("BOTTOM", addonsBtn, "TOP", 0, btn.topPadding or 2)
+    end
+end
+
 local function CreateButton()
     if _G.HorizonSuiteGameMenuButton then return end
 
@@ -36,10 +81,8 @@ local function CreateButton()
 
     local addonsBtn = FindAddonsButton()
     if addonsBtn then
-        -- Fractional offset slots us between Shop and AddOns regardless of
-        -- whether Blizzard uses sequential or sparse layoutIndex values.
         button.layoutIndex = addonsBtn.layoutIndex - 0.5
-        button.topPadding = addonsBtn.topPadding
+        button.topPadding  = addonsBtn.topPadding
         button:SetSize(addonsBtn:GetWidth(), addonsBtn:GetHeight())
     else
         button.layoutIndex = 100
@@ -52,5 +95,12 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function(self)
     self:UnregisterEvent("PLAYER_LOGIN")
-    GameMenuFrame:HookScript("OnShow", CreateButton)
+    GameMenuFrame:HookScript("OnShow", function()
+        -- Defer one frame so all other addons' OnShow/Layout hooks complete
+        -- before we create or reposition our button.
+        C_Timer.After(0, function()
+            CreateButton()
+            PositionButton()
+        end)
+    end)
 end)
