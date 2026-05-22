@@ -35,6 +35,7 @@ core/PatchNotesData.lua
 core/PatchNotes.lua
 core/NewSettings.lua
 core/MinimapButton.lua
+core/GameMenuButton.lua
 
 modules/Focus/FocusState.lua
 modules/Focus/FocusClickConfig.lua
