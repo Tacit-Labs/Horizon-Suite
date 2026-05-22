@@ -328,6 +328,8 @@ function addon.PlainTextForShadowFontString(text)
     if not text or type(text) ~= "string" or text == "" then
         return ""
     end
+    -- Fast path: most shadow strings are plain (digits, percent, labels). One scan beats four gsubs.
+    if not text:find("|", 1, true) then return text end
     local s = text
     local guard = 0
     while s:find("|H", 1, true) and guard < 24 do
@@ -350,6 +352,20 @@ function addon.PlainTextForShadowFontString(text)
         guard = guard + 1
     end
     return s
+end
+
+--- Set a label FontString and its paired shadow FontString in one call.
+--- Strips WoW escapes from the shadow text so SetTextColor(0,0,0) renders a solid black outline
+--- instead of letting inline |c…|r colors leak through (root cause of issue #271).
+--- shadowFS may be nil; both reads of the label are routed through the same source string.
+--- @param textFS table Main text FontString.
+--- @param shadowFS table|nil Shadow FontString, or nil.
+--- @param str string|nil Text to render.
+function addon.SetTextWithShadow(textFS, shadowFS, str)
+    textFS:SetText(str)
+    if shadowFS then
+        shadowFS:SetText(addon.PlainTextForShadowFontString(str))
+    end
 end
 
 --- Apply text case from DB option. Returns text in upper, lower, or proper (title) case based on dbKey.

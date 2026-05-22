@@ -992,6 +992,12 @@ function addon.Dashboard_BuildMainFrame()
             newsView:Hide()
             f.newsView = newsView
 
+            local integrationsView = CreateFrame("Frame", nil, f)
+            integrationsView:SetSize(viewWidth, DASHBOARD_VIEW_H)
+            integrationsView:SetPoint("CENTER", viewCenterX, 0)
+            integrationsView:Hide()
+            f.integrationsView = integrationsView
+
             local PN_SCROLL_ABOVE_COMMUNITY_FOOTER = (DC.COMMUNITY_FOOTER_SCROLL_GAP) or 24
             -- Patch notes constants/helpers live in DashboardPatchNotesContent.lua.
             -- Bullet recolor on accent change (line ~308) needs the same hex format
@@ -1195,6 +1201,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 searchView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
@@ -1214,6 +1221,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 searchView:Hide()
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
                 if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
@@ -1386,6 +1394,7 @@ function addon.Dashboard_BuildMainFrame()
                 dashboardView = dashboardView,
                 welcomeView = welcomeView,
                 newsView = newsView,
+                integrationsView = integrationsView,
                 detailView = detailView,
                 subCategoryView = subCategoryView,
                 patchNotesView = patchNotesView,
@@ -1452,6 +1461,24 @@ function addon.Dashboard_BuildMainFrame()
                 addon.DashboardModuleGuide_Init(guideEnv)
             end
 
+            -- Integrations view (third-party addon status list). The view never
+            -- navigates away from itself, so we only pass the env keys it actually
+            -- reads — no sibling-view refs, no nav helpers.
+            if addon.DashboardIntegrationsView_Init then
+                addon.DashboardIntegrationsView_Init({
+                    f = f,
+                    L = L,
+                    contentWidth = contentWidth,
+                    targetView = integrationsView,
+                    integrationsView = integrationsView,
+                    dashScrollTopOffset = dashScrollTopOffset,
+                    dashAccentRefs = dashAccentRefs,
+                    GetAccentColor = GetAccentColor,
+                    MakeText = MakeText,
+                    DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
+                })
+            end
+
             f.ShowPatchNotes = function()
                 if addon.PatchNotes_MarkCurrentVersionViewed then
                     addon.PatchNotes_MarkCurrentVersionViewed()
@@ -1464,6 +1491,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 searchView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 patchNotesView:SetAlpha(0)
                 patchNotesView:Show()
                 UIFrameFadeIn(patchNotesView, 0.2, 0, 1)
@@ -1521,6 +1549,7 @@ function addon.Dashboard_BuildMainFrame()
                 patchNotesView:Hide()
                 guideView:Hide()
                 searchView:Hide()
+                integrationsView:Hide()
                 newsView:SetAlpha(0)
                 newsView:Show()
                 UIFrameFadeIn(newsView, 0.2, 0, 1)
@@ -1540,6 +1569,36 @@ function addon.Dashboard_BuildMainFrame()
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             end
 
+            f.ShowIntegrations = function()
+                pnChangelogHeaderBtn:Hide()
+                HideContextHeader()
+                detailView:Hide()
+                subCategoryView:Hide()
+                dashboardView:Hide()
+                welcomeView:Hide()
+                patchNotesView:Hide()
+                guideView:Hide()
+                searchView:Hide()
+                newsView:Hide()
+                integrationsView:SetAlpha(0)
+                integrationsView:Show()
+                UIFrameFadeIn(integrationsView, 0.2, 0, 1)
+                if head then head:Show() end
+                if headSub then
+                    headSub:Show()
+                    headSub:SetText(L["DASH_INTEGRATIONS_HEAD_SUB"])
+                end
+                if searchBarShell then searchBarShell:Hide() end
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+                if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
+                f.currentModuleKey = nil
+                SetSidebarState({ view = "integrations", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(nil)
+                end
+                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+            end
+
             --- Dedicated Search page: sidebar entry; embedded results panel under the search bar.
             f.ShowSearch = function()
                 pnChangelogHeaderBtn:Hide()
@@ -1551,6 +1610,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
                 if searchBox then
                     searchBox:SetText("")
@@ -1634,6 +1694,7 @@ function addon.Dashboard_BuildMainFrame()
                 if mk == "axis" and cat.key == "Modules" then
                     return false
                 end
+                if cat.hidden and cat.hidden() then return false end
                 return true
             end
 
@@ -1666,7 +1727,10 @@ function addon.Dashboard_BuildMainFrame()
             lastSidebarRow = newsBtn
             yOff = yOff + TAB_ROW_HEIGHT
 
-            -- Patch Notes (pinned bottom) + Search (pinned above Patch Notes)
+            -- Pinned bottom rows, in order (bottom up):
+            --   y = 0                  Patch Notes
+            --   y = TAB_ROW_HEIGHT     Integrations
+            --   y = TAB_ROW_HEIGHT * 2 Search
             local whatsNewBase = L["DASH_WHATS_NEW"]
             local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, "INV_Scroll_05", function()
                 if addon.PatchNotes_MarkWhatsNewSidebarClicked then
@@ -1679,9 +1743,20 @@ function addon.Dashboard_BuildMainFrame()
             whatsNewBtn._sidebarViewGetter = function() return sidebarState.view end
             f.whatsnewSidebarBtn = whatsNewBtn
 
+            local integrationsSidebarBtn = CreateBottomPinnedButton(
+                L["DASH_INTEGRATIONS_TAB"], "INV_Misc_Gear_08",
+                function()
+                    if f.ShowIntegrations then f.ShowIntegrations() end
+                end, TAB_ROW_HEIGHT
+            )
+            -- Stored so the Integrations view can append " (New!)" when there are
+            -- unseen integration entries (see DashboardIntegrationsView_Init).
+            integrationsSidebarBtn._integrationsBaseText = L["DASH_INTEGRATIONS_TAB"]
+            f.integrationsSidebarBtn = integrationsSidebarBtn
+
             local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"], "INV_Misc_Spyglass_03", function()
                 if f.ShowSearch then f.ShowSearch() end
-            end, TAB_ROW_HEIGHT)
+            end, TAB_ROW_HEIGHT * 2)
             f.searchSidebarBtn = searchSidebarBtn
             -- Note: pinned buttons NOT in sidebarButtons or sidebarRows
 
@@ -1941,6 +2016,8 @@ function addon.Dashboard_BuildMainFrame()
                     activeBtn = f.searchSidebarBtn
                 elseif sidebarState.view == "whatsnew" and f.whatsnewSidebarBtn then
                     activeBtn = f.whatsnewSidebarBtn
+                elseif sidebarState.view == "integrations" and f.integrationsSidebarBtn then
+                    activeBtn = f.integrationsSidebarBtn
                 elseif sidebarState.view == "dashboard" then
                     -- Home (module toggles): Axis hub context — expand group via activeModuleKey; highlight Axis header
                     if sidebarState.activeModuleKey == "axis" then

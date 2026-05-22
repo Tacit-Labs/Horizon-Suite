@@ -215,6 +215,49 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI 
 
 See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
+-- =====================================================================
+-- options/dashboard/DashboardIntegrationsView.lua — third-party integrations list
+-- =====================================================================
+L["DASH_INTEGRATIONS_TAB"]                                    = "Integrations"
+L["DASH_INTEGRATIONS_HEAD_SUB"]                               = "Third-party addons that Horizon Suite plays nicely with"
+
+-- Summary line at the top of the page
+L["DASH_INT_SUMMARY"]                                         = "%d of %d integrations active"
+L["DASH_INT_SUMMARY_DISABLED"]                                = "%d disabled"
+L["DASH_INT_SUMMARY_EMPTY"]                                   = "These addons aren't installed yet — try them to unlock extra features."
+
+-- Status pill labels
+L["DASH_INT_STATUS_ENABLED"]                                  = "Installed"
+L["DASH_INT_STATUS_DISABLED"]                                 = "Disabled"
+L["DASH_INT_STATUS_MISSING"]                                  = "Not installed"
+L["DASH_INT_STATUS_BUNDLED"]                                  = "Bundled"
+L["DASH_INT_STATUS_PENDING"]                                  = "Reload needed"
+
+-- CTA labels
+L["DASH_INT_CTA_GET"]                                         = "Install"
+L["DASH_INT_CTA_ENABLE"]                                      = "Enable"
+L["DASH_INT_CTA_RELOAD"]                                      = "Reload UI"
+L["DASH_INT_CTA_SETTINGS"]                                    = "Settings"
+L["DASH_INT_NEW_BADGE"]                                       = "New"
+
+-- Per-integration copy
+L["DASH_INT_ATT_DESC"]                                        = "All The Things tracks every collectible in the game (mounts, pets, transmog, achievements, recipes)."
+L["DASH_INT_ATT_WHAT"]                                        = "Focus rare-mob tooltips show ATT's loot drops, transmog availability, and collection status."
+
+L["DASH_INT_AUCTIONATOR_DESC"]                                = "Auctionator is a streamlined auction house addon with shopping lists, posting, and price history."
+L["DASH_INT_AUCTIONATOR_WHAT"]                                = "Focus's craft dialog uses Auctionator to search reagent prices and check mat costs."
+
+L["DASH_INT_TRP3_DESC"]                                       = "Total RP 3 is a comprehensive roleplay profile and lore addon."
+L["DASH_INT_TRP3_WHAT"]                                       = "Insight tooltips show TRP3 character profile data — RP name, pronouns, IC/OOC status, custom race and class, guild, Currently text, and character icon."
+
+L["DASH_INT_RONDOMEDIA_DESC"]                                 = "Rondo Media is a curated class icon set used by Horizon Suite when installed."
+L["DASH_INT_RONDOMEDIA_WHAT"]                                 = "Class icons in Insight tooltips and Focus rows."
+
+L["DASH_INT_WQT_DESC"]                                        = "World Quest Tracker is a popular world-quest filtering addon."
+L["DASH_INT_WQT_WHAT"]                                        = "Focus hides its tracker while WQT is open to keep the screen clean."
+
+L["DASH_INT_LSM_DESC"]                                        = "LibSharedMedia is a shared font and texture registry used across many addons."
+L["DASH_INT_LSM_WHAT"]                                        = "Adds extra font and statusbar texture options to Horizon Suite when installed."
 
 -- =====================================================================
 -- options/dashboard/ModuleGuide.lua — In-game module quick-start
@@ -552,11 +595,35 @@ L["INSIGHT_MOUNT_OWNED"]                                      = "You own this mo
 L["INSIGHT_MOUNT_NOT_OWNED"]                                  = "You don't own this mount"
 L["INSIGHT_TRANSMOG_SIZE"]                                    = "Transmog Size"
 L["INSIGHT_TRANSMOG_FONT_SIZE"]                               = "Item appearance status font size."
+L["INSIGHT_TRP3_CHARACTER_ICON"]                                                = "Character Icon"
+L["INSIGHT_TRP3_CHARACTER_ICON_DESC"]                                                = "Show the player's TRP3 character icon before their name, replacing the faction symbol."
+L["INSIGHT_TRP3_TITLE"]                                                = "Full Title"
+L["INSIGHT_TRP3_TITLE_DESC"]                                                = "Show the player's full title (e.g. <Keeper of the Dawnguard >) as a line below the name."
+L["INSIGHT_TRP3_NAME"]                                                = "RP Name"
+L["INSIGHT_TRP3_NAME_DESC"]                                                = "Replace the WoW character name with the player's TRP3 RP name when available."
+
+L["INSIGHT_TRP3_COLOUR_DESC"]                                                = "Use the player's TRP3 custom name colour instead of their faction or class colour for their name."
+L["INSIGHT_TRP3_STATUS"]                                                = "IC / OOC Status"
+L["INSIGHT_TRP3_STATUS_DESC"]                                                = "Show a green [IC] or red [OOC] badge on the name line for players using Total RP 3."
+L["INSIGHT_TRP3_STATUS_ICON"]                                                = "Use Icon Indicator"
+L["INSIGHT_TRP3_STATUS_ICON_DESC"]                                                = "Show a colored green or red dot instead of [IC] / [OOC] text on the name line."
+L["INSIGHT_TRP3_PRONOUNS"]                                                = "Pronouns"
+L["INSIGHT_TRP3_PRONOUNS_DESC"]                                                = "Show the player's TRP3 pronouns in the name line."
+L["INSIGHT_TRP3_RACE_CLASS"]                                                = "Custom Race & Class"
+L["INSIGHT_TRP3_RACE_CLASS_DESC"]                                                = "Show the player's TRP3 race/class near the bottom when available. The native race/class line moves there as a fallback."
+L["INSIGHT_TRP3_GUILD"]                                                = "Custom Guild"
+L["INSIGHT_TRP3_GUILD_DESC"]                                                = "Show the player's TRP3 guild near the bottom when available. The native guide line moves there as a fallback."
+L["INSIGHT_TRP3_CURRENTLY"]                                                = "Currently"
+L["INSIGHT_TRP3_CURRENTLY_DESC"]                                                = "Show the player's TRP3 'Currently' status text as a block at the bottom of the tooltip"
+L["INSIGHT_TRP3_BORDER_COLOUR"]                                                 = "Custom Border Colour"
+L["INSIGHT_TRP3_BORDER_COLOUR_DESC"]                                            = "Tint the tooltip border with the player's TRP3 custom colour instead of their class colour."
 L["AXIS_TOOLTIPS"]                                            = "Tooltips"
 L["INSIGHT_CATEGORY_GLOBAL"]                                  = "Global Tooltips"
 L["INSIGHT_CATEGORY_GLOBAL_DESC"]                             = "Anchor, backdrop, font family, and display options shared across tooltip types."
 L["INSIGHT_CATEGORY_PLAYER"]                                  = "Player Characters"
 L["INSIGHT_CATEGORY_PLAYER_DESC"]                             = "Guild rank, titles, badges, PvP, ratings, gear, mount lines, icons, and section separators on player tooltips."
+L["INSIGHT_CATEGORY_TRP3"]                                                = "Total RP 3"
+L["INSIGHT_CATEGORY_TRP3_DESC"]                                                = "Integrate Total RP 3 character profiles into Insight player tooltips. TRP3's tooltip frame is suppressed; all RP data appears inside Insight's styled GameTooltip"
 L["INSIGHT_CATEGORY_NPC"]                                     = "NPCs"
 L["INSIGHT_CATEGORY_NPC_DESC"]                                = "Reaction colours, level line, icons, and font sizes for NPC tooltips."
 L["INSIGHT_CATEGORY_ITEM"]                                    = "Items"
@@ -582,10 +649,13 @@ L["INSIGHT_DISPLAY_MODE_MODIFIER"]                            = "Modifier"
 L["INSIGHT_SECTION_STATUS_PVP"]                               = "Status"
 L["INSIGHT_STATUS_BADGE_COMBAT"]                              = "Combat"
 L["INSIGHT_STATUS_BADGE_COMBAT_DESC"]                         = "Show a Combat badge when the hovered player is in combat."
-L["INSIGHT_STATUS_BADGE_AFK"]                                 = "AFK"
-L["INSIGHT_STATUS_BADGE_AFK_DESC"]                            = "Show an AFK badge when the hovered player is away."
-L["INSIGHT_STATUS_BADGE_DND"]                                 = "DND"
-L["INSIGHT_STATUS_BADGE_DND_DESC"]                            = "Show a DND badge when the hovered player is marked do not disturb."
+L["INSIGHT_STATUS_BADGE_AFK"]                                 = "AFK / DND"
+L["INSIGHT_STATUS_BADGE_AFK_DESC"]                            = "Show an AFK or DND badge when the hovered player is away or marked do not disturb."
+L["INSIGHT_STATUS_BADGE_AFK_IN_HEADER"]                       = "AFK / DND In Header"
+L["INSIGHT_STATUS_BADGE_AFK_IN_HEADER_DESC"]                  = "Show AFK / DND inline on the name line. When off, they appear with the other status badges."
+-- DND badge was merged into the AFK / DND toggle; key no longer used in the options UI.
+-- L["INSIGHT_STATUS_BADGE_DND"]                             = "DND"
+-- L["INSIGHT_STATUS_BADGE_DND_DESC"]                        = "Show a DND badge when the hovered player is marked do not disturb."
 L["INSIGHT_STATUS_BADGE_PVP"]                                 = "PvP"
 L["INSIGHT_STATUS_BADGE_PVP_DESC"]                            = "Show a PvP badge when the hovered player is flagged for PvP."
 L["INSIGHT_STATUS_BADGE_GROUP"]                               = "Group"
@@ -655,7 +725,7 @@ L["INSIGHT_TITLE_COLOUR_MODE_DESC"]                           = "Choose how char
 L["INSIGHT_TITLE_COLOUR_MATCH_NAME"]                          = "Match Name"
 L["INSIGHT_TITLE_COLOUR_MATCH_NAME_GRADIENT"]                 = "Match Name (Gradient)"
 L["INSIGHT_TITLE_COLOUR_CUSTOM"]                              = "Custom"
-L["INSIGHT_TITLE_CUSTOM_COLOUR"]                              = "Custom Color"
+L["INSIGHT_TITLE_CUSTOM_COLOUR"]                              = "Custom Colour"
 L["AXIS_TITLE_COLOUR"]                                        = "Title Colour"
 L["AXIS_COLOUR_OF_CHARACTER_TITLE_PLAYER_TOOLTIP"]            = "Colour of the character title in the player tooltip name line."
 L["AXIS_STATUS_BADGES"]                                       = "Show Status Badges"

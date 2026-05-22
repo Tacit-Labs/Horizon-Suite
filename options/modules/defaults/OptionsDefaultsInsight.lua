@@ -38,7 +38,7 @@ addon.INSIGHT_KEYS = {
     insightShowStatusBadges      = true,
     insightStatusBadgeCombat     = true,
     insightStatusBadgeAFK        = true,
-    insightStatusBadgeDND        = true,
+    insightStatusBadgeAFKInHeader = true,
     insightStatusBadgePVP        = true,
     insightStatusBadgeGroup      = true,
     insightStatusBadgeFriend     = true,
@@ -80,6 +80,20 @@ addon.INSIGHT_KEYS = {
     insightPlayerBadgesSize      = true,
     insightPlayerStatsSize       = true,
     insightPlayerMountSize       = true,
+    -- Total RP 3 integration
+    insightTRP3Enabled          = true,
+    insightTRP3RPName           = true,
+    insightTRP3CustomColor      = true,
+    insightTRP3Pronouns         = true,
+    insightTRP3ICStatus         = true,
+    insightTRP3Currently        = true,
+    insightTRP3Icon             = true,
+    insightTRP3ICStatusIcon     = true,
+    insightTRP3Title            = true,
+    insightTRP3RaceClass        = true,
+    insightTRP3Guild            = true,
+    insightTRP3BorderColor      = true,
+
 }
 
 addon.INSIGHT_DEFAULTS = {
@@ -110,7 +124,7 @@ addon.INSIGHT_DEFAULTS = {
     insightShowStatusBadges      = true,
     insightStatusBadgeCombat     = true,
     insightStatusBadgeAFK        = true,
-    insightStatusBadgeDND        = true,
+    insightStatusBadgeAFKInHeader = false,
     insightStatusBadgePVP        = true,
     insightStatusBadgeGroup      = true,
     insightStatusBadgeFriend     = true,

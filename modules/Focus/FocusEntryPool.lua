@@ -762,7 +762,7 @@ local function ApplyTypography()
     if addon.optionsShadow and addon.optionsLabel then
         addon.optionsShadow:SetTextColor(0, 0, 0, shadowA)
         addon.optionsShadow:SetPoint("CENTER", addon.optionsLabel, "CENTER", shadowOx, shadowOy)
-        addon.optionsShadow:SetText(addon.optionsLabel:GetText() or "")
+        addon.optionsShadow:SetText(addon.PlainTextForShadowFontString(addon.optionsLabel:GetText() or ""))
     end
 
     for i = 1, addon.POOL_SIZE do

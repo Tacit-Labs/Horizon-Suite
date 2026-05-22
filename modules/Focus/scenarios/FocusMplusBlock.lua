@@ -378,8 +378,7 @@ local function UpdateMplusBlockDisplay(data)
     local dungeonName = data.dungeonName ~= "" and data.dungeonName or "Mythic+"
     local level = data.level > 0 and (" (+" .. data.level .. ")") or ""
     local heroStr = dungeonName .. level
-    mplusHeroText:SetText(heroStr)
-    mplusHeroShadow:SetText(heroStr)
+    addon.SetTextWithShadow(mplusHeroText, mplusHeroShadow, heroStr)
 
     -- Line 2: Timer (elapsed / target + penalty)
     local timerStr = "—"
@@ -448,10 +447,8 @@ local function UpdateMplusBlockDisplay(data)
         local cntStr  = ("(%s/%s)"):format(
             addon.FormatNumberWithGrouping(data.enemyForces.current),
             addon.FormatNumberWithGrouping(data.enemyForces.total))
-        progressPercentLabel:SetText(pctStr)
-        progressPercentShadow:SetText(pctStr)
-        progressCountLabel:SetText(cntStr)
-        progressCountShadow:SetText(cntStr)
+        addon.SetTextWithShadow(progressPercentLabel, progressPercentShadow, pctStr)
+        addon.SetTextWithShadow(progressCountLabel, progressCountShadow, cntStr)
 
         -- Color: user-picked bar fill; switches to "done" color at 100%
         if data.enemyForces.percent >= 100 then

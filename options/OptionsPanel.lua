@@ -2618,9 +2618,11 @@ end
 local MODULE_LABELS = { ["modules"] = BrandModule("axis") or "Axis", ["focus"] = BrandModule("focus"), ["presence"] = BrandModule("presence"), ["insight"] = BrandModule("insight"), ["cache"] = BrandModule("cache"), ["vista"] = BrandModule("vista") }
 local groups = {}
 for i, cat in ipairs(addon.OptionCategories) do
-    local mk = cat.moduleKey or "modules"
-    if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OTHER"], categories = {} } end
-    table.insert(groups[mk].categories, i)
+    if not (cat.hidden and cat.hidden()) then
+        local mk = cat.moduleKey or "modules"
+        if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OTHER"], categories = {} } end
+        table.insert(groups[mk].categories, i)
+    end
 end
 local groupOrder = { "modules", "focus", "presence", "insight", "cache", "vista" }
 
