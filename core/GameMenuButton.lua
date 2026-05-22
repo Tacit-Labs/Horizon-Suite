@@ -19,7 +19,7 @@ local function FindAddonsButton()
     if _G.GameMenuButtonAddons then return _G.GameMenuButtonAddons end
     if GameMenuFrame.AddonsButton then return GameMenuFrame.AddonsButton end
 
-    local target = _G.ADDONS or "AddOns"
+    local target = _G.ADDONS
     for _, child in ipairs({ GameMenuFrame:GetChildren() }) do
         if child.GetText and child:GetText() == target then
             return child
