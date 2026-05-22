@@ -597,6 +597,41 @@ local OptionCategories = {
             opts[#opts + 1] = { type = "toggle", name = BM and BM("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"], dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] }
+            local isGlobalFontOn = function() return getDB("useGlobalFont", D and D.useGlobalFont or false) end
+            opts[#opts + 1] = {
+                type = "toggle",
+                name = L["AXIS_USE_GLOBAL_FONT"],
+                desc = L["AXIS_USE_GLOBAL_FONT_DESC"],
+                dbKey = "useGlobalFont",
+                get = isGlobalFontOn,
+                set = function(v) setDB("useGlobalFont", v) end,
+                refreshIds = { "globalOverrideFontPath" },
+            }
+            opts[#opts + 1] = {
+                type = "dropdown",
+                name = L["AXIS_GLOBAL_FONT_PICKER"],
+                desc = L["AXIS_GLOBAL_FONT_PICKER_DESC"],
+                dbKey = "globalOverrideFontPath",
+                searchable = true,
+                disabled = function() return not isGlobalFontOn() end,
+                options = function()
+                    if addon.RefreshFontList then addon.RefreshFontList() end
+                    local list = (addon.GetFontList and addon.GetFontList()) or {}
+                    local saved = getDB("globalOverrideFontPath", nil)
+                    if not saved or saved == "" then return list end
+                    for _, o in ipairs(list) do
+                        if o[2] == saved then return list end
+                    end
+                    local out = {}
+                    for i = 1, #list do out[i] = list[i] end
+                    out[#out + 1] = { L["FOCUS_CUSTOM"], saved }
+                    return out
+                end,
+                get = function() return getDB("globalOverrideFontPath", nil) end,
+                set = function(v) setDB("globalOverrideFontPath", v) end,
+                displayFn = addon.GetFontNameForPath,
+                fontPreviewInList = true,
+            }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_SCALE_SECTION"] }
             local function refreshAllScaling()
                 if addon.ApplyTypography then addon.ApplyTypography() end
