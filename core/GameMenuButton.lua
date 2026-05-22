@@ -3,7 +3,7 @@
     Adds a "Horizon Suite" entry to the in-game menu (Esc) that opens the dashboard.
 ]]
 
-local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
+local addon = _G.HorizonSuite
 if not addon then return end
 
 local L = addon.L
