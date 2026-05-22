@@ -127,6 +127,7 @@ options/modules/defaults/OptionsDefaultsAxis.lua
 options/modules/defaults/OptionsDefaultsFlow.lua
 options/modules/defaults/OptionsDefaultsMeridian.lua
 options/modules/OptionsAxis.lua
+options/modules/OptionsGlobal.lua
 options/modules/OptionsFocus.lua
 options/modules/OptionsPresence.lua
 options/modules/OptionsInsight.lua

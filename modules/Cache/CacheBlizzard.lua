@@ -113,11 +113,26 @@ local alertShowHookInstalled    = false  -- AlertFrame_ShowNewAlertFrame
 -- Unregistering these from AlertFrame prevents it from ever creating toast frames
 -- in the first place — the same approach used by Plumber's loot suppression.
 local ALERT_FRAME_EVENTS = {
+    -- Standard loot toasts
     "SHOW_LOOT_TOAST",
     "SHOW_LOOT_TOAST_UPGRADE",
     "SHOW_LOOT_TOAST_LEGENDARY_LOOTED",
     "LOOT_ITEM_ROLL_WON",
     "BONUS_LOOT_ITEM_RECEIVED",
+    -- PvP loot
+    "SHOW_PVP_FACTION_LOOT_TOAST",
+    "SHOW_RATED_PVP_REWARD_TOAST",
+    -- Quest / scenario loot
+    "QUEST_LOOT_RECEIVED",
+    "SCENARIO_COMPLETED",
+    -- Specialised loot toasts
+    "AZERITE_EMPOWERED_ITEM_LOOTED",
+    "PERKS_PROGRAM_CURRENCY_AWARDED",
+    -- Housing
+    "INITIATIVE_TASK_COMPLETED",
+    -- TWW warband-bank item push (newer; safe to list even if absent on older clients)
+    "HOME_DECORATION_ADDED",
+    "SHOW_LOOT_TOAST_ITEM_PUSH",
 }
 
 -- Track which events we successfully unregistered so RestoreBlizzard only

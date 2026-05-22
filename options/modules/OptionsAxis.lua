@@ -1,6 +1,7 @@
 --[[
     Horizon Suite - Axis - Options categories
-    Modules, GlobalToggles, and Profiles are owned by OptionsData.lua.
+    Modules and Profiles are owned by OptionsData.lua.
+    GlobalToggles is owned by OptionsGlobal.lua.
     This file is retained for future Axis-specific categories.
 ]]
 local addon = _G.HorizonSuite
