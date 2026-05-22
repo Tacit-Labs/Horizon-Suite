@@ -162,7 +162,10 @@ local function StartKillTicker()
     end)
 end
 
-local function OnBlizzardLootToast() StartKillTicker() end
+local function OnBlizzardLootToast()
+    if not (addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true)) then return end
+    StartKillTicker()
+end
 handlers.SHOW_LOOT_TOAST                  = OnBlizzardLootToast
 handlers.SHOW_LOOT_TOAST_UPGRADE          = OnBlizzardLootToast
 handlers.SHOW_LOOT_TOAST_LEGENDARY_LOOTED = OnBlizzardLootToast
