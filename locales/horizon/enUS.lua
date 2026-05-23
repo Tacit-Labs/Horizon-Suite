@@ -140,16 +140,16 @@ L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "Axis • Coming
 L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                          = "Patch notes"
 L["DASH_NEWS_CTA_OPEN_GUIDE"]                                 = "Open Quick Start"
 L["DASH_NEWS_FEATURED_TITLE"]                        = "AddOn Integrations List"
-L["DASH_NEWS_FEATURED_TAGLINE"]                      =[=[Check out our new Integrations page where you can remain up to date on which AddOns are fully integrated into Horizon Suite!
+L["DASH_NEWS_FEATURED_TAGLINE"]                      = [=[Check out our new Integrations page where you can remain up to date on which AddOns are fully integrated into Horizon Suite!
 
 The page automatically detects which AddOns from the list are installed and will display an 'Install' link that will direct you to the CurseForge page for any AddOn that may be missing.
 
 One AddOn in particular has been long-awaited, |cfff5e1a4Total Roleplay 3|r! TRP3 is now fully integrated into Horizon's style of tooltips, allowing you to see only what you want during roleplay while still enjoying the minimalist aesthetic that Horizon offers.]=]
-L["DASH_NEWS_FEATURED_BODY"]                         = "Horizon can now be accessed through the Game Menu! Compatible with ElvUI's Game Menu button as well!"
-L["DASH_NEWS_FEATURED_META"]                         = "Axis   •   Integrations   •   Available Now"
+L["DASH_NEWS_FEATURED_BODY"]                         = "The integrations page can be viewed by clicking the button at the bottom of the sidebar, next to search! If you have a suggestion for an AddOn to integrate, feel free to let us know on Discord!"
+L["DASH_NEWS_FEATURED_META"]                         = "Axis   •   Quality of Life   •   Available Now"
 L["DASH_NEWS_HIGHLIGHT_TITLE"]                              = "Edit Mode is still in the works!"
 L["DASH_NEWS_HIGHLIGHT_BODY"]                               = "We're still working on lining up Horizon Suite with WoW's Edit Mode so you can place and arrange addon frames next to the rest of your HUD. For everything that has already shipped, |cffaaaaaaPatch Notes|r still has the full list."
-L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis   •   Quality of Life   •   Available Now"
+L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis • Global Settings • Class Colours • Art by Gabriel C"
 L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "Transforming 'Cache' into 'Flux'"
 L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = [=[Our original plan was to roll out 'Cache' as our official loot toast module, suggested in the modules list. However, we felt it necessary to broaden our horizons a bit (pun intended). We're incorporating what currently is Cache into our new module, 'Flux', which will contain quality of life improvements that don't particularly fit into any other module.
 
