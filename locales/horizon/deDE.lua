@@ -174,9 +174,9 @@ L["DASH_WELCOME_LEARN_BODY"]                                  = "Dieser Abschnit
 L["DASH_WELCOME_PATH"]                                        = "%s → %s → %s"
 L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]                 = "Blizzard+-Mausklickprofil"
 L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                    = [=[Focus verwendet jetzt standardmäßig |cffffffffBlizzard+|r — Blizzard-ähnliches Klickprofil mit einigen Horizon-Vorzügen. Öffne |cffaaaaaaFocus > Interaktionen|r und gehe zu |cffaaaaaaMausklickprofile|r, um die Voreinstellung anzussehen; |cffffffffHorizon+|r und voll |cffffffffanpassbare|r Belegungen sind in Arbeit.]=]
-L["DASH_WELCOME_ROADMAP_TOP_TITLE"]                           = "In Kürze"
+L["DASH_WELCOME_COMING_SOON_TITLE"]                           = "In Kürze"
 L["DASH_WELCOME_COMING_SOON_TAGLINE"]                         = "Neue Einstiegserfahrungen sind auf dem Weg."
-L["DASH_WELCOME_ROADMAP_TOP_BODY"]                            = [=[Im Blick behalten — Aktualisierungen werden hier und in den |cffaaaaaaÄnderungshinweisen|r vorgestellt. Tritt unserem |cffaaaaaaDiscord|r für Neuigkeiten und Feedback bei (Links dazu unten).]=]
+L["DASH_WELCOME_COMING_SOON_BODY"]                            = [=[Im Blick behalten — Aktualisierungen werden hier und in den |cffaaaaaaÄnderungshinweisen|r vorgestellt. Tritt unserem |cffaaaaaaDiscord|r für Neuigkeiten und Feedback bei (Links dazu unten).]=]
 L["DASH_WELCOME_CLASS_ICONS_HEADING"]                         = "Horizon-Klassensymbole"
 L["DASH_WELCOME_CLASS_ICONS_LEAD"]                            = [=[Horizon biete einen mitgelieferten Satz benutzerdefinierter Klassensymbole – Diese können unter |cffaaaaaaHorizon|r → |cffaaaaaaAxis → Globale Einstellungen → Klassensymbolstil aktiviert werden.]=]
 L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"]                   = [=[Vielen Dank an Boofuls für dieses Kunstwerk und der Unterstützung, diese Symbole allen zugänglich zu machen.]=]
