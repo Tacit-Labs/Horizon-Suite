@@ -257,6 +257,16 @@ local function CreateQuestEntry(parent, index)
     end)
     e.ahBtn:Hide()
 
+    -- RS navigation buttons and loot icons: managed by the RareScanner integration module.
+    if addon.focus.rs then
+        addon.focus.rs.InitNavWidgets(e)
+        addon.focus.rs.InitLootWidgets(e)
+    end
+    -- SD navigation buttons: managed by the SilverDragon integration module.
+    if addon.focus.sd then
+        addon.focus.sd.InitNavWidgets(e)
+    end
+
     -- Small icon for "tracked from other zone" (world quest on watch list but not on current map).
     local iconSz = addon.TRACKED_OTHER_ZONE_ICON_SIZE or 12
     e.trackedFromOtherZoneIcon = e:CreateTexture(nil, "ARTWORK")
@@ -943,6 +953,13 @@ local function ClearEntry(entry, full)
             entry.itemBtn:Hide()
         end
         if entry.lfgBtn then entry.lfgBtn:Hide() end
+        if addon.focus.rs then
+            addon.focus.rs.ClearNavWidgets(entry)
+            addon.focus.rs.ClearLootWidgets(entry)
+        end
+        if addon.focus.sd then
+            addon.focus.sd.ClearNavWidgets(entry)
+        end
         if entry.questIconBtn then entry.questIconBtn:Hide() end
         if entry.trackBar then entry.trackBar:Hide() end
         if entry.affixNameSegs then

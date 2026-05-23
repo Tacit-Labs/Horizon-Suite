@@ -1820,6 +1820,11 @@ for i = 1, addon.POOL_SIZE do
                 ExecuteAppearanceAction(actionAppearance, self)
                 return
             end
+            -- RareScanner entries: targeting is handled by the secure name button
+            -- (rareTargetBtn / SecureActionButtonTemplate).  Nothing to do here.
+            if self.entryKey and self.entryKey:match("^rarescanner:") then
+                return
+            end
             if self.entryKey then
                 local trackedKind = ResolveTrackedContentKind(self)
                 if trackedKind then

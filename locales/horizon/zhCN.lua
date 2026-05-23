@@ -2375,3 +2375,73 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(尚未检测�
 -- L["FOCUS_SLASH_DBG_RECIPE_NO_TRACKED"]                     = "No tracked recipes. Track some in the profession UI, or use: /horizon recipedebug 12345"
 -- L["FOCUS_AH_RECIPE_FALLBACK"]                              = "Recipe"
 )
+
+-- =====================================================================
+-- Integrations tab -- Focus options
+-- =====================================================================
+-- L["FOCUS_INTEGRATION"]                                     = "Integrations"
+-- L["FOCUS_INTEGRATION_DESC"]                                = "Configure companion addon integrations for the Focus tracker."
+
+-- Shared rare-integration keys (used by both RareScanner and SilverDragon).
+-- L["FOCUS_INTEGRATION_RARE_MAX_ALERTS"]                     = "Alert Queue Limit"
+-- L["FOCUS_INTEGRATION_RARE_MAX_ALERTS_DESC"]                = "Maximum number of rare alerts kept in the queue at once. When the limit is reached, the oldest entry is removed first (FIFO)."
+-- L["FOCUS_INTEGRATION_RARE_SHOW_COORDS"]                    = "Show Coordinates"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_COORDS_DESC"]               = "Show the X, Y map coordinates for the detected rare below its name in the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARE_COORD_WAYPOINT"]                 = "Click Coords to Set Waypoint"
+-- L["FOCUS_INTEGRATION_RARE_COORD_WAYPOINT_DESC"]            = "Clicking the coordinates line sets a waypoint at the rare's location. Hold Shift to share the location in chat instead."
+-- L["FOCUS_INTEGRATION_RARE_USE_TOMTOM"]                     = "Use TomTom"
+-- L["FOCUS_INTEGRATION_RARE_USE_TOMTOM_DESC"]                = "Send the waypoint to TomTom instead of the default Blizzard map pin. Requires TomTom to be installed."
+-- L["FOCUS_INTEGRATION_RARE_TOMTOM_INVALID"]                 = "TomTom is not installed."
+-- L["FOCUS_INTEGRATION_RARE_AUTO_WAYPOINT"]                  = "Auto-set Waypoint"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT"]                  = "Show NPC Portrait"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT_DESC"]             = "Show the rare NPC portrait in the icon column of its Focus tracker entry."
+-- L["FOCUS_INTEGRATION_RARE_SHOW_VIGNETTE_ICON"]              = "Show Vignette Icon"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_VIGNETTE_ICON_DESC"]         = "Show the minimap vignette icon next to the NPC name in the Focus tracker entry."
+-- L["FOCUS_INTEGRATION_RARE_CLICK_TO_TARGET"]                = "Click Name to Target + Mark"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO"]                  = "Show Time Since Detection"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO_DESC"]             = "Display how long ago the rare was first detected below its name in the Focus tracker. Updates every minute."
+-- L["FOCUS_INTEGRATION_RARE_COLOR"]                          = "Alert Color"
+-- L["FOCUS_INTEGRATION_RARE_COLOR_DESC"]                     = "Color used to highlight this integration's alerts in the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL"]                 = "Ctrl+Click to Copy Wowhead URL"
+-- L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL_DESC"]            = "Hold Ctrl and click the coordinates line to copy the NPC's Wowhead URL to the clipboard."
+
+-- RareScanner-specific keys.
+-- L["FOCUS_INTEGRATION_RARESCANNER"]                         = "RareScanner"
+-- L["FOCUS_INTEGRATION_RARESCANNER_INVALID"]                 = "Horizon - RareScanner is not installed."
+-- L["FOCUS_INTEGRATION_RARESCANNER_ENABLE"]                  = "Enable RareScanner Integration"
+-- L["FOCUS_INTEGRATION_RARESCANNER_ENABLE_DESC"]             = "Replace Focus built-in rare and treasure alerts with RareScanner data."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES"]              = "Show Rare Bosses"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES_DESC"]         = "Show rare NPC alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_TREASURES"]          = "Show Treasures"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_TREASURES_DESC"]     = "Show treasure and container alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_EVENTS"]             = "Show Events"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_EVENTS_DESC"]        = "Show rare event alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_AUTO_WAYPOINT_DESC"]      = "Automatically set a waypoint when a RareScanner alert fires."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT"]               = "Show Potential Loot"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT_DESC"]          = "Show potential loot item icons in a row below the rare name in the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY"]        = "Minimum Loot Quality"
+-- L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY_DESC"]   = "Only show loot icons for items of this quality or higher."
+-- L["FOCUS_INTEGRATION_RARESCANNER_LOOT_PER_ROW"]            = "Loot Icons Per Row"
+-- L["FOCUS_INTEGRATION_RARESCANNER_LOOT_PER_ROW_DESC"]       = "Maximum number of loot item icons displayed per row (3-8)."
+-- L["FOCUS_INTEGRATION_RARESCANNER_CLICK_TO_TARGET_DESC"]    = "Left-clicking a RareScanner entry in Focus will attempt to target the NPC and apply a skull raid marker if it is on a visible nameplate."
+-- L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN"]                = "Fire Test Alert"
+-- L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN_DESC"]           = "Simulates a rare NPC detection using RareScanner's built-in test (Time-Lost Proto-Drake)."
+
+-- SilverDragon-specific keys.
+-- L["FOCUS_INTEGRATION_SILVERDRAGON"]                        = "SilverDragon"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_DESC"]                   = "Configure the SilverDragon companion addon integration for the Focus tracker."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_INVALID"]                = "Horizon - SilverDragon is not installed."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_ENABLE"]                 = "Enable SilverDragon Integration"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_ENABLE_DESC"]            = "Show SilverDragon rare alerts inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_AUTO_WAYPOINT_DESC"]     = "Automatically set a waypoint when a SilverDragon alert fires."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_CLICK_TO_TARGET_DESC"]   = "Left-clicking a SilverDragon entry in Focus will attempt to target the NPC and apply a skull raid marker if it is on a visible nameplate."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_TEST_BTN"]               = "Fire Test Alert"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_TEST_BTN_DESC"]          = "Simulates a SilverDragon rare detection (Humar the Pridelord)."
+
+-- Dashboard Integrations feed -- RareScanner and SilverDragon cards.
+-- L["DASH_INT_RS_DESC"]                                      = "Replaces Focus built-in rare alerts with RareScanner data, complete with loot previews, coordinates, and waypoints."
+-- L["DASH_INT_RS_WHAT"]                                      = "Rich rare NPC, treasure, and event alerts with loot item icons, coordinates, TomTom waypoints, and click-to-target support."
+-- L["DASH_INT_SD_DESC"]                                      = "Shows SilverDragon rare NPC alerts inside the Focus tracker."
+-- L["DASH_INT_SD_WHAT"]                                      = "Rare NPC alerts with 3D portrait, coordinates, TomTom waypoints, and click-to-target support."
+-- =====================================================================
+: RareScanner & SilverDragon integrations v1)

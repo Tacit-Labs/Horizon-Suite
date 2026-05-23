@@ -76,6 +76,8 @@ modules/Focus/providers/FocusAppearances.lua
 modules/Focus/providers/FocusRecipes.lua
 modules/Focus/providers/FocusAdventureGuide.lua
 modules/Focus/rendering/FocusAggregator.lua
+modules/Focus/integrations/RareScannerFocus.lua
+modules/Focus/integrations/SilverDragonFocus.lua
 modules/Focus/integration/FocusAuctionCraftDialog.lua
 modules/Focus/rendering/FocusEntryPool.lua
 modules/Focus/rendering/FocusEntryRenderer.lua
@@ -154,6 +156,7 @@ options/modules/OptionsEssence.lua
 options/modules/OptionsVista.lua
 options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua
+options/modules/OptionsFocusIntegrations.lua
 options/OptionsSearch.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua

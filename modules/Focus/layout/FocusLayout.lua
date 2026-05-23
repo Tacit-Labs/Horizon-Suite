@@ -478,8 +478,9 @@ local function FullLayout()
         scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
     end
 
-    local rares = addon.GetDB("showRareBosses", true) and addon.GetRaresOnMap() or {}
-    local treasures = addon.GetDB("showRareLoot", false) and addon.GetTreasuresOnMap and addon.GetTreasuresOnMap() or {}
+    local rareProviderActive = addon.HasActiveRareProvider()
+    local rares = (not rareProviderActive and addon.GetDB("showRareBosses", true)) and addon.GetRaresOnMap() or {}
+    local treasures = (not rareProviderActive and addon.GetDB("showRareLoot", false)) and addon.GetTreasuresOnMap and addon.GetTreasuresOnMap() or {}
     local currentRareKeys = {}
     for _, r in ipairs(rares) do currentRareKeys[r.entryKey or r.questID] = true end
     for _, t in ipairs(treasures) do currentRareKeys[t.entryKey or t.questID] = true end

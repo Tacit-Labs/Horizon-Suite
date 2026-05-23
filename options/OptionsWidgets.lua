@@ -314,7 +314,14 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    local resolvedTooltip
+    if type(tooltip) == "function" then
+        resolvedTooltip = tooltip()  -- may return nil when no extra text is needed
+    else
+        resolvedTooltip = tooltip
+    end
+    local sep = (description and resolvedTooltip and resolvedTooltip ~= "") and "\n\n" or ""
+    local effectiveTooltip = (description or "") .. sep .. (resolvedTooltip or "")
     ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
