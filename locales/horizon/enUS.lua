@@ -178,7 +178,7 @@ L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                    = [=[Focus uses |c
 L["DASH_WELCOME_COMING_SOON_TITLE"]                           = "Coming Soon"
 L["DASH_WELCOME_COMING_SOON_TAGLINE"]                         = "New welcome experiences are on the way."
 L["DASH_WELCOME_COMING_SOON_BODY"]                            = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
-L["DASH_WELCOME_HIGHLIGHT_TITLE"]                         = "New: Horizon class icons"
+L["DASH_WELCOME_CLASS_ICONS_HEADING"]                         = "New: Horizon class icons"
 L["DASH_WELCOME_CLASS_ICONS_LEAD"]                            = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r for |cffaaaaaaDashboard class icon style|r under |cffaaaaaaAxis > Global Settings > Class Colours|r (when dashboard class colours are on).]=]
 L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"]                   = [=[Thank you, Boofuls, for commissioning this art and helping bring these icons to everyone.]=]
 L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"]                  = "• Created by "
