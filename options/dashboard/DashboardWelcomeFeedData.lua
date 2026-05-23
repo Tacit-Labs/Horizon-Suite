@@ -81,5 +81,5 @@ addon.DashboardWelcomeFeed = {
         sort = 100,
         titleKey = "DASH_WELCOME_LOCALISATIONS_HEADING",
         bodyKey = "DASH_WELCOME_LOCALISATIONS_BODY",
-    },
+    }
 }

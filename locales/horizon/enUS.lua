@@ -144,19 +144,18 @@ L["DASH_NEWS_FEATURED_TAGLINE"]                      = [=[Check out our new Inte
 
 The page automatically detects which AddOns from the list are installed and will display an 'Install' link that will direct you to the CurseForge page for any AddOn that may be missing.
 
-One AddOn in particular has been long-awaited, |cfff5e1a4Total Roleplay 3|r! TRP3 is now fully integrated into Horizon's style of tooltips, allowing you to see only what you want during roleplay while still enjoying the minimalist aesthetic that Horizon offers.]=]
+One AddOn in particular has been long-awaited, |cfff5e1a4Total Roleplay 3|r!
+TRP3 is now fully integrated into Horizon's style of tooltips, allowing you to see only what you want during roleplay while still enjoying the minimalist aesthetic that Horizon offers.]=]
 L["DASH_NEWS_FEATURED_BODY"]                         = "The integrations page can be viewed by clicking the button at the bottom of the sidebar, next to search! If you have a suggestion for an AddOn to integrate, feel free to let us know on Discord!"
 L["DASH_NEWS_FEATURED_META"]                         = "Axis   •   Quality of Life   •   Available Now"
-L["DASH_NEWS_HIGHLIGHT_TITLE"]                              = "Edit Mode is still in the works!"
-L["DASH_NEWS_HIGHLIGHT_BODY"]                               = "We're still working on lining up Horizon Suite with WoW's Edit Mode so you can place and arrange addon frames next to the rest of your HUD. For everything that has already shipped, |cffaaaaaaPatch Notes|r still has the full list."
-L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis • Global Settings • Class Colours • Art by Gabriel C"
+L["DASH_NEWS_HIGHLIGHT_TITLE"]                                 = "Horizon Suite now has a Game Menu Button"
+L["DASH_NEWS_HIGHLIGHT_BODY"]                                  = "The first example of which is that we're now accessible through Blizzard's native Game Menu with our own button! For those who use ElvUI, our menu button is also compatible with theirs, meaning nobody has to choose between the two."
+L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis   •   Quality of Life   •   Work in Progress"
 L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "Transforming 'Cache' into 'Flux'"
-L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = [=[Our original plan was to roll out 'Cache' as our official loot toast module, suggested in the modules list. However, we felt it necessary to broaden our horizons a bit (pun intended). We're incorporating what currently is Cache into our new module, 'Flux', which will contain quality of life improvements that don't particularly fit into any other module.
-
-The first example of which is that we're now accessible through Blizzard's native Game Menu with our own button! For those who use ElvUI, our menu button is also compatible with theirs, meaning nobody has to choose between the two.]=]
-L["DASH_NEWS_ROADMAP_BOTTOM_TITLE"]                                 = "Horizon Suite now has a Game Menu Button"
-L["DASH_NEWS_ROADMAP_BOTTOM_BODY"]                                  = "Our button is compatible with ElvUI's Game Menu Button as well so you don't have to choose between the two."
-L["DASH_NEWS_ROADMAP_META"]                               = "News hub • Editorial layout • Curated in addon"
+L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = "Our original plan was to roll out 'Cache' as our official loot toast module, suggested in the modules list. However, we felt it necessary to broaden our horizons a bit (pun intended). We're incorporating what currently is Cache into our new module, 'Flux', which will contain quality of life improvements that don't particularly fit into any other module."
+L["DASH_NEWS_ROADMAP_BOTTOM_TITLE"]                              = "Edit Mode is still in the works!"
+L["DASH_NEWS_ROADMAP_BOTTOM_BODY"]                               = "We're still working on lining up Horizon Suite with WoW's Edit Mode so you can place and arrange addon frames next to the rest of your HUD. For everything that has already shipped, |cffaaaaaaPatch Notes|r still has the full list."
+L["DASH_NEWS_ROADMAP_META"]                               = " "
 L["DASH_NEWS_QUICK_START_TITLE"]                              = "Need the quick tour again?"
 L["DASH_NEWS_QUICK_START_BODY"]                               = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
 L["DASH_NEWS_QUICK_START_META"]                               = "Guide • Onboarding • Always available"
@@ -276,9 +275,9 @@ L["DASH_GUIDE_HORIZON_BULLETS"]                               = [=[• Axis — 
 • Presence — Large cinematic toasts for zones, quests, scenarios, achievements, level up, and similar moments.
 • Vista — Minimap chrome: zone text, coordinates, clock, and a collector for minimap buttons.
 • Insight — Richer tooltips for players, NPCs, and items (class colours, spec, icons, extras).
-• Cache — Loot toasts and bag presentation.
+• Flux — Quality of life changes and improvements to Blizzard's Native UI that don't fit within any other particular module.
 • Essence — Character sheet with 3D model, item level, stats, and gear grid.
-• Meridian — Reserved; no options yet (see tag).]=]
+• Meridian — Compass-style navigation, in the proof of concept phase currently. If you have ideas, we'd love to hear them in our Discord!]=]
 L["DASH_GUIDE_MOD_AXIS_BODY"]                                 = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Settings for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
 L["DASH_GUIDE_MOD_FOCUS_BODY"]                                = [=[Focus replaces the default objective list with a flexible tracker. Tracked quests, world quests, scenarios, rares, achievements, endeavors, decor, recipes, and more are grouped into coloured section headers so you can scan quickly.
 

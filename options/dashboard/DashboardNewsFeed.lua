@@ -19,8 +19,8 @@ addon.DashboardNewsFeed = {
         bodyKey = "DASH_NEWS_FEATURED_BODY",
         metaKey = "DASH_NEWS_FEATURED_META",
         artPath = "Interface/AddOns/HorizonSuite/media/dashboard/FeaturedImage.png",
-        artWidth = 381,
-        artHeight = 248,
+        artWidth = 485,
+        artHeight = 329,
         artFit = "contain",
     },
     {
@@ -33,12 +33,11 @@ addon.DashboardNewsFeed = {
         bodyKey = "DASH_NEWS_ROADMAP_TOP_BODY",
         secondaryTitleKey = "DASH_NEWS_ROADMAP_BOTTOM_TITLE",
         secondaryBodyKey = "DASH_NEWS_ROADMAP_BOTTOM_BODY",
+        metaKey = "DASH_NEWS_ROADMAP_META",
         artPath = "Interface/AddOns/HorizonSuite/media/dashboard/RoadmapImage.png",
-        artWidth = 464,
-        artHeight = 880,
-        artFit = "contain",
-        ctaLabelKey = "DASH_NEWS_CTA_OPEN_PATCH_NOTES",
-        ctaAction = { type = "patch_notes" },
+        artWidth = 500,
+        artHeight = 1000,
+        artFit = "contain"
     },
     {
         id = "highlight",
@@ -50,8 +49,9 @@ addon.DashboardNewsFeed = {
         titleKey = "DASH_NEWS_HIGHLIGHT_TITLE",
         bodyKey = "DASH_NEWS_HIGHLIGHT_BODY",
         metaKey = "DASH_NEWS_HIGHLIGHT_META",
-        showClassIconStrip = true,
-        ctaLabelKey = "DASH_NEWS_CTA_VIEW_ARTIST",
-        ctaAction = { type = "copy_url", url = "https://www.fiverr.com/gc_fresh_ideas?source=gig_page" },
+        artPath = "Interface/AddOns/HorizonSuite/media/dashboard/HighlightImage.png",
+        artWidth = 500,
+        artHeight = 1000,
+        artFit = "contain"
     },
 }
