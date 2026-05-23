@@ -26,7 +26,7 @@ local SAMPLE = {
           r=0.00, g=0.506, b=1, br=0.00, bg=0.696, bb=1.00, quality=3 },
         { kind="item", icon=1676424, text="Grey Tricorne Hat x2",
           r=0.118, g=1, b=0, br=0.172, bg=1, bb=0, quality=2 },
-        { kind="item", icon=133589, text="Ghost Iron Ore x6",
+        { kind="item", icon=538439, text="Ghost Iron Ore x6",
           r=1.00, g=1.00, b=1.00, br=1.00, bg=1.00, bb=1.00, quality=1 },
         { kind="item", icon=133289, text="Scarlet Pendant",
           r=0.62, g=0.62, b=0.62, br=0.65, bg=0.65, bb=0.65, quality=0 },
