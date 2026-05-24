@@ -1,19 +1,17 @@
-# Intent
+# Intent  <!-- A very concise description of the overarching purpose. -->
+<!-- `Closes #X`, `Update Internal Documents`, `Adjust variable names for consistency`, etc. -->
 
 
-<!--  The general purpose of this PR. Concise, directly to the point.-->
-
-## Summary
+## Reviewer Notes  <!-- A general overview that anyone without a deep knowledge of the code base can understand. -->
 
 
-<!-- The changes within this PR, surface-level. Provides a general overview to reference. -->
 
-## Developer Notes
-
-
-<!-- The changes within this PR, internal mechanisms. Provides a specific rationale for each change to reference . -->
-
-## Reviewer Checklist
+## Developer Notes  <!-- Specific rationale for all changes that those with a working knowledge of the code base can reference. -->
 
 
-<!-- Mark down what testing has not yet been done. Directs reviewer beyond typical reviewer responsibilities (checking in-game, code integrity, etc.)
+
+## Reviewer Checklist  <!-- Direct reviewer with specific steps beyond generic reviewer responsibilities (checking in-game, code integrity/validation, etc.) -->
+
+<!-- When applicable, add a `## Resources` section
+List any sort of documentation, examples, or references (along with their purpose) that you feel may help when reviewing the changes within.
+It is expected that all PRs have already been self-reviewed, tested in-game, and free of noticeable errors (unless otherwise specified). -->
