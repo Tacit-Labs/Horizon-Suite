@@ -151,8 +151,8 @@ L["DASH_NEWS_FEATURED_META"]                         = "Axis   •   Quality of 
 L["DASH_NEWS_HIGHLIGHT_TITLE"]                                 = "Horizon Suite now has a Game Menu Button"
 L["DASH_NEWS_HIGHLIGHT_BODY"]                                  = "The first example of which is that we're now accessible through Blizzard's native Game Menu with our own button! For those who use ElvUI, our menu button is also compatible with theirs, meaning nobody has to choose between the two."
 L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis   •   Quality of Life   •   Work in Progress"
-L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "Transforming 'Cache' into 'Flux'"
-L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = "Our original plan was to roll out 'Cache' as our official loot toast module, suggested in the modules list. However, we felt it necessary to broaden our horizons a bit (pun intended). We're incorporating what currently is Cache into our new module, 'Flux', which will contain quality of life improvements that don't particularly fit into any other module."
+L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "Transforming 'Cache' into 'Augment'"
+L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = "Our original plan was to roll out 'Cache' as our official loot toast module, suggested in the modules list. However, we felt it necessary to broaden our horizons a bit (pun intended). We're incorporating what currently is Cache into our new module, 'Augment', which will contain quality of life improvements that don't particularly fit into any other module."
 L["DASH_NEWS_ROADMAP_BOTTOM_TITLE"]                              = "Edit Mode is still in the works!"
 L["DASH_NEWS_ROADMAP_BOTTOM_BODY"]                               = "We're still working on lining up Horizon Suite with WoW's Edit Mode so you can place and arrange addon frames next to the rest of your HUD. For everything that has already shipped, |cffaaaaaaPatch Notes|r still has the full list."
 L["DASH_NEWS_ROADMAP_META"]                               = " "
@@ -275,7 +275,7 @@ L["DASH_GUIDE_HORIZON_BULLETS"]                               = [=[• Axis — 
 • Presence — Large cinematic toasts for zones, quests, scenarios, achievements, level up, and similar moments.
 • Vista — Minimap chrome: zone text, coordinates, clock, and a collector for minimap buttons.
 • Insight — Richer tooltips for players, NPCs, and items (class colours, spec, icons, extras).
-• Flux — Quality of life changes and improvements to Blizzard's Native UI that don't fit within any other particular module.
+• Augment — Quality of life changes and improvements to Blizzard's Native UI that don't fit within any other particular module.
 • Essence — Character sheet with 3D model, item level, stats, and gear grid.
 • Meridian — Compass-style navigation, in the proof of concept phase currently. If you have ideas, we'd love to hear them in our Discord!]=]
 L["DASH_GUIDE_MOD_AXIS_BODY"]                                 = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Settings for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
