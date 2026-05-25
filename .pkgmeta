@@ -15,9 +15,8 @@ ignore:
   - .pkgmeta
   - scripts
   - tools
-  - docs
+  - Docs
   - notes
-  - contributions/
   - "modules/*/notes"
   - locales/KeyNomenclature.md
   - locales/blizzard
