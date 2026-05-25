@@ -34,7 +34,7 @@ Leave the code blocks alone and only edit the definition, as shown below in bold
 
 Format tokens (`%%`, `[==[`, `%d`, etc) and proper nouns for names or brands (`Horizon Suite`, `CurseForge`, etc) are not to be translated.
 ### Submission
-**Discord**: upload in [#localisation-submission](https://discord.com/channels/1471477531805749412/1483571479475126534).
+**Discord**: upload in [#locales](https://discord.com/channels/1471477531805749412/1483571479475126534).
 Please indicate which sections or lines were translated if not 100% translated at time of submission.
 
 **GitHub**: open a [pull request](https://github.com/Tacit-Labs/Horizon-Suite/pulls).
