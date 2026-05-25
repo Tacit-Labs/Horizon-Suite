@@ -21,10 +21,10 @@ MODULE_LABELS = {
     "presence": "Presence",
     "vista": "Vista",
     "insight": "Insight",
-    "cache": "Cache",
+    "augment": "Augment",
 }
 
-DEV_ONLY_MODULES = {"insight", "cache"}
+DEV_ONLY_MODULES = {"insight", "augment"}
 
 
 def extract_lua_string(expr: str) -> str:

@@ -237,7 +237,7 @@ local categories = {
             opts[#opts + 1] = { type = "section", name = L["AXIS_CLASS_THEME_SECTION"] }
             local classColorKeys = {
                 "classColorDashboard", "classColorVista", "classColorInsight", "classColorEssence",
-                "classColorFocus", "classColorPresence", "classColorCache",
+                "classColorFocus", "classColorPresence", "classColorAugment",
             }
             -- Include "_classColorAll" so the master row Refresh() runs after batch (Axis/Dashboard accordion does not use OptionsPanel allRefreshers).
             local classColorAllRefreshIds = { "_classColorAll" }
@@ -329,7 +329,7 @@ local categories = {
             opts[#opts + 1] = { type = "toggle", name = BM and BM("presence"), desc = L["PRESENCE_CLASS_COLOURS_DESC"], dbKey = "classColorPresence", get = function() return getDB("classColorPresence", false) end, set = function(v) setDB("classColorPresence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("vista"), desc = L["VISTA_CLASS_COLOURS_DESC"], dbKey = "classColorVista", get = function() return getDB("classColorVista", false) end, set = function(v) setDB("classColorVista", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("insight"), desc = L["INSIGHT_CLASS_COLOURS_DESC"], dbKey = "classColorInsight", get = function() return getDB("classColorInsight", false) end, set = function(v) setDB("classColorInsight", v) end, refreshIds = { "_classColorAll" } }
-            opts[#opts + 1] = { type = "toggle", name = BM and BM("cache"), desc = L["CACHE_CLASS_COLOURS_DESC"], dbKey = "classColorCache", get = function() return getDB("classColorCache", false) end, set = function(v) setDB("classColorCache", v) end, refreshIds = { "_classColorAll" } }
+            opts[#opts + 1] = { type = "toggle", name = BM and BM("augment"), desc = L["AUGMENT_CLASS_COLOURS_DESC"], dbKey = "classColorAugment", get = function() return getDB("classColorAugment", false) end, set = function(v) setDB("classColorAugment", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "toggle", name = BM and BM("essence"), desc = L["ESSENCE_CLASS_COLOURS_DESC"], dbKey = "classColorEssence", get = function() return getDB("classColorEssence", false) end, set = function(v) setDB("classColorEssence", v) end, refreshIds = { "_classColorAll" } }
             opts[#opts + 1] = { type = "section", name = L["AXIS_GLOBAL_FONT_SECTION"] }
             local isGlobalFontOn = function() return getDB("useGlobalFont", D and D.useGlobalFont or false) end
@@ -374,7 +374,7 @@ local categories = {
                 if addon.ApplyMplusTypography then addon.ApplyMplusTypography() end
                 if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
                 if addon.Vista and addon.Vista.ApplyScale then addon.Vista.ApplyScale() end
-                if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+                if addon.Augment and addon.Augment.ApplyScale then addon.Augment.ApplyScale() end
                 local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
                 if fullLayout and not InCombatLockdown() then fullLayout() end
             end
@@ -404,7 +404,7 @@ local categories = {
                 setDB("perModuleScaling", v)
                 debouncedRefresh("perModule", refreshAllScaling)
             end,
-            refreshIds = { "globalUIScale_pct", "focusUIScale_pct", "presenceUIScale_pct", "vistaUIScale_pct", "insightUIScale_pct", "cacheUIScale_pct" },
+            refreshIds = { "globalUIScale_pct", "focusUIScale_pct", "presenceUIScale_pct", "vistaUIScale_pct", "insightUIScale_pct", "augmentUIScale_pct" },
             }
             opts[#opts + 1] = { type = "slider", name = L["FOCUS_SCALE"], desc = L["AXIS_SCALE_FOCUS_OBJECTIVE_TRACKER"], dbKey = "focusUIScale_pct", min = 50, max = 200,
                 visibleWhen = isPerModule,
@@ -441,14 +441,14 @@ local categories = {
                 end, set = function(v)
                     setDB("insightUIScale", math.max(50, math.min(200, v)) / 100)
                 end }
-            opts[#opts + 1] = { type = "slider", name = L["CACHE_SCALE"], desc = L["AXIS_SCALE_CACHE_LOOT_TOAST_MODULE"], dbKey = "cacheUIScale_pct", min = 50, max = 200,
+            opts[#opts + 1] = { type = "slider", name = L["AUGMENT_SCALE"], desc = L["AXIS_SCALE_AUGMENT_LOOT_TOAST_MODULE"], dbKey = "augmentUIScale_pct", min = 50, max = 200,
                 visibleWhen = isPerModule,
                 get = function()
-                    return math.floor((tonumber(getDB("cacheUIScale", 1)) or 1) * 100 + 0.5)
+                    return math.floor((tonumber(getDB("augmentUIScale", 1)) or 1) * 100 + 0.5)
                 end, set = function(v)
-                    setDB("cacheUIScale", math.max(50, math.min(200, v)) / 100)
-                    debouncedRefresh("cache", function()
-                        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+                    setDB("augmentUIScale", math.max(50, math.min(200, v)) / 100)
+                    debouncedRefresh("augment", function()
+                        if addon.Augment and addon.Augment.ApplyScale then addon.Augment.ApplyScale() end
                     end)
                 end }
             -- Standalone: button is on the minimap, not collected by Vista.

@@ -68,7 +68,7 @@ local DEV_MODE = false   -- must stay false in committed code
 1. Set `DEV_MODE = true` in `core/Logger.lua`.
 2. Reload the UI (`/reload`).
 3. Toggle a module's panel: `/h debug <module> debuglive`
-   - Modules: `focus`, `presence`, `vista`, `cache`, `insight`, `essence`
+   - Modules: `focus`, `presence`, `vista`, `augment`, `insight`, `essence`
    - `/h debug help` lists all commands and shows current DEV_MODE state.
 4. The panel is a draggable scrolling window. Use **Copy** to export its contents and **Clear** to reset it.
 

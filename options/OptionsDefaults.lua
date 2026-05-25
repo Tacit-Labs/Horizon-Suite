@@ -80,7 +80,7 @@ addon.SCALE_DEBOUNCE_KEYS = {
     presenceUIScale  = true,
     vistaUIScale     = true,
     insightUIScale   = true,
-    cacheUIScale     = true,
+    augmentUIScale     = true,
     vistaBorderWidth = true,
     vistaAddonBtnSize  = true,
     vistaBtnLayoutCols = true,
@@ -94,5 +94,5 @@ addon.CLASS_COLOR_KEYS = {
     classColorEssence   = true,
     classColorFocus     = true,
     classColorPresence  = true,
-    classColorCache     = true,
+    classColorAugment     = true,
 }
