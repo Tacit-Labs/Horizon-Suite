@@ -1,4 +1,4 @@
-if GetLocale() ~= "deDE" then return end
+﻿if GetLocale() ~= "deDE" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -6,6 +6,7 @@ if not addon then return end
 local L = setmetatable({}, { __index = addon.L })
 addon.L = L
 addon.StandardFont = UNIT_NAME_FONT
+-- L["TERM"]                                                = " "
 
 -- =====================================================================
 -- Branding — Horizon Suite, module names, and third-party brand names
@@ -153,6 +154,37 @@ L["DASH_NEWS_ROADMAP_META"]                               = "Neuigkeitenbereich 
 L["DASH_NEWS_QUICK_START_TITLE"]                              = "Noch mal eine schnelle Tour?"
 L["DASH_NEWS_QUICK_START_BODY"]                               = "Der Schnelleinstieg ist nach wie vor ein nützlicher Begleiter für Neuigkeiten: Nutze ihn, wenn du einen schnellen Überblick darüber haben möchtest, was die einzelnen Module leisten, wo du sie aktivieren kannst und welche Bereiche du nach einem Update zuerst öffnen solltest."
 L["DASH_NEWS_QUICK_START_META"]                               = "Leitfaden • Einführung • Immer verfügbar"
+
+-- =====================================================================
+-- options/dashboard/DashboardIntegrationsView.lua
+-- =====================================================================
+-- L["DASH_INTEGRATIONS_TAB"]                                    = "Integrations"
+-- L["DASH_INTEGRATIONS_HEAD_SUB"]                               = "Third-party addons that Horizon Suite plays nicely with"
+-- L["DASH_INT_SUMMARY"]                                         = "%d of %d integrations active"
+-- L["DASH_INT_SUMMARY_DISABLED"]                                = "%d disabled"
+-- L["DASH_INT_SUMMARY_EMPTY"]                                   = "These addons aren't installed yet — try them to unlock extra features."
+-- L["DASH_INT_STATUS_ENABLED"]                                  = "Installed"
+-- L["DASH_INT_STATUS_DISABLED"]                                 = "Disabled"
+-- L["DASH_INT_STATUS_MISSING"]                                  = "Not installed"
+-- L["DASH_INT_STATUS_BUNDLED"]                                  = "Bundled"
+-- L["DASH_INT_STATUS_PENDING"]                                  = "Reload needed"
+-- L["DASH_INT_CTA_GET"]                                         = "Install"
+-- L["DASH_INT_CTA_ENABLE"]                                      = "Enable"
+-- L["DASH_INT_CTA_RELOAD"]                                      = "Reload UI"
+-- L["DASH_INT_CTA_SETTINGS"]                                    = "Settings"
+-- L["DASH_INT_NEW_BADGE"]                                       = "New"
+-- L["DASH_INT_ATT_DESC"]                                        = "All The Things tracks every collectible in the game (mounts, pets, transmog, achievements, recipes)."
+-- L["DASH_INT_ATT_WHAT"]                                        = "Focus rare-mob tooltips show ATT's loot drops, transmog availability, and collection status."
+-- L["DASH_INT_AUCTIONATOR_DESC"]                                = "Auctionator is a streamlined auction house addon with shopping lists, posting, and price history."
+-- L["DASH_INT_AUCTIONATOR_WHAT"]                                = "Focus's craft dialog uses Auctionator to search reagent prices and check mat costs."
+-- L["DASH_INT_TRP3_DESC"]                                       = "Total RP 3 is a comprehensive roleplay profile and lore addon."
+-- L["DASH_INT_TRP3_WHAT"]                                       = "Insight tooltips show TRP3 character profile data — RP name, pronouns, IC/OOC status, custom race and class, guild, Currently text, and character icon."
+-- L["DASH_INT_RONDOMEDIA_DESC"]                                 = "Rondo Media is a curated class icon set used by Horizon Suite when installed."
+-- L["DASH_INT_RONDOMEDIA_WHAT"]                                 = "Class icons in Insight tooltips and Focus rows."
+-- L["DASH_INT_WQT_DESC"]                                        = "World Quest Tracker is a popular world-quest filtering addon."
+-- L["DASH_INT_WQT_WHAT"]                                        = "Focus hides its tracker while WQT is open to keep the screen clean."
+-- L["DASH_INT_LSM_DESC"]                                        = "LibSharedMedia is a shared font and texture registry used across many addons."
+-- L["DASH_INT_LSM_WHAT"]                                        = "Adds extra font and statusbar texture options to Horizon Suite when installed."
 L["DASH_WELCOME_TITLE"]                                       = "Willkommen bei der Horizon-Suite"
 L["DASH_WELCOME_HEAD_SUB"]                                    = "Der Funktionsumfang der Module und wie man sie aktiviert"
 L["DASH_WELCOME_INTRO"]                                       = "Die Horizon Suite ist modular aufgebaut – Aktiviere die Komponenten, die du nutzen möchtest. Das Ein- oder Ausschalten eines Moduls wird beim Interface-Neuladen wirksam. Klick unten auf Mitwirkende oder Lokalisierungen, um die Mitwirkenden und die unterstützten Sprachen anzuschauen. Nutze die Schaltflächen zum Öffnen der Module unter Module oder öffne Axis > Module in der Seitenleiste. Über die Seitenleiste kannst du jederzeit zu dieser Willkommensseite zurückkehren."
@@ -388,6 +420,13 @@ L["AXIS_USE_GLOBAL_FONT"]                                     = "Globale Schrift
 L["AXIS_USE_GLOBAL_FONT_DESC"]                                = "Festlegen einer einizgen Scriftart für sämtliche Module. Überschreibt die benutzerdefinierte Schriftartänderungen in allen Modulen und Elementen."
 L["AXIS_GLOBAL_FONT_PICKER"]                                  = "Schriftart"
 L["AXIS_GLOBAL_FONT_PICKER_DESC"]                             = "Die Schriftart, die in allen Modulen verwendet wird, sofern die globale Übersteuerung der Schriftart aktiviert wurde."
+-- L["AXIS_SIDEBAR_SECTION"]                                     = "Sidebar"
+-- L["AXIS_SIDEBAR_COLLAPSE_MODE"]                               = "Category Behaviour"
+-- L["AXIS_SIDEBAR_COLLAPSE_MODE_DESC"]                          = "Controls how sidebar module groups expand and collapse while navigating."
+-- L["AXIS_SIDEBAR_COLLAPSE_MODE_TOOLTIP"]                       = "Auto — only the active module is expanded; navigating to another collapses the previous one.\n\nManual — groups stay open or closed until you click their header to toggle them.\n\nAxis+ — Axis is always expanded; all other modules follow Auto behaviour."
+-- L["AXIS_SIDEBAR_COLLAPSE_AUTO"]                               = "Auto"
+-- L["AXIS_SIDEBAR_COLLAPSE_MANUAL"]                             = "Manual"
+-- L["AXIS_SIDEBAR_COLLAPSE_AXIS_PLUS"]                          = "Axis+"
 L["AXIS_GLOBAL_SCALE_SECTION"]                                = "Globale Skalierung"
 L["AXIS_MINIMAP_ICON_SECTION"]                                = "Minikartensymbol"
 L["AXIS_MINIMAP_ICON_CIRCULAR"]                               = "Kreisförmiges Symbol"
@@ -812,6 +851,7 @@ L["FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLOURS_DESC"]             = "Nummerierungsf�
 L["FOCUS_PREFIX_OBJECTIVE_A_NUMBER_HYPHEN"]                   = "Voranstellung von Nummerierungen oder Aufzählungszeichen bei Quest-Zielen."
 L["FOCUS_NUMBERS"]                                            = "Nummerierung (1. 2. 3.)"
 L["FOCUS_HYPHENS"]                                            = "Bindestriche (-)"
+-- L["FOCUS_OBJECTIVE_PREFIX_DESC"]                   = "Prefix each objective with a number, hyphen or bullet point."
 L["FOCUS_BULLET_POINTS"]                                      = "Aufzählungspunkte (•)"
 L["FOCUS_AFTER_SECTION_HEADER"]                               = "Abstand nach Abschnittsüberschrift"
 L["FOCUS_BEFORE_SECTION_HEADER"]                              = "Abstand vor Abschnittsüberschrift"
@@ -1092,6 +1132,14 @@ L["FOCUS_TIMER_COLOUR"]                                       = "Farbe des Timer
 L["FOCUS_TEXT_COLOUR_TIMER"]                                  = "Textfarbe für Timer (in Zeit)."
 L["FOCUS_TIMER_OVERTIME_COLOUR"]                              = "Farbe für Überzeit-Timer"
 L["FOCUS_TEXT_COLOUR_TIMER_LIMIT"]                            = "Textfarbe für Timer bei Überschreitung."
+-- L["FOCUS_SHOW_SPLIT_TIMER"]                                   = "Split Timer (+1/+2/+3)"
+-- L["FOCUS_SHOW_SPLIT_TIMER_DESC"]                              = "Show remaining time to each keystone upgrade cut-off (+1, +2, +3)."
+-- L["FOCUS_SPLIT_TIMER_SIZE"]                                   = "Split Timer Size"
+-- L["FOCUS_FONT_SIZE_SPLIT_TIMER_PX"]                           = "Font size for split timer (8-32 px)."
+-- L["FOCUS_SPLIT_TIMER_COLOUR"]                                 = "Split Timer Colour"
+-- L["FOCUS_TEXT_COLOUR_SPLIT_TIMER"]                            = "Text colour for upgrade tiers that are still reachable."
+-- L["FOCUS_SPLIT_TIMER_PAST_COLOUR"]                            = "Split Timer Past Colour"
+-- L["FOCUS_TEXT_COLOUR_SPLIT_TIMER_PAST"]                       = "Text colour for upgrade tiers that have expired."
 L["FOCUS_PROGRESS_SIZE"]                                      = "Schriftgröße für Fortschritt"
 L["FOCUS_FONT_SIZE_ENEMY_FORCES_PX"]                          = "Schriftgröße für feindliche Streitkräfte (8–32 px)."
 L["FOCUS_PROGRESS_COLOUR"]                                    = "Farbe für Fortschritt"
@@ -1374,6 +1422,8 @@ L["PRESENCE_SHOW_QUEST_COMPLETE"]                             = "Quest-Abschluss
 L["PRESENCE_NOTIFICATION_COMPLETING_A_QUEST"]                 = "Benachrichtigung bei Quest-Abschluss anzeigen."
 L["PRESENCE_SHOW_WORLD_QUEST_COMPLETE"]                       = "Welt-Quest-Abschluss anzeigen"
 L["PRESENCE_NOTIFICATION_COMPLETING_A_WORLD_QUEST"]           = "Benachrichtigung bei Welt-Quest-Abschluss anzeigen."
+-- L["PRESENCE_WORLD_QUEST_SOUND"]                               = "World Quest Sound"
+-- L["PRESENCE_WORLD_QUEST_SOUND_DESC"]                          = "Play the default sound when a world quest completes."
 L["PRESENCE_QUEST_PROGRESS"]                                  = "Quest-Fortschritt anzeigen"
 L["PRESENCE_NOTIFICATION_QUEST_OBJECTIVES_UPDATE"]            = "Benachrichtigung bei Quest-Zielaktualisierung anzeigen."
 L["PRESENCE_OBJECTIVE"]                                       = "Nur Ziele"
@@ -1534,6 +1584,7 @@ L["PRESENCE_OBJECTIVES"]                                      = "ZIELE"
 L["PRESENCE_OPTIONS"]                                         = "Optionen"
 L["PRESENCE_OPEN_HORIZON_SUITE"]                              = "Horizon Suite öffnen"
 L["PRESENCE_OPEN_FULL_HORIZON_SUITE_OPTIONS"]                 = "Öffnet das vollständige Einstellungsfenster der Horizon Suite zur Konfiguration von Focus, Presence, Vista und anderen Modulen."
+-- L["AXIS_GAMEMENU_BUTTON"]                                    = "Horizon Suite"
 L["PRESENCE_MINIMAP_SECTION"]                                 = "Minikartensymbol"
 L["PRESENCE_SHOW_MINIMAP_ICON"]                               = "Minikartensymbol anzeigen"
 L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"]                  = "Zeigt ein klickbares Symbol auf der Minikarte an, um das Optionsfenster zu öffnen."
