@@ -1,9 +1,10 @@
-# 
-# [![CurseForge Page](https://img.shields.io/badge/Curseforge-official?&style=for-the-badge&logo=curseforge&logoSize=auto&color=black)](https://www.curseforge.com/wow/addons/horizon)[![GitHub Repository](https://img.shields.io/badge/GitHub-official?&style=for-the-badge&logoColor=0FBF3E&logo=github&logoSize=auto&color=black)](https://github.com/Tacit-Labs/Horizon-Suite)[![Wago.io Page](https://img.shields.io/badge/wago.io-black?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NDEuNyAzMTEuNiI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNmZmY7fS5jbHMtMntmaWxsOiNjMTI3MmQ7fTwvc3R5bGU+PC9kZWZzPjxnIGlkPSJMYXllcl8yIiBkYXRhLW5hbWU9IkxheWVyIDIiPjxnIGlkPSJMYXllcl8xLTIiIGRhdGEtbmFtZT0iTGF5ZXIgMSI+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMjMwLjgsMTQwLjZoNzkuOGE3Ny4xMSw3Ny4xMSwwLDAsMSw2MC44LTYwLjdWMEExNTYuMTMsMTU2LjEzLDAsMCwwLDIzMC44LDE0MC42WiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTQ2MS45LDE0MC42aDc5LjhBMTU2LjEzLDE1Ni4xMywwLDAsMCw0MDEuMSwwVjc5LjhBNzcuMSw3Ny4xLDAsMCwxLDQ2MS45LDE0MC42WiIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTMxMC43LDE3MC45YzAtLjIuMS0uNC4xLS42aC04MGExLjI3LDEuMjcsMCwwLDAsLjEuNiw3Ny4wNiw3Ny4wNiwwLDAsMS0xNTEuMS0uNkgwYTE1Ni4yNCwxNTYuMjQsMCwwLDAsMjcxLDkwLjMsMTU1LjM4LDE1NS4zOCwwLDAsMCwxMDAuNiw1MC4zVjIzMUE3Ni45Myw3Ni45MywwLDAsMSwzMTAuNywxNzAuOVoiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik00MDEuMSwyMzEuMVYzMTFBMTU2LjEzLDE1Ni4xMywwLDAsMCw1NDEuNywxNzAuNEg0NjEuOUE3Ny4xMSw3Ny4xMSwwLDAsMSw0MDEuMSwyMzEuMVoiLz48L2c+PC9nPjwvc3ZnPg==)](https://addons.wago.io/addons/horizon-suite)[![Patreon Page](https://img.shields.io/badge/patreon-donate?&style=for-the-badge&label=%20&logo=patreon&logoSize=auto&color=000000)](https://www.patreon.com/c/HorizonSuite)[![Ko-fi Page](https://img.shields.io/badge/Ko--fi-black?&style=for-the-badge&logo=kofi&logoSize=auto&logoColor=FF6433)](https://ko-fi.com/horizonsuite)[![Discord Server](https://img.shields.io/badge/Discord-black?&style=for-the-badge&logo=discord&logoSize=auto)](https://discord.gg/nFabdZmvSB)
+# [![Wago.io Page](https://img.shields.io/badge/wago.io-black?style=for-the-badge)](https://addons.wago.io/addons/horizon-suite)[![CurseForge Page](https://img.shields.io/badge/Curseforge-official?&style=for-the-badge&logo=curseforge&logoSize=auto&color=black)](https://www.curseforge.com/wow/addons/horizon)[![GitHub Repository](https://img.shields.io/badge/GitHub-official?&style=for-the-badge&logoColor=0FBF3E&logo=github&logoSize=auto&color=black)](https://github.com/Tacit-Labs/Horizon-Suite)[![Patreon Page](https://img.shields.io/badge/patreon-donate?&style=for-the-badge&label=%20&logo=patreon&logoSize=auto&color=000000)](https://www.patreon.com/c/HorizonSuite)[![Ko-fi Page](https://img.shields.io/badge/Ko--fi-black?&style=for-the-badge&logo=kofi&logoSize=auto&logoColor=FF6433)](https://ko-fi.com/horizonsuite)[![Discord Server](https://img.shields.io/badge/Discord-black?&style=for-the-badge&logo=discord&logoSize=auto)](https://discord.gg/nFabdZmvSB)
+
 ### Current Versions
+
 ![CurseForge Release V#](https://img.shields.io/curseforge/v/1457844?style=for-the-badge&label=%20&color=black&logo=curseforge&logoSize=auto)![GitHub Release V#](https://img.shields.io/github/v/release/Tacit-Labs/Horizon-Suite?sort=date&display_name=release&style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto&label=%20&color=black)![WoW - Retail Version](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge&logo=battledotnet&label=%20&color=black)
-![GitHub License](https://img.shields.io/github/license/Tacit-Labs/Horizon-Suite?style=for-the-badge&label=&logo=opensourceinitiative&logoSize=auto&color=black)![GitHub commits since latest release (number)](https://img.shields.io/github/commits-since/Tacit-Labs/Horizon-Suite/latest?sort=date&style=for-the-badge&label=%20&labelColor=black&color=darkgreen)![GitHub "commit(s) since" latest release (text)](https://img.shields.io/badge/commit(s)_since-black?style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto)
-![GitHub "last commit was" (main)](https://img.shields.io/github/last-commit/Tacit-Labs/Horizon-Suite/main?style=for-the-badge&label=last%20commit%20was&logo=githublogoSize=auto&color=darkgreen&labelColor=black)
+![GitHub License](https://img.shields.io/github/license/Tacit-Labs/Horizon-Suite?style=for-the-badge&label=&logo=opensourceinitiative&logoSize=auto&color=black)![GitHub commits since latest release (number)](https://img.shields.io/github/commits-since/Tacit-Labs/Horizon-Suite/latest/dev?sort=date&style=for-the-badge&label=%20&labelColor=black&color=darkgreen)![GitHub "commit(s) since" latest release (text)](https://img.shields.io/badge/commit(s)_since-black?style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto)
+![GitHub "last commit was" (dev)](https://img.shields.io/github/last-commit/Tacit-Labs/Horizon-Suite/dev?style=for-the-badge&label=most%20recent%20development%20branch%20commit%20was&logo=githublogoSize=auto&color=darkgreen&labelColor=black)
 
 | | |
 |---|---|
@@ -69,8 +70,8 @@
 - **Customizable appearance** – Border (thickness, colour, opacity), panel background and border colours for button panels, and per-element typography. SharedMedia support for fonts.
 - **Mouse wheel zoom** – Scroll over the minimap to zoom in and out.
 
-## 💎 Cache (Loot Toasts) - BETA
-
+## 💎 Augment (Miscellaneous)
+### Currently supports loot toasts!
 ![Cache - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
 
 - **Cinematic loot notifications** – Items, money, currency, and reputation gains appear as styled toasts with quality-based colours and smooth slide-in animations.
@@ -97,25 +98,8 @@
 
 ---
 
-## 📦 Modules & Roadmap
 
-**Focus** is the objective tracker. **Presence** adds cinematic zone text and notifications. **Insight** adds cinematic tooltips with class colors, spec display, and faction icons. **Vista** adds a cinematic minimap (square or circular) with zone text, coordinates, time, optional FPS/latency, addon button collector, and full customisation. **Cache** adds cinematic loot toasts (items, money, currency, reputation). Enable them in options. More modules are planned: Quest Log, Combat Alerts, Unit Frames, Chat.
 
----
-
-## 📥 Installation & Support
-
-**Requirements:** World of Warcraft Retail (The War Within or later).
-
-**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) (e.g. SharedMedia Additional Fonts) for expanded font choices in Typography and statusbar textures for progress bars. If not installed, the font dropdown shows only Game Font and any custom path you enter; progress bars use Solid texture. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips and, when Dashboard class colours are on, for the Dashboard header class icon (Axis → Class Colours → Dashboard class icon style—separate from Insight).
-
-1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Tacit-Labs/Horizon-Suite/releases/latest) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Tacit-Labs/Horizon-Suite/releases/tag/beta))
-2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
-3. Enable **Horizon Suite** in your AddOn list.
-4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
-5. **Welcome** is the first sidebar item with a short overview of each module (Preview items are labelled); **Quick Start** (under Welcome) explains Focus sections, Presence notifications, and each module in more detail. **Search** in the sidebar (above **Patch Notes**) opens a dedicated page to find any setting by name. **Home** shows module tiles. Under **Axis** use **Global Toggles** (class colours and UI scale) or **Modules** (module on/off and minimap button). After your first visit, the dashboard opens on **Home** by default; **Welcome** and **Quick Start** stay in the sidebar.
-
-[ko-fi](https://ko-fi.com/T6T71TX1Y1) **[Patreon](https://patreon.com/HorizonSuite?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink)** | **[Discord](https://discord.gg/nFabdZmvSB)** — Bug reports, feature requests, and community.
 
 ---
 

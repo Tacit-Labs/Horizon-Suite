@@ -1,34 +1,20 @@
-![CurseForge Game Versions](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge) ![CurseForge Version](https://img.shields.io/curseforge/v/1457844?style=for-the-badge)
-![CurseForge Downloads](https://img.shields.io/curseforge/dt/1457844?style=for-the-badge) [![Discord](https://img.shields.io/discord/1471477531805749412?style=for-the-badge&label=Discord)](https://discord.gg/nFabdZmvSB)
-[![Patreon](https://img.shields.io/badge/build-donate-orange?&style=for-the-badge&label=patreon)](https://www.patreon.com/c/HorizonSuite) [![Ko-fi](https://img.shields.io/badge/build-tip-purple?&style=for-the-badge&label=Ko-fi)](https://ko-fi.com/horizonsuite)
-
----
-# 🌌 Horizon Suite 
+#  Horizon Suite 
 Driven by the community and customised for each member's sensibilities.
-## Modules
-### Current
-| | |
-|---|---|
-| 🎯 <span style="color:#FFD133;">**Focus**</span> | Objective Tracker
-| 🎬 <span style="color:#33FFDF;">**Presence**</span> | Cinematic Notifications
-| 🗺️ <span style="color:#B366FF;">**Vista**</span> | Minimap
-| 🔍 <span style="color:#FF66B3;">**Insight**</span> | Tooltips
-### Preview
-| | |
-|---|---|
-| 🎒 <span style="color:#33CC66;">**Cache**</span> | Loot & Bags
-| 📜 <span style="color:#DC143C;">**Essence**</span> | Character Sheet
-### Planned
-| | |
-|---|---|
-| 💬 <span style="color:#3399FF;">**Flow**</span> | Chat |
-| 🧭 <span style="color:#FFFFFF;">**Meridian**</span> | 🤫 |
+# [![Wago.io Page](https://img.shields.io/badge/wago.io-black?style=for-the-badge)](https://addons.wago.io/addons/horizon-suite)[![CurseForge Page](https://img.shields.io/badge/Curseforge-official?&style=for-the-badge&logo=curseforge&logoSize=auto&color=black)](https://www.curseforge.com/wow/addons/horizon)[![GitHub Repository](https://img.shields.io/badge/GitHub-official?&style=for-the-badge&logoColor=0FBF3E&logo=github&logoSize=auto&color=black)](https://github.com/Tacit-Labs/Horizon-Suite)[![Patreon Page](https://img.shields.io/badge/patreon-donate?&style=for-the-badge&label=%20&logo=patreon&logoSize=auto&color=000000)](https://www.patreon.com/c/HorizonSuite)[![Ko-fi Page](https://img.shields.io/badge/Ko--fi-black?&style=for-the-badge&logo=kofi&logoSize=auto&logoColor=FF6433)](https://ko-fi.com/horizonsuite)[![Discord Server](https://img.shields.io/badge/Discord-black?&style=for-the-badge&logo=discord&logoSize=auto)](https://discord.gg/nFabdZmvSB)
+
+### Current Versions
+
+![CurseForge Release V#](https://img.shields.io/curseforge/v/1457844?style=for-the-badge&label=%20&color=black&logo=curseforge&logoSize=auto)![GitHub Release V#](https://img.shields.io/github/v/release/Tacit-Labs/Horizon-Suite?sort=date&display_name=release&style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto&label=%20&color=black)![WoW - Retail Version](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge&logo=battledotnet&label=%20&color=black)
+![GitHub License](https://img.shields.io/github/license/Tacit-Labs/Horizon-Suite?style=for-the-badge&label=&logo=opensourceinitiative&logoSize=auto&color=black)![GitHub commits since latest release (number)](https://img.shields.io/github/commits-since/Tacit-Labs/Horizon-Suite/latest/dev?sort=date&style=for-the-badge&label=%20&labelColor=black&color=darkgreen)![GitHub "commit(s) since" latest release (text)](https://img.shields.io/badge/commit(s)_since-black?style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto)
+![GitHub "last commit was" (dev)](https://img.shields.io/github/last-commit/Tacit-Labs/Horizon-Suite/dev?style=for-the-badge&label=most%20recent%20development%20branch%20commit%20was&logo=githublogoSize=auto&color=darkgreen&labelColor=black)
 
 ---
 
 ## 📜 <span style="color:#;">**Axis**</span> [Centralised Dashboard] (?)
 
-![Essence](link_here)
+---
+
+##  <span style="color:#?;">Essence</span> [Character Sheet]
 
 ---
 
@@ -104,9 +90,9 @@ Tooltips that actually tell you who you're looking at.
 
 ---
 
-## 🎒 <span style="color:#33CC66;">Cache</span> [Loot & Bags]
+## 🎒 <span style="color:#33CC66;">Augment</span> [Miscellaneous] (Currently Loot)
 
-![Cache - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
+![Augment - Miscellaneous](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
 
 Loot that deserves to be seen — and a bag that keeps itself organised.
 
@@ -122,87 +108,53 @@ Loot that deserves to be seen — and a bag that keeps itself organised.
 
 ---
 
-## 💬 <span style="color:#3399FF;">**Flow**</span> [Chat]
+## 🎨 Visuals & UI Design
 
-![Flow](link_here)
-
----
-
-## 🧭 <span style="color:#FFFFFF;">**Meridian**</span> [🤫]
-
-![Meridian(link_here)
-
----
-
-## 🎨 Endless Customisation
-### Global or Per-Module scaling
-### Scale
-- **Class tint** — Enable class colours per module or all at once from the Axis panel. Under Global Toggles, set **dashboard font** and **dashboard text size** for the settings window (separate from Focus tracker typography). Dashboard background presets: flat Default, Midnight artwork, or Specialisation (auto) — uses Blizzard's talent UI art for your current spec with a crossfade when you switch.
-- **SharedMedia support** — Fonts and progress bar textures from addon packs across all modules. Works without SharedMedia installed too.
-- **Per-category colours** — Title, objective, zone, section, and backdrop colours all configurable.
-- **Typography and spacing** — Fonts, sizes, outlines, and spacing sliders. Turn-in highlights and quantity strings (e.g. 15/18) at a glance.
-- **Progress bars** — Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colour, and texture. Filter by X/Y, percent-only, or both. Timer layout: bar below, inline beside title, or inline on its own line.
-- **Fluid animations** — Smooth entry/exit on tracker and notifications, subtle pulse on quest completion.
-- **Scroll indicators** — Optional fade or arrow buttons when the list has more content than visible.
-- **High-fidelity icons** — Distinct icons for Campaign, Legendary, and World Quests.
+- **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
+- **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
+- **Global Toggles (Axis)** – Under **Axis → Global Toggles**, enable class tint per module or all at once (dashboard, Focus, Presence, Vista, Insight, Cache, Essence), pick a **dashboard background** preset (flat Default, Midnight artwork, or **Specialisation (auto)** using Blizzard’s talent UI art for your current spec—with a short crossfade when you change preset or spec), choose **dashboard font** and **dashboard text size** for the settings window (independent of Focus typography), and set global UI scale (50–200%) or per-module scale sliders for Focus, Presence, Vista, Insight, and Cache.
+- **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
+- **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.
+- **Timer layout** – Bar below objectives, inline beside the title, or inline on its own line below the title.
+- **Fluid motion** – Smooth entry/exit animations and a subtle pulse on objective completion.
+- **Scroll indicators** – Optional fade or arrow buttons when the list has more content than visible.
 
 ---
 
-## 📥 Installation
+## 📥 Addon Compatability
 
-**Requirements:** World of Warcraft Retail (The War Within or later).
+- [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia)
+- [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia)
+- [ALL THE THINGS](https://www.curseforge.com/wow/addons/all-the-things)
+- [Auctionator](https://www.curseforge.com/wow/addons/auctionator)
+- [Total RP 3](https://www.curseforge.com/wow/addons/total-rp-3)
+- [World Quest Tracker](https://www.curseforge.com/wow/addons/world-quest-tracker)
 
-**Optional:** [SharedMedia](https://www.curseforge.com/wow/addons/sharedmedia) for expanded font choices and progress bar textures. [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) by RondoFerrari for class icons in Insight tooltips and the Dashboard header icon when class colours are on.
-
-1. Install via [CurseForge](https://www.curseforge.com/projects/1457844), [Wago](https://addons.wago.io/addons/jK8gY56y), or download the [latest release](https://github.com/Tacit-Labs/Horizon-Suite/releases/latest) and extract the `HorizonSuite` folder. ([Beta](https://github.com/Tacit-Labs/Horizon-Suite/releases/tag/beta))
-2. Place it in `World of Warcraft\_retail_\Interface\AddOns\`.
-3. Enable **Horizon Suite** in your AddOn list.
-4. Open the **dashboard** (`/hsd`, the minimap button, or **Options** on the tracker).
-5. **Welcome** gives a quick overview of each module. **Quick Start** walks through Focus sections, Presence notifications, and each module in detail. **Search** in the sidebar (above **Patch Notes**) opens a dedicated page to find any setting by name. **Home** shows module tiles. Under **Axis** use **Global Toggles** for class colours and UI scale, or **Modules** to toggle modules on/off and control the minimap button.
+**Feel free to send us a message about which AddOns you would like integrated into Horizon Suite!**
 
 ---
 
 ## 💬 Community & Support
 
-Horizon Suite is built with the community, not just for it. Feature requests and bug reports shape every update.
+The more people that use Horizon Suite, the more feedback we have to drive the future of the AddOn.
+Horizon Suite would not be where it is without our lovely community.
 
-**[Discord](https://discord.gg/nFabdZmvSB)** — The best place to get help, share feedback, or see what's coming next.
-**[GitHub Issues](https://github.com/Tacit-Labs/Horizon-Suite/issues)** — The quickest place to get help or share feedback. Reports and requests can be directly filed [here](https://github.com/Tacit-Labs/Horizon-Suite/issues/new/choose). Reports from Discord, Reddit, or CurseForge are also welcome.
-**[Patreon](https://patreon.com/HorizonSuite)** | **[Ko-fi](https://ko-fi.com/T6T71TX1Y1)** — Support development and keep the lights on.
+||||||||
+|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
+|<span style="color:#ff00ae;">**Crys**</span>|<span style="color:#00c98e;">**Swift**</span>|<span style="color:#d883ff;">**Diva**</span>|<span style="color:#8a2be2;">**Sam**</span>|<span style="color:#8a2be2;">**Alex**</span> |<span style="color:#8a2be2;">**Marthix**</span>|<span style="color:#8a2be2;">**Feanor**</span>|
+Author|Coordinator|Innovator|Developer|Developer|Developer|Developer|
 
----
+||||||
+|:-:|:-:|:-:|:-:|:-:|
+|<span style="color:#F5DEB3;">**Alex**</span>|<span style="color:#F5DEB3;">**Aishuu**</span>|<span style="color:#F5DEB3;">**아즈샤라-두녘**</span>|<span style="color:#F5DEB3;">**Linho-Gallywix**</span>|<span style="color:#F5DEB3;">**allmoon**</span>|
+|`deDE`|`frFR`|`koKR`|`ptBR`|`zhCN`|
 
-## 💖 Contributors
+**Additional translations (starting or continuing) are always welcome!**
+|||
+|:-:|:-:|
+|<span style="color:#4169E1;">Boofuls</span>|[**Gabriel C**](https://www.fiverr.com/gc_fresh_ideas)|
+|Moderator & Comissioned:|Horizon Class Icons|
 
-Thanks to everyone who has contributed to Horizon Suite:
 
-- **feanor21#2847 — Panoramuxa (Tarren Mill -EU)** — Development
-- **Marthix** — Development
-- **Swift** — Coordinator
-- **Boofuls** — Moderator
-- **Diva** — Innovator
-- **RondoFerrari** — [RondoMedia](https://www.curseforge.com/wow/addons/rondomedia) — Class icons in Insight tooltips and optional Dashboard header icon when class colours are on (optional)
-- **Aishuu** — French localization (frFR)
-- **아즈샤라-두녘** — Korean localization (koKR)
-- **Linho-Gallywix** — Brazilian Portuguese localization (ptBR)
-- **allmoon** — Chinese localization (zhCN)
 
 ---
-
-## 🌐 Localisations
-| | | |
-|---|---|---|
-|German|deDE|100%|
-|English|enUS|100%|
-|Spanish|esES|?%|
-|French|frFR|?%|
-|Korean|koKR|?%|
-|Brazilian Portuguese|ptBR|?%|
-|Chinese|zhCN|?%|
-
-Additional translations are always welcome!
-See **[contributions/translate.md](contributions/translate.md)** for more information on how to contribute.
-
----
-## License
-Distributed under the MIT License, see `LICENSE` for more information.
