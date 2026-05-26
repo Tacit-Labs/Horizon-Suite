@@ -8,13 +8,25 @@ Driven by the community and customised for each member's sensibilities.
 ![GitHub License](https://img.shields.io/github/license/Tacit-Labs/Horizon-Suite?style=for-the-badge&label=&logo=opensourceinitiative&logoSize=auto&color=black)![GitHub commits since latest release (number)](https://img.shields.io/github/commits-since/Tacit-Labs/Horizon-Suite/latest/dev?sort=date&style=for-the-badge&label=%20&labelColor=black&color=darkgreen)![GitHub "commit(s) since" latest release (text)](https://img.shields.io/badge/commit(s)_since-black?style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto)
 ![GitHub "last commit was" (dev)](https://img.shields.io/github/last-commit/Tacit-Labs/Horizon-Suite/dev?style=for-the-badge&label=most%20recent%20development%20branch%20commit%20was&logo=githublogoSize=auto&color=darkgreen&labelColor=black)
 
+--
+
+## 🎒 <span style="color:#33CC66;">Augment</span> [Miscellaneous] (Currently Loot)
+
+![Augment - Miscellaneous](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
+
+Loot that deserves to be seen — and a bag that keeps itself organised.
+
+- **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
+- **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
+- **Bag organisation** — Clean up your inventory with Cache's built-in bag management.
+
 ---
 
 ## 📜 <span style="color:#;">**Axis**</span> [Centralised Dashboard] (?)
 
 ---
 
-##  <span style="color:#?;">Essence</span> [Character Sheet]
+## 📜 <span style="color:#DC143C;">**Essence**</span> [Character Sheet]
 
 ---
 
@@ -87,24 +99,6 @@ Tooltips that actually tell you who you're looking at.
 - **Transmog status** — Item tooltips show whether you've already collected the appearance.
 - **Cinematic presentation** — Dark backdrop, fade-in animation, cursor or fixed anchor. Stored per profile.
 - **Combat mode** — Optional toggle to close styled tooltip frames during combat.
-
----
-
-## 🎒 <span style="color:#33CC66;">Augment</span> [Miscellaneous] (Currently Loot)
-
-![Augment - Miscellaneous](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
-
-Loot that deserves to be seen — and a bag that keeps itself organised.
-
-- **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
-- **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
-- **Bag organisation** — Clean up your inventory with Cache's built-in bag management.
-
----
-
-## 📜 <span style="color:#DC143C;">**Essence**</span> [Character Sheet]
-
-![Essence](link_here)
 
 ---
 
