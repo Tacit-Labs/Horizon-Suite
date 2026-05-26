@@ -139,14 +139,14 @@ Horizon Suite would not be where it is without our lovely community.
 Author|Coordinator|Innovator|Developer|Developer|Developer|Developer|
 
 ||||||
-|:-:|:-:|:-:|:-:|:-:|
+|:----:|:----:|:----:|:----:|:----:|
 |<span style="color:#F5DEB3;">**Alex**</span>|<span style="color:#F5DEB3;">**Aishuu**</span>|<span style="color:#F5DEB3;">**아즈샤라-두녘**</span>|<span style="color:#F5DEB3;">**Linho-Gallywix**</span>|<span style="color:#F5DEB3;">**allmoon**</span>|
 |`deDE`|`frFR`|`koKR`|`ptBR`|`zhCN`|
 
 **Additional translations (starting or continuing) are always welcome!**
 |||
-|:-:|:-:|
-|<span style="color:#4169E1;">Boofuls</span>|[**Gabriel C**](https://www.fiverr.com/gc_fresh_ideas)|
+|:----:|:----:|
+|<span style="color:#4169E1;">**Boofuls**</span>|[**Gabriel C**](https://www.fiverr.com/gc_fresh_ideas)|
 |Moderator & Comissioned:|Horizon Class Icons|
 
 
