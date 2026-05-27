@@ -24,14 +24,14 @@ OUT_FILE   = Path(__file__).resolve().parent / "options_viz.html"
 # ---------------------------------------------------------------------------
 # Module metadata
 # ---------------------------------------------------------------------------
-MODULE_ORDER  = [None, "focus", "presence", "vista", "insight", "cache", "essence"]
+MODULE_ORDER  = [None, "focus", "presence", "vista", "insight", "augment", "essence"]
 MODULE_LABELS = {
     None:       "Global",
     "focus":    "Focus",
     "presence": "Presence",
     "vista":    "Vista",
     "insight":  "Insight",
-    "cache":    "Cache",
+    "augment":  "Augment",
     "essence":  "Essence",
 }
 

@@ -90,13 +90,13 @@ modules/Presence/PresenceModule.lua
 options/modules/defaults/OptionsDefaultsPresenceTalkingHead.lua
 modules/Presence/PresenceTalkingHead.lua
 
-modules/Cache/CacheState.lua
-modules/Cache/CacheParsing.lua
-modules/Cache/CacheBlizzard.lua
-modules/Cache/CacheCore.lua
-modules/Cache/CacheEvents.lua
-modules/Cache/CacheSlash.lua
-modules/Cache/CacheModule.lua
+modules/Augment/AugmentState.lua
+modules/Augment/AugmentParsing.lua
+modules/Augment/AugmentBlizzard.lua
+modules/Augment/AugmentCore.lua
+modules/Augment/AugmentEvents.lua
+modules/Augment/AugmentSlash.lua
+modules/Augment/AugmentModule.lua
 
 modules/Vista/VistaCore.lua
 modules/Vista/VistaSlash.lua
@@ -117,7 +117,7 @@ options/OptionsWidgets.lua
 options/OptionsDefaults.lua
 options/OptionsData.lua
 options/OptionsHelpers.lua
-options/modules/defaults/OptionsDefaultsCache.lua
+options/modules/defaults/OptionsDefaultsAugment.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
 options/modules/defaults/OptionsDefaultsEssence.lua
@@ -133,7 +133,7 @@ options/modules/OptionsPresence.lua
 options/modules/OptionsInsight.lua
 options/modules/OptionsEssence.lua
 options/modules/OptionsVista.lua
-options/modules/OptionsCache.lua
+options/modules/OptionsAugment.lua
 options/modules/OptionsPresenceTalkingHead.lua
 options/OptionsSearch.lua
 options/OptionsPanel.lua

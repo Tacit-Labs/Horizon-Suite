@@ -13,7 +13,7 @@ local tinsert = table.insert
 local GUIDE_MODULE_COLORS = {
     ["Essence"]  = "DC143C",
     ["Focus"]    = "FFD133",
-    ["Cache"]    = "33CC66",
+    ["Augment"]    = "33CC66",
     ["Presence"] = "33FFDF",
     ["Vista"]    = "B366FF",
     ["Insight"]  = "FF66B3",
@@ -108,7 +108,7 @@ function addon.DashboardModuleGuide_Init(env)
         local prevTag = " |cff228b22(" .. (L["PRESENCE_PREVIEW"]) .. ")|r"
         local soonTag = " |cff8cb2e6(" .. (L["COMING_SOON"]) .. ")|r"
         for _, row in ipairs({
-            { key = "cache", label = "Cache", tag = prevTag, when = PREVIEW_MODULE_KEYS },
+            { key = "augment", label = "Augment", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "essence", label = "Essence", tag = prevTag, when = PREVIEW_MODULE_KEYS },
             { key = "meridian", label = "Meridian", tag = soonTag, when = COMING_SOON_MODULE_KEYS },
         }) do
@@ -345,10 +345,10 @@ function addon.DashboardModuleGuide_Init(env)
     insightBody:SetWordWrap(true)
     insightBody:SetSpacing(4)
 
-    local cacheCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("cache"), false, RunAccordionLayout)
-    local cacheBody = MakeDashboardWelcomeMixedScriptText(cacheCard.settingsContainer, L["DASH_GUIDE_MOD_CACHE_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
-    cacheBody:SetWordWrap(true)
-    cacheBody:SetSpacing(4)
+    local augmentCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("augment"), false, RunAccordionLayout)
+    local augmentBody = MakeDashboardWelcomeMixedScriptText(augmentCard.settingsContainer, L["DASH_GUIDE_MOD_AUGMENT_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
+    augmentBody:SetWordWrap(true)
+    augmentBody:SetSpacing(4)
 
     local essenceCard = CreateGuideAccordionCard(content, ModuleGuideSectionTitle("essence"), false, RunAccordionLayout)
     local essenceBody = MakeDashboardWelcomeMixedScriptText(essenceCard.settingsContainer, L["DASH_GUIDE_MOD_ESSENCE_BODY"], 12, 0.62, 0.65, 0.70, "LEFT")
@@ -387,7 +387,7 @@ function addon.DashboardModuleGuide_Init(env)
         layoutAccordionCard(presenceCard, { presenceIntro, presenceBody, presenceBlizzard }, 10)
         layoutAccordionCard(vistaCard, { vistaBody }, 10)
         layoutAccordionCard(insightCard, { insightBody }, 10)
-        layoutAccordionCard(cacheCard, { cacheBody }, 10)
+        layoutAccordionCard(augmentCard, { augmentBody }, 10)
         layoutAccordionCard(essenceCard, { essenceBody }, 10)
         layoutAccordionCard(meridianCard, { meridianBody }, 10)
         return y

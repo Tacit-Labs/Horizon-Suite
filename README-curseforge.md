@@ -19,7 +19,7 @@ Stop juggling separate addons with separate option panels. Horizon Suite brings 
 | 🎬 **Presence** | Zone text & cinematic notifications | Live |
 | 🗺️ **Vista** | Minimap with full customisation | Live |
 | 🔍 **Insight** | Cinematic tooltips | Live |
-| 🎒 **Cache** | Loot toasts & bag organisation | Preview |
+| 🎒 **Augment** | Loot toasts & bag organisation | Preview |
 | 📜 **Essence** | Character sheet | Preview |
 | 💬 **Flow** | Chat frame | Coming Soon |
 | 🌅 **Meridian** | Take a Guess! | Coming Soon |
@@ -82,15 +82,15 @@ A minimap that fits your UI — not the other way around.
 
 ---
 
-## 🎒 Cache — Loot Toasts & Bags *(Preview)*
+## 🎒 Augment — Loot Toasts & Bags *(Preview)*
 
-![Cache - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
+![Augment - Loot Toasts](https://preview.redd.it/addon-horizon-suite-midnight-launch-update-new-options-prey-v0-j62j1wnjyhng1.gif?width=570&auto=webp&s=8c8f42be57e3da4a0f839a6b04da7d8d41d5dcba)
 
 Loot that deserves to be seen — and a bag that keeps itself organised.
 
 - **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
 - **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
-- **Bag organisation** — Clean up your inventory with Cache's built-in bag management.
+- **Bag organisation** — Clean up your inventory with Augment's built-in bag management.
 
 ---
 

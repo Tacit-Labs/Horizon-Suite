@@ -1,13 +1,13 @@
 --[[
-    Horizon Suite - Cache - Parsing
+    Horizon Suite - Augment - Parsing
     Parse CHAT_MSG_LOOT, CHAT_MSG_MONEY, CHAT_MSG_CURRENCY, CHAT_MSG_COMBAT_FACTION_CHANGE.
 ]]
 
 local addon = _G.HorizonSuite
-if not addon or not addon.Cache then return end
+if not addon or not addon.Augment then return end
 
-local Y = addon.Cache
-local y = addon.cache
+local Y = addon.Augment
+local y = addon.augment
 
 -- Pattern tables (filled by InitPatterns)
 local selfLootPats   = {}
@@ -48,7 +48,7 @@ local function BuildPattern(fmtStr)
 end
 
 -- Coin textures are cached and rebuilt only when the font size changes
--- (triggered by Cache.InvalidateCoinTextures called from ApplyScale).
+-- (triggered by Augment.InvalidateCoinTextures called from ApplyScale).
 local cachedCoinGold, cachedCoinSilver, cachedCoinCopper
 local cachedCoinSz = -1
 
@@ -169,7 +169,7 @@ function Y.ParseItemLoot(msg)
     local itemLink = ExtractItemLink(msg)
 
     if y.debugMode then
-        print("|cFF00CCFFCache debug PARSE:|r link=" .. tostring(itemLink ~= nil)
+        print("|cFF00CCFFAugment debug PARSE:|r link=" .. tostring(itemLink ~= nil)
             .. " raw=" .. tostring(msg):sub(1, 120))
     end
 

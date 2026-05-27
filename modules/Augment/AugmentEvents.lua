@@ -1,13 +1,13 @@
 --[[
-    Horizon Suite - Cache - Events
+    Horizon Suite - Augment - Events
     Event registration and dispatch for loot, money, currency, reputation.
 ]]
 
 local addon = _G.HorizonSuite
-if not addon or not addon.Cache then return end
+if not addon or not addon.Augment then return end
 
-local Y = addon.Cache
-local y = addon.cache
+local Y = addon.Augment
+local y = addon.augment
 
 local eventFrame
 local eventsRegistered = false
@@ -18,13 +18,13 @@ local eventsRegistered = false
 -- animation doesn't receive them all at position 0 simultaneously.
 -- ============================================================================
 
-local cachePanel = addon.Log.createPanel("cache", "Cache Debug", { maxLines = 300,
+local augmentPanel = addon.Log.createPanel("augment", "Augment Debug", { maxLines = 300,
     onClose = function()
-        if addon.SetDB then addon.SetDB("cacheDebugLive", false) end
-        addon.Log.enableTag("cache", nil)
+        if addon.SetDB then addon.SetDB("augmentDebugLive", false) end
+        addon.Log.enableTag("augment", nil)
     end,
 })
-addon.Log.registerTag("cache", "cacheDebugLive")
+addon.Log.registerTag("augment", "augmentDebugLive")
 
 local COALESCE_STAGGER = 0.08
 local lootQueue        = {}
@@ -34,7 +34,7 @@ local function FlushLootQueue()
     lootFlushPending = false
     local queue = lootQueue
     lootQueue = {}
-    addon.Log.debug("cache", "FlushLootQueue — " .. #queue .. " item(s)")
+    addon.Log.debug("augment", "FlushLootQueue — " .. #queue .. " item(s)")
     for i, data in ipairs(queue) do
         if i == 1 then
             Y.ShowToast(data)
@@ -48,7 +48,7 @@ end
 
 local function EnqueueLootToast(data)
     lootQueue[#lootQueue + 1] = data
-    addon.Log.debug("cache", "Enqueue — type=" .. tostring(data and data.type) .. " q=" .. #lootQueue)
+    addon.Log.debug("augment", "Enqueue — type=" .. tostring(data and data.type) .. " q=" .. #lootQueue)
     if not lootFlushPending then
         lootFlushPending = true
         C_Timer.After(0, FlushLootQueue)
@@ -69,7 +69,7 @@ local handlers = {}
 handlers.ADDON_LOADED = function(msg)
     -- Re-suppress after lazy Blizzard frames load in.
     if (msg == "Blizzard_AlertFrames" or msg == "Blizzard_LootFrame" or msg == "Blizzard_ContainerOpeningUI")
-        and addon:IsModuleEnabled("cache") and Y.ApplyBlizzardSuppression
+        and addon:IsModuleEnabled("augment") and Y.ApplyBlizzardSuppression
     then
         Y.ApplyBlizzardSuppression()
     end
@@ -78,7 +78,7 @@ end
 local function OnPlayerReady()
     y.playerGUID = UnitGUID("player")
     if not y.patternsOK and Y.InitPatterns then Y.InitPatterns() end
-    if addon:IsModuleEnabled("cache") and Y.ApplyBlizzardSuppression then Y.ApplyBlizzardSuppression() end
+    if addon:IsModuleEnabled("augment") and Y.ApplyBlizzardSuppression then Y.ApplyBlizzardSuppression() end
 end
 handlers.PLAYER_LOGIN          = OnPlayerReady
 handlers.PLAYER_ENTERING_WORLD = OnPlayerReady
@@ -86,7 +86,7 @@ handlers.PLAYER_ENTERING_WORLD = OnPlayerReady
 
 handlers.CHAT_MSG_LOOT = function(msg, ...)
     if not y.patternsOK then return end
-    if addon.GetDB("cacheShowItems", true) == false then return end
+    if addon.GetDB("augmentShowItems", true) == false then return end
     local guid = select(11, ...)
     if guid == "" then guid = nil end
     if guid and y.playerGUID then
@@ -94,45 +94,45 @@ handlers.CHAT_MSG_LOOT = function(msg, ...)
     elseif not Y.IsSelfLoot(msg) then
         return
     end
-    if Y.IsPushedLoot(msg) and addon.GetDB("cacheShowPushedItems", addon.CACHE_DEFAULTS.cacheShowPushedItems) == false then return end
-    addon.Log.debug("cache", "LOOT guid=" .. tostring(guid) .. " match=" .. tostring(guid == y.playerGUID) .. " " .. tostring(msg):sub(1, 80))
+    if Y.IsPushedLoot(msg) and addon.GetDB("augmentShowPushedItems", addon.AUGMENT_DEFAULTS.augmentShowPushedItems) == false then return end
+    addon.Log.debug("augment", "LOOT guid=" .. tostring(guid) .. " match=" .. tostring(guid == y.playerGUID) .. " " .. tostring(msg):sub(1, 80))
     local data = Y.ParseItemLoot(msg)
     if data then
-        local minQ = (addon.GetDB and tonumber(addon.GetDB("cacheMinQuality", 0))) or 0
+        local minQ = (addon.GetDB and tonumber(addon.GetDB("augmentMinQuality", 0))) or 0
         if (data.quality or 1) >= minQ then
             EnqueueLootToast(data)
         else
-            addon.Log.debug("cache", "LOOT filtered — quality=" .. tostring(data.quality) .. " < minQ=" .. minQ)
+            addon.Log.debug("augment", "LOOT filtered — quality=" .. tostring(data.quality) .. " < minQ=" .. minQ)
         end
     end
 end
 
 handlers.CHAT_MSG_MONEY = function(msg)
     if not y.patternsOK then return end
-    if addon.GetDB("cacheShowMoney", true) == false then return end
+    if addon.GetDB("augmentShowMoney", true) == false then return end
     local data = Y.ParseMoney(msg)
     if data then
-        addon.Log.debug("cache", "MONEY — " .. tostring(msg):sub(1, 60))
+        addon.Log.debug("augment", "MONEY — " .. tostring(msg):sub(1, 60))
         EnqueueLootToast(data)
     end
 end
 
 handlers.CHAT_MSG_CURRENCY = function(msg)
     if not y.patternsOK then return end
-    if addon.GetDB("cacheShowCurrency", true) == false then return end
+    if addon.GetDB("augmentShowCurrency", true) == false then return end
     local data = Y.ParseCurrency(msg)
     if data then
-        addon.Log.debug("cache", "CURRENCY — " .. tostring(msg):sub(1, 60))
+        addon.Log.debug("augment", "CURRENCY — " .. tostring(msg):sub(1, 60))
         EnqueueLootToast(data)
     end
 end
 
 handlers.CHAT_MSG_COMBAT_FACTION_CHANGE = function(msg)
     if not y.patternsOK then return end
-    if addon.GetDB("cacheShowRep", true) == false then return end
+    if addon.GetDB("augmentShowRep", true) == false then return end
     local data = Y.ParseReputation(msg)
     if data then
-        addon.Log.debug("cache", "REP — " .. tostring(msg):sub(1, 60))
+        addon.Log.debug("augment", "REP — " .. tostring(msg):sub(1, 60))
         Y.ShowToast(data)
     end
 end
@@ -218,12 +218,12 @@ function Y.DisableEvents()
 end
 
 function Y.SetDebugLive(v)
-    if addon.SetDB then addon.SetDB("cacheDebugLive", v) end
-    addon.Log.enableTag("cache", v or nil)
+    if addon.SetDB then addon.SetDB("augmentDebugLive", v) end
+    addon.Log.enableTag("augment", v or nil)
     if v then
-        cachePanel.Show()
-        addon.Log.debug("cache", "Live debug enabled")
+        augmentPanel.Show()
+        addon.Log.debug("augment", "Live debug enabled")
     else
-        cachePanel.Hide()
+        augmentPanel.Hide()
     end
 end

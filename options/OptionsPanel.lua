@@ -77,10 +77,10 @@ function addon.OpenVistaDrawerIconPicker()
         return type(icon) == "table" and icon.name or nil
     end
 
-    local iconPathCache = {}
+    local iconPathAugment = {}
     local function getIconPathText(icon)
         local file = getIconFile(icon)
-        local cached = iconPathCache[file]
+        local cached = iconPathAugment[file]
         if cached ~= nil then return cached end
         local path
         if type(file) == "number" and C_Texture and C_Texture.GetFilenameFromFileDataID then
@@ -91,14 +91,14 @@ function addon.OpenVistaDrawerIconPicker()
         elseif type(file) == "string" then
             path = file:gsub("/", "\\")
         end
-        iconPathCache[file] = path or false
+        iconPathAugment[file] = path or false
         return path
     end
 
-    local iconSearchCache = {}
+    local iconSearchAugment = {}
     local function getIconSearchText(icon)
         local file = getIconFile(icon)
-        local cached = iconSearchCache[file]
+        local cached = iconSearchAugment[file]
         if cached then return cached end
         local text = tostring(file or "")
         local name = getIconName(icon)
@@ -107,7 +107,7 @@ function addon.OpenVistaDrawerIconPicker()
         if path then text = text .. " " .. path end
         text = text:lower()
         text = text .. " " .. text:gsub("[^%w]+", "")
-        iconSearchCache[file] = text
+        iconSearchAugment[file] = text
         return text
     end
 
@@ -2615,7 +2615,7 @@ local function BrandModule(k)
     local t = addon.BrandDisplay and addon.BrandDisplay.module
     return t and t[k] or nil
 end
-local MODULE_LABELS = { ["modules"] = BrandModule("axis") or "Axis", ["focus"] = BrandModule("focus"), ["presence"] = BrandModule("presence"), ["insight"] = BrandModule("insight"), ["cache"] = BrandModule("cache"), ["vista"] = BrandModule("vista") }
+local MODULE_LABELS = { ["modules"] = BrandModule("axis") or "Axis", ["focus"] = BrandModule("focus"), ["presence"] = BrandModule("presence"), ["insight"] = BrandModule("insight"), ["augment"] = BrandModule("augment"), ["vista"] = BrandModule("vista") }
 local groups = {}
 for i, cat in ipairs(addon.OptionCategories) do
     if not (cat.hidden and cat.hidden()) then
@@ -2624,7 +2624,7 @@ for i, cat in ipairs(addon.OptionCategories) do
         table.insert(groups[mk].categories, i)
     end
 end
-local groupOrder = { "modules", "focus", "presence", "insight", "cache", "vista" }
+local groupOrder = { "modules", "focus", "presence", "insight", "augment", "vista" }
 
 local function UpdateTabVisuals()
     for _, btn in ipairs(tabButtons) do
