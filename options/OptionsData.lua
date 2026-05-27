@@ -15,7 +15,7 @@ local L = addon.L
 -- If useGlobalFont is true but globalOverrideFontPath was never written, the saved
 -- fontPath is the old override value.  Copy it to the dedicated key.
 -- fontPath is intentionally kept: it serves as the per-module "Global Font" sentinel
--- fallback (Cache, Vista, Presence, Insight all fall through to fontPath when their
+-- fallback (Augment, Vista, Presence, Insight all fall through to fontPath when their
 -- own per-module key is "__global__" and the override is off).
 -- ---------------------------------------------------------------------------
 do
@@ -54,11 +54,11 @@ function OptionsData_SetDB(key, value)
         end
     end
     -- When the "Show in-zone world quests" toggle is flipped on, invalidate the nearby
-    -- WQ scan cache so the next FullLayout immediately re-scans for the current zone.
+    -- WQ scan augment so the next FullLayout immediately re-scans for the current zone.
     if key == "showWorldQuests" and value == true and addon.focus then
-        addon.focus.nearbyQuestCacheDirty = true
-        addon.focus.nearbyQuestCache = nil
-        addon.focus.nearbyTaskQuestCache = nil
+        addon.focus.nearbyQuestAugmentDirty = true
+        addon.focus.nearbyQuestAugment = nil
+        addon.focus.nearbyTaskQuestAugment = nil
     end
     if (key == "fontPath" or key == "titleFontPath" or key == "zoneFontPath" or key == "objectiveFontPath" or key == "sectionFontPath" or key == "progressBarFontPath" or key == "timerFontPath" or key == "optionsFontPath" or key == "presenceTitleFontPath" or key == "presenceSubtitleFontPath" or key == "insightFontPath" or key == "useGlobalFont" or key == "globalOverrideFontPath") and updateOptionsPanelFontsRef then
         updateOptionsPanelFontsRef()
@@ -71,7 +71,7 @@ function OptionsData_SetDB(key, value)
     -- (useGlobalFont is in TYPOGRAPHY_KEYS so UpdateFontObjectsFromDB already ran;
     --  this block handles the per-module apply functions that sit outside that path.)
     if key == "useGlobalFont" or (key == "globalOverrideFontPath" and addon.GetDB and addon.GetDB("useGlobalFont", false)) then
-        if addon.Cache and addon.Cache.ApplyScale then addon.Cache.ApplyScale() end
+        if addon.Augment and addon.Augment.ApplyScale then addon.Augment.ApplyScale() end
         if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
         if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
         if addon.Essence and addon.Essence.ApplyEssenceOptions then addon.Essence.ApplyEssenceOptions() end
@@ -96,8 +96,8 @@ function OptionsData_SetDB(key, value)
     if addon.ESSENCE_KEYS and addon.ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
         addon.Essence.ApplyEssenceOptions()
     end
-    if addon.CACHE_KEYS and addon.CACHE_KEYS[key] and addon.Cache and addon.Cache.ApplyCacheOptions then
-        addon.Cache.ApplyCacheOptions()
+    if addon.AUGMENT_KEYS and addon.AUGMENT_KEYS[key] and addon.Augment and addon.Augment.ApplyAugmentOptions then
+        addon.Augment.ApplyAugmentOptions()
     end
     if addon.DASHBOARD_CLASS_ICON_KEYS and addon.DASHBOARD_CLASS_ICON_KEYS[key] then
         if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
@@ -131,8 +131,8 @@ function OptionsData_SetDB(key, value)
         if key == "classColorPresence" and addon.Presence and addon.Presence.ApplyPresenceOptions then
             addon.Presence.ApplyPresenceOptions()
         end
-        if key == "classColorCache" and addon.Cache and addon.Cache.ApplyCacheOptions then
-            addon.Cache.ApplyCacheOptions()
+        if key == "classColorAugment" and addon.Augment and addon.Augment.ApplyAugmentOptions then
+            addon.Augment.ApplyAugmentOptions()
         end
     end
     if addon.VISTA_KEYS and addon.VISTA_KEYS[key] and addon.Vista then
@@ -220,10 +220,10 @@ function OptionsData_NotifyMainAddon_Live()
 end
 
 function OptionsData_NotifyMainAddon()
-    -- Bust the per-entry populate-signature cache so option changes (objectivePrefixStyle,
+    -- Bust the per-entry populate-signature augment so option changes (objectivePrefixStyle,
     -- showZoneLabels, useTickForCompletedObjectives, etc.) take effect on the next FullLayout
     -- instead of waiting for /reload or a fingerprinted qData field to perturb.
-    if addon.focus and addon.focus.InvalidatePopulateCache then addon.focus.InvalidatePopulateCache() end
+    if addon.focus and addon.focus.InvalidatePopulateAugment then addon.focus.InvalidatePopulateAugment() end
     local applyTy = addon.ApplyTypography or _G.HorizonSuite_ApplyTypography
     if applyTy then applyTy() end
     if addon.ApplyDimensions then addon.ApplyDimensions()
@@ -270,7 +270,7 @@ local OptionCategories = {
                 { type = "toggle", name = BM and BM("presence"), desc = L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"], dbKey = "_module_presence", get = function() return addon:IsModuleEnabled("presence") end, set = function(v) setModuleFromOptions("presence", v) end },
                 { type = "toggle", name = BM and BM("vista"), desc = L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"], dbKey = "_module_vista", get = function() return addon:IsModuleEnabled("vista") end, set = function(v) setModuleFromOptions("vista", v) end },
                 { type = "toggle", name = BM and BM("insight"), desc = L["DASH_TOOLTIPS_CLASS_COLOURS_SPEC_FACTION"], dbKey = "_module_insight", get = function() return addon:IsModuleEnabled("insight") end, set = function(v) setModuleFromOptions("insight", v) end },
-                { type = "toggle", name = (BM and BM("cache") or "Cache") .. previewSuffix, desc = (L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]) .. previewDescSuffix, dbKey = "_module_cache", get = function() return addon:IsModuleEnabled("cache") end, set = function(v) setModuleFromOptions("cache", v) end },
+                { type = "toggle", name = (BM and BM("augment") or "Augment") .. previewSuffix, desc = (L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]) .. previewDescSuffix, dbKey = "_module_augment", get = function() return addon:IsModuleEnabled("augment") end, set = function(v) setModuleFromOptions("augment", v) end },
                 { type = "toggle", name = (BM and BM("essence") or "Essence") .. previewSuffix, desc = (L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"]) .. previewDescSuffix, dbKey = "_module_essence", get = function() return addon:IsModuleEnabled("essence") end, set = function(v) setModuleFromOptions("essence", v) end },
                 { type = "moduleReloadPrompt" },
             }

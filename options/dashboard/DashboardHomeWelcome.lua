@@ -1,6 +1,6 @@
 --[[
     Horizon Suite - Dashboard home module toggle hub.
-    Each module (Focus, Presence, Vista, Insight, Cache, Essence) gets a full-width card of uniform height
+    Each module (Focus, Presence, Vista, Insight, Augment, Essence) gets a full-width card of uniform height
     with an animated pill toggle to enable/disable it. Card click navigates to settings.
     Wired from DashboardFrame.lua via addon.DashboardHomeWelcome_Init(env).
 ]]
@@ -38,14 +38,14 @@ function addon.DashboardHomeWelcome_Init(env)
     local SBg  = (WDef and WDef.SectionCardBg) or { 0.09, 0.09, 0.11, 0.96 }
     local SBgA = SBg[4] * (DASHBOARD_CONTENT_CARD_ALPHA_MULT or 1)
 
-    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "cache", "essence" }
+    local MODULE_ORDER = { "focus", "presence", "vista", "insight", "augment", "essence" }
 
     local MODULE_COLORS = {
         focus    = { 1.00, 0.82, 0.20 },
         presence = { 0.20, 1.00, 0.87 },
         vista    = { 0.70, 0.40, 1.00 },
         insight  = { 1.00, 0.40, 0.70 },
-        cache    = { 0.20, 0.80, 0.40 },
+        augment    = { 0.20, 0.80, 0.40 },
         essence  = { 0.86, 0.08, 0.24 },
     }
 
@@ -54,7 +54,7 @@ function addon.DashboardHomeWelcome_Init(env)
         presence = "vas_guildnamechange",
         vista    = "ability_hunter_pathfinding",
         insight  = "ui_profession_inscription",
-        cache    = "INV_Misc_Coin_01",
+        augment    = "INV_Misc_Coin_01",
         essence  = "achievement_character_human_male",
     }
 
@@ -63,7 +63,7 @@ function addon.DashboardHomeWelcome_Init(env)
         presence = L["HOME_MOD_PRESENCE_SHORT"],
         vista    = L["HOME_MOD_VISTA_SHORT"],
         insight  = L["HOME_MOD_INSIGHT_SHORT"],
-        cache    = L["HOME_MOD_CACHE_SHORT"],
+        augment    = L["HOME_MOD_AUGMENT_SHORT"],
         essence  = L["HOME_MOD_ESSENCE_SHORT"],
     }
 

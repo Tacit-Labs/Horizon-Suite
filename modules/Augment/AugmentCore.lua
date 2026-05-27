@@ -1,27 +1,27 @@
 --[[
-    Horizon Suite - Cache - Core
+    Horizon Suite - Augment - Core
     Frame, pool, animation engine, ShowToast. Blizzard: CreateFrame, C_Timer.
 ]]
 
 local addon = _G.HorizonSuite
-if not addon or not addon.Cache then return end
+if not addon or not addon.Augment then return end
 
-local Cache = addon.Cache
-local state = addon.cache
+local Augment = addon.Augment
+local state = addon.augment
 
 -- ============================================================================
 -- MODULE-LEVEL HELPERS
 -- ============================================================================
 
 local function S(v)
-    local lim = addon.CACHE_LIMITS.cacheUIScale
+    local lim = addon.AUGMENT_LIMITS.augmentUIScale
     local scale = math.max(lim.min, math.min(lim.max,
-        tonumber(addon.GetDB and addon.GetDB("cacheUIScale", addon.CACHE_DEFAULTS.cacheUIScale)) or 1))
+        tonumber(addon.GetDB and addon.GetDB("augmentUIScale", addon.AUGMENT_DEFAULTS.augmentUIScale)) or 1))
     return v * scale
 end
 
 local function GetFontSize()
-    return tonumber(addon.GetDB and addon.GetDB("cacheFontSize", addon.CACHE_DEFAULTS.cacheFontSize)) or addon.CACHE_DEFAULTS.cacheFontSize
+    return tonumber(addon.GetDB and addon.GetDB("augmentFontSize", addon.AUGMENT_DEFAULTS.augmentFontSize)) or addon.AUGMENT_DEFAULTS.augmentFontSize
 end
 
 local function HSPrint(msg)
@@ -34,11 +34,11 @@ end
 
 local function GetFontFlags()
     if not addon.GetDB then return "OUTLINE" end
-    return addon.GetDB("cacheTextOutline", addon.CACHE_DEFAULTS.cacheTextOutline) ~= false and "OUTLINE" or ""
+    return addon.GetDB("augmentTextOutline", addon.AUGMENT_DEFAULTS.augmentTextOutline) ~= false and "OUTLINE" or ""
 end
 
 local function GetToastFont()
-    return Cache.GetFontPath(), S(GetFontSize()), GetFontFlags()
+    return Augment.GetFontPath(), S(GetFontSize()), GetFontFlags()
 end
 
 -- Per-FontString hook that re-asserts our desired font whenever a font-replacement
@@ -68,14 +68,14 @@ local function LockDirectFont(fontString, getFont)
 end
 
 -- Shared FontObject for all pool text/shadow FontStrings.
--- Updating it propagates to every FontString using SetFontObject(CacheFontObj) automatically,
+-- Updating it propagates to every FontString using SetFontObject(AugmentFontObj) automatically,
 -- without touching individual FontStrings — and survives same-tick overrides from other addons
 -- that hook SetFont on specific FontStrings.
-local CacheFontObj
+local AugmentFontObj
 
-local function UpdateCacheFontObject()
-    if not CacheFontObj then return end
-    CacheFontObj:SetFont(Cache.GetFontPath(), S(GetFontSize()), GetFontFlags())
+local function UpdateAugmentFontObject()
+    if not AugmentFontObj then return end
+    AugmentFontObj:SetFont(Augment.GetFontPath(), S(GetFontSize()), GetFontFlags())
 end
 
 -- mode: "in" = ease-in, "inOut" = ease-in-out, default = ease-out (quadratic)
@@ -97,14 +97,14 @@ local framesCreated = false
 
 local function UpdateFrameSize()
     if not Frame then return end
-    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT) * math.max(1, state.activeCount))
+    Frame:SetSize(S(Augment.TOTAL_WIDTH), S(Augment.LINE_HEIGHT) * math.max(1, state.activeCount))
 end
 
 -- Forward-declare so the OnUpdate closure inside InitFrames can reference it
 -- before the function body is defined below.
 local UpdateEntry
 
-local CACHE_ANCHOR_BACKDROP = {
+local AUGMENT_ANCHOR_BACKDROP = {
     bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
     edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
     edgeSize = 1,
@@ -119,7 +119,7 @@ local function IsReady() return framesCreated end
 
 --- Returns true once InitFrames has run. External callers (events, slash) can
 --- check this instead of knowing the internal framesCreated flag.
-Cache.IsReady = IsReady
+Augment.IsReady = IsReady
 
 -- ============================================================================
 -- POSITION
@@ -128,13 +128,13 @@ Cache.IsReady = IsReady
 --- Apply stored anchor position to a frame. Safe to call before InitFrames
 --- (used by external callers); no-ops on nil.
 --- @param frame table Frame to position
-function Cache.ApplyStoredAnchor(frame)
+function Augment.ApplyStoredAnchor(frame)
     if not frame then return end
-    local point, relPoint, x, yPos = Cache.GetPosition()
-    point   = point   or Cache.DEFAULT_ANCHOR
-    relPoint = relPoint or Cache.DEFAULT_ANCHOR
-    x    = tonumber(x)    or Cache.DEFAULT_X
-    yPos = tonumber(yPos) or Cache.DEFAULT_Y
+    local point, relPoint, x, yPos = Augment.GetPosition()
+    point   = point   or Augment.DEFAULT_ANCHOR
+    relPoint = relPoint or Augment.DEFAULT_ANCHOR
+    x    = tonumber(x)    or Augment.DEFAULT_X
+    yPos = tonumber(yPos) or Augment.DEFAULT_Y
     frame:ClearAllPoints()
     frame:SetPoint(point, UIParent, relPoint, x, yPos)
 end
@@ -149,7 +149,7 @@ local function SaveFramePosition()
     if not right or not bottom then return end
     local x = math.floor(right  - UIParent:GetRight()  + 0.5)
     local y = math.floor(bottom - UIParent:GetBottom() + 0.5)
-    Cache.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
+    Augment.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
 end
 
 -- ============================================================================
@@ -162,53 +162,53 @@ local STACK_OVERLAP = 0.15
 
 local function CreateToastEntry(parent)
     local f = CreateFrame("Frame", nil, parent)
-    f:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT))
+    f:SetSize(S(Augment.TOTAL_WIDTH), S(Augment.ENTRY_HEIGHT))
 
     -- Fixed invisible texture used purely as a stable anchor for text/shadow.
     -- iconBg (and its stack siblings) reposition during the fan layout, but
     -- text must never move, so it anchors here instead.
     local iconBgAnchor = f:CreateTexture(nil, "BACKGROUND")
-    iconBgAnchor:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
+    iconBgAnchor:SetSize(S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2), S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2))
     iconBgAnchor:SetPoint("LEFT", f, "LEFT", 0, 0)
     iconBgAnchor:SetAlpha(0)
 
     -- Stack backgrounds — created back-to-front so BORDER z-order matches icon depth.
     local iconBg3 = f:CreateTexture(nil, "BORDER")
-    iconBg3:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
+    iconBg3:SetSize(S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2), S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2))
     iconBg3:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     iconBg3:Hide()
 
     local iconBg2 = f:CreateTexture(nil, "BORDER")
-    iconBg2:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
+    iconBg2:SetSize(S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2), S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2))
     iconBg2:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     iconBg2:Hide()
 
     -- Main (front) background — starts centered on the anchor; repositioned by UpdateStackIcons.
     local iconBg = f:CreateTexture(nil, "BORDER")
-    iconBg:SetSize(S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2), S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2))
+    iconBg:SetSize(S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2), S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2))
     iconBg:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     iconBg:SetColorTexture(1, 1, 1, 0.8)
 
     -- Stack icons — back-to-front so ARTWORK z-order mirrors depth.
     local icon3 = f:CreateTexture(nil, "ARTWORK")
-    icon3:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE))
+    icon3:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE))
     icon3:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     icon3:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     icon3:Hide()
 
     local icon2 = f:CreateTexture(nil, "ARTWORK")
-    icon2:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE))
+    icon2:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE))
     icon2:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     icon2:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     icon2:Hide()
 
     local icon = f:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE))
+    icon:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE))
     icon:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
     local shine = f:CreateTexture(nil, "OVERLAY")
-    shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8))
+    shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8))
     shine:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     shine:SetTexture("Interface\\Cooldown\\star4")
     shine:SetBlendMode("ADD")
@@ -216,18 +216,18 @@ local function CreateToastEntry(parent)
     shine:Hide()
 
     local shadow = f:CreateFontString(nil, "BORDER")
-    shadow:SetFontObject(CacheFontObj)
+    shadow:SetFontObject(AugmentFontObj)
     shadow:SetTextColor(0, 0, 0, 0.7)
     shadow:SetJustifyH("LEFT")
-    shadow:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Cache.ICON_GAP) + 1, -1)
+    shadow:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Augment.ICON_GAP) + 1, -1)
     shadow:SetPoint("RIGHT", f, "RIGHT", 1, -1)
     shadow:SetWordWrap(false)
 
     local text = f:CreateFontString(nil, "OVERLAY")
-    text:SetFontObject(CacheFontObj)
+    text:SetFontObject(AugmentFontObj)
     text:SetTextColor(1, 1, 1, 1)
     text:SetJustifyH("LEFT")
-    text:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Cache.ICON_GAP), 0)
+    text:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Augment.ICON_GAP), 0)
     text:SetPoint("RIGHT", f, "RIGHT", 0, 0)
     text:SetWordWrap(false)
 
@@ -272,7 +272,7 @@ local function CreateToastEntry(parent)
         text        = text,
         active      = false,
         elapsed     = 0,
-        holdDur     = Cache.HOLD_ITEM,
+        holdDur     = Augment.HOLD_ITEM,
         quality     = nil,
         maxAlpha    = 1,
         stackY   = 0,
@@ -285,13 +285,13 @@ end
 -- LAZY INIT — called once from OnEnable (DB is ready at that point)
 -- ============================================================================
 
-function Cache.InitFrames()
+function Augment.InitFrames()
     if framesCreated then return end
     framesCreated = true
 
     Frame = CreateFrame("Frame", nil, UIParent)
-    Frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.LINE_HEIGHT))
-    Cache.ApplyStoredAnchor(Frame)
+    Frame:SetSize(S(Augment.TOTAL_WIDTH), S(Augment.LINE_HEIGHT))
+    Augment.ApplyStoredAnchor(Frame)
     Frame:Hide()
 
     Frame:SetMovable(true)
@@ -311,7 +311,7 @@ function Cache.InitFrames()
     end)
     Frame:SetScript("OnMouseUp", function(self, button)
         if button == "RightButton" and not state.editMode then
-            Cache.ClearActiveToasts()
+            Augment.ClearActiveToasts()
             self:Hide()
         end
     end)
@@ -331,23 +331,23 @@ function Cache.InitFrames()
     editOverlay:EnableMouse(false)
 
     editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
-    editTitle:SetFont(Cache.GetFontPath(), S(14), "OUTLINE")
+    editTitle:SetFont(Augment.GetFontPath(), S(14), "OUTLINE")
     editTitle:SetTextColor(0.4, 0.8, 1.0, 1)
     editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
     editTitle:SetText("LOOT TOAST AREA")
 
     editHint = editOverlay:CreateFontString(nil, "OVERLAY")
-    editHint:SetFont(Cache.GetFontPath(), S(10), "OUTLINE")
+    editHint:SetFont(Augment.GetFontPath(), S(10), "OUTLINE")
     editHint:SetTextColor(0.7, 0.7, 0.7, 1)
     editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
-    editHint:SetText("Drag to reposition  |  /h cache edit to hide")
+    editHint:SetText("Drag to reposition  |  /h augment edit to hide")
 
     editOverlay:Hide()
 
     -- Anchor frame
-    anchorFrame = CreateFrame("Frame", "HorizonSuiteCacheAnchor", UIParent, "BackdropTemplate")
+    anchorFrame = CreateFrame("Frame", "HorizonSuiteAugmentAnchor", UIParent, "BackdropTemplate")
     anchorFrame:SetSize(160, 40)
-    anchorFrame:SetBackdrop(CACHE_ANCHOR_BACKDROP)
+    anchorFrame:SetBackdrop(AUGMENT_ANCHOR_BACKDROP)
     anchorFrame:SetBackdropColor(0, 0, 0, 0.85)
     anchorFrame:SetBackdropBorderColor(0.50, 0.70, 1.0, 0.60)
     anchorFrame:SetMovable(true)
@@ -358,13 +358,13 @@ function Cache.InitFrames()
     anchorFrame:Hide()
 
     anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
-    anchorLabel:SetFont(Cache.GetFontPath(), S(12), "OUTLINE")
+    anchorLabel:SetFont(Augment.GetFontPath(), S(12), "OUTLINE")
     anchorLabel:SetPoint("CENTER")
     anchorLabel:SetTextColor(0.50, 0.70, 1.0, 1)
     anchorLabel:SetText("LOOT TOAST ANCHOR")
 
     anchorHint = anchorFrame:CreateFontString(nil, "OVERLAY")
-    anchorHint:SetFont(Cache.GetFontPath(), S(10), "OUTLINE")
+    anchorHint:SetFont(Augment.GetFontPath(), S(10), "OUTLINE")
     anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
     anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
     anchorHint:SetText("Drag to move · Right-click to confirm")
@@ -379,22 +379,22 @@ function Cache.InitFrames()
         local bottom = self:GetBottom() or 0
         local x = math.floor(right  - UIParent:GetRight()  + 0.5)
         local y = math.floor(bottom - UIParent:GetBottom() + 0.5)
-        Cache.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
-        Cache.ApplyStoredAnchor(Frame)
+        Augment.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
+        Augment.ApplyStoredAnchor(Frame)
     end)
     anchorFrame:SetScript("OnMouseUp", function(self, button)
         if button == "RightButton" then
             self:Hide()
-            HSPrint("Cache: Position saved.")
+            HSPrint("Augment: Position saved.")
         end
     end)
 
     -- Shared FontObject — must exist before pool entries are created.
-    CacheFontObj = _G["HorizonSuiteCacheFont"] or CreateFont("HorizonSuiteCacheFont")
-    UpdateCacheFontObject()
+    AugmentFontObj = _G["HorizonSuiteAugmentFont"] or CreateFont("HorizonSuiteAugmentFont")
+    UpdateAugmentFontObject()
 
     -- Pool
-    for i = 1, Cache.POOL_SIZE do
+    for i = 1, Augment.POOL_SIZE do
         state.pool[i] = CreateToastEntry(Frame)
     end
 
@@ -404,7 +404,7 @@ function Cache.InitFrames()
             if not state.editMode then self:Hide() end
             return
         end
-        for i = 1, Cache.POOL_SIZE do
+        for i = 1, Augment.POOL_SIZE do
             if state.pool[i].active then
                 UpdateEntry(state.pool[i], dt)
             end
@@ -412,22 +412,22 @@ function Cache.InitFrames()
         if state.activeCount == 0 and not state.editMode then self:Hide() end
     end)
 
-    Cache.Frame = Frame
+    Augment.Frame = Frame
 
-    Cache.ApplyCacheClassChrome()
+    Augment.ApplyAugmentClassChrome()
 
     -- Re-apply fonts after the current event handler returns so our settings
     -- land after any typography addon that hooks synchronously at login.
-    C_Timer.After(0, function() if Cache.ApplyScale then Cache.ApplyScale() end end)
+    C_Timer.After(0, function() if Augment.ApplyScale then Augment.ApplyScale() end end)
 end
 
 -- ============================================================================
 -- CLASS CHROME
 -- ============================================================================
 
-local function ApplyCacheClassChrome()
+local function ApplyAugmentClassChrome()
     if not IsReady() then return end
-    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
+    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("augment")
     local br, bg, bb, ba = 0.50, 0.70, 1.0, 0.60
     local er, eg, eb, ea = 0.4,  0.8,  1.0, 0.8
     if ycc then
@@ -440,7 +440,7 @@ local function ApplyCacheClassChrome()
     editTitle:SetTextColor(er, eg, eb, 1)
 end
 
-Cache.ApplyCacheClassChrome = ApplyCacheClassChrome
+Augment.ApplyAugmentClassChrome = ApplyAugmentClassChrome
 
 -- ============================================================================
 -- POOL & ANIMATION
@@ -448,8 +448,8 @@ Cache.ApplyCacheClassChrome = ApplyCacheClassChrome
 
 local function GetPoolCap()
     return math.max(1, math.min(
-        Cache.POOL_SIZE,
-        (addon.GetDB and tonumber(addon.GetDB("cacheMaxVisible", addon.CACHE_DEFAULTS.cacheMaxVisible))) or addon.CACHE_DEFAULTS.cacheMaxVisible
+        Augment.POOL_SIZE,
+        (addon.GetDB and tonumber(addon.GetDB("augmentMaxVisible", addon.AUGMENT_DEFAULTS.augmentMaxVisible))) or addon.AUGMENT_DEFAULTS.augmentMaxVisible
     ))
 end
 
@@ -477,26 +477,26 @@ local function AcquireEntry()
 end
 
 local function GetQualityEntrance(quality)
-    if quality == 5 then return Cache.ENTRANCE_DUR_LEGENDARY, Cache.POP_SCALE_PEAK_LEGEND, true end
-    if quality == 4 then return Cache.ENTRANCE_DUR_EPIC,      Cache.POP_SCALE_PEAK_EPIC,   true end
-    return Cache.ENTRANCE_DUR, 1, false
+    if quality == 5 then return Augment.ENTRANCE_DUR_LEGENDARY, Augment.POP_SCALE_PEAK_LEGEND, true end
+    if quality == 4 then return Augment.ENTRANCE_DUR_EPIC,      Augment.POP_SCALE_PEAK_EPIC,   true end
+    return Augment.ENTRANCE_DUR, 1, false
 end
 
 local function CalcEntranceScale(p, isEpicOrLegendary, popPeak)
     if not isEpicOrLegendary then return 1 end
-    local settleStart = 1 - Cache.POP_SETTLE_FRAC
+    local settleStart = 1 - Augment.POP_SETTLE_FRAC
     if p <= settleStart then
-        return Cache.POP_SCALE_START + (popPeak - Cache.POP_SCALE_START) * Ease(p / settleStart)
+        return Augment.POP_SCALE_START + (popPeak - Augment.POP_SCALE_START) * Ease(p / settleStart)
     end
-    return popPeak + (1 - popPeak) * Ease((p - settleStart) / Cache.POP_SETTLE_FRAC, "inOut")
+    return popPeak + (1 - popPeak) * Ease((p - settleStart) / Augment.POP_SETTLE_FRAC, "inOut")
 end
 
 local function UpdateShine(entry, t)
     if not entry.shine then return end
-    local cacheCC = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
-    if (entry.quality == 5 or (entry.quality == 4 and cacheCC)) and t < Cache.FLASH_DUR then
+    local augmentCC = addon.GetModuleClassColor and addon.GetModuleClassColor("augment")
+    if (entry.quality == 5 or (entry.quality == 4 and augmentCC)) and t < Augment.FLASH_DUR then
         entry.shine:Show()
-        entry.shine:SetAlpha(1 - Ease(t / Cache.FLASH_DUR))
+        entry.shine:SetAlpha(1 - Ease(t / Augment.FLASH_DUR))
     else
         entry.shine:Hide()
     end
@@ -505,8 +505,8 @@ end
 local function UpdateIconGlow(entry, t, isEpicOrLegendary, entEnd, holdEnd)
     if not entry.iconBg then return end
     if isEpicOrLegendary and t >= entEnd and t < holdEnd then
-        local pulse = 0.5 + 0.5 * math.sin(t * Cache.BORDER_PULSE_SPEED * 6.283185307)
-        entry.iconBg:SetAlpha(1 - Cache.BORDER_PULSE_ALPHA + Cache.BORDER_PULSE_ALPHA * pulse)
+        local pulse = 0.5 + 0.5 * math.sin(t * Augment.BORDER_PULSE_SPEED * 6.283185307)
+        entry.iconBg:SetAlpha(1 - Augment.BORDER_PULSE_ALPHA + Augment.BORDER_PULSE_ALPHA * pulse)
     else
         entry.iconBg:SetAlpha(0.8)
     end
@@ -515,7 +515,7 @@ end
 local function SmoothStack(entry, dt)
     local gap = entry.stackY - entry.smoothY
     if math.abs(gap) > 0.5 then
-        entry.smoothY = entry.smoothY + gap * math.min(Cache.NUDGE_SPEED * dt, 1)
+        entry.smoothY = entry.smoothY + gap * math.min(Augment.NUDGE_SPEED * dt, 1)
     else
         entry.smoothY = entry.stackY
     end
@@ -531,14 +531,14 @@ UpdateEntry = function(entry, dt)
     local entranceDur, popPeak, isEpicOrLegendary = GetQualityEntrance(entry.quality)
     local entEnd  = entranceDur
     local holdEnd = entEnd  + entry.holdDur
-    local fadeEnd = holdEnd + Cache.EXIT_DUR
+    local fadeEnd = holdEnd + Augment.EXIT_DUR
     local maxA    = entry.maxAlpha or 1
     local alpha, slideX, scale
 
     if t < entEnd then
         local p = Ease(t / entranceDur)
         alpha  = p * maxA
-        slideX = Cache.SLIDE_DIST * (1 - p)
+        slideX = Augment.SLIDE_DIST * (1 - p)
         scale  = CalcEntranceScale(p, isEpicOrLegendary, popPeak)
 
     elseif t < holdEnd then
@@ -547,11 +547,11 @@ UpdateEntry = function(entry, dt)
         scale  = 1
 
     elseif t < fadeEnd then
-        local p = Ease((t - holdEnd) / Cache.EXIT_DUR, "in")
+        local p = Ease((t - holdEnd) / Augment.EXIT_DUR, "in")
         alpha        = (1 - p) * maxA
         slideX       = 0
         scale        = 1
-        entry.driftY = entry.driftY + (Cache.EXIT_DRIFT / Cache.EXIT_DUR) * dt
+        entry.driftY = entry.driftY + (Augment.EXIT_DRIFT / Augment.EXIT_DUR) * dt
 
     else
         entry.active = false
@@ -585,26 +585,26 @@ end
 
 local function PlayToastSound(data)
     if not addon.GetDB then return end
-    if addon.GetDB("cacheSoundEnabled", addon.CACHE_DEFAULTS.cacheSoundEnabled) == false then return end
+    if addon.GetDB("augmentSoundEnabled", addon.AUGMENT_DEFAULTS.augmentSoundEnabled) == false then return end
     local kind  = data.kind
     local sound
     if kind == "item" then
-        if addon.GetDB("cacheSoundItems", addon.CACHE_DEFAULTS.cacheSoundItems) ~= false then
+        if addon.GetDB("augmentSoundItems", addon.AUGMENT_DEFAULTS.augmentSoundItems) ~= false then
             if data.quality == 5 then
-                sound = Cache.SOUND_LEGENDARY
+                sound = Augment.SOUND_LEGENDARY
             elseif data.quality == 4 then
-                sound = Cache.SOUND_EPIC
+                sound = Augment.SOUND_EPIC
             end
         end
     elseif kind == "money" then
-        if addon.GetDB("cacheSoundMoney", addon.CACHE_DEFAULTS.cacheSoundMoney) ~= false then sound = Cache.SOUND_MONEY end
+        if addon.GetDB("augmentSoundMoney", addon.AUGMENT_DEFAULTS.augmentSoundMoney) ~= false then sound = Augment.SOUND_MONEY end
     elseif kind == "currency" then
-        if addon.GetDB("cacheSoundCurrency", addon.CACHE_DEFAULTS.cacheSoundCurrency) ~= false then sound = Cache.SOUND_CURRENCY end
+        if addon.GetDB("augmentSoundCurrency", addon.AUGMENT_DEFAULTS.augmentSoundCurrency) ~= false then sound = Augment.SOUND_CURRENCY end
     elseif kind == "rep" then
-        if addon.GetDB("cacheSoundRep", addon.CACHE_DEFAULTS.cacheSoundRep) ~= false then sound = Cache.SOUND_REP end
+        if addon.GetDB("augmentSoundRep", addon.AUGMENT_DEFAULTS.augmentSoundRep) ~= false then sound = Augment.SOUND_REP end
     end
     if sound and PlaySound then
-        local ch = (addon.GetDB and addon.GetDB("cacheSoundChannel", addon.CACHE_DEFAULTS.cacheSoundChannel)) or addon.CACHE_DEFAULTS.cacheSoundChannel
+        local ch = (addon.GetDB and addon.GetDB("augmentSoundChannel", addon.AUGMENT_DEFAULTS.augmentSoundChannel)) or addon.AUGMENT_DEFAULTS.augmentSoundChannel
         pcall(PlaySound, sound, ch)
     end
 end
@@ -618,11 +618,11 @@ local JUNK_KEY = "__junk__"
 local function GetEffectiveItemKey(data)
     if not data.itemKey then return nil end
     if data.kind == "item" and data.quality == 0 then
-        if addon.GetDB and addon.GetDB("cacheCondenseJunk", addon.CACHE_DEFAULTS.cacheCondenseJunk) ~= false then
+        if addon.GetDB and addon.GetDB("augmentCondenseJunk", addon.AUGMENT_DEFAULTS.augmentCondenseJunk) ~= false then
             return JUNK_KEY
         end
     end
-    if addon.GetDB and addon.GetDB("cacheStackDuplicates", addon.CACHE_DEFAULTS.cacheStackDuplicates) ~= false then
+    if addon.GetDB and addon.GetDB("augmentStackDuplicates", addon.AUGMENT_DEFAULTS.augmentStackDuplicates) ~= false then
         return data.itemKey
     end
     return nil
@@ -634,7 +634,7 @@ local function BuildMergedText(data, effectiveKey, totalCount)
         if totalCount == 1 then
             return data.baseName or data.text
         end
-        return (addon.L and addon.L["CACHE_JUNK_LABEL"] or "Junk") .. " x" .. totalCount
+        return (addon.L and addon.L["AUGMENT_JUNK_LABEL"] or "Junk") .. " x" .. totalCount
     end
     if data.kind == "item" then
         return totalCount > 1 and (data.baseName .. " x" .. totalCount) or data.baseName
@@ -652,8 +652,8 @@ local function UpdateStackIcons(entry, count)
     local numIcons = math.min(count, 3)
     local iconLayers = { entry.icon,   entry.icon2,   entry.icon3   }  -- front → back
     local bgLayers   = { entry.iconBg, entry.iconBg2, entry.iconBg3 }
-    local bgBase     = S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)
-    local szBase     = S(Cache.ICON_SIZE)
+    local bgBase     = S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2)
+    local szBase     = S(Augment.ICON_SIZE)
     local anchor     = entry.iconBgAnchor or entry.iconBg  -- fallback for safety
 
     if numIcons < 2 then
@@ -676,7 +676,7 @@ local function UpdateStackIcons(entry, count)
     local iconSize   = szBase / (1 + (numIcons - 1) * STACK_OVERLAP)
     local iconOffset = iconSize * STACK_OVERLAP
     local stackSpan  = (numIcons - 1) * iconOffset
-    local bgSize     = iconSize + S(Cache.BORDER_PAD * 2)
+    local bgSize     = iconSize + S(Augment.BORDER_PAD * 2)
     local br = entry._bgR or 1
     local bg = entry._bgG or 1
     local bb = entry._bgB or 1
@@ -749,7 +749,7 @@ local function TryMergeToast(data, effectiveKey)
             local entranceDur = GetQualityEntrance(e.quality)
             e.elapsed = entranceDur
             e.driftY  = 0
-            e.holdDur = Cache.GetHoldDur(data.kind, data.quality)
+            e.holdDur = Augment.GetHoldDur(data.kind, data.quality)
             return true
         end
     end
@@ -760,8 +760,8 @@ end
 -- SHOW TOAST
 -- ============================================================================
 
-function Cache.ShowToast(data)
-    if not addon:IsModuleEnabled("cache") or not data then return end
+function Augment.ShowToast(data)
+    if not addon:IsModuleEnabled("augment") or not data then return end
     if not IsReady() then return end
 
     local effectiveKey = GetEffectiveItemKey(data)
@@ -769,9 +769,9 @@ function Cache.ShowToast(data)
 
     local entry = AcquireEntry()
 
-    for i = 1, Cache.POOL_SIZE do
+    for i = 1, Augment.POOL_SIZE do
         if state.pool[i].active then
-            state.pool[i].stackY = state.pool[i].stackY + S(Cache.LINE_HEIGHT)
+            state.pool[i].stackY = state.pool[i].stackY + S(Augment.LINE_HEIGHT)
         end
     end
 
@@ -796,12 +796,12 @@ function Cache.ShowToast(data)
 
     entry.active   = true
     entry.elapsed  = 0
-    entry.holdDur  = Cache.GetHoldDur(data.kind, data.quality)
+    entry.holdDur  = Augment.GetHoldDur(data.kind, data.quality)
     entry.quality  = data.quality
     -- Snapshot opacity at show-time so each toast has consistent alpha throughout its lifecycle
     -- without a per-frame DB read.
     entry.maxAlpha = math.max(0.1, math.min(1.0,
-        (addon.GetDB and tonumber(addon.GetDB("cacheToastOpacity", addon.CACHE_DEFAULTS.cacheToastOpacity)) or addon.CACHE_DEFAULTS.cacheToastOpacity) / 100))
+        (addon.GetDB and tonumber(addon.GetDB("augmentToastOpacity", addon.AUGMENT_DEFAULTS.augmentToastOpacity)) or addon.AUGMENT_DEFAULTS.augmentToastOpacity) / 100))
     entry.stackY   = 0
     entry.smoothY  = 0
     entry.driftY   = 0
@@ -811,7 +811,7 @@ function Cache.ShowToast(data)
     entry.shine:SetAlpha(0)
     entry.shine:Hide()
 
-    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("cache")
+    local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("augment")
     if ycc then
         entry.shine:SetVertexColor(ycc[1], ycc[2], ycc[3])
     else
@@ -819,7 +819,7 @@ function Cache.ShowToast(data)
     end
 
     entry.frame:ClearAllPoints()
-    entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT", Cache.SLIDE_DIST, 0)
+    entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT", Augment.SLIDE_DIST, 0)
     entry.frame:Show()
     Frame:Show()
 
@@ -833,40 +833,40 @@ end
 -- PUBLIC API
 -- ============================================================================
 
-function Cache.ToggleEditMode()
+function Augment.ToggleEditMode()
     if not IsReady() then return end
     state.editMode = not state.editMode
     if state.editMode then
         editOverlay:Show()
         Frame:Show()
-        print("|cFF00CCFFHorizon Suite - Cache:|r Edit mode |cFF00FF00ON|r - drag the box to reposition.")
-        Cache.ShowToast({
+        print("|cFF00CCFFHorizon Suite - Augment:|r Edit mode |cFF00FF00ON|r - drag the box to reposition.")
+        Augment.ShowToast({
             kind = "item", icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
             r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0, quality = 4,
         })
     else
         editOverlay:Hide()
-        print("|cFF00CCFFHorizon Suite - Cache:|r Edit mode |cFFFF0000OFF|r")
+        print("|cFF00CCFFHorizon Suite - Augment:|r Edit mode |cFFFF0000OFF|r")
     end
 end
 
-function Cache.RestoreSavedPosition()
+function Augment.RestoreSavedPosition()
     if not IsReady() then return end
-    Cache.ApplyStoredAnchor(Frame)
+    Augment.ApplyStoredAnchor(Frame)
 end
 
-function Cache.ResetPosition()
+function Augment.ResetPosition()
     if not IsReady() then return end
-    Cache.ClearPosition()
-    Cache.ApplyStoredAnchor(Frame)
+    Augment.ClearPosition()
+    Augment.ApplyStoredAnchor(Frame)
     if anchorFrame and anchorFrame:IsShown() then
-        Cache.ApplyStoredAnchor(anchorFrame)
+        Augment.ApplyStoredAnchor(anchorFrame)
     end
 end
 
-function Cache.ClearActiveToasts()
+function Augment.ClearActiveToasts()
     if not IsReady() then return end
-    for i = 1, Cache.POOL_SIZE do
+    for i = 1, Augment.POOL_SIZE do
         local e = state.pool[i]
         if e.active then
             e.active   = false
@@ -883,53 +883,53 @@ function Cache.ClearActiveToasts()
     state.activeCount = 0
 end
 
-function Cache.SetFrameVisible(visible)
+function Augment.SetFrameVisible(visible)
     if not IsReady() then return end
     if visible then Frame:Show() else Frame:Hide() end
 end
 
-function Cache.ToggleAnchorFrame()
+function Augment.ToggleAnchorFrame()
     if not IsReady() then return end
     if anchorFrame:IsShown() then
         anchorFrame:Hide()
-        HSPrint("Cache: Anchor hidden. Position saved.")
+        HSPrint("Augment: Anchor hidden. Position saved.")
     else
         if InCombatLockdown() then return end
-        Cache.ApplyStoredAnchor(anchorFrame)
+        Augment.ApplyStoredAnchor(anchorFrame)
         anchorFrame:Show()
-        HSPrint("Cache: Drag the anchor, then right-click to confirm.")
+        HSPrint("Augment: Drag the anchor, then right-click to confirm.")
     end
 end
 
-function Cache.HideAnchorFrame()
+function Augment.HideAnchorFrame()
     if not IsReady() then return end
     anchorFrame:Hide()
 end
 
-function Cache.ApplyCacheOptions()
+function Augment.ApplyAugmentOptions()
     if not IsReady() then return end
-    ApplyCacheClassChrome()
-    if anchorFrame:IsShown() then Cache.ApplyStoredAnchor(anchorFrame) end
-    Cache.ApplyStoredAnchor(Frame)
-    if Cache.ApplyScale then Cache.ApplyScale() end
-    if Cache.ApplyBlizzardSuppression then Cache.ApplyBlizzardSuppression() end
+    ApplyAugmentClassChrome()
+    if anchorFrame:IsShown() then Augment.ApplyStoredAnchor(anchorFrame) end
+    Augment.ApplyStoredAnchor(Frame)
+    if Augment.ApplyScale then Augment.ApplyScale() end
+    if Augment.ApplyBlizzardSuppression then Augment.ApplyBlizzardSuppression() end
 end
 
 --- Re-apply scale and font to all pool entries and overlay labels.
---- Called when UI scale or cacheFontPath changes.
-function Cache.ApplyScale()
-    if Cache.InvalidateCoinTextures then Cache.InvalidateCoinTextures() end
+--- Called when UI scale or augmentFontPath changes.
+function Augment.ApplyScale()
+    if Augment.InvalidateCoinTextures then Augment.InvalidateCoinTextures() end
     if not IsReady() then return end
-    UpdateCacheFontObject()
-    local fontPath  = Cache.GetFontPath()
+    UpdateAugmentFontObject()
+    local fontPath  = Augment.GetFontPath()
     local fontSize  = S(GetFontSize())
     local fontFlags = GetFontFlags()
     UpdateFrameSize()
-    for i = 1, Cache.POOL_SIZE do
+    for i = 1, Augment.POOL_SIZE do
         local e = state.pool[i]
         if e then
-            if e.frame       then e.frame:SetSize(S(Cache.TOTAL_WIDTH), S(Cache.ENTRY_HEIGHT)) end
-            local bgSz = S(Cache.ICON_SIZE + Cache.BORDER_PAD * 2)
+            if e.frame       then e.frame:SetSize(S(Augment.TOTAL_WIDTH), S(Augment.ENTRY_HEIGHT)) end
+            local bgSz = S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2)
             if e.iconBgAnchor then e.iconBgAnchor:SetSize(bgSz, bgSz) end
             if e.iconBg       then e.iconBg:SetSize(bgSz, bgSz) end
             -- For active junk stacks re-run the layout so sizes/positions rescale correctly.
@@ -938,9 +938,9 @@ function Cache.ApplyScale()
             else
                 if e.icon3 then e.icon3:Hide() end
                 if e.icon2 then e.icon2:Hide() end
-                if e.icon  then e.icon:SetSize(S(Cache.ICON_SIZE), S(Cache.ICON_SIZE)) end
+                if e.icon  then e.icon:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE)) end
             end
-            if e.shine  then e.shine:SetSize(S(Cache.ICON_SIZE + 8), S(Cache.ICON_SIZE + 8)) end
+            if e.shine  then e.shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8)) end
             -- Explicit per-FontString SetFont overrides any direct-set override a
             -- third-party addon may have applied on top of our FontObject.
             if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end

@@ -1,16 +1,16 @@
 --[[
-    Horizon Suite - Cache - State
+    Horizon Suite - Augment - State
     Runtime state and DB accessors for loot toasts. Blizzard: CHAT_MSG_LOOT, C_CurrencyInfo.
 ]]
 
 local addon = _G.HorizonSuite
 if not addon then return end
 
-addon.Cache = addon.Cache or {}
-addon.cache = addon.cache or {}
+addon.Augment = addon.Augment or {}
+addon.augment = addon.augment or {}
 
-local Y = addon.Cache
-local y = addon.cache
+local Y = addon.Augment
+local y = addon.augment
 
 -- ============================================================================
 -- CONSTANTS
@@ -21,14 +21,14 @@ Y.FONT_SIZE       = 16
 
 local FONT_USE_GLOBAL = "__global__"
 
---- Resolve the active font path for Cache loot toasts. Mirrors VistaCore.ResolveFont
+--- Resolve the active font path for Augment loot toasts. Mirrors VistaCore.ResolveFont
 --- (modules/Vista/VistaCore.lua) and InsightShared (modules/Insight/InsightShared.lua):
 --- per-module DB key → global fontPath DB → addon.GetDefaultFontPath() → Y.FONT_PATH.
 --- @return string font file path
 function Y.GetFontPath()
     local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
     if global then return global end
-    local raw = (addon.GetDB and addon.GetDB("cacheFontPath", FONT_USE_GLOBAL)) or FONT_USE_GLOBAL
+    local raw = (addon.GetDB and addon.GetDB("augmentFontPath", FONT_USE_GLOBAL)) or FONT_USE_GLOBAL
     if raw == FONT_USE_GLOBAL or raw == nil or raw == "" then
         raw = (addon.GetDB and addon.GetDB("fontPath", nil)) or nil
     end
@@ -106,7 +106,7 @@ Y.REP_ICON        = "Interface\\Icons\\Achievement_Reputation_01"
 Y.UNKNOWN_ICON    = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 -- ============================================================================
--- RUNTIME STATE (addon.cache)
+-- RUNTIME STATE (addon.augment)
 -- ============================================================================
 
 y.pool        = y.pool or {}
@@ -122,36 +122,36 @@ y.editMode    = y.editMode or false
 
 -- ============================================================================
 -- DB KEY REGISTRY
--- Add any new Cache DB key here so OptionsData.lua reacts to it without
+-- Add any new Augment DB key here so OptionsData.lua reacts to it without
 -- needing its own manual allowlist.
 -- ============================================================================
 
 Y.DB_KEYS = {
-    cachePoint         = true,
-    cacheRelPoint      = true,
-    cacheX             = true,
-    cacheY             = true,
-    cacheFontPath      = true,
-    cacheShowItems     = true,
-    cacheShowMoney     = true,
-    cacheShowCurrency  = true,
-    cacheShowRep       = true,
-    cacheMinQuality    = true,
-    cacheToastOpacity  = true,
-    cacheMaxVisible    = true,
-    cacheHoldItem      = true,
-    cacheHoldEpic      = true,
-    cacheHoldLegendary = true,
-    cacheHoldMoney     = true,
-    cacheHoldCurrency  = true,
-    cacheHoldRep       = true,
-    cacheTextOutline   = true,
-    cacheSoundEnabled  = true,
-    cacheSoundChannel  = true,
-    cacheSoundItems    = true,
-    cacheSoundMoney    = true,
-    cacheSoundCurrency = true,
-    cacheSoundRep      = true,
+    augmentPoint         = true,
+    augmentRelPoint      = true,
+    augmentX             = true,
+    augmentY             = true,
+    augmentFontPath      = true,
+    augmentShowItems     = true,
+    augmentShowMoney     = true,
+    augmentShowCurrency  = true,
+    augmentShowRep       = true,
+    augmentMinQuality    = true,
+    augmentToastOpacity  = true,
+    augmentMaxVisible    = true,
+    augmentHoldItem      = true,
+    augmentHoldEpic      = true,
+    augmentHoldLegendary = true,
+    augmentHoldMoney     = true,
+    augmentHoldCurrency  = true,
+    augmentHoldRep       = true,
+    augmentTextOutline   = true,
+    augmentSoundEnabled  = true,
+    augmentSoundChannel  = true,
+    augmentSoundItems    = true,
+    augmentSoundMoney    = true,
+    augmentSoundCurrency = true,
+    augmentSoundRep      = true,
 }
 
 --- Return the hold duration for a toast, reading from DB when available.
@@ -160,20 +160,20 @@ Y.DB_KEYS = {
 --- @param quality number|nil  item quality (only relevant for kind=="item")
 --- @return number seconds
 function Y.GetHoldDur(kind, quality)
-    local D = addon.CACHE_DEFAULTS
+    local D = addon.AUGMENT_DEFAULTS
     if kind == "money" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldMoney",    D.cacheHoldMoney)))    or D.cacheHoldMoney
+        return (addon.GetDB and tonumber(addon.GetDB("augmentHoldMoney",    D.augmentHoldMoney)))    or D.augmentHoldMoney
     elseif kind == "currency" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldCurrency", D.cacheHoldCurrency))) or D.cacheHoldCurrency
+        return (addon.GetDB and tonumber(addon.GetDB("augmentHoldCurrency", D.augmentHoldCurrency))) or D.augmentHoldCurrency
     elseif kind == "rep" then
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldRep",      D.cacheHoldRep)))      or D.cacheHoldRep
+        return (addon.GetDB and tonumber(addon.GetDB("augmentHoldRep",      D.augmentHoldRep)))      or D.augmentHoldRep
     else
         if quality == 5 then
-            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldLegendary", D.cacheHoldLegendary))) or D.cacheHoldLegendary
+            return (addon.GetDB and tonumber(addon.GetDB("augmentHoldLegendary", D.augmentHoldLegendary))) or D.augmentHoldLegendary
         elseif quality == 4 then
-            return (addon.GetDB and tonumber(addon.GetDB("cacheHoldEpic",      D.cacheHoldEpic)))      or D.cacheHoldEpic
+            return (addon.GetDB and tonumber(addon.GetDB("augmentHoldEpic",      D.augmentHoldEpic)))      or D.augmentHoldEpic
         end
-        return (addon.GetDB and tonumber(addon.GetDB("cacheHoldItem", D.cacheHoldItem))) or D.cacheHoldItem
+        return (addon.GetDB and tonumber(addon.GetDB("augmentHoldItem", D.augmentHoldItem))) or D.augmentHoldItem
     end
 end
 
@@ -183,10 +183,10 @@ function Y.GetPosition()
     if not addon.GetDB then
         return nil, nil, Y.DEFAULT_X, Y.DEFAULT_Y
     end
-    local pt = addon.GetDB("cachePoint", nil)
-    local rp = addon.GetDB("cacheRelPoint", nil)
-    local px = addon.GetDB("cacheX", Y.DEFAULT_X)
-    local py = addon.GetDB("cacheY", Y.DEFAULT_Y)
+    local pt = addon.GetDB("augmentPoint", nil)
+    local rp = addon.GetDB("augmentRelPoint", nil)
+    local px = addon.GetDB("augmentX", Y.DEFAULT_X)
+    local py = addon.GetDB("augmentY", Y.DEFAULT_Y)
     return pt, rp, px, py
 end
 
@@ -198,18 +198,18 @@ end
 --- @return nil
 function Y.SavePosition(point, relPoint, x, y)
     if not addon.SetDB then return end
-    addon.SetDB("cachePoint", point)
-    addon.SetDB("cacheRelPoint", relPoint)
-    addon.SetDB("cacheX", x)
-    addon.SetDB("cacheY", y)
+    addon.SetDB("augmentPoint", point)
+    addon.SetDB("augmentRelPoint", relPoint)
+    addon.SetDB("augmentX", x)
+    addon.SetDB("augmentY", y)
 end
 
 --- Clear saved position.
 --- @return nil
 function Y.ClearPosition()
     if not addon.SetDB then return end
-    addon.SetDB("cachePoint", nil)
-    addon.SetDB("cacheRelPoint", nil)
-    addon.SetDB("cacheX", nil)
-    addon.SetDB("cacheY", nil)
+    addon.SetDB("augmentPoint", nil)
+    addon.SetDB("augmentRelPoint", nil)
+    addon.SetDB("augmentX", nil)
+    addon.SetDB("augmentY", nil)
 end

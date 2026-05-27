@@ -40,7 +40,7 @@ end
 
 --- Returns the scale factor for a specific module.
 --- When per-module scaling is on, reads the module-specific key; otherwise returns global scale.
---- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"cache"
+--- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"augment"
 --- @return number
 function addon.GetModuleScale(moduleName)
     if addon.IsPerModuleScaling() then
@@ -61,7 +61,7 @@ end
 
 --- Scale a value by a specific module's scale factor.
 --- @param value number
---- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"cache"
+--- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"augment"
 --- @return number
 function addon.ScaledForModule(value, moduleName)
     if not value then return 0 end
@@ -424,7 +424,7 @@ function addon.ApplyAllClassColorConsumers()
     local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
     if fullLayout and not InCombatLockdown() then fullLayout() end
     if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end
-    if addon.Cache and addon.Cache.ApplyCacheOptions then addon.Cache.ApplyCacheOptions() end
+    if addon.Augment and addon.Augment.ApplyAugmentOptions then addon.Augment.ApplyAugmentOptions() end
 end
 
 --- Sync db.modules[key].enabled from the active profile's modules map so the
@@ -699,8 +699,68 @@ function addon.SetActiveProfileKey(key)
     end
 end
 
+-- One-time rename migration: the "Cache" loot-toast module became "Augment".
+-- Move every persisted cache* option key, cache position key, and module-enabled
+-- entry to its augment* equivalent so existing users keep their settings and
+-- on/off state across the rename. Gated by db._augmentRenamed so it runs once.
+local function MigrateCacheToAugment(db)
+    if not db or db._augmentRenamed then return end
+
+    local function renameKeys(tbl)
+        if type(tbl) ~= "table" then return end
+        local moves
+        for k in pairs(tbl) do
+            if type(k) == "string" and k:sub(1, 5) == "cache" then
+                moves = moves or {}
+                moves[k] = "augment" .. k:sub(6)
+            end
+        end
+        if not moves then return end
+        for oldKey, newKey in pairs(moves) do
+            if tbl[newKey] == nil then tbl[newKey] = tbl[oldKey] end
+            tbl[oldKey] = nil
+        end
+    end
+
+    local function renameModuleEntry(modules)
+        if type(modules) == "table" and modules.cache ~= nil then
+            if modules.augment == nil then modules.augment = modules.cache end
+            modules.cache = nil
+        end
+    end
+
+    -- Keys that don't share the cache* prefix but still belong to the module
+    -- (e.g. the Axis class-colour toggle, stored as classColorCache).
+    local function renameFixedKeys(tbl)
+        if type(tbl) ~= "table" then return end
+        if tbl.classColorCache ~= nil then
+            if tbl.classColorAugment == nil then tbl.classColorAugment = tbl.classColorCache end
+            tbl.classColorCache = nil
+        end
+    end
+
+    -- Root-level keys (pre-profile-migration DBs) and the root module map.
+    renameKeys(db)
+    renameFixedKeys(db)
+    renameModuleEntry(db.modules)
+
+    -- Per-profile option keys and per-profile module maps.
+    if type(db.profiles) == "table" then
+        for _, prof in pairs(db.profiles) do
+            if type(prof) == "table" then
+                renameKeys(prof)
+                renameFixedKeys(prof)
+                renameModuleEntry(prof.modules)
+            end
+        end
+    end
+
+    db._augmentRenamed = true
+end
+
 EnsureProfilesAndMigrateLegacy = function()
     local db = rawDB()
+    MigrateCacheToAugment(db)
     if db._profilesValidated then return end
 
     db.profiles = db.profiles or {}

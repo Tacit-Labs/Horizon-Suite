@@ -1,14 +1,14 @@
 --[[
-    Horizon Suite - Cache - Blizzard Suppression
+    Horizon Suite - Augment - Blizzard Suppression
     Suppress Blizzard loot/money/currency toasts and epic/legendary popups.
     Scope: loot and money only; does not affect Presence (zone text, achievements, etc).
     Idempotent: safe to call SuppressBlizzard/RestoreBlizzard multiple times.
 ]]
 
 local addon = _G.HorizonSuite
-if not addon or not addon.Cache then return end
+if not addon or not addon.Augment then return end
 
-local Y = addon.Cache
+local Y = addon.Augment
 
 local hiddenParent = CreateFrame("Frame")
 hiddenParent:Hide()
@@ -54,7 +54,7 @@ local POPUP_STRATA = { FULLSCREEN_DIALOG = true, DIALOG = true, FULLSCREEN = tru
 -- AlertFrame-based toasts are suppressed earlier by InstallAlertShowHook.
 function Y.KillDynamicItemRevealPopup()
     pcall(function()
-        -- Reward cache opening frame (Delve Bountiful Chest, etc.)
+        -- Reward augment opening frame (Delve Bountiful Chest, etc.)
         if ContainerOpeningUI then KillBlizzardFrame(ContainerOpeningUI) end
 
         if not UIParent or not UIParent.GetChildren then return end
@@ -159,8 +159,8 @@ local function InstallAlertShowHook()
         if not AlertFrame_ShowNewAlertFrame then return end
         hooksecurefunc("AlertFrame_ShowNewAlertFrame", function(alertFrame)
             if not alertFrame then return end
-            if not addon:IsModuleEnabled("cache") then return end
-            if not (addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true)) then return end
+            if not addon:IsModuleEnabled("augment") then return end
+            if not (addon.GetDB and addon.GetDB("augmentSuppressBlizzard", true)) then return end
             if IsLootAlertFrame(alertFrame) then
                 alertFrame:Hide()
                 alertFrame:SetAlpha(0)
@@ -176,8 +176,8 @@ local function InstallAlertHook()
         pcall(function()
             if not AlertFrame_RegisterQueuedAlertSystem then return end
             hooksecurefunc("AlertFrame_RegisterQueuedAlertSystem", function(system)
-                if addon:IsModuleEnabled("cache")
-                    and addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true)
+                if addon:IsModuleEnabled("augment")
+                    and addon.GetDB and addon.GetDB("augmentSuppressBlizzard", true)
                 then
                     SuppressAlertSystem(system)
                 end
@@ -193,8 +193,8 @@ local function InstallAlertHook()
         pcall(function()
             if not (AlertFrame and AlertFrame.UpdateAnchors) then return end
             hooksecurefunc(AlertFrame, "UpdateAnchors", function()
-                if not (addon:IsModuleEnabled("cache")
-                    and addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true))
+                if not (addon:IsModuleEnabled("augment")
+                    and addon.GetDB and addon.GetDB("augmentSuppressBlizzard", true))
                 then return end
                 pcall(function()
                     if not UIParent or not UIParent.GetChildren then return end
@@ -273,7 +273,7 @@ function Y.SuppressBlizzard()
 end
 
 function Y.ApplyBlizzardSuppression()
-    if addon.GetDB and addon.GetDB("cacheSuppressBlizzard", true) then
+    if addon.GetDB and addon.GetDB("augmentSuppressBlizzard", true) then
         Y.SuppressBlizzard()
     else
         Y.RestoreBlizzard()
