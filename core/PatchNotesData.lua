@@ -14,6 +14,44 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.0.0"] = {
+        date = "2026-05-22",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: New Module — a full quality-of-life module with its own dashboard and settings, currently including the on-screen toast module for loot, currency and reputation (previously named \"Cache\").",
+                "Dashboard: Integrations view — every third-party addon integrated with Horizon Suite now exists within a sidebar tab showing which are installed, disabled, or missing, with an Install link to each missing addon's CurseForge page and a Settings button into installed addons' own config.",
+                "Insight: Total RP 3 profile integration — TRP3's character icon, name colour, IC/OOC badge, pronouns, race, class, guild, and Currently text now render inside the Insight-styled tooltip instead of a separate TRP3 frame.",
+                "Core: in-game menu button — a Horizon Suite entry in the Esc menu that opens the dashboard.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: objectives can now be prefixed with a bullet point instead of the current hyphen or numbering system.",
+                "Insight: a player's total achievement points may now be shown, with or without a modifier, next to a star in gold.",
+                "Localisation: German update and general upkeep across all locales.",
+                "Backend: began to introduce maintenance helpers and scaffolding for future upkeep.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: coloured shadow text in objective rows no longer leaks colour escape codes into the shadow string.",
+            },
+        },
+    },
+
+    ["4.18.2"] = {
+        date = "2026-05-15",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: quest entries no longer throw a Lua error when the tracked quest's zone is anything other than \"Activity\" (regression from 4.18.1).",
+            },
+        },
+    },
+
     ["4.18.1"] = {
         date = "2026-05-15",
         {
