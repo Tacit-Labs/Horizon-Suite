@@ -12,6 +12,8 @@
 
 ## Reviewer Checklist  <!-- Direct reviewer with specific steps beyond generic reviewer responsibilities (checking in-game, code integrity/validation, etc.) -->
 
+- [ ]
+
 <!-- When applicable, add a `## Resources` section
 List any sort of documentation, examples, or references (along with their purpose) that you feel may help when reviewing the changes within.
 It is expected that all PRs have already been self-reviewed, tested in-game, and free of noticeable errors (unless otherwise specified). -->
