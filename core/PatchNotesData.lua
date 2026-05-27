@@ -356,7 +356,7 @@ addon.PATCH_NOTES = {
         {
             section = "Fixes",
             bullets = {
-                "Focus: tracked recipe title and objective colours now follow the Axis Colors Recipes swatches instead of forcing the default sage-green.",
+                "Focus: tracked recipe title and objective colours now follow the Axis Colours Recipes swatches instead of forcing the default sage-green.",
                 "Axis: profile switching now fully refreshes class colours, frame positions, and imported settings without requiring a reload.",
             },
         },

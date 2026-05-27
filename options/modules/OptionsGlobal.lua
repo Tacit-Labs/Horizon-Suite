@@ -210,13 +210,13 @@ local categories = {
             }
             opts[#opts + 1] = {
                 type = "dropdown",
-                name = L["DASHBOARD_TYPO_HEADING_COLOR"],
-                desc = L["DASHBOARD_TYPO_HEADING_COLOR_DESC"],
+                name = L["DASHBOARD_TYPO_HEADING_COLOUR"],
+                desc = L["DASHBOARD_TYPO_HEADING_COLOUR_DESC"],
                 dbKey = "dashboardHeadingColor",
                 options = {
-                    { L["DASHBOARD_TYPO_HEADING_COLOR_WHITE"], "white" },
-                    { L["DASHBOARD_TYPO_HEADING_COLOR_CYAN"],  "cyan"  },
-                    { L["DASHBOARD_TYPO_HEADING_COLOR_GOLD"],  "gold"  },
+                    { L["DASHBOARD_TYPO_HEADING_COLOUR_WHITE"], "white" },
+                    { L["DASHBOARD_TYPO_HEADING_COLOUR_CYAN"],  "cyan"  },
+                    { L["DASHBOARD_TYPO_HEADING_COLOUR_GOLD"],  "gold"  },
                 },
                 preserveOrder = true,
                 get = function() return getDB("dashboardHeadingColor", "white") end,
