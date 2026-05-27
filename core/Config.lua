@@ -187,6 +187,21 @@ function addon.GetDefaultFontPath()
     return "Fonts\\FRIZQT__.TTF"
 end
 
+-- Returns the resolved global font path when useGlobalFont is on, or nil when off.
+-- Module font getters check this first; a non-nil result means skip the per-module key.
+function addon.GetActiveGlobalFont()
+    if not (addon.GetDB and addon.GetDB("useGlobalFont", false)) then return nil end
+    local raw = addon.GetDB("globalOverrideFontPath", nil)
+    -- If no override key is saved yet, fall back to the regular global font.
+    if not raw or raw == "" then raw = addon.GetDB("fontPath", nil) end
+    if not raw or raw == "" then return addon.GetDefaultFontPath() end
+    if addon.ResolveFontPath then
+        local resolved = addon.ResolveFontPath(raw)
+        if resolved and resolved ~= "" then return resolved end
+    end
+    return raw
+end
+
 addon.FONT_PATH = addon.GetDefaultFontPath()
 addon.HeaderFont  = CreateFont("HorizonSuiteHeaderFont")
 addon.HeaderFont:SetFont(addon.FONT_PATH, addon.HEADER_SIZE, "OUTLINE")
@@ -637,7 +652,7 @@ addon.BrandDisplay = {
         presence = addon.L["NAME_ADDON_TOASTS"],
         vista = addon.L["NAME_ADDON_MINIMAP"],
         insight = addon.L["NAME_ADDON_TOOLTIPS"],
-        cache = addon.L["NAME_ADDON_LOOT"],
+        augment = addon.L["NAME_ADDON_LOOT"],
         essence = addon.L["NAME_ADDON_CHARACTER"],
         meridian = addon.L["NAME_ADDON_C-----S"],
     },
@@ -648,7 +663,7 @@ addon.BrandDisplay = {
         presence = addon.L["AXIS_MODULE_NAME_SIMPLE_NOTIFICATIONS"],
         vista    = addon.L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"],
         insight  = addon.L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"],
-        cache    = addon.L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
+        augment  = addon.L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
         essence  = addon.L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
         meridian = addon.L["AXIS_MODULE_NAME_SIMPLE_C-----S"],
     },

@@ -124,14 +124,14 @@ function addon.Dashboard_BuildMainFrame()
                 presence = addon.Dashboard_BrandModule("presence"),
                 vista = addon.Dashboard_BrandModule("vista"),
                 insight = addon.Dashboard_BrandModule("insight"),
-                cache = addon.Dashboard_BrandModule("cache"),
+                augment = addon.Dashboard_BrandModule("augment"),
                 essence = addon.Dashboard_BrandModule("essence"),
                 meridian = addon.Dashboard_BrandModule("meridian"),
             }
             f.dashboardModuleLabels = moduleLabels
 
             -- Preview-labelled modules (tiles, sidebar, welcome); keep in sync with OptionsData Modules toggles.
-            local PREVIEW_MODULE_KEYS = { cache = true, essence = true }
+            local PREVIEW_MODULE_KEYS = { essence = true }
             -- Coming-soon modules: planned but with no in-game content yet.
             local COMING_SOON_MODULE_KEYS = { meridian = true }
 
@@ -143,7 +143,7 @@ function addon.Dashboard_BuildMainFrame()
                 presence = {  51/255, 255/255, 223/255 },  -- 33FFDF
                 vista    = { 179/255, 102/255, 255/255 },  -- B366FF
                 insight  = { 255/255, 102/255, 179/255 },  -- FF66B3
-                cache    = {  51/255, 204/255, 102/255 },  -- 33CC66
+                augment    = {  51/255, 204/255, 102/255 },  -- 33CC66
                 essence  = { 220/255,  20/255,  60/255 },  -- DC143C
             }
 
@@ -161,7 +161,7 @@ function addon.Dashboard_BuildMainFrame()
                 ["Presence"] = "vas_guildnamechange",
                 ["Vista"] = "ability_hunter_pathfinding",
                 ["Insight"] = "ui_profession_inscription",
-                ["Cache"] = "INV_Misc_Coin_01",
+                ["Augment"] = "INV_Misc_Coin_01",
                 ["Essence"] = "achievement_character_human_male",
                 ["Meridian"] = "ability_tracking",
                 ["Typography"] = "INV_Misc_Book_09",
@@ -627,7 +627,7 @@ function addon.Dashboard_BuildMainFrame()
 
             local searchModuleFilterMenuRows = {}
             local SEARCH_MODULE_FILTER_ROW_H = 28
-            local SEARCH_MODULE_FILTER_GROUP_ORDER = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
+            local SEARCH_MODULE_FILTER_GROUP_ORDER = { "axis", "focus", "insight", "essence", "presence", "vista", "augment" }
 
             local searchModuleFilterMenu = CreateFrame("Frame", nil, f, "BackdropTemplate")
             searchModuleFilterMenu:SetFrameLevel(f:GetFrameLevel() + 12)
@@ -992,6 +992,12 @@ function addon.Dashboard_BuildMainFrame()
             newsView:Hide()
             f.newsView = newsView
 
+            local integrationsView = CreateFrame("Frame", nil, f)
+            integrationsView:SetSize(viewWidth, DASHBOARD_VIEW_H)
+            integrationsView:SetPoint("CENTER", viewCenterX, 0)
+            integrationsView:Hide()
+            f.integrationsView = integrationsView
+
             local PN_SCROLL_ABOVE_COMMUNITY_FOOTER = (DC.COMMUNITY_FOOTER_SCROLL_GAP) or 24
             -- Patch notes constants/helpers live in DashboardPatchNotesContent.lua.
             -- Bullet recolor on accent change (line ~308) needs the same hex format
@@ -1195,6 +1201,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 searchView:Hide()
                 if head then head:Hide() end
                 if headSub then headSub:Hide() end
@@ -1214,6 +1221,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 searchView:Hide()
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
                 if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
@@ -1386,6 +1394,7 @@ function addon.Dashboard_BuildMainFrame()
                 dashboardView = dashboardView,
                 welcomeView = welcomeView,
                 newsView = newsView,
+                integrationsView = integrationsView,
                 detailView = detailView,
                 subCategoryView = subCategoryView,
                 patchNotesView = patchNotesView,
@@ -1452,6 +1461,24 @@ function addon.Dashboard_BuildMainFrame()
                 addon.DashboardModuleGuide_Init(guideEnv)
             end
 
+            -- Integrations view (third-party addon status list). The view never
+            -- navigates away from itself, so we only pass the env keys it actually
+            -- reads — no sibling-view refs, no nav helpers.
+            if addon.DashboardIntegrationsView_Init then
+                addon.DashboardIntegrationsView_Init({
+                    f = f,
+                    L = L,
+                    contentWidth = contentWidth,
+                    targetView = integrationsView,
+                    integrationsView = integrationsView,
+                    dashScrollTopOffset = dashScrollTopOffset,
+                    dashAccentRefs = dashAccentRefs,
+                    GetAccentColor = GetAccentColor,
+                    MakeText = MakeText,
+                    DASHBOARD_CONTENT_CARD_ALPHA_MULT = DASHBOARD_CONTENT_CARD_ALPHA_MULT,
+                })
+            end
+
             f.ShowPatchNotes = function()
                 if addon.PatchNotes_MarkCurrentVersionViewed then
                     addon.PatchNotes_MarkCurrentVersionViewed()
@@ -1464,6 +1491,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 searchView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 patchNotesView:SetAlpha(0)
                 patchNotesView:Show()
                 UIFrameFadeIn(patchNotesView, 0.2, 0, 1)
@@ -1521,6 +1549,7 @@ function addon.Dashboard_BuildMainFrame()
                 patchNotesView:Hide()
                 guideView:Hide()
                 searchView:Hide()
+                integrationsView:Hide()
                 newsView:SetAlpha(0)
                 newsView:Show()
                 UIFrameFadeIn(newsView, 0.2, 0, 1)
@@ -1540,6 +1569,36 @@ function addon.Dashboard_BuildMainFrame()
                 if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
             end
 
+            f.ShowIntegrations = function()
+                pnChangelogHeaderBtn:Hide()
+                HideContextHeader()
+                detailView:Hide()
+                subCategoryView:Hide()
+                dashboardView:Hide()
+                welcomeView:Hide()
+                patchNotesView:Hide()
+                guideView:Hide()
+                searchView:Hide()
+                newsView:Hide()
+                integrationsView:SetAlpha(0)
+                integrationsView:Show()
+                UIFrameFadeIn(integrationsView, 0.2, 0, 1)
+                if head then head:Show() end
+                if headSub then
+                    headSub:Show()
+                    headSub:SetText(L["DASH_INTEGRATIONS_HEAD_SUB"])
+                end
+                if searchBarShell then searchBarShell:Hide() end
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+                if f.DockSearchDropdownForModule then f.DockSearchDropdownForModule() end
+                f.currentModuleKey = nil
+                SetSidebarState({ view = "integrations", activeModuleKey = CLEAR, activeCategoryIndex = CLEAR })
+                if addon.DashboardPreview and addon.DashboardPreview.SetActiveModuleKey then
+                    addon.DashboardPreview.SetActiveModuleKey(nil)
+                end
+                if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
+            end
+
             --- Dedicated Search page: sidebar entry; embedded results panel under the search bar.
             f.ShowSearch = function()
                 pnChangelogHeaderBtn:Hide()
@@ -1551,6 +1610,7 @@ function addon.Dashboard_BuildMainFrame()
                 guideView:Hide()
                 patchNotesView:Hide()
                 newsView:Hide()
+                integrationsView:Hide()
                 if f.HideSearchDropdown then f.HideSearchDropdown() end
                 if searchBox then
                     searchBox:SetText("")
@@ -1585,7 +1645,7 @@ function addon.Dashboard_BuildMainFrame()
 
             -- ===== POPULATE SIDEBAR =====
             -- Group categories by moduleKey; build all groups so we can show/hide on refresh.
-            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["MODULES"], ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["cache"] = addon.Dashboard_BrandModule("cache"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
+            local MODULE_LABELS = { ["axis"] = addon.Dashboard_BrandModule("axis") or "Axis", ["modules"] = L["MODULES"], ["focus"] = addon.Dashboard_BrandModule("focus"), ["presence"] = addon.Dashboard_BrandModule("presence"), ["insight"] = addon.Dashboard_BrandModule("insight"), ["augment"] = addon.Dashboard_BrandModule("augment"), ["vista"] = addon.Dashboard_BrandModule("vista"), ["essence"] = addon.Dashboard_BrandModule("essence"), ["meridian"] = addon.Dashboard_BrandModule("meridian") }
             f.dashboardMODULE_LABELS = MODULE_LABELS
             local groups = {}
             for i, cat in ipairs(addon.OptionCategories) do
@@ -1599,7 +1659,7 @@ function addon.Dashboard_BuildMainFrame()
                 tinsert(groups[mk].categories, i)
             end
             f.dashboardSidebarGroups = groups
-            local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "cache" }
+            local groupOrder = { "axis", "focus", "insight", "essence", "presence", "vista", "augment" }
             local sidebarRows = {}
             -- Extra height added to group headers when subtitle mode is active.
             local SUBTITLE_EXTRA_H = 14
@@ -1634,11 +1694,13 @@ function addon.Dashboard_BuildMainFrame()
                 if mk == "axis" and cat.key == "Modules" then
                     return false
                 end
+                if cat.hidden and cat.hidden() then return false end
                 return true
             end
 
             local lastSidebarRow = nil
             local yOff = 0
+            local LayoutSidebar
 
             -- Welcome (first row — overview for new and returning users)
             local welcomeBtn = CreateSidebarButton(sidebarScrollContent, L["DASH_WELCOME_TAB"], "INV_Misc_Book_09", function()
@@ -1665,7 +1727,10 @@ function addon.Dashboard_BuildMainFrame()
             lastSidebarRow = newsBtn
             yOff = yOff + TAB_ROW_HEIGHT
 
-            -- Patch Notes (pinned bottom) + Search (pinned above Patch Notes)
+            -- Pinned bottom rows, in order (bottom up):
+            --   y = 0                  Patch Notes
+            --   y = TAB_ROW_HEIGHT     Integrations
+            --   y = TAB_ROW_HEIGHT * 2 Search
             local whatsNewBase = L["DASH_WHATS_NEW"]
             local whatsNewBtn = CreateBottomPinnedButton(whatsNewBase, "INV_Scroll_05", function()
                 if addon.PatchNotes_MarkWhatsNewSidebarClicked then
@@ -1678,9 +1743,20 @@ function addon.Dashboard_BuildMainFrame()
             whatsNewBtn._sidebarViewGetter = function() return sidebarState.view end
             f.whatsnewSidebarBtn = whatsNewBtn
 
+            local integrationsSidebarBtn = CreateBottomPinnedButton(
+                L["DASH_INTEGRATIONS_TAB"], "INV_Misc_Gear_08",
+                function()
+                    if f.ShowIntegrations then f.ShowIntegrations() end
+                end, TAB_ROW_HEIGHT
+            )
+            -- Stored so the Integrations view can append " (New!)" when there are
+            -- unseen integration entries (see DashboardIntegrationsView_Init).
+            integrationsSidebarBtn._integrationsBaseText = L["DASH_INTEGRATIONS_TAB"]
+            f.integrationsSidebarBtn = integrationsSidebarBtn
+
             local searchSidebarBtn = CreateBottomPinnedButton(L["DASH_SEARCH_TAB"], "INV_Misc_Spyglass_03", function()
                 if f.ShowSearch then f.ShowSearch() end
-            end, TAB_ROW_HEIGHT)
+            end, TAB_ROW_HEIGHT * 2)
             f.searchSidebarBtn = searchSidebarBtn
             -- Note: pinned buttons NOT in sidebarButtons or sidebarRows
 
@@ -1831,8 +1907,19 @@ function addon.Dashboard_BuildMainFrame()
                         tinsert(sidebarRows, g.row)
 
                         header:SetScript("OnClick", function()
+                            local collapseMode = (addon.GetDB and addon.GetDB("sidebarCollapseMode", "auto")) or "auto"
                             if mk == "axis" then
                                 f.ShowDashboard()
+                            elseif not GetGroupCollapsed(mk) and (collapseMode == "manual" or sidebarState.activeModuleKey == mk) then
+                                SetGroupCollapsed(mk, true)
+                                if g.tabsContainer then
+                                    g.tabsContainer:SetScript("OnUpdate", nil)
+                                    g.tabsContainer:SetHeight(0)
+                                    SetGroupChildrenShown(g, false)
+                                end
+                                if header.chevron then header.chevron:SetText("+") end
+                                if header.updateSpacer then header.updateSpacer() end
+                                if LayoutSidebar then LayoutSidebar() end
                             else
                                 f.OpenModule(modName, mk)
                             end
@@ -1885,7 +1972,7 @@ function addon.Dashboard_BuildMainFrame()
             end
 
             --- Reflow sidebar scroll content height from top to last row.
-            local function LayoutSidebar()
+            LayoutSidebar = function()
                 if not sidebarScrollContent or not lastSidebarRow then return end
                 local top = sidebarScrollContent:GetTop()
                 local bottom = lastSidebarRow:GetBottom()
@@ -1898,16 +1985,19 @@ function addon.Dashboard_BuildMainFrame()
             --- Apply sidebarState to UI: active button, expanded groups, spacers.
             local function ApplySidebarState()
                 local targetMk = sidebarState.activeModuleKey
+                local collapseMode = (addon.GetDB and addon.GetDB("sidebarCollapseMode", "auto")) or "auto"
                 for _, mk in ipairs(groupOrder) do
                     local g = groups[mk]
                     if g and g.tabsContainer and g.fullHeight then
-                        if targetMk and mk == targetMk then
+                        local isTarget   = targetMk and mk == targetMk
+                        local alwaysOpen = collapseMode == "axisPlus" and mk == "axis"
+                        if isTarget or alwaysOpen then
                             SetGroupCollapsed(mk, false)
                             g.tabsContainer:SetScript("OnUpdate", nil)
                             g.tabsContainer:SetHeight(g.fullHeight)
                             SetGroupChildrenShown(g, true)
                             if g.header and g.header.chevron then g.header.chevron:SetText("-") end
-                        elseif not GetGroupCollapsed(mk) then
+                        elseif collapseMode ~= "manual" and not GetGroupCollapsed(mk) then
                             SetGroupCollapsed(mk, true)
                             g.tabsContainer:SetScript("OnUpdate", nil)
                             g.tabsContainer:SetHeight(0)
@@ -1926,6 +2016,8 @@ function addon.Dashboard_BuildMainFrame()
                     activeBtn = f.searchSidebarBtn
                 elseif sidebarState.view == "whatsnew" and f.whatsnewSidebarBtn then
                     activeBtn = f.whatsnewSidebarBtn
+                elseif sidebarState.view == "integrations" and f.integrationsSidebarBtn then
+                    activeBtn = f.integrationsSidebarBtn
                 elseif sidebarState.view == "dashboard" then
                     -- Home (module toggles): Axis hub context — expand group via activeModuleKey; highlight Axis header
                     if sidebarState.activeModuleKey == "axis" then
@@ -2054,7 +2146,7 @@ function addon.Dashboard_BuildMainFrame()
 
             --- Live-refresh module display names in the sidebar and search filter when the
             --- moduleNameDisplay setting changes. Home tiles and baked toggle labels update on reload.
-            local MODULE_NAME_KEYS = { "axis", "focus", "presence", "vista", "insight", "cache", "essence", "meridian" }
+            local MODULE_NAME_KEYS = { "axis", "focus", "presence", "vista", "insight", "augment", "essence", "meridian" }
             f.RefreshModuleDisplayNames = function()
                 -- Re-populate label caches in place so runtime closures pick up new values.
                 if f.dashboardModuleLabels then

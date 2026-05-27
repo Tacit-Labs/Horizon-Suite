@@ -126,6 +126,10 @@ local function HandlePresenceDebugSlash(msg)
         end
 
     elseif cmd == "debuglive" then
+        if not addon.Log.isDevMode() then
+            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
+            return true
+        end
         local on = addon.Presence.ToggleDebugLive and addon.Presence.ToggleDebugLive()
         HSPrint("Presence live debug: " .. (on and "on" or "off"))
 

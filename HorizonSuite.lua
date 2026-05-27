@@ -140,7 +140,7 @@ function addon:EnsureModulesDB()
         db.modules.focus = { enabled = false }
         db.modules.presence = { enabled = false }
         db.modules.insight = { enabled = false }
-        db.modules.cache = { enabled = false }
+        db.modules.augment = { enabled = false }
         db.modules.vista = { enabled = false }
         db.modules.essence = { enabled = false }
     end

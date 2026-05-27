@@ -1,14 +1,11 @@
 --[[
-    Horizon Suite - Dashboard Welcome feed definitions (ordered news-reel items).
+    Horizon Suite - Dashboard Welcome Feed definitions (ordered descriptive items).
     Higher `sort` appears first after layout. Edit this file to add/reorder announcements.
-    Locale strings use keys in locales/horizon/enUS.lua (titleKey, bodyKey, etc.).
     For welcome_action_card, `icon` may be an icon file name (string) or a table
     { atlas = "AtlasName", fallback = "INV_File" } (same pattern as dashboard sidebar buttons).
 ]]
 
-
 local addon = _G.HorizonSuite
-
 
 --- @type table[] Welcome feed: onboarding content (getting started, contributors, localisations, embedded guide).
 addon.DashboardWelcomeFeed = {
@@ -84,56 +81,5 @@ addon.DashboardWelcomeFeed = {
         sort = 100,
         titleKey = "DASH_WELCOME_LOCALISATIONS_HEADING",
         bodyKey = "DASH_WELCOME_LOCALISATIONS_BODY",
-    },
-}
-
---- @type table[] News feed: roadmap, community & media content, announcements.
-addon.DashboardNewsFeed = {
-    {
-        id = "insight_gradient_tooltips",
-        kind = "news_featured",
-        variant = "featured",
-        sort = 900,
-        eyebrowKey = "DASH_NEWS_EYEBROW_FEATURE",
-        badgeKey = "DASH_NEWS_BADGE_NEW",
-        titleKey = "DASH_NEWS_GRADIENT_TOOLTIPS_TITLE",
-        taglineKey = "DASH_NEWS_GRADIENT_TOOLTIPS_TAGLINE",
-        bodyKey = "DASH_NEWS_GRADIENT_TOOLTIPS_BODY",
-        metaKey = "DASH_NEWS_GRADIENT_TOOLTIPS_META",
-        artPath = "Interface/AddOns/HorizonSuite/media/dashboard/seedpod.png",
-        artWidth = 381,
-        artHeight = 248,
-        artFit = "contain",
-    },
-    {
-        id = "coming_soon",
-        kind = "news_card",
-        variant = "media",
-        sort = 410,
-        eyebrowKey = "DASH_NEWS_EYEBROW_ROADMAP",
-        titleKey = "DASH_NEWS_COMING_SOON_TITLE",
-        bodyKey = "DASH_NEWS_COMING_SOON_BODY",
-        secondaryTitleKey = "DASH_NEWS_HANDHELD_TITLE",
-        secondaryBodyKey = "DASH_NEWS_HANDHELD_BODY",
-        artPath = "Interface/AddOns/HorizonSuite/media/dashboard/EditMode.png",
-        artWidth = 464,
-        artHeight = 880,
-        artFit = "contain",
-        ctaLabelKey = "DASH_NEWS_CTA_OPEN_PATCH_NOTES",
-        ctaAction = { type = "patch_notes" },
-    },
-    {
-        id = "class_icons",
-        kind = "news_card",
-        variant = "standard",
-        sort = 400,
-        eyebrowKey = "DASH_NEWS_EYEBROW_COMMUNITY",
-        badgeKey = "DASH_NEWS_BADGE_HIGHLIGHT",
-        titleKey = "DASH_NEWS_CLASS_ICONS_TITLE",
-        bodyKey = "DASH_NEWS_CLASS_ICONS_BODY",
-        metaKey = "DASH_NEWS_CLASS_ICONS_META",
-        showClassIconStrip = true,
-        ctaLabelKey = "DASH_NEWS_CTA_VIEW_ARTIST",
-        ctaAction = { type = "copy_url", url = "https://www.fiverr.com/gc_fresh_ideas?source=gig_page" },
-    },
+    }
 }

@@ -1775,14 +1775,6 @@ function addon.DashboardWelcomeView_Init(env)
                         end
                     end
 
-                    if showStrip then
-                        pool.classIconsStrip:ClearAllPoints()
-                        pool.classIconsStrip:SetPoint("TOPLEFT", card, "TOPLEFT", pad, -textY)
-                        textY = textY + LayoutNewsClassStrip(pool.classIconsStrip, copyW) + 12
-                    else
-                        pool.classIconsStrip:Hide()
-                    end
-
                     local storyMeta = (entry.metaKey and L[entry.metaKey]) or ""
                     local metaInFooterOnly = (entry.id == "class_icons")
                     if metaInFooterOnly then
@@ -1818,38 +1810,6 @@ function addon.DashboardWelcomeView_Init(env)
                     pool._newsEditorialFooterReserve = footerReserve
                     card:SetHeight(cardH)
                     card:Show()
-
-                    local eRow = pool.editorialFooterRow
-                    local ePrefix = pool.editorialFooterPrefixFs
-                    local eLink = pool.editorialFooterLinkBtn
-                    if eRow and ePrefix and eLink then
-                        local rowEntry = entry
-                        if entry.id == "class_icons" then
-                            ePrefix:SetText(storyMeta)
-                            eLink:SetLabel(ctaText ~= "" and ctaText or (L["DASH_NEWS_CTA_VIEW_ARTIST"]))
-                            eLink:SetScript("OnClick", function()
-                                DispatchNewsAction(rowEntry)
-                            end)
-                        else
-                            ePrefix:SetText(L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"])
-                            eLink:SetLabel(L["DASH_NEWS_EDITORIAL_FOOTER_LINK"])
-                            eLink:SetScript("OnClick", function()
-                                if f.ShowPatchNotes then f.ShowPatchNotes() end
-                            end)
-                        end
-                        local rowW = cardW - 2 * pad
-                        local linkW = eLink:GetWidth()
-                        ePrefix:SetWidth(math.max(60, rowW - linkW - 10))
-                        ePrefix:ClearAllPoints()
-                        ePrefix:SetPoint("BOTTOMLEFT", eRow, "BOTTOMLEFT", 0, 0)
-                        eLink:ClearAllPoints()
-                        eLink:SetPoint("LEFT", ePrefix, "RIGHT", 6, 0)
-                        local fh = math.max(ePrefix:GetHeight(), eLink:GetHeight()) + 4
-                        eRow:SetSize(rowW, fh)
-                        eRow:ClearAllPoints()
-                        eRow:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", pad, NEWS_CARD_EDITORIAL_FOOTER_BOTTOM_INSET)
-                        eRow:Show()
-                    end
 
                     rowH = math.max(rowH, cardH)
 
@@ -1920,62 +1880,6 @@ function addon.DashboardWelcomeView_Init(env)
                     y = y + pool.introFs:GetHeight() + 12
                     pool.titleFs:Show()
                     pool.introFs:Show()
-
-                elseif k == "class_icon_strip" then
-                    local classHeroPad = 28
-                    local classTextW = w - classHeroPad * 2
-                    pool.classIconsTitleFs:SetText(L[entry.titleKey] or "")
-                    pool.classIconsLeadFs:SetText(L[entry.leadKey] or "")
-                    pool.classIconsThankBoofulsFs:SetText(L[entry.thankKey] or "")
-                    pool.classIconsCreatedPrefixFs:SetText(L[entry.createdPrefixKey] or "")
-                    local artistName = L[entry.artistNameKey] or ""
-                    if pool.classIconsArtistBtn._linkLabel then
-                        pool.classIconsArtistBtn._linkLabel:SetText(artistName)
-                        pool.classIconsArtistBtn:SetWidth(math.max(40, (pool.classIconsArtistBtn._linkLabel:GetStringWidth() or 0) + 4))
-                        pool.classIconsArtistBtn:SetHeight(math.max(16, (pool.classIconsArtistBtn._linkLabel:GetHeight() or 14) + 2))
-                    end
-                    local hero = pool.root
-                    hero:SetWidth(w)
-                    hero:ClearAllPoints()
-                    hero:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-                    pool.classIconsAccent:ClearAllPoints()
-                    pool.classIconsAccent:SetPoint("TOPLEFT", hero, "TOPLEFT", 14, -14)
-                    local cyt = classHeroPad
-                    pool.classIconsTitleFs:SetWidth(classTextW)
-                    pool.classIconsTitleFs:ClearAllPoints()
-                    pool.classIconsTitleFs:SetPoint("TOPLEFT", hero, "TOPLEFT", classHeroPad, -cyt)
-                    cyt = cyt + pool.classIconsTitleFs:GetHeight() + 8
-                    pool.classIconsLeadFs:SetWidth(classTextW)
-                    pool.classIconsLeadFs:ClearAllPoints()
-                    pool.classIconsLeadFs:SetPoint("TOPLEFT", hero, "TOPLEFT", classHeroPad, -cyt)
-                    cyt = cyt + pool.classIconsLeadFs:GetHeight() + 6
-                    pool.classIconsThankBoofulsFs:SetWidth(classTextW)
-                    pool.classIconsThankBoofulsFs:ClearAllPoints()
-                    pool.classIconsThankBoofulsFs:SetPoint("TOPLEFT", hero, "TOPLEFT", classHeroPad, -cyt)
-                    cyt = cyt + pool.classIconsThankBoofulsFs:GetHeight() + 6
-                    pool.classIconsCreatedRow:SetWidth(classTextW)
-                    pool.classIconsCreatedRow:ClearAllPoints()
-                    pool.classIconsCreatedRow:SetPoint("TOPLEFT", hero, "TOPLEFT", classHeroPad, -cyt)
-                    pool.classIconsCreatedPrefixFs:ClearAllPoints()
-                    pool.classIconsCreatedPrefixFs:SetPoint("TOPLEFT", pool.classIconsCreatedRow, "TOPLEFT", 0, 0)
-                    pool.classIconsArtistBtn:ClearAllPoints()
-                    pool.classIconsArtistBtn:SetPoint("BOTTOMLEFT", pool.classIconsCreatedPrefixFs, "BOTTOMRIGHT", 2, 0)
-                    local rowH = math.max(pool.classIconsCreatedPrefixFs:GetHeight(), pool.classIconsArtistBtn:GetHeight())
-                    pool.classIconsCreatedRow:SetHeight(math.max(rowH, 1))
-                    cyt = cyt + rowH + 6
-                    local maxStripW = classTextW
-                    pool.classIconsStrip:ClearAllPoints()
-                    pool.classIconsStrip:SetPoint("TOPLEFT", hero, "TOPLEFT", classHeroPad, -cyt)
-                    local stripH = LayoutDashboardClassIconStrip(
-                        pool.classIconsStrip,
-                        maxStripW,
-                        { topTexInset = 2, bottomPad = 8 }
-                    )
-                    cyt = cyt + stripH
-                    hero:SetHeight(math.max(cyt + classHeroPad, 1))
-                    pool.classIconsAccent:SetPoint("BOTTOMLEFT", hero, "BOTTOMLEFT", 14, 14)
-                    y = y + hero:GetHeight() + 8
-                    hero:Show()
 
                 elseif k == "text_banner" then
                     local banPad = 28
@@ -2153,6 +2057,7 @@ function addon.DashboardWelcomeView_Init(env)
             if f.guideView then f.guideView:Hide() end
             patchNotesView:Hide()
             if env.newsView then env.newsView:Hide() end
+            if env.integrationsView then env.integrationsView:Hide() end
             if f.searchView then f.searchView:Hide() end
             welcomeView:SetAlpha(0)
             welcomeView:Show()

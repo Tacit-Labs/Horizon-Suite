@@ -98,9 +98,10 @@ _G.HorizonSuite_ShowDashboard = addon.ShowDashboard
 -- Stale string values from earlier builds are coerced to { kind = <string> }.
 
 local SIMPLE_KIND_BY_FN = {
-    ShowNews       = "news",
-    ShowDashboard  = "dashboard",
-    ShowPatchNotes = "whatsnew",
+    ShowNews          = "news",
+    ShowDashboard     = "dashboard",
+    ShowPatchNotes    = "whatsnew",
+    ShowIntegrations  = "integrations",
 }
 
 local function ReadLastView(db)
@@ -111,16 +112,21 @@ local function ReadLastView(db)
 end
 
 -- Find a category by name in the global category list and return its
--- options (resolving function-typed options).
-local function FindCategoryOptions(catName)
+-- options (resolving function-typed options). moduleKey is used as a
+-- tiebreaker when multiple categories share the same display name.
+local function FindCategoryOptions(catName, moduleKey)
     if not catName or not addon.OptionCategories then return nil end
+    local fallback
     for _, cat in ipairs(addon.OptionCategories) do
         if cat.name == catName then
             local opts = type(cat.options) == "function" and cat.options() or cat.options
-            return opts
+            if moduleKey and cat.moduleKey == moduleKey then
+                return opts
+            end
+            if not fallback then fallback = opts end
         end
     end
-    return nil
+    return fallback
 end
 
 -- Returns a zero-arg function that opens the resolved entry view.
@@ -148,11 +154,13 @@ local function ResolveEntryAction(frame)
             return frame.ShowDashboard
         elseif kind == "whatsnew" and frame.ShowPatchNotes then
             return frame.ShowPatchNotes
+        elseif kind == "integrations" and frame.ShowIntegrations then
+            return frame.ShowIntegrations
         elseif kind == "module" and frame.OpenModule and last.moduleKey then
             local name, mk = last.name or last.moduleKey, last.moduleKey
             return function() frame.OpenModule(name, mk) end
         elseif kind == "category" and frame.OpenCategoryDetail and last.catName then
-            local options = FindCategoryOptions(last.catName)
+            local options = FindCategoryOptions(last.catName, last.moduleKey)
             if options then
                 local modName, catName = last.modName or "", last.catName
                 local mk = last.moduleKey

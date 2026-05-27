@@ -10,6 +10,25 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.0.0] – 2026-05-22
+
+### ✨ New Features
+- **(Augment) New Module** — A full quality-of-life module with its own dashboard and settings. It currently includes our on-screen toast module for loot, currency and reputation (previously named "Cache").
+- **(Dashboard) Integrations view** — Every third-party addon integrated with Horizon Suite now exists within a sidebar tab, showing at a glance which are installed, disabled, or missing. Each missing addon comes with an Install ↗ link directed to that addon's CurseForge page, while Installed addons come with a Settings ⚙ button that leads into the addon's own config.
+- **(Insight) Total RP 3 profile integration** — Total RP 3's custom character icon, name colour, IC/OOC badge, pronouns, race, class, guild, and "Currently" text now render inside the existing Insight-styled tooltip rather than a separate TRP3 frame.
+- **(Core) In-game menu button** — A "Horizon Suite" entry in the Esc game menu (between Shop and AddOns) that opens the dashboard.
+
+### 🔧 Improvements
+- **(Focus) Bullet point prefix** — Objectives can now be prefixed with a bullet point instead of the current hyphen or numbering system.
+- **(Insight) Achievement points** — A player's total achievement points may now be shown, with or without a modifier next to a star in gold.
+- **(Localisation)** German update and general upkeep across all locales.
+- **(Backend) Refactor** — Began to introduce maintenance helpers and scaffolding for future upkeep.
+
+### 🐛 Fixes
+- **(Focus)** Coloured shadow text in objective rows no longer leaks colour escape codes into the shadow string.
+
+---
+
 ## [4.18.2] – 2026-05-15
 
 ### 🐛 Fixes

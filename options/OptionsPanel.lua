@@ -77,10 +77,10 @@ function addon.OpenVistaDrawerIconPicker()
         return type(icon) == "table" and icon.name or nil
     end
 
-    local iconPathCache = {}
+    local iconPathAugment = {}
     local function getIconPathText(icon)
         local file = getIconFile(icon)
-        local cached = iconPathCache[file]
+        local cached = iconPathAugment[file]
         if cached ~= nil then return cached end
         local path
         if type(file) == "number" and C_Texture and C_Texture.GetFilenameFromFileDataID then
@@ -91,14 +91,14 @@ function addon.OpenVistaDrawerIconPicker()
         elseif type(file) == "string" then
             path = file:gsub("/", "\\")
         end
-        iconPathCache[file] = path or false
+        iconPathAugment[file] = path or false
         return path
     end
 
-    local iconSearchCache = {}
+    local iconSearchAugment = {}
     local function getIconSearchText(icon)
         local file = getIconFile(icon)
-        local cached = iconSearchCache[file]
+        local cached = iconSearchAugment[file]
         if cached then return cached end
         local text = tostring(file or "")
         local name = getIconName(icon)
@@ -107,7 +107,7 @@ function addon.OpenVistaDrawerIconPicker()
         if path then text = text .. " " .. path end
         text = text:lower()
         text = text .. " " .. text:gsub("[^%w]+", "")
-        iconSearchCache[file] = text
+        iconSearchAugment[file] = text
         return text
     end
 
@@ -2094,7 +2094,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             currentCard.contentHeight = currentCard.contentHeight + SectionGap + RowHeights.sectionLabel
 
             local completedObjRow  -- forward reference for parent-child wiring
-            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"], L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"], function() return getDB("useCompletedObjectiveColor", true) end, function(v)
+            local ovCompletedObj = OptionsWidgets_CreateToggleSwitch(cardContent, L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"], L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"], function() return getDB("useCompletedObjectiveColor", addon.FOCUS_DEFAULTS.useCompletedObjectiveColor) end, function(v)
                 setDB("useCompletedObjectiveColor", v)
                 notifyMainAddon()
                 if completedObjRow then completedObjRow:SetShown(v and true or false); RecalcCardHeight() end
@@ -2107,7 +2107,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             local otherDefs = {
                 { dbKey = "highlightColor", label = L["FOCUS_HIGHLIGHT"], def = (addon.HIGHLIGHT_COLOR_DEFAULT or { 0.4, 0.7, 1 }) },
                 { dbKey = "completedObjectiveColor", label = L["FOCUS_COMPLETED_OBJECTIVE"], def = (addon.OBJ_DONE_COLOR or { 0.20, 1.00, 0.40 }), isCompletedObj = true },
-                { dbKey = "progressBarFillColor", label = L["FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", true) end, hasAlpha = true },
+                { dbKey = "progressBarFillColor", label = L["FOCUS_PROGRESS_BAR_FILL"], def = { 0.40, 0.65, 0.90, 0.85 }, disabled = function() return getDB("progressBarUseCategoryColor", addon.FOCUS_DEFAULTS.progressBarUseCategoryColor) end, hasAlpha = true },
                 { dbKey = "progressBarTextColor", label = L["FOCUS_PROGRESS_BAR_TEXT"], def = { 0.95, 0.95, 0.95 } },
             }
             for _, od in ipairs(otherDefs) do
@@ -2121,7 +2121,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             end
 
             -- Hide completed objective swatch if toggle is OFF
-            if completedObjRow and not getDB("useCompletedObjectiveColor", true) then
+            if completedObjRow and not getDB("useCompletedObjectiveColor", addon.FOCUS_DEFAULTS.useCompletedObjectiveColor) then
                 completedObjRow:Hide()
             end
 
@@ -2615,14 +2615,16 @@ local function BrandModule(k)
     local t = addon.BrandDisplay and addon.BrandDisplay.module
     return t and t[k] or nil
 end
-local MODULE_LABELS = { ["modules"] = BrandModule("axis") or "Axis", ["focus"] = BrandModule("focus"), ["presence"] = BrandModule("presence"), ["insight"] = BrandModule("insight"), ["cache"] = BrandModule("cache"), ["vista"] = BrandModule("vista") }
+local MODULE_LABELS = { ["modules"] = BrandModule("axis") or "Axis", ["focus"] = BrandModule("focus"), ["presence"] = BrandModule("presence"), ["insight"] = BrandModule("insight"), ["augment"] = BrandModule("augment"), ["vista"] = BrandModule("vista") }
 local groups = {}
 for i, cat in ipairs(addon.OptionCategories) do
-    local mk = cat.moduleKey or "modules"
-    if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OTHER"], categories = {} } end
-    table.insert(groups[mk].categories, i)
+    if not (cat.hidden and cat.hidden()) then
+        local mk = cat.moduleKey or "modules"
+        if not groups[mk] then groups[mk] = { label = MODULE_LABELS[mk] or L["OTHER"], categories = {} } end
+        table.insert(groups[mk].categories, i)
+    end
 end
-local groupOrder = { "modules", "focus", "presence", "insight", "cache", "vista" }
+local groupOrder = { "modules", "focus", "presence", "insight", "augment", "vista" }
 
 local function UpdateTabVisuals()
     for _, btn in ipairs(tabButtons) do

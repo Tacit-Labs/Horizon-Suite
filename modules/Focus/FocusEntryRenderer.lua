@@ -4,7 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 -- Middle dot between delve affix names; rendered in default game FontStrings (affixSepSegs), not the user title font.
 local DELVE_AFFIX_SEPARATOR_TEXT = "  ·  "
 
@@ -841,12 +841,13 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                     objText = ("%d. %s"):format(shownObjs + 1, objText)
                 elseif prefixStyle == "hyphens" then
                     objText = "- " .. objText
+                elseif prefixStyle == "bulletPoints" then
+                    objText = "• " .. objText
                 end
             end
             objText = ApplyObjectiveProgressNumberColoring(objText, nf, nr, oData, effectiveDoneColor)
             local useTick = oData.finished and addon.GetDB("useTickForCompletedObjectives", false) and not questData.isComplete
-            obj.text:SetText(objText)
-            obj.shadow:SetText(addon.PlainTextForShadowFontString(objText))
+            addon.SetTextWithShadow(obj.text, obj.shadow, objText)
 
             local tickSize = math.max(10, (tonumber(addon.GetDB("objectiveFontSize", 11)) or 11) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
             if useTick and obj.tick then
@@ -1036,8 +1037,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         local completeRowW = math.max(1, objTextWidth - OBJ_EXTRA_LEFT_PAD)
         obj.text:SetWidth(completeRowW)
         obj.shadow:SetWidth(completeRowW)
-        obj.text:SetText(firstLineText)
-        obj.shadow:SetText(firstLineText)
+        addon.SetTextWithShadow(obj.text, obj.shadow, firstLineText)
         obj._hsFinished = true
         obj._hsAlpha = 1
         obj.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
@@ -1063,8 +1063,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             local clickText = _G.QUEST_WATCH_CLICK_TO_COMPLETE or "(click to complete)"
             obj2.text:SetWidth(objTextWidth)
             obj2.shadow:SetWidth(objTextWidth)
-            obj2.text:SetText(clickText)
-            obj2.shadow:SetText(clickText)
+            addon.SetTextWithShadow(obj2.text, obj2.shadow, clickText)
             obj2._hsFinished = true
             obj2._hsAlpha = 1
             obj2.text:SetTextColor(doneColor[1], doneColor[2], doneColor[3], dimTextAlpha)
@@ -1879,12 +1878,10 @@ local function PopulateEntry(entry, questData, groupKey)
     if addon.GetDB("showQuestLevel", false) and questData.level then
         displayTitle = ("%s [%d]"):format(displayTitle, questData.level)
     end
-    entry.titleText:SetText(displayTitle)
-    entry.titleShadow:SetText(displayTitle)
+    addon.SetTextWithShadow(entry.titleText, entry.titleShadow, displayTitle)
 
     if delveLivesActive and entry.delveLivesText then
-        entry.delveLivesText:SetText(delveLivesStr)
-        if entry.delveLivesShadow then entry.delveLivesShadow:SetText(delveLivesStr) end
+        addon.SetTextWithShadow(entry.delveLivesText, entry.delveLivesShadow, delveLivesStr)
         entry.delveLivesText:ClearAllPoints()
         entry.delveLivesText:SetPoint("TOPLEFT", entry.titleText, "TOPRIGHT", S(4), 0)
         entry.delveLivesText:Show()
@@ -1899,8 +1896,7 @@ local function PopulateEntry(entry, questData, groupKey)
     end
 
     if delveGroupsActive and entry.delveGroupsText then
-        entry.delveGroupsText:SetText(delveGroupsStr)
-        if entry.delveGroupsShadow then entry.delveGroupsShadow:SetText(delveGroupsStr) end
+        addon.SetTextWithShadow(entry.delveGroupsText, entry.delveGroupsShadow, delveGroupsStr)
         entry.delveGroupsText:ClearAllPoints()
         local anchor = (delveLivesActive and entry.delveLivesText) and entry.delveLivesText or entry.titleText
         entry.delveGroupsText:SetPoint("TOPLEFT", anchor, "TOPRIGHT", S(4), 0)
@@ -2099,7 +2095,7 @@ local function PopulateEntry(entry, questData, groupKey)
     local playerZone = addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName() or nil
     local inCurrentZone = questData.isNearby or (questData.zoneName and playerZone and questData.zoneName:lower() == playerZone:lower())
     -- Prey activities: "Activity" is a semantic label, not a zone—always show it even when in-zone
-    local isActivityLabel = questData.zoneName and (questData.zoneName == "Activity" or questData.zoneName == (addon.L and addon.L["FOCUS_ACTIVITY"]))
+    local isActivityLabel = questData.zoneName == L["FOCUS_ACTIVITY"]
     local shouldShowZone = showZoneLabels and questData.zoneName and (not inCurrentZone or isActivityLabel)
     local shouldShowScenarioStage = questData.stageName and (questData.category == "SCENARIO" or questData.isScenarioMain)
         and (questData.title ~= questData.stageName)
@@ -2108,8 +2104,7 @@ local function PopulateEntry(entry, questData, groupKey)
         if isOffMapWorld then
             zoneLabel = ("[Off-map] %s"):format(zoneLabel)
         end
-        entry.zoneText:SetText(zoneLabel)
-        entry.zoneShadow:SetText(zoneLabel)
+        addon.SetTextWithShadow(entry.zoneText, entry.zoneShadow, zoneLabel)
         local zoneColor = (addon.GetZoneColor and addon.GetZoneColor(effectiveCat)) or addon.ZONE_COLOR
         if addon.ShouldApplySuperTrackQuestDim(questData) then
             zoneColor = addon.ApplyDimColor(zoneColor)
@@ -2129,8 +2124,7 @@ local function PopulateEntry(entry, questData, groupKey)
             local stageFmt = (addon.L and addon.L["UI_STAGE_X_X"])
             stageLabel = stageFmt:format(questData.stageIndex, questData.stageName)
         end
-        entry.zoneText:SetText(stageLabel)
-        entry.zoneShadow:SetText(stageLabel)
+        addon.SetTextWithShadow(entry.zoneText, entry.zoneShadow, stageLabel)
         local stageColor = (addon.GetScenarioStageColor and addon.GetScenarioStageColor()) or addon.ZONE_COLOR or { 0.55, 0.65, 0.75 }
         if addon.ShouldApplySuperTrackQuestDim(questData) then
             stageColor = addon.ApplyDimColor(stageColor)
