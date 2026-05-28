@@ -12,6 +12,7 @@
 HorizonSuite.lua
 locales/LocaleCore.lua
 locales/horizon/enUS.lua
+locales/LocaleDevCapture.lua
 locales/horizon/deDE.lua
 locales/horizon/esES.lua
 locales/horizon/frFR.lua
