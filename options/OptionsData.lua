@@ -220,10 +220,10 @@ function OptionsData_NotifyMainAddon_Live()
 end
 
 function OptionsData_NotifyMainAddon()
-    -- Bust the per-entry populate-signature augment so option changes (objectivePrefixStyle,
+    -- Bust the per-entry populate-signature cache so option changes (objectivePrefixStyle,
     -- showZoneLabels, useTickForCompletedObjectives, etc.) take effect on the next FullLayout
     -- instead of waiting for /reload or a fingerprinted qData field to perturb.
-    if addon.focus and addon.focus.InvalidatePopulateAugment then addon.focus.InvalidatePopulateAugment() end
+    if addon.focus and addon.focus.InvalidatePopulateCache then addon.focus.InvalidatePopulateCache() end
     local applyTy = addon.ApplyTypography or _G.HorizonSuite_ApplyTypography
     if applyTy then applyTy() end
     if addon.ApplyDimensions then addon.ApplyDimensions()
