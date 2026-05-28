@@ -124,8 +124,6 @@ options/modules/defaults/OptionsDefaultsEssence.lua
 options/modules/defaults/OptionsDefaultsVista.lua
 options/modules/defaults/OptionsDefaultsFocus.lua
 options/modules/defaults/OptionsDefaultsAxis.lua
-options/modules/defaults/OptionsDefaultsFlow.lua
-options/modules/defaults/OptionsDefaultsMeridian.lua
 options/modules/OptionsAxis.lua
 options/modules/OptionsGlobal.lua
 options/modules/OptionsFocus.lua
