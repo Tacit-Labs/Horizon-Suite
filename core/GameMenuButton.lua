@@ -33,7 +33,7 @@ end
 -- ourselves just below it. This is purely position-based so it works regardless
 -- of whether the other addon uses layoutIndex or SetPoint.
 local function PositionButton()
-    local btn = _G.HorizonSuiteGameMenuButton
+    local btn = rawget(_G, "HorizonSuiteGameMenuButton")
     if not btn then return end
 
     local addonsBtn = FindAddonsButton()
@@ -72,8 +72,14 @@ local function PositionButton()
     end
 end
 
+local function IsEnabled()
+    if addon.GetDB then return addon.GetDB("showGameMenuButton", true) end
+    local db = _G[addon.DATABASE]
+    return not (db and db.showGameMenuButton == false)
+end
+
 local function CreateButton()
-    if _G.HorizonSuiteGameMenuButton then return end
+    if rawget(_G, "HorizonSuiteGameMenuButton") then return end
 
     local button = CreateFrame("Button", "HorizonSuiteGameMenuButton", GameMenuFrame, "MainMenuFrameButtonTemplate")
     button:SetText(L["AXIS_GAMEMENU_BUTTON"])
@@ -88,7 +94,14 @@ local function CreateButton()
         button.layoutIndex = 100
     end
 
+    if not IsEnabled() then button:Hide() end
     GameMenuFrame:Layout()
+end
+
+function addon.GameMenuButton_UpdateVisibility()
+    local btn = rawget(_G, "HorizonSuiteGameMenuButton")
+    if not btn then return end
+    if IsEnabled() then btn:Show() else btn:Hide() end
 end
 
 local frame = CreateFrame("Frame")
