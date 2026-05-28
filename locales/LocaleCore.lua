@@ -30,14 +30,18 @@ devFrame:SetScript("OnEvent", function()
     local enUS  = addon._localeDevEnUS
     addon._localeDevEnUS = nil  -- free snapshot regardless
     if not ((db and db.localeDevMode) or rawget(_G, "HORIZON_LOCALE_DEV")) then return end
-    local isEnUS = GetLocale() == "enUS"
-    local count  = 0
-    for k, v in pairs(L) do
-        -- enUS is the source language: every key is inherently translated.
-        -- For other locales, compare against the snapshot to detect overrides.
-        if isEnUS or not (enUS and enUS[k] == v) then
-            rawset(L, k, "|cff00ff00[" .. tostring(k) .. "] " .. tostring(v) .. "|r")
+    -- addon.L may have been replaced by a locale-specific table that chains back
+    -- to L via __index (each non-enUS locale does setmetatable({}, {__index=addon.L})).
+    -- We must read the final active table and use rawget to detect explicit overrides.
+    local activeL = addon.L
+    local count   = 0
+    for k, v in pairs(enUS) do
+        local translated = rawget(activeL, k)
+        if translated ~= nil then
+            -- Locale file explicitly set this key (or this IS enUS) → green
+            rawset(activeL, k, "|cff00ff00[" .. tostring(k) .. "] " .. tostring(translated) .. "|r")
         else
+            -- Not overridden; falls through __index chain to enUS → orange
             rawset(L, k, "|cffff8800[" .. tostring(k) .. "] " .. tostring(v) .. "|r")
             count = count + 1
         end
