@@ -2448,7 +2448,7 @@ end
 -- pass instead of waiting for /reload or a fingerprinted qData field to perturb.
 local populateCacheGen = 0
 addon.focus = addon.focus or {}
-addon.focus.InvalidatePopulateCache = function() populateCacheGen = populateCacheGen + 1 end
+addon.focus.InvalidatePopulateAugment = function() populateCacheGen = populateCacheGen + 1 end
 
 -- Signature of the questData fields that drive PopulateEntry's visible output. Changes to
 -- any visible-impact field must be reflected here or stale entries will render.
