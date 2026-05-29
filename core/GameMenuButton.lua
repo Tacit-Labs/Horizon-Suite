@@ -136,6 +136,22 @@ local function ApplyEllesmereUISkin(button)
     end
 end
 
+-- Mirrors the skinning ElvUI applies to its own standalone game menu button
+-- (Misc.lua GameMenuInitButtons). Pool buttons aren't the only ones it handles;
+-- it also skins menu.ElvUI directly using the same S:HandleButton call.
+local function ApplyElvUISkin(button)
+    if not _G.ElvUI then return end
+    local E = _G.ElvUI[1]
+    if not E then return end
+    if not (E.private and E.private.skins and E.private.skins.blizzard
+            and E.private.skins.blizzard.enable and E.private.skins.blizzard.misc) then return end
+    if E.OtherAddons and E.OtherAddons.ConsolePort then return end
+    local S = E:GetModule('Skins')
+    if not S then return end
+    S:HandleButton(button, nil, nil, nil, true)
+    if button.backdrop then button.backdrop:SetInside(nil, 1, 1) end
+end
+
 local function CreateButton()
     if rawget(_G, "HorizonSuiteGameMenuButton") then return end
 
@@ -153,6 +169,7 @@ local function CreateButton()
     end
 
     ApplyEllesmereUISkin(button)
+    ApplyElvUISkin(button)
     if not IsEnabled() then button:Hide() end
     GameMenuFrame:Layout()
 end
