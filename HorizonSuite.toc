@@ -35,6 +35,8 @@ core/PatchNotesData.lua
 core/PatchNotes.lua
 core/NewSettings.lua
 core/MinimapButton.lua
+core/skins/ElvUI.lua
+core/skins/EllesmereUI.lua
 core/GameMenuButton.lua
 
 modules/Focus/FocusState.lua

@@ -491,6 +491,18 @@ local categories = {
                     if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end
                 end }
             opts[#opts + 1] = { type = "button", dbKey = "__minimapButtonReset", name = L["PRESENCE_RESET_MINIMAP_BUTTON_POSITION"], desc = L["PRESENCE_RESET_MINIMAP_BUTTON_DEFAULT_POSITION"], visibleWhen = isMinimapStandalone, onClick = function() setDB("minimapButtonX", nil); setDB("minimapButtonY", nil); setDB("minimapButtonAngle", nil); if addon.MinimapButton_ApplyPosition then addon.MinimapButton_ApplyPosition() end end }
+            opts[#opts + 1] = { type = "section", name = L["AXIS_GAME_MENU_SECTION"] }
+            opts[#opts + 1] = {
+                type    = "toggle",
+                name    = L["AXIS_SHOW_GAME_MENU_BUTTON"],
+                desc    = L["AXIS_SHOW_GAME_MENU_BUTTON_DESC"],
+                dbKey   = "showGameMenuButton",
+                get     = function() return getDB("showGameMenuButton", true) end,
+                set     = function(v)
+                    setDB("showGameMenuButton", v)
+                    if addon.GameMenuButton_UpdateVisibility then addon.GameMenuButton_UpdateVisibility() end
+                end,
+            }
             return opts
         end,
     },
