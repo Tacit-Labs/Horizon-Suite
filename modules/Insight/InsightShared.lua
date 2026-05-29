@@ -91,6 +91,24 @@ Insight.FACTION_COLORS = {
     Horde    = { 0.87, 0.17, 0.17 },
 }
 
+function Insight.GetPlayerTooltipBorderColor(unit, classColor, trp3Data)
+    if trp3Data and trp3Data.customColorR and addon.GetDB("insightTRP3BorderColor", false) then
+        return trp3Data.customColorR, trp3Data.customColorG, trp3Data.customColorB, 0.60
+    end
+
+    local mode = addon.GetDB("insightPlayerTooltipBorder", "class")
+    if mode == "class" and classColor then
+        return classColor.r, classColor.g, classColor.b, 0.60
+    elseif mode == "faction" and unit then
+        local faction
+        pcall(function() faction = UnitFactionGroup(unit) end)
+        local fc = faction and Insight.FACTION_COLORS[faction]
+        if fc then return fc[1], fc[2], fc[3], 0.60 end
+    end
+
+    return Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4]
+end
+
 Insight.SPEC_COLOR      = { 0.65, 0.75, 0.85 }
 Insight.MOUNT_COLOR     = { 0.80, 0.65, 1.00 }
 Insight.MOUNT_SRC_COLOR = { 0.55, 0.55, 0.55 }

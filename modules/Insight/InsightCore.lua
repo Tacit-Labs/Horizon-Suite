@@ -275,8 +275,9 @@ end
 local function ReapplyUnitTooltipBorder(tooltip, unit, isPlayer)
     if not tooltip or not tooltip.SetBackdropBorderColor or not unit or SafeUnitExistsKnown(unit) ~= true then return end
     if isPlayer then
+        local trp3d
         if addon.GetDB("insightTRP3BorderColor", false) and addon.GetDB("insightTRP3Enabled", true) and Insight.GetTRP3PlayerData then
-            local trp3d = Insight.GetTRP3PlayerData(unit)
+            trp3d = Insight.GetTRP3PlayerData(unit)
             if trp3d and trp3d.customColorR then
                 tooltip:SetBackdropBorderColor(trp3d.customColorR, trp3d.customColorG, trp3d.customColorB, 0.60)
                 return
@@ -284,12 +285,8 @@ local function ReapplyUnitTooltipBorder(tooltip, unit, isPlayer)
         end
         local classFile = select(2, UnitClass(unit))
         local classColor = classFile and C_ClassColor and C_ClassColor.GetClassColor(classFile)
-        if classColor and addon.GetModuleClassColor and addon.GetModuleClassColor("insight") then
-            tooltip:SetBackdropBorderColor(classColor.r, classColor.g, classColor.b, 0.60)
-        else
-            tooltip:SetBackdropBorderColor(
-                Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2],
-                Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
+        if Insight.GetPlayerTooltipBorderColor then
+            tooltip:SetBackdropBorderColor(Insight.GetPlayerTooltipBorderColor(unit, classColor, trp3d))
         end
     else
         local reaction = UnitReaction(unit, "player")
@@ -302,6 +299,23 @@ local function ReapplyUnitTooltipBorder(tooltip, unit, isPlayer)
                 Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
         end
     end
+end
+
+local function GetPreviewPlayerBorderColor()
+    if TRP3_API and addon.GetDB("insightTRP3Enabled", true) and addon.GetDB("insightTRP3BorderColor", false) then
+        return 0.72, 0.53, 1.0, 0.60
+    end
+
+    local mode = addon.GetDB("insightPlayerTooltipBorder", "class")
+    if mode == "faction" then
+        local faction = TRP3_API and addon.GetDB("insightTRP3Enabled", true) and "Horde" or "Alliance"
+        local fc = Insight.FACTION_COLORS and Insight.FACTION_COLORS[faction]
+        if fc then return fc[1], fc[2], fc[3], 0.60 end
+    elseif mode == "class" then
+        return 0.77, 0.12, 0.23, 0.60
+    end
+
+    return Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4]
 end
 
 -- PlayerFrame / party frames: tooltip owns unit "player" or "party1" while mouseover is often empty.
@@ -696,11 +710,7 @@ local function RefreshPullout()
         if Insight.RenderTestTooltipContent then Insight.RenderTestTooltipContent(globalPlayerMock) end
         globalPlayerMock._insightTooltipType = "player"
         Insight.StyleFonts(globalPlayerMock)
-        local pbr, pbg, pbb = 0.77, 0.12, 0.23
-        if TRP3_API and addon.GetDB("insightTRP3Enabled", true) and addon.GetDB("insightTRP3BorderColor", false) then
-            pbr, pbg, pbb = 0.72, 0.53, 1.0
-        end
-        globalPlayerMock:SetBackdropBorderColor(pbr, pbg, pbb, 0.60)
+        globalPlayerMock:SetBackdropBorderColor(GetPreviewPlayerBorderColor())
         -- Mirror pulloutMock's TOPLEFT+RIGHT anchor setup so the frame width
         -- is constrained by anchors before Layout runs, giving identical
         -- word-wrap behaviour to the single-player preview.
@@ -776,13 +786,16 @@ local function RefreshPullout()
     Insight.previewRendering = nil
     pulloutMock._insightTooltipType = mode
     Insight.StyleFonts(pulloutMock)
-    local br = (mode == "item") and Insight.PANEL_BORDER[1] or 0.77
-    local bg = (mode == "item") and Insight.PANEL_BORDER[2] or 0.12
-    local bb = (mode == "item") and Insight.PANEL_BORDER[3] or 0.23
-    local ba = (mode == "item") and Insight.PANEL_BORDER[4] or 0.60
-    if mode == "player" and TRP3_API and addon.GetDB("insightTRP3Enabled", true) and addon.GetDB("insightTRP3BorderColor", false) then
-        br, bg, bb = 0.72, 0.53, 1.0
-    elseif mode == "npc" and FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then
+    local br, bg, bb, ba
+    if mode == "player" then
+        br, bg, bb, ba = GetPreviewPlayerBorderColor()
+    else
+        br = (mode == "item") and Insight.PANEL_BORDER[1] or 0.77
+        bg = (mode == "item") and Insight.PANEL_BORDER[2] or 0.12
+        bb = (mode == "item") and Insight.PANEL_BORDER[3] or 0.23
+        ba = (mode == "item") and Insight.PANEL_BORDER[4] or 0.60
+    end
+    if mode == "npc" and FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then
         local c = FACTION_BAR_COLORS[2]
         br, bg, bb = c.r, c.g, c.b
     elseif mode == "item" and addon.GetDB("insightItemQualityBorder", true) then
@@ -1145,7 +1158,7 @@ local function HandleInsightSlash(msg)
         -- Defer so we run after OnShow/ApplyBackdrop; otherwise backdrop overwrites border color.
         C_Timer.After(0, function()
             if TooltipPlainShown(GameTooltip) then
-                GameTooltip:SetBackdropBorderColor(0.77, 0.12, 0.23, 0.60)
+                GameTooltip:SetBackdropBorderColor(GetPreviewPlayerBorderColor())
             end
         end)
         Insight.Print("Horizon Insight: Test tooltip shown at cursor.")
