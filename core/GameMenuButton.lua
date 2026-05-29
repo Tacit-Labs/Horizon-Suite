@@ -102,6 +102,13 @@ function addon.GameMenuButton_UpdateVisibility()
     local btn = rawget(_G, "HorizonSuiteGameMenuButton")
     if not btn then return end
     if IsEnabled() then btn:Show() else btn:Hide() end
+    -- If the menu is open while toggling, recompact it so hiding doesn't leave a
+    -- blank slot and showing re-anchors the button. Closed-menu toggles are
+    -- handled by the next OnShow (CreateButton + PositionButton).
+    if GameMenuFrame:IsShown() then
+        GameMenuFrame:Layout()
+        PositionButton()
+    end
 end
 
 local frame = CreateFrame("Frame")
