@@ -14,6 +14,25 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.0.1"] = {
+        date = "2026-05-29",
+        {
+            section = "Improvements",
+            bullets = {
+                "Axis: added an option to show or hide the Horizon Suite entry in the Esc game menu.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: the bullet point option is now selectable in the objective prefix dropdown.",
+                "Dashboard: LibSharedMedia is now correctly detected as installed in the Integrations view when it loads on demand.",
+                "Essence: custom fonts chosen via LibSharedMedia now display correctly, and a related refresh error has been fixed.",
+                "Insight: resolved a frame-rate drop caused by repeated tooltip font hooks.",
+            },
+        },
+    },
+
     ["5.0.0"] = {
         date = "2026-05-22",
         {

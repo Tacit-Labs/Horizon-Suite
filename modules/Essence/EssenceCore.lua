@@ -98,10 +98,14 @@ local function SetDB(k, v)
 end
 
 local function GetFontPath()
-    if addon.GetDB then
-        return addon.GetDB("fontPath", addon.FONT_PATH or "Fonts\\FRIZQT__.TTF")
+    local raw = addon.GetDB
+        and addon.GetDB("fontPath", addon.FONT_PATH or "Fonts\\FRIZQT__.TTF")
+        or  (addon.FONT_PATH or "Fonts\\FRIZQT__.TTF")
+    if addon.ResolveFontPath then
+        local resolved = addon.ResolveFontPath(raw)
+        if resolved and resolved ~= "" then return resolved end
     end
-    return addon.FONT_PATH or "Fonts\\FRIZQT__.TTF"
+    return raw
 end
 
 local function GetItemQualityColor(quality)
@@ -412,6 +416,7 @@ end
 
 function Essence.Refresh()
     if not frame or not frame:IsShown() then return end
+    if not nameText then return end
 
     local fp = GetFontPath()
 

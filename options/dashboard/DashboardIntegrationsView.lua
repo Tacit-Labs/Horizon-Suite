@@ -39,6 +39,12 @@ local function GetIntegrationState(name)
     if loadable == false and reason == "DISABLED" then
         return "disabled"
     end
+    -- LoadOnDemand libs (e.g. LibSharedMedia-3.0) are never auto-loaded when
+    -- the host addon bundles its own copy, so IsAddOnLoaded returns false even
+    -- when the standalone addon IS installed. DEMAND_LOADED means installed+enabled.
+    if loadable == false and reason == "DEMAND_LOADED" then
+        return "enabled"
+    end
     return "missing"
 end
 

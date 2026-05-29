@@ -2,7 +2,7 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
-## Version: 5.0.0
+## Version: 5.0.1
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator, IconBrowser
 ## IconTexture: Interface\AddOns\HorizonSuite\HorizonLogo
@@ -35,6 +35,8 @@ core/PatchNotesData.lua
 core/PatchNotes.lua
 core/NewSettings.lua
 core/MinimapButton.lua
+core/skins/ElvUI.lua
+core/skins/EllesmereUI.lua
 core/GameMenuButton.lua
 
 modules/Focus/FocusState.lua
@@ -124,8 +126,6 @@ options/modules/defaults/OptionsDefaultsEssence.lua
 options/modules/defaults/OptionsDefaultsVista.lua
 options/modules/defaults/OptionsDefaultsFocus.lua
 options/modules/defaults/OptionsDefaultsAxis.lua
-options/modules/defaults/OptionsDefaultsFlow.lua
-options/modules/defaults/OptionsDefaultsMeridian.lua
 options/modules/OptionsAxis.lua
 options/modules/OptionsGlobal.lua
 options/modules/OptionsFocus.lua

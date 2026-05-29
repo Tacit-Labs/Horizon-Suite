@@ -1,3 +1,5 @@
 # Default code owners for the entire repository
-# Approvals on `main` must come from a director (enforced via `require_code_owner_review`)
-* @Tacit-Labs/directors
+# Approvals on `dev` must come from a director or trusted write collaborator
+# (enforced via `require_code_owner_review` on the `protect-dev` ruleset).
+# Note: `main` has its own CODEOWNERS on the `main` branch restricting approvals to directors only.
+* @Tacit-Labs/directors @nightsofglass @ProgrammingSam @SwiftMint

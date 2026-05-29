@@ -55,6 +55,7 @@ addon.AXIS_DEFAULTS = {
     insightUIScale                 = 1.0,
     augmentUIScale                   = 1.0,
     perModuleScaling               = false,
+    showGameMenuButton             = true,
     hideMinimapButton              = false,
     minimapButtonShowOnlyOnMinimapHover = false,
     minimapButtonLocked            = false,
