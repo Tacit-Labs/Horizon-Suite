@@ -381,12 +381,16 @@ end
 local function LockDirectFont(fontString, getFont)
     local busyObj  = false
     local busyFont = false
+    -- Cached last-known target path. Avoids calling getFont() (DB lookup) when the
+    -- incoming path already matches — which happens on every StyleFonts call.
+    local cachedPath = nil
 
     hooksecurefunc(fontString, "SetFontObject", function(self, obj)
         if busyObj or not obj then return end
         local path, size, flags = getFont()
         if not path then return end
         local _, curSize, curFlags = self:GetFont()
+        cachedPath = path  -- set before SetFont fires our hook so it fast-paths
         busyObj = true
         self:SetFontObject(nil)
         self:SetFont(path, size or curSize or 12, flags or curFlags or "OUTLINE")
@@ -395,8 +399,13 @@ local function LockDirectFont(fontString, getFont)
 
     hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
         if busyFont then return end
+        -- Fast path: path already matches our target — nothing to override.
+        -- Skips the getFont() DB lookup on every StyleFonts → SetFont call.
+        if path == cachedPath then return end
         local targetPath, targetSize, targetFlags = getFont()
-        if not targetPath or path == targetPath then return end
+        if not targetPath then return end
+        cachedPath = targetPath
+        if path == targetPath then return end
         busyFont = true
         self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
         busyFont = false
@@ -447,12 +456,13 @@ local function StyleFonts(tooltip)
         sizeForTag.transmog = addon.GetDB("insightItemTransmogSize", sizeForTag.transmog)
     end
 
+    local fontPath = GetInsightFontPath()
     Insight.ForTooltipLines(tooltip, function(i, left, right)
         local tag    = tags and tags[i]
         local sz     = tag and sizeForTag[tag] or ((i == 1) and headerSz or bodySz)
         local rightSz = tag and sizeForTag[tag] or bodySz
-        if left  then left:SetFont(GetInsightFontPath(),  S(sz),      "OUTLINE"); LockInsightFontString(left)  end
-        if right then right:SetFont(GetInsightFontPath(), S(rightSz), "OUTLINE"); LockInsightFontString(right) end
+        if left  then left:SetFont(fontPath,  S(sz),      "OUTLINE"); LockInsightFontString(left)  end
+        if right then right:SetFont(fontPath, S(rightSz), "OUTLINE"); LockInsightFontString(right) end
     end)
 end
 

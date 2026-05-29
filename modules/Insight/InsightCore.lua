@@ -113,6 +113,19 @@ local function HookTooltipShowMethod(tooltip)
         if not Insight.IsInsightEnabled() then return end
         -- Suppress when ProcessUnitTooltip is driving Show(); StyleTooltipFull handles fonts after Show().
         if self._insightSuppressOnShowStyle then return end
+        -- If the tooltip is bound to a unit, ProcessUnitTooltip will call StyleTooltipFull after
+        -- adding Insight lines, which covers all lines including Blizzard's. Running StyleFonts here
+        -- first would be a full redundant pass over every font string before Insight lines exist.
+        -- Use pcall + UnitExists: GetUnit may return a secret token on Midnight that cannot be
+        -- compared or type-checked directly outside a pcall.
+        if self.GetUnit then
+            local ok, unit = pcall(self.GetUnit, self)
+            if ok and unit then
+                local hasUnit = false
+                pcall(function() if UnitExists(unit) then hasUnit = true end end)
+                if hasUnit then return end
+            end
+        end
         if not self._insightUnitTooltip and not self._insightItemMetadata then
             self._insightTooltipType = "other"
         end
@@ -353,6 +366,13 @@ local function ProcessUnitTooltip(tooltip)
             tooltip._insightStyled = true
         end
         pcall(ReapplyUnitTooltipBorder, tooltip, unit, isPlayer)
+    else
+        -- Insight lines were not added (edge case), but we still own styling since
+        -- HookTooltipShowMethod skips StyleFonts when a unit is bound. Apply it here.
+        if not tooltip._insightStyled then
+            Insight.StyleFonts(tooltip)
+            tooltip._insightStyled = true
+        end
     end
 end
 
