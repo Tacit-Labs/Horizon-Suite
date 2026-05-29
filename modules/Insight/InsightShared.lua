@@ -91,6 +91,24 @@ Insight.FACTION_COLORS = {
     Horde    = { 0.87, 0.17, 0.17 },
 }
 
+function Insight.GetPlayerTooltipBorderColor(unit, classColor, trp3Data)
+    if trp3Data and trp3Data.customColorR and addon.GetDB("insightTRP3BorderColor", false) then
+        return trp3Data.customColorR, trp3Data.customColorG, trp3Data.customColorB, 0.60
+    end
+
+    local mode = addon.GetDB("insightPlayerTooltipBorder", "class")
+    if mode == "class" and classColor then
+        return classColor.r, classColor.g, classColor.b, 0.60
+    elseif mode == "faction" and unit then
+        local faction
+        pcall(function() faction = UnitFactionGroup(unit) end)
+        local fc = faction and Insight.FACTION_COLORS[faction]
+        if fc then return fc[1], fc[2], fc[3], 0.60 end
+    end
+
+    return Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4]
+end
+
 Insight.SPEC_COLOR      = { 0.65, 0.75, 0.85 }
 Insight.MOUNT_COLOR     = { 0.80, 0.65, 1.00 }
 Insight.MOUNT_SRC_COLOR = { 0.55, 0.55, 0.55 }
@@ -381,12 +399,16 @@ end
 local function LockDirectFont(fontString, getFont)
     local busyObj  = false
     local busyFont = false
+    -- Cached last-known target path. Avoids calling getFont() (DB lookup) when the
+    -- incoming path already matches — which happens on every StyleFonts call.
+    local cachedPath = nil
 
     hooksecurefunc(fontString, "SetFontObject", function(self, obj)
         if busyObj or not obj then return end
         local path, size, flags = getFont()
         if not path then return end
         local _, curSize, curFlags = self:GetFont()
+        cachedPath = path  -- set before SetFont fires our hook so it fast-paths
         busyObj = true
         self:SetFontObject(nil)
         self:SetFont(path, size or curSize or 12, flags or curFlags or "OUTLINE")
@@ -395,8 +417,13 @@ local function LockDirectFont(fontString, getFont)
 
     hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
         if busyFont then return end
+        -- Fast path: path already matches our target — nothing to override.
+        -- Skips the getFont() DB lookup on every StyleFonts → SetFont call.
+        if path == cachedPath then return end
         local targetPath, targetSize, targetFlags = getFont()
-        if not targetPath or path == targetPath then return end
+        if not targetPath then return end
+        cachedPath = targetPath
+        if path == targetPath then return end
         busyFont = true
         self:SetFont(targetPath, targetSize or size, targetFlags or flags or "OUTLINE")
         busyFont = false
@@ -447,12 +474,13 @@ local function StyleFonts(tooltip)
         sizeForTag.transmog = addon.GetDB("insightItemTransmogSize", sizeForTag.transmog)
     end
 
+    local fontPath = GetInsightFontPath()
     Insight.ForTooltipLines(tooltip, function(i, left, right)
         local tag    = tags and tags[i]
         local sz     = tag and sizeForTag[tag] or ((i == 1) and headerSz or bodySz)
         local rightSz = tag and sizeForTag[tag] or bodySz
-        if left  then left:SetFont(GetInsightFontPath(),  S(sz),      "OUTLINE"); LockInsightFontString(left)  end
-        if right then right:SetFont(GetInsightFontPath(), S(rightSz), "OUTLINE"); LockInsightFontString(right) end
+        if left  then left:SetFont(fontPath,  S(sz),      "OUTLINE"); LockInsightFontString(left)  end
+        if right then right:SetFont(fontPath, S(rightSz), "OUTLINE"); LockInsightFontString(right) end
     end)
 end
 

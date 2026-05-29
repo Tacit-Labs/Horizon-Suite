@@ -1168,10 +1168,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     end
 
     -- 2. Border tint
-    if trp3Data and trp3Data.customColorR and ShowTRP3BorderColor() then
-        tooltip:SetBackdropBorderColor(trp3Data.customColorR, trp3Data.customColorG, trp3Data.customColorB, 0.60)
-    elseif classColor then
-        tooltip:SetBackdropBorderColor(classColor.r, classColor.g, classColor.b, 0.60)
+    if Insight.GetPlayerTooltipBorderColor then
+        tooltip:SetBackdropBorderColor(Insight.GetPlayerTooltipBorderColor(unit, classColor, trp3Data))
     end
 
     -- Move native identity lines down when the matching TRP3 toggle is active.

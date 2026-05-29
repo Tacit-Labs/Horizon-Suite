@@ -26,6 +26,7 @@ addon.INSIGHT_KEYS = {
     insightRaceIcons             = true,
     insightPlayerNameColor       = true,
     insightPlayerNameGradient    = true,
+    insightPlayerTooltipBorder   = true,
     insightTitleColorMode        = true,
     insightTitleMatchNameColor   = true,
     insightTitleColor            = true,
@@ -113,6 +114,7 @@ addon.INSIGHT_DEFAULTS = {
     -- Player
     insightPlayerNameColor       = "faction",
     insightPlayerNameGradient    = false,
+    insightPlayerTooltipBorder   = "class",
     insightRealmNameMode         = "full",
     insightShowGuildRank         = true,
     insightShowCharacterTitle    = true,
