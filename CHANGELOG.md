@@ -10,6 +10,19 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.0.1] – 2026-05-29
+
+### 🔧 Improvements
+- **(Axis) Game Menu button toggle** — Added an option to show or hide the Horizon Suite entry in the Esc game menu.
+
+### 🐛 Fixes
+- **(Focus)** The bullet point option is now selectable in the objective prefix dropdown.
+- **(Dashboard)** LibSharedMedia is now correctly detected as installed in the Integrations view when it loads on demand.
+- **(Essence)** Custom fonts chosen via LibSharedMedia now display correctly, and a related refresh error has been fixed.
+- **(Insight)** Resolved a frame-rate drop caused by repeated tooltip font hooks.
+
+---
+
 ## [5.0.0] – 2026-05-22
 
 ### ✨ New Features
