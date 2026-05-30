@@ -52,8 +52,40 @@ end
 -- Native popup suppression
 -- ---------------------------------------------------------------------------
 
+local hookedNativePopupFrames = setmetatable({}, { __mode = "k" })
+
+local function HookNativePopupMouse(frame)
+    if not frame or hookedNativePopupFrames[frame] or not hooksecurefunc or not frame.EnableMouse then return end
+    hookedNativePopupFrames[frame] = true
+    hooksecurefunc(frame, "EnableMouse", function(self, enabled)
+        if not enabled or not addon.GetDB("sd_enabled", false) then return end
+        if InCombatLockdown and InCombatLockdown() then return end
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0, function()
+                if self and self.EnableMouse then
+                    pcall(function() self:EnableMouse(false) end)
+                    if self.EnableMouseWheel then pcall(function() self:EnableMouseWheel(false) end) end
+                end
+            end)
+        else
+            pcall(function() self:EnableMouse(false) end)
+            if self.EnableMouseWheel then pcall(function() self:EnableMouseWheel(false) end) end
+        end
+    end)
+end
+
 local function DisableNativePopupFrame(frame)
     if not frame or not frame.Hide then return end
+    HookNativePopupMouse(frame)
+    if InCombatLockdown and InCombatLockdown() then
+        pcall(function() frame:SetAlpha(0) end)
+        return
+    end
+    pcall(function()
+        frame:ClearAllPoints()
+        frame:SetPoint("BOTTOMRIGHT", UIParent, "TOPLEFT", -2000, 2000)
+        frame:SetSize(1, 1)
+    end)
     pcall(function() frame:Hide() end)
     if frame.EnableMouse then pcall(function() frame:EnableMouse(false) end) end
     if frame.EnableMouseWheel then pcall(function() frame:EnableMouseWheel(false) end) end
@@ -102,9 +134,13 @@ local function ShowCreatureTooltipFrom(btn)
         end
     end
 
-    if addon.GetDB("sd_ctrlClickURL", false) then
+    if addon.GetDB("focusShowWoWheadLink", true) then
+        local hint = addon.focus and addon.focus.GetWoWheadClickBindingHint and addon.focus.GetWoWheadClickBindingHint() or ""
+        if hint == "" then
+            hint = addon.L and addon.L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"] or ""
+        end
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("|cff66b3ff[View on WoWhead]|r |cff888888(Alt + Left Click)|r")
+        GameTooltip:AddLine(("|cff66b3ff[%s]|r |cff888888(%s)|r"):format(addon.L and addon.L["FOCUS_VIEW_WOWHEAD"] or "View on WoWhead", hint))
     end
 
     GameTooltip:Show()
@@ -167,6 +203,7 @@ do
     local f = CreateFrame("Frame")
     f:RegisterEvent("PLAYER_LOGIN")
     f:RegisterEvent("ADDON_LOADED")
+    f:RegisterEvent("PLAYER_REGEN_ENABLED")
     f:SetScript("OnEvent", function()
         if sd.SuppressNativePopups then sd.SuppressNativePopups() end
     end)
@@ -370,16 +407,16 @@ end
 -- Click-to-target button
 -- ---------------------------------------------------------------------------
 
-local function SetupSecureBtn(btn, title, doTarget, dismissFn, creatureID, ctrlClickURLKey)
+local function SetupSecureBtn(btn, title, doTarget, dismissFn, creatureID)
     btn._dismissFn       = dismissFn
     btn._creatureID      = creatureID
-    btn._ctrlClickURLKey = ctrlClickURLKey
     if not InCombatLockdown() then
-        if doTarget then
+        local macroCond = addon.focus and addon.focus.GetTargetMacroConditionExcludingWoWhead and addon.focus.GetTargetMacroConditionExcludingWoWhead() or "[nomod:ctrl]"
+        if doTarget and macroCond ~= nil then
             -- type1 scopes to LeftButton only; `type` would fire the macro on any button.
             btn:SetAttribute("type1", "macro")
             btn:SetAttribute("macrotext1",
-                "/targetexact [nomod:ctrl] " .. title .. "\n/tm [nomod:ctrl] !" .. SD_SKULL_MARKER)
+                "/targetexact " .. macroCond .. " " .. title .. "\n/tm " .. macroCond .. " !" .. SD_SKULL_MARKER)
         else
             btn:SetAttribute("type1", nil)
             btn:SetAttribute("macrotext1", nil)
@@ -397,7 +434,7 @@ function sd.RenderTargetButton(entry, questData)
     end
 
     local doTarget = not questData.sdIsLoot and addon.GetDB("sd_clickToTarget", false)
-    SetupSecureBtn(btn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID, "sd_ctrlClickURL")
+    SetupSecureBtn(btn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID)
     btn._ownerEntry = entry
 
     if not InCombatLockdown() then
@@ -414,7 +451,7 @@ function sd.RenderTargetButton(entry, questData)
     end
 
     if entry.sdModelBtn then
-        SetupSecureBtn(entry.sdModelBtn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID, "sd_ctrlClickURL")
+        SetupSecureBtn(entry.sdModelBtn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID)
         entry.sdModelBtn._ownerEntry = entry
     end
 end
@@ -451,17 +488,22 @@ function sd.RenderCoordButton(entry, questData)
     obj.collapseBtn:SetPoint("BOTTOMRIGHT", obj.text, "BOTTOMRIGHT", 0, -2)
     obj.collapseBtn:RegisterForClicks("AnyUp")
     obj.collapseBtn:SetScript("OnClick", function(_, button)
-        if button == "RightButton" then
-            sd.DismissCurrentAlert()
-        elseif IsShiftKeyDown() then
-            addon.ShareLocationInChat(entry.title or "Rare", entry.vignetteMapID, entry.vignetteX, entry.vignetteY)
-        elseif IsControlKeyDown() and addon.GetDB("sd_ctrlClickURL", false) then
+        local isWoWheadClick = addon.focus and addon.focus.IsWoWheadClick and addon.focus.IsWoWheadClick(button, {
+            shift = IsShiftKeyDown and IsShiftKeyDown() or false,
+            ctrl = IsControlKeyDown and IsControlKeyDown() or false,
+            alt = IsAltKeyDown and IsAltKeyDown() or false,
+        })
+        if isWoWheadClick then
             if questData.creatureID and addon.ShowURLCopyBox then
                 addon.ShowURLCopyBox("https://www.wowhead.com/npc=" .. tostring(questData.creatureID))
             else
                 local dcf = DEFAULT_CHAT_FRAME
                 if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (addon.L and addon.L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
             end
+        elseif button == "RightButton" then
+            sd.DismissCurrentAlert()
+        elseif IsShiftKeyDown() then
+            addon.ShareLocationInChat(entry.title or "Rare", entry.vignetteMapID, entry.vignetteX, entry.vignetteY)
         else
             sd.SetWaypoint(entry)
         end

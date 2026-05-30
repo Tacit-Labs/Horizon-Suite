@@ -263,7 +263,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                     setDB("rs_coordWaypoint", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
-                refreshIds  = { "rs_useTomTom", "rs_ctrlClickURL" },
+                refreshIds  = { "rs_useTomTom" },
             }
         ),
 
@@ -278,22 +278,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 visibleWhen = RSTomTomVisible,
                 tooltip     = TomTomNotInstalledTooltip,
                 set         = function(v) setDB("rs_useTomTom", v) end,
-            }
-        ),
-
-        Toggle(
-            L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL"],
-            L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL_DESC"],
-            "rs_ctrlClickURL",
-            false,
-            {
-                id          = "rs_ctrlClickURL",
-                disabled    = RSDisabled,
-                visibleWhen = function()
-                    return RSSubVisible() and addon.GetDB("rs_showCoords", true)
-                        and addon.GetDB("rs_coordWaypoint", true)
-                end,
-                set         = function(v) setDB("rs_ctrlClickURL", v) end,
             }
         ),
 
@@ -581,7 +565,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                     setDB("sd_coordWaypoint", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
-                refreshIds = { "sd_useTomTom", "sd_ctrlClickURL" },
+                refreshIds = { "sd_useTomTom" },
             }
         ),
 
@@ -596,22 +580,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 visibleWhen = SDTomTomVisible,
                 tooltip     = TomTomNotInstalledTooltip,
                 set         = function(v) setDB("sd_useTomTom", v) end,
-            }
-        ),
-
-        Toggle(
-            L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL"],
-            L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL_DESC"],
-            "sd_ctrlClickURL",
-            false,
-            {
-                id          = "sd_ctrlClickURL",
-                disabled    = SDDisabled,
-                visibleWhen = function()
-                    return SDSubVisible() and addon.GetDB("sd_showCoords", true)
-                        and addon.GetDB("sd_coordWaypoint", true)
-                end,
-                set         = function(v) setDB("sd_ctrlClickURL", v) end,
             }
         ),
 

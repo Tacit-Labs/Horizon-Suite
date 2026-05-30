@@ -6,6 +6,14 @@
 local addon = _G.HorizonSuite
 local L = addon.L
 
+local function GetCurrentClickMods()
+    return {
+        shift = IsShiftKeyDown and IsShiftKeyDown() or false,
+        ctrl  = IsControlKeyDown and IsControlKeyDown() or false,
+        alt   = IsAltKeyDown and IsAltKeyDown() or false,
+    }
+end
+
 -- ============================================================================
 -- ENTRY POOL
 -- ============================================================================
@@ -25,17 +33,16 @@ function addon.CreateNavSecureBtn()
     btn:RegisterForClicks("AnyDown", "AnyUp")
     btn:HookScript("PostClick", function(self, mouseButton, down)
         if down then return end
-        if mouseButton == "RightButton" then
-            if self._dismissFn then self._dismissFn() end
-        elseif mouseButton == "LeftButton" and IsControlKeyDown()
-                and self._ctrlClickURLKey
-                and addon.GetDB(self._ctrlClickURLKey, false) then
+        if addon.focus and addon.focus.IsWoWheadClick
+                and addon.focus.IsWoWheadClick(mouseButton, GetCurrentClickMods()) then
             if self._creatureID then
                 addon.ShowURLCopyBox("https://www.wowhead.com/npc=" .. tostring(self._creatureID))
             else
                 local dcf = DEFAULT_CHAT_FRAME
                 if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (addon.L and addon.L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
             end
+        elseif mouseButton == "RightButton" then
+            if self._dismissFn then self._dismissFn() end
         end
     end)
     btn:Hide()

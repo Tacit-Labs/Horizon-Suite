@@ -286,6 +286,45 @@ function addon.focus.GetWoWheadClickBindingHint(profile)
     return table.concat(parts, sep)
 end
 
+--- True when a live click matches the configured WoWhead action.
+--- @param button string "LeftButton" | "RightButton"
+--- @param mods table { shift=bool, ctrl=bool, alt=bool }
+--- @param profile string|nil
+--- @return boolean
+function addon.focus.IsWoWheadClick(button, mods, profile)
+    return addon.focus.GetQuestClickAction(button, mods, profile) == "wowhear"
+end
+
+--- Return the secure macro condition for a left-click target macro that should
+--- not fire on the configured WoWhead left-click combo.
+--- @param profile string|nil
+--- @return string|nil Empty string means no exclusion; nil means disable left targeting.
+function addon.focus.GetTargetMacroConditionExcludingWoWhead(profile)
+    local comboKey
+    for _, key in ipairs(COMBO_KEYS) do
+        local mouse = COMBO_MOUSE[key]
+        if mouse and mouse[1] == "LeftButton" then
+            local action = addon.focus.GetQuestClickAction(mouse[1], mouse[2], profile)
+            if action == "wowhear" then
+                comboKey = key
+                break
+            end
+        end
+    end
+
+    if comboKey == "left" then
+        return nil
+    elseif comboKey == "shiftLeft" then
+        return "[nomod:shift]"
+    elseif comboKey == "ctrlLeft" then
+        return "[nomod:ctrl]"
+    elseif comboKey == "altLeft" then
+        return "[nomod:alt]"
+    end
+
+    return ""
+end
+
 -- ============================================================================
 -- Exported: combo options builder (used by OptionsData.lua; presets vs Custom full list).
 -- ============================================================================
