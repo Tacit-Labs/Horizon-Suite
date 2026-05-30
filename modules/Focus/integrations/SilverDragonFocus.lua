@@ -131,6 +131,7 @@ function sd.ClearNavWidgets(entry)
         entry.sdModelActive = false
     end
     entry._sdLastCreatureID = nil  -- reset so next render always clears before loading a new creature
+    if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
     entry._sdModelParent = nil
     if not InCombatLockdown() then
         if entry.sdTargetBtn then entry.sdTargetBtn:Hide() end
@@ -172,7 +173,28 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
     end
     local initPos  = addon.GetDB("sd_modelPosition", "right")
     local initOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("sd_modelOffsetX", 0)) or 0))
-    local mParent = initPos == "left" and GetOrCreateSDModelClipFrame() or entry
+    -- Left mode uses a two-level clip hierarchy:
+    --   sdModelClipFrame (global, child of HS) → extends 200 px left of the tracker
+    --   entry._sdPortraitClip (per-entry)      → anchored to entry bounds, clips portrait
+    --                                             height so it cannot bleed into adjacent
+    --                                             entries when two scanner alerts stack.
+    -- Right mode: portrait is a direct child of entry; SetClipsChildren(true) on pool
+    -- entries handles height clamping.
+    local mParent
+    if initPos == "left" then
+        if not entry._sdPortraitClip then
+            local clip = CreateFrame("Frame", nil, GetOrCreateSDModelClipFrame())
+            clip:SetClipsChildren(true)
+            entry._sdPortraitClip = clip
+        end
+        entry._sdPortraitClip:ClearAllPoints()
+        entry._sdPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -200, 0)
+        entry._sdPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",    0, 0)
+        mParent = entry._sdPortraitClip
+    else
+        if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
+        mParent = entry
+    end
     if entry.sdModel and entry._sdModelParent ~= mParent and not InCombatLockdown() then
         entry.sdModel:ClearModel()
         entry.sdModel:Hide()

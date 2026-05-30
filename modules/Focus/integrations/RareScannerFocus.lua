@@ -141,6 +141,7 @@ function rs.ClearNavWidgets(entry)
         entry.rareModelActive = false
     end
     entry._rsLastCreatureID = nil  -- reset so next render always clears before loading a new creature
+    if entry._rsPortraitClip then entry._rsPortraitClip:ClearAllPoints() end
     entry._rsModelParent = nil
     if not InCombatLockdown() then
         if entry.rareTargetBtn then entry.rareTargetBtn:Hide() end
@@ -284,9 +285,28 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
         -- avoiding the pool-init crash from WoW's hard PlayerModel frame limit.
         local initPos  = addon.GetDB("rs_modelPosition", "right")
         local initOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("rs_modelOffsetX", 0)) or 0))
-        -- Left mode: parent to the clip envelope so the model can extend past
-        -- the tracker's left edge; right mode: plain entry parent is fine.
-        local mParent = initPos == "left" and GetOrCreateRSModelClipFrame() or entry
+        -- Left mode uses a two-level clip hierarchy:
+        --   rsModelClipFrame (global, child of HS) → extends 200 px left of the tracker
+        --   entry._rsPortraitClip (per-entry)      → anchored to entry bounds, clips portrait
+        --                                             height so it cannot bleed into adjacent
+        --                                             entries when two scanner alerts stack.
+        -- Right mode: portrait is a direct child of entry; SetClipsChildren(true) on pool
+        -- entries handles height clamping.
+        local mParent
+        if initPos == "left" then
+            if not entry._rsPortraitClip then
+                local clip = CreateFrame("Frame", nil, GetOrCreateRSModelClipFrame())
+                clip:SetClipsChildren(true)
+                entry._rsPortraitClip = clip
+            end
+            entry._rsPortraitClip:ClearAllPoints()
+            entry._rsPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -200, 0)
+            entry._rsPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",    0, 0)
+            mParent = entry._rsPortraitClip
+        else
+            if entry._rsPortraitClip then entry._rsPortraitClip:ClearAllPoints() end
+            mParent = entry
+        end
         if entry.rareModel and entry._rsModelParent ~= mParent and not InCombatLockdown() then
             entry.rareModel:ClearModel()
             entry.rareModel:Hide()
