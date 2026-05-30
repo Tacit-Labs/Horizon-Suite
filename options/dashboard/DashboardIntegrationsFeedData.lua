@@ -94,6 +94,7 @@ addon.DashboardIntegrationsFeed = {
         icon           = "INV_Misc_Skull_Human_01",
         sort           = 225,
         companionAddon = "Horizon-RareScanner",
+        companionUrl   = "https://github.com/ProgrammingSam/Horizon-RareScanner",
     },
     {
         id             = "silverdragon",
@@ -105,6 +106,7 @@ addon.DashboardIntegrationsFeed = {
         icon           = "Ability_EyeoftheOwl",
         sort           = 200,
         companionAddon = "Horizon-SilverDragon",
+        companionUrl   = "https://github.com/ProgrammingSam/Horizon-SilverDragon",
     },
     {
         id          = "libsharedmedia",

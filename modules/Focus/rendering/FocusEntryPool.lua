@@ -17,8 +17,34 @@ local activeMap = {}
 local DELVE_AFFIX_MAX_NAMES = 8
 addon.DELVE_AFFIX_MAX_NAMES = DELVE_AFFIX_MAX_NAMES
 
+--- Create a SecureActionButtonTemplate button used by scanner integrations
+--- (RS, SD) for click-to-target and right-click dismiss. Defined once here
+--- because the body is identical across all integrations.
+function addon.CreateNavSecureBtn()
+    local btn = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
+    btn:RegisterForClicks("AnyDown", "AnyUp")
+    btn:HookScript("PostClick", function(self, mouseButton, down)
+        if down then return end
+        if mouseButton == "RightButton" then
+            if self._dismissFn then self._dismissFn() end
+        elseif mouseButton == "LeftButton" and IsControlKeyDown()
+                and self._ctrlClickURLKey
+                and addon.GetDB(self._ctrlClickURLKey, false) then
+            if self._creatureID then
+                addon.ShowURLCopyBox("https://www.wowhead.com/npc=" .. tostring(self._creatureID))
+            else
+                local dcf = DEFAULT_CHAT_FRAME
+                if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (addon.L and addon.L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
+            end
+        end
+    end)
+    btn:Hide()
+    return btn
+end
+
 local function CreateQuestEntry(parent, index)
     local e = CreateFrame("Frame", nil, parent)
+    e:SetClipsChildren(true)
     local _S = addon.Scaled or function(v) return v end
     local w = addon.GetPanelWidth() - _S(addon.PADDING) * 2
     local textW = w
@@ -645,6 +671,16 @@ local function CreateSectionHeader(parent)
     s.chevron:SetPoint("BOTTOMLEFT", s, "BOTTOMLEFT", 0, 0)
     s.chevron:SetText("")
 
+    local navW = _S(16)
+    local navH = addon.GetSectionHeaderHeight()
+    local arrowSz = _S(14)
+    if addon.CreateNavArrowBtn then
+        s.rarePrevBtn = addon.CreateNavArrowBtn(s, "common-icon-backarrow", navW, navH, arrowSz)
+        s.rareNextBtn = addon.CreateNavArrowBtn(s, "common-icon-forwardarrow", navW, navH, arrowSz)
+        s.rarePrevBtn:SetFrameLevel(s:GetFrameLevel() + 3)
+        s.rareNextBtn:SetFrameLevel(s:GetFrameLevel() + 3)
+    end
+
     -- Category label starts two spaces to the right of the chevron.
     -- Use the TITLE font for measurement (per request), so it scales with user typography.
     local twoSpacesW = 8
@@ -940,7 +976,7 @@ local function ClearEntry(entry, full)
     entry._savedColor = nil
     if full ~= false then
         entry:SetAlpha(0)
-        entry:SetHitRectInsets(0, 0, 0, 0)
+        if not InCombatLockdown() then entry:SetHitRectInsets(0, 0, 0, 0) end
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do
                 bar.duration = nil

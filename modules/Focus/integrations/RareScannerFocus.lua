@@ -1,8 +1,6 @@
 --[[
     Horizon Suite - Focus - RareScanner Integration
-    Centralises all RareScanner-specific widget creation, clearing, portrait
-    rendering, nav-gutter calculation, and nav-button rendering so the generic
-    pool/renderer/layout files stay clean of integration logic.
+    Widget lifecycle, portrait model, loot icons, nav buttons, waypoint, and coord-click for RareScanner alerts.
 ]]
 
 local addon = _G.HorizonSuite
@@ -31,9 +29,26 @@ local RS_NAV_ARROW_SZ = 14   -- arrow texture size within button
 local RS_SKULL_MARKER = 8   -- WoW raid-target marker index for skull
 
 -- ---------------------------------------------------------------------------
--- IsActive
--- Returns true when the RareScanner companion addon is loaded AND the
--- rs_enabled DB flag is on.  Used by FocusLayout to suppress built-in rares.
+-- Model clip envelope — used for "left" portrait mode.
+-- Parented to HS (outside the ScrollFrame) so a left-positioned model can
+-- extend past the tracker's left edge without being clipped.  The envelope
+-- matches the scrollFrame's vertical bounds so models still disappear when
+-- their entry scrolls off screen.
+-- ---------------------------------------------------------------------------
+local rsModelClipFrame
+local function GetOrCreateRSModelClipFrame()
+    if rsModelClipFrame then return rsModelClipFrame end
+    local sf = addon.scrollFrame
+    if not addon.HS or not sf then return addon.HS end
+    rsModelClipFrame = CreateFrame("Frame", nil, addon.HS)
+    rsModelClipFrame:SetClipsChildren(true)
+    rsModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -200, 0)
+    rsModelClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT",    0, 0)
+    return rsModelClipFrame
+end
+
+-- ---------------------------------------------------------------------------
+-- IsActive — true when RS companion is loaded and rs_enabled is on.
 -- ---------------------------------------------------------------------------
 
 function rs.IsActive()
@@ -58,28 +73,28 @@ function rs.DismissCurrentAlert()
 end
 
 -- ---------------------------------------------------------------------------
--- PlayerModel alpha sync
--- PlayerModel frames bypass the parent alpha chain in WoW's 3D rendering
--- pipeline, so HS:SetAlpha(0) does NOT hide them.  Hook the main frame's
--- SetAlpha to explicitly Hide/Show each model when the panel fades out/in.
--- addon.pool is not yet assigned when this file loads (pool file is next in
--- the TOC), so resolve it lazily inside the hook.
+-- PlayerModel alpha sync — PlayerModel bypasses WoW's alpha chain; hook SetAlpha to hide/show manually.
 -- ---------------------------------------------------------------------------
 do
     local HS = addon.HS
     if HS then
-        hooksecurefunc(HS, "SetAlpha", function(_, alpha)
+        -- HookScript is taint-safe; hooksecurefunc on a frame method mixes
+        -- secure C code with Lua addon code when the animation system calls
+        -- HS:SetAlpha, tainting HS and blocking scroll APIs in combat.
+        HS:HookScript("OnHide", function()
             local pool = addon.pool
             if not pool then return end
             for i = 1, (addon.POOL_SIZE or 0) do
                 local e = pool[i]
-                if e and e.rareModel then
-                    if alpha < 0.5 then
-                        e.rareModel:Hide()
-                    elseif e.rareModelActive then
-                        e.rareModel:Show()
-                    end
-                end
+                if e and e.rareModel then e.rareModel:Hide() end
+            end
+        end)
+        HS:HookScript("OnShow", function()
+            local pool = addon.pool
+            if not pool then return end
+            for i = 1, (addon.POOL_SIZE or 0) do
+                local e = pool[i]
+                if e and e.rareModel and e.rareModelActive then e.rareModel:Show() end
             end
         end)
     end
@@ -100,25 +115,37 @@ function rs.InitNavWidgets(entry)
     entry.rareNextBtn = addon.CreateNavArrowBtn(entry, "common-icon-forwardarrow", btnW, btnH, arrowSz)
     entry.rareNextBtn:SetPoint("TOPRIGHT", entry, "TOPRIGHT", 0, 0)
 
+    entry.rarePrevBtn:SetScript("OnClick", function()
+        local rsp = rawget(_G, "HorizonRareScanner")
+        if rsp and rsp.NavigatePrev then rsp.NavigatePrev() end
+    end)
+    entry.rareNextBtn:SetScript("OnClick", function()
+        local rsp = rawget(_G, "HorizonRareScanner")
+        if rsp and rsp.NavigateNext then rsp.NavigateNext() end
+    end)
+
     entry.rareModelActive = false
     -- rareModel (PlayerModel) is created lazily in TryRenderPortrait to avoid
     -- hitting WoW's hard limit on simultaneous PlayerModel frames at pool-init time.
 
-    -- Secure button over the NPC name for click-to-target (uses /targetexact
-    -- macro so it works even without a visible nameplate).
-    entry.rareTargetBtn = CreateFrame("Button", nil, entry, "SecureActionButtonTemplate")
-    entry.rareTargetBtn:RegisterForClicks("AnyUp")
-    entry.rareTargetBtn:Hide()
+    entry.rareTargetBtn = addon.CreateNavSecureBtn()
+    entry.rareModelBtn  = addon.CreateNavSecureBtn()
 end
 
 function rs.ClearNavWidgets(entry)
     if entry.rarePrevBtn  then entry.rarePrevBtn:Hide()  end
     if entry.rareNextBtn  then entry.rareNextBtn:Hide()  end
     if entry.rareModel    then
+        entry.rareModel:ClearModel()
         entry.rareModel:Hide()
         entry.rareModelActive = false
     end
-    if entry.rareTargetBtn then entry.rareTargetBtn:Hide() end
+    entry._rsLastCreatureID = nil  -- reset so next render always clears before loading a new creature
+    entry._rsModelParent = nil
+    if not InCombatLockdown() then
+        if entry.rareTargetBtn then entry.rareTargetBtn:Hide() end
+        if entry.rareModelBtn  then entry.rareModelBtn:Hide()  end
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -141,6 +168,11 @@ function rs.InitLootWidgets(entry)
             GameTooltip:Show()
         end)
         btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        btn:SetScript("OnClick", function(self)
+            if IsControlKeyDown() and addon.ShowURLCopyBox then
+                addon.ShowURLCopyBox("https://www.wowhead.com/item=" .. tostring(self._itemID))
+            end
+        end)
         btn:Hide()
         entry.rsLootIcons[i] = btn
     end
@@ -215,31 +247,33 @@ function rs.RenderLootIcons(entry, questData, anchor, totalH, spacing)
 end
 
 -- ---------------------------------------------------------------------------
--- Nav gutter (called from FocusEntryRenderer before text-width narrowing).
--- Returns showRsNav, btnSize, gap, showRsModel.
+-- Nav gutter (called from FocusEntryRenderer). Returns showRsNav, btnSize, gap, showRsModel.
 -- ---------------------------------------------------------------------------
 
 function rs.CalcNavGutter(questData, entry, showQuestIcons)
-    local show = questData.rsAlertTotal
-        and questData.rsAlertTotal > 1
-        and entry.rarePrevBtn ~= nil
+    -- Sync RS_MODEL_SIZE from DB so FocusEntryRenderer reads the current value
+    -- (it reads this field on the very next line after calling CalcNavGutter).
+    rs.RS_MODEL_SIZE = math.max(32, math.min(128, tonumber(addon.GetDB("rs_modelSize", 64)) or 64))
+    -- rsIsNPC guards against SD entries (or any non-RS entry) that share a pool
+    -- slot and also carry creatureID — without this, rareModel would incorrectly
+    -- show on those entries after pool reuse. sd.CalcNavGutter has a symmetric
+    -- sdAlertIndex guard for the same reason.
     local showModel = (showQuestIcons ~= false)
         and questData.rsIsNPC
         and questData.creatureID ~= nil
         and addon.GetDB("rs_showPortrait", true)
         -- rareModel is lazily created; don't require it to exist yet
-    return show and true or false, S(RS_NAV_BTN_W), S(RS_NAV_BTN_GAP), showModel and true or false
+    return false, S(RS_NAV_BTN_W), S(RS_NAV_BTN_GAP), showModel and true or false
 end
 
 -- ---------------------------------------------------------------------------
--- Portrait rendering (called from FocusEntryRenderer icon chain).
--- Sets the 3-D model's creature when available; RenderNavButtons handles
--- position/visibility so it is coordinated with the nav buttons.
+-- Portrait rendering (called from FocusEntryRenderer). RenderNavButtons manages position/visibility.
 -- ---------------------------------------------------------------------------
 
 function rs.TryRenderPortrait(entry, questData, showQuestIcons)
     if not (showQuestIcons and questData.rsIsNPC and addon.GetDB("rs_showPortrait", true)) then
         if entry.rareModel then
+            entry.rareModel:ClearModel()
             entry.rareModel:Hide()
             entry.rareModelActive = false
         end
@@ -248,17 +282,52 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
     if questData.creatureID then
         -- Create the PlayerModel lazily — only one per active RS NPC entry,
         -- avoiding the pool-init crash from WoW's hard PlayerModel frame limit.
+        local initPos  = addon.GetDB("rs_modelPosition", "right")
+        local initOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("rs_modelOffsetX", 0)) or 0))
+        -- Left mode: parent to the clip envelope so the model can extend past
+        -- the tracker's left edge; right mode: plain entry parent is fine.
+        local mParent = initPos == "left" and GetOrCreateRSModelClipFrame() or entry
+        if entry.rareModel and entry._rsModelParent ~= mParent and not InCombatLockdown() then
+            entry.rareModel:ClearModel()
+            entry.rareModel:Hide()
+            entry.rareModel:ClearAllPoints()
+            entry.rareModel:SetParent(mParent)
+            entry._rsModelParent = mParent
+            entry._rsLastCreatureID = nil
+        end
         if not entry.rareModel then
             local modelSz = S(rs.RS_MODEL_SIZE)
-            local m = CreateFrame("PlayerModel", nil, entry)
+            local m = CreateFrame("PlayerModel", nil, mParent)
             if m then
                 m:SetSize(modelSz, modelSz)
-                m:SetPoint("TOPRIGHT", entry, "TOPRIGHT", 0, 0)
+                m:SetPoint("TOPRIGHT", entry, initPos == "left" and "TOPLEFT" or "TOPRIGHT", initOffX, 0)
+                -- Mouse disabled so rareModelBtn (higher frame level) receives all clicks.
+                m:EnableMouse(false)
+                -- Guard against creatures with no valid model (FileData ID 0 = fallback).
+                -- SetCreature loads asynchronously, so we check after the load resolves.
+                m:SetScript("OnModelLoaded", function(self)
+                    local fid = self.GetModelFileID and self:GetModelFileID()
+                    if not fid or fid == 0 then
+                        self:Hide()
+                        entry.rareModelActive = false
+                        if entry.rareModelBtn and not InCombatLockdown() then
+                            entry.rareModelBtn:Hide()
+                        end
+                        entry.questTypeIcon:Show()
+                    end
+                end)
                 entry.rareModel = m
+                entry._rsModelParent = mParent
             end
         end
         if entry.rareModel then
             entry.questTypeIcon:Hide()
+            if entry._rsLastCreatureID ~= questData.creatureID then
+                -- SetCreature loads asynchronously; without ClearModel first, the
+                -- previous creature's mesh lingers until the new one finishes loading.
+                entry.rareModel:ClearModel()
+                entry._rsLastCreatureID = questData.creatureID
+            end
             -- Show before SetCreature so WoW's renderer can load the model
             -- data; calling SetCreature on a hidden frame may silently no-op.
             -- RenderNavButtons manages final positioning and show/hide.
@@ -267,8 +336,8 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
             return true
         end
     end
-    -- Fallback: atlas icon in the left icon slot.
     if entry.rareModel then
+        entry.rareModel:ClearModel()
         entry.rareModel:Hide()
         entry.rareModelActive = false
     end
@@ -282,8 +351,6 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Nav button + model rendering (called from FocusEntryRenderer after AH-btn).
--- prevBtn → TOPLEFT, nextBtn → TOPRIGHT (left of model when model is shown),
--- model   → TOPRIGHT of entry.
 -- ---------------------------------------------------------------------------
 
 function rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavBtnGap, showRsModel, rsModelSize)
@@ -291,41 +358,53 @@ function rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavBtnGa
     local doModel = showRsModel and gutterW == 0
     rsModelSize   = rsModelSize or S(rs.RS_MODEL_SIZE)
 
-    -- 3-D model at the far right.
+    local modelPos  = addon.GetDB("rs_modelPosition", "right")
+    local modelOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("rs_modelOffsetX", 0)) or 0))
+    local modelAnchor = modelPos == "left" and "TOPLEFT" or "TOPRIGHT"
+
     if doModel and entry.rareModel then
         entry.rareModel:ClearAllPoints()
         entry.rareModel:SetSize(rsModelSize, rsModelSize)
-        entry.rareModel:SetPoint("TOPRIGHT", entry, "TOPRIGHT", 0, 0)
+        entry.rareModel:SetPoint("TOPRIGHT", entry, modelAnchor, modelOffX, 0)
         entry.rareModel:Show()
         entry.rareModelActive = true
+        if entry.rareModelBtn and not InCombatLockdown() then
+            entry.rareModelBtn:ClearAllPoints()
+            entry.rareModelBtn:SetSize(rsModelSize, rsModelSize)
+            entry.rareModelBtn:SetFrameLevel(entry:GetFrameLevel() + 3)
+            entry.rareModelBtn:SetPoint("TOPLEFT", entry.rareModel, "TOPLEFT", 0, 0)
+            entry.rareModelBtn:Show()
+        end
     elseif entry.rareModel then
         entry.rareModel:Hide()
         entry.rareModelActive = false
+        if entry.rareModelBtn and not InCombatLockdown() then entry.rareModelBtn:Hide() end
     end
 
     if doNav then
-        -- nextBtn immediately left of model (or at TOPRIGHT when no model).
-        local nextXOffset = doModel and -(rsModelSize + rsNavBtnGap) or 0
+        -- Always reserve the portrait column so the right arrow stays in a fixed
+        -- position as the user cycles through alerts — some may have a portrait,
+        -- others (containers, failed model load) may not.
+        -- In right mode: next arrow sits left of the portrait's actual edge (including
+        -- any X offset), so it always stays clear of the model button regardless of size.
+        -- In left mode: portrait is outside the left edge; next arrow goes to far right.
+        local nextXOffset = modelPos == "left" and 0 or (modelOffX - rsModelSize - rsNavBtnGap)
 
         local btnH = S(RS_NAV_BTN_H)
+        -- Nav buttons must be well above the model button (+3) so clicks reach the
+        -- arrows even when the model or its overlay partially overlaps their area.
+        local navLevel = entry:GetFrameLevel() + 8
 
         entry.rareNextBtn:ClearAllPoints()
         entry.rareNextBtn:SetSize(rsNavBtnSize, btnH)
+        entry.rareNextBtn:SetFrameLevel(navLevel)
         entry.rareNextBtn:SetPoint("TOPRIGHT", entry, "TOPRIGHT", nextXOffset, 0)
-        entry.rareNextBtn:SetScript("OnClick", function()
-            local rsp = rawget(_G, "HorizonRareScanner")
-            if rsp and rsp.NavigateNext then rsp.NavigateNext() end
-        end)
         entry.rareNextBtn:Show()
 
-        -- prevBtn at the far left.
         entry.rarePrevBtn:ClearAllPoints()
         entry.rarePrevBtn:SetSize(rsNavBtnSize, btnH)
+        entry.rarePrevBtn:SetFrameLevel(navLevel)
         entry.rarePrevBtn:SetPoint("TOPLEFT", entry, "TOPLEFT", 0, 0)
-        entry.rarePrevBtn:SetScript("OnClick", function()
-            local rsp = rawget(_G, "HorizonRareScanner")
-            if rsp and rsp.NavigatePrev then rsp.NavigatePrev() end
-        end)
         entry.rarePrevBtn:Show()
     else
         if entry.rarePrevBtn then entry.rarePrevBtn:Hide() end
@@ -335,62 +414,56 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Secure name button for click-to-target (called from FocusEntryRenderer).
--- Uses a SecureActionButtonTemplate with /targetexact so it works in combat
--- and without a visible nameplate.  Attributes are set outside combat only.
 -- ---------------------------------------------------------------------------
 
-function rs.RenderTargetButton(entry, questData)
-    local btn = entry.rareTargetBtn
-    if not btn then return end
-
-    if not (questData.rsIsNPC and questData.title and entry.titleText) then
-        btn:Hide()
-        return
-    end
-
+local function SetupSecureBtn(btn, title, doTarget, dismissFn, creatureID, ctrlClickURLKey)
+    btn._dismissFn       = dismissFn
+    btn._creatureID      = creatureID
+    btn._ctrlClickURLKey = ctrlClickURLKey
     if not InCombatLockdown() then
-        if addon.GetDB("rs_clickToTarget", false) then
-            -- type1/macrotext1 scope the action to LeftButton only, leaving
-            -- RightButton free for the PostClick dismiss handler below.
+        if doTarget then
+            -- type1 scopes to LeftButton only; `type` would fire the macro on any button.
             btn:SetAttribute("type1", "macro")
             btn:SetAttribute("macrotext1",
-                "/targetexact " .. questData.title .. "\n/tm !" .. RS_SKULL_MARKER)
+                "/targetexact [nomod:ctrl] " .. title .. "\n/tm [nomod:ctrl] !" .. RS_SKULL_MARKER)
         else
             btn:SetAttribute("type1", nil)
             btn:SetAttribute("macrotext1", nil)
         end
     end
+end
 
-    btn:SetScript("PreClick", function(_, mouseButton)
-        if mouseButton == "LeftButton" and IsControlKeyDown()
-                and addon.GetDB("rs_ctrlClickURL", false) and entry.creatureID then
-            if addon.CopyToClipboard then
-                addon.CopyToClipboard("https://www.wowhead.com/npc=" .. tostring(entry.creatureID))
-            end
-        end
-    end)
-    btn:SetScript("PostClick", function(_, mouseButton)
-        if mouseButton == "RightButton" then
-            rs.DismissCurrentAlert()
-        end
-    end)
+function rs.RenderTargetButton(entry, questData)
+    local btn = entry.rareTargetBtn
+    if not btn then return end
 
-    -- SecureActionButtonTemplate (protected frame) cannot anchor to a FontString
-    -- (Region).  Read the title text's current position relative to entry (Frame)
-    -- and replicate it so the button covers the same area.
-    btn:ClearAllPoints()
-    local _, _, _, tx, ty = entry.titleText:GetPoint(1)
-    local titleH = entry.titleText:GetStringHeight() or 20
-    local titleW = entry.titleText:GetWidth() or 100
-    btn:SetPoint("TOPLEFT", entry, "TOPLEFT", tx or 0, ty or 0)
-    btn:SetSize(titleW, titleH + 2)
-    btn:Show()
+    if not (questData.rsAlertIndex and questData.title and entry.titleText) then
+        if not InCombatLockdown() then btn:Hide() end
+        return
+    end
+
+    local doTarget = questData.rsIsNPC and addon.GetDB("rs_clickToTarget", false)
+    SetupSecureBtn(btn, questData.title, doTarget, rs.DismissCurrentAlert, questData.creatureID, "rs_ctrlClickURL")
+
+    if not InCombatLockdown() then
+        btn:ClearAllPoints()
+        local _, _, _, tx, ty = entry.titleText:GetPoint(1)
+        local titleH = entry.titleText:GetStringHeight()
+        if not titleH or titleH < 1 then titleH = addon.TITLE_SIZE + 4 end
+        local titleW = entry.titleText:GetWidth() or 100
+        btn:SetFrameLevel(entry:GetFrameLevel() + 3)
+        btn:SetPoint("TOPLEFT", entry, "TOPLEFT", tx or 0, ty or 0)
+        btn:SetSize(titleW, titleH + 2)
+        btn:Show()
+    end
+
+    if entry.rareModelBtn then
+        SetupSecureBtn(entry.rareModelBtn, questData.title, doTarget, rs.DismissCurrentAlert, questData.creatureID, "rs_ctrlClickURL")
+    end
 end
 
 -- ---------------------------------------------------------------------------
--- Waypoint helper — respects the rs_useTomTom option.
--- Default (rs_useTomTom = false): Blizzard native C_Map.SetUserWaypoint.
--- When the option is on and TomTom is loaded, delegates to TomTom.
+-- Waypoint helper
 -- ---------------------------------------------------------------------------
 
 function rs.SetWaypoint(entry)
@@ -398,10 +471,7 @@ function rs.SetWaypoint(entry)
 end
 
 -- ---------------------------------------------------------------------------
--- Coord waypoint button (called from FocusEntryRenderer after ApplyObjectives).
--- Reuses the pre-allocated collapseBtn on the coord objective widget to make
--- the coordinate text clickable without allocating a new frame per entry.
--- Shift+click shares the location in chat instead of setting a waypoint.
+-- Coord waypoint button — reuses collapseBtn on the coord widget; no new frame needed.
 -- ---------------------------------------------------------------------------
 
 function rs.RenderCoordButton(entry, questData)
@@ -422,12 +492,18 @@ function rs.RenderCoordButton(entry, questData)
     obj.collapseBtn:ClearAllPoints()
     obj.collapseBtn:SetPoint("TOPLEFT",     obj.text, "TOPLEFT",     0,  2)
     obj.collapseBtn:SetPoint("BOTTOMRIGHT", obj.text, "BOTTOMRIGHT", 0, -2)
-    obj.collapseBtn:SetScript("OnClick", function()
-        if IsShiftKeyDown() then
+    obj.collapseBtn:RegisterForClicks("AnyUp")
+    obj.collapseBtn:SetScript("OnClick", function(_, button)
+        if button == "RightButton" then
+            rs.DismissCurrentAlert()
+        elseif IsShiftKeyDown() then
             addon.ShareLocationInChat(entry.title or "Rare", entry.vignetteMapID, entry.vignetteX, entry.vignetteY)
-        elseif IsControlKeyDown() and addon.GetDB("rs_ctrlClickURL", false) and entry.creatureID then
-            if addon.CopyToClipboard then
-                addon.CopyToClipboard("https://www.wowhead.com/npc=" .. tostring(entry.creatureID))
+        elseif IsControlKeyDown() and addon.GetDB("rs_ctrlClickURL", false) then
+            if questData.creatureID and addon.ShowURLCopyBox then
+                addon.ShowURLCopyBox("https://www.wowhead.com/npc=" .. tostring(questData.creatureID))
+            else
+                local dcf = DEFAULT_CHAT_FRAME
+                if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (addon.L and addon.L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
             end
         else
             rs.SetWaypoint(entry)

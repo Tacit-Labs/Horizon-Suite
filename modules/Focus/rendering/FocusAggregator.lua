@@ -783,18 +783,6 @@ function addon.FormatTimeAgo(seenAt)
     return string.format("%dh %dm ago", hours, rem)
 end
 
---- Copy text to the system clipboard and echo it to the default chat frame.
---- No-ops silently when C_Clipboard is unavailable.
---- @param text string
-function addon.CopyToClipboard(text)
-    local dcf = rawget(_G, "DEFAULT_CHAT_FRAME")
-    if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r Copied: " .. text) end
-    local clip = rawget(_G, "C_Clipboard")
-    if clip and clip.SetText then
-        pcall(clip.SetText, text)
-    end
-end
-
 -- ---------------------------------------------------------------------------
 -- Shared rare-integration helpers
 -- ---------------------------------------------------------------------------
@@ -867,6 +855,12 @@ function addon.CreateNavArrowBtn(parent, atlasName, btnW, btnH, arrowSz)
     btn.arrowTex:SetVertexColor(0.6, 0.6, 0.6)
     btn:SetScript("OnEnter", function(self) self.arrowTex:SetVertexColor(1, 1, 1) end)
     btn:SetScript("OnLeave", function(self) self.arrowTex:SetVertexColor(0.6, 0.6, 0.6) end)
+    -- Button frames at a raised frame level block mouse-wheel events from
+    -- reaching the entry's OnMouseWheel handler.  Forward explicitly.
+    btn:EnableMouseWheel(true)
+    btn:SetScript("OnMouseWheel", function(_, delta)
+        if addon.HandleScroll then addon.HandleScroll(delta) end
+    end)
     btn:Hide()
     return btn
 end

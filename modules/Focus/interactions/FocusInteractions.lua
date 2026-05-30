@@ -1820,9 +1820,9 @@ for i = 1, addon.POOL_SIZE do
                 ExecuteAppearanceAction(actionAppearance, self)
                 return
             end
-            -- RareScanner entries: targeting is handled by the secure name button
-            -- (rareTargetBtn / SecureActionButtonTemplate).  Nothing to do here.
-            if self.entryKey and self.entryKey:match("^rarescanner:") then
+            -- RareScanner / SilverDragon entries: targeting is handled by the secure
+            -- name button (rareTargetBtn / sdTargetBtn / SecureActionButtonTemplate).
+            if self.entryKey and (self.entryKey:match("^rarescanner:") or self.entryKey:match("^silverdragon:")) then
                 return
             end
             if self.entryKey then

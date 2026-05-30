@@ -155,7 +155,8 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                     "rs_maxAlerts",
                     "rs_showRares", "rs_showTreasures", "rs_showEvents",
                     "rs_showCoords", "rs_autoWaypoint",
-                    "rs_showPortrait", "rs_showLoot", "rs_minLootQuality",
+                    "rs_showPortrait", "rs_modelPosition", "rs_modelSize", "rs_modelOffsetX",
+                    "rs_showLoot", "rs_minLootQuality",
                 },
             }
         ),
@@ -291,7 +292,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
 
         Toggle(
             L["FOCUS_INTEGRATION_RARE_AUTO_WAYPOINT"],
-            L["FOCUS_INTEGRATION_RARESCANNER_AUTO_WAYPOINT_DESC"],
+            L["FOCUS_INTEGRATION_RARE_AUTO_WAYPOINT_DESC"],
             "rs_autoWaypoint",
             false,
             {
@@ -327,10 +328,52 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 id          = "rs_showPortrait",
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
+                refreshIds  = { "rs_modelPosition", "rs_modelSize", "rs_modelOffsetX" },
                 set         = function(v)
                     setDB("rs_showPortrait", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
+            }
+        ),
+
+        {
+            type        = "dropdown",
+            name        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION"],
+            desc        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_DESC"],
+            dbKey       = "rs_modelPosition",
+            disabled    = RSDisabled,
+            visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
+            options     = function()
+                return {
+                    { L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_RIGHT"], "right" },
+                    { L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_LEFT"],  "left"  },
+                }
+            end,
+            get = function() return addon.GetDB("rs_modelPosition", "right") end,
+            set = function(v) setDB("rs_modelPosition", v); addon.ScheduleRefresh() end,
+        },
+
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_MODEL_SIZE"],
+            L["FOCUS_INTEGRATION_RARE_MODEL_SIZE_DESC"],
+            "rs_modelSize", 32, 128, 64,
+            {
+                id          = "rs_modelSize",
+                disabled    = RSDisabled,
+                visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
+                set         = function(v) setDB("rs_modelSize", v); addon.ScheduleRefresh() end,
+            }
+        ),
+
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_MODEL_OFFSET_X"],
+            L["FOCUS_INTEGRATION_RARE_MODEL_OFFSET_X_DESC"],
+            "rs_modelOffsetX", -100, 100, 0,
+            {
+                id          = "rs_modelOffsetX",
+                disabled    = RSDisabled,
+                visibleWhen = function() return RSSubVisible() and addon.GetDB("rs_showPortrait", true) end,
+                set         = function(v) setDB("rs_modelOffsetX", v); addon.ScheduleRefresh() end,
             }
         ),
 
@@ -430,7 +473,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
 
         Toggle(
             L["FOCUS_INTEGRATION_RARE_CLICK_TO_TARGET"],
-            L["FOCUS_INTEGRATION_RARESCANNER_CLICK_TO_TARGET_DESC"],
+            L["FOCUS_INTEGRATION_RARE_CLICK_TO_TARGET_DESC"],
             "rs_clickToTarget",
             false,
             {
@@ -471,12 +514,17 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 tooltip    = SDNotInstalledTooltip,
                 set        = function(v)
                     setDB("sd_enabled", v)
+                    local sdAddon = rawget(_G, "HorizonSilverDragon")
+                    if sdAddon and sdAddon.ApplyPopupSuppression then
+                        sdAddon.ApplyPopupSuppression(v)
+                    end
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
                 refreshIds = {
                     "sd_maxAlerts",
                     "sd_showCoords", "sd_coordWaypoint", "sd_useTomTom",
-                    "sd_autoWaypoint", "sd_showPortrait", "sd_clickToTarget",
+                    "sd_autoWaypoint", "sd_showPortrait", "sd_modelPosition", "sd_modelSize", "sd_modelOffsetX",
+                    "sd_clickToTarget", "sd_showRares", "sd_showLoot",
                 },
             }
         ),
@@ -562,7 +610,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
 
         Toggle(
             L["FOCUS_INTEGRATION_RARE_AUTO_WAYPOINT"],
-            L["FOCUS_INTEGRATION_SILVERDRAGON_AUTO_WAYPOINT_DESC"],
+            L["FOCUS_INTEGRATION_RARE_AUTO_WAYPOINT_DESC"],
             "sd_autoWaypoint",
             false,
             {
@@ -598,10 +646,52 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 id          = "sd_showPortrait",
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
+                refreshIds  = { "sd_modelPosition", "sd_modelSize", "sd_modelOffsetX" },
                 set         = function(v)
                     setDB("sd_showPortrait", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
+            }
+        ),
+
+        {
+            type        = "dropdown",
+            name        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION"],
+            desc        = L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_DESC"],
+            dbKey       = "sd_modelPosition",
+            disabled    = SDDisabled,
+            visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
+            options     = function()
+                return {
+                    { L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_RIGHT"], "right" },
+                    { L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_LEFT"],  "left"  },
+                }
+            end,
+            get = function() return addon.GetDB("sd_modelPosition", "right") end,
+            set = function(v) setDB("sd_modelPosition", v); addon.ScheduleRefresh() end,
+        },
+
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_MODEL_SIZE"],
+            L["FOCUS_INTEGRATION_RARE_MODEL_SIZE_DESC"],
+            "sd_modelSize", 32, 128, 64,
+            {
+                id          = "sd_modelSize",
+                disabled    = SDDisabled,
+                visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
+                set         = function(v) setDB("sd_modelSize", v); addon.ScheduleRefresh() end,
+            }
+        ),
+
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_MODEL_OFFSET_X"],
+            L["FOCUS_INTEGRATION_RARE_MODEL_OFFSET_X_DESC"],
+            "sd_modelOffsetX", -100, 100, 0,
+            {
+                id          = "sd_modelOffsetX",
+                disabled    = SDDisabled,
+                visibleWhen = function() return SDSubVisible() and addon.GetDB("sd_showPortrait", true) end,
+                set         = function(v) setDB("sd_modelOffsetX", v); addon.ScheduleRefresh() end,
             }
         ),
 
@@ -616,6 +706,38 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 visibleWhen = SDSubVisible,
                 set         = function(v)
                     setDB("sd_showVignetteIcon", v)
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                end,
+            }
+        ),
+
+        Toggle(
+            L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES"],
+            L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES_DESC"],
+            "sd_showRares",
+            true,
+            {
+                id          = "sd_showRares",
+                disabled    = SDDisabled,
+                visibleWhen = SDSubVisible,
+                set         = function(v)
+                    setDB("sd_showRares", v)
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                end,
+            }
+        ),
+
+        Toggle(
+            L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_LOOT"],
+            L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_LOOT_DESC"],
+            "sd_showLoot",
+            true,
+            {
+                id          = "sd_showLoot",
+                disabled    = SDDisabled,
+                visibleWhen = SDSubVisible,
+                set         = function(v)
+                    setDB("sd_showLoot", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
             }
@@ -644,7 +766,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
 
         Toggle(
             L["FOCUS_INTEGRATION_RARE_CLICK_TO_TARGET"],
-            L["FOCUS_INTEGRATION_SILVERDRAGON_CLICK_TO_TARGET_DESC"],
+            L["FOCUS_INTEGRATION_RARE_CLICK_TO_TARGET_DESC"],
             "sd_clickToTarget",
             false,
             {

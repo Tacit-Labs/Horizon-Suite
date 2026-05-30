@@ -1752,6 +1752,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", basePad + extraTitlePad, curY)
         entry.titleShadow:ClearAllPoints()
         entry.titleShadow:SetPoint("CENTER", entry.titleText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+        entry._titleXOffset = basePad + extraTitlePad
         return extraTitlePad
     end
 
@@ -1763,6 +1764,9 @@ local function PopulateEntry(entry, questData, groupKey)
     entry.rsCreatureID = questData.creatureID
     entry.rsName       = questData.title
     local rsHandledPortrait = addon.focus.rs and addon.focus.rs.TryRenderPortrait(entry, questData, showQuestIcons)
+    -- Always call SD cleanup even when RS handled the portrait: without this,
+    -- entry.sdModel from a prior SD render is never hidden on that pool slot.
+    if rsHandledPortrait and addon.focus.sd then addon.focus.sd.TryRenderPortrait(entry, questData, false) end
     local sdHandledPortrait = (not rsHandledPortrait) and addon.focus.sd and addon.focus.sd.TryRenderPortrait(entry, questData, showQuestIcons)
     if not rsHandledPortrait and not sdHandledPortrait then
         if not showQuestIcons then
@@ -1790,7 +1794,6 @@ local function PopulateEntry(entry, questData, groupKey)
             entry.questTypeIcon:SetAtlas(questData.questTypeAtlas)
             entry.questTypeIcon:Show()
         else
-            -- Toggle on but no icon data: hide.
             entry.questTypeIcon:Hide()
         end
     end
@@ -2129,7 +2132,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.itemBtn._itemLink = nil
         entry.itemBtn:Hide()
     end
-    entry:SetHitRectInsets(0, 0, 0, 0)
+    if not InCombatLockdown() then entry:SetHitRectInsets(0, 0, 0, 0) end
 
     if showLfgBtn then
         entry.lfgBtn:ClearAllPoints()
@@ -2397,8 +2400,13 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     end
 
-    entry.entryHeight = totalH + topPadding + bottomPadding
-    entry:SetHeight(totalH + topPadding + bottomPadding)
+    -- Portrait frames extend downward from entry TOPRIGHT; a short entry (name +
+    -- coords + timer) can be narrower than the model, clipping the separator below.
+    local finalH = totalH + topPadding + bottomPadding
+    if showSdModel then finalH = math.max(finalH, sdModelSize + S(4)) end
+    if showRsModel then finalH = math.max(finalH, rsModelSize + S(4)) end
+    entry.entryHeight = finalH
+    entry:SetHeight(finalH)
 
     ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
 
