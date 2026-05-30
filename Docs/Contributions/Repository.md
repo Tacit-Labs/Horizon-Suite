@@ -36,7 +36,7 @@ Do not use complete sentences and make sure to apply the correct type and approp
 |Module Label|Purpose|
 |-----------------|----------|
 |<span style="color:#E0E0E0;">Axis</span>| Core and Dependencies/Data |
-|<span style="color:#33CC66;">Cache</span>| Loot Toasts and Bags |
+|<span style="color:#33CC66;">Augment</span>| Quality of Life |
 |<span style="color:#DC143C;">Essence</span>| Character Sheet |
 |<span style="color:#3399FF;">Flow</span>| Chat and Social |
 |<span style="color:#FFD133;">Focus</span>| Objective Tracker |
