@@ -7,6 +7,31 @@ local addon = _G.HorizonSuite
 
 local pool       = addon.pool
 local activeMap  = addon.activeMap
+
+local function ClearScannerWidgetsForGroup(groupKey)
+    if groupKey == "RARESCANNER" and addon.focus and addon.focus.rs then
+        for i = 1, addon.POOL_SIZE do
+            local e = pool[i]
+            if e and e.groupKey == groupKey then
+                addon.focus.rs.ClearNavWidgets(e)
+                addon.focus.rs.ClearLootWidgets(e)
+            end
+        end
+        if addon.focus.rs.SuppressNativePopups then
+            addon.focus.rs.SuppressNativePopups()
+        end
+    elseif groupKey == "SILVERDRAGON" and addon.focus and addon.focus.sd then
+        for i = 1, addon.POOL_SIZE do
+            local e = pool[i]
+            if e and e.groupKey == groupKey then
+                addon.focus.sd.ClearNavWidgets(e)
+            end
+        end
+        if addon.focus.sd.SuppressNativePopups then
+            addon.focus.sd.SuppressNativePopups()
+        end
+    end
+end
 local sectionPool = addon.sectionPool
 local scrollFrame = addon.scrollFrame
 local scrollChild = addon.scrollChild
@@ -194,6 +219,8 @@ end
 local function StartGroupCollapse(groupKey)
     if not groupKey then return end
 
+    ClearScannerWidgetsForGroup(groupKey)
+
     local entries = {}
     for i = 1, addon.POOL_SIZE do
         local e = pool[i]
@@ -248,6 +275,8 @@ end
 -- @param groupKey string Category key
 local function StartGroupCollapseVisual(groupKey)
     if not groupKey then return end
+
+    ClearScannerWidgetsForGroup(groupKey)
 
     local entries = {}
     for i = 1, addon.POOL_SIZE do

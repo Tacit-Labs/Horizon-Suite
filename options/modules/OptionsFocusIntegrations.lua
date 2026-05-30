@@ -149,6 +149,13 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 tooltip    = RSNotInstalledTooltip,
                 set        = function(v)
                     setDB("rs_enabled", v)
+                    local rsAddon = rawget(_G, "HorizonRareScanner")
+                    if rsAddon and rsAddon.ApplyPopupSuppression then
+                        rsAddon.ApplyPopupSuppression(v)
+                    end
+                    if addon.focus and addon.focus.rs and addon.focus.rs.SuppressNativePopups then
+                        addon.focus.rs.SuppressNativePopups()
+                    end
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
                 refreshIds = {

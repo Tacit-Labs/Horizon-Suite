@@ -1939,6 +1939,11 @@ for i = 1, addon.POOL_SIZE do
         local showTooltip = addon.GetDB("focusShowTooltipOnHover", false)
             or (addon.GetDB("showDelveAffixes", true) and (self.tierSpellID or (self.affixData and #self.affixData > 0)))
         if not showTooltip then return end
+        local scannerEntry = self.groupKey == "RARESCANNER"
+            or self.groupKey == "SILVERDRAGON"
+            or self.rsAlertIndex ~= nil
+            or self.sdAlertIndex ~= nil
+        if scannerEntry then return end
         if self.creatureID then
             local link = ("unit:Creature-0-0-0-0-%d-0000000000"):format(self.creatureID)
             addon.focus.AnchorTooltip(GameTooltip, self)

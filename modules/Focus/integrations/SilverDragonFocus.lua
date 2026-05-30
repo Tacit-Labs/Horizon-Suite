@@ -49,6 +49,77 @@ function sd.IsActive()
 end
 
 -- ---------------------------------------------------------------------------
+-- Native popup suppression
+-- ---------------------------------------------------------------------------
+
+local function DisableNativePopupFrame(frame)
+    if not frame or not frame.Hide then return end
+    pcall(function() frame:Hide() end)
+    if frame.EnableMouse then pcall(function() frame:EnableMouse(false) end) end
+    if frame.EnableMouseWheel then pcall(function() frame:EnableMouseWheel(false) end) end
+end
+
+function sd.SuppressNativePopups()
+    if not addon.GetDB("sd_enabled", false) then return end
+    local sdp = rawget(_G, "HorizonSilverDragon")
+    if not sdp then return end
+    if sdp.ApplyPopupSuppression then
+        pcall(sdp.ApplyPopupSuppression, true)
+    end
+
+    -- Alpha-zero frames still receive mouse input.  If the companion exposes its
+    -- native alert frame, hide it and disable mouse so Focus widgets remain clickable.
+    DisableNativePopupFrame(sdp.alertFrame)
+    DisableNativePopupFrame(sdp.popupFrame)
+    DisableNativePopupFrame(sdp.frame)
+    DisableNativePopupFrame(sdp.modelFrame)
+end
+
+local function ShowCreatureTooltipFrom(btn)
+    local entry = btn and btn._ownerEntry
+    if entry and entry.GetScript then
+        local onEnter = entry:GetScript("OnEnter")
+        if onEnter then pcall(onEnter, entry) end
+    end
+
+    local creatureID = btn and btn._creatureID
+    if not creatureID or not GameTooltip then return end
+
+    local link = ("unit:Creature-0-0-0-0-%d-0000000000"):format(creatureID)
+    if addon.focus and addon.focus.AnchorTooltip then
+        addon.focus.AnchorTooltip(GameTooltip, btn)
+    else
+        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+    end
+    pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+
+    local att = _G.AllTheThings
+    if att and att.Modules and att.Modules.Tooltip then
+        local attach = att.Modules.Tooltip.AttachTooltipSearchResults
+        local searchFn = att.SearchForObject or att.SearchForField
+        if attach and searchFn then
+            pcall(attach, GameTooltip, searchFn, "npcID", creatureID)
+        end
+    end
+
+    if addon.GetDB("sd_ctrlClickURL", false) then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("|cff66b3ff[View on WoWhead]|r |cff888888(Alt + Left Click)|r")
+    end
+
+    GameTooltip:Show()
+end
+
+local function HideCreatureTooltipFrom(btn)
+    if GameTooltip then GameTooltip:Hide() end
+    local entry = btn and btn._ownerEntry
+    if entry and entry.GetScript then
+        local onLeave = entry:GetScript("OnLeave")
+        if onLeave then pcall(onLeave, entry) end
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- DismissCurrentAlert
 -- ---------------------------------------------------------------------------
 
@@ -92,6 +163,15 @@ do
     end
 end
 
+do
+    local f = CreateFrame("Frame")
+    f:RegisterEvent("PLAYER_LOGIN")
+    f:RegisterEvent("ADDON_LOADED")
+    f:SetScript("OnEvent", function()
+        if sd.SuppressNativePopups then sd.SuppressNativePopups() end
+    end)
+end
+
 -- ---------------------------------------------------------------------------
 -- Widget lifecycle
 -- ---------------------------------------------------------------------------
@@ -120,6 +200,10 @@ function sd.InitNavWidgets(entry)
 
     entry.sdTargetBtn = addon.CreateNavSecureBtn()
     entry.sdModelBtn  = addon.CreateNavSecureBtn()
+    entry.sdTargetBtn:SetScript("OnEnter", ShowCreatureTooltipFrom)
+    entry.sdTargetBtn:SetScript("OnLeave", HideCreatureTooltipFrom)
+    entry.sdModelBtn:SetScript("OnEnter", ShowCreatureTooltipFrom)
+    entry.sdModelBtn:SetScript("OnLeave", HideCreatureTooltipFrom)
 end
 
 function sd.ClearNavWidgets(entry)
@@ -163,6 +247,7 @@ end
 -- ---------------------------------------------------------------------------
 
 function sd.TryRenderPortrait(entry, questData, showQuestIcons)
+    sd.SuppressNativePopups()
     if not (showQuestIcons and questData.sdAlertIndex and questData.creatureID and addon.GetDB("sd_showPortrait", true)) then
         if entry.sdModel then
             entry.sdModel:ClearModel()
@@ -313,13 +398,15 @@ function sd.RenderTargetButton(entry, questData)
 
     local doTarget = not questData.sdIsLoot and addon.GetDB("sd_clickToTarget", false)
     SetupSecureBtn(btn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID, "sd_ctrlClickURL")
+    btn._ownerEntry = entry
 
     if not InCombatLockdown() then
         btn:ClearAllPoints()
         local _, _, _, tx, ty = entry.titleText:GetPoint(1)
         local titleH = entry.titleText:GetStringHeight()
         if not titleH or titleH < 1 then titleH = addon.TITLE_SIZE + 4 end
-        local titleW = entry.titleText:GetWidth() or 100
+        local titleW = (entry.titleText.GetStringWidth and entry.titleText:GetStringWidth()) or entry.titleText:GetWidth() or 100
+        titleW = math.min(titleW + 4, entry.titleText:GetWidth() or titleW)
         btn:SetFrameLevel(entry:GetFrameLevel() + 3)
         btn:SetPoint("TOPLEFT", entry, "TOPLEFT", tx or 0, ty or 0)
         btn:SetSize(titleW, titleH + 2)
@@ -328,6 +415,7 @@ function sd.RenderTargetButton(entry, questData)
 
     if entry.sdModelBtn then
         SetupSecureBtn(entry.sdModelBtn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID, "sd_ctrlClickURL")
+        entry.sdModelBtn._ownerEntry = entry
     end
 end
 

@@ -1336,6 +1336,12 @@ local function FullLayout()
         for _, entry in pairs(activeMap) do
             if entry and entry.groupKey and entry.animState ~= "collapsing"
                 and addon.IsCategoryCollapsed(entry.groupKey) then
+                if entry.groupKey == "RARESCANNER" and addon.focus and addon.focus.rs then
+                    addon.focus.rs.ClearNavWidgets(entry)
+                    addon.focus.rs.ClearLootWidgets(entry)
+                elseif entry.groupKey == "SILVERDRAGON" and addon.focus and addon.focus.sd then
+                    addon.focus.sd.ClearNavWidgets(entry)
+                end
                 entry:Hide()
             end
         end
