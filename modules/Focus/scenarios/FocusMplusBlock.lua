@@ -5,6 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 -- ============================================================================
 -- MYTHIC+ BANNER (CINEMATIC, ALWAYS-VISIBLE ABOVE / BELOW LIST)
@@ -375,7 +376,7 @@ local function UpdateMplusBlockDisplay(data)
     local barDoneA = tonumber(addon.GetDB("mplusBarDoneColorA", 0.90)) or 0.90
 
     -- Line 1: Dungeon name + keystone level
-    local dungeonName = data.dungeonName ~= "" and data.dungeonName or "Mythic+"
+    local dungeonName = data.dungeonName ~= "" and data.dungeonName or L["FOCUS_DISPLAY_MPLUS"]
     local level = data.level > 0 and (" (+" .. data.level .. ")") or ""
     local heroStr = dungeonName .. level
     addon.SetTextWithShadow(mplusHeroText, mplusHeroShadow, heroStr)

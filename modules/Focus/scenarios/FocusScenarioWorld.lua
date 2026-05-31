@@ -4,6 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 local WorldProvider = setmetatable({}, addon.FocusScenarioBaseProvider)
 WorldProvider.__index = WorldProvider
@@ -15,7 +16,7 @@ end
 function WorldProvider:GetDisplayInfo()
     local ok, name = pcall(C_Scenario.GetInfo)
     local _, stageName = C_Scenario.GetStepInfo()
-    return name or "World Scenario", stageName or "", "SCENARIO"
+    return name or L["FOCUS_DISPLAY_WORLD_SCENARIO"], stageName or "", "SCENARIO"
 end
 
 function WorldProvider:ReadEntries()
@@ -99,9 +100,9 @@ function WorldProvider:ReadEntries()
         elseif scenarioName then
             title = scenarioName
         elseif HasRitualSiteObjective(objectives) then
-            title = "Ritual Sites"
+            title = L["FOCUS_DISPLAY_RITUAL_SITES"]
         else
-            title = "Objectives"
+            title = L["FOCUS_DISPLAY_OBJECTIVES"]
         end
 
         table.insert(out, {

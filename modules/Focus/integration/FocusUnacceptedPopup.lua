@@ -8,6 +8,7 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 local L = addon.L
+
 local PADDING = 12
 local ROW_HEIGHT = 22
 local POPUP_WIDTH = 900
@@ -167,7 +168,7 @@ end
 local function ReadUnacceptedZoneDailiesWeeklies()
     local rows = {}
     local mapID = nil
-    local zoneName = "Unknown"
+    local zoneName = L["FOCUS_UNKNOWN"]
 
     if not C_Map or not C_Map.GetBestMapForUnit then
         return rows, 0, zoneName
@@ -326,7 +327,7 @@ local function ReadUnacceptedZoneDailiesWeeklies()
             rows[#rows + 1] = {
                 questID = questID,
                 title = title,
-                typeStr = typeStr or "Other",
+                typeStr = typeStr or L["FOCUS_QUEST_TYPE_OTHER"],
                 category = ResolvePopupCategory(questID, typeStr, context),
                 source = meta.source,
                 confidence = confidence or "best-effort",

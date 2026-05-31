@@ -5,6 +5,7 @@
 
 local addon = _G.HorizonSuite
 local L = addon.L
+
 -- INTERACTIONS
 -- ============================================================================
 
@@ -1157,7 +1158,7 @@ function addon.HandleClassicAppearanceIconMouseDown(entry)
 end
 
 StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] = StaticPopupDialogs["HORIZONSUITE_ABANDON_QUEST"] or {
-    text = "Abandon %s?",
+    text = L["FOCUS_ABANDON_QUEST_CONFIRM"],
     button1 = YES,
     button2 = NO,
     OnAccept = function(self)
@@ -1438,7 +1439,7 @@ local function AppendDelveTooltipData(self, tooltip)
 
     if self.affixData and #self.affixData > 0 and addon.GetDB("showDelveAffixes", true) then
         tooltip:AddLine(" ")
-        tooltip:AddLine(_G.SEASON_AFFIXES or "Season Affixes:", 0.7, 0.7, 0.7)
+        tooltip:AddLine(_G.SEASON_AFFIXES or L["FOCUS_SEASON_AFFIXES"], 0.7, 0.7, 0.7)
         for _, a in ipairs(self.affixData) do
             local title = a.name
             if a.icon and type(a.icon) == "number" then
@@ -1971,7 +1972,7 @@ for i = 1, addon.POOL_SIZE do
                     GameTooltip:AddLine(info.description, 1, 1, 1, true)
                     GameTooltip:AddLine(" ")
                 end
-                local reqHeader = _G.REQUIREMENTS or "Requirements:"
+                local reqHeader = _G.REQUIREMENTS or L["FOCUS_REQUIREMENTS"]
                 GameTooltip:AddLine(reqHeader, greyR, greyG, greyB)
                 if info.requirementsList and type(info.requirementsList) == "table" then
                     for _, req in ipairs(info.requirementsList) do
@@ -2004,11 +2005,11 @@ for i = 1, addon.POOL_SIZE do
                 local hasQuestReward = info.rewardQuestID and addon.AddQuestRewardsToTooltip
                 if hasContribution or hasQuestReward then
                     GameTooltip:AddLine(" ")
-                    local rewardsHeader = _G.REWARDS or "Rewards:"
+                    local rewardsHeader = _G.REWARDS or L["FOCUS_REWARDS"]
                     GameTooltip:AddLine(rewardsHeader, greyR, greyG, greyB)
                     if hasContribution then
                         local amountStr = (type(FormatLargeNumber) == "function" and FormatLargeNumber(contributionAmount)) or tostring(contributionAmount)
-                        local favorLabel = _G.HOUSING_ENDEAVOR_REWARD_HOUSING_XP or _G.NEIGHBORHOOD_FAVOR_PROGRESS or "Housing XP"
+                        local favorLabel = _G.HOUSING_ENDEAVOR_REWARD_HOUSING_XP or _G.NEIGHBORHOOD_FAVOR_PROGRESS or L["FOCUS_HOUSING_XP"]
                         -- Use the chevron XP icon and identical line format to currency rewards.
                         local xpTex = _G.HOUSING_XP_CURRENCY_ICON or _G.HOUSING_XP_ICON_FILE_ID or 894556
                         local iconStr = "|T" .. tostring(xpTex) .. ":0|t "

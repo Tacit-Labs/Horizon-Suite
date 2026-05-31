@@ -5,6 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 -- ============================================================================
 -- REAGENT TYPE CONSTANTS
@@ -251,8 +252,8 @@ end
 --- Derive a display name for a choice slot header from its variant names.
 -- Uses the first variant's name + " (any)".
 local function DeriveChoiceHeaderName(variants)
-    if #variants == 0 then return "Item (any)" end
-    local firstName = variants[1].text or "Item"
+    if #variants == 0 then return L["FOCUS_RECIPE_CHOICE_ANY"] end
+    local firstName = variants[1].text or L["FOCUS_RECIPE_ITEM"]
     return firstName .. " (any)"
 end
 
@@ -418,9 +419,8 @@ local function BuildRecipeObjectivesFull(recipeID, isRecraft, schematic)
         end
     end
 
-    local L = addon.L
     if #optionalRaw > 0 then
-        DedupeAndAppend(optionalRaw, objectives, (L and L["FOCUS_OPTIONAL_REAGENTS"]), "optional")
+        DedupeAndAppend(optionalRaw, objectives, L["FOCUS_OPTIONAL_REAGENTS"], "optional")
     end
     if #finishingRaw > 0 then
         DedupeAndAppend(finishingRaw, objectives, (L and L["FOCUS_FINISHING_REAGENTS"]), "finishing")
@@ -466,7 +466,7 @@ local function BuildRecipeRequirements(recipeID)
     for _, req in ipairs(reqs) do
         if req and req.met == false and type(req.name) == "string" and req.name ~= "" then
             out[#out + 1] = {
-                text         = "Requires: " .. req.name,
+                text         = L["FOCUS_RECIPE_REQUIRES_FMT"]:format(req.name),
                 isRequirement = true,
                 finished     = false,
                 numFulfilled = 0,
@@ -673,7 +673,7 @@ local function ReadTrackedRecipes()
                 if cOk and type(count) == "number" then
                     craftableCount = count
                     prefixes[#prefixes + 1] = {
-                        text = "Can craft: " .. tostring(count),
+                        text = L["FOCUS_RECIPE_CAN_CRAFT_FMT"]:format(tostring(count)),
                         isCraftableCount = true,
                         finished = true, numFulfilled = 1, numRequired = 1,
                     }
@@ -687,7 +687,7 @@ local function ReadTrackedRecipes()
                     pips[i] = "|A:Professions-Icon-Quality-Tier" .. i .. "-Small:0:0|a"
                 end
                 prefixes[#prefixes + 1] = {
-                    text = "Quality: " .. table.concat(pips, " ") .. " (1\226\128\147" .. tostring(maxQuality) .. ")",
+                    text = L["FOCUS_RECIPE_QUALITY_PREFIX"] .. table.concat(pips, " ") .. " (1\226\128\147" .. tostring(maxQuality) .. ")",
                     isQualityInfo = true,
                     finished = true, numFulfilled = 1, numRequired = 1,
                 }

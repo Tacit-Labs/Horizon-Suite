@@ -1029,7 +1029,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         local isAutoComplete = questData.isAutoComplete and true or false
         local readyToTurnIn = StripLeadingDashes(L["UI_READY_TO_TURN_IN"])
         local firstLineText = isAutoComplete
-            and (_G.QUEST_WATCH_QUEST_COMPLETE or "Quest Complete")
+            and (_G.QUEST_WATCH_QUEST_COMPLETE or L["FOCUS_QUEST_COMPLETE"])
             or (addon.GetDB("objectivePrefixStyle", "none") == "numbers" and ("1. " .. readyToTurnIn)
                 or addon.GetDB("objectivePrefixStyle", "none") == "hyphens" and ("- " .. readyToTurnIn)
                 or readyToTurnIn)

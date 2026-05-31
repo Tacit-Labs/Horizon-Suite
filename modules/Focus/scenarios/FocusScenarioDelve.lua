@@ -4,6 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 local DelveProvider = setmetatable({}, addon.FocusScenarioDefaultProvider or addon.FocusScenarioBaseProvider)
 DelveProvider.__index = DelveProvider
@@ -19,10 +20,10 @@ function DelveProvider:GetDisplayInfo()
     local title = (sub  ~= "" and sub  ~= "Delves") and sub
                or (zone ~= "" and zone ~= "Delves") and zone
                or (addon.GetDelveNameFromAPIs and addon.GetDelveNameFromAPIs())
-               or "Delve"
+               or L["FOCUS_DISPLAY_DELVE"]
     local tier = addon.GetActiveDelveTier and addon.GetActiveDelveTier()
     if tier then
-        title = string.format("%s - Tier %d", title, tier)
+        title = L["FOCUS_DISPLAY_DELVE_TIER_FMT"]:format(title, tier)
     end
     local ok, stageName = pcall(C_Scenario.GetStepInfo)
     return title, stageName or "", "DELVES"

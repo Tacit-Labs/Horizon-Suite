@@ -2267,3 +2267,35 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["AUGMENT_SELF_HIGHLIGHT_COMBAT_DESC"]                     = "Activate the highlight when entering combat."
 -- L["AUGMENT_SELF_HIGHLIGHT_HOSTILE"]                         = "Hostile Target"
 -- L["AUGMENT_SELF_HIGHLIGHT_HOSTILE_DESC"]                    = "Activate the highlight when targeting a hostile unit."
+
+
+-- =====================================================================
+-- Focus — runtime display strings (shown to the player in-game)
+-- =====================================================================
+-- L["FOCUS_DRAG_ITEM_BUTTON_TOOLTIP"]                        = "Drag to move quest item button"
+-- L["FOCUS_QUEST_ICON_TOOLTIP_TITLE"]                        = "Focus quest"
+-- L["FOCUS_QUEST_ICON_TOOLTIP_BODY"]                         = "Click to super-track this quest."
+-- L["FOCUS_ABANDON_QUEST_CONFIRM"]                           = "Abandon %s?"
+-- L["FOCUS_SEASON_AFFIXES"]                                  = "Season Affixes:"
+-- L["FOCUS_REQUIREMENTS"]                                    = "Requirements:"
+-- L["FOCUS_REWARDS"]                                         = "Rewards:"
+-- L["FOCUS_HOUSING_XP"]                                      = "Housing XP"
+-- L["FOCUS_RECIPE_CHOICE_ANY"]                               = "Item (any)"
+-- L["FOCUS_RECIPE_ITEM"]                                     = "Item"
+-- L["FOCUS_RECIPE_REQUIRES_FMT"]                             = "Requires: %s"
+-- L["FOCUS_RECIPE_CAN_CRAFT_FMT"]                            = "Can craft: %s"
+-- L["FOCUS_RECIPE_QUALITY_PREFIX"]                           = "Quality: "
+-- L["FOCUS_DISPLAY_DUNGEON"]                                 = "Dungeon"
+-- L["FOCUS_DISPLAY_SCENARIO"]                                = "Scenario"
+-- L["FOCUS_DISPLAY_WORLD_SCENARIO"]                          = "World Scenario"
+-- L["FOCUS_DISPLAY_RITUAL_SITES"]                            = "Ritual Sites"
+-- L["FOCUS_DISPLAY_OBJECTIVES"]                              = "Objectives"
+-- L["FOCUS_DISPLAY_DELVE"]                                   = "Delve"
+-- L["FOCUS_DISPLAY_DELVE_TIER_FMT"]                          = "%s - Tier %d"
+-- L["FOCUS_DISPLAY_MPLUS"]                                   = "Mythic+"
+-- L["FOCUS_QUEST_COMPLETE"]                                  = "Quest Complete"
+-- L["FOCUS_UNKNOWN"]                                         = "Unknown"
+-- L["FOCUS_QUEST_TYPE_OTHER"]                                = "Other"
+
+-- L["FOCUS_LFG_TOOLTIP_TITLE"]                               = "Find a Group"
+-- L["FOCUS_LFG_TOOLTIP_BODY"]                                = "Click to search for a group for this quest."
