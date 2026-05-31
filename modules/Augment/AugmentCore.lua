@@ -634,10 +634,10 @@ local function BuildMergedText(data, effectiveKey, totalCount)
         if totalCount == 1 then
             return data.baseName or data.text
         end
-        return (addon.L and addon.L["AUGMENT_JUNK_LABEL"] or "Junk") .. " x" .. totalCount
+        return (addon.L and addon.L["AUGMENT_JUNK_LABEL"] or "Junk") .. " x " .. totalCount
     end
     if data.kind == "item" then
-        return totalCount > 1 and (data.baseName .. " x" .. totalCount) or data.baseName
+        return totalCount > 1 and (data.baseName .. " x " .. totalCount) or data.baseName
     end
     if data.kind == "currency" then
         return "+" .. totalCount .. " " .. (data.baseName or "")
