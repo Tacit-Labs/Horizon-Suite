@@ -17,10 +17,14 @@ local function HideAllSectionHeaders(excludeGroupKeys)
             -- Leave visible; will be faded out by UpdateSectionHeaderFadeOut
         else
             s.active = false
-            if s.rarePrevBtn then s.rarePrevBtn:Hide() end
-            if s.rareNextBtn then s.rareNextBtn:Hide() end
-            s:Hide()
-            s:SetAlpha(0)
+            if InCombatLockdown() and s:IsShown() then
+                addon.focus.layoutPendingAfterCombat = true
+            else
+                if s.rarePrevBtn then s.rarePrevBtn:Hide() end
+                if s.rareNextBtn then s.rareNextBtn:Hide() end
+                s:Hide()
+                s:SetAlpha(0)
+            end
         end
     end
 end
