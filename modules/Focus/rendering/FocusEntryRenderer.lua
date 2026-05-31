@@ -344,6 +344,8 @@ function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount, opts)
     end
     local terms = EncodeAuctionatorTermsFromParts(parts, mult, useIQ, useCT, forceTier)
     if #terms == 0 then return end
+    -- Prefix with the addon name so the list is identifiable in Auctionator's UI and
+    -- doesn't collide with shopping lists created by other addons.
     local recipeName = L["NAME_ADDON"] .. " - " .. (entry._ahRecipeName or L["FOCUS_AH_RECIPE_FALLBACK"])
     pcall(function()
         Auctionator.API.v1.CreateShoppingList(AUCTIONATOR_CALLER_ID, recipeName, terms)

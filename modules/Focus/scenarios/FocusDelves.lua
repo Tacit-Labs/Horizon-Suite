@@ -242,6 +242,8 @@ local function BuildAffixesFromWidgetInfo(widgetInfo)
                     if spellDescOk and d and type(d) == "string" and d ~= "" then desc = d end
                 end
                 affixes[#affixes + 1] = {
+                    -- GetSpellNameAndIcon returns nil for spells not yet in the client cache
+                    -- (common on first load or after a patch). The ID keeps the row non-empty.
                     name  = name or L["FOCUS_DELVE_SPELL_FALLBACK_FMT"]:format(spellInfo.spellID),
                     desc  = desc or "",
                     icon  = icon,
@@ -268,7 +270,7 @@ local function BuildAffixesFromSeasonFallback()
                 if dOk and d and type(d) == "string" then desc = d end
             end
             affixes[#affixes + 1] = {
-                name  = (name and name ~= "") and name or L["FOCUS_DELVE_SPELL_FALLBACK_FMT"]:format(spellID),
+                name  = (name and name ~= "") and name or L["FOCUS_DELVE_SPELL_FALLBACK_FMT"]:format(spellID),  -- see BuildAffixesFromWidgetInfo
                 desc  = desc or "",
                 icon  = spellIcon,
             }

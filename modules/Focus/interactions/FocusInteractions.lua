@@ -1,6 +1,9 @@
 --[[
     Horizon Suite - Focus - Interactions
     Mouse scripts on pool entries (click, tooltip, scroll).
+    Also owns: quest/appearance waypoint logic (TomTom + native),
+    action dispatch tables (QUEST_ACTIONS, APPEARANCE_ACTIONS),
+    context menus, and AnchorTooltip (shared by EntryPool and EntryRenderer).
 ]]
 
 local addon = _G.HorizonSuite
