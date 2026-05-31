@@ -5,7 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 local function GetQuestCategory(questID)
     if not questID or questID <= 0 then return "DEFAULT" end
     if C_QuestLog and C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) then
@@ -103,7 +103,7 @@ local function GetQuestZoneName(questID)
      -- For non-world quests: prefer quest log header (waypoint often = current zone).
      -- Skip non-geographic headers (e.g. "Prey") so the waypoint fallback below
      -- can resolve the actual zone name.
-     local preyLabel = (addon.L and addon.L["UI_PREY"])
+     local preyLabel = L["UI_PREY"]
      if C_QuestLog.GetLogIndexForQuestID then
          local logIndex = C_QuestLog.GetLogIndexForQuestID(questID)
          if logIndex then
