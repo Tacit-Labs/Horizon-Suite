@@ -4,7 +4,6 @@
 ]]
 
 local addon = _G.HorizonSuite
-local L = addon.L
 local sectionPool = addon.sectionPool
 local scrollFrame = addon.scrollFrame
 
@@ -117,7 +116,13 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     until not (fadeOutKeys and s.groupKey and fadeOutKeys[s.groupKey])
     s.groupKey = groupKey
 
-    local label = L[addon.SECTION_LABELS[groupKey] or groupKey]
+    local labelKey = addon.SECTION_LABELS[groupKey] or groupKey
+    if groupKey == "RARESCANNER" and addon.GetDB("rs_sectionTitleRares", false) then
+        labelKey = "FOCUS_INTEGRATION_RARE_SECTION_TITLE_LABEL"
+    elseif groupKey == "SILVERDRAGON" and addon.GetDB("sd_sectionTitleRares", false) then
+        labelKey = "FOCUS_INTEGRATION_RARE_SECTION_TITLE_LABEL"
+    end
+    local label = addon.L[labelKey]
     label = addon.ApplyTextCase(label, "sectionHeaderTextCase", "upper")
     local color = addon.GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     addon.SetTextWithShadow(s.text, s.shadow, label)

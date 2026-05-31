@@ -88,6 +88,8 @@ local zoneLateRetry25Timer
 -- shown exactly once at load time and never touched again, its OnUpdate always
 -- fires in a clean execution — guaranteeing FullLayout and entry:Show() run
 -- clean regardless of how many tainted hooksecurefunc paths exist upstream.
+-- Combat layouts are still deferred below because protected Show() calls can
+-- block scrolling when new tracker entries appear mid-combat.
 local layoutDirtyFrame = CreateFrame("Frame")
 layoutDirtyFrame:Show()
 layoutDirtyFrame:SetScript("OnUpdate", function()
@@ -96,6 +98,7 @@ layoutDirtyFrame:SetScript("OnUpdate", function()
     if not addon.focus.enabled then return end
     if InCombatLockdown() then
         addon.focus.layoutPendingAfterCombat = true
+        return
     else
         addon.focus.layoutPendingAfterCombat = false
     end

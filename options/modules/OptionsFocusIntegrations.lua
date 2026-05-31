@@ -159,7 +159,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
                 refreshIds = {
-                    "rs_maxAlerts",
+                    "rs_maxAlerts", "rs_sectionTitleRares",
                     "rs_showRares", "rs_showTreasures", "rs_showEvents",
                     "rs_showCoords", "rs_autoWaypoint",
                     "rs_showPortrait", "rs_modelPosition", "rs_modelSize", "rs_modelOffsetX",
@@ -180,6 +180,22 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 set         = function(v) setDB("rs_maxAlerts", v) end,
+            }
+        ),
+
+        Toggle(
+            L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES"],
+            L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES_DESC"],
+            "rs_sectionTitleRares",
+            false,
+            {
+                id          = "rs_sectionTitleRares",
+                disabled    = RSDisabled,
+                visibleWhen = RSSubVisible,
+                set         = function(v)
+                    setDB("rs_sectionTitleRares", v)
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                end,
             }
         ),
 
@@ -512,7 +528,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
                 refreshIds = {
-                    "sd_maxAlerts",
+                    "sd_maxAlerts", "sd_sectionTitleRares",
                     "sd_showCoords", "sd_coordWaypoint", "sd_useTomTom",
                     "sd_autoWaypoint", "sd_showPortrait", "sd_modelPosition", "sd_modelSize", "sd_modelOffsetX",
                     "sd_clickToTarget", "sd_showRares", "sd_showLoot",
@@ -530,6 +546,22 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v) setDB("sd_maxAlerts", v) end,
+            }
+        ),
+
+        Toggle(
+            L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES"],
+            L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES_DESC"],
+            "sd_sectionTitleRares",
+            false,
+            {
+                id          = "sd_sectionTitleRares",
+                disabled    = SDDisabled,
+                visibleWhen = SDSubVisible,
+                set         = function(v)
+                    setDB("sd_sectionTitleRares", v)
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                end,
             }
         ),
 
