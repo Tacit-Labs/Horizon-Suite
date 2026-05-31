@@ -163,7 +163,7 @@ local function BuildScan()
                                 treasures[#treasures + 1] = {
                                     entryKey       = "vignette:" .. tostring(vignetteGUID),
                                     questID        = nil,
-                                    title          = vi.name or "Unknown",
+                                    title          = vi.name or L["FOCUS_UNKNOWN"],
                                     objectives     = {},
                                     color          = rareLootColor,
                                     category       = "RARE_LOOT",

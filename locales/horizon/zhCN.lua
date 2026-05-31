@@ -2365,3 +2365,6 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- Focus — Delve spell fallback name
 -- =====================================================================
 -- L["FOCUS_DELVE_SPELL_FALLBACK_FMT"]                        = "Spell %d"
+
+-- L["FOCUS_SLASH_DBG_RECIPE_NO_TRACKED"]                     = "No tracked recipes. Track some in the profession UI, or use: /horizon recipedebug 12345"
+-- L["FOCUS_AH_RECIPE_FALLBACK"]                              = "Recipe"

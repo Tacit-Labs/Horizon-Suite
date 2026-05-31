@@ -754,7 +754,7 @@ local function DebugRecipeReagents(recipeID)
         targets = GetTrackedRecipeIDs()
     end
     if #targets == 0 then
-        HSPrint("No tracked recipes. Track some in the profession UI, or use: /horizon recipedebug 12345")
+        HSPrint(L["FOCUS_SLASH_DBG_RECIPE_NO_TRACKED"])
         return
     end
 

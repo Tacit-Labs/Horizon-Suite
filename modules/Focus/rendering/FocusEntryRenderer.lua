@@ -344,7 +344,7 @@ function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount, opts)
     end
     local terms = EncodeAuctionatorTermsFromParts(parts, mult, useIQ, useCT, forceTier)
     if #terms == 0 then return end
-    local recipeName = "Horizon - " .. (entry._ahRecipeName or "Recipe")
+    local recipeName = L["NAME_ADDON"] .. " - " .. (entry._ahRecipeName or L["FOCUS_AH_RECIPE_FALLBACK"])
     pcall(function()
         Auctionator.API.v1.CreateShoppingList(AUCTIONATOR_CALLER_ID, recipeName, terms)
         if AuctionatorTabs_Shopping then AuctionatorTabs_Shopping:Click() end
