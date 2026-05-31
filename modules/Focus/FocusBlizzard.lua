@@ -16,7 +16,13 @@ local WQT_ADDON_ALREADY_LOADED_DELAY = 1
 local hiddenParent = CreateFrame("Frame")
 hiddenParent:Hide()
 
+-- Tracks which frames are currently kill-suppressed; checked by persistent HookScript hooks.
+local killedFrames = {}
+
 -- Hides a frame by reparenting to hidden parent and blocking OnShow.
+-- Uses HookScript (not SetScript) to avoid replacing Blizzard's handler, and defers
+-- self:Hide() via C_Timer.After(0) to break the Show call chain, preventing execution
+-- taint from propagating into EditMode-managed frames like Blizzard_CooldownViewer.
 local function KillBlizzardFrame(frame)
     if not frame then return end
     -- pcall: frame methods can throw on protected or invalid frames.
@@ -25,8 +31,19 @@ local function KillBlizzardFrame(frame)
         frame:SetParent(hiddenParent)
         frame:Hide()
         frame:SetAlpha(0)
-        frame:SetScript("OnShow", function(self) self:Hide() end)
     end)
+    killedFrames[frame] = true
+    if not frame._focusKillHooked then
+        frame._focusKillHooked = true
+        pcall(function()
+            -- HookScript persists; killedFrames[self] gates whether to act.
+            frame:HookScript("OnShow", function(self)
+                if killedFrames[self] then
+                    C_Timer.After(0, function() self:Hide() end)
+                end
+            end)
+        end)
+    end
 end
 
 local trackerSuppressed = false
@@ -91,9 +108,10 @@ end
 
 --- Restore the default objective tracker and WQT panel when Focus is disabled.
 local function RestoreTracker()
-    -- WQT OnShow hook is left in place: HookScript can't be removed and it no-ops when disabled.
+    -- HookScript hooks can't be removed; killedFrames[frame] = nil makes them no-op instead.
     if not trackerSuppressed then return end
     if ObjectiveTrackerFrame then
+        killedFrames[ObjectiveTrackerFrame] = nil
         -- pcall: frame methods can throw on protected or invalid frames.
         pcall(function()
             ObjectiveTrackerFrame:SetParent(UIParent)
@@ -101,19 +119,18 @@ local function RestoreTracker()
             ObjectiveTrackerFrame:SetPoint("TOPRIGHT", MinimapCluster or UIParent, "BOTTOMRIGHT", 0, 0)
             ObjectiveTrackerFrame:SetAlpha(1)
             ObjectiveTrackerFrame:Show()
-            ObjectiveTrackerFrame:SetScript("OnShow", nil)
         end)
         trackerSuppressed = false
     end
     if wqtSuppressed then
         local wqtFrame = _G.WorldQuestTrackerScreenPanel
         if wqtFrame then
+            killedFrames[wqtFrame] = nil
             -- pcall: frame methods can throw on protected or invalid frames.
             pcall(function()
                 wqtFrame:SetParent(UIParent)
                 wqtFrame:SetAlpha(1)
                 wqtFrame:Show()
-                wqtFrame:SetScript("OnShow", nil)
             end)
             wqtSuppressed = false
         end

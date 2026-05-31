@@ -47,7 +47,15 @@ local function KillBlizzardFrame(frame)
     end)
     if not ok1 and addon.HSPrint then addon.HSPrint("Presence KillBlizzardFrame hide failed: " .. tostring(err1)) end
     local ok2, err2 = pcall(function()
-        frame:SetScript("OnShow", function(self) self:Hide() end)
+        -- HookScript instead of SetScript: adds a hook without replacing Blizzard's handler.
+        -- C_Timer.After(0) defers the Hide out of the Show call chain to prevent execution
+        -- taint from propagating into EditMode-managed frames like Blizzard_CooldownViewer.
+        -- suppressedFrames[self] guard lets RestoreBlizzardFrame re-enable Show.
+        frame:HookScript("OnShow", function(self)
+            if suppressedFrames[self] then
+                C_Timer.After(0, function() self:Hide() end)
+            end
+        end)
     end)
     if not ok2 and addon.HSPrint then addon.HSPrint("Presence KillBlizzardFrame OnShow hook failed: " .. tostring(err2)) end
     if not hookedShowFrames[frame] then
@@ -55,7 +63,7 @@ local function KillBlizzardFrame(frame)
         pcall(function()
             hooksecurefunc(frame, "Show", function(self)
                 if suppressedFrames[self] then
-                    self:Hide()
+                    C_Timer.After(0, function() self:Hide() end)
                 end
             end)
         end)
@@ -66,7 +74,6 @@ end
 local function RestoreBlizzardFrame(frame)
     if not frame or not suppressedFrames[frame] then return end
     local ok, err = pcall(function()
-        frame:SetScript("OnShow", nil)
         frame:SetParent(originalParents[frame] or UIParent)
         frame:SetAlpha(originalAlphas[frame] or 1)
         local pt = originalPoints[frame]
