@@ -98,7 +98,6 @@ layoutDirtyFrame:SetScript("OnUpdate", function()
     if not addon.focus.enabled then return end
     if InCombatLockdown() then
         addon.focus.layoutPendingAfterCombat = true
-        return
     else
         addon.focus.layoutPendingAfterCombat = false
     end

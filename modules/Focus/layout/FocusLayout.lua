@@ -1199,7 +1199,11 @@ local function FullLayout()
                     div:SetSize(divW, divH)
                     div:ClearAllPoints()
                     div:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", divX, yOff)
-                    div:Show()
+                    if not InCombatLockdown() or div:IsShown() then
+                        div:Show()
+                    else
+                        addon.focus.layoutPendingAfterCombat = true
+                    end
                     yOff = yOff - divH - (sectionGap - divPad)
                 else
                     yOff = yOff - sectionGap
@@ -1323,7 +1327,11 @@ local function FullLayout()
                         end
                     end
 
-                    entry:Show()
+                    if not InCombatLockdown() or entry:IsShown() then
+                        entry:Show()
+                    else
+                        addon.focus.layoutPendingAfterCombat = true
+                    end
                     entry._scrollFadeSpacing = entrySpacing
                     yOff = yOff - entry.entryHeight - entrySpacing
                 end

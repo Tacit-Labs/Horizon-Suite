@@ -310,6 +310,11 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
         end
     end)
 
+    if InCombatLockdown() and not s:IsShown() then
+        addon.focus.layoutPendingAfterCombat = true
+        return nil
+    end
+
     s.active = true
     if addon.focus.collapse.sectionHeadersFadingIn and addon.GetDB("animations", true) then
         local staggerIdx = addon.focus.layout.sectionIdx - 1
