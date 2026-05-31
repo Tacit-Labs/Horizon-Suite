@@ -33,6 +33,7 @@ addon.AUGMENT_DEFAULTS = {
     augmentSoundRep      = false,
     augmentSuppressBlizzard  = true,
     augmentStackDuplicates   = true,
+    augmentStackCountBeforeName = false,
     augmentCondenseJunk      = true,
 }
 
