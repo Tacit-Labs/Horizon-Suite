@@ -200,7 +200,7 @@ function addon.ShowURLCopyBox(url, accentSubtitle)
         f.accentStrip:SetColorTexture(ar, ag, ab, 1)
     end
     if f.subtitleLbl then
-        f.subtitleLbl:SetText(accentSubtitle or (L["FOCUS_COPY_LINK"]))
+        f.subtitleLbl:SetText(accentSubtitle or L["FOCUS_COPY_LINK"])
         f.subtitleLbl:SetTextColor(ar, ag, ab)
     end
     f.editBox:SetText(url)
