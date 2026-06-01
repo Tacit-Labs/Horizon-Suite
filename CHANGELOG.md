@@ -6,7 +6,14 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-<!-- Changelog entries are generated from closed GitHub Issues at release time. -->
+<!-- Changelog entries are generated from merged dev PRs (enriched with referenced issues) at release time. -->
+
+---
+
+## [5.0.2] – 2026-06-02
+
+### 🐛 Fixes
+- **(General)** Various bug fixes and taint error fixes.
 
 ---
 
