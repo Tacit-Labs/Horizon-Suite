@@ -23,9 +23,8 @@ For locale guidelines, see [Translate.md](docs/Translate.md).
 |<span style="color:#ff00ae;">**Crys**</span>|Crystilac|
 |<span style="color:#00c98e;">**Swift**</span>|SwiftMint|
 |<span style="color:#d883ff;">**Diva**</span>|nightsofglass|
-|<span style="color:#8a2be2;">**Alex**</span> |afroemberg|
 |<span style="color:#8a2be2;">**Sam**</span>|ProgrammingSam|
-|<span style="color:#8a2be2;">**Marthix**</span>|marthix
-|<span style="color:#8a2be2;">**Feanor**</span>|feanor211
+|<span style="color:#8a2be2;">**Alex**</span> |afroemberg|
+|<span style="color:#8a2be2;">**Marthix**</span>|marthix|
 
 ---
