@@ -382,9 +382,12 @@ L["AXIS_ENABLE_PER_SPECIALIZATION_PROFILES"]                  = "Profil pro Spez
 L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"]                    = "Wähle unterschiedliche Profile für Spezialisierungen."
 L["AXIS_SPECIALIZATION"]                                      = "Spezialisierung"
 L["AXIS_SPEC_PROFILES"]                                       = "Profile nach Spezialisierung"
+-- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
 L["AXIS_ENABLE"]                                              = "Einschalten"
 L["AXIS_SHARING"]                                             = "Teilen"
 L["AXIS_IMPORT_PROFILE"]                                      = "Profil importieren"
+-- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
+-- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 L["AXIS_IMPORT_STRING"]                                       = "Import-Zeichenkette"
 L["AXIS_EXPORT_PROFILE"]                                      = "Profil exportieren"
 L["AXIS_SELECT_A_PROFILE_EXPORT"]                             = "Wähle ein Profil für den Export"
@@ -2223,11 +2226,6 @@ L["ZONE_LABELS"]                                              = "Zonenbeschriftu
 L["ZONE_NAME_NEW_ZONE"]                                       = "Der Zonenname erscheint weiterhin beim Betreten einer neuen Zone."
 L["ZONE_TYPE_COLOURING"]                                      = "Färbung nach Zonentyp"
 L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t anstelle von grüngefärbten abgeschlossenen Zielen."
-
-
--- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
--- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
--- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 -- =====================================================================
 -- Augment — Self Highlight
 -- =====================================================================

@@ -376,9 +376,12 @@ L["AXIS_ENABLE_PER_SPECIALIZATION_PROFILES"]                  = "启用专精配
 L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"]                    = "为每项专精选择不同配置文件"
 L["AXIS_SPECIALIZATION"]                                      = "专精"
 -- L["AXIS_SPEC_PROFILES"]                                    = "Spec Profiles"
+-- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
 -- L["AXIS_ENABLE"]                                           = "Enable"
 L["AXIS_SHARING"]                                             = "分享"
 L["AXIS_IMPORT_PROFILE"]                                      = "导入配置文件"
+-- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
+-- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 L["AXIS_IMPORT_STRING"]                                       = "导入字符串"
 L["AXIS_EXPORT_PROFILE"]                                      = "导出配置文件"
 L["AXIS_SELECT_A_PROFILE_EXPORT"]                             = "选择要导出的配置文件"
@@ -2214,11 +2217,6 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 -- L["ZONE_TYPE_COLOURING"]                                   = "Zone Type Colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
-
-
--- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
--- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
--- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 -- =====================================================================
 -- Augment — Self Highlight
 -- =====================================================================
