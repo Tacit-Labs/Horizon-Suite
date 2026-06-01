@@ -1,4 +1,4 @@
-﻿if GetLocale() ~= "ptBR" then return end
+if GetLocale() ~= "ptBR" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -2215,6 +2215,9 @@ L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ blo
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
 
 
+-- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
+-- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
+-- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 -- =====================================================================
 -- Augment — Self Highlight
 -- =====================================================================
