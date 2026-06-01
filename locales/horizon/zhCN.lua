@@ -398,7 +398,7 @@ L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"]             = "选择要删除
 L["AXIS_DELETE_SELECTED"]                                     = "删除选中项"
 -- L["AXIS_DELETE_SELECTED_PROFILE"]                          = "Delete Selected Profile"
 L["AXIS_DELETE"]                                              = "删除"
-L["AXIS_DELETES_SELECTED_PROFILE"]                            = "删除选中的配置文件"
+L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                            = "删除选中的配置文件"
 L["AXIS_GLOBAL_PROFILE"]                                      = "全局配置文件"
 L["AXIS_PER_SPEC_PROFILES"]                                   = "专精配置文件"
 

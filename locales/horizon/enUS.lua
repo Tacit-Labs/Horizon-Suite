@@ -417,7 +417,7 @@ L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"]             = "Select a profil
 L["AXIS_DELETE_SELECTED"]                                     = "Delete Selected"
 L["AXIS_DELETE_SELECTED_PROFILE"]                             = "Delete Selected Profile"
 L["AXIS_DELETE"]                                              = "Delete"
-L["AXIS_DELETES_SELECTED_PROFILE"]                            = "Deletes the Selected Profile."
+L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                            = "Deletes the Selected Profile."
 L["AXIS_GLOBAL_PROFILE"]                                      = "Global Profile"
 L["AXIS_PER_SPEC_PROFILES"]                                   = "Per-Spec Profiles"
 
