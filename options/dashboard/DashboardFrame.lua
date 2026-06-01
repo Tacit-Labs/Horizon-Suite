@@ -2438,7 +2438,7 @@ function addon.Dashboard_BuildMainFrame()
             grabber:SetScript("OnEnter", function(self)
                 if not _dragActive then setGripAlpha(0.9) end
                 GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-                GameTooltip:SetText(addon.L["DASH_RESIZE_TOOLTIP"], 1, 1, 1, 1)
+                GameTooltip:SetText(L["DASH_RESIZE_TOOLTIP"], 1, 1, 1, 1)
                 GameTooltip:Show()
             end)
 

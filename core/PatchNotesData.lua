@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.0.2"] = {
+        date = "2026-06-02",
+        {
+            section = "Fixes",
+            bullets = {
+                "General: various bug fixes and taint error fixes.",
+            },
+        },
+    },
+
     ["5.0.1"] = {
         date = "2026-05-29",
         {

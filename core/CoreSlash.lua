@@ -41,6 +41,7 @@ local function ShowCoreHelp()
     HSPrint("  /hopt, /h options    - Open options")
     HSPrint("  /h notes             - Show latest patch notes")
     HSPrint("  /h devmode           - Toggle Dev Mode (show Blizzard tracker alongside Focus)")
+    HSPrint("  /hlocaledev          - Toggle locale dev mode (UI shows locale keys; reload required)")
     HSPrint("  /h focus [cmd]       - Tracker (toggle, collapse, test, ...)")
     HSPrint("  /hfs delvedebug      - Delve / Nemesis widget debug (alias: /h debug focus delvedebug)")
     HSPrint("  /h scenario debug    - Scenario timer debug (diagnose missing timers)")
@@ -199,4 +200,16 @@ end
 SLASH_HSOPT1 = "/hopt"
 SlashCmdList["HSOPT"] = function()
     OnSlashCommand("options")
+end
+
+SLASH_HSLOCALEDEV1 = "/hlocaledev"
+SlashCmdList["HSLOCALEDEV"] = function()
+    local db = _G[addon.DATABASE]
+    if not db then HSPrint("Database not ready."); return end
+    db.localeDevMode = not db.localeDevMode
+    if db.localeDevMode then
+        HSPrint("|cffff8800Locale dev mode enabled.|r Type |cffffff00/reload|r to apply.")
+    else
+        HSPrint("Locale dev mode disabled. Type |cffffff00/reload|r to apply.")
+    end
 end

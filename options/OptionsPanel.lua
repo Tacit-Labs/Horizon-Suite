@@ -1690,7 +1690,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             for _, key in ipairs(keys) do
                 local getTbl = function() local db = getDB(opt.dbKey, nil) return db and db[key] end
                 local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DATABASE]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
-                local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], defaultMap[key], getTbl, setKeyVal, notifyMainAddon)
+                local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], defaultMap[key], getTbl, setKeyVal, notifyMainAddon)
                 currentCard.contentAnchor = row
                 currentCard.contentHeight = currentCard.contentHeight + 4 + 24
                 swatches[#swatches+1] = row
@@ -1814,7 +1814,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
             -- + a Reset button. Fixed height, no expand/collapse.
             -- ---------------------------------------------------------------
             local function BuildCompactColorCard(parentFrame, key)
-                local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
+                local labelBase = L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
                 local container = CreateFrame("Frame", nil, parentFrame)
                 container:SetHeight(COMPACT_CARD_H)
                 container.groupKey = key
@@ -1850,7 +1850,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                 local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"])) or ((addon.L and addon.L["FOCUS_ZONE"]))
+                local zoneLabel = (key == "SCENARIO") and (L["UI_STAGE"]) or (L["FOCUS_ZONE"])
                 local catDefs = {
                     { subKey = "section",   abbr = "Sec",   full = "Section",   def = unifiedDef },
                     { subKey = "title",     abbr = "Title", full = "Title",     def = unifiedDef },
@@ -2569,7 +2569,7 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
                 local getTbl = function() local db = getDB(opt.dbKey, nil) return db and db[key] end
                 local setKeyVal = function(v) addon.EnsureDB(); local _rdb = _G[addon.DATABASE]; if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end; _rdb[opt.dbKey][key] = v; if not addon._colorPickerLive then notifyMainAddon() end end
                 local def = defaultMap[key] or {0.5,0.5,0.5}
-                local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], def, getTbl, setKeyVal, notifyMainAddon)
+                local row = OptionsWidgets_CreateColorSwatchRow(cardContent, currentCard.contentAnchor, L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)], def, getTbl, setKeyVal, notifyMainAddon)
                 currentCard.contentAnchor = row
                 currentCard.contentHeight = currentCard.contentHeight + 4 + 24
                 swatches[#swatches+1] = row

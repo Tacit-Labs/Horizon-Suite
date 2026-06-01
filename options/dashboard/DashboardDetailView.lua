@@ -5,7 +5,7 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 --- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
 --- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
 --- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
@@ -1568,7 +1568,7 @@ function addon.DashboardDetailView_Init(env)
                             _rdb[opt.dbKey][key] = v
                             if not addon._colorPickerLive and addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
                         end
-                        local labelText = addon.L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)]
+                        local labelText = L[(opt.labelMap and opt.labelMap[key]) or key:gsub("^%l", string.upper)]
                         local row = _G.OptionsWidgets_CreateColorSwatchRow(cmContainer, nil, labelText, defaultMap[key], getTbl, setKeyVal, function() if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end end)
                         row:ClearAllPoints()
                         row:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 10, yOff)
@@ -1656,7 +1656,7 @@ function addon.DashboardDetailView_Init(env)
 
                     -- Build a compact color card for a category
                     local function BuildCompactCard(parentFrame, key)
-                        local labelBase = addon.L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
+                        local labelBase = L[(addon.SECTION_LABELS and addon.SECTION_LABELS[key]) or key]
                         local card = CreateFrame("Frame", nil, parentFrame)
                         card:SetHeight(CARD_H)
                         card.groupKey = key
@@ -1717,7 +1717,7 @@ function addon.DashboardDetailView_Init(env)
                         local sectionColor = (addon.SECTION_COLORS and addon.SECTION_COLORS[key]) or (addon.SECTION_COLORS and addon.SECTION_COLORS.DEFAULT) or { 0.9, 0.9, 0.9 }
                         local unifiedDef = (key == "NEARBY" or key == "CURRENT" or key == "CURRENT_EVENT") and sectionColor or baseColor
 
-                        local zoneLabel = (key == "SCENARIO") and ((addon.L and addon.L["UI_STAGE"])) or ((addon.L and addon.L["FOCUS_ZONE"]))
+                        local zoneLabel = (key == "SCENARIO") and (L["UI_STAGE"]) or (L["FOCUS_ZONE"])
                         local catDefs = {
                             { subKey = "section",   abbr = L["FOCUS_SECTION"],   full = "Section",   def = unifiedDef },
                             { subKey = "title",     abbr = L["FOCUS_TITLE"],     full = "Title",     def = unifiedDef },
