@@ -26,4 +26,3 @@ ignore:
   - .vscode
   - .release
   - .gitattributes
-  - .gitignore
