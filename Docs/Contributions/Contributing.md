@@ -11,9 +11,11 @@ The most direct way to do so is through our Discord server. We do check our Curs
 [![Discord Server](https://img.shields.io/badge/Discord-black?&style=for-the-badge&logo=discord&logoSize=auto)](https://discord.gg/nFabdZmvSB)[![Patreon Page](https://img.shields.io/badge/patreon-donate?&style=for-the-badge&label=%20&logo=patreon&logoSize=auto&color=000000)](https://www.patreon.com/c/HorizonSuite)[![Ko-fi Page](https://img.shields.io/badge/Ko--fi-black?&style=for-the-badge&logo=kofi&logoSize=auto&logoColor=FF6433)](https://ko-fi.com/horizonsuite)
 
 **Contributions are always welcome!**
-For coding conventions, see [Code.md](docs/Code.md).
-For coding contributions, see [Repository.md](docs/Repository.md)
-For locale guidelines, see [Translate.md](docs/Translate.md).
+|Contribution Type|Corresponding File for More Information|
+|----------------------|--------------------------------------------------|
+For coding conventions, see `Docs/Contributions/Code.md`.
+For GitHub contributions, see `Docs/Contributions/Repository/Repository.md`.
+For locale guidelines, see `Docs/Contributions/Translate.md`.
 
 ---
 
