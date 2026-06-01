@@ -9,7 +9,7 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 local function EnsureRootDB()
     local db = _G[addon.DATABASE]
     if not db then
@@ -69,7 +69,7 @@ function addon.NewSettings_ResolveDisplayName(opt, optId)
         return raw
     end
     if opt.isNew and addon.NewSettings_IsUnread(optId, opt.isNew) then
-        local suffix = (addon.L and addon.L["DASH_WHATS_NEW_UNREAD_SUFFIX"])
+        local suffix = L["DASH_WHATS_NEW_UNREAD_SUFFIX"]
         -- Matches the Patch Notes sidebar green (WHATSNEW_GREEN in core/PatchNotes.lua:105).
         return base .. "|cff52e680" .. suffix .. "|r"
     end

@@ -2048,7 +2048,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         SetSafeFont(lab, Def.FontPath, Def.LabelSize, nil)
         lab:SetJustifyH("LEFT")
         SetTextColor(lab, Def.TextColorLabel)
-        lab:SetText(addon.L[(labelMap[key]) or key:gsub("^%l", string.upper)])
+        lab:SetText(L[(labelMap[key]) or key:gsub("^%l", string.upper)])
         lab:SetPoint("LEFT", row, "LEFT", 24, 0)
         row.label = lab
         local grip = row:CreateFontString(nil, "OVERLAY")
@@ -2204,7 +2204,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             local emptyLabel = listFrame:CreateFontString(nil, "OVERLAY")
             SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, nil)
             SetTextColor(emptyLabel, Def.TextColorSection)
-            emptyLabel:SetText(addon.L and addon.L["HIDDEN_QUESTS"])
+            emptyLabel:SetText(L["HIDDEN_QUESTS"])
             emptyLabel:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
             local emptyRow = CreateFrame("Frame", nil, listFrame)
             emptyRow:SetHeight(20)
@@ -2233,7 +2233,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             nameLbl:SetPoint("LEFT", row, "LEFT", 0, 0)
             nameLbl:SetJustifyH("LEFT")
 
-            local unblockBtn = _G.OptionsWidgets_CreateButton(row, addon.L and addon.L["UNBLOCK"], function()
+            local unblockBtn = _G.OptionsWidgets_CreateButton(row, L["UNBLOCK"], function()
                 if addon.GetDB then
                     local bl = addon.GetDB("questBlacklist", nil)
                     if bl and type(bl) == "table" then
