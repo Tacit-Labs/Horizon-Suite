@@ -514,7 +514,7 @@ local function PopulatePopup(rows, mapID, zoneName)
     if not popupFrame or not contentFrame then return end
 
     local count = #rows
-    popupFrame.titleText:SetText(L["PRESENCE_UNACCEPTED_QUESTS_X_MAP_X"]):format(zoneName, tostring(mapID), count))
+    popupFrame.titleText:SetText((L["PRESENCE_UNACCEPTED_QUESTS_X_MAP_X"]):format(zoneName, tostring(mapID), count))
 
     local contentWidth = (scrollFrame and scrollFrame:GetWidth() and scrollFrame:GetWidth() > 0)
         and scrollFrame:GetWidth()

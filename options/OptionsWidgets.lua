@@ -2204,7 +2204,7 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
             local emptyLabel = listFrame:CreateFontString(nil, "OVERLAY")
             SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, nil)
             SetTextColor(emptyLabel, Def.TextColorSection)
-            emptyLabel:SetTextL["HIDDEN_QUESTS"]
+            emptyLabel:SetText(L["HIDDEN_QUESTS"])
             emptyLabel:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
             local emptyRow = CreateFrame("Frame", nil, listFrame)
             emptyRow:SetHeight(20)
