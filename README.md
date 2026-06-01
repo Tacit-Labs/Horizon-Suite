@@ -124,15 +124,15 @@ Tooltips that actually tell you who/what you're looking at.
 The more people that use Horizon Suite, the more feedback we have to drive the future of the AddOn.
 Horizon Suite would not be where it is without our lovely community.
 
-||||||||
-|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
-|<span style="color:#ff00ae;">**Crys**</span>|<span style="color:#00c98e;">**Swift**</span>|<span style="color:#d883ff;">**Diva**</span>|<span style="color:#8a2be2;">**Sam**</span>|<span style="color:#8a2be2;">**Alex**</span> |<span style="color:#8a2be2;">**Marthix**</span>|<span style="color:#8a2be2;">**Feanor**</span>|
-Author|Coordinator|Innovator|Developer|Developer|Developer|Developer|
+|||||||
+|:----:|:----:|:----:|:----:|:----:|:----:|
+|<span style="color:#ff00ae;">**Crys**</span>|<span style="color:#00c98e;">**Swift**</span>|<span style="color:#d883ff;">**Diva**</span>|<span style="color:#8a2be2;">**Sam**</span>|<span style="color:#8a2be2;">**Alex**</span> |<span style="color:#8a2be2;">**Marthix**</span>|
+|Author|Coordinator|Innovator|Developer|Developer|Developer|
 
 
 ||||||
 |:----:|:----:|:----:|:----:|:----:|
-|<span style="color:#F5DEB3;">**Alex**</span>|<span style="color:#F5DEB3;">**Aishuu**</span>|<span style="color:#F5DEB3;">**아즈샤라-두녘**</span>|<span style="color:#F5DEB3;">**Linho-Gallywix**</span>|<span style="color:#F5DEB3;">**allmoon**</span>|
+|<span style="color:#F5DEB3;">**Alex**</span>|<span style="color:#F5DEB3;">**Aishuu**</span>|<span style="color:#F5DEB3;">**아즈샤라-두녘**</span>|<span style="color:#F5DEB3;">**Linho-Gallywix**</span>|<span style="color:#F5DEB3;">**allmoon**</span>, <span style="color:#F5DEB3;">**小熊酱**</span>|
 |`deDE`|`frFR`|`koKR`|`ptBR`|`zhCN`|
 
 **Additional translations (starting or continuing) are always welcome!**
