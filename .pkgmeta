@@ -15,7 +15,7 @@ ignore:
   - .pkgmeta
   - scripts
   - tools
-  - Docs
+  - Docs/Contributions
   - notes
   - "modules/*/notes"
   - locales/KeyNomenclature.md
@@ -24,3 +24,6 @@ ignore:
   - .cursor
   - .claude
   - .vscode
+  - .release
+  - .gitattributes
+  - .gitignore
