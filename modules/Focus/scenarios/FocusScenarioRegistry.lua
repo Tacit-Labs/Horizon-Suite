@@ -4,13 +4,13 @@
 ]]
 
 local addon = _G.HorizonSuite
-
+local L = addon.L
 local providers = {}
 local Registry = {}
 
 --- True when the current scenario is Abundance (TWW open-world scenario).
 local function IsAbundanceScenario()
-    local abundanceLabel = (addon.L and addon.L["UI_ABUNDANCE"])
+    local abundanceLabel = L["UI_ABUNDANCE"]
     local lowerLabel = abundanceLabel:lower()
     local ok, name = pcall(C_Scenario.GetInfo)
     if ok and name and type(name) == "string" and name:lower():find(lowerLabel, 1, true) then

@@ -7,7 +7,7 @@
 
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 local PADDING = 12
 local ROW_HEIGHT = 22
 local POPUP_WIDTH = 900
@@ -468,7 +468,7 @@ local function CreatePopupFrame()
     refreshBtn:EnableMouse(true)
     local refreshLabel = refreshBtn:CreateFontString(nil, "OVERLAY")
     refreshLabel:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
-    refreshLabel:SetText(addon.L["PRESENCE_REFRESH"])
+    refreshLabel:SetText(L["PRESENCE_REFRESH"])
     refreshLabel:SetPoint("CENTER", refreshBtn, "CENTER", 0, 0)
     refreshBtn:SetScript("OnClick", function()
         addon.ShowUnacceptedPopup()
@@ -500,7 +500,7 @@ local function CreatePopupFrame()
     footer:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -PADDING, PADDING)
     footer:SetJustifyH("LEFT")
     footer:SetWordWrap(true)
-    footer:SetText(addon.L["PRESENCE_BEST_EFFORT_UNACCEPTED_QUESTS_EXPO"])
+    footer:SetText(L["PRESENCE_BEST_EFFORT_UNACCEPTED_QUESTS_EXPO"])
     panel.footerText = footer
 
     popupFrame = panel
@@ -514,7 +514,7 @@ local function PopulatePopup(rows, mapID, zoneName)
     if not popupFrame or not contentFrame then return end
 
     local count = #rows
-    popupFrame.titleText:SetText((addon.L["PRESENCE_UNACCEPTED_QUESTS_X_MAP_X"]):format(zoneName, tostring(mapID), count))
+    popupFrame.titleText:SetText(L["PRESENCE_UNACCEPTED_QUESTS_X_MAP_X"]):format(zoneName, tostring(mapID), count))
 
     local contentWidth = (scrollFrame and scrollFrame:GetWidth() and scrollFrame:GetWidth() > 0)
         and scrollFrame:GetWidth()

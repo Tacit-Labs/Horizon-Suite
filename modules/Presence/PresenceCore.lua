@@ -14,7 +14,7 @@
 ]]
 local addon = _G.HorizonSuite
 if not addon then return end
-
+local L = addon.L
 
 
 addon.Presence = addon.Presence or {}
@@ -746,8 +746,8 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, 
 
     local showDiscovery = opts.showDiscovery or (not forPreview and addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
     if showDiscovery then
-        layer.discoveryText:SetText(addon.L and addon.L["PRESENCE_DISCOVERED"])
-        layer.discoveryShadow:SetText(addon.L and addon.L["PRESENCE_DISCOVERED"])
+        layer.discoveryText:SetText(L["PRESENCE_DISCOVERED"])
+        layer.discoveryShadow:SetText(L["PRESENCE_DISCOVERED"])
         local dc = getDiscoveryColor()
         layer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
         layer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)
@@ -1112,8 +1112,8 @@ end
 local function ShowDiscoveryLine()
     if not curLayer then return end
     if addon.GetDB and not addon.GetDB("showPresenceDiscovery", true) then return end
-    curLayer.discoveryText:SetText(addon.L["PRESENCE_DISCOVERED"])
-    curLayer.discoveryShadow:SetText(addon.L["PRESENCE_DISCOVERED"])
+    curLayer.discoveryText:SetText(L["PRESENCE_DISCOVERED"])
+    curLayer.discoveryShadow:SetText(L["PRESENCE_DISCOVERED"])
     local dc = getDiscoveryColor()
     curLayer.discoveryText:SetTextColor(dc[1], dc[2], dc[3], 1)
     curLayer.discoveryShadow:SetTextColor(0, 0, 0, (addon.SHADOW_A ~= nil) and addon.SHADOW_A or 0.8)

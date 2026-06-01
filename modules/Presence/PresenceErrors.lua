@@ -6,7 +6,7 @@
 
 local addon = _G.HorizonSuite
 if not addon or not addon.Presence then return end
-
+local L = addon.L
 -- ============================================================================
 -- Private helpers
 -- ============================================================================
@@ -14,7 +14,7 @@ if not addon or not addon.Presence then return end
 local uiErrorsHooked = false
 
 local function OnUIErrorsAddMessage(self, msg)
-    local discoveredStr = (addon.L and addon.L["PRESENCE_DISCOVERED"])
+    local discoveredStr = L["PRESENCE_DISCOVERED"]
     if msg and msg:find(discoveredStr, 1, true) then
         addon.Presence.SetPendingDiscovery()
         local phase = addon.Presence.animPhase and addon.Presence.animPhase()
