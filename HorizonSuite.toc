@@ -157,3 +157,8 @@ options/dashboard/DashboardPatchNotesContent.lua
 options/dashboard/DashboardPatchNotesModal.lua
 options/dashboard/DashboardFrame.lua
 options/dashboard/DashboardPanel.lua
+
+Docs/Branding/HorizonClassIcons.png
+Docs/Branding/HorizonLogo.blp
+Docs/Branding/HorizonLogo.png
+Docs/Branding/HorizonLogo.tga
