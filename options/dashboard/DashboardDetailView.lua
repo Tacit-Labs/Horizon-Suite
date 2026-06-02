@@ -760,6 +760,8 @@ function addon.DashboardDetailView_Init(env)
         if cat.icon then
             if type(cat.icon) == "number" then
                 iconTex:SetTexture(cat.icon)
+            elseif cat.icon:find("[\\/]") then
+                iconTex:SetTexture(cat.icon)
             else
                 iconTex:SetTexture("Interface\\Icons\\" .. cat.icon)
             end

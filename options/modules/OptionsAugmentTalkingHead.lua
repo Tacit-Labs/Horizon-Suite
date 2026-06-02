@@ -49,7 +49,7 @@ local category = {
     name       = L["TALKING_HEAD"],
     desc       = L["TALKING_HEAD_CATEGORY_DESC"],
     moduleKey  = "augment",
-    icon       = 1531089,
+    icon       = "Interface\\AddOns\\HorizonSuite\\media\\RaceIcons\\Charactercreate-races_dracthyr-visage-female",
     accentColor = { 0.55, 0.80, 0.95 },
     enabledKey = "augmentTalkingHeadEnabled",
     getEnabled = function() return getDB("augmentTalkingHeadEnabled", true) ~= false end,
