@@ -346,26 +346,10 @@ addon.focus.clickConfig = {
     profilesLockedToBlizzard   = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD,
 }
 
--- ============================================================================
--- One-time migration: map old useClassicClickBehaviour → focusClickProfile.
--- Runs at file load (after addon.GetDB / addon.SetDB are available via Core.lua).
--- ============================================================================
-
-local function MigrateClickProfile()
-    -- Skip if already migrated (focusClickProfile is set).
-    if addon.GetDB("focusClickProfile", nil) ~= nil then return end
-
-    local wasClassic = addon.GetDB("useClassicClickBehaviour", false)
-    if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD or wasClassic then
-        addon.SetDB("focusClickProfile", "blizzardDefault")
-    else
-        addon.SetDB("focusClickProfile", "horizonPlus")
-    end
-    -- useClassicClickBehaviour is intentionally left in DB for safe rollback.
-end
-
---- While profiles are locked to Blizzard, coerce horizonPlus/custom saves to blizzardDefault.
---- @return nil
+-- While profiles are locked to Blizzard, coerce horizonPlus/custom saves to blizzardDefault.
+-- Migration of useClassicClickBehaviour → focusClickProfile is handled by
+-- core/migrations/20260410_focus_click_profile.lua (runs inside EnsureDB).
+-- @return nil
 local function NormalizeFocusClickProfileToBlizzard()
     if not FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then return end
     local p = addon.GetDB("focusClickProfile", "blizzardDefault")
@@ -374,5 +358,4 @@ local function NormalizeFocusClickProfileToBlizzard()
     end
 end
 
-MigrateClickProfile()
 NormalizeFocusClickProfileToBlizzard()

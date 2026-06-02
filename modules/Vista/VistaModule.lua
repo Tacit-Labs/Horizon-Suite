@@ -16,7 +16,18 @@ addon:RegisterModule("vista", {
         addon.EnsureDB()
         if not addon.GetActiveProfile or not addon.SetDB then return end
 
-        -- One-time migration: DB.modules.vista and ModernMinimapDB -> profile
+        -- One-time migration: copy legacy position/scale/state from db.modules.vista or
+        -- ModernMinimapDB into the active profile via addon.SetDB.
+        --
+        -- Why this lives here instead of core/migrations/:
+        --   This transform must run after the profile system is fully initialised AND
+        --   after this specific module is enabled, because it writes to the ACTIVE profile
+        --   via addon.SetDB (which resolves per-profile keys at call time). The migration
+        --   runner in EnsureDB fires too early to know which module the active character
+        --   is using. Iterating all profiles from the runner would also be wrong here,
+        --   because ModernMinimapDB is a single global — it can only be migrated once for
+        --   the character that owns it, not blindly into every profile.
+        --   Guard: modDb.migratedToProfile (on db.modules.vista) — set on first run.
         local db = _G[addon.DATABASE]
         if not db then db = {}; _G[addon.DATABASE] = db end
         if not db.modules then db.modules = {} end

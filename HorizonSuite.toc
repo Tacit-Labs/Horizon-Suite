@@ -26,6 +26,17 @@ Libs/LibSharedMedia-3.0/LibStub/LibStub.lua
 Libs/LibSharedMedia-3.0/CallbackHandler-1.0/CallbackHandler-1.0.lua
 Libs/LibSharedMedia-3.0/LibSharedMedia-3.0/LibSharedMedia-3.0.lua
 core/Config.lua
+core/migrations/MigrationRunner.lua
+core/migrations/20260221_combat_visibility.lua
+core/migrations/20260223_vista_presence_rename.lua
+core/migrations/20260301_classcolor_key_rename.lua
+core/migrations/20260403_dashboard_bg_midnight.lua
+core/migrations/20260403_2_dashboard_bg_teldrassil.lua
+core/migrations/20260406_quest_type_icons_default_on.lua
+core/migrations/20260410_focus_click_profile.lua
+core/migrations/20260507_mplus_always_show_reset.lua
+core/migrations/20260527_cache_augment_rename.lua
+core/migrations/20260527_2_cleanup_legacy_flags.lua
 core/Core.lua
 core/UrlCopyDialog.lua
 core/ProfileIO.lua
