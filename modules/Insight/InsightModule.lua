@@ -13,7 +13,17 @@ addon:RegisterModule("insight", {
 
     OnInit = function()
         -- Module on/off and db.modules.insight shape: addon:EnsureModulesDB() in HorizonSuite.lua.
-        -- Here: one-time migration from standalone ModernTooltip into the active profile.
+        --
+        -- One-time migration: copy anchor/position settings from the legacy standalone
+        -- ModernTooltipDB SavedVariable into the active Horizon profile via addon.SetDB.
+        --
+        -- Why this lives here instead of core/migrations/:
+        --   ModernTooltipDB is a single global written by the old standalone addon; it
+        --   belongs to a specific character, not all profiles.  Iterating all profiles from
+        --   the migration runner would incorrectly stamp every profile with the same values.
+        --   Running here (at module enable time) ensures we write to the correct active
+        --   profile for the character that actually used the old addon.
+        --   Guard: modDb.migratedFromModernTooltip (on db.modules.insight) — set on first run.
         addon.EnsureDB()
         local db = _G[addon.DATABASE]
         local modDb = db and db.modules and db.modules.insight

@@ -144,12 +144,13 @@ function addon:EnsureModulesDB()
         db.modules.vista = { enabled = false }
         db.modules.essence = { enabled = false }
     end
-    -- One-shot: old "vista" key was the social/Presence module; new "vista" = minimap.
-    -- Gated by _vistaPresenceMigrated so this never fires more than once regardless of DB
-    -- state. Uses migratedToProfile to detect when vista is already the new minimap module,
-    -- preventing the migration from resetting a user's enabled minimap to disabled.
-    if not db._vistaPresenceMigrated then
-        db._vistaPresenceMigrated = true
+    -- Migrate old Vista (Presence) module key to Presence; repurpose vista for minimap.
+    -- Guarded by db._migrations so this runs exactly once, preventing replays that
+    -- would disable Vista after the user has intentionally enabled it.
+    -- The corresponding migration file (20260223_vista_presence_rename.lua) registers
+    -- this id with the runner for bookkeeping; it will always find it already done here.
+    db._migrations = db._migrations or {}
+    if not db._migrations["20260223"] then
         if db.modules.vista and not db.modules.presence then
             if db.modules.vista.migratedToProfile then
                 -- vista already ran as the new minimap module; preserve its state.
@@ -157,9 +158,10 @@ function addon:EnsureModulesDB()
             else
                 -- vista was the old social/Presence module. Move to presence, reset vista.
                 db.modules.presence = { enabled = (db.modules.vista.enabled ~= false) }
-                db.modules.vista = { enabled = false }
+                db.modules.vista    = { enabled = false }
             end
         end
+        db._migrations["20260223"] = true
     end
     -- Ensure vista exists for existing installs (default enabled)
     if not db.modules.vista then

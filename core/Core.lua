@@ -699,84 +699,14 @@ function addon.SetActiveProfileKey(key)
     end
 end
 
--- One-time rename migration: the "Cache" loot-toast module became "Augment".
--- Move every persisted cache* option key, cache position key, and module-enabled
--- entry to its augment* equivalent so existing users keep their settings and
--- on/off state across the rename. Gated by db._augmentRenamed so it runs once.
-local function MigrateCacheToAugment(db)
-    if not db or db._augmentRenamed then return end
-
-    local function renameKeys(tbl)
-        if type(tbl) ~= "table" then return end
-        local moves
-        for k in pairs(tbl) do
-            if type(k) == "string" and k:sub(1, 5) == "cache" then
-                moves = moves or {}
-                moves[k] = "augment" .. k:sub(6)
-            end
-        end
-        if not moves then return end
-        for oldKey, newKey in pairs(moves) do
-            if tbl[newKey] == nil then tbl[newKey] = tbl[oldKey] end
-            tbl[oldKey] = nil
-        end
-    end
-
-    local function renameModuleEntry(modules)
-        if type(modules) == "table" and modules.cache ~= nil then
-            if modules.augment == nil then modules.augment = modules.cache end
-            modules.cache = nil
-        end
-    end
-
-    -- Keys that don't share the cache* prefix but still belong to the module
-    -- (e.g. the Axis class-colour toggle, stored as classColorCache).
-    local function renameFixedKeys(tbl)
-        if type(tbl) ~= "table" then return end
-        if tbl.classColorCache ~= nil then
-            if tbl.classColorAugment == nil then tbl.classColorAugment = tbl.classColorCache end
-            tbl.classColorCache = nil
-        end
-    end
-
-    -- Root-level keys (pre-profile-migration DBs) and the root module map.
-    renameKeys(db)
-    renameFixedKeys(db)
-    renameModuleEntry(db.modules)
-
-    -- Per-profile option keys and per-profile module maps.
-    if type(db.profiles) == "table" then
-        for _, prof in pairs(db.profiles) do
-            if type(prof) == "table" then
-                renameKeys(prof)
-                renameFixedKeys(prof)
-                renameModuleEntry(prof.modules)
-            end
-        end
-    end
-
-    db._augmentRenamed = true
-end
-
 EnsureProfilesAndMigrateLegacy = function()
     local db = rawDB()
-    MigrateCacheToAugment(db)
     if db._profilesValidated then return end
 
     db.profiles = db.profiles or {}
-    -- Axis class colour keys (migrate legacy dashboardClassColor / vistaClassColor once per profile)
-    for _, prof in pairs(db.profiles) do
-        if type(prof) == "table" then
-            if prof.dashboardClassColor ~= nil then
-                if prof.classColorDashboard == nil then prof.classColorDashboard = prof.dashboardClassColor end
-                prof.dashboardClassColor = nil
-            end
-            if prof.vistaClassColor ~= nil then
-                if prof.classColorVista == nil then prof.classColorVista = prof.vistaClassColor end
-                prof.vistaClassColor = nil
-            end
-        end
-    end
+    -- Migration of dashboardClassColor  →  classColorDashboard and
+    -- vistaClassColor  →  classColorVista is handled by
+    -- core/migrations/20260301_classcolor_key_rename.lua
     db.charProfileKeys = db.charProfileKeys or {}
     db.charPerSpecKeys = db.charPerSpecKeys or {}
 
@@ -1249,74 +1179,7 @@ function addon.EnsureDB()
     addon._ensureDBInProgress = true
     if addon.EnsureModulesDB then addon:EnsureModulesDB() end
     EnsureProfilesAndMigrateLegacy()
-    -- One-shot: old default dashboard bg was horizon/solid; new default is midnight — bump stored choices once.
-    do
-        local db = rawDB()
-        if not db._migratedDashboardBgDefaultToMidnight then
-            db.profiles = db.profiles or {}
-            for _, prof in pairs(db.profiles) do
-                if type(prof) == "table" then
-                    local t = prof.dashboardBackgroundTheme
-                    if t == "horizon" or t == "solid" then
-                        prof.dashboardBackgroundTheme = "midnight"
-                    end
-                end
-            end
-            db._migratedDashboardBgDefaultToMidnight = true
-        end
-    end
-    -- One-shot: Teldrassil.jpg preset removed; map stored id to teldrassilburns (TeldrassilBurns.jpg).
-    do
-        local db = rawDB()
-        if not db._migratedDashboardBgTeldrassilToBurns then
-            db.profiles = db.profiles or {}
-            for _, prof in pairs(db.profiles) do
-                if type(prof) == "table" and prof.dashboardBackgroundTheme == "teldrassil" then
-                    prof.dashboardBackgroundTheme = "teldrassilburns"
-                end
-            end
-            db._migratedDashboardBgTeldrassilToBurns = true
-        end
-    end
-    -- One-shot: quest type icons default on (Blizzard+ icon click); flip every stored profile once.
-    do
-        local db = rawDB()
-        if not db._migratedShowQuestTypeIconsDefaultOn then
-            db.profiles = db.profiles or {}
-            for _, prof in pairs(db.profiles) do
-                if type(prof) == "table" then
-                    prof.showQuestTypeIcons = true
-                end
-            end
-            db._migratedShowQuestTypeIconsDefaultOn = true
-        end
-    end
-    -- One-shot: "Always show M+ block" used to be a no-op; now it renders a
-    -- preview when out of a keystone run. Reset stored values so the new
-    -- preview doesn't surprise existing users on upgrade.
-    do
-        local db = rawDB()
-        if not db._migratedMplusAlwaysShowReset then
-            db.profiles = db.profiles or {}
-            for _, prof in pairs(db.profiles) do
-                if type(prof) == "table" then
-                    prof.mplusAlwaysShow = false
-                end
-            end
-            db._migratedMplusAlwaysShowReset = true
-        end
-    end
-    -- One-time migration from legacy hideInCombat toggle.
-    -- Check both the active profile and the root DB for the legacy key,
-    -- then write the migrated value into the active profile where GetDB reads it.
-    local profile = addon.GetActiveProfile()
-    if profile and profile.combatVisibility == nil then
-        local legacyHide = profile.hideInCombat
-        if legacyHide == nil then legacyHide = rawDB().hideInCombat end
-        if legacyHide ~= nil then
-            profile.combatVisibility = legacyHide and "hide" or "show"
-        end
-    end
+    if addon.RunMigrations then addon.RunMigrations(rawDB()) end
     addon._ensureDBInProgress = nil
 end
 
