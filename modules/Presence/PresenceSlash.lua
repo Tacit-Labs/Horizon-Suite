@@ -9,7 +9,7 @@ if not addon or not addon.Presence or not addon.RegisterSlashHandler then return
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
 --- Handle /horizon presence [cmd] subcommands.
---- @param msg string Subcommand (zone, subzone, discover, level, boss, ach, quest, wq, wqaccept, accept, update, scenario, all, help)
+--- @param msg string Subcommand (toggle, zone, subzone, discover, level, boss, ach, quest, wq, wqaccept, accept, update, scenario, all, help)
 local function HandlePresenceSlash(msg)
     local cmd = strtrim(msg or ""):lower()
     -- Accept optional leading "test " prefix (matches PR test-plan phrasing).
@@ -17,6 +17,16 @@ local function HandlePresenceSlash(msg)
     -- Long-form aliases for parity with documentation.
     if cmd == "worldquest" then cmd = "wq"
     elseif cmd == "worldquestaccept" then cmd = "wqaccept"
+    end
+
+    if cmd == "toggle" then
+        if InCombatLockdown() then
+            HSPrint("Cannot toggle Presence during combat.")
+            return
+        end
+        addon:SetModuleEnabled("presence", not addon:IsModuleEnabled("presence"))
+        HSPrint("Presence " .. (addon:IsModuleEnabled("presence") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
+        return
     end
 
     if cmd == "level" then
@@ -79,6 +89,7 @@ local function HandlePresenceSlash(msg)
         end
     elseif cmd == "" or cmd == "help" then
         local L = addon.L or {}
+        HSPrint("  /h presence toggle  - Enable / disable Presence module")
         HSPrint(L["PRESENCE_TEST_COMMANDS"])
         HSPrint(L["PRESENCE_H_HELP_TEST_CURRENT"])
         HSPrint(L["PRESENCE_H_ZONE_TEST"])

@@ -1116,12 +1116,22 @@ end)
 -- ============================================================================
 
 local function HandleInsightSlash(msg)
-    if not addon:IsModuleEnabled("insight") then
-        Insight.Print("Horizon Insight is disabled. Enable it in Horizon Suite options.")
+    local cmd = strtrim(msg or ""):lower()
+
+    if cmd == "toggle" then
+        if InCombatLockdown() then
+            Insight.Print("Cannot toggle Insight during combat.")
+            return
+        end
+        addon:SetModuleEnabled("insight", not addon:IsModuleEnabled("insight"))
+        Insight.Print("Insight " .. (addon:IsModuleEnabled("insight") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         return
     end
 
-    local cmd = strtrim(msg or ""):lower()
+    if not addon:IsModuleEnabled("insight") then
+        Insight.Print("Horizon Insight is disabled. Use /h insight toggle to enable it.")
+        return
+    end
 
     if cmd == "anchor" then
         local mode = GetAnchorMode()
@@ -1167,6 +1177,7 @@ local function HandleInsightSlash(msg)
         Insight.PrintBlock({
             "Horizon Insight",
             "  /h insight          This help",
+            "  /h insight toggle   Enable / disable Insight module",
             "  /h insight anchor   Toggle cursor / fixed positioning",
             "  /h insight move     Show draggable anchor to set fixed position",
             "  /h insight reset    Reset fixed position to default",

@@ -392,7 +392,7 @@ local function HandleFocusSlash(msg)
         end
         addon.FullLayout()
 
-    elseif cmd == "reset" then
+    elseif cmd == "clear" then
         -- Clear any injected test data and return to live quest data.
         addon.testQuests = nil
         addon.testQuestItem = nil
@@ -402,7 +402,7 @@ local function HandleFocusSlash(msg)
         addon.ScheduleRefresh()
         HSPrint(L["FOCUS_SLASH_RESET_DONE"])
 
-    elseif cmd == "resetpos" then
+    elseif cmd == "reset" then
         addon.HS:ClearAllPoints()
         addon.HS:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", addon.PANEL_X, addon.PANEL_Y)
         addon.SetDB("point", nil)
