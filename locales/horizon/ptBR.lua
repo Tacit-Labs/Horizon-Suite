@@ -1,4 +1,4 @@
-﻿if GetLocale() ~= "ptBR" then return end
+if GetLocale() ~= "ptBR" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -378,9 +378,12 @@ L["AXIS_ENABLE_PER_SPECIALIZATION_PROFILES"]                  = "Ativar perfis p
 L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"]                    = "Escolha perfis diferentes por especialização."
 L["AXIS_SPECIALIZATION"]                                      = "Especialização"
 -- L["AXIS_SPEC_PROFILES"]                                    = "Spec Profiles"
+-- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
 -- L["AXIS_ENABLE"]                                           = "Enable"
 L["AXIS_SHARING"]                                             = "Compartilhamento"
 L["AXIS_IMPORT_PROFILE"]                                      = "Importar perfil"
+-- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
+-- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 L["AXIS_IMPORT_STRING"]                                       = "String de importação"
 L["AXIS_EXPORT_PROFILE"]                                      = "Exportar perfil"
 L["AXIS_SELECT_A_PROFILE_EXPORT"]                             = "Selecione um perfil para exportar."
@@ -397,7 +400,7 @@ L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"]             = "Selecione um pe
 L["AXIS_DELETE_SELECTED"]                                     = "Excluir selecionado"
 -- L["AXIS_DELETE_SELECTED_PROFILE"]                          = "Delete Selected Profile"
 L["AXIS_DELETE"]                                              = "Excluir"
-L["AXIS_DELETES_SELECTED_PROFILE"]                            = "Exclui o perfil selecionado."
+L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                            = "Exclui o perfil selecionado."
 -- L["AXIS_GLOBAL_PROFILE"]                                   = "Global Profile"
 -- L["AXIS_PER_SPEC_PROFILES"]                                = "Per-Spec Profiles"
 

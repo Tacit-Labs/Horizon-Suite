@@ -1,9 +1,39 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
-addon.Presence = addon.Presence or {}
+addon.Augment = addon.Augment or {}
 
-local DEFAULTS = addon.TALKING_HEAD_DEFAULTS
+local Y = addon.Augment
+
+-- Register this mini-module's DB keys into the shared routing table.
+Y.DB_KEYS.augmentTalkingHeadEnabled        = true
+Y.DB_KEYS.talkingHeadEnabled               = true
+Y.DB_KEYS.talkingHeadCustomise             = true
+Y.DB_KEYS.talkingHeadShowPortrait          = true
+Y.DB_KEYS.talkingHeadShowPortraitBorder    = true
+Y.DB_KEYS.talkingHeadBackground            = true
+Y.DB_KEYS.talkingHeadCloseButton           = true
+Y.DB_KEYS.talkingHeadMuteVoice             = true
+Y.DB_KEYS.talkingHeadScale                 = true
+Y.DB_KEYS.talkingHeadNameSize              = true
+Y.DB_KEYS.talkingHeadNameOutline           = true
+Y.DB_KEYS.talkingHeadNameColorR            = true
+Y.DB_KEYS.talkingHeadNameColorG            = true
+Y.DB_KEYS.talkingHeadNameColorB            = true
+Y.DB_KEYS.talkingHeadTextSize              = true
+Y.DB_KEYS.talkingHeadTextOutline           = true
+Y.DB_KEYS.talkingHeadNameFontPath          = true
+Y.DB_KEYS.talkingHeadTextFontPath          = true
+
+-- DEFAULTS is a lazy proxy: the options defaults file loads after this module
+-- in the toc, so addon.TALKING_HEAD_DEFAULTS is nil at file-load time.
+-- Indexing the proxy at call time (inside functions) reads the real table.
+local DEFAULTS = setmetatable({}, {
+    __index = function(_, k)
+        local d = addon.TALKING_HEAD_DEFAULTS
+        return d and d[k]
+    end,
+})
 
 -- ============================================================================
 -- HELPERS
@@ -232,7 +262,7 @@ local _hooksInstalled = false
 
 -- Fires after Blizzard's PlayCurrent has set dialogue text/fonts for this line.
 local function OnPlayCurrent(frame)
-    if addon.IsModuleEnabled and not addon:IsModuleEnabled("presence") then return end
+    if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
 
     local enabled = GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled)
     if not enabled then
@@ -253,7 +283,7 @@ local function InstallHooks(frame)
     _hooksInstalled = true
     hooksecurefunc(frame, "PlayCurrent", OnPlayCurrent)
     frame:HookScript("OnShow", function(self)
-        if addon.IsModuleEnabled and not addon:IsModuleEnabled("presence") then return end
+        if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
         if not GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled) then
             SetTalkingHeadSuppressed(self, true)
             return
@@ -325,7 +355,7 @@ end
 local PREVIEW_HEIGHT     = 110
 local PREVIEW_PORTRAIT_W = 110
 
-function addon.Presence.CreateTalkingHeadPreviewWidget(parent)
+function addon.Augment.CreateTalkingHeadPreviewWidget(parent)
     if not parent then return nil end
 
     local L = addon.L
@@ -427,12 +457,12 @@ end
 -- INIT / UPDATE (public API)
 -- ============================================================================
 
-function addon.Presence.InitTalkingHead()
+function addon.Augment.InitTalkingHead()
     local frame = _G.TalkingHeadFrame
     if frame then InstallHooks(frame) end
 end
 
-function addon.Presence.UpdateTalkingHead()
+function addon.Augment.UpdateTalkingHead()
     local frame = _G.TalkingHeadFrame
     if not frame then return end
     InstallHooks(frame)

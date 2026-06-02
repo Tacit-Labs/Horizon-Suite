@@ -54,7 +54,7 @@ function addon.DashboardHomeWelcome_Init(env)
         presence = "vas_guildnamechange",
         vista    = "ability_hunter_pathfinding",
         insight  = "ui_profession_inscription",
-        augment    = "INV_Misc_Coin_01",
+        augment    = "Spell_holy_powerinfusion",
         essence  = "achievement_character_human_male",
     }
 

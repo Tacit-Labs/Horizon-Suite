@@ -12,7 +12,6 @@ local FONT_USE_GLOBAL                  = addon.FONT_USE_GLOBAL
 local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
 local DisplayPerElementFont            = addon.DisplayPerElementFont
 local Section                          = addon.Section
-local Button                           = addon.Button
 local Toggle                           = addon.Toggle
 local D   = addon.AUGMENT_DEFAULTS
 local LIM = addon.AUGMENT_LIMITS
@@ -24,49 +23,69 @@ local function getSlider(key)
 end
 
 local categories = {
+    -- ── Loot Frame ──────────────────────────────────────────────────────────
     {
-        key = "AugmentGeneral",
-        name = L["AXIS_GENERAL"],
-        desc = L["POSITIONING_VISIBILITY_AUGMENT_LOOT_TOAST_SYS"],
+        key = "AugmentImprovements",
+        name = L["AUGMENT_IMPROVEMENTS"],
+        desc = L["AUGMENT_IMPROVEMENTS_PAGE_DESC"],
         moduleKey = "augment",
+        icon = "inv_misc_coin_01",
+        accentColor = { 0.95, 0.75, 0.20 },
+        -- Mini-module master toggle (sidebar visibility + live activation).
+        enabledKey = "augmentLootFrameEnabled",
+        getEnabled = function() return getDB("augmentLootFrameEnabled", true) ~= false end,
+        setEnabled = function(v)
+            v = v and true or false
+            setDB("augmentLootFrameEnabled", v)
+            if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+            local Y = addon.Augment
+            if not Y then return end
+            if v then
+                if Y.EnableEvents then Y.EnableEvents() end
+                if Y.ApplyBlizzardSuppression then Y.ApplyBlizzardSuppression() end
+            else
+                if Y.DisableEvents then Y.DisableEvents() end
+                if Y.RestoreBlizzard then Y.RestoreBlizzard() end
+                if Y.ClearActiveToasts then Y.ClearActiveToasts() end
+            end
+        end,
         options = {
-            Section(L["AXIS_POSITION"]),
-            Button(L["AXIS_ANCHOR_MOVE"], L["AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION"], function()
-                if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
-            end),
-            Button(L["AXIS_RESET_POSITION"], L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"], function()
-                if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
-            end),
-            Section(L["AUGMENT_MAX_VISIBLE_SECTION"]),
-            { type = "slider", name = L["AUGMENT_TOAST_OPACITY"], desc = L["AUGMENT_TOAST_OPACITY_DESC"], dbKey = "augmentToastOpacity",
-                min = LIM.augmentToastOpacity.min, max = LIM.augmentToastOpacity.max, step = 5,
-                get = function() return getSlider("augmentToastOpacity") end,
-                set = function(v) setDB("augmentToastOpacity", clamp(v, "augmentToastOpacity")) end,
+            -- Toast Settings (two-column: Visibility | Toast Types)
+            Section(L["AUGMENT_TOAST_SETTINGS"]),
+            { type = "columns",
+                left = {
+                    title = L["AUGMENT_MAX_VISIBLE_SECTION"],
+                    options = {
+                        { type = "slider", name = L["AUGMENT_TOAST_OPACITY"], desc = L["AUGMENT_TOAST_OPACITY_DESC"], dbKey = "augmentToastOpacity",
+                            min = LIM.augmentToastOpacity.min, max = LIM.augmentToastOpacity.max, step = 5,
+                            get = function() return getSlider("augmentToastOpacity") end,
+                            set = function(v) setDB("augmentToastOpacity", clamp(v, "augmentToastOpacity")) end,
+                        },
+                        { type = "slider", name = L["AUGMENT_MAX_VISIBLE"], desc = L["AUGMENT_MAX_VISIBLE_DESC"], dbKey = "augmentMaxVisible",
+                            min = LIM.augmentMaxVisible.min, max = LIM.augmentMaxVisible.max, step = 1,
+                            get = function() return getSlider("augmentMaxVisible") end,
+                            set = function(v) setDB("augmentMaxVisible", clamp(v, "augmentMaxVisible")) end,
+                        },
+                        { type = "slider", name = L["AUGMENT_TOAST_SCALE"], desc = L["AUGMENT_TOAST_SCALE_DESC"], dbKey = "augmentUIScale",
+                            min = LIM.augmentUIScale.min, max = LIM.augmentUIScale.max, step = 0.05,
+                            get = function() return getSlider("augmentUIScale") end,
+                            set = function(v) setDB("augmentUIScale", clamp(v, "augmentUIScale")) end,
+                        },
+                    },
+                },
+                right = {
+                    title = L["AUGMENT_TOAST_TYPES"],
+                    options = {
+                        Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems,       { refreshIds = { "augmentMinQuality", "augmentShowPushedItems" } }),
+                        Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
+                        Toggle(L["AUGMENT_SHOW_MONEY"],    L["AUGMENT_SHOW_MONEY_DESC"],    "augmentShowMoney",    D.augmentShowMoney),
+                        Toggle(L["AUGMENT_SHOW_CURRENCY"], L["AUGMENT_SHOW_CURRENCY_DESC"], "augmentShowCurrency", D.augmentShowCurrency),
+                        Toggle(L["AUGMENT_SHOW_REP"],      L["AUGMENT_SHOW_REP_DESC"],      "augmentShowRep",      D.augmentShowRep),
+                    },
+                },
             },
-            { type = "slider", name = L["AUGMENT_MAX_VISIBLE"], desc = L["AUGMENT_MAX_VISIBLE_DESC"], dbKey = "augmentMaxVisible",
-                min = LIM.augmentMaxVisible.min, max = LIM.augmentMaxVisible.max, step = 1,
-                get = function() return getSlider("augmentMaxVisible") end,
-                set = function(v) setDB("augmentMaxVisible", clamp(v, "augmentMaxVisible")) end,
-            },
-            { type = "slider", name = L["AUGMENT_TOAST_SCALE"], desc = L["AUGMENT_TOAST_SCALE_DESC"], dbKey = "augmentUIScale",
-                min = LIM.augmentUIScale.min, max = LIM.augmentUIScale.max, step = 0.05,
-                get = function() return getSlider("augmentUIScale") end,
-                set = function(v) setDB("augmentUIScale", clamp(v, "augmentUIScale")) end,
-            },
-        },
-    },
-    {
-        key = "AugmentToastTypes",
-        name = L["AUGMENT_TOAST_TYPES"],
-        desc = L["AUGMENT_TOAST_TYPES_PAGE_DESC"],
-        moduleKey = "augment",
-        options = {
-            Section(L["AUGMENT_TOAST_TYPES"]),
-            Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",        D.augmentShowItems,        { refreshIds = { "augmentMinQuality", "augmentShowPushedItems" } }),
-            Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems",  D.augmentShowPushedItems,  { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
-            Toggle(L["AUGMENT_SHOW_MONEY"],    L["AUGMENT_SHOW_MONEY_DESC"],    "augmentShowMoney",    D.augmentShowMoney),
-            Toggle(L["AUGMENT_SHOW_CURRENCY"], L["AUGMENT_SHOW_CURRENCY_DESC"], "augmentShowCurrency", D.augmentShowCurrency),
-            Toggle(L["AUGMENT_SHOW_REP"],      L["AUGMENT_SHOW_REP_DESC"],      "augmentShowRep",      D.augmentShowRep),
+
+            -- Stacking
             Section(L["AUGMENT_STACKING_SECTION"]),
             Toggle(L["AUGMENT_STACK_DUPLICATES"], L["AUGMENT_STACK_DUPLICATES_DESC"], "augmentStackDuplicates", D.augmentStackDuplicates),
             Toggle(L["AUGMENT_CONDENSE_JUNK"],    L["AUGMENT_CONDENSE_JUNK_DESC"],    "augmentCondenseJunk",    D.augmentCondenseJunk,    { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
@@ -85,16 +104,12 @@ local categories = {
                 set = function(v) setDB("augmentMinQuality", v) end,
                 disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end,
             },
+
+            -- Blizzard Toasts
             Section(L["AUGMENT_BLIZZARD_SECTION"]),
             Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
-        },
-    },
-    {
-        key = "AugmentDurations",
-        name = L["AUGMENT_HOLD_DURATIONS"],
-        desc = L["AUGMENT_HOLD_DURATIONS_PAGE_DESC"],
-        moduleKey = "augment",
-        options = {
+
+            -- Hold Durations
             Section(L["AUGMENT_HOLD_DURATIONS"]),
             { type = "slider", name = L["AUGMENT_HOLD_ITEM"],      desc = L["AUGMENT_HOLD_ITEM_DESC"],      dbKey = "augmentHoldItem",
                 min = LIM.augmentHoldItem.min, max = LIM.augmentHoldItem.max, step = 0.5,
@@ -138,14 +153,8 @@ local categories = {
                 set = function(v) setDB("augmentHoldRep", clamp(v, "augmentHoldRep")) end,
                 disabled = function() return getDB("augmentShowRep", D.augmentShowRep) == false end,
             },
-        },
-    },
-    {
-        key = "AugmentSounds",
-        name = L["AUGMENT_SOUNDS"],
-        desc = L["AUGMENT_SOUNDS_PAGE_DESC"],
-        moduleKey = "augment",
-        options = {
+
+            -- Sounds
             Section(L["AUGMENT_SOUNDS"]),
             Toggle(L["AUGMENT_SOUND_ENABLED"], L["AUGMENT_SOUND_ENABLED_DESC"], "augmentSoundEnabled", D.augmentSoundEnabled),
             { type = "dropdown", name = L["AUGMENT_SOUND_CHANNEL"], desc = L["AUGMENT_SOUND_CHANNEL_DESC"], dbKey = "augmentSoundChannel",
@@ -164,14 +173,8 @@ local categories = {
             Toggle(L["AUGMENT_SOUND_MONEY"],    L["AUGMENT_SOUND_MONEY_DESC"],    "augmentSoundMoney",    D.augmentSoundMoney,    { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
             Toggle(L["AUGMENT_SOUND_CURRENCY"], L["AUGMENT_SOUND_CURRENCY_DESC"], "augmentSoundCurrency", D.augmentSoundCurrency, { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
             Toggle(L["AUGMENT_SOUND_REP"],      L["AUGMENT_SOUND_REP_DESC"],      "augmentSoundRep",      D.augmentSoundRep,      { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
-        },
-    },
-    {
-        key = "AugmentTypography",
-        name = L["DASH_TYPOGRAPHY"],
-        desc = L["AUGMENT_TYPOGRAPHY_PAGE_DESC"],
-        moduleKey = "augment",
-        options = {
+
+            -- Typography
             Section(L["DASH_TYPOGRAPHY"]),
             { type = "toggle", name = L["AUGMENT_TEXT_OUTLINE"], desc = L["AUGMENT_TEXT_OUTLINE_DESC"], dbKey = "augmentTextOutline",
                 get = function() return getDB("augmentTextOutline", D.augmentTextOutline) ~= false end,
@@ -195,17 +198,117 @@ local categories = {
             },
         },
     },
+
+    -- ── Auto Vendor ─────────────────────────────────────────────────────────
     {
-        key = "AugmentPreview",
-        name = L["AUGMENT_PREVIEW_SECTION"],
-        desc = L["AUGMENT_PREVIEW_PAGE_DESC"],
+        key = "AugmentVendor",
+        name = L["AUGMENT_VENDOR"],
+        desc = L["AUGMENT_VENDOR_DESC"],
+        icon = "inv_misc_bag_17",
+        accentColor = { 0.25, 0.78, 1.0 },
         moduleKey = "augment",
-        options = {
-            Section(L["AUGMENT_PREVIEW_SECTION"]),
-            Button(L["AUGMENT_PREVIEW"], L["AUGMENT_PREVIEW_DESC"], function()
-                if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
-            end),
-        },
+        enabledKey = "augmentVendorEnabled",
+        getEnabled = function() return getDB("augmentVendorEnabled", true) ~= false end,
+        setEnabled = function(v)
+            v = v and true or false
+            setDB("augmentVendorEnabled", v)
+            if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+            local V = addon.Augment and addon.Augment.Vendor
+            if not V then return end
+            if v then V.Enable() else V.Disable() end
+        end,
+        options = function()
+            local function sellerDisabled() return not getDB("autoSellerEnabled", D.autoSellerEnabled) end
+            local function repairDisabled() return not getDB("autoRepairEnabled", D.autoRepairEnabled) end
+            local verbosityOptions = {
+                { L["AUGMENT_VENDOR_VERBOSITY_SILENT"],  "none"    },
+                { L["AUGMENT_VENDOR_VERBOSITY_SUMMARY"], "summary" },
+            }
+            return {
+                Section(L["AUGMENT_VENDOR_SELLER_SECTION"]),
+                Toggle(L["AUGMENT_VENDOR_SELLER_ENABLE"],        L["AUGMENT_VENDOR_SELLER_ENABLE_DESC"],        "autoSellerEnabled",  D.autoSellerEnabled),
+                Toggle(L["AUGMENT_VENDOR_SELLER_GREY"],          L["AUGMENT_VENDOR_SELLER_GREY_DESC"],          "autoSellerGrey",     D.autoSellerGrey,     { disabled = sellerDisabled }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_UNUSABLE"],      L["AUGMENT_VENDOR_SELLER_UNUSABLE_DESC"],      "autoSellerUnusable",  D.autoSellerUnusable,  { disabled = sellerDisabled }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_NONOPTIMAL"],    L["AUGMENT_VENDOR_SELLER_NONOPTIMAL_DESC"],    "autoSellerNonOptimal", D.autoSellerNonOptimal, { disabled = sellerDisabled }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_LOW_LEVEL"],     L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_DESC"],     "autoSellerLowLevel",  D.autoSellerLowLevel,  { disabled = sellerDisabled, refreshIds = { "autoSellerLowLevelThreshold" } }),
+                { type = "slider",
+                    name     = L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_THRESHOLD"],
+                    desc     = L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_THRESHOLD_DESC"],
+                    dbKey    = "autoSellerLowLevelThreshold",
+                    min = LIM.autoSellerLowLevelThreshold.min, max = LIM.autoSellerLowLevelThreshold.max, step = 1,
+                    get = function() return getSlider("autoSellerLowLevelThreshold") end,
+                    set = function(v) setDB("autoSellerLowLevelThreshold", clamp(v, "autoSellerLowLevelThreshold")) end,
+                    disabled = function() return sellerDisabled() or not getDB("autoSellerLowLevel", D.autoSellerLowLevel) end,
+                },
+                Toggle(L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS"], L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS_DESC"], "autoSellerFortuneCards", D.autoSellerFortuneCards, { disabled = sellerDisabled }),
+                Toggle(L["AUGMENT_VENDOR_SELLER_LEGION_RELICS"], L["AUGMENT_VENDOR_SELLER_LEGION_RELICS_DESC"], "autoSellerLegionRelics",  D.autoSellerLegionRelics,  { disabled = sellerDisabled }),
+                { type = "dropdown",
+                    name     = L["AUGMENT_VENDOR_VERBOSITY"],
+                    desc     = L["AUGMENT_VENDOR_VERBOSITY_DESC"],
+                    dbKey    = "autoSellerVerbosity",
+                    disabled = sellerDisabled,
+                    options  = verbosityOptions,
+                    get = function() return getDB("autoSellerVerbosity", D.autoSellerVerbosity) end,
+                    set = function(v) setDB("autoSellerVerbosity", v) end,
+                },
+
+                Section(L["AUGMENT_VENDOR_REPAIR_SECTION"]),
+                Toggle(L["AUGMENT_VENDOR_REPAIR_ENABLE"],     L["AUGMENT_VENDOR_REPAIR_ENABLE_DESC"],     "autoRepairEnabled",  D.autoRepairEnabled),
+                Toggle(L["AUGMENT_VENDOR_REPAIR_GUILDBANK"],  L["AUGMENT_VENDOR_REPAIR_GUILDBANK_DESC"],  "autoRepairGuildBank", D.autoRepairGuildBank, { disabled = repairDisabled }),
+                { type = "dropdown",
+                    name     = L["AUGMENT_VENDOR_VERBOSITY"],
+                    desc     = L["AUGMENT_VENDOR_VERBOSITY_DESC"],
+                    dbKey    = "autoRepairVerbosity",
+                    disabled = repairDisabled,
+                    options  = verbosityOptions,
+                    get = function() return getDB("autoRepairVerbosity", D.autoRepairVerbosity) end,
+                    set = function(v) setDB("autoRepairVerbosity", v) end,
+                },
+            }
+        end,
+    },
+
+    -- ── Self Highlight ───────────────────────────────────────────────────────
+    {
+        key = "AugmentSelfHighlight",
+        name = L["AUGMENT_SELF_HIGHLIGHT"],
+        desc = L["AUGMENT_SELF_HIGHLIGHT_DESC"],
+        icon = 237570,
+        accentColor = { 0.70, 0.40, 1.0 },
+        moduleKey = "augment",
+        enabledKey = "augmentSelfHighlightEnabled",
+        getEnabled = function() return getDB("augmentSelfHighlightEnabled", true) ~= false end,
+        setEnabled = function(v)
+            v = v and true or false
+            setDB("augmentSelfHighlightEnabled", v)
+            if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+            local SH = addon.Augment and addon.Augment.SelfHighlight
+            if not SH then return end
+            if v then SH.Enable() else SH.Disable() end
+        end,
+        options = function()
+            return {
+                Section(L["AUGMENT_SELF_HIGHLIGHT_BEHAVIOUR"]),
+                { type = "dropdown",
+                    name     = L["AUGMENT_SELF_HIGHLIGHT_MODE"],
+                    desc     = L["AUGMENT_SELF_HIGHLIGHT_MODE_DESC"],
+                    dbKey    = "selfHighlightMode",
+                    options  = function()
+                        return {
+                            { L["AUGMENT_SELF_HIGHLIGHT_MODE_OUTLINECIRCLE"], "outlinecircle" },
+                            { L["AUGMENT_SELF_HIGHLIGHT_MODE_OUTLINEICON"],   "outlineicon"   },
+                            { L["AUGMENT_SELF_HIGHLIGHT_MODE_OUTLINE"],       "outline"       },
+                            { L["AUGMENT_SELF_HIGHLIGHT_MODE_CIRCLE"],        "circle"        },
+                            { L["AUGMENT_SELF_HIGHLIGHT_MODE_ICON"],          "icon"          },
+                        }
+                    end,
+                    get = function() return getDB("selfHighlightMode", D.selfHighlightMode) end,
+                    set = function(v) setDB("selfHighlightMode", v) end,
+                },
+                Toggle(L["AUGMENT_SELF_HIGHLIGHT_COMBAT"],  L["AUGMENT_SELF_HIGHLIGHT_COMBAT_DESC"],  "selfHighlightCombat",  D.selfHighlightCombat),
+                Toggle(L["AUGMENT_SELF_HIGHLIGHT_HOSTILE"], L["AUGMENT_SELF_HIGHLIGHT_HOSTILE_DESC"], "selfHighlightHostile", D.selfHighlightHostile),
+            }
+        end,
     },
 }
 

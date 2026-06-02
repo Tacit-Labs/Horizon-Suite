@@ -1,4 +1,4 @@
-﻿if GetLocale() ~= "deDE" then return end
+if GetLocale() ~= "deDE" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -385,9 +385,12 @@ L["AXIS_ENABLE_PER_SPECIALIZATION_PROFILES"]                  = "Profil pro Spez
 L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"]                    = "Wähle unterschiedliche Profile für Spezialisierungen."
 L["AXIS_SPECIALIZATION"]                                      = "Spezialisierung"
 L["AXIS_SPEC_PROFILES"]                                       = "Profile nach Spezialisierung"
+-- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
 L["AXIS_ENABLE"]                                              = "Einschalten"
 L["AXIS_SHARING"]                                             = "Teilen"
 L["AXIS_IMPORT_PROFILE"]                                      = "Profil importieren"
+-- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
+-- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 L["AXIS_IMPORT_STRING"]                                       = "Import-Zeichenkette"
 L["AXIS_EXPORT_PROFILE"]                                      = "Profil exportieren"
 L["AXIS_SELECT_A_PROFILE_EXPORT"]                             = "Wähle ein Profil für den Export"
@@ -404,7 +407,7 @@ L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"]             = "Profil zum Lös
 L["AXIS_DELETE_SELECTED"]                                     = "Ausgewähltes löschen"
 L["AXIS_DELETE_SELECTED_PROFILE"]                             = "Ausgewähltes Profil löschen"
 L["AXIS_DELETE"]                                              = "Löschen"
-L["AXIS_DELETES_SELECTED_PROFILE"]                            = "Löscht das ausgewählte Profil"
+L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                            = "Löscht das ausgewählte Profil"
 L["AXIS_GLOBAL_PROFILE"]                                      = "Globales Profil"
 L["AXIS_PER_SPEC_PROFILES"]                                   = "Profile pro Spezialisierung"
 

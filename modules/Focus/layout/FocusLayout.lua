@@ -1,6 +1,10 @@
 --[[
     Horizon Suite - Focus - Layout Engine
-    PopulateEntry, FullLayout, ToggleCollapse, AcquireEntry, section headers, header button, keybind, floating item, M+ block.
+    FullLayout: full pipeline — acquires entries (AcquireEntry), positions them
+    vertically, computes section heights, triggers animation callbacks.
+    Also owns: ApplyFocusColors, GetPlayerCurrentZoneName, header button setup.
+    Collapse logic → FocusCollapse. Section headers → FocusSectionHeaders.
+    Entry creation → FocusEntryPool. Entry population → FocusEntryRenderer.
 ]]
 
 local addon = _G.HorizonSuite

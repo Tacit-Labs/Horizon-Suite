@@ -93,6 +93,7 @@ end
 -- ============================================================================
 
 local Frame, anchorFrame, editOverlay, editTitle, editHint, anchorLabel, anchorHint
+local editModePanel
 local framesCreated = false
 
 local function UpdateFrameSize()
@@ -104,12 +105,6 @@ end
 -- before the function body is defined below.
 local UpdateEntry
 
-local AUGMENT_ANCHOR_BACKDROP = {
-    bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
-    edgeFile = "Interface\\ChatFrame\\ChatFrameBackground",
-    edgeSize = 1,
-    insets   = { left = 0, right = 0, top = 0, bottom = 0 },
-}
 
 -- ============================================================================
 -- READY GUARD
@@ -294,21 +289,10 @@ function Augment.InitFrames()
     Augment.ApplyStoredAnchor(Frame)
     Frame:Hide()
 
-    Frame:SetMovable(true)
     Frame:EnableMouse(true)
-    Frame:RegisterForDrag("LeftButton")
     Frame:SetClampedToScreen(true)
     Frame:SetPropagateMouseClicks(true)
 
-    Frame:SetScript("OnDragStart", function(self)
-        if InCombatLockdown() or not state.editMode then return end
-        self:StartMoving()
-    end)
-    Frame:SetScript("OnDragStop", function(self)
-        if InCombatLockdown() then return end
-        self:StopMovingOrSizing()
-        SaveFramePosition()
-    end)
     Frame:SetScript("OnMouseUp", function(self, button)
         if button == "RightButton" and not state.editMode then
             Augment.ClearActiveToasts()
@@ -329,6 +313,23 @@ function Augment.InitFrames()
     editOverlay:SetBackdropBorderColor(0.4, 0.8, 1.0, 0.8)
     editOverlay:SetFrameLevel(Frame:GetFrameLevel() + 10)
     editOverlay:EnableMouse(false)
+    editOverlay:RegisterForDrag("LeftButton")
+    editOverlay:SetScript("OnDragStart", function()
+        if InCombatLockdown() then return end
+        Frame:SetMovable(true)
+        Frame:StartMoving()
+    end)
+    editOverlay:SetScript("OnDragStop", function()
+        if InCombatLockdown() then return end
+        Frame:StopMovingOrSizing()
+        Frame:SetMovable(false)
+        SaveFramePosition()
+    end)
+    editOverlay:SetScript("OnMouseUp", function(_, button)
+        if button == "LeftButton" and IsShiftKeyDown() then
+            if Augment.PreviewToasts then Augment.PreviewToasts() end
+        end
+    end)
 
     editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
     editTitle:SetFont(Augment.GetFontPath(), S(14), "OUTLINE")
@@ -340,16 +341,20 @@ function Augment.InitFrames()
     editHint:SetFont(Augment.GetFontPath(), S(10), "OUTLINE")
     editHint:SetTextColor(0.7, 0.7, 0.7, 1)
     editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
-    editHint:SetText("Drag to reposition  |  /h augment edit to hide")
+    editHint:SetText("Drag · Shift-click preview")
 
     editOverlay:Hide()
 
-    -- Anchor frame
+    -- Anchor frame — same BackdropTemplate look as the edit overlay
     anchorFrame = CreateFrame("Frame", "HorizonSuiteAugmentAnchor", UIParent, "BackdropTemplate")
-    anchorFrame:SetSize(160, 40)
-    anchorFrame:SetBackdrop(AUGMENT_ANCHOR_BACKDROP)
-    anchorFrame:SetBackdropColor(0, 0, 0, 0.85)
-    anchorFrame:SetBackdropBorderColor(0.50, 0.70, 1.0, 0.60)
+    anchorFrame:SetSize(S(Augment.TOTAL_WIDTH), 44)
+    anchorFrame:SetBackdrop({
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets   = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    anchorFrame:SetBackdropColor(0, 0, 0, 0.5)
     anchorFrame:SetMovable(true)
     anchorFrame:EnableMouse(true)
     anchorFrame:RegisterForDrag("LeftButton")
@@ -359,15 +364,15 @@ function Augment.InitFrames()
 
     anchorLabel = anchorFrame:CreateFontString(nil, "OVERLAY")
     anchorLabel:SetFont(Augment.GetFontPath(), S(12), "OUTLINE")
-    anchorLabel:SetPoint("CENTER")
+    anchorLabel:SetPoint("CENTER", anchorFrame, "CENTER", 0, 6)
     anchorLabel:SetTextColor(0.50, 0.70, 1.0, 1)
     anchorLabel:SetText("LOOT TOAST ANCHOR")
 
     anchorHint = anchorFrame:CreateFontString(nil, "OVERLAY")
     anchorHint:SetFont(Augment.GetFontPath(), S(10), "OUTLINE")
-    anchorHint:SetPoint("TOP", anchorFrame, "BOTTOM", 0, -4)
+    anchorHint:SetPoint("CENTER", anchorFrame, "CENTER", 0, -8)
     anchorHint:SetTextColor(0.60, 0.60, 0.60, 1)
-    anchorHint:SetText("Drag to move · Right-click to confirm")
+    anchorHint:SetText("Drag · Shift-click preview · Right-click to confirm")
 
     anchorFrame:SetScript("OnDragStart", function(self)
         if not InCombatLockdown() then self:StartMoving() end
@@ -386,6 +391,8 @@ function Augment.InitFrames()
         if button == "RightButton" then
             self:Hide()
             HSPrint("Augment: Position saved.")
+        elseif button == "LeftButton" and IsShiftKeyDown() then
+            if Augment.PreviewToasts then Augment.PreviewToasts() end
         end
     end)
 
@@ -401,7 +408,7 @@ function Augment.InitFrames()
     -- OnUpdate — UpdateEntry is forward-declared above InitFrames
     Frame:SetScript("OnUpdate", function(self, dt)
         if state.activeCount == 0 then
-            if not state.editMode then self:Hide() end
+            if not state.editMode and not state.nativeEditMode then self:Hide() end
             return
         end
         for i = 1, Augment.POOL_SIZE do
@@ -409,12 +416,13 @@ function Augment.InitFrames()
                 UpdateEntry(state.pool[i], dt)
             end
         end
-        if state.activeCount == 0 and not state.editMode then self:Hide() end
+        if state.activeCount == 0 and not state.editMode and not state.nativeEditMode then self:Hide() end
     end)
 
     Augment.Frame = Frame
 
     Augment.ApplyAugmentClassChrome()
+    Augment.HookNativeEditMode()
 
     -- Re-apply fonts after the current event handler returns so our settings
     -- land after any typography addon that hooks synchronously at login.
@@ -428,16 +436,12 @@ end
 local function ApplyAugmentClassChrome()
     if not IsReady() then return end
     local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("augment")
-    local br, bg, bb, ba = 0.50, 0.70, 1.0, 0.60
-    local er, eg, eb, ea = 0.4,  0.8,  1.0, 0.8
-    if ycc then
-        br, bg, bb = ycc[1], ycc[2], ycc[3]
-        er, eg, eb = ycc[1], ycc[2], ycc[3]
-    end
-    anchorFrame:SetBackdropBorderColor(br, bg, bb, ba)
-    anchorLabel:SetTextColor(br, bg, bb, 1)
-    editOverlay:SetBackdropBorderColor(er, eg, eb, ea)
-    editTitle:SetTextColor(er, eg, eb, 1)
+    local r, g, b = 0.4, 0.8, 1.0
+    if ycc then r, g, b = ycc[1], ycc[2], ycc[3] end
+    anchorFrame:SetBackdropBorderColor(r, g, b, 0.8)
+    anchorLabel:SetTextColor(r, g, b, 1)
+    editOverlay:SetBackdropBorderColor(r, g, b, 0.8)
+    editTitle:SetTextColor(r, g, b, 1)
 end
 
 Augment.ApplyAugmentClassChrome = ApplyAugmentClassChrome
@@ -837,6 +841,7 @@ function Augment.ToggleEditMode()
     if not IsReady() then return end
     state.editMode = not state.editMode
     if state.editMode then
+        editOverlay:EnableMouse(true)
         editOverlay:Show()
         Frame:Show()
         print("|cFF00CCFFHorizon Suite - Augment:|r Edit mode |cFF00FF00ON|r - drag the box to reposition.")
@@ -845,9 +850,137 @@ function Augment.ToggleEditMode()
             r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0, quality = 4,
         })
     else
+        if not state.nativeEditMode then editOverlay:EnableMouse(false) end
         editOverlay:Hide()
         print("|cFF00CCFFHorizon Suite - Augment:|r Edit mode |cFFFF0000OFF|r")
     end
+end
+
+local function CreateEditModePanel()
+    if editModePanel then return end
+
+    editModePanel = CreateFrame("Frame", nil, UIParent)
+    editModePanel:SetSize(168, 44)
+    editModePanel:SetFrameStrata("DIALOG")
+    editModePanel:SetFrameLevel(200)
+    editModePanel:EnableMouse(true)
+    editModePanel:Hide()
+
+    editModePanel.Border = CreateFrame("Frame", nil, editModePanel, "DialogBorderTranslucentTemplate")
+
+    local checkbox = CreateFrame("CheckButton", nil, editModePanel, "UICheckButtonTemplate")
+    checkbox:SetSize(26, 26)
+    checkbox:SetPoint("LEFT", editModePanel, "LEFT", 14, 0)
+    editModePanel.checkbox = checkbox
+
+    local label = editModePanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightMedium")
+    label:SetText("Horizon Suite")
+    label:SetTextColor(0.25, 0.78, 1.0, 1.0)
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
+
+    local function ShowTip(anchor)
+        GameTooltip:SetOwner(anchor, "ANCHOR_CURSOR")
+        GameTooltip:SetText("Horizon Suite", 0.25, 0.78, 1.0, 1)
+        GameTooltip:AddLine("- Loot Frame", 1, 1, 1, 1)
+        GameTooltip:Show()
+    end
+    local function HideTip() GameTooltip:Hide() end
+    editModePanel:SetScript("OnEnter", function(self) ShowTip(self) end)
+    editModePanel:SetScript("OnLeave", HideTip)
+    checkbox:SetScript("OnEnter", function(self) ShowTip(self) end)
+    checkbox:SetScript("OnLeave", HideTip)
+
+    checkbox:SetScript("OnClick", function(self)
+        local checked = self:GetChecked() and true or false
+        if addon.SetDB then addon.SetDB("augmentEditModeShow", checked) end
+        if state.nativeEditMode and IsReady() then
+            if checked then
+                editOverlay:EnableMouse(true)
+                editOverlay:Show()
+                Frame:Show()
+            else
+                editOverlay:EnableMouse(false)
+                editOverlay:Hide()
+                if state.activeCount == 0 then Frame:Hide() end
+            end
+        end
+    end)
+
+    -- Each tick, scan for any shown UIParent child near the expected addon-panel
+    -- position (e.g. Plumber) and anchor below it. No addon-name check needed —
+    -- avoids load-order races where IsAddOnLoaded returns false for addons that
+    -- load after HorizonSuite.
+    editModePanel.t = 1
+    editModePanel:SetScript("OnUpdate", function(self, elapsed)
+        self.t = self.t + elapsed
+        if self.t < 0.25 then return end
+        self.t = 0
+        if not EditModeManagerFrame or not EditModeManagerFrame:IsShown() then return end
+
+        local x = EditModeManagerFrame:GetRight() - 16
+        local y = EditModeManagerFrame:GetTop() - 104
+
+        local function safeIsShown(f)
+            local ok, v = pcall(f.IsShown, f); return ok and v
+        end
+        if not self.aboveFrame or not safeIsShown(self.aboveFrame) then
+            self.aboveFrame = nil
+            for _, child in ipairs({UIParent:GetChildren()}) do
+                if child ~= self and safeIsShown(child) then
+                    local _, cl = pcall(child.GetLeft, child)
+                    local _, ct = pcall(child.GetTop, child)
+                    if type(cl) == "number" and type(ct) == "number"
+                        and math.abs(cl - x) < 60 and math.abs(ct - y) < 30
+                    then
+                        self.aboveFrame = child
+                        break
+                    end
+                end
+            end
+        end
+        if self.aboveFrame and safeIsShown(self.aboveFrame) then
+            local _, bottom = pcall(self.aboveFrame.GetBottom, self.aboveFrame)
+            if type(bottom) == "number" then y = bottom - 20 end
+        end
+
+        self:ClearAllPoints()
+        self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+    end)
+end
+
+function Augment.HookNativeEditMode()
+    EventRegistry:RegisterCallback("EditMode.Enter", function()
+        if not IsReady() then return end
+        state.nativeEditMode = true
+        local showOverlay = not addon.GetDB or addon.GetDB("augmentEditModeShow", true) ~= false
+        if editModePanel then
+            if editModePanel.checkbox then
+                editModePanel.checkbox:SetChecked(showOverlay)
+            end
+            editModePanel:Show()
+        end
+        if showOverlay then
+            editOverlay:EnableMouse(true)
+            editOverlay:Show()
+            Frame:Show()
+            Augment.ShowToast({
+                kind = "item", icon = 135349, text = "Ashkandur, Fall of the Brotherhood",
+                r = 0.64, g = 0.21, b = 0.93, br = 0.77, bg = 0.25, bb = 1.0, quality = 4,
+            })
+        end
+    end, "HorizonSuiteAugment")
+    EventRegistry:RegisterCallback("EditMode.Exit", function()
+        if not IsReady() then return end
+        state.nativeEditMode = false
+        if not state.editMode then
+            editOverlay:EnableMouse(false)
+            editOverlay:Hide()
+        end
+        if editModePanel then editModePanel:Hide() end
+        SaveFramePosition()
+        if state.activeCount == 0 and not state.editMode then Frame:Hide() end
+    end, "HorizonSuiteAugment")
+    CreateEditModePanel()
 end
 
 function Augment.RestoreSavedPosition()
@@ -913,6 +1046,7 @@ function Augment.ApplyAugmentOptions()
     Augment.ApplyStoredAnchor(Frame)
     if Augment.ApplyScale then Augment.ApplyScale() end
     if Augment.ApplyBlizzardSuppression then Augment.ApplyBlizzardSuppression() end
+    if Augment.SelfHighlight then Augment.SelfHighlight.Evaluate() end
 end
 
 --- Re-apply scale and font to all pool entries and overlay labels.
@@ -949,6 +1083,7 @@ function Augment.ApplyScale()
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
     if editHint    then editHint:SetFont(fontPath,  S(10), "OUTLINE") end
+    if anchorFrame then anchorFrame:SetWidth(S(Augment.TOTAL_WIDTH)) end
     if anchorLabel then anchorLabel:SetFont(fontPath, S(12), "OUTLINE") end
     if anchorHint  then anchorHint:SetFont(fontPath,  S(10), "OUTLINE") end
 end

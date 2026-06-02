@@ -155,7 +155,9 @@ local function ApplyOptionTooltip(frame, tooltip)
         GameTooltip:Show()
     end)
     frame:HookScript("OnLeave", function()
-        GameTooltip:Hide()
+        if not frame:IsMouseOver() then
+            GameTooltip:Hide()
+        end
     end)
 end
 
@@ -430,7 +432,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         return tostring((v >= 0) and math.floor(v + 0.5) or -math.floor(-v + 0.5))
     end
     local row = CreateFrame("Frame", nil, parent)
-    row:SetHeight(34)
+    row:SetHeight(stacked and 54 or 34)
     local searchText = (labelText or "") .. " " .. (description or "")
     row.searchText = searchText:lower()
 
@@ -440,8 +442,14 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     label:SetJustifyV("MIDDLE")
     SetTextColor(label, Def.TextColorLabel)
     label:SetText(labelText or "")
-    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-    label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -60, 0)
+    if stacked then
+        label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+        label:SetPoint("RIGHT",   row, "RIGHT",   0, 0)
+        label:SetHeight(22)
+    else
+        label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+        label:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -60, 0)
+    end
     local desc = row:CreateFontString(nil, "OVERLAY")
     SetSafeFont(desc, Def.FontPath, Def.SectionSize, nil)
     desc:SetJustifyH("LEFT")
@@ -454,8 +462,14 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
 
     local trackWidth = 180
     local track = CreateFrame("Frame", nil, row)
-    track:SetSize(trackWidth, SLIDER_TRACK_HEIGHT)
-    track:SetPoint("RIGHT", row, "RIGHT", -52, 0)
+    if stacked then
+        track:SetHeight(SLIDER_TRACK_HEIGHT)
+        track:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -28)
+        track:SetPoint("RIGHT",   row, "RIGHT",   -(44 + 12), 0)
+    else
+        track:SetSize(trackWidth, SLIDER_TRACK_HEIGHT)
+        track:SetPoint("RIGHT", row, "RIGHT", -52, 0)
+    end
     local trackBg = track:CreateTexture(nil, "BACKGROUND")
     trackBg:SetPoint("TOPLEFT", track, "TOPLEFT", SLIDER_TRACK_INSET, -SLIDER_TRACK_INSET)
     trackBg:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -SLIDER_TRACK_INSET, SLIDER_TRACK_INSET)
@@ -605,6 +619,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         startNorm = valueToNorm(get())
         local scale = track:GetEffectiveScale()
         startX = GetCursorPosition() / scale
+        local dragFillWidth = stacked and math.max(1, (track:GetWidth() or trackWidth) - 2 * SLIDER_TRACK_INSET) or fillWidth
         local lastCommittedSnapped = snapToStep(normToValue(startNorm))
         thumb:GetParent():SetScript("OnUpdate", function()
             if not IsMouseButtonDown("LeftButton") then
@@ -619,7 +634,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
                 return
             end
             local x = GetCursorPosition() / scale
-            local delta = (x - startX) / fillWidth
+            local delta = (x - startX) / dragFillWidth
             local n = math.max(0, math.min(1, startNorm + delta))
             local v = normToValue(n)
             -- Only call set() when the snapped value changes.

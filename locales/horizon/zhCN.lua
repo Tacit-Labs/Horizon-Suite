@@ -1,4 +1,4 @@
-﻿if GetLocale() ~= "zhCN" then return end
+if GetLocale() ~= "zhCN" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -377,9 +377,12 @@ L["AXIS_ENABLE_PER_SPECIALIZATION_PROFILES"]                  = "启用专精配
 L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"]                    = "为每项专精选择不同配置文件"
 L["AXIS_SPECIALIZATION"]                                      = "专精"
 -- L["AXIS_SPEC_PROFILES"]                                    = "Spec Profiles"
+-- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
 -- L["AXIS_ENABLE"]                                           = "Enable"
 L["AXIS_SHARING"]                                             = "分享"
 L["AXIS_IMPORT_PROFILE"]                                      = "导入配置文件"
+-- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
+-- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 L["AXIS_IMPORT_STRING"]                                       = "导入字符串"
 L["AXIS_EXPORT_PROFILE"]                                      = "导出配置文件"
 L["AXIS_SELECT_A_PROFILE_EXPORT"]                             = "选择要导出的配置文件"
@@ -396,7 +399,7 @@ L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"]             = "选择要删除
 L["AXIS_DELETE_SELECTED"]                                     = "删除选中项"
 -- L["AXIS_DELETE_SELECTED_PROFILE"]                          = "Delete Selected Profile"
 L["AXIS_DELETE"]                                              = "删除"
-L["AXIS_DELETES_SELECTED_PROFILE"]                            = "删除选中的配置文件"
+L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                            = "删除选中的配置文件"
 L["AXIS_GLOBAL_PROFILE"]                                      = "全局配置文件"
 L["AXIS_PER_SPEC_PROFILES"]                                   = "专精配置文件"
 
