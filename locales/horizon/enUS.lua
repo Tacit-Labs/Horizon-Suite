@@ -507,6 +507,7 @@ L["AUGMENT_SHOW_CURRENCY"]                                      = "Currency Toas
 L["AUGMENT_SHOW_CURRENCY_DESC"]                                 = "Show a toast when you receive a currency."
 L["AUGMENT_SHOW_REP"]                                           = "Reputation Toasts"
 L["AUGMENT_SHOW_REP_DESC"]                                      = "Show a toast when your reputation changes."
+L["AUGMENT_STYLE_SECTION"]                                      = "Style"
 L["AUGMENT_STACKING_SECTION"]                                   = "Stacking"
 L["AUGMENT_STACK_DUPLICATES"]                                   = "Stack duplicate loots"
 L["AUGMENT_STACK_DUPLICATES_DESC"]                              = "When the same item or currency drops multiple times while a toast is still visible, update the count on the existing row instead of creating a new one."
