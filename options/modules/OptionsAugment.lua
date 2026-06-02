@@ -71,6 +71,7 @@ local categories = {
                             get = function() return getSlider("augmentUIScale") end,
                             set = function(v) setDB("augmentUIScale", clamp(v, "augmentUIScale")) end,
                         },
+                        Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
                     },
                 },
                 right = {
@@ -104,10 +105,6 @@ local categories = {
                 set = function(v) setDB("augmentMinQuality", v) end,
                 disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end,
             },
-
-            -- Blizzard Toasts
-            Section(L["AUGMENT_BLIZZARD_SECTION"]),
-            Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
 
             -- Hold Durations
             Section(L["AUGMENT_HOLD_DURATIONS"]),
