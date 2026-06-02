@@ -4,6 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 local DefaultProvider = setmetatable({}, addon.FocusScenarioBaseProvider)
 DefaultProvider.__index = DefaultProvider
@@ -28,9 +29,9 @@ function DefaultProvider:GetDisplayInfo()
     local title = scenarioName
     if inPartyDungeon then
         local instanceName = GetInstanceInfo()
-        title = instanceName or "Dungeon"
+        title = instanceName or L["FOCUS_DISPLAY_DUNGEON"]
     elseif not title or title == "" then
-        title = "Scenario"
+        title = L["FOCUS_DISPLAY_SCENARIO"]
     end
 
     return title, stageName or "", category

@@ -4,6 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 -- ============================================================================
 -- FLOATING QUEST ITEM BUTTON
@@ -69,7 +70,7 @@ dragAnchor:SetScript("OnEnter", function(self)
     anchorBg:SetColorTexture(0.35, 0.70, 1.0, 0.90)
     if addon.GetDB("focusShowTooltipOnHover", false) and GameTooltip then
         addon.focus.AnchorTooltip(GameTooltip, self)
-        GameTooltip:AddLine("Drag to move quest item button")
+        GameTooltip:AddLine(L["FOCUS_DRAG_ITEM_BUTTON_TOOLTIP"])
         GameTooltip:Show()
     end
 end)

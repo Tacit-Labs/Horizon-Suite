@@ -344,7 +344,9 @@ function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount, opts)
     end
     local terms = EncodeAuctionatorTermsFromParts(parts, mult, useIQ, useCT, forceTier)
     if #terms == 0 then return end
-    local recipeName = "Horizon - " .. (entry._ahRecipeName or "Recipe")
+    -- Prefix with the addon name so the list is identifiable in Auctionator's UI and
+    -- doesn't collide with shopping lists created by other addons.
+    local recipeName = L["NAME_ADDON"] .. " - " .. (entry._ahRecipeName or L["FOCUS_AH_RECIPE_FALLBACK"])
     pcall(function()
         Auctionator.API.v1.CreateShoppingList(AUCTIONATOR_CALLER_ID, recipeName, terms)
         if AuctionatorTabs_Shopping then AuctionatorTabs_Shopping:Click() end
@@ -1029,7 +1031,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         local isAutoComplete = questData.isAutoComplete and true or false
         local readyToTurnIn = StripLeadingDashes(L["UI_READY_TO_TURN_IN"])
         local firstLineText = isAutoComplete
-            and (_G.QUEST_WATCH_QUEST_COMPLETE or "Quest Complete")
+            and (_G.QUEST_WATCH_QUEST_COMPLETE or L["FOCUS_QUEST_COMPLETE"])
             or (addon.GetDB("objectivePrefixStyle", "none") == "numbers" and ("1. " .. readyToTurnIn)
                 or addon.GetDB("objectivePrefixStyle", "none") == "hyphens" and ("- " .. readyToTurnIn)
                 or readyToTurnIn)
