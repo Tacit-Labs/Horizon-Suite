@@ -2,6 +2,18 @@
     Horizon Suite - Focus Module
     Registers the Focus (objective tracker) module with the core.
     OnInit/OnEnable/OnDisable route initialization and teardown.
+
+    Sub-module folders under modules/Focus/:
+      providers/    – one file per content type (quests, rares, achievements, …)
+      scenarios/    – base class + one file per scenario kind (delves, M+, …)
+      rendering/    – aggregator, entry pool, entry renderer, section headers
+      layout/       – layout engine, animation engine, collapse logic
+      interactions/ – click/tooltip/drag handlers, floating quest-item button
+      integration/  – Blizzard tracker suppression, Auctionator dialog, popup
+
+    Load order is governed by HorizonSuite.toc, not by this folder hierarchy.
+    FocusAuctionCraftDialog (integration/) loads between rendering/ files because
+    it creates UI structures that FocusEntryRenderer references on first show.
 ]]
 
 local addon = _G.HorizonSuite
