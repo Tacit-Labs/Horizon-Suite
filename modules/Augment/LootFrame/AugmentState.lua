@@ -147,6 +147,7 @@ Y.DB_KEYS = {
     augmentHoldCurrency     = true,
     augmentHoldRep          = true,
     augmentTextOutline      = true,
+    augmentTextOutlineType  = true,
     augmentSoundEnabled     = true,
     augmentSoundChannel     = true,
     augmentSoundItems       = true,

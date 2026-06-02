@@ -2531,6 +2531,22 @@ function addon.DashboardDetailView_Init(env)
                                 end
                             end
 
+                            -- Sub-section header within a column (same visual style as column title).
+                            if copt.type == "section" then
+                                if yOff > 0 then yOff = yOff + 6 end  -- extra breathing room between sections
+                                local secFs = MakeText(col, copt.name:upper(), 11, 0.5, 0.52, 0.62, "LEFT")
+                                secFs:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
+                                secFs:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                                secFs:SetHeight(16)
+                                yOff = yOff + 16 + 4
+                                local secRule = col:CreateTexture(nil, "ARTWORK")
+                                secRule:SetHeight(1)
+                                secRule:SetColorTexture(0.25, 0.25, 0.3, 0.6)
+                                secRule:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
+                                secRule:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                                yOff = yOff + 1 + 8
+                            end
+
                             local w
                             if copt.type == "binary" or copt.type == "toggle" then
                                 w = _G.OptionsWidgets_CreateToggleSwitch(col, copt.name, copt.desc or "", cg, cs, copt.disabled, copt.tooltip)
