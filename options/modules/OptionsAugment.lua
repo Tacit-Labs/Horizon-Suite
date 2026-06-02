@@ -86,33 +86,23 @@ local categories = {
                 },
             },
 
-            -- Style (two-column: Stacking & Typography | Hold Durations)
+            -- Style (two-column: Font + Stacking | Hold Durations)
             Section(L["AUGMENT_STYLE_SECTION"]),
             { type = "columns",
                 left = {
-                    title = L["AUGMENT_STACKING_SECTION"],
                     options = {
-                        Toggle(L["AUGMENT_STACK_DUPLICATES"], L["AUGMENT_STACK_DUPLICATES_DESC"], "augmentStackDuplicates", D.augmentStackDuplicates),
-                        Toggle(L["AUGMENT_CONDENSE_JUNK"],    L["AUGMENT_CONDENSE_JUNK_DESC"],    "augmentCondenseJunk",    D.augmentCondenseJunk,    { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
-                        { type = "dropdown", name = L["AUGMENT_MIN_QUALITY"], desc = L["AUGMENT_MIN_QUALITY_DESC"], dbKey = "augmentMinQuality",
-                            options = function()
-                                return {
-                                    { ITEM_QUALITY0_DESC or "Poor",      0 },
-                                    { ITEM_QUALITY1_DESC or "Common",    1 },
-                                    { ITEM_QUALITY2_DESC or "Uncommon",  2 },
-                                    { ITEM_QUALITY3_DESC or "Rare",      3 },
-                                    { ITEM_QUALITY4_DESC or "Epic",      4 },
-                                    { ITEM_QUALITY5_DESC or "Legendary", 5 },
-                                }
-                            end,
-                            get = function() return tonumber(getDB("augmentMinQuality", D.augmentMinQuality)) or D.augmentMinQuality end,
-                            set = function(v) setDB("augmentMinQuality", v) end,
-                            disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end,
-                        },
-                        Section(L["DASH_TYPOGRAPHY"]),
+                        { type = "section", name = L["AUGMENT_FONT_SECTION"] },
                         { type = "toggle", name = L["AUGMENT_TEXT_OUTLINE"], desc = L["AUGMENT_TEXT_OUTLINE_DESC"], dbKey = "augmentTextOutline",
                             get = function() return getDB("augmentTextOutline", D.augmentTextOutline) ~= false end,
                             set = function(v) setDB("augmentTextOutline", v) end,
+                        },
+                        { type = "dropdown",
+                            name = L["AUGMENT_TEXT_OUTLINE_TYPE"], desc = L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"],
+                            dbKey = "augmentTextOutlineType",
+                            options = addon.OUTLINE_OPTIONS,
+                            get = function() return getDB("augmentTextOutlineType", D.augmentTextOutlineType) end,
+                            set = function(v) setDB("augmentTextOutlineType", v) end,
+                            disabled = function() return getDB("augmentTextOutline", D.augmentTextOutline) == false end,
                         },
                         { type = "slider", name = L["AUGMENT_FONT_SIZE"], desc = L["AUGMENT_FONT_SIZE_DESC"], dbKey = "augmentFontSize",
                             min = LIM.augmentFontSize.min, max = LIM.augmentFontSize.max, step = 1,
@@ -129,6 +119,24 @@ local categories = {
                             set = function(v) setDB("augmentFontPath", v) end,
                             displayFn = DisplayPerElementFont,
                             fontPreviewInList = true,
+                        },
+                        { type = "section", name = L["AUGMENT_STACKING_SECTION"] },
+                        Toggle(L["AUGMENT_STACK_DUPLICATES"], L["AUGMENT_STACK_DUPLICATES_DESC"], "augmentStackDuplicates", D.augmentStackDuplicates),
+                        Toggle(L["AUGMENT_CONDENSE_JUNK"],    L["AUGMENT_CONDENSE_JUNK_DESC"],    "augmentCondenseJunk",    D.augmentCondenseJunk,    { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
+                        { type = "dropdown", name = L["AUGMENT_MIN_QUALITY"], desc = L["AUGMENT_MIN_QUALITY_DESC"], dbKey = "augmentMinQuality",
+                            options = function()
+                                return {
+                                    { ITEM_QUALITY0_DESC or "Poor",      0 },
+                                    { ITEM_QUALITY1_DESC or "Common",    1 },
+                                    { ITEM_QUALITY2_DESC or "Uncommon",  2 },
+                                    { ITEM_QUALITY3_DESC or "Rare",      3 },
+                                    { ITEM_QUALITY4_DESC or "Epic",      4 },
+                                    { ITEM_QUALITY5_DESC or "Legendary", 5 },
+                                }
+                            end,
+                            get = function() return tonumber(getDB("augmentMinQuality", D.augmentMinQuality)) or D.augmentMinQuality end,
+                            set = function(v) setDB("augmentMinQuality", v) end,
+                            disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end,
                         },
                     },
                 },

@@ -34,7 +34,9 @@ end
 
 local function GetFontFlags()
     if not addon.GetDB then return "OUTLINE" end
-    return addon.GetDB("augmentTextOutline", addon.AUGMENT_DEFAULTS.augmentTextOutline) ~= false and "OUTLINE" or ""
+    if addon.GetDB("augmentTextOutline", addon.AUGMENT_DEFAULTS.augmentTextOutline) == false then return "" end
+    local D = addon.AUGMENT_DEFAULTS
+    return addon.GetDB("augmentTextOutlineType", D and D.augmentTextOutlineType or "OUTLINE") or "OUTLINE"
 end
 
 local function GetToastFont()

@@ -21,6 +21,7 @@ D.augmentFontPath            = "__global__"
 D.augmentFontSize            = 16
 D.augmentUIScale             = 1.0
 D.augmentTextOutline         = true
+D.augmentTextOutlineType     = "OUTLINE"
 D.augmentToastOpacity        = 100
 D.augmentMaxVisible          = 15
 
