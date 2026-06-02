@@ -505,16 +505,7 @@ local function HandleFocusDebugSlash(msg)
         return
     end
 
-    if cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            HSPrint(L["FOCUS_SLASH_DBG_DEV_MODE_REQUIRED"])
-            return
-        end
-        local v = not addon.Log.isEnabled("focus")
-        if addon.focus and addon.focus.SetDebugLive then addon.focus.SetDebugLive(v) end
-        HSPrint(L["FOCUS_SLASH_DBG_FOCUS_LOG_FMT"]:format(v and L["FOCUS_SLASH_STATE_ON"] or L["FOCUS_SLASH_STATE_OFF"]))
-
-    elseif cmd == "wqdebug" then
+    if cmd == "wqdebug" then
         if addon.DumpWorldQuestDiscovery then
             addon.DumpWorldQuestDiscovery()
         else
@@ -1256,4 +1247,7 @@ end
 addon.RegisterSlashHandler("focus", HandleFocusSlash)
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("focus", HandleFocusDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("focus", function(v) if addon.focus and addon.focus.SetDebugLive then addon.focus.SetDebugLive(v) end end)
 end

@@ -85,35 +85,34 @@ function Y.PreviewToasts()
     end
 end
 
---- Handle /horizon augment [cmd] subcommands. Returns true if handled.
+--- Handle /horizon augment [cmd] subcommands.
 --- @param msg string Subcommand
---- @return boolean
 function Y.HandleAugmentSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "item" then
         Y.ShowToast(MakeToast(SAMPLE.item[2]))  -- epic (index 2)
-        return true
+        return
     end
 
     if cmd == "gold" or cmd == "money" then
         Y.ShowToast(MakeToast(SAMPLE.money))
-        return true
+        return
     end
 
     if cmd == "currency" then
         Y.ShowToast(MakeToast(SAMPLE.currency))
-        return true
+        return
     end
 
     if cmd == "rep" then
         Y.ShowToast(MakeToast(SAMPLE.rep))
-        return true
+        return
     end
 
     if cmd == "preview" then
         Y.PreviewToasts()
-        return true
+        return
     end
 
     if cmd == "all" then
@@ -130,33 +129,33 @@ function Y.HandleAugmentSlash(msg)
         for i, fn in ipairs(demos) do
             C_Timer.After((i - 1) * 0.4, fn)
         end
-        return true
+        return
     end
 
     if cmd == "toggle" then
         if InCombatLockdown() then
             HSPrint("Cannot toggle Augment during combat.")
-            return true
+            return
         end
         addon:SetModuleEnabled("augment", not addon:IsModuleEnabled("augment"))
         HSPrint("Augment " .. (addon:IsModuleEnabled("augment") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
-        return true
+        return
     end
 
     if cmd == "reset" then
         Y.ResetPosition()
         HSPrint("Augment position reset to default.")
-        return true
+        return
     end
 
     if cmd == "edit" then
         Y.ToggleEditMode()
-        return true
+        return
     end
 
     if cmd == "move" then
         Y.ToggleAnchorFrame()
-        return true
+        return
     end
 
     if cmd == "" or cmd == "help" then
@@ -172,11 +171,8 @@ function Y.HandleAugmentSlash(msg)
         HSPrint("  /h augment edit     - Toggle edit mode (show bounding box)")
         HSPrint("  /h augment move     - Show anchor to set position")
         HSPrint("  /h augment reset    - Reset position to default")
-        HSPrint("  /h debug augment debug - Toggle loot event logging")
-        return true
+        HSPrint("  /h debug augment debuglive - Toggle loot event logging (DEV_MODE required)")
     end
-
-    return false
 end
 
 local function HandleAugmentDebugSlash(msg)
@@ -184,21 +180,12 @@ local function HandleAugmentDebugSlash(msg)
 
     if cmd == "" or cmd == "help" then
         HSPrint("Augment debug commands (/h debug augment [cmd]):")
-        HSPrint("  debuglive - Toggle live debug log panel")
+        HSPrint("  debuglive - Toggle live debug log panel (DEV_MODE required)")
         HSPrint("  status    - Print loot pattern and GUID state")
         return
     end
 
-    if cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
-            return
-        end
-        local v = not addon.Log.isEnabled("augment")
-        if Y.SetDebugLive then Y.SetDebugLive(v) end
-        HSPrint("Augment debug log: " .. (v and "on" or "off"))
-
-    elseif cmd == "status" then
+    if cmd == "status" then
         HSPrint("Augment status:")
         HSPrint("  playerGUID   = " .. tostring(y.playerGUID))
         HSPrint("  patternsOK   = " .. tostring(y.patternsOK))
@@ -211,4 +198,7 @@ end
 addon.RegisterSlashHandler("augment", Y.HandleAugmentSlash)
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("augment", HandleAugmentDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("augment", function(v) if Y.SetDebugLive then Y.SetDebugLive(v) end end)
 end

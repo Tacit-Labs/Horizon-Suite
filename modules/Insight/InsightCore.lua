@@ -1141,7 +1141,7 @@ local function HandleInsightSlash(msg)
             ShowAnchorFrame()
         end
 
-    elseif cmd == "resetpos" then
+    elseif cmd == "reset" or cmd == "resetpos" then
         addon.SetDB("insightFixedPoint", FIXED_POINT)
         addon.SetDB("insightFixedX", FIXED_X)
         addon.SetDB("insightFixedY", FIXED_Y)
@@ -1166,19 +1166,14 @@ local function HandleInsightSlash(msg)
     else
         Insight.PrintBlock({
             "Horizon Insight",
-            "  /insight, /h insight     This help",
-            "  /insight anchor   Toggle cursor / fixed positioning",
-            "  /insight move     Show draggable anchor to set fixed position",
-            "  /insight resetpos Reset fixed position to default",
-            "  /insight test     Show a sample styled tooltip",
+            "  /h insight          This help",
+            "  /h insight anchor   Toggle cursor / fixed positioning",
+            "  /h insight move     Show draggable anchor to set fixed position",
+            "  /h insight reset    Reset fixed position to default",
+            "  /h insight test     Show a sample styled tooltip",
         })
     end
 end
-
-SLASH_HORIZONSUITEINSIGHT1 = "/insight"
-SLASH_HORIZONSUITEINSIGHT2 = "/hsi"
-SLASH_HORIZONSUITEINSIGHT3 = "/mtt"
-SlashCmdList["HORIZONSUITEINSIGHT"] = HandleInsightSlash
 
 local function HandleInsightDebugSlash(msg)
     local cmd = strtrim(msg or ""):lower()
@@ -1186,23 +1181,12 @@ local function HandleInsightDebugSlash(msg)
     if cmd == "" or cmd == "help" then
         Insight.PrintBlock({
             "Insight debug commands (/h debug insight [cmd]):",
-            "  debuglive - Toggle live debug log panel",
+            "  debuglive - Toggle live debug log panel (DEV_MODE required)",
             "  status    - Print config + cache count",
             "  lsm       - Test LibSharedMedia classicon registration",
             "  path      - Show class icon paths (Rondo + custom sample)",
             "  trp3      - Diagnose TRP3 data for current mouseover unit",
         })
-        return
-    end
-
-    if cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            Insight.Print("Debug requires DEV_MODE = true in core/Logger.lua")
-            return
-        end
-        local v = not addon.Log.isEnabled("insight")
-        if Insight.SetDebugLive then Insight.SetDebugLive(v) end
-        Insight.Print("Insight debug log: " .. (v and "on" or "off"))
         return
     end
 
@@ -1459,6 +1443,9 @@ if addon.RegisterSlashHandler then
 end
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("insight", HandleInsightDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("insight", function(v) if Insight.SetDebugLive then Insight.SetDebugLive(v) end end)
 end
 
 addon.Insight = Insight

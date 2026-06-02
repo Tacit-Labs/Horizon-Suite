@@ -13,6 +13,7 @@ local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r
 
 addon.slashHandlers = addon.slashHandlers or {}
 addon.slashHandlersDebug = addon.slashHandlersDebug or {}
+addon.debugLiveRegistry = addon.debugLiveRegistry or {}
 
 --- Register a module's slash handler. Called by each module at load.
 --- @param moduleKey string  "focus"|"presence"|"vista"|"augment"|"insight"
@@ -28,6 +29,15 @@ end
 function addon.RegisterSlashHandlerDebug(moduleKey, handler)
     if not moduleKey or type(handler) ~= "function" then return end
     addon.slashHandlersDebug[moduleKey] = handler
+end
+
+--- Register a module's SetDebugLive function. Called by each module at load.
+--- Centralizes the DEV_MODE guard and isEnabled toggle so modules don't repeat it.
+--- @param moduleKey string
+--- @param fn function(enabled: boolean)  Called with the new enabled state
+function addon.RegisterDebugLive(moduleKey, fn)
+    if not moduleKey or type(fn) ~= "function" then return end
+    addon.debugLiveRegistry[moduleKey] = fn
 end
 
 -- ============================================================================
@@ -48,7 +58,7 @@ local function ShowCoreHelp()
     HSPrint("  /h presence [cmd]    - Zone/notification tests")
     HSPrint("  /h vista [cmd]       - Minimap")
     HSPrint("  /h augment [cmd]     - Loot toasts")
-    HSPrint("  /h insight [cmd]     - Tooltips (or /insight)")
+    HSPrint("  /h insight [cmd]     - Tooltips")
 end
 
 -- ============================================================================
@@ -129,6 +139,18 @@ local function OnSlashCommand(msg)
         if moduleKey == "locale" then
             addon.debugLocale = not addon.debugLocale
             HSPrint("Locale debug " .. (addon.debugLocale and "|cff00ff00ON|r — missing keys will print to chat." or "|cffff0000OFF|r"))
+            return
+        end
+        if subMsg == "debuglive" then
+            if not addon.Log.isDevMode() then
+                HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
+                return
+            end
+            local fn = addon.debugLiveRegistry[moduleKey]
+            if not fn then HSPrint("No debuglive registered for: " .. moduleKey); return end
+            local v = not addon.Log.isEnabled(moduleKey)
+            fn(v)
+            HSPrint(moduleKey:sub(1,1):upper() .. moduleKey:sub(2) .. " debug log: " .. (v and "|cFF00FF00on|r" or "|cFFFF0000off|r"))
             return
         end
         local debugHandler = addon.slashHandlersDebug[moduleKey]
