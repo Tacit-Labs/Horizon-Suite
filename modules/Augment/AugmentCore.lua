@@ -629,15 +629,25 @@ local function GetEffectiveItemKey(data)
 end
 
 local function BuildMergedText(data, effectiveKey, totalCount)
+    local showStackCountBeforeName = addon.GetDB and addon.GetDB("augmentStackCountBeforeName", addon.AUGMENT_DEFAULTS.augmentStackCountBeforeName) ~= false
+    
     if effectiveKey == JUNK_KEY then
         -- Show the real item name until a second junk item merges in.
         if totalCount == 1 then
             return data.baseName or data.text
         end
-        return L["AUGMENT_JUNK_LABEL"] .. " x" .. totalCount
+        if showStackCountBeforeName then
+            return totalCount .. " x " .. L["AUGMENT_JUNK_LABEL"]
+        else
+            return L["AUGMENT_JUNK_LABEL"] .. " x " .. totalCount
+        end
     end
     if data.kind == "item" then
-        return totalCount > 1 and (data.baseName .. " x" .. totalCount) or data.baseName
+        if showStackCountBeforeName then
+           return totalCount > 1 and (totalCount .. " x " .. data.baseName) or data.baseName
+        else
+           return totalCount > 1 and (data.baseName .. " x " .. totalCount) or data.baseName
+        end
     end
     if data.kind == "currency" then
         return "+" .. totalCount .. " " .. (data.baseName or "")
