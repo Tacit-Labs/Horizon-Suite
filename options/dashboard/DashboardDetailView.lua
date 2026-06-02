@@ -1929,8 +1929,8 @@ function addon.DashboardDetailView_Init(env)
                     end
                     detailOptionFrames[optId] = widget
                 elseif opt.type == "talkingHeadPreview" then
-                    local previewWidget = addon.Presence and addon.Presence.CreateTalkingHeadPreviewWidget and
-                        addon.Presence.CreateTalkingHeadPreviewWidget(currentCard.settingsContainer)
+                    local previewWidget = addon.Augment and addon.Augment.CreateTalkingHeadPreviewWidget and
+                        addon.Augment.CreateTalkingHeadPreviewWidget(currentCard.settingsContainer)
                     widget = previewWidget and previewWidget.frame or nil
                     if widget and previewWidget.Refresh then
                         widget.Refresh = previewWidget.Refresh

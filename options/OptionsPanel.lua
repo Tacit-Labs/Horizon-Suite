@@ -1522,8 +1522,8 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
         elseif opt.type == "talkingHeadPreview" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
-            local previewWidget = addon.Presence and addon.Presence.CreateTalkingHeadPreviewWidget and
-                addon.Presence.CreateTalkingHeadPreviewWidget(cardContent)
+            local previewWidget = addon.Augment and addon.Augment.CreateTalkingHeadPreviewWidget and
+                addon.Augment.CreateTalkingHeadPreviewWidget(cardContent)
             local previewFrame = previewWidget and previewWidget.frame
             if previewFrame then
                 previewFrame:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)
