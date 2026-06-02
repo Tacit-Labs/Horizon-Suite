@@ -1,5 +1,5 @@
 --[[
-    Horizon Suite - Presence - Talking Head options category
+    Horizon Suite - Augment / TalkingHead - options category
     Self-registers into addon.OptionCategories after OptionsData.lua runs.
 ]]
 
@@ -16,8 +16,8 @@ local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local Section = addon.Section
 
 local function updateTalkingHead()
-    if addon.Presence and addon.Presence.UpdateTalkingHead then
-        addon.Presence.UpdateTalkingHead()
+    if addon.Augment and addon.Augment.UpdateTalkingHead then
+        addon.Augment.UpdateTalkingHead()
     end
 end
 
@@ -45,10 +45,19 @@ local function DisplayFont(v)
 end
 
 local category = {
-    key       = "PresenceTalkingHead",
-    name      = L["TALKING_HEAD"],
-    desc      = L["TALKING_HEAD_CATEGORY_DESC"],
-    moduleKey = "presence",
+    key        = "AugmentTalkingHead",
+    name       = L["TALKING_HEAD"],
+    desc       = L["TALKING_HEAD_CATEGORY_DESC"],
+    moduleKey  = "augment",
+    icon       = 1531089,
+    accentColor = { 0.55, 0.80, 0.95 },
+    enabledKey = "augmentTalkingHeadEnabled",
+    getEnabled = function() return getDB("augmentTalkingHeadEnabled", true) ~= false end,
+    setEnabled = function(v)
+        v = v and true or false
+        setDB("augmentTalkingHeadEnabled", v)
+        updateTalkingHead()
+    end,
     options   = {
         Section(L["AXIS_GENERAL"]),
         {
@@ -221,9 +230,9 @@ local category = {
     },
 }
 
--- Insert after the last Presence category to preserve sidebar order
+-- Insert after the last Augment category to preserve sidebar order
 local insertAt = #addon.OptionCategories + 1
 for i, cat in ipairs(addon.OptionCategories) do
-    if cat.moduleKey == "presence" then insertAt = i + 1 end
+    if cat.moduleKey == "augment" then insertAt = i + 1 end
 end
 table.insert(addon.OptionCategories, insertAt, category)
