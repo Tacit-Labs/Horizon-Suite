@@ -25,7 +25,15 @@ Y.DB_KEYS.talkingHeadTextOutline           = true
 Y.DB_KEYS.talkingHeadNameFontPath          = true
 Y.DB_KEYS.talkingHeadTextFontPath          = true
 
-local DEFAULTS = addon.TALKING_HEAD_DEFAULTS
+-- DEFAULTS is a lazy proxy: the options defaults file loads after this module
+-- in the toc, so addon.TALKING_HEAD_DEFAULTS is nil at file-load time.
+-- Indexing the proxy at call time (inside functions) reads the real table.
+local DEFAULTS = setmetatable({}, {
+    __index = function(_, k)
+        local d = addon.TALKING_HEAD_DEFAULTS
+        return d and d[k]
+    end,
+})
 
 -- ============================================================================
 -- HELPERS
