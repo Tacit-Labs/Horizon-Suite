@@ -1173,6 +1173,10 @@ function addon.Dashboard_BuildMainFrame()
                 subBackBtn:Hide()
                 detailTitle:Hide()
                 detailTitleUnderline:Hide()
+                if f.detailPreviewBtn then f.detailPreviewBtn:Hide() end
+                if f.detailResetBtn   then f.detailResetBtn:Hide()   end
+                if f.detailAnchorBtn  then f.detailAnchorBtn:Hide()  end
+                if f.detailEnableBtn  then f.detailEnableBtn:Hide()  end
             end
 
             local function ShowDetailHeader()
@@ -1772,6 +1776,44 @@ function addon.Dashboard_BuildMainFrame()
             sbSep:SetColorTexture(0.15, 0.15, 0.2, 1)
             tinsert(sidebarRows, { type = "sep", frame = lastSidebarRow, bottom = lastSidebarRow, offsetFromPrev = -9 })
 
+            -- Live show/hide of mini-module sub-rows (categories carrying getEnabled/enabledKey)
+            -- without a sidebar rebuild. Assigned as a field so it adds no locals to this
+            -- already-at-limit builder function. Re-anchors the visible rows, recomputes the
+            -- group's expanded height, and reflows.
+            f.DashboardApplyGroupSubcats = function(mk)
+                local g = groups[mk]
+                if not g or not g.subButtons or not g.tabsContainer then return end
+                local collapsed = GetGroupCollapsed(mk)
+                local anchor = g.tabsContainer
+                local visibleCount = 0
+                for _, sb in ipairs(g.subButtons) do
+                    local cat = sb.sidebarCategoryIndex and addon.OptionCategories[sb.sidebarCategoryIndex]
+                    local enabled = true
+                    if cat then
+                        if cat.getEnabled then
+                            enabled = cat.getEnabled() ~= false
+                        elseif cat.enabledKey and addon.GetDB then
+                            enabled = addon.GetDB(cat.enabledKey, true) ~= false
+                        end
+                    end
+                    if enabled then
+                        sb._subcatDisabled = nil
+                        sb:ClearAllPoints()
+                        sb:SetPoint("TOPLEFT", anchor, (anchor == g.tabsContainer) and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
+                        anchor = sb
+                        visibleCount = visibleCount + 1
+                        sb:SetShown(not collapsed)
+                    else
+                        sb._subcatDisabled = true
+                        sb:Hide()
+                    end
+                end
+                g.fullHeight = TAB_ROW_HEIGHT * visibleCount
+                g.tabsContainer:SetHeight(collapsed and 0 or g.fullHeight)
+                if g.header and g.header.updateSpacer then g.header.updateSpacer() end
+                if LayoutSidebar then LayoutSidebar() end
+            end
+
             -- Per-group: standalone (single category) or header + collapsible sub-buttons
             for _, mk in ipairs(groupOrder) do
                 local g = groups[mk]
@@ -1911,15 +1953,21 @@ function addon.Dashboard_BuildMainFrame()
                             if mk == "axis" then
                                 f.ShowDashboard()
                             elseif not GetGroupCollapsed(mk) and (collapseMode == "manual" or sidebarState.activeModuleKey == mk) then
-                                SetGroupCollapsed(mk, true)
-                                if g.tabsContainer then
-                                    g.tabsContainer:SetScript("OnUpdate", nil)
-                                    g.tabsContainer:SetHeight(0)
-                                    SetGroupChildrenShown(g, false)
+                                -- If we're inside a sub-category detail, navigate up to the module
+                                -- categories landing first. A second click will then collapse.
+                                if sidebarState.view == "category" and sidebarState.activeModuleKey == mk then
+                                    f.OpenModule(modName, mk)
+                                else
+                                    SetGroupCollapsed(mk, true)
+                                    if g.tabsContainer then
+                                        g.tabsContainer:SetScript("OnUpdate", nil)
+                                        g.tabsContainer:SetHeight(0)
+                                        SetGroupChildrenShown(g, false)
+                                    end
+                                    if header.chevron then header.chevron:SetText("+") end
+                                    if header.updateSpacer then header.updateSpacer() end
+                                    if LayoutSidebar then LayoutSidebar() end
                                 end
-                                if header.chevron then header.chevron:SetText("+") end
-                                if header.updateSpacer then header.updateSpacer() end
-                                if LayoutSidebar then LayoutSidebar() end
                             else
                                 f.OpenModule(modName, mk)
                             end
@@ -1957,11 +2005,18 @@ function addon.Dashboard_BuildMainFrame()
                                 btn.sidebarName = cat.name
                                 btn.sidebarCategoryIndex = catIdx
                                 tinsert(sidebarButtons, btn)
+                                g.subButtons = g.subButtons or {}
+                                tinsert(g.subButtons, btn)
                             end
                         end
 
                         if startCollapsed then
                             SetGroupChildrenShown(g, false)
+                        end
+
+                        -- Apply mini-module enabled state (hides disabled sub-rows, recomputes height).
+                        if f.DashboardApplyGroupSubcats then
+                            f.DashboardApplyGroupSubcats(mk)
                         end
                     end
                 end

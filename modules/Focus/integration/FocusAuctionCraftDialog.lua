@@ -8,6 +8,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 local AH_CRAFT_W        = addon.Scaled(420)
 local AH_CRAFT_PAD      = addon.Scaled(16)
@@ -218,7 +219,7 @@ local function EnsureAhCraftFrame()
     local suiteLbl = dragZone:CreateFontString(nil, "OVERLAY")
     suiteLbl:SetFont(AH_CRAFT_F_HEAD, 13, "OUTLINE")
     suiteLbl:SetPoint("TOPLEFT", dragZone, "TOPLEFT", AH_CRAFT_PAD, -(AH_CRAFT_ACCENT_H + addon.Scaled(10)))
-    suiteLbl:SetText("HORIZON SUITE")
+    suiteLbl:SetText(L["NAME_ADDON"]:upper())  -- uppercase matches the dialog chrome design
     suiteLbl:SetTextColor(0.88, 0.88, 0.92, 1)
 
     local subtitleLbl = dragZone:CreateFontString(nil, "OVERLAY")
@@ -350,31 +351,23 @@ local function EnsureAhCraftFrame()
         if f.ebCraft then f.ebCraft:SetFocus() end
     end)
 
-    local function tierRowLabel(L, tierVal)
-        if tierVal == nil then
-            return (L and L["FOCUS_AH_CRAFT_TIER_ANY"])
-        end
-        local pat = L and L["FOCUS_AH_CRAFT_TIER_N"]
-        if pat and type(pat) == "string" then
-            local ok, s = pcall(string.format, pat, tierVal)
-            if ok and s then return s end
-        end
-        return "Tier " .. tostring(tierVal)
+    local function tierRowLabel(tierVal)
+        if tierVal == nil then return L["FOCUS_AH_CRAFT_TIER_ANY"] end
+        return L["FOCUS_AH_CRAFT_TIER_N"]:format(tierVal)
     end
 
     local function refreshTierButtonDisplay()
-        local L = addon.L
         local t = f.selectedCraftingTier
         if type(t) ~= "number" or t < 1 or t > AH_TIER_MAX then
             f.tierBtn.icon:Hide()
             f.tierBtn.label:ClearAllPoints()
             f.tierBtn.label:SetPoint("LEFT", f.tierBtn, "LEFT", addon.Scaled(12), 0)
             f.tierBtn.label:SetPoint("RIGHT", f.tierBtn, "RIGHT", -addon.Scaled(28), 0)
-            f.tierBtn.label:SetText(tierRowLabel(L, nil))
+            f.tierBtn.label:SetText(tierRowLabel(nil))
             return
         end
         ApplyTierIconAndLabel(f.tierBtn.icon, f.tierBtn.label, f.tierBtn, t, addon.Scaled(12), -addon.Scaled(28))
-        f.tierBtn.label:SetText(tierRowLabel(L, t))
+        f.tierBtn.label:SetText(tierRowLabel(t))
     end
     f.RefreshTierButtonDisplay = refreshTierButtonDisplay
 
@@ -410,7 +403,6 @@ local function EnsureAhCraftFrame()
     end
 
     local function syncTierMenuLabels()
-        local L = addon.L
         for idx = 0, AH_TIER_MAX do
             local row = f.tierMenuRows[idx + 1]
             if row then
@@ -423,7 +415,7 @@ local function EnsureAhCraftFrame()
                 else
                     ApplyTierIconAndLabel(row.icon, row.lbl, row, tierVal, addon.Scaled(10), -addon.Scaled(8))
                 end
-                row.lbl:SetText(tierRowLabel(L, tierVal))
+                row.lbl:SetText(tierRowLabel(tierVal))
             end
         end
     end
@@ -451,7 +443,6 @@ local function EnsureAhCraftFrame()
         local entry = f._entry
         if not entry then return end
         CloseTierMenu()
-        local L = addon.L
         local text = f.ebCraft:GetText() or ""
         local n = tonumber(text)
         local maxN = addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX or 999
@@ -499,17 +490,14 @@ end
 function addon.focus.ShowAuctionCraftDialog(entry)
     if not entry then return end
     local f = EnsureAhCraftFrame()
-    local L = addon.L
     local ar, ag, ab = GetAccentRGB()
     if f.accentStrip then f.accentStrip:SetColorTexture(ar, ag, ab, 1) end
     if f.subtitleLbl then
-        f.subtitleLbl:SetText((L and L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"]))
+        f.subtitleLbl:SetText(L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"])
         f.subtitleLbl:SetTextColor(ar, ag, ab, 1)
     end
-    f.hintCraft:SetText((L and L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"])
-        or "How many crafts to buy materials for (1–999). Quantities in the list are multiplied by this.")
-    f.hintTier:SetText((L and L["FOCUS_AH_CRAFT_HINT_TIER"])
-        or "Optional crafting tier on every row. Leave as Any for no quality or tier filters.")
+    f.hintCraft:SetText(L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"])
+    f.hintTier:SetText(L["FOCUS_AH_CRAFT_HINT_TIER"])
 
     f.SyncTierMenuLabels()
 

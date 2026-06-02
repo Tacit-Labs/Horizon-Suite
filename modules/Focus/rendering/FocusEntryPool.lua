@@ -5,9 +5,6 @@
 
 local addon = _G.HorizonSuite
 local L = addon.L
-local function T(key)
-    return (L[key]) or key
-end
 
 -- ============================================================================
 -- ENTRY POOL
@@ -156,8 +153,8 @@ local function CreateQuestEntry(parent, index)
         local entry = self._ownerEntry
         if addon.GetDB("focusShowTooltipOnHover", false) and entry and entry.questID and addon.focus.UseBlizzardStyleQuestIconClicks and addon.focus.UseBlizzardStyleQuestIconClicks() then
             addon.focus.AnchorTooltip(GameTooltip, self)
-            GameTooltip:AddLine(T("Focus quest") or "Focus quest", 1, 1, 1)
-            GameTooltip:AddLine(T("Click to super-track this quest.") or "Click to super-track this quest.", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine(L["FOCUS_QUEST_ICON_TOOLTIP_TITLE"], 1, 1, 1)
+            GameTooltip:AddLine(L["FOCUS_QUEST_ICON_TOOLTIP_BODY"], 0.7, 0.7, 0.7, true)
             GameTooltip:Show()
         end
     end)
@@ -200,8 +197,8 @@ local function CreateQuestEntry(parent, index)
         self.icon:SetAlpha(1)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         addon.focus.AnchorTooltip(GameTooltip, self)
-        GameTooltip:AddLine(T("Find a Group"), 1, 1, 1)
-        GameTooltip:AddLine(T("Click to search for a group for this quest."), 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine(L["FOCUS_LFG_TOOLTIP_TITLE"], 1, 1, 1)
+        GameTooltip:AddLine(L["FOCUS_LFG_TOOLTIP_BODY"], 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     e.lfgBtn:SetScript("OnLeave", function(self)
@@ -234,8 +231,8 @@ local function CreateQuestEntry(parent, index)
         self.icon:SetAlpha(1)
         if not addon.GetDB("focusShowTooltipOnHover", false) then return end
         addon.focus.AnchorTooltip(GameTooltip, self)
-        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TITLE"]), 1, 1, 1)
-        GameTooltip:AddLine((L and L["FOCUS_AH_SEARCH_TOOLTIP"]), 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine(L["FOCUS_AH_SEARCH_TITLE"], 1, 1, 1)
+        GameTooltip:AddLine(L["FOCUS_AH_SEARCH_TOOLTIP"], 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     e.ahBtn:SetScript("OnLeave", function(self)

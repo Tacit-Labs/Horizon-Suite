@@ -8,6 +8,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 
 -- Scenario step widget set contains Delve header; Objective Tracker set may not when tracker is hidden.
 local WIDGET_TYPE_SCENARIO_HEADER_DELVES = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.ScenarioHeaderDelves) or 29
@@ -241,7 +242,9 @@ local function BuildAffixesFromWidgetInfo(widgetInfo)
                     if spellDescOk and d and type(d) == "string" and d ~= "" then desc = d end
                 end
                 affixes[#affixes + 1] = {
-                    name  = name or ("Spell " .. spellInfo.spellID),
+                    -- GetSpellNameAndIcon returns nil for spells not yet in the client cache
+                    -- (common on first load or after a patch). The ID keeps the row non-empty.
+                    name  = name or L["FOCUS_DELVE_SPELL_FALLBACK_FMT"]:format(spellInfo.spellID),
                     desc  = desc or "",
                     icon  = icon,
                 }
@@ -267,7 +270,7 @@ local function BuildAffixesFromSeasonFallback()
                 if dOk and d and type(d) == "string" then desc = d end
             end
             affixes[#affixes + 1] = {
-                name  = (name and name ~= "") and name or ("Spell " .. spellID),
+                name  = (name and name ~= "") and name or L["FOCUS_DELVE_SPELL_FALLBACK_FMT"]:format(spellID),  -- see BuildAffixesFromWidgetInfo
                 desc  = desc or "",
                 icon  = spellIcon,
             }

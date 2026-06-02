@@ -8,25 +8,41 @@ if not addon or not addon.RegisterModule then return end
 
 addon:RegisterModule("augment", {
     title       = "Augment",
-    description = "Cinematic loot notifications (items, money, currency, reputation).",
+    description = "Loot notifications, vendor automation, self-highlight, and Talking Head customisation.",
     order       = 30,
 
     OnInit = function()
+        if addon.Augment and addon.Augment.InitTalkingHead then
+            addon.Augment.InitTalkingHead()
+        end
     end,
 
     OnEnable = function()
         if addon.Augment then
+            local GetDB = addon.GetDB
+            local lootOn   = not GetDB or GetDB("augmentLootFrameEnabled",    true)  ~= false
+            local vendorOn = not GetDB or GetDB("augmentVendorEnabled",        false) ~= false
+            local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled", false) ~= false
+            local thOn     = not GetDB or GetDB("augmentTalkingHeadEnabled",   true)  ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
-            if addon.Augment.EnableEvents then addon.Augment.EnableEvents() end
-            if addon.Augment.ApplyBlizzardSuppression then addon.Augment.ApplyBlizzardSuppression() end
+            -- Loot Frame mini-module: only register loot events + suppress Blizzard toasts when on.
+            if lootOn then
+                if addon.Augment.EnableEvents then addon.Augment.EnableEvents() end
+                if addon.Augment.ApplyBlizzardSuppression then addon.Augment.ApplyBlizzardSuppression() end
+            end
             if addon.Augment.SetFrameVisible then addon.Augment.SetFrameVisible(true) end
             if addon.Augment.RestoreSavedPosition then addon.Augment.RestoreSavedPosition() end
             if addon.Augment.ApplyAugmentClassChrome then addon.Augment.ApplyAugmentClassChrome() end
+            if shOn and addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Enable() end
+            if vendorOn and addon.Augment.Vendor then addon.Augment.Vendor.Enable() end
+            if thOn and addon.Augment.UpdateTalkingHead then addon.Augment.UpdateTalkingHead() end
         end
     end,
 
     OnDisable = function()
         if addon.Augment then
+            if addon.Augment.Vendor then addon.Augment.Vendor.Disable() end
+            if addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Disable() end
             if addon.Augment.DisableEvents then addon.Augment.DisableEvents() end
             if addon.Augment.RestoreBlizzard then addon.Augment.RestoreBlizzard() end
             if addon.Augment.ClearActiveToasts then addon.Augment.ClearActiveToasts() end

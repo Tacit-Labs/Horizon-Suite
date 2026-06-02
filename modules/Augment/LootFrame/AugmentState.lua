@@ -109,12 +109,13 @@ Y.UNKNOWN_ICON    = "Interface\\Icons\\INV_Misc_QuestionMark"
 -- RUNTIME STATE (addon.augment)
 -- ============================================================================
 
-y.pool        = y.pool or {}
-y.activeCount = y.activeCount or 0
-y.patternsOK  = y.patternsOK or false
-y.playerGUID  = y.playerGUID
-y.debugMode   = y.debugMode or false
-y.editMode    = y.editMode or false
+y.pool           = y.pool or {}
+y.activeCount    = y.activeCount or 0
+y.patternsOK     = y.patternsOK or false
+y.playerGUID     = y.playerGUID
+y.debugMode      = y.debugMode or false
+y.editMode       = y.editMode or false
+y.nativeEditMode = y.nativeEditMode or false
 
 -- ============================================================================
 -- DB ACCESSORS
@@ -127,31 +128,34 @@ y.editMode    = y.editMode or false
 -- ============================================================================
 
 Y.DB_KEYS = {
-    augmentPoint         = true,
-    augmentRelPoint      = true,
-    augmentX             = true,
-    augmentY             = true,
-    augmentFontPath      = true,
-    augmentShowItems     = true,
-    augmentShowMoney     = true,
-    augmentShowCurrency  = true,
-    augmentShowRep       = true,
-    augmentMinQuality    = true,
-    augmentToastOpacity  = true,
-    augmentMaxVisible    = true,
-    augmentHoldItem      = true,
-    augmentHoldEpic      = true,
-    augmentHoldLegendary = true,
-    augmentHoldMoney     = true,
-    augmentHoldCurrency  = true,
-    augmentHoldRep       = true,
-    augmentTextOutline   = true,
-    augmentSoundEnabled  = true,
-    augmentSoundChannel  = true,
-    augmentSoundItems    = true,
-    augmentSoundMoney    = true,
-    augmentSoundCurrency = true,
-    augmentSoundRep      = true,
+    augmentPoint            = true,
+    augmentRelPoint         = true,
+    augmentX                = true,
+    augmentY                = true,
+    augmentFontPath         = true,
+    augmentShowItems        = true,
+    augmentShowMoney        = true,
+    augmentShowCurrency     = true,
+    augmentShowRep          = true,
+    augmentMinQuality       = true,
+    augmentToastOpacity     = true,
+    augmentMaxVisible       = true,
+    augmentHoldItem         = true,
+    augmentHoldEpic         = true,
+    augmentHoldLegendary    = true,
+    augmentHoldMoney        = true,
+    augmentHoldCurrency     = true,
+    augmentHoldRep          = true,
+    augmentTextOutline      = true,
+    augmentSoundEnabled     = true,
+    augmentSoundChannel     = true,
+    augmentSoundItems       = true,
+    augmentSoundMoney       = true,
+    augmentSoundCurrency    = true,
+    augmentSoundRep         = true,
+    augmentEditModeShow     = true,
+    augmentLootFrameEnabled = true,
+    -- SelfHighlight and AutoVendor mini-modules append their own keys below.
 }
 
 --- Return the hold duration for a toast, reading from DB when available.

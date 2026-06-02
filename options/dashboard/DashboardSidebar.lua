@@ -205,7 +205,13 @@ function addon.DashboardSidebar_CreateChrome(p)
     local function SetGroupChildrenShown(g, shown)
         if not g or not g.tabsContainer then return end
         for _, child in pairs({ g.tabsContainer:GetChildren() }) do
-            child:SetShown(shown)
+            -- A child flagged _subcatDisabled belongs to a mini-module that is turned off;
+            -- it must stay hidden even when the parent group is expanded.
+            if shown and child._subcatDisabled then
+                child:Hide()
+            else
+                child:SetShown(shown)
+            end
         end
     end
 
