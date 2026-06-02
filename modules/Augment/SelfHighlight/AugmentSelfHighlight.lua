@@ -61,6 +61,14 @@ end
 -- Core evaluation
 -- ============================================================================
 
+-- getDB helper: explicit nil-check so a stored `false` is not replaced by the default.
+local function getDB(k, d)
+    if not addon.GetDB then return d end
+    local v = addon.GetDB(k, d)
+    if v == nil then return d end
+    return v
+end
+
 local function Evaluate()
     if not (addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false)) then
         ClearHighlight()
@@ -68,11 +76,11 @@ local function Evaluate()
     end
     local inCombat = UnitAffectingCombat("player")
     local hostile  = UnitExists("target") and UnitCanAttack("player", "target")
-    local trigger  = (addon.GetDB("selfHighlightCombat",  true) and inCombat)
-                  or (addon.GetDB("selfHighlightHostile", true) and hostile)
+    local trigger  = (getDB("selfHighlightCombat",  true) and inCombat)
+                  or (getDB("selfHighlightHostile", true) and hostile)
     if trigger then
         local D = addon.AUGMENT_DEFAULTS
-        SetHighlight(addon.GetDB("selfHighlightMode", D and D.selfHighlightMode or "outlinecircle"))
+        SetHighlight(getDB("selfHighlightMode", D and D.selfHighlightMode or "outlinecircle"))
     else
         ClearHighlight()
     end

@@ -281,6 +281,14 @@ local function SellNextItem()
         sellSession.count = 0
         return
     end
+    -- If the merchant closed mid-chain, abort cleanly without accumulating
+    -- sell value for items that were never actually sold.
+    if not MerchantFrame or not MerchantFrame:IsShown() then
+        sellQueue = {}
+        sellSession.value = 0
+        sellSession.count = 0
+        return
+    end
     local item = table.remove(sellQueue, 1)
     local info = C_Container.GetContainerItemInfo(item.bag, item.slot)
     if info then
