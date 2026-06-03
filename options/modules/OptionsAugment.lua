@@ -318,6 +318,26 @@ local categories = {
             }
         end,
     },
+
+    -- ── Achievement Tracker ──────────────────────────────────────────────────
+    {
+        key = "AugmentAchievementTracker",
+        name = L["AUGMENT_ACHIEVEMENT_TRACKER"],
+        desc = L["AUGMENT_ACHIEVEMENT_TRACKER_DESC"],
+        icon = 236668,  -- Achievement_General (gold star)
+        accentColor = { 1.0, 0.82, 0.0 },
+        moduleKey = "augment",
+        enabledKey = "augmentAchievementTrackerEnabled",
+        getEnabled = function() return getDB("augmentAchievementTrackerEnabled", D.augmentAchievementTrackerEnabled) ~= false end,
+        setEnabled = function(v)
+            v = v and true or false
+            setDB("augmentAchievementTrackerEnabled", v)
+            if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+            local AT = addon.Augment and addon.Augment.AchievementTracker
+            if not AT then return end
+            if v then AT.Enable() else AT.Disable() end
+        end,
+    },
 }
 
 for i = 1, #categories do

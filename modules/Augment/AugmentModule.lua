@@ -8,7 +8,7 @@ if not addon or not addon.RegisterModule then return end
 
 addon:RegisterModule("augment", {
     title       = "Augment",
-    description = "Loot notifications, vendor automation, self-highlight, and Talking Head customisation.",
+    description = "Loot notifications, vendor automation, self-highlight, Talking Head customisation, and achievement tracking.",
     order       = 30,
 
     OnInit = function()
@@ -20,10 +20,11 @@ addon:RegisterModule("augment", {
     OnEnable = function()
         if addon.Augment then
             local GetDB = addon.GetDB
-            local lootOn   = not GetDB or GetDB("augmentLootFrameEnabled",    true)  ~= false
-            local vendorOn = not GetDB or GetDB("augmentVendorEnabled",        true)  ~= false
-            local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled", false) ~= false
-            local thOn     = not GetDB or GetDB("augmentTalkingHeadEnabled",   true)  ~= false
+            local lootOn   = not GetDB or GetDB("augmentLootFrameEnabled",          true)  ~= false
+            local vendorOn = not GetDB or GetDB("augmentVendorEnabled",            true)  ~= false
+            local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled",     false) ~= false
+            local thOn     = not GetDB or GetDB("augmentTalkingHeadEnabled",       true)  ~= false
+            local atOn     = not GetDB or GetDB("augmentAchievementTrackerEnabled", false) ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
             -- Loot Frame mini-module: only register loot events + suppress Blizzard toasts when on.
             if lootOn then
@@ -36,6 +37,7 @@ addon:RegisterModule("augment", {
             if shOn and addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Enable() end
             if vendorOn and addon.Augment.Vendor then addon.Augment.Vendor.Enable() end
             if thOn and addon.Augment.UpdateTalkingHead then addon.Augment.UpdateTalkingHead() end
+            if atOn and addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Enable() end
         end
     end,
 
@@ -43,6 +45,7 @@ addon:RegisterModule("augment", {
         if addon.Augment then
             if addon.Augment.Vendor then addon.Augment.Vendor.Disable() end
             if addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Disable() end
+            if addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Disable() end
             if addon.Augment.DisableEvents then addon.Augment.DisableEvents() end
             if addon.Augment.RestoreBlizzard then addon.Augment.RestoreBlizzard() end
             if addon.Augment.ClearActiveToasts then addon.Augment.ClearActiveToasts() end
