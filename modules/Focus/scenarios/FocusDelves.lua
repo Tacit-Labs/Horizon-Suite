@@ -35,10 +35,10 @@ nemesisCacheResetFrame:SetScript("OnEvent", function()
     nemesisCache.runLive = false
 end)
 
---- Get spell name and icon; supports both legacy GetSpellInfo and C_Spell.GetSpellInfo.
---- Exposed on addon so FocusSlash / tooltip helpers can share one implementation.
---- @param spellID number
---- @return string|nil name, number|nil icon
+-- Get spell name and icon; supports both legacy GetSpellInfo and C_Spell.GetSpellInfo.
+-- Exposed on addon so FocusSlash / tooltip helpers can share one implementation.
+-- @param spellID number
+-- @return string|nil name, number|nil icon
 function addon.GetSpellNameAndIcon(spellID)
     if type(spellID) ~= "number" or spellID <= 0 then return nil, nil end
     if GetSpellInfo and type(GetSpellInfo) == "function" then
@@ -55,8 +55,8 @@ function addon.GetSpellNameAndIcon(spellID)
 end
 local GetSpellNameAndIcon = addon.GetSpellNameAndIcon
 
---- All distinct UI widget set IDs that can carry the delve header (step set and objective-tracker set often differ).
---- @return number[]
+-- All distinct UI widget set IDs that can carry the delve header (step set and objective-tracker set often differ).
+-- @return number[]
 local function GetAllDelveScenarioWidgetSetIDs()
     local ids = {}
     local seen = {}
@@ -81,9 +81,9 @@ local function GetAllDelveScenarioWidgetSetIDs()
     return ids
 end
 
---- Every visible ScenarioHeaderDelves widget across the given (or discovered) sets, deduped by widgetID.
---- @param setIDs number[]|nil Optional hoisted list; discovered via GetAllDelveScenarioWidgetSetIDs when omitted.
---- @return table[] array of widgetInfo
+-- Every visible ScenarioHeaderDelves widget across the given (or discovered) sets, deduped by widgetID.
+-- @param setIDs number[]|nil Optional hoisted list; discovered via GetAllDelveScenarioWidgetSetIDs when omitted.
+-- @return table[] array of widgetInfo
 local function CollectVisibleDelveHeaders(setIDs)
     local out = {}
     if not (C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo) then
@@ -114,9 +114,9 @@ local function CollectVisibleDelveHeaders(setIDs)
     return out
 end
 
---- True when delve widgets should be read: active delve, or reward stage on micro (Delve) map only.
---- (Map type 4 is also "Dungeon" for regular instances — do not read scenario widgets there or M+ can false-match Nemesis heuristics.)
---- @return boolean
+-- True when delve widgets should be read: active delve, or reward stage on micro (Delve) map only.
+-- (Map type 4 is also "Dungeon" for regular instances — do not read scenario widgets there or M+ can false-match Nemesis heuristics.)
+-- @return boolean
 local function ShouldReadDelveScenarioWidgets()
     if addon.IsDelveActive() then return true end
     if C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo then
@@ -133,9 +133,9 @@ local function ShouldReadDelveScenarioWidgets()
     return false
 end
 
---- Remaining lives from ScenarioHeaderDelves currencies: Blizzard uses one row per life with textEnabledState, or a single numeric text.
---- @param widgetInfo table
---- @return number|nil
+-- Remaining lives from ScenarioHeaderDelves currencies: Blizzard uses one row per life with textEnabledState, or a single numeric text.
+-- @param widgetInfo table
+-- @return number|nil
 local function ParseDelveLivesRemaining(widgetInfo)
     if not widgetInfo or type(widgetInfo.currencies) ~= "table" then return nil end
     local cur = widgetInfo.currencies
@@ -175,9 +175,9 @@ local function ParseDelveLivesRemaining(widgetInfo)
     return nil
 end
 
---- Prefer a consistent icon across currency slots for |T embeds in the tracker.
---- @param widgetInfo table
---- @return number|nil fileID
+-- Prefer a consistent icon across currency slots for |T embeds in the tracker.
+-- @param widgetInfo table
+-- @return number|nil fileID
 local function GetDelveLivesIconFileID(widgetInfo)
     if not widgetInfo or type(widgetInfo.currencies) ~= "table" then return nil end
     local first
@@ -193,11 +193,11 @@ local function GetDelveLivesIconFileID(widgetInfo)
     return first
 end
 
---- Nemesis Strongbox / bonus-chest count is usually rendered as a stack badge on an affix spell icon.
---- Primary source: widgetInfo.spells[i].stackDisplay (same field zQuestLog uses).
---- Fallback: parse the spell description for "remaining[^%d]+(%d+)" (Blizzard formats the count into the description).
---- @param widgetInfo table ScenarioHeaderDelves widget visualization info
---- @return table|nil { remaining, total, isComplete, hasData }
+-- Nemesis Strongbox / bonus-chest count is usually rendered as a stack badge on an affix spell icon.
+-- Primary source: widgetInfo.spells[i].stackDisplay (same field zQuestLog uses).
+-- Fallback: parse the spell description for "remaining[^%d]+(%d+)" (Blizzard formats the count into the description).
+-- @param widgetInfo table ScenarioHeaderDelves widget visualization info
+-- @return table|nil { remaining, total, isComplete, hasData }
 local function ParseNemesisFromDelveSpells(widgetInfo)
     if not widgetInfo or type(widgetInfo.spells) ~= "table" or #widgetInfo.spells < 1 then return nil end
     for _, sp in ipairs(widgetInfo.spells) do
@@ -218,10 +218,10 @@ local function ParseNemesisFromDelveSpells(widgetInfo)
     return nil
 end
 
---- Build affix list and tier tooltip spell from delve header widget.
---- @param widgetInfo table
---- @return table affixes array (may be empty)
---- @return number|nil tierSpellID
+-- Build affix list and tier tooltip spell from delve header widget.
+-- @param widgetInfo table
+-- @return table affixes array (may be empty)
+-- @return number|nil tierSpellID
 local function BuildAffixesFromWidgetInfo(widgetInfo)
     local affixes = {}
     if not widgetInfo then return affixes, nil end
@@ -254,8 +254,8 @@ local function BuildAffixesFromWidgetInfo(widgetInfo)
     return affixes, tierSpellID
 end
 
---- Season affix fallback when the header widget has no spell list.
---- @return table affixes (may be empty)
+-- Season affix fallback when the header widget has no spell list.
+-- @return table affixes (may be empty)
 local function BuildAffixesFromSeasonFallback()
     local affixes = {}
     if not (C_DelvesUI and C_DelvesUI.GetDelvesAffixSpellsForSeason) then return affixes end
@@ -279,10 +279,10 @@ local function BuildAffixesFromSeasonFallback()
     return affixes
 end
 
---- True when the quest log tags the quest as Delve (Enum.QuestTag.Delve / C_QuestLog.GetQuestTagInfo).
---- pcall: GetQuestTagInfo can throw on invalid questID.
---- @param questID number
---- @return boolean
+-- True when the quest log tags the quest as Delve (Enum.QuestTag.Delve / C_QuestLog.GetQuestTagInfo).
+-- pcall: GetQuestTagInfo can throw on invalid questID.
+-- @param questID number
+-- @return boolean
 local function QuestLogQuestHasDelveTag(questID)
     if type(questID) ~= "number" or questID <= 0 then return false end
     if not (C_QuestLog and C_QuestLog.GetQuestTagInfo) then return false end
@@ -292,8 +292,8 @@ local function QuestLogQuestHasDelveTag(questID)
     return tagInfo.tagID == Enum.QuestTag.Delve
 end
 
---- Nearby Delve-tagged log quests while in an active Delve on a dungeon/micro map.
---- Scenario / widget-driven delve UI comes from ReadScenarioEntries; this list is only Delve-tagged quests.
+-- Nearby Delve-tagged log quests while in an active Delve on a dungeon/micro map.
+-- Scenario / widget-driven delve UI comes from ReadScenarioEntries; this list is only Delve-tagged quests.
 local function CollectDelveQuests(ctx)
     if not addon.IsDelveActive() then return {} end
     local playerMapID = (C_Map and C_Map.GetBestMapForUnit) and C_Map.GetBestMapForUnit("player") or nil
@@ -323,8 +323,8 @@ local function CollectDelveQuests(ctx)
     return out
 end
 
---- Single read of delve header widget: affixes, tier spell, lives, life icon, Nemesis groups. Safe when not in a delve.
---- @return table { affixes, tierSpellID, livesRemaining, livesIconFileID, nemesisGroupsRemaining, nemesisGroupsTotal, nemesisIsComplete, nemesisHasData }
+-- Single read of delve header widget: affixes, tier spell, lives, life icon, Nemesis groups. Safe when not in a delve.
+-- @return table { affixes, tierSpellID, livesRemaining, livesIconFileID, nemesisGroupsRemaining, nemesisGroupsTotal, nemesisIsComplete, nemesisHasData }
 function addon.GetDelveScenarioHeaderMetadata()
     local result = {
         affixes                = nil,
@@ -416,22 +416,22 @@ function addon.GetDelveScenarioHeaderMetadata()
     return result
 end
 
---- Returns season affixes for the current Delve when in an active Delve, or nil.
---- Used by the quest block to show affixes inline. Tries UI Widget (Blizzard's source) first,
---- then C_DelvesUI.GetDelvesAffixSpellsForSeason. May return nil/empty when Blizzard's
---- objective tracker is hidden (Horizon replaces it) as widgets may not be populated.
---- @return table|nil Array of { name, desc, icon } or nil if not in Delve or no affixes
---- @return number|nil tierTooltipSpellID
+-- Returns season affixes for the current Delve when in an active Delve, or nil.
+-- Used by the quest block to show affixes inline. Tries UI Widget (Blizzard's source) first,
+-- then C_DelvesUI.GetDelvesAffixSpellsForSeason. May return nil/empty when Blizzard's
+-- objective tracker is hidden (Horizon replaces it) as widgets may not be populated.
+-- @return table|nil Array of { name, desc, icon } or nil if not in Delve or no affixes
+-- @return number|nil tierTooltipSpellID
 local function GetDelvesAffixes()
     local meta = addon.GetDelveScenarioHeaderMetadata()
     if not meta then return nil, nil end
     return meta.affixes, meta.tierSpellID
 end
 
---- Single life icon + numeric count for the tracker title row (FontString SetText).
---- @param count number Lives remaining (> 0)
---- @param iconFileID number|nil From widget currency; fallback to red ♥ glyph
---- @return string
+-- Single life icon + numeric count for the tracker title row (FontString SetText).
+-- @param count number Lives remaining (> 0)
+-- @param iconFileID number|nil From widget currency; fallback to red ♥ glyph
+-- @return string
 function addon.FormatDelveLivesHeartsForTitle(count, iconFileID)
     if type(count) ~= "number" or count < 1 then return "" end
     local sz = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
@@ -445,14 +445,14 @@ function addon.FormatDelveLivesHeartsForTitle(count, iconFileID)
     return iconSeg .. " " .. tostring(math.floor(count))
 end
 
---- Bundled Nemesis texture (Interface\AddOns\HorizonSuite\assets\icons\nemesis.tga, 64x64 TGA).
+-- Bundled Nemesis texture (Interface\AddOns\HorizonSuite\assets\icons\nemesis.tga, 64x64 TGA).
 local NEMESIS_CUSTOM_TEXTURE_PATH = "Interface\\AddOns\\HorizonSuite\\assets\\icons\\nemesis"
 
---- Nemesis bonus-chest: bundled icon + remaining count, or a single ReadyCheck when complete.
---- @param remaining number|nil Groups not yet cleared
---- @param total number|nil Unused (kept for call-site compatibility)
---- @param isComplete boolean|nil All groups cleared — renders a single green checkmark
---- @return string Rich text for FontString SetText; empty when nothing to show
+-- Nemesis bonus-chest: bundled icon + remaining count, or a single ReadyCheck when complete.
+-- @param remaining number|nil Groups not yet cleared
+-- @param total number|nil Unused (kept for call-site compatibility)
+-- @param isComplete boolean|nil All groups cleared — renders a single green checkmark
+-- @return string Rich text for FontString SetText; empty when nothing to show
 function addon.FormatDelveNemesisGroupsForTitle(remaining, total, isComplete)
     local sz = tonumber(addon.DELVE_LIFE_EMBED_SIZE) or 13
     if isComplete then
@@ -464,8 +464,8 @@ function addon.FormatDelveNemesisGroupsForTitle(remaining, total, isComplete)
     return ("|T%s:%d:%d:0:-1|t %d"):format(NEMESIS_CUSTOM_TEXTURE_PATH, sz, sz, n)
 end
 
---- Debug snapshot for slash commands: whether widgets are readable + set IDs + delve header count.
---- @return table
+-- Debug snapshot for slash commands: whether widgets are readable + set IDs + delve header count.
+-- @return table
 function addon.GetDelveScenarioWidgetDebugSnapshot()
     local headers = CollectVisibleDelveHeaders()
     local ids = GetAllDelveScenarioWidgetSetIDs()

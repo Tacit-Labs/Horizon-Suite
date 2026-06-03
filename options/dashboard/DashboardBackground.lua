@@ -206,9 +206,9 @@ local function GetDashboardBgSolidAlpha(hasArt)
     return userAlpha
 end
 
---- Solid layer alpha when creating the dashboard frame (no art yet) or when matching bare/art modes.
---- @param hasArt boolean
---- @return number
+-- Solid layer alpha when creating the dashboard frame (no art yet) or when matching bare/art modes.
+-- @param hasArt boolean
+-- @return number
 function addon.Dashboard_GetBgSolidAlpha(hasArt)
     return GetDashboardBgSolidAlpha(hasArt)
 end
@@ -301,9 +301,9 @@ local function StartDashboardBgFade(dash, mode, fromTex, toTex, target, newActiv
     end)
 end
 
---- Apply saved dashboard background theme to the dashboard frame (if it exists).
---- Crossfades between image themes when the dashboard is visible; snaps when hidden or on first apply.
---- @return nil
+-- Apply saved dashboard background theme to the dashboard frame (if it exists).
+-- Crossfades between image themes when the dashboard is visible; snaps when hidden or on first apply.
+-- @return nil
 function addon.ApplyDashboardBackground()
     local dash = _G.HorizonSuiteDashboard
     local L1, L2 = dash and dash._dashboardBgArt1, dash and dash._dashboardBgArt2

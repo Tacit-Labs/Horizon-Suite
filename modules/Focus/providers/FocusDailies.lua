@@ -5,7 +5,7 @@
 
 local addon = _G.HorizonSuite
 
---- Returns weeklies and dailies in zone (nearbySet). Each has questID and opts.forceCategory ("WEEKLY" or "DAILY").
+-- Returns weeklies and dailies in zone (nearbySet). Each has questID and opts.forceCategory ("WEEKLY" or "DAILY").
 -- Blacklist filtering is applied by the aggregator.
 -- Uses addon.GetQuestBaseCategory as the single source of truth for classification.
 local function CollectDailiesWeeklies(ctx)

@@ -2618,8 +2618,8 @@ end
 
 
 
---- Scan button-like children of Minimap AND MinimapCluster for ADDON buttons only.
---- Only includes buttons that are currently shown (active addons).
+-- Scan button-like children of Minimap AND MinimapCluster for ADDON buttons only.
+-- Only includes buttons that are currently shown (active addons).
 local function ScanMinimapButtons()
     local result = {}
     local seen = {}
@@ -3966,9 +3966,9 @@ local function ApplyOptions_Buttons(changedKey)
     CreateQueueAnchor()
 end
 
---- Apply Vista minimap/overlay options from DB.
---- @param changedKey string|nil Option key that triggered the apply; nil = full apply including addon button collect.
---- @return nil
+-- Apply Vista minimap/overlay options from DB.
+-- @param changedKey string|nil Option key that triggered the apply; nil = full apply including addon button collect.
+-- @return nil
 function Vista.ApplyOptions(changedKey)
     if not decor then return end
     ApplyOptions_Minimap()
@@ -3979,8 +3979,8 @@ function Vista.ApplyOptions(changedKey)
     end
 end
 
---- Lightweight apply for position-lock toggles only: no proxy rebuild, no CollectMinimapButtons, no FullLayout (caller skips NotifyMainAddon).
---- @return nil
+-- Lightweight apply for position-lock toggles only: no proxy rebuild, no CollectMinimapButtons, no FullLayout (caller skips NotifyMainAddon).
+-- @return nil
 function Vista.ApplyLockOnlyOptions()
     if not decor then return end
     ApplyOptions_TextDraggableLocks()
@@ -3992,8 +3992,8 @@ function Vista.ApplyLockOnlyOptions()
     UpdateBarAnchorVisibility()
 end
 
---- Flash the mouseover bar visible for a few seconds so the user can see where it is
---- after toggling the position lock off.
+-- Flash the mouseover bar visible for a few seconds so the user can see where it is
+-- after toggling the position lock off.
 function Vista.FlashMouseoverBar()
     if not collectorBar then return end
     if G.ButtonMode() ~= BTN_MODE_MOUSEOVER then return end
@@ -4302,9 +4302,9 @@ end
 -- MINIMAP POSITION
 -- ============================================================================
 
---- Clear saved offsets for all draggable Vista minimap overlays so built-in defaults apply again.
---- Does not move the minimap frame; use ResetMinimapPosition for that.
---- @return nil
+-- Clear saved offsets for all draggable Vista minimap overlays so built-in defaults apply again.
+-- Does not move the minimap frame; use ResetMinimapPosition for that.
+-- @return nil
 function Vista.ResetOverlayPositionsToDefaults()
     local keys = {
         "vistaEX_zone", "vistaEY_zone",
@@ -4332,8 +4332,8 @@ function Vista.ResetOverlayPositionsToDefaults()
     end
 end
 
---- Reset minimap to default position (top-right) and clear saved position from DB.
---- Called from options Reset button and slash command.
+-- Reset minimap to default position (top-right) and clear saved position from DB.
+-- Called from options Reset button and slash command.
 function Vista.ResetMinimapPosition()
     if not InCombatLockdown() then
         proxy.ClearAllPoints(Minimap)

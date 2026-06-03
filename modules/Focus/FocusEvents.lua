@@ -202,9 +202,9 @@ _G.HorizonSuite_FullLayout       = addon.FullLayout
 -- OBJECTIVE SIGNATURE CACHE (reliable quest-update flash)
 -- ============================================================================
 
---- Builds a compact signature for quest objectives for change detection.
---- @param questID number
---- @return string|nil Signature string, or nil if no objectives
+-- Builds a compact signature for quest objectives for change detection.
+-- @param questID number
+-- @return string|nil Signature string, or nil if no objectives
 local function BuildObjectiveSignature(questID)
     if not C_QuestLog or not C_QuestLog.GetQuestObjectives then return nil end
     local objectives = C_QuestLog.GetQuestObjectives(questID) or {}
@@ -221,18 +221,18 @@ local function BuildObjectiveSignature(questID)
     return table.concat(parts, ";")
 end
 
---- Records quest progress for the Current Quest category (recentlyProgressedQuests).
---- @param questID number
+-- Records quest progress for the Current Quest category (recentlyProgressedQuests).
+-- @param questID number
 local function RecordQuestProgress(questID)
     if not questID or questID <= 0 then return end
     if not addon.focus.recentlyProgressedQuests then addon.focus.recentlyProgressedQuests = {} end
     addon.focus.recentlyProgressedQuests[questID] = GetTime()
 end
 
---- Checks if a quest's objectives changed vs cache; if so, records progress and optionally triggers flash.
---- Records progress for Current Quest category regardless of flash setting.
---- @param questID number
---- @return boolean True if flash was triggered
+-- Checks if a quest's objectives changed vs cache; if so, records progress and optionally triggers flash.
+-- Records progress for Current Quest category regardless of flash setting.
+-- @param questID number
+-- @return boolean True if flash was triggered
 local function CheckQuestObjectiveChangeAndFlash(questID)
     if not questID or questID <= 0 then return false end
 
@@ -265,7 +265,7 @@ local function CheckQuestObjectiveChangeAndFlash(questID)
     return false
 end
 
---- Iterates watched quest IDs and runs objective change check. Used when event has no questID.
+-- Iterates watched quest IDs and runs objective change check. Used when event has no questID.
 local function CheckAllWatchedQuestChanges()
     if not C_QuestLog or not C_QuestLog.GetNumQuestWatches or not C_QuestLog.GetQuestIDForQuestWatchIndex then return end
     local n = C_QuestLog.GetNumQuestWatches()
@@ -488,7 +488,7 @@ local function OnQuestWatchListChanged(questID, added)
     ScheduleRefresh()
 end
 
---- Handles M+ dungeon enter/exit: snapshot overworld height on enter, restore on exit.
+-- Handles M+ dungeon enter/exit: snapshot overworld height on enter, restore on exit.
 local MIN_SNAPSHOT_HEIGHT = 200
 RunMplusHeightTransitionCheck = function()
     if not addon.GetDB or not addon.IsInMythicDungeon then return end
@@ -670,7 +670,7 @@ local eventHandlers = {
     AUCTION_HOUSE_CLOSED = function() if addon.focus.enabled then ScheduleRefresh() end end,
 }
 
---- OnEvent: table-dispatch to eventHandlers[event]; falls back to ScheduleRefresh for unhandled events.
+-- OnEvent: table-dispatch to eventHandlers[event]; falls back to ScheduleRefresh for unhandled events.
 -- @param self table Event frame
 -- @param event string WoW event name (e.g. QUEST_WATCH_LIST_CHANGED, ADDON_LOADED)
 -- @param ... any Event payload (varargs)

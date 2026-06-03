@@ -22,9 +22,9 @@ Design.QUEST_ITEM_BORDER = Design.QUEST_ITEM_BORDER or { 0.30, 0.32, 0.38, 0.6 }
 -- QUEST ITEM BUTTON STYLING
 -- ============================================================================
 
---- Apply unified slot-style visuals to a quest item button (per-entry or floating).
---- Adds dark backdrop, thin border; caller should add hover alpha in OnEnter/OnLeave.
---- @param btn Frame Button frame (SecureActionButtonTemplate) to style.
+-- Apply unified slot-style visuals to a quest item button (per-entry or floating).
+-- Adds dark backdrop, thin border; caller should add hover alpha in OnEnter/OnLeave.
+-- @param btn Frame Button frame (SecureActionButtonTemplate) to style.
 function addon.StyleQuestItemButton(btn)
     if not btn then return end
     local bg = Design.QUEST_ITEM_BG
@@ -34,10 +34,10 @@ function addon.StyleQuestItemButton(btn)
     addon.CreateBorder(btn, Design.QUEST_ITEM_BORDER, 1)
 end
 
---- Blizzard-inspired clean frame for the floating quest item button.
---- Dark background, crisp 1px border drawn on OVERLAY so it sits on top of the icon.
---- Highlight on hover via a subtle white overlay. Idempotent.
---- @param btn Frame Button frame (SecureActionButtonTemplate) to style.
+-- Blizzard-inspired clean frame for the floating quest item button.
+-- Dark background, crisp 1px border drawn on OVERLAY so it sits on top of the icon.
+-- Highlight on hover via a subtle white overlay. Idempotent.
+-- @param btn Frame Button frame (SecureActionButtonTemplate) to style.
 function addon.ApplyBlizzardFloatingQuestItemStyle(btn)
     if not btn or btn._blizzardStyleApplied then return end
     btn._blizzardStyleApplied = true
@@ -80,10 +80,10 @@ end
 -- WOWHEAD URL
 -- ============================================================================
 
---- Return WoWhead URL for a Focus tracker entry, or nil if not supported.
---- Supports quest, achievement, and NPC/creature IDs.
---- @param entry table Focus entry with questID, achievementID, and/or creatureID
---- @return string|nil Full WoWhead URL or nil
+-- Return WoWhead URL for a Focus tracker entry, or nil if not supported.
+-- Supports quest, achievement, and NPC/creature IDs.
+-- @param entry table Focus entry with questID, achievementID, and/or creatureID
+-- @return string|nil Full WoWhead URL or nil
 function addon.GetWoWheadURL(entry)
     if not entry or type(entry) ~= "table" then return nil end
     local id = entry.questID
@@ -105,11 +105,11 @@ end
 -- QUEST HELPERS
 -- ============================================================================
 
---- True if the player has accepted this quest (in the quest log).
---- C_QuestLog.IsOnQuest is the authoritative check for campaign/available entries
---- that may appear in the log before being accepted.
---- @param questID number
---- @return boolean
+-- True if the player has accepted this quest (in the quest log).
+-- C_QuestLog.IsOnQuest is the authoritative check for campaign/available entries
+-- that may appear in the log before being accepted.
+-- @param questID number
+-- @return boolean
 function addon.IsQuestAccepted(questID)
     if not questID or questID <= 0 then return false end
     if C_QuestLog and C_QuestLog.IsOnQuest then
@@ -125,10 +125,10 @@ end
 -- TIME FORMATTING
 -- ============================================================================
 
---- Format remaining time in seconds as "Xd Xh Xm Xs" (days, hours, minutes, seconds).
---- Shows only the most significant non-zero units to keep the string compact.
---- @param seconds number Remaining time in seconds (>= 0)
---- @return string|nil Formatted string, or nil if invalid
+-- Format remaining time in seconds as "Xd Xh Xm Xs" (days, hours, minutes, seconds).
+-- Shows only the most significant non-zero units to keep the string compact.
+-- @param seconds number Remaining time in seconds (>= 0)
+-- @return string|nil Formatted string, or nil if invalid
 function addon.FormatTimeRemaining(seconds)
     if not seconds or type(seconds) ~= "number" or seconds < 0 then return nil end
     local s = math.floor(seconds % 60)
@@ -146,9 +146,9 @@ function addon.FormatTimeRemaining(seconds)
     end
 end
 
---- Convert minutes (e.g. from C_TaskQuest.GetQuestTimeLeftMinutes) to seconds and format.
---- @param minutes number Time left in minutes
---- @return string|nil Formatted string, or nil if invalid
+-- Convert minutes (e.g. from C_TaskQuest.GetQuestTimeLeftMinutes) to seconds and format.
+-- @param minutes number Time left in minutes
+-- @return string|nil Formatted string, or nil if invalid
 function addon.FormatTimeRemainingFromMinutes(minutes)
     if not minutes or type(minutes) ~= "number" or minutes < 0 then return nil end
     return addon.FormatTimeRemaining(minutes * 60)
@@ -158,11 +158,11 @@ local function normalizeTimerColor(c)
     return (c and c[1]) or 1, (c and c[2]) or 0.35, (c and c[3]) or 0.35
 end
 
---- Timer color based on percentage of time remaining. For scenarios (short timers).
---- Green when >50% left, yellow when 25-50%, red when <25%.
---- @param remaining number Seconds remaining
---- @param duration number Total duration in seconds
---- @return number r, number g, number b
+-- Timer color based on percentage of time remaining. For scenarios (short timers).
+-- Green when >50% left, yellow when 25-50%, red when <25%.
+-- @param remaining number Seconds remaining
+-- @param duration number Total duration in seconds
+-- @return number r, number g, number b
 function addon.GetTimerColorByRemainingPct(remaining, duration)
     if not remaining or type(remaining) ~= "number" or remaining < 0 or not duration or duration <= 0 then
         local c = addon.TIMER_URGENCY_COLORS and addon.TIMER_URGENCY_COLORS.critical or { 1, 0.35, 0.35 }
@@ -181,13 +181,13 @@ function addon.GetTimerColorByRemainingPct(remaining, duration)
     return normalizeTimerColor(c)
 end
 
---- Get timer text color. Central entry point for all timer displays.
---- When useTimerColor is false, returns category color. Otherwise returns urgency color.
---- @param remaining number Seconds remaining
---- @param duration number|nil Total duration in seconds (for percentage mode; nil for absolute)
---- @param category string Quest category (SCENARIO, WORLD, etc.)
---- @param useTimerColor boolean Whether timerColorByRemaining option is on
---- @return number r, number g, number b
+-- Get timer text color. Central entry point for all timer displays.
+-- When useTimerColor is false, returns category color. Otherwise returns urgency color.
+-- @param remaining number Seconds remaining
+-- @param duration number|nil Total duration in seconds (for percentage mode; nil for absolute)
+-- @param category string Quest category (SCENARIO, WORLD, etc.)
+-- @param useTimerColor boolean Whether timerColorByRemaining option is on
+-- @return number r, number g, number b
 function addon.GetTimerTextColor(remaining, duration, category, useTimerColor)
     if not useTimerColor then
         local sc = (addon.GetQuestColor and addon.GetQuestColor(category)) or (addon.QUEST_COLORS and addon.QUEST_COLORS[category]) or { 0.38, 0.52, 0.88 }
@@ -205,11 +205,11 @@ function addon.GetTimerTextColor(remaining, duration, category, useTimerColor)
     return (r or 1), (g or 0.35), (b or 0.35)
 end
 
---- Timer color based on absolute time remaining. Used when timerColorByRemaining is on (world quests, etc.).
---- Green when >=12h left, yellow when <12h, red when <3h.
---- @param remaining number Seconds remaining
---- @param duration number Total duration in seconds (unused; kept for API compatibility)
---- @return number r, number g, number b
+-- Timer color based on absolute time remaining. Used when timerColorByRemaining is on (world quests, etc.).
+-- Green when >=12h left, yellow when <12h, red when <3h.
+-- @param remaining number Seconds remaining
+-- @param duration number Total duration in seconds (unused; kept for API compatibility)
+-- @return number r, number g, number b
 function addon.GetTimerColorByRemaining(remaining, duration)
     if not remaining or type(remaining) ~= "number" or remaining < 0 then
         local c = addon.TIMER_URGENCY_COLORS and addon.TIMER_URGENCY_COLORS.critical or { 1, 0.35, 0.35 }
@@ -235,10 +235,10 @@ end
 
 local floor = math.floor
 
---- Format a whole number for display with locale-style thousands grouping.
---- Prefers Blizzard BreakUpLargeNumbers when available; otherwise inserts comma separators.
---- @param n number|nil
---- @return string
+-- Format a whole number for display with locale-style thousands grouping.
+-- Prefers Blizzard BreakUpLargeNumbers when available; otherwise inserts comma separators.
+-- @param n number|nil
+-- @return string
 function addon.FormatNumberWithGrouping(n)
     if type(n) ~= "number" then return tostring(n) end
     local neg = false
@@ -259,10 +259,10 @@ function addon.FormatNumberWithGrouping(n)
     return neg and ("-" .. s) or s
 end
 
---- Replace digit runs of length 4+ with thousands-grouped form (objective/title lines from Blizzard).
---- Skips shorter numbers to avoid touching "2024", small counts, or 3-digit IDs in plain text.
---- @param str string|nil
---- @return string
+-- Replace digit runs of length 4+ with thousands-grouped form (objective/title lines from Blizzard).
+-- Skips shorter numbers to avoid touching "2024", small counts, or 3-digit IDs in plain text.
+-- @param str string|nil
+-- @return string
 function addon.FormatLargeNumbersInString(str)
     if not str or str == "" or type(str) ~= "string" then return str end
     return (str:gsub("%d+", function(numStr)
@@ -278,7 +278,7 @@ end
 -- BORDERS & TEXT
 -- ============================================================================
 
---- Create a simple 1px border around a frame.
+-- Create a simple 1px border around a frame.
 -- @param frame Frame to receive border textures.
 -- @param color Optional {r,g,b,a}; falls back to Design.BORDER_COLOR.
 -- @param thickness Optional border thickness in pixels (default 1).
@@ -314,16 +314,16 @@ function addon.CreateBorder(frame, color, thickness)
     return top, bottom, left, right
 end
 
---- Safe helper for setting text color from a {r,g,b[,a]} table.
+-- Safe helper for setting text color from a {r,g,b[,a]} table.
 function addon.SetTextColor(fontString, color)
     if not fontString or not color then return end
     fontString:SetTextColor(color[1], color[2], color[3], color[4] or 1)
 end
 
---- Strip WoW FontString escapes for a manual shadow FontString so SetTextColor(0,0,0) draws a black outline.
---- Expands |H…|h…|h hyperlinks to visible text; removes |T textures and |c…|r color. Plain strings pass through.
---- @param text string|nil
---- @return string
+-- Strip WoW FontString escapes for a manual shadow FontString so SetTextColor(0,0,0) draws a black outline.
+-- Expands |H…|h…|h hyperlinks to visible text; removes |T textures and |c…|r color. Plain strings pass through.
+-- @param text string|nil
+-- @return string
 function addon.PlainTextForShadowFontString(text)
     if not text or type(text) ~= "string" or text == "" then
         return ""
@@ -354,13 +354,13 @@ function addon.PlainTextForShadowFontString(text)
     return s
 end
 
---- Set a label FontString and its paired shadow FontString in one call.
---- Strips WoW escapes from the shadow text so SetTextColor(0,0,0) renders a solid black outline
---- instead of letting inline |c…|r colors leak through (root cause of issue #271).
---- shadowFS may be nil; both reads of the label are routed through the same source string.
---- @param textFS table Main text FontString.
---- @param shadowFS table|nil Shadow FontString, or nil.
---- @param str string|nil Text to render.
+-- Set a label FontString and its paired shadow FontString in one call.
+-- Strips WoW escapes from the shadow text so SetTextColor(0,0,0) renders a solid black outline
+-- instead of letting inline |c…|r colors leak through (root cause of issue #271).
+-- shadowFS may be nil; both reads of the label are routed through the same source string.
+-- @param textFS table Main text FontString.
+-- @param shadowFS table|nil Shadow FontString, or nil.
+-- @param str string|nil Text to render.
 function addon.SetTextWithShadow(textFS, shadowFS, str)
     textFS:SetText(str)
     if shadowFS then
@@ -368,7 +368,7 @@ function addon.SetTextWithShadow(textFS, shadowFS, str)
     end
 end
 
---- Apply text case from DB option. Returns text in upper, lower, or proper (title) case based on dbKey.
+-- Apply text case from DB option. Returns text in upper, lower, or proper (title) case based on dbKey.
 -- @param text string or nil
 -- @param dbKey string DB key (e.g. "headerTextCase"); values "upper", "lower", or "proper"
 -- @param default string optional default when key is not set (e.g. "upper" for objectives header, "proper" for titles)
@@ -424,7 +424,7 @@ function addon.ApplyTextCase(text, dbKey, default)
     end))
 end
 
---- Create a text + shadow pair using the addon font objects and shadow offsets.
+-- Create a text + shadow pair using the addon font objects and shadow offsets.
 -- Returns text, shadow.
 function addon.CreateShadowedText(parent, fontObject, layer, shadowLayer)
     if not parent then return nil end
@@ -455,7 +455,7 @@ end
 
 addon.PRINT_PREFIX = "|cFF00CCFFHorizon Suite:|r "
 
---- Standardized print helper with colored Horizon Suite prefix.
+-- Standardized print helper with colored Horizon Suite prefix.
 function addon.HSPrint(msg)
     local prefix = addon.PRINT_PREFIX
     if msg == nil then
@@ -469,7 +469,7 @@ end
 -- OPTION HELPERS
 -- ============================================================================
 
---- Normalize legacy "bar" to "bar-left". Returns valid highlight style for layout/options.
+-- Normalize legacy "bar" to "bar-left". Returns valid highlight style for layout/options.
 function addon.NormalizeHighlightStyle(style)
     if style == "bar" then return "bar-left" end
     return style
@@ -479,10 +479,10 @@ end
 -- QUEST / MAP HELPERS
 -- ============================================================================
 
---- Append default quest rewards (gold, XP, items, currencies, spells) to a tooltip.
---- All API calls are wrapped in pcall; missing or unavailable data is skipped.
---- @param tooltip GameTooltip
---- @param questID number
+-- Append default quest rewards (gold, XP, items, currencies, spells) to a tooltip.
+-- All API calls are wrapped in pcall; missing or unavailable data is skipped.
+-- @param tooltip GameTooltip
+-- @param questID number
 function addon.AddQuestRewardsToTooltip(tooltip, questID)
     if not tooltip or not questID then return end
     local hasAny = false
@@ -631,10 +631,10 @@ function addon.AddQuestRewardsToTooltip(tooltip, questID)
     restoreQuest()
 end
 
---- Append party member quest progress to a tooltip when in a group.
---- Uses C_TooltipInfo.GetQuestPartyProgress; no-op when solo or API unavailable.
---- @param tooltip GameTooltip
---- @param questID number
+-- Append party member quest progress to a tooltip when in a group.
+-- Uses C_TooltipInfo.GetQuestPartyProgress; no-op when solo or API unavailable.
+-- @param tooltip GameTooltip
+-- @param questID number
 function addon.AddQuestPartyProgressToTooltip(tooltip, questID)
     if not tooltip or not questID then return end
     if not (C_TooltipInfo and C_TooltipInfo.GetQuestPartyProgress) then return end
@@ -653,7 +653,7 @@ function addon.AddQuestPartyProgressToTooltip(tooltip, questID)
     end
 end
 
---- Parse a Task POI table into a simple set of quest IDs.
+-- Parse a Task POI table into a simple set of quest IDs.
 -- Handles both array-style lists and keyed tables used by various C_TaskQuest APIs.
 -- @param taskPOIs Table returned from C_TaskQuest.* APIs (may be nil).
 -- @param outSet   Table used as a set; ids will be added as keys with value true.
@@ -694,11 +694,11 @@ end
 -- Newer builds expose GetQuestsForPlayerByMapID; older builds have GetQuestsOnMap.
 addon.GetTaskQuestsForMap = C_TaskQuest and (C_TaskQuest.GetQuestsForPlayerByMapID or C_TaskQuest.GetQuestsOnMap) or nil
 
---- Toggle the quest details view: close if already open and showing this quest, else open.
---- Uses frame visibility as the primary gate so we don't mistakenly "close" when the map
---- is already closed (GetSelectedQuest can persist briefly after HideUIPanel).
---- @param questID number
---- @return nil
+-- Toggle the quest details view: close if already open and showing this quest, else open.
+-- Uses frame visibility as the primary gate so we don't mistakenly "close" when the map
+-- is already closed (GetSelectedQuest can persist briefly after HideUIPanel).
+-- @param questID number
+-- @return nil
 function addon.ToggleQuestDetails(questID)
     if not questID or not C_QuestLog then return end
     if InCombatLockdown() then return end
@@ -749,7 +749,7 @@ function addon.ToggleQuestDetails(questID)
     addon.OpenQuestDetails(questID)
 end
 
---- Open the quest details view for a quest ID, mirroring Blizzard's behavior.
+-- Open the quest details view for a quest ID, mirroring Blizzard's behavior.
 -- Used by click handlers so the logic lives in one place.
 function addon.OpenQuestDetails(questID)
     if not questID or not C_QuestLog then return end
@@ -800,7 +800,7 @@ function addon.OpenQuestDetails(questID)
     end
 end
 
---- Open the achievement frame to a specific achievement.
+-- Open the achievement frame to a specific achievement.
 -- Used by click handlers for tracked achievements.
 function addon.OpenAchievementToAchievement(achievementID)
     if not achievementID or type(achievementID) ~= "number" or achievementID <= 0 then return end
@@ -815,7 +815,7 @@ end
 -- MAP CONTEXT RESOLUTION (World Quests / map-scoped events)
 -- ============================================================================
 
---- Returns map info safely.
+-- Returns map info safely.
 local function SafeGetMapInfo(mapID)
     if not mapID or not C_Map or not C_Map.GetMapInfo then return nil end
     local ok, info = pcall(C_Map.GetMapInfo, mapID)
@@ -823,7 +823,7 @@ local function SafeGetMapInfo(mapID)
     return nil
 end
 
---- Walks up the parent chain until predicate returns true or we hit root.
+-- Walks up the parent chain until predicate returns true or we hit root.
 local function ClimbParents(mapID, predicate, maxDepth)
     local id = mapID
     for _ = 1, (maxDepth or 20) do
@@ -838,7 +838,7 @@ local function ClimbParents(mapID, predicate, maxDepth)
     return nil
 end
 
---- Resolve the player's current map context for filtering WQs and map-scoped events.
+-- Resolve the player's current map context for filtering WQs and map-scoped events.
 -- Goal: avoid subzone-only mapIDs (too aggressive filtering) while still preventing cross-zone leakage.
 --
 -- Contract:
@@ -1048,13 +1048,13 @@ CreateSecureItemOverlay()
 -- INSTANCE & DELVE HELPERS (shared; Presence standalone, Focus consumes)
 -- ============================================================================
 
---- True when the player is in any party dungeon (Normal, Heroic, Mythic, or Mythic+). Guarded.
+-- True when the player is in any party dungeon (Normal, Heroic, Mythic, or Mythic+). Guarded.
 function addon.IsInPartyDungeon()
     local ok, _, instanceType = pcall(GetInstanceInfo)
     return ok and instanceType == "party"
 end
 
---- True when the player is in an active Delve (guarded API).
+-- True when the player is in an active Delve (guarded API).
 function addon.IsDelveActive()
     if C_PartyInfo and C_PartyInfo.IsDelveInProgress then
         local ok, inDelve = pcall(C_PartyInfo.IsDelveInProgress)
@@ -1066,7 +1066,7 @@ end
 local TIER_MIN, TIER_MAX = 1, 12
 local WIDGET_TYPE_SCENARIO_HEADER_DELVES = (Enum and Enum.UIWidgetVisualizationType and Enum.UIWidgetVisualizationType.ScenarioHeaderDelves) or 29
 
---- Current Delve tier (1-12) or nil if unknown/not in delve. Guarded API.
+-- Current Delve tier (1-12) or nil if unknown/not in delve. Guarded API.
 function addon.GetActiveDelveTier()
     if not addon.IsDelveActive() then return nil end
 
@@ -1115,8 +1115,8 @@ end
 -- while the player is still physically inside the delve instance.
 local cachedDelveName = nil
 
---- Returns the name of the current Delve. Uses C_Map.GetMapInfo first, then zone/subzone, C_Scenario.GetInfo, GetInstanceInfo.
---- Returns the last cached valid name when all APIs return "Delves" or empty (e.g. on the reward stage).
+-- Returns the name of the current Delve. Uses C_Map.GetMapInfo first, then zone/subzone, C_Scenario.GetInfo, GetInstanceInfo.
+-- Returns the last cached valid name when all APIs return "Delves" or empty (e.g. on the reward stage).
 function addon.GetDelveNameFromAPIs()
     -- Try all sources without the IsDelveActive() guard so the reward stage still resolves.
     -- Primary: map API
@@ -1145,7 +1145,7 @@ function addon.GetDelveNameFromAPIs()
     return cachedDelveName
 end
 
---- Clears the delve name cache. Call when leaving a delve entirely.
+-- Clears the delve name cache. Call when leaving a delve entirely.
 function addon.ClearDelveNameCache()
     cachedDelveName = nil
 end
@@ -1154,7 +1154,7 @@ end
 -- QUEST CATEGORY HELPERS (shared; Presence standalone, Focus consumes)
 -- ============================================================================
 
---- Single source of truth: QuestUtils_IsQuestWorldQuest (Blizzard) or C_QuestLog.IsWorldQuest.
+-- Single source of truth: QuestUtils_IsQuestWorldQuest (Blizzard) or C_QuestLog.IsWorldQuest.
 function addon.IsQuestWorldQuest(questID)
     if not questID or questID <= 0 then return false end
     if _G.QuestUtils_IsQuestWorldQuest and _G.QuestUtils_IsQuestWorldQuest(questID) then return true end
@@ -1181,7 +1181,7 @@ function addon.GetQuestFrequency(questID)
     return nil
 end
 
---- Single source of truth: C_QuestInfoSystem.GetQuestClassification + frequency + IsQuestWorldQuest.
+-- Single source of truth: C_QuestInfoSystem.GetQuestClassification + frequency + IsQuestWorldQuest.
 function addon.GetQuestBaseCategory(questID)
     if not questID or questID <= 0 then return "DEFAULT" end
     if addon.IsQuestWorldQuest(questID) then
@@ -1281,8 +1281,8 @@ local function IsNpcVignetteAtlas(atlasName)
     return false
 end
 
---- Returns { entryKey -> title } for rares on current map. Used by Presence when Focus disabled.
---- Uses C_VignetteInfo only (vignette-based rares). FocusRares.GetRaresOnMap adds RARES_BY_MAP when Focus loaded.
+-- Returns { entryKey -> title } for rares on current map. Used by Presence when Focus disabled.
+-- Uses C_VignetteInfo only (vignette-based rares). FocusRares.GetRaresOnMap adds RARES_BY_MAP when Focus loaded.
 function addon.GetRareNamesOnMap()
     local out = {}
     if not C_VignetteInfo or not C_VignetteInfo.GetVignettes or not C_VignetteInfo.GetVignetteInfo then return out end

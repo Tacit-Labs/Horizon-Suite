@@ -51,7 +51,7 @@ local function OnItemLoaded(gen)
     end
 end
 
---- Call at the start of each ReadTrackedRecipes pass to reset item-load tracking.
+-- Call at the start of each ReadTrackedRecipes pass to reset item-load tracking.
 local function BeginItemLoadPass()
     loadGeneration = loadGeneration + 1
     pendingItemLoads = 0
@@ -64,7 +64,7 @@ local function BeginItemLoadPass()
     end
 end
 
---- Schedule a safety-net refresh if any items were requested but callbacks may not fire.
+-- Schedule a safety-net refresh if any items were requested but callbacks may not fire.
 local function EndItemLoadPass()
     if pendingItemLoads > 0 and refreshRetryCount < MAX_REFRESH_RETRIES then
         C_Timer.After(1.0, function()
@@ -77,7 +77,7 @@ local function EndItemLoadPass()
     end
 end
 
---- Resolve item name, link, and quality for an itemID.
+-- Resolve item name, link, and quality for an itemID.
 -- Tries GetItemInfo first, falls back to Item:CreateFromItemID for uncached items.
 -- When an item is uncached, requests a background load and increments the pending
 -- counter; a single refresh fires once all pending items have loaded.
@@ -133,7 +133,7 @@ local function ResolveItemInfo(itemID)
     return nil, "item:" .. tostring(itemID), nil
 end
 
---- Get item count from bags, bank, reagent bank, and warband bank.
+-- Get item count from bags, bank, reagent bank, and warband bank.
 -- @param itemID number
 -- @return number
 local function GetOwnedCount(itemID)
@@ -147,7 +147,7 @@ end
 -- TRACKED RECIPE IDS
 -- ============================================================================
 
---- Resolve tracked recipe IDs with isRecraft flag from C_TradeSkillUI.GetRecipesTracked.
+-- Resolve tracked recipe IDs with isRecraft flag from C_TradeSkillUI.GetRecipesTracked.
 -- @return table Array of { recipeID = number, isRecraft = boolean }
 local function GetTrackedRecipeIDs()
     local idList = {}
@@ -173,7 +173,7 @@ end
 -- REAGENT DEDUPLICATION
 -- ============================================================================
 
---- Deduplicate reagents by name (quality-tier variants share a name but have distinct itemIDs).
+-- Deduplicate reagents by name (quality-tier variants share a name but have distinct itemIDs).
 -- Merges owned counts and keeps the highest **item rarity** itemID for display.
 -- Note: two crafting tiers can share a display name and the same Enum.ItemQuality; we only
 -- upgrade by itemQuality here, so the surviving itemID may not match the tier you want for
@@ -204,7 +204,7 @@ local function DedupeByName(raw)
     return out
 end
 
---- Deduplicate reagents and append as objectives. Optionally prepends a section header.
+-- Deduplicate reagents and append as objectives. Optionally prepends a section header.
 -- @param raw table Array of raw reagent entries
 -- @param objectives table Array to append to
 -- @param sectionHeader string|nil Header text for this section
@@ -243,13 +243,13 @@ end
 -- RECIPE OBJECTIVES (REAGENT SHOPPING LIST)
 -- ============================================================================
 
---- Returns true if a reagent slot is a choice slot (multiple options, pick 1).
+-- Returns true if a reagent slot is a choice slot (multiple options, pick 1).
 local function IsChoiceSlot(slot)
     local reagents = slot and slot.reagents
     return reagents and type(reagents) == "table" and #reagents > 1 and (slot.quantityRequired or 1) == 1
 end
 
---- Derive a display name for a choice slot header from its variant names.
+-- Derive a display name for a choice slot header from its variant names.
 -- Uses the first variant's name + " (any)".
 local function DeriveChoiceHeaderName(variants)
     if #variants == 0 then return L["FOCUS_RECIPE_CHOICE_ANY"] end
@@ -257,7 +257,7 @@ local function DeriveChoiceHeaderName(variants)
     return firstName .. " (any)"
 end
 
---- Collect raw reagent info for a single item-based reagent.
+-- Collect raw reagent info for a single item-based reagent.
 -- Returns nil if item data is not yet cached (a deferred refresh is already scheduled).
 -- @return table|nil { name, itemID, link, owned, qtyRequired, itemQuality }
 local function CollectItemReagent(itemID, qtyRequired)
@@ -267,7 +267,7 @@ local function CollectItemReagent(itemID, qtyRequired)
     return { name = name, itemID = itemID, link = link, owned = owned, qtyRequired = qtyRequired, itemQuality = itemQuality }
 end
 
---- Collect raw reagent info for a currency-based reagent.
+-- Collect raw reagent info for a currency-based reagent.
 -- @return table|nil
 local function CollectCurrencyReagent(currencyID, qtyRequired)
     local info = C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo(currencyID)
@@ -275,7 +275,7 @@ local function CollectCurrencyReagent(currencyID, qtyRequired)
     return { name = info.name, itemID = nil, currencyID = currencyID, link = nil, owned = info.quantity or 0, qtyRequired = qtyRequired }
 end
 
---- Build choice slot data from a reagent slot with multiple options.
+-- Build choice slot data from a reagent slot with multiple options.
 -- @return table { choiceSlotKey, baseName, numFulfilled, numRequired, finished, variants }
 local function BuildChoiceSlot(slot, recipeID, slotIdx)
     local raw = {}
@@ -314,7 +314,7 @@ local function BuildChoiceSlot(slot, recipeID, slotIdx)
     }
 end
 
---- Compact mat list: Basic slots only, first reagent per slot (retail shopping-style, cf. Auctionator).
+-- Compact mat list: Basic slots only, first reagent per slot (retail shopping-style, cf. Auctionator).
 -- @param schematic table Recipe schematic from GetRecipeSchematic
 -- @param objectives table Array to append deduped rows into
 local function BuildRecipeObjectivesMinimal(schematic, objectives)
@@ -345,7 +345,7 @@ local function BuildRecipeObjectivesMinimal(schematic, objectives)
     DedupeAndAppend(requiredRaw, objectives, nil, nil)
 end
 
---- Full schematic breakdown: all reagent types, choice groups, optional/finishing sections.
+-- Full schematic breakdown: all reagent types, choice groups, optional/finishing sections.
 -- @param recipeID number
 -- @param isRecraft boolean
 -- @param schematic table
@@ -429,7 +429,7 @@ local function BuildRecipeObjectivesFull(recipeID, isRecraft, schematic)
     return objectives
 end
 
---- Build reagent objectives for a recipe (shopping list: owned vs required).
+-- Build reagent objectives for a recipe (shopping list: owned vs required).
 -- @param recipeID number Recipe spell ID
 -- @param isRecraft boolean
 -- @return table Array of objective tables
@@ -455,7 +455,7 @@ end
 -- RECIPE REQUIREMENTS
 -- ============================================================================
 
---- Build unmet crafting station requirements for a recipe.
+-- Build unmet crafting station requirements for a recipe.
 -- @param recipeID number Recipe spell ID
 -- @return table Array of { text, isRequirement, finished, numFulfilled, numRequired }
 local function BuildRecipeRequirements(recipeID)
@@ -481,7 +481,7 @@ end
 -- RECIPE OUTPUT QUALITY
 -- ============================================================================
 
---- Get recipe output quality for display coloring.
+-- Get recipe output quality for display coloring.
 -- Returns crafting quality tier (1-5) from schematic, or item rarity (0-7) as fallback.
 -- @param recipeID number
 -- @param isRecraft boolean|nil
@@ -535,7 +535,7 @@ end
 -- RECIPE DISPLAY INFO
 -- ============================================================================
 
---- Get recipe display info from C_TradeSkillUI.
+-- Get recipe display info from C_TradeSkillUI.
 -- @param recipeID number
 -- @return string name, number|string icon, boolean supportsQualities, number maxQuality, boolean firstCraft
 local function GetRecipeDisplayInfo(recipeID)
@@ -568,7 +568,7 @@ local resultCache       = nil   -- cached output table
 local resultCacheKey    = nil   -- fingerprint of tracked recipe IDs + option flags
 local resultCacheDirty  = true  -- explicit dirty flag (bag events, item loads, etc.)
 
---- Build a fingerprint string from the current tracked recipe set + relevant options.
+-- Build a fingerprint string from the current tracked recipe set + relevant options.
 local function BuildCacheKey(idList)
     local parts = {}
     for _, item in ipairs(idList) do
@@ -586,7 +586,7 @@ local function BuildCacheKey(idList)
     return table.concat(parts, ";")
 end
 
---- Mark the recipe cache as dirty (called from events that change bag/bank contents).
+-- Mark the recipe cache as dirty (called from events that change bag/bank contents).
 local function InvalidateRecipeCache()
     resultCacheDirty = true
 end
@@ -620,7 +620,7 @@ end
 -- MAIN DATA PROVIDER
 -- ============================================================================
 
---- Build tracker rows from WoW tracked profession recipes.
+-- Build tracker rows from WoW tracked profession recipes.
 -- @return table Array of normalized entry tables for the tracker
 local function ReadTrackedRecipes()
     local out = {}
@@ -738,7 +738,7 @@ end
 -- DEBUG
 -- ============================================================================
 
---- Dump recipe reagent structure to chat for debugging.
+-- Dump recipe reagent structure to chat for debugging.
 -- @param recipeID number|nil Specific recipe, or nil to dump all tracked recipes
 local function DebugRecipeReagents(recipeID)
     local HSPrint = (addon and addon.HSPrint) or _G.HSPrint or print

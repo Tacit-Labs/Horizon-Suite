@@ -551,9 +551,9 @@ end
 
 local PREVIEW_MODES = { global = true, player = true, npc = true, item = true }
 
---- Select which tooltip sample the dashboard preview shows when an Insight options page is active.
---- @param mode string "global" | "player" | "npc" | "item"
---- @return nil
+-- Select which tooltip sample the dashboard preview shows when an Insight options page is active.
+-- @param mode string "global" | "player" | "npc" | "item"
+-- @return nil
 function Insight.SetDashboardPreviewMode(mode)
     if type(mode) ~= "string" or not PREVIEW_MODES[mode] then return end
     Insight.dashboardPreviewMode = mode
@@ -814,7 +814,7 @@ local function RefreshPullout()
     pulloutMock:Layout(GetPreviewPulloutWidth() - 20)
 end
 
---- Toggle dashboard preview pullout (delegates to shared options shell).
+-- Toggle dashboard preview pullout (delegates to shared options shell).
 function Insight.TogglePreviewPullout()
     if addon.DashboardPreview and addon.DashboardPreview.TogglePullout then
         addon.DashboardPreview.TogglePullout()
@@ -827,7 +827,7 @@ function Insight.ClosePullout()
     end
 end
 
---- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
+-- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
 function Insight.EnsurePreviewTab(dashFrame)
     if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then
         addon.DashboardPreview.InitDashboard(dashFrame)
@@ -838,9 +838,9 @@ end
 -- TRP3 SUPPRESSOR
 -- ============================================================================
 
---- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
---- own frame is suppressed and Insight's enriched GameTooltip stays visible.
---- Called once when "totalRP3" finishes loading (or at Init if already loaded).
+-- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
+-- own frame is suppressed and Insight's enriched GameTooltip stays visible.
+-- Called once when "totalRP3" finishes loading (or at Init if already loaded).
 function Insight.InstallTRP3Suppressor()
     local trp3Tooltip = _G["TRP3_CharacterTooltip"]
     if not trp3Tooltip or Insight._trp3HookInstalled then return end
@@ -881,7 +881,7 @@ function Insight.ShowAnchorFrame()
     ShowAnchorFrame()
 end
 
---- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
+-- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
 function Insight.ToggleAnchorFrame()
     if TooltipPlainShown(anchorFrame) then
         HideAnchorFrame()
@@ -1116,12 +1116,22 @@ end)
 -- ============================================================================
 
 local function HandleInsightSlash(msg)
-    if not addon:IsModuleEnabled("insight") then
-        Insight.Print("Horizon Insight is disabled. Enable it in Horizon Suite options.")
+    local cmd = strtrim(msg or ""):lower()
+
+    if cmd == "toggle" then
+        if InCombatLockdown() then
+            Insight.Print("Cannot toggle Insight during combat.")
+            return
+        end
+        addon:SetModuleEnabled("insight", not addon:IsModuleEnabled("insight"))
+        Insight.Print("Insight " .. (addon:IsModuleEnabled("insight") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         return
     end
 
-    local cmd = strtrim(msg or ""):lower()
+    if not addon:IsModuleEnabled("insight") then
+        Insight.Print("Horizon Insight is disabled. Use /h insight toggle to enable it.")
+        return
+    end
 
     if cmd == "anchor" then
         local mode = GetAnchorMode()
@@ -1141,7 +1151,7 @@ local function HandleInsightSlash(msg)
             ShowAnchorFrame()
         end
 
-    elseif cmd == "resetpos" then
+    elseif cmd == "reset" or cmd == "resetpos" then
         addon.SetDB("insightFixedPoint", FIXED_POINT)
         addon.SetDB("insightFixedX", FIXED_X)
         addon.SetDB("insightFixedY", FIXED_Y)
@@ -1166,19 +1176,15 @@ local function HandleInsightSlash(msg)
     else
         Insight.PrintBlock({
             "Horizon Insight",
-            "  /insight, /h insight     This help",
-            "  /insight anchor   Toggle cursor / fixed positioning",
-            "  /insight move     Show draggable anchor to set fixed position",
-            "  /insight resetpos Reset fixed position to default",
-            "  /insight test     Show a sample styled tooltip",
+            "  /h insight          This help",
+            "  /h insight toggle   Enable / disable Insight module",
+            "  /h insight anchor   Toggle cursor / fixed positioning",
+            "  /h insight move     Show draggable anchor to set fixed position",
+            "  /h insight reset    Reset fixed position to default",
+            "  /h insight test     Show a sample styled tooltip",
         })
     end
 end
-
-SLASH_HORIZONSUITEINSIGHT1 = "/insight"
-SLASH_HORIZONSUITEINSIGHT2 = "/hsi"
-SLASH_HORIZONSUITEINSIGHT3 = "/mtt"
-SlashCmdList["HORIZONSUITEINSIGHT"] = HandleInsightSlash
 
 local function HandleInsightDebugSlash(msg)
     local cmd = strtrim(msg or ""):lower()
@@ -1186,23 +1192,12 @@ local function HandleInsightDebugSlash(msg)
     if cmd == "" or cmd == "help" then
         Insight.PrintBlock({
             "Insight debug commands (/h debug insight [cmd]):",
-            "  debuglive - Toggle live debug log panel",
+            "  debuglive - Toggle live debug log panel (DEV_MODE required)",
             "  status    - Print config + cache count",
             "  lsm       - Test LibSharedMedia classicon registration",
             "  path      - Show class icon paths (Rondo + custom sample)",
             "  trp3      - Diagnose TRP3 data for current mouseover unit",
         })
-        return
-    end
-
-    if cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            Insight.Print("Debug requires DEV_MODE = true in core/Logger.lua")
-            return
-        end
-        local v = not addon.Log.isEnabled("insight")
-        if Insight.SetDebugLive then Insight.SetDebugLive(v) end
-        Insight.Print("Insight debug log: " .. (v and "on" or "off"))
         return
     end
 
@@ -1459,6 +1454,9 @@ if addon.RegisterSlashHandler then
 end
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("insight", HandleInsightDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("insight", function(v) if Insight.SetDebugLive then Insight.SetDebugLive(v) end end)
 end
 
 addon.Insight = Insight

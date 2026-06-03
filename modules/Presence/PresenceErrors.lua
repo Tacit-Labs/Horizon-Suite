@@ -34,8 +34,8 @@ end
 -- Public functions
 -- ============================================================================
 
---- Hook UIErrorsFrame AddMessage to intercept "Discovered" and quest text. Idempotent.
---- @return nil
+-- Hook UIErrorsFrame AddMessage to intercept "Discovered" and quest text. Idempotent.
+-- @return nil
 local function HookUIErrorsFrame()
     if uiErrorsHooked or not UIErrorsFrame then return end
     if hooksecurefunc then
@@ -47,8 +47,8 @@ local function HookUIErrorsFrame()
     end
 end
 
---- Clear hook state. Note: hooksecurefunc cannot be undone; callback no-ops when Presence disabled.
---- @return nil
+-- Clear hook state. Note: hooksecurefunc cannot be undone; callback no-ops when Presence disabled.
+-- @return nil
 local function UnhookUIErrorsFrame()
     -- hooksecurefunc cannot be undone; we simply stop acting in the callback when Presence is disabled
     -- The callback will remain but will no-op when addon:IsModuleEnabled("presence") is false
@@ -62,10 +62,10 @@ end
 local alertsMuted = false
 local alertEventsUnregistered = {}
 
---- Unregister AlertFrame from achievement/quest/criteria events so Presence can replace them.
---- Includes CRITERIA_UPDATE, TRACKED_ACHIEVEMENT_UPDATE, and CRITERIA_EARNED to suppress
---- Blizzard's default achievement-progress popups (CriteriaAlertSystem). Idempotent.
---- @return nil
+-- Unregister AlertFrame from achievement/quest/criteria events so Presence can replace them.
+-- Includes CRITERIA_UPDATE, TRACKED_ACHIEVEMENT_UPDATE, and CRITERIA_EARNED to suppress
+-- Blizzard's default achievement-progress popups (CriteriaAlertSystem). Idempotent.
+-- @return nil
 local function MuteAlerts()
     if alertsMuted then return end
     -- pcall: AlertFrame may not exist or methods may throw.
@@ -86,8 +86,8 @@ local function MuteAlerts()
     alertsMuted = true
 end
 
---- Re-register AlertFrame events when Presence is disabled.
---- @return nil
+-- Re-register AlertFrame events when Presence is disabled.
+-- @return nil
 local function RestoreAlerts()
     if not alertsMuted then return end
     -- pcall: AlertFrame may not exist or methods may throw.

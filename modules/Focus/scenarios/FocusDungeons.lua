@@ -15,10 +15,10 @@ local function GetMythicDungeonName()
     return ok and name or nil
 end
 
---- Returns nearby non-WQ, non-Calling quests when in a party dungeon.
---- Only shows quests the player has actually accepted in their quest log,
---- filtering out hidden / deprecated / auto-tracked noise regardless of
---- dungeon difficulty.
+-- Returns nearby non-WQ, non-Calling quests when in a party dungeon.
+-- Only shows quests the player has actually accepted in their quest log,
+-- filtering out hidden / deprecated / auto-tracked noise regardless of
+-- dungeon difficulty.
 local function CollectDungeonQuests(ctx)
     if not addon.IsInPartyDungeon() then return {} end
     -- When the M+ block is active, hide the DUNGEON category entirely

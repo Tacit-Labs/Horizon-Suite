@@ -16,7 +16,7 @@ local ACHIEVEMENT_PROGRESS_DEDUPE = 3
 
 local achievementProgressCache = {}
 local pendingAchievementIDs = {}
---- Per-achievement hints from the last criteria-related events (criteriaID, description).
+-- Per-achievement hints from the last criteria-related events (criteriaID, description).
 local pendingCriteriaHints = {}
 local lastAchProgressText = nil
 local lastAchProgressTime = 0
@@ -161,12 +161,12 @@ local function GetAchievementProgressTextHeuristic(achievementID)
     return nil
 end
 
---- Resolve subtitle for a progress toast using event hints, criteriaID mapping, or per-criterion snapshot diff.
---- @param achievementID number
---- @param oldState string|nil
---- @param newState string|nil
---- @param hint table|nil
---- @return string|nil
+-- Resolve subtitle for a progress toast using event hints, criteriaID mapping, or per-criterion snapshot diff.
+-- @param achievementID number
+-- @param oldState string|nil
+-- @param newState string|nil
+-- @param hint table|nil
+-- @return string|nil
 local function GetAchievementProgressTextForChange(achievementID, oldState, newState, hint)
     if hint and hint.description and hint.description ~= "" and hint.fromEarned then
         return hint.description
@@ -190,9 +190,9 @@ end
 -- Event handlers
 -- ============================================================================
 
---- Queue an achievement-earned toast when the player earns an achievement.
---- @param achID number Achievement ID
---- @return nil
+-- Queue an achievement-earned toast when the player earns an achievement.
+-- @param achID number Achievement ID
+-- @return nil
 function addon.Presence.Achievement_OnAchievementEarned(achID)
     if not IsTypeEnabled("presenceAchievement", nil, true) then return end
     local _, name = GetAchievementInfo(achID)
@@ -247,9 +247,9 @@ local function ExecuteAchievementProgressCheck(pendingIDs, hintsByAchID)
     end
 end
 
---- Handle criteria-related events. Payloads: TRACKED_ACHIEVEMENT_UPDATE (achievementID, criteriaID?, elapsed?, duration?); CRITERIA_EARNED (achievementID, description, ...); CRITERIA_UPDATE (none).
---- @param event string
---- @return nil
+-- Handle criteria-related events. Payloads: TRACKED_ACHIEVEMENT_UPDATE (achievementID, criteriaID?, elapsed?, duration?); CRITERIA_EARNED (achievementID, description, ...); CRITERIA_UPDATE (none).
+-- @param event string
+-- @return nil
 function addon.Presence.Achievement_OnCriteriaUpdate(event, ...)
     if not IsTypeEnabled("presenceAchievementProgress", nil, false) then return end
 
@@ -303,8 +303,8 @@ end
 -- Seed (called from OnPlayerEnteringWorld)
 -- ============================================================================
 
---- Initialize cached criterion snapshots for tracked achievements (baseline only; no toasts).
---- @return nil
+-- Initialize cached criterion snapshots for tracked achievements (baseline only; no toasts).
+-- @return nil
 function addon.Presence._seedAchievementProgress()
     local trackedIDs = GetTrackedAchievementIDs()
     for _, achID in ipairs(trackedIDs) do

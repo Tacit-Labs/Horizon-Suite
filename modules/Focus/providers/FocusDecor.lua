@@ -11,7 +11,7 @@ local addon = _G.HorizonSuite
 
 local TRACKING_TYPE_DECOR = (Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Decor) or 3
 
---- Get decor display info. Uses C_ContentTracking.GetTitle, C_HousingDecor.GetDecorName, or C_PlayerHousing fallbacks.
+-- Get decor display info. Uses C_ContentTracking.GetTitle, C_HousingDecor.GetDecorName, or C_PlayerHousing fallbacks.
 -- @param decorID number
 -- @return string name, number|string icon
 local function GetDecorDisplayInfo(decorID)
@@ -56,7 +56,7 @@ local function GetDecorDisplayInfo(decorID)
     return "Decor " .. tostring(decorID), nil
 end
 
---- Build tracker rows from WoW tracked housing decor.
+-- Build tracker rows from WoW tracked housing decor.
 -- @return table Array of normalized entry tables for the tracker
 local function ReadTrackedDecor()
     local out = {}

@@ -16,8 +16,8 @@ local VALID_ENTRY_SORT = { alpha = true, questType = true, zone = true, level = 
 
 local currentSortGroup  -- set before each table.sort so comparator knows its group
 
---- Current entry sort mode from DB (alpha, questType, zone, or level).
---- @return string Sort mode key
+-- Current entry sort mode from DB (alpha, questType, zone, or level).
+-- @return string Sort mode key
 local function GetSortMode()
     local mode = addon.GetDB("entrySortMode", DEFAULT_SORT_MODE)
     if type(mode) == "string" and VALID_ENTRY_SORT[mode] then return mode end
@@ -33,11 +33,11 @@ local CATEGORY_SORT_ORDER = {
 local CURRENT_QUEST_WINDOW_DEFAULT = 60
 local CURRENT_QUEST_EXPIRED_GRACE_SEC = 600
 
---- Returns true if the quest had progress (objectives or accept) within the configured window.
---- Lazily removes expired entries from recentlyProgressedQuests.
---- When expiring, records questID in recentlyExpiredFromCurrent for NEARBY routing.
---- @param questID number
---- @return boolean
+-- Returns true if the quest had progress (objectives or accept) within the configured window.
+-- Lazily removes expired entries from recentlyProgressedQuests.
+-- When expiring, records questID in recentlyExpiredFromCurrent for NEARBY routing.
+-- @param questID number
+-- @return boolean
 local function IsQuestRecentlyProgressed(questID)
     if not questID or questID <= 0 then return false end
     local cache = addon.focus and addon.focus.recentlyProgressedQuests
@@ -57,10 +57,10 @@ local function IsQuestRecentlyProgressed(questID)
     return true
 end
 
---- Returns true if the quest recently expired from CURRENT and is within the grace period.
---- Lazily removes expired entries from recentlyExpiredFromCurrent.
---- @param questID number
---- @return boolean
+-- Returns true if the quest recently expired from CURRENT and is within the grace period.
+-- Lazily removes expired entries from recentlyExpiredFromCurrent.
+-- @param questID number
+-- @return boolean
 local function IsQuestRecentlyExpiredFromCurrent(questID)
     if not questID or questID <= 0 then return false end
     local cache = addon.focus and addon.focus.recentlyExpiredFromCurrent
@@ -78,9 +78,9 @@ local function IsQuestRecentlyExpiredFromCurrent(questID)
     return true
 end
 
---- Returns true if objectives has at least one objective with usable progress (percent or numFulfilled/numRequired).
---- @param objectives table
---- @return boolean
+-- Returns true if objectives has at least one objective with usable progress (percent or numFulfilled/numRequired).
+-- @param objectives table
+-- @return boolean
 local function HasUsableObjectives(objectives)
     if not objectives or #objectives == 0 then return false end
     for _, o in ipairs(objectives) do
@@ -92,9 +92,9 @@ local function HasUsableObjectives(objectives)
     return false
 end
 
---- Deep copy of objectives array for WQ progress cache (preserves text, percent, numFulfilled, numRequired, finished, type).
---- @param objectives table
---- @return table
+-- Deep copy of objectives array for WQ progress cache (preserves text, percent, numFulfilled, numRequired, finished, type).
+-- @param objectives table
+-- @return table
 local function CopyObjectives(objectives)
     if not objectives or #objectives == 0 then return {} end
     local out = {}
@@ -152,9 +152,9 @@ local function CompareEntriesBySortMode(a, b)
     return ta < tb
 end
 
---- Buckets entries by group key, sorts each group, and returns ordered { key, quests } array.
---- @param quests table Array of normalized entry tables
---- @return table Array of { key = string, quests = table }
+-- Buckets entries by group key, sorts each group, and returns ordered { key, quests } array.
+-- @param quests table Array of normalized entry tables
+-- @return table Array of { key = string, quests = table }
 local function SortAndGroupQuests(quests)
     local groups = {}
     local order = (addon.GetGroupOrder and addon.GetGroupOrder()) or addon.GROUP_ORDER or {}
@@ -358,8 +358,8 @@ local function QuestAncestorMatchesZone(questID, zoneMapID)
     return false
 end
 
---- Respects filterByZone and test data. Merges Collect* providers and ReadScenarioEntries.
---- @return table Array of normalized entry tables (see entry shape in FocusState.lua)
+-- Respects filterByZone and test data. Merges Collect* providers and ReadScenarioEntries.
+-- @return table Array of normalized entry tables (see entry shape in FocusState.lua)
 local function ReadTrackedQuests()
     if addon.testQuests then
         return addon.testQuests

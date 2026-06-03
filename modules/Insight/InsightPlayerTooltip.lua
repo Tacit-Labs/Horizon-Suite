@@ -120,15 +120,15 @@ end
 local function ShowTRP3Title()        return addon.GetDB("insightTRP3Title",        true) end
 local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass",   true) end
 local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
---- Build the combined race / class / level line.
---- When trp3d has custom race/class, those are used with TRP3 colour logic.
---- When trp3d has no custom fields (or is nil), wowFallback provides the WoW race/class strings.
---- Race and level render in white; class gets TRP3 custom colour (if enabled) or WoW class colour.
---- @param trp3d      table|nil   TRP3 player data from GetTRP3PlayerData (nil = WoW-only line)
---- @param classCol   table|nil   classColor {r,g,b} for class colour fallback
---- @param unitToken  string|nil  Unit token for live UnitLevel
---- @param wowFallback table|nil  { race=string, class=string } used when trp3d has no custom data
---- @return string
+-- Build the combined race / class / level line.
+-- When trp3d has custom race/class, those are used with TRP3 colour logic.
+-- When trp3d has no custom fields (or is nil), wowFallback provides the WoW race/class strings.
+-- Race and level render in white; class gets TRP3 custom colour (if enabled) or WoW class colour.
+-- @param trp3d      table|nil   TRP3 player data from GetTRP3PlayerData (nil = WoW-only line)
+-- @param classCol   table|nil   classColor {r,g,b} for class colour fallback
+-- @param unitToken  string|nil  Unit token for live UnitLevel
+-- @param wowFallback table|nil  { race=string, class=string } used when trp3d has no custom data
+-- @return string
 local function BuildCombinedRaceClassLine(trp3d, classCol, unitToken, wowFallback)
     local racePart, rawClass, useCustomColor
     if trp3d and (trp3d.customRace or trp3d.customClass) then
@@ -464,8 +464,8 @@ local function MountOwnershipIconSize()
     return math.max(8, math.floor(S(MOUNT_OWN_ICON_BASE, "insight")))
 end
 
---- @return string|nil nameSuffix Rich text to append after mount name (icons mode only)
---- @return string|nil textLine Full line for tooltip (text mode only)
+-- @return string|nil nameSuffix Rich text to append after mount name (icons mode only)
+-- @return string|nil textLine Full line for tooltip (text mode only)
 local function GetMountOwnershipDisplay(isCollected)
     if isCollected ~= true and isCollected ~= false then return nil, nil end
     local mode = addon.GetDB("insightMountOwnershipDisplay", "text")
@@ -707,13 +707,13 @@ local function GetCharacterTitleParts(unit, nameLeft)
     return nil, nil
 end
 
---- Add PvP block (honor level only). Character title is shown in identity section.
---- @param tooltip table GameTooltip
---- @param unit string Unit token
---- @param _sepR number|nil Unused; kept for API stability with other block builders
---- @param _sepG number|nil Unused
---- @param _sepB number|nil Unused
---- @return nil
+-- Add PvP block (honor level only). Character title is shown in identity section.
+-- @param tooltip table GameTooltip
+-- @param unit string Unit token
+-- @param _sepR number|nil Unused; kept for API stability with other block builders
+-- @param _sepG number|nil Unused
+-- @param _sepB number|nil Unused
+-- @return nil
 function Insight.AddPvPBlock(tooltip, unit, _sepR, _sepG, _sepB)
     local honorLevel = GetHonorLevelIfShown(unit)
     if honorLevel then
@@ -726,9 +726,9 @@ function Insight.AddPvPBlock(tooltip, unit, _sepR, _sepG, _sepB)
     end
 end
 
---- Add status badges block to tooltip.
---- @param tooltip table GameTooltip
---- @param unit string Unit token (e.g. "mouseover")
+-- Add status badges block to tooltip.
+-- @param tooltip table GameTooltip
+-- @param unit string Unit token (e.g. "mouseover")
 function Insight.AddStatusBadgesBlock(tooltip, unit)
     if not ShowStatusBadges() then return end
     local badges = {}
@@ -764,7 +764,7 @@ function Insight.AddStatusBadgesBlock(tooltip, unit)
     end
 end
 
---- Add ratings block (M+ score, honor level) to tooltip.
+-- Add ratings block (M+ score, honor level) to tooltip.
 function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
     local hasStats = false
     local function EnsureStatsSep()
@@ -851,7 +851,7 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
     end
 end
 
---- Add mount block to tooltip.
+-- Add mount block to tooltip.
 function Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
     if not ShowMount() then return end
     local mountOk, mount = pcall(GetPlayerMountInfo, unit)
@@ -871,12 +871,12 @@ function Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
     end)
 end
 
---- Cache inspect for unit; used by INSPECT_READY handler.
+-- Cache inspect for unit; used by INSPECT_READY handler.
 function Insight.CacheInspect(guid, unit)
     CacheInspect(guid, unit)
 end
 
---- Cache achievement points for unit; used by INSPECT_ACHIEVEMENT_READY handler.
+-- Cache achievement points for unit; used by INSPECT_ACHIEVEMENT_READY handler.
 function Insight.CacheAchievementPoints(unit)
     pcall(function()
         local g = UnitGUID(unit)
@@ -892,9 +892,9 @@ end
 -- TRP3 DATA FETCH
 -- ============================================================================
 
---- Fetch Total RP 3 profile fields for a unit token. Returns a table of RP data
---- or nil when TRP3 is not loaded / the unit has no TRP3 profile.
---- All access is pcall-wrapped for Midnight safety.
+-- Fetch Total RP 3 profile fields for a unit token. Returns a table of RP data
+-- or nil when TRP3 is not loaded / the unit has no TRP3 profile.
+-- All access is pcall-wrapped for Midnight safety.
 function Insight.GetTRP3PlayerData(unit)
     if not TRP3_API then return nil end
     local ok, result = pcall(function()
@@ -1014,10 +1014,10 @@ end
 -- PROCESS PLAYER TOOLTIP
 -- ============================================================================
 
---- Process player unit tooltip. Full enrichment: name, class/spec/role, PvP, badges, stats, mount.
---- @param unit string Unit token (e.g. "mouseover")
---- @param tooltip table GameTooltip
---- @return boolean true if processed
+-- Process player unit tooltip. Full enrichment: name, class/spec/role, PvP, badges, stats, mount.
+-- @param unit string Unit token (e.g. "mouseover")
+-- @param tooltip table GameTooltip
+-- @return boolean true if processed
 function Insight.ProcessPlayerTooltip(unit, tooltip)
     if not Insight.IsInsightEnabled() or not tooltip then return false end
     local isUnitPlayer = false
@@ -1363,8 +1363,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     return true
 end
 
---- Render sample player tooltip content for /insight test and dashboard preview.
---- Mirrors ProcessPlayerTooltip + block builders; each section gated by the same Show*() DB flags.
+-- Render sample player tooltip content for /insight test and dashboard preview.
+-- Mirrors ProcessPlayerTooltip + block builders; each section gated by the same Show*() DB flags.
 function Insight.RenderTestTooltipContent(tooltip)
     if not tooltip then return end
     local testSepR, testSepG, testSepB = 0.77, 0.12, 0.23  -- DK class colour

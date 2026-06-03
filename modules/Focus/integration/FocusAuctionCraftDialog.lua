@@ -484,9 +484,9 @@ local function EnsureAhCraftFrame()
     return f
 end
 
---- Open the Horizon-styled Auctionator craft / filter dialog (UrlCopy-style chrome).
---- @param entry table Pool entry with _ahShoppingParts
---- @return nil
+-- Open the Horizon-styled Auctionator craft / filter dialog (UrlCopy-style chrome).
+-- @param entry table Pool entry with _ahShoppingParts
+-- @return nil
 function addon.focus.ShowAuctionCraftDialog(entry)
     if not entry then return end
     local f = EnsureAhCraftFrame()
@@ -515,8 +515,8 @@ function addon.focus.ShowAuctionCraftDialog(entry)
     end)
 end
 
---- Refresh accent strip / subtitle when dashboard class colour changes (dialog visible).
---- @return nil
+-- Refresh accent strip / subtitle when dashboard class colour changes (dialog visible).
+-- @return nil
 function addon.focus.ApplyAuctionCraftDialogAccent()
     if not ahCraftFrame or not ahCraftFrame:IsShown() then return end
     local ar, ag, ab = GetAccentRGB()

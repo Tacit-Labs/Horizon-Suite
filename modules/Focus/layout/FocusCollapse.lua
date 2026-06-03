@@ -15,7 +15,7 @@ local COLLAPSE_CANCEL_DEBOUNCE_SEC  = 2
 local COMPLETED_OBJECTIVE_FADE_ALPHA = 0.4
 local MIN_TICK_SIZE                  = 10
 
---- Toggles full-panel collapsed/expanded state. Starts collapse animation or cancels in-progress collapse.
+-- Toggles full-panel collapsed/expanded state. Starts collapse animation or cancels in-progress collapse.
 local function ToggleCollapse()
     if addon.focus.collapse.animating then
         if (GetTime() - addon.focus.collapse.animStart) < COLLAPSE_CANCEL_DEBOUNCE_SEC then return end
@@ -189,8 +189,8 @@ local function ToggleCollapse()
     addon.SetDB("collapsed", addon.focus.collapsed)
 end
 
---- Initiates category collapse for a group. Animates entries collapsing, then runs FullLayout.
---- @param groupKey string Category key (e.g. "NEARBY", "WEEKLY")
+-- Initiates category collapse for a group. Animates entries collapsing, then runs FullLayout.
+-- @param groupKey string Category key (e.g. "NEARBY", "WEEKLY")
 local function StartGroupCollapse(groupKey)
     if not groupKey then return end
 
@@ -228,9 +228,9 @@ local function StartGroupCollapse(groupKey)
     end
 end
 
---- Cancels an in-progress group collapse animation. Removes the group from the collapse tracker
---- and immediately clears any pool entries still animating out, so FullLayout() can run.
---- @param groupKey string Category key (e.g. "NEARBY", "WEEKLY")
+-- Cancels an in-progress group collapse animation. Removes the group from the collapse tracker
+-- and immediately clears any pool entries still animating out, so FullLayout() can run.
+-- @param groupKey string Category key (e.g. "NEARBY", "WEEKLY")
 local function CancelGroupCollapse(groupKey)
     if not groupKey then return end
     if addon.focus.collapse.groups then
@@ -244,8 +244,8 @@ local function CancelGroupCollapse(groupKey)
     end
 end
 
---- Same as StartGroupCollapse but visual-only: no FullLayout or SetCategoryCollapsed.
---- @param groupKey string Category key
+-- Same as StartGroupCollapse but visual-only: no FullLayout or SetCategoryCollapsed.
+-- @param groupKey string Category key
 local function StartGroupCollapseVisual(groupKey)
     if not groupKey then return end
 
@@ -275,7 +275,7 @@ local function StartGroupCollapseVisual(groupKey)
     addon.focus.collapse.groups[groupKey] = GetTime()
 end
 
---- Triggers fade-in for NEARBY entries. Sorts by finalY descending and staggers fade-in.
+-- Triggers fade-in for NEARBY entries. Sorts by finalY descending and staggers fade-in.
 local function TriggerNearbyEntriesFadeIn()
     local entries = {}
     for i = 1, addon.POOL_SIZE do
@@ -292,7 +292,7 @@ local function TriggerNearbyEntriesFadeIn()
     end
 end
 
---- Slides out non-NEARBY entries, then runs FullLayout and TriggerNearbyEntriesFadeIn when slide-out completes.
+-- Slides out non-NEARBY entries, then runs FullLayout and TriggerNearbyEntriesFadeIn when slide-out completes.
 local function StartNearbyTurnOnTransition()
     local quests = addon.ReadTrackedQuests()
     local grouped = addon.SortAndGroupQuests(quests)
@@ -329,9 +329,9 @@ local function StartNearbyTurnOnTransition()
     end
 end
 
---- Whether to show the tracker in the current instance type (dungeon, raid, bg, arena).
---- Master dungeon/raid toggles apply first; per-difficulty keys only when master is on (nil = use default show).
---- @return boolean
+-- Whether to show the tracker in the current instance type (dungeon, raid, bg, arena).
+-- Master dungeon/raid toggles apply first; per-difficulty keys only when master is on (nil = use default show).
+-- @return boolean
 local function ShouldShowInInstance()
     local _, inType, difficultyID = GetInstanceInfo()
     if inType == "none" then return true end
@@ -380,9 +380,9 @@ local function ShouldShowInInstance()
     return true
 end
 
---- Counts non-rare/achievement/endeavor/decor entries that are in the quest log.
---- @param quests table Array of normalized entry tables
---- @return number
+-- Counts non-rare/achievement/endeavor/decor entries that are in the quest log.
+-- @param quests table Array of normalized entry tables
+-- @return number
 local function CountTrackedInLog(quests)
     if not quests then return 0 end
     local n = 0

@@ -21,7 +21,7 @@ addon:RegisterModule("augment", {
         if addon.Augment then
             local GetDB = addon.GetDB
             local lootOn   = not GetDB or GetDB("augmentLootFrameEnabled",    true)  ~= false
-            local vendorOn = not GetDB or GetDB("augmentVendorEnabled",        false) ~= false
+            local vendorOn = not GetDB or GetDB("augmentVendorEnabled",        true)  ~= false
             local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled", false) ~= false
             local thOn     = not GetDB or GetDB("augmentTalkingHeadEnabled",   true)  ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end

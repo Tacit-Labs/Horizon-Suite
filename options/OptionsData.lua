@@ -1,4 +1,4 @@
-﻿--[[
+--[[
     Horizon Suite - Options Data
     Core DB helpers and per-key routing (SetDB side-effects).
     Initialises the empty OptionCategories table that self-registering module
@@ -208,7 +208,7 @@ function OptionsData_SetDB(key, value)
     OptionsData_NotifyMainAddon()
 end
 
---- Lightweight notify for live color picker: updates visuals without FullLayout.
+-- Lightweight notify for live color picker: updates visuals without FullLayout.
 function OptionsData_NotifyMainAddon_Live()
     local applyTy = addon.ApplyTypography or _G.HorizonSuite_ApplyTypography
     if applyTy then applyTy() end

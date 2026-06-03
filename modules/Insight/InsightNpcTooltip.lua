@@ -41,12 +41,12 @@ local function strippedContainsIsolatedLevel(stripped, level)
     return false
 end
 
---- True if stripped line-2 text looks like Blizzard's level row (not an NPC subtitle).
---- @param stripped string TextLeft2 without color codes, trimmed
---- @param level number|nil UnitLevel (may be negative for unknown)
---- @param creatureType string|nil
---- @param classStr string|nil Elite / Rare / etc.
---- @param unknownLevel boolean level not known as a number
+-- True if stripped line-2 text looks like Blizzard's level row (not an NPC subtitle).
+-- @param stripped string TextLeft2 without color codes, trimmed
+-- @param level number|nil UnitLevel (may be negative for unknown)
+-- @param creatureType string|nil
+-- @param classStr string|nil Elite / Rare / etc.
+-- @param unknownLevel boolean level not known as a number
 local function LooksLikeBlizzardNpcLevelLine(stripped, level, creatureType, classStr, unknownLevel)
     stripped = stripped:gsub("^%s+", ""):gsub("%s+$", "")
     if stripped == "" then
@@ -76,10 +76,10 @@ local function LooksLikeBlizzardNpcLevelLine(stripped, level, creatureType, clas
     return false
 end
 
---- Process NPC (non-player) unit tooltip. Reaction-coloured name, border, level/classification/creature type.
---- @param unit string Unit token (e.g. "mouseover")
---- @param tooltip table GameTooltip
---- @return boolean true if processed (caller should finalize)
+-- Process NPC (non-player) unit tooltip. Reaction-coloured name, border, level/classification/creature type.
+-- @param unit string Unit token (e.g. "mouseover")
+-- @param tooltip table GameTooltip
+-- @return boolean true if processed (caller should finalize)
 function Insight.ProcessNpcTooltip(unit, tooltip)
     if not Insight.IsInsightEnabled() or not tooltip then return false end
     local isUnitPlayer = false
@@ -195,9 +195,9 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     return true
 end
 
---- Render sample NPC tooltip lines for the options dashboard preview.
---- @param tooltip table Mock tooltip with AddLine (Insight dashboard pullout)
---- @return nil
+-- Render sample NPC tooltip lines for the options dashboard preview.
+-- @param tooltip table Mock tooltip with AddLine (Insight dashboard pullout)
+-- @return nil
 function Insight.RenderNpcPreviewContent(tooltip)
     if not tooltip or not tooltip.AddLine then return end
     local hostile = FACTION_BAR_COLORS and FACTION_BAR_COLORS[2]

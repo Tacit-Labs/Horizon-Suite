@@ -17,9 +17,9 @@ local INSIGHT_CLASS_ICON_CUSTOM_PX = 20
 local DASHBOARD_CLASS_ICON_PX = 28
 local DASHBOARD_CLASS_ICON_CUSTOM_PX = 38
 
---- Tooltip |T| / CreateAtlasMarkup height for class line when Insight icons are on.
---- Larger when insightClassIconSource is custom (high-res bundled art).
---- @return number Pixel size (scaled)
+-- Tooltip |T| / CreateAtlasMarkup height for class line when Insight icons are on.
+-- Larger when insightClassIconSource is custom (high-res bundled art).
+-- @return number Pixel size (scaled)
 function addon.GetInsightClassIconDisplaySize()
     local src = (addon.GetDB and addon.GetDB("insightClassIconSource", "custom")) or "custom"
     local base = (src == "custom") and INSIGHT_CLASS_ICON_CUSTOM_PX or INSIGHT_CLASS_ICON_PX
@@ -29,9 +29,9 @@ function addon.GetInsightClassIconDisplaySize()
     return base
 end
 
---- Sidebar class texture size when dashboard class colours + icon are shown.
---- Larger when dashboardClassIconSource is custom.
---- @return number Pixel size (scaled)
+-- Sidebar class texture size when dashboard class colours + icon are shown.
+-- Larger when dashboardClassIconSource is custom.
+-- @return number Pixel size (scaled)
 function addon.GetDashboardClassIconDisplaySize()
     local src = (addon.GetDB and addon.GetDB("dashboardClassIconSource", "custom")) or "custom"
     local base = (src == "custom") and DASHBOARD_CLASS_ICON_CUSTOM_PX or DASHBOARD_CLASS_ICON_PX
@@ -74,10 +74,10 @@ local function BundledCustomClassIconPath(classFile)
     return ("Interface\\AddOns\\%s\\media\\CustomClassIcons\\%s\\%s.blp"):format(folder, classFile, lower)
 end
 
---- Resolve class icon for Texture:SetTexture / SetAtlas or tooltip |T markup.
---- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
---- @param source string "default" | "rondomedia" | "custom"
---- @return table|nil { kind = "file", path = string } | { kind = "atlas", atlas = string }
+-- Resolve class icon for Texture:SetTexture / SetAtlas or tooltip |T markup.
+-- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
+-- @param source string "default" | "rondomedia" | "custom"
+-- @return table|nil { kind = "file", path = string } | { kind = "atlas", atlas = string }
 function addon.ResolveClassIconDisplay(classFile, source)
     if not classFile then return nil end
     if source == "custom" then
@@ -114,9 +114,9 @@ function addon.ResolveClassIconDisplay(classFile, source)
     return nil
 end
 
---- Register RondoMedia class icons with LibSharedMedia if not already registered.
---- Prefers RondoMedia addon path; else Horizon Suite bundled path.
---- @return nil
+-- Register RondoMedia class icons with LibSharedMedia if not already registered.
+-- Prefers RondoMedia addon path; else Horizon Suite bundled path.
+-- @return nil
 function addon.RegisterRondoClassIconsWithLSM()
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     if not LSM or not LSM.Register then return end

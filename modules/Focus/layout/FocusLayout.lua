@@ -19,9 +19,9 @@ local sectionPool = addon.sectionPool
 local scrollChild = addon.scrollChild
 local scrollFrame = addon.scrollFrame
 
---- Returns the maximum height the panel can grow to without going off-screen.
---- Grow-down: distance from panel top to screen bottom. Grow-up: distance from panel bottom to screen top.
---- Falls back to a large sentinel when the panel isn't yet visible.
+-- Returns the maximum height the panel can grow to without going off-screen.
+-- Grow-down: distance from panel top to screen bottom. Grow-up: distance from panel bottom to screen top.
+-- Falls back to a large sentinel when the panel isn't yet visible.
 local function GetMaxPanelHeight()
     if not addon.HS then return 99999 end
     local uiBottom = UIParent and UIParent:GetBottom() or 0
@@ -38,9 +38,9 @@ local function GetMaxPanelHeight()
     return (maxH > 0) and maxH or 99999
 end
 
---- Player's current zone name from map API. Used to suppress redundant zone labels for in-zone quests.
---- Schedule deferred refreshes when Endeavors or Decor have placeholder names (API data not yet loaded).
---- Retries up to 3 times at 2s intervals; stops as soon as no placeholder is detected.
+-- Player's current zone name from map API. Used to suppress redundant zone labels for in-zone quests.
+-- Schedule deferred refreshes when Endeavors or Decor have placeholder names (API data not yet loaded).
+-- Retries up to 3 times at 2s intervals; stops as soon as no placeholder is detected.
 local function SchedulePlaceholderRefreshes(quests)
     if addon.focus.placeholderRefreshScheduled then return end
     local hasPlaceholder = false
@@ -71,8 +71,8 @@ local function SchedulePlaceholderRefreshes(quests)
     C_Timer.After(2, retry)
 end
 
---- Player's current zone name. Uses Zone tier (whole zone, e.g. K'aresh), not continent or micro.
---- Dungeon/Delve: current map only. Overworld: GetZoneText() or walk up to Zone (mapType 3).
+-- Player's current zone name. Uses Zone tier (whole zone, e.g. K'aresh), not continent or micro.
+-- Dungeon/Delve: current map only. Overworld: GetZoneText() or walk up to Zone (mapType 3).
 local function GetPlayerCurrentZoneName()
     if not C_Map or not C_Map.GetBestMapForUnit then return nil end
     local mapID = C_Map.GetBestMapForUnit("player")
@@ -126,7 +126,7 @@ local function AcquireEntry()
     return nil
 end
 
---- Set initial alpha when showing the tracker. Combat fade "in" overrides; otherwise apply hover-fade state.
+-- Set initial alpha when showing the tracker. Combat fade "in" overrides; otherwise apply hover-fade state.
 local function ApplyShowAlpha()
     if addon.ShouldFadeInCombat and addon.ShouldFadeInCombat() then
         local fadeAlpha = addon.GetCombatFadeAlpha and addon.GetCombatFadeAlpha() or 0.3
@@ -234,7 +234,7 @@ nearbyToggleKeybindBtn:SetScript("OnClick", function()
 end)
 nearbyToggleKeybindBtn:RegisterForClicks("AnyUp")
 
---- Full layout of the objectives panel.
+-- Full layout of the objectives panel.
 -- @brief Computes and applies the complete tracker layout: visibility, quest list, section headers, entry positions, scroll height.
 -- Algorithm: (1) Bail if disabled or in combat. (2) Hide panel if instance visibility
 -- forbids. (3) Apply grow-up anchor and header visibility from DB. (4) When collapsed,
@@ -244,10 +244,10 @@ nearbyToggleKeybindBtn:RegisterForClicks("AnyUp")
 -- respecting collapsed categories. (8) Set scroll child height, clamp scroll offset,
 -- compute target panel height and show frame.
 
---- Collect all tracked entries (quests + rares + rare loot + achievements + endeavors + decor + appearances + adventure guide).
---- @param rares table Array of rare entries from GetRaresOnMap
---- @param treasures table|nil Array of treasure entries from GetTreasuresOnMap
---- @return table Combined entry array
+-- Collect all tracked entries (quests + rares + rare loot + achievements + endeavors + decor + appearances + adventure guide).
+-- @param rares table Array of rare entries from GetRaresOnMap
+-- @param treasures table|nil Array of treasure entries from GetTreasuresOnMap
+-- @return table Combined entry array
 local function CollectAllEntries(rares, treasures)
     local quests = addon.ReadTrackedQuests()
     for _, r in ipairs(rares) do quests[#quests + 1] = r end
@@ -283,11 +283,11 @@ local function HideAllItemButtons()
     end
 end
 
---- Walk visible entries' FontStrings and return the widest unwrapped string width
---- (in scaled pixels). Used by the dynamic-width "shrink to fit content" mode so the
---- panel can resize itself based on content. Uses GetUnboundedStringWidth where
---- available so the result doesn't depend on the current frame width (and therefore
---- doesn't loop with width application).
+-- Walk visible entries' FontStrings and return the widest unwrapped string width
+-- (in scaled pixels). Used by the dynamic-width "shrink to fit content" mode so the
+-- panel can resize itself based on content. Uses GetUnboundedStringWidth where
+-- available so the result doesn't depend on the current frame width (and therefore
+-- doesn't loop with width application).
 local function MeasureDynamicContentWidth()
     local maxW = 0
     local function meas(fs)
@@ -1569,8 +1569,8 @@ local function FullLayout()
     end
 end
 
---- Lightweight color refresh: updates main header title, section headers, entry colors, and dividers without FullLayout.
---- Used during live color picker drag and when class-colour toggles change.
+-- Lightweight color refresh: updates main header title, section headers, entry colors, and dividers without FullLayout.
+-- Used during live color picker drag and when class-colour toggles change.
 function addon.ApplyFocusColors()
     if not addon.focus or not addon.focus.enabled then return end
     local function ApplyTextureColorKeepAlpha(tex, color)

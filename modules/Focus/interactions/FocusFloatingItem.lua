@@ -167,7 +167,7 @@ keybindLabel:SetShadowOffset(1, -1)
 keybindLabel:SetShadowColor(0, 0, 0, 1)
 floatingQuestItemBtn.keybindLabel = keybindLabel
 
---- Refresh the keybind label text. Hides if no key is bound.
+-- Refresh the keybind label text. Hides if no key is bound.
 local function UpdateKeybindLabel()
     if not GetBindingKey then
         keybindLabel:Hide()

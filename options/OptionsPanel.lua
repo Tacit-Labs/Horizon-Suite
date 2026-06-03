@@ -1248,7 +1248,7 @@ local function FinalizeCard(card)
     end)
 end
 
---- Build one options category: section cards, toggles, sliders, dropdowns, color matrix, reorder list; wires get/set and refreshers.
+-- Build one options category: section cards, toggles, sliders, dropdowns, color matrix, reorder list; wires get/set and refreshers.
 -- @param tab table Tab frame with topAnchor
 -- @param tabIndex number Category index (1-based)
 -- @param options table Array of option descriptors (type, name, dbKey, get, set, etc.)

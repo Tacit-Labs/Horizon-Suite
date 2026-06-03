@@ -113,17 +113,17 @@ local UpdateEntry
 
 local function IsReady() return framesCreated end
 
---- Returns true once InitFrames has run. External callers (events, slash) can
---- check this instead of knowing the internal framesCreated flag.
+-- Returns true once InitFrames has run. External callers (events, slash) can
+-- check this instead of knowing the internal framesCreated flag.
 Augment.IsReady = IsReady
 
 -- ============================================================================
 -- POSITION
 -- ============================================================================
 
---- Apply stored anchor position to a frame. Safe to call before InitFrames
---- (used by external callers); no-ops on nil.
---- @param frame table Frame to position
+-- Apply stored anchor position to a frame. Safe to call before InitFrames
+-- (used by external callers); no-ops on nil.
+-- @param frame table Frame to position
 function Augment.ApplyStoredAnchor(frame)
     if not frame then return end
     local point, relPoint, x, yPos = Augment.GetPosition()
@@ -1050,8 +1050,8 @@ function Augment.ApplyAugmentOptions()
     if Augment.SelfHighlight then Augment.SelfHighlight.Evaluate() end
 end
 
---- Re-apply scale and font to all pool entries and overlay labels.
---- Called when UI scale or augmentFontPath changes.
+-- Re-apply scale and font to all pool entries and overlay labels.
+-- Called when UI scale or augmentFontPath changes.
 function Augment.ApplyScale()
     if Augment.InvalidateCoinTextures then Augment.InvalidateCoinTextures() end
     if not IsReady() then return end

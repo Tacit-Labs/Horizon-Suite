@@ -13,7 +13,7 @@ addon.modules = {}
 -- Localisation: L[key] returns translated string or key as fallback. locales/LocaleCore.lua then enUS.lua; locale files (frFR, etc.) wrap with fallback to English.
 addon.L = setmetatable({}, { __index = function(t, k) return k end })
 
---- Register a module. Called by module files at load time.
+-- Register a module. Called by module files at load time.
 -- @param key string Module identifier (e.g. "focus")
 -- @param def table { title, description, order, OnInit, OnEnable, OnDisable }
 function addon:RegisterModule(key, def)
@@ -32,18 +32,18 @@ function addon:RegisterModule(key, def)
     }
 end
 
---- Check if a module is enabled (runtime state).
+-- Check if a module is enabled (runtime state).
 function addon:IsModuleEnabled(key)
     local m = self.modules[key]
     return m and m.enabled
 end
 
---- Get module definition by key.
+-- Get module definition by key.
 function addon:GetModule(key)
     return self.modules[key]
 end
 
---- Iterate over all registered modules (for options, etc.).
+-- Iterate over all registered modules (for options, etc.).
 function addon:IterateModules()
     local keys = {}
     for k in pairs(self.modules) do keys[#keys + 1] = k end
@@ -61,16 +61,16 @@ function addon:IterateModules()
     end
 end
 
---- Call callback for each enabled module.
+-- Call callback for each enabled module.
 function addon:ForEachEnabledModule(cb)
     for key, m in pairs(self.modules) do
         if m.enabled and cb then cb(key, m) end
     end
 end
 
---- Persist a module's enabled state into the active profile so it follows the
---- profile across switches / exports. Always assigns a fresh inner table to
---- sever any shared refs from CreateProfile's shallow copy of the parent table.
+-- Persist a module's enabled state into the active profile so it follows the
+-- profile across switches / exports. Always assigns a fresh inner table to
+-- sever any shared refs from CreateProfile's shallow copy of the parent table.
 local function writeModuleEnabledToActiveProfile(key, enabled)
     if type(key) ~= "string" or key == "" then return end
     if not addon.GetActiveProfile then return end
@@ -80,7 +80,7 @@ local function writeModuleEnabledToActiveProfile(key, enabled)
     profile.modules[key] = { enabled = enabled and true or false }
 end
 
---- Enable a module. Loads DB, calls OnInit once, then OnEnable.
+-- Enable a module. Loads DB, calls OnInit once, then OnEnable.
 function addon:EnableModule(key)
     local m = self.modules[key]
     if not m or m.enabled then return end
@@ -98,7 +98,7 @@ function addon:EnableModule(key)
     m.enabled = true
 end
 
---- Disable a module. Calls OnDisable, updates DB.
+-- Disable a module. Calls OnDisable, updates DB.
 function addon:DisableModule(key)
     local m = self.modules[key]
     if not m or not m.enabled then return end
@@ -111,10 +111,10 @@ function addon:DisableModule(key)
     writeModuleEnabledToActiveProfile(key, false)
 end
 
---- Set module enabled state (convenience for toggles).
---- @param key string Module key
---- @param enabled boolean
---- @param opts table|nil Optional; opts.deferReload skips ReloadUI until the user reloads (e.g. dashboard module toggles).
+-- Set module enabled state (convenience for toggles).
+-- @param key string Module key
+-- @param enabled boolean
+-- @param opts table|nil Optional; opts.deferReload skips ReloadUI until the user reloads (e.g. dashboard module toggles).
 function addon:SetModuleEnabled(key, enabled, opts)
     if enabled then self:EnableModule(key) else self:DisableModule(key) end
     -- Set before Dashboard_Refresh: relayout reads _moduleReloadRecommended in visibleWhen for the reload prompt.
@@ -130,7 +130,7 @@ function addon:SetModuleEnabled(key, enabled, opts)
     ReloadUI()
 end
 
---- Ensure modules table exists and migrate legacy installs (no modules table = all defaults).
+-- Ensure modules table exists and migrate legacy installs (no modules table = all defaults).
 function addon:EnsureModulesDB()
     local db = _G[self.DATABASE]
     if not db then db = {}; _G[self.DATABASE] = db end
