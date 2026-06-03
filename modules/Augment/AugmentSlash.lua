@@ -55,7 +55,7 @@ local function MakeToast(tpl)
             local label = (addon.L and addon.L["AUGMENT_JUNK_LABEL"]) or "Junk"
             d.text = before and (d.count .. " x " .. label) or (label .. " x " .. d.count)
         else
-            d.text = before and (d.count .. " x " .. d.text) or (d.text .. " x " .. d.count)
+            d.text = before and (d.count .. " x " .. d.text) or (d.text .. " x" .. d.count)
         end
     end
     return d
