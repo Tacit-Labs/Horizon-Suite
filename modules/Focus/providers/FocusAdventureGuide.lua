@@ -7,9 +7,9 @@ local addon = _G.HorizonSuite
 
 local DEFAULT_ADVENTURE_COLOR = { 0.85, 0.70, 0.30 }  -- warm gold
 
---- Get display info for a Traveler's Log activity.
---- @param activityID number
---- @return string name, table objectives, boolean isComplete
+-- Get display info for a Traveler's Log activity.
+-- @param activityID number
+-- @return string name, table objectives, boolean isComplete
 local function GetActivityDisplayInfo(activityID)
     local name = "Activity " .. tostring(activityID)
     local objectives = {}
@@ -41,8 +41,8 @@ local function GetActivityDisplayInfo(activityID)
     return name, objectives, isComplete
 end
 
---- Build tracker rows from Traveler's Log tracked activities.
---- @return table Array of normalized entry tables
+-- Build tracker rows from Traveler's Log tracked activities.
+-- @return table Array of normalized entry tables
 local function ReadTrackedAdventureGuide()
     local out = {}
     if not addon.GetDB("showAdventureGuide", true) then return out end

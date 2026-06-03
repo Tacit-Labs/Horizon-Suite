@@ -34,7 +34,7 @@ end
 -- WORLD QUEST AND QUESTS-ON-MAP LOGIC
 -- ============================================================================
 
---- True when a task/world quest is genuinely active on the server right now.
+-- True when a task/world quest is genuinely active on the server right now.
 -- Checks C_TaskQuest.IsActive, time remaining, and completed flag.
 -- @param questID number
 -- @return boolean
@@ -55,7 +55,7 @@ local function IsTaskQuestCurrentlyActive(questID)
     return true
 end
 
---- True when a task/world quest belongs to one of the maps we are checking.
+-- True when a task/world quest belongs to one of the maps we are checking.
 -- Uses C_TaskQuest.GetQuestZoneID and walks up the parent chain so sub-zone
 -- quests on the player's zone are correctly included.
 -- @param questID number
@@ -79,7 +79,7 @@ local function IsTaskQuestOnPlayerMaps(questID, mapIDSet)
     return false
 end
 
---- Build sets of quest IDs visible on the player's current map(s) and from task/WQ APIs.
+-- Build sets of quest IDs visible on the player's current map(s) and from task/WQ APIs.
 -- Fast path reuses the cached sets when the player's zoneMapID matches the one the cache
 -- was built for and no hard-dirty event fired. Hard-dirty events (TASK_PROGRESS_UPDATE,
 -- AREA_POIS_UPDATED, WQ accept/remove, SCENARIO_BONUS_VISIBILITY_UPDATE) set
@@ -299,7 +299,7 @@ local function GetNearbyQuestIDs()
     return nearbySet, taskQuestOnlySet
 end
 
---- True if player is within the quest's active area (can progress it).
+-- True if player is within the quest's active area (can progress it).
 -- For world/task quests, entering the area adds the quest to the quest log.
 -- C_QuestLog.IsOnQuest is the authoritative check.
 -- Falls back to C_QuestLog.GetLogIndexForQuestID if IsOnQuest is unavailable.
@@ -496,7 +496,7 @@ local function GetWorldAndCallingQuestIDsToShow(nearbySet, taskQuestOnlySet)
     return out
 end
 
---- Provider: returns world quests and callings from GetWorldAndCallingQuestIDsToShow in aggregator format.
+-- Provider: returns world quests and callings from GetWorldAndCallingQuestIDsToShow in aggregator format.
 -- Blacklist and zone filtering are applied by the aggregator.
 local function CollectWorldQuests(ctx)
     local nearbySet = ctx.nearbySet or {}

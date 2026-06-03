@@ -8,9 +8,9 @@ local L = addon.L
 local sectionPool = addon.sectionPool
 local scrollFrame = addon.scrollFrame
 
---- Hides all section headers. When excludeGroupKeys is set, headers with those groupKeys are
---- left visible to fade out (used for WQ toggle when a category disappears).
---- @param excludeGroupKeys table|nil Optional { [groupKey]=true } for headers to exclude (fade-out instead)
+-- Hides all section headers. When excludeGroupKeys is set, headers with those groupKeys are
+-- left visible to fade out (used for WQ toggle when a category disappears).
+-- @param excludeGroupKeys table|nil Optional { [groupKey]=true } for headers to exclude (fade-out instead)
 local function HideAllSectionHeaders(excludeGroupKeys)
     for i = 1, addon.SECTION_POOL_SIZE do
         local s = sectionPool[i]

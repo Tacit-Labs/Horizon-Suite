@@ -24,24 +24,24 @@ end
 -- DB AND DIMENSION HELPERS (depend on Config constants)
 -- ==========================================================================
 
---- Returns the global UI scale factor from DB (default 1, range 0.5â€“2).
---- All visual sizes should be multiplied by this value at render time.
---- @return number
+-- Returns the global UI scale factor from DB (default 1, range 0.5â€“2).
+-- All visual sizes should be multiplied by this value at render time.
+-- @return number
 function addon.GetUIScale()
     local v = tonumber(addon.GetDB and addon.GetDB("globalUIScale", 1) or 1) or 1
     return math.max(0.5, math.min(2, v))
 end
 
---- Returns true when per-module scaling is enabled (overrides global scale).
---- @return boolean
+-- Returns true when per-module scaling is enabled (overrides global scale).
+-- @return boolean
 function addon.IsPerModuleScaling()
     return addon.GetDB and addon.GetDB("perModuleScaling", false) or false
 end
 
---- Returns the scale factor for a specific module.
---- When per-module scaling is on, reads the module-specific key; otherwise returns global scale.
---- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"augment"
---- @return number
+-- Returns the scale factor for a specific module.
+-- When per-module scaling is on, reads the module-specific key; otherwise returns global scale.
+-- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"augment"
+-- @return number
 function addon.GetModuleScale(moduleName)
     if addon.IsPerModuleScaling() then
         local key = moduleName .. "UIScale"
@@ -51,31 +51,31 @@ function addon.GetModuleScale(moduleName)
     return addon.GetUIScale()
 end
 
---- Scale a value by the global UI scale factor.
---- @param value number The base value (user-configured or constant).
---- @return number
+-- Scale a value by the global UI scale factor.
+-- @param value number The base value (user-configured or constant).
+-- @return number
 function addon.Scaled(value)
     if not value then return 0 end
     return value * addon.GetModuleScale("focus")
 end
 
---- Scale a value by a specific module's scale factor.
---- @param value number
---- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"augment"
---- @return number
+-- Scale a value by a specific module's scale factor.
+-- @param value number
+-- @param moduleName string  "focus"|"presence"|"vista"|"insight"|"augment"
+-- @return number
 function addon.ScaledForModule(value, moduleName)
     if not value then return 0 end
     return value * addon.GetModuleScale(moduleName)
 end
 
---- Scale and floor a value (pixel-snapping for frame sizes).
---- @param value number
---- @return number
+-- Scale and floor a value (pixel-snapping for frame sizes).
+-- @param value number
+-- @return number
 function addon.ScaledFloor(value)
     return math.floor(addon.Scaled(value))
 end
 
---- Frequently-used scaled constants (convenience wrappers).
+-- Frequently-used scaled constants (convenience wrappers).
 function addon.GetScaledPadding()       return addon.Scaled(addon.PADDING) end
 function addon.GetScaledDividerHeight() return addon.Scaled(addon.DIVIDER_HEIGHT) end
 function addon.GetScaledMinHeight()     return addon.Scaled(addon.MIN_HEIGHT) end
@@ -87,8 +87,8 @@ function addon.GetScaledBarLeftOffset() return addon.Scaled(addon.BAR_LEFT_OFFSE
 function addon.GetScaledScrollStep()    return addon.Scaled(addon.SCROLL_STEP) end
 
 
---- Returns the active spacing mode: "default"|"compact"|"spaced"|"custom". Handles legacy bool values.
---- @return string
+-- Returns the active spacing mode: "default"|"compact"|"spaced"|"custom". Handles legacy bool values.
+-- @return string
 function addon.GetSpacingMode()
     local mode = addon.GetDB("compactMode", "default")
     if mode == true then return "compact" end
@@ -113,8 +113,8 @@ function addon.GetObjSpacing()
     return addon.Scaled(math.max(0, math.min(8, v)))
 end
 
---- Returns the vertical gap between quest title and the content below (zone, objectives, etc.).
---- @return number Scaled pixels
+-- Returns the vertical gap between quest title and the content below (zone, objectives, etc.).
+-- @return number Scaled pixels
 function addon.GetTitleToContentSpacing()
     local mode = addon.GetSpacingMode()
     if mode ~= "custom" and addon.SPACING_PRESETS and addon.SPACING_PRESETS[mode] then
@@ -133,21 +133,21 @@ function addon.GetSectionSpacing()
     return addon.Scaled(math.max(0, math.min(24, v)))
 end
 
---- Returns the color multiplier for non-focused entries (0â€“1 range). Default 0.60 (40% dim).
+-- Returns the color multiplier for non-focused entries (0â€“1 range). Default 0.60 (40% dim).
 function addon.GetDimFactor()
     local strength = tonumber(addon.GetDB("dimStrength", 40)) or 40
     return 1 - math.max(0, math.min(100, strength)) / 100
 end
 
---- Returns the alpha for non-focused entries (0â€“1 range). Default 1.0 (no alpha change).
+-- Returns the alpha for non-focused entries (0â€“1 range). Default 1.0 (no alpha change).
 function addon.GetDimAlpha()
     local v = tonumber(addon.GetDB("dimAlpha", 100)) or 100
     return math.max(0, math.min(100, v)) / 100
 end
 
---- True when "dim unfocused" should apply to this tracker row (quest with questID, not super-tracked).
---- @param row table|nil Must have isSuperTracked and questID (e.g. questData or pool entry)
---- @return boolean
+-- True when "dim unfocused" should apply to this tracker row (quest with questID, not super-tracked).
+-- @param row table|nil Must have isSuperTracked and questID (e.g. questData or pool entry)
+-- @return boolean
 function addon.ShouldApplySuperTrackQuestDim(row)
     if not row or type(row) ~= "table" then return false end
     if not addon.GetDB("dimNonSuperTracked", false) or row.isSuperTracked then return false end
@@ -155,11 +155,11 @@ function addon.ShouldApplySuperTrackQuestDim(row)
     return type(qid) == "number" and qid > 0
 end
 
---- True when a section header should use super-track dim (alpha/RGB) for the non-focused-group case.
---- Non-quest sections (achievements, rares, …) never dim.
---- @param groupKey string|nil
---- @param focusedGroupKey string|nil Group containing the super-tracked quest, if any
---- @return boolean
+-- True when a section header should use super-track dim (alpha/RGB) for the non-focused-group case.
+-- Non-quest sections (achievements, rares, …) never dim.
+-- @param groupKey string|nil
+-- @param focusedGroupKey string|nil Group containing the super-tracked quest, if any
+-- @return boolean
 function addon.ShouldDimSectionHeaderForSuperTrack(groupKey, focusedGroupKey)
     if not addon.GetDB("dimNonSuperTracked", false) then return false end
     local skip = addon.NON_QUEST_SUPERTRACK_DIM_SECTION_KEYS
@@ -167,9 +167,9 @@ function addon.ShouldDimSectionHeaderForSuperTrack(groupKey, focusedGroupKey)
     return not focusedGroupKey or groupKey ~= focusedGroupKey
 end
 
---- Applies dimming (color multiply) and optional desaturation to a color table.
---- @param color table {r,g,b} input color
---- @return table {r,g,b} dimmed color
+-- Applies dimming (color multiply) and optional desaturation to a color table.
+-- @param color table {r,g,b} input color
+-- @return table {r,g,b} dimmed color
 function addon.ApplyDimColor(color)
     if not color or not color[1] then return color end
     local factor = addon.GetDimFactor()
@@ -184,17 +184,17 @@ function addon.ApplyDimColor(color)
     return { r, g, b }
 end
 
---- Applies dim strength, optional desaturation, and dim alpha to tracker text when "dim unfocused" is enabled.
---- Use for timer lines and any text that should match title/objective dimming.
---- @param r number
---- @param g number
---- @param b number
---- @param isSuperTracked boolean|nil When true, returns original rgb and alpha 1 (ignored if questContext is set).
---- @param questContext table|nil When set (questData or entry), only quest rows with questID are dimmed; when nil, legacy: any non-super-tracked row.
---- @return number r
---- @return number g
---- @return number b
---- @return number textAlpha multiplier 0-1 (GetDimAlpha when dimmed)
+-- Applies dim strength, optional desaturation, and dim alpha to tracker text when "dim unfocused" is enabled.
+-- Use for timer lines and any text that should match title/objective dimming.
+-- @param r number
+-- @param g number
+-- @param b number
+-- @param isSuperTracked boolean|nil When true, returns original rgb and alpha 1 (ignored if questContext is set).
+-- @param questContext table|nil When set (questData or entry), only quest rows with questID are dimmed; when nil, legacy: any non-super-tracked row.
+-- @return number r
+-- @return number g
+-- @return number b
+-- @return number textAlpha multiplier 0-1 (GetDimAlpha when dimmed)
 function addon.GetDimmedTrackerTextColor(r, g, b, isSuperTracked, questContext)
     local dim
     if questContext ~= nil then
@@ -209,11 +209,11 @@ function addon.GetDimmedTrackerTextColor(r, g, b, isSuperTracked, questContext)
     return r, g, b, 1
 end
 
---- Dims a tracker icon texture to match dim strength, dim alpha, and optional desaturate when "dim unfocused" is on.
---- @param tex Texture|nil Region with SetVertexColor (and optionally SetDesaturated)
---- @param isSuperTracked boolean|nil When true, resets vertex to white and clears desaturation (legacy path only).
---- @param questContext table|nil When set, only quest rows dim; when nil, legacy uses isSuperTracked only.
---- @return nil
+-- Dims a tracker icon texture to match dim strength, dim alpha, and optional desaturate when "dim unfocused" is on.
+-- @param tex Texture|nil Region with SetVertexColor (and optionally SetDesaturated)
+-- @param isSuperTracked boolean|nil When true, resets vertex to white and clears desaturation (legacy path only).
+-- @param questContext table|nil When set, only quest rows dim; when nil, legacy uses isSuperTracked only.
+-- @return nil
 function addon.ApplyDimToTrackerIconTexture(tex, isSuperTracked, questContext)
     if not tex or not tex.SetVertexColor then return end
     local shouldDim
@@ -237,11 +237,11 @@ function addon.ApplyDimToTrackerIconTexture(tex, isSuperTracked, questContext)
     end
 end
 
---- Applies dim (or reset) to quest type, item, LFG, and AH icon textures on a tracker entry.
---- @param entry Frame Pool entry with optional questTypeIcon, itemBtn.icon, lfgBtn.icon, ahBtn.icon
---- @param isSuperTracked boolean|nil When nil, uses entry.isSuperTracked (legacy only when questContext nil).
---- @param questContext table|nil When nil, uses entry for quest-only dim; pass questData during PopulateEntry if entry fields not set yet.
---- @return nil
+-- Applies dim (or reset) to quest type, item, LFG, and AH icon textures on a tracker entry.
+-- @param entry Frame Pool entry with optional questTypeIcon, itemBtn.icon, lfgBtn.icon, ahBtn.icon
+-- @param isSuperTracked boolean|nil When nil, uses entry.isSuperTracked (legacy only when questContext nil).
+-- @param questContext table|nil When nil, uses entry for quest-only dim; pass questData during PopulateEntry if entry fields not set yet.
+-- @return nil
 function addon.ApplyDimToTrackerEntryIcons(entry, isSuperTracked, questContext)
     if not entry then return end
     local st = isSuperTracked
@@ -276,8 +276,8 @@ function addon.GetSectionToEntryGap()
     return addon.Scaled(math.max(0, math.min(16, v)))
 end
 
---- Returns section header frame height from section font size so text is not clipped.
---- @return number
+-- Returns section header frame height from section font size so text is not clipped.
+-- @return number
 function addon.GetSectionHeaderHeight()
     local sz = math.max(8, (tonumber(addon.GetDB("sectionFontSize", 10)) or 10) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
     return addon.Scaled(math.max(addon.SECTION_SIZE + 4, sz + 6))
@@ -314,9 +314,9 @@ function addon.GetStaticPanelHeight()
     return addon.Scaled(v)
 end
 
---- Returns the header text color from DB or default.
---- When Focus class colour is enabled, RGB uses the player class colour.
---- @return table {r,g,b}
+-- Returns the header text color from DB or default.
+-- When Focus class colour is enabled, RGB uses the player class colour.
+-- @return table {r,g,b}
 function addon.GetHeaderColor()
     local c = addon.GetDB("headerColor", nil)
     local r, g, b
@@ -332,9 +332,9 @@ function addon.GetHeaderColor()
     return { r, g, b }
 end
 
---- Returns section divider colour between Focus groups; alpha follows DB/default.
---- When Focus class colour is enabled, RGB uses the player class colour.
---- @return table {r,g,b,a}
+-- Returns section divider colour between Focus groups; alpha follows DB/default.
+-- When Focus class colour is enabled, RGB uses the player class colour.
+-- @return table {r,g,b,a}
 function addon.GetSectionDividerColor()
     local c = addon.GetDB("sectionDividerColor", nil)
     local r, g, b, a
@@ -351,9 +351,9 @@ function addon.GetSectionDividerColor()
     return { r, g, b, a }
 end
 
---- Returns the header divider color from DB or default.
---- When Focus class colour is enabled, RGB is tinted to the player class colour; alpha follows DB/default.
---- @return table {r,g,b,a}
+-- Returns the header divider color from DB or default.
+-- When Focus class colour is enabled, RGB is tinted to the player class colour; alpha follows DB/default.
+-- @return table {r,g,b,a}
 function addon.GetHeaderDividerColor()
     local c = addon.GetDB("headerDividerColor", nil)
     local r, g, b, a
@@ -374,8 +374,8 @@ end
 local HEADER_CHROME_DEFAULT = { 0.60, 0.65, 0.75 }
 local HEADER_CHROME_HOVER_BUMP = 0.25
 
---- RGB for Focus header chrome: quest count, chevron, and options label. Uses class colour when Focus tint is on.
---- @return table {r,g,b}
+-- RGB for Focus header chrome: quest count, chevron, and options label. Uses class colour when Focus tint is on.
+-- @return table {r,g,b}
 function addon.GetHeaderChromeColor()
     local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
     if cc then
@@ -384,8 +384,8 @@ function addon.GetHeaderChromeColor()
     return { HEADER_CHROME_DEFAULT[1], HEADER_CHROME_DEFAULT[2], HEADER_CHROME_DEFAULT[3] }
 end
 
---- Brighter chrome for the options button while hovered.
---- @return table {r,g,b}
+-- Brighter chrome for the options button while hovered.
+-- @return table {r,g,b}
 function addon.GetHeaderChromeHoverColor()
     local c = addon.GetHeaderChromeColor()
     return {
@@ -395,8 +395,8 @@ function addon.GetHeaderChromeHoverColor()
     }
 end
 
---- Apply base (non-hover) colours to quest count, chevron, and options label.
---- @return nil
+-- Apply base (non-hover) colours to quest count, chevron, and options label.
+-- @return nil
 function addon.ApplyHeaderChromeColors()
     if not addon.GetHeaderChromeColor then return end
     local c = addon.GetHeaderChromeColor()
@@ -411,8 +411,8 @@ function addon.ApplyHeaderChromeColors()
     end
 end
 
---- Refresh all UI that depends on per-module class colour toggles (batch Axis toggle).
---- @return nil
+-- Refresh all UI that depends on per-module class colour toggles (batch Axis toggle).
+-- @return nil
 function addon.ApplyAllClassColorConsumers()
     if addon.ApplyOptionsClassColor then addon.ApplyOptionsClassColor() end
     if addon.ApplyDashboardClassColor then addon.ApplyDashboardClassColor() end
@@ -427,10 +427,10 @@ function addon.ApplyAllClassColorConsumers()
     if addon.Augment and addon.Augment.ApplyAugmentOptions then addon.Augment.ApplyAugmentOptions() end
 end
 
---- Sync db.modules[key].enabled from the active profile's modules map so the
---- next ReloadUI starts with the new profile's module on/off state. Enable /
---- teardown of modules in-memory requires a reload (OnInit/OnDisable are not
---- idempotent across the full stack), so the reload prompt handles that step.
+-- Sync db.modules[key].enabled from the active profile's modules map so the
+-- next ReloadUI starts with the new profile's module on/off state. Enable /
+-- teardown of modules in-memory requires a reload (OnInit/OnDisable are not
+-- idempotent across the full stack), so the reload prompt handles that step.
 local function SyncModulesFromActiveProfile()
     if not addon.GetActiveProfile then return end
     local profile = addon.GetActiveProfile()
@@ -459,32 +459,32 @@ local function SyncModulesFromActiveProfile()
     end
 end
 
---- Called after any change to the effective active profile key (dropdown,
---- global / per-spec toggle, create, copy, delete, import, spec change).
---- Syncs db.modules from the new profile so SavedVariables records the
---- correct module layout, then issues a ReloadUI so every module, cached
---- frame, and OnInit path comes up against the new profile — identical to
---- the Module Toggles reload flow and avoids the prior "swap requires
---- extra clicks / reload prompt" workaround.
---- @return nil
+-- Called after any change to the effective active profile key (dropdown,
+-- global / per-spec toggle, create, copy, delete, import, spec change).
+-- Syncs db.modules from the new profile so SavedVariables records the
+-- correct module layout, then issues a ReloadUI so every module, cached
+-- frame, and OnInit path comes up against the new profile — identical to
+-- the Module Toggles reload flow and avoids the prior "swap requires
+-- extra clicks / reload prompt" workaround.
+-- @return nil
 function addon.OnActiveProfileChanged()
     SyncModulesFromActiveProfile()
     ReloadUI()
 end
 
---- Deferred variant of OnActiveProfileChanged: syncs modules to the new profile,
---- flags a pending reload so the options panel surfaces a "Reload UI" prompt,
---- and relayouts the dashboard so the prompt appears live. The actual ReloadUI
---- is user-triggered via that prompt (same pattern as module toggles).
---- @return nil
+-- Deferred variant of OnActiveProfileChanged: syncs modules to the new profile,
+-- flags a pending reload so the options panel surfaces a "Reload UI" prompt,
+-- and relayouts the dashboard so the prompt appears live. The actual ReloadUI
+-- is user-triggered via that prompt (same pattern as module toggles).
+-- @return nil
 function addon.OnActiveProfileChangedDeferred()
     SyncModulesFromActiveProfile()
     addon._moduleReloadRecommended = true
     if addon.Dashboard_Refresh then addon.Dashboard_Refresh() end
 end
 
---- Returns the header bar height from DB or default, clamped to 18â€“48 px.
---- @return number
+-- Returns the header bar height from DB or default, clamped to 18â€“48 px.
+-- @return number
 function addon.GetHeaderHeight()
     local v = tonumber(addon.GetDB("headerHeight", addon.HEADER_HEIGHT)) or addon.HEADER_HEIGHT
     local fontSz = math.max(8, (tonumber(addon.GetDB("headerFontSize", 16)) or 16) + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
@@ -492,8 +492,8 @@ function addon.GetHeaderHeight()
     return addon.Scaled(math.max(18, minForFont, math.min(48, v)))
 end
 
---- Returns boss emote colour from DB or default (Presence module).
---- @return table {r,g,b}
+-- Returns boss emote colour from DB or default (Presence module).
+-- @return table {r,g,b}
 function addon.GetPresenceBossEmoteColor()
     local c = addon.GetDB("presenceBossEmoteColor", nil)
     if c and type(c) == "table" and c[1] and c[2] and c[3] then
@@ -502,8 +502,8 @@ function addon.GetPresenceBossEmoteColor()
     return addon.PRESENCE_BOSS_EMOTE_COLOR or { 1, 0.2, 0.2 }
 end
 
---- Returns discovery line colour from DB or default (Presence module).
---- @return table {r,g,b}
+-- Returns discovery line colour from DB or default (Presence module).
+-- @return table {r,g,b}
 function addon.GetPresenceDiscoveryColor()
     local c = addon.GetDB("presenceDiscoveryColor", nil)
     if c and type(c) == "table" and c[1] and c[2] and c[3] then
@@ -1146,8 +1146,8 @@ function addon.SetDB(key, value)
     profile[key] = value
 end
 
---- Resolves combat visibility mode, migrating from legacy hideInCombat if needed.
---- @return string "show" | "fade" | "hide"
+-- Resolves combat visibility mode, migrating from legacy hideInCombat if needed.
+-- @return string "show" | "fade" | "hide"
 function addon.GetCombatVisibility()
     local v = addon.GetDB("combatVisibility", nil)
     if v == "show" or v == "fade" or v == "hide" then return v end
@@ -1160,14 +1160,14 @@ function addon.ShouldHideInCombat()
     return (addon.GetCombatVisibility() == "hide") and UnitAffectingCombat("player")
 end
 
---- Whether combat fade mode is currently active.
---- @return boolean
+-- Whether combat fade mode is currently active.
+-- @return boolean
 function addon.ShouldFadeInCombat()
     return (addon.GetCombatVisibility() == "fade") and UnitAffectingCombat("player")
 end
 
---- Combat fade opacity (0..1) used for combat visibility Fade mode.
---- @return number
+-- Combat fade opacity (0..1) used for combat visibility Fade mode.
+-- @return number
 function addon.GetCombatFadeAlpha()
     local pct = tonumber(addon.GetDB("combatFadeOpacity", 30)) or 30
     return math.max(0, math.min(100, pct)) / 100
@@ -1508,16 +1508,16 @@ local function UpdateScrollArrowPositions()
     end
 end
 
---- Compute fade alpha for an entry based on how close it is to being clipped
---- at a viewport edge. Only fades toward edges where there IS more content.
----
---- Coordinate system: Y=0 at scrollChild top, negative downward.
----   entryTop (finalY) is e.g. -50 for an entry 50px below the top.
----   viewTop = -scrollOffset (0 when not scrolled, more negative as you scroll down)
----   viewBottom = -(scrollOffset + frameHeight)
----
---- "About to scroll off the top" means entryTop is approaching viewTop from below.
---- "About to scroll off the bottom" means entryBottom is approaching viewBottom from above.
+-- Compute fade alpha for an entry based on how close it is to being clipped
+-- at a viewport edge. Only fades toward edges where there IS more content.
+--
+-- Coordinate system: Y=0 at scrollChild top, negative downward.
+--   entryTop (finalY) is e.g. -50 for an entry 50px below the top.
+--   viewTop = -scrollOffset (0 when not scrolled, more negative as you scroll down)
+--   viewBottom = -(scrollOffset + frameHeight)
+--
+-- "About to scroll off the top" means entryTop is approaching viewTop from below.
+-- "About to scroll off the bottom" means entryBottom is approaching viewBottom from above.
 local function ComputeEdgeFadeAlpha(entryTop, entryH, trailingSpace, leadingSpace, viewTop, viewBottom, fadeZone, fadeAtTop, fadeAtBottom)
     local entryBottom = entryTop - entryH
     local alpha = 1
@@ -1881,8 +1881,8 @@ local function ApplyGrowUpAnchor()
     addon.SetDB("y", y)
 end
 
---- Sets header position at given Y offset from HS bottom (for grow-up header slide animation).
---- offsetFromBottom: 0 = at bottom, larger = higher. Used when headerSlidingToBottom/ToTop.
+-- Sets header position at given Y offset from HS bottom (for grow-up header slide animation).
+-- offsetFromBottom: 0 = at bottom, larger = higher. Used when headerSlidingToBottom/ToTop.
 function addon.ApplyGrowUpHeaderPosition(offsetFromBottom)
     if InCombatLockdown() then return end
     local hb = addon.headerBtn
@@ -1926,9 +1926,9 @@ function addon.ApplyGrowUpHeaderPosition(offsetFromBottom)
     end
 end
 
---- Repositions header elements when growUp: header at bottom (always) or at top until collapsed (collapse mode).
---- When growUp is false, restores default top-anchored layout.
---- Call from FullLayout after ApplyGrowUpAnchor.
+-- Repositions header elements when growUp: header at bottom (always) or at top until collapsed (collapse mode).
+-- When growUp is false, restores default top-anchored layout.
+-- Call from FullLayout after ApplyGrowUpAnchor.
 function addon.ApplyGrowUpLayout()
     if InCombatLockdown() then return end
     local collapse = addon.focus and addon.focus.collapse

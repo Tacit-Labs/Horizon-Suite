@@ -112,8 +112,8 @@ end
 -- Public functions
 -- ============================================================================
 
---- Build tracker rows from WoW tracked achievements.
---- @return table Array of normalized entry tables (see entry shape in FocusState.lua)
+-- Build tracker rows from WoW tracked achievements.
+-- @return table Array of normalized entry tables (see entry shape in FocusState.lua)
 local function ReadTrackedAchievements()
     local out = {}
     local idList = {}

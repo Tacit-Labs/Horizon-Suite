@@ -57,9 +57,9 @@ end
 -- Public functions
 -- ============================================================================
 
---- Suppress the default objective tracker and WQT panel when Focus is enabled.
---- Idempotent; creates ticker to re-hide WQT if it shows again.
---- When focusDevMode is on, skips hiding the Blizzard tracker so both can be compared.
+-- Suppress the default objective tracker and WQT panel when Focus is enabled.
+-- Idempotent; creates ticker to re-hide WQT if it shows again.
+-- When focusDevMode is on, skips hiding the Blizzard tracker so both can be compared.
 local function TrySuppressTracker()
     local devMode = addon.GetDB and addon.GetDB("focusDevMode", false)
     if devMode then
@@ -89,7 +89,7 @@ local function TrySuppressTracker()
     if addon.focus.enabled then EnsureWQTPanelOnShowHook() end
 end
 
---- Restore the default objective tracker and WQT panel when Focus is disabled.
+-- Restore the default objective tracker and WQT panel when Focus is disabled.
 local function RestoreTracker()
     -- WQT OnShow hook is left in place: HookScript can't be removed and it no-ops when disabled.
     if not trackerSuppressed then return end
@@ -122,8 +122,8 @@ end
 
 -- Sync WQT-tracked world quests with HorizonSuite.
 local wqtHooked = false
---- Hook WorldQuestTracker to sync its tracked quests with Focus and keep its panel hidden.
---- Called automatically after WQT loads; also exposed for manual re-hook if needed.
+-- Hook WorldQuestTracker to sync its tracked quests with Focus and keep its panel hidden.
+-- Called automatically after WQT loads; also exposed for manual re-hook if needed.
 local function HookWQTTracking()
     if wqtHooked then return end
     if not addon.focus.enabled then return end

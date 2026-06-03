@@ -27,7 +27,7 @@ local RARES_BY_MAP = {
     },
 }
 
---- Classifies a vignette atlas name as "rare", "treasure", or nil.
+-- Classifies a vignette atlas name as "rare", "treasure", or nil.
 local function ClassifyVignetteAtlas(atlasName)
     if not atlasName or atlasName == "" then return nil end
     local lower = atlasName:lower()
@@ -65,8 +65,8 @@ end
 
 addon.InvalidateRareScanCache = InvalidateScanCache
 
---- Resolve RARES_BY_MAP entries for mapID, walking the parent-map hierarchy.
---- Cached per-mapID; zone changes invalidate the cache.
+-- Resolve RARES_BY_MAP entries for mapID, walking the parent-map hierarchy.
+-- Cached per-mapID; zone changes invalidate the cache.
 local function ResolveMapRares(mapID)
     if not mapID then return nil, nil end
     if mapLookupMapID == mapID then
@@ -90,8 +90,8 @@ local function ResolveMapRares(mapID)
     return rares, mapLookupZoneName
 end
 
---- One vignette pass that populates both rare and treasure lists. Player mapID is resolved
---- once per build and shared across GetVignettePosition calls and the treasure zone lookup.
+-- One vignette pass that populates both rare and treasure lists. Player mapID is resolved
+-- once per build and shared across GetVignettePosition calls and the treasure zone lookup.
 local function BuildScan()
     local rareColor     = addon.GetQuestColor("RARE")
     local rareLootColor = (addon.GetQuestColor and addon.GetQuestColor("RARE_LOOT")) or addon.GetQuestColor("RARE")
@@ -257,9 +257,9 @@ end)
 -- RARE BOSS WAYPOINT
 -- ============================================================================
 
---- Set a waypoint for a rare boss entry. TomTom first, then native API.
---- Does NOT open the world map.
---- @param entry table The rare boss entry from the tracker
+-- Set a waypoint for a rare boss entry. TomTom first, then native API.
+-- Does NOT open the world map.
+-- @param entry table The rare boss entry from the tracker
 local function SetRareWaypoint(entry)
     if not entry then return end
 
@@ -313,9 +313,9 @@ addon.SetRareWaypoint = SetRareWaypoint
 
 local RARE_SOUND_RESTORE_DELAY = 0.5
 
---- Apply volume multiplier by temporarily boosting Master volume, then restore.
---- @param mult number Multiplier (e.g. 1.5 for 150%)
---- @param playFn function Callback to play the sound
+-- Apply volume multiplier by temporarily boosting Master volume, then restore.
+-- @param mult number Multiplier (e.g. 1.5 for 150%)
+-- @param playFn function Callback to play the sound
 local function PlayWithVolumeBoost(mult, playFn)
     if not (GetCVar and SetCVar) or mult <= 0 then
         playFn()
@@ -339,7 +339,7 @@ local function PlayWithVolumeBoost(mult, playFn)
     end
 end
 
---- Play the user-selected rare-added sound. Uses SharedMedia if a custom sound is chosen.
+-- Play the user-selected rare-added sound. Uses SharedMedia if a custom sound is chosen.
 function addon.PlayRareAddedSound()
     if not addon.GetDB("rareAddedSound", true) then return end
     local volPct = tonumber(addon.GetDB("rareAddedSoundVolume", 100)) or 100

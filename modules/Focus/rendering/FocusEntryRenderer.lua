@@ -8,12 +8,12 @@ local L = addon.L
 -- Middle dot between delve affix names; rendered in default game FontStrings (affixSepSegs), not the user title font.
 local DELVE_AFFIX_SEPARATOR_TEXT = "  ·  "
 
---- Apply font to a delve affix FontString with FRIZQT fallbacks if the path fails to load.
---- @param fs FontString|nil
---- @param path string|nil
---- @param size number
---- @param flags string|nil
---- @return boolean
+-- Apply font to a delve affix FontString with FRIZQT fallbacks if the path fails to load.
+-- @param fs FontString|nil
+-- @param path string|nil
+-- @param size number
+-- @param flags string|nil
+-- @return boolean
 local function SetDelveAffixFont(fs, path, size, flags)
     if not fs or not fs.SetFont then return false end
     if path and path ~= "" and fs:SetFont(path, size, flags) then return true end
@@ -22,9 +22,9 @@ local function SetDelveAffixFont(fs, path, size, flags)
     return fs:SetFont("Fonts\\FRIZQT__.TTF", size, flags)
 end
 
---- Hide and clear all delve affix name/separator segments.
---- @param entry Frame|nil
---- @return nil
+-- Hide and clear all delve affix name/separator segments.
+-- @param entry Frame|nil
+-- @return nil
 local function HideDelveAffixRow(entry)
     if not entry or not entry.affixNameSegs or not entry.affixSepSegs then return end
     entry._affixBlockHeight = nil
@@ -96,7 +96,7 @@ local function LayoutTitleCurrencyHitboxes(entry, currencies)
     end
 end
 
---- Returns true when Auctionator's v1 CreateShoppingList API is available.
+-- Returns true when Auctionator's v1 CreateShoppingList API is available.
 -- Result is cached after the first positive hit so we don't re-walk globals every render pass.
 local _auctionatorAvailable = nil
 local function IsAuctionatorAvailable()
@@ -107,7 +107,7 @@ local function IsAuctionatorAvailable()
     return ok and true or false
 end
 
---- Returns true when the Auction House frame is currently open.
+-- Returns true when the Auction House frame is currently open.
 local function IsAHOpen()
     return (AuctionHouseFrame and AuctionHouseFrame:IsShown())
         or (AuctionFrame and AuctionFrame:IsShown())
@@ -120,9 +120,9 @@ local AUCTIONATOR_CALLER_ID = "HorizonSuite"
 local AUCTIONATOR_TIER_MIN = 1
 local AUCTIONATOR_TIER_MAX = 5
 
---- Normalize a Blizzard crafting tier to values Auctionator accepts (1–5); otherwise nil.
---- @param n number|nil
---- @return number|nil
+-- Normalize a Blizzard crafting tier to values Auctionator accepts (1–5); otherwise nil.
+-- @param n number|nil
+-- @return number|nil
 local function NormalizeAuctionatorTier(n)
     if type(n) ~= "number" then return nil end
     local t = math.floor(n)
@@ -130,9 +130,9 @@ local function NormalizeAuctionatorTier(n)
     return nil
 end
 
---- Crafting tier for a reagent item (gem tiers, etc.) via C_TradeSkillUI.
---- @param itemID number
---- @return number|nil tier 1–5 or nil
+-- Crafting tier for a reagent item (gem tiers, etc.) via C_TradeSkillUI.
+-- @param itemID number
+-- @return number|nil tier 1–5 or nil
 local function ResolveReagentCraftingTier(itemID)
     if type(itemID) ~= "number" or itemID < 1 then return nil end
     if not (Item and Item.CreateFromItemID and C_TradeSkillUI and C_TradeSkillUI.GetItemReagentQualityByItemInfo) then
@@ -144,10 +144,10 @@ local function ResolveReagentCraftingTier(itemID)
     return NormalizeAuctionatorTier((ok and tier) or nil)
 end
 
---- Resolve recipe output item ID for Auctionator metadata (quality + crafted tier on title row).
---- @param recipeID number
---- @param isRecraft boolean
---- @return number|nil outputItemID
+-- Resolve recipe output item ID for Auctionator metadata (quality + crafted tier on title row).
+-- @param recipeID number
+-- @param isRecraft boolean
+-- @return number|nil outputItemID
 local function GetRecipeOutputItemIDForAuctionator(recipeID, isRecraft)
     if type(recipeID) ~= "number" or recipeID < 1 then return nil end
     if C_TradeSkillUI and C_TradeSkillUI.GetRecipeSchematic then
@@ -167,9 +167,9 @@ local function GetRecipeOutputItemIDForAuctionator(recipeID, isRecraft)
     return nil
 end
 
---- Item rarity (Enum.ItemQuality) and crafted output tier for an item ID.
---- @param itemID number
---- @return number|nil itemQuality, number|nil craftedTier
+-- Item rarity (Enum.ItemQuality) and crafted output tier for an item ID.
+-- @param itemID number
+-- @return number|nil itemQuality, number|nil craftedTier
 local function GetItemQualityAndCraftedTier(itemID)
     if type(itemID) ~= "number" or itemID < 1 then return nil, nil end
     local itemQuality
@@ -188,15 +188,15 @@ local function GetItemQualityAndCraftedTier(itemID)
     return itemQuality, craftedTier
 end
 
---- Encode one shopping-list line for CreateShoppingList: advanced search string with quantity when supported.
---- Falls back to plain name if ConvertToSearchString is missing or errors (older Auctionator).
---- @param searchString string Item name
---- @param quantity number Desired stack / buy count (at least 1)
---- @param itemQuality number|nil Optional Enum.ItemQuality for Auctionator filters
---- @param craftingTier number|nil Optional crafting tier 1–5 (reagent / output tier in Auctionator)
---- @param useItemQuality boolean|nil If false, omit term.quality
---- @param useCraftingTier boolean|nil If false, omit term.tier
---- @return string
+-- Encode one shopping-list line for CreateShoppingList: advanced search string with quantity when supported.
+-- Falls back to plain name if ConvertToSearchString is missing or errors (older Auctionator).
+-- @param searchString string Item name
+-- @param quantity number Desired stack / buy count (at least 1)
+-- @param itemQuality number|nil Optional Enum.ItemQuality for Auctionator filters
+-- @param craftingTier number|nil Optional crafting tier 1–5 (reagent / output tier in Auctionator)
+-- @param useItemQuality boolean|nil If false, omit term.quality
+-- @param useCraftingTier boolean|nil If false, omit term.tier
+-- @return string
 local function EncodeAuctionatorShoppingListItem(searchString, quantity, itemQuality, craftingTier, useItemQuality, useCraftingTier)
     if type(searchString) ~= "string" or searchString == "" then
         return searchString
@@ -241,9 +241,9 @@ end
 -- Max crafts for Auctionator shopping-list multiply (right-click AH button).
 addon.AH_AUCTIONATOR_CRAFT_COUNT_MAX = 999
 
---- Build base shopping rows for Auctionator (one craft): output line + reagents.
---- @param questData table Recipe entry from aggregator
---- @return table Array of { text, baseQty, itemQuality, craftingTier }
+-- Build base shopping rows for Auctionator (one craft): output line + reagents.
+-- @param questData table Recipe entry from aggregator
+-- @return table Array of { text, baseQty, itemQuality, craftingTier }
 local function BuildAuctionatorShoppingParts(questData)
     local parts, seen = {}, {}
 
@@ -289,13 +289,13 @@ local function BuildAuctionatorShoppingParts(questData)
     return parts
 end
 
---- Encode Auctionator shopping list strings from base parts and craft multiplier.
---- @param parts table
---- @param craftCount number
---- @param useItemQuality boolean|nil default true
---- @param useCraftingTier boolean|nil default true
---- @param forceCraftingTier number|nil When 1–5 and useCraftingTier, use this tier on every row instead of each part's craftingTier.
---- @return table
+-- Encode Auctionator shopping list strings from base parts and craft multiplier.
+-- @param parts table
+-- @param craftCount number
+-- @param useItemQuality boolean|nil default true
+-- @param useCraftingTier boolean|nil default true
+-- @param forceCraftingTier number|nil When 1–5 and useCraftingTier, use this tier on every row instead of each part's craftingTier.
+-- @return table
 local function EncodeAuctionatorTermsFromParts(parts, craftCount, useItemQuality, useCraftingTier, forceCraftingTier)
     local mult = craftCount
     if type(mult) ~= "number" or mult < 1 then mult = 1 end
@@ -320,12 +320,12 @@ local function EncodeAuctionatorTermsFromParts(parts, craftCount, useItemQuality
     return terms
 end
 
---- Send recipe reagents to Auctionator as a shopping list (quantities multiplied by craftCount).
---- Encodes item rarity (quality) and crafting tier (1–5) per row when opts allow and data exists.
---- @param entry table Pool entry with _ahShoppingParts and _ahRecipeName
---- @param craftCount number Per-craft quantities are multiplied by this (clamped to 1..AH_AUCTIONATOR_CRAFT_COUNT_MAX).
---- @param opts table|nil Optional: opts.useItemQuality, opts.useCraftingTier (default true each); opts.forceCraftingTier 1–5 overrides per-row tier when tier matching is on.
---- @return nil
+-- Send recipe reagents to Auctionator as a shopping list (quantities multiplied by craftCount).
+-- Encodes item rarity (quality) and crafting tier (1–5) per row when opts allow and data exists.
+-- @param entry table Pool entry with _ahShoppingParts and _ahRecipeName
+-- @param craftCount number Per-craft quantities are multiplied by this (clamped to 1..AH_AUCTIONATOR_CRAFT_COUNT_MAX).
+-- @param opts table|nil Optional: opts.useItemQuality, opts.useCraftingTier (default true each); opts.forceCraftingTier 1–5 overrides per-row tier when tier matching is on.
+-- @return nil
 function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount, opts)
     if not entry then return end
     local parts = entry._ahShoppingParts
@@ -361,21 +361,21 @@ function addon.RunAuctionatorRecipeSearchFromEntry(entry, craftCount, opts)
     end)
 end
 
---- True if text contains the localized "abundance held" phrase (case-insensitive). Used for Abundance scenario.
+-- True if text contains the localized "abundance held" phrase (case-insensitive). Used for Abundance scenario.
 local function isAbundanceHeld(text)
     if not text or type(text) ~= "string" then return false end
     local phrase = L["UI_ABUNDANCE_HELD"]
     return text:lower():find(phrase:lower(), 1, true) ~= nil
 end
 
---- True if text contains the localized "Abundance Bag" phrase (case-insensitive). Hide from inline; bar shows abundance held.
+-- True if text contains the localized "Abundance Bag" phrase (case-insensitive). Hide from inline; bar shows abundance held.
 local function isAbundanceBag(text)
     if not text or type(text) ~= "string" then return false end
     local phrase = L["UI_ABUNDANCE_BAG"]
     return text:lower():find(phrase:lower(), 1, true) ~= nil
 end
 
---- True if objective is intrinsically percent-based (text "X%", progressbar type, or weighted), not derived from X/Y.
+-- True if objective is intrinsically percent-based (text "X%", progressbar type, or weighted), not derived from X/Y.
 local function IsIntrinsicallyPercentBased(o)
     if not o then return false end
     local textPct = o.text and tonumber(o.text:match("(%d+)%%"))
@@ -383,7 +383,7 @@ local function IsIntrinsicallyPercentBased(o)
     return (textPct ~= nil) or isProgressBarType
 end
 
---- X/Y progress for display (e.g. achievements with large reputation totals).
+-- X/Y progress for display (e.g. achievements with large reputation totals).
 local function FormatProgressPair(nf, nr)
     return addon.FormatNumberWithGrouping(nf) .. "/" .. addon.FormatNumberWithGrouping(nr)
 end
@@ -415,10 +415,10 @@ local function IsProgressBarEnabled(questData)
 end
 
 -- Objective index and bar values for achievement rows when showAchievementProgressBars is on.
---- @return number|nil objIdx
---- @return number|nil nf
---- @return number|nil nr
---- @return number|nil percent Percent-only bar when nr is nil or nr>1; nil for arithmetic bar (nr>1 uses nf/nr).
+-- @return number|nil objIdx
+-- @return number|nil nf
+-- @return number|nil nr
+-- @return number|nil percent Percent-only bar when nr is nil or nr>1; nil for arithmetic bar (nr>1 uses nf/nr).
 local function SelectAchievementProgressBarState(questData)
     if not questData.isAchievement then return nil, nil, nil, nil end
     if not (addon.GetDB and addon.GetDB("showAchievementProgressBars", false)) then return nil, nil, nil, nil end
@@ -441,9 +441,9 @@ end
 -- Inline color for in-progress X/Y (one span covers digits and slash).
 local OBJECTIVE_PROGRESS_IN_PROGRESS_ESC = "|cffffcc00"
 
---- Convert 0–1 RGB to WoW |cffRRGGBB (opaque).
---- @param rgb table|nil
---- @return string
+-- Convert 0–1 RGB to WoW |cffRRGGBB (opaque).
+-- @param rgb table|nil
+-- @return string
 local function RGBToWoWColorEscape(rgb)
     if not rgb or type(rgb) ~= "table" then return "|cffffffff" end
     local r = tonumber(rgb[1]) or 1
@@ -457,12 +457,12 @@ local function RGBToWoWColorEscape(rgb)
     )
 end
 
---- Build colored nf/nr fragment (slash uses the same tint as the digits).
---- @param nf number
---- @param nr number
---- @param finished boolean
---- @param doneRgb table
---- @return string|nil Colored fragment, or nil when not started (use plain text).
+-- Build colored nf/nr fragment (slash uses the same tint as the digits).
+-- @param nf number
+-- @param nr number
+-- @param finished boolean
+-- @param doneRgb table
+-- @return string|nil Colored fragment, or nil when not started (use plain text).
 local function ColoredProgressSlashFragment(nf, nr, finished, doneRgb)
     local snf = addon.FormatNumberWithGrouping(nf)
     local snr = addon.FormatNumberWithGrouping(nr)
@@ -508,13 +508,13 @@ local function ReplaceBoundedPlain(objText, needle, repl)
     return table.concat(parts)
 end
 
---- Color X/Y progress token when DB toggle on (digits and slash share the tint).
---- @param objText string
---- @param nf number|nil
---- @param nr number|nil
---- @param oData table
---- @param effectiveDoneColor table
---- @return string
+-- Color X/Y progress token when DB toggle on (digits and slash share the tint).
+-- @param objText string
+-- @param nf number|nil
+-- @param nr number|nil
+-- @param oData table
+-- @param effectiveDoneColor table
+-- @return string
 local function ApplyObjectiveProgressNumberColoring(objText, nf, nr, oData, effectiveDoneColor)
     if not (addon.GetDB and addon.GetDB("objectiveProgressNumberColors", true)) then
         return objText
@@ -1082,10 +1082,10 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
     return totalH, prevAnchor
 end
 
---- Get timer display info for an entry. Returns timerStr and optionally duration/startTime for ticker.
---- @return string|nil timerStr
---- @return number|nil duration
---- @return number|nil startTime
+-- Get timer display info for an entry. Returns timerStr and optionally duration/startTime for ticker.
+-- @return string|nil timerStr
+-- @return number|nil duration
+-- @return number|nil startTime
 local function GetTimerDisplayInfo(questData, isWorld, isScenario, isGenericTimed)
     local hasStructuredTimer = (questData.timerDuration and questData.timerStartTime) and true or false
     if not hasStructuredTimer and questData.objectives then
@@ -1129,13 +1129,13 @@ local function GetTimerDisplayInfo(questData, isWorld, isScenario, isGenericTime
     return timerStr, duration, startTime
 end
 
---- Whether countdown timer chrome is allowed for this row (master on + per-bucket toggle).
---- Bucket order: scenario/delve/dungeon, then world/calling, then timed quest log (non-world).
---- @param masterOn boolean
---- @param isWorld boolean
---- @param isScenarioOrDelve boolean
---- @param isGenericTimed boolean
---- @return boolean
+-- Whether countdown timer chrome is allowed for this row (master on + per-bucket toggle).
+-- Bucket order: scenario/delve/dungeon, then world/calling, then timed quest log (non-world).
+-- @param masterOn boolean
+-- @param isWorld boolean
+-- @param isScenarioOrDelve boolean
+-- @param isGenericTimed boolean
+-- @return boolean
 local function GetFocusTimerChromeEnabled(masterOn, isWorld, isScenarioOrDelve, isGenericTimed)
     if not masterOn then return false end
     if isScenarioOrDelve then
@@ -2507,24 +2507,24 @@ end
 
 local origPopulateEntry = PopulateEntry
 
---- Some questData values are dynamic in ways `BuildEntrySignature` doesn't (and
---- can't reasonably) fingerprint — notably Delve scenario-main data: the Nemesis
---- chest count / checkmark are fetched inside `PopulateEntry` via the widget read
---- in `FocusScenarioDelve`, which happens AFTER the signature is built, and the
---- delve affix names are resolved inside `PopulateEntry` via `addon.GetDelvesAffixes()`
---- rather than being attached to the entry beforehand.
----
---- Without this bypass, once a delve scenario-main entry is first drawn with
---- incomplete widget data (common on initial delve entry — Blizzard populates the
---- ScenarioHeaderDelves widget's spells array a few seconds after the entry shows),
---- the signature stays identical across every subsequent refresh (ScheduleRefresh,
---- UPDATE_UI_WIDGET, SCENARIO_UPDATE, etc.) and the cache short-circuits before the
---- widget is re-read. The Nemesis badge and affix row then stay stuck until something
---- perturbs a fingerprinted field — a life loss, a criteria change, a /reload, or a
---- manual collapse/expand of the objective tracker.
----
---- Cost: one full populate per layout for the single scenario-main entry in a delve —
---- layouts already run at single-digit Hz, so the overhead is immaterial.
+-- Some questData values are dynamic in ways `BuildEntrySignature` doesn't (and
+-- can't reasonably) fingerprint — notably Delve scenario-main data: the Nemesis
+-- chest count / checkmark are fetched inside `PopulateEntry` via the widget read
+-- in `FocusScenarioDelve`, which happens AFTER the signature is built, and the
+-- delve affix names are resolved inside `PopulateEntry` via `addon.GetDelvesAffixes()`
+-- rather than being attached to the entry beforehand.
+--
+-- Without this bypass, once a delve scenario-main entry is first drawn with
+-- incomplete widget data (common on initial delve entry — Blizzard populates the
+-- ScenarioHeaderDelves widget's spells array a few seconds after the entry shows),
+-- the signature stays identical across every subsequent refresh (ScheduleRefresh,
+-- UPDATE_UI_WIDGET, SCENARIO_UPDATE, etc.) and the cache short-circuits before the
+-- widget is re-read. The Nemesis badge and affix row then stay stuck until something
+-- perturbs a fingerprinted field — a life loss, a criteria change, a /reload, or a
+-- manual collapse/expand of the objective tracker.
+--
+-- Cost: one full populate per layout for the single scenario-main entry in a delve —
+-- layouts already run at single-digit Hz, so the overhead is immaterial.
 local function EntryBypassesPopulateCache(questData)
     if questData.category == "DELVES" then return true end
     if questData.isScenarioMain then return true end

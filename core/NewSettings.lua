@@ -29,20 +29,20 @@ local function ReadAckedVersion(optId)
     return t[optId] or ""
 end
 
---- True if this option was introduced in `introducedInVersion` and the user has not yet acked that version for this optId.
---- @param optId string
---- @param introducedInVersion string
---- @return boolean
+-- True if this option was introduced in `introducedInVersion` and the user has not yet acked that version for this optId.
+-- @param optId string
+-- @param introducedInVersion string
+-- @return boolean
 function addon.NewSettings_IsUnread(optId, introducedInVersion)
     if type(optId) ~= "string" or optId == "" then return false end
     if type(introducedInVersion) ~= "string" or introducedInVersion == "" then return false end
     return ReadAckedVersion(optId) ~= introducedInVersion
 end
 
---- Mark an option as acked for the given introduced version. Silent no-op on bad input.
---- @param optId string
---- @param introducedInVersion string
---- @return nil
+-- Mark an option as acked for the given introduced version. Silent no-op on bad input.
+-- @param optId string
+-- @param introducedInVersion string
+-- @return nil
 function addon.NewSettings_MarkAcknowledged(optId, introducedInVersion)
     if type(optId) ~= "string" or optId == "" then return end
     if type(introducedInVersion) ~= "string" or introducedInVersion == "" then return end
@@ -50,12 +50,12 @@ function addon.NewSettings_MarkAcknowledged(optId, introducedInVersion)
     db.newSettingsAcked[optId] = introducedInVersion
 end
 
---- Resolve a display-ready label for `opt`, appending " (New!)" (localised) when the
---- option is tagged `isNew = "<version>"` and still unread for this optId.
---- Safely resolves function-typed `opt.name` to a string.
---- @param opt table option entry from OptionsData.lua
---- @param optId string stable identifier (normally the option dbKey)
---- @return string|nil display name
+-- Resolve a display-ready label for `opt`, appending " (New!)" (localised) when the
+-- option is tagged `isNew = "<version>"` and still unread for this optId.
+-- Safely resolves function-typed `opt.name` to a string.
+-- @param opt table option entry from OptionsData.lua
+-- @param optId string stable identifier (normally the option dbKey)
+-- @return string|nil display name
 function addon.NewSettings_ResolveDisplayName(opt, optId)
     if not opt then return nil end
     local raw = opt.name

@@ -543,9 +543,9 @@ end
 -- STATUSBAR LIST (for progress bar texture via LibSharedMedia)
 -- ============================================================================
 
---- Resolve a LibSharedMedia statusbar key to a texture file path.
---- @param value string|nil LSM statusbar key (e.g. "Solid", "Blizzard")
---- @return string Texture path; fallback to WHITE8X8 if invalid
+-- Resolve a LibSharedMedia statusbar key to a texture file path.
+-- @param value string|nil LSM statusbar key (e.g. "Solid", "Blizzard")
+-- @return string Texture path; fallback to WHITE8X8 if invalid
 function addon.ResolveStatusbarPath(value)
     if type(value) ~= "string" or value == "" then
         return "Interface\\Buttons\\WHITE8X8"
@@ -560,8 +560,8 @@ function addon.ResolveStatusbarPath(value)
     return "Interface\\Buttons\\WHITE8X8"
 end
 
---- Build dropdown options for statusbar textures from LibSharedMedia.
---- @return table Array of { displayName, value } pairs; "Solid" first
+-- Build dropdown options for statusbar textures from LibSharedMedia.
+-- @return table Array of { displayName, value } pairs; "Solid" first
 function addon.GetStatusbarDropdownOptions()
     local list = {}
     local LSM = (LibStub and LibStub("LibSharedMedia-3.0", true)) or nil
@@ -599,12 +599,12 @@ function addon.GetStatusbarDropdownOptions()
     return list
 end
 
---- Apply progress bar fill texture and vertex color. Uses LSM statusbar texture from DB.
---- @param tex table Texture object (e.g. progressBarFill)
---- @param r number Red (0-1)
---- @param g number Green (0-1)
---- @param b number Blue (0-1)
---- @param a number|nil Alpha (0-1); default 0.85
+-- Apply progress bar fill texture and vertex color. Uses LSM statusbar texture from DB.
+-- @param tex table Texture object (e.g. progressBarFill)
+-- @param r number Red (0-1)
+-- @param g number Green (0-1)
+-- @param b number Blue (0-1)
+-- @param a number|nil Alpha (0-1); default 0.85
 function addon.ApplyProgressBarFillTexture(tex, r, g, b, a)
     if not tex then return end
     local path = addon.ResolveStatusbarPath(addon.GetDB("progressBarTexture", "Solid"))
@@ -612,10 +612,10 @@ function addon.ApplyProgressBarFillTexture(tex, r, g, b, a)
     tex:SetVertexColor(r or 0.4, g or 0.65, b or 0.9, a or 0.85)
 end
 
---- Unread patch-notes marker: bundled media/update.tga; fallback masked green dot if missing.
---- Loaded from Config so MinimapButton (and beta TOC without PatchNotes.lua) can use it.
---- @param tex Texture
---- @return nil
+-- Unread patch-notes marker: bundled media/update.tga; fallback masked green dot if missing.
+-- Loaded from Config so MinimapButton (and beta TOC without PatchNotes.lua) can use it.
+-- @param tex Texture
+-- @return nil
 function addon.PatchNotes_StyleAttentionBadge(tex)
     if not tex then return end
     pcall(function() tex:SetMask(nil) end)

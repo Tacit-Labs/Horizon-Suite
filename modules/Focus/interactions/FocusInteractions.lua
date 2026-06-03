@@ -63,11 +63,11 @@ local CLASSIC_ICON_CLICK_DEBOUNCE = 0.05
 -- Set to QUEST_ACTIONS["superTrack"] after that function is defined; quest context menu uses it.
 local SuperTrackQuestFromMenuEntry
 
---- Suppress a world quest from the Focus tracker.
---- Calls RemoveWorldQuestWatch (handles watched WQs via QUEST_WATCH_LIST_CHANGED) and also writes
---- directly to recentlyUntrackedWorldQuests, which handles in-zone-surfaced WQs that were never
---- on the watch list and therefore produce no event when removed.
---- @param questID number
+-- Suppress a world quest from the Focus tracker.
+-- Calls RemoveWorldQuestWatch (handles watched WQs via QUEST_WATCH_LIST_CHANGED) and also writes
+-- directly to recentlyUntrackedWorldQuests, which handles in-zone-surfaced WQs that were never
+-- on the watch list and therefore produce no event when removed.
+-- @param questID number
 local function SuppressWorldQuestEntry(questID)
     if not questID then return end
     if addon.RemoveWorldQuestWatch then addon.RemoveWorldQuestWatch(questID) end
@@ -87,8 +87,8 @@ local function SuppressWorldQuestEntry(questID)
     end
 end
 
---- Append a WoWhead link line to GameTooltip when option is on and entry has a known URL.
---- @param entry table Pool entry (self) with questID, achievementID, and/or creatureID
+-- Append a WoWhead link line to GameTooltip when option is on and entry has a known URL.
+-- @param entry table Pool entry (self) with questID, achievementID, and/or creatureID
 local function AppendWoWheadLineToTooltip(entry)
     if not addon.GetDB("focusShowWoWheadLink", true) then return end
     local url = addon.GetWoWheadURL(entry)
@@ -103,10 +103,10 @@ local function AppendWoWheadLineToTooltip(entry)
     GameTooltip:AddLine(line, 0.4, 0.7, 1)
 end
 
---- Try to complete an auto-complete quest via ShowQuestComplete (Blizzard behavior).
---- Returns true if completion was triggered; false otherwise.
---- @param questID number
---- @return boolean
+-- Try to complete an auto-complete quest via ShowQuestComplete (Blizzard behavior).
+-- Returns true if completion was triggered; false otherwise.
+-- @param questID number
+-- @return boolean
 local function TryCompleteQuestFromClick(questID)
     if not questID or questID <= 0 then return false end
     -- Test-mode bypass: when /horizon test is active, simulate click-to-complete for fake auto-complete quests.
@@ -156,11 +156,11 @@ local function TryCompleteQuestFromClick(questID)
     return false
 end
 
---- Show share / focus / abandon / stop-tracking context menu for a quest.
---- Always shows at least one actionable item; mimics Blizzard behaviour.
---- @param questID number
---- @param questName string
---- @param anchor frame|nil Frame to anchor menu to; if nil, uses cursor
+-- Show share / focus / abandon / stop-tracking context menu for a quest.
+-- Always shows at least one actionable item; mimics Blizzard behaviour.
+-- @param questID number
+-- @param questName string
+-- @param anchor frame|nil Frame to anchor menu to; if nil, uses cursor
 local function ShowQuestContextMenu(questID, questName, anchor)
     if not questID then return end
     local menuList = {}
@@ -311,8 +311,8 @@ end
 
 -- Open the world map for a tracked appearance: prefer C_ContentTracking map + C_Map.OpenWorldMap so the correct zone is shown.
 -- ContentTrackingUtil.OpenMapToTrackable alone can open the wrong map when called the same frame as SetSuperTrackedContent (Blizzard+ title click).
---- @param appearanceID number
---- @param deferOpen boolean|nil When true, run next frame (after super-track state updates).
+-- @param appearanceID number
+-- @param deferOpen boolean|nil When true, run next frame (after super-track state updates).
 local function AppearanceOpenMapToTrackable(appearanceID, deferOpen)
     if not appearanceID or appearanceID <= 0 then return end
     local trackType = Enum and Enum.ContentTrackingType and Enum.ContentTrackingType.Appearance
@@ -349,9 +349,9 @@ local function AppearanceOpenMapToTrackable(appearanceID, deferOpen)
     end
 end
 
---- Toggle world map for a tracked appearance: close if already open from this row (same ID), else open.
---- Mirrors addon.ToggleQuestDetails / openDetails quest behaviour.
---- @param appearanceID number
+-- Toggle world map for a tracked appearance: close if already open from this row (same ID), else open.
+-- Mirrors addon.ToggleQuestDetails / openDetails quest behaviour.
+-- @param appearanceID number
 local function ToggleAppearanceMapToTrackable(appearanceID)
     if not appearanceID or appearanceID <= 0 then return end
     if InCombatLockdown() then return end
@@ -429,9 +429,9 @@ local function AppearanceClearFocusOnly()
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
---- Classic mode: context menu for tracked appearance (dressing room 3D preview, jump to Appearances page, Untrack).
---- @param appearanceID number
---- @param anchor Frame|nil Pool entry frame (for cached item link when opening dressing room).
+-- Classic mode: context menu for tracked appearance (dressing room 3D preview, jump to Appearances page, Untrack).
+-- @param appearanceID number
+-- @param anchor Frame|nil Pool entry frame (for cached item link when opening dressing room).
 local function ShowAppearanceContextMenu(appearanceID, anchor)
     if not appearanceID then return end
     local menuList = {
@@ -500,8 +500,8 @@ end
 -- Tracked non-quest rows: right-click always uses GetQuestClickAction + ExecuteTrackedContentAction (all profiles).
 -- ---------------------------------------------------------------------------
 
---- @param entry Frame
---- @return string|nil kind ach|endeavor|decor|advguide|recipe|rare
+-- @param entry Frame
+-- @return string|nil kind ach|endeavor|decor|advguide|recipe|rare
 local function ResolveTrackedContentKind(entry)
     if not entry or not entry.entryKey or type(entry.entryKey) ~= "string" then return nil end
     if entry.entryKey:match("^ach:%d+$") and entry.achievementID then return "ach" end
@@ -905,8 +905,8 @@ local function ShowTrackedRareContextMenu(entry, anchor)
 end
 
 -- Insert a chat hyperlink; opens the edit box when needed (clicks on the tracker clear chat focus first).
---- @param link string|nil
---- @return nil
+-- @param link string|nil
+-- @return nil
 local function FocusInsertLinkIntoChat(link)
     if not link or type(link) ~= "string" or link == "" then return end
     if not ChatFrameUtil or not ChatFrameUtil.InsertLink then return end
@@ -950,9 +950,9 @@ end
 
 addon.FocusInsertLinkIntoChat = FocusInsertLinkIntoChat
 
---- True when a chat edit box is currently visible/active. Used so Shift+Click-with-chat-open behaves
---- like native Blizzard (insert link) regardless of the profile's shiftLeft action (e.g. Blizzard+ untrack).
---- @return boolean
+-- True when a chat edit box is currently visible/active. Used so Shift+Click-with-chat-open behaves
+-- like native Blizzard (insert link) regardless of the profile's shiftLeft action (e.g. Blizzard+ untrack).
+-- @return boolean
 local function IsChatEditBoxActive()
     if ChatFrameUtil and ChatFrameUtil.GetActiveWindow then
         local ok, win = pcall(ChatFrameUtil.GetActiveWindow)
@@ -965,11 +965,11 @@ local function IsChatEditBoxActive()
     return false
 end
 
---- Resolve a chat-share link for a Focus row based on its populated ID fields.
---- Mirrors the priority of the existing CHATLINK branch so every row type shares the same link
---- whether the click goes through the shift-chat-link path or the profile "chatLink" action.
---- @param entry Frame Pool entry (self from OnMouseDown)
---- @return string|nil
+-- Resolve a chat-share link for a Focus row based on its populated ID fields.
+-- Mirrors the priority of the existing CHATLINK branch so every row type shares the same link
+-- whether the click goes through the shift-chat-link path or the profile "chatLink" action.
+-- @param entry Frame Pool entry (self from OnMouseDown)
+-- @return string|nil
 local function ResolveFocusRowChatLink(entry)
     if not entry then return nil end
     if entry.questID and GetQuestLink then
@@ -1001,10 +1001,10 @@ local function ResolveFocusRowChatLink(entry)
     return nil
 end
 
---- Dispatch profile action for tracked non-quest rows (all profiles).
---- @param action string
---- @param kind string
---- @param entry Frame
+-- Dispatch profile action for tracked non-quest rows (all profiles).
+-- @param action string
+-- @param kind string
+-- @param entry Frame
 local function ExecuteTrackedContentAction(action, kind, entry)
     if action == "openDetails" or action == "openQuestLog" or action == "openProfession" or action == "superTrack" then
         if kind == "ach" then OpenAchievementEntry(entry)
@@ -1073,8 +1073,8 @@ end
 local QUEST_ACTIONS = {}
 local APPEARANCE_ACTIONS = {}
 
---- Shared icon-click action, separate from row click combos.
---- @return string
+-- Shared icon-click action, separate from row click combos.
+-- @return string
 local function GetFocusIconClickAction()
     local profile = addon.GetDB("focusClickProfile", "blizzardDefault")
     if profile ~= "custom" then
@@ -1089,9 +1089,9 @@ local function GetFocusIconClickAction()
     return (type(raw) == "string" and raw ~= "") and raw or "superTrack"
 end
 
---- Execute the configured quest-icon action.
---- @param entry Frame pool entry
---- @return nil
+-- Execute the configured quest-icon action.
+-- @param entry Frame pool entry
+-- @return nil
 local function HandleQuestIconAction(entry)
     if not entry or not entry.questID then return end
 
@@ -1129,8 +1129,8 @@ local function HandleQuestIconAction(entry)
     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
 end
 
---- Execute the configured appearance-icon action.
---- @param entry Frame pool entry
+-- Execute the configured appearance-icon action.
+-- @param entry Frame pool entry
 local function HandleAppearanceIconAction(entry)
     if not entry or not entry.appearanceID then return end
     local action = GetFocusIconClickAction()
@@ -1138,8 +1138,8 @@ local function HandleAppearanceIconAction(entry)
     fn(entry)
 end
 
---- Execute the configured icon action for quest or appearance rows.
---- @param entry Frame pool entry
+-- Execute the configured icon action for quest or appearance rows.
+-- @param entry Frame pool entry
 function addon.HandleFocusIconMouseDown(entry)
     if not entry then return end
     if entry.isAppearance and entry.appearanceID then
@@ -1324,10 +1324,10 @@ local function ClearQuestWaypoint()
     activeQuestWaypointUID = nil
 end
 
---- Waypoint for super-tracked transmog appearance: TomTom if available, else native map user waypoint.
---- Same preference order and option (`tomtomQuestWaypoint`) as SetQuestWaypoint; does not call
---- SetSuperTrackedUserWaypoint so appearance content super-track stays the active target.
---- @param appearanceID number
+-- Waypoint for super-tracked transmog appearance: TomTom if available, else native map user waypoint.
+-- Same preference order and option (`tomtomQuestWaypoint`) as SetQuestWaypoint; does not call
+-- SetSuperTrackedUserWaypoint so appearance content super-track stays the active target.
+-- @param appearanceID number
 local function SetAppearanceWaypoint(appearanceID)
     if not appearanceID or appearanceID <= 0 then return end
     if not addon.GetDB("tomtomQuestWaypoint", false) then return end
@@ -1370,11 +1370,11 @@ local function SetAppearanceWaypoint(appearanceID)
     end
 end
 
---- Place a waypoint for a quest (TomTom or native). When keepQuestSuperTracked is true,
---- do not call SetSuperTrackedUserWaypoint so the quest remains the super-track target
---- (blue highlight in Focus, yellow in Blizzard quest log).
---- @param questID number
---- @param keepQuestSuperTracked boolean|nil If true, do not override quest super-track with user waypoint
+-- Place a waypoint for a quest (TomTom or native). When keepQuestSuperTracked is true,
+-- do not call SetSuperTrackedUserWaypoint so the quest remains the super-track target
+-- (blue highlight in Focus, yellow in Blizzard quest log).
+-- @param questID number
+-- @param keepQuestSuperTracked boolean|nil If true, do not override quest super-track with user waypoint
 local function SetQuestWaypoint(questID, keepQuestSuperTracked)
     ClearAppearanceWaypoint()
     if not questID or questID <= 0 then return end
@@ -1701,9 +1701,9 @@ end
 
 APPEARANCE_ACTIONS["none"] = function(_) end
 
---- Execute a named appearance-row action on a pool entry.
---- @param action string
---- @param entry Frame pool entry
+-- Execute a named appearance-row action on a pool entry.
+-- @param action string
+-- @param entry Frame pool entry
 local function ExecuteAppearanceAction(action, entry)
     local fn = action and APPEARANCE_ACTIONS[action]
     if not fn then
@@ -1733,9 +1733,9 @@ local function MaybeLogAppearanceClickDispatch(buttonName, profile, clickModsTbl
         tostring(prof), tostring(combo), tostring(action), tostring(appearanceID), note or ""))
 end
 
---- Execute a named quest action on a pool entry.
---- @param action string Action key (e.g. "superTrack", "untrack")
---- @param entry Frame pool entry (self from OnMouseDown)
+-- Execute a named quest action on a pool entry.
+-- @param action string Action key (e.g. "superTrack", "untrack")
+-- @param entry Frame pool entry (self from OnMouseDown)
 local function ExecuteQuestAction(action, entry)
     local fn = action and QUEST_ACTIONS[action]
     if not fn then

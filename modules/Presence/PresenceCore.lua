@@ -23,15 +23,15 @@ addon.Presence = addon.Presence or {}
 -- SCENARIO HELPERS (standalone; no Focus dependency)
 -- ============================================================================
 
---- True when the player is in an active scenario. Uses addon.IsWorldScenario when Focus loaded, else C_Scenario.GetInfo.
+-- True when the player is in an active scenario. Uses addon.IsWorldScenario when Focus loaded, else C_Scenario.GetInfo.
 function addon.Presence.IsScenarioActive()
     if addon.IsWorldScenario and addon.IsWorldScenario() then return true end
     local ok, name, currentStage = pcall(C_Scenario.GetInfo)
     return ok and ((name and name ~= "") or (currentStage and currentStage > 0))
 end
 
---- Get display info for Presence scenario toasts. Title, subtitle, category. No Focus dependency.
---- @return title string|nil, subtitle string|nil, category string|nil
+-- Get display info for Presence scenario toasts. Title, subtitle, category. No Focus dependency.
+-- @return title string|nil, subtitle string|nil, category string|nil
 function addon.Presence.GetScenarioDisplayInfo()
     if not addon.Presence.IsScenarioActive() then return nil, nil, nil end
     local isDelve = addon.IsDelveActive and addon.IsDelveActive()
@@ -57,9 +57,9 @@ function addon.Presence.GetScenarioDisplayInfo()
     return title, stageName or "", category
 end
 
---- Strip WoW markup (textures, colors) from a string for display.
---- @param s string|nil
---- @return string
+-- Strip WoW markup (textures, colors) from a string for display.
+-- @param s string|nil
+-- @return string
 function addon.Presence.StripMarkup(s)
     if not s or s == "" then return s or "" end
     s = s:gsub("|T.-|t", "")
@@ -170,11 +170,11 @@ local PREVIEW_TYPE_LABELS = {
 
 local debounceTimers = {}
 
---- Check if a Presence type is enabled, with optional fallback to a grouped option.
---- @param key string DB key for the per-type toggle (e.g. presenceQuestAccept)
---- @param fallbackKey string|nil DB key for fallback when key is nil (e.g. presenceQuestEvents)
---- @param fallbackDefault boolean Default when fallbackKey is nil or not used
---- @return boolean
+-- Check if a Presence type is enabled, with optional fallback to a grouped option.
+-- @param key string DB key for the per-type toggle (e.g. presenceQuestAccept)
+-- @param fallbackKey string|nil DB key for fallback when key is nil (e.g. presenceQuestEvents)
+-- @param fallbackDefault boolean Default when fallbackKey is nil or not used
+-- @return boolean
 local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
     if not addon.GetDB then return fallbackDefault end
     local v = addon.GetDB(key, nil)
@@ -182,20 +182,20 @@ local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
     return (fallbackKey and addon.GetDB(fallbackKey, fallbackDefault)) or fallbackDefault
 end
 
---- Check if a Presence type (e.g. QUEST_ACCEPT, SCENARIO_UPDATE) is enabled via TYPE_OPTIONS.
---- @param typeName string One of TYPES keys (LEVEL_UP, QUEST_ACCEPT, etc.)
---- @return boolean
+-- Check if a Presence type (e.g. QUEST_ACCEPT, SCENARIO_UPDATE) is enabled via TYPE_OPTIONS.
+-- @param typeName string One of TYPES keys (LEVEL_UP, QUEST_ACCEPT, etc.)
+-- @return boolean
 local function IsTypeEnabledForType(typeName)
     local opts = typeName and TYPE_OPTIONS[typeName]
     if not opts then return false end
     return IsTypeEnabled(opts.key, opts.fallback, opts.default)
 end
 
---- Cancel existing timer for key, schedule callback after delay. Debounce helper.
---- @param key string Unique key (e.g. "quest:123", "scenario", "zone")
---- @param delay number Seconds before callback runs
---- @param callback function Called when timer fires
---- @return nil
+-- Cancel existing timer for key, schedule callback after delay. Debounce helper.
+-- @param key string Unique key (e.g. "quest:123", "scenario", "zone")
+-- @param delay number Seconds before callback runs
+-- @param callback function Called when timer fires
+-- @return nil
 local function RequestDebounced(key, delay, callback)
     if debounceTimers[key] then
         debounceTimers[key]:Cancel()
@@ -208,9 +208,9 @@ local function RequestDebounced(key, delay, callback)
     end)
 end
 
---- Cancel a pending debounced callback for the given key.
---- @param key string Unique key passed to RequestDebounced
---- @return nil
+-- Cancel a pending debounced callback for the given key.
+-- @param key string Unique key passed to RequestDebounced
+-- @return nil
 local function CancelDebounced(key)
     if debounceTimers[key] then
         debounceTimers[key]:Cancel()
@@ -218,11 +218,11 @@ local function CancelDebounced(key)
     end
 end
 
---- Build display string from normalized objective.
---- Accepts { text?, finished?, numFulfilled?, numRequired?, quantityString?, percent? }.
---- For isWeightedProgress objectives, percent is the displayed value (0-100); quantityString is not used.
---- @param o table Normalized objective
---- @return string|nil
+-- Build display string from normalized objective.
+-- Accepts { text?, finished?, numFulfilled?, numRequired?, quantityString?, percent? }.
+-- For isWeightedProgress objectives, percent is the displayed value (0-100); quantityString is not used.
+-- @param o table Normalized objective
+-- @return string|nil
 local function FormatObjectiveForDisplay(o)
     if not o then return nil end
     if o.percent ~= nil and type(o.percent) == "number" then
@@ -257,8 +257,8 @@ local function FormatObjectiveForDisplay(o)
     return nil
 end
 
---- True if any event-toast type (achievement, quest, scenario) is enabled. Used by Blizzard suppression.
---- @return boolean
+-- True if any event-toast type (achievement, quest, scenario) is enabled. Used by Blizzard suppression.
+-- @return boolean
 local function IsAnyToastEnabled()
     local toastTypes = { "ACHIEVEMENT", "ACHIEVEMENT_PROGRESS", "QUEST_ACCEPT", "WORLD_QUEST_ACCEPT", "QUEST_COMPLETE", "WORLD_QUEST", "QUEST_UPDATE", "SCENARIO_START", "SCENARIO_UPDATE", "SCENARIO_COMPLETE" }
     for _, t in ipairs(toastTypes) do
@@ -267,8 +267,8 @@ local function IsAnyToastEnabled()
     return false
 end
 
---- True when Presence should suppress non-essential notifications (M+ zone, or instance type).
---- @return boolean
+-- True when Presence should suppress non-essential notifications (M+ zone, or instance type).
+-- @return boolean
 local function ShouldSuppressType()
     if addon.GetDB and addon.GetDB("presenceSuppressZoneInMplus", true) and addon.IsInMythicDungeon and addon.IsInMythicDungeon() then
         return true
@@ -436,9 +436,9 @@ local function getDiscoveryColor()
     return (addon.GetPresenceDiscoveryColor and addon.GetPresenceDiscoveryColor()) or addon.PRESENCE_DISCOVERY_COLOR or getCategoryColor("COMPLETE", { 0.4, 1, 0.5 })
 end
 
---- Returns a color for the current zone PvP type (friendly/hostile/contested/sanctuary).
---- Uses user-configured colors if set, otherwise sane defaults.
---- @return table|nil {r,g,b} or nil if zone type is unknown
+-- Returns a color for the current zone PvP type (friendly/hostile/contested/sanctuary).
+-- Uses user-configured colors if set, otherwise sane defaults.
+-- @return table|nil {r,g,b} or nil if zone type is unknown
 local function GetZoneTypeColor()
     local pvpType = (C_PvP and C_PvP.GetZonePVPInfo) and C_PvP.GetZonePVPInfo() or (GetZonePVPInfo and GetZonePVPInfo()) or nil
     if not pvpType or pvpType == "" then return nil end
@@ -652,14 +652,14 @@ local function resetLayer(L)
     if L.questTypeIcon then L.questTypeIcon:Hide() end
 end
 
---- Apply toast content (fonts, colors, text, icon, layout) to a layer. Shared by PlayCinematic and preview.
---- @param layer table Layer from CreateLayer
---- @param typeName string One of TYPES keys
---- @param title string Heading text
---- @param subtitle string Second line text
---- @param opts table|nil opts.questID, opts.category, opts.showDiscovery (preview: show discovery line for zone)
---- @param forPreview boolean When true, sets alpha 1 and uses static layout; does not consume pendingDiscovery
---- @return nil
+-- Apply toast content (fonts, colors, text, icon, layout) to a layer. Shared by PlayCinematic and preview.
+-- @param layer table Layer from CreateLayer
+-- @param typeName string One of TYPES keys
+-- @param title string Heading text
+-- @param subtitle string Second line text
+-- @param opts table|nil opts.questID, opts.category, opts.showDiscovery (preview: show discovery line for zone)
+-- @param forPreview boolean When true, sets alpha 1 and uses static layout; does not consume pendingDiscovery
+-- @return nil
 local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, forPreview)
     opts = opts or {}
     local cfg = TYPES[typeName]
@@ -1011,8 +1011,8 @@ end
 -- Public functions
 -- ============================================================================
 
---- One-time setup: create frame, layers, animation state. Idempotent.
---- @return nil
+-- One-time setup: create frame, layers, animation state. Idempotent.
+-- @return nil
 local function Init()
     if F then return end
 
@@ -1089,10 +1089,10 @@ PlayCinematic = function(typeName, title, subtitle, opts)
     F:Show()
 end
 
---- Update the subtitle text of the currently displayed cinematic (e.g. subzone soft-update).
---- Uses a quick fade-out/fade-in transition instead of instant swap.
---- @param newSub string New subtitle text
---- @return nil
+-- Update the subtitle text of the currently displayed cinematic (e.g. subzone soft-update).
+-- Uses a quick fade-out/fade-in transition instead of instant swap.
+-- @param newSub string New subtitle text
+-- @return nil
 local function SoftUpdateSubtitle(newSub)
     if not curLayer then return end
     local txt = newSub or ""
@@ -1107,8 +1107,8 @@ local function SoftUpdateSubtitle(newSub)
     end
 end
 
---- Show the "Discovered" line on the current layer (zone/subzone discovery).
---- @return nil
+-- Show the "Discovered" line on the current layer (zone/subzone discovery).
+-- @return nil
 local function ShowDiscoveryLine()
     if not curLayer then return end
     if addon.GetDB and not addon.GetDB("showPresenceDiscovery", true) then return end
@@ -1124,8 +1124,8 @@ local function ShowDiscoveryLine()
     end
 end
 
---- Set flag so next zone/subzone change shows "Discovered" line.
---- @return nil
+-- Set flag so next zone/subzone change shows "Discovered" line.
+-- @return nil
 local function SetPendingDiscovery()
     addon.Presence.pendingDiscovery = true
 end
@@ -1140,7 +1140,7 @@ end
 
 local ZONE_ANIM_TYPES = { ZONE_CHANGE = true, SUBZONE_CHANGE = true }
 
---- Stops any active zone/subzone animation and purges zone entries from the queue.
+-- Stops any active zone/subzone animation and purges zone entries from the queue.
 local function CancelZoneAnim()
     if not F then return end
     if activeTypeName and ZONE_ANIM_TYPES[activeTypeName] then
@@ -1164,12 +1164,12 @@ local function CancelZoneAnim()
     end
 end
 
---- Queue or immediately play a cinematic notification.
---- @param typeName string LEVEL_UP, BOSS_EMOTE, ACHIEVEMENT, QUEST_COMPLETE, etc.
---- @param title string Heading text (first line)
---- @param subtitle string Second line text
---- @param opts table|nil Optional; opts.questID for colour/icon, opts.category for SCENARIO_START, opts.source for debug (event name)
---- @return nil
+-- Queue or immediately play a cinematic notification.
+-- @param typeName string LEVEL_UP, BOSS_EMOTE, ACHIEVEMENT, QUEST_COMPLETE, etc.
+-- @param title string Heading text (first line)
+-- @param subtitle string Second line text
+-- @param opts table|nil Optional; opts.questID for colour/icon, opts.category for SCENARIO_START, opts.source for debug (event name)
+-- @return nil
 local function QueueOrPlay(typeName, title, subtitle, opts)
     if not F then Init() end
     local cfg = TYPES[typeName]
@@ -1264,9 +1264,9 @@ local function QueueOrPlay(typeName, title, subtitle, opts)
     end
 end
 
---- Remove any queued QUEST_UPDATE entries for the given questID.
---- Called when a quest is disposed (turned in / removed) so stale progress toasts don't play after completion.
---- @param questID number
+-- Remove any queued QUEST_UPDATE entries for the given questID.
+-- Called when a quest is disposed (turned in / removed) so stale progress toasts don't play after completion.
+-- @param questID number
 local function PurgeQueuedQuestUpdates(questID)
     if not questID or not queue or #queue == 0 then return end
     local kept = {}
@@ -1278,8 +1278,8 @@ local function PurgeQueuedQuestUpdates(questID)
     queue = kept
 end
 
---- Hide frame, clear queue, reset animation state.
---- @return nil
+-- Hide frame, clear queue, reset animation state.
+-- @return nil
 local function HideAndClear()
     if not F then return end
     F:SetScript("OnUpdate", nil)
@@ -1295,8 +1295,8 @@ local function HideAndClear()
     F:Hide()
 end
 
---- Dump Presence internal state to chat for debugging.
---- @return nil
+-- Dump Presence internal state to chat for debugging.
+-- @return nil
 local function DumpDebug()
     if not F then Init() end
     local p = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
@@ -1349,10 +1349,10 @@ end
 -- Exports
 -- ============================================================================
 
---- Re-apply frame position and scale from DB. Call when presence options change.
---- Also re-applies fonts to any currently-showing toast layers so that global font
---- toggle changes take effect immediately without waiting for the next toast.
---- @return nil
+-- Re-apply frame position and scale from DB. Call when presence options change.
+-- Also re-applies fonts to any currently-showing toast layers so that global font
+-- toggle changes take effect immediately without waiting for the next toast.
+-- @return nil
 local function ApplyPresenceOptions()
     if not F then return end
     F:ClearAllPoints()
@@ -1376,14 +1376,14 @@ local function ApplyPresenceOptions()
     reapplyLayerFonts(oldLayer)
 end
 
---- Returns the typeName of the currently playing or holding cinematic.
+-- Returns the typeName of the currently playing or holding cinematic.
 local function GetActiveTypeName()
     return activeTypeName
 end
 
---- Build preview sample for a toast type. Uses addon.L for localized strings.
---- @param typeName string One of TYPES keys
---- @return table|nil { title, subtitle, opts?, withDiscovery? } or nil if unknown
+-- Build preview sample for a toast type. Uses addon.L for localized strings.
+-- @param typeName string One of TYPES keys
+-- @return table|nil { title, subtitle, opts?, withDiscovery? } or nil if unknown
 local function getPreviewSample(typeName)
     if not TYPES[typeName] then return nil end
     local L = addon.L or {}
@@ -1436,9 +1436,9 @@ local function getPreviewSample(typeName)
     return nil
 end
 
---- Preview a toast type with sample data. Used by options and slash commands.
---- @param typeName string One of TYPES keys (LEVEL_UP, QUEST_COMPLETE, etc.)
---- @return nil
+-- Preview a toast type with sample data. Used by options and slash commands.
+-- @param typeName string One of TYPES keys (LEVEL_UP, QUEST_COMPLETE, etc.)
+-- @return nil
 local function PreviewToast(typeName)
     local sample = getPreviewSample(typeName)
     if not sample then return end
@@ -1479,8 +1479,8 @@ local function UnregisterPreviewTarget(owner)
     end
 end
 
---- Refresh every registered Presence preview surface (embedded and pop-out).
---- @return nil
+-- Refresh every registered Presence preview surface (embedded and pop-out).
+-- @return nil
 local function RefreshPreviewTargets()
     for owner, refreshFn in pairs(previewTargets) do
         if owner and refreshFn then
@@ -1697,10 +1697,10 @@ local function PlayAnimatedPreview(previewData, typeName)
     end)
 end
 
---- Create an embedded preview frame for options. Static display, no animations.
---- @param parent table Parent frame (e.g. options card content)
---- @param opts table|nil opts.scale (default 0.5), opts.getTypeName() returns current type for Refresh
---- @return table|nil { frame, Refresh } or nil if Presence not ready
+-- Create an embedded preview frame for options. Static display, no animations.
+-- @param parent table Parent frame (e.g. options card content)
+-- @param opts table|nil opts.scale (default 0.5), opts.getTypeName() returns current type for Refresh
+-- @return table|nil { frame, Refresh } or nil if Presence not ready
 local function CreatePreviewFrame(parent, opts)
     if not parent then return nil end
     opts = opts or {}
@@ -1729,10 +1729,10 @@ local function CreatePreviewFrame(parent, opts)
     return { frame = frame, layer = layer, Refresh = Refresh }
 end
 
---- Update a preview frame with the given toast type. Static, no animation.
---- @param previewData table { frame, layer } from CreatePreviewFrame
---- @param typeName string One of TYPES keys
---- @return nil
+-- Update a preview frame with the given toast type. Static, no animation.
+-- @param previewData table { frame, layer } from CreatePreviewFrame
+-- @param typeName string One of TYPES keys
+-- @return nil
 local function UpdatePreviewFrame(previewData, typeName)
     if not previewData or not previewData.frame or not previewData.layer then return end
     local sample = getPreviewSample(typeName)
@@ -1745,11 +1745,11 @@ local function UpdatePreviewFrame(previewData, typeName)
     previewData.frame:Show()
 end
 
---- Create a full preview widget used by both options UIs.
---- Includes toast type dropdown, detached-preview button, and embedded sample.
---- @param parent table
---- @param opts table|nil opts.getTypeName, opts.setTypeName, opts.notify, opts.scale
---- @return table|nil { frame, Refresh }
+-- Create a full preview widget used by both options UIs.
+-- Includes toast type dropdown, detached-preview button, and embedded sample.
+-- @param parent table
+-- @param opts table|nil opts.getTypeName, opts.setTypeName, opts.notify, opts.scale
+-- @return table|nil { frame, Refresh }
 local function CreatePreviewWidget(parent, opts)
     if not parent or not _G.OptionsWidgets_CreateCustomDropdown then return nil end
 
@@ -1971,8 +1971,8 @@ local function ensurePreviewPopout()
     return frame
 end
 
---- Toggle the detached Presence preview window.
---- @return nil
+-- Toggle the detached Presence preview window.
+-- @return nil
 local function TogglePreviewPopout()
     local frame = ensurePreviewPopout()
     if not frame then return end

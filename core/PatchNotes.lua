@@ -65,16 +65,16 @@ local function GetWhatsNewSidebarAckedVersion()
     return (db and db.patchNotesWhatsNewSidebarAckedVersion) or ""
 end
 
---- True when the installed version has not been acknowledged via Patch Notes.
---- @return boolean
+-- True when the installed version has not been acknowledged via Patch Notes.
+-- @return boolean
 function addon.PatchNotes_HasUnread()
     local cur = GetCurrentVersion()
     if cur == "" then return false end
     return GetPatchNotesLastViewedVersion() ~= cur
 end
 
---- Mark the current addon version as viewed; refreshes minimap and dashboard indicators.
---- @return nil
+-- Mark the current addon version as viewed; refreshes minimap and dashboard indicators.
+-- @return nil
 function addon.PatchNotes_MarkCurrentVersionViewed()
     local cur = GetCurrentVersion()
     if cur == "" then return end
@@ -82,8 +82,8 @@ function addon.PatchNotes_MarkCurrentVersionViewed()
     addon.PatchNotes_RefreshAttentionIndicators()
 end
 
---- Call when the user clicks the Axis sidebar Patch Notes row (clears sidebar New!/green only).
---- @return nil
+-- Call when the user clicks the Axis sidebar Patch Notes row (clears sidebar New!/green only).
+-- @return nil
 function addon.PatchNotes_MarkWhatsNewSidebarClicked()
     local cur = GetCurrentVersion()
     if cur == "" then return end
@@ -92,8 +92,8 @@ function addon.PatchNotes_MarkWhatsNewSidebarClicked()
     addon.PatchNotes_RefreshAttentionIndicators()
 end
 
---- True while this version should show sidebar (New!) and green until the sidebar row is clicked.
---- @return boolean
+-- True while this version should show sidebar (New!) and green until the sidebar row is clicked.
+-- @return boolean
 function addon.PatchNotes_HasUnreadSidebarAttention()
     local cur = GetCurrentVersion()
     if cur == "" then return false end
@@ -105,12 +105,12 @@ local WHATSNEW_GREEN_R, WHATSNEW_GREEN_G, WHATSNEW_GREEN_B = 0.32, 0.90, 0.50
 local WHATSNEW_GREEN_ACTIVE_R, WHATSNEW_GREEN_ACTIVE_G, WHATSNEW_GREEN_ACTIVE_B = 0.55, 1, 0.72
 local WHATSNEW_IDLE_R, WHATSNEW_IDLE_G, WHATSNEW_IDLE_B = 0.65, 0.65, 0.70
 
---- Set Patch Notes sidebar label to unread green when applicable; icon uses normal sidebar tints (not green).
---- @param btn table Sidebar button with _sidebarViewGetter
---- @param lbl FontString
---- @param icon Texture|nil
---- @param isHover boolean
---- @return nil
+-- Set Patch Notes sidebar label to unread green when applicable; icon uses normal sidebar tints (not green).
+-- @param btn table Sidebar button with _sidebarViewGetter
+-- @param lbl FontString
+-- @param icon Texture|nil
+-- @param isHover boolean
+-- @return nil
 function addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, icon, isHover)
     if not btn or not lbl then return end
     local sidebarAttention = addon.PatchNotes_HasUnreadSidebarAttention and addon.PatchNotes_HasUnreadSidebarAttention()
@@ -166,8 +166,8 @@ function addon.PatchNotes_ApplyWhatsNewSidebarRowStyle(btn, lbl, icon, isHover)
     end
 end
 
---- Update minimap marker and dashboard Patch Notes label when unread state changes.
---- @return nil
+-- Update minimap marker and dashboard Patch Notes label when unread state changes.
+-- @return nil
 function addon.PatchNotes_RefreshAttentionIndicators()
     if addon.MinimapButton_UpdatePatchNotesBadge then
         addon.MinimapButton_UpdatePatchNotesBadge()
@@ -196,10 +196,10 @@ local PATCH_NOTE_MONTHS_ENGLISH = {
     "July", "August", "September", "October", "November", "December",
 }
 
---- Format an ISO date for the Patch Notes dashboard header (e.g. "31 March 2026").
---- Uses fixed English months; validates the calendar date via time/date.
---- @param iso string|nil "YYYY-MM-DD"
---- @return string|nil Display string, or nil if iso is missing or not a valid date.
+-- Format an ISO date for the Patch Notes dashboard header (e.g. "31 March 2026").
+-- Uses fixed English months; validates the calendar date via time/date.
+-- @param iso string|nil "YYYY-MM-DD"
+-- @return string|nil Display string, or nil if iso is missing or not a valid date.
 function addon.PatchNotes_FormatIsoDateLongUK(iso)
     if type(iso) ~= "string" or iso == "" then return nil end
     local ys, ms, ds = iso:match("^(%d%d%d%d)-(%d%d)-(%d%d)$")
@@ -235,8 +235,8 @@ end
 
 addon.HidePatchNotes = function() end
 
---- Refresh accent colours on the patch notes view if it is visible.
---- Called from options when classColorDashboard (Axis → Class Colours) changes.
+-- Refresh accent colours on the patch notes view if it is visible.
+-- Called from options when classColorDashboard (Axis → Class Colours) changes.
 function addon.ApplyPatchNotesAccent()
     local frame = _G.HorizonSuiteDashboard
     if frame and frame.patchNotesView and frame.patchNotesView:IsShown() then

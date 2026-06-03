@@ -5,7 +5,7 @@
 
 local addon = _G.HorizonSuite
 
---- Returns quests from the watch list (C_QuestLog.GetNumQuestWatches). Respects filterByZone and showWorldQuests.
+-- Returns quests from the watch list (C_QuestLog.GetNumQuestWatches). Respects filterByZone and showWorldQuests.
 local function CollectTrackedQuests(ctx)
     local out = {}
     local numWatches = C_QuestLog.GetNumQuestWatches()

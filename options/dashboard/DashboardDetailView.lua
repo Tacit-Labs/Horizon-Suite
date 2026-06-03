@@ -6,15 +6,15 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 local L = addon.L
---- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
---- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
---- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
---- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
---- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
---- setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
---- setSidebarState may be replaced on env after sidebar init (stub no-op until then).
---- @param env table
---- @return table NavigateToOption, NavigateToModuleToggles, NavigateToDashboardBackground, NavigateToAxisHome, NavigateToClassColourTinting
+-- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
+-- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
+-- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
+-- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
+-- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
+-- setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
+-- setSidebarState may be replaced on env after sidebar init (stub no-op until then).
+-- @param env table
+-- @return table NavigateToOption, NavigateToModuleToggles, NavigateToDashboardBackground, NavigateToAxisHome, NavigateToClassColourTinting
 function addon.DashboardDetailView_Init(env)
     local f = env.f
     local addon = env.addon

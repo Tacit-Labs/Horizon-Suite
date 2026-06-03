@@ -17,13 +17,13 @@ local anim = addon.FOCUS_ANIM or { dur = 0.4, stagger = 0.05, slideInX = 20, sli
 -- SHARED TRANSITION HELPERS (progress, easing, state init)
 -- ============================================================================
 
---- Returns progress p in [0,1] from elapsed time, optional delay, and duration.
+-- Returns progress p in [0,1] from elapsed time, optional delay, and duration.
 local function GetProgress(elapsed, delay, duration)
     local t = math.max(0, (elapsed or 0) - (delay or 0))
     return math.min(t / (duration or anim.dur), 1)
 end
 
---- Sets entry to fadein state. staggerIndex is 0-based (0 = no delay).
+-- Sets entry to fadein state. staggerIndex is 0-based (0 = no delay).
 function addon.SetEntryFadeIn(entry, staggerIndex)
     if not entry then return end
     entry.animState   = "fadein"
@@ -32,14 +32,14 @@ function addon.SetEntryFadeIn(entry, staggerIndex)
     entry:SetAlpha(0)
 end
 
---- Sets entry to fadeout state.
+-- Sets entry to fadeout state.
 function addon.SetEntryFadeOut(entry)
     if not entry then return end
     entry.animState   = "fadeout"
     entry.animTime    = 0
 end
 
---- Sets entry to collapsing state. staggerIndex is 0-based.
+-- Sets entry to collapsing state. staggerIndex is 0-based.
 function addon.SetEntryCollapsing(entry, staggerIndex)
     if not entry then return end
     entry.animState    = "collapsing"
@@ -47,8 +47,8 @@ function addon.SetEntryCollapsing(entry, staggerIndex)
     entry.collapseDelay = (staggerIndex or 0) * anim.stagger
 end
 
---- Sets entry to slide-up state (Y moves from startY to finalY). Used when entries below
---- a collapsed category shift up to fill the gap.
+-- Sets entry to slide-up state (Y moves from startY to finalY). Used when entries below
+-- a collapsed category shift up to fill the gap.
 function addon.SetEntrySlideUp(entry, startY)
     if not entry then return end
     entry.animState     = "slideup"
@@ -108,7 +108,7 @@ local function ScheduleMapChangeDebouncedRefresh()
     end
 end
 
---- Tracks map changes; the WQ cache self-invalidates via zoneMapID compare in GetNearbyQuestIDs.
+-- Tracks map changes; the WQ cache self-invalidates via zoneMapID compare in GetNearbyQuestIDs.
 local function RunMapCheck()
     if not addon.focus.enabled or not C_Map or not C_Map.GetBestMapForUnit then return end
 
@@ -134,7 +134,7 @@ local function RunMapCheck()
     end
 end
 
---- Expose for FocusModule's map ticker.
+-- Expose for FocusModule's map ticker.
 addon.RunMapCheck = RunMapCheck
 
 -- Ensure HS OnUpdate is running.
@@ -187,9 +187,9 @@ local function GetFadeOnMouseoverAlpha()
     return math.max(0, math.min(100, pct)) / 100
 end
 
---- Returns true if the mouse is over the frame or any of its descendants.
---- Uses GetMouseFocus() for reliable detection when cursor is over child frames
---- (IsMouseOver can be unreliable for parent when mouse is on a child).
+-- Returns true if the mouse is over the frame or any of its descendants.
+-- Uses GetMouseFocus() for reliable detection when cursor is over child frames
+-- (IsMouseOver can be unreliable for parent when mouse is on a child).
 local function IsMouseOverFrameOrDescendants(frame)
     if not frame then return false end
     local focus = GetMouseFocus and GetMouseFocus()
@@ -746,8 +746,8 @@ local function UpdateSectionHeaderFadeIn(dt, useAnim)
     end
 end
 
---- Drives header slide animation when growUp + collapse mode: header slides down to bottom on collapse,
---- or up from bottom to top on expand. Uses ApplyGrowUpHeaderPosition(offsetFromBottom).
+-- Drives header slide animation when growUp + collapse mode: header slides down to bottom on collapse,
+-- or up from bottom to top on expand. Uses ApplyGrowUpHeaderPosition(offsetFromBottom).
 local function UpdateHeaderSlide(dt, useAnim)
     local c = addon.focus and addon.focus.collapse
     if not c then return end
@@ -968,8 +968,8 @@ local function UpdateGroupCollapseCompletion()
     end
 end
 
---- Captures current Y positions before a category expand. Call before SetCategoryCollapsed(key,false) and FullLayout.
---- @param groupKey string Category being expanded (e.g. "WORLD", "NEARBY")
+-- Captures current Y positions before a category expand. Call before SetCategoryCollapsed(key,false) and FullLayout.
+-- @param groupKey string Category being expanded (e.g. "WORLD", "NEARBY")
 function addon.PrepareGroupExpandSlideDown(groupKey)
     if not addon.GetDB("animations", true) or not groupKey then return end
     local collapse = addon.focus and addon.focus.collapse
@@ -991,8 +991,8 @@ function addon.PrepareGroupExpandSlideDown(groupKey)
     end
 end
 
---- Applies slide-down animation to entries and section headers that moved after category expand.
---- Call after FullLayout when expandSlideDownStarts/expandSlideDownStartsSec were set.
+-- Applies slide-down animation to entries and section headers that moved after category expand.
+-- Call after FullLayout when expandSlideDownStarts/expandSlideDownStartsSec were set.
 function addon.ApplyGroupExpandSlideDown()
     local collapse = addon.focus and addon.focus.collapse
     if not collapse or not addon.GetDB("animations", true) then return end
@@ -1028,7 +1028,7 @@ function addon.ApplyGroupExpandSlideDown()
     if addon.EnsureFocusUpdateRunning then addon.EnsureFocusUpdateRunning() end
 end
 
---- Clears optionCollapseKeys when all WQ-toggle collapsing entries have finished.
+-- Clears optionCollapseKeys when all WQ-toggle collapsing entries have finished.
 local function UpdateOptionCollapseCompletion()
     local keys = addon.focus and addon.focus.collapse and addon.focus.collapse.optionCollapseKeys
     if not keys or not next(keys) then return end
@@ -1046,7 +1046,7 @@ local function UpdateOptionCollapseCompletion()
     end
 end
 
---- Lerps entry title color for hover brighten/restore. Driven by entry.hoverAnimState ("in" | "out").
+-- Lerps entry title color for hover brighten/restore. Driven by entry.hoverAnimState ("in" | "out").
 local function UpdateEntryHoverAnimations(dt, useAnim)
     if not useAnim or not pool then return false end
     local dur = (anim.hoverTitleDur or 0.15)

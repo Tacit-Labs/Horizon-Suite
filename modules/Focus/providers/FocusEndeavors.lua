@@ -19,7 +19,7 @@ local function CleanObjectiveText(s)
     return (s:gsub("^[%s%-]*%-+%s*", ""))
 end
 
---- Resolve tracked Endeavor IDs from C_NeighborhoodInitiative, C_Endeavors, or C_PlayerHousing.
+-- Resolve tracked Endeavor IDs from C_NeighborhoodInitiative, C_Endeavors, or C_PlayerHousing.
 -- @return table Array of endeavor/task IDs
 local function GetTrackedEndeavorIDs()
     local idList = {}
@@ -67,7 +67,7 @@ local function GetTrackedEndeavorIDs()
     return idList
 end
 
---- Request initiative task info from the server (if API exists). May prime the cache for GetInitiativeTaskInfo.
+-- Request initiative task info from the server (if API exists). May prime the cache for GetInitiativeTaskInfo.
 -- @param endeavorID number
 local function RequestEndeavorTaskInfo(endeavorID)
     if C_NeighborhoodInitiative and C_NeighborhoodInitiative.RequestInitiativeTaskInfo then
@@ -78,7 +78,7 @@ end
 addon.GetTrackedEndeavorIDs = GetTrackedEndeavorIDs
 addon.RequestEndeavorTaskInfo = RequestEndeavorTaskInfo
 
---- Get endeavor display info. Tries C_NeighborhoodInitiative, C_Endeavors, C_PlayerHousing, or fallbacks.
+-- Get endeavor display info. Tries C_NeighborhoodInitiative, C_Endeavors, C_PlayerHousing, or fallbacks.
 -- @param endeavorID number
 -- @return string name, number|string icon, table objectives, boolean isComplete
 local function GetEndeavorDisplayInfo(endeavorID)
@@ -189,7 +189,7 @@ local function GetEndeavorDisplayInfo(endeavorID)
     return "Endeavor " .. tostring(endeavorID), nil, {}, false
 end
 
---- Build tracker rows from WoW tracked Endeavors.
+-- Build tracker rows from WoW tracked Endeavors.
 -- @return table Array of normalized entry tables for the tracker
 local function ReadTrackedEndeavors()
     local out = {}

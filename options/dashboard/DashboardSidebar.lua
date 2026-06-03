@@ -6,8 +6,8 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
---- @param p table f, addon, dashAccentRefs, dashSession, DASHBOARD_CHILD_PANEL_ALPHA, MakeText, GetAccentColor, refreshDashboardClassIcon
---- @return table
+-- @param p table f, addon, dashAccentRefs, dashSession, DASHBOARD_CHILD_PANEL_ALPHA, MakeText, GetAccentColor, refreshDashboardClassIcon
+-- @return table
 function addon.DashboardSidebar_CreateChrome(p)
     local f = p.f
     local dashAccentRefs = p.dashAccentRefs

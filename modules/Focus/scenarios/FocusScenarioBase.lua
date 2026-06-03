@@ -13,10 +13,10 @@ function BaseProvider:New()
     return o
 end
 
---- ScenarioHeaderTimer (widgetType 20) from step's widget set. Verified for Singularity.
---- Uses cache when valid to avoid countdown jump from stale API samples on layout refresh.
---- @param setID number|nil Widget set ID; if nil, uses GetScenarioStepInfo().widgetSetID
---- @return number|nil duration, number|nil startTime
+-- ScenarioHeaderTimer (widgetType 20) from step's widget set. Verified for Singularity.
+-- Uses cache when valid to avoid countdown jump from stale API samples on layout refresh.
+-- @param setID number|nil Widget set ID; if nil, uses GetScenarioStepInfo().widgetSetID
+-- @return number|nil duration, number|nil startTime
 function BaseProvider:GetWidgetStepTimer(setID)
     local wsID = setID
     if not wsID or wsID <= 0 then
@@ -54,8 +54,8 @@ function BaseProvider:GetWidgetStepTimer(setID)
     return nil, nil
 end
 
---- Timer extraction: criteria, quest, then widget (ScenarioHeaderTimer type 20).
---- ScenarioHeaderTimer uses zQuestLog formula (timerMin/timerMax/timerValue).
+-- Timer extraction: criteria, quest, then widget (ScenarioHeaderTimer type 20).
+-- ScenarioHeaderTimer uses zQuestLog formula (timerMin/timerMax/timerValue).
 function BaseProvider:GetTimerInfo(criteriaInfo, rewardQuestID, widgetSetID)
     -- 1. Criteria Timer (C_ScenarioInfo)
     if criteriaInfo and criteriaInfo.duration and criteriaInfo.duration > 0 then
@@ -87,7 +87,7 @@ function BaseProvider:GetTimerInfo(criteriaInfo, rewardQuestID, widgetSetID)
     return nil, nil
 end
 
---- Modernized widget objective parsing.
+-- Modernized widget objective parsing.
 function BaseProvider:ParseWidgetObjectives(setID)
     local objectives = {}
     if not setID or setID == 0 then return objectives end
@@ -363,17 +363,17 @@ function addon.FormatScenarioHeaderCurrenciesForTitle(currencies)
     return table.concat(parts, " ")
 end
 
---- Normalize objective text for deduplication (strip color codes, trim).
---- @param text string|nil
---- @return string
+-- Normalize objective text for deduplication (strip color codes, trim).
+-- @param text string|nil
+-- @return string
 local function NormalizeObjectiveText(text)
     if not text or type(text) ~= "string" then return "" end
     return text:gsub("|c........", ""):gsub("|r", ""):gsub("^%s+", ""):gsub("%s+$", ""):lower()
 end
 
---- Deduplicate objectives by normalized text. When duplicates exist, keep the one with higher progress.
---- @param objectives table Array of objective tables
---- @return table Deduplicated array (preserves order of first occurrence)
+-- Deduplicate objectives by normalized text. When duplicates exist, keep the one with higher progress.
+-- @param objectives table Array of objective tables
+-- @return table Deduplicated array (preserves order of first occurrence)
 function BaseProvider:DeduplicateObjectives(objectives)
     if not objectives or #objectives == 0 then return objectives end
     local function getProgress(o)
@@ -406,7 +406,7 @@ function BaseProvider:DeduplicateObjectives(objectives)
     return out
 end
 
---- Normalized objective builder from CriteriaInfo.
+-- Normalized objective builder from CriteriaInfo.
 function BaseProvider:BuildObjectiveFromCriteria(criteriaInfo)
     if not criteriaInfo then return nil end
     

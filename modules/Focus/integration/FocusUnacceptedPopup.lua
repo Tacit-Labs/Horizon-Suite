@@ -25,7 +25,7 @@ local SCROLL_DELTA = 24
 -- Query: collect unaccepted daily/weekly candidates for current zone
 -- ---------------------------------------------------------------------------
 
---- Build mapIDsToCheck for strict current-map mode.
+-- Build mapIDsToCheck for strict current-map mode.
 local function GetMapIDsToCheck()
     if not C_Map or not C_Map.GetBestMapForUnit then return nil end
     local mapID = C_Map.GetBestMapForUnit("player")
@@ -33,7 +33,7 @@ local function GetMapIDsToCheck()
     return { mapID }
 end
 
---- Returns true if the quest is not currently accepted (not in log).
+-- Returns true if the quest is not currently accepted (not in log).
 local function IsQuestUnaccepted(questID)
     if not questID or questID <= 0 then return false end
     if C_QuestLog and C_QuestLog.GetLogIndexForQuestID then
@@ -46,7 +46,7 @@ local function IsQuestUnaccepted(questID)
     return true
 end
 
---- Build map context for a quest from map-focused APIs.
+-- Build map context for a quest from map-focused APIs.
 local function BuildQuestMapContext(questID, currentMapID, questLineInfo)
     local context = {
         lineInfo = questLineInfo,
@@ -83,7 +83,7 @@ local function BuildQuestMapContext(questID, currentMapID, questLineInfo)
     return context
 end
 
---- True only when we can explicitly resolve the quest to the current map.
+-- True only when we can explicitly resolve the quest to the current map.
 local function IsQuestStrictlyOnCurrentMap(context, currentMapID)
     if not context or not currentMapID then return false end
 
@@ -101,9 +101,9 @@ local function IsQuestStrictlyOnCurrentMap(context, currentMapID)
     return false, "noExplicitCurrentMapMatch"
 end
 
---- Classify as Daily, Weekly, Recurring, or nil (other).
---- Note: QuestPOIMapInfo and QuestLineInfo expose isDaily only, not isWeekly. Weekly detection
---- relies on RequestLoadQuestByID + GetQuestClassification(Recurring) after QUEST_DATA_LOAD_RESULT.
+-- Classify as Daily, Weekly, Recurring, or nil (other).
+-- Note: QuestPOIMapInfo and QuestLineInfo expose isDaily only, not isWeekly. Weekly detection
+-- relies on RequestLoadQuestByID + GetQuestClassification(Recurring) after QUEST_DATA_LOAD_RESULT.
 local function ClassifyAsDailyWeekly(questID, context)
     local questLineInfo = context and context.lineInfo or nil
     if questLineInfo and questLineInfo.isDaily then
@@ -139,7 +139,7 @@ local function ClassifyAsDailyWeekly(questID, context)
     return nil, nil
 end
 
---- Resolve popup category using existing Focus category language.
+-- Resolve popup category using existing Focus category language.
 local function ResolvePopupCategory(questID, typeStr, context)
     -- pcall: GetQuestBaseCategory can throw on invalid questID.
     if addon.GetQuestBaseCategory then
@@ -161,10 +161,10 @@ local function ResolvePopupCategory(questID, typeStr, context)
     return "DEFAULT"
 end
 
---- Read unaccepted daily/weekly quests for current zone (best-effort).
---- @return table rows Array of { questID, title, typeStr, source, confidence }
---- @return number mapID Current player map
---- @return string zoneName Zone name for header
+-- Read unaccepted daily/weekly quests for current zone (best-effort).
+-- @return table rows Array of { questID, title, typeStr, source, confidence }
+-- @return number mapID Current player map
+-- @return string zoneName Zone name for header
 local function ReadUnacceptedZoneDailiesWeeklies()
     local rows = {}
     local mapID = nil
@@ -595,7 +595,7 @@ end
 -- Public API
 -- ---------------------------------------------------------------------------
 
---- Show the unaccepted daily/weekly popup (refresh data and display).
+-- Show the unaccepted daily/weekly popup (refresh data and display).
 local function ShowUnacceptedPopup()
     CreatePopupFrame()
     local rows, mapID, zoneName = ReadUnacceptedZoneDailiesWeeklies()
@@ -606,8 +606,8 @@ local function ShowUnacceptedPopup()
     RegisterRefreshEvents()
 end
 
---- Hide the unaccepted popup.
---- @return nil
+-- Hide the unaccepted popup.
+-- @return nil
 local function HideUnacceptedPopup()
     local st = addon.focus and addon.focus.unacceptedPopup
     if st then st.dataRequestedThisSession = false end

@@ -13,7 +13,9 @@ local D   = addon.AUGMENT_DEFAULTS
 local LIM = addon.AUGMENT_LIMITS
 
 -- Auto Vendor mini-module master switch (pill)
-D.augmentVendorEnabled        = false
+-- Defaults to true so the event frame is always registered; the inner toggles
+-- (autoSellerEnabled, autoRepairEnabled) are the real opt-in gates.
+D.augmentVendorEnabled        = true
 
 -- AutoSeller
 D.autoSellerEnabled           = false

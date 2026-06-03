@@ -34,8 +34,8 @@ end
 -- INTERFACE METHODS
 -- ============================================================================
 
---- Get display info for Presence scenario-start toast.
---- @return title, subtitle, category or nil, nil, nil
+-- Get display info for Presence scenario-start toast.
+-- @return title, subtitle, category or nil, nil, nil
 local function GetScenarioDisplayInfo()
     if not IsScenarioActive() then return nil, nil, nil end
     local provider = addon.FocusScenarioRegistry:GetProvider()
@@ -45,8 +45,8 @@ local function GetScenarioDisplayInfo()
     return "Scenario", "", "SCENARIO"
 end
 
---- Build tracker rows from active scenario.
---- @return table Array of normalized entry tables for the tracker
+-- Build tracker rows from active scenario.
+-- @return table Array of normalized entry tables for the tracker
 local function ReadScenarioEntries()
     if not IsScenarioActive() then
         InvalidateScenarioEntriesCache()
@@ -66,7 +66,7 @@ local function ReadScenarioEntries()
     return out
 end
 
---- Debug tool to dump scenario timer info.
+-- Debug tool to dump scenario timer info.
 local function DumpScenarioTimerInfo()
     local HSPrint = addon.HSPrint or function(m) print("|cFF00CCFFHorizon Suite:|r " .. tostring(m or "")) end
     HSPrint("|cFF00CCFF--- Scenario Timer Debug ---|r")
@@ -92,6 +92,6 @@ addon.IsScenarioActive         = IsScenarioActive
 addon.GetScenarioDisplayInfo   = GetScenarioDisplayInfo
 addon.DumpScenarioTimerInfo    = DumpScenarioTimerInfo
 
---- Drop cached scenario rows so the next ReadScenarioEntries rebuilds from APIs.
---- @return nil
+-- Drop cached scenario rows so the next ReadScenarioEntries rebuilds from APIs.
+-- @return nil
 addon.InvalidateScenarioEntriesCache = InvalidateScenarioEntriesCache

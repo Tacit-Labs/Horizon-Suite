@@ -68,8 +68,8 @@ if not addon then return end
 
 local registered = {}
 
---- Register a migration to be executed by RunMigrations.
---- @param m table  { id, run [, legacy] }
+-- Register a migration to be executed by RunMigrations.
+-- @param m table  { id, run [, legacy] }
 function addon.RegisterMigration(m)
     assert(type(m) == "table",          "RegisterMigration: expected table")
     assert(type(m.id)  == "string" and m.id  ~= "", "RegisterMigration: id required")
@@ -77,9 +77,9 @@ function addon.RegisterMigration(m)
     registered[#registered + 1] = m
 end
 
---- Run all pending migrations against the root SavedVariables table.
---- Called once per session from addon.EnsureDB() after EnsureProfilesAndMigrateLegacy.
---- @param db table  The raw HorizonDB SavedVariables table.
+-- Run all pending migrations against the root SavedVariables table.
+-- Called once per session from addon.EnsureDB() after EnsureProfilesAndMigrateLegacy.
+-- @param db table  The raw HorizonDB SavedVariables table.
 function addon.RunMigrations(db)
     if not db or addon._migrationsRan then return end
     addon._migrationsRan = true

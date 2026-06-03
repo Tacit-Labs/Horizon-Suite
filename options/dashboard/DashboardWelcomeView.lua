@@ -15,7 +15,7 @@ local WELCOME_CLASS_ICON_STRIP_ORDER = {
     "PALADIN", "PRIEST", "ROGUE", "SHAMAN", "WARLOCK", "WARRIOR",
 }
 
---- @return table
+-- @return table
 local function GetSortedFeed(feedData)
     local src = feedData or addon.DashboardWelcomeFeed
     if not src or #src == 0 then
@@ -31,8 +31,8 @@ local function GetSortedFeed(feedData)
     return t
 end
 
---- @param env table Same dashboard env as DashboardHomeWelcome_Init (frames, MakeText, L, …), plus optional: targetView, feedData, targetViewName, headSubKey, communityFooter.
---- @return nil
+-- @param env table Same dashboard env as DashboardHomeWelcome_Init (frames, MakeText, L, …), plus optional: targetView, feedData, targetViewName, headSubKey, communityFooter.
+-- @return nil
 function addon.DashboardWelcomeView_Init(env)
     local f = env.f
     local addonRef = env.addon

@@ -20,7 +20,7 @@ local TRANSMOG_TYPE_ICON_ATLAS_CANDIDATES = {
 local transmogTypeIconAtlasCache = { done = false, atlas = nil }
 
 -- Resolve a single shared atlas for “transmog list” icon (cached after first lookup).
---- @return string|nil
+-- @return string|nil
 local function GetResolvedTransmogTypeIconAtlas()
     if transmogTypeIconAtlasCache.done then
         return transmogTypeIconAtlasCache.atlas
@@ -42,10 +42,10 @@ end
 -- APPEARANCE DATA PROVIDER
 -- ============================================================================
 
---- Resolve objective hint from content tracking (vendor / drop / etc.).
---- @param trackableType number Enum.ContentTrackingType value
---- @param trackableID number
---- @return string|nil
+-- Resolve objective hint from content tracking (vendor / drop / etc.).
+-- @param trackableType number Enum.ContentTrackingType value
+-- @param trackableID number
+-- @return string|nil
 local function GetTrackingObjectiveText(trackableType, trackableID)
     if not C_ContentTracking or not C_ContentTracking.GetCurrentTrackingTarget or not C_ContentTracking.GetObjectiveText then
         return nil
@@ -57,10 +57,10 @@ local function GetTrackingObjectiveText(trackableType, trackableID)
     return nil
 end
 
---- Title, optional icon (fileID), optional item link for tooltips, collected flag.
---- @param trackableType number
---- @param appearanceID number Content tracking ID
---- @return string title, number|string|nil icon, string|nil itemLink, boolean isCollected
+-- Title, optional icon (fileID), optional item link for tooltips, collected flag.
+-- @param trackableType number
+-- @param appearanceID number Content tracking ID
+-- @return string title, number|string|nil icon, string|nil itemLink, boolean isCollected
 local function GetAppearanceDisplayInfo(trackableType, appearanceID)
     local fallbackTitle = "Appearance " .. tostring(appearanceID)
     local title = fallbackTitle
@@ -88,8 +88,8 @@ local function GetAppearanceDisplayInfo(trackableType, appearanceID)
     return title, icon, itemLink, isCollected
 end
 
---- Build tracker rows from WoW tracked transmog appearances.
---- @return table Array of normalized entry tables for the tracker
+-- Build tracker rows from WoW tracked transmog appearances.
+-- @return table Array of normalized entry tables for the tracker
 local function ReadTrackedAppearances()
     local out = {}
     if not addon.GetDB("showAppearances", true) then return out end
@@ -171,17 +171,17 @@ end
 -- COLLECTIONS UI
 -- ============================================================================
 
---- Open the Collections Appearances (wardrobe) UI for a tracked appearance source ID.
---- Uses the canonical Blizzard flow from Blizzard_Wardrobe.lua:
----     WardrobeCollectionFrame:GoToItem(sourceID)
---- which internally calls SetTab(TAB_ITEMS), resolves the categoryID via
---- C_TransmogCollection.GetAppearanceSourceInfo, builds a transmogLocation with
---- TransmogUtil.GetTransmogLocation, and calls ItemsCollectionFrame:GoToSourceID.
---- When GoToItem is missing we reproduce the same steps manually so we never silently
---- land on the default slot (Head). Retries cover the frame/data lag between
---- ToggleCollectionsJournal and the wardrobe being ready to scroll.
---- @param itemModifiedAppearanceID number ID from content tracking (appearance source)
---- @return nil
+-- Open the Collections Appearances (wardrobe) UI for a tracked appearance source ID.
+-- Uses the canonical Blizzard flow from Blizzard_Wardrobe.lua:
+--     WardrobeCollectionFrame:GoToItem(sourceID)
+-- which internally calls SetTab(TAB_ITEMS), resolves the categoryID via
+-- C_TransmogCollection.GetAppearanceSourceInfo, builds a transmogLocation with
+-- TransmogUtil.GetTransmogLocation, and calls ItemsCollectionFrame:GoToSourceID.
+-- When GoToItem is missing we reproduce the same steps manually so we never silently
+-- land on the default slot (Head). Retries cover the frame/data lag between
+-- ToggleCollectionsJournal and the wardrobe being ready to scroll.
+-- @param itemModifiedAppearanceID number ID from content tracking (appearance source)
+-- @return nil
 local function OpenTrackedAppearanceInCollections(itemModifiedAppearanceID)
     if type(itemModifiedAppearanceID) ~= "number" or itemModifiedAppearanceID <= 0 then
         return
