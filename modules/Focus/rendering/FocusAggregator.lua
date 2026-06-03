@@ -684,8 +684,18 @@ local function ReadTrackedQuests()
     end
 
     -- 6. Super-tracked catch-all
+    -- For unaccepted world quests, allow zone/toggle guards to run normally rather than
+    -- bypassing them with isTracked=true. Blizzard auto-super-tracks Special Assignments
+    -- for every character globally — a fresh character nowhere near the zone should not
+    -- see it pinned in FOCUSED just because WoW set the super-track automatically.
+    -- Accepted WQs and all non-WQ quests keep isTracked=true (explicit user intent).
     if superTracked and superTracked > 0 and not seen[superTracked] and not scenarioRewardQuestIDs[superTracked] then
-        addQuest(superTracked, { isTracked = true })
+        local isWQ = addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(superTracked)
+        local isAccepted = addon.IsQuestAccepted and addon.IsQuestAccepted(superTracked)
+        local stOpts = (isWQ and not isAccepted)
+            and {}                  -- unaccepted WQ: let zone/showWorldQuests guards apply
+            or  { isTracked = true } -- accepted WQ or regular quest: always show
+        addQuest(superTracked, stOpts)
     end
 
     -- 7. Scenario entries (already normalized)
