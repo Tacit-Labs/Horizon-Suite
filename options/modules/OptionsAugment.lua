@@ -216,7 +216,7 @@ local categories = {
         accentColor = { 0.25, 0.78, 1.0 },
         moduleKey = "augment",
         enabledKey = "augmentVendorEnabled",
-        getEnabled = function() return getDB("augmentVendorEnabled", true) ~= false end,
+        getEnabled = function() return getDB("augmentVendorEnabled", D.augmentVendorEnabled) ~= false end,
         setEnabled = function(v)
             v = v and true or false
             setDB("augmentVendorEnabled", v)
@@ -285,7 +285,7 @@ local categories = {
         accentColor = { 0.70, 0.40, 1.0 },
         moduleKey = "augment",
         enabledKey = "augmentSelfHighlightEnabled",
-        getEnabled = function() return getDB("augmentSelfHighlightEnabled", true) ~= false end,
+        getEnabled = function() return getDB("augmentSelfHighlightEnabled", D.augmentSelfHighlightEnabled) ~= false end,
         setEnabled = function(v)
             v = v and true or false
             setDB("augmentSelfHighlightEnabled", v)
