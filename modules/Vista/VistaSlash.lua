@@ -9,8 +9,8 @@ if not addon or not addon.Vista or not addon.RegisterSlashHandler then return en
 local Vista = addon.Vista
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
---- Handle /horizon vista [cmd] subcommands.
---- @param msg string Subcommand (reset, toggle, lock, scale, autozoom, help)
+-- Handle /horizon vista [cmd] subcommands.
+-- @param msg string Subcommand (reset, toggle, lock, scale, autozoom, help)
 local function HandleVistaSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 

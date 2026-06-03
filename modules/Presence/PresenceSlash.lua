@@ -8,8 +8,8 @@ if not addon or not addon.Presence or not addon.RegisterSlashHandler then return
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
---- Handle /horizon presence [cmd] subcommands.
---- @param msg string Subcommand (toggle, zone, subzone, discover, level, boss, ach, quest, wq, wqaccept, accept, update, scenario, all, help)
+-- Handle /horizon presence [cmd] subcommands.
+-- @param msg string Subcommand (toggle, zone, subzone, discover, level, boss, ach, quest, wq, wqaccept, accept, update, scenario, all, help)
 local function HandlePresenceSlash(msg)
     local cmd = strtrim(msg or ""):lower()
     -- Accept optional leading "test " prefix (matches PR test-plan phrasing).

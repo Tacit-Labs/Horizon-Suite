@@ -31,10 +31,10 @@ function addon.RegisterSlashHandlerDebug(moduleKey, handler)
     addon.slashHandlersDebug[moduleKey] = handler
 end
 
---- Register a module's SetDebugLive function. Called by each module at load.
---- Centralizes the DEV_MODE guard and isEnabled toggle so modules don't repeat it.
---- @param moduleKey string
---- @param fn function(enabled: boolean)  Called with the new enabled state
+-- Register a module's SetDebugLive function. Called by each module at load.
+-- Centralises the DEV_MODE guard and isEnabled toggle so modules don't repeat it.
+-- @param moduleKey string
+-- @param fn function(enabled: boolean)  Called with the new enabled state
 function addon.RegisterDebugLive(moduleKey, fn)
     if not moduleKey or type(fn) ~= "function" then return end
     addon.debugLiveRegistry[moduleKey] = fn
