@@ -35,7 +35,16 @@ local MODE_CONFIG = {
 -- CVar helpers
 -- ============================================================================
 
+-- Cache the last applied state so SetCVar is only called on actual changes.
+-- Calling SetCVar fires CVAR_UPDATE in the same tick; if that tick also
+-- contains action-bar event handlers, WoW taints the cooldown context and
+-- produces "Secret values are only allowed during untainted execution" errors
+-- on every action button (34000+ times in a normal session with a 0.5 s ticker).
+local activeMode = nil  -- current mode key string, false = cleared, nil = unknown
+
 local function SetHighlight(modeKey)
+    if activeMode == modeKey then return end
+    activeMode = modeKey
     local cfg = MODE_CONFIG[modeKey] or MODE_CONFIG.outlinecircle
     SetCVar("selfHighlight",                    1)
     SetCVar("findYourselfMode",                 cfg.mode)
@@ -48,6 +57,8 @@ local function SetHighlight(modeKey)
 end
 
 local function ClearHighlight()
+    if activeMode == false then return end
+    activeMode = false
     SetCVar("selfHighlight",                    0)
     SetCVar("findYourselfMode",                 0)
     SetCVar("findYourselfModeOutline",          0)
@@ -120,6 +131,7 @@ local SH = {}
 Y.SelfHighlight = SH
 
 function SH.Enable()
+    activeMode = nil  -- invalidate cache so first Evaluate() always writes CVars
     eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
     eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
