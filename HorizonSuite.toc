@@ -113,6 +113,7 @@ modules/Augment/LootFrame/AugmentSlash.lua
 modules/Augment/SelfHighlight/AugmentSelfHighlight.lua
 modules/Augment/AutoVendor/AugmentVendor.lua
 modules/Augment/TalkingHead/AugmentTalkingHead.lua
+modules/Augment/AchievementTracker/AugmentAchievementTracker.lua
 modules/Augment/AugmentModule.lua
 
 modules/Vista/VistaCore.lua
@@ -139,6 +140,7 @@ options/modules/defaults/augment/OptionsDefaultsAugmentLootFrame.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentSelfHighlight.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAutoVendor.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentTalkingHead.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentAchievementTracker.lua
 options/modules/defaults/OptionsDefaultsAugment.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
