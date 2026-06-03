@@ -24,7 +24,7 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
---- @type table[]
+-- @type table[]
 addon.DashboardIntegrationsFeed = {
     {
         id          = "allthethings",

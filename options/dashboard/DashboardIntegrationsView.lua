@@ -25,7 +25,7 @@ if not addon then return end
 -- State helpers
 -- ---------------------------------------------------------------------------
 
---- @return string  "enabled" | "disabled" | "missing"
+-- @return string  "enabled" | "disabled" | "missing"
 local function GetIntegrationState(name)
     if type(name) ~= "string" or name == "" then return "missing" end
     if not C_AddOns then return "missing" end
@@ -48,7 +48,7 @@ local function GetIntegrationState(name)
     return "missing"
 end
 
---- @return string|number|nil
+-- @return string|number|nil
 local function ResolveAddonIconTexture(addonName)
     if type(addonName) ~= "string" or addonName == "" then return nil end
     if not C_AddOns or not C_AddOns.GetAddOnMetadata then return nil end
@@ -58,7 +58,7 @@ local function ResolveAddonIconTexture(addonName)
     return tex
 end
 
---- @return string|nil
+-- @return string|nil
 local function ResolveAddonVersion(addonName)
     if type(addonName) ~= "string" or addonName == "" then return nil end
     if not C_AddOns or not C_AddOns.GetAddOnMetadata then return nil end
@@ -67,8 +67,8 @@ local function ResolveAddonVersion(addonName)
     return ver
 end
 
---- @param feed table|nil
---- @return table
+-- @param feed table|nil
+-- @return table
 local function GetSortedFeed(feed)
     local src = feed or addon.DashboardIntegrationsFeed
     if not src or #src == 0 then return {} end

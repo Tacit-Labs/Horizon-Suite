@@ -551,9 +551,9 @@ end
 
 local PREVIEW_MODES = { global = true, player = true, npc = true, item = true }
 
---- Select which tooltip sample the dashboard preview shows when an Insight options page is active.
---- @param mode string "global" | "player" | "npc" | "item"
---- @return nil
+-- Select which tooltip sample the dashboard preview shows when an Insight options page is active.
+-- @param mode string "global" | "player" | "npc" | "item"
+-- @return nil
 function Insight.SetDashboardPreviewMode(mode)
     if type(mode) ~= "string" or not PREVIEW_MODES[mode] then return end
     Insight.dashboardPreviewMode = mode
@@ -814,7 +814,7 @@ local function RefreshPullout()
     pulloutMock:Layout(GetPreviewPulloutWidth() - 20)
 end
 
---- Toggle dashboard preview pullout (delegates to shared options shell).
+-- Toggle dashboard preview pullout (delegates to shared options shell).
 function Insight.TogglePreviewPullout()
     if addon.DashboardPreview and addon.DashboardPreview.TogglePullout then
         addon.DashboardPreview.TogglePullout()
@@ -827,7 +827,7 @@ function Insight.ClosePullout()
     end
 end
 
---- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
+-- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
 function Insight.EnsurePreviewTab(dashFrame)
     if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then
         addon.DashboardPreview.InitDashboard(dashFrame)
@@ -838,9 +838,9 @@ end
 -- TRP3 SUPPRESSOR
 -- ============================================================================
 
---- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
---- own frame is suppressed and Insight's enriched GameTooltip stays visible.
---- Called once when "totalRP3" finishes loading (or at Init if already loaded).
+-- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
+-- own frame is suppressed and Insight's enriched GameTooltip stays visible.
+-- Called once when "totalRP3" finishes loading (or at Init if already loaded).
 function Insight.InstallTRP3Suppressor()
     local trp3Tooltip = _G["TRP3_CharacterTooltip"]
     if not trp3Tooltip or Insight._trp3HookInstalled then return end
@@ -881,7 +881,7 @@ function Insight.ShowAnchorFrame()
     ShowAnchorFrame()
 end
 
---- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
+-- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
 function Insight.ToggleAnchorFrame()
     if TooltipPlainShown(anchorFrame) then
         HideAnchorFrame()

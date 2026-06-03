@@ -21,10 +21,10 @@ Y.FONT_SIZE       = 16
 
 local FONT_USE_GLOBAL = "__global__"
 
---- Resolve the active font path for Augment loot toasts. Mirrors VistaCore.ResolveFont
---- (modules/Vista/VistaCore.lua) and InsightShared (modules/Insight/InsightShared.lua):
---- per-module DB key → global fontPath DB → addon.GetDefaultFontPath() → Y.FONT_PATH.
---- @return string font file path
+-- Resolve the active font path for Augment loot toasts. Mirrors VistaCore.ResolveFont
+-- (modules/Vista/VistaCore.lua) and InsightShared (modules/Insight/InsightShared.lua):
+-- per-module DB key → global fontPath DB → addon.GetDefaultFontPath() → Y.FONT_PATH.
+-- @return string font file path
 function Y.GetFontPath()
     local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
     if global then return global end
@@ -159,11 +159,11 @@ Y.DB_KEYS = {
     -- SelfHighlight and AutoVendor mini-modules append their own keys below.
 }
 
---- Return the hold duration for a toast, reading from DB when available.
---- Falls back to the module constants so behaviour is unchanged with no saved value.
---- @param kind string  "item"|"money"|"currency"|"rep"
---- @param quality number|nil  item quality (only relevant for kind=="item")
---- @return number seconds
+-- Return the hold duration for a toast, reading from DB when available.
+-- Falls back to the module constants so behaviour is unchanged with no saved value.
+-- @param kind string  "item"|"money"|"currency"|"rep"
+-- @param quality number|nil  item quality (only relevant for kind=="item")
+-- @return number seconds
 function Y.GetHoldDur(kind, quality)
     local D = addon.AUGMENT_DEFAULTS
     if kind == "money" then
@@ -182,8 +182,8 @@ function Y.GetHoldDur(kind, quality)
     end
 end
 
---- Get position from profile (or defaults).
---- @return point string|nil, relPoint string|nil, x number|nil, y number|nil
+-- Get position from profile (or defaults).
+-- @return point string|nil, relPoint string|nil, x number|nil, y number|nil
 function Y.GetPosition()
     if not addon.GetDB then
         return nil, nil, Y.DEFAULT_X, Y.DEFAULT_Y
@@ -195,12 +195,12 @@ function Y.GetPosition()
     return pt, rp, px, py
 end
 
---- Save frame position to active profile.
---- @param point string
---- @param relPoint string
---- @param x number
---- @param y number
---- @return nil
+-- Save frame position to active profile.
+-- @param point string
+-- @param relPoint string
+-- @param x number
+-- @param y number
+-- @return nil
 function Y.SavePosition(point, relPoint, x, y)
     if not addon.SetDB then return end
     addon.SetDB("augmentPoint", point)
@@ -209,8 +209,8 @@ function Y.SavePosition(point, relPoint, x, y)
     addon.SetDB("augmentY", y)
 end
 
---- Clear saved position.
---- @return nil
+-- Clear saved position.
+-- @return nil
 function Y.ClearPosition()
     if not addon.SetDB then return end
     addon.SetDB("augmentPoint", nil)

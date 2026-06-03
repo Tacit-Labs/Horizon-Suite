@@ -9,8 +9,8 @@ local addon = _G.HorizonSuite
 
 local tinsert = table.insert
 
---- @param env table
---- @return table { RefreshDashboardTiles = function }
+-- @param env table
+-- @return table { RefreshDashboardTiles = function }
 function addon.DashboardHomeWelcome_Init(env)
     local f = env.f
     local envAddon = env.addon

@@ -859,10 +859,10 @@ local function ApplyDimensions(widthOverride)
     end
 end
 
---- Return an entry to the pool; clears data and hides frame. Hide() is guarded during combat and deferred to PLAYER_REGEN_ENABLED.
---- @param entry table Pool entry frame
---- @param full boolean|nil If false, only clear data; if true/nil, also hide frame and children
---- @return nil
+-- Return an entry to the pool; clears data and hides frame. Hide() is guarded during combat and deferred to PLAYER_REGEN_ENABLED.
+-- @param entry table Pool entry frame
+-- @param full boolean|nil If false, only clear data; if true/nil, also hide frame and children
+-- @return nil
 local function ClearEntry(entry, full)
     if not entry then return end
     entry.questID    = nil

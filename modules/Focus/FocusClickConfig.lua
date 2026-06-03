@@ -116,10 +116,10 @@ local PROFILES = {
 -- Private helpers.
 -- ============================================================================
 
---- Build the combo key string from button + modifiers.
---- @param button string "LeftButton" | "RightButton"
---- @param mods table { shift=bool, ctrl=bool, alt=bool }
---- @return string e.g. "shiftLeft", "right", "ctrlRight", "altRight"
+-- Build the combo key string from button + modifiers.
+-- @param button string "LeftButton" | "RightButton"
+-- @param mods table { shift=bool, ctrl=bool, alt=bool }
+-- @return string e.g. "shiftLeft", "right", "ctrlRight", "altRight"
 local function ResolveComboKey(button, mods)
     local prefix = mods.shift and "shift" or mods.ctrl and "ctrl" or mods.alt and "alt" or ""
     if prefix == "" then
@@ -131,9 +131,9 @@ local function ResolveComboKey(button, mods)
     return prefix .. side
 end
 
---- Normalize legacy action keys to the current canonical action names.
---- @param action any
---- @return any
+-- Normalize legacy action keys to the current canonical action names.
+-- @param action any
+-- @return any
 local function NormalizeQuestClickAction(action)
     if action == "openQuestLog" or action == "openProfession" then
         return "openDetails"
@@ -141,9 +141,9 @@ local function NormalizeQuestClickAction(action)
     return action
 end
 
---- Normalize stored icon action to a valid supported action key.
---- @param action any
---- @return string
+-- Normalize stored icon action to a valid supported action key.
+-- @param action any
+-- @return string
 local function NormalizeIconClickAction(action)
     action = NormalizeQuestClickAction(action)
     if type(action) ~= "string" or not ACTION_LABELS[action] then
@@ -157,11 +157,11 @@ local function NormalizeIconClickAction(action)
     return "superTrack"
 end
 
---- If DB/profile returned an unknown action, fall back to preset default for this combo.
---- @param action any
---- @param comboKey string
---- @param profile string focusClickProfile value (e.g. custom, blizzardDefault, horizonPlus)
---- @return string
+-- If DB/profile returned an unknown action, fall back to preset default for this combo.
+-- @param action any
+-- @param comboKey string
+-- @param profile string focusClickProfile value (e.g. custom, blizzardDefault, horizonPlus)
+-- @return string
 local function SanitizeQuestClickAction(action, comboKey, profile)
     action = NormalizeQuestClickAction(action)
     if type(action) ~= "string" or action == "" or not ACTION_LABELS[action] then
@@ -182,34 +182,34 @@ end
 -- Exported: dispatcher.
 -- ============================================================================
 
---- Resolve button + modifiers to combo key (e.g. "shiftLeft") for logging and tools.
---- @param button string "LeftButton" | "RightButton"
---- @param mods table { shift=bool, ctrl=bool, alt=bool }
---- @return string
+-- Resolve button + modifiers to combo key (e.g. "shiftLeft") for logging and tools.
+-- @param button string "LeftButton" | "RightButton"
+-- @param mods table { shift=bool, ctrl=bool, alt=bool }
+-- @return string
 function addon.focus.GetQuestClickComboKey(button, mods)
     return ResolveComboKey(button, mods)
 end
 
---- True when the quest/appearance type icon is shown and super-tracks on left click (legacy classic toggle or Blizzard+ profile).
---- @return boolean
+-- True when the quest/appearance type icon is shown and super-tracks on left click (legacy classic toggle or Blizzard+ profile).
+-- @return boolean
 function addon.focus.UseBlizzardStyleQuestIconClicks()
     if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then return true end
     if addon.GetDB("useClassicClickBehaviour", false) then return true end
     return addon.GetDB("focusClickProfile", "blizzardDefault") == "blizzardDefault"
 end
 
---- True when the dedicated quest/appearance icon button should be shown and clickable.
---- @return boolean
+-- True when the dedicated quest/appearance icon button should be shown and clickable.
+-- @return boolean
 function addon.focus.UseFocusIconClickButton()
     return addon.GetDB("focusIconClickAction", "superTrack") ~= "none"
 end
 
---- Return the action name for a quest-row click.
---- Called from FocusInteractions.lua on every quest-row mouse event.
---- @param button string "LeftButton" | "RightButton"
---- @param mods table { shift=bool, ctrl=bool, alt=bool }
---- @param profile string|nil If already read by caller, pass it to skip a second DB read.
---- @return string action key (e.g. "superTrack", "untrack", "none")
+-- Return the action name for a quest-row click.
+-- Called from FocusInteractions.lua on every quest-row mouse event.
+-- @param button string "LeftButton" | "RightButton"
+-- @param mods table { shift=bool, ctrl=bool, alt=bool }
+-- @param profile string|nil If already read by caller, pass it to skip a second DB read.
+-- @return string action key (e.g. "superTrack", "untrack", "none")
 function addon.focus.GetQuestClickAction(button, mods, profile)
     if not profile then profile = addon.GetDB("focusClickProfile", "blizzardDefault") end
     if FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then
@@ -230,11 +230,11 @@ function addon.focus.GetQuestClickAction(button, mods, profile)
     return SanitizeQuestClickAction(raw, comboKey, profile)
 end
 
---- Same resolution as GetQuestClickAction (shared PROFILES and focusClick_*); appearance row handling differs only in ExecuteAppearanceAction.
---- @param button string "LeftButton" | "RightButton"
---- @param mods table { shift=bool, ctrl=bool, alt=bool }
---- @param profile string|nil
---- @return string action key
+-- Same resolution as GetQuestClickAction (shared PROFILES and focusClick_*); appearance row handling differs only in ExecuteAppearanceAction.
+-- @param button string "LeftButton" | "RightButton"
+-- @param mods table { shift=bool, ctrl=bool, alt=bool }
+-- @param profile string|nil
+-- @return string action key
 function addon.focus.GetAppearanceClickAction(button, mods, profile)
     return addon.focus.GetQuestClickAction(button, mods, profile)
 end
@@ -262,9 +262,9 @@ local COMBO_LABEL_KEYS = {
     altRight   = "FOCUS_COMBO_ALT_RIGHT",
 }
 
---- Localized description of which click combo(s) run the WoWhead action (for tooltips).
---- @param profile string|nil Optional; defaults to current focusClickProfile from DB.
---- @return string Empty when no combo is bound to WoWhead.
+-- Localized description of which click combo(s) run the WoWhead action (for tooltips).
+-- @param profile string|nil Optional; defaults to current focusClickProfile from DB.
+-- @return string Empty when no combo is bound to WoWhead.
 function addon.focus.GetWoWheadClickBindingHint(profile)
     local parts = {}
     local L = addon.L
@@ -290,10 +290,10 @@ end
 -- Exported: combo options builder (used by OptionsData.lua; presets vs Custom full list).
 -- ============================================================================
 
---- Return a dropdown options table for a given combo key.
---- Each entry is { displayLabel, actionKey }.
---- @param comboKey string
---- @return table
+-- Return a dropdown options table for a given combo key.
+-- Each entry is { displayLabel, actionKey }.
+-- @param comboKey string
+-- @return table
 local function GetComboOptions(comboKey)
     local result = {}
     local L = addon.L
@@ -305,8 +305,8 @@ local function GetComboOptions(comboKey)
     return result
 end
 
---- Full action list for Custom profile (same options on every combo dropdown).
---- @return table Array of { displayLabel, actionKey }.
+-- Full action list for Custom profile (same options on every combo dropdown).
+-- @return table Array of { displayLabel, actionKey }.
 local function GetAllComboActionOptions()
     local result = {}
     local L = addon.L
@@ -318,8 +318,8 @@ local function GetAllComboActionOptions()
     return result
 end
 
---- Curated icon-button actions shared by quest and appearance icons.
---- @return table Array of { displayLabel, actionKey }.
+-- Curated icon-button actions shared by quest and appearance icons.
+-- @return table Array of { displayLabel, actionKey }.
 local function GetIconActionOptions()
     local result = {}
     local L = addon.L

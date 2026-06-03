@@ -1,4 +1,4 @@
-﻿--[[
+--[[
     Horizon Suite - Focus - Options categories
     Self-registers into addon.OptionCategories after OptionsData.lua runs.
 ]]
@@ -22,10 +22,10 @@ local D   = addon.FOCUS_DEFAULTS
 local LIM = addon.FOCUS_LIMITS
 local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
 
---- Returns dropdown options for a given combo key, delegating to FocusClickConfig.
---- Custom profile uses the full action list on every combo; presets use curated COMBO_OPTIONS.
---- @param comboKey string e.g. "left", "shiftLeft"
---- @return table { {label, value}, ... }
+-- Returns dropdown options for a given combo key, delegating to FocusClickConfig.
+-- Custom profile uses the full action list on every combo; presets use curated COMBO_OPTIONS.
+-- @param comboKey string e.g. "left", "shiftLeft"
+-- @return table { {label, value}, ... }
 local function GetComboActionOptions(comboKey)
     local cfg = addon.focus and addon.focus.clickConfig
     if not cfg then return {} end
@@ -38,8 +38,8 @@ local function GetComboActionOptions(comboKey)
     return {}
 end
 
---- Returns dropdown options for the shared quest/appearance icon click action.
---- @return table { {label, value}, ... }
+-- Returns dropdown options for the shared quest/appearance icon click action.
+-- @return table { {label, value}, ... }
 local function GetIconClickActionOptions()
     local cfg = addon.focus and addon.focus.clickConfig
     if cfg and cfg.GetIconActionOptions then
@@ -48,10 +48,10 @@ local function GetIconClickActionOptions()
     return {}
 end
 
---- Resolved action for options UI: per-combo DB when Custom (defaults match Blizzard+); else built-in preset.
---- @param comboKey string
---- @param dbKey string SavedVariables key e.g. focusClick_left
---- @return string
+-- Resolved action for options UI: per-combo DB when Custom (defaults match Blizzard+); else built-in preset.
+-- @param comboKey string
+-- @param dbKey string SavedVariables key e.g. focusClick_left
+-- @return string
 local function GetEffectiveFocusClickAction(comboKey, dbKey)
     local prof = getDB("focusClickProfile", D.focusClickProfile)
     local cfg = addon.focus and addon.focus.clickConfig
@@ -74,8 +74,8 @@ local function GetEffectiveFocusClickAction(comboKey, dbKey)
     return (t and t[comboKey]) or customDefault
 end
 
---- Resolved icon click action for options UI: fixed default for presets, DB-backed for Custom.
---- @return string
+-- Resolved icon click action for options UI: fixed default for presets, DB-backed for Custom.
+-- @return string
 local function GetEffectiveFocusIconClickAction()
     local prof = getDB("focusClickProfile", D.focusClickProfile)
     if prof ~= "custom" then
@@ -87,21 +87,21 @@ local function GetEffectiveFocusIconClickAction()
     return normalizeAction and normalizeAction(raw) or raw
 end
 
---- When true, per-combo dropdowns are read-only (preset profile selected).
---- @return boolean
+-- When true, per-combo dropdowns are read-only (preset profile selected).
+-- @return boolean
 local function FocusClickPresetCombosLocked()
     return getDB("focusClickProfile", D.focusClickProfile) ~= "custom"
 end
 
---- True while Focus locks click profile to Blizzard (Horizon+ / Custom hidden).
---- @return boolean
+-- True while Focus locks click profile to Blizzard (Horizon+ / Custom hidden).
+-- @return boolean
 local function FocusClickProfileChoiceHidden()
     local c = addon.focus and addon.focus.clickConfig
     return c and c.profilesLockedToBlizzard
 end
 
---- Click profile dropdown: all presets listed; when locked, only Blizzard+ is selectable (others show "Coming soon").
---- @return table
+-- Click profile dropdown: all presets listed; when locked, only Blizzard+ is selectable (others show "Coming soon").
+-- @return table
 local function GetFocusClickProfileDropdownOptions()
     if FocusClickProfileChoiceHidden() then
         local soon = L["FOCUS_COMING_SOON"]

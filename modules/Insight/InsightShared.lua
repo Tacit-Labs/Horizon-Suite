@@ -145,8 +145,8 @@ Insight.CINEMATIC_BACKDROP = {
 -- SHARED HELPERS
 -- ============================================================================
 
---- True when Horizon Suite has the Insight module enabled in options.
---- @return boolean
+-- True when Horizon Suite has the Insight module enabled in options.
+-- @return boolean
 function Insight.IsInsightEnabled()
     return addon:IsModuleEnabled("insight")
 end
@@ -185,11 +185,11 @@ end
 
 function Insight.easeOut(t) return 1 - (1 - t) * (1 - t) end
 
---- Iterate a UTF-8 byte string one character at a time so multi-byte (CJK,
---- accented) item and player names stay intact when we wrap each char in
---- |cff…|r for gradients.
---- @param s string
---- @return table
+-- Iterate a UTF-8 byte string one character at a time so multi-byte (CJK,
+-- accented) item and player names stay intact when we wrap each char in
+-- |cff…|r for gradients.
+-- @param s string
+-- @return table
 function Insight.Utf8Chars(s)
     local out = {}
     local i, n = 1, #s
@@ -208,24 +208,24 @@ function Insight.Utf8Chars(s)
     return out
 end
 
---- Strip Blizzard colour-escape sequences (`|cAARRGGBB…|r`) from a string.
---- Used before re-wrapping text as a per-character gradient.
---- @param text string
---- @return string
+-- Strip Blizzard colour-escape sequences (`|cAARRGGBB…|r`) from a string.
+-- Used before re-wrapping text as a per-character gradient.
+-- @param text string
+-- @return string
 function Insight.StripColourEscapes(text)
     if type(text) ~= "string" or text == "" then return "" end
     return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 end
 
---- Build a two-stop horizontal gradient (darker → brighter) of the given
---- base RGB colour over `plain` text, as a single |cff…|r-escaped string.
---- Shared by the item-name gradient (InsightItemTooltip) and the
---- player-name gradient (InsightPlayerTooltip).
---- @param plain string Plain text to colour
---- @param r number Base red (0..1)
---- @param g number Base green (0..1)
---- @param b number Base blue (0..1)
---- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
+-- Build a two-stop horizontal gradient (darker → brighter) of the given
+-- base RGB colour over `plain` text, as a single |cff…|r-escaped string.
+-- Shared by the item-name gradient (InsightItemTooltip) and the
+-- player-name gradient (InsightPlayerTooltip).
+-- @param plain string Plain text to colour
+-- @param r number Base red (0..1)
+-- @param g number Base green (0..1)
+-- @param b number Base blue (0..1)
+-- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
 function Insight.BuildNameGradient(plain, r, g, b)
     local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
     local r2 = math.min(1, r * 1.20 + 0.15)
@@ -251,7 +251,7 @@ function Insight.BuildNameGradient(plain, r, g, b)
     return table.concat(parts)
 end
 
---- Iterate over tooltip lines; fn(i, left, right) receives line index and font strings.
+-- Iterate over tooltip lines; fn(i, left, right) receives line index and font strings.
 function Insight.ForTooltipLines(tooltip, fn)
     if not tooltip then return end
     local name = tooltip:GetName()
@@ -264,11 +264,11 @@ function Insight.ForTooltipLines(tooltip, fn)
     end
 end
 
---- Safe get text from a font string as a plain Lua string (safe for string.* / :gsub).
---- GetText can return a secret string on Midnight; that value must not be passed to string APIs from addon code.
---- Returns "" on error, nil text, or if coercion fails.
---- @param font table FontString|nil
---- @return string
+-- Safe get text from a font string as a plain Lua string (safe for string.* / :gsub).
+-- GetText can return a secret string on Midnight; that value must not be passed to string APIs from addon code.
+-- Returns "" on error, nil text, or if coercion fails.
+-- @param font table FontString|nil
+-- @return string
 function Insight.SafeGetFontText(font)
     if not font then return "" end
     local ok, out = pcall(function()
@@ -282,11 +282,11 @@ function Insight.SafeGetFontText(font)
     return (ok and out) or ""
 end
 
---- Safely check if font string text equals any of the given values. Returns false on taint/secret string.
---- Use instead of SafeGetFontText + == to avoid "attempt to compare secret string" errors in secure contexts.
---- @param font table FontString
---- @param ... string Values to compare against
---- @return boolean
+-- Safely check if font string text equals any of the given values. Returns false on taint/secret string.
+-- Use instead of SafeGetFontText + == to avoid "attempt to compare secret string" errors in secure contexts.
+-- @param font table FontString
+-- @param ... string Values to compare against
+-- @return boolean
 function Insight.SafeFontTextEquals(font, ...)
     if not font then return false end
     local expected = {...}
@@ -302,7 +302,7 @@ function Insight.SafeFontTextEquals(font, ...)
     return (ok and result) or false
 end
 
---- Add a section separator line to tooltip.
+-- Add a section separator line to tooltip.
 function Insight.AddSectionSeparator(tooltip, r, g, b)
     if not tooltip then return end
     local mode = addon.GetDB("insightSeparatorMode", nil)
@@ -321,7 +321,7 @@ function Insight.AddSectionSeparator(tooltip, r, g, b)
     end
 end
 
---- Apply stored anchor position to frame.
+-- Apply stored anchor position to frame.
 function Insight.ApplyStoredAnchor(frame)
     if not frame then return end
     frame:ClearAllPoints()
@@ -334,12 +334,12 @@ function Insight.ApplyStoredAnchor(frame)
     )
 end
 
---- Print to addon chat; no-op if HSPrint unavailable.
+-- Print to addon chat; no-op if HSPrint unavailable.
 function Insight.Print(...)
     if addon.HSPrint then addon.HSPrint(...) end
 end
 
---- Print multiple lines.
+-- Print multiple lines.
 function Insight.PrintBlock(lines)
     if not addon.HSPrint then return end
     for _, line in ipairs(lines) do
@@ -347,7 +347,7 @@ function Insight.PrintBlock(lines)
     end
 end
 
---- Scale value for Insight module.
+-- Scale value for Insight module.
 function Insight.Scaled(v)
     return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "insight")
 end
@@ -361,7 +361,7 @@ function Insight.ApplyNativeTooltipScale(tooltip)
     tooltip:SetScale(scale)
 end
 
---- Strip NineSlice from tooltip; ApplyBackdrop applies cinematic styling.
+-- Strip NineSlice from tooltip; ApplyBackdrop applies cinematic styling.
 function Insight.StripNineSlice(tooltip)
     if tooltip and tooltip.NineSlice then
         tooltip.NineSlice:SetAlpha(0)
@@ -501,8 +501,8 @@ end
 
 local VALID_INSIGHT_CLASS_ICON_SOURCE = { custom = true, default = true, rondomedia = true, specoverride = true }
 
---- Tooltip class icon pack: Horizon (custom), Blizzard default atlas, or RondoMedia.
---- @return string "custom" | "default" | "rondomedia"
+-- Tooltip class icon pack: Horizon (custom), Blizzard default atlas, or RondoMedia.
+-- @return string "custom" | "default" | "rondomedia"
 function Insight.GetClassIconSource()
     local def = Insight.DEFAULT_CLASS_ICON_SOURCE
     local s = (addon.GetDB and addon.GetDB("insightClassIconSource", def)) or def
@@ -512,11 +512,11 @@ function Insight.GetClassIconSource()
     return s
 end
 
---- Returns texture string for class icon, or nil if icons disabled.
---- Respects insightClassIconSource: "custom" (Horizon bundled) | "default" | "rondomedia".
---- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
---- @param size number|nil Display size; omit to use GetInsightClassIconDisplaySize() (larger for custom source).
---- @return string|nil Texture markup or nil
+-- Returns texture string for class icon, or nil if icons disabled.
+-- Respects insightClassIconSource: "custom" (Horizon bundled) | "default" | "rondomedia".
+-- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
+-- @param size number|nil Display size; omit to use GetInsightClassIconDisplaySize() (larger for custom source).
+-- @return string|nil Texture markup or nil
 function Insight.GetClassIconTexture(classFile, size)
     if not addon.GetDB("insightShowIcons", true) or not classFile then return nil end
     if size == nil then
@@ -534,8 +534,8 @@ function Insight.GetClassIconTexture(classFile, size)
     return nil
 end
 
---- Register RondoMedia class icons with LibSharedMedia (delegates to addon.RegisterRondoClassIconsWithLSM).
---- @return nil
+-- Register RondoMedia class icons with LibSharedMedia (delegates to addon.RegisterRondoClassIconsWithLSM).
+-- @return nil
 function Insight.RegisterRondoClassIconsWithLSM()
     if addon.RegisterRondoClassIconsWithLSM then
         addon.RegisterRondoClassIconsWithLSM()

@@ -131,9 +131,9 @@ local function StopScenarioBarTicker()
     end
 end
 
---- Start or stop the scenario/inline timer bar ticker based on visible tracker rows.
---- Called from FullLayout so we do not run pool-wide timer work when nothing needs it.
---- @return nil
+-- Start or stop the scenario/inline timer bar ticker based on visible tracker rows.
+-- Called from FullLayout so we do not run pool-wide timer work when nothing needs it.
+-- @return nil
 local function SyncScenarioBarTickerState()
     if not addon.focus or not addon.focus.enabled then
         StopScenarioBarTicker()

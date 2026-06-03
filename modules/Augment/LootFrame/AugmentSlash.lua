@@ -85,8 +85,8 @@ function Y.PreviewToasts()
     end
 end
 
---- Handle /horizon augment [cmd] subcommands.
---- @param msg string Subcommand
+-- Handle /horizon augment [cmd] subcommands.
+-- @param msg string Subcommand
 function Y.HandleAugmentSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 

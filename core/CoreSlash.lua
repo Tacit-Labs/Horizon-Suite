@@ -15,17 +15,17 @@ addon.slashHandlers = addon.slashHandlers or {}
 addon.slashHandlersDebug = addon.slashHandlersDebug or {}
 addon.debugLiveRegistry = addon.debugLiveRegistry or {}
 
---- Register a module's slash handler. Called by each module at load.
---- @param moduleKey string  "focus"|"presence"|"vista"|"augment"|"insight"
---- @param handler function(msg)  Receives remainder after module name (e.g. "toggle" for /h focus toggle)
+-- Register a module's slash handler. Called by each module at load.
+-- @param moduleKey string  "focus"|"presence"|"vista"|"augment"|"insight"
+-- @param handler function(msg)  Receives remainder after module name (e.g. "toggle" for /h focus toggle)
 function addon.RegisterSlashHandler(moduleKey, handler)
     if not moduleKey or type(handler) ~= "function" then return end
     addon.slashHandlers[moduleKey] = handler
 end
 
---- Register a module's debug slash handler. Called for /h debug <module> [cmd].
---- @param moduleKey string  "focus"|"presence"|"vista"|"augment"|"insight"
---- @param handler function(msg)  Receives remainder after module name (e.g. "wqdebug" for /h debug focus wqdebug)
+-- Register a module's debug slash handler. Called for /h debug <module> [cmd].
+-- @param moduleKey string  "focus"|"presence"|"vista"|"augment"|"insight"
+-- @param handler function(msg)  Receives remainder after module name (e.g. "wqdebug" for /h debug focus wqdebug)
 function addon.RegisterSlashHandlerDebug(moduleKey, handler)
     if not moduleKey or type(handler) ~= "function" then return end
     addon.slashHandlersDebug[moduleKey] = handler
