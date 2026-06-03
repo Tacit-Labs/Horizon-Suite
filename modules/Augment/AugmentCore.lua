@@ -639,14 +639,14 @@ local function BuildMergedText(data, effectiveKey, totalCount)
         if showStackCountBeforeName then
             return totalCount .. " x " .. L["AUGMENT_JUNK_LABEL"]
         else
-            return L["AUGMENT_JUNK_LABEL"] .. " x " .. totalCount
+            return L["AUGMENT_JUNK_LABEL"] .. " x" .. totalCount
         end
     end
     if data.kind == "item" then
         if showStackCountBeforeName then
            return totalCount > 1 and (totalCount .. " x " .. data.baseName) or data.baseName
         else
-           return totalCount > 1 and (data.baseName .. " x " .. totalCount) or data.baseName
+           return totalCount > 1 and (data.baseName .. " x" .. totalCount) or data.baseName
         end
     end
     if data.kind == "currency" then
