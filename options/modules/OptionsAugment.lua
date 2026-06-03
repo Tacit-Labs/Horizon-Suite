@@ -204,6 +204,10 @@ local categories = {
             Toggle(L["AUGMENT_SOUND_CURRENCY"], L["AUGMENT_SOUND_CURRENCY_DESC"], "augmentSoundCurrency", D.augmentSoundCurrency, { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
             Toggle(L["AUGMENT_SOUND_REP"],      L["AUGMENT_SOUND_REP_DESC"],      "augmentSoundRep",      D.augmentSoundRep,      { visibleWhen = function() return getDB("augmentSoundEnabled", D.augmentSoundEnabled) ~= false end }),
 
+            -- General automation
+            Section(L["AUGMENT_ACHIEVEMENT_TRACKER"]),
+            Toggle(L["AUGMENT_ACHIEVEMENT_TRACKER"], L["AUGMENT_ACHIEVEMENT_TRACKER_DESC"], "augmentAchievementTrackerEnabled", D.augmentAchievementTrackerEnabled),
+
         },
     },
 
@@ -319,26 +323,6 @@ local categories = {
         end,
     },
 
-    -- ── Achievement Tracker ──────────────────────────────────────────────────
-    {
-        key = "AugmentAchievementTracker",
-        name = L["AUGMENT_ACHIEVEMENT_TRACKER"],
-        desc = L["AUGMENT_ACHIEVEMENT_TRACKER_DESC"],
-        icon = 236668,  -- Achievement_General (gold star)
-        accentColor = { 1.0, 0.82, 0.0 },
-        moduleKey = "augment",
-        enabledKey = "augmentAchievementTrackerEnabled",
-        getEnabled = function() return getDB("augmentAchievementTrackerEnabled", D.augmentAchievementTrackerEnabled) ~= false end,
-        setEnabled = function(v)
-            v = v and true or false
-            setDB("augmentAchievementTrackerEnabled", v)
-            if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
-            local AT = addon.Augment and addon.Augment.AchievementTracker
-            if not AT then return end
-            if v then AT.Enable() else AT.Disable() end
-        end,
-        options = function() return {} end,
-    },
 }
 
 for i = 1, #categories do
