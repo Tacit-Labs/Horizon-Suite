@@ -476,6 +476,7 @@ local function CreateButton()
     end)
     btn:SetScript("OnLeave", function()
         btn._hsTooltipStick = nil
+        btn._hsTooltipAnchor = nil
         if GameTooltip then GameTooltip:Hide() end
         if not MinimapHoverFadeEnabled() then return end
         if hoverZone and hoverZone:IsMouseOver() then return end
@@ -508,10 +509,15 @@ local function CreateButton()
                 end
             end
         end
-        -- Re-anchor tooltip every frame while hovering (minimap resize / drag moves the button).
+        -- Re-anchor tooltip only when the anchor quadrant changes (minimap resize/drag).
+        -- Calling SetOwner every frame taints GameTooltip and breaks Blizzard widget rendering.
         if btn and btn._hsTooltipStick and GameTooltip and GameTooltip:GetOwner() == btn then
-            GameTooltip:SetOwner(btn, PickStandaloneTooltipAnchor(btn))
-            GameTooltip:Show()
+            local newAnchor = PickStandaloneTooltipAnchor(btn)
+            if newAnchor ~= btn._hsTooltipAnchor then
+                btn._hsTooltipAnchor = newAnchor
+                GameTooltip:SetOwner(btn, newAnchor)
+                GameTooltip:Show()
+            end
         end
     end)
 
