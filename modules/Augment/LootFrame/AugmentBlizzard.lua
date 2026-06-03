@@ -22,15 +22,14 @@ local function KillBlizzardFrame(frame)
     local originalParent = frame:GetParent()
     killedFrames[frame] = { parent = originalParent or UIParent }
     pcall(function()
-        frame:SetParent(hiddenParent)
-        frame:Hide()
+        frame:SetParent(hiddenParent)  -- hiddenParent is always hidden; child inherits
         frame:SetAlpha(0)
-    end)
-    -- Patch OnShow so any Blizzard-internal Show() call is a no-op while suppressed.
-    pcall(function()
-        if frame.SetScript then
-            frame:SetScript("OnShow", function(self) self:Hide() end)
-        end
+        -- NOTE: no explicit Hide() call here. Reparenting to hiddenParent suppresses
+        -- the frame without firing OnHide, which avoids the recursive pool-reset cycle:
+        --   Hide() → OnHide → pool:Release → Pool_HideAndClearAnchors → Hide() → ...
+        -- NOTE: no OnShow hook here. A child of hiddenParent can never be shown, so
+        --   the hook would be unreachable — and an OnShow→Hide() pattern is what
+        --   triggers the 2522× C stack overflow when a pool frame is reused.
     end)
 end
 
@@ -162,8 +161,12 @@ local function InstallAlertShowHook()
             if not addon:IsModuleEnabled("augment") then return end
             if not (addon.GetDB and addon.GetDB("augmentSuppressBlizzard", true)) then return end
             if IsLootAlertFrame(alertFrame) then
-                alertFrame:Hide()
+                -- SetAlpha(0) only — do NOT call Hide() here. The frame was just shown
+                -- by AlertFrame_ShowNewAlertFrame and its pool entry is still active.
+                -- Calling Hide() inside this hook fires OnHide → pool:Release →
+                -- Pool_HideAndClearAnchors → Hide() → infinite recursion (C stack overflow).
                 alertFrame:SetAlpha(0)
+                KillBlizzardFrame(alertFrame)
             end
         end)
         alertShowHookInstalled = true
@@ -187,8 +190,10 @@ local function InstallAlertHook()
     end
 
     -- AlertFrame:UpdateAnchors is called every time it positions a new alert frame.
-    -- Hooking it lets us kill pool frames (which have no global name) the moment
-    -- AlertFrame tries to lay them out — proactive rather than reactive.
+    -- Hooking it lets us kill pool frames (which have no global name) shortly after
+    -- AlertFrame lays them out. Kills are deferred to the next frame via C_Timer.After(0)
+    -- so they never run inside the pool's own callstack (which would cause recursive
+    -- Hide() → OnHide → pool:Release → Pool_HideAndClearAnchors → Hide() cycles).
     if not alertAnchorsHookInstalled then
         pcall(function()
             if not (AlertFrame and AlertFrame.UpdateAnchors) then return end
@@ -196,19 +201,21 @@ local function InstallAlertHook()
                 if not (addon:IsModuleEnabled("augment")
                     and addon.GetDB and addon.GetDB("augmentSuppressBlizzard", true))
                 then return end
-                pcall(function()
-                    if not UIParent or not UIParent.GetChildren then return end
-                    for _, frame in ipairs({ UIParent:GetChildren() }) do
-                        if frame and frame.GetNumPoints then
-                            for p = 1, frame:GetNumPoints() do
-                                local ok, _, relativeTo = pcall(frame.GetPoint, frame, p)
-                                if ok and relativeTo == AlertFrame then
-                                    KillBlizzardFrame(frame)
-                                    break
+                C_Timer.After(0, function()
+                    pcall(function()
+                        if not UIParent or not UIParent.GetChildren then return end
+                        for _, frame in ipairs({ UIParent:GetChildren() }) do
+                            if frame and frame.GetNumPoints then
+                                for p = 1, frame:GetNumPoints() do
+                                    local ok, _, relativeTo = pcall(frame.GetPoint, frame, p)
+                                    if ok and relativeTo == AlertFrame then
+                                        KillBlizzardFrame(frame)
+                                        break
+                                    end
                                 end
                             end
                         end
-                    end
+                    end)
                 end)
             end)
             alertAnchorsHookInstalled = true
