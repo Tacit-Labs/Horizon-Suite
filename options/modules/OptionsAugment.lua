@@ -337,6 +337,7 @@ local categories = {
             if not AT then return end
             if v then AT.Enable() else AT.Disable() end
         end,
+        options = function() return {} end,
     },
 }
 
