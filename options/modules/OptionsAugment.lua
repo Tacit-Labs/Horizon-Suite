@@ -30,6 +30,12 @@ local categories = {
         desc = L["POSITIONING_VISIBILITY_AUGMENT_LOOT_TOAST_SYS"],
         moduleKey = "augment",
         options = {
+            Section(L["DASH_APPEARANCE"]),
+            { type = "slider", name = L["AUGMENT_ICON_SIZE"], desc = L["AUGMENT_ICON_SIZE_DESC"], dbKey = "augmentIconSize",
+                min = LIM.augmentIconSize.min, max = LIM.augmentIconSize.max, step = 1,
+                get = function() return getSlider("augmentIconSize") end,
+                set = function(v) setDB("augmentIconSize", clamp(v, "augmentIconSize")) end,
+            },
             Section(L["AXIS_POSITION"]),
             Button(L["AXIS_ANCHOR_MOVE"], L["AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION"], function()
                 if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end

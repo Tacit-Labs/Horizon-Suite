@@ -9,6 +9,7 @@ if not addon then return end
 addon.AUGMENT_DEFAULTS = {
     augmentFontPath      = "__global__",
     augmentFontSize      = 16,
+    augmentIconSize      = 34,
     augmentUIScale       = 1.0,
     augmentShowItems        = true,
     augmentShowPushedItems  = true,
@@ -48,6 +49,7 @@ addon.AUGMENT_LIMITS = {
     augmentHoldCurrency  = { min = 1,   max = 12   },
     augmentHoldRep       = { min = 1,   max = 12   },
     augmentFontSize      = { min = 8,   max = 20   },
+    augmentIconSize      = { min = 8,   max = 64   },
 }
 
 -- Position keys have no meaningful defaults (nil = use anchor frame position).
