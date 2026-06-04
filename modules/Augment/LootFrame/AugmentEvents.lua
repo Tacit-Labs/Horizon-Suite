@@ -88,6 +88,11 @@ handlers.CHAT_MSG_LOOT = function(msg, ...)
     if not y.patternsOK then return end
     if addon.GetDB("augmentShowItems", true) == false then return end
     local guid = select(11, ...)
+    -- CHAT_MSG_LOOT's 11th arg is a Blizzard-restricted "secret string" in tainted
+    -- execution contexts; == / ~= on it throws. tostring() converts it to a plain
+    -- Lua string so both the empty-string check and the playerGUID comparison below
+    -- work without taint errors.
+    if guid ~= nil then guid = tostring(guid) end
     if guid == "" then guid = nil end
     if guid and y.playerGUID then
         if guid ~= y.playerGUID then return end
