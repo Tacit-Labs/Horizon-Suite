@@ -1,4 +1,4 @@
-if GetLocale() ~= "deDE" then return end
+﻿if GetLocale() ~= "deDE" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -1234,11 +1234,11 @@ L["DASHBOARD_TYPO_OUTLINE"]                                   = "Schriftkontur d
 L["DASHBOARD_TYPO_OUTLINE_DESC"]                              = "EIN: Standardkonturstil für Dashboard-UI-Textelemente. AUS: Weicherer, flacher Stil."
 L["DASHBOARD_TYPO_SHADOW"]                                    = "Textschattierung für Dashboard-Text"
 L["DASHBOARD_TYPO_SHADOW_DESC"]                               = "Fügt einen subtilen Schlagschatten hinter dem Dashboard-Text, um die Lesbarkeit zu verbessern."
-L["DASHBOARD_TYPO_HEADING_COLOR"]                             = "Farbe für Überschriften"
-L["DASHBOARD_TYPO_HEADING_COLOR_DESC"]                        = "Farbe für große Überschriften im Willkommens- und Neuigkeitenbereich. Verwende eine entspanntere Farbe, falls reines Weiß zu hell ist (z.B. auf HDR-Bildschirmen)."
-L["DASHBOARD_TYPO_HEADING_COLOR_WHITE"]                       = "Weiß (Standard)"
-L["DASHBOARD_TYPO_HEADING_COLOR_CYAN"]                        = "Cyan (entspannt)"
-L["DASHBOARD_TYPO_HEADING_COLOR_GOLD"]                        = "Gold (entspannt)"
+L["DASHBOARD_TYPO_HEADING_COLOUR"]                             = "Farbe für Überschriften"
+L["DASHBOARD_TYPO_HEADING_COLOUR_DESC"]                        = "Farbe für große Überschriften im Willkommens- und Neuigkeitenbereich. Verwende eine entspanntere Farbe, falls reines Weiß zu hell ist (z.B. auf HDR-Bildschirmen)."
+L["DASHBOARD_TYPO_HEADING_COLOUR_WHITE"]                       = "Weiß (Standard)"
+L["DASHBOARD_TYPO_HEADING_COLOUR_CYAN"]                        = "Cyan (entspannt)"
+L["DASHBOARD_TYPO_HEADING_COLOUR_GOLD"]                        = "Gold (entspannt)"
 L["FOCUS_BACKDROP_OPACITY"]                                   = "Deckkraft des Hintergrunds"
 L["FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Hintergrunddeckkraft des Fensters (0–1)."
 L["FOCUS_BORDER"]                                             = "Rahmen anzeigen"
@@ -2382,3 +2382,4 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 
 -- L["FOCUS_SLASH_DBG_RECIPE_NO_TRACKED"]                     = "No tracked recipes. Track some in the profession UI, or use: /horizon recipedebug 12345"
 -- L["FOCUS_AH_RECIPE_FALLBACK"]                              = "Recipe"
+)
