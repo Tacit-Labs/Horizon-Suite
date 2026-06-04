@@ -2278,7 +2278,7 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- L["AUGMENT_SELF_HIGHLIGHT_HOSTILE"]                         = "Hostile Target"
 -- L["AUGMENT_SELF_HIGHLIGHT_HOSTILE_DESC"]                    = "Activate the highlight when targeting a hostile unit."
 -- L["AUGMENT_ACHIEVEMENT_TRACKER"]                               = "Achievement Tracker"
--- L["AUGMENT_ACHIEVEMENT_TRACKER_DESC"]                          = "Automatically removes earned achievements from the tracking list."
+-- L["AUGMENT_ACHIEVEMENT_TRACKER_DESC"]                          = "Automatically removes earned achievements from the tracking list. Only available when Focus is disabled -- Focus handles tracked achievements natively."
 
 -- =====================================================================
 -- Focus — runtime display strings (shown to the player in-game)
