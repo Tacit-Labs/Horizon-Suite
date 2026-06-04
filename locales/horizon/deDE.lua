@@ -226,7 +226,6 @@ L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                     = "Gabriel C"
 L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                        = "Beitragende"
 L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Danke an alle, die zur Horizon Suite beigetragen haben:
 
-• Feanor — Entwicklung
 • Marthix — Entwicklung
 • Swift — Koordinator
 • Boofuls — Moderator

@@ -220,7 +220,7 @@ L["DASH_WELCOME_PATH"]                                        = "%s → %s → %
 -- L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                  = "Gabriel C"
 -- L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                     = "Contributors"
 -- L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Thanks to everyone who has contributed to Horizon Suite:
--- • Feanor — Development
+-- 
 -- • Marthix — Development
 -- • Swift — Coordinator
 -- • Boofuls — Moderator

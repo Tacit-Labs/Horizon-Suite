@@ -20,9 +20,6 @@ local VISTA_ADDON_BTN_DEFAULT = 26
 -- calendar/clock dimensions. Vista-collected proxy continues to use the slider (`vistaAddonBtnSize`).
 local STANDARD_CIRCULAR_BTN_PX = 31
 
-local ICON_PATH = "Interface\\AddOns\\HorizonSuite\\HorizonLogo"
-local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
-
 local FADE_IN_DUR  = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeIn  or 0.2
 local FADE_OUT_DUR = addon.FOCUS_ANIM and addon.FOCUS_ANIM.minimapFadeOut or 0.3
 
@@ -399,9 +396,9 @@ local function CreateButton()
     local icon = btn:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints()
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    local ok = pcall(icon.SetTexture, icon, ICON_PATH)
+    local ok = pcall(icon.SetTexture, icon, addon.ICON_PATH)
     if not ok then
-        icon:SetTexture(FALLBACK_ICON)
+        icon:SetTexture(addon.ICON_PATH_FALLBACK)
     end
     btn.icon = icon
     ApplyShape()

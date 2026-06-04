@@ -9,6 +9,8 @@ local L = addon.L
 -- ============================================================================
 -- CONFIGURATION (constants, colors, fonts, labels, group order)
 -- ============================================================================
+addon.ICON_PATH = "Interface\\AddOns\\HorizonSuite\\Docs\\Branding\\HorizonLogo"
+addon.ICON_PATH_FALLBACK = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 addon.HEADER_SIZE     = 16
 addon.TITLE_SIZE      = 13
