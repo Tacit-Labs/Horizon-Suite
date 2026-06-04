@@ -215,6 +215,7 @@ local categories = {
         icon = 236668,  -- Achievement_General (gold star)
         accentColor = { 1.0, 0.82, 0.0 },
         moduleKey = "augment",
+        hidden = function() return addon.IsModuleEnabled and addon:IsModuleEnabled("focus") end,
         enabledKey = "augmentAchievementTrackerEnabled",
         getEnabled = function() return getDB("augmentAchievementTrackerEnabled", D.augmentAchievementTrackerEnabled) ~= false end,
         setEnabled = function(v)

@@ -24,7 +24,8 @@ addon:RegisterModule("augment", {
             local vendorOn = not GetDB or GetDB("augmentVendorEnabled",            true)  ~= false
             local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled",     false) ~= false
             local thOn     = not GetDB or GetDB("augmentTalkingHeadEnabled",       true)  ~= false
-            local atOn     = not GetDB or GetDB("augmentAchievementTrackerEnabled", false) ~= false
+            local atOn     = (not GetDB or GetDB("augmentAchievementTrackerEnabled", false) ~= false)
+                             and not (addon.IsModuleEnabled and addon:IsModuleEnabled("focus"))
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
             -- Loot Frame mini-module: only register loot events + suppress Blizzard toasts when on.
             if lootOn then
