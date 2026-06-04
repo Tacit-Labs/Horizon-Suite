@@ -157,5 +157,3 @@ options/dashboard/DashboardPatchNotesContent.lua
 options/dashboard/DashboardPatchNotesModal.lua
 options/dashboard/DashboardFrame.lua
 options/dashboard/DashboardPanel.lua
-
-Docs/Branding/HorizonLogo.blp

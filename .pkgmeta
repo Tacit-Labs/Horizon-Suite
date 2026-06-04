@@ -8,13 +8,13 @@ manual-changelog:
 # Exclude CI, config, dev tooling, and marketing media from the packaged addon.
 # BigWigs release.sh does not strip inline # comments on ignore list lines; keep "- path" alone.
 ignore:
-  - HorizonSuiteBeta.toc
-  - options/Mockups.lua
   - .github
   - .gitignore
   - .pkgmeta
   - scripts
   - tools
+  - Docs/Branding/ColourSchema.md
+  - Docs/Branding/HorizonClassIcons.png
   - Docs/Contributions
   - notes
   - "modules/*/notes"
