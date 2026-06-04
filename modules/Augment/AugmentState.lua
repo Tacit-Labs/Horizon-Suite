@@ -45,10 +45,9 @@ end
 function Y.GetIconSize()
     local D = addon.AUGMENT_DEFAULTS
     return (addon.GetDB and tonumber(addon.GetDB("augmentIconSize", D.augmentIconSize))) or D.augmentIconSize
-    --return addon.GetDB("augmentIconSize", D.augmentIconSize) or D.augmentIconSize
 end
 
-Y.ICON_SIZE       = Y.GetIconSize() -- Default: 34
+Y.ICON_SIZE       = 34 -- Y.GetIconSize() -- Default: 34
 Y.BORDER_PAD      = 1
 Y.ENTRY_HEIGHT    = Y.ICON_SIZE + Y.BORDER_PAD * 2 -- Default: 38
 Y.TEXT_WIDTH      = 300

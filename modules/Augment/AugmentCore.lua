@@ -928,6 +928,12 @@ end
 --- Re-apply scale and font to all pool entries and overlay labels.
 --- Called when UI scale or augmentFontPath changes.
 function Augment.ApplyScale()
+    -- refresh layout constants from current DB before the resize pass
+    local Y = addon.Augment
+    Y.ICON_SIZE    = Y.GetIconSize()
+    Y.ENTRY_HEIGHT = Y.ICON_SIZE + Y.BORDER_PAD * 2
+    Y.LINE_HEIGHT  = Y.ENTRY_HEIGHT + Y.LINE_SPACING
+    Y.TOTAL_WIDTH  = (Y.ICON_SIZE + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH
     if Augment.InvalidateCoinTextures then Augment.InvalidateCoinTextures() end
     if not IsReady() then return end
     UpdateAugmentFontObject()
