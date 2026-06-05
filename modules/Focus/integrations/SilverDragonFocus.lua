@@ -176,9 +176,9 @@ function sd.DismissCurrentAlert()
 end
 
 -- ---------------------------------------------------------------------------
--- PlayerModel alpha sync — PlayerModel bypasses WoW's alpha chain; mirror manually.
--- OnHide covers full panel hide; OnUpdate mirrors the fade alpha so the model
--- fades in sync with the panel instead of staying fully opaque.
+-- PlayerModel alpha sync — PlayerModel ignores inherited alpha AND SetAlpha has
+-- no effect on the 3D renderer; the only reliable control is Hide()/Show().
+-- Hide whenever the panel is not fully visible; show only at full opacity.
 -- ---------------------------------------------------------------------------
 do
     local HS = addon.HS
@@ -189,14 +189,14 @@ do
             lastAlpha = alpha
             local pool = addon.pool
             if not pool then return end
+            local fullyVisible = alpha >= 0.99
             for i = 1, (addon.POOL_SIZE or 0) do
                 local e = pool[i]
                 if e and e.sdModel then
-                    if alpha <= 0 then
-                        e.sdModel:Hide()
-                    elseif e.sdModelActive then
+                    if fullyVisible and e.sdModelActive then
                         e.sdModel:Show()
-                        e.sdModel:SetAlpha(alpha)
+                    else
+                        e.sdModel:Hide()
                     end
                 end
             end
@@ -368,6 +368,9 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
         end
         entry.sdModel:Show()
         entry.sdModel:SetCreature(questData.creatureID)
+        if addon.HS and addon.HS:GetAlpha() < 0.99 then
+            entry.sdModel:Hide()
+        end
         return true
     end
     return false
@@ -392,8 +395,12 @@ function sd.RenderNavButtons(entry, showSdNav, gutterW, sdNavBtnSize, sdNavBtnGa
         entry.sdModel:ClearAllPoints()
         entry.sdModel:SetSize(sdModelSize, sdModelSize)
         entry.sdModel:SetPoint("TOPRIGHT", entry, modelAnchor, modelOffX, 0)
-        entry.sdModel:Show()
         entry.sdModelActive = true
+        if addon.HS and addon.HS:GetAlpha() >= 0.99 then
+            entry.sdModel:Show()
+        else
+            entry.sdModel:Hide()
+        end
         if entry.sdModelBtn and not InCombatLockdown() then
             entry.sdModelBtn:ClearAllPoints()
             entry.sdModelBtn:SetSize(sdModelSize, sdModelSize)

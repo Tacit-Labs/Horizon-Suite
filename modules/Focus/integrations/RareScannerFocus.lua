@@ -178,9 +178,9 @@ function rs.DismissCurrentAlert()
 end
 
 -- ---------------------------------------------------------------------------
--- PlayerModel alpha sync — PlayerModel bypasses WoW's alpha chain; mirror manually.
--- OnHide covers full panel hide; OnUpdate mirrors the fade alpha so the model
--- fades in sync with the panel instead of staying fully opaque.
+-- PlayerModel alpha sync — PlayerModel ignores inherited alpha AND SetAlpha has
+-- no effect on the 3D renderer; the only reliable control is Hide()/Show().
+-- Hide whenever the panel is not fully visible; show only at full opacity.
 -- ---------------------------------------------------------------------------
 do
     local HS = addon.HS
@@ -191,14 +191,16 @@ do
             lastAlpha = alpha
             local pool = addon.pool
             if not pool then return end
+            -- PlayerModel ignores inherited alpha AND SetAlpha has no effect on the
+            -- 3D renderer; the only way to hide it is Hide()/Show().
+            local fullyVisible = alpha >= 0.99
             for i = 1, (addon.POOL_SIZE or 0) do
                 local e = pool[i]
                 if e and e.rareModel then
-                    if alpha <= 0 then
-                        e.rareModel:Hide()
-                    elseif e.rareModelActive then
+                    if fullyVisible and e.rareModelActive then
                         e.rareModel:Show()
-                        e.rareModel:SetAlpha(alpha)
+                    else
+                        e.rareModel:Hide()
                     end
                 end
             end
@@ -474,9 +476,13 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
             end
             -- Show before SetCreature so WoW's renderer can load the model
             -- data; calling SetCreature on a hidden frame may silently no-op.
-            -- RenderNavButtons manages final positioning and show/hide.
             entry.rareModel:Show()
             entry.rareModel:SetCreature(questData.creatureID)
+            -- Hide immediately if the panel is currently faded; RenderNavButtons
+            -- will restore Show() on the next layout when the panel is fully visible.
+            if addon.HS and addon.HS:GetAlpha() < 0.99 then
+                entry.rareModel:Hide()
+            end
             return true
         end
     end
@@ -510,8 +516,12 @@ function rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavBtnGa
         entry.rareModel:ClearAllPoints()
         entry.rareModel:SetSize(rsModelSize, rsModelSize)
         entry.rareModel:SetPoint("TOPRIGHT", entry, modelAnchor, modelOffX, 0)
-        entry.rareModel:Show()
         entry.rareModelActive = true
+        if addon.HS and addon.HS:GetAlpha() >= 0.99 then
+            entry.rareModel:Show()
+        else
+            entry.rareModel:Hide()
+        end
         if entry.rareModelBtn and not InCombatLockdown() then
             entry.rareModelBtn:ClearAllPoints()
             entry.rareModelBtn:SetSize(rsModelSize, rsModelSize)
