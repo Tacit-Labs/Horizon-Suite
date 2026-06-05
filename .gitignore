@@ -17,6 +17,8 @@ Thumbs.db
 AGENTS.md
 CLAUDE.md
 TRP3_INTEGRATION_SUMMARY.md
+# Brainstorming visual-companion mockups (local only)
+.superpowers/
 # Dev / listing assets (screenshots, GIFs, internal notes); also excluded from addon zips via .pkgmeta
 docs/
 
