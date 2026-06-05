@@ -13,6 +13,7 @@ local function ShowReactionBorder() return addon.GetDB("insightNpcReactionBorder
 local function ShowReactionName()   return addon.GetDB("insightNpcReactionName",   true) end
 local function ShowLevelLine()      return addon.GetDB("insightNpcShowLevelLine",  true) end
 local function ShowNpcIcons()       return addon.GetDB("insightNpcShowIcons",      true) end
+local function ShowNpcTargeting()   return addon.GetDB("insightNpcShowTargeting",  true) end
 
 -- Strip |c…|r for heuristics only (same pattern as StripHealthAndPowerText).
 -- pcall: s may be a secret string (Midnight); (s or "") still uses s when truthy, so :gsub can error without this guard.
@@ -162,8 +163,13 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
             pcall(function()
                 isBlizzardLevel = LooksLikeBlizzardNpcLevelLine(stripped, levelForHeuristic, creatureType, classStr, unknownLevel)
             end)
+            -- Also replace when line 2 is solely the creature type or classification —
+            -- those components are already included in lineText, so keeping them as a
+            -- subtitle would cause them to appear twice.
+            local isTypeOnly = (creatureType and creatureType ~= "" and stripped == creatureType)
+                            or (classStr    and classStr    ~= "" and stripped == classStr)
             local gray = 0.75
-            if stripped == "" or isBlizzardLevel then
+            if stripped == "" or isBlizzardLevel or isTypeOnly then
                 if lineLeft2 then
                     pcall(function()
                         lineLeft2:SetText(lineText)
@@ -189,6 +195,38 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
                     tooltip:AddLine(lineText, gray, gray, gray)
                 end
             end
+
+            -- Blizzard sometimes emits a standalone creature-type or classification
+            -- line separately from the level row. Since those strings are already
+            -- included in lineText, clear any duplicate lines from line 3 onward.
+            if creatureType or classStr then
+                pcall(function()
+                    for i = 3, 6 do
+                        local leftN = ttName and _G[ttName .. "TextLeft" .. i]
+                        if not leftN then break end
+                        local txt = StripTooltipColorCodes(Insight.SafeGetFontText(leftN)):gsub("^%s+", ""):gsub("%s+$", "")
+                        if txt ~= "" then
+                            if (creatureType and creatureType ~= "" and txt == creatureType)
+                            or (classStr    and classStr    ~= "" and txt == classStr) then
+                                leftN:SetText("")
+                            end
+                        end
+                    end
+                end)
+            end
+        end
+    end
+
+    if ShowNpcTargeting() then
+        local targetName = nil
+        pcall(function()
+            local targetUnit = unit .. "target"
+            if UnitExists(targetUnit) then
+                targetName = UnitName(targetUnit)
+            end
+        end)
+        if targetName and targetName ~= "" then
+            tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
         end
     end
 
@@ -208,6 +246,9 @@ function Insight.RenderNpcPreviewContent(tooltip)
     tooltip:AddLine("Darkheart Villager", r, g, b)
     tooltip:AddLine("General Goods Vendor", 1.0, 0.82, 0.0)
     tooltip:AddLine("Level 45 Elite Humanoid", 0.75, 0.75, 0.75)
+    if ShowNpcTargeting() then
+        tooltip:AddLine("Targeting: Horizonaut", 1, 1, 1)
+    end
 end
 
 addon.Insight = Insight

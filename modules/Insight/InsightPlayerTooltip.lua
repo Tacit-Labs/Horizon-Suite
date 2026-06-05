@@ -99,6 +99,7 @@ local function ShowStatusBadgePVP()       return addon.GetDB("insightStatusBadge
 local function ShowStatusBadgeGroup()     return addon.GetDB("insightStatusBadgeGroup",      true) end
 local function ShowStatusBadgeFriend()    return addon.GetDB("insightStatusBadgeFriend",     true) end
 local function ShowStatusBadgeTargeting() return addon.GetDB("insightStatusBadgeTargeting",  true) end
+local function ShowTargeting()            return addon.GetDB("insightShowTargeting",          true) end
 local function ShowStatusBadgeAFKInHeader() return addon.GetDB("insightStatusBadgeAFKInHeader", false) end
 local function ShowMythicScore()
     local mode = GetInsightDisplayMode("insightMythicScoreMode", "insightShowMythicScore")
@@ -855,6 +856,23 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
     end
 end
 
+-- Add targeting line to tooltip.
+function Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
+    if not ShowTargeting() then return end
+    local targetName = nil
+    pcall(function()
+        local targetUnit = unit .. "target"
+        if UnitExists(targetUnit) then
+            targetName = UnitName(targetUnit)
+        end
+    end)
+    if not targetName or targetName == "" then return end
+    Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
+    Insight.TagLines(tooltip, "stats", function()
+        tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
+    end)
+end
+
 -- Add mount block to tooltip.
 function Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
     if not ShowMount() then return end
@@ -1350,6 +1368,9 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     -- 5. Ratings block (M+ score, honour level, achievement points, item level)
     Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
 
+    -- 5b. Targeting line
+    Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
+
     -- 6. Mount block
     Insight.AddMountBlock(tooltip, unit, sepR, sepG, sepB)
 
@@ -1605,6 +1626,14 @@ function Insight.RenderTestTooltipContent(tooltip)
         Insight.TagLines(tooltip, "stats", function()
             local icon = (showIcons and ShowRatingsIcons()) and Insight.ILVL_ICON or ""
             tooltip:AddLine(icon .. "Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+        end)
+    end
+
+    -- 5b. Targeting line
+    if ShowTargeting() then
+        Insight.AddSectionSeparator(tooltip)
+        Insight.TagLines(tooltip, "stats", function()
+            tooltip:AddLine("Targeting: Arthas", 1, 1, 1)
         end)
     end
 
