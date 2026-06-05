@@ -5,6 +5,13 @@ if not addon then return end
 local L = addon.L
 local Def = addon.OptionsWidgetsDef  -- design tokens exported by OptionsWidgets.lua
 
+-- Use the shared widget font setter so our text registers in the same font registry as every other
+-- options widget — it then refreshes/shadows with the global dashboard font automatically.
+-- Pass nil flags so it adopts Def.WidgetFontFlags and registers for OptionsWidgets_RefreshFonts.
+local SafeFont = addon.OptionsWidgets_SetSafeFont or function(fs, path, size, flags)
+    if fs and fs.SetFont then fs:SetFont(path, size, flags or "OUTLINE") end
+end
+
 local PICKER_W, PICKER_H = 360, 312
 local WHEEL_SIZE = 128
 local VALUE_W = 24
@@ -137,7 +144,7 @@ local function EnsurePicker()
 
     -- Title bar (drag handle) + close button.
     local titleText = f:CreateFontString(nil, "OVERLAY")
-    titleText:SetFont(Def.FontPath, Def.HeaderSize or 16, Def.WidgetFontFlags or "OUTLINE")
+    SafeFont(titleText, Def.FontPath, Def.HeaderSize or 16, nil)
     titleText:SetPoint("TOPLEFT", f, "TOPLEFT", 14, -12)
     titleText:SetText((L and L["COLOR_PICKER_TITLE"]) or "Choose a colour")
     titleText:SetTextColor(Def.TextColorTitleBar[1], Def.TextColorTitleBar[2], Def.TextColorTitleBar[3], 1)
@@ -152,7 +159,7 @@ local function EnsurePicker()
     close:SetSize(20, 20); close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -10)
     close:SetFrameLevel((f:GetFrameLevel() or 1) + 10)
     local cx = close:CreateFontString(nil, "OVERLAY")
-    cx:SetFont(Def.FontPath, 16, "OUTLINE"); cx:SetPoint("CENTER"); cx:SetText("\195\151") -- ×
+    SafeFont(cx, Def.FontPath, 16, nil); cx:SetPoint("CENTER"); cx:SetText("\195\151") -- ×
     cx:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
     close:SetScript("OnClick", function() CancelClose() end)
 
@@ -237,13 +244,13 @@ local function EnsurePicker()
     hexBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
     if addon.CreateBorder then addon.CreateBorder(hexWrap, Def.InputBorder) end
     local hexHash = hexWrap:CreateFontString(nil, "OVERLAY")
-    hexHash:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    SafeFont(hexHash, Def.FontPath, Def.LabelSize, nil)
     hexHash:SetPoint("LEFT", hexWrap, "LEFT", 6, 0); hexHash:SetText("#")
     hexHash:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
     local hex = CreateFrame("EditBox", nil, hexWrap)
     hex:SetPoint("LEFT", hexHash, "RIGHT", 4, 0); hex:SetPoint("RIGHT", hexWrap, "RIGHT", -4, 0)
     hex:SetHeight(20); hex:SetAutoFocus(false); hex:SetMaxLetters(6)
-    hex:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    SafeFont(hex, Def.FontPath, Def.LabelSize, nil)
     hex:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
     local function commitHex(self)
         local r, g, b = ParseHexColor(self:GetText())
@@ -262,7 +269,7 @@ local function EnsurePicker()
         if anchorTo then wrap:SetPoint("LEFT", anchorTo, "RIGHT", FIELD_GAP, 0)
         else wrap:SetPoint("LEFT", hexWrap, "RIGHT", FIELD_GAP, 0) end  -- R right of hex, same line
         local lab = wrap:CreateFontString(nil, "OVERLAY")
-        lab:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+        SafeFont(lab, Def.FontPath, Def.LabelSize, nil)
         lab:SetPoint("LEFT", wrap, "LEFT", 0, 0); lab:SetText(labelText)
         lab:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
         local boxWrap = CreateFrame("Frame", nil, wrap)
@@ -274,7 +281,7 @@ local function EnsurePicker()
         local box = CreateFrame("EditBox", nil, boxWrap)
         box:SetPoint("TOPLEFT", 4, 0); box:SetPoint("BOTTOMRIGHT", -4, 0)
         box:SetAutoFocus(false); box:SetNumeric(true); box:SetMaxLetters(3); box:SetJustifyH("CENTER")
-        box:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+        SafeFont(box, Def.FontPath, Def.LabelSize, nil)
         box:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
         return box
     end
@@ -301,11 +308,11 @@ local function EnsurePicker()
     alphaRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
     alphaRow:SetHeight(32)
     local alphaLbl = alphaRow:CreateFontString(nil, "OVERLAY")
-    alphaLbl:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    SafeFont(alphaLbl, Def.FontPath, Def.LabelSize, nil)
     alphaLbl:SetPoint("TOPLEFT", alphaRow, "TOPLEFT", 0, 0); alphaLbl:SetText((L and L["OPACITY"]) or "Opacity")
     alphaLbl:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
     local alphaPct = alphaRow:CreateFontString(nil, "OVERLAY")
-    alphaPct:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    SafeFont(alphaPct, Def.FontPath, Def.LabelSize, nil)
     alphaPct:SetPoint("TOPRIGHT", alphaRow, "TOPRIGHT", 0, 0)
     alphaPct:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
     local aTrack = CreateFrame("Frame", nil, alphaRow)
@@ -360,7 +367,7 @@ local function EnsurePicker()
         if addon.CreateBorder then addon.CreateBorder(b, Def.InputBorder) end
         -- "+" glyph (shown on the add cell only).
         local plus = b:CreateFontString(nil, "OVERLAY")
-        plus:SetFont(Def.FontPath, 16, Def.WidgetFontFlags or "OUTLINE")
+        SafeFont(plus, Def.FontPath, 16, nil)
         plus:SetPoint("CENTER", b, "CENTER", 0, 0); plus:SetText("+")
         plus:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
         plus:Hide(); b.plus = plus
@@ -372,7 +379,7 @@ local function EnsurePicker()
         local xbg = xbadge:CreateTexture(nil, "BACKGROUND"); xbg:SetAllPoints(xbadge)
         xbg:SetColorTexture(0.75, 0.22, 0.17, 1)
         local xtx = xbadge:CreateFontString(nil, "OVERLAY")
-        xtx:SetFont(Def.FontPath, 10, "OUTLINE")
+        SafeFont(xtx, Def.FontPath, 10, nil)
         xtx:SetAllPoints(xbadge)
         xtx:SetJustifyH("CENTER"); xtx:SetJustifyV("MIDDLE")
         xtx:SetText("\195\151")
@@ -441,7 +448,7 @@ local function EnsurePicker()
         if addon.CreateBorder then addon.CreateBorder(b, primary and Def.AccentColor or Def.InputBorder) end
         local hi = b:CreateTexture(nil, "HIGHLIGHT"); hi:SetAllPoints(b); hi:SetColorTexture(1, 1, 1, 0.08)
         local t = b:CreateFontString(nil, "OVERLAY")
-        t:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE"); t:SetPoint("CENTER"); t:SetText(text)
+        SafeFont(t, Def.FontPath, Def.LabelSize, nil); t:SetPoint("CENTER"); t:SetText(text)
         t:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
         return b
     end
