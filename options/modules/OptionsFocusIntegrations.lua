@@ -461,7 +461,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             L["FOCUS_INTEGRATION_RARE_COLOR"],
             L["FOCUS_INTEGRATION_RARE_COLOR_DESC"],
             "rs_color",
-            { 0.96, 0.56, 0.08 },
+            { 0.20, 0.85, 0.75 },
             {
                 id          = "rs_color",
                 disabled    = RSDisabled,
@@ -469,7 +469,7 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 get         = function()
                     local c = addon.GetDB("rs_color")
                     if type(c) == "table" and c[1] then return c[1], c[2], c[3] end
-                    return 0.96, 0.56, 0.08
+                    return 0.20, 0.85, 0.75
                 end,
                 set         = function(r, g, b)
                     setDB("rs_color", { r, g, b })

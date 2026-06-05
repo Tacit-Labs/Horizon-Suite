@@ -2436,8 +2436,8 @@ L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES"]               = "Keep Section Ti
 L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES_DESC"]          = "Show this integration's Focus section title as Rares instead of the addon name."
 L["FOCUS_INTEGRATION_RARE_COLOR"]                             = "Alert Color"
 L["FOCUS_INTEGRATION_RARE_COLOR_DESC"]                        = "Color used to highlight this integration's alerts in the Focus tracker."
-L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL"]                    = "Ctrl+Click to Copy Wowhead URL"
-L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL_DESC"]               = "Hold Ctrl and click the coordinates line to open a copy dialog with the Wowhead URL."
+L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL"]                    = "Alt+Click to Copy Wowhead URL"
+L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL_DESC"]               = "Hold Alt and click the NPC name or a loot icon to open a copy dialog with the Wowhead URL."
 L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"]                     = "No Wowhead ID available for this entry."
 
 -- RareScanner-specific keys.

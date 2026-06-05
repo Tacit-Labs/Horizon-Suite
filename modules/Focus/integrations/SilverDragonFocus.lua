@@ -4,6 +4,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 addon.focus    = addon.focus    or {}
 addon.focus.sd = addon.focus.sd or {}
 
@@ -137,10 +138,10 @@ local function ShowCreatureTooltipFrom(btn)
     if addon.GetDB("focusShowWoWheadLink", true) then
         local hint = addon.focus and addon.focus.GetWoWheadClickBindingHint and addon.focus.GetWoWheadClickBindingHint() or ""
         if hint == "" then
-            hint = addon.L and addon.L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"] or ""
+            hint = L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"] or ""
         end
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(("|cff66b3ff[%s]|r |cff888888(%s)|r"):format(addon.L and addon.L["FOCUS_VIEW_WOWHEAD"] or "View on WoWhead", hint))
+        GameTooltip:AddLine(("|cff66b3ff[%s]|r |cff888888(%s)|r"):format(L["FOCUS_VIEW_WOWHEAD"] or "View on WoWhead", hint))
     end
 
     GameTooltip:Show()
@@ -175,27 +176,34 @@ function sd.DismissCurrentAlert()
 end
 
 -- ---------------------------------------------------------------------------
--- PlayerModel alpha sync
+-- PlayerModel alpha sync — PlayerModel bypasses WoW's alpha chain; mirror manually.
+-- OnHide covers full panel hide; OnUpdate mirrors the fade alpha so the model
+-- fades in sync with the panel instead of staying fully opaque.
 -- ---------------------------------------------------------------------------
 do
     local HS = addon.HS
     if HS then
-        HS:HookScript("OnHide", function()
+        local lastAlpha = 1
+        local function SyncSDModels(alpha)
+            if math.abs(alpha - lastAlpha) < 0.001 then return end
+            lastAlpha = alpha
             local pool = addon.pool
             if not pool then return end
             for i = 1, (addon.POOL_SIZE or 0) do
                 local e = pool[i]
-                if e and e.sdModel then e.sdModel:Hide() end
+                if e and e.sdModel then
+                    if alpha <= 0 then
+                        e.sdModel:Hide()
+                    elseif e.sdModelActive then
+                        e.sdModel:Show()
+                        e.sdModel:SetAlpha(alpha)
+                    end
+                end
             end
-        end)
-        HS:HookScript("OnShow", function()
-            local pool = addon.pool
-            if not pool then return end
-            for i = 1, (addon.POOL_SIZE or 0) do
-                local e = pool[i]
-                if e and e.sdModel and e.sdModelActive then e.sdModel:Show() end
-            end
-        end)
+        end
+        HS:HookScript("OnHide",   function() SyncSDModels(0) end)
+        HS:HookScript("OnShow",   function() SyncSDModels(HS:GetAlpha()) end)
+        HS:HookScript("OnUpdate", function() SyncSDModels(HS:GetAlpha()) end)
     end
 end
 
@@ -498,7 +506,7 @@ function sd.RenderCoordButton(entry, questData)
                 addon.ShowURLCopyBox("https://www.wowhead.com/npc=" .. tostring(questData.creatureID))
             else
                 local dcf = DEFAULT_CHAT_FRAME
-                if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (addon.L and addon.L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
+                if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
             end
         elseif button == "RightButton" then
             sd.DismissCurrentAlert()
