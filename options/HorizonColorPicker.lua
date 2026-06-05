@@ -123,8 +123,99 @@ local function EnsurePicker()
         FireChange()
     end)
 
+    -- New (live) vs Current (original) comparison.
+    local cmp = CreateFrame("Frame", nil, f)
+    cmp:SetPoint("TOPLEFT", cs, "TOPRIGHT", 14, -2)
+    cmp:SetPoint("RIGHT", f, "RIGHT", -14, 0)
+    cmp:SetHeight(26)
+    local newSw = cmp:CreateTexture(nil, "ARTWORK")
+    newSw:SetPoint("TOPLEFT", cmp, "TOPLEFT", 0, 0); newSw:SetPoint("BOTTOM", cmp, "BOTTOM", 0, 0)
+    newSw:SetWidth(60)
+    local oldSw = cmp:CreateTexture(nil, "ARTWORK")
+    oldSw:SetPoint("TOPLEFT", newSw, "TOPRIGHT", 0, 0); oldSw:SetPoint("BOTTOM", cmp, "BOTTOM", 0, 0)
+    oldSw:SetWidth(60)
+    if addon.CreateBorder then addon.CreateBorder(cmp, Def.InputBorder) end
+    f.newSwatch = newSw
+    f.oldSwatch = oldSw
+
+    -- Hex input.
+    local hexWrap = CreateFrame("Frame", nil, f)
+    hexWrap:SetSize(96, 22)
+    hexWrap:SetPoint("TOPLEFT", cmp, "BOTTOMLEFT", 0, -8)
+    local hexBg = hexWrap:CreateTexture(nil, "BACKGROUND")
+    hexBg:SetAllPoints(hexWrap)
+    hexBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+    if addon.CreateBorder then addon.CreateBorder(hexWrap, Def.InputBorder) end
+    local hexHash = hexWrap:CreateFontString(nil, "OVERLAY")
+    hexHash:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    hexHash:SetPoint("LEFT", hexWrap, "LEFT", 6, 0); hexHash:SetText("#")
+    hexHash:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
+    local hex = CreateFrame("EditBox", nil, hexWrap)
+    hex:SetPoint("LEFT", hexHash, "RIGHT", 4, 0); hex:SetPoint("RIGHT", hexWrap, "RIGHT", -4, 0)
+    hex:SetHeight(20); hex:SetAutoFocus(false); hex:SetMaxLetters(6)
+    hex:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    hex:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
+    local function commitHex(self)
+        local r, g, b = ParseHexColor(self:GetText())
+        if r then f.colorSelect:SetColorRGB(r, g, b) end  -- OnColorSelect refreshes + fires change
+        self:ClearFocus()
+    end
+    hex:SetScript("OnEnterPressed", commitHex)
+    hex:SetScript("OnEditFocusLost", commitHex)
+    hex:SetScript("OnEscapePressed", function(self) self:ClearFocus(); f:Refresh() end)
+    f.hex = hex
+
+    -- R/G/B 0-255 fields.
+    local function makeNumField(labelText, anchorTo)
+        local wrap = CreateFrame("Frame", nil, f)
+        wrap:SetSize(58, 22)
+        if anchorTo then wrap:SetPoint("LEFT", anchorTo, "RIGHT", 6, 0)
+        else wrap:SetPoint("TOPLEFT", hexWrap, "BOTTOMLEFT", 0, -8) end
+        local lab = wrap:CreateFontString(nil, "OVERLAY")
+        lab:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+        lab:SetPoint("LEFT", wrap, "LEFT", 0, 0); lab:SetText(labelText)
+        lab:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
+        local boxWrap = CreateFrame("Frame", nil, wrap)
+        boxWrap:SetPoint("LEFT", lab, "RIGHT", 4, 0); boxWrap:SetPoint("RIGHT", wrap, "RIGHT", 0, 0)
+        boxWrap:SetHeight(20)
+        local bg = boxWrap:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints(boxWrap)
+        bg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+        if addon.CreateBorder then addon.CreateBorder(boxWrap, Def.InputBorder) end
+        local box = CreateFrame("EditBox", nil, boxWrap)
+        box:SetPoint("TOPLEFT", 4, 0); box:SetPoint("BOTTOMRIGHT", -4, 0)
+        box:SetAutoFocus(false); box:SetNumeric(true); box:SetMaxLetters(3); box:SetJustifyH("CENTER")
+        box:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+        box:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
+        return box
+    end
+    local rBox = makeNumField("R", nil)
+    local gBox = makeNumField("G", rBox:GetParent():GetParent())
+    local bBox = makeNumField("B", gBox:GetParent():GetParent())
+
+    local function commitRGB()
+        local r = math.min(255, math.max(0, tonumber(rBox:GetText()) or Round(state.r)))
+        local g = math.min(255, math.max(0, tonumber(gBox:GetText()) or Round(state.g)))
+        local b = math.min(255, math.max(0, tonumber(bBox:GetText()) or Round(state.b)))
+        f.colorSelect:SetColorRGB(r / 255, g / 255, b / 255)  -- OnColorSelect refreshes + fires change
+    end
+    for _, box in ipairs({ rBox, gBox, bBox }) do
+        box:SetScript("OnEnterPressed", function(self) commitRGB(); self:ClearFocus() end)
+        box:SetScript("OnEditFocusLost", function() commitRGB() end)
+        box:SetScript("OnEscapePressed", function(self) self:ClearFocus(); f:Refresh() end)
+    end
+    f.rBox, f.gBox, f.bBox = rBox, gBox, bBox
+
     f.colorSelect = cs
-    function f:Refresh() end  -- replaced in later tasks
+    function f:Refresh()
+        local a = state.hasAlpha and state.a or 1
+        f.newSwatch:SetColorTexture(state.r, state.g, state.b, a)
+        if f.hex and not f.hex:HasFocus() then
+            f.hex:SetText(string.format("%02X%02X%02X", Round(state.r), Round(state.g), Round(state.b)))
+        end
+        if f.rBox and not f.rBox:HasFocus() then f.rBox:SetText(Round(state.r)) end
+        if f.gBox and not f.gBox:HasFocus() then f.gBox:SetText(Round(state.g)) end
+        if f.bBox and not f.bBox:HasFocus() then f.bBox:SetText(Round(state.b)) end
+    end
     P = f
     return P
 end
@@ -136,6 +227,7 @@ function addon.OpenColorPicker(spec)
     state.r, state.g, state.b = spec.r or 1, spec.g or 1, spec.b or 1
     state.a = state.hasAlpha and (spec.a or 1) or 1
     state.orig = { r = state.r, g = state.g, b = state.b, a = state.a }
+    f.oldSwatch:SetColorTexture(state.r, state.g, state.b, state.a)
     state.suppress = true
     f.colorSelect:SetColorRGB(state.r, state.g, state.b)
     state.suppress = false
