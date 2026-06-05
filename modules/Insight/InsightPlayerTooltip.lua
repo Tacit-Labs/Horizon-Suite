@@ -62,12 +62,16 @@ local DRACTHYR_VISAGE_AURA_SPELL_IDS = {
     382916, -- Visage Form: quest/form helper aura on some clients.
 }
 
+local function GetPlayerGradientBias()
+    return tonumber(addon.GetDB("insightPlayerGradientBias", 0)) or 0
+end
+
 -- Wrap a plain name in either a per-character gradient (class-colour mode with
 -- the gradient toggle on) or a single flat |cff colour span. Shared by the
 -- live tooltip and the dashboard preview.
 local function FormatNameSpan(plain, r, g, b, useGradient)
     if useGradient then
-        return Insight.BuildNameGradient(plain, r, g, b)
+        return Insight.BuildNameGradient(plain, r, g, b, GetPlayerGradientBias())
     end
     local hex = string.format("%02x%02x%02x",
         math.floor(r * 255), math.floor(g * 255), math.floor(b * 255))
@@ -617,7 +621,7 @@ end
 local function FormatTitleSpan(titlePart, nameR, nameG, nameB)
     local mode = GetTitleColorMode()
     if mode == "gradient" then
-        return Insight.BuildNameGradient(titlePart, nameR, nameG, nameB)
+        return Insight.BuildNameGradient(titlePart, nameR, nameG, nameB, GetPlayerGradientBias())
     elseif mode == "match" then
         return "|cff" .. RGBToHex(nameR, nameG, nameB) .. titlePart .. "|r"
     end
@@ -630,7 +634,7 @@ local function FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, na
     -- Suffix titles carry their own native separator (" the X" or ", the X"); don't double-space.
     local plain = titleFirst and (titlePart .. " " .. namePart .. realmSuffix) or (namePart .. titlePart .. realmSuffix)
     if GetTitleColorMode() == "gradient" then
-        return Insight.BuildNameGradient(plain, nameR, nameG, nameB)
+        return Insight.BuildNameGradient(plain, nameR, nameG, nameB, GetPlayerGradientBias())
     end
 
     local nameSpan = FormatNameSpan(namePart, nameR, nameG, nameB, useGradient)
@@ -1128,7 +1132,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             if useGradient then
                 -- Force vertex colour to white so our |cff escapes aren't
                 -- dampened by Blizzard's SetTextColor.
-                displayText = Insight.BuildNameGradient(Insight.StripColourEscapes(namePart), nameR, nameG, nameB)
+                displayText = Insight.BuildNameGradient(Insight.StripColourEscapes(namePart), nameR, nameG, nameB, GetPlayerGradientBias())
                 nameLeft:SetTextColor(1, 1, 1, 1)
             else
                 displayText = namePart
@@ -1138,7 +1142,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         -- TRP3 RP name: replace WoW character name with RP name when available
         if trp3Data and trp3Data.rpName and ShowTRP3RPName() then
             if useGradient then
-                displayText = Insight.BuildNameGradient(trp3Data.rpName, nameR, nameG, nameB)
+                displayText = Insight.BuildNameGradient(trp3Data.rpName, nameR, nameG, nameB, GetPlayerGradientBias())
                 nameLeft:SetTextColor(1, 1, 1, 1)
             else
                 displayText = FormatNameSpan(trp3Data.rpName, nameR, nameG, nameB, false)
@@ -1429,7 +1433,7 @@ function Insight.RenderTestTooltipContent(tooltip)
 
     local nameSpan
     if useGradient then
-        nameSpan = Insight.BuildNameGradient(displayName, nameR, nameG, nameB)
+        nameSpan = Insight.BuildNameGradient(displayName, nameR, nameG, nameB, GetPlayerGradientBias())
     else
         nameSpan = FormatNameSpan(displayName, nameR, nameG, nameB, false)
     end
