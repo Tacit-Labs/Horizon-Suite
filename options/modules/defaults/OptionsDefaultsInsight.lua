@@ -44,6 +44,8 @@ addon.INSIGHT_KEYS = {
     insightStatusBadgeGroup      = true,
     insightStatusBadgeFriend     = true,
     insightStatusBadgeTargeting  = true,
+    insightShowTargeting         = true,
+    insightNpcShowTargeting      = true,
     insightShowMythicScore       = true,
     insightMythicScoreMode       = true,
     insightRatingsIcons          = true,
@@ -138,6 +140,8 @@ addon.INSIGHT_DEFAULTS = {
     insightStatusBadgeGroup      = true,
     insightStatusBadgeFriend     = true,
     insightStatusBadgeTargeting  = true,
+    insightShowTargeting         = true,
+    insightNpcShowTargeting      = true,
     -- Ratings/gear
     insightShowMythicScore       = false,
     insightShowIlvl              = false,
