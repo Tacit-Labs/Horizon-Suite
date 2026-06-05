@@ -45,9 +45,6 @@ if addon.StandardFont then
     Def.FontPath = addon.StandardFont
 end
 
-local _activeColorPickerCallbacks = nil  -- { setKeyVal, notify, tex } when our picker is open
-local _hexBoxHooked = false
-
 function _G.OptionsWidgets_SetDef(overrides)
     if not overrides then return end
     for k, v in pairs(overrides) do Def[k] = v end
@@ -120,7 +117,11 @@ local function SetSafeFont(fs, path, size, flags)
     if effFlags == nil then
         effFlags = Def.WidgetFontFlags or "OUTLINE"
         -- Register so OptionsWidgets_RefreshFonts can re-apply when WidgetFontFlags changes.
-        widgetFontRegistry[#widgetFontRegistry + 1] = { fs = fs, size = size }
+        -- Guard against duplicate entries when the same FontString is re-fonted (e.g. on refresh).
+        if not fs._horizonFontRegistered then
+            fs._horizonFontRegistered = true
+            widgetFontRegistry[#widgetFontRegistry + 1] = { fs = fs, size = size }
+        end
     end
     local ok = fs:SetFont(path, size, effFlags)
     if not ok then
@@ -136,6 +137,8 @@ local function SetSafeFont(fs, path, size, flags)
     end
     return ok
 end
+-- Exported so other options UI (e.g. HorizonColorPicker) reuses the same font registry + refresh + shadow.
+addon.OptionsWidgets_SetSafeFont = SetSafeFont
 
 local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
 local TOGGLE_ANIM_DUR = 0.15
@@ -156,18 +159,31 @@ local function ApplyOptionTooltip(frame, tooltip)
     end)
 end
 
+-- Combine an inline description and a hover tooltip into one tooltip string (blank-line separated).
+local function JoinTooltip(desc, tip)
+    return (desc or "") .. (desc and tip and "\n\n" or "") .. (tip or "")
+end
+
+-- Row hover-highlight geometry/timing.
+local ROW_HOVER_INSET_X = 18
+local ROW_HOVER_INSET_Y = 5
+local ROW_HOVER_ALPHA   = 0.025
+local ROW_HOVER_FADE    = 0.15
+-- Vertical spacing between a row's label and its (hidden) description, and the bottom pad.
+local ROW_LABEL_DESC_GAP  = 2
+local ROW_DESC_BOTTOM_PAD = 4
+
 local function ApplyRowHoverHighlight(row)
     if not row then return end
     local hiBg = row:CreateTexture(nil, "BACKGROUND", nil, -7) -- Behind track/thumb backgrounds
-    hiBg:SetPoint("TOPLEFT", row, "TOPLEFT", -18, 5)
-    hiBg:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 18, -5)
-    hiBg:SetColorTexture(1, 1, 1, 0.025)
+    hiBg:SetPoint("TOPLEFT", row, "TOPLEFT", -ROW_HOVER_INSET_X, ROW_HOVER_INSET_Y)
+    hiBg:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", ROW_HOVER_INSET_X, -ROW_HOVER_INSET_Y)
+    hiBg:SetColorTexture(1, 1, 1, ROW_HOVER_ALPHA)
     hiBg:Hide()
-    
+
     row:EnableMouse(true)
     row:HookScript("OnEnter", function()
-        -- Fade in
-        UIFrameFadeIn(row.hoverHighlightFrame or hiBg, 0.15, 0, 1)
+        UIFrameFadeIn(hiBg, ROW_HOVER_FADE, 0, 1)
         hiBg:Show()
     end)
     row:HookScript("OnLeave", function()
@@ -221,7 +237,7 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     SetTextColor(desc, Def.TextColorSection)
     desc:SetText("")
     desc:Hide()
-    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -2)
+    desc:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -ROW_LABEL_DESC_GAP)
     desc:SetPoint("RIGHT", track, "LEFT", -12, 0)
     desc:SetWordWrap(true)
 
@@ -231,10 +247,9 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     local function updateRowHeight()
         local descH = desc:GetStringHeight() or 0
         local labelH = label:GetStringHeight() or 0
-        local neededH = labelH + 2 + descH + 4
+        local neededH = labelH + ROW_LABEL_DESC_GAP + descH + ROW_DESC_BOTTOM_PAD
         local h = math.max(row._baseHeight, neededH)
         row:SetHeight(h)
-        row._measuredHeight = h
     end
     -- Defer measurement to after layout
     C_Timer.After(0, updateRowHeight)
@@ -292,11 +307,11 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     btn:SetScript("OnClick", function()
         if disabledFn and disabledFn() == true then return end
         if row.animStart then return end  -- Debounce: ignore clicks during animation (prevents double-click reverting)
-        local next = not get()
-        set(next)
+        local newOn = not get()
+        set(newOn)
         row.animStart = GetTime()
         row.animFrom = row.thumbPos
-        row.animTo = next and 1 or 0
+        row.animTo = newOn and 1 or 0
         track:SetScript("OnUpdate", toggleOnUpdate)
     end)
 
@@ -312,7 +327,7 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    local effectiveTooltip = JoinTooltip(description, tooltip)
     ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
@@ -362,10 +377,38 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
     return btn
 end
 
--- Slider: slim rounded track + draggable thumb + numeric readout
-local SLIDER_TRACK_HEIGHT = 6
-local SLIDER_THUMB_SIZE = 14
-local SLIDER_TRACK_INSET = 2
+-- Slider: chunky gradient bar + square handle (same height as the bar) + numeric readout
+local SLIDER_TRACK_HEIGHT     = 14   -- chunky bar
+local SLIDER_TRACK_INSET      = 0    -- fill spans the full bar height/width
+-- Square handle, same height as the bar; grows slightly in the active (hover/drag) state.
+local SLIDER_THUMB_W          = 14
+local SLIDER_THUMB_H          = 14
+local SLIDER_THUMB_W_ACTIVE   = 16
+local SLIDER_THUMB_H_ACTIVE   = 16
+-- Soft additive glow behind the handle.
+local SLIDER_GLOW_SIZE        = 28
+local SLIDER_GLOW_ALPHA_REST  = 0.30
+local SLIDER_GLOW_ALPHA_ON    = 0.80
+-- Hover/drag "active" ease duration (seconds).
+local SLIDER_ACTIVE_DUR       = 0.12
+-- Built-in glow texture (no custom assets).
+local SLIDER_GLOW_TEXTURE     = "Interface\\Cooldown\\star4"
+
+-- Apply the slim fill gradient (dark → accent) derived from the live Def.TrackOn, so a
+-- class-colour change retints it through the normal Refresh path. Falls back to a flat
+-- fill on clients without SetGradient/CreateColor.
+local function ApplyFillGradient(tex)
+    local c = Def.TrackOn
+    local a = c[4] or 0.85
+    if tex.SetGradient and CreateColor then
+        tex:SetColorTexture(1, 1, 1, 1)
+        tex:SetGradient("HORIZONTAL",
+            CreateColor(c[1] * 0.30, c[2] * 0.30, c[3] * 0.42, a),
+            CreateColor(math.min(1, c[1] * 1.12), math.min(1, c[2] * 1.12), math.min(1, c[3] * 1.12), a))
+    else
+        tex:SetColorTexture(c[1], c[2], c[3], a)
+    end
+end
 function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set, minVal, maxVal, disabledFn, step, tooltip)
     -- step: snapping increment (default 1 = integer). Use e.g. 0.1 for one decimal place.
     step = step or 1
@@ -420,14 +463,24 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     local trackFill = track:CreateTexture(nil, "ARTWORK")
     trackFill:SetPoint("TOPLEFT", track, "TOPLEFT", SLIDER_TRACK_INSET, -SLIDER_TRACK_INSET)
     trackFill:SetPoint("BOTTOMLEFT", track, "BOTTOMLEFT", SLIDER_TRACK_INSET, SLIDER_TRACK_INSET)
-    trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4])
+    ApplyFillGradient(trackFill)
 
     local thumb = CreateFrame("Button", nil, track)
-    thumb:SetSize(SLIDER_THUMB_SIZE, SLIDER_THUMB_SIZE)
+    thumb:SetSize(SLIDER_THUMB_W, SLIDER_THUMB_H)
     thumb:SetPoint("CENTER", track, "LEFT", 0, 0)
-    local thumbTex = thumb:CreateTexture(nil, "BACKGROUND")
+    -- Square handle, same height as the bar (no mask needed).
+    local thumbTex = thumb:CreateTexture(nil, "ARTWORK")
     thumbTex:SetAllPoints(thumb)
     thumbTex:SetColorTexture(Def.ThumbColor[1], Def.ThumbColor[2], Def.ThumbColor[3], Def.ThumbColor[4])
+
+    -- Soft additive halo behind the handle; alpha rises in the active (hover/drag) state.
+    local glow = thumb:CreateTexture(nil, "BACKGROUND")
+    glow:SetTexture(SLIDER_GLOW_TEXTURE)
+    glow:SetBlendMode("ADD")
+    glow:SetSize(SLIDER_GLOW_SIZE, SLIDER_GLOW_SIZE)
+    glow:SetPoint("CENTER", thumb, "CENTER", 0, 0)
+    glow:SetVertexColor(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3])
+    glow:SetAlpha(SLIDER_GLOW_ALPHA_REST)
 
     local editWrap = CreateFrame("Frame", nil, row)
     editWrap:SetSize(44, 20)
@@ -499,24 +552,56 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end
 
     local fillWidth = trackWidth - 2 * SLIDER_TRACK_INSET
-    local thumbTravel = fillWidth - SLIDER_THUMB_SIZE
+    local thumbTravel = fillWidth - SLIDER_THUMB_W
 
     -- Now assign the body — all closures above that captured the upvalue slot will see this.
     updateFromValue = function(v)
         v = math.max(minVal, math.min(maxVal, v))
         local n = valueToNorm(v)
+        local center = SLIDER_TRACK_INSET + SLIDER_THUMB_W/2 + n * thumbTravel
         thumb:ClearAllPoints()
-        thumb:SetPoint("CENTER", track, "LEFT", SLIDER_TRACK_INSET + SLIDER_THUMB_SIZE/2 + n * thumbTravel, 0)
-        trackFill:SetWidth(n * fillWidth)
+        thumb:SetPoint("CENTER", track, "LEFT", center, 0)
+        trackFill:SetWidth(center)   -- fill the bar up to the handle centre
         edit:SetText(formatValue(v))
     end
 
+    -- Active (hover/drag) feedback: ease the handle larger + glow brighter over SLIDER_ACTIVE_DUR.
+    local activeCur, activeTarget = 0, 0
+    local function applyThumbState(t)
+        local w = SLIDER_THUMB_W + (SLIDER_THUMB_W_ACTIVE - SLIDER_THUMB_W) * t
+        local h = SLIDER_THUMB_H + (SLIDER_THUMB_H_ACTIVE - SLIDER_THUMB_H) * t
+        thumb:SetSize(w, h)
+        glow:SetAlpha(SLIDER_GLOW_ALPHA_REST + (SLIDER_GLOW_ALPHA_ON - SLIDER_GLOW_ALPHA_REST) * t)
+    end
+    local function tickThumbAnim(_, elapsed)
+        local stepAmt = (SLIDER_ACTIVE_DUR > 0) and (elapsed / SLIDER_ACTIVE_DUR) or 1
+        if activeCur < activeTarget then
+            activeCur = math.min(activeTarget, activeCur + stepAmt)
+        else
+            activeCur = math.max(activeTarget, activeCur - stepAmt)
+        end
+        applyThumbState(activeCur)
+        if activeCur == activeTarget then
+            thumb:SetScript("OnUpdate", nil)
+        end
+    end
+    local function setThumbActive(on)
+        if disabledFn and disabledFn() == true then on = false end
+        local tgt = on and 1 or 0
+        if tgt == activeTarget then return end
+        activeTarget = tgt
+        thumb:SetScript("OnUpdate", tickThumbAnim)
+    end
+    applyThumbState(0)
+
     local dragging = false
+    local rowHovered = false
     local startNorm, startX
     thumb:SetScript("OnMouseDown", function(_, btn)
         if btn ~= "LeftButton" then return end
         if disabledFn and disabledFn() == true then return end
         dragging = true
+        setThumbActive(true)
         startNorm = valueToNorm(get())
         local scale = track:GetEffectiveScale()
         startX = GetCursorPosition() / scale
@@ -525,6 +610,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
             if not IsMouseButtonDown("LeftButton") then
                 thumb:GetParent():SetScript("OnUpdate", nil)
                 dragging = false
+                if not rowHovered then setThumbActive(false) end
                 -- Commit final value on release so the DB is up-to-date.
                 local finalV = snapToStep(math.max(minVal, math.min(maxVal, normToValue(startNorm))))
                 if finalV ~= lastCommittedSnapped then
@@ -536,20 +622,21 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
             local delta = (x - startX) / fillWidth
             local n = math.max(0, math.min(1, startNorm + delta))
             local v = normToValue(n)
-            -- Update visual every frame for smooth thumb movement.
-            updateFromValue(v)
             -- Only call set() when the snapped value changes.
             local snappedV = snapToStep(v)
             if snappedV ~= lastCommittedSnapped then
                 lastCommittedSnapped = snappedV
                 set(snappedV)
             end
+            -- Update the visual LAST so the smooth position wins over any row:Refresh()
+            -- the set() callback may trigger (which would otherwise snap the handle = lag).
+            updateFromValue(v)
             startNorm = n
             startX = x
         end)
     end)
 
-    local function applyDisabledVisual()
+    local function applyDisabledVisuals()
         local dis = disabledFn and disabledFn() == true
         local alpha = dis and 0.35 or 1
         label:SetAlpha(alpha)
@@ -557,6 +644,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         track:SetAlpha(alpha)
         editWrap:SetAlpha(alpha)
         if dis then
+            setThumbActive(false)
             edit:EnableMouse(false)
         else
             edit:EnableMouse(true)
@@ -564,14 +652,31 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end
 
     function row:Refresh()
-        trackFill:SetColorTexture(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3], Def.TrackOn[4])
-        updateFromValue(get())
-        applyDisabledVisual()
+        ApplyFillGradient(trackFill)
+        glow:SetVertexColor(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3])
+        -- Don't reposition the handle from the DB mid-drag; the drag handler owns it.
+        if not dragging then updateFromValue(get()) end
+        applyDisabledVisuals()
     end
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    local function onHoverEnter()
+        rowHovered = true
+        setThumbActive(true)
+    end
+    local function onHoverLeave()
+        -- The handle is a mouse-enabled child, so moving onto it fires the row's OnLeave even
+        -- though the cursor is still within the row. Stay active while over either.
+        if row:IsMouseOver() or thumb:IsMouseOver() then return end
+        rowHovered = false
+        if not dragging then setThumbActive(false) end
+    end
+    row:HookScript("OnEnter", onHoverEnter)
+    row:HookScript("OnLeave", onHoverLeave)
+    thumb:HookScript("OnEnter", onHoverEnter)
+    thumb:HookScript("OnLeave", onHoverLeave)
+    local effectiveTooltip = JoinTooltip(description, tooltip)
     ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
@@ -588,6 +693,46 @@ local SECTION_CARD_BACKDROP = {
 
 -- Sentinel stored in DB for "use global font" per-element pickers (must match OptionsData FONT_USE_GLOBAL / Vista GLOBAL_SENTINEL).
 local DROPDOWN_FONT_GLOBAL_SENTINEL = "__global__"
+
+-- Monotonic counter for unique, stable dropdown ESC-catch frame names (was derived from tostring(row)).
+local dropdownCatchCounter = 0
+
+-- Dropdown popup layout.
+local DROPDOWN_SEARCH_BOX_H = 36   -- height of the search box atop searchable lists
+local DROPDOWN_ROW_H        = 22   -- list row height
+local DROPDOWN_ROW_H_FONT   = 24   -- list row height when previewing fonts (taller)
+local DROPDOWN_MAX_LIST_H   = 330  -- max popup list height before scrolling
+-- Inset the row hover highlight so it floats inside the rounded popup instead of bleeding to the edges.
+local DROPDOWN_HI_INSET_X   = 4
+local DROPDOWN_HI_INSET_Y   = 1
+-- Top/bottom breathing room inside the rounded popup so the first/last row clears the corners.
+local DROPDOWN_LIST_PAD     = 5
+
+-- Normalise dropdown option input (dense array of {name,value[,disabled]} or a name->value map)
+-- into a dense array, alpha-sorted unless preserveOrder (the "__global__" sentinel sorts first).
+local function NormalizeDropdownOptions(opts, preserveOrder)
+    if type(opts) ~= "table" then return {} end
+    local out = {}
+    for k, v in pairs(opts) do
+        if type(k) == "number" and type(v) == "table" then
+            -- Expected shape: { name, value [, disabled] } — [3] truthy = not selectable (grey label, click closes list only).
+            out[#out + 1] = v
+        elseif type(k) == "string" then
+            -- Map shape: name -> value
+            out[#out + 1] = { k, v }
+        end
+    end
+    if not preserveOrder then
+        table.sort(out, function(a, b)
+            local aVal = a and a[2]
+            local bVal = b and b[2]
+            if aVal == "__global__" then return true end
+            if bVal == "__global__" then return false end
+            return tostring(a and a[1] or "") < tostring(b and b[1] or "")
+        end)
+    end
+    return out
+end
 
 -- Custom dropdown: button + popup list (no UIDropDownMenuTemplate)
 -- When searchable is true, adds an EditBox above the list to filter options by name (e.g. font dropdown).
@@ -729,7 +874,9 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         scrollFrame:SetPoint("TOPLEFT", searchEdit, "BOTTOMLEFT", 0, -4)
         scrollFrame:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -4, 4)
     else
-        scrollFrame:SetAllPoints(list)
+        -- Pad top/bottom so the first/last row (and its highlight) clears the rounded corners.
+        scrollFrame:SetPoint("TOPLEFT", list, "TOPLEFT", 0, -DROPDOWN_LIST_PAD)
+        scrollFrame:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", 0, DROPDOWN_LIST_PAD)
     end
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
@@ -740,18 +887,16 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     -- Ensure the dropdown list scrolls internally and doesn't forward wheel events to the parent panel.
     scrollFrame:EnableMouseWheel(true)
     list:EnableMouseWheel(true)
-    if not InCombatLockdown() then
-        scrollFrame:SetPropagateMouseMotion(false)
-        list:SetPropagateMouseMotion(false)
-    end
+    -- SetPropagateMouseMotion is not a protected method, so no combat guard is needed; calling it
+    -- unconditionally also covers dropdowns first built in combat (avoids hover bleed-through).
+    scrollFrame:SetPropagateMouseMotion(false)
+    list:SetPropagateMouseMotion(false)
 
     -- Row height for open list; updated in populate when fontPreviewInList (taller rows for glyph clearance).
     local listRowHeight = 22
 
-    local function consumeWheel() end
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
         if not list:IsShown() then return end
-        if self.StopMovingOrSizing then self:StopMovingOrSizing() end -- no-op consume
         local step = listRowHeight * 3
         local cur = self:GetVerticalScroll() or 0
         local childH = (scrollChild and scrollChild:GetHeight()) or 0
@@ -761,12 +906,13 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         self:SetVerticalScroll(new)
     end)
     -- Capture mouse wheel on the outer list too, so the options panel underneath doesn't scroll.
-    list:SetScript("OnMouseWheel", function() consumeWheel() end)
+    list:SetScript("OnMouseWheel", function() end)
 
     -- Keep our own list of option buttons; GetNumChildren()/GetChildren() is unreliable.
     local optionButtons = {}
 
-    local catch = CreateFrame("Button", "HorizonSuite_DropdownCatch" .. tostring(row):gsub("table: ", ""), UIParent)
+    dropdownCatchCounter = dropdownCatchCounter + 1
+    local catch = CreateFrame("Button", "HorizonSuite_DropdownCatch" .. dropdownCatchCounter, UIParent)
     catch:SetFrameStrata("TOOLTIP")
     catch:SetAllPoints(UIParent)
     catch:Hide()
@@ -838,39 +984,15 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         closeList()
     end
 
-    local function normalizeOptions(opts)
-        if type(opts) ~= "table" then return {} end
-        -- Rebuild into a dense array.
-        local out = {}
-        for k, v in pairs(opts) do
-            if type(k) == "number" and type(v) == "table" then
-                -- Expected shape: { name, value [, disabled] } — [3] truthy = not selectable (grey label, click closes list only).
-                out[#out + 1] = v
-            elseif type(k) == "string" then
-                -- Map shape: name -> value
-                out[#out + 1] = { k, v }
-            end
-        end
-        if not preserveOrder then
-            table.sort(out, function(a, b)
-                local aVal = a and a[2]
-                local bVal = b and b[2]
-                if aVal == "__global__" then return true end
-                if bVal == "__global__" then return false end
-                return tostring(a and a[1] or "") < tostring(b and b[1] or "")
-            end)
-        end
-        return out
-    end
 
-    local SEARCH_BOX_HEIGHT = searchable and 36 or 0
+    local SEARCH_BOX_HEIGHT = searchable and DROPDOWN_SEARCH_BOX_H or 0
 
     local function populate()
         list:SetParent(UIParent)
         list:ClearAllPoints()
         list:SetPoint("TOPLEFT", btn, "BOTTOMLEFT", 0, -2)
 
-        local fullOpts = normalizeOptions((type(options) == "function" and options()) or options or {})
+        local fullOpts = NormalizeDropdownOptions((type(options) == "function" and options()) or options or {}, preserveOrder)
         local opts = fullOpts
         if searchable and searchEdit then
             local filterText = searchEdit:GetText()
@@ -888,13 +1010,14 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
         local num = #opts
 
-        local rowH = fontPreviewInList and 24 or 22
+        local rowH = fontPreviewInList and DROPDOWN_ROW_H_FONT or DROPDOWN_ROW_H
         listRowHeight = rowH
-        local maxHeight = 330
+        local maxHeight = DROPDOWN_MAX_LIST_H
         local totalHeight = num * rowH
 
         list:SetWidth(btn:GetWidth())
-        list:SetHeight(SEARCH_BOX_HEIGHT + math.min(totalHeight, maxHeight))
+        local listVPad = searchable and 0 or (2 * DROPDOWN_LIST_PAD)
+        list:SetHeight(SEARCH_BOX_HEIGHT + math.min(totalHeight, maxHeight) + listVPad)
         scrollChild:SetWidth(btn:GetWidth())
         scrollChild:SetHeight(math.max(totalHeight, 1))
         scrollFrame:SetVerticalScroll(0)
@@ -918,7 +1041,8 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
                 b.text = tb
 
                 local hi = b:CreateTexture(nil, "BACKGROUND")
-                hi:SetAllPoints(b)
+                hi:SetPoint("TOPLEFT", b, "TOPLEFT", DROPDOWN_HI_INSET_X, -DROPDOWN_HI_INSET_Y)
+                hi:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -DROPDOWN_HI_INSET_X, DROPDOWN_HI_INSET_Y)
                 hi:SetColorTexture(1, 1, 1, 0.06)
                 hi:Hide()
                 b._dropdownHi = hi
@@ -1009,7 +1133,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             if newLabel then label:SetText(newLabel) end
         end
         local val = get()
-        local opts = normalizeOptions((type(options) == "function" and options()) or options or {})
+        local opts = NormalizeDropdownOptions((type(options) == "function" and options()) or options or {}, preserveOrder)
 
         for _, opt in ipairs(opts) do
             local optVal = opt[2]
@@ -1052,98 +1176,9 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    local effectiveTooltip = JoinTooltip(description, tooltip)
     ApplyOptionTooltip(row, effectiveTooltip)
     return row
-end
-
--- Helper: get effective color from ColorPickerFrame, preferring HexBox if user typed hex (10.2.5+).
--- Returns r, g, b in 0-1 range. HexBox may contain "ff0000", "#ff0000", or "f00" (3-char shorthand).
-local function GetColorPickerEffectiveRGB()
-    if not ColorPickerFrame then return 0.5, 0.5, 0.5 end
-    local content = ColorPickerFrame.Content
-    local hexBox = content and content.HexBox
-    if hexBox and hexBox.GetText then
-        local raw = hexBox:GetText()
-        if type(raw) == "string" and #raw > 0 then
-            local hex = raw:gsub("^#", ""):gsub("%s+", "")
-            if #hex >= 3 then
-                if #hex == 3 then
-                    hex = hex:gsub("(%x)(%x)(%x)", "%1%1%2%2%3%3")
-                end
-                hex = hex:sub(1, 6)
-                while #hex < 6 do hex = hex .. "0" end
-                local r = tonumber(hex:sub(1, 2), 16)
-                local g = tonumber(hex:sub(3, 4), 16)
-                local b = tonumber(hex:sub(5, 6), 16)
-                if r and g and b then
-                    return r / 255, g / 255, b / 255
-                end
-            end
-        end
-    end
-    return ColorPickerFrame:GetColorRGB()
-end
-
--- Sync hex box to picker visual and apply color (live update when user types). Only runs when our picker is open.
-local function SyncHexBoxToPicker()
-    if not ColorPickerFrame:IsVisible() or not _activeColorPickerCallbacks then return end
-    local content = ColorPickerFrame.Content
-    local hexBox = content and content.HexBox
-    if not hexBox or not hexBox.GetText then return end
-    local raw = hexBox:GetText()
-    if type(raw) ~= "string" or #raw < 3 then return end
-    local hex = raw:gsub("^#", ""):gsub("%s+", "")
-    if #hex < 3 then return end
-    if #hex == 3 then hex = hex:gsub("(%x)(%x)(%x)", "%1%1%2%2%3%3") end
-    hex = hex:sub(1, 6)
-    while #hex < 6 do hex = hex .. "0" end
-    local r = tonumber(hex:sub(1, 2), 16)
-    local g = tonumber(hex:sub(3, 4), 16)
-    local b = tonumber(hex:sub(5, 6), 16)
-    if not r or not g or not b then return end
-    r, g, b = r / 255, g / 255, b / 255
-    local cp = content.ColorPicker
-    local swatchCurrent = content.ColorSwatchCurrent
-    if cp and cp.SetColorRGB then cp:SetColorRGB(r, g, b) end
-    if swatchCurrent and swatchCurrent.SetColorTexture then swatchCurrent:SetColorTexture(r, g, b) end
-    local cb = _activeColorPickerCallbacks
-    if cb then
-        cb.setKeyVal({ r, g, b })
-        local texA = (cb.getAlpha and cb.getAlpha()) or 1
-        if cb.tex then cb.tex:SetColorTexture(r, g, b, texA) end
-        -- No notify during live hex typing; finishedFunc/cancelFunc will notify.
-    end
-end
-
-local function EnsureHexBoxHooked()
-    if _hexBoxHooked then return end
-    local content = ColorPickerFrame and ColorPickerFrame.Content
-    local hexBox = content and content.HexBox
-    if not hexBox or not hexBox.SetScript then return end
-    hexBox:SetScript("OnTextChanged", function()
-        SyncHexBoxToPicker()
-    end)
-    -- Hide the "hex" label inside the box (it obstructs the UI)
-    local function hideHexLabel()
-        for i = 1, select("#", hexBox:GetRegions()) do
-            local r = select(i, hexBox:GetRegions())
-            if r and r.GetText and r.Hide then
-                local t = r:GetText()
-                if t and t:lower():find("hex") then
-                    r:Hide()
-                    return
-                end
-            end
-        end
-        local hash = hexBox.Hash
-        if hash and hash.GetText and hash.Hide then
-            local ok, t = pcall(function() return hash:GetText() end)
-            if ok and t and t:lower():find("hex") then hash:Hide() end
-        end
-    end
-    hideHexLabel()
-    _hexBoxHooked = true
 end
 
 -- Color swatch row: label + clickable swatch (for colorMatrix/colorGroup in options panel).
@@ -1169,7 +1204,9 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
     addon.CreateBorder(swatch, Def.SectionCardBorder)
     swatch.tex = tex
     local def = defaultTbl and #defaultTbl >= 3 and defaultTbl or { 0.5, 0.5, 0.5 }
-    function swatch:Refresh()
+    -- Decode the current colour from getTbl(): supports {r,g,b[,a]} tables and the legacy
+    -- numeric multi-return, falling back to def. Honours hasAlpha.
+    local function readColor()
         local r, g, b, a = def[1], def[2], def[3], def[4] or 1
         if getTbl then
             local result = getTbl()
@@ -1184,6 +1221,10 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
                 end
             end
         end
+        return r, g, b, a
+    end
+    function swatch:Refresh()
+        local r, g, b, a = readColor()
         if hasAlpha then
             tex:SetColorTexture(r, g, b, a)
         else
@@ -1192,82 +1233,26 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
     end
     swatch:SetScript("OnClick", function()
         if disabledFn and disabledFn() then return end
-        if not ColorPickerFrame or not ColorPickerFrame.SetupColorPickerAndShow then return end
-        local r, g, b, a = def[1], def[2], def[3], def[4] or 1
-        if getTbl then
-            local result = getTbl()
-            if type(result) == "table" and result[1] then
-                r, g, b = result[1], result[2], result[3]
-                if hasAlpha and type(result[4]) == "number" then a = result[4] end
-            elseif type(result) == "number" then
-                local rVal, gVal, bVal, aVal = getTbl()
-                if type(rVal) == "number" and type(gVal) == "number" and type(bVal) == "number" then
-                    r, g, b = rVal, gVal, bVal
-                    if hasAlpha and type(aVal) == "number" then a = aVal end
-                end
-            end
-        end
-        addon._colorPickerLive = true
-        _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
-        ColorPickerFrame:SetupColorPickerAndShow({
-            r = r, g = g, b = b,
-            a = hasAlpha and a or nil,
-            opacity = hasAlpha and a or nil,
-            hasOpacity = hasAlpha == true,
-            swatchFunc = function()
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = (type(ColorPickerFrame.GetColorAlpha) == "function" and ColorPickerFrame:GetColorAlpha())
-                               or (type(ColorPickerFrame.GetOpacity) == "function" and (1 - ColorPickerFrame:GetOpacity()))
-                               or 1
-                    setKeyVal({ nr, ng, nb, na })
-                    tex:SetColorTexture(nr, ng, nb, na)
-                else
-                    setKeyVal({ nr, ng, nb })
-                    tex:SetColorTexture(nr, ng, nb, 1)
-                end
+        local r, g, b, a = readColor()
+        addon.OpenColorPicker({
+            r = r, g = g, b = b, a = a, hasAlpha = hasAlpha,
+            default = { def[1], def[2], def[3], def[4] },
+            onChange = function(nr, ng, nb, na)
+                -- Live drag: setKeyVal self-skips the heavy notify while _colorPickerLive is set.
+                setKeyVal(hasAlpha and { nr, ng, nb, na } or { nr, ng, nb })
+                if tex then tex:SetColorTexture(nr, ng, nb, hasAlpha and na or 1) end
             end,
-            cancelFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local p = ColorPickerFrame.previousValues
-                if p and type(p.r) == "number" and type(p.g) == "number" and type(p.b) == "number" then
-                    if hasAlpha then
-                        -- modern WoW stores alpha as pv.a; legacy stored inverted pv.opacity
-                        local oa = (type(p.a) == "number" and p.a)
-                                   or (type(p.opacity) == "number" and (1 - p.opacity))
-                                   or 1
-                        setKeyVal({ p.r, p.g, p.b, oa })
-                    else
-                        setKeyVal({ p.r, p.g, p.b })
-                    end
-                elseif getTbl then
-                    local res = getTbl()
-                    if type(res) == "table" and res[1] then
-                        setKeyVal(res)
-                    end
-                end
-                swatch:Refresh()
+            onConfirm = function(nr, ng, nb, na)
+                setKeyVal(hasAlpha and { nr, ng, nb, na } or { nr, ng, nb })
+                if tex then tex:SetColorTexture(nr, ng, nb, hasAlpha and na or 1) end
                 if notify then notify() end
             end,
-            finishedFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = (type(ColorPickerFrame.GetColorAlpha) == "function" and ColorPickerFrame:GetColorAlpha())
-                               or (type(ColorPickerFrame.GetOpacity) == "function" and (1 - ColorPickerFrame:GetOpacity()))
-                               or 1
-                    setKeyVal({ nr, ng, nb, na })
-                    tex:SetColorTexture(nr, ng, nb, na)
-                else
-                    setKeyVal({ nr, ng, nb })
-                    tex:SetColorTexture(nr, ng, nb, 1)
-                end
+            onCancel = function()
+                setKeyVal(hasAlpha and { r, g, b, a } or { r, g, b })
+                if tex then tex:SetColorTexture(r, g, b, hasAlpha and a or 1) end
                 if notify then notify() end
             end,
         })
-        EnsureHexBoxHooked()
     end)
     row.Refresh = function()
         swatch:Refresh()
@@ -1308,8 +1293,7 @@ function _G.OptionsWidgets_CreateMiniSwatch(parent, labelText, defaultTbl, getTb
     local tex = swatch:CreateTexture(nil, "BACKGROUND")
     tex:SetPoint("TOPLEFT", swatch, "TOPLEFT", 1, -1)
     tex:SetPoint("BOTTOMRIGHT", swatch, "BOTTOMRIGHT", -1, 1)
-    local addon = _G.HorizonSuite
-    if addon and addon.CreateBorder then
+    if addon.CreateBorder then
         addon.CreateBorder(swatch, Def.SectionCardBorder)
     end
     swatch.tex = tex
@@ -1328,43 +1312,27 @@ function _G.OptionsWidgets_CreateMiniSwatch(parent, labelText, defaultTbl, getTb
     end
 
     swatch:SetScript("OnClick", function()
-        if not ColorPickerFrame or not ColorPickerFrame.SetupColorPickerAndShow then return end
-        local r, g, b = def[1], def[2], def[3]
-        if getTbl then
-            local result = getTbl()
-            if type(result) == "table" and result[1] then
-                r, g, b = result[1], result[2], result[3]
-            end
-        end
-        addon._colorPickerLive = true
-        _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
-        ColorPickerFrame:SetupColorPickerAndShow({
-            r = r, g = g, b = b,
-            swatchFunc = function()
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
+        local cur = getTbl and getTbl() or def
+        local r, g, b = cur[1] or def[1], cur[2] or def[2], cur[3] or def[3]
+        addon.OpenColorPicker({
+            r = r, g = g, b = b, hasAlpha = false,
+            default = { def[1], def[2], def[3] },
+            onChange = function(nr, ng, nb)
+                -- Live drag: setKeyVal self-skips the heavy notify while _colorPickerLive is set.
                 setKeyVal({ nr, ng, nb })
-                tex:SetColorTexture(nr, ng, nb, 1)
+                if tex then tex:SetColorTexture(nr, ng, nb, 1) end
             end,
-            cancelFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local p = ColorPickerFrame.previousValues
-                if p and type(p.r) == "number" then
-                    setKeyVal({ p.r, p.g, p.b })
-                end
-                swatch:Refresh()
+            onConfirm = function(nr, ng, nb)
+                setKeyVal({ nr, ng, nb })
+                if tex then tex:SetColorTexture(nr, ng, nb, 1) end
                 if notify then notify() end
             end,
-            finishedFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                setKeyVal({ nr, ng, nb })
-                tex:SetColorTexture(nr, ng, nb, 1)
+            onCancel = function()
+                setKeyVal({ r, g, b })
+                if tex then tex:SetColorTexture(r, g, b, 1) end
                 if notify then notify() end
             end,
         })
-        EnsureHexBoxHooked()
     end)
 
     frame.Refresh = function() swatch:Refresh() end
@@ -1421,92 +1389,23 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
     swatch:SetScript("OnClick", function()
         if type(get) ~= "function" or type(set) ~= "function" then return end
         local r, g, b, a = get()
-        addon._colorPickerLive = true
-        -- Guard: swatchFunc may fire during SetupColorPickerAndShow before the
-        -- opacity slider is initialised.  Defer readiness by one frame so init
-        -- callbacks cannot overwrite the saved alpha with a stale value.
-        local pickerReady = false
-        _activeColorPickerCallbacks = {
-            setKeyVal = function(tbl)
-                -- SyncHexBoxToPicker always passes {r,g,b} with no alpha.
-                -- Preserve current alpha from get() so hex-box sync never clobbers it.
-                if type(tbl) == "table" then
-                    local _, _, _, currentA = get()
-                    set(tbl[1] or 1, tbl[2] or 1, tbl[3] or 1, currentA)
-                end
-            end,
-            getAlpha = hasAlpha and function()
-                local _, _, _, ca = get()
-                return ca or 1
-            end or nil,
-            notify = nil,
-            tex = tex,
-        }
-        local info = {
-            r = r or 1, g = g or 1, b = b or 1,
-            a = hasAlpha and (a or 1) or nil,
-            opacity = hasAlpha and (a or 1) or nil,
-            hasOpacity = hasAlpha == true,
-            swatchFunc = function()
-                if not pickerReady then return end
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = (type(ColorPickerFrame.GetColorAlpha) == "function" and ColorPickerFrame:GetColorAlpha())
-                               or (type(ColorPickerFrame.GetOpacity) == "function" and (1 - ColorPickerFrame:GetOpacity()))
-                               or 1
-                    set(nr, ng, nb, na)
-                    tex:SetColorTexture(nr, ng, nb, na)
-                else
-                    set(nr, ng, nb, 1)
-                    tex:SetColorTexture(nr, ng, nb, 1)
-                end
-            end,
-            cancelFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local pv = ColorPickerFrame.previousValues
-                if pv and type(pv.r) == "number" and type(pv.g) == "number" and type(pv.b) == "number" then
-                    if hasAlpha then
-                        -- modern WoW stores alpha as pv.a; legacy stored inverted pv.opacity
-                        local oa = (type(pv.a) == "number" and pv.a)
-                                   or (type(pv.opacity) == "number" and (1 - pv.opacity))
-                                   or 1
-                        set(pv.r, pv.g, pv.b, oa)
-                    else
-                        set(pv.r, pv.g, pv.b, 1)
-                    end
-                end
+        r, g, b, a = r or 1, g or 1, b or 1, a or 1
+        addon.OpenColorPicker({
+            r = r, g = g, b = b, a = a, hasAlpha = hasAlpha,
+            default = { r, g, b, a },
+            onChange = function(nr, ng, nb, na)
+                if hasAlpha then set(nr, ng, nb, na) else set(nr, ng, nb, 1) end
                 swatch:Refresh()
             end,
-            finishedFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = (type(ColorPickerFrame.GetColorAlpha) == "function" and ColorPickerFrame:GetColorAlpha())
-                               or (type(ColorPickerFrame.GetOpacity) == "function" and (1 - ColorPickerFrame:GetOpacity()))
-                               or 1
-                    set(nr, ng, nb, na)
-                else
-                    set(nr, ng, nb, 1)
-                end
+            onConfirm = function(nr, ng, nb, na)
+                if hasAlpha then set(nr, ng, nb, na) else set(nr, ng, nb, 1) end
                 swatch:Refresh()
             end,
-        }
-        if ColorPickerFrame.SetupColorPickerAndShow then
-            ColorPickerFrame:SetupColorPickerAndShow(info)
-        else
-            -- Legacy WoW support
-            ColorPickerFrame.func = info.swatchFunc
-            ColorPickerFrame.cancelFunc = info.cancelFunc
-            ColorPickerFrame.opacityFunc = info.swatchFunc
-            ColorPickerFrame.hasOpacity = info.hasOpacity
-            ColorPickerFrame.opacity = info.opacity
-            ColorPickerFrame:SetColorRGB(info.r, info.g, info.b)
-            ColorPickerFrame:Show()
-        end
-        EnsureHexBoxHooked()
-        C_Timer.After(0, function() pickerReady = true end)
+            onCancel = function()
+                if hasAlpha then set(r, g, b, a) else set(r, g, b, 1) end
+                swatch:Refresh()
+            end,
+        })
     end)
 
     function row:Refresh()
@@ -1515,7 +1414,7 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
-    local effectiveTooltip = (description or "") .. (description and tooltip and "\n\n" or "") .. (tooltip or "")
+    local effectiveTooltip = JoinTooltip(description, tooltip)
     ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
@@ -1524,7 +1423,6 @@ end
 -- onTextChanged(text) called on input.
 local SEARCH_ICON_LEFT = 28
 local SEARCH_CLEAR_SIZE = 20
-local SEARCH_CARD_INSET = 4
 local SEARCH_BAR_BACKDROP = {
     bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1533,7 +1431,7 @@ local SEARCH_BAR_BACKDROP = {
     edgeSize = 12,
     insets   = { left = 3, right = 3, top = 3, bottom = 3 },
 }
-function OptionsWidgets_CreateSearchInput(parent, onTextChanged, placeholder)
+function _G.OptionsWidgets_CreateSearchInput(parent, onTextChanged, placeholder)
     local row = CreateFrame("Frame", nil, parent)
     row:SetAllPoints(parent)
     local editWrapper = CreateFrame("Frame", nil, row, "BackdropTemplate")
@@ -1797,6 +1695,9 @@ end
 local REORDER_ROW_GAP = 4
 local REORDER_ROW_HEIGHT = 24
 local REORDER_AUTOSCROLL_MARGIN = 40
+local REORDER_HEADER_PAD = 14   -- gap below the card header before the first row
+local REORDER_RESET_GAP = 6     -- gap above the reset-to-default button
+local REORDER_RESET_H = 22      -- reset button height
 local REORDER_AUTOSCROLL_STEP = 10
 
 --- Create a drag-to-reorder list widget (e.g. for Focus category order). Rows show labelMap[key]; opt.get/set provide order array.
@@ -1807,7 +1708,7 @@ local REORDER_AUTOSCROLL_STEP = 10
 -- @param panelRef table Options panel for scroll region
 -- @param notifyMainAddonFn function Called when order changes (e.g. to refresh tracker)
 -- @return table Container frame
-function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, panelRef, notifyMainAddonFn)
+function _G.OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, panelRef, notifyMainAddonFn)
     local keys = opt.get and opt.get() or {}
     if type(keys) == "function" then keys = keys() end
     if type(keys) ~= "table" then keys = {} end
@@ -1975,14 +1876,15 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
         state.set(orderedKeys)
         repositionRows(orderedKeys)
         if notifyMainAddonFn then
-                notifyMainAddonFn()
+            notifyMainAddonFn()
         end
     end
 
-
     local function onReorderUpdate()
-    if not state.active or not IsMouseButtonDown("LeftButton") then
-        applyReorderAndCleanup() return end
+        if not state.active or not IsMouseButtonDown("LeftButton") then
+            applyReorderAndCleanup()
+            return
+        end
 
         local ghost = ensureGhost()
         local line = ensureInsertionLine()
@@ -2083,7 +1985,7 @@ function OptionsWidgets_CreateReorderList(parent, anchor, opt, scrollFrameRef, p
     resetBtn:SetPoint("TOPLEFT", prevAnchor, "BOTTOMLEFT", 0, -6)
 
     local presetH = presetRow and (8 + 56) or 0
-    local totalH = Def.CardPadding + 14 + presetH + (#keys * (REORDER_ROW_HEIGHT + REORDER_ROW_GAP)) + 6 + 22 + Def.CardPadding
+    local totalH = Def.CardPadding + REORDER_HEADER_PAD + presetH + (#keys * (REORDER_ROW_HEIGHT + REORDER_ROW_GAP)) + REORDER_RESET_GAP + REORDER_RESET_H + Def.CardPadding
     container:SetHeight(totalH)
     container.searchText = ((opt.name or "order") .. " " .. (opt.desc or "") .. " " .. (opt.tooltip or "")):lower()
     function container:Refresh()
@@ -2193,80 +2095,96 @@ function _G.OptionsWidgets_CreateBlacklistGrid(parent, labelText, opts)
     listFrame:SetPoint("RIGHT", container, "RIGHT", 0, 0)
     listFrame:SetHeight(1)
 
-    local rowWidgets = {}
+    -- Pooled rows: WoW never GCs CreateFrame objects, so creating fresh rows on every Rebuild()
+    -- (fired on each unblock click and on dashboard refresh sweeps) would leak unboundedly.
+    -- Rows are reused; each row's unblock button reads row._questID, re-pointed every Rebuild.
+    local BLACKLIST_ROW_H    = 24
+    local BLACKLIST_ROW_STEP = 28
+    local BLACKLIST_EMPTY_H  = 20
+    local rowPool = {}
+    local emptyRow
 
-    local function Rebuild()
-        for _, rw in ipairs(rowWidgets) do rw:Hide() end
-        wipe(rowWidgets)
+    local Rebuild   -- forward declaration (doUnblock calls it)
+
+    local function doUnblock(questID)
+        if addon.GetDB then
+            local bl = addon.GetDB("questBlacklist", nil)
+            if bl and type(bl) == "table" then
+                bl[questID] = nil
+                if next(bl) == nil then bl = nil end
+                if addon.SetDB then addon.SetDB("questBlacklist", bl) end
+            end
+        end
+        Rebuild()
+        if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
+    end
+
+    local function acquireRow(i)
+        local row = rowPool[i]
+        if row then return row end
+        row = CreateFrame("Frame", nil, listFrame)
+        row:SetHeight(BLACKLIST_ROW_H)
+        local nameLbl = row:CreateFontString(nil, "OVERLAY")
+        SetSafeFont(nameLbl, Def.FontPath, Def.LabelSize, nil)
+        SetTextColor(nameLbl, Def.TextColorLabel)
+        nameLbl:SetPoint("LEFT", row, "LEFT", 0, 0)
+        nameLbl:SetJustifyH("LEFT")
+        row.nameLbl = nameLbl
+        local unblockBtn = _G.OptionsWidgets_CreateButton(row, L["UNBLOCK"], function()
+            doUnblock(row._questID)
+        end, { width = 70, height = 20 })
+        unblockBtn:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+        rowPool[i] = row
+        return row
+    end
+
+    function Rebuild()
+        for _, row in ipairs(rowPool) do row:Hide() end
+        if emptyRow then emptyRow:Hide() end
 
         local blacklist = addon.GetDB and addon.GetDB("questBlacklist", nil) or nil
-        if not blacklist or type(blacklist) ~= "table" then
-            local emptyLabel = listFrame:CreateFontString(nil, "OVERLAY")
-            SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, nil)
-            SetTextColor(emptyLabel, Def.TextColorSection)
-            emptyLabel:SetText(L["HIDDEN_QUESTS"])
-            emptyLabel:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
-            local emptyRow = CreateFrame("Frame", nil, listFrame)
-            emptyRow:SetHeight(20)
-            emptyRow:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
-            emptyRow:SetPoint("RIGHT", listFrame, "RIGHT", 0, 0)
-            rowWidgets[1] = emptyRow
-            listFrame:SetHeight(20)
-            container:SetHeight(BLACKLIST_HEADER_H + 20)
+        if not blacklist or type(blacklist) ~= "table" or next(blacklist) == nil then
+            if not emptyRow then
+                emptyRow = CreateFrame("Frame", nil, listFrame)
+                emptyRow:SetHeight(BLACKLIST_EMPTY_H)
+                emptyRow:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, 0)
+                emptyRow:SetPoint("RIGHT", listFrame, "RIGHT", 0, 0)
+                local emptyLabel = emptyRow:CreateFontString(nil, "OVERLAY")
+                SetSafeFont(emptyLabel, Def.FontPath, Def.SectionSize, nil)
+                SetTextColor(emptyLabel, Def.TextColorSection)
+                emptyLabel:SetText(L["HIDDEN_QUESTS"])
+                emptyLabel:SetPoint("TOPLEFT", emptyRow, "TOPLEFT", 0, 0)
+            end
+            emptyRow:Show()
+            listFrame:SetHeight(BLACKLIST_EMPTY_H)
+            container:SetHeight(BLACKLIST_HEADER_H + BLACKLIST_EMPTY_H)
             return
         end
 
+        local i = 0
         local yOff = 0
-        local count = 0
         for questID, questName in pairs(blacklist) do
-            count = count + 1
-            local row = CreateFrame("Frame", nil, listFrame)
-            row:SetHeight(24)
+            i = i + 1
+            local row = acquireRow(i)
+            row._questID = questID
+            local displayName = (type(questName) == "string" and questName ~= "" and questName ~= "true") and questName or ("Quest #" .. tostring(questID))
+            row.nameLbl:SetText(displayName)
+            row:ClearAllPoints()
             row:SetPoint("TOPLEFT", listFrame, "TOPLEFT", 0, yOff)
             row:SetPoint("RIGHT", listFrame, "RIGHT", 0, 0)
-
-            local nameLbl = row:CreateFontString(nil, "OVERLAY")
-            SetSafeFont(nameLbl, Def.FontPath, Def.LabelSize, nil)
-            SetTextColor(nameLbl, Def.TextColorLabel)
-            local displayName = (type(questName) == "string" and questName ~= "" and questName ~= "true") and questName or ("Quest #" .. tostring(questID))
-            nameLbl:SetText(displayName)
-            nameLbl:SetPoint("LEFT", row, "LEFT", 0, 0)
-            nameLbl:SetJustifyH("LEFT")
-
-            local unblockBtn = _G.OptionsWidgets_CreateButton(row, L["UNBLOCK"], function()
-                if addon.GetDB then
-                    local bl = addon.GetDB("questBlacklist", nil)
-                    if bl and type(bl) == "table" then
-                        bl[questID] = nil
-                        local hasAny = false
-                        for _ in pairs(bl) do hasAny = true; break end
-                        if not hasAny then bl = nil end
-                        if addon.SetDB then addon.SetDB("questBlacklist", bl) end
-                    end
-                end
-                Rebuild()
-                if addon.OptionsData_NotifyMainAddon then addon.OptionsData_NotifyMainAddon() end
-            end, { width = 70, height = 20 })
-            unblockBtn:SetPoint("RIGHT", row, "RIGHT", -4, 0)
-
-            rowWidgets[#rowWidgets + 1] = row
-            yOff = yOff - 28
+            row:Show()
+            yOff = yOff - BLACKLIST_ROW_STEP
         end
 
-        if count == 0 then
-            listFrame:SetHeight(20)
-            container:SetHeight(BLACKLIST_HEADER_H + 20)
-        else
-            listFrame:SetHeight(-yOff)
-            container:SetHeight(BLACKLIST_HEADER_H + (-yOff))
-        end
+        listFrame:SetHeight(-yOff)
+        container:SetHeight(BLACKLIST_HEADER_H + (-yOff))
     end
 
     function container:Refresh()
         Rebuild()
     end
     Rebuild()
-    local effectiveTooltip = (opts.desc or "") .. (opts.desc and opts.tooltip and "\n\n" or "") .. (opts.tooltip or "")
+    local effectiveTooltip = JoinTooltip(opts.desc, opts.tooltip)
     ApplyOptionTooltip(container, effectiveTooltip)
     return container
 end
