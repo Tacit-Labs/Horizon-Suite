@@ -166,8 +166,11 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
             -- Also replace when line 2 is solely the creature type or classification —
             -- those components are already included in lineText, so keeping them as a
             -- subtitle would cause them to appear twice.
-            local isTypeOnly = (creatureType and creatureType ~= "" and stripped == creatureType)
-                            or (classStr    and classStr    ~= "" and stripped == classStr)
+            local isTypeOnly = false
+            pcall(function()
+                isTypeOnly = (creatureType and creatureType ~= "" and stripped == creatureType)
+                          or (classStr    and classStr    ~= "" and stripped == classStr)
+            end)
             local gray = 0.75
             if stripped == "" or isBlizzardLevel or isTypeOnly then
                 if lineLeft2 then
@@ -225,8 +228,8 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
                 targetName = UnitName(targetUnit)
             end
         end)
-        if targetName and targetName ~= "" then
-            tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
+        if targetName then
+            tooltip:AddLine("Targeting: " .. tostring(targetName), 1, 1, 1)
         end
     end
 

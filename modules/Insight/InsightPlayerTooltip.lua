@@ -860,13 +860,15 @@ end
 function Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
     if not ShowTargeting() then return end
     local targetName = nil
+    local hasTarget = false
     pcall(function()
         local targetUnit = unit .. "target"
         if UnitExists(targetUnit) then
-            targetName = UnitName(targetUnit)
+            targetName = tostring(UnitName(targetUnit))
+            hasTarget = (targetName ~= "nil" and targetName ~= "")
         end
     end)
-    if not targetName or targetName == "" then return end
+    if not hasTarget then return end
     Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
     Insight.TagLines(tooltip, "stats", function()
         tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
