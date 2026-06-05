@@ -78,6 +78,12 @@ L["SEARCH_SETTINGS"]                                    = "Search Settings..."
 L["SEARCH_FONTS"]                                             = "Search Fonts..."
 
 -- =====================================================================
+-- HorizonColorPicker.lua — Custom colour picker
+-- =====================================================================
+L["COLOR_PICKER_TITLE"]                                       = "Choose a colour"
+L["OPACITY"]                                                  = "Opacity"
+
+-- =====================================================================
 -- OptionsPanel.lua — Resize handle tooltip
 -- =====================================================================
 L["FOCUS_DRAG_RESIZE"]                                        = "Drag to Resize"
