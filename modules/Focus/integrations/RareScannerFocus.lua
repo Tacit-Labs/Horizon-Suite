@@ -187,27 +187,41 @@ do
     if HS then
         local lastAlpha = 1
         local function SyncRSModels(alpha)
-            if math.abs(alpha - lastAlpha) < 0.001 then return end
-            lastAlpha = alpha
             local pool = addon.pool
             if not pool then return end
-            -- PlayerModel ignores inherited alpha AND SetAlpha has no effect on the
-            -- 3D renderer; the only way to hide it is Hide()/Show().
+            -- Threshold: hide at any fade. Alternative considered: use alpha > 0.01
+            -- so the portrait stays visible at the user's mouseover faded opacity
+            -- (e.g. 61%). Rejected — PlayerModel ignores inherited alpha and always
+            -- renders at full 3D opacity, so the portrait would appear brighter than
+            -- the faded tracker text/background. Hard cutoff at 0.99 feels cleaner.
             local fullyVisible = alpha >= 0.99
-            for i = 1, (addon.POOL_SIZE or 0) do
-                local e = pool[i]
-                if e and e.rareModel then
-                    if fullyVisible and e.rareModelActive then
-                        e.rareModel:Show()
-                    else
+            -- When fading, enforce Hide() every frame — a layout pass or async model
+            -- load may have called Show() since the last sync.
+            if not fullyVisible then
+                lastAlpha = alpha
+                for i = 1, (addon.POOL_SIZE or 0) do
+                    local e = pool[i]
+                    if e and e.rareModel and e.rareModel:IsShown() then
                         e.rareModel:Hide()
                     end
                 end
+                return
+            end
+            if math.abs(alpha - lastAlpha) < 0.001 then return end
+            lastAlpha = alpha
+            for i = 1, (addon.POOL_SIZE or 0) do
+                local e = pool[i]
+                if e and e.rareModel then
+                    if e.rareModelActive then e.rareModel:Show() else e.rareModel:Hide() end
+                end
             end
         end
-        HS:HookScript("OnHide",   function() SyncRSModels(0) end)
-        HS:HookScript("OnShow",   function() SyncRSModels(HS:GetAlpha()) end)
-        HS:HookScript("OnUpdate", function() SyncRSModels(HS:GetAlpha()) end)
+        HS:HookScript("OnHide", function() SyncRSModels(0) end)
+        HS:HookScript("OnShow", function() SyncRSModels(HS:GetAlpha()) end)
+        -- Dedicated frame instead of HookScript("OnUpdate") — HookScript stops
+        -- firing after EnsureFocusUpdateRunning calls SetScript("OnUpdate", nil).
+        local rsSync = CreateFrame("Frame")
+        rsSync:SetScript("OnUpdate", function() SyncRSModels(HS:GetAlpha()) end)
     end
 end
 
@@ -460,6 +474,8 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
                             entry.rareModelBtn:Hide()
                         end
                         entry.questTypeIcon:Show()
+                    elseif addon.HS and addon.HS:GetAlpha() < 0.99 then
+                        self:Hide()
                     end
                 end)
                 entry.rareModel = m

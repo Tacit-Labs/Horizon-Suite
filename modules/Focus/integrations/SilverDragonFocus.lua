@@ -185,25 +185,35 @@ do
     if HS then
         local lastAlpha = 1
         local function SyncSDModels(alpha)
-            if math.abs(alpha - lastAlpha) < 0.001 then return end
-            lastAlpha = alpha
             local pool = addon.pool
             if not pool then return end
+            -- See RareScannerFocus for threshold rationale (alpha > 0.01 alternative
+            -- was considered to follow the faded-opacity slider but rejected because
+            -- PlayerModel always renders at full 3D opacity regardless of alpha).
             local fullyVisible = alpha >= 0.99
-            for i = 1, (addon.POOL_SIZE or 0) do
-                local e = pool[i]
-                if e and e.sdModel then
-                    if fullyVisible and e.sdModelActive then
-                        e.sdModel:Show()
-                    else
+            if not fullyVisible then
+                lastAlpha = alpha
+                for i = 1, (addon.POOL_SIZE or 0) do
+                    local e = pool[i]
+                    if e and e.sdModel and e.sdModel:IsShown() then
                         e.sdModel:Hide()
                     end
                 end
+                return
+            end
+            if math.abs(alpha - lastAlpha) < 0.001 then return end
+            lastAlpha = alpha
+            for i = 1, (addon.POOL_SIZE or 0) do
+                local e = pool[i]
+                if e and e.sdModel then
+                    if e.sdModelActive then e.sdModel:Show() else e.sdModel:Hide() end
+                end
             end
         end
-        HS:HookScript("OnHide",   function() SyncSDModels(0) end)
-        HS:HookScript("OnShow",   function() SyncSDModels(HS:GetAlpha()) end)
-        HS:HookScript("OnUpdate", function() SyncSDModels(HS:GetAlpha()) end)
+        HS:HookScript("OnHide", function() SyncSDModels(0) end)
+        HS:HookScript("OnShow", function() SyncSDModels(HS:GetAlpha()) end)
+        local sdSync = CreateFrame("Frame")
+        sdSync:SetScript("OnUpdate", function() SyncSDModels(HS:GetAlpha()) end)
     end
 end
 
@@ -352,6 +362,8 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
                         entry.sdModelBtn:Hide()
                     end
                     entry.questTypeIcon:Show()
+                elseif addon.HS and addon.HS:GetAlpha() < 0.99 then
+                    self:Hide()
                 end
             end)
             entry.sdModel = m
