@@ -45,9 +45,6 @@ if addon.StandardFont then
     Def.FontPath = addon.StandardFont
 end
 
-local _activeColorPickerCallbacks = nil  -- { setKeyVal, notify, tex } when our picker is open
-local _hexBoxHooked = false
-
 function _G.OptionsWidgets_SetDef(overrides)
     if not overrides then return end
     for k, v in pairs(overrides) do Def[k] = v end
@@ -1184,104 +1181,6 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     return row
 end
 
--- Live alpha from the open ColorPickerFrame (modern GetColorAlpha; legacy inverted GetOpacity).
-local function ResolvePickerAlpha()
-    return (type(ColorPickerFrame.GetColorAlpha) == "function" and ColorPickerFrame:GetColorAlpha())
-        or (type(ColorPickerFrame.GetOpacity) == "function" and (1 - ColorPickerFrame:GetOpacity()))
-        or 1
-end
-
--- Alpha from a "previous values" table (modern .a; legacy inverted .opacity), for cancel-restore.
-local function ResolvePrevAlpha(p)
-    return (type(p.a) == "number" and p.a)
-        or (type(p.opacity) == "number" and (1 - p.opacity))
-        or 1
-end
-
--- Parse a hex colour string ("ff0000", "#ff0000", "f00" shorthand) to r, g, b in 0-1, or nil.
-local function ParseHexColor(raw)
-    if type(raw) ~= "string" then return nil end
-    local hex = raw:gsub("^#", ""):gsub("%s+", "")
-    if #hex < 3 then return nil end
-    if #hex == 3 then hex = hex:gsub("(%x)(%x)(%x)", "%1%1%2%2%3%3") end
-    hex = hex:sub(1, 6)
-    while #hex < 6 do hex = hex .. "0" end
-    local r = tonumber(hex:sub(1, 2), 16)
-    local g = tonumber(hex:sub(3, 4), 16)
-    local b = tonumber(hex:sub(5, 6), 16)
-    if not r or not g or not b then return nil end
-    return r / 255, g / 255, b / 255
-end
-
--- Helper: get effective color from ColorPickerFrame, preferring HexBox if user typed hex (10.2.5+).
--- Returns r, g, b in 0-1 range. HexBox may contain "ff0000", "#ff0000", or "f00" (3-char shorthand).
-local function GetColorPickerEffectiveRGB()
-    if not ColorPickerFrame then return 0.5, 0.5, 0.5 end
-    local content = ColorPickerFrame.Content
-    local hexBox = content and content.HexBox
-    if hexBox and hexBox.GetText then
-        local raw = hexBox:GetText()
-        if type(raw) == "string" and #raw > 0 then
-            local r, g, b = ParseHexColor(raw)
-            if r then return r, g, b end
-        end
-    end
-    return ColorPickerFrame:GetColorRGB()
-end
-
--- Sync hex box to picker visual and apply color (live update when user types). Only runs when our picker is open.
-local function SyncHexBoxToPicker()
-    if not ColorPickerFrame:IsVisible() or not _activeColorPickerCallbacks then return end
-    local content = ColorPickerFrame.Content
-    local hexBox = content and content.HexBox
-    if not hexBox or not hexBox.GetText then return end
-    local raw = hexBox:GetText()
-    if type(raw) ~= "string" or #raw < 3 then return end
-    local r, g, b = ParseHexColor(raw)
-    if not r then return end
-    local cp = content.ColorPicker
-    local swatchCurrent = content.ColorSwatchCurrent
-    if cp and cp.SetColorRGB then cp:SetColorRGB(r, g, b) end
-    if swatchCurrent and swatchCurrent.SetColorTexture then swatchCurrent:SetColorTexture(r, g, b) end
-    local cb = _activeColorPickerCallbacks
-    if cb then
-        cb.setKeyVal({ r, g, b })
-        local texA = (cb.getAlpha and cb.getAlpha()) or 1
-        if cb.tex then cb.tex:SetColorTexture(r, g, b, texA) end
-        -- No notify during live hex typing; finishedFunc/cancelFunc will notify.
-    end
-end
-
-local function EnsureHexBoxHooked()
-    if _hexBoxHooked then return end
-    local content = ColorPickerFrame and ColorPickerFrame.Content
-    local hexBox = content and content.HexBox
-    if not hexBox or not hexBox.SetScript then return end
-    hexBox:SetScript("OnTextChanged", function()
-        SyncHexBoxToPicker()
-    end)
-    -- Hide the "hex" label inside the box (it obstructs the UI)
-    local function hideHexLabel()
-        for i = 1, select("#", hexBox:GetRegions()) do
-            local r = select(i, hexBox:GetRegions())
-            if r and r.GetText and r.Hide then
-                local t = r:GetText()
-                if t and t:lower():find("hex") then
-                    r:Hide()
-                    return
-                end
-            end
-        end
-        local hash = hexBox.Hash
-        if hash and hash.GetText and hash.Hide then
-            local ok, t = pcall(function() return hash:GetText() end)
-            if ok and t and t:lower():find("hex") then hash:Hide() end
-        end
-    end
-    hideHexLabel()
-    _hexBoxHooked = true
-end
-
 -- Color swatch row: label + clickable swatch (for colorMatrix/colorGroup in options panel).
 -- defaultTbl: {r,g,b} or nil (nil => {0.5,0.5,0.5}). getTbl() returns current color or nil. setKeyVal({r,g,b}), notify() on change.
 -- disabledFn: optional function() return boolean end; when true, greys out and disables the swatch.
@@ -1334,63 +1233,26 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
     end
     swatch:SetScript("OnClick", function()
         if disabledFn and disabledFn() then return end
-        if not ColorPickerFrame or not ColorPickerFrame.SetupColorPickerAndShow then return end
         local r, g, b, a = readColor()
-        addon._colorPickerLive = true
-        _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
-        ColorPickerFrame:SetupColorPickerAndShow({
-            r = r, g = g, b = b,
-            a = hasAlpha and a or nil,
-            opacity = hasAlpha and a or nil,
-            hasOpacity = hasAlpha == true,
-            swatchFunc = function()
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = ResolvePickerAlpha()
-                    setKeyVal({ nr, ng, nb, na })
-                    tex:SetColorTexture(nr, ng, nb, na)
-                else
-                    setKeyVal({ nr, ng, nb })
-                    tex:SetColorTexture(nr, ng, nb, 1)
-                end
+        addon.OpenColorPicker({
+            r = r, g = g, b = b, a = a, hasAlpha = hasAlpha,
+            default = { def[1], def[2], def[3], def[4] },
+            onChange = function(nr, ng, nb, na)
+                -- Live drag: setKeyVal self-skips the heavy notify while _colorPickerLive is set.
+                setKeyVal(hasAlpha and { nr, ng, nb, na } or { nr, ng, nb })
+                if tex then tex:SetColorTexture(nr, ng, nb, hasAlpha and na or 1) end
             end,
-            cancelFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local p = ColorPickerFrame.previousValues
-                if p and type(p.r) == "number" and type(p.g) == "number" and type(p.b) == "number" then
-                    if hasAlpha then
-                        -- modern WoW stores alpha as pv.a; legacy stored inverted pv.opacity
-                        local oa = ResolvePrevAlpha(p)
-                        setKeyVal({ p.r, p.g, p.b, oa })
-                    else
-                        setKeyVal({ p.r, p.g, p.b })
-                    end
-                elseif getTbl then
-                    local res = getTbl()
-                    if type(res) == "table" and res[1] then
-                        setKeyVal(res)
-                    end
-                end
-                swatch:Refresh()
+            onConfirm = function(nr, ng, nb, na)
+                setKeyVal(hasAlpha and { nr, ng, nb, na } or { nr, ng, nb })
+                if tex then tex:SetColorTexture(nr, ng, nb, hasAlpha and na or 1) end
                 if notify then notify() end
             end,
-            finishedFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = ResolvePickerAlpha()
-                    setKeyVal({ nr, ng, nb, na })
-                    tex:SetColorTexture(nr, ng, nb, na)
-                else
-                    setKeyVal({ nr, ng, nb })
-                    tex:SetColorTexture(nr, ng, nb, 1)
-                end
+            onCancel = function()
+                setKeyVal(hasAlpha and { r, g, b, a } or { r, g, b })
+                if tex then tex:SetColorTexture(r, g, b, hasAlpha and a or 1) end
                 if notify then notify() end
             end,
         })
-        EnsureHexBoxHooked()
     end)
     row.Refresh = function()
         swatch:Refresh()
@@ -1450,43 +1312,27 @@ function _G.OptionsWidgets_CreateMiniSwatch(parent, labelText, defaultTbl, getTb
     end
 
     swatch:SetScript("OnClick", function()
-        if not ColorPickerFrame or not ColorPickerFrame.SetupColorPickerAndShow then return end
-        local r, g, b = def[1], def[2], def[3]
-        if getTbl then
-            local result = getTbl()
-            if type(result) == "table" and result[1] then
-                r, g, b = result[1], result[2], result[3]
-            end
-        end
-        addon._colorPickerLive = true
-        _activeColorPickerCallbacks = { setKeyVal = setKeyVal, notify = notify, tex = tex }
-        ColorPickerFrame:SetupColorPickerAndShow({
-            r = r, g = g, b = b,
-            swatchFunc = function()
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
+        local cur = getTbl and getTbl() or def
+        local r, g, b = cur[1] or def[1], cur[2] or def[2], cur[3] or def[3]
+        addon.OpenColorPicker({
+            r = r, g = g, b = b, hasAlpha = false,
+            default = { def[1], def[2], def[3] },
+            onChange = function(nr, ng, nb)
+                -- Live drag: setKeyVal self-skips the heavy notify while _colorPickerLive is set.
                 setKeyVal({ nr, ng, nb })
-                tex:SetColorTexture(nr, ng, nb, 1)
+                if tex then tex:SetColorTexture(nr, ng, nb, 1) end
             end,
-            cancelFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local p = ColorPickerFrame.previousValues
-                if p and type(p.r) == "number" then
-                    setKeyVal({ p.r, p.g, p.b })
-                end
-                swatch:Refresh()
+            onConfirm = function(nr, ng, nb)
+                setKeyVal({ nr, ng, nb })
+                if tex then tex:SetColorTexture(nr, ng, nb, 1) end
                 if notify then notify() end
             end,
-            finishedFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                setKeyVal({ nr, ng, nb })
-                tex:SetColorTexture(nr, ng, nb, 1)
+            onCancel = function()
+                setKeyVal({ r, g, b })
+                if tex then tex:SetColorTexture(r, g, b, 1) end
                 if notify then notify() end
             end,
         })
-        EnsureHexBoxHooked()
     end)
 
     frame.Refresh = function() swatch:Refresh() end
@@ -1543,75 +1389,23 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
     swatch:SetScript("OnClick", function()
         if type(get) ~= "function" or type(set) ~= "function" then return end
         local r, g, b, a = get()
-        addon._colorPickerLive = true
-        -- Guard: swatchFunc may fire during SetupColorPickerAndShow before the
-        -- opacity slider is initialised.  Defer readiness by one frame so init
-        -- callbacks cannot overwrite the saved alpha with a stale value.
-        local pickerReady = false
-        _activeColorPickerCallbacks = {
-            setKeyVal = function(tbl)
-                -- SyncHexBoxToPicker always passes {r,g,b} with no alpha.
-                -- Preserve current alpha from get() so hex-box sync never clobbers it.
-                if type(tbl) == "table" then
-                    local _, _, _, currentA = get()
-                    set(tbl[1] or 1, tbl[2] or 1, tbl[3] or 1, currentA)
-                end
-            end,
-            getAlpha = hasAlpha and function()
-                local _, _, _, ca = get()
-                return ca or 1
-            end or nil,
-            notify = nil,
-            tex = tex,
-        }
-        local info = {
-            r = r or 1, g = g or 1, b = b or 1,
-            a = hasAlpha and (a or 1) or nil,
-            opacity = hasAlpha and (a or 1) or nil,
-            hasOpacity = hasAlpha == true,
-            swatchFunc = function()
-                if not pickerReady then return end
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = ResolvePickerAlpha()
-                    set(nr, ng, nb, na)
-                    tex:SetColorTexture(nr, ng, nb, na)
-                else
-                    set(nr, ng, nb, 1)
-                    tex:SetColorTexture(nr, ng, nb, 1)
-                end
-            end,
-            cancelFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local pv = ColorPickerFrame.previousValues
-                if pv and type(pv.r) == "number" and type(pv.g) == "number" and type(pv.b) == "number" then
-                    if hasAlpha then
-                        -- modern WoW stores alpha as pv.a; legacy stored inverted pv.opacity
-                        local oa = ResolvePrevAlpha(pv)
-                        set(pv.r, pv.g, pv.b, oa)
-                    else
-                        set(pv.r, pv.g, pv.b, 1)
-                    end
-                end
+        r, g, b, a = r or 1, g or 1, b or 1, a or 1
+        addon.OpenColorPicker({
+            r = r, g = g, b = b, a = a, hasAlpha = hasAlpha,
+            default = { r, g, b, a },
+            onChange = function(nr, ng, nb, na)
+                if hasAlpha then set(nr, ng, nb, na) else set(nr, ng, nb, 1) end
                 swatch:Refresh()
             end,
-            finishedFunc = function()
-                addon._colorPickerLive = nil
-                _activeColorPickerCallbacks = nil
-                local nr, ng, nb = GetColorPickerEffectiveRGB()
-                if hasAlpha then
-                    local na = ResolvePickerAlpha()
-                    set(nr, ng, nb, na)
-                else
-                    set(nr, ng, nb, 1)
-                end
+            onConfirm = function(nr, ng, nb, na)
+                if hasAlpha then set(nr, ng, nb, na) else set(nr, ng, nb, 1) end
                 swatch:Refresh()
             end,
-        }
-        ColorPickerFrame:SetupColorPickerAndShow(info)
-        EnsureHexBoxHooked()
-        C_Timer.After(0, function() pickerReady = true end)
+            onCancel = function()
+                if hasAlpha then set(r, g, b, a) else set(r, g, b, 1) end
+                swatch:Refresh()
+            end,
+        })
     end)
 
     function row:Refresh()

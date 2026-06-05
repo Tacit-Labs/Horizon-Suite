@@ -12,6 +12,10 @@ local SafeFont = addon.OptionsWidgets_SetSafeFont or function(fs, path, size, fl
     if fs and fs.SetFont then fs:SetFont(path, size, flags or "OUTLINE") end
 end
 
+-- The × symbols (window close + remove badge) are UI chrome, not text — keep them on a guaranteed
+-- font (the game default includes the × glyph) so they render even when the user's font lacks it.
+local GLYPH_FONT = (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
+
 local PICKER_W, PICKER_H = 360, 312
 local WHEEL_SIZE = 128
 local VALUE_W = 24
@@ -115,6 +119,7 @@ end
 local function ConfirmClose()
     if not P then return end
     state.confirmed = true
+    addon._colorPickerLive = nil  -- commit: let the option's heavy refresh run now
     local s = state.spec
     if s and s.onConfirm then s.onConfirm(state.r, state.g, state.b, state.a) end
     P:Hide()
@@ -159,7 +164,7 @@ local function EnsurePicker()
     close:SetSize(20, 20); close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -10)
     close:SetFrameLevel((f:GetFrameLevel() or 1) + 10)
     local cx = close:CreateFontString(nil, "OVERLAY")
-    SafeFont(cx, Def.FontPath, 16, nil); cx:SetPoint("CENTER"); cx:SetText("\195\151") -- ×
+    cx:SetFont(GLYPH_FONT, 16, "OUTLINE"); cx:SetPoint("CENTER"); cx:SetText("\195\151") -- ×
     cx:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
     close:SetScript("OnClick", function() CancelClose() end)
 
@@ -379,7 +384,7 @@ local function EnsurePicker()
         local xbg = xbadge:CreateTexture(nil, "BACKGROUND"); xbg:SetAllPoints(xbadge)
         xbg:SetColorTexture(0.75, 0.22, 0.17, 1)
         local xtx = xbadge:CreateFontString(nil, "OVERLAY")
-        SafeFont(xtx, Def.FontPath, 10, nil)
+        xtx:SetFont(GLYPH_FONT, 10, "OUTLINE")
         xtx:SetAllPoints(xbadge)
         xtx:SetJustifyH("CENTER"); xtx:SetJustifyV("MIDDLE")
         xtx:SetText("\195\151")
@@ -474,6 +479,7 @@ local function EnsurePicker()
     -- Fire onCancel when hidden without an explicit confirm (Cancel / ✕ / Esc). Placed after the
     -- initial f:Hide() above so it never fires during construction.
     f:SetScript("OnHide", function()
+        addon._colorPickerLive = nil  -- leave live mode; the cancel restore below gets a full refresh
         if not state.confirmed then
             local s = state.spec
             if s and s.onCancel then s.onCancel() end
@@ -500,6 +506,7 @@ function addon.OpenColorPicker(spec)
     local f = EnsurePicker()
     state.spec = spec or {}
     state.confirmed = false
+    addon._colorPickerLive = true  -- live mode: option setters skip the heavy refresh while dragging
     state.hasAlpha = spec.hasAlpha and true or false
     state.r, state.g, state.b = spec.r or 1, spec.g or 1, spec.b or 1
     state.a = state.hasAlpha and (spec.a or 1) or 1
@@ -512,6 +519,10 @@ function addon.OpenColorPicker(spec)
     f.alphaRow:SetShown(state.hasAlpha)
     if state.hasAlpha and f.placeAlpha then f.placeAlpha() end
     f:BuildPalette()
+    -- The picker is a singleton (built once), so unlike per-open widgets it won't have picked up a
+    -- font change since it was built. Re-apply the current dashboard font via the shared refresh so
+    -- our registered fontstrings match the rest of the options UI every time it opens.
+    if addon.OptionsWidgets_RefreshFonts then addon.OptionsWidgets_RefreshFonts() end
     f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     f:Show(); f:Raise()
 end
