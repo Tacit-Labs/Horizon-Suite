@@ -706,6 +706,8 @@ local DROPDOWN_MAX_LIST_H   = 330  -- max popup list height before scrolling
 -- Inset the row hover highlight so it floats inside the rounded popup instead of bleeding to the edges.
 local DROPDOWN_HI_INSET_X   = 4
 local DROPDOWN_HI_INSET_Y   = 1
+-- Top/bottom breathing room inside the rounded popup so the first/last row clears the corners.
+local DROPDOWN_LIST_PAD     = 5
 
 -- Normalise dropdown option input (dense array of {name,value[,disabled]} or a name->value map)
 -- into a dense array, alpha-sorted unless preserveOrder (the "__global__" sentinel sorts first).
@@ -873,7 +875,9 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         scrollFrame:SetPoint("TOPLEFT", searchEdit, "BOTTOMLEFT", 0, -4)
         scrollFrame:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", -4, 4)
     else
-        scrollFrame:SetAllPoints(list)
+        -- Pad top/bottom so the first/last row (and its highlight) clears the rounded corners.
+        scrollFrame:SetPoint("TOPLEFT", list, "TOPLEFT", 0, -DROPDOWN_LIST_PAD)
+        scrollFrame:SetPoint("BOTTOMRIGHT", list, "BOTTOMRIGHT", 0, DROPDOWN_LIST_PAD)
     end
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
@@ -1013,7 +1017,8 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local totalHeight = num * rowH
 
         list:SetWidth(btn:GetWidth())
-        list:SetHeight(SEARCH_BOX_HEIGHT + math.min(totalHeight, maxHeight))
+        local listVPad = searchable and 0 or (2 * DROPDOWN_LIST_PAD)
+        list:SetHeight(SEARCH_BOX_HEIGHT + math.min(totalHeight, maxHeight) + listVPad)
         scrollChild:SetWidth(btn:GetWidth())
         scrollChild:SetHeight(math.max(totalHeight, 1))
         scrollFrame:SetVerticalScroll(0)
