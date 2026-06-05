@@ -9,6 +9,14 @@ local PICKER_W, PICKER_H = 340, 300
 local WHEEL_SIZE = 128
 local VALUE_W = 24
 local THUMB_TEX = "Interface\\Buttons\\UI-ColorPicker-Buttons"
+local ALPHA_TRACK_H = 10
+local ALPHA_THUMB = 14
+
+local PRESET_COMMON = {
+    { 1, 1, 1 }, { 0, 0, 0 }, { 0.85, 0.20, 0.20 }, { 0.95, 0.70, 0.10 },
+    { 0.25, 0.75, 0.30 }, { 0.25, 0.55, 0.95 }, { 0.65, 0.35, 0.95 },
+}
+local PRESET_SIZE = 20
 
 local function Round(x) return math.floor(x * 255 + 0.5) end
 
@@ -205,6 +213,89 @@ local function EnsurePicker()
     end
     f.rBox, f.gBox, f.bBox = rBox, gBox, bBox
 
+    -- Alpha row (shown only when hasAlpha).
+    local alphaRow = CreateFrame("Frame", nil, f)
+    alphaRow:SetPoint("TOPLEFT", rBox:GetParent():GetParent(), "BOTTOMLEFT", 0, -14)
+    alphaRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
+    alphaRow:SetHeight(22)
+    local alphaLbl = alphaRow:CreateFontString(nil, "OVERLAY")
+    alphaLbl:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    alphaLbl:SetPoint("TOPLEFT", alphaRow, "TOPLEFT", 0, 0); alphaLbl:SetText((L and L["OPACITY"]) or "Opacity")
+    alphaLbl:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
+    local alphaPct = alphaRow:CreateFontString(nil, "OVERLAY")
+    alphaPct:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
+    alphaPct:SetPoint("TOPRIGHT", alphaRow, "TOPRIGHT", 0, 0)
+    alphaPct:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
+    local aTrack = CreateFrame("Frame", nil, alphaRow)
+    aTrack:SetPoint("BOTTOMLEFT", alphaRow, "BOTTOMLEFT", 0, 0)
+    aTrack:SetPoint("BOTTOMRIGHT", alphaRow, "BOTTOMRIGHT", 0, 0)
+    aTrack:SetHeight(ALPHA_TRACK_H)
+    local aFill = aTrack:CreateTexture(nil, "ARTWORK")
+    aFill:SetAllPoints(aTrack)
+    local aThumb = CreateFrame("Button", nil, aTrack)
+    aThumb:SetSize(ALPHA_THUMB, ALPHA_THUMB)
+    local aThumbTex = aThumb:CreateTexture(nil, "OVERLAY")
+    aThumbTex:SetAllPoints(aThumb); aThumbTex:SetColorTexture(1, 1, 1, 0.98)
+
+    local function alphaTravel() return aTrack:GetWidth() - ALPHA_THUMB end
+    local function placeAlpha()
+        aThumb:ClearAllPoints()
+        aThumb:SetPoint("CENTER", aTrack, "LEFT", ALPHA_THUMB / 2 + state.a * alphaTravel(), 0)
+        aFill:SetColorTexture(state.r, state.g, state.b, 0.85)
+        alphaPct:SetText(math.floor(state.a * 100 + 0.5) .. "%")
+    end
+    aThumb:SetScript("OnMouseDown", function()
+        aThumb:SetScript("OnUpdate", function()
+            if not IsMouseButtonDown("LeftButton") then aThumb:SetScript("OnUpdate", nil) return end
+            local scale = aTrack:GetEffectiveScale()
+            local x = (GetCursorPosition() / scale) - aTrack:GetLeft()
+            local n = math.max(0, math.min(1, (x - ALPHA_THUMB / 2) / alphaTravel()))
+            state.a = n
+            placeAlpha()
+            f.newSwatch:SetColorTexture(state.r, state.g, state.b, state.a)
+            FireChange()
+        end)
+    end)
+    f.alphaRow = alphaRow
+    f.placeAlpha = placeAlpha
+
+    -- Preset palette: class colour first, then commons.
+    local presetRow = CreateFrame("Frame", nil, f)
+    presetRow:SetPoint("TOPLEFT", alphaRow, "BOTTOMLEFT", 0, -14)
+    presetRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
+    presetRow:SetHeight(PRESET_SIZE)
+    f.presetRow = presetRow
+    f.presetButtons = {}
+    local function presetButton(i)
+        local b = f.presetButtons[i]
+        if b then return b end
+        b = CreateFrame("Button", nil, presetRow)
+        b:SetSize(PRESET_SIZE, PRESET_SIZE)
+        if i == 1 then b:SetPoint("LEFT", presetRow, "LEFT", 0, 0)
+        else b:SetPoint("LEFT", f.presetButtons[i - 1], "RIGHT", 5, 0) end
+        local tex = b:CreateTexture(nil, "ARTWORK"); tex:SetAllPoints(b); b.tex = tex
+        if addon.CreateBorder then addon.CreateBorder(b, Def.InputBorder) end
+        b:SetScript("OnClick", function()
+            local c = b._color
+            if c then f.colorSelect:SetColorRGB(c[1], c[2], c[3]) end  -- OnColorSelect refreshes + fires
+        end)
+        f.presetButtons[i] = b
+        return b
+    end
+    function f:BuildPresets()
+        local list = {}
+        local classColor = addon.GetOptionsClassColor and addon.GetOptionsClassColor()
+        if classColor then list[#list + 1] = { classColor[1], classColor[2], classColor[3] } end
+        for _, c in ipairs(PRESET_COMMON) do list[#list + 1] = c end
+        for i = 1, #list do
+            local b = presetButton(i)
+            b._color = list[i]
+            b.tex:SetColorTexture(list[i][1], list[i][2], list[i][3], 1)
+            b:Show()
+        end
+        for i = #list + 1, #f.presetButtons do f.presetButtons[i]:Hide() end
+    end
+
     f.colorSelect = cs
     function f:Refresh()
         local a = state.hasAlpha and state.a or 1
@@ -215,6 +306,7 @@ local function EnsurePicker()
         if f.rBox and not f.rBox:HasFocus() then f.rBox:SetText(Round(state.r)) end
         if f.gBox and not f.gBox:HasFocus() then f.gBox:SetText(Round(state.g)) end
         if f.bBox and not f.bBox:HasFocus() then f.bBox:SetText(Round(state.b)) end
+        if state.hasAlpha and f.placeAlpha then f.placeAlpha() end
     end
     P = f
     return P
@@ -232,6 +324,9 @@ function addon.OpenColorPicker(spec)
     f.colorSelect:SetColorRGB(state.r, state.g, state.b)
     state.suppress = false
     if f.Refresh then f:Refresh() end
+    f.alphaRow:SetShown(state.hasAlpha)
+    if state.hasAlpha and f.placeAlpha then f.placeAlpha() end
+    f:BuildPresets()
     f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     f:Show(); f:Raise()
 end
