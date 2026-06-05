@@ -11,12 +11,9 @@ local VALUE_W = 24
 local ALPHA_TRACK_H = 10
 local ALPHA_THUMB = 14
 
-local PRESET_COMMON = {
-    { 1, 1, 1 }, { 0, 0, 0 }, { 0.85, 0.20, 0.20 }, { 0.95, 0.70, 0.10 },
-    { 0.25, 0.75, 0.30 }, { 0.25, 0.55, 0.95 }, { 0.65, 0.35, 0.95 },
-}
 local PRESET_COLS = 4
 local PRESET_GAP = 6
+local PALETTE_CAP = 6  -- max user-saved colours (class + 6 saved + "+" = 8 cells = 2 rows of 4)
 -- Derived widths so the hex+RGB row and the preset grid each fill their column edge-to-edge.
 local CONTENT_W = PICKER_W - 28                                            -- usable width (14px pad each side)
 local FIELD_GAP = 8
@@ -46,6 +43,62 @@ addon.ParseHexColor = ParseHexColor
 -- Singleton state.
 local P            -- the picker frame (built lazily)
 local state = { spec = nil, r = 1, g = 1, b = 1, a = 1, hasAlpha = false, suppress = false, orig = {} }
+
+-- Account-wide saved palette: an ordered list of hex strings at the SavedVariables root
+-- (HorizonDB.customPalette), independent of profiles.
+local function PaletteStore()
+    local db = _G[addon.DATABASE]
+    if not db then return nil end
+    db.customPalette = db.customPalette or {}
+    return db.customPalette
+end
+
+local function ToHex(r, g, b)
+    return string.format("%02X%02X%02X", Round(r), Round(g), Round(b))
+end
+
+-- Returns an array of { r, g, b } from the stored hex list (skipping unparseable entries).
+local function LoadPalette()
+    local store, out = PaletteStore(), {}
+    if store then
+        for _, hex in ipairs(store) do
+            local r, g, b = ParseHexColor(hex)
+            if r then out[#out + 1] = { r, g, b } end
+        end
+    end
+    return out
+end
+
+local function AddCurrentToPalette()
+    addon.EnsureDB()
+    local store = PaletteStore()
+    if not store then return end
+    if #store >= PALETTE_CAP then return end
+    local hex = ToHex(state.r, state.g, state.b)
+    for _, h in ipairs(store) do
+        if type(h) == "string" and h:upper() == hex then return end  -- dedupe
+    end
+    store[#store + 1] = hex
+    if P and P.BuildPalette then P:BuildPalette() end
+end
+
+local function RemoveFromPalette(i)
+    local store = PaletteStore()
+    if not store or not store[i] then return end
+    table.remove(store, i)
+    if P and P.BuildPalette then P:BuildPalette() end
+end
+
+-- The player's class colour (ungated — always available as a quick-pick).
+local function PlayerClassColor()
+    local _, classFile = UnitClass("player")
+    if not classFile then return nil end
+    local cc = C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(classFile)
+    if cc then return cc.r, cc.g, cc.b end
+    local rc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classFile]
+    if rc then return rc.r, rc.g, rc.b end
+    return nil
+end
 
 local function FireChange()
     local s = state.spec
@@ -135,8 +188,13 @@ local function EnsurePicker()
 
     -- Clean solid markers (the Blizzard UI-ColorPicker-Buttons sprite sheet drew a stray blob).
     local wheelThumb = cs:CreateTexture(nil, "OVERLAY")
-    wheelThumb:SetSize(10, 10); wheelThumb:SetColorTexture(1, 1, 1, 0.95)
+    wheelThumb:SetSize(12, 12); wheelThumb:SetColorTexture(1, 1, 1, 0.95)
     cs:SetColorWheelThumbTexture(wheelThumb)
+    -- Circular mask makes the wheel marker a clean circle (not a solid square).
+    local wheelThumbMask = cs:CreateMaskTexture(nil, "OVERLAY")
+    wheelThumbMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    wheelThumbMask:SetAllPoints(wheelThumb)
+    wheelThumb:AddMaskTexture(wheelThumbMask)
 
     local value = cs:CreateTexture(nil, "OVERLAY")
     value:SetSize(VALUE_W, WHEEL_SIZE)
@@ -283,42 +341,94 @@ local function EnsurePicker()
     f.alphaRow = alphaRow
     f.placeAlpha = placeAlpha
 
-    -- Preset palette: class colour first, then commons. Wrapping grid, tucked beside the wheel.
-    local presetRow = CreateFrame("Frame", nil, f)
-    presetRow:SetPoint("TOPLEFT", cmp, "BOTTOMLEFT", 0, -10)
-    presetRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
-    presetRow:SetHeight(PRESET_SIZE * 2 + PRESET_GAP)
-    f.presetRow = presetRow
-    f.presetButtons = {}
-    local function presetButton(i)
-        local b = f.presetButtons[i]
+    -- Palette grid beside the wheel: class colour (auto) + saved colours (hover-× to remove) + "+".
+    local paletteRow = CreateFrame("Frame", nil, f)
+    paletteRow:SetPoint("TOPLEFT", cmp, "BOTTOMLEFT", 0, -10)
+    paletteRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
+    paletteRow:SetHeight(PRESET_SIZE * 2 + PRESET_GAP)
+    f.paletteRow = paletteRow
+    f.paletteButtons = {}
+    local function paletteButton(i)
+        local b = f.paletteButtons[i]
         if b then return b end
-        b = CreateFrame("Button", nil, presetRow)
+        b = CreateFrame("Button", nil, paletteRow)
         b:SetSize(PRESET_SIZE, PRESET_SIZE)
         local col = (i - 1) % PRESET_COLS
         local row = math.floor((i - 1) / PRESET_COLS)
-        b:SetPoint("TOPLEFT", presetRow, "TOPLEFT", col * (PRESET_SIZE + PRESET_GAP), -row * (PRESET_SIZE + PRESET_GAP))
+        b:SetPoint("TOPLEFT", paletteRow, "TOPLEFT", col * (PRESET_SIZE + PRESET_GAP), -row * (PRESET_SIZE + PRESET_GAP))
         local tex = b:CreateTexture(nil, "ARTWORK"); tex:SetAllPoints(b); b.tex = tex
         if addon.CreateBorder then addon.CreateBorder(b, Def.InputBorder) end
+        -- "+" glyph (shown on the add cell only).
+        local plus = b:CreateFontString(nil, "OVERLAY")
+        plus:SetFont(Def.FontPath, 16, Def.WidgetFontFlags or "OUTLINE")
+        plus:SetPoint("CENTER", b, "CENTER", 0, 0); plus:SetText("+")
+        plus:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
+        plus:Hide(); b.plus = plus
+        -- × remove badge (saved cells only); a child button inside the swatch corner.
+        local xbadge = CreateFrame("Button", nil, b)
+        xbadge:SetSize(13, 13)
+        xbadge:SetPoint("TOPRIGHT", b, "TOPRIGHT", 0, 0)
+        xbadge:SetFrameLevel(b:GetFrameLevel() + 5)
+        local xbg = xbadge:CreateTexture(nil, "BACKGROUND"); xbg:SetAllPoints(xbadge)
+        xbg:SetColorTexture(0.75, 0.22, 0.17, 1)
+        local xtx = xbadge:CreateFontString(nil, "OVERLAY")
+        xtx:SetFont(Def.FontPath, 10, "OUTLINE")
+        xtx:SetAllPoints(xbadge)
+        xtx:SetJustifyH("CENTER"); xtx:SetJustifyV("MIDDLE")
+        xtx:SetText("\195\151")
+        xtx:SetTextColor(1, 1, 1, 1)
+        xbadge:Hide(); b.xbadge = xbadge
+        local function hideBadgeIfAway()
+            if not (b:IsMouseOver() or xbadge:IsMouseOver()) then xbadge:Hide() end
+        end
+        xbadge:SetScript("OnClick", function() if b._index then RemoveFromPalette(b._index) end end)
+        xbadge:SetScript("OnLeave", hideBadgeIfAway)
         b:SetScript("OnClick", function()
-            local c = b._color
-            if c then f.colorSelect:SetColorRGB(c[1], c[2], c[3]) end  -- OnColorSelect refreshes + fires
+            if b._kind == "add" then
+                AddCurrentToPalette()
+            elseif b._color then
+                f.colorSelect:SetColorRGB(b._color[1], b._color[2], b._color[3])  -- OnColorSelect refreshes + fires
+            end
         end)
-        f.presetButtons[i] = b
+        b:SetScript("OnEnter", function()
+            if b._kind == "saved" then
+                xbadge:Show()
+            elseif b._kind == "add" then
+                GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+                GameTooltip:SetText((L and L["COLOR_SAVE_CURRENT"]) or "Save current colour", 1, 1, 1, 1, true)
+                GameTooltip:Show()
+            end
+        end)
+        b:SetScript("OnLeave", function() GameTooltip:Hide(); hideBadgeIfAway() end)
+        f.paletteButtons[i] = b
         return b
     end
-    function f:BuildPresets()
-        local list = {}
-        local classColor = addon.GetOptionsClassColor and addon.GetOptionsClassColor()
-        if classColor then list[#list + 1] = { classColor[1], classColor[2], classColor[3] } end
-        for _, c in ipairs(PRESET_COMMON) do list[#list + 1] = c end
-        for i = 1, #list do
-            local b = presetButton(i)
-            b._color = list[i]
-            b.tex:SetColorTexture(list[i][1], list[i][2], list[i][3], 1)
+    function f:BuildPalette()
+        local cells = {}
+        local cr, cg, cb = PlayerClassColor()
+        if cr then cells[#cells + 1] = { kind = "class", color = { cr, cg, cb } } end
+        local saved = LoadPalette()
+        for idx = 1, #saved do
+            cells[#cells + 1] = { kind = "saved", color = saved[idx], index = idx }
+        end
+        if #saved < PALETTE_CAP then cells[#cells + 1] = { kind = "add" } end
+        for i = 1, #cells do
+            local cell = cells[i]
+            local b = paletteButton(i)
+            b._kind = cell.kind
+            b._index = cell.index
+            b._color = cell.color
+            b.xbadge:Hide()
+            if cell.kind == "add" then
+                b.tex:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
+                b.plus:Show()
+            else
+                b.tex:SetColorTexture(cell.color[1], cell.color[2], cell.color[3], 1)
+                b.plus:Hide()
+            end
             b:Show()
         end
-        for i = #list + 1, #f.presetButtons do f.presetButtons[i]:Hide() end
+        for i = #cells + 1, #f.paletteButtons do f.paletteButtons[i]:Hide() end
     end
 
     -- Footer buttons.
@@ -394,7 +504,7 @@ function addon.OpenColorPicker(spec)
     if f.Refresh then f:Refresh() end
     f.alphaRow:SetShown(state.hasAlpha)
     if state.hasAlpha and f.placeAlpha then f.placeAlpha() end
-    f:BuildPresets()
+    f:BuildPalette()
     f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     f:Show(); f:Raise()
 end

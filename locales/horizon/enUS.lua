@@ -81,6 +81,7 @@ L["SEARCH_FONTS"]                                             = "Search Fonts...
 -- HorizonColorPicker.lua — Custom colour picker
 -- =====================================================================
 L["COLOR_PICKER_TITLE"]                                       = "Choose a colour"
+L["COLOR_SAVE_CURRENT"]                                       = "Save current colour"
 L["OPACITY"]                                                  = "Opacity"
 
 -- =====================================================================
