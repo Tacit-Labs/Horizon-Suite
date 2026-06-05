@@ -5,10 +5,9 @@ if not addon then return end
 local L = addon.L
 local Def = addon.OptionsWidgetsDef  -- design tokens exported by OptionsWidgets.lua
 
-local PICKER_W, PICKER_H = 340, 300
+local PICKER_W, PICKER_H = 360, 312
 local WHEEL_SIZE = 128
 local VALUE_W = 24
-local THUMB_TEX = "Interface\\Buttons\\UI-ColorPicker-Buttons"
 local ALPHA_TRACK_H = 10
 local ALPHA_THUMB = 14
 
@@ -16,7 +15,14 @@ local PRESET_COMMON = {
     { 1, 1, 1 }, { 0, 0, 0 }, { 0.85, 0.20, 0.20 }, { 0.95, 0.70, 0.10 },
     { 0.25, 0.75, 0.30 }, { 0.25, 0.55, 0.95 }, { 0.65, 0.35, 0.95 },
 }
-local PRESET_SIZE = 20
+local PRESET_COLS = 4
+local PRESET_GAP = 6
+-- Derived widths so the hex+RGB row and the preset grid each fill their column edge-to-edge.
+local CONTENT_W = PICKER_W - 28                                            -- usable width (14px pad each side)
+local FIELD_GAP = 8
+local FIELD_W = math.floor((CONTENT_W - 3 * FIELD_GAP) / 4)                -- hex + R + G + B fill the row
+local RIGHTCOL_W = PICKER_W - 14 - (14 + (WHEEL_SIZE + VALUE_W + 24) + 14) -- right column (compare/presets) width
+local PRESET_SIZE = math.floor((RIGHTCOL_W - (PRESET_COLS - 1) * PRESET_GAP) / PRESET_COLS)
 
 local function Round(x) return math.floor(x * 255 + 0.5) end
 
@@ -46,13 +52,17 @@ local function FireChange()
     if s and s.onChange then s.onChange(state.r, state.g, state.b, state.a) end
 end
 
-local function Close(cancelled)
+local function ConfirmClose()
     if not P then return end
+    state.confirmed = true
+    local s = state.spec
+    if s and s.onConfirm then s.onConfirm(state.r, state.g, state.b, state.a) end
     P:Hide()
-    if cancelled then
-        local s = state.spec
-        if s and s.onCancel then s.onCancel() end
-    end
+end
+
+local function CancelClose()
+    if not P then return end
+    P:Hide()   -- OnHide fires onCancel because confirmed is false
 end
 
 local function EnsurePicker()
@@ -91,10 +101,17 @@ local function EnsurePicker()
     local cx = close:CreateFontString(nil, "OVERLAY")
     cx:SetFont(Def.FontPath, 16, "OUTLINE"); cx:SetPoint("CENTER"); cx:SetText("\195\151") -- ×
     cx:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
-    close:SetScript("OnClick", function() Close(true) end)
+    close:SetScript("OnClick", function() CancelClose() end)
+
+    -- Divider under the title bar.
+    local titleDivider = f:CreateTexture(nil, "ARTWORK")
+    titleDivider:SetHeight(1)
+    titleDivider:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -34)
+    titleDivider:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -34)
+    titleDivider:SetColorTexture(Def.SectionCardBorder[1], Def.SectionCardBorder[2], Def.SectionCardBorder[3], 0.6)
 
     -- Esc closes (cancel). Registered as a special frame.
-    f:SetScript("OnKeyDown", function(_, key) if key == "ESCAPE" then Close(true) end end)
+    f:SetScript("OnKeyDown", function(_, key) if key == "ESCAPE" then CancelClose() end end)
     f:SetPropagateKeyboardInput(true)
     tinsert(UISpecialFrames, "HorizonColorPicker")
 
@@ -110,9 +127,15 @@ local function EnsurePicker()
     wheel:SetSize(WHEEL_SIZE, WHEEL_SIZE)
     wheel:SetPoint("TOPLEFT", cs, "TOPLEFT", 0, -7)
     cs:SetColorWheelTexture(wheel)
+    -- Circular mask softens the wheel's aliased rim.
+    local wheelMask = cs:CreateMaskTexture(nil, "OVERLAY")
+    wheelMask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    wheelMask:SetAllPoints(wheel)
+    wheel:AddMaskTexture(wheelMask)
 
+    -- Clean solid markers (the Blizzard UI-ColorPicker-Buttons sprite sheet drew a stray blob).
     local wheelThumb = cs:CreateTexture(nil, "OVERLAY")
-    wheelThumb:SetSize(10, 10); wheelThumb:SetTexture(THUMB_TEX)
+    wheelThumb:SetSize(10, 10); wheelThumb:SetColorTexture(1, 1, 1, 0.95)
     cs:SetColorWheelThumbTexture(wheelThumb)
 
     local value = cs:CreateTexture(nil, "OVERLAY")
@@ -121,7 +144,7 @@ local function EnsurePicker()
     cs:SetColorValueTexture(value)
 
     local valueThumb = cs:CreateTexture(nil, "OVERLAY")
-    valueThumb:SetSize(VALUE_W + 4, 10); valueThumb:SetTexture(THUMB_TEX)
+    valueThumb:SetSize(VALUE_W + 6, 4); valueThumb:SetColorTexture(1, 1, 1, 0.95)
     cs:SetColorValueThumbTexture(valueThumb)
 
     cs:SetScript("OnColorSelect", function(_, r, g, b)
@@ -137,19 +160,20 @@ local function EnsurePicker()
     cmp:SetPoint("RIGHT", f, "RIGHT", -14, 0)
     cmp:SetHeight(26)
     local newSw = cmp:CreateTexture(nil, "ARTWORK")
-    newSw:SetPoint("TOPLEFT", cmp, "TOPLEFT", 0, 0); newSw:SetPoint("BOTTOM", cmp, "BOTTOM", 0, 0)
-    newSw:SetWidth(60)
+    newSw:SetPoint("TOPLEFT", cmp, "TOPLEFT", 0, 0)
+    newSw:SetPoint("BOTTOM", cmp, "BOTTOM", 0, 0)
+    newSw:SetPoint("RIGHT", cmp, "CENTER", 0, 0)
     local oldSw = cmp:CreateTexture(nil, "ARTWORK")
-    oldSw:SetPoint("TOPLEFT", newSw, "TOPRIGHT", 0, 0); oldSw:SetPoint("BOTTOM", cmp, "BOTTOM", 0, 0)
-    oldSw:SetWidth(60)
+    oldSw:SetPoint("TOPLEFT", newSw, "TOPRIGHT", 0, 0)
+    oldSw:SetPoint("BOTTOMRIGHT", cmp, "BOTTOMRIGHT", 0, 0)
     if addon.CreateBorder then addon.CreateBorder(cmp, Def.InputBorder) end
     f.newSwatch = newSw
     f.oldSwatch = oldSw
 
     -- Hex input.
     local hexWrap = CreateFrame("Frame", nil, f)
-    hexWrap:SetSize(96, 22)
-    hexWrap:SetPoint("TOPLEFT", cmp, "BOTTOMLEFT", 0, -8)
+    hexWrap:SetSize(FIELD_W, 22)
+    hexWrap:SetPoint("TOPLEFT", cs, "BOTTOMLEFT", 0, -16)  -- combined hex + R/G/B row below the wheel
     local hexBg = hexWrap:CreateTexture(nil, "BACKGROUND")
     hexBg:SetAllPoints(hexWrap)
     hexBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
@@ -176,9 +200,9 @@ local function EnsurePicker()
     -- R/G/B 0-255 fields.
     local function makeNumField(labelText, anchorTo)
         local wrap = CreateFrame("Frame", nil, f)
-        wrap:SetSize(58, 22)
-        if anchorTo then wrap:SetPoint("LEFT", anchorTo, "RIGHT", 6, 0)
-        else wrap:SetPoint("TOPLEFT", hexWrap, "BOTTOMLEFT", 0, -8) end
+        wrap:SetSize(FIELD_W, 22)
+        if anchorTo then wrap:SetPoint("LEFT", anchorTo, "RIGHT", FIELD_GAP, 0)
+        else wrap:SetPoint("LEFT", hexWrap, "RIGHT", FIELD_GAP, 0) end  -- R right of hex, same line
         local lab = wrap:CreateFontString(nil, "OVERLAY")
         lab:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
         lab:SetPoint("LEFT", wrap, "LEFT", 0, 0); lab:SetText(labelText)
@@ -215,9 +239,9 @@ local function EnsurePicker()
 
     -- Alpha row (shown only when hasAlpha).
     local alphaRow = CreateFrame("Frame", nil, f)
-    alphaRow:SetPoint("TOPLEFT", rBox:GetParent():GetParent(), "BOTTOMLEFT", 0, -14)
+    alphaRow:SetPoint("TOPLEFT", hexWrap, "BOTTOMLEFT", 0, -16)
     alphaRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
-    alphaRow:SetHeight(22)
+    alphaRow:SetHeight(32)
     local alphaLbl = alphaRow:CreateFontString(nil, "OVERLAY")
     alphaLbl:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE")
     alphaLbl:SetPoint("TOPLEFT", alphaRow, "TOPLEFT", 0, 0); alphaLbl:SetText((L and L["OPACITY"]) or "Opacity")
@@ -259,11 +283,11 @@ local function EnsurePicker()
     f.alphaRow = alphaRow
     f.placeAlpha = placeAlpha
 
-    -- Preset palette: class colour first, then commons.
+    -- Preset palette: class colour first, then commons. Wrapping grid, tucked beside the wheel.
     local presetRow = CreateFrame("Frame", nil, f)
-    presetRow:SetPoint("TOPLEFT", alphaRow, "BOTTOMLEFT", 0, -14)
+    presetRow:SetPoint("TOPLEFT", cmp, "BOTTOMLEFT", 0, -10)
     presetRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
-    presetRow:SetHeight(PRESET_SIZE)
+    presetRow:SetHeight(PRESET_SIZE * 2 + PRESET_GAP)
     f.presetRow = presetRow
     f.presetButtons = {}
     local function presetButton(i)
@@ -271,8 +295,9 @@ local function EnsurePicker()
         if b then return b end
         b = CreateFrame("Button", nil, presetRow)
         b:SetSize(PRESET_SIZE, PRESET_SIZE)
-        if i == 1 then b:SetPoint("LEFT", presetRow, "LEFT", 0, 0)
-        else b:SetPoint("LEFT", f.presetButtons[i - 1], "RIGHT", 5, 0) end
+        local col = (i - 1) % PRESET_COLS
+        local row = math.floor((i - 1) / PRESET_COLS)
+        b:SetPoint("TOPLEFT", presetRow, "TOPLEFT", col * (PRESET_SIZE + PRESET_GAP), -row * (PRESET_SIZE + PRESET_GAP))
         local tex = b:CreateTexture(nil, "ARTWORK"); tex:SetAllPoints(b); b.tex = tex
         if addon.CreateBorder then addon.CreateBorder(b, Def.InputBorder) end
         b:SetScript("OnClick", function()
@@ -296,6 +321,48 @@ local function EnsurePicker()
         for i = #list + 1, #f.presetButtons do f.presetButtons[i]:Hide() end
     end
 
+    -- Footer buttons.
+    local function makeButton(text, primary)
+        local b = CreateFrame("Button", nil, f)
+        b:SetSize(72, 24)
+        local bg = b:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints(b)
+        if primary then bg:SetColorTexture(Def.AccentColor[1] * 0.5, Def.AccentColor[2] * 0.5, Def.AccentColor[3] * 0.6, 1)
+        else bg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4]) end
+        if addon.CreateBorder then addon.CreateBorder(b, primary and Def.AccentColor or Def.InputBorder) end
+        local hi = b:CreateTexture(nil, "HIGHLIGHT"); hi:SetAllPoints(b); hi:SetColorTexture(1, 1, 1, 0.08)
+        local t = b:CreateFontString(nil, "OVERLAY")
+        t:SetFont(Def.FontPath, Def.LabelSize, Def.WidgetFontFlags or "OUTLINE"); t:SetPoint("CENTER"); t:SetText(text)
+        t:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
+        return b
+    end
+
+    local okBtn = makeButton((OKAY) or "OK", true)
+    okBtn:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 12)
+    okBtn:SetScript("OnClick", function() ConfirmClose() end)
+    local cancelBtn = makeButton((CANCEL) or "Cancel", false)
+    cancelBtn:SetPoint("RIGHT", okBtn, "LEFT", -8, 0)
+    cancelBtn:SetScript("OnClick", function() CancelClose() end)
+    local resetBtn = makeButton((RESET) or "Reset", false)
+    resetBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 14, 12)
+    resetBtn:SetScript("OnClick", function()
+        local d = state.spec and state.spec.default
+        if not d then return end
+        if state.hasAlpha and type(d[4]) == "number" then
+            state.a = d[4]
+            if f.placeAlpha then f.placeAlpha() end
+        end
+        f.colorSelect:SetColorRGB(d[1], d[2], d[3])  -- OnColorSelect refreshes + fires change
+    end)
+
+    -- Fire onCancel when hidden without an explicit confirm (Cancel / ✕ / Esc). Placed after the
+    -- initial f:Hide() above so it never fires during construction.
+    f:SetScript("OnHide", function()
+        if not state.confirmed then
+            local s = state.spec
+            if s and s.onCancel then s.onCancel() end
+        end
+    end)
+
     f.colorSelect = cs
     function f:Refresh()
         local a = state.hasAlpha and state.a or 1
@@ -315,6 +382,7 @@ end
 function addon.OpenColorPicker(spec)
     local f = EnsurePicker()
     state.spec = spec or {}
+    state.confirmed = false
     state.hasAlpha = spec.hasAlpha and true or false
     state.r, state.g, state.b = spec.r or 1, spec.g or 1, spec.b or 1
     state.a = state.hasAlpha and (spec.a or 1) or 1
