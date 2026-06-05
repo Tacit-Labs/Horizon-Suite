@@ -1201,7 +1201,7 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
         local r, g, b, a = def[1], def[2], def[3], def[4] or 1
         if getTbl then
             local result = getTbl()
-            if type(result) == "table" and result[1] then
+            if type(result) == "table" and type(result[1]) == "number" and type(result[2]) == "number" and type(result[3]) == "number" then
                 r, g, b = result[1], result[2], result[3]
                 if hasAlpha and type(result[4]) == "number" then a = result[4] end
             elseif type(result) == "number" then

@@ -170,10 +170,14 @@ function Insight.DetectUpgradeTrackQuality(tooltip)
     return result
 end
 
+local function GetItemGradientBias()
+    return tonumber(addon.GetDB("insightItemGradientBias", 0)) or 0
+end
+
 local function BuildGradientString(plain, quality)
     local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
     if not colors then return plain end
-    return Insight.BuildNameGradient(plain, colors.r, colors.g, colors.b)
+    return Insight.BuildNameGradient(plain, colors.r, colors.g, colors.b, GetItemGradientBias())
 end
 
 -- Reentrancy guard: our own SetText / SetTextColor calls trigger the same

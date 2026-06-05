@@ -226,11 +226,15 @@ end
 -- @param g number Base green (0..1)
 -- @param b number Base blue (0..1)
 -- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
-function Insight.BuildNameGradient(plain, r, g, b)
-    local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
-    local r2 = math.min(1, r * 1.20 + 0.15)
-    local g2 = math.min(1, g * 1.20 + 0.15)
-    local b2 = math.min(1, b * 1.20 + 0.15)
+function Insight.BuildNameGradient(plain, r, g, b, bias)
+    local shift = (type(bias) == "number") and (bias / 100) or 0
+    local clamp = math.max
+    local r1 = clamp(0, math.min(1, r * 0.65 + shift))
+    local g1 = clamp(0, math.min(1, g * 0.65 + shift))
+    local b1 = clamp(0, math.min(1, b * 0.65 + shift))
+    local r2 = clamp(0, math.min(1, r * 1.20 + 0.15 + shift))
+    local g2 = clamp(0, math.min(1, g * 1.20 + 0.15 + shift))
+    local b2 = clamp(0, math.min(1, b * 1.20 + 0.15 + shift))
 
     local chars = Insight.Utf8Chars(plain)
     local n = #chars
@@ -374,8 +378,21 @@ function Insight.RestoreNineSlice(tooltip)
     end
 end
 
-function Insight.GetBackdropColor()
+local BG_COLOR_KEY = {
+    player = "insightPlayerBgColor",
+    npc    = "insightNpcBgColor",
+    item   = "insightItemBgColor",
+}
+
+function Insight.GetBackdropColor(tooltipType)
     local r, g, b = Insight.PANEL_BG[1], Insight.PANEL_BG[2], Insight.PANEL_BG[3]
+    local key = tooltipType and BG_COLOR_KEY[tooltipType]
+    if key then
+        local c = addon.GetDB(key, nil)
+        if c and type(c) == "table" and c[1] and c[2] and c[3] then
+            r, g, b = c[1], c[2], c[3]
+        end
+    end
     local a = tonumber(addon.GetDB("insightBgOpacity", Insight.PANEL_BG[4])) or Insight.PANEL_BG[4]
     if a > 1 then a = a / 100 end -- legacy: stored as 0-100
     return r, g, b, a
@@ -387,7 +404,7 @@ function Insight.ApplyBackdrop(tooltip)
         Mixin(tooltip, BackdropTemplateMixin)
     end
     tooltip:SetBackdrop(Insight.CINEMATIC_BACKDROP)
-    local r, g, b, a = Insight.GetBackdropColor()
+    local r, g, b, a = Insight.GetBackdropColor(tooltip._insightTooltipType)
     tooltip:SetBackdropColor(r, g, b, a)
     tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
 end

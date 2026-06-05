@@ -541,7 +541,7 @@ end
 
 local function ApplyLiveBackdropColor(tooltip)
     if not tooltip or not TooltipPlainShown(tooltip) or not tooltip.SetBackdropColor then return end
-    local r, g, b, a = Insight.GetBackdropColor()
+    local r, g, b, a = Insight.GetBackdropColor(tooltip._insightTooltipType)
     tooltip:SetBackdropColor(r, g, b, a)
 end
 
