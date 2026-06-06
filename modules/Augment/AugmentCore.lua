@@ -960,8 +960,19 @@ function Augment.ApplyScale()
             if e.shine  then e.shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8)) end
             -- Explicit per-FontString SetFont overrides any direct-set override a
             -- third-party addon may have applied on top of our FontObject.
-            if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end
-            if e.text   then e.text:SetFont(fontPath, fontSize, fontFlags) end
+            -- Also re-anchor text/shadow so ICON_GAP changes take effect on live entries.
+            if e.shadow then
+                e.shadow:ClearAllPoints()
+                e.shadow:SetPoint("LEFT",  e.iconBgAnchor, "RIGHT", S(Augment.ICON_GAP) + 1, -1)
+                e.shadow:SetPoint("RIGHT", e.frame,         "RIGHT", 1, -1)
+                e.shadow:SetFont(fontPath, fontSize, fontFlags)
+            end
+            if e.text then
+                e.text:ClearAllPoints()
+                e.text:SetPoint("LEFT",  e.iconBgAnchor, "RIGHT", S(Augment.ICON_GAP), 0)
+                e.text:SetPoint("RIGHT", e.frame,         "RIGHT", 0, 0)
+                e.text:SetFont(fontPath, fontSize, fontFlags)
+            end
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
