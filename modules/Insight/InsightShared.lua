@@ -242,9 +242,9 @@ function Insight.BuildNameGradient(plain, r, g, b)
             parts[#parts + 1] = ch
         else
             local t = (n > 1) and ((i - 1) / (n - 1)) or 0
-            local cr = math.floor((r1 + (r2 - r1) * t) * 255 + 0.5)
-            local cg = math.floor((g1 + (g2 - g1) * t) * 255 + 0.5)
-            local cb = math.floor((b1 + (b2 - b1) * t) * 255 + 0.5)
+            local cr = math.floor((r2 + (r1 - r2) * t) * 255 + 0.5)
+            local cg = math.floor((g2 + (g1 - g2) * t) * 255 + 0.5)
+            local cb = math.floor((b2 + (b1 - b2) * t) * 255 + 0.5)
             parts[#parts + 1] = string.format("|cff%02x%02x%02x%s|r", cr, cg, cb, ch)
         end
     end
