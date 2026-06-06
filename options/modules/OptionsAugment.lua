@@ -36,6 +36,11 @@ local categories = {
                 get = function() return getSlider("augmentIconSize") end,
                 set = function(v) setDB("augmentIconSize", clamp(v, "augmentIconSize")) end,
             },
+            { type = "slider", name = L["AUGMENT_ICON_GAP"], desc = L["AUGMENT_ICON_GAP_DESC"], dbKey = "augmentIconGap",
+                min = LIM.augmentIconGap.min, max = LIM.augmentIconGap.max, step = 1,
+                get = function() return getSlider("augmentIconGap") end,
+                set = function(v) setDB("augmentIconGap", clamp(v, "augmentIconGap")) end,
+            },
             Section(L["AXIS_POSITION"]),
             Button(L["AXIS_ANCHOR_MOVE"], L["AXIS_CLICK_HIDE_ANCHOR_DRAG_POSITION"], function()
                 if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end

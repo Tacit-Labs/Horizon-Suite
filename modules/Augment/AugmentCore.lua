@@ -639,14 +639,14 @@ local function BuildMergedText(data, effectiveKey, totalCount)
         if showStackCountBeforeName then
             return totalCount .. " x " .. L["AUGMENT_JUNK_LABEL"]
         else
-            return L["AUGMENT_JUNK_LABEL"] .. " x" .. totalCount
+            return L["AUGMENT_JUNK_LABEL"] .. " x " .. totalCount
         end
     end
     if data.kind == "item" then
         if showStackCountBeforeName then
            return totalCount > 1 and (totalCount .. " x " .. data.baseName) or data.baseName
         else
-           return totalCount > 1 and (data.baseName .. " x" .. totalCount) or data.baseName
+           return totalCount > 1 and (data.baseName .. " x " .. totalCount) or data.baseName
         end
     end
     if data.kind == "currency" then
@@ -733,7 +733,7 @@ local function TryMergeToast(data, effectiveKey)
                 if e._origItemKey == data.itemKey then
                     -- Same junk item looted again — keep its real name.
                     newText = newCount > 1
-                        and ((data.baseName or data.text) .. " x" .. newCount)
+                        and ((data.baseName or data.text) .. " x " .. newCount)
                         or  (data.baseName or data.text)
                 else
                     -- A different junk item arrived — switch to the generic label
@@ -931,6 +931,7 @@ function Augment.ApplyScale()
     -- refresh layout constants from current DB before the resize pass
     local Y = addon.Augment
     Y.ICON_SIZE    = Y.GetIconSize()
+    Y.ICON_GAP     = Y.GetIconGap()
     Y.ENTRY_HEIGHT = Y.ICON_SIZE + Y.BORDER_PAD * 2
     Y.LINE_HEIGHT  = Y.ENTRY_HEIGHT + Y.LINE_SPACING
     Y.TOTAL_WIDTH  = (Y.ICON_SIZE + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH
