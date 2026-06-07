@@ -30,11 +30,10 @@ local RS_NAV_ARROW_SZ = 14   -- arrow texture size within button
 local RS_SKULL_MARKER = 8   -- WoW raid-target marker index for skull
 
 -- ---------------------------------------------------------------------------
--- Model clip envelope — used for "left" portrait mode.
--- Parented to HS (outside the ScrollFrame) so a left-positioned model can
--- extend past the tracker's left edge without being clipped.  The envelope
--- matches the scrollFrame's vertical bounds so models still disappear when
--- their entry scrolls off screen.
+-- Model clip envelopes — one per side, parented to HS (outside the
+-- ScrollFrame) so portraits can extend past the tracker edge without being
+-- clipped.  Each envelope matches the scrollFrame's vertical bounds so
+-- models disappear when their entry scrolls off screen.
 -- ---------------------------------------------------------------------------
 local rsModelClipFrame
 local function GetOrCreateRSModelClipFrame()
@@ -46,6 +45,18 @@ local function GetOrCreateRSModelClipFrame()
     rsModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -200, 0)
     rsModelClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT",    0, 0)
     return rsModelClipFrame
+end
+
+local rsModelRightClipFrame
+local function GetOrCreateRSModelRightClipFrame()
+    if rsModelRightClipFrame then return rsModelRightClipFrame end
+    local sf = addon.scrollFrame
+    if not addon.HS or not sf then return addon.HS end
+    rsModelRightClipFrame = CreateFrame("Frame", nil, addon.HS)
+    rsModelRightClipFrame:SetClipsChildren(true)
+    rsModelRightClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",      0,   0)
+    rsModelRightClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", 200,  0)
+    return rsModelRightClipFrame
 end
 
 -- ---------------------------------------------------------------------------
@@ -480,13 +491,10 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
         -- avoiding the pool-init crash from WoW's hard PlayerModel frame limit.
         local initPos  = addon.GetDB("rs_modelPosition", "right")
         local initOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("rs_modelOffsetX", 0)) or 0))
-        -- Left mode uses a two-level clip hierarchy:
-        --   rsModelClipFrame (global, child of HS) → extends 200 px left of the tracker
-        --   entry._rsPortraitClip (per-entry)      → anchored to entry bounds, clips portrait
-        --                                             height so it cannot bleed into adjacent
-        --                                             entries when two scanner alerts stack.
-        -- Right mode: portrait is a direct child of entry; SetClipsChildren(true) on pool
-        -- entries handles height clamping.
+        -- Both sides use a two-level clip hierarchy:
+        --   rsModelClipFrame / rsModelRightClipFrame (global, child of HS)
+        --   entry._rsPortraitClip / _rsPortraitRightClip (per-entry, clips portrait
+        --     height so it cannot bleed into adjacent entries when alerts stack).
         local mParent
         if initPos == "left" then
             if not entry._rsPortraitClip then
@@ -497,10 +505,19 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
             entry._rsPortraitClip:ClearAllPoints()
             entry._rsPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -200, 0)
             entry._rsPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",    0, 0)
+            if entry._rsPortraitRightClip then entry._rsPortraitRightClip:ClearAllPoints() end
             mParent = entry._rsPortraitClip
         else
+            if not entry._rsPortraitRightClip then
+                local clip = CreateFrame("Frame", nil, GetOrCreateRSModelRightClipFrame())
+                clip:SetClipsChildren(true)
+                entry._rsPortraitRightClip = clip
+            end
+            entry._rsPortraitRightClip:ClearAllPoints()
+            entry._rsPortraitRightClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",      0, 0)
+            entry._rsPortraitRightClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", 200, 0)
             if entry._rsPortraitClip then entry._rsPortraitClip:ClearAllPoints() end
-            mParent = entry
+            mParent = entry._rsPortraitRightClip
         end
         if entry.rareModel and entry._rsModelParent ~= mParent and not InCombatLockdown() then
             entry.rareModel:ClearModel()
@@ -518,7 +535,11 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
             local m = CreateFrame("PlayerModel", nil, mParent)
             if m then
                 m:SetSize(modelSz, modelSz)
-                m:SetPoint("TOPRIGHT", entry, initPos == "left" and "TOPLEFT" or "TOPRIGHT", initOffX, 0)
+                if initPos == "left" then
+                    m:SetPoint("TOPRIGHT", entry, "TOPLEFT",  initOffX, 0)
+                else
+                    m:SetPoint("TOPLEFT",  entry, "TOPRIGHT", initOffX, 0)
+                end
                 -- Mouse disabled so rareModelBtn (higher frame level) receives all clicks.
                 m:EnableMouse(false)
                 -- Guard against creatures with no valid model (FileData ID 0 = fallback).
@@ -594,12 +615,15 @@ function rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavBtnGa
 
     local modelPos  = addon.GetDB("rs_modelPosition", "right")
     local modelOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("rs_modelOffsetX", 0)) or 0))
-    local modelAnchor = modelPos == "left" and "TOPLEFT" or "TOPRIGHT"
 
     if doModel and entry.rareModel then
         entry.rareModel:ClearAllPoints()
         entry.rareModel:SetSize(rsModelSize, rsModelSize)
-        entry.rareModel:SetPoint("TOPRIGHT", entry, modelAnchor, modelOffX, 0)
+        if modelPos == "left" then
+            entry.rareModel:SetPoint("TOPRIGHT", entry, "TOPLEFT",  modelOffX, 0)
+        else
+            entry.rareModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX, 0)
+        end
         entry.rareModelActive = true
         if addon.HS and addon.HS:GetAlpha() >= 0.99 then
             entry.rareModel:Show()
@@ -620,13 +644,9 @@ function rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavBtnGa
     end
 
     if doNav then
-        -- Always reserve the portrait column so the right arrow stays in a fixed
-        -- position as the user cycles through alerts — some may have a portrait,
-        -- others (containers, failed model load) may not.
-        -- In right mode: next arrow sits left of the portrait's actual edge (including
-        -- any X offset), so it always stays clear of the model button regardless of size.
-        -- In left mode: portrait is outside the left edge; next arrow goes to far right.
-        local nextXOffset = modelPos == "left" and 0 or (modelOffX - rsModelSize - rsNavBtnGap)
+        -- Portrait is always outside the tracker edge (left or right), so the
+        -- next arrow simply sits at the entry's right edge in both modes.
+        local nextXOffset = 0
 
         local btnH = S(RS_NAV_BTN_H)
         -- Nav buttons must be well above the model button (+3) so clicks reach the

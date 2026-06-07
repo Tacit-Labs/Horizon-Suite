@@ -27,7 +27,8 @@ local SD_NAV_ARROW_SZ = 14
 local SD_SKULL_MARKER = 8
 
 -- ---------------------------------------------------------------------------
--- Model clip envelope — used for "left" portrait mode.
+-- Model clip envelopes — one per side, parented to HS so portraits extend
+-- past the tracker edge without being clipped by the ScrollFrame.
 -- ---------------------------------------------------------------------------
 local sdModelClipFrame
 local function GetOrCreateSDModelClipFrame()
@@ -39,6 +40,18 @@ local function GetOrCreateSDModelClipFrame()
     sdModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -200, 0)
     sdModelClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT",    0, 0)
     return sdModelClipFrame
+end
+
+local sdModelRightClipFrame
+local function GetOrCreateSDModelRightClipFrame()
+    if sdModelRightClipFrame then return sdModelRightClipFrame end
+    local sf = addon.scrollFrame
+    if not addon.HS or not sf then return addon.HS end
+    sdModelRightClipFrame = CreateFrame("Frame", nil, addon.HS)
+    sdModelRightClipFrame:SetClipsChildren(true)
+    sdModelRightClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",      0,   0)
+    sdModelRightClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", 200,  0)
+    return sdModelRightClipFrame
 end
 
 -- ---------------------------------------------------------------------------
@@ -368,13 +381,10 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
     end
     local initPos  = addon.GetDB("sd_modelPosition", "right")
     local initOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("sd_modelOffsetX", 0)) or 0))
-    -- Left mode uses a two-level clip hierarchy:
-    --   sdModelClipFrame (global, child of HS) → extends 200 px left of the tracker
-    --   entry._sdPortraitClip (per-entry)      → anchored to entry bounds, clips portrait
-    --                                             height so it cannot bleed into adjacent
-    --                                             entries when two scanner alerts stack.
-    -- Right mode: portrait is a direct child of entry; SetClipsChildren(true) on pool
-    -- entries handles height clamping.
+    -- Both sides use a two-level clip hierarchy:
+    --   sdModelClipFrame / sdModelRightClipFrame (global, child of HS)
+    --   entry._sdPortraitClip / _sdPortraitRightClip (per-entry, clips portrait
+    --     height so it cannot bleed into adjacent entries when alerts stack).
     local mParent
     if initPos == "left" then
         if not entry._sdPortraitClip then
@@ -385,10 +395,19 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
         entry._sdPortraitClip:ClearAllPoints()
         entry._sdPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -200, 0)
         entry._sdPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",    0, 0)
+        if entry._sdPortraitRightClip then entry._sdPortraitRightClip:ClearAllPoints() end
         mParent = entry._sdPortraitClip
     else
+        if not entry._sdPortraitRightClip then
+            local clip = CreateFrame("Frame", nil, GetOrCreateSDModelRightClipFrame())
+            clip:SetClipsChildren(true)
+            entry._sdPortraitRightClip = clip
+        end
+        entry._sdPortraitRightClip:ClearAllPoints()
+        entry._sdPortraitRightClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",      0, 0)
+        entry._sdPortraitRightClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", 200, 0)
         if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
-        mParent = entry
+        mParent = entry._sdPortraitRightClip
     end
     if entry.sdModel and entry._sdModelParent ~= mParent and not InCombatLockdown() then
         entry.sdModel:ClearModel()
@@ -406,7 +425,11 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
         local m = CreateFrame("PlayerModel", nil, mParent)
         if m then
             m:SetSize(modelSz, modelSz)
-            m:SetPoint("TOPRIGHT", entry, initPos == "left" and "TOPLEFT" or "TOPRIGHT", initOffX, 0)
+            if initPos == "left" then
+                m:SetPoint("TOPRIGHT", entry, "TOPLEFT",  initOffX, 0)
+            else
+                m:SetPoint("TOPLEFT",  entry, "TOPRIGHT", initOffX, 0)
+            end
             -- Mouse disabled so sdModelBtn (higher frame level) receives all clicks.
             m:EnableMouse(false)
             -- Guard against creatures with no valid model (FileData ID 0 = fallback).
@@ -469,12 +492,15 @@ function sd.RenderNavButtons(entry, showSdNav, gutterW, sdNavBtnSize, sdNavBtnGa
 
     local modelPos  = addon.GetDB("sd_modelPosition", "right")
     local modelOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("sd_modelOffsetX", 0)) or 0))
-    local modelAnchor = modelPos == "left" and "TOPLEFT" or "TOPRIGHT"
 
     if doModel and entry.sdModel then
         entry.sdModel:ClearAllPoints()
         entry.sdModel:SetSize(sdModelSize, sdModelSize)
-        entry.sdModel:SetPoint("TOPRIGHT", entry, modelAnchor, modelOffX, 0)
+        if modelPos == "left" then
+            entry.sdModel:SetPoint("TOPRIGHT", entry, "TOPLEFT",  modelOffX, 0)
+        else
+            entry.sdModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX, 0)
+        end
         entry.sdModelActive = true
         if addon.HS and addon.HS:GetAlpha() >= 0.99 then
             entry.sdModel:Show()
