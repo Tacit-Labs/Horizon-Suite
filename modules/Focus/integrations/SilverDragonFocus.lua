@@ -292,7 +292,10 @@ function sd.PlayKillFlash(entry)
         f:SetFrameLevel(entry:GetFrameLevel() + 12)
         local tex = f:CreateTexture(nil, "OVERLAY")
         tex:SetAllPoints()
-        tex:SetColorTexture(1, 0.25, 0.05, 0)
+        -- Color alpha must be 1; SetAlpha() animates opacity as a multiplier
+        -- against this value — 0 × anything = permanently invisible.
+        tex:SetColorTexture(1, 0.25, 0.05, 1)
+        tex:SetAlpha(0)
         f:Hide()
         entry._sdFlashFrame = f
         entry._sdFlashTex   = tex

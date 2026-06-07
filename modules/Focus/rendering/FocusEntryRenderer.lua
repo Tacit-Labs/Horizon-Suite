@@ -1953,6 +1953,11 @@ local function PopulateEntry(entry, questData, groupKey)
         end
     end
     displayTitle = addon.ApplyTextCase(displayTitle, "questTitleCase", "proper")
+    -- Append rare kill/found suffix AFTER all text processing so |c color codes
+    -- are never passed through FormatLargeNumbersInString or ApplyTextCase.
+    if type(questData.rareSuffix) == "string" and questData.rareSuffix ~= "" then
+        displayTitle = displayTitle .. questData.rareSuffix
+    end
     if addon.GetDB("showQuestLevel", false) and questData.level then
         displayTitle = ("%s [%d]"):format(displayTitle, questData.level)
     end
