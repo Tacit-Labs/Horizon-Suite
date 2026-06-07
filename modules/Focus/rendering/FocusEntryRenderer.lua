@@ -2611,6 +2611,11 @@ local function BuildEntrySignature(qData, groupKey)
         tostring(qData.questTypeAtlas or ""),
         tostring(qData.outputQuality or ""),
         tostring(qData.tierSpellID or ""),
+        -- Rare kill/found state: changes the title suffix and triggers flash/desaturation.
+        -- Must be in the signature or the cache suppresses the re-render after a kill.
+        qData.rareSuffix or "",
+        qData.rareIsKilled and "1" or "0",
+        qData.rareIsFound  and "1" or "0",
     }
     -- Recipe entries gate the AH search button on AuctionHouseFrame:IsShown(); fold that
     -- into the signature so AUCTION_HOUSE_SHOW/CLOSED actually re-populates the row.
