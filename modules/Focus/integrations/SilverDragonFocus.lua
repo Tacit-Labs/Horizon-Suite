@@ -270,12 +270,58 @@ function sd.ClearNavWidgets(entry)
         entry.sdModelActive = false
     end
     entry._sdLastCreatureID = nil  -- reset so next render always clears before loading a new creature
+    entry._sdKilledState    = false
     if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
     entry._sdModelParent = nil
     if not InCombatLockdown() then
         if entry.sdTargetBtn then entry.sdTargetBtn:Hide() end
         if entry.sdModelBtn  then entry.sdModelBtn:Hide()  end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- Kill flash overlay (orange-red burst that fades out quickly).
+-- ---------------------------------------------------------------------------
+
+function sd.PlayKillFlash(entry)
+    if not entry then return end
+    -- Lazily create the overlay frame the first time it's needed.
+    if not entry._sdFlashFrame then
+        local f = CreateFrame("Frame", nil, entry)
+        f:SetAllPoints()
+        f:SetFrameLevel(entry:GetFrameLevel() + 12)
+        local tex = f:CreateTexture(nil, "OVERLAY")
+        tex:SetAllPoints()
+        tex:SetColorTexture(1, 0.25, 0.05, 0)
+        f:Hide()
+        entry._sdFlashFrame = f
+        entry._sdFlashTex   = tex
+    end
+
+    local f   = entry._sdFlashFrame
+    local tex = entry._sdFlashTex
+    local elapsed = 0
+    local PEAK    = 0.45
+    local DUR_IN  = 0.08
+    local DUR_OUT = 0.55
+    local TOTAL   = DUR_IN + DUR_OUT
+
+    tex:SetAlpha(0)
+    f:Show()
+    f:SetScript("OnUpdate", function(_, dt)
+        elapsed = elapsed + dt
+        if elapsed >= TOTAL then
+            tex:SetAlpha(0)
+            f:SetScript("OnUpdate", nil)
+            f:Hide()
+            return
+        end
+        if elapsed < DUR_IN then
+            tex:SetAlpha(PEAK * (elapsed / DUR_IN))
+        else
+            tex:SetAlpha(PEAK * (1 - (elapsed - DUR_IN) / DUR_OUT))
+        end
+    end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -303,6 +349,12 @@ end
 
 function sd.TryRenderPortrait(entry, questData, showQuestIcons)
     sd.SuppressNativePopups()
+
+    -- Trigger flash on the first layout pass after kill/found detection.
+    if questData.triggerFlash then
+        sd.PlayKillFlash(entry)
+    end
+
     if not (showQuestIcons and questData.sdAlertIndex and questData.creatureID and addon.GetDB("sd_showPortrait", true)) then
         if entry.sdModel then
             entry.sdModel:ClearModel()
@@ -343,6 +395,9 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
         entry._sdModelParent = mParent
         entry._sdLastCreatureID = nil
     end
+    -- Track kill state so OnModelLoaded can re-apply desaturation after async load.
+    entry._sdKilledState = questData.rareIsKilled and true or false
+
     if not entry.sdModel then
         local modelSz = S(sd.SD_MODEL_SIZE)
         local m = CreateFrame("PlayerModel", nil, mParent)
@@ -362,8 +417,14 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
                         entry.sdModelBtn:Hide()
                     end
                     entry.questTypeIcon:Show()
-                elseif addon.HS and addon.HS:GetAlpha() < 0.99 then
-                    self:Hide()
+                else
+                    -- Re-apply desaturation after async model load.
+                    if self.SetDesaturated then
+                        pcall(self.SetDesaturated, self, entry._sdKilledState)
+                    end
+                    if addon.HS and addon.HS:GetAlpha() < 0.99 then
+                        self:Hide()
+                    end
                 end
             end)
             entry.sdModel = m
@@ -377,6 +438,10 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
             -- previous creature's mesh lingers until the new one finishes loading.
             entry.sdModel:ClearModel()
             entry._sdLastCreatureID = questData.creatureID
+        end
+        -- Apply desaturation for killed rares; clear it for live ones.
+        if entry.sdModel.SetDesaturated then
+            pcall(entry.sdModel.SetDesaturated, entry.sdModel, entry._sdKilledState)
         end
         entry.sdModel:Show()
         entry.sdModel:SetCreature(questData.creatureID)

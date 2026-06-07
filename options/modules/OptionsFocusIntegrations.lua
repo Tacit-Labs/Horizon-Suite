@@ -510,6 +510,18 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY"],
+            L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY_DESC"],
+            "rs_killFadeDelay",
+            1, 30, 5,
+            {
+                id       = "rs_killFadeDelay",
+                disabled = RSDisabled,
+                set      = function(v) setDB("rs_killFadeDelay", v) end,
+            }
+        ),
+
         addon.Button(
             L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN"],
             L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN_DESC"],
@@ -815,6 +827,18 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                     setDB("rareNavArrowSize", v)
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
+            }
+        ),
+
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY"],
+            L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY_DESC"],
+            "sd_killFadeDelay",
+            1, 30, 5,
+            {
+                id       = "sd_killFadeDelay",
+                disabled = SDDisabled,
+                set      = function(v) setDB("sd_killFadeDelay", v) end,
             }
         ),
 

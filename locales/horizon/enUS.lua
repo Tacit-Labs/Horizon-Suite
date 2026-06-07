@@ -2413,6 +2413,9 @@ L["FOCUS_INTEGRATION_DESC"]                                   = "Configure compa
 -- Shared rare-integration keys (used by both RareScanner and SilverDragon).
 L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE"]                    = "Nav Arrow Size"
 L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE_DESC"]               = "Size of the previous/next navigation arrows shown in the section header when multiple alerts are queued."
+L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY"]                   = "Kill Alert Duration"
+L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY_DESC"]              = "Seconds to keep the alert visible after the rare is killed. During this time the name shows (Killed) in red and the 3D portrait is desaturated. Set to 0 to remove instantly."
+L["FOCUS_INTEGRATION_RARE_FOUND_FADE_DELAY_DESC"]             = "Seconds to keep the alert visible after a loot vignette is looted. During this time the name shows (Found) in green. Set to 0 to remove instantly."
 L["FOCUS_INTEGRATION_RARE_MAX_ALERTS"]                        = "Alert Queue Limit"
 L["FOCUS_INTEGRATION_RARE_MAX_ALERTS_DESC"]                   = "Maximum number of rare alerts kept in the queue at once. When the limit is reached, the oldest entry is removed first (FIFO)."
 L["FOCUS_INTEGRATION_RARE_SHOW_COORDS"]                       = "Show Coordinates"

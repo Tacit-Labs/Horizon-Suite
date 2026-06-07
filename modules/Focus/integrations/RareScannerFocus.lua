@@ -280,12 +280,58 @@ function rs.ClearNavWidgets(entry)
         entry.rareModelActive = false
     end
     entry._rsLastCreatureID = nil  -- reset so next render always clears before loading a new creature
+    entry._rsKilledState    = false
     if entry._rsPortraitClip then entry._rsPortraitClip:ClearAllPoints() end
     entry._rsModelParent = nil
     if not InCombatLockdown() then
         if entry.rareTargetBtn then entry.rareTargetBtn:Hide() end
         if entry.rareModelBtn  then entry.rareModelBtn:Hide()  end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- Kill flash overlay (orange-red burst that fades out quickly).
+-- ---------------------------------------------------------------------------
+
+function rs.PlayKillFlash(entry)
+    if not entry then return end
+    -- Lazily create the overlay frame the first time it's needed.
+    if not entry._rsFlashFrame then
+        local f = CreateFrame("Frame", nil, entry)
+        f:SetAllPoints()
+        f:SetFrameLevel(entry:GetFrameLevel() + 12)
+        local tex = f:CreateTexture(nil, "OVERLAY")
+        tex:SetAllPoints()
+        tex:SetColorTexture(1, 0.25, 0.05, 0)
+        f:Hide()
+        entry._rsFlashFrame = f
+        entry._rsFlashTex   = tex
+    end
+
+    local f   = entry._rsFlashFrame
+    local tex = entry._rsFlashTex
+    local elapsed = 0
+    local PEAK    = 0.45
+    local DUR_IN  = 0.08   -- fast in
+    local DUR_OUT = 0.55   -- slower fade out
+    local TOTAL   = DUR_IN + DUR_OUT
+
+    tex:SetAlpha(0)
+    f:Show()
+    f:SetScript("OnUpdate", function(_, dt)
+        elapsed = elapsed + dt
+        if elapsed >= TOTAL then
+            tex:SetAlpha(0)
+            f:SetScript("OnUpdate", nil)
+            f:Hide()
+            return
+        end
+        if elapsed < DUR_IN then
+            tex:SetAlpha(PEAK * (elapsed / DUR_IN))
+        else
+            tex:SetAlpha(PEAK * (1 - (elapsed - DUR_IN) / DUR_OUT))
+        end
+    end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -412,6 +458,12 @@ end
 
 function rs.TryRenderPortrait(entry, questData, showQuestIcons)
     rs.SuppressNativePopups()
+
+    -- Trigger flash on the first layout pass after kill detection.
+    if questData.triggerFlash then
+        rs.PlayKillFlash(entry)
+    end
+
     if not (showQuestIcons and questData.rsIsNPC and addon.GetDB("rs_showPortrait", true)) then
         if entry.rareModel then
             entry.rareModel:ClearModel()
@@ -455,6 +507,9 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
             entry._rsModelParent = mParent
             entry._rsLastCreatureID = nil
         end
+        -- Track kill state so OnModelLoaded can re-apply desaturation after async load.
+        entry._rsKilledState = questData.rareIsKilled and true or false
+
         if not entry.rareModel then
             local modelSz = S(rs.RS_MODEL_SIZE)
             local m = CreateFrame("PlayerModel", nil, mParent)
@@ -474,8 +529,14 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
                             entry.rareModelBtn:Hide()
                         end
                         entry.questTypeIcon:Show()
-                    elseif addon.HS and addon.HS:GetAlpha() < 0.99 then
-                        self:Hide()
+                    else
+                        -- Re-apply desaturation after async model load.
+                        if self.SetDesaturated then
+                            pcall(self.SetDesaturated, self, entry._rsKilledState)
+                        end
+                        if addon.HS and addon.HS:GetAlpha() < 0.99 then
+                            self:Hide()
+                        end
                     end
                 end)
                 entry.rareModel = m
@@ -489,6 +550,10 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
                 -- previous creature's mesh lingers until the new one finishes loading.
                 entry.rareModel:ClearModel()
                 entry._rsLastCreatureID = questData.creatureID
+            end
+            -- Apply desaturation for killed rares; clear it for live ones.
+            if entry.rareModel.SetDesaturated then
+                pcall(entry.rareModel.SetDesaturated, entry.rareModel, entry._rsKilledState)
             end
             -- Show before SetCreature so WoW's renderer can load the model
             -- data; calling SetCreature on a hidden frame may silently no-op.
