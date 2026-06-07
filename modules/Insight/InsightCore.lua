@@ -1112,6 +1112,27 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
 end)
 
 -- ============================================================================
+-- STUCK-TOOLTIP FALLBACK POLL
+-- Catches cases where UPDATE_MOUSEOVER_UNIT never fires (e.g. fixed anchor,
+-- UI reload edge cases). Throttled to POLL_INTERVAL seconds; exits cheaply
+-- each frame when the tooltip is not an insight unit tooltip.
+-- ============================================================================
+
+local POLL_INTERVAL = 0.25
+local pollAccum     = 0
+local pollFrame     = CreateFrame("Frame")
+pollFrame:SetScript("OnUpdate", function(_, elapsed)
+    pollAccum = pollAccum + elapsed
+    if pollAccum < POLL_INTERVAL then return end
+    pollAccum = 0
+    if not Insight.IsInsightEnabled() then return end
+    if not TooltipPlainShown(GameTooltip) then return end
+    if not GameTooltip._insightUnitTooltip then return end
+    if SafeUnitExistsKnown("mouseover") == true then return end
+    GameTooltip:Hide()
+end)
+
+-- ============================================================================
 -- SLASH COMMANDS
 -- ============================================================================
 
