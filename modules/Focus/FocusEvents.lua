@@ -80,14 +80,27 @@ local zoneLateRetry04Timer
 local zoneLateRetry15Timer
 local zoneLateRetry25Timer
 
--- OnUpdate dirty flag breaks taint chain from event-driven C_QuestLog calls.
+-- Always-shown clean frame whose OnUpdate drives FullLayout.
+-- ScheduleRefresh writes a boolean flag (no frame operation) so tainted callers
+-- cannot taint this frame. A frame only becomes tainted when tainted code calls
+-- a write method (Show, SetPoint, etc.) on it directly; writing a plain Lua
+-- boolean does not taint the frame's execution context. Because this frame is
+-- shown exactly once at load time and never touched again, its OnUpdate always
+-- fires in a clean execution — guaranteeing FullLayout and entry:Show() run
+-- clean regardless of how many tainted hooksecurefunc paths exist upstream.
+-- Combat layouts are still deferred below because protected Show() calls can
+-- block scrolling when new tracker entries appear mid-combat.
 local layoutDirtyFrame = CreateFrame("Frame")
-layoutDirtyFrame:Hide()
-layoutDirtyFrame:SetScript("OnUpdate", function(self)
-    self:Hide()
+layoutDirtyFrame:Show()
+layoutDirtyFrame:SetScript("OnUpdate", function()
+    if not addon.focus.refreshPending then return end
     addon.focus.refreshPending = false
     if not addon.focus.enabled then return end
-    addon.focus.layoutPendingAfterCombat = false
+    if InCombatLockdown() then
+        addon.focus.layoutPendingAfterCombat = true
+    else
+        addon.focus.layoutPendingAfterCombat = false
+    end
     if addon.FullLayout then addon.FullLayout() end
 end)
 
@@ -101,9 +114,7 @@ addon.Log.registerTag("focus", "focusDebugLive")
 
 local function ScheduleRefresh()
     if not addon.focus.enabled then return end
-    if addon.focus.refreshPending then return end
     addon.focus.refreshPending = true
-    layoutDirtyFrame:Show()
     addon.Log.debug("focus", "ScheduleRefresh triggered")
 end
 
@@ -302,6 +313,24 @@ local function OnAddonLoaded(addonName)
 end
 
 local function OnPlayerRegenDisabled()
+    if not InCombatLockdown() and addon.pool then
+        for i = 1, (addon.POOL_SIZE or 0) do
+            local entry = addon.pool[i]
+            if entry then
+                local btns = {
+                    entry.rareTargetBtn, entry.rareModelBtn,
+                    entry.sdTargetBtn, entry.sdModelBtn,
+                }
+                for _, btn in ipairs(btns) do
+                    if btn then
+                        btn:Hide()
+                        btn:ClearAllPoints()
+                    end
+                end
+            end
+        end
+    end
+
     local mode = addon.GetCombatVisibility()
     addon.Log.debug("focus", "Combat start — mode=" .. tostring(mode))
     if (mode ~= "hide" and mode ~= "fade") or not addon.focus.enabled then return end

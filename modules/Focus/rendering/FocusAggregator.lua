@@ -11,6 +11,12 @@ local CATEGORY_SORT_FALLBACK = 99
 local DEFAULT_GROUP = "DEFAULT"
 local UNKNOWN_TITLE_PLACEHOLDER = "..."
 
+-- Sibling-addon entry providers registered via addon.RegisterFocusEntryProvider.
+local externalProviders = {}
+
+-- Integration modules that handle rare/treasure display (suppress built-in scanner when any is active).
+local rareProviders = {}
+
 -- Entry sort mode: alpha, questType, zone, level (DB key entrySortMode, default questType)
 local VALID_ENTRY_SORT = { alpha = true, questType = true, zone = true, level = true }
 
@@ -27,7 +33,7 @@ end
 -- Category order for questType sort (lower = earlier)
 local CATEGORY_SORT_ORDER = {
     CURRENT = 0, COMPLETE = 1, CAMPAIGN = 2, IMPORTANT = 3, LEGENDARY = 4,
-    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, APPEARANCE = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, PREY = 7, DAILY = 8, CALLING = 9, RARE = 10, RARE_LOOT = 10, DEFAULT = 11,
+    DELVES = 5, SCENARIO = 5, ACHIEVEMENT = 5, APPEARANCE = 5, RECIPE = 5, DUNGEON = 5, RAID = 5, WORLD = 6, WEEKLY = 7, PREY = 7, DAILY = 8, CALLING = 9, RARESCANNER = 10, RARE = 10, RARE_LOOT = 10, DEFAULT = 11,
 }
 
 local CURRENT_QUEST_WINDOW_DEFAULT = 60
@@ -229,6 +235,10 @@ local function SortAndGroupQuests(quests)
             and (q.isNearby or (q.zoneName and playerZone and q.zoneName:lower() == playerZone:lower()))
         then
             groups["NEARBY"][#groups["NEARBY"] + 1] = q
+        elseif q.category == "SILVERDRAGON" then
+            groups["SILVERDRAGON"][#groups["SILVERDRAGON"] + 1] = q
+        elseif q.category == "RARESCANNER" then
+            groups["RARESCANNER"][#groups["RARESCANNER"] + 1] = q
         elseif q.isRare or q.category == "RARE" then
             groups["RARES"][#groups["RARES"] + 1] = q
         elseif q.isRareLoot or q.category == "RARE_LOOT" then
@@ -705,11 +715,154 @@ local function ReadTrackedQuests()
         end
     end
 
+    -- 8. External providers (e.g. Horizon-RareScanner)
+    for _, provider in ipairs(externalProviders) do
+        local ok, entries = pcall(provider)
+        if ok and entries then
+            for _, e in ipairs(entries) do
+                quests[#quests + 1] = e
+            end
+        end
+    end
+
     if addon.testQuestItem then
         table.insert(quests, 1, addon.testQuestItem)
     end
 
     return quests
+end
+
+--- Register an external entry provider for the Focus tracker.
+--- The provider is a function() → table of normalized entry tables.
+--- Called once per tracker refresh; errors are caught and silently dropped.
+--- @param fn function
+function addon.RegisterFocusEntryProvider(fn)
+    if type(fn) == "function" then
+        externalProviders[#externalProviders + 1] = fn
+    end
+end
+
+--- Register an integration that handles rare/treasure display.
+--- isActiveFn() should return true when the integration is loaded and enabled.
+--- While any registered provider is active the built-in map scanner is suppressed.
+--- @param isActiveFn function
+function addon.RegisterRareProvider(isActiveFn)
+    if type(isActiveFn) == "function" then
+        rareProviders[#rareProviders + 1] = isActiveFn
+    end
+end
+
+--- Returns true when at least one rare-handling integration is currently active.
+--- @return boolean
+function addon.HasActiveRareProvider()
+    for _, fn in ipairs(rareProviders) do
+        if fn() then return true end
+    end
+    return false
+end
+
+--- Format a "seen X ago" string from a GetTime() timestamp.
+--- Returns nil when seenAt is nil.
+--- @param seenAt number|nil  GetTime() value captured at rare detection
+--- @return string|nil
+function addon.FormatTimeAgo(seenAt)
+    if not seenAt then return nil end
+    local elapsed = math.floor(GetTime() - seenAt)
+    if elapsed < 60 then
+        return "< 1m ago"
+    end
+    local mins = math.floor(elapsed / 60)
+    if mins < 60 then
+        return string.format("%dm ago", mins)
+    end
+    local hours = math.floor(mins / 60)
+    local rem   = mins % 60
+    if rem == 0 then
+        return string.format("%dh ago", hours)
+    end
+    return string.format("%dh %dm ago", hours, rem)
+end
+
+-- ---------------------------------------------------------------------------
+-- Shared rare-integration helpers
+-- ---------------------------------------------------------------------------
+
+--- Insert a location string into the active chat edit box (Shift+Click on coord line).
+--- @param name string  NPC or point-of-interest name
+--- @param mapID number  UiMapID
+--- @param x number  0-1 coordinate
+--- @param y number  0-1 coordinate
+function addon.ShareLocationInChat(name, mapID, x, y)
+    if not (name and mapID and x and y) then return end
+    local mapInfo = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
+    local zoneName = (mapInfo and mapInfo.name) or ""
+    local msg = string.format("[%s] %s - %.1f, %.1f", name, zoneName, x * 100, y * 100)
+    local getActive = rawget(_G, "ChatEdit_GetActiveWindow")
+    local editBox = getActive and getActive()
+    if not editBox or not editBox:IsShown() then
+        local dcf = rawget(_G, "DEFAULT_CHAT_FRAME")
+        editBox = dcf and dcf.editBox
+        local activate = rawget(_G, "ChatEdit_ActivateChat")
+        if editBox and activate then activate(editBox) end
+    end
+    if editBox and editBox.Insert then editBox:Insert(msg) end
+end
+
+--- Set a map waypoint for a rare entry, honouring TomTom when enabled.
+--- @param entry table  Pool entry with vignetteMapID / vignetteX / vignetteY / title fields
+--- @param tomTomDBKey string  DB key for the "use TomTom" preference (e.g. "sd_useTomTom")
+function addon.SetRareWaypoint(entry, tomTomDBKey)
+    local mapID = entry.vignetteMapID
+    local x, y  = entry.vignetteX, entry.vignetteY
+    local name  = entry.title or "Rare"
+    if not mapID or not x or not y then return end
+
+    if addon.GetDB(tomTomDBKey, false) then
+        local TomTom = rawget(_G, "TomTom")
+        if TomTom and TomTom.AddWaypoint then
+            pcall(TomTom.AddWaypoint, TomTom, mapID, x, y,
+                { title = name, persistent = false, minimap = true, world = true, crazy = true })
+            return
+        end
+    end
+
+    if C_Map and C_Map.SetUserWaypoint and UiMapPoint then
+        local uiMapPoint = UiMapPoint.CreateFromCoordinates(mapID, x, y)
+        if uiMapPoint then
+            pcall(C_Map.SetUserWaypoint, uiMapPoint)
+            if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+                pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+            end
+        end
+    end
+end
+
+--- Create a nav arrow button used by rare-integration InitNavWidgets.
+--- @param parent Frame
+--- @param atlasName string
+--- @param btnW number  Scaled width
+--- @param btnH number  Scaled height
+--- @param arrowSz number  Scaled arrow texture size
+--- @return Button
+function addon.CreateNavArrowBtn(parent, atlasName, btnW, btnH, arrowSz)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(btnW, btnH)
+    btn:RegisterForClicks("AnyDown")
+    btn.arrowTex = btn:CreateTexture(nil, "ARTWORK")
+    btn.arrowTex:SetPoint("CENTER")
+    btn.arrowTex:SetSize(arrowSz, arrowSz)
+    btn.arrowTex:SetAtlas(atlasName)
+    btn.arrowTex:SetVertexColor(0.6, 0.6, 0.6)
+    btn:SetScript("OnEnter", function(self) self.arrowTex:SetVertexColor(1, 1, 1) end)
+    btn:SetScript("OnLeave", function(self) self.arrowTex:SetVertexColor(0.6, 0.6, 0.6) end)
+    -- Button frames at a raised frame level block mouse-wheel events from
+    -- reaching the entry's OnMouseWheel handler.  Forward explicitly.
+    btn:EnableMouseWheel(true)
+    btn:SetScript("OnMouseWheel", function(_, delta)
+        if addon.HandleScroll then addon.HandleScroll(delta) end
+    end)
+    btn:Hide()
+    return btn
 end
 
 addon.ReadTrackedQuests   = ReadTrackedQuests

@@ -6,6 +6,14 @@
 local addon = _G.HorizonSuite
 local L = addon.L
 
+local function GetCurrentClickMods()
+    return {
+        shift = IsShiftKeyDown and IsShiftKeyDown() or false,
+        ctrl  = IsControlKeyDown and IsControlKeyDown() or false,
+        alt   = IsAltKeyDown and IsAltKeyDown() or false,
+    }
+end
+
 -- ============================================================================
 -- ENTRY POOL
 -- ============================================================================
@@ -17,8 +25,33 @@ local activeMap = {}
 local DELVE_AFFIX_MAX_NAMES = 8
 addon.DELVE_AFFIX_MAX_NAMES = DELVE_AFFIX_MAX_NAMES
 
+--- Create a SecureActionButtonTemplate button used by scanner integrations
+--- (RS, SD) for click-to-target and right-click dismiss. Defined once here
+--- because the body is identical across all integrations.
+function addon.CreateNavSecureBtn()
+    local btn = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
+    btn:RegisterForClicks("AnyDown", "AnyUp")
+    btn:HookScript("PostClick", function(self, mouseButton, down)
+        if down then return end
+        if addon.focus and addon.focus.IsWoWheadClick
+                and addon.focus.IsWoWheadClick(mouseButton, GetCurrentClickMods()) then
+            if self._creatureID then
+                addon.ShowURLCopyBox("https://www.wowhead.com/npc=" .. tostring(self._creatureID))
+            else
+                local dcf = DEFAULT_CHAT_FRAME
+                if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (addon.L and addon.L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
+            end
+        elseif mouseButton == "RightButton" then
+            if self._dismissFn then self._dismissFn() end
+        end
+    end)
+    btn:Hide()
+    return btn
+end
+
 local function CreateQuestEntry(parent, index)
     local e = CreateFrame("Frame", nil, parent)
+    e:SetClipsChildren(true)
     local _S = addon.Scaled or function(v) return v end
     local w = addon.GetPanelWidth() - _S(addon.PADDING) * 2
     local textW = w
@@ -256,6 +289,16 @@ local function CreateQuestEntry(parent, index)
         end
     end)
     e.ahBtn:Hide()
+
+    -- RS navigation buttons and loot icons: managed by the RareScanner integration module.
+    if addon.focus.rs then
+        addon.focus.rs.InitNavWidgets(e)
+        addon.focus.rs.InitLootWidgets(e)
+    end
+    -- SD navigation buttons: managed by the SilverDragon integration module.
+    if addon.focus.sd then
+        addon.focus.sd.InitNavWidgets(e)
+    end
 
     -- Small icon for "tracked from other zone" (world quest on watch list but not on current map).
     local iconSz = addon.TRACKED_OTHER_ZONE_ICON_SIZE or 12
@@ -635,6 +678,16 @@ local function CreateSectionHeader(parent)
     s.chevron:SetPoint("BOTTOMLEFT", s, "BOTTOMLEFT", 0, 0)
     s.chevron:SetText("")
 
+    local navW = _S(16)
+    local navH = addon.GetSectionHeaderHeight()
+    local arrowSz = _S(14)
+    if addon.CreateNavArrowBtn then
+        s.rarePrevBtn = addon.CreateNavArrowBtn(s, "common-icon-backarrow", navW, navH, arrowSz)
+        s.rareNextBtn = addon.CreateNavArrowBtn(s, "common-icon-forwardarrow", navW, navH, arrowSz)
+        s.rarePrevBtn:SetFrameLevel(s:GetFrameLevel() + 3)
+        s.rareNextBtn:SetFrameLevel(s:GetFrameLevel() + 3)
+    end
+
     -- Category label starts two spaces to the right of the chevron.
     -- Use the TITLE font for measurement (per request), so it scales with user typography.
     local twoSpacesW = 8
@@ -930,7 +983,7 @@ local function ClearEntry(entry, full)
     entry._savedColor = nil
     if full ~= false then
         entry:SetAlpha(0)
-        entry:SetHitRectInsets(0, 0, 0, 0)
+        if not InCombatLockdown() then entry:SetHitRectInsets(0, 0, 0, 0) end
         if entry.scenarioTimerBars then
             for _, bar in ipairs(entry.scenarioTimerBars) do
                 bar.duration = nil
@@ -943,6 +996,13 @@ local function ClearEntry(entry, full)
             entry.itemBtn:Hide()
         end
         if entry.lfgBtn then entry.lfgBtn:Hide() end
+        if addon.focus.rs then
+            addon.focus.rs.ClearNavWidgets(entry)
+            addon.focus.rs.ClearLootWidgets(entry)
+        end
+        if addon.focus.sd then
+            addon.focus.sd.ClearNavWidgets(entry)
+        end
         if entry.questIconBtn then entry.questIconBtn:Hide() end
         if entry.trackBar then entry.trackBar:Hide() end
         if entry.affixNameSegs then

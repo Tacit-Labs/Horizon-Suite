@@ -428,12 +428,12 @@ local function FullLayout()
         addon.UpdateMplusBlock()
     end
 
-    scrollFrame:ClearAllPoints()
+    -- Variables needed both for the initial anchoring block and the grow-up
+    -- re-evaluation block further below; declare them unconditionally.
     local mplus = addon.mplusBlock
     local hasMplus = mplus and mplus:IsShown()
     local mplusPos = addon.GetDB("mplusBlockPosition", "top") or "top"
     local gap = addon.Scaled(4)
-
     local blockFrame = hasMplus and mplus or nil
     local blockPos = hasMplus and mplusPos or "top"
     local growUp = addon.GetDB("growUp", false)
@@ -450,36 +450,45 @@ local function FullLayout()
             and not (collapse and collapse.headerSlidingToTop)))
     addon.focus.layout.useGrowUpScrollLayout = useGrowUpScrollLayout
 
-    if useGrowUpScrollLayout then
-        -- Header at bottom; scrollFrame fills from top down to just above header (or M+ block).
-        -- headerArea must match ApplyGrowUpLayout: divider at pad+headerH, so content starts at pad+headerH+divH+gap.
-        -- When not minimal, headerH = pad+GetHeaderHeight(), so content starts at 2*pad+GetHeaderHeight()+divH+gap.
-        local headerArea = addon.GetDB("hideObjectivesHeader", false)
-            and (addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4))
-            or (addon.GetScaledPadding() * 2 + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
-        if blockFrame and blockPos == "top" then
+    -- Scroll frame anchoring and visibility are restricted during combat when
+    -- SecureActionButtonTemplate buttons (rare scanner / SilverDragon targeting)
+    -- live in the scroll hierarchy — their anchor targets propagate the restriction
+    -- upward.  The scroll frame only needs repositioning for structural changes
+    -- (M+ block, grow-up mode) that never happen mid-combat.
+    if not InCombatLockdown() then
+        scrollFrame:ClearAllPoints()
+        if useGrowUpScrollLayout then
+            -- Header at bottom; scrollFrame fills from top down to just above header (or M+ block).
+            -- headerArea must match ApplyGrowUpLayout: divider at pad+headerH, so content starts at pad+headerH+divH+gap.
+            -- When not minimal, headerH = pad+GetHeaderHeight(), so content starts at 2*pad+GetHeaderHeight()+divH+gap.
+            local headerArea = addon.GetDB("hideObjectivesHeader", false)
+                and (addon.GetScaledMinimalHeaderHeight() + addon.Scaled(4))
+                or (addon.GetScaledPadding() * 2 + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap())
+            if blockFrame and blockPos == "top" then
+                scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
+                scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+            elseif blockFrame and blockPos == "bottom" then
+                scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
+                scrollFrame:SetPoint("BOTTOMRIGHT", blockFrame, "TOPRIGHT", 0, gap)
+            else
+                scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
+                scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+            end
+        elseif blockFrame and blockPos == "top" then
             scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
-            scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+            scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
         elseif blockFrame and blockPos == "bottom" then
-            scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
+            scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, contentTop)
             scrollFrame:SetPoint("BOTTOMRIGHT", blockFrame, "TOPRIGHT", 0, gap)
         else
-            scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, 0)
-            scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, headerArea)
+            scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, contentTop)
+            scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
         end
-    elseif blockFrame and blockPos == "top" then
-        scrollFrame:SetPoint("TOPLEFT", blockFrame, "BOTTOMLEFT", 0, -gap)
-        scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
-    elseif blockFrame and blockPos == "bottom" then
-        scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, contentTop)
-        scrollFrame:SetPoint("BOTTOMRIGHT", blockFrame, "TOPRIGHT", 0, gap)
-    else
-        scrollFrame:SetPoint("TOPLEFT", addon.HS, "TOPLEFT", 0, contentTop)
-        scrollFrame:SetPoint("BOTTOMRIGHT", addon.HS, "BOTTOMRIGHT", 0, addon.GetScaledPadding())
     end
 
-    local rares = addon.GetDB("showRareBosses", true) and addon.GetRaresOnMap() or {}
-    local treasures = addon.GetDB("showRareLoot", false) and addon.GetTreasuresOnMap and addon.GetTreasuresOnMap() or {}
+    local rareProviderActive = addon.HasActiveRareProvider()
+    local rares = (not rareProviderActive and addon.GetDB("showRareBosses", true)) and addon.GetRaresOnMap() or {}
+    local treasures = (not rareProviderActive and addon.GetDB("showRareLoot", false)) and addon.GetTreasuresOnMap and addon.GetTreasuresOnMap() or {}
     local currentRareKeys = {}
     for _, r in ipairs(rares) do currentRareKeys[r.entryKey or r.questID] = true end
     for _, t in ipairs(treasures) do currentRareKeys[t.entryKey or t.questID] = true end
@@ -580,16 +589,20 @@ local function FullLayout()
                 local frameH = scrollFrame:GetHeight() or 0
                 local maxScr = math.max(totalContentH - frameH, 0)
                 local prevScroll = addon.focus.layout.scrollOffset or 0
+                local prevMaxScr = addon.focus.layout.maxScroll or 0
+                local prevBottomDist = addon.focus.layout.scrollBottomOffset or 0
                 local scrollOffset
                 if addon.GetDB("growUp", false) then
                     -- Grow-up: preserve distance from the bottom so the Objectives header stays pinned.
-                    local bottomDist = addon.focus.layout.scrollBottomOffset or 0
-                    scrollOffset = math.max(0, maxScr - bottomDist)
+                    scrollOffset = math.max(0, maxScr - prevBottomDist)
+                elseif prevMaxScr > 0 and prevBottomDist <= 1 then
+                    scrollOffset = maxScr
                 else
                     scrollOffset = math.min(prevScroll, maxScr)
                 end
                 addon.focus.layout.scrollOffset = scrollOffset
                 addon.focus.layout.scrollBottomOffset = math.max(0, maxScr - scrollOffset)
+                addon.focus.layout.maxScroll = maxScr
                 addon.ApplyScrollOffset(scrollOffset)
                 if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
                 local headerArea
@@ -635,7 +648,7 @@ local function FullLayout()
         end
     end
 
-    scrollFrame:Show()
+    if not InCombatLockdown() then scrollFrame:Show() end
 
     local quests = CollectAllEntries(rares, treasures)
     -- Allow SchedulePlaceholderRefreshes to re-evaluate on every FullLayout call.
@@ -655,7 +668,7 @@ local function FullLayout()
     if growUp and headerMode == "collapse" and (not collapsed or hasPanelCollapsedExpanded) then
         local needHeaderAtBottom = allCatCollapsed
             and not (collapse and collapse.headerSlidingToTop)
-        if needHeaderAtBottom ~= useGrowUpScrollLayout then
+        if needHeaderAtBottom ~= useGrowUpScrollLayout and not InCombatLockdown() then
             scrollFrame:ClearAllPoints()
             if needHeaderAtBottom then
                 local headerArea = addon.GetDB("hideObjectivesHeader", false)
@@ -1186,7 +1199,11 @@ local function FullLayout()
                     div:SetSize(divW, divH)
                     div:ClearAllPoints()
                     div:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", divX, yOff)
-                    div:Show()
+                    if not InCombatLockdown() or div:IsShown() then
+                        div:Show()
+                    else
+                        addon.focus.layoutPendingAfterCombat = true
+                    end
                     yOff = yOff - divH - (sectionGap - divPad)
                 else
                     yOff = yOff - sectionGap
@@ -1310,7 +1327,11 @@ local function FullLayout()
                         end
                     end
 
-                    entry:Show()
+                    if not InCombatLockdown() or entry:IsShown() then
+                        entry:Show()
+                    else
+                        addon.focus.layoutPendingAfterCombat = true
+                    end
                     entry._scrollFadeSpacing = entrySpacing
                     yOff = yOff - entry.entryHeight - entrySpacing
                 end
@@ -1323,6 +1344,12 @@ local function FullLayout()
         for _, entry in pairs(activeMap) do
             if entry and entry.groupKey and entry.animState ~= "collapsing"
                 and addon.IsCategoryCollapsed(entry.groupKey) then
+                if entry.groupKey == "RARESCANNER" and addon.focus and addon.focus.rs then
+                    addon.focus.rs.ClearNavWidgets(entry)
+                    addon.focus.rs.ClearLootWidgets(entry)
+                elseif entry.groupKey == "SILVERDRAGON" and addon.focus and addon.focus.sd then
+                    addon.focus.sd.ClearNavWidgets(entry)
+                end
                 entry:Hide()
             end
         end
@@ -1407,14 +1434,18 @@ local function FullLayout()
 
     local frameH = scrollFrame:GetHeight() or 0
     local maxScr = math.max(totalContentH - frameH, 0)
+    local prevMaxScr = addon.focus.layout.maxScroll or 0
+    local prevBottomDist = addon.focus.layout.scrollBottomOffset or 0
     if addon.GetDB("growUp", false) then
         -- Grow-up: preserve distance from the bottom so the Objectives header stays pinned.
-        local bottomDist = addon.focus.layout.scrollBottomOffset or 0
-        addon.focus.layout.scrollOffset = math.max(0, maxScr - bottomDist)
+        addon.focus.layout.scrollOffset = math.max(0, maxScr - prevBottomDist)
+    elseif prevMaxScr > 0 and prevBottomDist <= 1 then
+        addon.focus.layout.scrollOffset = maxScr
     else
         addon.focus.layout.scrollOffset = math.min(prevScroll, maxScr)
     end
     addon.focus.layout.scrollBottomOffset = math.max(0, maxScr - addon.focus.layout.scrollOffset)
+    addon.focus.layout.maxScroll = maxScr
     addon.ApplyScrollOffset(addon.focus.layout.scrollOffset)
     if addon.UpdateScrollIndicators then addon.UpdateScrollIndicators() end
 

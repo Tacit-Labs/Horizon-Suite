@@ -113,6 +113,16 @@ local function GetTitleColor(category)
         return addon.QUEST_COLORS.DEFAULT
     end
 
+    -- Scanner integrations store their color under a dedicated DB key separate from
+    -- the color matrix, so check it first before falling through to the matrix.
+    if category == "SILVERDRAGON" then
+        local c = addon.GetDB and addon.GetDB("sd_color")
+        if type(c) == "table" and c[1] then return c end
+    elseif category == "RARESCANNER" then
+        local c = addon.GetDB and addon.GetDB("rs_color")
+        if type(c) == "table" and c[1] then return c end
+    end
+
     local cm = GetColorMatrix()
     local key = MatrixKey(category)
     if cm and cm.categories and cm.categories[key] and cm.categories[key].title then

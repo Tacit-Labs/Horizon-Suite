@@ -12,10 +12,10 @@ L["TERM"]                                                = " "
 -- Do not change anything except for the information inside of the quotation marks.
 -- To inactivate the key, make it a comment stub (prefaced with -- ) as this line is.
 
--- =====================================================================
+
 -- Branding — Horizon Suite, module names, and third-party brand names
 -- Never user copy; these are product/brand identifiers only.
--- =====================================================================
+
 -- L["NAME_ADDON"]                                            = "Horizon Suite"
 -- L["NAME_ADDON_OBJECTIVES"]                                 = "Focus"
 -- L["NAME_ADDON_TOASTS"]                                     = "Presence"
@@ -33,9 +33,9 @@ L["TERM"]                                                = " "
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Section headers
--- =====================================================================
+
 L["QUEST_TYPES"]                                              = "Tipos de misiones"
 L["ELEMENT_OVERRIDES"]                                        = "Colores por elemento"
 L["PER_CATEGORY"]                                             = "Colores por categoría"
@@ -44,17 +44,17 @@ L["GROUPING_OVERRIDES"]                                       = "Colores persona
 L["OTHER_COLOURS"]                                            = "Otros colores"
 L["OTHER"]                                                    = "Otro"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
--- =====================================================================
+
 L["FOCUS_SECTION"]                                            = "Sección"
 L["FOCUS_TITLE"]                                              = "Título"
 L["FOCUS_ZONE"]                                               = "Zona"
 L["FOCUS_OBJECTIVE"]                                          = "Objetivo"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Toggle switch labels & tooltips
--- =====================================================================
+
 L["FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"]                  = "Usar colores distintos para la sección Listas para entregar"
 L["FOCUS_READY_TURN_COLOURS_QUESTS"]                          = "La sección Listas para entregar usará sus propios colores."
 L["FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"]                = "Usar colores distintos para la sección Zona actual"
@@ -65,9 +65,9 @@ L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"]               = "Usar colour dis
 L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"]                = "Activado: los objetivos completados (ej. 1/1) usan el colour de abajo. Desactivado: usan el mismo colour que los incompletos."
 L["FOCUS_COMPLETED_OBJECTIVE"]                                = "Objetivo completado"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Button labels
--- =====================================================================
+
 L["FOCUS_RESET"]                                              = "Restablecer"
 L["FOCUS_RESET_QUEST_TYPES"]                                  = "Restablecer tipos de misiones"
 L["FOCUS_RESET_OVERRIDES"]                                    = "Restablecer colores personalizados"
@@ -75,20 +75,20 @@ L["FOCUS_RESET_DEFAULTS"]                                     = "Restablecer tod
 L["FOCUS_RESET_TO_DEFAULTS"]                                  = "Restablecer valores por defecto"
 L["FOCUS_RESET_DEFAULT"]                                      = "Restablecer valor por defecto"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Search bar placeholder
--- =====================================================================
+
 L["SEARCH_SETTINGS"]                                    = "Buscar opciones..."
 L["SEARCH_FONTS"]                                             = "Buscar fuentes..."
 
--- =====================================================================
+
 -- OptionsPanel.lua — Resize handle tooltip
--- =====================================================================
+
 L["FOCUS_DRAG_RESIZE"]                                        = "Arrastra para redimensionar"
 
--- =====================================================================
+
 -- OptionsData.lua Category names (sidebar)
--- =====================================================================
+
 -- L["PROFILES"]                                              = "Profiles"
 L["MODULES"]                                                  = "Módulos"
 -- L["MODULE_TOGGLES"]                                        = "Module Toggles"
@@ -110,9 +110,9 @@ L["MODULES"]                                                  = "Módulos"
 -- L["PROFILE_RELOAD_HINT"]                                   = "Reload the interface to finish applying profile changes."
 -- L["RELOAD_UI"]                                             = "Reload UI"
 
--- =====================================================================
+
 -- options/dashboard/HomeWelcome.lua — First-run welcome
--- =====================================================================
+
 -- L["DASH_WHATS_NEW"]                                        = "Patch Notes"
 -- L["DASH_FULL_CHANGELOG"]                                   = "Full Changelog"
 -- L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                          = " (New!)"
@@ -159,9 +159,9 @@ L["MODULES"]                                                  = "Módulos"
 -- L["DASH_NEWS_QUICK_START_BODY"]                            = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
 -- L["DASH_NEWS_QUICK_START_META"]                            = "Guide • Onboarding • Always available"
 
--- =====================================================================
+
 -- options/dashboard/DashboardIntegrationsView.lua
--- =====================================================================
+
 -- L["DASH_INTEGRATIONS_TAB"]                                    = "Integrations"
 -- L["DASH_INTEGRATIONS_HEAD_SUB"]                               = "Third-party addons that Horizon Suite plays nicely with"
 -- L["DASH_INT_SUMMARY"]                                         = "%d of %d integrations active"
@@ -245,9 +245,9 @@ L["DASH_WELCOME_PATH"]                                        = "%s → %s → %
 -- 
 -- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
--- =====================================================================
+
 -- options/dashboard/ModuleGuide.lua — In-game module quick-start
--- =====================================================================
+
 -- L["DASH_GUIDE_TAB"]                                           = "Guide"
 -- L["DASH_GUIDE_HEAD_SUB"]                                   = "What each part of Horizon does"
 -- L["DASH_GUIDE_HERO_TITLE"]                                 = "Getting started with Horizon Suite"
@@ -311,9 +311,9 @@ L["DASH_APPEARANCE"]                                          = "Apariencia"
 L["DASH_COLOURS"]                                             = "Colores"
 L["DASH_ORGANISATION"]                                        = "Organización"
 
--- =====================================================================
+
 -- OptionsData.lua Section headers
--- =====================================================================
+
 L["FOCUS_PANEL_BEHAVIOUR"]                                    = "Comportamiento del panel"
 L["FOCUS_DIMENSIONS"]                                         = "Dimensiones"
 L["FOCUS_INSTANCE"]                                           = "Instancia"
@@ -367,9 +367,9 @@ L["FOCUS_INTERACTIONS"]                                       = "Interacciones"
 L["FOCUS_TRACKING"]                                           = "Seguimiento"
 L["FOCUS_SCENARIO_BAR"]                                       = "Barra de escenario"
 
--- =====================================================================
+
 -- OptionsData.lua Profiles
--- =====================================================================
+
 -- L["AXIS_CURRENT_PROFILE"]                                  = "Current Profile"
 -- L["AXIS_SELECT_PROFILE_CURRENTLY"]                         = "Select the profile currently in use."
 -- L["AXIS_GLOBAL_PROFILE_ACCOUNT_WIDE"]                      = "Use global profile (account-wide)"
@@ -404,9 +404,9 @@ L["FOCUS_SCENARIO_BAR"]                                       = "Barra de escena
 -- L["AXIS_GLOBAL_PROFILE"]                                   = "Global Profile"
 -- L["AXIS_PER_SPEC_PROFILES"]                                = "Per-Spec Profiles"
 
--- =====================================================================
+
 -- OptionsData.lua Modules
--- =====================================================================
+
 L["AXIS_ENABLE_FOCUS_MODULE"]                                 = "Activar módulo Enfoque"
 L["AXIS_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS_R"]             = "Muestra el rastreador de objetivos para misiones, misiones de mundo, raros, logros y escenarios."
 L["AXIS_ENABLE_PRESENCE_MODULE"]                              = "Activar módulo Presencia"
@@ -750,9 +750,9 @@ L["AXIS_POSITION"]                                            = "Posición"
 L["AXIS_RESET_POSITION"]                                      = "Restablecer posición"
 L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"]                   = "Restablecer posición de notificaciones de botín."
 
--- =====================================================================
+
 -- OptionsData.lua Layout
--- =====================================================================
+
 L["FOCUS_LOCK_POSITION"]                                      = "Bloquear posición"
 L["FOCUS_PREVENT_DRAGGING_TRACKER"]                           = "Impide arrastrar el rastreador de objetivos."
 L["FOCUS_GROW_UPWARD"]                                        = "Crecer hacia arriba"
@@ -778,9 +778,9 @@ L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"]               = "Altura máxima 
 -- L["FOCUS_STATIC_PANEL_HEIGHT"]                             = "Static Panel Height"
 -- L["FOCUS_STATIC_PANEL_HEIGHT_DESC"]                        = "Pixel height of the panel when static background is enabled."
 
--- =====================================================================
+
 -- OptionsData.lua Visibility
--- =====================================================================
+
 L["FOCUS_ALWAYS_M_BLOCK"]                                     = "Mostrar siempre el bloque M+"
 L["FOCUS_M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                = "Muestra el bloque M+ cuando haya una piedra angular activa."
 L["FOCUS_DUNGEON"]                                            = "Mostrar en mazmorra"
@@ -808,9 +808,9 @@ L["FOCUS_VISIBLE_TRACKER_FADED_INVISIBLE"]                    = "Visibilidad del
 L["FOCUS_QUESTS_CURRENT_ZONE"]                                = "Solo misiones de la zona actual"
 L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"]              = "Oculta misiones fuera de tu zona actual."
 
--- =====================================================================
+
 -- OptionsData.lua Display — Header
--- =====================================================================
+
 L["FOCUS_QUEST_COUNT"]                                        = "Mostrar contador de misiones"
 L["FOCUS_QUEST_COUNT_HEADER"]                                 = "Muestra el contador de misiones en el encabezado."
 L["FOCUS_HEADER_COUNT_FORMAT"]                                = "Formato del contador de misiones"
@@ -828,9 +828,9 @@ L["FOCUS_COLOUR_OF_OBJECTIVES_HEADER_TEXT"]                   = "Colour del text
 L["FOCUS_HEADER_HEIGHT"]                                      = "Altura del encabezado"
 L["FOCUS_HEIGHT_OF_HEADER_BAR_PIXELS"]                        = "Altura de la barra del encabezado en píxeles (18–48)."
 
--- =====================================================================
+
 -- OptionsData.lua Display — List
--- =====================================================================
+
 L["FOCUS_SECTION_HEADERS"]                                    = "Mostrar encabezados de sección"
 L["FOCUS_CATEGORY_LABELS_ABOVE_GROUP"]                        = "Muestra las etiquetas de categoría encima de cada grupo."
 L["FOCUS_CATEGORY_HEADERS_COLLAPSED"]                         = "Mostrar encabezados de categoría cuando está colapsado"
@@ -895,9 +895,9 @@ L["FOCUS_AUTO_TRACK_ICON"]                                    = "Icono de seguim
 L["FOCUS_CHOOSE_WHICH_ICON_DISPLAY_NEXT_AUTO"]                = "Elige qué icono mostrar junto a las entradas con seguimiento automático en zona."
 L["FOCUS_APPEND_WORLD_QUESTS_WEEKLIES_DAILIES"]               = "Añade ** a misiones de mundo y semanales/diarias que aún no están en tu registro (solo en zona)."
 
--- =====================================================================
+
 -- OptionsData.lua Display — Spacing
--- =====================================================================
+
 L["FOCUS_COMPACT_MODE"]                                       = "Modo compacto"
 L["FOCUS_PRESET_SETS_ENTRY_OBJECTIVE_SPACING_P"]              = "Preajuste: espaciado de entradas y objetivos a 4 y 1 px."
 L["FOCUS_SPACING_PRESET"]                                     = "Preajuste de espaciado"
@@ -918,9 +918,9 @@ L["FOCUS_SPACING_BELOW_HEADER_PX"]                            = "Espaciado debaj
 L["FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVES_BAR_QUES"]           = "Espacio entre la barra de objetivos y la lista de misiones."
 L["FOCUS_RESET_SPACING"]                                      = "Restablecer espaciado"
 
--- =====================================================================
+
 -- OptionsData.lua Display — Other
--- =====================================================================
+
 L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "Mostrar nivel de misión"
 L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "Muestra el nivel de misión junto al título."
 L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "Atenuar misiones no enfocadas"
@@ -928,9 +928,9 @@ L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "Atenúa ligeram
 -- L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                           = "Dim Unfocused Entries"
 -- L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"]          = "Click a section header to expand that category."
 
--- =====================================================================
+
 -- Features — Rare bosses
--- =====================================================================
+
 L["UI_SHOW_RARE_BOSSES"]                                      = "Mostrar jefes raros"
 L["UI_RARE_BOSS_VIGNETTES_LIST"]                              = "Muestra los jefes raros en la lista."
 L["UI_RARE_LOOT"]                                             = "Botín raro"
@@ -942,15 +942,15 @@ L["UI_RARE_ADDED_SOUND"]                                      = "Sonido al añad
 L["UI_PLAY_A_SOUND_A_RARE"]                                   = "Reproduce un sonido cuando se añade un raro."
 -- L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]                    = "New patch notes — open Axis and choose Patch Notes."
 
--- =====================================================================
+
 -- OptionsData.lua Features — World quests
--- =====================================================================
+
 L["FOCUS_ZONE_WORLD_QUESTS"]                                  = "Mostrar misiones de mundo en zona"
 L["FOCUS_AUTO_ADD_WORLD_QUESTS_YOUR_CURRENT"]                 = "Añade automáticamente misiones de mundo de tu zona. Desactivado: solo las que sigues o las cercanas (predeterminado Blizzard)."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Floating quest item
--- =====================================================================
+
 L["FOCUS_SHOW_FLOATING_QUEST_ITEM"]                           = "Mostrar objeto de misión flotante"
 L["FOCUS_QUICK_BUTTON_FOCUSED_QUEST_S_USABLE"]                = "Muestra el botón de uso rápido del objeto utilizable de la misión enfocada."
 L["FOCUS_LOCK_FLOATING_QUEST_ITEM_POSITION"]                  = "Bloquear posición del objeto flotante"
@@ -960,9 +960,9 @@ L["FOCUS_WHICH_QUEST_S_ITEM_SUPER_TRACKED"]                   = "Qué objeto mos
 L["FOCUS_SUPER_TRACKED_FIRST"]                                = "Super-seguido primero"
 L["FOCUS_CURRENT_ZONE_FIRST"]                                 = "Zona actual primero"
 
--- =====================================================================
+
 -- OptionsData.lua Features — Mythic+
--- =====================================================================
+
 L["FOCUS_MYTHIC_BLOCK"]                                       = "Mostrar bloque Mítico+"
 L["FOCUS_TIMER_COMPLETION_AFFIXES_MYTHIC_DUNGEONS"]           = "Muestra temporizador, % de completado y afijos en mazmorras Mítico+."
 L["FOCUS_M_BLOCK_POSITION"]                                   = "Posición del bloque M+"
@@ -976,9 +976,9 @@ L["FOCUS_DEFEATED_BOSSES_CHECKMARK_ICON_GREEN"]               = "Cómo mostrar j
 L["FOCUS_CHECKMARK"]                                          = "Marca"
 L["FOCUS_GREEN_COLOUR"]                                       = "Colour verde"
 
--- =====================================================================
+
 -- OptionsData.lua Features — Achievements
--- =====================================================================
+
 L["PRESENCE_ACHIEVEMENTS"]                                    = "Mostrar logros"
 L["FOCUS_TRACKED_ACHIEVEMENTS_LIST"]                          = "Muestra los logros seguidos en la lista."
 L["FOCUS_COMPLETED_ACHIEVEMENTS"]                             = "Mostrar logros completados"
@@ -988,25 +988,25 @@ L["FOCUS_ACHIEVEMENT_S_ICON_NEXT_TITLE_REQUI"]                = "Muestra el icon
 L["FOCUS_MISSING_REQUIREMENTS"]                               = "Solo mostrar requisitos faltantes"
 L["FOCUS_CRITERIA_YOU_HAVEN_T_COMPLETED_TR"]                  = "Muestra solo los criterios no completados. Desactivado: se muestran todos."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Endeavors
--- =====================================================================
+
 L["FOCUS_SHOW_ENDEAVORS"]                                     = "Mostrar empeños"
 L["FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"]              = "Muestra los empeños seguidos (vivienda) en la lista."
 L["FOCUS_COMPLETED_ENDEAVORS"]                                = "Mostrar empeños completados"
 L["FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"]                = "Incluye empeños completados. Desactivado: solo los seguidos en progreso."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Decor
--- =====================================================================
+
 L["FOCUS_SHOW_DECOR"]                                         = "Mostrar decoración"
 L["FOCUS_TRACKED_HOUSING_DECOR_LIST"]                         = "Muestra la decoración de vivienda seguida en la lista."
 L["FOCUS_DECOR_ICONS"]                                        = "Mostrar iconos de decoración"
 L["FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Muestra el icono de cada decoración junto al título. Requiere 'Mostrar iconos de tipo de misión' en Visualización."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Appearances
--- =====================================================================
+
 -- L["FOCUS_SHOW_APPEARANCES"]                                = "Show Appearances"
 -- L["FOCUS_TRACKED_TRANSMOG_APPEARANCES_LIST"]               = "Show tracked transmog appearances in the list."
 -- L["FOCUS_INCLUDE_COLLECTED_APPEARANCES_TRACKER"]           = "Include collected appearances in the tracker. When off, only appearances you have not yet collected are shown."
@@ -1019,18 +1019,18 @@ L["FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Muestra el icon
 -- L["FOCUS_UNTRACK_APPEARANCE"]                              = "Untrack Appearance"
 -- L["FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map, Ctrl-click Collections, Ctrl+Shift-click dressing room. Right-click clears focus or untracks."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Adventure Guide
--- =====================================================================
+
 L["FOCUS_ADVENTURE_GUIDE"]                                    = "Guía de aventuras"
 L["FOCUS_TRAVELER_S_LOG"]                                     = "Mostrar Diario del viajero"
 L["FOCUS_TRACKED_TRAVELER_S_LOG_OBJECTIVES_SHIFT"]            = "Muestra los objetivos seguidos del Diario del viajero (Mayús+clic en Guía de aventuras) en la lista."
 L["FOCUS_AUTO_REMOVE_COMPLETED_ACTIVITIES"]                   = "Quitar automáticamente actividades completadas"
 L["FOCUS_AUTOMATICALLY_STOP_TRACKING_TRAVELER_S_LOG"]         = "Deja de seguir automáticamente las actividades del Diario del viajero al completarlas."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Scenario & Delve
--- =====================================================================
+
 L["FOCUS_SCENARIO_EVENTS"]                                    = "Mostrar eventos de escenario"
 L["FOCUS_ACTIVE_SCENARIO_DELVE_ACTIVITIES_DELVES_APP"]        = "Muestra escenarios y Simas activos. Las Simas aparecen en SIMAS; otros en EVENTOS DE ESCENARIO."
 L["FOCUS_TRACK_DELVE_DUNGEON_SCENARIO_ACTIVITIES"]            = "Rastrear actividades de Simas, Mazmorras y escenarios."
@@ -1064,9 +1064,9 @@ L["FOCUS_WHERE_COUNTDOWN_BAR_BELOW_OBJECTIVES"]               = "Dónde mostrar 
 L["FOCUS_BAR_BELOW"]                                          = "Barra debajo"
 L["FOCUS_INLINE_BESIDE_TITLE"]                                = "Texto junto al título"
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Font
--- =====================================================================
+
 L["FOCUS_FONT_FAMILY"]                                        = "Familia de fuente."
 L["FOCUS_TITLE_FONT"]                                         = "Fuente de títulos"
 L["VISTA_ZONE_FONT"]                                          = "Fuente de zona"
@@ -1104,9 +1104,9 @@ L["FOCUS_PROGRESS_BAR_TEXT"]                                  = "Texto de la bar
 L["FOCUS_OUTLINE"]                                            = "Contorno"
 L["FOCUS_FONT_OUTLINE_STYLE"]                                 = "Estilo de contorno de fuente."
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Text case
--- =====================================================================
+
 L["FOCUS_HEADER_TEXT_CASE"]                                   = "Mayúsculas del encabezado"
 L["FOCUS_DISPLAY_CASE_HEADER"]                                = "Mayúsculas para el encabezado."
 L["FOCUS_SECTION_HEADER_CASE"]                                = "Mayúsculas de encabezados de sección"
@@ -1114,9 +1114,9 @@ L["FOCUS_DISPLAY_CASE_CATEGORY_LABELS"]                       = "Mayúsculas par
 L["FOCUS_QUEST_TITLE_CASE"]                                   = "Mayúsculas de títulos de misiones"
 L["FOCUS_DISPLAY_CASE_QUEST_TITLES"]                          = "Mayúsculas para títulos de misiones."
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Shadow
--- =====================================================================
+
 L["FOCUS_TEXT_SHADOW"]                                        = "Mostrar sombra de texto"
 L["FOCUS_ENABLE_DROP_SHADOW_TEXT"]                            = "Activa la sombra del texto."
 L["FOCUS_SHADOW_X"]                                           = "Sombra X"
@@ -1126,9 +1126,9 @@ L["FOCUS_VERTICAL_SHADOW_OFFSET"]                             = "Desplazamiento 
 L["FOCUS_SHADOW_ALPHA"]                                       = "Opacidad de la sombra"
 L["FOCUS_SHADOW_OPACITY"]                                     = "Opacidad de la sombra (0–1)."
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Mythic+ Typography
--- =====================================================================
+
 L["FOCUS_MYTHIC_TYPOGRAPHY"]                                  = "Tipografía Mítico+"
 L["FOCUS_DUNGEON_NAME_SIZE"]                                  = "Tamaño del nombre de mazmorra"
 L["FOCUS_FONT_SIZE_DUNGEON_NAME_PX"]                          = "Tamaño de fuente del nombre de mazmorra (8–32 px)."
@@ -1166,9 +1166,9 @@ L["FOCUS_BOSS_COLOUR"]                                        = "Colour de nombr
 L["FOCUS_TEXT_COLOUR_BOSS_NAMES"]                             = "Colour del texto de nombres de jefes."
 L["FOCUS_RESET_MYTHIC_TYPOGRAPHY"]                            = "Restablecer tipografía M+"
 
--- =====================================================================
+
 -- OptionsData.lua Appearance
--- =====================================================================
+
 -- L["DASH_FRAME"]                                            = "Frame"
 -- L["FOCUS_CLASS_COLOURS_DASHBOARD"]                         = "Class colours - Dashboard"
 -- L["FOCUS_CLASS_COLOURS"]                                   = "Class Colours"
@@ -1182,9 +1182,9 @@ L["FOCUS_RESET_MYTHIC_TYPOGRAPHY"]                            = "Restablecer tip
 -- L["AUGMENT_CLASS_COLOURS_DESC"]                              = "Tint Augment loot icon glow and edit/anchor borders with your class colour."
 -- L["ESSENCE_CLASS_COLOURS_DESC"]                            = "Tint the character name on the Essence sheet with your class colour."
 
--- =====================================================================
+
 -- OptionsEssence.lua — Essence options panel
--- =====================================================================
+
 -- L["ESSENCE_DESC"]                                         = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
 -- L["ESSENCE_LOCK_POSITION"]                                    = "Lock Position"
 -- L["ESSENCE_LOCK_POSITION_DESC"]                               = "Prevent dragging the panel."
@@ -1246,9 +1246,9 @@ L["FOCUS_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"]                 = "Opacidad del re
 L["FOCUS_BAR_WIDTH"]                                          = "Ancho de la barra"
 L["FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"]                   = "Ancho de las barras de resaltado (2–6 px)."
 
--- =====================================================================
+
 -- OptionsData.lua Organisation
--- =====================================================================
+
 -- L["FOCUS_ACTIVITY"]                                        = "Activity"
 -- L["FOCUS_CONTENT"]                                         = "Content"
 -- L["FOCUS_SORTING"]                                         = "Sorting"
@@ -1361,9 +1361,9 @@ L["FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE"]                  = "Requiere TomTom
 -- L["FOCUS_FIND_GROUP"]                                      = "Find a Group"
 -- L["FOCUS_GROUP_QUEST_SEARCH_CLICK"]                        = "Click to search for a group for this quest."
 
--- =====================================================================
+
 -- OptionsData.lua Blacklist
--- =====================================================================
+
 -- L["FOCUS_BLACKLIST"]                                       = "Blacklist"
 -- L["FOCUS_BLACKLIST_UNTRACKED"]                             = "Blacklist Untracked"
 -- L["FOCUS_ENABLE_BLACKLIST_UNTRACKED_BEHAVIOUR_ADD_QUEST"]  = "Enable 'Blacklist untracked' in Behaviour to add quests here."
@@ -1373,9 +1373,9 @@ L["FOCUS_BLACKLISTED_QUESTS"]                                 = "Misiones en lis
 L["FOCUS_PERMANENTLY_SUPPRESSED_QUESTS"]                      = "Misiones ocultas permanentemente"
 L["FOCUS_RIGHT_CLICK_UNTRACK_QUESTS_PERMANENTLY_SUPPRESS"]    = "Clic derecho para dejar de seguir con 'Ocultar permanentemente' activado para añadirlas aquí."
 
--- =====================================================================
+
 -- OptionsData.lua Presence
--- =====================================================================
+
 L["PRESENCE_QUEST_TYPE_ICONS"]                                = "Mostrar iconos de tipo de misión"
 L["PRESENCE_QUEST_TYPE_ICON_FOCUS_TRACKER_QUEST"]             = "Muestra en el rastreador: misión aceptada/completada, misión de mundo, actualización de misión."
 L["PRESENCE_QUEST_TYPE_ICONS_TOASTS"]                         = "Mostrar iconos de tipo de misión en notificaciones"
@@ -1487,18 +1487,18 @@ L["PRESENCE_FONT_FAMILY_SUBTITLE"]                            = "Familia de fuen
 -- L["PRESENCE_SMALL_SECONDARY_SIZE"]                         = "Small Secondary Size"
 -- L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"]       = "Font size for small notification subtitles."
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Outline
--- =====================================================================
+
 L["FOCUS_OUTLINE_NONE"]                                       = "Ninguno"
 L["FOCUS_THICK_OUTLINE"]                                      = "Contorno grueso"
 -- L["FOCUS_SLUG"]                                            = "SLUG"
 -- L["FOCUS_SLUG_OUTLINE"]                                    = "SLUG Outline"
 -- L["FOCUS_SLUG_THICK_OUTLINE"]                              = "SLUG Thick Outline"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Highlight style
--- =====================================================================
+
 L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Barra (borde izquierdo)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Barra (borde derecho)"
 L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "Barra (borde superior)"
@@ -1508,15 +1508,15 @@ L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "Brillo suave"
 L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "Barras dobles"
 L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "Acento píldora izquierdo"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — M+ position
--- =====================================================================
+
 L["FOCUS_MYTHICPLUS_POSITION_TOP"]                            = "Arriba"
 L["FOCUS_MYTHICPLUS_POSITION_BOTTOM"]                         = "Abajo"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Text element positions
--- =====================================================================
+
 L["VISTA_LOCATION_POSITION"]                                  = "Posición del nombre de zona"
 L["VISTA_PLACE_ZONE_NAME_ABOVE_BELOW_MINIMAP"]                = "Coloca el nombre de zona encima o debajo del minimapa."
 L["VISTA_COORDINATES_POSITION"]                               = "Posición de coordenadas"
@@ -1524,35 +1524,35 @@ L["VISTA_PLACE_COORDINATES_ABOVE_BELOW_MINIMAP"]              = "Coloca las coor
 L["VISTA_CLOCK_POSITION"]                                     = "Posición del reloj"
 L["VISTA_PLACE_CLOCK_ABOVE_BELOW_MINIMAP"]                    = "Coloca el reloj encima o debajo del minimapa."
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Text case
--- =====================================================================
+
 L["FOCUS_TEXT_LOWER_CASE"]                                    = "Minúsculas"
 L["FOCUS_TEXT_UPPER_CASE"]                                    = "Mayúsculas"
 L["FOCUS_TEXT_PROPER_CASE"]                                   = "Primera letra mayúscula"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Header count format
--- =====================================================================
+
 L["FOCUS_TRACKED_LOG"]                                        = "Seguidas / En registro"
 L["FOCUS_LOG_MAX_SLOTS"]                                      = "En registro / Máx. ranuras"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Sort mode
--- =====================================================================
+
 L["FOCUS_ALPHABETICAL"]                                       = "Alfabético"
 L["FOCUS_QUEST_TYPE"]                                         = "Tipo de misión"
 L["FOCUS_QUEST_LEVEL"]                                        = "Nivel de misión"
 
--- =====================================================================
+
 -- OptionsData.lua Misc
--- =====================================================================
+
 L["FOCUS_CUSTOM"]                                             = "Personalizado"
 L["FOCUS_ORDER"]                                              = "Orden"
 
--- =====================================================================
+
 -- Tracker section labels (SECTION_LABELS)
--- =====================================================================
+
 L["UI_DUNGEON"]                                               = "MAZMORRA"
 L["UI_RAID"]                                                  = "BANDA"
 L["UI_DELVES"]                                                = "SIMAS"
@@ -1585,9 +1585,9 @@ L["UI_DECOR"]                                                 = "DECORACIÓN"
 L["UI_QUESTS"]                                                = "MISIONES"
 L["UI_READY_TO_TURN_IN"]                                      = "LISTAS PARA ENTREGAR"
 
--- =====================================================================
+
 -- Core.lua, FocusLayout.lua, PresenceCore.lua, FocusUnacceptedPopup.lua
--- =====================================================================
+
 L["PRESENCE_OBJECTIVES"]                                      = "OBJETIVOS"
 L["PRESENCE_OPTIONS"]                                         = "Opciones"
 L["PRESENCE_OPEN_HORIZON_SUITE"]                              = "Abrir Horizon Suite"
@@ -1648,11 +1648,11 @@ L["PRESENCE_H_DEMO_REEL_TYPES"]                               = "  /h presence a
 L["PRESENCE_H_DEBUG_DUMP_STATE"]                              = "  /h presence debug    - Volcar estado al chat"
 L["PRESENCE_H_DEBUGLIVE_TOGGLE_LIVE"]                         = "  /h presence debuglive - Activar/desactivar panel de depuración en vivo (registrar eventos)"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — General
 -- L["VISTA_POSITION_LAYOUT"]                                 = "Position & Layout"
 
--- =====================================================================
+
 L["VISTA_DESC"]                                               = "Minimapa"
 L["VISTA_SIZE"]                                               = "Tamaño del minimapa"
 L["VISTA_WIDTH_HEIGHT_OF_MINIMAP_PIXELS"]                     = "Ancho y alto del minimapa en píxeles (100–400)."
@@ -1669,9 +1669,9 @@ L["VISTA_AUTO_ZOOM"]                                          = "Zoom automátic
 L["VISTA_AUTO_ZOOM_DELAY"]                                    = "Retraso de zoom automático"
 L["VISTA_SECONDS_AFTER_ZOOMING_BEFORE_AUTO_ZOOM"]             = "Segundos tras hacer zoom antes del zoom automático. Pon 0 para desactivar."
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Typography
--- =====================================================================
+
 L["VISTA_ZONE_TEXT_HEADER"]                                   = "Texto de zona"
 L["VISTA_ZONE_FONT"]                                          = "Fuente de zona"
 L["VISTA_FONT_ZONE_NAME_BELOW_MINIMAP"]                       = "Fuente del nombre de zona debajo del minimapa."
@@ -1717,9 +1717,9 @@ L["VISTA_COLOUR_NORMAL_DIFFICULTY_TEXT"]                      = "Colour del text
 L["VISTA_LFR_COLOUR"]                                         = "Colour LFR"
 L["VISTA_COLOUR_LOOKING_RAID_DIFFICULTY_TEXT"]                = "Colour del texto de dificultad Búsqueda de banda."
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Visibility
--- =====================================================================
+
 L["VISTA_TEXT_ELEMENTS"]                                      = "Elementos de texto"
 L["VISTA_ZONE_TEXT"]                                          = "Mostrar texto de zona"
 L["VISTA_ZONE_NAME_BELOW_MINIMAP"]                            = "Muestra el nombre de zona debajo del minimapa."
@@ -1753,9 +1753,9 @@ L["VISTA_ZOOM_BUTTONS_MINIMAP"]                               = "Muestra los bot
 L["VISTA_ZOOM_BUTTONS_MOUSEOVER"]                             = "Botones de zoom solo al pasar el ratón"
 L["VISTA_HIDE_ZOOM_BUTTONS_UNTIL_YOU_HOVER"]                  = "Oculta los botones de zoom hasta pasar el ratón sobre el minimapa."
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Display (Border / Text Positions / Buttons)
--- =====================================================================
+
 L["VISTA_BORDER"]                                             = "Borde"
 L["VISTA_BORDER_TIP"]                                         = "Muestra un borde alrededor del minimapa."
 L["VISTA_BORDER_COLOUR"]                                      = "Colour del borde"
@@ -1816,9 +1816,9 @@ L["VISTA_SIZE_OF_MAIL_ICON_PIXELS"]                           = "Tamaño del ico
 L["VISTA_ADDON_BUTTON_SIZE"]                                  = "Tamaño de botones de addons"
 L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "Tamaño de los botones de addons recopilados en el minimapa (píxeles)."
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Minimap Addon Buttons
--- =====================================================================
+
 -- L["VISTA_COLLECT_HORIZON_MINIMAP"]                         = "Include Horizon Minimap Icon"
 -- L["VISTA_COLLECT_HORIZON_MINIMAP_DESC"]                    = "Put Horizon's own minimap icon in the managed addon bar, right-click panel, or drawer instead of leaving it on the minimap edge."
 -- L["VISTA_SORT_BUTTONS_ALPHA"]                              = "Sort Buttons Alphabetically"
@@ -1892,9 +1892,9 @@ L["VISTA_ADDON_BUTTONS_DETECTED"]                             = "(Aún no se han
 L["VISTA_VISIBLE_BUTTONS_CHECK_INCLUDE"]                      = "Botones visibles (marca para incluir)"
 L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aún no se han detectado botones de addons — abre primero tu minimapa)"
 
--- =====================================================================
+
 -- Inline option / module strings (used in OptionsData / modules; symbolic migration)
--- =====================================================================
+
 
 -- L["HEROIC_DUNGEON"]                                        = "Heroic Dungeon"
 -- L["HEROIC_RAID"]                                           = "Heroic Raid"

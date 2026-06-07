@@ -55,6 +55,7 @@ local function CategoryFromEntry(entry)
     local category = entry and entry.category
     if category then return category end
     local groupKey = entry and entry.groupKey
+    if groupKey == "RARESCANNER" then return "RARESCANNER" end
     if groupKey == "RARES" then return "RARE" end
     if groupKey == "RARE_LOOT" then return "RARE_LOOT" end
     if groupKey == "ACHIEVEMENTS" then return "ACHIEVEMENT" end

@@ -4,7 +4,6 @@
 ]]
 
 local addon = _G.HorizonSuite
-local L = addon.L
 local sectionPool = addon.sectionPool
 local scrollFrame = addon.scrollFrame
 
@@ -18,10 +17,85 @@ local function HideAllSectionHeaders(excludeGroupKeys)
             -- Leave visible; will be faded out by UpdateSectionHeaderFadeOut
         else
             s.active = false
-            s:Hide()
-            s:SetAlpha(0)
+            if InCombatLockdown() and s:IsShown() then
+                addon.focus.layoutPendingAfterCombat = true
+            else
+                if s.rarePrevBtn then s.rarePrevBtn:Hide() end
+                if s.rareNextBtn then s.rareNextBtn:Hide() end
+                s:Hide()
+                s:SetAlpha(0)
+            end
         end
     end
+end
+
+local function ConfigureRareNav(s, groupKey)
+    local prevBtn, nextBtn = s.rarePrevBtn, s.rareNextBtn
+    if not prevBtn or not nextBtn then return end
+
+    local isExpanded
+    if addon.focus.collapsed and addon.GetDB("showSectionHeadersWhenCollapsed", false) then
+        local pceg = addon.focus.collapse and addon.focus.collapse.panelCollapsedExpandedGroups
+        isExpanded = pceg and pceg[groupKey]
+    else
+        isExpanded = not addon.IsCategoryCollapsed(groupKey)
+    end
+    if not isExpanded then
+        prevBtn:Hide()
+        nextBtn:Hide()
+        return
+    end
+
+    local provider
+    if groupKey == "SILVERDRAGON" then
+        provider = rawget(_G, "HorizonSilverDragon")
+    elseif groupKey == "RARESCANNER" then
+        provider = rawget(_G, "HorizonRareScanner")
+    end
+
+    if not provider or not provider.alertOrder or #provider.alertOrder <= 1 then
+        prevBtn:Hide()
+        nextBtn:Hide()
+        return
+    end
+
+    local gap = (addon.Scaled and addon.Scaled(3)) or 3
+    local r, g, b, a = 1, 1, 1, 1
+    if s.text and s.text.GetTextColor then
+        r, g, b, a = s.text:GetTextColor()
+    end
+    prevBtn:ClearAllPoints()
+    nextBtn:ClearAllPoints()
+    local rightInset = (addon.Scaled and addon.Scaled(2)) or 2
+    local rightOffset = ((addon.GetScaledPadding and addon.GetScaledPadding()) or 0) - rightInset
+    nextBtn:SetPoint("RIGHT", s, "RIGHT", rightOffset, 0)
+    prevBtn:SetPoint("RIGHT", nextBtn, "LEFT", -gap, 0)
+    if prevBtn.arrowTex then
+        prevBtn.arrowTex:SetDesaturated(true)
+        prevBtn.arrowTex:SetVertexColor(r, g, b, a)
+    end
+    if nextBtn.arrowTex then
+        nextBtn.arrowTex:SetDesaturated(true)
+        nextBtn.arrowTex:SetVertexColor(r, g, b, a)
+    end
+    local function setArrowColor(btn, mul)
+        if not btn.arrowTex then return end
+        btn.arrowTex:SetVertexColor(math.min(r * mul, 1), math.min(g * mul, 1), math.min(b * mul, 1), a)
+    end
+    prevBtn:SetScript("OnEnter", function(self) setArrowColor(self, 1.25) end)
+    prevBtn:SetScript("OnLeave", function(self) setArrowColor(self, 1) end)
+    nextBtn:SetScript("OnEnter", function(self) setArrowColor(self, 1.25) end)
+    nextBtn:SetScript("OnLeave", function(self) setArrowColor(self, 1) end)
+
+    prevBtn:SetScript("OnClick", function()
+        if provider.NavigatePrev then provider.NavigatePrev() end
+    end)
+    nextBtn:SetScript("OnClick", function()
+        if provider.NavigateNext then provider.NavigateNext() end
+    end)
+
+    prevBtn:Show()
+    nextBtn:Show()
 end
 
 local function GetFocusedGroupKey(grouped)
@@ -46,7 +120,13 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     until not (fadeOutKeys and s.groupKey and fadeOutKeys[s.groupKey])
     s.groupKey = groupKey
 
-    local label = L[addon.SECTION_LABELS[groupKey] or groupKey]
+    local labelKey = addon.SECTION_LABELS[groupKey] or groupKey
+    if groupKey == "RARESCANNER" and addon.GetDB("rs_sectionTitleRares", false) then
+        labelKey = "FOCUS_INTEGRATION_RARE_SECTION_TITLE_LABEL"
+    elseif groupKey == "SILVERDRAGON" and addon.GetDB("sd_sectionTitleRares", false) then
+        labelKey = "FOCUS_INTEGRATION_RARE_SECTION_TITLE_LABEL"
+    end
+    local label = addon.L[labelKey]
     label = addon.ApplyTextCase(label, "sectionHeaderTextCase", "upper")
     local color = addon.GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     addon.SetTextWithShadow(s.text, s.shadow, label)
@@ -81,6 +161,8 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
             s.chevron:SetText("-")
         end
     end
+
+    ConfigureRareNav(s, groupKey)
 
     s:SetScript("OnEnter", nil)
     s:SetScript("OnLeave", nil)
@@ -231,6 +313,11 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
             end
         end
     end)
+
+    if InCombatLockdown() and not s:IsShown() then
+        addon.focus.layoutPendingAfterCombat = true
+        return nil
+    end
 
     s.active = true
     if addon.focus.collapse.sectionHeadersFadingIn and addon.GetDB("animations", true) then

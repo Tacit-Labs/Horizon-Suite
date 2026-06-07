@@ -775,7 +775,9 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
         if oData and questData.isComplete and (questData.isAutoComplete and true or false) then oData = nil end
 
         -- First objective row is anchored with OBJ_EXTRA_LEFT_PAD; narrow SetWidth by the same amount so text wraps inside the panel.
+        -- Subtract any vignette icon shift so objectives align with the un-shifted baseline, not the pushed title.
         local leftPadThisRow = (shownObjs == 0) and OBJ_EXTRA_LEFT_PAD or 0
+        local vigShift = (shownObjs == 0) and (entry._vignetteIconShift or 0) or 0
         local rowObjWidth = objTextWidth
         if leftPadThisRow > 0 then
             rowObjWidth = math.max(1, objTextWidth - leftPadThisRow)
@@ -839,12 +841,14 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
                 end
                 objText = StripLeadingDashes(objText)
                 local prefixStyle = addon.GetDB("objectivePrefixStyle", "none")
-                if prefixStyle == "numbers" then
-                    objText = ("%d. %s"):format(shownObjs + 1, objText)
-                elseif prefixStyle == "hyphens" then
-                    objText = "- " .. objText
-                elseif prefixStyle == "bulletPoints" then
-                    objText = "• " .. objText
+                if not oData.noBullet then
+                    if prefixStyle == "numbers" then
+                        objText = ("%d. %s"):format(shownObjs + 1, objText)
+                    elseif prefixStyle == "hyphens" then
+                        objText = "- " .. objText
+                    elseif prefixStyle == "bulletPoints" then
+                        objText = "• " .. objText
+                    end
                 end
             end
             objText = ApplyObjectiveProgressNumberColoring(objText, nf, nr, oData, effectiveDoneColor)
@@ -888,7 +892,7 @@ local function ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, 
             -- First objective gets inset from title; subsequent objectives align with it.
             -- When prevAnchor is titleText, use effectiveTitleRowH so objectives sit below inline timer (world quests, etc.).
             -- Use titleGap (title-to-content) for first objective below title; objSpacing for subsequent.
-            local leftPad = leftPadThisRow
+            local leftPad = leftPadThisRow - vigShift
             local gapForThisObj = (shownObjs == 0 and prevAnchor == entry.titleText) and titleGap or objSpacing
             local affixH = entry._affixBlockHeight
             if shownObjs == 0 and entry.affixText and prevAnchor == entry.affixText
@@ -1632,7 +1636,54 @@ local function PopulateEntry(entry, questData, groupKey)
         textWidth = textWidth - gutterW
     end
 
+    -- RS nav gutter: delegated to the RareScanner integration module.
+    local showRsNav, rsNavBtnSize, rsNavGap, showRsModel = false, S(16), S(2), false
+    if addon.focus.rs then
+        showRsNav, rsNavBtnSize, rsNavGap, showRsModel = addon.focus.rs.CalcNavGutter(questData, entry, showQuestIcons)
+        showRsModel = showRsModel and true or false
+    end
+    local rsModelSize = (addon.focus.rs and addon.focus.rs.RS_MODEL_SIZE) and S(addon.focus.rs.RS_MODEL_SIZE) or S(32)
+    local rsNavLeftOffset = 0
+    if gutterW == 0 then
+        if showRsNav then
+            rsNavLeftOffset = rsNavBtnSize + rsNavGap
+            textWidth = textWidth - rsNavLeftOffset - (rsNavBtnSize + rsNavGap)
+        end
+    end
+
+    -- SD nav gutter: delegated to the SilverDragon integration module.
+    local showSdNav, sdNavBtnSize, sdNavGap, showSdModel = false, S(16), S(2), false
+    if addon.focus.sd then
+        showSdNav, sdNavBtnSize, sdNavGap, showSdModel = addon.focus.sd.CalcNavGutter(questData, entry, showQuestIcons)
+        showSdModel = showSdModel and true or false
+    end
+    local sdModelSize = (addon.focus.sd and addon.focus.sd.SD_MODEL_SIZE) and S(addon.focus.sd.SD_MODEL_SIZE) or S(64)
+    local sdNavLeftOffset = 0
+    if gutterW == 0 then
+        if showSdNav then
+            sdNavLeftOffset = sdNavBtnSize + sdNavGap
+            textWidth = textWidth - sdNavLeftOffset - (sdNavBtnSize + sdNavGap)
+        end
+    end
+
+    -- Pre-compute vignette icon visibility so layout calculations can account for
+    -- the icon's width before ApplyIconModeTitleOffset sets the title position.
+    local vignetteIconAtlas = questData.vignetteAtlas
+    local showVignetteIcon  = false
+    if vignetteIconAtlas then
+        if questData.sdAlertIndex then
+            showVignetteIcon = addon.GetDB("sd_showVignetteIcon", true)
+        elseif questData.rsAlertIndex then
+            showVignetteIcon = addon.GetDB("rs_showVignetteIcon", true)
+        end
+    end
+    local vignetteIconSz = showVignetteIcon
+        and math.max(10, math.floor(((addon.Scaled and addon.Scaled(12)) or 12) + 0.5)) or 0
+
     local titleWidth = textWidth
+    if vignetteIconSz > 0 then
+        titleWidth = math.max(1, titleWidth - (vignetteIconSz + 2))
+    end
     local showTimerBars = addon.GetDB("showTimerBars", true)
     local timerDisplayMode = addon.GetDB("timerDisplayMode", "inline")
     local isWorld = questData.category == "WORLD" or questData.category == "CALLING"
@@ -1677,6 +1728,22 @@ local function PopulateEntry(entry, questData, groupKey)
                 extraTitlePad = iconW + iconTitleGap
             end
         end
+        -- Shift title right to clear the left nav button.
+        if showRsNav and rsNavLeftOffset > 0 then
+            extraTitlePad = extraTitlePad + rsNavLeftOffset
+        end
+        if showSdNav and sdNavLeftOffset > 0 then
+            extraTitlePad = extraTitlePad + sdNavLeftOffset
+        end
+        -- Reserve space to the left of the title text for the vignette icon texture.
+        local vignetteShift = 0
+        if vignetteIconSz > 0 then
+            vignetteShift = vignetteIconSz + 2
+            extraTitlePad = extraTitlePad + vignetteShift
+        end
+        -- Objectives anchor to entry.titleText.TOPLEFT, so they'd inherit the vignette
+        -- shift. Store it so ApplyObjectives can subtract it from the first row's X offset.
+        entry._vignetteIconShift = vignetteShift
 
         -- Preserve any vertical padding already applied (e.g. bar-top highlight style)
         local _, _, _, curX, curY = entry.titleText:GetPoint(1)
@@ -1685,6 +1752,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.titleText:SetPoint("TOPLEFT", entry, "TOPLEFT", basePad + extraTitlePad, curY)
         entry.titleShadow:ClearAllPoints()
         entry.titleShadow:SetPoint("CENTER", entry.titleText, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+        entry._titleXOffset = basePad + extraTitlePad
         return extraTitlePad
     end
 
@@ -1693,33 +1761,41 @@ local function PopulateEntry(entry, questData, groupKey)
 
     -- Quest type icon visibility is fully controlled by the toggle;
     -- positioning is handled in FocusLayout.
-    if not showQuestIcons then
-        entry.questTypeIcon:Hide()
-    elseif questData.category == "DELVES" then
-        entry.questTypeIcon:SetAtlas(addon.DELVE_TIER_ATLAS)
-        entry.questTypeIcon:Show()
-    elseif questData.isAchievement and questData.achievementIcon and showAchievementIcons then
-        entry.questTypeIcon:SetTexture(questData.achievementIcon)
-        entry.questTypeIcon:Show()
-    elseif questData.isDecor and questData.decorIcon and showDecorIcons then
-        entry.questTypeIcon:SetTexture(questData.decorIcon)
-        entry.questTypeIcon:Show()
-    elseif questData.isAppearance and showAppearanceIcons and (questData.appearanceIconAtlas or questData.appearanceIcon) then
-        if questData.appearanceIconAtlas then
-            entry.questTypeIcon:SetAtlas(questData.appearanceIconAtlas)
+    entry.rsCreatureID = questData.creatureID
+    entry.rsName       = questData.title
+    local rsHandledPortrait = addon.focus.rs and addon.focus.rs.TryRenderPortrait(entry, questData, showQuestIcons)
+    -- Always call SD cleanup even when RS handled the portrait: without this,
+    -- entry.sdModel from a prior SD render is never hidden on that pool slot.
+    if rsHandledPortrait and addon.focus.sd then addon.focus.sd.TryRenderPortrait(entry, questData, false) end
+    local sdHandledPortrait = (not rsHandledPortrait) and addon.focus.sd and addon.focus.sd.TryRenderPortrait(entry, questData, showQuestIcons)
+    if not rsHandledPortrait and not sdHandledPortrait then
+        if not showQuestIcons then
+            entry.questTypeIcon:Hide()
+        elseif questData.category == "DELVES" then
+            entry.questTypeIcon:SetAtlas(addon.DELVE_TIER_ATLAS)
+            entry.questTypeIcon:Show()
+        elseif questData.isAchievement and questData.achievementIcon and showAchievementIcons then
+            entry.questTypeIcon:SetTexture(questData.achievementIcon)
+            entry.questTypeIcon:Show()
+        elseif questData.isDecor and questData.decorIcon and showDecorIcons then
+            entry.questTypeIcon:SetTexture(questData.decorIcon)
+            entry.questTypeIcon:Show()
+        elseif questData.isAppearance and showAppearanceIcons and (questData.appearanceIconAtlas or questData.appearanceIcon) then
+            if questData.appearanceIconAtlas then
+                entry.questTypeIcon:SetAtlas(questData.appearanceIconAtlas)
+            else
+                entry.questTypeIcon:SetTexture(questData.appearanceIcon)
+            end
+            entry.questTypeIcon:Show()
+        elseif questData.isRecipe and questData.recipeIcon and showRecipeIcons then
+            entry.questTypeIcon:SetTexture(questData.recipeIcon)
+            entry.questTypeIcon:Show()
+        elseif questData.questTypeAtlas then
+            entry.questTypeIcon:SetAtlas(questData.questTypeAtlas)
+            entry.questTypeIcon:Show()
         else
-            entry.questTypeIcon:SetTexture(questData.appearanceIcon)
+            entry.questTypeIcon:Hide()
         end
-        entry.questTypeIcon:Show()
-    elseif questData.isRecipe and questData.recipeIcon and showRecipeIcons then
-        entry.questTypeIcon:SetTexture(questData.recipeIcon)
-        entry.questTypeIcon:Show()
-    elseif questData.questTypeAtlas then
-        entry.questTypeIcon:SetAtlas(questData.questTypeAtlas)
-        entry.questTypeIcon:Show()
-    else
-        -- Toggle on but no icon data: hide.
-        entry.questTypeIcon:Hide()
     end
 
     -- Quest icon button: configurable icon-click action for quest and appearance rows.
@@ -1824,7 +1900,8 @@ local function PopulateEntry(entry, questData, groupKey)
     if type(displayTitle) == "string" and displayTitle ~= "" then
         displayTitle = addon.FormatLargeNumbersInString(displayTitle)
     end
-    if not questData._progressBarActive and (addon.GetDB("showCompletedCount", false) or questData.isAchievement or questData.isEndeavor) then
+    if not questData._progressBarActive and not questData.isRare and not questData.isRareLoot
+        and (addon.GetDB("showCompletedCount", false) or questData.isAchievement or questData.isEndeavor) then
         local done, total
         if questData.numericQuantity ~= nil and questData.numericRequired and type(questData.numericRequired) == "number" and questData.numericRequired > 1 then
             done, total = questData.numericQuantity, questData.numericRequired
@@ -1853,7 +1930,7 @@ local function PopulateEntry(entry, questData, groupKey)
     end
 
     -- Entry numbering (per category): apply when option is on.
-    if addon.GetDB("showCategoryEntryNumbers", true) and questData.categoryIndex and type(questData.categoryIndex) == "number" then
+    if addon.GetDB("showCategoryEntryNumbers", true) and questData.categoryIndex and type(questData.categoryIndex) == "number" and not questData.noEntryNumber then
         displayTitle = ("%d. %s"):format(questData.categoryIndex, displayTitle)
     end
 
@@ -1878,6 +1955,18 @@ local function PopulateEntry(entry, questData, groupKey)
     displayTitle = addon.ApplyTextCase(displayTitle, "questTitleCase", "proper")
     if addon.GetDB("showQuestLevel", false) and questData.level then
         displayTitle = ("%s [%d]"):format(displayTitle, questData.level)
+    end
+    if showVignetteIcon and vignetteIconAtlas then
+        if not entry.vignetteIconTex then
+            entry.vignetteIconTex = entry:CreateTexture(nil, "ARTWORK")
+        end
+        entry.vignetteIconTex:SetSize(vignetteIconSz, vignetteIconSz)
+        entry.vignetteIconTex:SetAtlas(vignetteIconAtlas)
+        entry.vignetteIconTex:ClearAllPoints()
+        entry.vignetteIconTex:SetPoint("RIGHT", entry.titleText, "LEFT", -2, 0)
+        entry.vignetteIconTex:Show()
+    elseif entry.vignetteIconTex then
+        entry.vignetteIconTex:Hide()
     end
     addon.SetTextWithShadow(entry.titleText, entry.titleShadow, displayTitle)
 
@@ -2043,7 +2132,7 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.itemBtn._itemLink = nil
         entry.itemBtn:Hide()
     end
-    entry:SetHitRectInsets(0, 0, 0, 0)
+    if not InCombatLockdown() then entry:SetHitRectInsets(0, 0, 0, 0) end
 
     if showLfgBtn then
         entry.lfgBtn:ClearAllPoints()
@@ -2062,6 +2151,21 @@ local function PopulateEntry(entry, questData, groupKey)
         entry.ahBtn:Show()
     elseif entry.ahBtn then
         entry.ahBtn:Hide()
+    end
+
+    -- RS navigation arrows, model, and name-click button: delegated to the RareScanner integration module.
+    if addon.focus.rs then
+        addon.focus.rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavGap, showRsModel, rsModelSize)
+        if addon.focus.rs.RenderTargetButton then
+            addon.focus.rs.RenderTargetButton(entry, questData)
+        end
+    end
+    -- SD navigation arrows, model, and name-click button: delegated to the SilverDragon integration module.
+    if addon.focus.sd then
+        addon.focus.sd.RenderNavButtons(entry, showSdNav, gutterW, sdNavBtnSize, sdNavGap, showSdModel, sdModelSize)
+        if addon.focus.sd.RenderTargetButton then
+            addon.focus.sd.RenderTargetButton(entry, questData)
+        end
     end
 
     local titleToContentSpacing = ((questData.category == "DELVES" or questData.category == "DUNGEON") and S(addon.DELVE_OBJ_SPACING)) or addon.GetTitleToContentSpacing()
@@ -2284,8 +2388,25 @@ local function PopulateEntry(entry, questData, groupKey)
     totalH, prevAnchor = ApplyObjectives(entry, questData, textWidth, prevAnchor, totalH, c, effectiveCat, effectiveTitleRowH, titleToContentSpacing)
     totalH = ApplyScenarioOrWQTimerBar(entry, questData, textWidth, prevAnchor or entry.titleText, totalH)
 
-    entry.entryHeight = totalH + topPadding + bottomPadding
-    entry:SetHeight(totalH + topPadding + bottomPadding)
+    if addon.focus.rs then
+        if addon.focus.rs.RenderCoordButton then
+            addon.focus.rs.RenderCoordButton(entry, questData)
+        end
+        totalH = addon.focus.rs.RenderLootIcons(entry, questData, prevAnchor or entry.titleText, totalH, titleToContentSpacing)
+    end
+    if addon.focus.sd then
+        if addon.focus.sd.RenderCoordButton then
+            addon.focus.sd.RenderCoordButton(entry, questData)
+        end
+    end
+
+    -- Portrait frames extend downward from entry TOPRIGHT; a short entry (name +
+    -- coords + timer) can be narrower than the model, clipping the separator below.
+    local finalH = totalH + topPadding + bottomPadding
+    if showSdModel then finalH = math.max(finalH, sdModelSize + S(4)) end
+    if showRsModel then finalH = math.max(finalH, rsModelSize + S(4)) end
+    entry.entryHeight = finalH
+    entry:SetHeight(finalH)
 
     ApplyShadowColors(entry, questData, highlightStyle, hc, ha)
 

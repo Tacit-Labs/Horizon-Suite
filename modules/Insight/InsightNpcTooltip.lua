@@ -166,8 +166,13 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
             -- Also replace when line 2 is solely the creature type or classification —
             -- those components are already included in lineText, so keeping them as a
             -- subtitle would cause them to appear twice.
-            local isTypeOnly = (creatureType and creatureType ~= "" and stripped == creatureType)
-                            or (classStr    and classStr    ~= "" and stripped == classStr)
+            -- creatureType / classStr are secret strings in Midnight — bare comparison
+            -- throws a taint error. Wrap in pcall so taint errors are swallowed.
+            local isTypeOnly = false
+            pcall(function()
+                isTypeOnly = (creatureType and creatureType ~= "" and stripped == creatureType)
+                          or (classStr    and classStr    ~= "" and stripped == classStr)
+            end)
             local gray = 0.75
             if stripped == "" or isBlizzardLevel or isTypeOnly then
                 if lineLeft2 then
@@ -222,10 +227,12 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
         pcall(function()
             local targetUnit = unit .. "target"
             if UnitExists(targetUnit) then
-                targetName = UnitName(targetUnit)
+                -- tostring() converts secret string to plain Lua string at call site
+                -- so the upvalue is safe to compare and concatenate.
+                targetName = tostring(UnitName(targetUnit))
             end
         end)
-        if targetName and targetName ~= "" then
+        if targetName and targetName ~= "nil" and targetName ~= "" then
             tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
         end
     end

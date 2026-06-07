@@ -141,6 +141,7 @@ function addon.DashboardIntegrationsView_Init(env)
     local SBgA = SBg[4] * DASHBOARD_CONTENT_CARD_ALPHA_MULT
 
     local CARD_H              = 100
+    local CARD_COMPANION_EXTRA_H = 22              -- extra height for cards with a companion addon
     local CARD_GAP            = 8
     local CARD_X_INSET        = 18
     local CARD_ACCENT_W       = 3
@@ -156,6 +157,8 @@ function addon.DashboardIntegrationsView_Init(env)
     local CARD_PILL_Y         = -12
     local CARD_VPILL_H        = 18
     local CARD_VPILL_GAP      = 4
+    local CARD_CPILL_H        = 18                 -- companion pill height
+    local CARD_CPILL_GAP      = 4                  -- gap between version pill and companion pill
     local CARD_LINK_X         = -14
     local CARD_LINK_Y         = 10                 -- from BOTTOM
     local NEW_BADGE_W         = 38
@@ -278,10 +281,11 @@ function addon.DashboardIntegrationsView_Init(env)
         --   missing       → Install (if url)
         --   disabled      → Enable
         --   enabled       → Settings (if slashKey is registered)
-        if row.linkInstall then row.linkInstall:Hide() end
-        if row.linkEnable  then row.linkEnable:Hide()  end
-        if row.linkReload  then row.linkReload:Hide()  end
-        if row.linkSettings then row.linkSettings:Hide() end
+        if row.linkInstall         then row.linkInstall:Hide()         end
+        if row.linkEnable          then row.linkEnable:Hide()          end
+        if row.linkReload          then row.linkReload:Hide()          end
+        if row.linkSettings        then row.linkSettings:Hide()        end
+        if row.linkInstallCompanion then row.linkInstallCompanion:Hide() end
 
         if stateKey == "pendingReload" and row.linkReload then
             row.linkReload:Show()
@@ -289,10 +293,32 @@ function addon.DashboardIntegrationsView_Init(env)
             row.linkInstall:Show()
         elseif stateKey == "disabled" and row.linkEnable then
             row.linkEnable:Show()
-        elseif stateKey == "enabled" and row.linkSettings then
-            local slashKey = row._slashKey
-            local registered = type(slashKey) == "string" and _G.SlashCmdList and _G.SlashCmdList[slashKey]
-            row.linkSettings:SetShown(registered and true or false)
+        elseif stateKey == "enabled" then
+            -- When the companion bridge is missing and we have its install URL, offer that first.
+            local companionState = row._companionAddon and GetIntegrationState(row._companionAddon)
+            if companionState == "missing" and row.linkInstallCompanion then
+                row.linkInstallCompanion:Show()
+            elseif row.linkSettings then
+                local slashKey = row._slashKey
+                local registered = type(slashKey) == "string" and _G.SlashCmdList and _G.SlashCmdList[slashKey]
+                row.linkSettings:SetShown(registered and true or false)
+            end
+        end
+
+        -- Companion pill: shows when the main addon is present (not missing).
+        if row.companionPill and row._companionAddon then
+            if stateKey == "missing" then
+                row.companionPill:Hide()
+            else
+                local cs = GetIntegrationState(row._companionAddon)
+                local cd = STATUS_COLORS[cs] or STATUS_COLORS.missing
+                row.companionPillBg:SetColorTexture(cd[1], cd[2], cd[3], cd[4])
+                local labelKey = (cs == "enabled") and "DASH_INT_COMPANION_ENABLED"
+                    or (cs == "disabled") and "DASH_INT_COMPANION_DISABLED"
+                    or "DASH_INT_COMPANION_MISSING"
+                row.companionPillText:SetText(L[labelKey] or "Companion")
+                row.companionPill:Show()
+            end
         end
 
         MaybePulseTick(row, stateKey)
@@ -314,7 +340,8 @@ function addon.DashboardIntegrationsView_Init(env)
 
     local function CreateRow(entry, index)
         local row = CreateFrame("Frame", nil, scrollContent)
-        row:SetHeight(CARD_H)
+        local hasCompanion = entry.companionAddon ~= nil
+        row:SetHeight(CARD_H + (hasCompanion and CARD_COMPANION_EXTRA_H or 0))
         if index == 1 then
             row:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -CARD_GAP)
             row:SetPoint("TOPRIGHT", summary, "BOTTOMRIGHT", 0, -CARD_GAP)
@@ -457,7 +484,39 @@ function addon.DashboardIntegrationsView_Init(env)
         versionPill:Hide()
         row.versionPill, row.versionPillBg, row.versionPillText = versionPill, vpBg, vpText
 
+        -- Companion addon pill — only for entries that require a Horizon bridge addon.
+        -- Positioned below the version pill; colour mirrors STATUS_COLORS for the bridge state.
+        local companionPill, cpBg, cpText
+        if hasCompanion then
+            companionPill = CreateFrame("Frame", nil, row)
+            companionPill:SetSize(CARD_PILL_W, CARD_CPILL_H)
+            companionPill:SetPoint("TOP", versionPill, "BOTTOM", 0, -CARD_CPILL_GAP)
+            cpBg = companionPill:CreateTexture(nil, "BACKGROUND")
+            cpBg:SetAllPoints()
+            cpBg:SetColorTexture(0.10, 0.10, 0.13, 0.85)
+            cpText = MakeText(companionPill, "", 10, 0.92, 0.92, 0.95, "CENTER")
+            cpText:SetAllPoints()
+            cpText:SetJustifyV("MIDDLE")
+            companionPill:Hide()
+        end
+        row.companionPill, row.companionPillBg, row.companionPillText = companionPill, cpBg, cpText
+
+        -- Install link for the bridge/companion addon (only wired when a URL is provided).
+        local linkInstallCompanion
+        if entry.companionUrl and addon.ShowURLCopyBox then
+            linkInstallCompanion = MakeLink(row,
+                (L["DASH_INT_CTA_GET_COMPANION"] or "Install Bridge"),
+                function()
+                    addon.ShowURLCopyBox(entry.companionUrl,
+                        (entry.displayName or entry.addonName or "") .. " Bridge")
+                end,
+                { 0.75, 0.85, 1 }
+            )
+        end
+        row.linkInstallCompanion = linkInstallCompanion
+
         row._addonName     = entry.addonName
+        row._companionAddon = entry.companionAddon or nil
         row._slashKey      = entry.slashKey
         row._bundled       = entry.bundled and true or false
         row._icon          = icon
@@ -550,7 +609,11 @@ function addon.DashboardIntegrationsView_Init(env)
     for i, entry in ipairs(sorted) do
         rows[i] = CreateRow(entry, i)
     end
-    local totalH = SCROLL_TOP_PAD + SUMMARY_HEIGHT + CARD_GAP + (#rows * (CARD_H + CARD_GAP)) + SCROLL_BOTTOM_PAD
+    local rowsH = 0
+    for _, r in ipairs(rows) do
+        rowsH = rowsH + r:GetHeight() + CARD_GAP
+    end
+    local totalH = SCROLL_TOP_PAD + SUMMARY_HEIGHT + CARD_GAP + rowsH + SCROLL_BOTTOM_PAD
     scrollContent:SetHeight(totalH)
     RefreshSummary()
     -- The Integrations sidebar button is created LATER in the dashboard build
@@ -570,7 +633,7 @@ function addon.DashboardIntegrationsView_Init(env)
         if not integrationsView:IsShown() then return end
         local matched = false
         for _, row in ipairs(rows) do
-            if row._addonName == loadedName then
+            if row._addonName == loadedName or row._companionAddon == loadedName then
                 ApplyRowState(row)
                 matched = true
             end

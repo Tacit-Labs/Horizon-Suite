@@ -133,7 +133,10 @@ function OptionsData_BuildSearchIndex()
             elseif opt.type ~= "section" and opt.type ~= "header" and opt.type ~= "moduleReloadPrompt" then
                 local rawName = type(opt.name) == "function" and opt.name() or opt.name
                 local name = (rawName or ""):lower()
-                local desc = ((opt.desc or "") .. " " .. (opt.tooltip or "")):lower()
+                local rawDesc, rawTooltip
+                if type(opt.desc)    == "function" then rawDesc    = opt.desc()    else rawDesc    = opt.desc    end
+                if type(opt.tooltip) == "function" then rawTooltip = opt.tooltip() else rawTooltip = opt.tooltip end
+                local desc = ((rawDesc or "") .. " " .. (rawTooltip or "")):lower()
                 local sectionLower = (currentSection or ""):lower()
                 local moduleLower = (moduleLabel or ""):lower()
                 local searchText = name .. " " .. desc .. " " .. sectionLower .. " " .. moduleLower
