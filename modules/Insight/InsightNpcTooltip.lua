@@ -223,16 +223,20 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     end
 
     if ShowNpcTargeting() then
+        -- UnitName() returns a secret string in tainted execution.
+        -- Secret strings forbid == / ~= comparisons; use #n (a number) instead.
+        -- Only a truthiness check is safe outside the pcall.
         local targetName = nil
         pcall(function()
             local targetUnit = unit .. "target"
             if UnitExists(targetUnit) then
-                -- tostring() converts secret string to plain Lua string at call site
-                -- so the upvalue is safe to compare and concatenate.
-                targetName = tostring(UnitName(targetUnit))
+                local n = UnitName(targetUnit)
+                if n and #n > 0 then
+                    targetName = n
+                end
             end
         end)
-        if targetName and targetName ~= "nil" and targetName ~= "" then
+        if targetName then
             tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
         end
     end
