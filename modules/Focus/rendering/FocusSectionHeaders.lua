@@ -59,6 +59,16 @@ local function ConfigureRareNav(s, groupKey)
         return
     end
 
+    -- Resize arrows to the current user preference each layout pass.
+    local rawSz = math.max(8, math.min(24, tonumber(addon.GetDB("rareNavArrowSize", 14)) or 14))
+    local arrowSz = (addon.Scaled and addon.Scaled(rawSz)) or rawSz
+    local navW    = arrowSz + (addon.Scaled and addon.Scaled(2) or 2)
+    local navH    = addon.GetSectionHeaderHeight()
+    prevBtn:SetSize(navW, navH)
+    nextBtn:SetSize(navW, navH)
+    if prevBtn.arrowTex then prevBtn.arrowTex:SetSize(arrowSz, arrowSz) end
+    if nextBtn.arrowTex then nextBtn.arrowTex:SetSize(arrowSz, arrowSz) end
+
     local gap = (addon.Scaled and addon.Scaled(3)) or 3
     local r, g, b, a = 1, 1, 1, 1
     if s.text and s.text.GetTextColor then

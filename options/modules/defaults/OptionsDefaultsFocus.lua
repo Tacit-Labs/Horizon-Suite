@@ -228,6 +228,7 @@ addon.FOCUS_DEFAULTS = {
     showWorldQuests           = true,
     showRareBosses            = true,
     showRareLoot              = false,
+    rareNavArrowSize          = 14,
     rareAddedSound            = true,
     rareAddedSoundChoice      = "default",
     rareAddedSoundVolume      = 100,
