@@ -394,10 +394,19 @@ function addon.ApplyTextCase(text, dbKey, default)
             -- Skip proper case for internal/localized strings to prevent Umlaut corruption
             if isInternal then return s end
 
-            -- Format short addon labels
-            local lower = strlower(s)
-            return (lower:gsub("(%S)(%S*)", function(first, rest)
-                return strupper(first) .. rest
+            -- Capitalize the first letter of each word. For camelCase brand names like
+            -- "SilverDragon" or "RareScanner" (words where the rest contains BOTH upper
+            -- and lower letters), preserve the interior casing rather than lowercasing
+            -- first. All-caps ("CAMPAIGN") and all-lower ("campaign") words get standard
+            -- title treatment.
+            return (s:gsub("(%S)(%S*)", function(first, rest)
+                local hasUpper = rest:find("[A-Z]")
+                local hasLower = rest:find("[a-z]")
+                if hasUpper and hasLower then
+                    -- Mixed-case interior: camelCase brand name — preserve as-is.
+                    return strupper(first) .. rest
+                end
+                return strupper(first) .. strlower(rest)
             end))
         end
         return s
