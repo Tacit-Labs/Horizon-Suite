@@ -137,27 +137,6 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
     hidden    = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() end,
     options   = {
         -- ----------------------------------------------------------------
-        -- Shared navigation settings — visible when either bridge is loaded.
-        -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_RARE_NAV"], {
-            visibleWhen = function() return RareScannerIntegrationLoaded() or SilverDragonIntegrationLoaded() end,
-        }),
-
-        Slider(
-            L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE"],
-            L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE_DESC"],
-            "rareNavArrowSize",
-            8, 24, 14,
-            {
-                id  = "rareNavArrowSize",
-                set = function(v)
-                    setDB("rareNavArrowSize", v)
-                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
-                end,
-            }
-        ),
-
-        -- ----------------------------------------------------------------
         -- RareScanner — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
         Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded }),
@@ -516,6 +495,21 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
             }
         ),
 
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE"],
+            L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE_DESC"],
+            "rareNavArrowSize",
+            8, 24, 14,
+            {
+                id       = "rs_navArrowSize",
+                disabled = RSDisabled,
+                set      = function(v)
+                    setDB("rareNavArrowSize", v)
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                end,
+            }
+        ),
+
         addon.Button(
             L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN"],
             L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN_DESC"],
@@ -806,6 +800,21 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 set         = function(v) setDB("sd_clickToTarget", v) end,
+            }
+        ),
+
+        Slider(
+            L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE"],
+            L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE_DESC"],
+            "rareNavArrowSize",
+            8, 24, 14,
+            {
+                id       = "sd_navArrowSize",
+                disabled = SDDisabled,
+                set      = function(v)
+                    setDB("rareNavArrowSize", v)
+                    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+                end,
             }
         ),
 
