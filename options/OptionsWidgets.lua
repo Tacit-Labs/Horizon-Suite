@@ -163,6 +163,7 @@ end
 
 -- Combine an inline description and a hover tooltip into one tooltip string (blank-line separated).
 local function JoinTooltip(desc, tip)
+    if type(tip) == "function" then tip = tip() end
     return (desc or "") .. (desc and tip and "\n\n" or "") .. (tip or "")
 end
 
