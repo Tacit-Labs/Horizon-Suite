@@ -1,8 +1,8 @@
 --[[
     Horizon Suite - Focus - Integrations options
     Self-registers an "Integrations" category under the Focus options panel.
-    Each integration card is always visible. When the companion addon is absent
-    all controls are greyed out and the tooltip says it is not installed.
+    Each integration card is hidden entirely when the companion bridge addon is
+    absent. The sidebar category itself is hidden when neither bridge is loaded.
 ]]
 
 local addon = _G.HorizonSuite
@@ -55,20 +55,20 @@ local function RSDisabled()
     return not RareScannerIntegrationLoaded()
 end
 
---- visibleWhen for sub-toggles: show when RS absent (greyed placeholders) OR
---- when RS is installed and the master enable is on.
+--- visibleWhen for sub-toggles: show when RS is installed and the master enable is on.
+--- (No "RS absent" fallback — the whole card is hidden when the bridge is not loaded.)
 local function RSSubVisible()
-    return not RareScannerIntegrationLoaded() or addon.GetDB("rs_enabled", false)
+    return RareScannerIntegrationLoaded() and addon.GetDB("rs_enabled", false)
 end
 
---- visibleWhen for the loot quality dropdown: same as RSSubVisible but also
---- requires showLoot to be on (or RS absent, so the greyed placeholder is shown).
+--- visibleWhen for the loot quality dropdown: enabled master + showLoot toggle on.
 local function RSLootSubVisible()
-    return not RareScannerIntegrationLoaded()
-        or (addon.GetDB("rs_enabled", false) and addon.GetDB("rs_showLoot", true))
+    return RareScannerIntegrationLoaded()
+        and addon.GetDB("rs_enabled", false)
+        and addon.GetDB("rs_showLoot", true)
 end
 
---- visibleWhen for the TomTom toggle: same as the coord-waypoint sub-toggle.
+--- visibleWhen for the TomTom toggle.
 local function RSTomTomVisible()
     return RSSubVisible() and addon.GetDB("rs_showCoords", true)
         and addon.GetDB("rs_coordWaypoint", true)
@@ -102,10 +102,12 @@ local function SDDisabled()
     return not SilverDragonIntegrationLoaded()
 end
 
+--- visibleWhen for sub-toggles: show when SD is installed and the master enable is on.
 local function SDSubVisible()
-    return not SilverDragonIntegrationLoaded() or addon.GetDB("sd_enabled", false)
+    return SilverDragonIntegrationLoaded() and addon.GetDB("sd_enabled", false)
 end
 
+--- visibleWhen for the TomTom toggle.
 local function SDTomTomVisible()
     return SDSubVisible()
         and addon.GetDB("sd_showCoords", true)
@@ -131,11 +133,13 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
     name      = L["FOCUS_INTEGRATION"],
     desc      = L["FOCUS_INTEGRATION_DESC"],
     moduleKey = "focus",
+    -- Hide the sidebar entry entirely when neither bridge addon is installed.
+    hidden    = function() return not RareScannerIntegrationLoaded() and not SilverDragonIntegrationLoaded() end,
     options   = {
         -- ----------------------------------------------------------------
-        -- RareScanner — always visible; greyed when companion is absent.
+        -- RareScanner — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_RARESCANNER"]),
+        Section(L["FOCUS_INTEGRATION_RARESCANNER"], { visibleWhen = RareScannerIntegrationLoaded }),
         { type = "header", name = L["FOCUS_INTEGRATION_RARESCANNER_COMPANION"] },
 
         Toggle(
@@ -505,9 +509,9 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         ),
 
         -- ----------------------------------------------------------------
-        -- SilverDragon — always visible; greyed when companion is absent.
+        -- SilverDragon — card hidden when companion bridge is absent.
         -- ----------------------------------------------------------------
-        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"]),
+        Section(L["FOCUS_INTEGRATION_SILVERDRAGON"], { visibleWhen = SilverDragonIntegrationLoaded }),
         { type = "header", name = L["FOCUS_INTEGRATION_SILVERDRAGON_COMPANION"] },
 
         Toggle(
