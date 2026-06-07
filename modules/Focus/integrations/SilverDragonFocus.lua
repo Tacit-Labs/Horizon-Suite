@@ -304,7 +304,6 @@ function sd.PlayKillFlash(entry)
     -- Lazily create the overlay frame the first time it's needed.
     if not entry._sdFlashFrame then
         local f = CreateFrame("Frame", nil, entry)
-        f:SetAllPoints()
         f:SetFrameLevel(entry:GetFrameLevel() + 12)
         local tex = f:CreateTexture(nil, "OVERLAY")
         tex:SetAllPoints()
@@ -324,6 +323,14 @@ function sd.PlayKillFlash(entry)
     local DUR_IN  = 0.08
     local DUR_OUT = 0.55
     local TOTAL   = DUR_IN + DUR_OUT
+
+    -- Constrain the flash to the title row only (not objectives below it).
+    local titlePt = math.max(8, (tonumber(addon.GetDB("titleFontSize", 13)) or 13)
+                              + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT",  entry, "TOPLEFT",  0, 0)
+    f:SetPoint("TOPRIGHT", entry, "TOPRIGHT", 0, 0)
+    f:SetHeight(titlePt + 6)
 
     tex:SetAlpha(0)
     f:Show()
