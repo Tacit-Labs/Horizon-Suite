@@ -215,12 +215,24 @@ function Y.ParseMoney(msg)
 
     if gold == 0 and silver == 0 and copper == 0 then return nil end
 
+    local icon, col
+    if gold > 0 then
+        icon = Y.MONEY_ICON
+        col  = Y.MONEY_COLOR
+    elseif silver > 0 then
+        icon = Y.MONEY_ICON_SILVER
+        col  = Y.MONEY_COLOR_SILVER
+    else
+        icon = Y.MONEY_ICON_COPPER
+        col  = Y.MONEY_COLOR_COPPER
+    end
+
     return {
         kind    = "money",
-        icon    = Y.MONEY_ICON,
+        icon    = icon,
         text    = Y.FormatMoney(gold, silver, copper),
-        r = Y.MONEY_COLOR[1], g = Y.MONEY_COLOR[2], b = Y.MONEY_COLOR[3],
-        br = Y.MONEY_COLOR[1], bg = Y.MONEY_COLOR[2], bb = Y.MONEY_COLOR[3],
+        r = col[1], g = col[2], b = col[3],
+        br = col[1], bg = col[2], bb = col[3],
     }
 end
 

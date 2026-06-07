@@ -96,12 +96,16 @@ Y.QUALITY_COLORS = {
     [8] = {0.00, 0.80, 1.00},
 }
 
-Y.MONEY_COLOR     = {1.00, 0.84, 0.00}
+Y.MONEY_COLOR        = {1.00, 0.84, 0.00}
+Y.MONEY_COLOR_SILVER = {0.75, 0.75, 0.80}
+Y.MONEY_COLOR_COPPER = {0.80, 0.50, 0.20}
 Y.CURRENCY_COLOR  = {0.40, 0.80, 1.00}
 Y.REP_GAIN_COLOR  = {0.00, 0.80, 0.40}
 Y.REP_LOSS_COLOR  = {0.80, 0.20, 0.20}
 
-Y.MONEY_ICON      = "Interface\\Icons\\INV_Misc_Coin_02"
+Y.MONEY_ICON        = "Interface\\Icons\\INV_Misc_Coin_02"
+Y.MONEY_ICON_SILVER = "Interface\\Icons\\INV_Misc_Coin_04"
+Y.MONEY_ICON_COPPER = "Interface\\Icons\\INV_Misc_Coin_06"
 Y.REP_ICON        = "Interface\\Icons\\Achievement_Reputation_01"
 Y.UNKNOWN_ICON    = "Interface\\Icons\\INV_Misc_QuestionMark"
 
