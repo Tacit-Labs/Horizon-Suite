@@ -1058,13 +1058,10 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
     end
     if event == "UPDATE_MOUSEOVER_UNIT" then
         if not Insight.IsInsightEnabled() then return end
-        if SafeUnitExistsKnown("mouseover") == false
+        if SafeUnitExistsKnown("mouseover") ~= true
             and TooltipPlainShown(GameTooltip)
             and GameTooltip._insightUnitTooltip then
             C_Timer.After(0, function()
-                -- Use == true (not ~= false) so a nil return from SafeUnitExistsKnown
-                -- (pcall failed due to taint) is treated as "unit gone" rather than
-                -- "unit present" — preventing the tooltip from getting stuck in cursor mode.
                 if SafeUnitExistsKnown("mouseover") == true then return end
                 if not TooltipPlainShown(GameTooltip) then return end
                 if not GameTooltip._insightUnitTooltip then return end
