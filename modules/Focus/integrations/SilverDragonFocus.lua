@@ -25,6 +25,9 @@ local SD_NAV_BTN_H    = 60
 local SD_NAV_BTN_GAP  = 3
 local SD_NAV_ARROW_SZ = 14
 local SD_SKULL_MARKER = 8
+-- Built-in inset for the "right" portrait: slider=0 lands here rather than flush
+-- with the tracker's right edge.
+local SD_RIGHT_BASE_OFFSET = -80
 
 -- ---------------------------------------------------------------------------
 -- Model clip envelopes — one per side, parented to HS so portraits extend
@@ -428,7 +431,7 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
             if initPos == "left" then
                 m:SetPoint("TOPRIGHT", entry, "TOPLEFT",  initOffX, 0)
             else
-                m:SetPoint("TOPLEFT",  entry, "TOPRIGHT", initOffX, 0)
+                m:SetPoint("TOPLEFT",  entry, "TOPRIGHT", initOffX + SD_RIGHT_BASE_OFFSET, 0)
             end
             -- Mouse disabled so sdModelBtn (higher frame level) receives all clicks.
             m:EnableMouse(false)
@@ -499,7 +502,7 @@ function sd.RenderNavButtons(entry, showSdNav, gutterW, sdNavBtnSize, sdNavBtnGa
         if modelPos == "left" then
             entry.sdModel:SetPoint("TOPRIGHT", entry, "TOPLEFT",  modelOffX, 0)
         else
-            entry.sdModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX, 0)
+            entry.sdModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX + SD_RIGHT_BASE_OFFSET, 0)
         end
         entry.sdModelActive = true
         if addon.HS and addon.HS:GetAlpha() >= 0.99 then

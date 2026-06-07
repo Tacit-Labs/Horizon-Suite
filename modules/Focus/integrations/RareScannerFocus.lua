@@ -27,7 +27,11 @@ local RS_NAV_BTN_W    = 16   -- nav arrow button width (also drives the text gut
 local RS_NAV_BTN_H    = 60   -- nav arrow button height (spans portrait area)
 local RS_NAV_BTN_GAP  = 3    -- gap between arrow button and text content
 local RS_NAV_ARROW_SZ = 14   -- arrow texture size within button
-local RS_SKULL_MARKER = 8   -- WoW raid-target marker index for skull
+local RS_SKULL_MARKER = 8    -- WoW raid-target marker index for skull
+-- Built-in inset for the "right" portrait: slider=0 lands here rather than flush
+-- with the tracker's right edge. Users adjust from this natural baseline via the
+-- Portrait X Offset slider (positive = further right, negative = further left).
+local RS_RIGHT_BASE_OFFSET = -80
 
 -- ---------------------------------------------------------------------------
 -- Model clip envelopes — one per side, parented to HS (outside the
@@ -538,7 +542,7 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
                 if initPos == "left" then
                     m:SetPoint("TOPRIGHT", entry, "TOPLEFT",  initOffX, 0)
                 else
-                    m:SetPoint("TOPLEFT",  entry, "TOPRIGHT", initOffX, 0)
+                    m:SetPoint("TOPLEFT",  entry, "TOPRIGHT", initOffX + RS_RIGHT_BASE_OFFSET, 0)
                 end
                 -- Mouse disabled so rareModelBtn (higher frame level) receives all clicks.
                 m:EnableMouse(false)
@@ -622,7 +626,7 @@ function rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavBtnGa
         if modelPos == "left" then
             entry.rareModel:SetPoint("TOPRIGHT", entry, "TOPLEFT",  modelOffX, 0)
         else
-            entry.rareModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX, 0)
+            entry.rareModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX + RS_RIGHT_BASE_OFFSET, 0)
         end
         entry.rareModelActive = true
         if addon.HS and addon.HS:GetAlpha() >= 0.99 then
