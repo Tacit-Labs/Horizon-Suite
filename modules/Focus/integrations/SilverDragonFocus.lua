@@ -285,6 +285,11 @@ function sd.ClearNavWidgets(entry)
     end
     entry._sdLastCreatureID = nil  -- reset so next render always clears before loading a new creature
     entry._sdKilledState    = false
+    if entry._sdKillMark then
+        if entry._sdKillMark.anim then entry._sdKillMark.anim:Stop() end
+        entry._sdKillMark:Hide()
+    end
+    entry._sdKillMarkParent = nil
     if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
     entry._sdModelParent = nil
     if not InCombatLockdown() then
@@ -346,6 +351,49 @@ function sd.PlayKillFlash(entry)
             tex:SetAlpha(PEAK * (1 - (elapsed - DUR_IN) / DUR_OUT))
         end
     end)
+end
+
+-- Replace the old title-row flash with a compact death mark on the portrait.
+function sd.PlayKillFlash(entry)
+    if not entry then return end
+    local anchor = entry.sdModel
+    if not (anchor and anchor:IsShown()) then return end
+    if entry._sdKillMark and entry._sdKillMarkParent ~= anchor then
+        if entry._sdKillMark.anim then entry._sdKillMark.anim:Stop() end
+        entry._sdKillMark:Hide()
+        entry._sdKillMark = nil
+    end
+    if not entry._sdKillMark then
+        local tex = anchor:CreateTexture(nil, "OVERLAY")
+        tex:SetAtlas("XMarksTheSpot")
+        tex:SetVertexColor(1, 0.08, 0.04, 1)
+        tex:SetBlendMode("ADD")
+        tex:SetAlpha(0)
+        tex:Hide()
+        local anim = tex:CreateAnimationGroup()
+        anim:SetToFinalAlpha(true)
+        local a1 = anim:CreateAnimation("Alpha"); a1:SetFromAlpha(0); a1:SetToAlpha(1); a1:SetDuration(0.10); a1:SetOrder(1)
+        local s1 = anim:CreateAnimation("Scale"); s1:SetScale(1.55, 1.55); s1:SetDuration(0.10); s1:SetOrder(1)
+        local a2 = anim:CreateAnimation("Alpha"); a2:SetFromAlpha(1); a2:SetToAlpha(0.35); a2:SetDuration(0.18); a2:SetOrder(2)
+        local s2 = anim:CreateAnimation("Scale"); s2:SetScale(0.72, 0.72); s2:SetDuration(0.18); s2:SetOrder(2)
+        local a3 = anim:CreateAnimation("Alpha"); a3:SetFromAlpha(0.35); a3:SetToAlpha(0.85); a3:SetDuration(0.16); a3:SetOrder(3)
+        local a4 = anim:CreateAnimation("Alpha"); a4:SetFromAlpha(0.85); a4:SetToAlpha(0); a4:SetDuration(0.45); a4:SetOrder(4)
+        anim:SetScript("OnFinished", function() tex:Hide(); tex:SetAlpha(0) end)
+        entry._sdKillMark = tex
+        entry._sdKillMarkParent = anchor
+        tex.anim = anim
+    end
+
+    local mark = entry._sdKillMark
+    local size = math.max(28, math.min(54, ((entry.sdModel and entry.sdModel:GetWidth()) or 42) * 0.62))
+    mark.anim:Stop()
+    mark:ClearAllPoints()
+    mark:SetSize(size, size)
+    mark:SetPoint("CENTER", 0, 0)
+    mark:SetDrawLayer("OVERLAY", 7)
+    mark:SetAlpha(0)
+    mark:Show()
+    mark.anim:Play()
 end
 
 -- ---------------------------------------------------------------------------
