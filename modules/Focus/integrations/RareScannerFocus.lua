@@ -193,26 +193,32 @@ function rs.DismissCurrentAlert()
 end
 
 -- ---------------------------------------------------------------------------
--- PlayerModel alpha sync — PlayerModel ignores inherited alpha AND SetAlpha has
--- no effect on the 3D renderer; the only reliable control is Hide()/Show().
--- Hide whenever the panel is not fully visible; show only at full opacity.
+-- PlayerModel alpha sync. PlayerModel does not reliably inherit HS alpha, so
+-- drive its own alpha from Focus' current panel alpha.
 -- ---------------------------------------------------------------------------
 do
     local HS = addon.HS
     if HS then
         local lastAlpha = 1
+        local function ApplyModelVisualAlpha(entry, alpha)
+            if not entry or not entry.rareModel then return end
+            alpha = math.max(0, math.min(1, tonumber(alpha) or 1))
+            if alpha <= 0.001 then
+                entry.rareModel:Hide()
+                return
+            end
+            entry.rareModel:SetAlpha(alpha)
+            if entry.rareModelActive then entry.rareModel:Show() end
+        end
         local function SyncRSModels(alpha)
             local pool = addon.pool
             if not pool then return end
-            -- Threshold: hide at any fade. Alternative considered: use alpha > 0.01
-            -- so the portrait stays visible at the user's mouseover faded opacity
-            -- (e.g. 61%). Rejected — PlayerModel ignores inherited alpha and always
-            -- renders at full 3D opacity, so the portrait would appear brighter than
-            -- the faded tracker text/background. Hard cutoff at 0.99 feels cleaner.
-            local fullyVisible = alpha >= 0.99
-            -- When fading, enforce Hide() every frame — a layout pass or async model
-            -- load may have called Show() since the last sync.
-            if not fullyVisible then
+            -- Keep the renderer alive during partial fades; direct model alpha
+            -- follows the same HS alpha used by Focus.
+            local visibleEnough = alpha > 0.001
+            -- When fully hidden, enforce Hide() every frame; a layout pass or async
+            -- model load may have called Show() since the last sync.
+            if not visibleEnough then
                 lastAlpha = alpha
                 for i = 1, (addon.POOL_SIZE or 0) do
                     local e = pool[i]
@@ -222,12 +228,15 @@ do
                 end
                 return
             end
-            if math.abs(alpha - lastAlpha) < 0.001 then return end
             lastAlpha = alpha
             for i = 1, (addon.POOL_SIZE or 0) do
                 local e = pool[i]
                 if e and e.rareModel then
-                    if e.rareModelActive then e.rareModel:Show() else e.rareModel:Hide() end
+                    if e.rareModelActive then
+                        ApplyModelVisualAlpha(e, alpha)
+                    else
+                        e.rareModel:Hide()
+                    end
                 end
             end
         end
@@ -569,7 +578,7 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
                         if self.SetDesaturated then
                             pcall(self.SetDesaturated, self, entry._rsKilledState)
                         end
-                        if addon.HS and addon.HS:GetAlpha() < 0.99 then
+                        if addon.HS and addon.HS:GetAlpha() <= 0.001 then
                             self:Hide()
                         end
                     end
@@ -596,7 +605,7 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
             entry.rareModel:SetCreature(questData.creatureID)
             -- Hide immediately if the panel is currently faded; RenderNavButtons
             -- will restore Show() on the next layout when the panel is fully visible.
-            if addon.HS and addon.HS:GetAlpha() < 0.99 then
+            if addon.HS and addon.HS:GetAlpha() <= 0.001 then
                 entry.rareModel:Hide()
             end
             return true
@@ -636,7 +645,7 @@ function rs.RenderNavButtons(entry, showRsNav, gutterW, rsNavBtnSize, rsNavBtnGa
             entry.rareModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX + RS_RIGHT_BASE_OFFSET, 0)
         end
         entry.rareModelActive = true
-        if addon.HS and addon.HS:GetAlpha() >= 0.99 then
+        if addon.HS and addon.HS:GetAlpha() > 0.001 then
             entry.rareModel:Show()
         else
             entry.rareModel:Hide()

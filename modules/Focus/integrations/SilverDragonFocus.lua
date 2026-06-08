@@ -192,37 +192,35 @@ function sd.DismissCurrentAlert()
 end
 
 -- ---------------------------------------------------------------------------
--- PlayerModel alpha sync — PlayerModel ignores inherited alpha AND SetAlpha has
--- no effect on the 3D renderer; the only reliable control is Hide()/Show().
--- Hide whenever the panel is not fully visible; show only at full opacity.
+-- PlayerModel alpha sync. PlayerModel does not reliably inherit HS alpha, so
+-- drive its own alpha from Focus' current panel alpha.
 -- ---------------------------------------------------------------------------
 do
     local HS = addon.HS
     if HS then
         local lastAlpha = 1
+        local function ApplyModelVisualAlpha(entry, alpha)
+            if not entry or not entry.sdModel then return end
+            alpha = math.max(0, math.min(1, tonumber(alpha) or 1))
+            if alpha <= 0.001 then
+                entry.sdModel:Hide()
+                return
+            end
+            entry.sdModel:SetAlpha(alpha)
+            if entry.sdModelActive then entry.sdModel:Show() end
+        end
         local function SyncSDModels(alpha)
             local pool = addon.pool
             if not pool then return end
-            -- See RareScannerFocus for threshold rationale (alpha > 0.01 alternative
-            -- was considered to follow the faded-opacity slider but rejected because
-            -- PlayerModel always renders at full 3D opacity regardless of alpha).
-            local fullyVisible = alpha >= 0.99
-            if not fullyVisible then
-                lastAlpha = alpha
-                for i = 1, (addon.POOL_SIZE or 0) do
-                    local e = pool[i]
-                    if e and e.sdModel and e.sdModel:IsShown() then
-                        e.sdModel:Hide()
-                    end
-                end
-                return
-            end
-            if math.abs(alpha - lastAlpha) < 0.001 then return end
             lastAlpha = alpha
             for i = 1, (addon.POOL_SIZE or 0) do
                 local e = pool[i]
                 if e and e.sdModel then
-                    if e.sdModelActive then e.sdModel:Show() else e.sdModel:Hide() end
+                    if e.sdModelActive then
+                        ApplyModelVisualAlpha(e, alpha)
+                    else
+                        e.sdModel:Hide()
+                    end
                 end
             end
         end
@@ -458,7 +456,7 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
                     if self.SetDesaturated then
                         pcall(self.SetDesaturated, self, entry._sdKilledState)
                     end
-                    if addon.HS and addon.HS:GetAlpha() < 0.99 then
+                    if addon.HS and addon.HS:GetAlpha() <= 0.001 then
                         self:Hide()
                     end
                 end
@@ -481,7 +479,7 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
         end
         entry.sdModel:Show()
         entry.sdModel:SetCreature(questData.creatureID)
-        if addon.HS and addon.HS:GetAlpha() < 0.99 then
+        if addon.HS and addon.HS:GetAlpha() <= 0.001 then
             entry.sdModel:Hide()
         end
         return true
@@ -512,7 +510,7 @@ function sd.RenderNavButtons(entry, showSdNav, gutterW, sdNavBtnSize, sdNavBtnGa
             entry.sdModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX + SD_RIGHT_BASE_OFFSET, 0)
         end
         entry.sdModelActive = true
-        if addon.HS and addon.HS:GetAlpha() >= 0.99 then
+        if addon.HS and addon.HS:GetAlpha() > 0.001 then
             entry.sdModel:Show()
         else
             entry.sdModel:Hide()
