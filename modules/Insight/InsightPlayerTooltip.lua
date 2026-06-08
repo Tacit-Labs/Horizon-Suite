@@ -860,30 +860,37 @@ end
 function Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
     if not ShowTargeting() then return end
     local targetName = nil
-    local hasTarget = false
+
+    -- Resolve target unit token.
+    -- When the hovered unit is a party/raid member, tooltip:GetUnit() returns the
+    -- party token (e.g. "party1") rather than "mouseover". WoW doesn't always sync
+    -- party member target data to the client, so "party1target" may not exist even
+    -- when they have a target. If this unit is also the current mouseover, prefer
+    -- "mouseovertarget" which is always populated while hovering.
+    local targetUnit = unit .. "target"
+    if targetUnit ~= "mouseovertarget" then
+        local isMO = false
+        pcall(function()
+            if UnitIsUnit(unit, "mouseover") then isMO = true end
+        end)
+        if isMO then targetUnit = "mouseovertarget" end
+    end
+
+    -- UnitExists can return a secret boolean in tainted execution (securecallfunction).
+    -- `if secretBool then` throws, so isolate the probe in its own pcall (SafeUnitExistsKnown
+    -- pattern) to get a plain true/false out before touching UnitName.
+    local targetExists = false
     pcall(function()
-        local targetUnit = unit .. "target"
-        -- When the hovered unit is a party/raid member, tooltip:GetUnit() returns the
-        -- party token (e.g. "party1") rather than "mouseover". WoW doesn't always sync
-        -- party member target data to the client, so "party1target" may not exist even
-        -- when they have a target. If this unit is also the current mouseover, prefer
-        -- "mouseovertarget" which is always populated while hovering.
-        if targetUnit ~= "mouseovertarget" then
-            local isMO = false
-            pcall(function()
-                if UnitIsUnit(unit, "mouseover") then isMO = true end
-            end)
-            if isMO then targetUnit = "mouseovertarget" end
-        end
-        if UnitExists(targetUnit) then
-            -- tostring() converts secret string to plain Lua string at call site
-            -- so comparisons on the upvalue never touch a secret string.
-            -- tostring(nil) == "nil", so we check for that too.
-            targetName = tostring(UnitName(targetUnit))
-            hasTarget = (targetName ~= "nil" and targetName ~= "")
-        end
+        if UnitExists(targetUnit) then targetExists = true end
     end)
-    if not hasTarget then return end
+    if targetExists then
+        pcall(function()
+            local n = UnitName(targetUnit)
+            if n then targetName = n end
+        end)
+    end
+
+    if not targetName then return end
     Insight.AddSectionSeparator(tooltip, sepR, sepG, sepB)
     Insight.TagLines(tooltip, "stats", function()
         tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)

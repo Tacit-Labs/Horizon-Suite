@@ -223,19 +223,23 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
     end
 
     if ShowNpcTargeting() then
-        -- UnitName() returns a secret string in tainted execution.
-        -- Secret strings forbid == / ~= comparisons; use #n (a number) instead.
-        -- Only a truthiness check is safe outside the pcall.
+        -- UnitExists can return a secret boolean in tainted execution (see SafeUnitExistsKnown).
+        -- If UnitExists returns a secret bool, `if secretBool then` throws; a single surrounding
+        -- pcall would catch that and silently skip UnitName too.  Fix: isolate UnitExists in its
+        -- own pcall so we get a plain true/false out, then call UnitName only when confirmed.
+        -- UnitName likewise returns a secret string — only a truthiness check is safe outside pcall.
         local targetName = nil
+        local targetUnit = unit .. "target"
+        local targetExists = false
         pcall(function()
-            local targetUnit = unit .. "target"
-            if UnitExists(targetUnit) then
-                local n = UnitName(targetUnit)
-                if n and #n > 0 then
-                    targetName = n
-                end
-            end
+            if UnitExists(targetUnit) then targetExists = true end
         end)
+        if targetExists then
+            pcall(function()
+                local n = UnitName(targetUnit)
+                if n then targetName = n end
+            end)
+        end
         if targetName then
             tooltip:AddLine("Targeting: " .. targetName, 1, 1, 1)
         end

@@ -161,6 +161,8 @@ local function SafeUnitExistsKnown(unit)
     end
     return exists
 end
+-- Expose for use in other Insight files (NPC tooltip, player tooltip).
+Insight.SafeUnitExistsKnown = SafeUnitExistsKnown
 
 local function HookGameTooltipLifecycle()
     GameTooltip:HookScript("OnShow", function(self)
