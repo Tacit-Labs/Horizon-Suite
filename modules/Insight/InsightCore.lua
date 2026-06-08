@@ -164,6 +164,19 @@ end
 -- Expose for use in other Insight files (NPC tooltip, player tooltip).
 Insight.SafeUnitExistsKnown = SafeUnitExistsKnown
 
+-- True when a unit token has usable data, even if not physically present.
+-- UnitExists returns false for party/raid members in a different zone, but
+-- name/class/level APIs are still populated from client-side sync.
+local function UnitHasData(u)
+    if SafeUnitExistsKnown(u) == true then return true end
+    local hasName = false
+    pcall(function()
+        local n = UnitName(u)
+        if n then hasName = true end
+    end)
+    return hasName
+end
+
 local function HookGameTooltipLifecycle()
     GameTooltip:HookScript("OnShow", function(self)
         self._insightPlainShown = true
@@ -275,7 +288,7 @@ end
 -- Show() runs HookTooltipOnShow → ApplyBackdrop, which resets border to PANEL_BORDER.
 -- Process*Tooltip sets reaction/class border before Show(); re-apply after Show returns.
 local function ReapplyUnitTooltipBorder(tooltip, unit, isPlayer)
-    if not tooltip or not tooltip.SetBackdropBorderColor or not unit or SafeUnitExistsKnown(unit) ~= true then return end
+    if not tooltip or not tooltip.SetBackdropBorderColor or not unit or not UnitHasData(unit) then return end
     if isPlayer then
         local trp3d
         if addon.GetDB("insightTRP3BorderColor", false) and addon.GetDB("insightTRP3Enabled", true) and Insight.GetTRP3PlayerData then
@@ -322,10 +335,11 @@ end
 
 -- PlayerFrame / party frames: tooltip owns unit "player" or "party1" while mouseover is often empty.
 -- GetUnit() may return a secret unit token on Midnight; never compare the string (e.g. to "").
+-- Party/raid members in a different zone fail UnitExists but still have data via UnitHasData.
 local function ResolveTooltipUnitToken(tooltip)
     if tooltip and tooltip.GetUnit then
         local ok, u = pcall(tooltip.GetUnit, tooltip)
-        if ok and SafeUnitExistsKnown(u) == true then
+        if ok and UnitHasData(u) then
             return u
         end
     end
@@ -1067,6 +1081,12 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
                 if SafeUnitExistsKnown("mouseover") == true then return end
                 if not TooltipPlainShown(GameTooltip) then return end
                 if not GameTooltip._insightUnitTooltip then return end
+                -- Don't hide if the tooltip is bound to a party/raid member in a
+                -- different zone — no world mouseover but unit data is still valid.
+                if GameTooltip.GetUnit then
+                    local ok, u = pcall(GameTooltip.GetUnit, GameTooltip)
+                    if ok and UnitHasData(u) then return end
+                end
                 GameTooltip:Hide()
             end)
         end
@@ -1131,6 +1151,12 @@ pollFrame:SetScript("OnUpdate", function(_, elapsed)
     if not TooltipPlainShown(GameTooltip) then return end
     if not GameTooltip._insightUnitTooltip then return end
     if SafeUnitExistsKnown("mouseover") == true then return end
+    -- Don't hide if the tooltip is bound to a party/raid member in a different
+    -- zone — no world mouseover but unit data (name/class/level) is still valid.
+    if GameTooltip.GetUnit then
+        local ok, u = pcall(GameTooltip.GetUnit, GameTooltip)
+        if ok and UnitHasData(u) then return end
+    end
     GameTooltip:Hide()
 end)
 
