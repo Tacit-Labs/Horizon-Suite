@@ -40,7 +40,7 @@ local function GetOrCreateSDModelClipFrame()
     if not addon.HS or not sf then return addon.HS end
     sdModelClipFrame = CreateFrame("Frame", nil, addon.HS)
     sdModelClipFrame:SetClipsChildren(true)
-    sdModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -200, 0)
+    sdModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -300, 0)
     sdModelClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT",    0, 0)
     return sdModelClipFrame
 end
@@ -53,7 +53,7 @@ local function GetOrCreateSDModelRightClipFrame()
     sdModelRightClipFrame = CreateFrame("Frame", nil, addon.HS)
     sdModelRightClipFrame:SetClipsChildren(true)
     sdModelRightClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",      0,   0)
-    sdModelRightClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", 200,  0)
+    sdModelRightClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", 300,  0)
     return sdModelRightClipFrame
 end
 
@@ -448,9 +448,11 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
             clip:SetClipsChildren(true)
             entry._sdPortraitClip = clip
         end
+        -- Clip must reach the model's leftmost point: size + any leftward offset.
+        local leftExtent = math.max(200, math.ceil(S(sd.SD_MODEL_SIZE) + math.max(0, -initOffX)) + 16)
         entry._sdPortraitClip:ClearAllPoints()
-        entry._sdPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -200, 0)
-        entry._sdPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",    0, 0)
+        entry._sdPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -leftExtent, 0)
+        entry._sdPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",            0, 0)
         if entry._sdPortraitRightClip then entry._sdPortraitRightClip:ClearAllPoints() end
         mParent = entry._sdPortraitClip
     else
@@ -459,9 +461,11 @@ function sd.TryRenderPortrait(entry, questData, showQuestIcons)
             clip:SetClipsChildren(true)
             entry._sdPortraitRightClip = clip
         end
+        -- Clip must reach the model's rightmost point: size + any rightward offset past the base.
+        local rightExtent = math.max(200, math.ceil(S(sd.SD_MODEL_SIZE) + math.max(0, initOffX + SD_RIGHT_BASE_OFFSET)) + 16)
         entry._sdPortraitRightClip:ClearAllPoints()
-        entry._sdPortraitRightClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",      0, 0)
-        entry._sdPortraitRightClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", 200, 0)
+        entry._sdPortraitRightClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",             0, 0)
+        entry._sdPortraitRightClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", rightExtent, 0)
         if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
         mParent = entry._sdPortraitRightClip
     end

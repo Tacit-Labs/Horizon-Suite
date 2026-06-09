@@ -46,7 +46,7 @@ local function GetOrCreateRSModelClipFrame()
     if not addon.HS or not sf then return addon.HS end
     rsModelClipFrame = CreateFrame("Frame", nil, addon.HS)
     rsModelClipFrame:SetClipsChildren(true)
-    rsModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -200, 0)
+    rsModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -300, 0)
     rsModelClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT",    0, 0)
     return rsModelClipFrame
 end
@@ -59,7 +59,7 @@ local function GetOrCreateRSModelRightClipFrame()
     rsModelRightClipFrame = CreateFrame("Frame", nil, addon.HS)
     rsModelRightClipFrame:SetClipsChildren(true)
     rsModelRightClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",      0,   0)
-    rsModelRightClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", 200,  0)
+    rsModelRightClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", 300,  0)
     return rsModelRightClipFrame
 end
 
@@ -570,9 +570,11 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
                 clip:SetClipsChildren(true)
                 entry._rsPortraitClip = clip
             end
+            -- Clip must reach the model's leftmost point: size + any leftward offset.
+            local leftExtent = math.max(200, math.ceil(S(rs.RS_MODEL_SIZE) + math.max(0, -initOffX)) + 16)
             entry._rsPortraitClip:ClearAllPoints()
-            entry._rsPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -200, 0)
-            entry._rsPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",    0, 0)
+            entry._rsPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -leftExtent, 0)
+            entry._rsPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",            0, 0)
             if entry._rsPortraitRightClip then entry._rsPortraitRightClip:ClearAllPoints() end
             mParent = entry._rsPortraitClip
         else
@@ -581,9 +583,11 @@ function rs.TryRenderPortrait(entry, questData, showQuestIcons)
                 clip:SetClipsChildren(true)
                 entry._rsPortraitRightClip = clip
             end
+            -- Clip must reach the model's rightmost point: size + any rightward offset past the base.
+            local rightExtent = math.max(200, math.ceil(S(rs.RS_MODEL_SIZE) + math.max(0, initOffX + RS_RIGHT_BASE_OFFSET)) + 16)
             entry._rsPortraitRightClip:ClearAllPoints()
-            entry._rsPortraitRightClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",      0, 0)
-            entry._rsPortraitRightClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", 200, 0)
+            entry._rsPortraitRightClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",             0, 0)
+            entry._rsPortraitRightClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", rightExtent, 0)
             if entry._rsPortraitClip then entry._rsPortraitClip:ClearAllPoints() end
             mParent = entry._rsPortraitRightClip
         end
