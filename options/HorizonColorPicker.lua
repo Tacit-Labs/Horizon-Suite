@@ -28,7 +28,16 @@ local PALETTE_CAP = 6  -- max user-saved colours (class + 6 saved + "+" = 8 cell
 -- Derived widths so the hex+RGB row and the preset grid each fill their column edge-to-edge.
 local CONTENT_W = PICKER_W - 28                                            -- usable width (14px pad each side)
 local FIELD_GAP = 8
-local FIELD_W = math.floor((CONTENT_W - 3 * FIELD_GAP) / 4)                -- hex + R + G + B fill the row
+-- The hex field shows 6 chars (#RRGGBB) while each R/G/B shows up to 3, so give hex a wider column
+-- and split the remainder across the three number fields. This lets the value text sit comfortably
+-- at a fixed compact size instead of forcing the hex font to shrink to fit an equal-quarter column.
+local HEX_FIELD_W = math.floor(CONTENT_W * 0.31)
+local NUM_FIELD_W = math.floor((CONTENT_W - HEX_FIELD_W - 3 * FIELD_GAP) / 3)
+-- Value inputs (hex + R/G/B and their #/R/G/B labels) render at a fixed compact size, decoupled from
+-- the dashboard font size, so a large dashboard font can't blow them out of their boxes. They still
+-- follow the dashboard *typeface*: registering at this constant means the shared font refresh keeps
+-- re-applying the current path at this size (rather than the scaled Def.LabelSize).
+local VALUE_FONT_SIZE = 13
 local RIGHTCOL_W = PICKER_W - 14 - (14 + (WHEEL_SIZE + VALUE_W + 24) + 14) -- right column (compare/presets) width
 local PRESET_SIZE = math.floor((RIGHTCOL_W - (PRESET_COLS - 1) * PRESET_GAP) / PRESET_COLS)
 
@@ -63,11 +72,12 @@ end
 -- current text width. The options UI shares one dashboard typeface, and a wide font overflows these
 -- narrow hex/RGB inputs at the base size — this keeps the value text inside its box at any font.
 local FIT_MIN_SIZE = 8
+local FIT_PAD = 4  -- px reserved inside the box for the EditBox cursor + a little border breathing room
 local function FitEditBoxFont(editBox, sample, baseSize, widthOverride)
     if not editBox then return end
     local maxW = widthOverride or editBox:GetWidth()
     if not maxW or maxW <= 1 then return end
-    maxW = maxW - 2  -- safety margin so the glyph edge never kisses the border
+    maxW = maxW - FIT_PAD  -- so the glyph edge never kisses the border and the cursor stays visible
     local path, _, flags = editBox:GetFont()
     if not path then return end
     local size = baseSize or 13
@@ -84,7 +94,7 @@ end
 local function WireValueFit(editBox, charset, len)
     if not editBox then return end
     local function refit(_, w)
-        local base = (Def and Def.LabelSize) or 13
+        local base = VALUE_FONT_SIZE
         local path, _, flags = editBox:GetFont()
         if not path then return end
         FitEditBoxFont(editBox, WorstCaseSample(path, base, flags, charset, len), base, w)
@@ -316,20 +326,20 @@ local function EnsurePicker()
 
     -- Hex input.
     local hexWrap = CreateFrame("Frame", nil, f)
-    hexWrap:SetSize(FIELD_W, 22)
+    hexWrap:SetSize(HEX_FIELD_W, 22)
     hexWrap:SetPoint("TOPLEFT", cs, "BOTTOMLEFT", 0, -16)  -- combined hex + R/G/B row below the wheel
     local hexBg = hexWrap:CreateTexture(nil, "BACKGROUND")
     hexBg:SetAllPoints(hexWrap)
     hexBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
     if addon.CreateBorder then addon.CreateBorder(hexWrap, Def.InputBorder) end
     local hexHash = hexWrap:CreateFontString(nil, "OVERLAY")
-    SafeFont(hexHash, Def.FontPath, Def.LabelSize, nil)
+    SafeFont(hexHash, Def.FontPath, VALUE_FONT_SIZE, nil)
     hexHash:SetPoint("LEFT", hexWrap, "LEFT", 6, 0); hexHash:SetText("#")
     hexHash:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
     local hex = CreateFrame("EditBox", nil, hexWrap)
     hex:SetPoint("LEFT", hexHash, "RIGHT", 4, 0); hex:SetPoint("RIGHT", hexWrap, "RIGHT", -4, 0)
     hex:SetHeight(20); hex:SetAutoFocus(false); hex:SetMaxLetters(6)
-    SafeFont(hex, Def.FontPath, Def.LabelSize, nil)
+    SafeFont(hex, Def.FontPath, VALUE_FONT_SIZE, nil)
     hex:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
     local function commitHex(self)
         local r, g, b = ParseHexColor(self:GetText())
@@ -344,11 +354,11 @@ local function EnsurePicker()
     -- R/G/B 0-255 fields.
     local function makeNumField(labelText, anchorTo)
         local wrap = CreateFrame("Frame", nil, f)
-        wrap:SetSize(FIELD_W, 22)
+        wrap:SetSize(NUM_FIELD_W, 22)
         if anchorTo then wrap:SetPoint("LEFT", anchorTo, "RIGHT", FIELD_GAP, 0)
         else wrap:SetPoint("LEFT", hexWrap, "RIGHT", FIELD_GAP, 0) end  -- R right of hex, same line
         local lab = wrap:CreateFontString(nil, "OVERLAY")
-        SafeFont(lab, Def.FontPath, Def.LabelSize, nil)
+        SafeFont(lab, Def.FontPath, VALUE_FONT_SIZE, nil)
         lab:SetPoint("LEFT", wrap, "LEFT", 0, 0); lab:SetText(labelText)
         lab:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
         local boxWrap = CreateFrame("Frame", nil, wrap)
@@ -360,7 +370,7 @@ local function EnsurePicker()
         local box = CreateFrame("EditBox", nil, boxWrap)
         box:SetPoint("TOPLEFT", 4, 0); box:SetPoint("BOTTOMRIGHT", -4, 0)
         box:SetAutoFocus(false); box:SetNumeric(true); box:SetMaxLetters(3); box:SetJustifyH("CENTER")
-        SafeFont(box, Def.FontPath, Def.LabelSize, nil)
+        SafeFont(box, Def.FontPath, VALUE_FONT_SIZE, nil)
         box:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
         return box
     end
@@ -605,6 +615,16 @@ local function EnsurePicker()
             if box.HorizonRefitFont then box.HorizonRefitFont() end
         end
     end
+
+    -- The value fonts are pinned to a fixed size, but the shared font refresh re-applies that size
+    -- (at the new typeface) whenever the dashboard font changes — re-fit afterwards, while the picker
+    -- is open, so a wide face still shrinks to fit instead of being left blown up until the next open.
+    -- EnsurePicker runs once (singleton), so this installs the hook a single time.
+    if _G.OptionsWidgets_RefreshFonts then
+        hooksecurefunc("OptionsWidgets_RefreshFonts", function()
+            if P and P:IsShown() then P:FitValueFonts() end
+        end)
+    end
     P = f
     return P
 end
@@ -629,7 +649,7 @@ function addon.OpenColorPicker(spec)
     -- The picker is a singleton (built once), so unlike per-open widgets it won't have picked up a
     -- font change since it was built. Re-apply the current dashboard font via the shared refresh so
     -- our registered fontstrings match the rest of the options UI every time it opens.
-    if addon.OptionsWidgets_RefreshFonts then addon.OptionsWidgets_RefreshFonts() end
+    if _G.OptionsWidgets_RefreshFonts then _G.OptionsWidgets_RefreshFonts() end
     f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     f:Show(); f:Raise()
     -- After the dashboard typeface is applied and the frame is laid out, shrink the value fonts so
