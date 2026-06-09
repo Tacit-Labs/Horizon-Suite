@@ -1750,8 +1750,8 @@ resizeHandle:SetScript("OnLeave", function()
 end)
 local isResizing = false
 local startWidth, startHeight, startMouseX, startMouseY
-local lastResizeRefreshTime = 0
 local lastResizeLayoutTime = 0
+local lastResizeWidth, lastResizeHeight = 0, 0
 resizeHandle:RegisterForDrag("LeftButton")
 local function ResizeOnUpdate(self, elapsed)
     if not isResizing then return end
@@ -1767,41 +1767,24 @@ local function ResizeOnUpdate(self, elapsed)
     local deltaY = curY - startMouseY
     local newWidth = math.max(RESIZE_MIN, math.min(RESIZE_MAX, startWidth + deltaX))
     local newHeight = math.max(RESIZE_HEIGHT_MIN, math.min(GetResizeHeightMax(), startHeight - deltaY))
-    HS:SetWidth(newWidth)
-    HS:SetHeight(newHeight)
-    addon.focus.layout.targetHeight = newHeight
-    addon.focus.layout.currentHeight = newHeight
-    if addon.ApplyDimensions then addon.ApplyDimensions(newWidth) end
 
-    -- Live-update DB values so sliders reflect the drag in real-time
-    local widthUnscaled = newWidth / (addon.Scaled and addon.Scaled(1) or 1)
-    addon.SetDB("panelWidth", widthUnscaled)
-
-    local headerArea = addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
-    local contentH = newHeight - headerArea - addon.GetScaledPadding()
-    local mplus = addon.mplusBlock
-    local hasMplus = mplus and mplus:IsShown()
-    if hasMplus and addon.GetMplusBlockHeight then
-        local gapPx = 4
-        contentH = contentH - (addon.GetMplusBlockHeight() + gapPx * 2)
-    end
-    local contentUnscaled = contentH / (addon.Scaled and addon.Scaled(1) or 1)
-    contentUnscaled = math.max(RESIZE_CONTENT_HEIGHT_MIN, math.min(RESIZE_CONTENT_HEIGHT_MAX, contentUnscaled))
-    addon.SetDB("maxContentHeight", contentUnscaled)
-    if not (addon.IsInMythicDungeon and addon.IsInMythicDungeon()) then
-        addon.SetDB("maxContentHeightOverworld", contentUnscaled)
-    end
-
-    -- Refresh options sliders if the panel is open (throttled)
+    -- Throttle HS:SetWidth/SetHeight to ~30 Hz for smooth visual feedback without
+    -- hammering the WoW layout engine every frame at 180+ fps.
+    -- ApplyDimensions (iterates all 50 pool entries) and FullLayout (full render
+    -- pass) are deliberately excluded from the drag loop — they run once at drag
+    -- stop, which is the right time to reflow content anyway.
     local now = GetTime()
-    if addon.OptionsPanel_Refresh and (now - lastResizeRefreshTime) > 0.15 then
-        lastResizeRefreshTime = now
-        addon.OptionsPanel_Refresh()
-    end
-    -- Reflow layout during resize so text (e.g. inline timer) wraps live (throttled)
-    if addon.FullLayout and (now - lastResizeLayoutTime) > 0.15 then
+    if (now - lastResizeLayoutTime) > 0.033 then
         lastResizeLayoutTime = now
-        addon.FullLayout()
+
+        if newWidth ~= lastResizeWidth or newHeight ~= lastResizeHeight then
+            lastResizeWidth  = newWidth
+            lastResizeHeight = newHeight
+            HS:SetWidth(newWidth)
+            HS:SetHeight(newHeight)
+            addon.focus.layout.targetHeight = newHeight
+            addon.focus.layout.currentHeight = newHeight
+        end
     end
 end
 resizeHandle:SetScript("OnDragStart", function(self)
@@ -1811,6 +1794,8 @@ resizeHandle:SetScript("OnDragStart", function(self)
     isResizing = true
     startWidth = HS:GetWidth()
     startHeight = HS:GetHeight()
+    lastResizeWidth  = startWidth
+    lastResizeHeight = startHeight
     local scale = UIParent and UIParent:GetEffectiveScale() or 1
     startMouseX = select(1, GetCursorPosition()) / scale
     startMouseY = select(2, GetCursorPosition()) / scale
@@ -1821,8 +1806,24 @@ resizeHandle:SetScript("OnDragStop", function(self)
     isResizing = false
     self:SetScript("OnUpdate", nil)
     addon.EnsureDB()
-    -- DB values already saved during drag; just finalize layout.
-    -- Invalidate populate cache so portrait models restore after pool recycling.
+    -- Save final dimensions to DB (skipped during drag to keep it cheap).
+    local finalW = HS:GetWidth()
+    local finalH = HS:GetHeight()
+    local scale  = addon.Scaled and addon.Scaled(1) or 1
+    addon.SetDB("panelWidth", finalW / scale)
+    local headerArea = addon.GetScaledPadding() + addon.GetHeaderHeight() + addon.GetScaledDividerHeight() + addon.GetHeaderToContentGap()
+    local contentH = finalH - headerArea - addon.GetScaledPadding()
+    local mplus = addon.mplusBlock
+    if mplus and mplus:IsShown() and addon.GetMplusBlockHeight then
+        contentH = contentH - (addon.GetMplusBlockHeight() + 8)
+    end
+    local contentUnscaled = math.max(RESIZE_CONTENT_HEIGHT_MIN, math.min(RESIZE_CONTENT_HEIGHT_MAX, contentH / scale))
+    addon.SetDB("maxContentHeight", contentUnscaled)
+    if not (addon.IsInMythicDungeon and addon.IsInMythicDungeon()) then
+        addon.SetDB("maxContentHeightOverworld", contentUnscaled)
+    end
+    -- Reflow content and restore portrait models (invalidate cache so pool
+    -- recycling during FullLayout doesn't leave SD/RS models blank).
     if addon.ApplyDimensions then addon.ApplyDimensions() end
     if addon.focus and addon.focus.InvalidatePopulateCache then
         addon.focus.InvalidatePopulateCache()
