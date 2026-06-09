@@ -87,20 +87,36 @@ handlers.PLAYER_ENTERING_WORLD = OnPlayerReady
 handlers.CHAT_MSG_LOOT = function(msg, ...)
     if not y.patternsOK then return end
     if addon.GetDB("augmentShowItems", true) == false then return end
-    local guid = select(11, ...)
-    -- CHAT_MSG_LOOT's 11th arg is a Blizzard-restricted "secret string" in tainted
-    -- execution contexts; == / ~= on it throws. tostring() converts it to a plain
-    -- Lua string so both the empty-string check and the playerGUID comparison below
-    -- work without taint errors.
-    if guid ~= nil then guid = tostring(guid) end
-    if guid == "" then guid = nil end
+    local rawGuid = select(11, ...)
+    -- CHAT_MSG_LOOT's 11th arg is a secret string in tainted execution.
+    -- tostring() does NOT strip the secret flag, so == / ~= still throw.
+    -- Wrap every comparison in pcall to extract plain booleans:
+    --   guidKnownMatch    = comparison succeeded and GUIDs are equal
+    --   guidKnownMismatch = comparison succeeded and GUIDs differ → skip
+    --   both false        = comparison threw (secret string) → fall back to IsSelfLoot
+    local guid = nil
+    if rawGuid then
+        pcall(function()
+            if rawGuid ~= "" then guid = rawGuid end
+        end)
+    end
+    local guidKnownMatch    = false
+    local guidKnownMismatch = false
     if guid and y.playerGUID then
-        if guid ~= y.playerGUID then return end
-    elseif not Y.IsSelfLoot(msg) then
-        return
+        pcall(function()
+            if guid == y.playerGUID then
+                guidKnownMatch = true
+            else
+                guidKnownMismatch = true
+            end
+        end)
+    end
+    if guidKnownMismatch then return end
+    if not guidKnownMatch then
+        if not Y.IsSelfLoot(msg) then return end
     end
     if Y.IsPushedLoot(msg) and addon.GetDB("augmentShowPushedItems", addon.AUGMENT_DEFAULTS.augmentShowPushedItems) == false then return end
-    addon.Log.debug("augment", "LOOT guid=" .. tostring(guid) .. " match=" .. tostring(guid == y.playerGUID) .. " " .. tostring(msg):sub(1, 80))
+    addon.Log.debug("augment", "LOOT guid=" .. tostring(rawGuid) .. " match=" .. tostring(guidKnownMatch) .. " " .. tostring(msg):sub(1, 80))
     local data = Y.ParseItemLoot(msg)
     if data then
         local minQ = (addon.GetDB and tonumber(addon.GetDB("augmentMinQuality", 0))) or 0
