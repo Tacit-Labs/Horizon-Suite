@@ -1821,8 +1821,12 @@ resizeHandle:SetScript("OnDragStop", function(self)
     isResizing = false
     self:SetScript("OnUpdate", nil)
     addon.EnsureDB()
-    -- DB values already saved during drag; just finalize layout
+    -- DB values already saved during drag; just finalize layout.
+    -- Invalidate populate cache so portrait models restore after pool recycling.
     if addon.ApplyDimensions then addon.ApplyDimensions() end
+    if addon.focus and addon.focus.InvalidatePopulateCache then
+        addon.focus.InvalidatePopulateCache()
+    end
     if addon.FullLayout then addon.FullLayout() end
     if addon.OptionsPanel_Refresh then addon.OptionsPanel_Refresh() end
 end)
