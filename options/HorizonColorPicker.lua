@@ -21,6 +21,9 @@ local WHEEL_SIZE = 128
 local VALUE_W = 24
 local ALPHA_TRACK_H = 10
 local ALPHA_THUMB = 14
+local ALPHA_ROW_H = 32      -- opacity (label + slider) row height
+local ALPHA_ROW_GAP = 16    -- gap between the value row and the opacity row
+local ALPHA_SECTION_H = ALPHA_ROW_GAP + ALPHA_ROW_H  -- vertical space reclaimed when a colour has no alpha
 
 local PRESET_COLS = 4
 local PRESET_GAP = 6
@@ -400,9 +403,9 @@ local function EnsurePicker()
 
     -- Alpha row (shown only when hasAlpha).
     local alphaRow = CreateFrame("Frame", nil, f)
-    alphaRow:SetPoint("TOPLEFT", hexWrap, "BOTTOMLEFT", 0, -16)
+    alphaRow:SetPoint("TOPLEFT", hexWrap, "BOTTOMLEFT", 0, -ALPHA_ROW_GAP)
     alphaRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
-    alphaRow:SetHeight(32)
+    alphaRow:SetHeight(ALPHA_ROW_H)
     local alphaLbl = alphaRow:CreateFontString(nil, "OVERLAY")
     SafeFont(alphaLbl, Def.FontPath, Def.LabelSize, nil)
     alphaLbl:SetPoint("TOPLEFT", alphaRow, "TOPLEFT", 0, 0); alphaLbl:SetText((L and L["OPACITY"]) or "Opacity")
@@ -644,6 +647,9 @@ function addon.OpenColorPicker(spec)
     state.suppress = false
     if f.Refresh then f:Refresh() end
     f.alphaRow:SetShown(state.hasAlpha)
+    -- Collapse the frame when there's no opacity slider so the footer sits just below the value row,
+    -- instead of leaving the (hidden) alpha row's space as dead air.
+    f:SetHeight(state.hasAlpha and PICKER_H or (PICKER_H - ALPHA_SECTION_H))
     if state.hasAlpha and f.placeAlpha then f.placeAlpha() end
     f:BuildPalette()
     -- The picker is a singleton (built once), so unlike per-open widgets it won't have picked up a
