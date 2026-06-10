@@ -187,6 +187,24 @@ local function SetClassSwatchHidden(hidden)
     if P and P.BuildPalette then P:BuildPalette() end
 end
 
+-- Persisted picker position (account-wide, alongside the saved palette), so a dragged picker reopens
+-- where the user left it instead of recentring. Stored as a plain point/relPoint/offset table; always
+-- restored relative to UIParent (the frame's parent and the space it's dragged within).
+local function SavedPickerPoint()
+    local db = _G[addon.DATABASE]
+    return db and db.colorPickerPos
+end
+
+local function SavePickerPoint(frame)
+    if not frame then return end
+    addon.EnsureDB()
+    local db = _G[addon.DATABASE]
+    if not db then return end
+    local point, _, relPoint, x, y = frame:GetPoint(1)
+    if not point then return end
+    db.colorPickerPos = { point = point, relPoint = relPoint or point, x = x or 0, y = y or 0 }
+end
+
 -- The player's class colour (ungated — always available as a quick-pick).
 local function PlayerClassColor()
     local _, classFile = UnitClass("player")
@@ -227,6 +245,7 @@ local function EnsurePicker()
     f:SetToplevel(true)
     f:EnableMouse(true)
     f:SetMovable(true)
+    f:SetClampedToScreen(true)  -- keep on-screen while dragging (and guard a stale saved position)
     f:Hide()
     if f.SetBackdrop and addon.OptionsWidgetsSectionCardBackdrop then
         f:SetBackdrop(addon.OptionsWidgetsSectionCardBackdrop)
@@ -245,7 +264,7 @@ local function EnsurePicker()
     drag:SetPoint("TOPLEFT", 0, 0); drag:SetPoint("TOPRIGHT", f, "TOPRIGHT", -34, 0); drag:SetHeight(34)
     drag:EnableMouse(true); drag:RegisterForDrag("LeftButton")
     drag:SetScript("OnDragStart", function() f:StartMoving() end)
-    drag:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
+    drag:SetScript("OnDragStop", function() f:StopMovingOrSizing(); SavePickerPoint(f) end)
 
     local close = CreateFrame("Button", nil, f)
     close:SetSize(20, 20); close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -10)
@@ -656,7 +675,14 @@ function addon.OpenColorPicker(spec)
     -- font change since it was built. Re-apply the current dashboard font via the shared refresh so
     -- our registered fontstrings match the rest of the options UI every time it opens.
     if _G.OptionsWidgets_RefreshFonts then _G.OptionsWidgets_RefreshFonts() end
-    f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    -- Restore the last dragged position if the user moved the picker before; otherwise centre it.
+    f:ClearAllPoints()
+    local pos = SavedPickerPoint()
+    if pos and pos.point then
+        f:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
+    else
+        f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    end
     f:Show(); f:Raise()
     -- After the dashboard typeface is applied and the frame is laid out, shrink the value fonts so
     -- the hex/RGB text always fits inside its box (a wide custom font overflows at the base size).
