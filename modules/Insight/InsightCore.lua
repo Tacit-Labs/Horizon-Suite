@@ -212,10 +212,15 @@ local function HookGameTooltipLifecycle()
     end)
     -- Reset instance token on every SetUnit so Blizzard periodic refreshes
     -- (nameplates, target frames) always re-process our custom lines even if
-    -- they reuse the same dataInstanceID. _insightStyled is NOT cleared here —
-    -- backdrop/font styling persists and doesn't need reapplying per refresh.
+    -- they reuse the same dataInstanceID. _insightStyled is also cleared:
+    -- a unit swap without a hide/show cycle (someone walking through the
+    -- cursor) rebuilds the lines, so per-line font sizes and the width
+    -- re-measure in ProcessUnitTooltip must run again or the tooltip keeps
+    -- the previous unit's width. SetFont fast-paths via cachedPath, so the
+    -- repeat styling pass is cheap.
     hooksecurefunc(GameTooltip, "SetUnit", function(self)
         self._insightUnitTooltipInstance = nil
+        self._insightStyled = nil
     end)
 
 end
@@ -394,6 +399,17 @@ local function ProcessUnitTooltip(tooltip)
         if not tooltip._insightStyled then
             Insight.StyleTooltipFull(tooltip)
             tooltip._insightStyled = true
+            -- Fonts changed after the tooltip already sized itself with Blizzard's
+            -- defaults; re-Show() so GameTooltip re-measures width for the new fonts
+            -- (long names/titles at a larger header size otherwise overflow the border).
+            tooltip._insightSuppressOnShowStyle = true
+            tooltip:Show()
+            tooltip._insightSuppressOnShowStyle = nil
+            -- Show() can repopulate Blizzard health/power text; strip once more.
+            StripHealthAndPowerText(tooltip)
+            -- Re-Show() alone does not re-measure widths after a font change;
+            -- widen the frame manually for the styled fonts.
+            Insight.FixTooltipWidth(tooltip)
         end
         pcall(ReapplyUnitTooltipBorder, tooltip, unit, isPlayer)
     else
@@ -402,6 +418,10 @@ local function ProcessUnitTooltip(tooltip)
         if not tooltip._insightStyled then
             Insight.StyleFonts(tooltip)
             tooltip._insightStyled = true
+            tooltip._insightSuppressOnShowStyle = true
+            tooltip:Show()
+            tooltip._insightSuppressOnShowStyle = nil
+            Insight.FixTooltipWidth(tooltip)
         end
     end
 end

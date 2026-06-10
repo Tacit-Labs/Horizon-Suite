@@ -512,6 +512,63 @@ function Insight.StyleTooltipFull(tooltip)
     StyleFonts(tooltip)
 end
 
+-- GameTooltip computes its width from line widths measured with the fonts
+-- in effect at layout time. StyleFonts swaps lines to the Insight font (often
+-- larger, esp. the header), and GameTooltip does NOT re-measure after a font
+-- change — not even on a second Show(). Long names/titles then overflow the
+-- right border. Measure the styled lines ourselves and widen the frame to fit.
+-- GetStringWidth returns a plain number (0 for empty/hidden lines), so no
+-- secret-value handling is needed beyond pcall.
+function Insight.FixTooltipWidth(tooltip)
+    if not tooltip or tooltip._insightPreviewMock or not tooltip.GetWidth then return end
+
+    -- GetWrappedWidth respects word-wrap on body lines (GetStringWidth would
+    -- report the full unwrapped width and over-widen); for non-wrapping lines
+    -- like the header it equals the full string width.
+    -- Widths can be secret numbers under tainted execution (Midnight); they
+    -- cannot be compared directly. tostring→tonumber inside pcall launders
+    -- them to plain Lua numbers (same pattern as the CHAT_MSG_LOOT GUID fix).
+    local function LineWidth(fs)
+        local w = 0
+        pcall(function()
+            local raw = (fs.GetWrappedWidth and fs:GetWrappedWidth()) or fs:GetStringWidth()
+            w = tonumber(tostring(raw)) or 0
+        end)
+        return w
+    end
+
+    local maxW = 0
+    Insight.ForTooltipLines(tooltip, function(i, left, right)
+        local w = left and LineWidth(left) or 0
+        if right then
+            local rw = LineWidth(right)
+            -- Right-anchored text shares the line; keep a readable gap between columns.
+            if rw > 0 then w = w + rw + 14 end
+        end
+        if w > maxW then maxW = w end
+    end)
+    if maxW <= 0 then return end
+
+    -- Side inset: distance from the tooltip edge to line 1's left edge (~10px default).
+    local inset = 10
+    pcall(function()
+        local name = tooltip:GetName()
+        local l1 = name and _G[name .. "TextLeft1"]
+        if l1 then
+            local x = tonumber(tostring(select(4, l1:GetPoint(1))))
+            if x and x > 0 and x < 30 then inset = x end
+        end
+    end)
+
+    pcall(function()
+        local needed = math.ceil(maxW + inset * 2)
+        local current = tonumber(tostring(tooltip:GetWidth())) or 0
+        if needed > current then
+            tooltip:SetWidth(needed)
+        end
+    end)
+end
+
 -- ============================================================================
 -- CLASS ICON (Default / RondoMedia / custom media via core/ClassIconMedia.lua)
 -- ============================================================================
