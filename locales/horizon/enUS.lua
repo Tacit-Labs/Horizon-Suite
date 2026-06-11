@@ -671,6 +671,8 @@ L["INSIGHT_TRP3_TITLE"]                                                = "Full T
 L["INSIGHT_TRP3_TITLE_DESC"]                                                = "Show the player's full title (e.g. <Keeper of the Dawnguard >) as a line below the name."
 L["INSIGHT_TRP3_NAME"]                                                = "RP Name"
 L["INSIGHT_TRP3_NAME_DESC"]                                                = "Replace the WoW character name with the player's TRP3 RP name when available."
+L["INSIGHT_TRP3_WOW_TITLE"]                                                = "WoW Title with RP Name"
+L["INSIGHT_TRP3_WOW_TITLE_DESC"]                                                = "Keep the character's chosen WoW title (e.g. Star Savior) in front of the RP name. Modifier shows it only while Shift is held."
 
 L["INSIGHT_TRP3_COLOUR_DESC"]                                                = "Use the player's TRP3 custom name colour instead of their faction or class colour for their name."
 L["INSIGHT_TRP3_STATUS"]                                                = "IC / OOC Status"

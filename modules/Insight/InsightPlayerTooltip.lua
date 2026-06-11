@@ -123,6 +123,13 @@ local function ProperCasePronouns(s)
     return (s:gsub("([^/]+)", function(seg) return seg:sub(1, 1):upper() .. seg:sub(2) end))
 end
 local function ShowTRP3Title()        return addon.GetDB("insightTRP3Title",        true) end
+-- WoW character title alongside the TRP3 RP name ("Star Savior Queen Angelstar").
+-- force = always, modifier = only while Shift held, hide = RP name only.
+local function ShowWowTitleWithTRP3()
+    local mode = addon.GetDB("insightTRP3WowTitle", "force")
+    if mode == "hide" then return false end
+    return mode == "force" or (mode == "modifier" and (Insight.previewRendering or ShiftModifierActive()))
+end
 local function ShowTRP3RaceClass()   return addon.GetDB("insightTRP3RaceClass",   true) end
 local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",       true) end
 -- Build the combined race / class / level line.
@@ -1161,10 +1168,12 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
         local useGradient = (nameMode == "class")
             and addon.GetDB("insightPlayerNameGradient", false)
+        local wowTitlePart, wowTitlePosition
         if ShowCharacterTitle() then
             pcall(function()
                 local titlePart, namePart, titlePosition = GetCharacterTitleParts(unit, nameLeft)
                 if not titlePart or not namePart then return end
+                wowTitlePart, wowTitlePosition = titlePart, titlePosition
                 local baseName, realmSuffix = GetRealmDisplayParts(namePart)
                 displayText = FormatTitleNameSpan(titlePart, baseName, titlePosition, nameR, nameG, nameB, useGradient, realmSuffix)
             end)
@@ -1183,7 +1192,15 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
         -- TRP3 RP name: replace WoW character name with RP name when available
         if trp3Data and trp3Data.rpName and ShowTRP3RPName() then
-            if useGradient then
+            if wowTitlePart and ShowWowTitleWithTRP3() then
+                -- Keep the WoW character title around the RP name (option-gated)
+                displayText = FormatTitleNameSpan(wowTitlePart, trp3Data.rpName, wowTitlePosition, nameR, nameG, nameB, useGradient, "")
+                if useGradient then
+                    nameLeft:SetTextColor(1, 1, 1, 1)
+                else
+                    nameLeft:SetTextColor(nameR, nameG, nameB)
+                end
+            elseif useGradient then
                 displayText = Insight.BuildNameGradient(trp3Data.rpName, nameR, nameG, nameB, GetPlayerGradientBias())
                 nameLeft:SetTextColor(1, 1, 1, 1)
             else
@@ -1412,34 +1429,124 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     return true
 end
 
+-- Gather the logged-in character's identity for the preview, with static
+-- fallbacks for anything unavailable (early load, missing APIs). All reads
+-- are pcall-wrapped: previews can refresh from tainted execution paths.
+local function GetLivePlayerPreviewData()
+    local d = {
+        name = "Horizonaut", realm = "Stormrage",
+        classFile = "DEATHKNIGHT", className = "Death Knight",
+        classR = 0.77, classG = 0.12, classB = 0.23,
+        raceName = "Human", raceFile = "human-male",
+        level = 80, faction = "Alliance",
+        guildName = "Ascension", guildRank = "Officer",
+        title = nil, specName = nil, specIcon = nil, role = nil,
+        mythicScore = 2847, honorLevel = 247, achievementPoints = 28650, ilvl = 639,
+    }
+    pcall(function()
+        local n = UnitName("player")
+        if n and n ~= "" then d.name = n end
+        local realm = GetRealmName and GetRealmName()
+        if realm and realm ~= "" then d.realm = realm end
+        local className, classFile = UnitClass("player")
+        if classFile then
+            d.classFile = classFile
+            if className then d.className = className end
+            local cc = C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(classFile)
+            if cc then d.classR, d.classG, d.classB = cc.r, cc.g, cc.b end
+        end
+        local raceName, raceFile = UnitRace("player")
+        if raceName then d.raceName = raceName end
+        if raceFile then
+            d.raceFile = raceFile:lower() .. ((UnitSex("player") == 3) and "-female" or "-male")
+        end
+        local lvl = UnitLevel("player")
+        if lvl and lvl > 0 then d.level = lvl end
+        local fac = UnitFactionGroup("player")
+        if fac == "Horde" or fac == "Alliance" then d.faction = fac end
+        local gName, gRank = GetGuildInfo("player")
+        if gName and gName ~= "" then
+            d.guildName = gName
+            d.guildRank = gRank or d.guildRank
+        end
+        if GetCurrentTitle and GetTitleName then
+            local t = GetTitleName(GetCurrentTitle())
+            if t and t ~= "" then d.title = t:gsub("^%s+", ""):gsub("[%s,]+$", "") end
+        end
+        if GetSpecialization and GetSpecializationInfo then
+            local spec = GetSpecialization()
+            if spec then
+                local _, specName, _, specIcon, role = GetSpecializationInfo(spec)
+                d.specName, d.specIcon, d.role = specName, specIcon, role
+            end
+        end
+    end)
+    pcall(function()
+        local summary = C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary
+            and C_PlayerInfo.GetPlayerMythicPlusRatingSummary("player")
+        if summary and summary.currentSeasonScore and summary.currentSeasonScore > 0 then
+            d.mythicScore = summary.currentSeasonScore
+        end
+    end)
+    pcall(function()
+        local h = UnitHonorLevel and UnitHonorLevel("player")
+        if h and h > 0 then d.honorLevel = h end
+    end)
+    pcall(function()
+        local a = GetTotalAchievementPoints and GetTotalAchievementPoints()
+        if a and a > 0 then d.achievementPoints = a end
+    end)
+    pcall(function()
+        local _, equipped = GetAverageItemLevel()
+        if equipped and equipped > 0 then d.ilvl = math.floor(equipped + 0.5) end
+    end)
+    return d
+end
+Insight.GetLivePlayerPreviewData = GetLivePlayerPreviewData
+
 -- Render sample player tooltip content for /insight test and dashboard preview.
 -- Mirrors ProcessPlayerTooltip + block builders; each section gated by the same Show*() DB flags.
+-- Identity mimics the logged-in character; the Aelindra TRP3 persona is used only
+-- when TRP3 is enabled but no live own-profile data is available.
 function Insight.RenderTestTooltipContent(tooltip)
     if not tooltip then return end
-    local testSepR, testSepG, testSepB = 0.77, 0.12, 0.23  -- DK class colour
+    local live = GetLivePlayerPreviewData()
+    local testSepR, testSepG, testSepB = live.classR, live.classG, live.classB
     Insight.sepR, Insight.sepG, Insight.sepB = testSepR, testSepG, testSepB
 
     local showIcons = ShowIcons()
 
-    -- TRP3 mock data (mirrors what GetTRP3PlayerData would return for a player with a full profile)
-    local previewTRP3 = (TRP3_API ~= nil and ShowTRP3()) and {
-        rpName      = "Aelindra Dawnwhisper",
-        pronouns    = "she/her",
-        isIC        = true,
-        customColorR = 0.72, customColorG = 0.53, customColorB = 1.0,
-        customRace  = "Sin'dorei",
-        customClass = "Arcane Weaver",
-        fullTitle   = "< Keeper of the Dawnguard >",
-        customGuild = "Dawnguard Covenant",
-        customGuildRank = "Keeper",
-        currently   = "Studying ancient texts in the library, searching for answers...",
-        icon        = "spell_arcane_arcane01",
-    } or nil
+    -- TRP3: prefer the player's own live profile; fall back to the demo persona
+    -- (which exists so every TRP3 option visibly reacts in the preview).
+    local previewTRP3, trp3IsLive
+    if TRP3_API ~= nil and ShowTRP3() then
+        if Insight.GetTRP3PlayerData then
+            local ok, ownProfile = pcall(Insight.GetTRP3PlayerData, "player")
+            if ok and type(ownProfile) == "table" and ownProfile.rpName then
+                previewTRP3, trp3IsLive = ownProfile, true
+            end
+        end
+        if not previewTRP3 then
+            previewTRP3 = {
+                rpName      = "Aelindra Dawnwhisper",
+                pronouns    = "she/her",
+                isIC        = true,
+                customColorR = 0.72, customColorG = 0.53, customColorB = 1.0,
+                customRace  = "Sin'dorei",
+                customClass = "Arcane Weaver",
+                fullTitle   = "< Keeper of the Dawnguard >",
+                customGuild = "Dawnguard Covenant",
+                customGuildRank = "Keeper",
+                currently   = "Studying ancient texts in the library, searching for answers...",
+                icon        = "spell_arcane_arcane01",
+            }
+        end
+    end
+    -- The demo persona is a Blood Elf Horde character; with live data (or no
+    -- TRP3) everything mimics the logged-in character.
+    local useLiveIdentity = (previewTRP3 == nil) or (trp3IsLive == true)
 
-    -- Hardcoded for preview only: Horde when the TRP3 test profile is active (Blood Elf),
-    -- Alliance otherwise. Used solely to drive faction name colour when insightPlayerNameColor == "faction".
-    -- No live WoW API is called here.
-    local previewFaction = previewTRP3 and "Horde" or "Alliance"
+    local previewFaction = useLiveIdentity and live.faction or "Horde"
     local fc = Insight.FACTION_COLORS[previewFaction]
     local nameModeRaw = addon.GetDB("insightPlayerNameColor", "faction")
     local nameMode = (nameModeRaw == "class") and "class" or "faction"
@@ -1453,13 +1560,13 @@ function Insight.RenderTestTooltipContent(tooltip)
         and addon.GetDB("insightPlayerNameGradient", false)
 
     -- 1. Name line (character title optional — same as live)
-    -- When TRP3 is active the preview character is Aelindra (Blood Elf) so the RP name
-    -- toggle clearly shows "Aelindra" → "Aelindra Dawnwhisper".
+    -- Demo persona: Aelindra (so the RP name toggle clearly shows
+    -- "Aelindra" → "Aelindra Dawnwhisper"); otherwise the live character.
     local previewName, previewRealmSuffix
-    if previewTRP3 then
+    if previewTRP3 and not trp3IsLive then
         previewName, previewRealmSuffix = "Aelindra", ""
     else
-        previewName, previewRealmSuffix = GetRealmDisplayParts("Horizonaut-Stormrage")
+        previewName, previewRealmSuffix = GetRealmDisplayParts(live.name .. "-" .. live.realm)
     end
     local inlineStatusTag = GetPreviewInlineStatusTag()
 
@@ -1505,8 +1612,16 @@ function Insight.RenderTestTooltipContent(tooltip)
 
     -- TRP3 icon replaces the faction symbol in preview too
     local namePrefix = (trp3IconMarkup ~= "" and trp3IconMarkup) or facIcon
-    if ShowCharacterTitle() then
-        local titleSpan = FormatTitleNameSpan(previewTRP3 and "Arcanist" or "Duelist", displayName, "prefix", nameR, nameG, nameB, useGradient, "")
+    -- When the RP name replaces the WoW name, the WoW title obeys the same
+    -- show/hide/modifier option as the live tooltip (modifier counts as shown
+    -- in previews via Insight.previewRendering).
+    local trp3NameActive = previewTRP3 and previewTRP3.rpName and ShowTRP3RPName()
+    if ShowCharacterTitle() and (not trp3NameActive or ShowWowTitleWithTRP3()) then
+        -- Live character title when one is set; sample titles keep the option visible otherwise.
+        local previewTitle = (useLiveIdentity and live.title)
+            or (previewTRP3 and not trp3IsLive and "Arcanist")
+            or "Duelist"
+        local titleSpan = FormatTitleNameSpan(previewTitle, displayName, "prefix", nameR, nameG, nameB, useGradient, "")
         tooltip:AddLine(namePrefix .. titleSpan .. inlineStatusTag .. trp3Suffix, nameR, nameG, nameB)
     else
         if useGradient then
@@ -1537,22 +1652,22 @@ function Insight.RenderTestTooltipContent(tooltip)
             -- Moved to the bottom identity block.
         elseif previewTRP3 then
             local previewGuildLine = ShowGuildRank()
-                and ("Officer of |cff00ccff" .. "Ascension" .. "|r")
-                or ("|cff00ccff" .. "Ascension" .. "|r")
+                and (live.guildRank .. " of |cff00ccff" .. live.guildName .. "|r")
+                or ("|cff00ccff" .. live.guildName .. "|r")
             tooltip:AddLine(previewGuildLine, 1, 1, 1)
         elseif ShowGuildRank() then
-            tooltip:AddLine("<Ascension>  |cffaaaaaaOfficer|r", testSepR, testSepG, testSepB)
+            tooltip:AddLine("<" .. live.guildName .. ">  |cffaaaaaa" .. live.guildRank .. "|r", testSepR, testSepG, testSepB)
         else
-            tooltip:AddLine("<Ascension>", testSepR, testSepG, testSepB)
+            tooltip:AddLine("<" .. live.guildName .. ">", testSepR, testSepG, testSepB)
         end
     end
 
     local testIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
-    local previewRaceFile = previewTRP3 and "bloodelf-female" or "human-male"
-    local previewRaceName = previewTRP3 and "Blood Elf" or "Human"
+    local previewRaceFile = useLiveIdentity and live.raceFile or "bloodelf-female"
+    local previewRaceName = useLiveIdentity and live.raceName or "Blood Elf"
     local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH_PREFIX .. previewRaceFile .. ".tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
     if not previewMoveRaceClassToBottom then
-        tooltip:AddLine(raceIconStr .. "Level 80 " .. previewRaceName, 1, 0.82, 0)
+        tooltip:AddLine(raceIconStr .. "Level " .. live.level .. " " .. previewRaceName, 1, 0.82, 0)
     end
     -- TRP3 RP guild — "Rank of Guild" format
 
@@ -1560,28 +1675,42 @@ function Insight.RenderTestTooltipContent(tooltip)
     if showIcons then
         local src = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
         if src == "specoverride" then
-            -- Spec Override: show Blizzard's native Blood DK spec icon
-            classIconStr = SpecIconMarkup("Interface\\Icons\\spell_deathknight_bloodpresence", testIconPx)
+            -- Spec Override: the live spec icon when known, Blood DK sample otherwise.
+            if live.specIcon then
+                classIconStr = SpecIconMarkup(live.specIcon, testIconPx)
+            else
+                classIconStr = SpecIconMarkup("Interface\\Icons\\spell_deathknight_bloodpresence", testIconPx)
+            end
         else
-            classIconStr = (Insight.GetClassIconTexture and Insight.GetClassIconTexture("DEATHKNIGHT")) or ""
+            classIconStr = (Insight.GetClassIconTexture and Insight.GetClassIconTexture(live.classFile)) or ""
             if classIconStr == "" then
                 classIconStr = "|TInterface\\Icons\\spell_deathknight_bloodpresence:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t "
             end
         end
     end
+    local PREVIEW_ROLE_LABELS = { TANK = "Tank", HEALER = "Healer", DAMAGER = "DPS" }
     local previewRoleSuffix = ""
     if ShowSpecRole() then
-        local previewRc = Insight.ROLE_COLORS["TANK"]
+        local roleKey = (live.role and PREVIEW_ROLE_LABELS[live.role]) and live.role or "TANK"
+        local previewRc = Insight.ROLE_COLORS[roleKey] or Insight.ROLE_COLORS["TANK"]
         local previewRoleHex = string.format("%02x%02x%02x", math.floor(previewRc[1] * 255), math.floor(previewRc[2] * 255), math.floor(previewRc[3] * 255))
-        previewRoleSuffix = "  |cff" .. previewRoleHex .. "Tank|r"
+        previewRoleSuffix = "  |cff" .. previewRoleHex .. PREVIEW_ROLE_LABELS[roleKey] .. "|r"
     end
+    local previewSpecClass = (live.specName and (live.specName .. " ") or "") .. live.className
     if not previewMoveRaceClassToBottom then
-        tooltip:AddLine(classIconStr .. "Blood Death Knight" .. previewRoleSuffix, 0.77, 0.12, 0.23)
+        tooltip:AddLine(classIconStr .. previewSpecClass .. previewRoleSuffix, testSepR, testSepG, testSepB)
+    end
+
+    -- Live tooltips leave a blank gap here (the cleared native guild/race/class
+    -- lines); mirror it so the preview spacing matches in-game.
+    if previewTRP3 and (previewMoveRaceClassToBottom or previewMoveGuildToBottom) then
+        tooltip:AddLine(" ")
     end
 
     -- 3a. TRP3 identity fallback (race/class and guild displaced to bottom)
     if previewMoveRaceClassToBottom then
-        local raceClassLine = BuildCombinedRaceClassLine(previewTRP3, previewClassCol, nil, { race = "Blood Elf", class = "Death Knight" })
+        local raceClassLine = BuildCombinedRaceClassLine(previewTRP3, previewClassCol, nil,
+            { race = previewRaceName, class = live.className })
         if raceClassLine and raceClassLine ~= "" then
             tooltip:AddLine(raceClassLine, 1, 1, 1)
         end
@@ -1593,7 +1722,9 @@ function Insight.RenderTestTooltipContent(tooltip)
         elseif previewTRP3.customGuild and previewTRP3.customGuild ~= "" then
             guildLine = "|cff00ccff" .. previewTRP3.customGuild .. "|r"
         else
-            guildLine = ShowGuildRank() and "<Ascension>  |cffaaaaaaOfficer|r" or "<Ascension>"
+            guildLine = ShowGuildRank()
+                and ("<" .. live.guildName .. ">  |cffaaaaaa" .. live.guildRank .. "|r")
+                or ("<" .. live.guildName .. ">")
         end
         tooltip:AddLine(guildLine, 1, 1, 1)
     end
@@ -1626,14 +1757,14 @@ function Insight.RenderTestTooltipContent(tooltip)
         ensureStatsSep()
         Insight.TagLines(tooltip, "stats", function()
             local icon = (showIcons and ShowRatingsIcons()) and Insight.MYTHIC_ICON or ""
-            tooltip:AddLine(icon .. "M+ Score: " .. Insight.FormatNumberWithCommas(2847), Insight.MythicScoreColor(2847))
+            tooltip:AddLine(icon .. "M+ Score: " .. Insight.FormatNumberWithCommas(live.mythicScore), Insight.MythicScoreColor(live.mythicScore))
         end)
     end
     if ShowHonorLevel() then
         ensureStatsSep()
         Insight.TagLines(tooltip, "stats", function()
             local icon = (showIcons and ShowRatingsIcons()) and Insight.HONOR_ICON or ""
-            tooltip:AddLine(icon .. "Honor Level: " .. Insight.FormatNumberWithCommas(247), fc[1], fc[2], fc[3])
+            tooltip:AddLine(icon .. "Honor Level: " .. Insight.FormatNumberWithCommas(live.honorLevel), fc[1], fc[2], fc[3])
         end)
     end
 
@@ -1641,7 +1772,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         ensureStatsSep()
         Insight.TagLines(tooltip, "stats", function()
             local icon = (showIcons and ShowRatingsIcons()) and Insight.ACHIEVEMENT_ICON or ""
-            tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(28650), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
+            tooltip:AddLine(icon .. "Achievement Points: " .. Insight.FormatNumberWithCommas(live.achievementPoints), Insight.ACHIEVEMENT_POINTS_COLOR[1], Insight.ACHIEVEMENT_POINTS_COLOR[2], Insight.ACHIEVEMENT_POINTS_COLOR[3])
         end)
     end
 
@@ -1649,7 +1780,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         Insight.AddSectionSeparator(tooltip)
         Insight.TagLines(tooltip, "stats", function()
             local icon = (showIcons and ShowRatingsIcons()) and Insight.ILVL_ICON or ""
-            tooltip:AddLine(icon .. "Item Level: " .. Insight.FormatNumberWithCommas(639), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
+            tooltip:AddLine(icon .. "Item Level: " .. Insight.FormatNumberWithCommas(live.ilvl), Insight.ILVL_COLOR[1], Insight.ILVL_COLOR[2], Insight.ILVL_COLOR[3])
         end)
     end
 

@@ -175,12 +175,59 @@ function addon.DashboardDetailView_Init(env)
         end
     end)
 
+    -- Embedded tooltip preview strip: pinned above the scroll area on Insight
+    -- option pages (always visible regardless of scroll). Insight mounts its
+    -- mock tooltips into this host; mode (global/player/npc/item) follows the
+    -- page's dashboardPreviewMode.
+    local detailPreviewHost = CreateFrame("Frame", nil, detailView)
+    detailPreviewHost:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
+    detailPreviewHost:SetPoint("TOPRIGHT", -40, dashScrollTopOffsetModule)
+    detailPreviewHost:SetHeight(1)
+    detailPreviewHost:Hide()
+    do
+        local previewRelayout
+        local previewLastW
+        detailPreviewHost:SetScript("OnSizeChanged", function(self, w)
+            -- React to width changes only — RefreshEmbeddedPreview sets the
+            -- height itself, and re-running on that change would loop.
+            if not self:IsShown() then return end
+            if previewLastW and w and math.abs(w - previewLastW) < 2 then return end
+            previewLastW = w
+            if previewRelayout then previewRelayout:Cancel() end
+            previewRelayout = C_Timer.NewTimer(0.10, function()
+                previewRelayout = nil
+                if self:IsShown() and addon.Insight and addon.Insight.RefreshEmbeddedPreview then
+                    addon.Insight.RefreshEmbeddedPreview()
+                end
+            end)
+        end)
+    end
+
     -- Detail Card Container (Scrollable)
     local detailScroll = CreateFrame("ScrollFrame", nil, detailView, "UIPanelScrollFrameTemplate")
     detailScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
     detailScroll:SetPoint("BOTTOMRIGHT", -40, 40)
     detailScroll.ScrollBar:Hide()
     detailScroll.ScrollBar:ClearAllPoints()
+
+    -- Show/hide the preview strip and re-anchor detailScroll below it.
+    -- @param previewMode string|nil "global"|"player"|"npc"|"item" to show, nil to hide
+    local function ApplyDetailPreviewStrip(previewMode)
+        local insight = addon.Insight
+        if previewMode and insight and insight.MountEmbeddedPreview and insight.SetDashboardPreviewMode then
+            insight.MountEmbeddedPreview(detailPreviewHost)
+            detailPreviewHost:Show()
+            insight.SetDashboardPreviewMode(previewMode)  -- refreshes + sizes the host
+            detailScroll:ClearAllPoints()
+            detailScroll:SetPoint("TOPLEFT", detailPreviewHost, "BOTTOMLEFT", 0, -8)
+            detailScroll:SetPoint("BOTTOMRIGHT", detailView, "BOTTOMRIGHT", -40, 40)
+        else
+            detailPreviewHost:Hide()
+            detailScroll:ClearAllPoints()
+            detailScroll:SetPoint("TOPLEFT", detailView, "TOPLEFT", 40, dashScrollTopOffsetModule)
+            detailScroll:SetPoint("BOTTOMRIGHT", detailView, "BOTTOMRIGHT", -40, 40)
+        end
+    end
 
     local detailContent = CreateFrame("Frame", nil, detailScroll)
     detailContent:SetSize(contentWidth, 1)
@@ -942,11 +989,10 @@ function addon.DashboardDetailView_Init(env)
             addon.DashboardPreview.SetActiveModuleKey(matchedModuleKey)
         end
 
-        if matchedCatIdx then
-            local selCat = addon.OptionCategories[matchedCatIdx]
-            if selCat and selCat.dashboardPreviewMode and addon.Insight and addon.Insight.SetDashboardPreviewMode then
-                addon.Insight.SetDashboardPreviewMode(selCat.dashboardPreviewMode)
-            end
+        do
+            local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
+            local previewMode = selCat and matchedModuleKey == "insight" and selCat.dashboardPreviewMode or nil
+            ApplyDetailPreviewStrip(previewMode)
         end
 
         ClearDetailCards()
@@ -1177,6 +1223,8 @@ function addon.DashboardDetailView_Init(env)
             ShowDetailHeader()
             detailContent:Show()
             detailScroll:SetVerticalScroll(0)
+            -- Single-category modules carry no Insight preview strip.
+            ApplyDetailPreviewStrip(nil)
 
             if f.detailTitle then
                 local titleText = name:upper()
