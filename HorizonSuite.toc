@@ -166,6 +166,7 @@ options/dashboard/DashboardUtil.lua
 options/dashboard/DashboardBackground.lua
 options/dashboard/DashboardContext.lua
 options/dashboard/DashboardSidebar.lua
+options/dashboard/DashboardAccordionCard.lua
 options/dashboard/DashboardDetailView.lua
 options/dashboard/DashboardWelcomeFeedData.lua
 options/dashboard/DashboardNewsFeed.lua
