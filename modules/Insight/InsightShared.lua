@@ -512,26 +512,34 @@ function Insight.StyleTooltipFull(tooltip)
     StyleFonts(tooltip)
 end
 
--- GameTooltip computes its width from line widths measured with the fonts
+-- GameTooltip computes its size from line metrics measured with the fonts
 -- in effect at layout time. StyleFonts swaps lines to the Insight font (often
 -- larger, esp. the header), and GameTooltip does NOT re-measure after a font
 -- change — not even on a second Show(). Long names/titles then overflow the
--- right border. Measure the styled lines ourselves and widen the frame to fit.
--- GetStringWidth returns a plain number (0 for empty/hidden lines), so no
--- secret-value handling is needed beyond pcall.
-function Insight.FixTooltipWidth(tooltip)
+-- right border, and the taller lines eat the bottom padding. Measure the
+-- styled lines ourselves and grow the frame to fit (width and height).
+function Insight.FixTooltipSize(tooltip)
     if not tooltip or tooltip._insightPreviewMock or not tooltip.GetWidth then return end
 
-    -- GetWrappedWidth respects word-wrap on body lines (GetStringWidth would
-    -- report the full unwrapped width and over-widen); for non-wrapping lines
-    -- like the header it equals the full string width.
+    -- Non-wrapping lines (the header) need GetStringWidth: the full text width.
+    -- GetWrappedWidth there returns the laid-out rect width, which is the very
+    -- stale-layout width we are correcting — it under-measures and the text
+    -- still overflows. Wrapping lines need GetWrappedWidth, since their
+    -- GetStringWidth is the unwrapped single-line width and would over-widen.
     -- Widths can be secret numbers under tainted execution (Midnight); they
     -- cannot be compared directly. tostring→tonumber inside pcall launders
     -- them to plain Lua numbers (same pattern as the CHAT_MSG_LOOT GUID fix).
     local function LineWidth(fs)
         local w = 0
         pcall(function()
-            local raw = (fs.GetWrappedWidth and fs:GetWrappedWidth()) or fs:GetStringWidth()
+            local wraps = false
+            pcall(function() if fs:CanWordWrap() then wraps = true end end)
+            local raw
+            if wraps and fs.GetWrappedWidth then
+                raw = fs:GetWrappedWidth()
+            else
+                raw = fs:GetStringWidth()
+            end
             w = tonumber(tostring(raw)) or 0
         end)
         return w
@@ -561,13 +569,43 @@ function Insight.FixTooltipWidth(tooltip)
     end)
 
     pcall(function()
-        local needed = math.ceil(maxW + inset * 2)
+        -- +2: OUTLINE draws ~1px beyond glyph metrics per side, not included
+        -- in GetStringWidth.
+        local needed = math.ceil(maxW + inset * 2 + 2)
         local current = tonumber(tostring(tooltip:GetWidth())) or 0
         if needed > current then
             tooltip:SetWidth(needed)
         end
     end)
+
+    -- Height: the engine sized the frame for the shorter default-font lines,
+    -- so the last line crowds the bottom border. Find the lowest line bottom
+    -- and grow the frame until the bottom inset matches the side inset.
+    -- GetTop/GetBottom are screen coords at the same effective scale for the
+    -- tooltip and its child font strings, so the difference is in local units.
+    pcall(function()
+        local tooltipTop = tonumber(tostring(tooltip:GetTop()))
+        if not tooltipTop then return end
+        local lowest = nil
+        Insight.ForTooltipLines(tooltip, function(i, left, right)
+            for _, fs in ipairs({ left, right }) do
+                if fs and LineWidth(fs) > 0 then
+                    local b = tonumber(tostring(fs:GetBottom()))
+                    if b and (not lowest or b < lowest) then lowest = b end
+                end
+            end
+        end)
+        if not lowest then return end
+        local needed = math.ceil((tooltipTop - lowest) + inset)
+        local current = tonumber(tostring(tooltip:GetHeight())) or 0
+        if needed > current then
+            tooltip:SetHeight(needed)
+        end
+    end)
 end
+
+-- Back-compat alias (older call sites / external references).
+Insight.FixTooltipWidth = Insight.FixTooltipSize
 
 -- ============================================================================
 -- CLASS ICON (Default / RondoMedia / custom media via core/ClassIconMedia.lua)

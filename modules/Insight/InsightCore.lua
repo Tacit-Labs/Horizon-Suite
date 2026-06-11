@@ -223,6 +223,18 @@ local function HookGameTooltipLifecycle()
         self._insightStyled = nil
     end)
 
+    -- Blizzard refreshes unit tooltip content periodically while hovered and
+    -- each refresh re-runs the engine layout with metrics measured against the
+    -- pre-Insight fonts, shrinking the frame so styled text overflows the
+    -- right border and crowds the bottom one. Rather than chase every refresh
+    -- path, re-assert the size every frame a unit tooltip is visible.
+    -- FixTooltipSize only grows the frame and bails when the size already
+    -- fits, so the steady-state cost is one measurement pass over ~10 lines.
+    GameTooltip:HookScript("OnUpdate", function(self)
+        if not self._insightUnitTooltip then return end
+        if not Insight.IsInsightEnabled() then return end
+        Insight.FixTooltipSize(self)
+    end)
 end
 
 local function HookTooltipLifecycle(tt)
@@ -408,8 +420,9 @@ local function ProcessUnitTooltip(tooltip)
             -- Show() can repopulate Blizzard health/power text; strip once more.
             StripHealthAndPowerText(tooltip)
             -- Re-Show() alone does not re-measure widths after a font change;
-            -- widen the frame manually for the styled fonts.
-            Insight.FixTooltipWidth(tooltip)
+            -- widen the frame manually for the styled fonts. The GameTooltip
+            -- OnUpdate hook re-asserts this every frame against engine stomps.
+            Insight.FixTooltipSize(tooltip)
         end
         pcall(ReapplyUnitTooltipBorder, tooltip, unit, isPlayer)
     else
@@ -421,7 +434,7 @@ local function ProcessUnitTooltip(tooltip)
             tooltip._insightSuppressOnShowStyle = true
             tooltip:Show()
             tooltip._insightSuppressOnShowStyle = nil
-            Insight.FixTooltipWidth(tooltip)
+            Insight.FixTooltipSize(tooltip)
         end
     end
 end
