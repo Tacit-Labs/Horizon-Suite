@@ -33,8 +33,8 @@ local ACTION_LABELS = {
 local COMBO_OPTIONS = {
     left       = { "superTrack", "openDetails", "none" },
     shiftLeft  = { "openDetails", "untrack", "chatLink", "none" },
-    ctrlLeft   = { "wowhear", "preview", "share", "none" },
-    altLeft    = { "chatLink", "none" },
+    ctrlLeft   = { "preview", "wowhear", "share", "none" },
+    altLeft    = { "wowhear", "chatLink", "none" },
     right      = { "untrack", "contextMenu", "none" },
     shiftRight = { "abandon", "untrack", "none" },
     ctrlRight  = { "share", "contextMenu", "none" },
@@ -98,12 +98,14 @@ local PROFILES = {
         ctrlRight  = "contextMenu",
         altRight   = "none",
     },
-    -- Blizzard-style baseline plus Horizon tweaks (Blizzard+); Ctrl+click previews collection rows (dressing room / decor preview).
+    -- Blizzard-style baseline plus Horizon tweaks (Blizzard+); Ctrl+click previews collection rows (dressing room /
+    -- decor preview), mirroring the native Ctrl+Click convention — keep it on ctrlLeft. WoWhead lives on altLeft
+    -- (rare-row tooltips/macros resolve the binding dynamically via GetWoWheadClickBindingHint/IsWoWheadClick).
     blizzardDefault = {
         left       = "openDetails",
         shiftLeft  = "untrack",
-        ctrlLeft   = "wowhear",
-        altLeft    = "preview",
+        ctrlLeft   = "preview",
+        altLeft    = "wowhear",
         right      = "contextMenu",
         shiftRight = "abandon",
         ctrlRight  = "none",
