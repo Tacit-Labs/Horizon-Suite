@@ -159,7 +159,7 @@ options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua
 options/modules/OptionsFocusIntegrations.lua
 options/OptionsSearch.lua
-options/OptionsPanel.lua
+options/HorizonIconPicker.lua
 options/SettingsBridge.lua
 options/dashboard/DashboardConstants.lua
 options/dashboard/DashboardUtil.lua
