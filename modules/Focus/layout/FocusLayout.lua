@@ -1138,22 +1138,10 @@ local function FullLayout()
     -- Persist for other modules/tests.
     addon.focus.layout.sectionLabelX = sectionLabelX
 
-    -- For bar-left/pill-left styles the icon sits LEFT of the highlight bar.
-    -- Icon TOPRIGHT is anchored 2px left of the bar start (-barLeft), so the visual
-    -- order left-to-right is: [icon] [2px gap] [bar] [text].
-    -- Only shift the entry right enough that the icon's left edge stays on-screen.
+    -- Quest type icons live inside the entry frame's left gutter. Older builds
+    -- anchored them with negative X outside the row, which could be clipped by
+    -- the scroll child even though the texture itself was marked shown.
     local iconModePad = 0
-    if addon.GetDB("showQuestTypeIcons", true) then
-        local hs = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-        if hs == "bar-left" or hs == "pill-left" then
-            local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
-            local iconSz  = addon.Scaled(addon.GetEffectiveQuestIconSize())
-            -- anchorX is the TOPRIGHT of the icon, 2px left of bar start
-            local anchorX = -barLeft - addon.Scaled(2)
-            -- icon left = entryX + anchorX - iconSz; keep >= 0
-            iconModePad = math.max(0, iconSz - anchorX - addon.GetScaledPadding())
-        end
-    end
 
     -- Section divider pool (lazy-created textures for between-section dividers)
     if not addon.focus.layout.sectionDividers then addon.focus.layout.sectionDividers = {} end
@@ -1296,25 +1284,20 @@ local function FullLayout()
                         entry._lastEntryWidth = entryW
                     end
 
-                    -- Keep questTypeIcon anchored to the entry frame so it scrolls/clips correctly.
+                    -- Keep questTypeIcon inside the entry frame so it scrolls/clips correctly.
                     if entry.questTypeIcon then
                         entry.questTypeIcon:ClearAllPoints()
                         local showIcons = addon.GetDB("showQuestTypeIcons", true)
                         if showIcons then
-                            -- Place icon to the right of the supertracked highlight bar so the bar is always leftmost.
+                            local iconX = 0
                             local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
-                            local barW = math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
-                            local barLeft = addon.Scaled(addon.BAR_LEFT_OFFSET or 12)
-                            local padAfterBar = addon.Scaled(6)
-
-                            if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-                                -- Icon TOPRIGHT is 2px left of bar start: order is [icon][2px][bar][text].
-                                entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -barLeft - addon.Scaled(2), 0)
-                            else
-                                -- Fallback to legacy off-to-the-left placement for non-left-bar styles.
-                                local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)
-                                entry.questTypeIcon:SetPoint("TOPRIGHT", entry, "TOPLEFT", -iconRight, 0)
+                            if qData.isSuperTracked and (highlightStyle == "bar-left" or highlightStyle == "pill-left") then
+                                local trackBarW = (highlightStyle == "pill-left")
+                                    and math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
+                                    or 2
+                                iconX = addon.Scaled(trackBarW + 6)
                             end
+                            entry.questTypeIcon:SetPoint("TOPLEFT", entry, "TOPLEFT", iconX, 0)
                         else
                             -- Icons off: keep the legacy off-to-the-left placement so text alignment remains unchanged.
                             local iconRight = addon.Scaled((addon.BAR_LEFT_OFFSET or 12) + 2)

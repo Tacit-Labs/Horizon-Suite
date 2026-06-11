@@ -414,6 +414,34 @@ local function IsProgressBarEnabled(questData)
     end
 end
 
+local QUEST_TYPE_ICON_TEXTURE_FALLBACKS = {
+    QuestNormal = "Interface\\GossipFrame\\AvailableQuestIcon",
+    QuestTurnin = "Interface\\GossipFrame\\ActiveQuestIcon",
+    ["quest-recurring-available"] = "Interface\\GossipFrame\\DailyQuestIcon",
+    ["Quest-Campaign-Available"] = "Interface\\GossipFrame\\AvailableQuestIcon",
+    ["Quest-DailyCampaign-Available"] = "Interface\\GossipFrame\\DailyQuestIcon",
+    importantavailablequesticon = "Interface\\GossipFrame\\AvailableQuestIcon",
+    ["UI-QuestPoiLegendary-QuestBang"] = "Interface\\GossipFrame\\AvailableQuestIcon",
+    ["quest-wrapper-available"] = "Interface\\GossipFrame\\AvailableQuestIcon",
+}
+
+local function ApplyQuestTypeIconAtlas(tex, atlasName)
+    if not tex or not atlasName then return false end
+    local fallback = QUEST_TYPE_ICON_TEXTURE_FALLBACKS[atlasName]
+    local hasAtlasInfo = C_Texture and C_Texture.GetAtlasInfo
+    if tex.SetAtlas and (not hasAtlasInfo or C_Texture.GetAtlasInfo(atlasName)) then
+        tex:SetTexture(nil)
+        local ok = pcall(tex.SetAtlas, tex, atlasName, false)
+        if ok then return true end
+    end
+    if fallback then
+        if tex.SetAtlas then tex:SetAtlas(nil) end
+        tex:SetTexture(fallback)
+        return true
+    end
+    return false
+end
+
 -- Objective index and bar values for achievement rows when showAchievementProgressBars is on.
 -- @return number|nil objIdx
 -- @return number|nil nf
@@ -1728,6 +1756,25 @@ local function PopulateEntry(entry, questData, groupKey)
                 extraTitlePad = iconW + iconTitleGap
             end
         end
+        if showQuestIcons then
+            local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
+            local iconTitleGap = S(6)
+            extraTitlePad = iconW + iconTitleGap
+        end
+        local highlightStyle = addon.NormalizeHighlightStyle(addon.GetDB("activeQuestHighlight", "bar-left")) or "bar-left"
+        if questData.isSuperTracked and (highlightStyle == "bar-left" or highlightStyle == "pill-left") then
+            local trackBarW = (highlightStyle == "pill-left")
+                and math.max(2, math.min(6, tonumber(addon.GetDB("highlightBarWidth", 2)) or 2))
+                or 2
+            local highlightPad = S(trackBarW + 6)
+            if showQuestIcons then
+                local iconW = S(addon.GetEffectiveQuestIconSize and addon.GetEffectiveQuestIconSize() or (addon.QUEST_TYPE_ICON_SIZE or 14))
+                local iconTitleGap = S(6)
+                extraTitlePad = highlightPad + iconW + iconTitleGap
+            else
+                extraTitlePad = highlightPad
+            end
+        end
         -- Shift title right to clear the left nav button.
         if showRsNav and rsNavLeftOffset > 0 then
             extraTitlePad = extraTitlePad + rsNavLeftOffset
@@ -1772,8 +1819,11 @@ local function PopulateEntry(entry, questData, groupKey)
         if not showQuestIcons then
             entry.questTypeIcon:Hide()
         elseif questData.category == "DELVES" then
-            entry.questTypeIcon:SetAtlas(addon.DELVE_TIER_ATLAS)
-            entry.questTypeIcon:Show()
+            if ApplyQuestTypeIconAtlas(entry.questTypeIcon, addon.DELVE_TIER_ATLAS) then
+                entry.questTypeIcon:Show()
+            else
+                entry.questTypeIcon:Hide()
+            end
         elseif questData.isAchievement and questData.achievementIcon and showAchievementIcons then
             entry.questTypeIcon:SetTexture(questData.achievementIcon)
             entry.questTypeIcon:Show()
@@ -1781,18 +1831,26 @@ local function PopulateEntry(entry, questData, groupKey)
             entry.questTypeIcon:SetTexture(questData.decorIcon)
             entry.questTypeIcon:Show()
         elseif questData.isAppearance and showAppearanceIcons and (questData.appearanceIconAtlas or questData.appearanceIcon) then
+            local applied = true
             if questData.appearanceIconAtlas then
-                entry.questTypeIcon:SetAtlas(questData.appearanceIconAtlas)
+                applied = ApplyQuestTypeIconAtlas(entry.questTypeIcon, questData.appearanceIconAtlas)
             else
                 entry.questTypeIcon:SetTexture(questData.appearanceIcon)
             end
-            entry.questTypeIcon:Show()
+            if applied then
+                entry.questTypeIcon:Show()
+            else
+                entry.questTypeIcon:Hide()
+            end
         elseif questData.isRecipe and questData.recipeIcon and showRecipeIcons then
             entry.questTypeIcon:SetTexture(questData.recipeIcon)
             entry.questTypeIcon:Show()
         elseif questData.questTypeAtlas then
-            entry.questTypeIcon:SetAtlas(questData.questTypeAtlas)
-            entry.questTypeIcon:Show()
+            if ApplyQuestTypeIconAtlas(entry.questTypeIcon, questData.questTypeAtlas) then
+                entry.questTypeIcon:Show()
+            else
+                entry.questTypeIcon:Hide()
+            end
         else
             entry.questTypeIcon:Hide()
         end
@@ -2419,9 +2477,8 @@ local function PopulateEntry(entry, questData, groupKey)
     if (highlightStyle == "bar-left" or highlightStyle == "bar-right" or highlightStyle == "pill-left") and entry.trackBar:IsShown() then
         entry.trackBar:ClearAllPoints()
         if highlightStyle == "bar-left" or highlightStyle == "pill-left" then
-            local barLeft = S(addon.BAR_LEFT_OFFSET or 12)
-            entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", -barLeft, 0)
-            entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", -barLeft + trackBarW, 0)
+            entry.trackBar:SetPoint("TOPLEFT", entry, "TOPLEFT", 0, 0)
+            entry.trackBar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMLEFT", trackBarW, 0)
         else
             local barInsetRight = S(addon.ICON_COLUMN_WIDTH) - S(addon.PADDING) + S(4)
             entry.trackBar:SetPoint("TOPRIGHT", entry, "TOPRIGHT", -barInsetRight, 0)
