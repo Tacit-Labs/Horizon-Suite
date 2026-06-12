@@ -1058,11 +1058,11 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
     end
     if event == "UPDATE_MOUSEOVER_UNIT" then
         if not Insight.IsInsightEnabled() then return end
-        if SafeUnitExistsKnown("mouseover") == false
+        if SafeUnitExistsKnown("mouseover") ~= true
             and TooltipPlainShown(GameTooltip)
             and GameTooltip._insightUnitTooltip then
             C_Timer.After(0, function()
-                if SafeUnitExistsKnown("mouseover") ~= false then return end
+                if SafeUnitExistsKnown("mouseover") == true then return end
                 if not TooltipPlainShown(GameTooltip) then return end
                 if not GameTooltip._insightUnitTooltip then return end
                 GameTooltip:Hide()
@@ -1091,7 +1091,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
                     if not Insight.IsInsightEnabled() then return end
                     if not TooltipPlainShown(GameTooltip) then return end
                     if not GameTooltip._insightUnitTooltip then return end
-                    if SafeUnitExistsKnown("mouseover") ~= false then return end
+                    if SafeUnitExistsKnown("mouseover") == true then return end
                     GameTooltip:Hide()
                 end)
             end
@@ -1109,6 +1109,27 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
         end
         if Insight.PruneAchievementCache then Insight.PruneAchievementCache() end
     end
+end)
+
+-- ============================================================================
+-- STUCK-TOOLTIP FALLBACK POLL
+-- Catches cases where UPDATE_MOUSEOVER_UNIT never fires (e.g. fixed anchor,
+-- UI reload edge cases). Throttled to POLL_INTERVAL seconds; exits cheaply
+-- each frame when the tooltip is not an insight unit tooltip.
+-- ============================================================================
+
+local POLL_INTERVAL = 0.25
+local pollAccum     = 0
+local pollFrame     = CreateFrame("Frame")
+pollFrame:SetScript("OnUpdate", function(_, elapsed)
+    pollAccum = pollAccum + elapsed
+    if pollAccum < POLL_INTERVAL then return end
+    pollAccum = 0
+    if not Insight.IsInsightEnabled() then return end
+    if not TooltipPlainShown(GameTooltip) then return end
+    if not GameTooltip._insightUnitTooltip then return end
+    if SafeUnitExistsKnown("mouseover") == true then return end
+    GameTooltip:Hide()
 end)
 
 -- ============================================================================
