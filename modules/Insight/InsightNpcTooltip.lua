@@ -227,16 +227,21 @@ function Insight.ProcessNpcTooltip(unit, tooltip)
         -- If UnitExists returns a secret bool, `if secretBool then` throws; a single surrounding
         -- pcall would catch that and silently skip UnitName too.  Fix: isolate UnitExists in its
         -- own pcall so we get a plain true/false out, then call UnitName only when confirmed.
-        -- UnitName likewise returns a secret string — only a truthiness check is safe outside pcall.
+        -- UnitName likewise returns a secret string — launder it (and the `unit` token,
+        -- which can itself be secret) so the "Targeting: " concat below never throws.
         local targetName = nil
-        local targetUnit = unit .. "target"
+        local targetUnit = nil
+        pcall(function() targetUnit = unit .. "target" end)
         local targetExists = false
-        pcall(function()
-            if UnitExists(targetUnit) then targetExists = true end
-        end)
+        if targetUnit then
+            pcall(function()
+                if UnitExists(targetUnit) then targetExists = true end
+            end)
+        end
         if targetExists then
             pcall(function()
-                local n = UnitName(targetUnit)
+                local launder = Insight.SafePlainString
+                local n = launder and launder(UnitName(targetUnit)) or nil
                 if n then targetName = n end
             end)
         end

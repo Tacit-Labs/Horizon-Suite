@@ -245,7 +245,21 @@ do
         -- Dedicated frame instead of HookScript("OnUpdate") — HookScript stops
         -- firing after EnsureFocusUpdateRunning calls SetScript("OnUpdate", nil).
         local rsSync = CreateFrame("Frame")
-        rsSync:SetScript("OnUpdate", function() SyncRSModels(HS:GetAlpha()) end)
+        local rsWasActive = false
+        rsSync:SetScript("OnUpdate", function()
+            -- Skip the per-frame pool sweep entirely when the integration is inactive
+            -- (companion bridge absent or rs_enabled off) — the common case for most
+            -- users. Hide any lingering models once on the active→inactive transition.
+            if not rs.IsActive() then
+                if rsWasActive then
+                    SyncRSModels(0)
+                    rsWasActive = false
+                end
+                return
+            end
+            rsWasActive = true
+            SyncRSModels(HS:GetAlpha())
+        end)
     end
 end
 

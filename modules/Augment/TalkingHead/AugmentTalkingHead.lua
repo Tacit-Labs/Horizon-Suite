@@ -46,6 +46,16 @@ local function GetOption(key, default)
     return addon.GetDB(key, default)
 end
 
+-- Whether the Talking Head mini-module is active: the Augment module must be on
+-- AND the sidebar pill (augmentTalkingHeadEnabled) must be on. When this is false
+-- the mini-module is hands-off — Blizzard's native Talking Head is left untouched.
+-- The in-page "Enable" toggle (talkingHeadEnabled) is a separate, finer gate that
+-- only applies while the module is active: on → customise, off → suppress.
+local function IsTalkingHeadModuleActive()
+    if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return false end
+    return GetOption("augmentTalkingHeadEnabled", true) ~= false
+end
+
 local FONT_USE_GLOBAL = "__global__"
 
 local function FontPath(dbKey)
@@ -262,7 +272,12 @@ local _hooksInstalled = false
 
 -- Fires after Blizzard's PlayCurrent has set dialogue text/fonts for this line.
 local function OnPlayCurrent(frame)
-    if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+    -- Pill / module off: hands-off — let Blizzard render its native Talking Head.
+    if not IsTalkingHeadModuleActive() then
+        SetTalkingHeadSuppressed(frame, false)
+        RestoreTalkingHeadContent(frame)
+        return
+    end
 
     local enabled = GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled)
     if not enabled then
@@ -283,7 +298,11 @@ local function InstallHooks(frame)
     _hooksInstalled = true
     hooksecurefunc(frame, "PlayCurrent", OnPlayCurrent)
     frame:HookScript("OnShow", function(self)
-        if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+        -- Pill / module off: hands-off — ensure the native frame is visible.
+        if not IsTalkingHeadModuleActive() then
+            SetTalkingHeadSuppressed(self, false)
+            return
+        end
         if not GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled) then
             SetTalkingHeadSuppressed(self, true)
             return
@@ -293,6 +312,7 @@ local function InstallHooks(frame)
     end)
     if frame.NameFrame and frame.NameFrame.Name then
         LockDirectFont(frame.NameFrame.Name, function()
+            if not IsTalkingHeadModuleActive() then return end
             if not GetOption("talkingHeadCustomise", DEFAULTS.talkingHeadCustomise) then return end
             return FontPath("talkingHeadNameFontPath"),
                    tonumber(GetOption("talkingHeadNameSize", DEFAULTS.talkingHeadNameSize)) or DEFAULTS.talkingHeadNameSize,
@@ -301,6 +321,7 @@ local function InstallHooks(frame)
     end
     if frame.TextFrame and frame.TextFrame.Text then
         LockDirectFont(frame.TextFrame.Text, function()
+            if not IsTalkingHeadModuleActive() then return end
             if not GetOption("talkingHeadCustomise", DEFAULTS.talkingHeadCustomise) then return end
             return FontPath("talkingHeadTextFontPath"),
                    tonumber(GetOption("talkingHeadTextSize", DEFAULTS.talkingHeadTextSize)) or DEFAULTS.talkingHeadTextSize,
@@ -309,7 +330,10 @@ local function InstallHooks(frame)
     end
     -- Late-install catch: first dialogue already showing when hooks were wired
     if frame:IsShown() then
-        if GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled) then
+        if not IsTalkingHeadModuleActive() then
+            SetTalkingHeadSuppressed(frame, false)
+            RestoreTalkingHeadContent(frame)
+        elseif GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled) then
             SetTalkingHeadSuppressed(frame, false)
             ApplyCurrent(frame)
         else
@@ -467,6 +491,13 @@ function addon.Augment.UpdateTalkingHead()
     if not frame then return end
     InstallHooks(frame)
 
+    -- Pill / module off: hands-off — restore Blizzard's native Talking Head.
+    if not IsTalkingHeadModuleActive() then
+        if frame:IsShown() then SetTalkingHeadSuppressed(frame, false) end
+        RestoreTalkingHeadContent(frame)
+        return
+    end
+
     local enabled = GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled)
     if not enabled then
         if frame:IsShown() then SetTalkingHeadSuppressed(frame, true) end
@@ -478,4 +509,14 @@ function addon.Augment.UpdateTalkingHead()
         SetTalkingHeadSuppressed(frame, false)
         ApplyCurrent(frame)
     end
+end
+
+-- Tear down on module disable: drop any suppression/customisation so Blizzard's
+-- native Talking Head is restored immediately (the persistent hooks self-restore
+-- on subsequent playbacks once IsTalkingHeadModuleActive() is false).
+function addon.Augment.DisableTalkingHead()
+    local frame = _G.TalkingHeadFrame
+    if not frame then return end
+    if frame:IsShown() then SetTalkingHeadSuppressed(frame, false) end
+    RestoreTalkingHeadContent(frame)
 end

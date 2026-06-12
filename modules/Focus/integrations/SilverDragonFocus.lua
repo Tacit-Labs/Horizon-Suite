@@ -227,7 +227,21 @@ do
         HS:HookScript("OnHide", function() SyncSDModels(0) end)
         HS:HookScript("OnShow", function() SyncSDModels(HS:GetAlpha()) end)
         local sdSync = CreateFrame("Frame")
-        sdSync:SetScript("OnUpdate", function() SyncSDModels(HS:GetAlpha()) end)
+        local sdWasActive = false
+        sdSync:SetScript("OnUpdate", function()
+            -- Skip the per-frame pool sweep when the integration is inactive (companion
+            -- bridge absent or sd_enabled off). Hide any lingering models once on the
+            -- active→inactive transition.
+            if not sd.IsActive() then
+                if sdWasActive then
+                    SyncSDModels(0)
+                    sdWasActive = false
+                end
+                return
+            end
+            sdWasActive = true
+            SyncSDModels(HS:GetAlpha())
+        end)
     end
 end
 

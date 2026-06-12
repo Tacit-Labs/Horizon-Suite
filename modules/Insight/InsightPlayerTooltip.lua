@@ -523,6 +523,10 @@ local function SafePlainString(value)
     return ok and text or nil
 end
 
+-- Expose for sibling Insight tooltip files (e.g. NPC targeting) that need to
+-- launder a possibly-secret string before display.
+Insight.SafePlainString = Insight.SafePlainString or SafePlainString
+
 local function GetSafeGuildInfo(unit)
     local guildName, guildRankName, guildRealm
     pcall(function()
@@ -874,7 +878,11 @@ function Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
     -- party member target data to the client, so "party1target" may not exist even
     -- when they have a target. If this unit is also the current mouseover, prefer
     -- "mouseovertarget" which is always populated while hovering.
-    local targetUnit = unit .. "target"
+    -- `unit` may itself be a secret token (tooltip:GetUnit() on Midnight), so even
+    -- the `unit .. "target"` concatenation can throw — isolate it in its own pcall.
+    local targetUnit
+    pcall(function() targetUnit = unit .. "target" end)
+    if not targetUnit then return end
     if targetUnit ~= "mouseovertarget" then
         local isMO = false
         pcall(function()
@@ -892,7 +900,9 @@ function Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
     end)
     if targetExists then
         pcall(function()
-            local n = UnitName(targetUnit)
+            -- UnitName returns a secret string; launder via SafePlainString so the
+            -- "Targeting: " .. targetName concat below cannot throw on a secret value.
+            local n = SafePlainString(UnitName(targetUnit))
             if n then targetName = n end
         end)
     end

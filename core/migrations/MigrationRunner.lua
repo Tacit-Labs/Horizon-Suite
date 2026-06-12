@@ -93,10 +93,21 @@ function addon.RunMigrations(db)
             -- If a legacy flag signals the migration already ran under the old
             -- system, mark it done without executing run().
             local alreadyDone = m.legacy and m.legacy(db)
-            if not alreadyDone then
-                m.run(db)
+            if alreadyDone then
+                db._migrations[m.id] = true
+            else
+                -- Guard each run(): a single throwing migration must not abort the
+                -- whole chain (that would silently skip every later migration on
+                -- every subsequent load). Mark done only on success, so a migration
+                -- fixed in a later build re-runs on the next load rather than being
+                -- permanently lost.
+                local ok, err = pcall(m.run, db)
+                if ok then
+                    db._migrations[m.id] = true
+                elseif addon.Log and addon.Log.error then
+                    addon.Log.error("migrations", "Migration '" .. m.id .. "' failed: " .. tostring(err))
+                end
             end
-            db._migrations[m.id] = true
         end
     end
 end

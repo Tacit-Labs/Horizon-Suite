@@ -36,17 +36,25 @@ local MODE_CONFIG = {
 -- ============================================================================
 
 -- Cache the last applied state so SetCVar is only called on actual changes.
--- Calling SetCVar fires CVAR_UPDATE in the same tick; if that tick also
--- contains action-bar event handlers, WoW taints the cooldown context and
--- produces "Secret values are only allowed during untainted execution" errors
--- on every action button (34000+ times in a normal session with a 0.5 s ticker).
-local activeMode = nil  -- current mode key string, false = cleared, nil = unknown
+-- Calling SetCVar fires CVAR_UPDATE in the same tick; if that tick also contains
+-- action-bar event handlers, WoW taints the cooldown context and produces
+-- "Secret values are only allowed during untainted execution" errors on every
+-- action button (34000+ times in a normal session with a 0.5 s ticker).
+--
+-- The combat trigger inherently requires toggling a CVar *in* combat (the
+-- highlight must appear during the fight), so it cannot be deferred to
+-- PLAYER_REGEN_ENABLED. We minimise the in-combat churn instead: the static
+-- findYourself* mode config is written only when the mode changes (ideally out of
+-- combat, see SH.Enable), so a combat-start/-end transition toggles just the single
+-- `selfHighlight` CVar rather than all seven.
+local activeMode  = nil   -- highlight on/off intent: mode key = on, false = off, nil = unknown
+local appliedMode = nil   -- mode whose static config CVars are currently written
 
-local function SetHighlight(modeKey)
-    if activeMode == modeKey then return end
-    activeMode = modeKey
+-- Write the static findYourself* config CVars for a mode. Idempotent per mode.
+local function ApplyModeConfig(modeKey)
+    if appliedMode == modeKey then return end
+    appliedMode = modeKey
     local cfg = MODE_CONFIG[modeKey] or MODE_CONFIG.outlinecircle
-    SetCVar("selfHighlight",                    1)
     SetCVar("findYourselfMode",                 cfg.mode)
     SetCVar("findYourselfModeOutline",          cfg.outline)
     SetCVar("findYourselfModeCircle",           cfg.circle)
@@ -56,16 +64,19 @@ local function SetHighlight(modeKey)
     SetCVar("findYourselfAnywhereOnlyInCombat", 0)
 end
 
+local function SetHighlight(modeKey)
+    if activeMode == modeKey then return end
+    activeMode = modeKey
+    ApplyModeConfig(modeKey)   -- no-op when the mode is unchanged
+    SetCVar("selfHighlight", 1)
+end
+
 local function ClearHighlight()
     if activeMode == false then return end
     activeMode = false
-    SetCVar("selfHighlight",                    0)
-    SetCVar("findYourselfMode",                 0)
-    SetCVar("findYourselfModeOutline",          0)
-    SetCVar("findYourselfModeCircle",           0)
-    SetCVar("findYourselfModeIcon",             0)
-    SetCVar("findYourselfAnywhere",             0)
-    SetCVar("findYourselfAnywhereOnlyInCombat", 0)
+    -- selfHighlight is the master gate; 0 disables the effect regardless of the
+    -- (retained) mode config, so we only toggle this one CVar.
+    SetCVar("selfHighlight", 0)
 end
 
 -- ============================================================================
@@ -131,13 +142,18 @@ local SH = {}
 Y.SelfHighlight = SH
 
 function SH.Enable()
-    activeMode = nil  -- invalidate cache so first Evaluate() always writes CVars
+    activeMode  = nil  -- invalidate cache so first Evaluate() always writes selfHighlight
+    appliedMode = nil
     eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
     eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     StartTicker()
+    -- Pre-write the static mode config now (Enable typically runs out of combat) so
+    -- the first combat-start transition only has to toggle the single selfHighlight CVar.
+    local D = addon.AUGMENT_DEFAULTS
+    ApplyModeConfig(getDB("selfHighlightMode", D and D.selfHighlightMode or "outlinecircle"))
     Evaluate()
 end
 
