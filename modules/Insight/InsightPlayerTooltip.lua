@@ -248,6 +248,24 @@ local function IsDracthyrInVisageForm(unit)
     return false
 end
 
+-- Map a raw UnitRace file string + gender suffix to the icon file-base used by
+-- the texture path, handling aliases (Harronir→haranir, Worgen suffix, etc.).
+-- Returns "fileBase-genderSuffix" or nil when the race has no custom icon.
+local function RaceFileToIconSlug(raceFile, sex)
+    local fileBase = RACE_ICON_FILE_BASE[raceFile]
+    if not fileBase then
+        local raceKey = tostring(raceFile or ""):lower()
+        if raceKey:find("haranir", 1, true) or raceKey:find("harronir", 1, true) or raceKey:find("harranir", 1, true) then
+            fileBase = "haranir"
+        end
+    end
+    if not fileBase then return nil end
+    local gender = (sex == 3) and "female" or "male"
+    local suffixes = RACE_ICON_GENDER_SUFFIX[raceFile]
+    local genderSuffix = (suffixes and suffixes[gender]) or gender
+    return fileBase .. "-" .. genderSuffix
+end
+
 local function RaceIconMarkup(unit, size)
     if not ShowRaceIcons() then return "" end
     local raceName, raceFile, sex
@@ -257,22 +275,17 @@ local function RaceIconMarkup(unit, size)
         raceFile = fileName
         sex = UnitSex(unit)
     end)
-    local fileBase = raceFile and RACE_ICON_FILE_BASE[raceFile]
-    if not fileBase then
-        local raceKey = tostring(raceFile or raceName or ""):lower()
-        if raceKey:find("haranir", 1, true) or raceKey:find("harronir", 1, true) or raceKey:find("harranir", 1, true) then
-            fileBase = "haranir"
-        end
+    local visage = raceFile == "Dracthyr" and IsDracthyrInVisageForm(unit)
+    local slug
+    if visage then
+        local gender = (sex == 3) and "female" or "male"
+        slug = "dracthyr-visage-" .. gender
+    else
+        slug = RaceFileToIconSlug(raceFile, sex)
     end
-    if not fileBase then return "" end
-    if raceFile == "Dracthyr" and IsDracthyrInVisageForm(unit) then
-        fileBase = "dracthyr-visage"
-    end
+    if not slug then return "" end
     size = tonumber(size) or 14
-    local gender = (sex == 3) and "female" or "male"
-    local suffixes = RACE_ICON_GENDER_SUFFIX[raceFile]
-    local genderSuffix = (suffixes and suffixes[gender]) or gender
-    return "|T" .. RACE_ICON_PATH_PREFIX .. fileBase .. "-" .. genderSuffix .. ".tga:" .. size .. ":" .. size .. ":0:0|t "
+    return "|T" .. RACE_ICON_PATH_PREFIX .. slug .. ".tga:" .. size .. ":" .. size .. ":0:0|t "
 end
 
 local function ShowIlvl()
@@ -1467,8 +1480,11 @@ local function GetLivePlayerPreviewData()
         end
         local raceName, raceFile = UnitRace("player")
         if raceName then d.raceName = raceName end
+        local sex = UnitSex("player")
         if raceFile then
-            d.raceFile = raceFile:lower() .. ((UnitSex("player") == 3) and "-female" or "-male")
+            d.raceFileRaw = raceFile
+            d.raceSex     = sex
+            d.raceFile    = raceFile:lower() .. ((sex == 3) and "-female" or "-male")
         end
         local lvl = UnitLevel("player")
         if lvl and lvl > 0 then d.level = lvl end
@@ -1680,9 +1696,16 @@ function Insight.RenderTestTooltipContent(tooltip)
     end
 
     local testIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
-    local previewRaceFile = useLiveIdentity and live.raceFile or "bloodelf-female"
     local previewRaceName = useLiveIdentity and live.raceName or "Blood Elf"
-    local raceIconStr = ShowRaceIcons() and ("|T" .. RACE_ICON_PATH_PREFIX .. previewRaceFile .. ".tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t ") or ""
+    local raceIconStr = ""
+    if ShowRaceIcons() then
+        local slug
+        if useLiveIdentity and live.raceFileRaw then
+            slug = RaceFileToIconSlug(live.raceFileRaw, live.raceSex)
+        end
+        slug = slug or "bloodelf-female"
+        raceIconStr = "|T" .. RACE_ICON_PATH_PREFIX .. slug .. ".tga:" .. testIconPx .. ":" .. testIconPx .. ":0:0|t "
+    end
     if not previewMoveRaceClassToBottom then
         tooltip:AddLine(raceIconStr .. "Level " .. live.level .. " " .. previewRaceName, 1, 0.82, 0)
     end
