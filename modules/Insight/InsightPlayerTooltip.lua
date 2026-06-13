@@ -1532,7 +1532,14 @@ function Insight.RenderTestTooltipContent(tooltip)
     if TRP3_API ~= nil and ShowTRP3() then
         if Insight.GetTRP3PlayerData then
             local ok, ownProfile = pcall(Insight.GetTRP3PlayerData, "player")
-            if ok and type(ownProfile) == "table" and ownProfile.rpName then
+            -- Accept the live profile when it has ANY TRP3 data (rpName may be
+            -- nil if the TRP3 display name matches the WoW character name, but
+            -- the player still has a fullTitle, pronouns, custom colour, etc.).
+            if ok and type(ownProfile) == "table" and (
+                ownProfile.rpName or ownProfile.fullTitle or ownProfile.pronouns
+                or ownProfile.customColorR or ownProfile.currently
+                or ownProfile.customRace or ownProfile.customClass or ownProfile.icon
+            ) then
                 previewTRP3, trp3IsLive = ownProfile, true
             end
         end
