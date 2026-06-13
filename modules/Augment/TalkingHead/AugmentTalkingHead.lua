@@ -74,7 +74,11 @@ end
 -- font path. Font objects created with CreateFont() cannot load WoW's virtual (CASC)
 -- fonts anyway. The only reliable path: call SetFont() directly and counter-hook both
 -- methods so that whenever either is overridden we re-apply our desired font.
-local nativeFontState = setmetatable({}, { __mode = "k" })
+local nativeFontState  = setmetatable({}, { __mode = "k" })
+-- Captured frame-level state (subframe visibility, alpha, scale) before we first touch
+-- ApplyTalkingHeadFrame. Keyed by TalkingHeadFrame object. Used to restore ElvUI's
+-- frame skin on module disable without hard-coding Blizzard defaults.
+local nativeFrameState = {}
 
 local function CaptureNativeFont(fontString, fontObject)
     if not fontString or not fontObject then return end
@@ -96,14 +100,56 @@ local function RestoreNativeFont(fontString)
     if not fontString then return end
     local state = nativeFontState[fontString]
     if not state then return end
+    -- Prefer SetFont: more reliable immediate visual update than re-associating the
+    -- FontObject (especially after SetFontObject(nil) + SetFont put the string into
+    -- standalone mode). SetFontObject is still applied first when available so the
+    -- inherited-font chain is restored too.
     if state.fontObject then
         fontString:SetFontObject(state.fontObject)
-    elseif state.path then
+    end
+    if state.path then
         fontString:SetFont(state.path, state.size, state.flags)
     end
     if state.r and state.g and state.b then
         fontString:SetTextColor(state.r, state.g, state.b, state.a or 1)
     end
+end
+
+local function CaptureNativeFrame(frame)
+    if not frame or nativeFrameState[frame] then return end
+    nativeFrameState[frame] = {
+        mainShown     = frame.MainFrame     and frame.MainFrame:IsShown(),
+        mainAlpha     = frame.MainFrame     and frame.MainFrame:GetAlpha(),
+        portraitShown = frame.PortraitFrame and frame.PortraitFrame:IsShown(),
+        portraitAlpha = frame.PortraitFrame and frame.PortraitFrame:GetAlpha(),
+        bgAlpha       = frame.BackgroundFrame and frame.BackgroundFrame:GetAlpha(),
+        scale         = frame:GetScale(),
+    }
+end
+
+local function RestoreNativeFrame(frame)
+    if not frame then return end
+    local state = nativeFrameState[frame]
+    if not state then
+        -- No captured state — fall back to Blizzard defaults so the frame is at least visible.
+        if frame.MainFrame     then frame.MainFrame:SetShown(true);     frame.MainFrame:SetAlpha(1) end
+        if frame.PortraitFrame then frame.PortraitFrame:SetShown(true); frame.PortraitFrame:SetAlpha(1) end
+        if frame.BackgroundFrame then frame.BackgroundFrame:SetAlpha(1) end
+        frame:SetScale(1.0)
+        return
+    end
+    if frame.MainFrame then
+        if state.mainShown ~= nil then frame.MainFrame:SetShown(state.mainShown) end
+        if state.mainAlpha ~= nil then frame.MainFrame:SetAlpha(state.mainAlpha) end
+    end
+    if frame.PortraitFrame then
+        if state.portraitShown ~= nil then frame.PortraitFrame:SetShown(state.portraitShown) end
+        if state.portraitAlpha ~= nil then frame.PortraitFrame:SetAlpha(state.portraitAlpha) end
+    end
+    if frame.BackgroundFrame and state.bgAlpha ~= nil then
+        frame.BackgroundFrame:SetAlpha(state.bgAlpha)
+    end
+    if state.scale then frame:SetScale(state.scale) end
 end
 
 local function LockDirectFont(fontString, getFont)
@@ -125,7 +171,14 @@ local function LockDirectFont(fontString, getFont)
     hooksecurefunc(fontString, "SetFont", function(self, path, size, flags)
         if busyFont then return end
         local targetPath, targetSize, targetFlags = getFont()
-        if not targetPath or path == targetPath then return end
+        if not targetPath then return end
+        if path == targetPath then return end
+        -- Blizzard is setting a native font while we're active: capture it as a
+        -- SetFont-sourced fallback so RestoreNativeFont has something to work with
+        -- even if SetFontObject was never called (e.g. standalone-mode fontstrings).
+        if not nativeFontState[self] then
+            nativeFontState[self] = { path = path, size = size, flags = flags }
+        end
         busyFont = true
         self:SetFont(targetPath, targetSize or size, targetFlags or "OUTLINE")
         self:SetShadowOffset(1, -1)
@@ -149,21 +202,10 @@ end
 
 local function SetTalkingHeadSuppressed(frame, suppressed)
     if not frame then return end
+    -- Alpha on the parent cascades to all children — SetShown on subframes is
+    -- intentionally omitted so other addons' (e.g. ElvUI) visibility choices are preserved.
     frame:SetAlpha(suppressed and 0 or 1)
-    if frame.EnableMouse then
-        frame:EnableMouse(not suppressed)
-    end
-    if frame.MainFrame then
-        frame.MainFrame:SetShown(not suppressed)
-        frame.MainFrame:SetAlpha(suppressed and 0 or 1)
-    end
-    if frame.PortraitFrame then
-        frame.PortraitFrame:SetShown(not suppressed)
-        frame.PortraitFrame:SetAlpha(suppressed and 0 or 1)
-    end
-    if frame.BackgroundFrame then
-        frame.BackgroundFrame:SetAlpha(suppressed and 0 or frame.BackgroundFrame:GetAlpha())
-    end
+    if frame.EnableMouse then frame:EnableMouse(not suppressed) end
 end
 
 -- Custom fonts, sizes, and name colour on top of Blizzard's frame
@@ -179,6 +221,14 @@ local function ApplyTalkingHeadContent(frame)
     local textOutline = GetOption("talkingHeadTextOutline", DEFAULTS.talkingHeadTextOutline) and "OUTLINE" or ""
     if frame.TextFrame and frame.TextFrame.Text then
         local fs = frame.TextFrame.Text
+        -- Capture the pre-modification font the first time we touch this fontstring.
+        -- The SetFontObject hook may not have captured it if the fontstring object was
+        -- replaced or created after hooks were installed (e.g. by ElvUI).
+        if not nativeFontState[fs] then
+            local p, sz, fl = fs:GetFont()
+            local r, g, b, a = fs:GetTextColor()
+            if p then nativeFontState[fs] = { path = p, size = sz, flags = fl, r = r, g = g, b = b, a = a } end
+        end
         -- Blizzard sets a FontObject on each PlayCurrent call; clear it so our
         -- direct SetFont call takes effect rather than being overridden by the object.
         fs:SetFontObject(nil)
@@ -194,6 +244,11 @@ local function ApplyTalkingHeadContent(frame)
     local nb = tonumber(GetOption("talkingHeadNameColorB", DEFAULTS.talkingHeadNameColorB)) or DEFAULTS.talkingHeadNameColorB
     if frame.NameFrame and frame.NameFrame.Name then
         local n = frame.NameFrame.Name
+        if not nativeFontState[n] then
+            local p, sz, fl = n:GetFont()
+            local r, g, b, a = n:GetTextColor()
+            if p then nativeFontState[n] = { path = p, size = sz, flags = fl, r = r, g = g, b = b, a = a } end
+        end
         n:SetFontObject(nil)
         n:SetFont(nameFont, nameSize, nameOutline)
         n:SetShadowOffset(1, -1)
@@ -202,25 +257,17 @@ local function ApplyTalkingHeadContent(frame)
 end
 
 -- Frame-level toggles: portrait, background, close button, scale.
--- When customise is off, Blizzard defaults are restored (portrait on, background off, scale 1).
+-- When customise is off, the pre-modification state (captured on first call) is restored.
 local function ApplyTalkingHeadFrame(frame)
     if not frame then return end
 
     if not GetOption("talkingHeadCustomise", DEFAULTS.talkingHeadCustomise) then
-        if frame.MainFrame then
-            frame.MainFrame:SetShown(true)
-            frame.MainFrame:SetAlpha(1)
-        end
-        if frame.PortraitFrame then
-            frame.PortraitFrame:SetShown(true)
-            frame.PortraitFrame:SetAlpha(1)
-        end
-        if frame.BackgroundFrame then
-            frame.BackgroundFrame:SetAlpha(1)
-        end
-        frame:SetScale(1.0)
+        RestoreNativeFrame(frame)
         return
     end
+
+    -- Capture before first modification so RestoreNativeFrame can undo our changes.
+    CaptureNativeFrame(frame)
 
     local showPortrait = GetOption("talkingHeadShowPortrait", DEFAULTS.talkingHeadShowPortrait)
     -- PortraitFrame is the decorative border ring, a sibling of MainFrame at TalkingHeadFrame
@@ -275,6 +322,7 @@ local function OnPlayCurrent(frame)
     -- Pill / module off: hands-off — let Blizzard render its native Talking Head.
     if not IsTalkingHeadModuleActive() then
         SetTalkingHeadSuppressed(frame, false)
+        RestoreNativeFrame(frame)
         RestoreTalkingHeadContent(frame)
         return
     end
@@ -301,6 +349,7 @@ local function InstallHooks(frame)
         -- Pill / module off: hands-off — ensure the native frame is visible.
         if not IsTalkingHeadModuleActive() then
             SetTalkingHeadSuppressed(self, false)
+            RestoreNativeFrame(self)
             return
         end
         if not GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled) then
@@ -332,6 +381,7 @@ local function InstallHooks(frame)
     if frame:IsShown() then
         if not IsTalkingHeadModuleActive() then
             SetTalkingHeadSuppressed(frame, false)
+            RestoreNativeFrame(frame)
             RestoreTalkingHeadContent(frame)
         elseif GetOption("talkingHeadEnabled", DEFAULTS.talkingHeadEnabled) then
             SetTalkingHeadSuppressed(frame, false)
@@ -395,6 +445,10 @@ function addon.Augment.CreateTalkingHeadPreviewWidget(parent)
         addon.CreateBorder(frame, { 0.18, 0.18, 0.24, 0.95 })
     end
 
+    local closeBtnPreview = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    closeBtnPreview:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 6, 6)
+    closeBtnPreview:EnableMouse(false)
+
     -- Plain Frame container for the portrait area. We show/hide this rather than
     -- the PlayerModel directly: PlayerModel:SetShown(false) can be overridden when
     -- the model finishes loading asynchronously, whereas hiding a plain parent
@@ -414,6 +468,16 @@ function addon.Augment.CreateTalkingHeadPreviewWidget(parent)
     portrait:SetUnit("player")
     portrait:SetCamDistanceScale(0.85)
     portrait:SetPortraitZoom(1)
+
+    -- Accent border shown when "Show Portrait Border" is on. Parented to portraitArea so
+    -- it disappears automatically when the portrait is hidden. CreateBorder draws textures
+    -- directly on the frame; hiding the frame hides them without needing to track each edge.
+    local portraitBorderOverlay = CreateFrame("Frame", nil, portraitArea)
+    portraitBorderOverlay:SetAllPoints(portraitArea)
+    portraitBorderOverlay:Hide()
+    if addon.CreateBorder then
+        addon.CreateBorder(portraitBorderOverlay, { 0.55, 0.80, 0.95, 0.9 }, 2)
+    end
 
     local sep = frame:CreateTexture(nil, "ARTWORK")
     sep:SetWidth(1)
@@ -466,8 +530,13 @@ function addon.Augment.CreateTalkingHeadPreviewWidget(parent)
         dialogueText:SetText(L["TALKING_HEAD_PREVIEW_DIALOGUE"])
 
         local showPortrait = GetOption("talkingHeadShowPortrait", DEFAULTS.talkingHeadShowPortrait)
+        local showBorder   = showPortrait and GetOption("talkingHeadShowPortraitBorder", DEFAULTS.talkingHeadShowPortraitBorder)
         portraitArea:SetShown(showPortrait)
+        portraitBorderOverlay:SetShown(showBorder and true or false)
         sep:SetShown(showPortrait)
+
+        bg:SetShown(GetOption("talkingHeadBackground", DEFAULTS.talkingHeadBackground) and true or false)
+        closeBtnPreview:SetShown(GetOption("talkingHeadCloseButton", DEFAULTS.talkingHeadCloseButton) and true or false)
     end
 
     frame.Refresh = Refresh
@@ -475,6 +544,45 @@ function addon.Augment.CreateTalkingHeadPreviewWidget(parent)
     Refresh()
 
     return { frame = frame, Refresh = Refresh }
+end
+
+-- ============================================================================
+-- EMBEDDED DASHBOARD PREVIEW (pinned above the scroll area on the TH options page)
+-- ============================================================================
+
+local _embeddedTHHost   = nil
+local _embeddedTHWidget = nil
+
+function addon.Augment.MountEmbeddedTHPreview(host)
+    if not host then return end
+    _embeddedTHHost = host
+    if not _embeddedTHWidget then
+        _embeddedTHWidget = addon.Augment.CreateTalkingHeadPreviewWidget(host)
+    else
+        if _embeddedTHWidget.frame then
+            _embeddedTHWidget.frame:SetParent(host)
+            _embeddedTHWidget.frame:ClearAllPoints()
+        end
+    end
+end
+
+function addon.Augment.HideEmbeddedTHPreview()
+    if _embeddedTHWidget and _embeddedTHWidget.frame then
+        _embeddedTHWidget.frame:Hide()
+    end
+end
+
+function addon.Augment.RefreshEmbeddedTHPreview()
+    local host = _embeddedTHHost
+    local w    = _embeddedTHWidget
+    if not (host and w and w.frame) then return end
+    local PAD = 10
+    w.frame:ClearAllPoints()
+    w.frame:SetPoint("TOPLEFT",  host, "TOPLEFT",  PAD, -PAD)
+    w.frame:SetPoint("TOPRIGHT", host, "TOPRIGHT", -PAD, -PAD)
+    w.frame:Show()
+    if w.Refresh then w.Refresh() end
+    host:SetHeight(PREVIEW_HEIGHT + PAD * 2)
 end
 
 -- ============================================================================
@@ -494,6 +602,7 @@ function addon.Augment.UpdateTalkingHead()
     -- Pill / module off: hands-off — restore Blizzard's native Talking Head.
     if not IsTalkingHeadModuleActive() then
         if frame:IsShown() then SetTalkingHeadSuppressed(frame, false) end
+        RestoreNativeFrame(frame)
         RestoreTalkingHeadContent(frame)
         return
     end
@@ -518,5 +627,6 @@ function addon.Augment.DisableTalkingHead()
     local frame = _G.TalkingHeadFrame
     if not frame then return end
     if frame:IsShown() then SetTalkingHeadSuppressed(frame, false) end
+    RestoreNativeFrame(frame)
     RestoreTalkingHeadContent(frame)
 end

@@ -188,7 +188,7 @@ function addon.DashboardDetailView_Init(env)
         local previewRelayout
         local previewLastW
         detailPreviewHost:SetScript("OnSizeChanged", function(self, w)
-            -- React to width changes only — RefreshEmbeddedPreview sets the
+            -- React to width changes only — each preview's Refresh sets the
             -- height itself, and re-running on that change would loop.
             if not self:IsShown() then return end
             if previewLastW and w and math.abs(w - previewLastW) < 2 then return end
@@ -196,8 +196,12 @@ function addon.DashboardDetailView_Init(env)
             if previewRelayout then previewRelayout:Cancel() end
             previewRelayout = C_Timer.NewTimer(0.10, function()
                 previewRelayout = nil
-                if self:IsShown() and addon.Insight and addon.Insight.RefreshEmbeddedPreview then
+                if not self:IsShown() then return end
+                if addon.Insight and addon.Insight.RefreshEmbeddedPreview then
                     addon.Insight.RefreshEmbeddedPreview()
+                end
+                if addon.Augment and addon.Augment.RefreshEmbeddedTHPreview then
+                    addon.Augment.RefreshEmbeddedTHPreview()
                 end
             end)
         end)
@@ -211,10 +215,31 @@ function addon.DashboardDetailView_Init(env)
     detailScroll.ScrollBar:ClearAllPoints()
 
     -- Show/hide the preview strip and re-anchor detailScroll below it.
-    -- @param previewMode string|nil "global"|"player"|"npc"|"item" to show, nil to hide
+    -- @param previewMode string|nil "global"|"player"|"npc"|"item"|"talkingHead" to show, nil to hide
     local function ApplyDetailPreviewStrip(previewMode)
+        -- Hide any previously-mounted preview before switching modes.
+        local function HideAllPreviews()
+            if addon.Insight and addon.Insight.HideEmbeddedPreview then addon.Insight.HideEmbeddedPreview() end
+            if addon.Augment and addon.Augment.HideEmbeddedTHPreview then addon.Augment.HideEmbeddedTHPreview() end
+        end
+
+        if previewMode == "talkingHead" then
+            local augment = addon.Augment
+            if augment and augment.MountEmbeddedTHPreview and augment.RefreshEmbeddedTHPreview then
+                HideAllPreviews()
+                augment.MountEmbeddedTHPreview(detailPreviewHost)
+                detailPreviewHost:Show()
+                augment.RefreshEmbeddedTHPreview()
+                detailScroll:ClearAllPoints()
+                detailScroll:SetPoint("TOPLEFT", detailPreviewHost, "BOTTOMLEFT", 0, -8)
+                detailScroll:SetPoint("BOTTOMRIGHT", detailView, "BOTTOMRIGHT", -40, 40)
+                return
+            end
+        end
+
         local insight = addon.Insight
         if previewMode and insight and insight.MountEmbeddedPreview and insight.SetDashboardPreviewMode then
+            HideAllPreviews()
             insight.MountEmbeddedPreview(detailPreviewHost)
             detailPreviewHost:Show()
             insight.SetDashboardPreviewMode(previewMode)  -- refreshes + sizes the host
@@ -991,7 +1016,7 @@ function addon.DashboardDetailView_Init(env)
 
         do
             local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
-            local previewMode = selCat and matchedModuleKey == "insight" and selCat.dashboardPreviewMode or nil
+            local previewMode = selCat and selCat.dashboardPreviewMode or nil
             ApplyDetailPreviewStrip(previewMode)
         end
 
@@ -1979,11 +2004,15 @@ function addon.DashboardDetailView_Init(env)
                     end
                     detailOptionFrames[optId] = widget
                 elseif opt.type == "talkingHeadPreview" then
-                    local previewWidget = addon.Augment and addon.Augment.CreateTalkingHeadPreviewWidget and
-                        addon.Augment.CreateTalkingHeadPreviewWidget(currentCard.settingsContainer)
-                    widget = previewWidget and previewWidget.frame or nil
-                    if widget and previewWidget.Refresh then
-                        widget.Refresh = previewWidget.Refresh
+                    -- Preview is in the pinned strip above the scroll area; register a
+                    -- zero-height proxy so refreshIds = { "talkingHeadPreview" } still
+                    -- triggers RefreshEmbeddedTHPreview when option values change.
+                    widget = CreateFrame("Frame", nil, currentCard.settingsContainer)
+                    widget:SetHeight(0)
+                    widget.Refresh = function()
+                        if addon.Augment and addon.Augment.RefreshEmbeddedTHPreview then
+                            addon.Augment.RefreshEmbeddedTHPreview()
+                        end
                     end
                     detailOptionFrames[optId] = widget
                 elseif opt.type == "header" then
@@ -2603,6 +2632,8 @@ function addon.DashboardDetailView_Init(env)
                             elseif copt.type == "dropdown" then
                                 local dopts = type(copt.options) == "function" and copt.options() or copt.options
                                 w = _G.OptionsWidgets_CreateCustomDropdown(col, copt.name, copt.desc or "", dopts, cg, cs, copt.displayFn, copt.searchable, copt.disabled, copt.tooltip, nil, copt.fontPreviewInList, copt.preserveOrder)
+                            elseif copt.type == "color" then
+                                w = _G.OptionsWidgets_CreateColorSwatch(col, copt.name, copt.desc or "", cg, cs, copt.hasAlpha, copt.tooltip)
                             elseif copt.type == "button" then
                                 w = _G.OptionsWidgets_CreateButton(col, copt.name, cs or copt.onClick, { tooltip = copt.tooltip })
                             end

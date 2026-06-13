@@ -848,6 +848,14 @@ function Insight.RefreshEmbeddedPreview()
     return h
 end
 
+-- Hide all embedded preview mocks (e.g. when another module's preview takes over the host).
+function Insight.HideEmbeddedPreview()
+    if pulloutMock      then pulloutMock:Hide()      end
+    if globalPlayerMock then globalPlayerMock:Hide() end
+    if globalNpcMock    then globalNpcMock:Hide()    end
+    if globalItemMock   then globalItemMock:Hide()   end
+end
+
 -- @deprecated The right-side pullout is gone; previews are embedded at the top
 -- of Insight options pages. Kept as no-ops for any external callers.
 function Insight.TogglePreviewPullout() end

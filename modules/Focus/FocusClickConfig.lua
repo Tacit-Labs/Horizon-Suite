@@ -387,10 +387,10 @@ addon.focus.clickConfig = {
     profilesLockedToBlizzard   = FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD,
 }
 
--- While profiles are locked to Blizzard, coerce horizonPlus/custom saves to blizzardDefault.
--- Migration of useClassicClickBehaviour → focusClickProfile is handled by
--- core/migrations/20260410_focus_click_profile.lua (runs inside EnsureDB).
--- @return nil
+ -- While profiles are locked to Blizzard, coerce horizonPlus/custom saves to blizzardDefault.
+ -- Migration of useClassicClickBehaviour → focusClickProfile is handled by
+ -- core/migrations/20260410_focus_click_profile.lua (runs inside EnsureDB).
+ -- @return nil
 local function NormalizeFocusClickProfileToBlizzard()
     if not FOCUS_CLICK_PROFILES_LOCKED_TO_BLIZZARD then return end
     local p = addon.GetDB("focusClickProfile", "blizzardDefault")
