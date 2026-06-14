@@ -101,6 +101,7 @@ modules/Augment/AugmentEvents.lua
 modules/Augment/AugmentSlash.lua
 modules/Augment/AugmentModule.lua
 
+modules/Vista/VistaTeleports.lua
 modules/Vista/VistaCore.lua
 modules/Vista/VistaSlash.lua
 modules/Vista/VistaModule.lua

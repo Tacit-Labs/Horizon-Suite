@@ -133,7 +133,7 @@ do
     local PANEL_BORDER_DEFAULT = { 0.3, 0.4, 0.6, 0.7 }
     local MASK_SQUARE_V   = "Interface\\ChatFrame\\ChatFrameBackground"
     local MASK_CIRCULAR_V = 186178
-    local BTN_DEFAULTS = { tracking=22, calendar=22, queue=22, mail=20, craftingOrder=20, addon=26 }
+    local BTN_DEFAULTS = { tracking=22, calendar=22, teleport=22, queue=22, mail=20, craftingOrder=20, addon=26 }
 
     -- Font / size
     G.ZoneFont   = function() return ResolveFont("vistaZoneFontPath") end
@@ -249,12 +249,15 @@ do
     -- Per-button visibility / mouseover
     G.ShowTracking      = function() return DB("vistaShowTracking",      true)  end
     G.ShowCalendar      = function() return DB("vistaShowCalendar",      true)  end
+    G.ShowTeleport      = function() return DB("vistaShowTeleport",      true)  end
     G.MouseoverTracking = function() return DB("vistaMouseoverTracking", false) end
     G.MouseoverCalendar = function() return DB("vistaMouseoverCalendar", false) end
+    G.MouseoverTeleport = function() return DB("vistaMouseoverTeleport", false) end
 
     -- Button sizes
     G.TrackingBtnSize = function() return tonumber(DB("vistaTrackingBtnSize", BTN_DEFAULTS.tracking)) or BTN_DEFAULTS.tracking end
     G.CalendarBtnSize = function() return tonumber(DB("vistaCalendarBtnSize", BTN_DEFAULTS.calendar)) or BTN_DEFAULTS.calendar end
+    G.TeleportBtnSize = function() return tonumber(DB("vistaTeleportBtnSize", BTN_DEFAULTS.teleport)) or BTN_DEFAULTS.teleport end
     G.QueueBtnSize    = function() return tonumber(DB("vistaQueueBtnSize",    BTN_DEFAULTS.queue))    or BTN_DEFAULTS.queue    end
     G.MailIconSize    = function() return tonumber(DB("vistaMailIconSize",     BTN_DEFAULTS.mail))     or BTN_DEFAULTS.mail     end
     G.CraftingOrderIconSize = function() return tonumber(DB("vistaCraftingOrderIconSize", BTN_DEFAULTS.craftingOrder)) or BTN_DEFAULTS.craftingOrder end
@@ -262,6 +265,7 @@ do
     G.ProxyBtnSizeForKey = function(k)
         if k=="tracking" then return G.TrackingBtnSize()
         elseif k=="calendar" then return G.CalendarBtnSize()
+        elseif k=="teleport" then return G.TeleportBtnSize()
         elseif k=="queue"    then return G.QueueBtnSize()
         else return BTN_DEFAULTS.tracking end
     end
@@ -1704,6 +1708,335 @@ local function SuppressBlizzardCraftingOrder()
 end
 
 -- ============================================================================
+-- TELEPORT PROXY MENU
+-- Built lazily; every secure-row operation (create / position / show / hide /
+-- SetAttribute) happens strictly out of combat. The menu is an out-of-combat
+-- feature — fine, since the teleports it lists cannot be used in combat anyway.
+-- Headers, the favorite star, the cooldown sweep, and the pager are all
+-- non-secure decoration, so they never taint.
+-- ============================================================================
+local TP_ROW_H   = 22
+local TP_HDR_H   = 16
+local TP_PAD     = 6
+local TP_ICON_W  = 16
+local TP_STAR_W  = 14
+local TP_PAGER_H = 22
+local TP_MIN_W   = 150
+local TP_FALLBACK_ICON = 134400
+local TP_FAVORITE_ICON = "Interface\\Common\\FavoritesIcon"
+
+-- Approximate per-page entry cap. We page by entry index (cheap and combat-safe),
+-- so the soft height budget reserves room for a handful of section headers a busy
+-- page may carry (Favorites / Recent / one per group). The frame still sizes to its
+-- real content and is SetClampedToScreen, so this is a soft target, never a clip.
+local function TP_MaxVisible()
+    local h = (UIParent and UIParent:GetHeight()) or 768
+    local usable = math.min(h * 0.7, 520) - TP_PAD * 2 - TP_PAGER_H - (6 * TP_HDR_H)
+    local n = math.floor(usable / TP_ROW_H)
+    if n < 6 then n = 6 elseif n > 24 then n = 24 end
+    return n
+end
+
+-- Hide GameTooltip only if one of our rows/stars currently owns it.
+local function TP_HideTooltip(menu)
+    if not GameTooltip then return end
+    local owner = GameTooltip:GetOwner()
+    if not owner or not menu._rows then return end
+    for i = 1, #menu._rows do
+        local r = menu._rows[i]
+        if r and (owner == r or owner == r._star) then GameTooltip:Hide() return end
+    end
+end
+
+local function TP_SkinStar(row)
+    local e = row._entry
+    if not e then return end
+    if addon.GetDB("vistaTeleportEnableFavorites", true) and addon.Vista.IsTeleportFavorite then
+        local fav = addon.Vista.IsTeleportFavorite(e.kind, e.id)
+        row._star._tex:SetDesaturated(not fav)
+        row._star._tex:SetAlpha(fav and 1 or 0.4)
+        row._star:Show()
+    else
+        row._star:Hide()
+    end
+end
+
+local LayoutTeleportMenu  -- forward declaration (star/pager handlers reference it)
+
+-- Create one secure row plus its non-secure decoration (out of combat only).
+local function TP_CreateRow(menu, idx)
+    local row = CreateFrame("Button", "HorizonSuiteVistaTeleportRow" .. idx, menu, "SecureActionButtonTemplate")
+    row:SetHeight(TP_ROW_H)
+    -- Both AnyDown and AnyUp required since 10.0; the ActionButtonUseKeyDown cvar
+    -- decides which edge actually fires.
+    row:RegisterForClicks("AnyDown", "AnyUp")
+    row._icon = row:CreateTexture(nil, "ARTWORK")
+    row._icon:SetSize(TP_ICON_W, TP_ICON_W)
+    row._icon:SetPoint("LEFT", row, "LEFT", TP_PAD, 0)
+    row._icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    row._label = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    row._label:SetPoint("LEFT", row._icon, "RIGHT", TP_PAD, 0)
+    row._label:SetJustifyH("LEFT")
+    row._hl = row:CreateTexture(nil, "HIGHLIGHT")
+    row._hl:SetAllPoints()
+    row._hl:SetColorTexture(1, 1, 1, 0.1)
+    -- Cooldown sweep: non-secure decoration parented to the secure row (display only).
+    row._cd = CreateFrame("Cooldown", nil, row, "CooldownFrameTemplate")
+    row._cd:SetAllPoints(row._icon)
+    row._cd:SetDrawEdge(true)
+    row._cd:SetHideCountdownNumbers(false)
+    -- Favorite star: NON-secure (no secure template) so clicking it never casts.
+    row._star = CreateFrame("Button", nil, row)
+    row._star:SetSize(TP_STAR_W, TP_STAR_W)
+    row._star:SetPoint("RIGHT", row, "RIGHT", -TP_PAD, 0)
+    row._star:SetFrameLevel(row:GetFrameLevel() + 2)
+    row._star._tex = row._star:CreateTexture(nil, "OVERLAY")
+    row._star._tex:SetAllPoints()
+    row._star._tex:SetTexture(TP_FAVORITE_ICON)
+    row._star:SetScript("OnClick", function(s)
+        local e = s:GetParent()._entry
+        if not e or not addon.Vista.ToggleTeleportFavorite then return end
+        addon.Vista.ToggleTeleportFavorite(e.kind, e.id)
+        TP_SkinStar(s:GetParent())
+        -- Re-sort so the (un)pinned entry moves; out of combat only.
+        if not InCombatLockdown() and LayoutTeleportMenu then LayoutTeleportMenu(menu) end
+    end)
+    row._star:SetScript("OnEnter", function(s)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(s, "ANCHOR_RIGHT")
+        GameTooltip:SetText((L and L["VISTA_TELEPORT_FAVORITE_TIP"]) or "Favorite")
+        GameTooltip:Show()
+    end)
+    row._star:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    row:SetScript("OnEnter", function(self)
+        local e = self._entry
+        if not e or not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        pcall(function()
+            if e.kind == "spell" then
+                GameTooltip:SetSpellByID(e.id)
+            elseif e.kind == "toy" then
+                GameTooltip:SetToyByItemID(e.id)
+            else
+                GameTooltip:SetItemByID(e.id)
+            end
+        end)
+        GameTooltip:Show()
+    end)
+    row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    row:SetScript("PostClick", function(self)
+        local e = self._entry
+        if e and not InCombatLockdown() and addon.Vista.RecordTeleportUse then
+            addon.Vista.RecordTeleportUse(e.kind, e.id)
+        end
+        if GameTooltip then GameTooltip:Hide() end
+        if not InCombatLockdown() then menu:Hide() end
+    end)
+    return row
+end
+
+local function TP_EnsureMenu()
+    local menu = Vista._teleportMenu
+    if menu then return menu end
+    if InCombatLockdown() then return nil end
+    menu = CreateFrame("Frame", "HorizonSuiteVistaTeleportMenu", UIParent, "BackdropTemplate")
+    menu:SetFrameStrata("TOOLTIP")
+    menu:SetClampedToScreen(true)
+    menu:SetBackdrop({
+        bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets   = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    menu:SetBackdropColor(0.06, 0.06, 0.1, 0.95)
+    menu:SetBackdropBorderColor(0.3, 0.4, 0.6, 0.8)
+    menu:EnableMouse(true)
+    menu:Hide()
+    menu._rows = {}
+    menu._headers = {}
+    menu._page = 1
+    menu:SetScript("OnLeave", function(s)
+        C_Timer.After(0.3, function()
+            if not s or not s:IsShown() or s:IsMouseOver() then return end
+            if InCombatLockdown() then return end  -- can't hide a frame parenting secure rows in combat
+            s:Hide()
+        end)
+    end)
+    menu:SetScript("OnHide", function(s) TP_HideTooltip(s) end)
+    -- After combat ends, close the menu if the cursor isn't on it (couldn't hide during combat).
+    menu:RegisterEvent("PLAYER_REGEN_ENABLED")
+    menu:SetScript("OnEvent", function(s, ev)
+        if ev == "PLAYER_REGEN_ENABLED" and s:IsShown() and not s:IsMouseOver() then
+            s:Hide()
+        end
+    end)
+    Vista._teleportMenu = menu
+    return menu
+end
+
+-- Full (re)layout of the menu. CALLER GUARANTEES OUT OF COMBAT.
+function LayoutTeleportMenu(menu)
+    local entries = (addon.Vista.GetTeleportMenuEntries and addon.Vista.GetTeleportMenuEntries()) or {}
+    local total = #entries
+    local maxW = TP_MIN_W
+
+    -- Empty state
+    if total == 0 then
+        for i = 1, #menu._rows do if menu._rows[i] then menu._rows[i]:Hide() end end
+        for i = 1, #menu._headers do if menu._headers[i] then menu._headers[i]:Hide() end end
+        if menu._pager then menu._pager:Hide() end
+        local er = menu._emptyRow
+        if not er then
+            er = menu:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+            er:SetJustifyH("LEFT")
+            menu._emptyRow = er
+        end
+        er:ClearAllPoints()
+        er:SetPoint("TOPLEFT", menu, "TOPLEFT", TP_PAD, -TP_PAD)
+        er:SetText((L and L["VISTA_NO_TELEPORTS_UNLOCKED"]) or "No teleports unlocked")
+        er:Show()
+        local w = (er:GetStringWidth() or 0) + TP_PAD * 2
+        if w > maxW then maxW = w end
+        menu:SetSize(maxW + TP_PAD * 2, TP_PAD * 2 + TP_ROW_H)
+        return
+    end
+    if menu._emptyRow then menu._emptyRow:Hide() end
+
+    local maxVisible = TP_MaxVisible()
+    local maxPage = math.max(1, math.ceil(total / maxVisible))
+    if menu._page > maxPage then menu._page = maxPage end
+    if menu._page < 1 then menu._page = 1 end
+    local page = menu._page
+    local startI = (page - 1) * maxVisible + 1
+    local endI = math.min(total, page * maxVisible)
+
+    local y = TP_PAD
+    local hdrIdx, secureIdx = 0, 0
+    local lastSection
+
+    for i = startI, endI do
+        local entry = entries[i]
+        if entry.section ~= lastSection then
+            lastSection = entry.section
+            hdrIdx = hdrIdx + 1
+            local hdr = menu._headers[hdrIdx]
+            if not hdr then
+                hdr = menu:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                hdr:SetJustifyH("LEFT")
+                menu._headers[hdrIdx] = hdr
+            end
+            hdr:ClearAllPoints()
+            hdr:SetPoint("TOPLEFT", menu, "TOPLEFT", TP_PAD, -y)
+            hdr:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -TP_PAD, -y)
+            hdr:SetText(entry.section or "")
+            hdr:SetTextColor(0.85, 0.78, 0.45)
+            hdr:Show()
+            local hw = (hdr:GetStringWidth() or 0) + TP_PAD * 2
+            if hw > maxW then maxW = hw end
+            y = y + TP_HDR_H
+        end
+
+        secureIdx = secureIdx + 1
+        local row = menu._rows[secureIdx]
+        if not row then
+            row = TP_CreateRow(menu, secureIdx)
+            menu._rows[secureIdx] = row
+        end
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", menu, "TOPLEFT", TP_PAD, -y)
+        row:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -TP_PAD, -y)
+        row._entry = entry
+        row._icon:SetTexture(entry.icon or TP_FALLBACK_ICON)
+        row._label:SetText(entry.name or "")
+        row._label:SetTextColor(1, 1, 1)
+        TP_SkinStar(row)
+
+        -- Secure attributes (out of combat only — caller guarantees OOC).
+        if entry.kind == "toy" then
+            row:SetAttribute("type", "toy");  row:SetAttribute("toy", entry.id)
+            row:SetAttribute("item", nil);     row:SetAttribute("spell", nil)
+        elseif entry.kind == "item" then
+            -- Pass the item name; the "item" attribute resolves names via the item API.
+            row:SetAttribute("type", "item"); row:SetAttribute("item", entry.name)
+            row:SetAttribute("toy", nil);      row:SetAttribute("spell", nil)
+        elseif entry.kind == "spell" then
+            row:SetAttribute("type", "spell"); row:SetAttribute("spell", entry.id)
+            row:SetAttribute("toy", nil);      row:SetAttribute("item", nil)
+        end
+
+        -- Cooldown sweep — DISPLAY ONLY. Values are read out of combat and fed
+        -- straight to SetCooldown; never compared/stored (secret-value safe).
+        if row._cd then
+            if addon.GetDB("vistaTeleportShowCooldowns", true) then
+                local cdStart, cdDur = 0, 0
+                if entry.kind == "spell" then
+                    local info = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(entry.id)
+                    if info then cdStart, cdDur = info.startTime or 0, info.duration or 0 end
+                elseif C_Item and C_Item.GetItemCooldown then
+                    cdStart, cdDur = C_Item.GetItemCooldown(entry.id)
+                end
+                row._cd:SetCooldown(cdStart or 0, cdDur or 0)
+                row._cd:Show()
+            else
+                row._cd:SetCooldown(0, 0)
+                row._cd:Hide()
+            end
+        end
+
+        row:Show()
+        local w = (row._label:GetStringWidth() or 0) + TP_ICON_W + TP_STAR_W + TP_PAD * 4
+        if w > maxW then maxW = w end
+        y = y + TP_ROW_H
+    end
+
+    -- Hide leftover rows + headers from a previous (larger) layout.
+    for i = secureIdx + 1, #menu._rows do if menu._rows[i] then menu._rows[i]:Hide() end end
+    for i = hdrIdx + 1, #menu._headers do if menu._headers[i] then menu._headers[i]:Hide() end end
+
+    -- Pager (only when the unlocked list exceeds one page).
+    if total > maxVisible then
+        local pager = menu._pager
+        if not pager then
+            pager = CreateFrame("Frame", nil, menu)
+            pager:SetHeight(TP_PAGER_H)
+            pager._prev = CreateFrame("Button", nil, pager, "UIPanelButtonTemplate")
+            pager._prev:SetSize(52, TP_PAGER_H - 4)
+            pager._prev:SetPoint("LEFT", pager, "LEFT", TP_PAD, 0)
+            pager._prev:SetText((L and L["VISTA_TP_PREV"]) or "Prev")
+            pager._prev:SetScript("OnClick", function()
+                if InCombatLockdown() then return end
+                menu._page = math.max(1, (menu._page or 1) - 1)
+                LayoutTeleportMenu(menu)
+            end)
+            pager._next = CreateFrame("Button", nil, pager, "UIPanelButtonTemplate")
+            pager._next:SetSize(52, TP_PAGER_H - 4)
+            pager._next:SetPoint("RIGHT", pager, "RIGHT", -TP_PAD, 0)
+            pager._next:SetText((L and L["VISTA_TP_NEXT"]) or "Next")
+            pager._next:SetScript("OnClick", function()
+                if InCombatLockdown() then return end
+                menu._page = (menu._page or 1) + 1
+                LayoutTeleportMenu(menu)
+            end)
+            pager._label = pager:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+            pager._label:SetPoint("CENTER", pager, "CENTER", 0, 0)
+            menu._pager = pager
+        end
+        pager:ClearAllPoints()
+        pager:SetPoint("TOPLEFT", menu, "TOPLEFT", 0, -y)
+        pager:SetPoint("TOPRIGHT", menu, "TOPRIGHT", 0, -y)
+        pager._label:SetText(page .. " / " .. maxPage)
+        if page <= 1 then pager._prev:Disable() else pager._prev:Enable() end
+        if page >= maxPage then pager._next:Disable() else pager._next:Enable() end
+        pager:Show()
+        y = y + TP_PAGER_H
+    elseif menu._pager then
+        menu._pager:Hide()
+    end
+
+    menu:SetSize(maxW + TP_PAD * 2, y + TP_PAD)
+end
+
+-- ============================================================================
 -- DEFAULT BUTTON PROXIES  (tracking, calendar/landing page)
 -- ============================================================================
 
@@ -1852,6 +2185,39 @@ local DEFAULT_BTN_DEFS = {
             end)
         end,
     },
+    {
+        key     = "teleport",
+        names   = {},  -- no Blizzard frame to suppress; this is a Horizon-only proxy
+        anchor  = "BOTTOMRIGHT",
+        xOff    = -VISTA_MINIMAP_CORNER_INSET, yOff = VISTA_MINIMAP_CORNER_INSET,
+        tooltip = (L and L["VISTA_TELEPORT_TOOLTIP"]) or "Teleports",
+        getIcon = function()
+            return 134414  -- Hearthstone icon
+        end,
+        setIcon = function(iconTex)
+            iconTex:SetTexture(134414)
+            iconTex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        end,
+        onClick = function(self, _btn)
+            pcall(function()
+                if not addon.Vista or not addon.Vista.GetTeleportMenuEntries then return end
+                local inCombat = InCombatLockdown()
+                local menu = Vista._teleportMenu
+                if menu and menu:IsShown() then
+                    if not inCombat then menu:Hide() end  -- can't hide a frame parenting secure rows in combat
+                    return
+                end
+                if inCombat then return end  -- menu builds/positions secure rows; out of combat only
+                menu = TP_EnsureMenu()
+                if not menu then return end
+                menu._page = 1
+                LayoutTeleportMenu(menu)
+                menu:ClearAllPoints()
+                menu:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -2)
+                menu:Show()
+            end)
+        end,
+    },
 }
 
 SuppressDefaultBlizzardButtons = function()
@@ -1874,10 +2240,12 @@ RefreshDefaultButtonProxiesFromDB = function()
     local showFuncs = {
         tracking = G.ShowTracking,
         calendar = G.ShowCalendar,
+        teleport = G.ShowTeleport,
     }
     local mouseoverFuncs = {
         tracking = G.MouseoverTracking,
         calendar = G.MouseoverCalendar,
+        teleport = G.MouseoverTeleport,
     }
     for _, proxy in ipairs(defaultProxies) do
         local key = proxy._vistaKey
@@ -1936,10 +2304,12 @@ CreateDefaultButtonProxies = function()
     local showFuncs = {
         tracking = G.ShowTracking,
         calendar = G.ShowCalendar,
+        teleport = G.ShowTeleport,
     }
     local mouseoverFuncs = {
         tracking = G.MouseoverTracking,
         calendar = G.MouseoverCalendar,
+        teleport = G.MouseoverTeleport,
     }
 
     for _, def in ipairs(DEFAULT_BTN_DEFS) do
@@ -3746,6 +4116,7 @@ local VISTA_OPTION_KEYS_SKIP_MINIMAP_COLLECT = {
     vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true, vistaDiffVerticalPos = true,
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
+    vistaShowTeleport = true, vistaMouseoverTeleport = true,
     vistaEX_zone = true, vistaEY_zone = true,
     vistaEX_coord = true, vistaEY_coord = true,
     vistaEX_time = true, vistaEY_time = true,
