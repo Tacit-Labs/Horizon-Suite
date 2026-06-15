@@ -972,14 +972,20 @@ function Augment.HookNativeEditMode()
     end, "HorizonSuiteAugment")
     EventRegistry:RegisterCallback("EditMode.Exit", function()
         if not IsReady() then return end
-        state.nativeEditMode = false
-        if not state.editMode then
-            editOverlay:EnableMouse(false)
-            editOverlay:Hide()
-        end
-        if editModePanel then editModePanel:Hide() end
-        SaveFramePosition()
-        if state.activeCount == 0 and not state.editMode then Frame:Hide() end
+        -- Defer to next frame so Blizzard's synchronous EditMode exit chain
+        -- (ResetPartyFrames → CompactUnitFrame_UpdateHealthColor) completes before
+        -- any addon code runs. Running here synchronously taints GetStatusBarColor()
+        -- return values, causing a "secret number" comparison error on line 693.
+        C_Timer.After(0, function()
+            state.nativeEditMode = false
+            if not state.editMode then
+                editOverlay:EnableMouse(false)
+                editOverlay:Hide()
+            end
+            if editModePanel then editModePanel:Hide() end
+            SaveFramePosition()
+            if state.activeCount == 0 and not state.editMode then Frame:Hide() end
+        end)
     end, "HorizonSuiteAugment")
     CreateEditModePanel()
 end
