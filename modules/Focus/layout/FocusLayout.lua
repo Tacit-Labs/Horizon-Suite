@@ -1310,9 +1310,11 @@ local function FullLayout()
                         end
                     end
 
-                    if not InCombatLockdown() or entry:IsShown() then
+                    if not InCombatLockdown() then
                         entry:Show()
-                    else
+                    elseif not entry:IsShown() then
+                        -- Already-shown entries don't need re-showing; only defer when
+                        -- an entry that isn't visible yet would be blocked by combat lockdown.
                         addon.focus.layoutPendingAfterCombat = true
                     end
                     entry._scrollFadeSpacing = entrySpacing

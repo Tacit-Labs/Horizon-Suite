@@ -313,24 +313,11 @@ local function OnAddonLoaded(addonName)
 end
 
 local function OnPlayerRegenDisabled()
-    if not InCombatLockdown() and addon.pool then
-        for i = 1, (addon.POOL_SIZE or 0) do
-            local entry = addon.pool[i]
-            if entry then
-                local btns = {
-                    entry.rareTargetBtn, entry.rareModelBtn,
-                    entry.sdTargetBtn, entry.sdModelBtn,
-                }
-                for _, btn in ipairs(btns) do
-                    if btn then
-                        btn:Hide()
-                        btn:ClearAllPoints()
-                    end
-                end
-            end
-        end
-    end
-
+    -- Secure buttons (SecureActionButtonTemplate) on pool entries are hidden by their
+    -- respective integration modules (RareScannerFocus, SilverDragonFocus) when not in
+    -- use. Attempting to hide them here races the combat transition: PLAYER_REGEN_DISABLED
+    -- fires as combat starts and InCombatLockdown() may not have flipped yet, causing
+    -- ADDON_ACTION_BLOCKED on the btn:Hide() calls after a WoW update tightened this window.
     local mode = addon.GetCombatVisibility()
     addon.Log.debug("focus", "Combat start — mode=" .. tostring(mode))
     if (mode ~= "hide" and mode ~= "fade") or not addon.focus.enabled then return end
