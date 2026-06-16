@@ -28,7 +28,7 @@ addon.VISTA_KEYS = {
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
     vistaShowTeleport = true, vistaMouseoverTeleport = true,
-    -- Teleport menu: per-group visibility, behaviour toggles, runtime stores
+    -- Teleport menu
     vistaTeleportGroup_hearthstone = true, vistaTeleportGroup_profession = true,
     vistaTeleportGroup_class = true, vistaTeleportGroup_dungeon = true,
     vistaTeleportGroup_event = true, vistaTeleportGroup_other = true,
@@ -143,7 +143,7 @@ addon.VISTA_DEFAULTS = {
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
     vistaShowTeleport = true, vistaMouseoverTeleport = true,
-    -- Teleport menu group visibility + behaviour (favorites/recents tables created lazily, not defaulted)
+    -- Teleport menu (favourites/recents tables are created lazily, so not defaulted here)
     vistaTeleportGroup_hearthstone = true, vistaTeleportGroup_profession = true,
     vistaTeleportGroup_class = true, vistaTeleportGroup_dungeon = true,
     vistaTeleportGroup_event = true, vistaTeleportGroup_other = true,

@@ -1,8 +1,8 @@
 --[[
     Horizon Suite - Vista - Teleports
-    Curated catalogue of teleport toys, items, and class spells, plus a helper
-    that returns only those the current character has unlocked. Consumed by the
-    Vista teleport proxy button (see VistaCore.lua DEFAULT_BTN_DEFS).
+    Catalogue of teleport toys, items, and class spells, plus a helper that
+    returns only those the current character has unlocked. Read by the Vista
+    teleport proxy button (see VistaCore.lua DEFAULT_BTN_DEFS).
 ]]
 
 local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite
@@ -56,11 +56,9 @@ addon.Vista.TeleportCatalog = {
 
     -- Engineering wormhole toys
     { kind = "toy",   id = 87215,  group = "profession" }, -- Wormhole Generator: Pandaria
-    { kind = "toy",   id = 153716, group = "profession" }, -- Wormhole Generator: Argus
     { kind = "toy",   id = 168807, group = "profession" }, -- Wormhole Generator: Kul Tiras
     { kind = "toy",   id = 168808, group = "profession" }, -- Wormhole Generator: Zandalar
-    { kind = "toy",   id = 198156, group = "profession" }, -- Wormhole Generator: Dragon Isles
-    { kind = "toy",   id = 219030, group = "profession" }, -- Wormhole Generator: Khaz Algar
+    { kind = "toy",   id = 198156, group = "profession" }, -- Wyrmhole Generator: Dragon Isles
 
     -- Class teleports (spells)
     { kind = "spell", id = 556,    group = "class" }, -- Astral Recall (Shaman)
@@ -68,14 +66,13 @@ addon.Vista.TeleportCatalog = {
     { kind = "spell", id = 193753, group = "class" }, -- Dreamwalk (Druid)
     { kind = "spell", id = 50977,  group = "class" }, -- Death Gate (Death Knight)
     { kind = "spell", id = 126892, group = "class" }, -- Zen Pilgrimage (Monk)
-    { kind = "spell", id = 193759, group = "class" }, -- Hall of the Guardian (Mage)
+    { kind = "spell", id = 193759, group = "class" }, -- Teleport: Hall of the Guardian (Mage)
 
     -- Mage teleports / portals (subset; player only sees what they know)
     { kind = "spell", id = 3561,   group = "class" }, -- Teleport: Stormwind
     { kind = "spell", id = 3562,   group = "class" }, -- Teleport: Ironforge
     { kind = "spell", id = 3565,   group = "class" }, -- Teleport: Darnassus
     { kind = "spell", id = 32271,  group = "class" }, -- Teleport: Exodar
-    { kind = "spell", id = 49361,  group = "class" }, -- Teleport: Theramore
     { kind = "spell", id = 33690,  group = "class" }, -- Teleport: Shattrath (Alliance)
     { kind = "spell", id = 88342,  group = "class" }, -- Teleport: Tol Barad (Alliance)
     { kind = "spell", id = 132621, group = "class" }, -- Teleport: Vale of Eternal Blossoms (Alliance)
@@ -107,7 +104,7 @@ addon.Vista.TeleportCatalog = {
     { kind = "toy",   id = 48933,  group = "profession" }, -- Wormhole Generator: Northrend
     { kind = "toy",   id = 112059, group = "profession" }, -- Wormhole Centrifuge
     { kind = "toy",   id = 172924, group = "profession" }, -- Wormhole Generator: Shadowlands
-    { kind = "toy",   id = 221966, group = "profession" }, -- Wormhole Generator: Khaz Algar (221965 is the Prototype)
+    { kind = "toy",   id = 221966, group = "profession" }, -- Wormhole Generator: Khaz Algar
     { kind = "toy",   id = 18986,  group = "profession" }, -- Ultrasafe Transporter: Gadgetzan
     { kind = "toy",   id = 30544,  group = "profession" }, -- Ultrasafe Transporter: Toshley's Station
     { kind = "toy",   id = 18984,  group = "profession" }, -- Dimensional Ripper - Everlook
@@ -135,8 +132,8 @@ addon.Vista.TeleportCatalog = {
     { kind = "spell", id = 49360,  group = "class" }, -- Portal: Theramore (Alliance)
     { kind = "spell", id = 35717,  group = "class" }, -- Portal: Shattrath (Horde)
     { kind = "spell", id = 33691,  group = "class" }, -- Portal: Shattrath (Alliance)
-    { kind = "spell", id = 32267,  group = "class" }, -- Portal: Silvermoon (Horde, TBC)
-    { kind = "spell", id = 32272,  group = "class" }, -- Teleport: Silvermoon (Horde, TBC)
+    { kind = "spell", id = 32267,  group = "class" }, -- Portal: Silvermoon (Horde, Burning Crusade)
+    { kind = "spell", id = 32272,  group = "class" }, -- Teleport: Silvermoon (Horde, Burning Crusade)
     { kind = "spell", id = 32266,  group = "class" }, -- Portal: Exodar (Alliance)
     { kind = "spell", id = 10059,  group = "class" }, -- Portal: Stormwind (Alliance)
     { kind = "spell", id = 11416,  group = "class" }, -- Portal: Ironforge (Alliance)
@@ -237,8 +234,6 @@ addon.Vista.TeleportCatalog = {
     -- Event / other teleport toys & items
     { kind = "toy",   id = 205255, group = "other" }, -- Niffen Diggin' Mitts (Zaralek Cavern)
     { kind = "toy",   id = 243056, group = "event" }, -- Delver's Mana-Bound Ethergate
-    { kind = "toy",   id = 169297, group = "event" }, -- Stormpike Insignia (Alterac Valley, Alliance)
-    { kind = "toy",   id = 169298, group = "event" }, -- Frostwolf Insignia (Alterac Valley, Horde)
     { kind = "item",  id = 234389, group = "other" }, -- Gallagio Loyalty Rewards Card: Silver
     { kind = "item",  id = 234390, group = "other" }, -- Gallagio Loyalty Rewards Card: Gold
 }
@@ -285,10 +280,10 @@ local function ResolveEntry(entry)
     end
 
     if kind == "spell" then
-        local known = false
-        if IsPlayerSpell then known = IsPlayerSpell(id) end
-        if not known and IsSpellKnown then known = IsSpellKnown(id) end
-        if not known then return nil end
+        -- C_SpellBook.IsSpellKnown (11.2.0+) replaces the removed IsPlayerSpell /
+        -- IsSpellKnown globals; true for spells in the player's spellbook.
+        if not C_SpellBook or not C_SpellBook.IsSpellKnown then return nil end
+        if not C_SpellBook.IsSpellKnown(id) then return nil end
         if not C_Spell or not C_Spell.GetSpellInfo then return nil end
         local info = C_Spell.GetSpellInfo(id)
         if not info or not info.name then return nil end
@@ -325,9 +320,18 @@ local function GroupEnabled(group)
     return addon.GetDB("vistaTeleportGroup_" .. g, true) and true or false
 end
 
--- Returns an ordered list of entries the player has unlocked. Sort order:
--- group (hearthstone → profession → class → dungeon → event → other), then name
--- within group. Groups disabled in options are filtered out.
+-- True when every teleport group toggle is off, so the menu's empty state can
+-- distinguish "nothing unlocked" from "all groups hidden".
+function addon.Vista.AllTeleportGroupsHidden()
+    for g in pairs(KNOWN_GROUPS) do
+        if addon.GetDB("vistaTeleportGroup_" .. g, true) then return false end
+    end
+    return true
+end
+
+-- Returns an ordered list of entries the player has unlocked, sorted by group
+-- (following GROUP_ORDER) then by name within each group. Groups disabled in
+-- options are filtered out.
 function addon.Vista.GetUnlockedTeleports()
     local out = {}
     local catalog = addon.Vista.TeleportCatalog
@@ -350,7 +354,7 @@ end
 -- Favorites + recently-used (per-character, under the active Vista profile)
 -- ============================================================================
 
-local RECENT_CAP = 8
+local RECENT_CAP = 5
 
 -- Stable identity for a teleport entry, e.g. "spell:3561" / "toy:140192".
 function addon.Vista.TeleportKey(kind, id)
@@ -428,7 +432,7 @@ function addon.Vista.GetTeleportMenuEntries()
 
     if enableFav then
         local favSet = addon.Vista.GetTeleportFavorites()
-        local favLabel = (L and L["VISTA_TELEPORT_FAVORITES"]) or "Favorites"
+        local favLabel = (L and L["VISTA_TELEPORT_FAVOURITES"]) or "Favourites"
         for i = 1, #unlocked do
             local e = unlocked[i]
             local k = TeleportKey(e.kind, e.id)

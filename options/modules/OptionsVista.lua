@@ -86,9 +86,9 @@ local categories = {
             Header(L["VISTA_TELEPORT_MENU_BEHAVIOUR"]),
             Toggle(L["VISTA_TELEPORT_SHOW_COOLDOWNS"], L["VISTA_SHOW_COOLDOWN_SWIPE_ON_TELEPORT_ROWS"], "vistaTeleportShowCooldowns", D.vistaTeleportShowCooldowns),
             Toggle(L["VISTA_TELEPORT_SHOW_RECENTS"], L["VISTA_SHOW_RECENTLY_USED_TELEPORTS_AT_TOP"], "vistaTeleportShowRecents", D.vistaTeleportShowRecents),
-            Toggle(L["VISTA_TELEPORT_ENABLE_FAVORITES"], L["VISTA_ALLOW_PINNING_FAVORITE_TELEPORTS"], "vistaTeleportEnableFavorites", D.vistaTeleportEnableFavorites, { tooltip = L["VISTA_RIGHT_CLICK_A_ROW_TO_FAVORITE_IT"] }),
+            Toggle(L["VISTA_TELEPORT_ENABLE_FAVOURITES"], L["VISTA_ALLOW_PINNING_FAVOURITE_TELEPORTS"], "vistaTeleportEnableFavorites", D.vistaTeleportEnableFavorites, { tooltip = L["VISTA_CLICK_STAR_TO_FAVOURITE_TELEPORT"] }),
             Button(L["VISTA_TELEPORT_CLEAR_RECENT"], L["VISTA_TELEPORT_CLEAR_RECENT_DESC"], function() setDB("vistaTeleportRecent", {}) end),
-            Button(L["VISTA_TELEPORT_CLEAR_FAVORITES"], L["VISTA_TELEPORT_CLEAR_FAVORITES_DESC"], function() setDB("vistaTeleportFavorites", {}) end),
+            Button(L["VISTA_TELEPORT_CLEAR_FAVOURITES"], L["VISTA_TELEPORT_CLEAR_FAVOURITES_DESC"], function() setDB("vistaTeleportFavorites", {}) end),
         },
     },
     {
