@@ -1,8 +1,8 @@
 --[[
     Horizon Suite - Augment - Self Highlight
-    Manages WoW's native self-highlight effect (findYourself CVars) based on
-    combat state and target hostility. Activates the configured mode on trigger,
-    restores all CVars to 0 when neither trigger is active.
+    Applies WoW's native findYourself CVars with combat-only gating via
+    findYourselfAnywhereOnlyInCombat. Captures and restores pre-existing CVar
+    state on enable/disable so the user's native settings are not permanently altered.
 ]]
 
 local addon = _G.HorizonSuite
@@ -14,8 +14,6 @@ local Y = addon.Augment
 Y.DB_KEYS.augmentSelfHighlightEnabled = true
 Y.DB_KEYS.selfHighlightEnabled        = true
 Y.DB_KEYS.selfHighlightMode           = true
-Y.DB_KEYS.selfHighlightCombat         = true
-Y.DB_KEYS.selfHighlightHostile        = true
 
 -- ============================================================================
 -- CVar map per highlight mode
@@ -31,59 +29,44 @@ local MODE_CONFIG = {
     outlineicon   = { mode = 5, outline = 1, circle = 0, icon = 1 },
 }
 
+local MANAGED_CVARS = {
+    "selfHighlight",
+    "findYourselfMode",
+    "findYourselfModeOutline",
+    "findYourselfModeCircle",
+    "findYourselfModeIcon",
+    "findYourselfAnywhere",
+    "findYourselfAnywhereOnlyInCombat",
+}
+
 -- ============================================================================
--- CVar helpers
+-- Native CVar capture / restore
 -- ============================================================================
 
--- Cache the last applied state so SetCVar is only called on actual changes.
--- Calling SetCVar fires CVAR_UPDATE in the same tick; if that tick also contains
--- action-bar event handlers, WoW taints the cooldown context and produces
--- "Secret values are only allowed during untainted execution" errors on every
--- action button (34000+ times in a normal session with a 0.5 s ticker).
---
--- The combat trigger inherently requires toggling a CVar *in* combat (the
--- highlight must appear during the fight), so it cannot be deferred to
--- PLAYER_REGEN_ENABLED. We minimise the in-combat churn instead: the static
--- findYourself* mode config is written only when the mode changes (ideally out of
--- combat, see SH.Enable), so a combat-start/-end transition toggles just the single
--- `selfHighlight` CVar rather than all seven.
-local activeMode  = nil   -- highlight on/off intent: mode key = on, false = off, nil = unknown
-local appliedMode = nil   -- mode whose static config CVars are currently written
+local nativeCVarState = nil
 
--- Write the static findYourself* config CVars for a mode. Idempotent per mode.
-local function ApplyModeConfig(modeKey)
-    if appliedMode == modeKey then return end
-    appliedMode = modeKey
-    local cfg = MODE_CONFIG[modeKey] or MODE_CONFIG.outlinecircle
-    SetCVar("findYourselfMode",                 cfg.mode)
-    SetCVar("findYourselfModeOutline",          cfg.outline)
-    SetCVar("findYourselfModeCircle",           cfg.circle)
-    SetCVar("findYourselfModeIcon",             cfg.icon)
-    SetCVar("findYourselfAnywhere",             1)
-    -- Never restrict to combat-only at the CVar level; the Lua layer owns that logic.
-    SetCVar("findYourselfAnywhereOnlyInCombat", 0)
+local function CaptureNativeCVars()
+    if nativeCVarState then return end
+    nativeCVarState = {}
+    for _, key in ipairs(MANAGED_CVARS) do
+        nativeCVarState[key] = GetCVar(key)
+    end
 end
 
-local function SetHighlight(modeKey)
-    if activeMode == modeKey then return end
-    activeMode = modeKey
-    ApplyModeConfig(modeKey)   -- no-op when the mode is unchanged
-    SetCVar("selfHighlight", 1)
-end
-
-local function ClearHighlight()
-    if activeMode == false then return end
-    activeMode = false
-    -- selfHighlight is the master gate; 0 disables the effect regardless of the
-    -- (retained) mode config, so we only toggle this one CVar.
-    SetCVar("selfHighlight", 0)
+local function RestoreNativeCVars()
+    if not nativeCVarState then return end
+    for _, key in ipairs(MANAGED_CVARS) do
+        if nativeCVarState[key] ~= nil then
+            SetCVar(key, nativeCVarState[key])
+        end
+    end
+    nativeCVarState = nil
 end
 
 -- ============================================================================
--- Core evaluation
+-- Apply
 -- ============================================================================
 
--- getDB helper: explicit nil-check so a stored `false` is not replaced by the default.
 local function getDB(k, d)
     if not addon.GetDB then return d end
     local v = addon.GetDB(k, d)
@@ -91,46 +74,35 @@ local function getDB(k, d)
     return v
 end
 
-local function Evaluate()
-    if not (addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false)) then
-        ClearHighlight()
-        return
-    end
-    local inCombat = UnitAffectingCombat("player")
-    local hostile  = UnitExists("target") and UnitCanAttack("player", "target")
-    local trigger  = (getDB("selfHighlightCombat",  true) and inCombat)
-                  or (getDB("selfHighlightHostile", true) and hostile)
-    if trigger then
-        local D = addon.AUGMENT_DEFAULTS
-        SetHighlight(getDB("selfHighlightMode", D and D.selfHighlightMode or "outlinecircle"))
-    else
-        ClearHighlight()
-    end
+local function ApplyHighlight()
+    local D = addon.AUGMENT_DEFAULTS
+    local modeKey = getDB("selfHighlightMode", D and D.selfHighlightMode or "outlinecircle")
+    local cfg = MODE_CONFIG[modeKey] or MODE_CONFIG.outlinecircle
+    SetCVar("selfHighlight",                    1)
+    SetCVar("findYourselfMode",                 cfg.mode)
+    SetCVar("findYourselfModeOutline",          cfg.outline)
+    SetCVar("findYourselfModeCircle",           cfg.circle)
+    SetCVar("findYourselfModeIcon",             cfg.icon)
+    SetCVar("findYourselfAnywhere",             1)
+    -- Delegate combat-only gating to WoW's native system rather than managing
+    -- selfHighlight on/off from Lua, which proved unreliable (selfHighlight=0
+    -- did not override findYourselfAnywhere=1 and the highlight stayed visible).
+    SetCVar("findYourselfAnywhereOnlyInCombat", 1)
 end
 
 -- ============================================================================
--- Event frame + safety ticker
+-- Event frame (re-apply after zone transitions)
 -- ============================================================================
 
 local eventFrame = CreateFrame("Frame")
-local ticker
-
-local function StopTicker()
-    if ticker then ticker:Cancel() end
-    ticker = nil
-end
-
-local function StartTicker()
-    if ticker then return end
-    ticker = C_Timer.NewTicker(0.5, Evaluate)
-end
-
 eventFrame:SetScript("OnEvent", function(_, event)
-    -- Delay after zone/world transitions so WoW's own defaults settle first.
-    if event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_ENTERING_WORLD" then
-        C_Timer.After(1, Evaluate)
-    else
-        Evaluate()
+    if event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+        -- Delay so WoW's own CVar restoration from SavedVariables settles first.
+        C_Timer.After(1, function()
+            if addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false) then
+                ApplyHighlight()
+            end
+        end)
     end
 end)
 
@@ -142,27 +114,16 @@ local SH = {}
 Y.SelfHighlight = SH
 
 function SH.Enable()
-    activeMode  = nil  -- invalidate cache so first Evaluate() always writes selfHighlight
-    appliedMode = nil
-    eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-    eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-    eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    CaptureNativeCVars()
+    ApplyHighlight()
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-    StartTicker()
-    -- Pre-write the static mode config now (Enable typically runs out of combat) so
-    -- the first combat-start transition only has to toggle the single selfHighlight CVar.
-    local D = addon.AUGMENT_DEFAULTS
-    ApplyModeConfig(getDB("selfHighlightMode", D and D.selfHighlightMode or "outlinecircle"))
-    Evaluate()
 end
 
 function SH.Disable()
     eventFrame:UnregisterAllEvents()
-    StopTicker()
-    ClearHighlight()
+    RestoreNativeCVars()
 end
 
-function SH.Evaluate()
-    Evaluate()
-end
+-- Called from AugmentCore; no-op since combat gating is now handled by WoW natively.
+function SH.Evaluate() end

@@ -13,8 +13,5 @@ local D = addon.AUGMENT_DEFAULTS
 -- Self Highlight mini-module master switch (pill)
 D.augmentSelfHighlightEnabled = false
 
--- Per-setting state (retained for DB compat with older profiles)
 D.selfHighlightEnabled        = false
 D.selfHighlightMode           = "outlinecircle"
-D.selfHighlightCombat         = true
-D.selfHighlightHostile        = true

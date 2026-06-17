@@ -335,8 +335,6 @@ local categories = {
                     get = function() return getDB("selfHighlightMode", D.selfHighlightMode) end,
                     set = function(v) setDB("selfHighlightMode", v) end,
                 },
-                Toggle(L["AUGMENT_SELF_HIGHLIGHT_COMBAT"],  L["AUGMENT_SELF_HIGHLIGHT_COMBAT_DESC"],  "selfHighlightCombat",  D.selfHighlightCombat),
-                Toggle(L["AUGMENT_SELF_HIGHLIGHT_HOSTILE"], L["AUGMENT_SELF_HIGHLIGHT_HOSTILE_DESC"], "selfHighlightHostile", D.selfHighlightHostile),
             }
         end,
     },
