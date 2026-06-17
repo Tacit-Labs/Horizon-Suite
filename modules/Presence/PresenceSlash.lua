@@ -109,9 +109,10 @@ local function HandlePresenceDebugSlash(msg)
 
     if cmd == "" or cmd == "help" then
         HSPrint("Presence debug commands (/h debug presence [cmd]):")
-        HSPrint("  debug      - Dump state to chat")
-        HSPrint("  debugtypes - Dump notification toggles and Blizzard suppression state")
-        HSPrint("  debuglive  - Toggle live debug panel (log as events happen)")
+        HSPrint("  debug       - Dump state to chat")
+        HSPrint("  debugtypes  - Dump notification toggles and Blizzard suppression state")
+        HSPrint("  debuglive   - Toggle live debug panel (log as events happen)")
+        HSPrint("  debugtoasts - Toggle EventToast payload logging (for Abundance detection)")
         return
     end
 
@@ -132,6 +133,14 @@ local function HandlePresenceDebugSlash(msg)
         end
         local on = addon.Presence.ToggleDebugLive and addon.Presence.ToggleDebugLive()
         HSPrint("Presence live debug: " .. (on and "on" or "off"))
+
+    elseif cmd == "debugtoasts" then
+        if addon.Presence.ToggleDebugEventToasts then
+            local on = addon.Presence.ToggleDebugEventToasts()
+            HSPrint("Presence event-toast logging: " .. (on and "on - trigger a toast and paste the chat output" or "off"))
+        else
+            HSPrint("ToggleDebugEventToasts not available")
+        end
 
     else
         HSPrint("Unknown debug command. Use /h debug presence for help.")
