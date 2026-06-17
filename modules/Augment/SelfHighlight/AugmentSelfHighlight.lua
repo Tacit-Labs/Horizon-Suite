@@ -3,8 +3,10 @@
     Applies WoW's native findYourself CVars with combat-only gating via
     findYourselfAnywhereOnlyInCombat. When the hostile-target option is on,
     targeting an attackable unit temporarily clears that gate so the highlight
-    shows outside of combat too. Captures and restores pre-existing CVar state
-    on enable/disable so the user's native settings are not permanently altered.
+    shows outside of combat too.
+
+    CVars persist to disk across sessions, so the event frame always listens
+    for PLAYER_ENTERING_WORLD and clears stale CVars when the module is off.
 ]]
 
 local addon = _G.HorizonSuite
@@ -32,42 +34,8 @@ local MODE_CONFIG = {
     outlineicon   = { mode = 5, outline = 1, circle = 0, icon = 1 },
 }
 
-local MANAGED_CVARS = {
-    "selfHighlight",
-    "findYourselfMode",
-    "findYourselfModeOutline",
-    "findYourselfModeCircle",
-    "findYourselfModeIcon",
-    "findYourselfAnywhere",
-    "findYourselfAnywhereOnlyInCombat",
-}
-
 -- ============================================================================
--- Native CVar capture / restore
--- ============================================================================
-
-local nativeCVarState = nil
-
-local function CaptureNativeCVars()
-    if nativeCVarState then return end
-    nativeCVarState = {}
-    for _, key in ipairs(MANAGED_CVARS) do
-        nativeCVarState[key] = GetCVar(key)
-    end
-end
-
-local function RestoreNativeCVars()
-    if not nativeCVarState then return end
-    for _, key in ipairs(MANAGED_CVARS) do
-        if nativeCVarState[key] ~= nil then
-            SetCVar(key, nativeCVarState[key])
-        end
-    end
-    nativeCVarState = nil
-end
-
--- ============================================================================
--- Apply / evaluate
+-- Apply / clear / evaluate
 -- ============================================================================
 
 local function getDB(k, d)
@@ -91,10 +59,17 @@ local function ApplyHighlight()
     SetCVar("findYourselfAnywhereOnlyInCombat", 1)
 end
 
+-- Zeros out the CVars we own. Called on disable and on load when the module
+-- is off, to clear any values that were persisted from a previous session.
+local function ClearHighlight()
+    SetCVar("selfHighlight",                    0)
+    SetCVar("findYourselfAnywhere",             0)
+    SetCVar("findYourselfAnywhereOnlyInCombat", 0)
+end
+
 -- Toggles findYourselfAnywhereOnlyInCombat based on hostile target state.
 -- When targeting a hostile: clear the combat gate so the highlight shows outside
 -- combat too. Otherwise keep it combat-only and let WoW handle the gating natively.
--- selfHighlight stays at 1 throughout — we never fight Blizzard's CVar restoration.
 local function Evaluate()
     if not (addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false)) then return end
     local hostile = getDB("selfHighlightHostile", true)
@@ -104,10 +79,12 @@ local function Evaluate()
 end
 
 -- ============================================================================
--- Event frame
+-- Event frame — always registered, handles both enabled and disabled state
 -- ============================================================================
 
 local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+
 eventFrame:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
         -- Delay so WoW's own CVar restoration from SavedVariables settles first.
@@ -115,6 +92,9 @@ eventFrame:SetScript("OnEvent", function(_, event)
             if addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false) then
                 ApplyHighlight()
                 Evaluate()
+            else
+                -- Module is off but CVars may be dirty from a previous session.
+                ClearHighlight()
             end
         end)
     elseif event == "PLAYER_TARGET_CHANGED" then
@@ -130,17 +110,16 @@ local SH = {}
 Y.SelfHighlight = SH
 
 function SH.Enable()
-    CaptureNativeCVars()
     ApplyHighlight()
     Evaluate()
-    eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 end
 
 function SH.Disable()
-    eventFrame:UnregisterAllEvents()
-    RestoreNativeCVars()
+    eventFrame:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
+    eventFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
+    ClearHighlight()
 end
 
 -- Called from AugmentCore and the options page to re-check hostile target state.
