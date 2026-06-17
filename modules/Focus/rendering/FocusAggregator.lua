@@ -648,7 +648,7 @@ local function ReadTrackedQuests()
     if addon.CollectWorldQuests then
         wqEntries = addon.CollectWorldQuests(ctx) or {}
     end
-    local showWorldQuests = addon.GetDB("showWorldQuests", true)
+    local showWorldQuests = addon.GetDB("focusShowWorldQuests", true)
     for _, e in ipairs(wqEntries) do
         local opts = e.opts or {}
         local isBlacklisted = (usePermanent and permanentBlacklist[e.questID]) or (not usePermanent and recentlyUntrackedWQ and recentlyUntrackedWQ[e.questID])
