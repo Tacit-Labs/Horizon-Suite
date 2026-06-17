@@ -394,7 +394,6 @@ function Insight.GetBackdropColor(tooltipType)
         end
     end
     local a = tonumber(addon.GetDB("insightBgOpacity", Insight.PANEL_BG[4])) or Insight.PANEL_BG[4]
-    if a > 1 then a = a / 100 end -- legacy: stored as 0-100
     return r, g, b, a
 end
 

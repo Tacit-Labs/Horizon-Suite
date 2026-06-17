@@ -200,7 +200,7 @@ function addon.GetTimerTextColor(remaining, duration, category, useTimerColor)
     if usePct then
         r, g, b = addon.GetTimerColorByRemainingPct(remaining, duration)
     else
-        r, g, b = addon.GetTimerColorByRemaining(remaining, duration)
+        r, g, b = addon.GetTimerColorByRemaining(remaining)
     end
     return (r or 1), (g or 0.35), (b or 0.35)
 end
@@ -208,9 +208,8 @@ end
 -- Timer color based on absolute time remaining. Used when timerColorByRemaining is on (world quests, etc.).
 -- Green when >=12h left, yellow when <12h, red when <3h.
 -- @param remaining number Seconds remaining
--- @param duration number Total duration in seconds (unused; kept for API compatibility)
 -- @return number r, number g, number b
-function addon.GetTimerColorByRemaining(remaining, duration)
+function addon.GetTimerColorByRemaining(remaining)
     if not remaining or type(remaining) ~= "number" or remaining < 0 then
         local c = addon.TIMER_URGENCY_COLORS and addon.TIMER_URGENCY_COLORS.critical or { 1, 0.35, 0.35 }
         return normalizeTimerColor(c)

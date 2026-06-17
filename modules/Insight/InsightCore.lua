@@ -856,18 +856,6 @@ function Insight.HideEmbeddedPreview()
     if globalItemMock   then globalItemMock:Hide()   end
 end
 
--- @deprecated The right-side pullout is gone; previews are embedded at the top
--- of Insight options pages. Kept as no-ops for any external callers.
-function Insight.TogglePreviewPullout() end
-function Insight.ClosePullout() end
-
--- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
-function Insight.EnsurePreviewTab(dashFrame)
-    if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then
-        addon.DashboardPreview.InitDashboard(dashFrame)
-    end
-end
-
 -- ============================================================================
 -- TRP3 SUPPRESSOR
 -- ============================================================================
