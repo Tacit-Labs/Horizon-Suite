@@ -1,8 +1,10 @@
 --[[
     Horizon Suite - Augment - Self Highlight
     Applies WoW's native findYourself CVars with combat-only gating via
-    findYourselfAnywhereOnlyInCombat. Captures and restores pre-existing CVar
-    state on enable/disable so the user's native settings are not permanently altered.
+    findYourselfAnywhereOnlyInCombat. When the hostile-target option is on,
+    targeting an attackable unit temporarily clears that gate so the highlight
+    shows outside of combat too. Captures and restores pre-existing CVar state
+    on enable/disable so the user's native settings are not permanently altered.
 ]]
 
 local addon = _G.HorizonSuite
@@ -14,6 +16,7 @@ local Y = addon.Augment
 Y.DB_KEYS.augmentSelfHighlightEnabled = true
 Y.DB_KEYS.selfHighlightEnabled        = true
 Y.DB_KEYS.selfHighlightMode           = true
+Y.DB_KEYS.selfHighlightHostile        = true
 
 -- ============================================================================
 -- CVar map per highlight mode
@@ -64,7 +67,7 @@ local function RestoreNativeCVars()
 end
 
 -- ============================================================================
--- Apply
+-- Apply / evaluate
 -- ============================================================================
 
 local function getDB(k, d)
@@ -78,20 +81,30 @@ local function ApplyHighlight()
     local D = addon.AUGMENT_DEFAULTS
     local modeKey = getDB("selfHighlightMode", D and D.selfHighlightMode or "outlinecircle")
     local cfg = MODE_CONFIG[modeKey] or MODE_CONFIG.outlinecircle
-    SetCVar("selfHighlight",                    1)
-    SetCVar("findYourselfMode",                 cfg.mode)
-    SetCVar("findYourselfModeOutline",          cfg.outline)
-    SetCVar("findYourselfModeCircle",           cfg.circle)
-    SetCVar("findYourselfModeIcon",             cfg.icon)
-    SetCVar("findYourselfAnywhere",             1)
-    -- Delegate combat-only gating to WoW's native system rather than managing
-    -- selfHighlight on/off from Lua, which proved unreliable (selfHighlight=0
-    -- did not override findYourselfAnywhere=1 and the highlight stayed visible).
+    SetCVar("selfHighlight",           1)
+    SetCVar("findYourselfMode",        cfg.mode)
+    SetCVar("findYourselfModeOutline", cfg.outline)
+    SetCVar("findYourselfModeCircle",  cfg.circle)
+    SetCVar("findYourselfModeIcon",    cfg.icon)
+    SetCVar("findYourselfAnywhere",    1)
+    -- Default to combat-only; Evaluate() may loosen this for hostile targets.
     SetCVar("findYourselfAnywhereOnlyInCombat", 1)
 end
 
+-- Toggles findYourselfAnywhereOnlyInCombat based on hostile target state.
+-- When targeting a hostile: clear the combat gate so the highlight shows outside
+-- combat too. Otherwise keep it combat-only and let WoW handle the gating natively.
+-- selfHighlight stays at 1 throughout — we never fight Blizzard's CVar restoration.
+local function Evaluate()
+    if not (addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false)) then return end
+    local hostile = getDB("selfHighlightHostile", true)
+                    and UnitExists("target")
+                    and UnitCanAttack("player", "target")
+    SetCVar("findYourselfAnywhereOnlyInCombat", hostile and 0 or 1)
+end
+
 -- ============================================================================
--- Event frame (re-apply after zone transitions)
+-- Event frame
 -- ============================================================================
 
 local eventFrame = CreateFrame("Frame")
@@ -101,8 +114,11 @@ eventFrame:SetScript("OnEvent", function(_, event)
         C_Timer.After(1, function()
             if addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false) then
                 ApplyHighlight()
+                Evaluate()
             end
         end)
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        Evaluate()
     end
 end)
 
@@ -116,8 +132,10 @@ Y.SelfHighlight = SH
 function SH.Enable()
     CaptureNativeCVars()
     ApplyHighlight()
+    Evaluate()
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 end
 
 function SH.Disable()
@@ -125,5 +143,9 @@ function SH.Disable()
     RestoreNativeCVars()
 end
 
--- Called from AugmentCore; no-op since combat gating is now handled by WoW natively.
-function SH.Evaluate() end
+-- Called from AugmentCore and the options page to re-check hostile target state.
+function SH.Evaluate()
+    if addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false) then
+        Evaluate()
+    end
+end

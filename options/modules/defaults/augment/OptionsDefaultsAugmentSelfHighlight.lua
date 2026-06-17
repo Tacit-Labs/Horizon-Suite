@@ -15,3 +15,4 @@ D.augmentSelfHighlightEnabled = false
 
 D.selfHighlightEnabled        = false
 D.selfHighlightMode           = "outlinecircle"
+D.selfHighlightHostile        = true

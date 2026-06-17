@@ -335,6 +335,17 @@ local categories = {
                     get = function() return getDB("selfHighlightMode", D.selfHighlightMode) end,
                     set = function(v) setDB("selfHighlightMode", v) end,
                 },
+                { type = "toggle",
+                    name  = L["AUGMENT_SELF_HIGHLIGHT_HOSTILE"],
+                    desc  = L["AUGMENT_SELF_HIGHLIGHT_HOSTILE_DESC"],
+                    dbKey = "selfHighlightHostile",
+                    get = function() return getDB("selfHighlightHostile", D.selfHighlightHostile) end,
+                    set = function(v)
+                        setDB("selfHighlightHostile", v)
+                        local SH = addon.Augment and addon.Augment.SelfHighlight
+                        if SH then SH.Evaluate() end
+                    end,
+                },
             }
         end,
     },
