@@ -1843,7 +1843,7 @@ local function CreateTeleportRow(menu, idx)
     row._star:SetScript("OnEnter", function(s)
         if not GameTooltip then return end
         GameTooltip:SetOwner(s, "ANCHOR_RIGHT")
-        GameTooltip:SetText((L and L["VISTA_TELEPORT_FAVOURITE_TIP"]) or "Favourite", 1, 1, 1, 1, true)
+        GameTooltip:SetText(L["VISTA_TELEPORT_FAVOURITE_TIP"], 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
     row._star:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -1945,9 +1945,9 @@ function LayoutTeleportMenu(menu)
         er:SetPoint("TOPLEFT", menu, "TOPLEFT", TELEPORT_PAD, -TELEPORT_PAD)
         local emptyMsg
         if addon.Vista.AllTeleportGroupsHidden and addon.Vista.AllTeleportGroupsHidden() then
-            emptyMsg = (L and L["VISTA_TELEPORT_ALL_GROUPS_HIDDEN"]) or "All teleport groups are hidden"
+            emptyMsg = L["VISTA_TELEPORT_ALL_GROUPS_HIDDEN"]
         else
-            emptyMsg = (L and L["VISTA_NO_TELEPORTS_UNLOCKED"]) or "No teleports unlocked"
+            emptyMsg = L["VISTA_NO_TELEPORTS_UNLOCKED"]
         end
         er:SetText(emptyMsg)
         er:Show()
@@ -2062,7 +2062,7 @@ function LayoutTeleportMenu(menu)
             pager._prev = CreateFrame("Button", nil, pager, "UIPanelButtonTemplate")
             pager._prev:SetSize(52, TELEPORT_PAGER_H - 4)
             pager._prev:SetPoint("LEFT", pager, "LEFT", TELEPORT_PAD, 0)
-            pager._prev:SetText((L and L["VISTA_TELEPORT_PREV"]) or "Prev")
+            pager._prev:SetText(L["VISTA_TELEPORT_PREV"])
             pager._prev:SetScript("OnClick", function()
                 if InCombatLockdown() then return end
                 menu._page = math.max(1, (menu._page or 1) - 1)
@@ -2071,7 +2071,7 @@ function LayoutTeleportMenu(menu)
             pager._next = CreateFrame("Button", nil, pager, "UIPanelButtonTemplate")
             pager._next:SetSize(52, TELEPORT_PAGER_H - 4)
             pager._next:SetPoint("RIGHT", pager, "RIGHT", -TELEPORT_PAD, 0)
-            pager._next:SetText((L and L["VISTA_TELEPORT_NEXT"]) or "Next")
+            pager._next:SetText(L["VISTA_TELEPORT_NEXT"])
             pager._next:SetScript("OnClick", function()
                 if InCombatLockdown() then return end
                 menu._page = (menu._page or 1) + 1
@@ -2251,7 +2251,7 @@ local DEFAULT_BTN_DEFS = {
         names   = {},  -- no Blizzard frame to suppress; this is a Horizon-only proxy
         anchor  = "BOTTOMRIGHT",
         xOff    = -VISTA_MINIMAP_CORNER_INSET, yOff = VISTA_MINIMAP_CORNER_INSET,
-        tooltip = (L and L["VISTA_TELEPORT_TOOLTIP"]) or "Teleports",
+        tooltip = L["VISTA_TELEPORT_BUTTON_TIP"],
         getIcon = function()
             return 134414  -- Hearthstone icon
         end,

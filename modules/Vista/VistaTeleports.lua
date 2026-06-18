@@ -25,7 +25,7 @@ local GROUP_ORDER = {
 -- so a missing locale at file scope can never cascade into a load-time error).
 function addon.Vista.GroupLabel(group)
     local key = "VISTA_TELEPORT_GROUP_" .. string.upper(group or "other")
-    return (L and L[key]) or group or "Other"
+    return L[key]
 end
 
 addon.Vista.TeleportCatalog = {
@@ -432,7 +432,7 @@ function addon.Vista.GetTeleportMenuEntries()
 
     if enableFav then
         local favSet = addon.Vista.GetTeleportFavorites()
-        local favLabel = (L and L["VISTA_TELEPORT_FAVOURITES"]) or "Favourites"
+        local favLabel = L["VISTA_TELEPORT_FAVOURITES"]
         for i = 1, #unlocked do
             local e = unlocked[i]
             local k = TeleportKey(e.kind, e.id)
@@ -447,7 +447,7 @@ function addon.Vista.GetTeleportMenuEntries()
 
     if showRecent then
         local recents = addon.Vista.GetTeleportRecents()
-        local recLabel = (L and L["VISTA_TELEPORT_RECENT"]) or "Recent"
+        local recLabel = L["VISTA_TELEPORT_RECENT"]
         for i = 1, #recents do
             local k = recents[i]
             local e = byKey[k]
