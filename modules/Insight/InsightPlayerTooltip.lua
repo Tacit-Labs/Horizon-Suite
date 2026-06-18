@@ -886,21 +886,23 @@ function Insight.AddTargetingBlock(tooltip, unit, sepR, sepG, sepB)
     local targetName = nil
 
     -- Resolve target unit token.
-    -- After TWW patch the tooltip:GetUnit() return value may be a secret unit token
-    -- in tainted (combat) execution. Concatenating a secret string throws even inside
-    -- a pcall on Midnight, so `unit .. "target"` silently fails and we returned nil.
-    -- Fix: prefer "mouseovertarget" whenever the mouseover is populated — it is always
-    -- the correct token while hovering a unit in the world and never requires touching
-    -- the (possibly secret) unit string. Only fall back to constructing the token for
-    -- party/raid members who are in a different zone (not the mouseover unit).
+    -- When the hovered unit is a party/raid member, tooltip:GetUnit() returns the
+    -- party token (e.g. "party1") rather than "mouseover". WoW doesn't always sync
+    -- party member target data to the client, so "party1target" may not exist even
+    -- when they have a target. If this unit is also the current mouseover, prefer
+    -- "mouseovertarget" which is always populated while hovering.
+    -- `unit` may itself be a secret token (tooltip:GetUnit() on Midnight), so even
+    -- the `unit .. "target"` concatenation can throw — isolate it in its own pcall.
     local targetUnit
-    if Insight.SafeUnitExistsKnown and Insight.SafeUnitExistsKnown("mouseover") == true then
-        targetUnit = "mouseovertarget"
-    else
-        -- Off-zone party/raid member: unit is a plain party/raid token here.
-        pcall(function() targetUnit = unit .. "target" end)
-    end
+    pcall(function() targetUnit = unit .. "target" end)
     if not targetUnit then return end
+    if targetUnit ~= "mouseovertarget" then
+        local isMO = false
+        pcall(function()
+            if UnitIsUnit(unit, "mouseover") then isMO = true end
+        end)
+        if isMO then targetUnit = "mouseovertarget" end
+    end
 
     -- UnitExists can return a secret boolean in tainted execution (securecallfunction).
     -- `if secretBool then` throws, so isolate the probe in its own pcall (SafeUnitExistsKnown
