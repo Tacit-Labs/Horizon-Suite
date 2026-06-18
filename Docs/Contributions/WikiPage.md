@@ -1,0 +1,61 @@
+# Policies & Procedures
+
+Some of the development team utilise the terminal itself while others utilise IDEs[^1], including **VS Code**[^2] and **Cursor**[^3].
+
+## GitHub
+
+The `main` branch is **strictly** for releases.  
+The `dev` branch is where all code changes go before entering the next release from main.
+
+Releases into `main` occur when possible on a weekly schedule.  
+Otherwise, when next justifiable for the number of changes introduced. 
+
+See the following for further information.* <-- Not Yet Updated D/t **Wiki Page Not Yet Created**
+|GitHub|Corresponding File|
+|---------|----|
+|**`Issues`**|`Docs/Contributions/Repository/GitHubIssues.md`|
+|**`Branches`**|`Docs/Contributions/Repository/GitHubBranches.md`|
+|**`Pull Requests`**|`Docs/Contributions/Repository/GitHubPRs.md`|
+
+## Discord
+
+Horizon Suite's Discord[^4] is the primary method of communication used when conversing about development.  
+
+In the Official Horizon Suite Discord, staff will have one of the following roles (in order of priority):  
+|Title|Role|Members|
+|-|-|-|
+|Lead Arcanist|Author|Crystilac|
+|Silvermoon Archivist|Coordinator|Swift|
+|Star Seer|Innovator|Diva|
+|Astromancer|Developer|ProgrammingSam, Alex, Marthix, Kariak|
+|Spellbreaker|Moderator|Boofuls|
+  
+See below for channels used by the development team.
+
+|◈ THE FORGE|Description|
+|-|:-|
+|**#the-core**|A centralised container for miscellaneous conversations about whatever is encountered.|
+|**#github-pulse**|An automated feed of every comment/PR/Issue on creation, modification, or deletion.|
+
+|◈ THE NIGHTWELL|Description|
+|-|:-|
+|**#the-nightspire**|A centralised container of the Innovator's flow of ideas in their preferred format.|
+|**#the-menagerie**|An eventual "sneak-peek" channel for patrons and other supporters.|
+|**#the-vigil**|A centralised container of the Coordinator's comments, questions, and concerns.|
+
+<br>
+
+## Rules & Regulations [Not Yet Updated]
+
+**Contributions are always welcome!** * <-- Not Yet Updated D/t **Wiki Page Not Yet Created**
+|Contribution Type|Corresponding File for More Information|
+|----------------------|--------------------------------------------------|
+|Coding conventions|`Docs/Contributions/Code.md`|
+|GitHub contributions|`Docs/Contributions/Repository/Repository.md`|
+|Locale guidelines|`Docs/Contributions/Translate.md`|
+
+
+[^1]: [Integrated Development Environment](https://en.wikipedia.org/wiki/Integrated_development_environment)  
+[^2]: [Visual Studio Code](https://code.visualstudio.com/)  
+[^3]: [Cursor](https://cursor.com/home)  
+[^4]: [Horizon Suite [Discord Invite]](https://discord.gg/Cprppe6FHd)  
