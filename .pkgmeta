@@ -12,8 +12,6 @@ ignore:
   - .gitignore
   - .pkgmeta
   - tools
-  - Docs/Branding/ColourSchema.md
-  - Docs/Branding/HorizonClassIcons.png
   - notes
   - "modules/*/notes"
   - locales/KeyNomenclature.md
