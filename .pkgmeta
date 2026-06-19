@@ -13,7 +13,6 @@ ignore:
   - .pkgmeta
   - tools
   - notes
-  - "modules/*/notes"
   - pipeline.md
   - .cursor
   - .claude
