@@ -731,10 +731,14 @@ local function TryMergeToast(data, effectiveKey)
             local newText
             if effectiveKey == JUNK_KEY and e._origItemKey then
                 if e._origItemKey == data.itemKey then
-                    -- Same junk item looted again — keep its real name.
-                    newText = newCount > 1
-                        and ((data.baseName or data.text) .. " x " .. newCount)
-                        or  (data.baseName or data.text)
+                    -- Same junk item looted again — keep its real name, honour the count-position toggle.
+                    local nm = data.baseName or data.text
+                    if newCount > 1 then
+                        local before = addon.GetDB and addon.GetDB("augmentStackCountBeforeName", addon.AUGMENT_DEFAULTS.augmentStackCountBeforeName) ~= false
+                        newText = before and (newCount .. " x " .. nm) or (nm .. " x " .. newCount)
+                    else
+                        newText = nm
+                    end
                 else
                     -- A different junk item arrived — switch to the generic label
                     -- and clear _origItemKey so further merges also use it.
