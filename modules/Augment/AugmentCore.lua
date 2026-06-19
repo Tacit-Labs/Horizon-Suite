@@ -629,15 +629,25 @@ local function GetEffectiveItemKey(data)
 end
 
 local function BuildMergedText(data, effectiveKey, totalCount)
+    local showStackCountBeforeName = addon.GetDB and addon.GetDB("augmentStackCountBeforeName", addon.AUGMENT_DEFAULTS.augmentStackCountBeforeName) ~= false
+    
     if effectiveKey == JUNK_KEY then
         -- Show the real item name until a second junk item merges in.
         if totalCount == 1 then
             return data.baseName or data.text
         end
-        return L["AUGMENT_JUNK_LABEL"] .. " x" .. totalCount
+        if showStackCountBeforeName then
+            return totalCount .. " x " .. L["AUGMENT_JUNK_LABEL"]
+        else
+            return L["AUGMENT_JUNK_LABEL"] .. " x " .. totalCount
+        end
     end
     if data.kind == "item" then
-        return totalCount > 1 and (data.baseName .. " x" .. totalCount) or data.baseName
+        if showStackCountBeforeName then
+           return totalCount > 1 and (totalCount .. " x " .. data.baseName) or data.baseName
+        else
+           return totalCount > 1 and (data.baseName .. " x " .. totalCount) or data.baseName
+        end
     end
     if data.kind == "currency" then
         return "+" .. totalCount .. " " .. (data.baseName or "")
@@ -721,10 +731,14 @@ local function TryMergeToast(data, effectiveKey)
             local newText
             if effectiveKey == JUNK_KEY and e._origItemKey then
                 if e._origItemKey == data.itemKey then
-                    -- Same junk item looted again — keep its real name.
-                    newText = newCount > 1
-                        and ((data.baseName or data.text) .. " x" .. newCount)
-                        or  (data.baseName or data.text)
+                    -- Same junk item looted again — keep its real name, honour the count-position toggle.
+                    local nm = data.baseName or data.text
+                    if newCount > 1 then
+                        local before = addon.GetDB and addon.GetDB("augmentStackCountBeforeName", addon.AUGMENT_DEFAULTS.augmentStackCountBeforeName) ~= false
+                        newText = before and (newCount .. " x " .. nm) or (nm .. " x " .. newCount)
+                    else
+                        newText = nm
+                    end
                 else
                     -- A different junk item arrived — switch to the generic label
                     -- and clear _origItemKey so further merges also use it.
@@ -918,6 +932,13 @@ end
 --- Re-apply scale and font to all pool entries and overlay labels.
 --- Called when UI scale or augmentFontPath changes.
 function Augment.ApplyScale()
+    -- refresh layout constants from current DB before the resize pass
+    local Y = addon.Augment
+    Y.ICON_SIZE    = Y.GetIconSize()
+    Y.ICON_GAP     = Y.GetIconGap()
+    Y.ENTRY_HEIGHT = Y.ICON_SIZE + Y.BORDER_PAD * 2
+    Y.LINE_HEIGHT  = Y.ENTRY_HEIGHT + Y.LINE_SPACING
+    Y.TOTAL_WIDTH  = (Y.ICON_SIZE + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH
     if Augment.InvalidateCoinTextures then Augment.InvalidateCoinTextures() end
     if not IsReady() then return end
     UpdateAugmentFontObject()
@@ -943,8 +964,19 @@ function Augment.ApplyScale()
             if e.shine  then e.shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8)) end
             -- Explicit per-FontString SetFont overrides any direct-set override a
             -- third-party addon may have applied on top of our FontObject.
-            if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end
-            if e.text   then e.text:SetFont(fontPath, fontSize, fontFlags) end
+            -- Also re-anchor text/shadow so ICON_GAP changes take effect on live entries.
+            if e.shadow then
+                e.shadow:ClearAllPoints()
+                e.shadow:SetPoint("LEFT",  e.iconBgAnchor, "RIGHT", S(Augment.ICON_GAP) + 1, -1)
+                e.shadow:SetPoint("RIGHT", e.frame,         "RIGHT", 1, -1)
+                e.shadow:SetFont(fontPath, fontSize, fontFlags)
+            end
+            if e.text then
+                e.text:ClearAllPoints()
+                e.text:SetPoint("LEFT",  e.iconBgAnchor, "RIGHT", S(Augment.ICON_GAP), 0)
+                e.text:SetPoint("RIGHT", e.frame,         "RIGHT", 0, 0)
+                e.text:SetFont(fontPath, fontSize, fontFlags)
+            end
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end

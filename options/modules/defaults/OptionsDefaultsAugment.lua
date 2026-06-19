@@ -9,6 +9,8 @@ if not addon then return end
 addon.AUGMENT_DEFAULTS = {
     augmentFontPath      = "__global__",
     augmentFontSize      = 16,
+    augmentIconSize      = 34,
+    augmentIconGap       = 10,
     augmentUIScale       = 1.0,
     augmentShowItems        = true,
     augmentShowPushedItems  = true,
@@ -33,6 +35,7 @@ addon.AUGMENT_DEFAULTS = {
     augmentSoundRep      = false,
     augmentSuppressBlizzard  = true,
     augmentStackDuplicates   = true,
+    augmentStackCountBeforeName = false,
     augmentCondenseJunk      = true,
 }
 
@@ -47,6 +50,8 @@ addon.AUGMENT_LIMITS = {
     augmentHoldCurrency  = { min = 1,   max = 12   },
     augmentHoldRep       = { min = 1,   max = 12   },
     augmentFontSize      = { min = 8,   max = 20   },
+    augmentIconSize      = { min = 8,   max = 64   },
+    augmentIconGap       = { min = 0,   max = 32   },
 }
 
 -- Position keys have no meaningful defaults (nil = use anchor frame position).
