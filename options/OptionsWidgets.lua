@@ -137,7 +137,7 @@ local function SetSafeFont(fs, path, size, flags)
     end
     return ok
 end
--- Exported so other options UI (e.g. HorizonColorPicker) reuses the same font registry + refresh + shadow.
+-- Exported so other options UI (e.g. HorizonColoUrPicker) reuses the same font registry + refresh + shadow.
 addon.OptionsWidgets_SetSafeFont = SetSafeFont
 
 local easeOut = addon.easeOut or function(t) return 1 - (1 - t) * (1 - t) end
