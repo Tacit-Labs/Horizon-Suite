@@ -1,14 +1,25 @@
-# Policies & Procedures
+# Standard Operating Procedures (SOPs)
 
-Some of the development team utilise the terminal itself while others utilise IDEs[^1], including **VS Code**[^2] and **Cursor**[^3].
+**General points of contact are as seen below:**
+
+|Area|Individual(s)|
+|-|-|
+|General Purpose/"Roadmap"|Crystilac|
+|Administration/Delegation|Crystilac, Swift|
+|Discord Management|Swift, Diva|
+|Documentation & Organisation|Swift|
+|Refactoring the Codebase|Swift, ProgrammingSam|
+|German (`deDE`) Locale|Alex|
+
+<br>
+
 
 ## GitHub
 
 The `main` branch is **strictly** for releases.  
 The `dev` branch is where all code changes go before entering the next release from main.
 
-Releases into `main` occur when possible on a weekly schedule.  
-Otherwise, when next justifiable for the number of changes introduced. 
+Releases are weekly when possible, otherwise when next justifiable. 
 
 See the following for further information.* <-- Not Yet Updated D/t **Wiki Page Not Yet Created**
 |GitHub|Corresponding File|
@@ -16,6 +27,8 @@ See the following for further information.* <-- Not Yet Updated D/t **Wiki Page 
 |**`Issues`**|`Docs/Contributions/Repository/GitHubIssues.md`|
 |**`Branches`**|`Docs/Contributions/Repository/GitHubBranches.md`|
 |**`Pull Requests`**|`Docs/Contributions/Repository/GitHubPRs.md`|
+
+<br>
 
 ## Discord
 
@@ -28,9 +41,11 @@ In the Official Horizon Suite Discord, staff will have one of the following role
 |Silvermoon Archivist|Coordinator|Swift|
 |Star Seer|Innovator|Diva|
 |Astromancer|Developer|ProgrammingSam, Alex, Marthix, Kariak|
-|Spellbreaker|Moderator|Boofuls|
+|Spellbreaker|Moderator|Boofuls|  
   
-See below for channels used by the development team.
+<br>
+
+**See below for channels used by the development team.**
 
 |◈ THE FORGE|Description|
 |-|:-|
@@ -45,7 +60,9 @@ See below for channels used by the development team.
 
 <br>
 
-## Rules & Regulations [Not Yet Updated]
+## Codebase
+
+Some of the development team utilise the terminal itself while others utilise IDEs[^1], including **VS Code**[^2] and **Cursor**[^3].  
 
 **Contributions are always welcome!** * <-- Not Yet Updated D/t **Wiki Page Not Yet Created**
 |Contribution Type|Corresponding File for More Information|
@@ -55,6 +72,9 @@ See below for channels used by the development team.
 |Locale guidelines|`Docs/Contributions/Translate.md`|
 
 
+<br>
+
+---
 [^1]: [Integrated Development Environment](https://en.wikipedia.org/wiki/Integrated_development_environment)  
 [^2]: [Visual Studio Code](https://code.visualstudio.com/)  
 [^3]: [Cursor](https://cursor.com/home)  
