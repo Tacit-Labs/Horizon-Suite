@@ -241,13 +241,13 @@ L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Vielen Dank a
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Lokalisierungen"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[Die Addon-Oberfläche ist lokalisiert für:
 
-• Deutsch (deDE) — `locales/horizon/deDE.lua`
-• Englisch (enUS) — `locales/horizon/enUS.lua`
-• Spanisch (esES) — `locales/horizon/esES.lua`
-• Französisch (frFR) — `locales/horizon/frFR.lua`
-• Koreanisch (koKR) — `locales/horizon/koKR.lua`
-• Brasilianisch-Portugiesisch (ptBR) — `locales/horizon/ptBR.lua`
-• Chinesisch (zhCN) — `locales/horizon/zhCN.lua`
+• Deutsch (deDE) — `locales/deDE.lua`
+• Englisch (enUS) — `locales/enUS.lua`
+• Spanisch (esES) — `locales/esES.lua`
+• Französisch (frFR) — `locales/frFR.lua`
+• Koreanisch (koKR) — `locales/koKR.lua`
+• Brasilianisch-Portugiesisch (ptBR) — `locales/ptBR.lua`
+• Chinesisch (zhCN) — `locales/zhCN.lua`
 
 Beiträge für zusätzliche Lokalisierungen sind via Discord willkommen.]=]
 
