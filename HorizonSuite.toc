@@ -19,7 +19,7 @@ locales/horizon/frFR.lua
 locales/horizon/koKR.lua
 locales/horizon/ptBR.lua
 locales/horizon/zhCN.lua
-Utilities.lua
+core/Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua
 Libs/LibSharedMedia-3.0/LibStub/LibStub.lua
