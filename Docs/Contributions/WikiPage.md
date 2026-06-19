@@ -21,12 +21,11 @@ The `dev` branch is where all code changes go before entering the next release f
 
 Releases are weekly when possible, otherwise when next justifiable. 
 
-See the following for further information.* <-- Not Yet Updated D/t **Wiki Page Not Yet Created**
-|GitHub|Corresponding File|
-|---------|----|
-|**`Issues`**|`Docs/Contributions/Repository/GitHubIssues.md`|
-|**`Branches`**|`Docs/Contributions/Repository/GitHubBranches.md`|
-|**`Pull Requests`**|`Docs/Contributions/Repository/GitHubPRs.md`|
+|**Wiki Pages with More information:**|
+|-|
+|**[`Issues`](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GitHub%E2%80%90SOP-%5BIssues%5D)**|
+|**[`Branches`](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GitHub%E2%80%90SOP-%5BBranches%5D)**|
+|**[`Pull Requests`](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GitHub%E2%80%90SOP-%5BPRs%5D)**|
 
 <br>
 
