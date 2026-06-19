@@ -122,9 +122,14 @@ function SH.Disable()
     ClearHighlight()
 end
 
--- Called from AugmentCore and the options page to re-check hostile target state.
+-- Called from AugmentCore and the options page after a setting changes. Re-applies
+-- the mode CVars (so the Highlight Mode dropdown takes effect live) and re-checks
+-- the hostile-target combat gate. Mirrors the SH.Enable() apply sequence. The
+-- frequent PLAYER_TARGET_CHANGED path still uses the lightweight local Evaluate(),
+-- so this heavier re-apply only runs on infrequent option changes.
 function SH.Evaluate()
     if addon.GetDB and addon.GetDB("augmentSelfHighlightEnabled", false) then
+        ApplyHighlight()
         Evaluate()
     end
 end
