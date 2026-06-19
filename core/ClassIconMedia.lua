@@ -2,7 +2,7 @@
     Horizon Suite - Class icon media (Blizzard atlas / RondoMedia / bundled Horizon icons).
     Shared by Insight tooltips and the Dashboard; not Insight-specific.
     RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia
-    Custom icons: media/CustomClassIcons/<CLASSFILE>/<classfile lower>.blp
+    Custom icons: media/CustomClassIcons/*.blp
 ]]
 
 local addon = _G.HorizonSuite
@@ -71,7 +71,7 @@ local function BundledCustomClassIconPath(classFile)
     if not classFile or not addon.CLASS_ICON_RONDO_NAMES[classFile] then return nil end
     local folder = addon.ADDON_NAME or "HorizonSuite"
     local lower = strlower(classFile)
-    return ("Interface\\AddOns\\%s\\media\\CustomClassIcons\\%s\\%s.blp"):format(folder, classFile, lower)
+    return ("Interface\\AddOns\\%s\\media\\CustomClassIcons\\%s.blp"):format(folder, classFile, lower)
 end
 
 --- Resolve class icon for Texture:SetTexture / SetAtlas or tooltip |T markup.

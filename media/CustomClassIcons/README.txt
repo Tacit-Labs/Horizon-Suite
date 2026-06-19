@@ -6,7 +6,7 @@ Place one square texture per class (32x32–128x128 is fine; e.g. 120x120 scales
 On-screen draw is slightly larger than Default/Rondo when Horizon (bundled icons) is selected (tooltip ~20px design, dashboard ~38px design, before UI scale).
 
 Path pattern:
-  media/CustomClassIcons/<CLASSFILE>/<classfile lower>.blp
+  media/CustomClassIcons/*.blp
 
 Examples:
   WARRIOR/warrior.blp
