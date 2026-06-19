@@ -1256,7 +1256,7 @@ local function HandleInsightDebugSlash(msg)
         local rondoPath = isRondo
             and ("Interface\\AddOns\\RondoMedia\\media\\Class_icons\\class_colored border\\32x32\\%s_32.tga"):format(displayName)
             or ("Interface\\AddOns\\%s\\media\\RondoClassIcons\\class_colored border\\32x32\\%s_32.tga"):format(folder, displayName)
-        local customPath = ("Interface\\AddOns\\%s\\media\\CustomClassIcons\\WARRIOR\\warrior.tga"):format(folder)
+        local customPath = ("Interface\\AddOns\\%s\\media\\CustomClassIcons\\warrior.tga"):format(folder)
         Insight.PrintBlock({
             "Class icon path debug",
             "   Class icon source : " .. source,
