@@ -2,7 +2,7 @@
 package-as: HorizonSuite
 
 manual-changelog:
-  filename: CHANGELOG.md
+  filename: Docs/Changelog.md
   markup-type: markdown
 
 # Exclude CI, config, dev tooling, and marketing media from the packaged addon.
@@ -11,12 +11,9 @@ ignore:
   - .github
   - .gitignore
   - .pkgmeta
-  - scripts
   - tools
   - Docs/Branding/ColourSchema.md
   - Docs/Branding/HorizonClassIcons.png
-  - Docs/Contributions
-  - Docs/Engineering
   - notes
   - "modules/*/notes"
   - locales/KeyNomenclature.md
