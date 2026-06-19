@@ -35,10 +35,10 @@ local function FormatObjective(o)
     return (addon.Presence.FormatObjectiveForDisplay and addon.Presence.FormatObjectiveForDisplay(o)) or (o and o.text) or ""
 end
 
---- Criterion was in the previous snapshot but missing from GetCriteriaInfo (step advanced / cleared).
---- Use full completion counts so we do not show stale 5/6 when the final tick removed the row from API.
---- @param oldO table Objective row from lastScenarioObjectives
---- @return string|nil
+-- Criterion was in the previous snapshot but missing from GetCriteriaInfo (step advanced / cleared).
+-- Use full completion counts so we do not show stale 5/6 when the final tick removed the row from API.
+-- @param oldO table Objective row from lastScenarioObjectives
+-- @return string|nil
 local function FormatObjectiveVanishedCompleted(oldO)
     if not oldO then return nil end
     if oldO.percent ~= nil and type(oldO.percent) == "number" then
@@ -67,9 +67,9 @@ local function FormatObjectiveVanishedCompleted(oldO)
     return FormatObjective(oldO)
 end
 
---- Fix stale 0/X in objective text (Blizzard API lag on boss kill).
---- @param text string
---- @return string
+-- Fix stale 0/X in objective text (Blizzard API lag on boss kill).
+-- @param text string
+-- @return string
 local function FixStaleZeroProgress(text)
     if not text or text == "" then return text or "" end
     if not text:match("%s%(0/%d+%)$") then return text end
@@ -90,8 +90,8 @@ local function IsTypeEnabled(key, fallbackKey, fallbackDefault)
     return addon.Presence.IsTypeEnabled and addon.Presence.IsTypeEnabled(key, fallbackKey, fallbackDefault) or fallbackDefault
 end
 
---- Resolve delve name: use cached value (primary) or resolve from APIs and cache on first success.
---- @return string|nil delve name
+-- Resolve delve name: use cached value (primary) or resolve from APIs and cache on first success.
+-- @return string|nil delve name
 local function GetOrResolveDelveName()
     if cachedDelveName and cachedDelveName ~= "" then return cachedDelveName end
     local resolved = addon.GetDelveNameFromAPIs and addon.GetDelveNameFromAPIs()
@@ -111,9 +111,9 @@ end
 -- GetMainStepCriteria
 -- ============================================================================
 
---- Fetch main-step criteria from C_ScenarioInfo; build state key and objectives list.
---- Per Blizzard ScenarioInfoDocumentation: description, completed, quantity, totalQuantity, quantityString, criteriaID.
---- @return string|nil stateKey, table objectives
+-- Fetch main-step criteria from C_ScenarioInfo; build state key and objectives list.
+-- Per Blizzard ScenarioInfoDocumentation: description, completed, quantity, totalQuantity, quantityString, criteriaID.
+-- @return string|nil stateKey, table objectives
 local function GetMainStepCriteria()
     local numCriteria
     if C_ScenarioInfo and C_ScenarioInfo.GetScenarioStepInfo then

@@ -6,6 +6,7 @@
 local addon = _G.HorizonSuite
 if not addon or not addon.RegisterSlashHandler then return end
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite - Focus:|r " .. tostring(msg or "")) end
+local L = addon.L
 local colorCheckState = nil
 
 local function DeepCopy(value)
@@ -36,7 +37,7 @@ local function StopColorCheck(announce)
 
     colorCheckState = nil
     if announce then
-        HSPrint("Colour check stopped and original colours restored.")
+        HSPrint(L["FOCUS_SLASH_COLORCHECK_STOPPED"])
     end
 end
 
@@ -54,6 +55,7 @@ local function CategoryFromEntry(entry)
     local category = entry and entry.category
     if category then return category end
     local groupKey = entry and entry.groupKey
+    if groupKey == "RARESCANNER" then return "RARESCANNER" end
     if groupKey == "RARES" then return "RARE" end
     if groupKey == "RARE_LOOT" then return "RARE_LOOT" end
     if groupKey == "ACHIEVEMENTS" then return "ACHIEVEMENT" end
@@ -101,33 +103,33 @@ end
 -- ============================================================================
 
 local function ShowFocusShortHelp()
-    HSPrint("Focus commands:")
-    HSPrint("  /h focus            - Show this help")
-    HSPrint("  /h focus toggle     - Enable / disable")
-    HSPrint("  /h focus collapse   - Collapse / expand panel")
-    HSPrint("  /h focus nearby     - Toggle Nearby (Current Zone) group")
-    HSPrint("  /h focus reset      - Reset to live data")
-    HSPrint("  /h focus resetpos   - Reset panel to default position")
-    HSPrint("  /h focus test       - Show with test data")
-    HSPrint("  /h focus testitem   - Inject one debug quest with item (real quests stay)")
-    HSPrint("  /h focus testsound  - Play the rare-added notification sound")
-    HSPrint("  /h focus colorcheck - Cycle focus colors (title/objective/zone/section/highlight), then restore")
+    HSPrint(L["FOCUS_SLASH_HELP_COMMANDS"])
+    HSPrint(L["FOCUS_SLASH_HELP_SHOW"])
+    HSPrint(L["FOCUS_SLASH_HELP_TOGGLE"])
+    HSPrint(L["FOCUS_SLASH_HELP_COLLAPSE"])
+    HSPrint(L["FOCUS_SLASH_HELP_NEARBY"])
+    HSPrint(L["FOCUS_SLASH_HELP_RESET"])
+    HSPrint(L["FOCUS_SLASH_HELP_RESETPOS"])
+    HSPrint(L["FOCUS_SLASH_HELP_TEST"])
+    HSPrint(L["FOCUS_SLASH_HELP_TESTITEM"])
+    HSPrint(L["FOCUS_SLASH_HELP_TESTSOUND"])
+    HSPrint(L["FOCUS_SLASH_HELP_COLORCHECK"])
     HSPrint("")
-    HSPrint("  Click the header row to collapse / expand.")
-    HSPrint("  Scroll with mouse wheel when content overflows.")
-    HSPrint("  Drag the panel to reposition it (saved across sessions).")
-    HSPrint("  Left-click a quest or rare to super-track; Left-click auto-complete quests to complete them.")
-    HSPrint("  Blizzard+: Shift+Left untracks; Right-click opens a context menu on quests and tracked non-quest rows (achievements, recipes, etc.).")
+    HSPrint(L["FOCUS_SLASH_TIP_COLLAPSE"])
+    HSPrint(L["FOCUS_SLASH_TIP_SCROLL"])
+    HSPrint(L["FOCUS_SLASH_TIP_DRAG"])
+    HSPrint(L["FOCUS_SLASH_TIP_CLICK"])
+    HSPrint(L["FOCUS_SLASH_TIP_BLIZZARD_PLUS"])
 end
 
 local function ShowFocusDebugHelp()
-    HSPrint("Focus debug commands (/h debug focus [cmd] — or /hfs delvedebug for delve diagnostics):")
-    HSPrint("  debuglive  - Toggle live debug log panel")
-    HSPrint("  scendebug - Scenario timer debug (also: /h scenario debug)")
-    HSPrint("  devmode - Show Blizzard tracker alongside Focus for comparison")
-    HSPrint("  wqdebug, nearbydebug, headercountdebug, groupdebug")
-    HSPrint("  delvedebug, mplusaffixdebug, mplusdebug, endeavordebug, achievementdebug")
-    HSPrint("  recipedebug, unaccepted, clicktodebug, clickdebug, profiledebug")
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_HEADER"])
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_DEBUGLIVE"])
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_SCENDEBUG"])
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_DEVMODE"])
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_OTHERS"])
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_OTHERS2"])
+    HSPrint(L["FOCUS_SLASH_DBG_HELP_OTHERS3"])
 end
 
 -- ============================================================================
@@ -139,23 +141,23 @@ local function HandleFocusSlash(msg)
 
     if cmd == "toggle" then
         if InCombatLockdown() then
-            print("|cFFFF0000Horizon Suite:|r Cannot toggle during combat.")
+            print("|cFFFF0000Horizon Suite:|r " .. L["FOCUS_SLASH_TOGGLE_COMBAT"])
             return
         end
         local currentlyEnabled = addon:IsModuleEnabled("focus")
         addon:SetModuleEnabled("focus", not currentlyEnabled)
         if addon:IsModuleEnabled("focus") then
-            HSPrint("|cFF00FF00Focus enabled|r")
+            HSPrint(L["FOCUS_SLASH_ENABLED"])
         else
-            HSPrint("|cFFFF0000Focus disabled|r")
+            HSPrint(L["FOCUS_SLASH_DISABLED"])
         end
 
     elseif cmd == "collapse" then
         addon.ToggleCollapse()
         if addon.focus.collapsed then
-            print("|cFF00CCFFHorizon Suite - Focus:|r Panel collapsed.")
+            HSPrint(L["FOCUS_SLASH_COLLAPSED"])
         else
-            print("|cFF00CCFFHorizon Suite - Focus:|r Panel expanded.")
+            HSPrint(L["FOCUS_SLASH_EXPANDED"])
         end
 
     elseif cmd == "nearby" then
@@ -177,25 +179,25 @@ local function HandleFocusSlash(msg)
             end
         end
         if show then
-            print("|cFF00CCFFHorizon Suite - Focus:|r Nearby group shown.")
+            HSPrint(L["FOCUS_SLASH_NEARBY_SHOWN"])
         else
-            print("|cFF00CCFFHorizon Suite - Focus:|r Nearby group hidden.")
+            HSPrint(L["FOCUS_SLASH_NEARBY_HIDDEN"])
         end
 
     elseif cmd == "testsound" then
         if addon.PlayRareAddedSound then
             addon.PlayRareAddedSound()
-            HSPrint("Played rare-added sound (choice: " .. tostring(addon.GetDB("rareAddedSoundChoice", "default")) .. ").")
+            HSPrint(L["FOCUS_SLASH_SOUND_PLAYED_FMT"]:format(tostring(addon.GetDB("rareAddedSoundChoice", "default"))))
         elseif PlaySound then
             local ok, err = pcall(PlaySound, addon.RARE_ADDED_SOUND)
-            if not ok and HSPrint then HSPrint("PlaySound rare failed: " .. tostring(err)) end
-            HSPrint("Played rare-added sound.")
+            if not ok and HSPrint then HSPrint(L["FOCUS_SLASH_SOUND_FAILED_FMT"]:format(tostring(err))) end
+            HSPrint(L["FOCUS_SLASH_SOUND_PLAYED"])
         else
-            HSPrint("Could not play sound.")
+            HSPrint(L["FOCUS_SLASH_SOUND_UNAVAILABLE"])
         end
 
     elseif cmd == "test" then
-        HSPrint("Showing test data (all categories and groupings)...")
+        HSPrint(L["FOCUS_SLASH_TEST_STARTED"])
 
         local QC = addon.QUEST_COLORS or {}
         local function qc(k) return QC[k] or QC.DEFAULT or { 0.9, 0.9, 0.9 } end
@@ -363,7 +365,7 @@ local function HandleFocusSlash(msg)
         addon.FullLayout()
 
     elseif cmd == "testitem" then
-        HSPrint("Injected one debug quest with a quest item (real quests remain). Use /h focus reset to clear.")
+        HSPrint(L["FOCUS_SLASH_TESTITEM_INJECTED"])
         addon.testQuestItem = {
             entryKey       = 89999,
             questID        = 89999,
@@ -391,7 +393,7 @@ local function HandleFocusSlash(msg)
         end
         addon.FullLayout()
 
-    elseif cmd == "reset" then
+    elseif cmd == "clear" then
         -- Clear any injected test data and return to live quest data.
         addon.testQuests = nil
         addon.testQuestItem = nil
@@ -399,16 +401,16 @@ local function HandleFocusSlash(msg)
             addon.focus.recentlyProgressedQuests[90001] = nil
         end
         addon.ScheduleRefresh()
-        HSPrint("Reset tracker to live data.")
+        HSPrint(L["FOCUS_SLASH_RESET_DONE"])
 
-    elseif cmd == "resetpos" then
+    elseif cmd == "reset" then
         addon.HS:ClearAllPoints()
         addon.HS:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", addon.PANEL_X, addon.PANEL_Y)
         addon.SetDB("point", nil)
         addon.SetDB("relPoint", nil)
         addon.SetDB("x", nil)
         addon.SetDB("y", nil)
-        HSPrint("Position reset to default.")
+        HSPrint(L["FOCUS_SLASH_RESETPOS_DONE"])
 
     elseif cmd == "colorcheck" then
         if colorCheckState then
@@ -471,11 +473,11 @@ local function HandleFocusSlash(msg)
             local step = colorCheckState.steps[colorCheckState.idx]
             if not step then
                 StopColorCheck(false)
-                HSPrint("Colour check complete. Original colours restored.")
+                HSPrint(L["FOCUS_SLASH_COLORCHECK_DONE"])
                 return
             end
             ApplyStep(step)
-            HSPrint(("Colour check %d/%d: %s"):format(colorCheckState.idx, #colorCheckState.steps, step.name))
+            HSPrint(L["FOCUS_SLASH_COLORCHECK_STEP_FMT"]:format(colorCheckState.idx, #colorCheckState.steps, step.name))
             colorCheckState.idx = colorCheckState.idx + 1
         end
 
@@ -484,7 +486,7 @@ local function HandleFocusSlash(msg)
             colorCheckState.ticker = C_Timer.NewTicker(0.9, Advance, #steps)
         else
             StopColorCheck(false)
-            HSPrint("Colour check unavailable (C_Timer not found).")
+            HSPrint(L["FOCUS_SLASH_COLORCHECK_NO_TIMER"])
         end
 
     else
@@ -504,26 +506,17 @@ local function HandleFocusDebugSlash(msg)
         return
     end
 
-    if cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
-            return
-        end
-        local v = not addon.Log.isEnabled("focus")
-        if addon.focus and addon.focus.SetDebugLive then addon.focus.SetDebugLive(v) end
-        HSPrint("Focus debug log: " .. (v and "on" or "off"))
-
-    elseif cmd == "wqdebug" then
+    if cmd == "wqdebug" then
         if addon.DumpWorldQuestDiscovery then
             addon.DumpWorldQuestDiscovery()
         else
-            HSPrint("DumpWorldQuestDiscovery not available.")
+            HSPrint(L["FOCUS_SLASH_DBG_WQ_UNAVAILABLE"])
         end
 
     elseif cmd == "scendebug" then
         local v = not (addon.GetDB and addon.GetDB("scenarioDebug", false))
         if addon.SetDB then addon.SetDB("scenarioDebug", v) end
-        HSPrint("Scenario debug logging: " .. (v and "on" or "off"))
+        HSPrint(L["FOCUS_SLASH_DBG_SCEN_LOG_FMT"]:format(v and L["FOCUS_SLASH_STATE_ON"] or L["FOCUS_SLASH_STATE_OFF"]))
         if addon.ScheduleRefresh then addon.ScheduleRefresh() end
         -- One-shot timer dump for immediate feedback (run in scenario to diagnose missing timers)
         if addon.DumpScenarioTimerInfo then addon.DumpScenarioTimerInfo() end
@@ -533,7 +526,7 @@ local function HandleFocusDebugSlash(msg)
         if addon.SetDB then
             addon.SetDB("focusDevMode", v)
         end
-        HSPrint("Dev mode (Blizzard tracker): " .. (v and "on" or "off"))
+        HSPrint(L["FOCUS_SLASH_DBG_DEVMODE_FMT"]:format(v and L["FOCUS_SLASH_STATE_ON"] or L["FOCUS_SLASH_STATE_OFF"]))
         if addon.focus and addon.focus.enabled then
             if v then
                 if addon.RestoreTracker then addon.RestoreTracker() end
@@ -545,7 +538,7 @@ local function HandleFocusDebugSlash(msg)
     elseif cmd == "mplusdebug" then
         addon.mplusDebugPreview = not addon.mplusDebugPreview
         if addon.FullLayout then addon.FullLayout() end
-        HSPrint("M+ block debug preview: " .. (addon.mplusDebugPreview and "on" or "off"))
+        HSPrint(L["FOCUS_SLASH_DBG_MPLUS_PREVIEW_FMT"]:format(addon.mplusDebugPreview and L["FOCUS_SLASH_STATE_ON"] or L["FOCUS_SLASH_STATE_OFF"]))
 
     elseif cmd == "mplusaffixdebug" then
         local mapId = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID and C_ChallengeMode.GetActiveChallengeMapID()
@@ -679,14 +672,14 @@ local function HandleFocusDebugSlash(msg)
                 HSPrint(line)
             end
         else
-            HSPrint("GetNearbyDebugInfo not available.")
+            HSPrint(L["FOCUS_SLASH_DBG_NEARBY_UNAVAIL"])
         end
 
     elseif cmd == "headercountdebug" then
         if addon.DebugHeaderCount then
             addon.DebugHeaderCount()
         else
-            HSPrint("DebugHeaderCount not available.")
+            HSPrint(L["FOCUS_SLASH_DBG_HEADER_UNAVAIL"])
         end
 
     elseif cmd == "achievementdebug" then
@@ -826,9 +819,9 @@ local function HandleFocusDebugSlash(msg)
     elseif cmd == "unaccepted" then
         if addon.ShowUnacceptedPopup then
             addon.ShowUnacceptedPopup()
-            HSPrint("Opened unaccepted quests popup.")
+            HSPrint(L["FOCUS_SLASH_DBG_UNACCEPTED_OPENED"])
         else
-            HSPrint("ShowUnacceptedPopup not available.")
+            HSPrint(L["FOCUS_SLASH_DBG_UNACCEPTED_UNAVAIL"])
         end
 
     elseif cmd == "profiledebug" then
@@ -880,7 +873,7 @@ local function HandleFocusDebugSlash(msg)
 
     elseif cmd == "clickdebug" then
         addon.focus.clickDispatchDebug = not addon.focus.clickDispatchDebug
-        HSPrint("Focus click dispatch debug: " .. (addon.focus.clickDispatchDebug and "|cff00ff00ON|r (quest row clicks print profile/combo/action)" or "|cffff0000OFF|r"))
+        HSPrint(addon.focus.clickDispatchDebug and L["FOCUS_SLASH_DBG_CLICK_DISPATCH_ON"] or L["FOCUS_SLASH_DBG_CLICK_DISPATCH_OFF"])
 
     elseif cmd == "clicktodebug" then
         HSPrint("|cFF00CCFF--- Click-to-complete debug ---|r")
@@ -1255,4 +1248,7 @@ end
 addon.RegisterSlashHandler("focus", HandleFocusSlash)
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("focus", HandleFocusDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("focus", function(v) if addon.focus and addon.focus.SetDebugLive then addon.focus.SetDebugLive(v) end end)
 end

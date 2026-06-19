@@ -20,7 +20,10 @@ TRP3_INTEGRATION_SUMMARY.md
 # Brainstorming visual-companion mockups (local only)
 .superpowers/
 # Dev / listing assets (screenshots, GIFs, internal notes); also excluded from addon zips via .pkgmeta
-docs/
+# (`docs/*` + negation instead of `docs/`: on case-insensitive filesystems this rule
+# also matches the tracked Docs/ tree, and a wholly-excluded parent dir cannot be re-included)
+docs/*
+!docs/Engineering/
 
 
 # Generated release artifacts (local review only)

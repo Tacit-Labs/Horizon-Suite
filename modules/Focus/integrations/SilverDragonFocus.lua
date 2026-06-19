@@ -1,0 +1,713 @@
+--[[
+    Horizon Suite - Focus - SilverDragon Integration
+    Widget lifecycle, portrait model, nav buttons, waypoint, and coord-click for SilverDragon alerts.
+]]
+
+local addon = _G.HorizonSuite
+local L = addon.L
+addon.focus    = addon.focus    or {}
+addon.focus.sd = addon.focus.sd or {}
+
+local sd = addon.focus.sd
+
+-- ---------------------------------------------------------------------------
+-- Helper / constants
+-- ---------------------------------------------------------------------------
+
+local function S(v)
+    return (addon.Scaled and addon.Scaled(v)) or v
+end
+
+sd.SD_MODEL_SIZE  = 64
+
+local SD_NAV_BTN_W    = 16
+local SD_NAV_BTN_H    = 60
+local SD_NAV_BTN_GAP  = 3
+local SD_NAV_ARROW_SZ = 14
+local SD_SKULL_MARKER = 8
+-- Built-in inset for the "right" portrait: slider=0 lands here rather than flush
+-- with the tracker's right edge.
+local SD_RIGHT_BASE_OFFSET = -80
+
+-- ---------------------------------------------------------------------------
+-- Model clip envelopes — one per side, parented to HS so portraits extend
+-- past the tracker edge without being clipped by the ScrollFrame.
+-- ---------------------------------------------------------------------------
+local sdModelClipFrame
+local function GetOrCreateSDModelClipFrame()
+    if sdModelClipFrame then return sdModelClipFrame end
+    local sf = addon.scrollFrame
+    if not addon.HS or not sf then return addon.HS end
+    sdModelClipFrame = CreateFrame("Frame", nil, addon.HS)
+    sdModelClipFrame:SetClipsChildren(true)
+    sdModelClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",     -300, 0)
+    sdModelClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT",    0, 0)
+    return sdModelClipFrame
+end
+
+local sdModelRightClipFrame
+local function GetOrCreateSDModelRightClipFrame()
+    if sdModelRightClipFrame then return sdModelRightClipFrame end
+    local sf = addon.scrollFrame
+    if not addon.HS or not sf then return addon.HS end
+    sdModelRightClipFrame = CreateFrame("Frame", nil, addon.HS)
+    sdModelRightClipFrame:SetClipsChildren(true)
+    sdModelRightClipFrame:SetPoint("TOPLEFT",     sf, "TOPLEFT",      0,   0)
+    sdModelRightClipFrame:SetPoint("BOTTOMRIGHT", sf, "BOTTOMRIGHT", 300,  0)
+    return sdModelRightClipFrame
+end
+
+-- ---------------------------------------------------------------------------
+-- IsActive
+-- ---------------------------------------------------------------------------
+
+function sd.IsActive()
+    return rawget(_G, "HorizonSilverDragon") ~= nil and addon.GetDB("sd_enabled", false)
+end
+
+-- ---------------------------------------------------------------------------
+-- Native popup suppression
+-- ---------------------------------------------------------------------------
+
+local hookedNativePopupFrames = setmetatable({}, { __mode = "k" })
+
+local function HookNativePopupMouse(frame)
+    if not frame or hookedNativePopupFrames[frame] or not hooksecurefunc or not frame.EnableMouse then return end
+    hookedNativePopupFrames[frame] = true
+    hooksecurefunc(frame, "EnableMouse", function(self, enabled)
+        if not enabled or not addon.GetDB("sd_enabled", false) then return end
+        if InCombatLockdown and InCombatLockdown() then return end
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0, function()
+                if self and self.EnableMouse then
+                    pcall(function() self:EnableMouse(false) end)
+                    if self.EnableMouseWheel then pcall(function() self:EnableMouseWheel(false) end) end
+                end
+            end)
+        else
+            pcall(function() self:EnableMouse(false) end)
+            if self.EnableMouseWheel then pcall(function() self:EnableMouseWheel(false) end) end
+        end
+    end)
+end
+
+local function DisableNativePopupFrame(frame)
+    if not frame or not frame.Hide then return end
+    HookNativePopupMouse(frame)
+    if InCombatLockdown and InCombatLockdown() then
+        pcall(function() frame:SetAlpha(0) end)
+        return
+    end
+    pcall(function()
+        frame:ClearAllPoints()
+        frame:SetPoint("BOTTOMRIGHT", UIParent, "TOPLEFT", -2000, 2000)
+        frame:SetSize(1, 1)
+    end)
+    pcall(function() frame:Hide() end)
+    if frame.EnableMouse then pcall(function() frame:EnableMouse(false) end) end
+    if frame.EnableMouseWheel then pcall(function() frame:EnableMouseWheel(false) end) end
+end
+
+function sd.SuppressNativePopups()
+    if not addon.GetDB("sd_enabled", false) then return end
+    local sdp = rawget(_G, "HorizonSilverDragon")
+    if not sdp then return end
+    if sdp.ApplyPopupSuppression then
+        pcall(sdp.ApplyPopupSuppression, true)
+    end
+
+    -- Alpha-zero frames still receive mouse input.  If the companion exposes its
+    -- native alert frame, hide it and disable mouse so Focus widgets remain clickable.
+    DisableNativePopupFrame(sdp.alertFrame)
+    DisableNativePopupFrame(sdp.popupFrame)
+    DisableNativePopupFrame(sdp.frame)
+    DisableNativePopupFrame(sdp.modelFrame)
+end
+
+local function ShowCreatureTooltipFrom(btn)
+    local entry = btn and btn._ownerEntry
+    if entry and entry.GetScript then
+        local onEnter = entry:GetScript("OnEnter")
+        if onEnter then pcall(onEnter, entry) end
+    end
+
+    local creatureID = btn and btn._creatureID
+    if not creatureID or not GameTooltip then return end
+
+    local link = ("unit:Creature-0-0-0-0-%d-0000000000"):format(creatureID)
+    if addon.focus and addon.focus.AnchorTooltip then
+        addon.focus.AnchorTooltip(GameTooltip, btn)
+    else
+        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+    end
+    pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+
+    local att = _G.AllTheThings
+    if att and att.Modules and att.Modules.Tooltip then
+        local attach = att.Modules.Tooltip.AttachTooltipSearchResults
+        local searchFn = att.SearchForObject or att.SearchForField
+        if attach and searchFn then
+            pcall(attach, GameTooltip, searchFn, "npcID", creatureID)
+        end
+    end
+
+    if addon.GetDB("focusShowWoWheadLink", true) then
+        local hint = addon.focus and addon.focus.GetWoWheadClickBindingHint and addon.focus.GetWoWheadClickBindingHint() or ""
+        if hint == "" then
+            hint = L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"] or ""
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(("|cff66b3ff[%s]|r |cff888888(%s)|r"):format(L["FOCUS_VIEW_WOWHEAD"] or "View on WoWhead", hint))
+    end
+
+    GameTooltip:Show()
+end
+
+local function HideCreatureTooltipFrom(btn)
+    if GameTooltip then GameTooltip:Hide() end
+    local entry = btn and btn._ownerEntry
+    if entry and entry.GetScript then
+        local onLeave = entry:GetScript("OnLeave")
+        if onLeave then pcall(onLeave, entry) end
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- DismissCurrentAlert
+-- ---------------------------------------------------------------------------
+
+function sd.DismissCurrentAlert()
+    local sdp = rawget(_G, "HorizonSilverDragon")
+    if not sdp or not sdp.alertOrder or #sdp.alertOrder == 0 or (sdp.alertIndex or 0) == 0 then return end
+    local idx      = sdp.alertIndex
+    local alertKey = sdp.alertOrder[idx]
+    table.remove(sdp.alertOrder, idx)
+    if sdp.alertQueue then sdp.alertQueue[alertKey] = nil end
+    if #sdp.alertOrder == 0 then
+        sdp.alertIndex = 0
+    elseif idx > #sdp.alertOrder then
+        sdp.alertIndex = #sdp.alertOrder
+    end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
+end
+
+-- ---------------------------------------------------------------------------
+-- PlayerModel alpha sync. PlayerModel does not reliably inherit HS alpha, so
+-- drive its own alpha from Focus' current panel alpha.
+-- ---------------------------------------------------------------------------
+do
+    local HS = addon.HS
+    if HS then
+        local lastAlpha = 1
+        local function ApplyModelVisualAlpha(entry, alpha)
+            if not entry or not entry.sdModel then return end
+            alpha = math.max(0, math.min(1, tonumber(alpha) or 1))
+            if alpha <= 0.001 then
+                entry.sdModel:Hide()
+                return
+            end
+            entry.sdModel:SetAlpha(alpha)
+            if entry.sdModelActive then entry.sdModel:Show() end
+        end
+        local function SyncSDModels(alpha)
+            local pool = addon.pool
+            if not pool then return end
+            lastAlpha = alpha
+            for i = 1, (addon.POOL_SIZE or 0) do
+                local e = pool[i]
+                if e and e.sdModel then
+                    if e.sdModelActive then
+                        ApplyModelVisualAlpha(e, alpha)
+                    else
+                        e.sdModel:Hide()
+                    end
+                end
+            end
+        end
+        HS:HookScript("OnHide", function() SyncSDModels(0) end)
+        HS:HookScript("OnShow", function() SyncSDModels(HS:GetAlpha()) end)
+        local sdSync = CreateFrame("Frame")
+        local sdWasActive = false
+        sdSync:SetScript("OnUpdate", function()
+            -- Skip the per-frame pool sweep when the integration is inactive (companion
+            -- bridge absent or sd_enabled off). Hide any lingering models once on the
+            -- active→inactive transition.
+            if not sd.IsActive() then
+                if sdWasActive then
+                    SyncSDModels(0)
+                    sdWasActive = false
+                end
+                return
+            end
+            sdWasActive = true
+            SyncSDModels(HS:GetAlpha())
+        end)
+    end
+end
+
+do
+    local f = CreateFrame("Frame")
+    f:RegisterEvent("PLAYER_LOGIN")
+    f:RegisterEvent("ADDON_LOADED")
+    f:RegisterEvent("PLAYER_REGEN_ENABLED")
+    f:SetScript("OnEvent", function()
+        if sd.SuppressNativePopups then sd.SuppressNativePopups() end
+    end)
+end
+
+-- ---------------------------------------------------------------------------
+-- Widget lifecycle
+-- ---------------------------------------------------------------------------
+
+function sd.InitNavWidgets(entry)
+    local btnW    = S(SD_NAV_BTN_W)
+    local btnH    = S(SD_NAV_BTN_H)
+    local arrowSz = S(SD_NAV_ARROW_SZ)
+
+    entry.sdPrevBtn = addon.CreateNavArrowBtn(entry, "common-icon-backarrow",  btnW, btnH, arrowSz)
+    entry.sdPrevBtn:SetPoint("TOPLEFT", entry, "TOPLEFT", 0, 0)
+
+    entry.sdNextBtn = addon.CreateNavArrowBtn(entry, "common-icon-forwardarrow", btnW, btnH, arrowSz)
+    entry.sdNextBtn:SetPoint("TOPRIGHT", entry, "TOPRIGHT", 0, 0)
+
+    entry.sdPrevBtn:SetScript("OnClick", function()
+        local sdp = rawget(_G, "HorizonSilverDragon")
+        if sdp and sdp.NavigatePrev then sdp.NavigatePrev() end
+    end)
+    entry.sdNextBtn:SetScript("OnClick", function()
+        local sdp = rawget(_G, "HorizonSilverDragon")
+        if sdp and sdp.NavigateNext then sdp.NavigateNext() end
+    end)
+
+    entry.sdModelActive = false
+
+    entry.sdTargetBtn = addon.CreateNavSecureBtn()
+    entry.sdModelBtn  = addon.CreateNavSecureBtn()
+    entry.sdTargetBtn:SetScript("OnEnter", ShowCreatureTooltipFrom)
+    entry.sdTargetBtn:SetScript("OnLeave", HideCreatureTooltipFrom)
+    entry.sdModelBtn:SetScript("OnEnter", ShowCreatureTooltipFrom)
+    entry.sdModelBtn:SetScript("OnLeave", HideCreatureTooltipFrom)
+end
+
+function sd.ClearNavWidgets(entry)
+    if entry.sdPrevBtn   then entry.sdPrevBtn:Hide()   end
+    if entry.sdNextBtn   then entry.sdNextBtn:Hide()   end
+    if entry.sdModel     then
+        entry.sdModel:ClearModel()
+        entry.sdModel:Hide()
+        entry.sdModelActive = false
+    end
+    entry._sdLastCreatureID = nil  -- reset so next render always clears before loading a new creature
+    entry._sdKilledState    = false
+    if entry._sdKillMark then
+        if entry._sdKillMark.anim then entry._sdKillMark.anim:Stop() end
+        entry._sdKillMark:Hide()
+    end
+    entry._sdKillMarkParent = nil
+    if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
+    entry._sdModelParent = nil
+    if not InCombatLockdown() then
+        if entry.sdTargetBtn then entry.sdTargetBtn:Hide() end
+        if entry.sdModelBtn  then entry.sdModelBtn:Hide()  end
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- Kill flash overlay (orange-red burst that fades out quickly).
+-- ---------------------------------------------------------------------------
+
+function sd.PlayKillFlash(entry)
+    if not entry then return end
+    -- Lazily create the overlay frame the first time it's needed.
+    if not entry._sdFlashFrame then
+        local f = CreateFrame("Frame", nil, entry)
+        f:SetFrameLevel(entry:GetFrameLevel() + 12)
+        local tex = f:CreateTexture(nil, "OVERLAY")
+        tex:SetAllPoints()
+        -- Color alpha must be 1; SetAlpha() animates opacity as a multiplier
+        -- against this value — 0 × anything = permanently invisible.
+        tex:SetColorTexture(1, 0.25, 0.05, 1)
+        tex:SetAlpha(0)
+        f:Hide()
+        entry._sdFlashFrame = f
+        entry._sdFlashTex   = tex
+    end
+
+    local f   = entry._sdFlashFrame
+    local tex = entry._sdFlashTex
+    local elapsed = 0
+    local PEAK    = 0.45
+    local DUR_IN  = 0.08
+    local DUR_OUT = 0.55
+    local TOTAL   = DUR_IN + DUR_OUT
+
+    -- Constrain the flash to the title row only (not objectives below it).
+    local titlePt = math.max(8, (tonumber(addon.GetDB("titleFontSize", 13)) or 13)
+                              + (tonumber(addon.GetDB("globalFontSizeOffset", 0)) or 0))
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT",  entry, "TOPLEFT",  0, 0)
+    f:SetPoint("TOPRIGHT", entry, "TOPRIGHT", 0, 0)
+    f:SetHeight(titlePt + 6)
+
+    tex:SetAlpha(0)
+    f:Show()
+    f:SetScript("OnUpdate", function(_, dt)
+        elapsed = elapsed + dt
+        if elapsed >= TOTAL then
+            tex:SetAlpha(0)
+            f:SetScript("OnUpdate", nil)
+            f:Hide()
+            return
+        end
+        if elapsed < DUR_IN then
+            tex:SetAlpha(PEAK * (elapsed / DUR_IN))
+        else
+            tex:SetAlpha(PEAK * (1 - (elapsed - DUR_IN) / DUR_OUT))
+        end
+    end)
+end
+
+-- Replace the old title-row flash with a compact death mark on the portrait.
+function sd.PlayKillFlash(entry)
+    if not entry then return end
+    local anchor = entry.sdModel
+    if not (anchor and anchor:IsShown()) then return end
+    if entry._sdKillMark and entry._sdKillMarkParent ~= anchor then
+        if entry._sdKillMark.anim then entry._sdKillMark.anim:Stop() end
+        entry._sdKillMark:Hide()
+        entry._sdKillMark = nil
+    end
+    if not entry._sdKillMark then
+        local tex = anchor:CreateTexture(nil, "OVERLAY")
+        tex:SetAtlas("XMarksTheSpot")
+        tex:SetVertexColor(1, 0.08, 0.04, 1)
+        tex:SetBlendMode("ADD")
+        tex:SetAlpha(0)
+        tex:Hide()
+        local anim = tex:CreateAnimationGroup()
+        anim:SetToFinalAlpha(true)
+        local a1 = anim:CreateAnimation("Alpha"); a1:SetFromAlpha(0); a1:SetToAlpha(1); a1:SetDuration(0.10); a1:SetOrder(1)
+        local s1 = anim:CreateAnimation("Scale"); s1:SetScale(1.55, 1.55); s1:SetDuration(0.10); s1:SetOrder(1)
+        local a2 = anim:CreateAnimation("Alpha"); a2:SetFromAlpha(1); a2:SetToAlpha(0.35); a2:SetDuration(0.18); a2:SetOrder(2)
+        local s2 = anim:CreateAnimation("Scale"); s2:SetScale(0.72, 0.72); s2:SetDuration(0.18); s2:SetOrder(2)
+        local a3 = anim:CreateAnimation("Alpha"); a3:SetFromAlpha(0.35); a3:SetToAlpha(0.85); a3:SetDuration(0.16); a3:SetOrder(3)
+        local a4 = anim:CreateAnimation("Alpha"); a4:SetFromAlpha(0.85); a4:SetToAlpha(0); a4:SetDuration(0.45); a4:SetOrder(4)
+        anim:SetScript("OnFinished", function() tex:Hide(); tex:SetAlpha(0) end)
+        entry._sdKillMark = tex
+        entry._sdKillMarkParent = anchor
+        tex.anim = anim
+    end
+
+    local mark = entry._sdKillMark
+    local size = math.max(28, math.min(54, ((entry.sdModel and entry.sdModel:GetWidth()) or 42) * 0.62))
+    mark.anim:Stop()
+    mark:ClearAllPoints()
+    mark:SetSize(size, size)
+    mark:SetPoint("CENTER", 0, 0)
+    mark:SetDrawLayer("OVERLAY", 7)
+    mark:SetAlpha(0)
+    mark:Show()
+    mark.anim:Play()
+end
+
+-- ---------------------------------------------------------------------------
+-- Nav gutter
+-- ---------------------------------------------------------------------------
+
+function sd.CalcNavGutter(questData, entry, showQuestIcons)
+    -- Sync SD_MODEL_SIZE from DB so FocusEntryRenderer reads the current value.
+    sd.SD_MODEL_SIZE = math.max(32, math.min(128, tonumber(addon.GetDB("sd_modelSize", 64)) or 64))
+    -- sdAlertIndex is present on every SD alert (mob and vignette alike) and
+    -- absent on all RS/quest entries. Without this guard, an RS NPC entry that
+    -- shares a pool slot previously used by SD would also carry creatureID,
+    -- causing sdModel to be shown incorrectly. rs.CalcNavGutter has a symmetric
+    -- rsIsNPC guard for the same reason.
+    local showModel = (showQuestIcons ~= false)
+        and questData.sdAlertIndex ~= nil
+        and questData.creatureID ~= nil
+        and addon.GetDB("sd_showPortrait", true)
+    return false, S(SD_NAV_BTN_W), S(SD_NAV_BTN_GAP), showModel and true or false
+end
+
+-- ---------------------------------------------------------------------------
+-- Portrait rendering
+-- ---------------------------------------------------------------------------
+
+function sd.TryRenderPortrait(entry, questData, showQuestIcons)
+    sd.SuppressNativePopups()
+
+    -- Trigger flash on the first layout pass after kill/found detection.
+    if questData.triggerFlash then
+        sd.PlayKillFlash(entry)
+    end
+
+    if not (showQuestIcons and questData.sdAlertIndex and questData.creatureID and addon.GetDB("sd_showPortrait", true)) then
+        if entry.sdModel then
+            entry.sdModel:ClearModel()
+            entry.sdModel:Hide()
+            entry.sdModelActive = false
+        end
+        return false
+    end
+    local initPos  = addon.GetDB("sd_modelPosition", "right")
+    local initOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("sd_modelOffsetX", 0)) or 0))
+    -- Both sides use a two-level clip hierarchy:
+    --   sdModelClipFrame / sdModelRightClipFrame (global, child of HS)
+    --   entry._sdPortraitClip / _sdPortraitRightClip (per-entry, clips portrait
+    --     height so it cannot bleed into adjacent entries when alerts stack).
+    local mParent
+    if initPos == "left" then
+        if not entry._sdPortraitClip then
+            local clip = CreateFrame("Frame", nil, GetOrCreateSDModelClipFrame())
+            clip:SetClipsChildren(true)
+            entry._sdPortraitClip = clip
+        end
+        -- Clip must reach the model's leftmost point: size + any leftward offset.
+        local leftExtent = math.max(200, math.ceil(S(sd.SD_MODEL_SIZE) + math.max(0, -initOffX)) + 16)
+        entry._sdPortraitClip:ClearAllPoints()
+        entry._sdPortraitClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",     -leftExtent, 0)
+        entry._sdPortraitClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT",            0, 0)
+        if entry._sdPortraitRightClip then entry._sdPortraitRightClip:ClearAllPoints() end
+        mParent = entry._sdPortraitClip
+    else
+        if not entry._sdPortraitRightClip then
+            local clip = CreateFrame("Frame", nil, GetOrCreateSDModelRightClipFrame())
+            clip:SetClipsChildren(true)
+            entry._sdPortraitRightClip = clip
+        end
+        -- Clip must reach the model's rightmost point: size + any rightward offset past the base.
+        local rightExtent = math.max(200, math.ceil(S(sd.SD_MODEL_SIZE) + math.max(0, initOffX + SD_RIGHT_BASE_OFFSET)) + 16)
+        entry._sdPortraitRightClip:ClearAllPoints()
+        entry._sdPortraitRightClip:SetPoint("TOPLEFT",     entry, "TOPLEFT",             0, 0)
+        entry._sdPortraitRightClip:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", rightExtent, 0)
+        if entry._sdPortraitClip then entry._sdPortraitClip:ClearAllPoints() end
+        mParent = entry._sdPortraitRightClip
+    end
+    if entry.sdModel and entry._sdModelParent ~= mParent and not InCombatLockdown() then
+        entry.sdModel:ClearModel()
+        entry.sdModel:Hide()
+        entry.sdModel:ClearAllPoints()
+        entry.sdModel:SetParent(mParent)
+        entry._sdModelParent = mParent
+        entry._sdLastCreatureID = nil
+    end
+    -- Track kill state so OnModelLoaded can re-apply desaturation after async load.
+    entry._sdKilledState = questData.rareIsKilled and true or false
+
+    if not entry.sdModel then
+        local modelSz = S(sd.SD_MODEL_SIZE)
+        local m = CreateFrame("PlayerModel", nil, mParent)
+        if m then
+            m:SetSize(modelSz, modelSz)
+            if initPos == "left" then
+                m:SetPoint("TOPRIGHT", entry, "TOPLEFT",  initOffX, 0)
+            else
+                m:SetPoint("TOPLEFT",  entry, "TOPRIGHT", initOffX + SD_RIGHT_BASE_OFFSET, 0)
+            end
+            -- Mouse disabled so sdModelBtn (higher frame level) receives all clicks.
+            m:EnableMouse(false)
+            -- Guard against creatures with no valid model (FileData ID 0 = fallback).
+            -- SetCreature loads asynchronously, so we check after the load resolves.
+            m:SetScript("OnModelLoaded", function(self)
+                local fid = self.GetModelFileID and self:GetModelFileID()
+                if not fid or fid == 0 then
+                    self:Hide()
+                    entry.sdModelActive = false
+                    if entry.sdModelBtn and not InCombatLockdown() then
+                        entry.sdModelBtn:Hide()
+                    end
+                    entry.questTypeIcon:Show()
+                else
+                    -- Re-apply desaturation after async model load.
+                    if self.SetDesaturated then
+                        pcall(self.SetDesaturated, self, entry._sdKilledState)
+                    end
+                    if addon.HS and addon.HS:GetAlpha() <= 0.001 then
+                        self:Hide()
+                    end
+                end
+            end)
+            entry.sdModel = m
+            entry._sdModelParent = mParent
+        end
+    end
+    if entry.sdModel then
+        entry.questTypeIcon:Hide()
+        if entry._sdLastCreatureID ~= questData.creatureID then
+            -- SetCreature loads asynchronously; without ClearModel first, the
+            -- previous creature's mesh lingers until the new one finishes loading.
+            entry.sdModel:ClearModel()
+            entry._sdLastCreatureID = questData.creatureID
+        end
+        -- Apply desaturation for killed rares; clear it for live ones.
+        if entry.sdModel.SetDesaturated then
+            pcall(entry.sdModel.SetDesaturated, entry.sdModel, entry._sdKilledState)
+        end
+        entry.sdModel:Show()
+        entry.sdModel:SetCreature(questData.creatureID)
+        if addon.HS and addon.HS:GetAlpha() <= 0.001 then
+            entry.sdModel:Hide()
+        end
+        return true
+    end
+    return false
+end
+
+-- ---------------------------------------------------------------------------
+-- Nav button + model rendering
+-- ---------------------------------------------------------------------------
+
+-- showSdNav / sdNavBtnSize / sdNavBtnGap: kept for signature parity with
+-- rs.RenderNavButtons. SD nav arrows were moved to section headers and are
+-- no longer rendered here.
+function sd.RenderNavButtons(entry, showSdNav, gutterW, sdNavBtnSize, sdNavBtnGap, showSdModel, sdModelSize)
+    local doModel = showSdModel and gutterW == 0
+    sdModelSize   = sdModelSize or S(sd.SD_MODEL_SIZE)
+
+    local modelPos  = addon.GetDB("sd_modelPosition", "right")
+    local modelOffX = math.max(-100, math.min(100, tonumber(addon.GetDB("sd_modelOffsetX", 0)) or 0))
+
+    if doModel and entry.sdModel then
+        entry.sdModel:ClearAllPoints()
+        entry.sdModel:SetSize(sdModelSize, sdModelSize)
+        if modelPos == "left" then
+            entry.sdModel:SetPoint("TOPRIGHT", entry, "TOPLEFT",  modelOffX, 0)
+        else
+            entry.sdModel:SetPoint("TOPLEFT",  entry, "TOPRIGHT", modelOffX + SD_RIGHT_BASE_OFFSET, 0)
+        end
+        entry.sdModelActive = true
+        if addon.HS and addon.HS:GetAlpha() > 0.001 then
+            entry.sdModel:Show()
+        else
+            entry.sdModel:Hide()
+        end
+        if entry.sdModelBtn and not InCombatLockdown() then
+            entry.sdModelBtn:ClearAllPoints()
+            entry.sdModelBtn:SetSize(sdModelSize, sdModelSize)
+            entry.sdModelBtn:SetFrameLevel(entry:GetFrameLevel() + 3)
+            entry.sdModelBtn:SetPoint("TOPLEFT", entry.sdModel, "TOPLEFT", 0, 0)
+            entry.sdModelBtn:Show()
+        end
+    elseif entry.sdModel then
+        entry.sdModel:Hide()
+        entry.sdModelActive = false
+        if entry.sdModelBtn and not InCombatLockdown() then entry.sdModelBtn:Hide() end
+    end
+
+    if entry.sdPrevBtn then entry.sdPrevBtn:Hide() end
+    if entry.sdNextBtn then entry.sdNextBtn:Hide() end
+end
+
+-- ---------------------------------------------------------------------------
+-- Click-to-target button
+-- ---------------------------------------------------------------------------
+
+local function SetupSecureBtn(btn, title, doTarget, dismissFn, creatureID)
+    btn._dismissFn       = dismissFn
+    btn._creatureID      = creatureID
+    if not InCombatLockdown() then
+        local macroCond = addon.focus and addon.focus.GetTargetMacroConditionExcludingWoWhead and addon.focus.GetTargetMacroConditionExcludingWoWhead() or "[nomod:ctrl]"
+        if doTarget and macroCond ~= nil then
+            -- type1 scopes to LeftButton only; `type` would fire the macro on any button.
+            btn:SetAttribute("type1", "macro")
+            btn:SetAttribute("macrotext1",
+                "/targetexact " .. macroCond .. " " .. title .. "\n/tm " .. macroCond .. " !" .. SD_SKULL_MARKER)
+        else
+            btn:SetAttribute("type1", nil)
+            btn:SetAttribute("macrotext1", nil)
+        end
+    end
+end
+
+function sd.RenderTargetButton(entry, questData)
+    local btn = entry.sdTargetBtn
+    if not btn then return end
+
+    if not (questData.sdAlertIndex and questData.title and entry.titleText) then
+        if not InCombatLockdown() then btn:Hide() end
+        return
+    end
+
+    local doTarget = not questData.sdIsLoot and addon.GetDB("sd_clickToTarget", false)
+    SetupSecureBtn(btn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID)
+    btn._ownerEntry = entry
+
+    if not InCombatLockdown() then
+        btn:ClearAllPoints()
+        local _, _, _, tx, ty = entry.titleText:GetPoint(1)
+        local titleH = entry.titleText:GetStringHeight()
+        if not titleH or titleH < 1 then titleH = addon.TITLE_SIZE + 4 end
+        local titleW = (entry.titleText.GetStringWidth and entry.titleText:GetStringWidth()) or entry.titleText:GetWidth() or 100
+        titleW = math.min(titleW + 4, entry.titleText:GetWidth() or titleW)
+        btn:SetFrameLevel(entry:GetFrameLevel() + 3)
+        btn:SetPoint("TOPLEFT", entry, "TOPLEFT", tx or 0, ty or 0)
+        btn:SetSize(titleW, titleH + 2)
+        btn:Show()
+    end
+
+    if entry.sdModelBtn then
+        SetupSecureBtn(entry.sdModelBtn, questData.title, doTarget, sd.DismissCurrentAlert, questData.creatureID)
+        entry.sdModelBtn._ownerEntry = entry
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- Waypoint helper
+-- ---------------------------------------------------------------------------
+
+function sd.SetWaypoint(entry)
+    addon.SetRareWaypoint(entry, "sd_useTomTom")
+end
+
+-- ---------------------------------------------------------------------------
+-- Coord waypoint button
+-- ---------------------------------------------------------------------------
+
+function sd.RenderCoordButton(entry, questData)
+    if not addon.GetDB("sd_coordWaypoint", true) then return end
+    if not (questData.vignetteMapID and questData.vignetteX and questData.vignetteY) then return end
+
+    local coordObjIdx
+    if questData.objectives then
+        for i, o in ipairs(questData.objectives) do
+            if o.sdCoord then coordObjIdx = i; break end
+        end
+    end
+    if not coordObjIdx then return end
+
+    local obj = entry.objectives and entry.objectives[coordObjIdx]
+    if not obj or not obj.collapseBtn or not obj.text:IsShown() then return end
+
+    obj.collapseBtn:ClearAllPoints()
+    obj.collapseBtn:SetPoint("TOPLEFT",     obj.text, "TOPLEFT",     0,  2)
+    obj.collapseBtn:SetPoint("BOTTOMRIGHT", obj.text, "BOTTOMRIGHT", 0, -2)
+    obj.collapseBtn:RegisterForClicks("AnyUp")
+    obj.collapseBtn:SetScript("OnClick", function(_, button)
+        local isWoWheadClick = addon.focus and addon.focus.IsWoWheadClick and addon.focus.IsWoWheadClick(button, {
+            shift = IsShiftKeyDown and IsShiftKeyDown() or false,
+            ctrl = IsControlKeyDown and IsControlKeyDown() or false,
+            alt = IsAltKeyDown and IsAltKeyDown() or false,
+        })
+        if isWoWheadClick then
+            if questData.creatureID and addon.ShowURLCopyBox then
+                addon.ShowURLCopyBox("https://www.wowhead.com/npc=" .. tostring(questData.creatureID))
+            else
+                local dcf = DEFAULT_CHAT_FRAME
+                if dcf then dcf:AddMessage("|cff8888ff[Horizon]|r " .. (L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"] or "No Wowhead ID available.")) end
+            end
+        elseif button == "RightButton" then
+            sd.DismissCurrentAlert()
+        elseif IsShiftKeyDown() then
+            addon.ShareLocationInChat(entry.title or "Rare", entry.vignetteMapID, entry.vignetteX, entry.vignetteY)
+        else
+            sd.SetWaypoint(entry)
+        end
+    end)
+    obj.collapseBtn:Show()
+end
+
+-- ---------------------------------------------------------------------------
+-- Registration
+-- ---------------------------------------------------------------------------
+
+addon.RegisterRareProvider(sd.IsActive)

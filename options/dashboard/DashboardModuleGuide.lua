@@ -21,9 +21,9 @@ local GUIDE_MODULE_COLORS = {
     ["Meridian"] = "8CB2E6",
 }
 
---- Wrap module proper names in |cFF……|r for guide bullets (enUS uses English names per BrandDisplay rule).
---- @param text string
---- @return string
+-- Wrap module proper names in |cFF……|r for guide bullets (enUS uses English names per BrandDisplay rule).
+-- @param text string
+-- @return string
 local function ColorGuideModuleNames(text)
     if type(text) ~= "string" or text == "" then return text end
     for name, hex in pairs(GUIDE_MODULE_COLORS) do
@@ -32,8 +32,8 @@ local function ColorGuideModuleNames(text)
     return text
 end
 
---- @param env table
---- @return nil
+-- @param env table
+-- @return nil
 function addon.DashboardModuleGuide_Init(env)
     local f = env.f
     local addon = env.addon

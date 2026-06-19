@@ -5,7 +5,7 @@
 
 local addon = _G.HorizonSuite
 
---- @type table[] News feed: roadmap, community & media content, announcements.
+-- @type table[] News feed: roadmap, community & media content, announcements.
 addon.DashboardNewsFeed = {
     {
         id = "featured",

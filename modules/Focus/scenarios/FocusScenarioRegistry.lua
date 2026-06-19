@@ -8,7 +8,7 @@ local L = addon.L
 local providers = {}
 local Registry = {}
 
---- True when the current scenario is Abundance (TWW open-world scenario).
+-- True when the current scenario is Abundance (TWW open-world scenario).
 local function IsAbundanceScenario()
     local abundanceLabel = L["UI_ABUNDANCE"]
     local lowerLabel = abundanceLabel:lower()
@@ -30,8 +30,8 @@ function Registry:Register(name, provider)
     providers[name] = provider
 end
 
---- Returns true when there are active scenario-like widgets in the global objective tracker set.
---- This captures world events like Singularity that might not be formal scenarios.
+-- Returns true when there are active scenario-like widgets in the global objective tracker set.
+-- This captures world events like Singularity that might not be formal scenarios.
 local function HasWorldEventWidgets()
     local otID = C_UIWidgetManager.GetObjectiveTrackerWidgetSetID()
     if not otID or otID == 0 then return false end

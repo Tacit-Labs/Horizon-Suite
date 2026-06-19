@@ -113,6 +113,16 @@ local function GetTitleColor(category)
         return addon.QUEST_COLORS.DEFAULT
     end
 
+    -- Scanner integrations store their color under a dedicated DB key separate from
+    -- the color matrix, so check it first before falling through to the matrix.
+    if category == "SILVERDRAGON" then
+        local c = addon.GetDB and addon.GetDB("sd_color")
+        if type(c) == "table" and c[1] then return c end
+    elseif category == "RARESCANNER" then
+        local c = addon.GetDB and addon.GetDB("rs_color")
+        if type(c) == "table" and c[1] then return c end
+    end
+
     local cm = GetColorMatrix()
     local key = MatrixKey(category)
     if cm and cm.categories and cm.categories[key] and cm.categories[key].title then
@@ -147,9 +157,9 @@ local function GetZoneColor(category)
     return addon.ZONE_COLOR
 end
 
---- Color for scenario stage line (e.g. "Stage 1: Where is the Echoless Flame?").
---- Reads from color matrix SCENARIO.zone (labeled "Stage" in options); defaults to ZONE_COLOR.
---- @return table {r,g,b}
+-- Color for scenario stage line (e.g. "Stage 1: Where is the Echoless Flame?").
+-- Reads from color matrix SCENARIO.zone (labeled "Stage" in options); defaults to ZONE_COLOR.
+-- @return table {r,g,b}
 local function GetScenarioStageColor()
     local cm = GetColorMatrix()
     if cm and cm.categories and cm.categories.SCENARIO and cm.categories.SCENARIO.zone then
@@ -171,11 +181,11 @@ local function GetSectionColor(groupKey)
     return addon.SECTION_COLORS[groupKey] or addon.SECTION_COLORS.DEFAULT
 end
 
---- Colour for section/category row headers (CURRENT, NEARBY, …): per-group section colour, or player class when Focus class colour is on.
---- Applies dim via ShouldDimSectionHeaderForSuperTrack (quest sections only; achievements/rares/etc. headers stay full strength).
---- @param groupKey string
---- @param focusedGroupKey string|nil Group key that contains the super-tracked quest, if any; nil means dim quest-section headers
---- @return table {r,g,b}
+-- Colour for section/category row headers (CURRENT, NEARBY, …): per-group section colour, or player class when Focus class colour is on.
+-- Applies dim via ShouldDimSectionHeaderForSuperTrack (quest sections only; achievements/rares/etc. headers stay full strength).
+-- @param groupKey string
+-- @param focusedGroupKey string|nil Group key that contains the super-tracked quest, if any; nil means dim quest-section headers
+-- @return table {r,g,b}
 local function GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     local color = GetSectionColor(groupKey)
     local cc = addon.GetModuleClassColor and addon.GetModuleClassColor("focus")
@@ -191,9 +201,9 @@ local function GetSectionHeaderDisplayColor(groupKey, focusedGroupKey)
     return color
 end
 
---- Returns the color for completed objectives when the override is on; nil when off (caller uses same as incomplete).
---- @param category string Optional category (unused when override is on)
---- @return table|nil {r,g,b} or nil
+-- Returns the color for completed objectives when the override is on; nil when off (caller uses same as incomplete).
+-- @param category string Optional category (unused when override is on)
+-- @return table|nil {r,g,b} or nil
 local function GetCompletedObjectiveColor(category)
     if not (addon.GetDB and addon.GetDB("useCompletedObjectiveColor", true)) then
         return nil

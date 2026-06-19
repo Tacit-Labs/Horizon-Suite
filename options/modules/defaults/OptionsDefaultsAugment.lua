@@ -1,53 +1,15 @@
 --[[
-    Horizon Suite - Augment - Option defaults and SetDB routing keys
-    AUGMENT_DEFAULTS: single source of truth for all loot toast option defaults.
-    AUGMENT_KEYS: derived from AUGMENT_DEFAULTS plus anchor-position keys (no defaults).
+    Horizon Suite - Augment - Defaults shell
+    Sub-module defaults are populated by the three files in augment/*.lua,
+    which the .toc loads before this file. This shell finalises AUGMENT_KEYS
+    so every key written via OptionsData_SetDB is routed correctly.
 ]]
 local addon = _G.HorizonSuite
 if not addon then return end
 
-addon.AUGMENT_DEFAULTS = {
-    augmentFontPath      = "__global__",
-    augmentFontSize      = 16,
-    augmentUIScale       = 1.0,
-    augmentShowItems        = true,
-    augmentShowPushedItems  = true,
-    augmentShowMoney        = true,
-    augmentShowCurrency     = true,
-    augmentShowRep          = true,
-    augmentMinQuality    = 0,
-    augmentToastOpacity  = 100,
-    augmentMaxVisible    = 15,
-    augmentHoldItem      = 5.0,
-    augmentHoldEpic      = 6.5,
-    augmentHoldLegendary = 8.0,
-    augmentHoldMoney     = 3.0,
-    augmentHoldCurrency  = 3.0,
-    augmentHoldRep       = 3.0,
-    augmentTextOutline   = true,
-    augmentSoundEnabled  = true,
-    augmentSoundChannel  = "SFX",
-    augmentSoundItems    = true,
-    augmentSoundMoney    = false,
-    augmentSoundCurrency = false,
-    augmentSoundRep      = false,
-    augmentSuppressBlizzard  = true,
-    augmentStackDuplicates   = true,
-    augmentCondenseJunk      = true,
-}
-
-addon.AUGMENT_LIMITS = {
-    augmentToastOpacity  = { min = 10,  max = 100  },
-    augmentMaxVisible    = { min = 1,   max = 15   },
-    augmentUIScale       = { min = 0.5, max = 2.0  },
-    augmentHoldItem      = { min = 1,   max = 12   },
-    augmentHoldEpic      = { min = 1,   max = 12   },
-    augmentHoldLegendary = { min = 1,   max = 12   },
-    augmentHoldMoney     = { min = 1,   max = 12   },
-    augmentHoldCurrency  = { min = 1,   max = 12   },
-    augmentHoldRep       = { min = 1,   max = 12   },
-    augmentFontSize      = { min = 8,   max = 20   },
-}
+-- Ensure tables exist even if a sub-file failed to load.
+addon.AUGMENT_DEFAULTS = addon.AUGMENT_DEFAULTS or {}
+addon.AUGMENT_LIMITS   = addon.AUGMENT_LIMITS   or {}
 
 -- Position keys have no meaningful defaults (nil = use anchor frame position).
 addon.AUGMENT_KEYS = { augmentPoint = true, augmentRelPoint = true, augmentX = true, augmentY = true }

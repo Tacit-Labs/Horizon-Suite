@@ -188,9 +188,9 @@ local function BuildURLCopyFrame()
     return f
 end
 
---- Show the URL copy box (same chrome as Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
---- @param url string Full URL to display and copy
---- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["FOCUS_COPY_LINK"]
+-- Show the URL copy box (same chrome as Patch Notes). User can Ctrl+C from the edit box and paste in a browser.
+-- @param url string Full URL to display and copy
+-- @param accentSubtitle string|nil Second header line (accent colour), e.g. "Copy link — Discord"; defaults to L["FOCUS_COPY_LINK"]
 function addon.ShowURLCopyBox(url, accentSubtitle)
     if not url or type(url) ~= "string" or url == "" then return end
     local f = BuildURLCopyFrame()
@@ -219,8 +219,8 @@ function addon.ShowURLCopyBox(url, accentSubtitle)
     end
 end
 
---- Refresh URL copy dialog accent if visible (e.g. when Dashboard class colour option changes).
---- @return nil
+-- Refresh URL copy dialog accent if visible (e.g. when Dashboard class colour option changes).
+-- @return nil
 function addon.ApplyURLCopyBoxAccent()
     if not urlCopyFrame or not urlCopyFrame:IsShown() then return end
     local ar, ag, ab = GetURLCopyAccentRGB()

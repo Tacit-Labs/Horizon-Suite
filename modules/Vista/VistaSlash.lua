@@ -9,28 +9,27 @@ if not addon or not addon.Vista or not addon.RegisterSlashHandler then return en
 local Vista = addon.Vista
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
---- Handle /horizon vista [cmd] subcommands. Returns true if handled.
---- @param msg string Subcommand (reset, toggle, lock, scale, autozoom, buttons, help)
---- @return boolean
+-- Handle /horizon vista [cmd] subcommands.
+-- @param msg string Subcommand (reset, toggle, lock, scale, autozoom, help)
 local function HandleVistaSlash(msg)
     local cmd = strtrim(msg or ""):lower()
 
     if cmd == "reset" then
         Vista.ResetMinimapPosition()
         HSPrint("Vista: Minimap position reset.")
-        return true
+        return
     end
 
     if cmd == "toggle" then
         if InCombatLockdown() then
             HSPrint("Cannot toggle Vista during combat.")
-            return true
+            return
         end
         local show = not addon.GetDB("vistaShowMinimap", true)
         addon.SetDB("vistaShowMinimap", show)
         if show then Minimap:Show() else Minimap:Hide() end
         HSPrint("Vista: Minimap " .. (show and "|cFF00FF00shown|r" or "|cFFFF0000hidden|r"))
-        return true
+        return
     end
 
     if cmd == "lock" then
@@ -38,7 +37,7 @@ local function HandleVistaSlash(msg)
         addon.SetDB("vistaLock", lock)
         Minimap:SetMovable(not lock)
         HSPrint("Vista: Minimap " .. (lock and "|cFFFF0000locked|r" or "|cFF00FF00unlocked|r"))
-        return true
+        return
     end
 
     if cmd:find("^scale") then
@@ -51,7 +50,7 @@ local function HandleVistaSlash(msg)
         else
             HSPrint("Vista: Usage: /h vista scale <0.5-2.0>")
         end
-        return true
+        return
     end
 
     if cmd:find("^autozoom") then
@@ -64,7 +63,7 @@ local function HandleVistaSlash(msg)
         else
             HSPrint("Vista: Usage: /h vista autozoom <0-30>  (0 = disabled)")
         end
-        return true
+        return
     end
 
     if cmd == "" or cmd == "help" then
@@ -75,10 +74,7 @@ local function HandleVistaSlash(msg)
         HSPrint("  /h vista lock       - Toggle drag lock")
         HSPrint("  /h vista scale X    - Set minimap scale (0.5 – 2.0)")
         HSPrint("  /h vista autozoom X - Set auto-zoom delay in seconds (0 = off)")
-        return true
     end
-
-    return false
 end
 
 local function HandleVistaDebugSlash(msg)
@@ -86,21 +82,12 @@ local function HandleVistaDebugSlash(msg)
 
     if cmd == "" or cmd == "help" then
         HSPrint("Vista debug commands (/h debug vista [cmd]):")
-        HSPrint("  debuglive - Toggle live debug log panel")
+        HSPrint("  debuglive - Toggle live debug log panel (DEV_MODE required)")
         HSPrint("  buttons   - Print minimap button count")
         return
     end
 
-    if cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
-            return
-        end
-        local v = not addon.Log.isEnabled("vista")
-        if Vista.SetDebugLive then Vista.SetDebugLive(v) end
-        HSPrint("Vista debug log: " .. (v and "on" or "off"))
-
-    elseif cmd == "buttons" then
+    if cmd == "buttons" then
         local n = Vista.CollectButtons()
         HSPrint("Vista: Buttons found: " .. tostring(n))
     else
@@ -109,7 +96,9 @@ local function HandleVistaDebugSlash(msg)
 end
 
 addon.RegisterSlashHandler("vista", HandleVistaSlash)
-Vista.HandleVistaSlash = HandleVistaSlash
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("vista", HandleVistaDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("vista", function(v) if Vista.SetDebugLive then Vista.SetDebugLive(v) end end)
 end
