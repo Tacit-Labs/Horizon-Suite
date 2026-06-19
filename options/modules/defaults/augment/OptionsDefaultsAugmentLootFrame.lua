@@ -20,6 +20,8 @@ D.augmentLootFrameEnabled    = true
 D.augmentFontPath            = "__global__"
 D.augmentFontSize            = 16
 D.augmentUIScale             = 1.0
+D.augmentIconSize            = 34
+D.augmentIconGap             = 10
 D.augmentTextOutline         = true
 D.augmentTextOutlineType     = "OUTLINE"
 D.augmentToastOpacity        = 100
@@ -35,6 +37,7 @@ D.augmentMinQuality          = 0
 
 -- Stacking / condensing
 D.augmentStackDuplicates     = true
+D.augmentStackCountBeforeName = false
 D.augmentCondenseJunk        = true
 
 -- Blizzard suppression
@@ -63,6 +66,8 @@ D.augmentEditModeShow        = true
 LIM.augmentToastOpacity      = { min = 10,  max = 100  }
 LIM.augmentMaxVisible        = { min = 1,   max = 15   }
 LIM.augmentUIScale           = { min = 0.5, max = 2.0  }
+LIM.augmentIconSize          = { min = 8,   max = 64   }
+LIM.augmentIconGap           = { min = 0,   max = 32   }
 LIM.augmentFontSize          = { min = 8,   max = 20   }
 LIM.augmentHoldItem          = { min = 1,   max = 12   }
 LIM.augmentHoldEpic          = { min = 1,   max = 12   }

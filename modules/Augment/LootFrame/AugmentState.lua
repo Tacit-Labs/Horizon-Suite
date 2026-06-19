@@ -41,9 +41,20 @@ function Y.GetFontPath()
     end
     return raw
 end
+
+function Y.GetIconSize()
+    local D = addon.AUGMENT_DEFAULTS
+    return (addon.GetDB and tonumber(addon.GetDB("augmentIconSize", D.augmentIconSize))) or D.augmentIconSize
+end
+
+function Y.GetIconGap()
+    local D = addon.AUGMENT_DEFAULTS
+    return (addon.GetDB and tonumber(addon.GetDB("augmentIconGap", D.augmentIconGap))) or D.augmentIconGap
+end
+
 Y.ICON_SIZE       = 34
 Y.BORDER_PAD      = 1
-Y.ENTRY_HEIGHT    = 38
+Y.ENTRY_HEIGHT    = Y.ICON_SIZE + Y.BORDER_PAD * 2
 Y.TEXT_WIDTH      = 300
 Y.ICON_GAP        = 10
 Y.TOTAL_WIDTH     = (Y.ICON_SIZE + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH

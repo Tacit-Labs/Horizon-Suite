@@ -24,11 +24,11 @@ local SAMPLE = {
           r=0.686, g=0.224, b=1, br=0.816, bg=0.38, bb=1.00, quality=4 },
         { kind="item", icon=132926, text="Brilliant Kaliri",
           r=0.00, g=0.506, b=1, br=0.00, bg=0.696, bb=1.00, quality=3 },
-        { kind="item", icon=1676424, text="Grey Tricorne Hat x2",
+        { kind="item", icon=1676424, text="Grey Tricorne Hat", count=2,
           r=0.118, g=1, b=0, br=0.172, bg=1, bb=0, quality=2 },
-        { kind="item", icon=538439, text="Ghost Iron Ore x6",
+        { kind="item", icon=538439, text="Ghost Iron Ore", count=6,
           r=1.00, g=1.00, b=1.00, br=1.00, bg=1.00, bb=1.00, quality=1 },
-        { kind="item", icon=133289, text="Scarlet Pendant",
+        { kind="item", icon=133289, text="Scarlet Pendant", count=3,
           r=0.62, g=0.62, b=0.62, br=0.65, bg=0.65, bb=0.65, quality=0 },
     },
     money    = { kind="money",    icon=Y.MONEY_ICON, text=nil,
@@ -48,6 +48,15 @@ local function MakeToast(tpl)
     d.holdDur = Y.GetHoldDur(d.kind, d.quality)
     if d.kind == "money" and not d.text then
         d.text = Y.FormatMoney and Y.FormatMoney(52, 17, 63) or "52g 17s 63c"
+    end
+    if d.kind == "item" and d.count and d.count > 1 then
+        local before = addon.GetDB and addon.GetDB("augmentStackCountBeforeName", addon.AUGMENT_DEFAULTS.augmentStackCountBeforeName)
+        if d.quality == 0 and addon.GetDB and addon.GetDB("augmentCondenseJunk", addon.AUGMENT_DEFAULTS.augmentCondenseJunk) ~= false then
+            local label = (addon.L and addon.L["AUGMENT_JUNK_LABEL"]) or "Junk"
+            d.text = before and (d.count .. " x " .. label) or (label .. " x " .. d.count)
+        else
+            d.text = before and (d.count .. " x " .. d.text) or (d.text .. " x " .. d.count)
+        end
     end
     return d
 end
