@@ -5,6 +5,7 @@
 |Area|Individual(s)|
 |-|-|
 |General Purpose/"Roadmap"|Crystilac|
+|[Generative AI (Use & Direction)](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GenerativeAI%E2%80%90SOP)|Crystilac|
 |Administration/Delegation|Crystilac, Swift|
 |Discord Management|Swift, Diva|
 |Documentation & Organisation|Swift|
