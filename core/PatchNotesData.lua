@@ -14,6 +14,34 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.1.0"] = {
+        date = "2026-06-19",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: quality-of-life mini-modules — Augment now splits into five independently-toggled features: Loot Toasts, Self Highlight (highlights your character in combat and when targeted by hostiles), Auto Vendor (auto-sells junk and repairs gear at merchants), Talking Head (customise the frame's font, position, and hold duration), and Achievement Tracker (auto-removes earned achievements from the objective tracker).",
+                "Focus: RareScanner & SilverDragon integration — rare NPC, treasure, and event alerts now surface inside the Focus tracker, with a 3D portrait, click-to-waypoint coordinates (TomTom or map pin), click-to-target with a raid marker, Ctrl+Click Wowhead link copy, and a configurable alert queue; both appear in the Dashboard Integrations view.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "General: every colour swatch in the Options panel and Dashboard now opens a dark, Horizon-styled colour picker (wheel, brightness, hex/RGB entry, opacity, compare view) with an account-wide saved-colours palette shared across your characters.",
+                "General: options sliders get a visual refresh — a gradient bar with a square handle and hover/drag feedback.",
+                "Augment: loot toasts gain new options — show the item count before the name, and adjust icon size and icon-to-name spacing.",
+                "Augment: the Style options are reworked into a cleaner two-column layout, and the text-outline toggle becomes an Outline Type dropdown (None / Thin / Thick).",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: cursor-anchored tooltips no longer get stuck using the Fixed anchor's dynamic position after switching anchor modes.",
+                "Insight: tooltips no longer get stuck in cursor mode in certain cases.",
+                "General: fixed a frame leak in the hidden-quests list and a dropdown popup highlight-clipping issue.",
+            },
+        },
+    },
+
     ["5.0.2"] = {
         date = "2026-06-02",
         {

@@ -10,6 +10,25 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.1.0] – 2026-06-19
+
+### ✨ New Features
+- **(Augment) Quality-of-life mini-modules** — Augment now splits into five independently-toggled features: Loot Toasts, **Self Highlight** (highlights your character in combat and when targeted by hostiles), **Auto Vendor** (auto-sells junk and repairs gear at merchants), **Talking Head** (customise the Talking Head frame's font, position, and hold duration), and **Achievement Tracker** (auto-removes earned achievements from the objective tracker).
+- **(Focus) RareScanner & SilverDragon integration** — Rare NPC, treasure, and event alerts from RareScanner and SilverDragon now surface inside the Focus tracker, with a 3D portrait, click-to-waypoint coordinates (TomTom or map pin), click-to-target with a raid marker, Ctrl+Click Wowhead link copy, time-since-detection, and a configurable alert queue. RareScanner alerts also show loot rows. Both appear as cards in the Dashboard Integrations view.
+
+### 🔧 Improvements
+- **(General) Horizon colour picker** — Every colour swatch in the Options panel and the Dashboard now opens a dark, Horizon-styled colour picker (hue/saturation wheel, brightness bar, hex and R/G/B entry, opacity, and a current-vs-new compare) with an account-wide saved-colours palette shared across all your characters.
+- **(General)** Options sliders get a visual refresh — a gradient bar with a square handle and hover/drag feedback.
+- **(Augment)** Loot toasts gain new options: show the item count before the name (`3 x Boarpelt`), and adjust icon size and icon-to-name spacing.
+- **(Augment)** The Augment Style options are reworked into a cleaner two-column layout, and the text-outline toggle becomes an Outline Type dropdown (None / Thin / Thick).
+
+### 🐛 Fixes
+- **(Insight)** Cursor-anchored tooltips no longer get stuck using the Fixed anchor's dynamic position after switching anchor modes.
+- **(Insight)** Tooltips no longer get stuck in cursor mode in certain cases.
+- **(General)** Fixed a frame leak in the hidden-quests list and a dropdown popup highlight-clipping issue.
+
+---
+
 ## [5.0.2] – 2026-06-02
 
 ### 🐛 Fixes
