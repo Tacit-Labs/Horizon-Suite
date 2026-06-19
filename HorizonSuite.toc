@@ -146,7 +146,7 @@ modules/Essence/EssenceCore.lua
 modules/Essence/EssenceSlash.lua
 modules/Essence/EssenceModule.lua
 options/OptionsWidgets.lua
-options/HorizonColorPicker.lua
+options/HorizonColourPicker.lua
 options/OptionsDefaults.lua
 options/OptionsData.lua
 options/OptionsHelpers.lua
