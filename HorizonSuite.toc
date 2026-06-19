@@ -43,7 +43,7 @@ core/GameMenuButton.lua
 modules/Focus/FocusState.lua
 modules/Focus/FocusClickConfig.lua
 modules/Focus/FocusCategories.lua
-modules/Focus/FocusColors.lua
+modules/Focus/FocusColours.lua
 modules/Focus/FocusDailies.lua
 modules/Focus/FocusTrackedQuests.lua
 modules/Focus/FocusWorldQuests.lua

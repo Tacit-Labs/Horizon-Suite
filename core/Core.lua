@@ -420,7 +420,7 @@ function addon.ApplyAllClassColorConsumers()
     if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
     if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
     if addon.Essence and addon.Essence.ApplyEssenceOptions then addon.Essence.ApplyEssenceOptions() end
-    if addon.ApplyFocusColors then addon.ApplyFocusColors() end
+    if addon.ApplyFocusColours then addon.ApplyFocusColours() end
     local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout
     if fullLayout and not InCombatLockdown() then fullLayout() end
     if addon.Presence and addon.Presence.ApplyPresenceOptions then addon.Presence.ApplyPresenceOptions() end

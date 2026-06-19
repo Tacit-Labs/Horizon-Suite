@@ -1253,7 +1253,7 @@ function addon.GetQuestCategory(questID)
 end
 
 -- ============================================================================
--- QUEST COLOR FALLBACK (Presence when Focus disabled; FocusColors overwrites when Focus loads)
+-- QUEST COLOR FALLBACK (Presence when Focus disabled; FocusColours overwrites when Focus loads)
 -- ============================================================================
 
 if not addon.GetQuestColor then
