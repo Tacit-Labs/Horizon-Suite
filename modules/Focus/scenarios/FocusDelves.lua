@@ -442,10 +442,9 @@ function addon.FormatDelveLivesHeartsForTitle(count, iconFileID)
     return iconSeg .. " " .. tostring(math.floor(count))
 end
 
---- Bundled Nemesis texture (Interface\AddOns\HorizonSuite\assets\icons\nemesis.tga, 64x64 TGA).
-local NEMESIS_CUSTOM_TEXTURE_PATH = "Interface\\AddOns\\HorizonSuite\\assets\\icons\\nemesis"
+local NEMESIS_CUSTOM_TEXTURE_PATH = "Interface\\AddOns\\HorizonSuite\\media\\nemesis"
 
---- Nemesis bonus-chest: bundled icon + remaining count, or a single ReadyCheck when complete.
+-- Nemesis bonus-chest: bundled icon + remaining count, or a single ReadyCheck when complete.
 --- @param remaining number|nil Groups not yet cleared
 --- @param total number|nil Unused (kept for call-site compatibility)
 --- @param isComplete boolean|nil All groups cleared — renders a single green checkmark
