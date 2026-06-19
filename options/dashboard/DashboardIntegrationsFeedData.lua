@@ -5,26 +5,30 @@
     C_AddOns.GetAddOnInfo(addonName).
 
     Fields:
-      id           string  — stable identifier (used for locale keys, NEW-badge tracking).
-      addonName    string  — TOC name passed to C_AddOns.IsAddOnLoaded / GetAddOnMetadata.
-      displayName  string  — human-readable label (English).
-      descKey      string  — locale key for the longer hover description.
-      whatKey      string  — locale key for the "what this enables" body line.
-      url          string? — CurseForge (or other) link; nil for bundled libs.
-      icon         string|table — fallback when the addon isn't installed or has no
-                                   IconTexture in its TOC. Bare name → Interface\Icons\<name>;
-                                   path (contains \ or /) → used as-is; { atlas, fallback } also supported.
-                                   Bundled logos live in media/integrations/<id>.{blp,tga} and are
-                                   sourced from the original addon authors. See CREDITS for attribution.
-      slashKey     string? — uppercase key into _G.SlashCmdList; click "Settings" calls it.
-      bundled      boolean?— true for libs shipped inside HorizonSuite; UI always shows "Bundled" green tick.
-      sort         number  — higher renders first.
+      id             string  — stable identifier (used for locale keys, NEW-badge tracking).
+      addonName      string  — TOC name passed to C_AddOns.IsAddOnLoaded / GetAddOnMetadata.
+      displayName    string  — human-readable label (English).
+      descKey        string  — locale key for the longer hover description.
+      whatKey        string  — locale key for the "what this enables" body line.
+      url            string? — CurseForge (or other) link; nil for bundled libs.
+      icon           string|table — fallback when the addon isn't installed or has no
+                                     IconTexture in its TOC. Bare name → Interface\Icons\<name>;
+                                     path (contains \ or /) → used as-is; { atlas, fallback } also supported.
+                                     Bundled logos live in media/integrations/<id>.{blp,tga} and are
+                                     sourced from the original addon authors. See CREDITS for attribution.
+      slashKey       string? — uppercase key into _G.SlashCmdList; click "Settings" calls it.
+      bundled        boolean?— true for libs shipped inside HorizonSuite; UI always shows "Bundled" green tick.
+      companionAddon string? — TOC name of the required Horizon bridge addon (e.g. "HorizonRareScanner").
+                               When set, a second status pill shows the bridge addon's load state.
+      companionUrl   string? — install link for the companion addon; when set and the main addon is enabled
+                               but the companion is missing, an "Install Bridge" link appears.
+      sort           number  — higher renders first.
 ]]
 
 local addon = _G.HorizonSuite
 if not addon then return end
 
---- @type table[]
+-- @type table[]
 addon.DashboardIntegrationsFeed = {
     {
         id          = "allthethings",
@@ -79,6 +83,30 @@ addon.DashboardIntegrationsFeed = {
         icon        = "Interface\\AddOns\\HorizonSuite\\media\\integrations\\wqt.png",
         slashKey    = "WQT",
         sort        = 250,
+    },
+    {
+        id             = "rarescanner",
+        addonName      = "RareScanner",
+        displayName    = "RareScanner",
+        descKey        = "DASH_INT_RS_DESC",
+        whatKey        = "DASH_INT_RS_WHAT",
+        url            = "https://www.curseforge.com/wow/addons/rarescanner",
+        icon           = "INV_Misc_Skull_Human_01",
+        sort           = 225,
+        companionAddon = "Horizon-RareScanner",
+        companionUrl   = "https://github.com/ProgrammingSam/Horizon-RareScanner",
+    },
+    {
+        id             = "silverdragon",
+        addonName      = "SilverDragon",
+        displayName    = "SilverDragon",
+        descKey        = "DASH_INT_SD_DESC",
+        whatKey        = "DASH_INT_SD_WHAT",
+        url            = "https://www.curseforge.com/wow/addons/silver-dragon",
+        icon           = "Ability_EyeoftheOwl",
+        sort           = 200,
+        companionAddon = "Horizon-SilverDragon",
+        companionUrl   = "https://github.com/ProgrammingSam/Horizon-SilverDragon",
     },
     {
         id          = "libsharedmedia",

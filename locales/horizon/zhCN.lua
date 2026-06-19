@@ -12,10 +12,10 @@ L["TERM"]                                                = " "
 -- Do not change anything except for the information inside of the quotation marks.
 -- To inactivate the key, make it a comment stub (prefaced with -- ) as this line is.
 
--- =====================================================================
+
 -- Branding — Horizon Suite, module names, and third-party brand names
 -- Never user copy; these are product/brand identifiers only.
--- =====================================================================
+
 -- L["NAME_ADDON"]                                            = "Horizon Suite"
 -- L["NAME_ADDON_OBJECTIVES"]                                 = "Focus"
 -- L["NAME_ADDON_TOASTS"]                                     = "Presence"
@@ -33,9 +33,9 @@ L["TERM"]                                                = " "
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Section headers
--- =====================================================================
+
 L["QUEST_TYPES"]                                              = "任务类型"
 L["ELEMENT_OVERRIDES"]                                        = "元素颜色"
 L["PER_CATEGORY"]                                             = "每个分类"
@@ -44,17 +44,17 @@ L["SECTION_OVERRIDES"]                                        = "单独设置"
 L["OTHER_COLOURS"]                                            = "其他颜色"
 L["OTHER"]                                                    = "其他"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
--- =====================================================================
+
 L["FOCUS_SECTION"]                                            = "分类"
 L["FOCUS_TITLE"]                                              = "标题"
 L["FOCUS_ZONE"]                                               = "区域"
 L["FOCUS_OBJECTIVE"]                                          = "目标"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Toggle switch labels & tooltips
--- =====================================================================
+
 L["FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"]                  = "准备提交覆盖基础颜色"
 L["FOCUS_READY_TURN_COLOURS_QUESTS"]                          = "准备提交在该分类中使用其颜色"
 L["FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"]                = "当前区域使用独立颜色"
@@ -65,9 +65,9 @@ L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"]               = "已完成目标
 L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"]                = "启用时已完成目标(如 1/1)使用下方颜色；禁用时使用与未完成目标相同颜色"
 L["FOCUS_COMPLETED_OBJECTIVE"]                                = "已完成目标"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Button labels
--- =====================================================================
+
 L["FOCUS_RESET"]                                              = "重置"
 L["FOCUS_RESET_QUEST_TYPES"]                                  = "重置任务类型"
 L["FOCUS_RESET_OVERRIDES"]                                    = "重置覆盖"
@@ -75,20 +75,20 @@ L["FOCUS_RESET_DEFAULTS"]                                     = "全部重置为
 L["FOCUS_RESET_TO_DEFAULTS"]                                  = "重置为默认值"
 L["FOCUS_RESET_DEFAULT"]                                      = "重置为默认值"
 
--- =====================================================================
+
 -- OptionsPanel.lua — Search bar placeholder
--- =====================================================================
+
 L["SEARCH_SETTINGS"]                                    = "搜索设置..."
 L["SEARCH_FONTS"]                                             = "搜索字体..."
 
--- =====================================================================
+
 -- OptionsPanel.lua — Resize handle tooltip
--- =====================================================================
+
 L["FOCUS_DRAG_RESIZE"]                                        = "拖动以调整大小"
 
--- =====================================================================
+
 -- OptionsData.lua Category names (sidebar)
--- =====================================================================
+
 L["PROFILES"]                                                 = "配置文件"
 L["MODULES"]                                                  = "模块"
 L["MODULE_TOGGLES"]                                           = "模块开关"
@@ -109,9 +109,9 @@ L["AXIS_MODULE_NAME_SIMPLE_C-----S"]                          = "Meridian"
 L["MODULE_RELOAD_HINT"]                                       = "请重新加载界面（Reload UI）以完成模块修改的应用。"
 L["PROFILE_RELOAD_HINT"]                                      = "请重新加载界面（Reload UI）以完成配置文件修改的应用。"
 L["RELOAD_UI"]                                                = "重载界面"
--- =====================================================================
+
 -- options/dashboard/HomeWelcome.lua — First-run welcome
--- =====================================================================
+
 L["DASH_WHATS_NEW"]                                         = "更新日志"
 L["DASH_FULL_CHANGELOG"]                                    = "完整改动日志"
 L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                           = " (新!)"
@@ -157,9 +157,9 @@ L["DASH_NEWS_ROADMAP_META"]                                 = "新闻中心 • 
 L["DASH_NEWS_QUICK_START_TITLE"]                            = "需要重新查看快速指南吗？"
 -- L["DASH_NEWS_QUICK_START_BODY"]                           = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
 -- L["DASH_NEWS_QUICK_START_META"]                          = "Guide • Onboarding • Always available"
--- =====================================================================
+
 -- options/dashboard/DashboardIntegrationsView.lua
--- =====================================================================
+
 L["DASH_INTEGRATIONS_TAB"]                                     = "插件联动"
 L["DASH_INTEGRATIONS_HEAD_SUB"]                                = "可与 Horizon Suite 完美协同工作的第三方插件"
 L["DASH_INT_SUMMARY"]                                          = "已启用 %d / %d 个联动插件"
@@ -245,9 +245,9 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[感谢所有�
 -- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
 
--- =====================================================================
+
 -- options/dashboard/ModuleGuide.lua — In-game module quick-start
--- =====================================================================
+
 -- L["DASH_GUIDE_TAB"]                                           = "Guide"
 -- L["DASH_GUIDE_HEAD_SUB"]                                   = "What each part of Horizon does"
 -- L["DASH_GUIDE_HERO_TITLE"]                                 = "Getting started with Horizon Suite"
@@ -310,9 +310,9 @@ L["DASH_APPEARANCE"]                                          = "外观"
 L["DASH_COLOURS"]                                             = "颜色"
 L["DASH_ORGANISATION"]                                        = "组织"
 
--- =====================================================================
+
 -- OptionsData.lua Section headers
--- =====================================================================
+
 L["FOCUS_PANEL_BEHAVIOUR"]                                    = "面板行为"
 L["FOCUS_DIMENSIONS"]                                         = "尺寸"
 L["FOCUS_INSTANCE"]                                           = "副本"
@@ -366,9 +366,9 @@ L["FOCUS_INTERACTIONS"]                                       = "交互"
 L["FOCUS_TRACKING"]                                           = "追踪"
 L["FOCUS_SCENARIO_BAR"]                                       = "场景条"
 
--- =====================================================================
+
 -- OptionsData.lua Profiles
--- =====================================================================
+
 L["AXIS_CURRENT_PROFILE"]                                     = "当前配置文件"
 L["AXIS_SELECT_PROFILE_CURRENTLY"]                            = "选择当前使用的配置文件"
 L["AXIS_GLOBAL_PROFILE_ACCOUNT_WIDE"]                         = "使用全局配置文件(账号范围)"
@@ -377,9 +377,12 @@ L["AXIS_ENABLE_PER_SPECIALIZATION_PROFILES"]                  = "启用专精配
 L["AXIS_PICK_DIFFERENT_PROFILES_PER_SPEC"]                    = "为每项专精选择不同配置文件"
 L["AXIS_SPECIALIZATION"]                                      = "专精"
 -- L["AXIS_SPEC_PROFILES"]                                    = "Spec Profiles"
+-- L["AXIS_SPEC_FALLBACK_FMT"]                                = "Spec %d"
 -- L["AXIS_ENABLE"]                                           = "Enable"
 L["AXIS_SHARING"]                                             = "分享"
 L["AXIS_IMPORT_PROFILE"]                                      = "导入配置文件"
+-- L["AXIS_PROFILE_NO_IMPORT_STRING"]                         = "No import string provided."
+-- L["AXIS_PROFILE_INVALID_STRING"]                           = "Invalid profile string."
 L["AXIS_IMPORT_STRING"]                                       = "导入字符串"
 L["AXIS_EXPORT_PROFILE"]                                      = "导出配置文件"
 L["AXIS_SELECT_A_PROFILE_EXPORT"]                             = "选择要导出的配置文件"
@@ -396,13 +399,13 @@ L["AXIS_SELECT_A_PROFILE_DELETE_CURRENT_DEFAULT"]             = "选择要删除
 L["AXIS_DELETE_SELECTED"]                                     = "删除选中项"
 -- L["AXIS_DELETE_SELECTED_PROFILE"]                          = "Delete Selected Profile"
 L["AXIS_DELETE"]                                              = "删除"
-L["AXIS_DELETES_SELECTED_PROFILE"]                            = "删除选中的配置文件"
+L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                            = "删除选中的配置文件"
 L["AXIS_GLOBAL_PROFILE"]                                      = "全局配置文件"
 L["AXIS_PER_SPEC_PROFILES"]                                   = "专精配置文件"
 
--- =====================================================================
+
 -- OptionsData.lua Modules
--- =====================================================================
+
 L["AXIS_ENABLE_FOCUS_MODULE"]                                 = "启用聚焦模块"
 L["AXIS_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS_R"]             = "显示任务、世界任务、稀有怪物、成就和场景的目标追踪器"
 L["AXIS_ENABLE_PRESENCE_MODULE"]                              = "启用Presence模块"
@@ -627,6 +630,8 @@ L["AXIS_TOOLTIPS"]                                            = "提示"
 -- L["INSIGHT_PLAYER_NAME_COLOUR_CLASS"]                      = "Class"
 -- L["INSIGHT_PLAYER_NAME_GRADIENT"]                          = "Class Colour Gradient"
 -- L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"]                     = "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class)."
+-- L["INSIGHT_GRADIENT_BIAS"]                                 = "Gradient Brightness"
+-- L["INSIGHT_GRADIENT_BIAS_DESC"]                            = "Shift both gradient stops lighter (positive) or darker (negative). Zero gives the default look."
 -- L["INSIGHT_REALM_NAMES"]                                   = "Realm Names"
 -- L["INSIGHT_REALM_NAMES_DESC"]                              = "Choose how realm names display in player tooltip names."
 -- L["INSIGHT_REALM_NAMES_FULL"]                              = "Full"
@@ -656,6 +661,8 @@ L["AXIS_TOOLTIPS"]                                            = "提示"
 -- L["INSIGHT_STATUS_BADGE_FRIEND_DESC"]                      = "Show a Friend badge for players on your friend list."
 -- L["INSIGHT_STATUS_BADGE_TARGETING"]                        = "Targeting You"
 -- L["INSIGHT_STATUS_BADGE_TARGETING_DESC"]                   = "Show a Targeting You badge when the hovered player has you targeted."
+-- L["INSIGHT_TARGETING_LINE"]                                = "Targeting Line"
+-- L["INSIGHT_TARGETING_LINE_DESC"]                          = "Show a Targeting line with the name of whoever the hovered unit is currently targeting."
 -- L["INSIGHT_SECTION_CLASS"]                                 = "Class"
 -- L["INSIGHT_SECTION_RATINGS_GEAR"]                          = "Ratings & Gear"
 -- L["INSIGHT_MYTHIC_SCORE_MODE_DESC"]                        = "Choose when to show Mythic+ score. Show requests inspect data on hover and may not appear instantly. Modifier shows it only while Shift is held."
@@ -748,9 +755,9 @@ L["AXIS_POSITION"]                                            = "位置"
 L["AXIS_RESET_POSITION"]                                      = "重置位置"
 L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"]                   = "战利品提示位置重置为默认值"
 
--- =====================================================================
+
 -- OptionsData.lua Layout
--- =====================================================================
+
 L["FOCUS_LOCK_POSITION"]                                      = "锁定位置"
 L["FOCUS_PREVENT_DRAGGING_TRACKER"]                           = "防止拖动追踪器"
 L["FOCUS_GROW_UPWARD"]                                        = "向上增长"
@@ -776,9 +783,9 @@ L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"]               = "可滚动列表
 -- L["FOCUS_STATIC_PANEL_HEIGHT"]                             = "Static Panel Height"
 -- L["FOCUS_STATIC_PANEL_HEIGHT_DESC"]                        = "Pixel height of the panel when static background is enabled."
 
--- =====================================================================
+
 -- OptionsData.lua Visibility
--- =====================================================================
+
 L["FOCUS_ALWAYS_M_BLOCK"]                                     = "始终显示史诗+区块"
 L["FOCUS_M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                = "有活跃钥石运行时显示史诗+块"
 L["FOCUS_DUNGEON"]                                            = "地下城中显示"
@@ -806,9 +813,9 @@ L["FOCUS_VISIBLE_TRACKER_FADED_INVISIBLE"]                    = "追踪器淡出
 L["FOCUS_QUESTS_CURRENT_ZONE"]                                = "仅显示当前区域的任务"
 L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"]              = "隐藏当前区域外的任务"
 
--- =====================================================================
+
 -- OptionsData.lua Display — Header
--- =====================================================================
+
 L["FOCUS_QUEST_COUNT"]                                        = "显示任务计数"
 L["FOCUS_QUEST_COUNT_HEADER"]                                 = "标题中显示任务计数"
 L["FOCUS_HEADER_COUNT_FORMAT"]                                = "标题计数格式"
@@ -826,9 +833,9 @@ L["FOCUS_COLOUR_OF_OBJECTIVES_HEADER_TEXT"]                   = "目标标题栏
 L["FOCUS_HEADER_HEIGHT"]                                      = "标题高度"
 L["FOCUS_HEIGHT_OF_HEADER_BAR_PIXELS"]                        = "标题栏高度(像素)(18-48)"
 
--- =====================================================================
+
 -- OptionsData.lua Display — List
--- =====================================================================
+
 L["FOCUS_SECTION_HEADERS"]                                    = "显示分类标题"
 L["FOCUS_CATEGORY_LABELS_ABOVE_GROUP"]                        = "每个分组上方显示分类标签"
 L["FOCUS_CATEGORY_HEADERS_COLLAPSED"]                         = "折叠时显示分类标题"
@@ -893,9 +900,9 @@ L["FOCUS_AUTO_TRACK_ICON"]                                    = "自动追踪图
 L["FOCUS_CHOOSE_WHICH_ICON_DISPLAY_NEXT_AUTO"]                = "选择在自动追踪的区域条目旁边显示哪个图标."
 L["FOCUS_APPEND_WORLD_QUESTS_WEEKLIES_DAILIES"]               = "在尚未在任务日志中的世界任务和周常/日常任务后附加 **(仅限区域内)."
 
--- =====================================================================
+
 -- OptionsData.lua Display — Spacing
--- =====================================================================
+
 L["FOCUS_COMPACT_MODE"]                                       = "紧凑模式"
 L["FOCUS_PRESET_SETS_ENTRY_OBJECTIVE_SPACING_P"]              = "预设：将条目和目标间距设置为4和1像素"
 L["FOCUS_SPACING_PRESET"]                                     = "间距预设"
@@ -916,9 +923,9 @@ L["FOCUS_SPACING_BELOW_HEADER_PX"]                            = "标题下方间
 L["FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVES_BAR_QUES"]           = "目标条和任务列表间垂直间距"
 L["FOCUS_RESET_SPACING"]                                      = "重置间距"
 
--- =====================================================================
+
 -- OptionsData.lua Display — Other
--- =====================================================================
+
 L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "显示任务等级"
 L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "标题旁显示任务等级"
 L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "淡化非当前任务"
@@ -926,9 +933,9 @@ L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "稍微淡化未
 L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                              = "淡化未聚焦条目"
 L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"]             = "点击分类标题展开该分类."
 
--- =====================================================================
+
 -- Features — Rare bosses
--- =====================================================================
+
 L["UI_SHOW_RARE_BOSSES"]                                      = "显示稀有首领"
 L["UI_RARE_BOSS_VIGNETTES_LIST"]                              = "列表中显示稀有首领标记"
 L["UI_RARE_LOOT"]                                             = "稀有战利品"
@@ -940,15 +947,15 @@ L["UI_RARE_ADDED_SOUND"]                                      = "添加稀有首
 L["UI_PLAY_A_SOUND_A_RARE"]                                   = "添加稀有首领时播放声音"
 -- L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]                    = "New patch notes — open Axis and choose Patch Notes."
 
--- =====================================================================
+
 -- OptionsData.lua Features — World quests
--- =====================================================================
+
 L["FOCUS_ZONE_WORLD_QUESTS"]                                  = "显示区域内世界任务"
 L["FOCUS_AUTO_ADD_WORLD_QUESTS_YOUR_CURRENT"]                 = "自动添加当前区域的世界任务. 关闭时, 仅显示您已追踪或靠近的世界任务(暴雪默认)."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Floating quest item
--- =====================================================================
+
 L["FOCUS_SHOW_FLOATING_QUEST_ITEM"]                           = "显示浮动任务物品"
 L["FOCUS_QUICK_BUTTON_FOCUSED_QUEST_S_USABLE"]                = "为聚焦任务的可用物品显示快速使用按钮"
 L["FOCUS_LOCK_FLOATING_QUEST_ITEM_POSITION"]                  = "锁定浮动任务物品位置"
@@ -958,9 +965,9 @@ L["FOCUS_WHICH_QUEST_S_ITEM_SUPER_TRACKED"]                   = "显示哪个任
 L["FOCUS_SUPER_TRACKED_FIRST"]                                = "超级追踪，然后首个"
 L["FOCUS_CURRENT_ZONE_FIRST"]                                 = "优先当前区域"
 
--- =====================================================================
+
 -- OptionsData.lua Features — Mythic+
--- =====================================================================
+
 L["FOCUS_MYTHIC_BLOCK"]                                       = "显示史诗+块"
 L["FOCUS_TIMER_COMPLETION_AFFIXES_MYTHIC_DUNGEONS"]           = "史诗+地下城显示计时器、完成百分比和词缀"
 L["FOCUS_M_BLOCK_POSITION"]                                   = "史诗+块位置"
@@ -974,9 +981,9 @@ L["FOCUS_DEFEATED_BOSSES_CHECKMARK_ICON_GREEN"]               = "已击败首领
 L["FOCUS_CHECKMARK"]                                          = "勾号"
 L["FOCUS_GREEN_COLOUR"]                                       = "绿色"
 
--- =====================================================================
+
 -- OptionsData.lua Features — Achievements
--- =====================================================================
+
 L["PRESENCE_ACHIEVEMENTS"]                                    = "显示成就"
 L["FOCUS_TRACKED_ACHIEVEMENTS_LIST"]                          = "列表中显示追踪的成就"
 L["FOCUS_COMPLETED_ACHIEVEMENTS"]                             = "显示已完成成就"
@@ -986,25 +993,25 @@ L["FOCUS_ACHIEVEMENT_S_ICON_NEXT_TITLE_REQUI"]                = "在成就标题
 L["FOCUS_MISSING_REQUIREMENTS"]                               = "仅显示缺失的要求"
 L["FOCUS_CRITERIA_YOU_HAVEN_T_COMPLETED_TR"]                  = "仅显示每个追踪成就中未完成的标准。关闭时显示所有标准"
 
--- =====================================================================
+
 -- OptionsData.lua Features — Endeavors
--- =====================================================================
+
 L["FOCUS_SHOW_ENDEAVORS"]                                     = "显示宏图"
 L["FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"]              = "列表中显示追踪的宏图(玩家住房)"
 L["FOCUS_COMPLETED_ENDEAVORS"]                                = "显示已完成宏图"
 L["FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"]                = "追踪器中包含已完成宏图。关闭时仅显示进行中的追踪宏图"
 
--- =====================================================================
+
 -- OptionsData.lua Features — Decor
--- =====================================================================
+
 L["FOCUS_SHOW_DECOR"]                                         = "显示装饰"
 L["FOCUS_TRACKED_HOUSING_DECOR_LIST"]                         = "列表中显示追踪的住房装饰"
 L["FOCUS_DECOR_ICONS"]                                        = "显示装饰图标"
 L["FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "在装饰物品标题旁显示图标。需要在显示中启用'显示任务类型图标'"
 
--- =====================================================================
+
 -- OptionsData.lua Features — Appearances
--- =====================================================================
+
 -- L["FOCUS_SHOW_APPEARANCES"]                                = "Show Appearances"
 -- L["FOCUS_TRACKED_TRANSMOG_APPEARANCES_LIST"]               = "Show tracked transmog appearances in the list."
 -- L["FOCUS_INCLUDE_COLLECTED_APPEARANCES_TRACKER"]           = "Include collected appearances in the tracker. When off, only appearances you have not yet collected are shown."
@@ -1017,18 +1024,18 @@ L["FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "在装饰物品
 -- L["FOCUS_UNTRACK_APPEARANCE"]                              = "Untrack Appearance"
 -- L["FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map, Ctrl-click Collections, Ctrl+Shift-click dressing room. Right-click clears focus or untracks."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Adventure Guide
--- =====================================================================
+
 L["FOCUS_ADVENTURE_GUIDE"]                                    = "冒险指南"
 L["FOCUS_TRAVELER_S_LOG"]                                     = "显示旅行者日志"
 L["FOCUS_TRACKED_TRAVELER_S_LOG_OBJECTIVES_SHIFT"]            = "列表中显示追踪的旅行者日志目标(冒险指南中Shift+点击)"
 L["FOCUS_AUTO_REMOVE_COMPLETED_ACTIVITIES"]                   = "自动移除已完成的活动"
 L["FOCUS_AUTOMATICALLY_STOP_TRACKING_TRAVELER_S_LOG"]         = "旅行者日志活动完成后自动停止追踪."
 
--- =====================================================================
+
 -- OptionsData.lua Features — Scenario & Delve
--- =====================================================================
+
 L["FOCUS_SCENARIO_EVENTS"]                                    = "显示场景事件"
 L["FOCUS_ACTIVE_SCENARIO_DELVE_ACTIVITIES_DELVES_APP"]        = "显示活动场景和地下堡活动。地下堡显示在地下堡分类；其他场景显示在场景事件中"
 L["FOCUS_TRACK_DELVE_DUNGEON_SCENARIO_ACTIVITIES"]            = "追踪地下堡、地下城和场景活动"
@@ -1062,9 +1069,9 @@ L["FOCUS_WHERE_COUNTDOWN_BAR_BELOW_OBJECTIVES"]               = "倒计时显示
 L["FOCUS_BAR_BELOW"]                                          = "下方条形"
 L["FOCUS_INLINE_BESIDE_TITLE"]                                = "标题旁内联"
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Font
--- =====================================================================
+
 L["FOCUS_FONT_FAMILY"]                                        = "字体"
 L["FOCUS_TITLE_FONT"]                                         = "标题字体"
 L["VISTA_ZONE_FONT"]                                          = "区域字体"
@@ -1102,9 +1109,9 @@ L["FOCUS_PROGRESS_BAR_TEXT"]                                  = "进度条文本
 L["FOCUS_OUTLINE"]                                            = "轮廓"
 L["FOCUS_FONT_OUTLINE_STYLE"]                                 = "字体轮廓样式"
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Text case
--- =====================================================================
+
 L["FOCUS_HEADER_TEXT_CASE"]                                   = "标题文本大小写"
 L["FOCUS_DISPLAY_CASE_HEADER"]                                = "标题的大小写格式"
 L["FOCUS_SECTION_HEADER_CASE"]                                = "分类标题大小写"
@@ -1112,9 +1119,9 @@ L["FOCUS_DISPLAY_CASE_CATEGORY_LABELS"]                       = "分类标签的
 L["FOCUS_QUEST_TITLE_CASE"]                                   = "任务标题大小写"
 L["FOCUS_DISPLAY_CASE_QUEST_TITLES"]                          = "任务标题的大小写格式"
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Shadow
--- =====================================================================
+
 L["FOCUS_TEXT_SHADOW"]                                        = "显示文本阴影"
 L["FOCUS_ENABLE_DROP_SHADOW_TEXT"]                            = "启用文本阴影."
 L["FOCUS_SHADOW_X"]                                           = "阴影X"
@@ -1124,9 +1131,9 @@ L["FOCUS_VERTICAL_SHADOW_OFFSET"]                             = "垂直阴影偏
 L["FOCUS_SHADOW_ALPHA"]                                       = "阴影透明度"
 L["FOCUS_SHADOW_OPACITY"]                                     = "阴影不透明度(0-1)"
 
--- =====================================================================
+
 -- OptionsData.lua Typography — Mythic+ Typography
--- =====================================================================
+
 L["FOCUS_MYTHIC_TYPOGRAPHY"]                                  = "史诗+排版"
 L["FOCUS_DUNGEON_NAME_SIZE"]                                  = "地下城名称大小"
 L["FOCUS_FONT_SIZE_DUNGEON_NAME_PX"]                          = "地下城名称字体大小(8-32像素)"
@@ -1164,9 +1171,9 @@ L["FOCUS_BOSS_COLOUR"]                                        = "首领名称颜
 L["FOCUS_TEXT_COLOUR_BOSS_NAMES"]                             = "首领名称文本颜色"
 L["FOCUS_RESET_MYTHIC_TYPOGRAPHY"]                            = "重置史诗+排版"
 
--- =====================================================================
+
 -- OptionsData.lua Appearance
--- =====================================================================
+
 -- L["DASH_FRAME"]                                            = "Frame"
 -- L["FOCUS_CLASS_COLOURS_DASHBOARD"]                         = "Class colours - Dashboard"
 -- L["FOCUS_CLASS_COLOURS"]                                   = "Class Colours"
@@ -1180,9 +1187,9 @@ L["FOCUS_RESET_MYTHIC_TYPOGRAPHY"]                            = "重置史诗+�
 -- L["AUGMENT_CLASS_COLOURS_DESC"]                              = "Tint Augment loot icon glow and edit/anchor borders with your class colour."
 -- L["ESSENCE_CLASS_COLOURS_DESC"]                            = "Tint the character name on the Essence sheet with your class colour."
 
--- =====================================================================
+
 -- OptionsEssence.lua — Essence options panel
--- =====================================================================
+
 -- L["ESSENCE_DESC"]                                         = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
 -- L["ESSENCE_LOCK_POSITION"]                                    = "Lock Position"
 -- L["ESSENCE_LOCK_POSITION_DESC"]                               = "Prevent dragging the panel."
@@ -1244,9 +1251,9 @@ L["FOCUS_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"]                 = "聚焦任务高
 L["FOCUS_BAR_WIDTH"]                                          = "条形宽度"
 L["FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"]                   = "进度条高亮宽度(2-6像素)"
 
--- =====================================================================
+
 -- OptionsData.lua Organisation
--- =====================================================================
+
 L["FOCUS_ACTIVITY"]                                           = "活动"
 L["FOCUS_CONTENT"]                                            = "内容"
 L["FOCUS_SORTING"]                                            = "排序"
@@ -1359,9 +1366,9 @@ L["FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE"]                  = "需要TomTom。
 L["FOCUS_FIND_GROUP"]                                         = "寻找队伍"
 L["FOCUS_GROUP_QUEST_SEARCH_CLICK"]                           = "点击搜索此任务的队伍."
 
--- =====================================================================
+
 -- OptionsData.lua Blacklist
--- =====================================================================
+
 L["FOCUS_BLACKLIST"]                                          = "黑名单"
 -- L["FOCUS_BLACKLIST_UNTRACKED"]                             = "Blacklist Untracked"
 L["FOCUS_ENABLE_BLACKLIST_UNTRACKED_BEHAVIOUR_ADD_QUEST"]     = "在行为中启用'黑名单未追踪'添加任务"
@@ -1371,9 +1378,9 @@ L["FOCUS_BLACKLISTED_QUESTS"]                                 = "黑名单任务
 L["FOCUS_PERMANENTLY_SUPPRESSED_QUESTS"]                      = "永久隐藏的任务"
 L["FOCUS_RIGHT_CLICK_UNTRACK_QUESTS_PERMANENTLY_SUPPRESS"]    = "右键取消追踪任务并启用'永久隐藏未追踪任务'添加到此处"
 
--- =====================================================================
+
 -- OptionsData.lua Presence
--- =====================================================================
+
 L["PRESENCE_QUEST_TYPE_ICONS"]                                = "显示任务类型图标"
 L["PRESENCE_QUEST_TYPE_ICON_FOCUS_TRACKER_QUEST"]             = "聚焦追踪器中显示任务类型图标(任务接受/完成、世界任务、任务更新)"
 L["PRESENCE_QUEST_TYPE_ICONS_TOASTS"]                         = "提示上显示任务类型图标"
@@ -1485,18 +1492,18 @@ L["PRESENCE_FONT_FAMILY_SUBTITLE"]                            = "副标题字体
 -- L["PRESENCE_SMALL_SECONDARY_SIZE"]                         = "Small Secondary Size"
 -- L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"]       = "Font size for small notification subtitles."
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Outline
--- =====================================================================
+
 L["FOCUS_OUTLINE_NONE"]                                       = "无"
 L["FOCUS_THICK_OUTLINE"]                                      = "粗轮廓"
 -- L["FOCUS_SLUG"]                                            = "SLUG"
 -- L["FOCUS_SLUG_OUTLINE"]                                    = "SLUG Outline"
 -- L["FOCUS_SLUG_THICK_OUTLINE"]                              = "SLUG Thick Outline"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Highlight style
--- =====================================================================
+
 L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "条 (左边缘)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "条 (右边缘)"
 L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "条 (上边缘)"
@@ -1506,15 +1513,15 @@ L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "柔和发光"
 L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "双边缘条"
 L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "标签左侧强调"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — M+ position
--- =====================================================================
+
 L["FOCUS_MYTHICPLUS_POSITION_TOP"]                            = "顶部"
 L["FOCUS_MYTHICPLUS_POSITION_BOTTOM"]                         = "底部"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Text element positions
--- =====================================================================
+
 L["VISTA_LOCATION_POSITION"]                                  = "位置"
 L["VISTA_PLACE_ZONE_NAME_ABOVE_BELOW_MINIMAP"]                = "区域名称放置在小地图上方或下方"
 L["VISTA_COORDINATES_POSITION"]                               = "坐标位置"
@@ -1522,35 +1529,35 @@ L["VISTA_PLACE_COORDINATES_ABOVE_BELOW_MINIMAP"]              = "坐标放置在
 L["VISTA_CLOCK_POSITION"]                                     = "时钟位置"
 L["VISTA_PLACE_CLOCK_ABOVE_BELOW_MINIMAP"]                    = "时钟放置在小地图上方或下方"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Text case
--- =====================================================================
+
 L["FOCUS_TEXT_LOWER_CASE"]                                    = "小写"
 L["FOCUS_TEXT_UPPER_CASE"]                                    = "大写"
 L["FOCUS_TEXT_PROPER_CASE"]                                   = "标准"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Header count format
--- =====================================================================
+
 L["FOCUS_TRACKED_LOG"]                                        = "已追踪/日志中"
 L["FOCUS_LOG_MAX_SLOTS"]                                      = "日志中/最大槽位"
 
--- =====================================================================
+
 -- OptionsData.lua Dropdown options — Sort mode
--- =====================================================================
+
 L["FOCUS_ALPHABETICAL"]                                       = "字母顺序"
 L["FOCUS_QUEST_TYPE"]                                         = "任务类型"
 L["FOCUS_QUEST_LEVEL"]                                        = "任务等级"
 
--- =====================================================================
+
 -- OptionsData.lua Misc
--- =====================================================================
+
 L["FOCUS_CUSTOM"]                                             = "自定义"
 L["FOCUS_ORDER"]                                              = "顺序"
 
--- =====================================================================
+
 -- Tracker section labels (SECTION_LABELS)
--- =====================================================================
+
 L["UI_DUNGEON"]                                               = "地下城"
 L["UI_RAID"]                                                  = "团队副本"
 L["UI_DELVES"]                                                = "地下堡"
@@ -1583,9 +1590,9 @@ L["UI_DECOR"]                                                 = "装饰"
 L["UI_QUESTS"]                                                = "任务"
 L["UI_READY_TO_TURN_IN"]                                      = "准备提交"
 
--- =====================================================================
+
 -- Core.lua, FocusLayout.lua, PresenceCore.lua, FocusUnacceptedPopup.lua
--- =====================================================================
+
 L["PRESENCE_OBJECTIVES"]                                      = "目标"
 L["PRESENCE_OPTIONS"]                                         = "选项"
 L["PRESENCE_OPEN_HORIZON_SUITE"]                              = "打开 Horizon Suite"
@@ -1646,11 +1653,11 @@ L["PRESENCE_H_DEMO_REEL_TYPES"]                               = "  /h presence a
 L["PRESENCE_H_DEBUG_DUMP_STATE"]                              = "  /h presence debug    - 转储状态到聊天"
 L["PRESENCE_H_DEBUGLIVE_TOGGLE_LIVE"]                         = "  /h presence debuglive - 切换实时调试面板(记录事件)"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — General
 L["VISTA_POSITION_LAYOUT"]                                    = "位置和布局"
 
--- =====================================================================
+
 L["VISTA_DESC"]                                               = "小地图"
 L["VISTA_SIZE"]                                               = "小地图大小"
 L["VISTA_WIDTH_HEIGHT_OF_MINIMAP_PIXELS"]                     = "小地图宽度和高度(像素)(100-400)"
@@ -1667,9 +1674,9 @@ L["VISTA_AUTO_ZOOM"]                                          = "自动缩放"
 L["VISTA_AUTO_ZOOM_DELAY"]                                    = "自动缩出延迟"
 L["VISTA_SECONDS_AFTER_ZOOMING_BEFORE_AUTO_ZOOM"]             = "缩放后自动缩小的延迟秒数。设置为0禁用"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Typography
--- =====================================================================
+
 L["VISTA_ZONE_TEXT_HEADER"]                                   = "区域文本"
 L["VISTA_ZONE_FONT"]                                          = "区域字体"
 L["VISTA_FONT_ZONE_NAME_BELOW_MINIMAP"]                       = "小地图下方区域名称字体"
@@ -1715,9 +1722,9 @@ L["VISTA_COLOUR_NORMAL_DIFFICULTY_TEXT"]                      = "普通难度文
 L["VISTA_LFR_COLOUR"]                                         = "随机团队颜色"
 L["VISTA_COLOUR_LOOKING_RAID_DIFFICULTY_TEXT"]                = "随机团队难度文本的颜色"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Visibility
--- =====================================================================
+
 L["VISTA_TEXT_ELEMENTS"]                                      = "文本元素"
 L["VISTA_ZONE_TEXT"]                                          = "显示区域文本"
 L["VISTA_ZONE_NAME_BELOW_MINIMAP"]                            = "小地图下方显示区域名称"
@@ -1751,9 +1758,9 @@ L["VISTA_ZOOM_BUTTONS_MINIMAP"]                               = "小地图显示
 L["VISTA_ZOOM_BUTTONS_MOUSEOVER"]                             = "仅鼠标悬停时显示缩放按钮"
 L["VISTA_HIDE_ZOOM_BUTTONS_UNTIL_YOU_HOVER"]                  = "悬停小地图时显示缩放按钮"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Display (Border / Text Positions / Buttons)
--- =====================================================================
+
 L["VISTA_BORDER"]                                             = "边框"
 L["VISTA_BORDER_TIP"]                                         = "小地图周围显示边框"
 L["VISTA_BORDER_COLOUR"]                                      = "边框颜色"
@@ -1814,9 +1821,9 @@ L["VISTA_SIZE_OF_MAIL_ICON_PIXELS"]                           = "新邮件图标
 L["VISTA_ADDON_BUTTON_SIZE"]                                  = "插件按钮大小"
 L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "收集的插件小地图按钮大小(像素)"
 
--- =====================================================================
+
 -- OptionsData.lua Vista — Minimap Addon Buttons
--- =====================================================================
+
 -- L["VISTA_COLLECT_HORIZON_MINIMAP"]                         = "Include Horizon Minimap Icon"
 -- L["VISTA_COLLECT_HORIZON_MINIMAP_DESC"]                    = "Put Horizon's own minimap icon in the managed addon bar, right-click panel, or drawer instead of leaving it on the minimap edge."
 -- L["VISTA_SORT_BUTTONS_ALPHA"]                              = "Sort Buttons Alphabetically"
@@ -1890,9 +1897,9 @@ L["VISTA_ADDON_BUTTONS_DETECTED"]                             = "(尚未检测�
 L["VISTA_VISIBLE_BUTTONS_CHECK_INCLUDE"]                      = "可见按钮(勾选以包含)"
 L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(尚未检测到插件按钮 — 请先打开你的小地图)"
 
--- =====================================================================
+
 -- Inline option / module strings (used in OptionsData / modules; symbolic migration)
--- =====================================================================
+
 
 -- L["HEROIC_DUNGEON"]                                        = "Heroic Dungeon"
 -- L["HEROIC_RAID"]                                           = "Heroic Raid"

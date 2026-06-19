@@ -62,9 +62,9 @@ local function GetClassColorRaw()
     return nil
 end
 
---- Returns player class RGB when the module's class-colour DB toggle is enabled, else nil.
---- @param moduleKey string Lowercase module id: dashboard, vista, insight, essence, focus, presence, augment
---- @return table|nil { r, g, b } with components in 0–1
+-- Returns player class RGB when the module's class-colour DB toggle is enabled, else nil.
+-- @param moduleKey string Lowercase module id: dashboard, vista, insight, essence, focus, presence, augment
+-- @return table|nil { r, g, b } with components in 0–1
 function addon.GetModuleClassColor(moduleKey)
     if type(moduleKey) ~= "string" or moduleKey == "" then return nil end
     local cap = moduleKey:sub(1, 1):upper() .. moduleKey:sub(2)
@@ -96,8 +96,8 @@ local DEFAULT_FALLBACK_FONT = (addon.GetDefaultFontPath and addon.GetDefaultFont
 -- Populated by SetSafeFont; consumed by OptionsWidgets_RefreshFonts.
 local widgetFontRegistry = {}
 
---- Re-apply current Def font path and WidgetFontFlags to all registered widget FontStrings.
---- Call after OptionsWidgets_SetDef changes WidgetFontFlags or FontPath.
+-- Re-apply current Def font path and WidgetFontFlags to all registered widget FontStrings.
+-- Call after OptionsWidgets_SetDef changes WidgetFontFlags or FontPath.
 function _G.OptionsWidgets_RefreshFonts()
     local path = Def.FontPath or DEFAULT_FALLBACK_FONT
     local flags = Def.WidgetFontFlags or "OUTLINE"
@@ -155,12 +155,15 @@ local function ApplyOptionTooltip(frame, tooltip)
         GameTooltip:Show()
     end)
     frame:HookScript("OnLeave", function()
-        GameTooltip:Hide()
+        if not frame:IsMouseOver() then
+            GameTooltip:Hide()
+        end
     end)
 end
 
 -- Combine an inline description and a hover tooltip into one tooltip string (blank-line separated).
 local function JoinTooltip(desc, tip)
+    if type(tip) == "function" then tip = tip() end
     return (desc or "") .. (desc and tip and "\n\n" or "") .. (tip or "")
 end
 
@@ -332,12 +335,12 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     return row
 end
 
---- Create a flat-styled action button with background, border, and hover state.
---- @param parent table Parent frame
---- @param labelText string Button label
---- @param onClick function Callback on click
---- @param opts table|nil Optional; opts.width, opts.height (default 100x22)
---- @return table Button frame (caller sets position)
+-- Create a flat-styled action button with background, border, and hover state.
+-- @param parent table Parent frame
+-- @param labelText string Button label
+-- @param onClick function Callback on click
+-- @param opts table|nil Optional; opts.width, opts.height (default 100x22)
+-- @return table Button frame (caller sets position)
 function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
     opts = opts or {}
     local width = opts.width or 100
@@ -605,6 +608,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
         startNorm = valueToNorm(get())
         local scale = track:GetEffectiveScale()
         startX = GetCursorPosition() / scale
+        local dragFillWidth = fillWidth
         local lastCommittedSnapped = snapToStep(normToValue(startNorm))
         thumb:GetParent():SetScript("OnUpdate", function()
             if not IsMouseButtonDown("LeftButton") then
@@ -619,7 +623,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
                 return
             end
             local x = GetCursorPosition() / scale
-            local delta = (x - startX) / fillWidth
+            local delta = (x - startX) / dragFillWidth
             local n = math.max(0, math.min(1, startNorm + delta))
             local v = normToValue(n)
             -- Only call set() when the snapped value changes.
@@ -1210,7 +1214,7 @@ function _G.OptionsWidgets_CreateColorSwatchRow(parent, anchor, labelText, defau
         local r, g, b, a = def[1], def[2], def[3], def[4] or 1
         if getTbl then
             local result = getTbl()
-            if type(result) == "table" and result[1] then
+            if type(result) == "table" and type(result[1]) == "number" and type(result[2]) == "number" and type(result[3]) == "number" then
                 r, g, b = result[1], result[2], result[3]
                 if hasAlpha and type(result[4]) == "number" then a = result[4] end
             elseif type(result) == "number" then
@@ -1700,7 +1704,7 @@ local REORDER_RESET_GAP = 6     -- gap above the reset-to-default button
 local REORDER_RESET_H = 22      -- reset button height
 local REORDER_AUTOSCROLL_STEP = 10
 
---- Create a drag-to-reorder list widget (e.g. for Focus category order). Rows show labelMap[key]; opt.get/set provide order array.
+-- Create a drag-to-reorder list widget (e.g. for Focus category order). Rows show labelMap[key]; opt.get/set provide order array.
 -- @param parent table Parent frame
 -- @param anchor table Anchor for TOPLEFT
 -- @param opt table Option descriptor: get(), set(order), labelMap, name, tooltip

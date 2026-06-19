@@ -44,6 +44,8 @@ addon.INSIGHT_KEYS = {
     insightStatusBadgeGroup      = true,
     insightStatusBadgeFriend     = true,
     insightStatusBadgeTargeting  = true,
+    insightShowTargeting         = true,
+    insightNpcShowTargeting      = true,
     insightShowMythicScore       = true,
     insightMythicScoreMode       = true,
     insightRatingsIcons          = true,
@@ -61,6 +63,13 @@ addon.INSIGHT_KEYS = {
     insightMountSize             = true,
     insightTransmogSize          = true,
     insightMountOwnershipDisplay = true,
+    -- Per-type background colours
+    insightPlayerBgColor         = true,
+    insightNpcBgColor            = true,
+    insightItemBgColor           = true,
+    -- Gradient brightness bias
+    insightPlayerGradientBias    = true,
+    insightItemGradientBias      = true,
     -- NPC tooltip
     insightNpcReactionBorder     = true,
     insightNpcReactionName       = true,
@@ -91,6 +100,7 @@ addon.INSIGHT_KEYS = {
     insightTRP3Icon             = true,
     insightTRP3ICStatusIcon     = true,
     insightTRP3Title            = true,
+    insightTRP3WowTitle         = true,
     insightTRP3RaceClass        = true,
     insightTRP3Guild            = true,
     insightTRP3BorderColor      = true,
@@ -131,6 +141,8 @@ addon.INSIGHT_DEFAULTS = {
     insightStatusBadgeGroup      = true,
     insightStatusBadgeFriend     = true,
     insightStatusBadgeTargeting  = true,
+    insightShowTargeting         = true,
+    insightNpcShowTargeting      = true,
     -- Ratings/gear
     insightShowMythicScore       = false,
     insightShowIlvl              = false,
@@ -143,6 +155,9 @@ addon.INSIGHT_DEFAULTS = {
     insightShowSpecRole          = true,
     insightRaceIcons             = true,
     insightClassIconSource       = "custom",
+    -- Gradient brightness bias
+    insightPlayerGradientBias    = 0,
+    insightItemGradientBias      = 0,
     -- Player font sizes
     insightPlayerHeaderSize      = 14,
     insightPlayerBodySize        = 12,
@@ -179,5 +194,7 @@ addon.INSIGHT_LIMITS = {
     insightNpcBodySize       = { min = 8,    max = 20  },
     insightItemHeaderSize    = { min = 8,    max = 24  },
     insightItemBodySize      = { min = 8,    max = 20  },
-    insightItemTransmogSize  = { min = 6,    max = 20  },
+    insightItemTransmogSize      = { min = 6,   max = 20  },
+    insightPlayerGradientBias    = { min = -50, max = 50  },
+    insightItemGradientBias      = { min = -50, max = 50  },
 }

@@ -26,10 +26,10 @@ local FOOTER_LINK_MAX_VISUAL_H = 16
 local FOOTER_LINK_ICON_INSET = 4
 local FOOTER_LINK_GAP = 10
 
---- Returns the display name for a module key based on the moduleNameDisplay DB setting.
---- Modes: "horizon" (code-name only), "subtitle" (code-name – descriptor), "simple" (descriptor only).
---- @param moduleKey string|nil
---- @return string
+-- Returns the display name for a module key based on the moduleNameDisplay DB setting.
+-- Modes: "horizon" (code-name only), "subtitle" (code-name – descriptor), "simple" (descriptor only).
+-- @param moduleKey string|nil
+-- @return string
 function addon.GetModuleDisplayName(moduleKey)
     local bd = addon.BrandDisplay
     if not bd or not moduleKey then return moduleKey or "" end
@@ -44,11 +44,11 @@ function addon.GetModuleDisplayName(moduleKey)
     return codeName
 end
 
---- Returns a single-line formatted string suitable for compact contexts (search filter, tooltips).
---- In "subtitle" mode the descriptor is appended in muted colour separated by an en dash.
---- The sidebar group headers use a two-line layout instead (see DashboardFrame.lua).
---- @param moduleKey string|nil
---- @return string
+-- Returns a single-line formatted string suitable for compact contexts (search filter, tooltips).
+-- In "subtitle" mode the descriptor is appended in muted colour separated by an en dash.
+-- The sidebar group headers use a two-line layout instead (see DashboardFrame.lua).
+-- @param moduleKey string|nil
+-- @return string
 function addon.FormatModuleNameForSidebar(moduleKey)
     local bd = addon.BrandDisplay
     if not bd or not moduleKey then return (moduleKey or ""):upper() end
@@ -67,16 +67,16 @@ function addon.FormatModuleNameForSidebar(moduleKey)
     return codeName
 end
 
---- @param moduleKey string|nil
---- @return string|nil
+-- @param moduleKey string|nil
+-- @return string|nil
 function addon.Dashboard_BrandModule(moduleKey)
     if not moduleKey then return nil end
     return addon.GetModuleDisplayName(moduleKey)
 end
 
 -- Categories shown under the Axis hub (dashboard + search); keep in sync with OptionCategories keys.
---- @param catKey string
---- @return boolean
+-- @param catKey string
+-- @return boolean
 function addon.Dashboard_IsAxisCategoryKey(catKey)
     return catKey == "Profiles" or catKey == "Modules" or catKey == "GlobalToggles"
 end
@@ -88,10 +88,10 @@ local DASHBOARD_TEXT_SHADOW_OFFSET_X = 1
 local DASHBOARD_TEXT_SHADOW_OFFSET_Y = -1
 local DASHBOARD_TEXT_SHADOW_ALPHA_MAX = 0.85
 
---- Detect CJK / Hangul / Kana via UTF-8 leading-byte scan (0xE3..0xED). Trail bytes for those
---- sequences are 0x80..0xBF, which doesn't overlap, so the scan is exact for Lua 5.1 strings.
---- @param text string|nil
---- @return boolean
+-- Detect CJK / Hangul / Kana via UTF-8 leading-byte scan (0xE3..0xED). Trail bytes for those
+-- sequences are 0x80..0xBF, which doesn't overlap, so the scan is exact for Lua 5.1 strings.
+-- @param text string|nil
+-- @return boolean
 function addon.Dashboard_TextNeedsExtendedScript(text)
     if type(text) ~= "string" or text == "" then return false end
     for i = 1, #text do
@@ -103,15 +103,15 @@ function addon.Dashboard_TextNeedsExtendedScript(text)
     return false
 end
 
---- Default font when dashboardFontPath is unset (matches Focus/options widget default).
---- @return string
+-- Default font when dashboardFontPath is unset (matches Focus/options widget default).
+-- @return string
 function addon.Dashboard_GetDefaultDashboardFontPath()
     return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 end
 
---- Resolve saved dashboard font (LSM key or path) to a file path for SetFont.
---- @param raw string|nil
---- @return string
+-- Resolve saved dashboard font (LSM key or path) to a file path for SetFont.
+-- @param raw string|nil
+-- @return string
 function addon.Dashboard_ResolveSavedDashboardFontPath(raw)
     if type(raw) ~= "string" or raw == "" then
         raw = addon.Dashboard_GetDefaultDashboardFontPath()
@@ -125,8 +125,8 @@ function addon.Dashboard_ResolveSavedDashboardFontPath(raw)
     return raw
 end
 
---- Absolute body text size in pixels (default 13). Migrates legacy dashboardFontSizeOffset.
---- @return integer
+-- Absolute body text size in pixels (default 13). Migrates legacy dashboardFontSizeOffset.
+-- @return integer
 function addon.Dashboard_GetBodySize()
     if not addon.GetDB then return 13 end
     local v = addon.GetDB("dashboardFontSize", nil)
@@ -138,16 +138,16 @@ function addon.Dashboard_GetBodySize()
     return math.max(DASHBOARD_TYPO_MIN_PX, 13 + math.floor(off + 0.5))
 end
 
---- Effective size for a given role, scaled relative to body size (13 = body).
---- @param base number Author-facing pixel size where 13 represents body text.
---- @return number
+-- Effective size for a given role, scaled relative to body size (13 = body).
+-- @param base number Author-facing pixel size where 13 represents body text.
+-- @return number
 function addon.Dashboard_EffectiveDashboardFontSize(base)
     local body = addon.Dashboard_GetBodySize()
     return math.max(DASHBOARD_TYPO_MIN_PX, math.floor(body + ((tonumber(base) or 13) - 13) + 0.5))
 end
 
---- Parse stored dashboardTextOutline value into (level, slug) pair.
---- Levels: 0 off, 1 OUTLINE, 2 THICKOUTLINE. SLUG is an independent SDF flag.
+-- Parse stored dashboardTextOutline value into (level, slug) pair.
+-- Levels: 0 off, 1 OUTLINE, 2 THICKOUTLINE. SLUG is an independent SDF flag.
 local function parseOutlineValue(v)
     if v == "" then return 0, false end
     if v == "OUTLINE" then return 1, false end
@@ -168,22 +168,22 @@ local function readOutlineConfig()
     return parseOutlineValue(addon.GetDB("dashboardTextOutline", 1))
 end
 
---- Saved outline level: 0 off, 1 OUTLINE, 2 THICKOUTLINE. Handles legacy booleans and new string values from dropdown.
---- @return integer 0–2
+-- Saved outline level: 0 off, 1 OUTLINE, 2 THICKOUTLINE. Handles legacy booleans and new string values from dropdown.
+-- @return integer 0–2
 function addon.Dashboard_GetTextOutlineLevel()
     local lev = readOutlineConfig()
     return lev
 end
 
---- Whether the SLUG (SDF) flag is enabled for dashboard text.
---- @return boolean
+-- Whether the SLUG (SDF) flag is enabled for dashboard text.
+-- @return boolean
 function addon.Dashboard_HasTextSlugFlag()
     local _, slug = readOutlineConfig()
     return slug
 end
 
---- Saved shadow strength 0–100 (opacity %; migrates legacy boolean on=true → 65).
---- @return integer 0–100
+-- Saved shadow strength 0–100 (opacity %; migrates legacy boolean on=true → 65).
+-- @return integer 0–100
 function addon.Dashboard_GetTextShadowStrength()
     if not addon.GetDB then return 0 end
     local v = addon.GetDB("dashboardTextShadow", 0)
@@ -194,14 +194,14 @@ function addon.Dashboard_GetTextShadowStrength()
     return math.max(0, math.min(100, math.floor(n + 0.5)))
 end
 
---- Whether any outline is applied (level > 0).
---- @return boolean
+-- Whether any outline is applied (level > 0).
+-- @return boolean
 function addon.Dashboard_ShouldUseTextOutline()
     return addon.Dashboard_GetTextOutlineLevel() > 0
 end
 
---- Whether shadow is visible (strength > 0).
---- @return boolean
+-- Whether shadow is visible (strength > 0).
+-- @return boolean
 function addon.Dashboard_ShouldUseTextShadow()
     return addon.Dashboard_GetTextShadowStrength() > 0
 end
@@ -214,8 +214,8 @@ local function composeFlags(outline, slug)
     return outline
 end
 
---- Font outline flags for widget-style dashboard chrome from outline level.
---- @return string
+-- Font outline flags for widget-style dashboard chrome from outline level.
+-- @return string
 function addon.Dashboard_GetWidgetOutlineFlags()
     local lev, slug = readOutlineConfig()
     local outline = ""
@@ -227,10 +227,10 @@ function addon.Dashboard_GetWidgetOutlineFlags()
     return composeFlags(outline, slug)
 end
 
---- Outline for dashboard chrome after offset (≥14px when level > 0; thick at level 2).
---- SLUG is preserved at all sizes since SDF rendering benefits small text most.
---- @param effSize number
---- @return string
+-- Outline for dashboard chrome after offset (≥14px when level > 0; thick at level 2).
+-- SLUG is preserved at all sizes since SDF rendering benefits small text most.
+-- @param effSize number
+-- @return string
 function addon.Dashboard_OutlineFlagsForSize(effSize)
     local lev, slug = readOutlineConfig()
     local outline = ""
@@ -240,9 +240,9 @@ function addon.Dashboard_OutlineFlagsForSize(effSize)
     return composeFlags(outline, slug)
 end
 
---- Apply or clear drop shadow from strength 0–100 (no-op for non–FontString types).
---- @param fs FontString|nil
---- @return nil
+-- Apply or clear drop shadow from strength 0–100 (no-op for non–FontString types).
+-- @param fs FontString|nil
+-- @return nil
 function addon.Dashboard_ApplyTextShadow(fs)
     if not fs or not fs.SetShadowOffset then return end
     if fs.GetObjectType and fs:GetObjectType() ~= "FontString" then return end
@@ -257,13 +257,13 @@ function addon.Dashboard_ApplyTextShadow(fs)
     end
 end
 
---- @param reg table|nil { fontStrings = {}, editBoxes = {} }
---- @param fs FontString
---- @param baseSize number Logical size (before offset); flags recomputed on apply unless overridden.
---- @param flagsOrNil string|nil If set, used on create and on apply (unless widgetChrome).
---- @param widgetChrome boolean|nil When true, apply uses Dashboard_GetWidgetOutlineFlags() instead of flags/size rule.
---- @param extendedScriptFont boolean|nil When true, apply keeps Fonts\\2002.TTF (Hangul/CJK) instead of the user dashboard font.
---- @return nil
+-- @param reg table|nil { fontStrings = {}, editBoxes = {} }
+-- @param fs FontString
+-- @param baseSize number Logical size (before offset); flags recomputed on apply unless overridden.
+-- @param flagsOrNil string|nil If set, used on create and on apply (unless widgetChrome).
+-- @param widgetChrome boolean|nil When true, apply uses Dashboard_GetWidgetOutlineFlags() instead of flags/size rule.
+-- @param extendedScriptFont boolean|nil When true, apply keeps Fonts\\2002.TTF (Hangul/CJK) instead of the user dashboard font.
+-- @return nil
 function addon.Dashboard_RegisterTypographyFontString(reg, fs, baseSize, flagsOrNil, widgetChrome, extendedScriptFont)
     if not reg or not reg.fontStrings or not fs or not baseSize then return end
     reg.fontStrings[#reg.fontStrings + 1] = {
@@ -275,19 +275,19 @@ function addon.Dashboard_RegisterTypographyFontString(reg, fs, baseSize, flagsOr
     }
 end
 
---- @param reg table|nil
---- @param eb EditBox
---- @param baseSize number
---- @param flagsOrNil string|nil Ignored when widgetChrome is true.
---- @param widgetChrome boolean|nil Use Dashboard_GetWidgetOutlineFlags() on apply.
---- @return nil
+-- @param reg table|nil
+-- @param eb EditBox
+-- @param baseSize number
+-- @param flagsOrNil string|nil Ignored when widgetChrome is true.
+-- @param widgetChrome boolean|nil Use Dashboard_GetWidgetOutlineFlags() on apply.
+-- @return nil
 function addon.Dashboard_RegisterTypographyEditBox(reg, eb, baseSize, flagsOrNil, widgetChrome)
     if not reg or not reg.editBoxes or not eb or not baseSize then return end
     reg.editBoxes[#reg.editBoxes + 1] = { eb = eb, base = baseSize, flags = flagsOrNil, widgetChrome = widgetChrome and true or nil }
 end
 
---- Apply saved dashboard font + size offset to registered chrome, OptionsWidgets Def, patch notes, and visible option rows.
---- @return nil
+-- Apply saved dashboard font + size offset to registered chrome, OptionsWidgets Def, patch notes, and visible option rows.
+-- @return nil
 function addon.ApplyDashboardTypography()
     local dash = _G.HorizonSuiteDashboard
     if not dash then return end
@@ -387,15 +387,15 @@ function addon.ApplyDashboardTypography()
     end
 end
 
---- @param parent Frame
---- @param text string
---- @param size number
---- @param r number
---- @param g number
---- @param b number
---- @param justify string|nil
---- @param reg table|nil Optional typography registry from dashboard frame build.
---- @return FontString
+-- @param parent Frame
+-- @param text string
+-- @param size number
+-- @param r number
+-- @param g number
+-- @param b number
+-- @param justify string|nil
+-- @param reg table|nil Optional typography registry from dashboard frame build.
+-- @return FontString
 function addon.Dashboard_MakeText(parent, text, size, r, g, b, justify, reg)
     local path = addon.Dashboard_ResolveSavedDashboardFontPath(
         (addon.GetDB and addon.GetDB("dashboardFontPath", addon.Dashboard_GetDefaultDashboardFontPath())) or addon.Dashboard_GetDefaultDashboardFontPath()
@@ -415,15 +415,15 @@ function addon.Dashboard_MakeText(parent, text, size, r, g, b, justify, reg)
 end
 
 -- Welcome / guide bodies may include Hangul or CJK; always prefer Blizzard 2002 here so names render without tofu squares.
---- @param parent Frame
---- @param text string
---- @param size number
---- @param r number
---- @param g number
---- @param b number
---- @param justify string|nil
---- @param reg table|nil Optional typography registry from dashboard frame build.
---- @return FontString
+-- @param parent Frame
+-- @param text string
+-- @param size number
+-- @param r number
+-- @param g number
+-- @param b number
+-- @param justify string|nil
+-- @param reg table|nil Optional typography registry from dashboard frame build.
+-- @return FontString
 function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b, justify, reg)
     local fs = parent:CreateFontString(nil, "OVERLAY")
 
@@ -462,12 +462,12 @@ function addon.Dashboard_MakeWelcomeMixedScriptText(parent, text, size, r, g, b,
     return fs
 end
 
---- Smooth vertical scroll with optional custom thumb track.
---- @param scrollFrame ScrollFrame
---- @param scrollContent Frame
---- @param speed number|nil
---- @param addScrollbar boolean|nil
---- @return nil
+-- Smooth vertical scroll with optional custom thumb track.
+-- @param scrollFrame ScrollFrame
+-- @param scrollContent Frame
+-- @param speed number|nil
+-- @param addScrollbar boolean|nil
+-- @return nil
 function addon.Dashboard_ApplySmoothScroll(scrollFrame, scrollContent, speed, addScrollbar)
     scrollFrame.targetScroll = nil
     scrollFrame.scrollSpeed = speed or 60
@@ -579,10 +579,10 @@ function addon.Dashboard_ApplySmoothScroll(scrollFrame, scrollContent, speed, ad
     end)
 end
 
---- Shared Community & Support footer for Welcome and Module Guide tabs.
---- @param parent Frame — frame that will hold the footer (e.g., footerPanel)
---- @param env table — { L, GetAccentColor, MakeText, addon }
---- @return table — { footerPanel, footerLinkButtons, communityHdr, footerTopRule, layout }
+-- Shared Community & Support footer for Welcome and Module Guide tabs.
+-- @param parent Frame — frame that will hold the footer (e.g., footerPanel)
+-- @param env table — { L, GetAccentColor, MakeText, addon }
+-- @return table — { footerPanel, footerLinkButtons, communityHdr, footerTopRule, layout }
 function addon.Dashboard_CreateCommunityFooter(parent, env)
     local L = env.L
     local GetAccentColor = env.GetAccentColor

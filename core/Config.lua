@@ -161,6 +161,8 @@ addon.QUEST_COLORS = {
     DAILY     = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
     CALLING   = { 0.20, 0.60, 1.00 },
     COMPLETE  = { 0.20, 1.00, 0.40 },
+    RARESCANNER  = { 0.20, 0.85, 0.75 },  -- teal (RareScanner integration)
+    SILVERDRAGON = { 0.78, 0.87, 1.00 },  -- silver-blue (SilverDragon integration)
     RARE      = { 0.96, 0.56, 0.08 },  -- warm orange (distinct from CURRENT coral, LEGENDARY)
     RARE_LOOT = { 0.96, 0.56, 0.08 },  -- warm orange (same as Rare Bosses)
     ACHIEVEMENT = { 0.78, 0.48, 0.22 },  -- bronze, trophy feel
@@ -173,6 +175,19 @@ addon.QUEST_COLORS = {
     RECIPES    = { 0.55, 0.75, 0.45 },  -- sage green (group default)
     ADVENTURE  = { 0.90, 0.80, 0.50 },  -- artifact gold (WoW e6cc80; distinct from CAMPAIGN)
 }
+
+-- Returns the effective quest color for a category, checking DB overrides first.
+-- RS and SD support user-defined colors stored as {r,g,b} tables in the DB.
+function addon.GetQuestColor(cat)
+    if cat == "RARESCANNER" then
+        local c = addon.GetDB("rs_color")
+        if type(c) == "table" and c[1] then return c end
+    elseif cat == "SILVERDRAGON" then
+        local c = addon.GetDB("sd_color")
+        if type(c) == "table" and c[1] then return c end
+    end
+    return addon.QUEST_COLORS and addon.QUEST_COLORS[cat]
+end
 
 -- Presence-only (no Focus category): boss emote alert, discovery line
 addon.PRESENCE_BOSS_EMOTE_COLOR = { 1, 0.2, 0.2 }
@@ -240,6 +255,8 @@ addon.SECTION_LABELS = {
     WEEKLY        = "UI_WEEKLY_QUESTS",
     PREY          = "UI_PREY",
     DAILY         = "UI_DAILY_QUESTS",
+    RARESCANNER   = "FOCUS_INTEGRATION_RARESCANNER",
+    SILVERDRAGON  = "FOCUS_INTEGRATION_SILVERDRAGON",
     RARES         = "UI_RARE_BOSSES",
     RARE_LOOT     = "UI_RARE_LOOT",
     ACHIEVEMENTS  = "UI_ACHIEVEMENTS",
@@ -270,6 +287,8 @@ addon.SECTION_COLORS = {
     WEEKLY    = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
     PREY      = { 0.72, 0.22, 0.22 },  -- dark crimson (Midnight Prey; distinct from RAID red)
     DAILY     = { 0.25, 0.88, 0.92 },  -- match quest-recurring-available icon (cyan)
+    RARESCANNER  = { 0.20, 0.85, 0.75 },  -- teal (RareScanner integration)
+    SILVERDRAGON = { 0.78, 0.87, 1.00 },  -- silver-blue (SilverDragon integration)
     RARES     = { 0.96, 0.56, 0.08 },  -- warm orange (distinct from CURRENT coral, LEGENDARY)
     RARE_LOOT = { 0.96, 0.56, 0.08 },  -- warm orange (same as Rare Bosses)
     ACHIEVEMENTS = { 0.78, 0.48, 0.22 },  -- bronze
@@ -282,13 +301,13 @@ addon.SECTION_COLORS = {
     COMPLETE  = { 0.20, 1.00, 0.40 },
 }
 
-addon.GROUP_ORDER = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
+addon.GROUP_ORDER = { "FOCUSED", "RARESCANNER", "SILVERDRAGON", "CURRENT_EVENT", "CURRENT", "DELVES", "SCENARIO", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" }
 
 addon.GROUP_ORDER_PRESETS = {
-    ["Collection Focused"] = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
-    ["Quest Focused"]      = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["Campaign Focused"]   = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
-    ["World / Rare Focused"] = { "FOCUSED", "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Collection Focused"] = { "FOCUSED", "RARESCANNER", "SILVERDRAGON", "CURRENT_EVENT", "CURRENT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "NEARBY", "COMPLETE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "AVAILABLE", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "DEFAULT" },
+    ["Quest Focused"]      = { "FOCUSED", "RARESCANNER", "SILVERDRAGON", "CURRENT_EVENT", "CURRENT", "COMPLETE", "NEARBY", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "WORLD", "WEEKLY", "PREY", "DAILY", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["Campaign Focused"]   = { "FOCUSED", "RARESCANNER", "SILVERDRAGON", "CURRENT_EVENT", "CURRENT", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "COMPLETE", "NEARBY", "DELVES", "SCENARIO", "DUNGEON", "RAID", "AVAILABLE", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
+    ["World / Rare Focused"] = { "FOCUSED", "RARESCANNER", "SILVERDRAGON", "CURRENT_EVENT", "CURRENT", "WORLD", "WEEKLY", "PREY", "DAILY", "RARES", "RARE_LOOT", "NEARBY", "COMPLETE", "AVAILABLE", "DELVES", "SCENARIO", "DUNGEON", "RAID", "CAMPAIGN", "IMPORTANT", "LEGENDARY", "ACHIEVEMENTS", "ENDEAVORS", "DECOR", "APPEARANCES", "RECIPES", "ADVENTURE", "DEFAULT" },
 }
 
 -- Section groupKeys whose headers skip super-track dimming (achievements, rares, etc. — not quest log rows).
@@ -299,6 +318,8 @@ addon.NON_QUEST_SUPERTRACK_DIM_SECTION_KEYS = {
     APPEARANCES = true,
     RECIPES = true,
     ADVENTURE = true,
+    RARESCANNER  = true,
+    SILVERDRAGON = true,
     RARES = true,
     RARE_LOOT = true,
 }
@@ -307,7 +328,7 @@ addon.NON_QUEST_SUPERTRACK_DIM_SECTION_KEYS = {
 addon.CATEGORY_KEYS = {
     CURRENT = "CURRENT", CURRENT_EVENT = "CURRENT_EVENT", DUNGEON = "DUNGEON", RAID = "RAID", DELVES = "DELVES", SCENARIO = "SCENARIO", AVAILABLE = "AVAILABLE", NEARBY = "NEARBY", CAMPAIGN = "CAMPAIGN",
     IMPORTANT = "IMPORTANT", LEGENDARY = "LEGENDARY", WORLD = "WORLD", WEEKLY = "WEEKLY", PREY = "PREY",
-    DAILY = "DAILY", RARES = "RARES", RARE = "RARE", RARE_LOOT = "RARE_LOOT", ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
+    DAILY = "DAILY", RARESCANNER = "RARESCANNER", SILVERDRAGON = "SILVERDRAGON", RARES = "RARES", RARE = "RARE", RARE_LOOT = "RARE_LOOT", ACHIEVEMENT = "ACHIEVEMENT", ACHIEVEMENTS = "ACHIEVEMENTS",
     ENDEAVOR = "ENDEAVOR", ENDEAVORS = "ENDEAVORS",
     DECOR = "DECOR",
     APPEARANCE = "APPEARANCE", APPEARANCES = "APPEARANCES",
@@ -342,6 +363,8 @@ addon.CATEGORY_TO_GROUP = {
     PREY      = "PREY",
     DAILY     = "DAILY",
     CALLING   = "WORLD",
+    RARESCANNER  = "RARESCANNER",
+    SILVERDRAGON = "SILVERDRAGON",
     RARE_LOOT = "RARE_LOOT",
     ACHIEVEMENT = "ACHIEVEMENTS",
     ENDEAVOR   = "ENDEAVORS",
@@ -543,9 +566,9 @@ end
 -- STATUSBAR LIST (for progress bar texture via LibSharedMedia)
 -- ============================================================================
 
---- Resolve a LibSharedMedia statusbar key to a texture file path.
---- @param value string|nil LSM statusbar key (e.g. "Solid", "Blizzard")
---- @return string Texture path; fallback to WHITE8X8 if invalid
+-- Resolve a LibSharedMedia statusbar key to a texture file path.
+-- @param value string|nil LSM statusbar key (e.g. "Solid", "Blizzard")
+-- @return string Texture path; fallback to WHITE8X8 if invalid
 function addon.ResolveStatusbarPath(value)
     if type(value) ~= "string" or value == "" then
         return "Interface\\Buttons\\WHITE8X8"
@@ -560,8 +583,8 @@ function addon.ResolveStatusbarPath(value)
     return "Interface\\Buttons\\WHITE8X8"
 end
 
---- Build dropdown options for statusbar textures from LibSharedMedia.
---- @return table Array of { displayName, value } pairs; "Solid" first
+-- Build dropdown options for statusbar textures from LibSharedMedia.
+-- @return table Array of { displayName, value } pairs; "Solid" first
 function addon.GetStatusbarDropdownOptions()
     local list = {}
     local LSM = (LibStub and LibStub("LibSharedMedia-3.0", true)) or nil
@@ -599,12 +622,12 @@ function addon.GetStatusbarDropdownOptions()
     return list
 end
 
---- Apply progress bar fill texture and vertex color. Uses LSM statusbar texture from DB.
---- @param tex table Texture object (e.g. progressBarFill)
---- @param r number Red (0-1)
---- @param g number Green (0-1)
---- @param b number Blue (0-1)
---- @param a number|nil Alpha (0-1); default 0.85
+-- Apply progress bar fill texture and vertex color. Uses LSM statusbar texture from DB.
+-- @param tex table Texture object (e.g. progressBarFill)
+-- @param r number Red (0-1)
+-- @param g number Green (0-1)
+-- @param b number Blue (0-1)
+-- @param a number|nil Alpha (0-1); default 0.85
 function addon.ApplyProgressBarFillTexture(tex, r, g, b, a)
     if not tex then return end
     local path = addon.ResolveStatusbarPath(addon.GetDB("progressBarTexture", "Solid"))
@@ -612,10 +635,10 @@ function addon.ApplyProgressBarFillTexture(tex, r, g, b, a)
     tex:SetVertexColor(r or 0.4, g or 0.65, b or 0.9, a or 0.85)
 end
 
---- Unread patch-notes marker: bundled media/update.tga; fallback masked green dot if missing.
---- Loaded from Config so MinimapButton (and beta TOC without PatchNotes.lua) can use it.
---- @param tex Texture
---- @return nil
+-- Unread patch-notes marker: bundled media/update.tga; fallback masked green dot if missing.
+-- Loaded from Config so MinimapButton (and beta TOC without PatchNotes.lua) can use it.
+-- @param tex Texture
+-- @return nil
 function addon.PatchNotes_StyleAttentionBadge(tex)
     if not tex then return end
     pcall(function() tex:SetMask(nil) end)

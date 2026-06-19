@@ -73,10 +73,10 @@ local function PickStandaloneTooltipAnchor(ownerFrame)
     return "ANCHOR_" .. v .. h
 end
 
---- Show Horizon minimap tooltip anchored to the given frame (standalone button or Vista proxy).
---- @param ownerFrame Frame
---- @param anchor string|nil GameTooltip anchor token; defaults to a quadrant-aware anchor for the standalone btn.
---- @return nil
+-- Show Horizon minimap tooltip anchored to the given frame (standalone button or Vista proxy).
+-- @param ownerFrame Frame
+-- @param anchor string|nil GameTooltip anchor token; defaults to a quadrant-aware anchor for the standalone btn.
+-- @return nil
 local function ShowGameTooltip(ownerFrame, anchor)
     if not GameTooltip or not ownerFrame then return end
     anchor = anchor or PickStandaloneTooltipAnchor(ownerFrame)
@@ -473,6 +473,7 @@ local function CreateButton()
     end)
     btn:SetScript("OnLeave", function()
         btn._hsTooltipStick = nil
+        btn._hsTooltipAnchor = nil
         if GameTooltip then GameTooltip:Hide() end
         if not MinimapHoverFadeEnabled() then return end
         if hoverZone and hoverZone:IsMouseOver() then return end
@@ -505,10 +506,15 @@ local function CreateButton()
                 end
             end
         end
-        -- Re-anchor tooltip every frame while hovering (minimap resize / drag moves the button).
+        -- Re-anchor tooltip only when the anchor quadrant changes (minimap resize/drag).
+        -- Calling SetOwner every frame taints GameTooltip and breaks Blizzard widget rendering.
         if btn and btn._hsTooltipStick and GameTooltip and GameTooltip:GetOwner() == btn then
-            GameTooltip:SetOwner(btn, PickStandaloneTooltipAnchor(btn))
-            GameTooltip:Show()
+            local newAnchor = PickStandaloneTooltipAnchor(btn)
+            if newAnchor ~= btn._hsTooltipAnchor then
+                btn._hsTooltipAnchor = newAnchor
+                GameTooltip:SetOwner(btn, newAnchor)
+                GameTooltip:Show()
+            end
         end
     end)
 
@@ -516,15 +522,15 @@ local function CreateButton()
     return btn
 end
 
---- Show or hide unread patch-notes dot on the minimap button and Vista proxy (if any).
---- @return nil
+-- Show or hide unread patch-notes dot on the minimap button and Vista proxy (if any).
+-- @return nil
 function addon.MinimapButton_UpdatePatchNotesBadge()
     UpdatePatchNotesBadgeInternal()
 end
 
---- Vista: the visible proxy frame for Horizon's minimap icon when collected into the bar/panel/drawer.
---- @param frame Frame|nil
---- @return nil
+-- Vista: the visible proxy frame for Horizon's minimap icon when collected into the bar/panel/drawer.
+-- @param frame Frame|nil
+-- @return nil
 function addon.MinimapButton_SetHorizonPatchNotesProxy(frame)
     horizonPatchNotesProxy = frame
     UpdatePatchNotesBadgeInternal()
@@ -548,16 +554,16 @@ initFrame:SetScript("OnEvent", function(self, event)
     end
 end)
 
---- @param collected boolean True when Vista is showing the icon in its managed UI.
---- @return nil
+-- @param collected boolean True when Vista is showing the icon in its managed UI.
+-- @return nil
 addon.MinimapButton_SetVistaCollected = SetVistaCollected
 addon.MinimapButton_UpdateVisibility = UpdateVisibility
 addon.MinimapButton_ApplyPosition = ApplyPosition
---- Re-mask the standalone Horizon icon to match Vista's minimap shape (circular vs. square).
---- Called from Vista's ApplyOptions_Minimap so live shape toggles take effect without /reload.
---- @return nil
+-- Re-mask the standalone Horizon icon to match Vista's minimap shape (circular vs. square).
+-- Called from Vista's ApplyOptions_Minimap so live shape toggles take effect without /reload.
+-- @return nil
 addon.MinimapButton_ApplyShape = ApplyShape
 addon.MinimapButton_ShowGameTooltip = ShowGameTooltip
---- Effective minimap button edge size (slightly enlarged when patch notes are unread); Vista proxy matches this.
---- @return number
+-- Effective minimap button edge size (slightly enlarged when patch notes are unread); Vista proxy matches this.
+-- @return number
 addon.MinimapButton_GetDisplayPixelSize = GetMinimapButtonDisplayPixelSize

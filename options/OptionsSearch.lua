@@ -44,11 +44,11 @@ local function TermScoreAgainstTokens(term, tokens, exactScore, prefixScore)
     return best
 end
 
---- Score an index entry for a lowercased search string; nil if no match.
---- Multi-word queries require every term to match some token (AND). Higher = better (name > section > category > module > option id > desc).
---- @param entry table Row from OptionsData_BuildSearchIndex()
---- @param queryLower string Trimmed, lowercased query
---- @return number|nil
+-- Score an index entry for a lowercased search string; nil if no match.
+-- Multi-word queries require every term to match some token (AND). Higher = better (name > section > category > module > option id > desc).
+-- @param entry table Row from OptionsData_BuildSearchIndex()
+-- @param queryLower string Trimmed, lowercased query
+-- @return number|nil
 function OptionsData_SearchEntryScore(entry, queryLower)
     if not entry or not queryLower or queryLower == "" then return nil end
     local terms = ParseSearchQueryTerms(queryLower)
@@ -87,10 +87,10 @@ local function NormalizeSearchDisplayWhitespace(s)
     return s:gsub("^%s+", ""):gsub("%s+$", "")
 end
 
---- Plain-text option description and tooltip for search dropdown rows (why this matched).
---- @param opt table Option definition from OptionCategories
---- @param maxLen number|nil Max characters before "..." (default 140)
---- @return string
+-- Plain-text option description and tooltip for search dropdown rows (why this matched).
+-- @param opt table Option definition from OptionCategories
+-- @param maxLen number|nil Max characters before "..." (default 140)
+-- @return string
 function OptionsData_SearchResultDetailText(opt, maxLen)
     if not opt then return "" end
     maxLen = maxLen or 140
@@ -133,7 +133,10 @@ function OptionsData_BuildSearchIndex()
             elseif opt.type ~= "section" and opt.type ~= "header" and opt.type ~= "moduleReloadPrompt" then
                 local rawName = type(opt.name) == "function" and opt.name() or opt.name
                 local name = (rawName or ""):lower()
-                local desc = ((opt.desc or "") .. " " .. (opt.tooltip or "")):lower()
+                local rawDesc, rawTooltip
+                if type(opt.desc)    == "function" then rawDesc    = opt.desc()    else rawDesc    = opt.desc    end
+                if type(opt.tooltip) == "function" then rawTooltip = opt.tooltip() else rawTooltip = opt.tooltip end
+                local desc = ((rawDesc or "") .. " " .. (rawTooltip or "")):lower()
                 local sectionLower = (currentSection or ""):lower()
                 local moduleLower = (moduleLabel or ""):lower()
                 local searchText = name .. " " .. desc .. " " .. sectionLower .. " " .. moduleLower

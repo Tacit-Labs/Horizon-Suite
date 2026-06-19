@@ -75,11 +75,11 @@ local function UpdateTabOpenState()
     end
 end
 
---- Called when dashboard class colour is applied — tab uses neutral colours only; no-op.
---- @param r number
---- @param g number
---- @param b number
---- @return nil
+-- Called when dashboard class colour is applied — tab uses neutral colours only; no-op.
+-- @param r number
+-- @param g number
+-- @param b number
+-- @return nil
 function DP.ApplyAccentColor(r, g, b) end
 
 local function GetPulloutFontPath()
@@ -104,8 +104,8 @@ local function ClosePulloutImmediate()
     end
 end
 
---- @param moduleKey string e.g. "insight" — must match OptionCategories moduleKey
---- @param def table width, title, subtitle, MountContent(hostFrame), Refresh(), optional tabTooltipTitle, tabTooltipBody
+-- @param moduleKey string e.g. "insight" — must match OptionCategories moduleKey
+-- @param def table width, title, subtitle, MountContent(hostFrame), Refresh(), optional tabTooltipTitle, tabTooltipBody
 function DP.Register(moduleKey, def)
     if type(moduleKey) ~= "string" or type(def) ~= "table" then return end
     registrations[moduleKey] = def
@@ -117,7 +117,7 @@ local function UpdateTabVisibility()
     previewTabFrame:SetShown(show and true or false)
 end
 
---- @param moduleKey string|nil Module whose settings are shown, or nil on home/welcome/patch notes
+-- @param moduleKey string|nil Module whose settings are shown, or nil on home/welcome/patch notes
 function DP.SetActiveModuleKey(moduleKey)
     local prev = activeModuleKey
     activeModuleKey = moduleKey
@@ -455,7 +455,7 @@ local function EnsurePreviewTab(dashFrame)
     UpdateTabOpenState()
 end
 
---- Idempotent: bind tab + hooks to the dashboard frame created by Dashboard_BuildMainFrame / DashboardPanel slash handler.
+-- Idempotent: bind tab + hooks to the dashboard frame created by Dashboard_BuildMainFrame / DashboardPanel slash handler.
 function DP.InitDashboard(dashFrame)
     if not dashFrame then return end
     dashRef = dashFrame

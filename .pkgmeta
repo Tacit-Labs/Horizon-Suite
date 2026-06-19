@@ -16,6 +16,7 @@ ignore:
   - Docs/Branding/ColourSchema.md
   - Docs/Branding/HorizonClassIcons.png
   - Docs/Contributions
+  - Docs/Engineering
   - notes
   - "modules/*/notes"
   - locales/KeyNomenclature.md

@@ -96,10 +96,10 @@ end
 -- Forward declarations for reload-safe suppression (defined later)
 local HookEventToastManager
 
---- Apply per-type Blizzard suppression. Suppress only frames for types that are ON;
---- restore frames for types that are OFF so default WoW notifications show.
---- Idempotent; safe to call multiple times.
---- @return nil
+-- Apply per-type Blizzard suppression. Suppress only frames for types that are ON;
+-- restore frames for types that are OFF so default WoW notifications show.
+-- Idempotent; safe to call multiple times.
+-- @return nil
 local function ApplyBlizzardSuppression()
     if not addon:IsModuleEnabled("presence") then return end
 
@@ -162,8 +162,8 @@ local function ApplyBlizzardSuppression()
     if topBannerFrame then KillBlizzardFrame(topBannerFrame) end
 end
 
---- Re-apply zone frame suppression. Call when zone events fire to ensure frames stay hidden after Blizzard may have shown them.
---- @return nil
+-- Re-apply zone frame suppression. Call when zone events fire to ensure frames stay hidden after Blizzard may have shown them.
+-- @return nil
 local function ReapplyZoneSuppression()
     if not addon:IsModuleEnabled("presence") then return end
     if isTypeEnabled("presenceZoneChange", nil, true) then
@@ -176,15 +176,15 @@ local function ReapplyZoneSuppression()
     end
 end
 
---- Suppress Blizzard frames when Presence is enabled. Calls ApplyBlizzardSuppression for per-type logic.
---- @return nil
+-- Suppress Blizzard frames when Presence is enabled. Calls ApplyBlizzardSuppression for per-type logic.
+-- @return nil
 local function SuppressBlizzard()
     ApplyBlizzardSuppression()
     HookEventToastManager()
 end
 
---- Restore all suppressed Blizzard frames when Presence is disabled.
---- @return nil
+-- Restore all suppressed Blizzard frames when Presence is disabled.
+-- @return nil
 local function RestoreBlizzard()
     RestoreBlizzardFrame(ZoneTextFrame)
     RestoreBlizzardFrame(SubZoneTextFrame)
@@ -199,10 +199,10 @@ local function RestoreBlizzard()
     if wqFrame then RestoreBlizzardFrame(wqFrame) end
 end
 
---- Dump notification type options and Blizzard frame suppression state for debugging.
---- Call with addon.HSPrint or similar. Use /horizon presence debugtypes for quick check.
---- @param p function Print function (msg) -> nil
---- @return nil
+-- Dump notification type options and Blizzard frame suppression state for debugging.
+-- Call with addon.HSPrint or similar. Use /horizon presence debugtypes for quick check.
+-- @param p function Print function (msg) -> nil
+-- @return nil
 local function DumpBlizzardSuppression(p)
     if not p then return end
     p("|cFF00CCFF--- Notification types & Blizzard suppression ---|r")
@@ -243,9 +243,9 @@ local function DumpBlizzardSuppression(p)
     p("|cFF00CCFF--- End suppression debug ---|r")
 end
 
---- Suppress WorldQuestCompleteBannerFrame (called on ADDON_LOADED for Blizzard_WorldQuestComplete).
---- Only suppresses if presenceWorldQuest type is enabled.
---- @return nil
+-- Suppress WorldQuestCompleteBannerFrame (called on ADDON_LOADED for Blizzard_WorldQuestComplete).
+-- Only suppresses if presenceWorldQuest type is enabled.
+-- @return nil
 local function KillWorldQuestBanner()
     if not isTypeEnabled("presenceWorldQuest", "presenceQuestEvents", true) then return end
     local frame = WorldQuestCompleteBannerFrame or _G["WorldQuestCompleteBannerFrame"]
