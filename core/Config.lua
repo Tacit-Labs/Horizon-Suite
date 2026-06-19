@@ -222,7 +222,7 @@ addon.TimerFont:SetFont(addon.FONT_PATH, addon.TITLE_SIZE, "OUTLINE")
 addon.OptionsFont = CreateFont("HorizonSuiteOptionsFont")
 addon.OptionsFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
--- Values are UI_* locale keys so tracker/options pick up translations; see locales/horizon/enUS.lua (Tracker section labels).
+-- Values are UI_* locale keys so tracker/options pick up translations; see locales/enUS.lua (Tracker section labels).
 addon.SECTION_LABELS = {
     FOCUSED       = "UI_FOCUSED_QUEST",
     CURRENT       = "UI_CURRENT_QUEST",

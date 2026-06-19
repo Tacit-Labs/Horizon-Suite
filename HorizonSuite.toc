@@ -11,14 +11,14 @@
 
 HorizonSuite.lua
 locales/LocaleCore.lua
-locales/horizon/enUS.lua
+locales/enUS.lua
 locales/LocaleDevCapture.lua
-locales/horizon/deDE.lua
-locales/horizon/esES.lua
-locales/horizon/frFR.lua
-locales/horizon/koKR.lua
-locales/horizon/ptBR.lua
-locales/horizon/zhCN.lua
+locales/deDE.lua
+locales/esES.lua
+locales/frFR.lua
+locales/koKR.lua
+locales/ptBR.lua
+locales/zhCN.lua
 core/Utilities.lua
 core/ClassIconMedia.lua
 media/MediaRegistry.lua
