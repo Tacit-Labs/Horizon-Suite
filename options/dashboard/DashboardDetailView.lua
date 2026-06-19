@@ -6,15 +6,15 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 local L = addon.L
---- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
---- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
---- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
---- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
---- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
---- setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
---- setSidebarState may be replaced on env after sidebar init (stub no-op until then).
---- @param env table
---- @return table NavigateToOption, NavigateToModuleToggles, NavigateToDashboardBackground, NavigateToAxisHome, NavigateToClassColourTinting
+-- Build detail and subcategory scroll areas; assign f.OpenModule, f.OpenCategoryDetail, f.BuildAccordionDetail.
+-- env fields: f, addon, L, detailView, subCategoryView, contentWidth, dashScrollTopOffset, dashScrollTopOffsetModule, dashAccentRefs,
+-- GetAccentColor, MakeText, OptionCategoryKeyIsAxis, moduleLabels, DASHBOARD_CHILD_PANEL_ALPHA,
+-- DASHBOARD_CONTENT_CARD_ALPHA_MULT, CLEAR, searchBox, searchDropdown, searchDropdownScroll,
+-- searchDropdownContent, searchDropdownCatch, searchBarShell, searchView, searchEmptyHint,
+-- setSidebarState, crossfadeTo, showDetailHeader, showSubcategoryHeader
+-- setSidebarState may be replaced on env after sidebar init (stub no-op until then).
+-- @param env table
+-- @return table NavigateToOption, NavigateToModuleToggles, NavigateToDashboardBackground, NavigateToAxisHome, NavigateToClassColourTinting
 function addon.DashboardDetailView_Init(env)
     local f = env.f
     local addon = env.addon
@@ -47,6 +47,109 @@ function addon.DashboardDetailView_Init(env)
     local function ShowDetailHeader() env.showDetailHeader() end
     local function ShowSubcategoryHeader() env.showSubcategoryHeader() end
 
+    -- Fixed action buttons for detail pages — live outside the scroll frame so they
+    -- never scroll away. Created here to avoid the 200-local limit in DashboardFrame.lua.
+    -- The first three use OptionsWidgets_CreateButton to match the card button style.
+    -- The enable toggle is custom-styled so it can light up when the module is active.
+    do
+        local DC   = addon.DashboardConstants or {}
+        local WDef = addon.OptionsWidgetsDef or {}
+        local y    = (DC.HEAD_SUBTITLE_Y or -58) - 2
+        local fl   = f:GetFrameLevel() + 12
+        local CW   = _G.OptionsWidgets_CreateButton
+        if CW then
+            local previewBtn = CW(f, L["AUGMENT_PREVIEW"] or "Preview", function()
+                if f.detailPreviewBtn and f.detailPreviewBtn._onClick then
+                    f.detailPreviewBtn._onClick()
+                end
+            end, { width = 140, height = 28 })
+            previewBtn:SetFrameLevel(fl)
+            previewBtn:ClearAllPoints()
+            previewBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -48, y)
+            previewBtn:Hide()
+            f.detailPreviewBtn = previewBtn
+
+            local resetBtn = CW(f, L["AXIS_RESET_POSITION"] or "Reset Position", function()
+                if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+            end, { width = 150, height = 28 })
+            resetBtn:SetFrameLevel(fl)
+            resetBtn:ClearAllPoints()
+            resetBtn:SetPoint("TOPRIGHT", previewBtn, "TOPLEFT", -8, 0)
+            resetBtn:Hide()
+            f.detailResetBtn = resetBtn
+
+            local anchorBtn = CW(f, L["AXIS_ANCHOR_MOVE"] or "Show Anchor", function()
+                if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
+            end, { width = 170, height = 28 })
+            anchorBtn:SetFrameLevel(fl)
+            anchorBtn:ClearAllPoints()
+            anchorBtn:SetPoint("TOPRIGHT", resetBtn, "TOPLEFT", -8, 0)
+            anchorBtn:Hide()
+            f.detailAnchorBtn = anchorBtn
+
+            -- Enable / disable toggle button — lights up in the module's class color.
+            local iBg = WDef.InputBg     or { 0.07, 0.07, 0.10, 0.96 }
+            local iBd = WDef.InputBorder or { 0.20, 0.22, 0.28, 0.30 }
+
+            local enableBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
+            enableBtn:SetSize(120, 28)
+            enableBtn:SetFrameLevel(fl)
+            enableBtn:SetPoint("TOPRIGHT", anchorBtn, "TOPLEFT", -16, 0)
+            enableBtn:SetBackdrop({
+                bgFile   = "Interface\\ChatFrame\\ChatFrameBackground",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                tile = true, tileSize = 16, edgeSize = 10,
+                insets = { left = 2, right = 2, top = 2, bottom = 2 },
+            })
+
+            local hiTex = enableBtn:CreateTexture(nil, "HIGHLIGHT")
+            hiTex:SetAllPoints(enableBtn)
+            hiTex:SetColorTexture(1, 1, 1, 0.06)
+
+            local enableLbl = enableBtn:CreateFontString(nil, "OVERLAY")
+            do
+                local fp = WDef.FontPath or "Fonts\\FRIZQT__.TTF"
+                local fs = WDef.LabelSize or 12
+                pcall(function() enableLbl:SetFont(fp, fs, "") end)
+            end
+            enableLbl:SetPoint("CENTER", enableBtn, "CENTER", 0, 0)
+
+            local function GetModuleColor()
+                local ycc = addon.GetModuleClassColor and addon.GetModuleClassColor("augment")
+                if ycc then return ycc[1], ycc[2], ycc[3] end
+                return 0.25, 0.78, 1.0
+            end
+
+            local function RefreshEnableBtn()
+                local enabled = addon:IsModuleEnabled("augment")
+                local r, g, b = GetModuleColor()
+                if enabled then
+                    enableBtn:SetBackdropColor(r, g, b, 0.18)
+                    enableBtn:SetBackdropBorderColor(r, g, b, 0.65)
+                    enableLbl:SetTextColor(r, g, b, 1)
+                    enableLbl:SetText("● ENABLED")
+                else
+                    enableBtn:SetBackdropColor(iBg[1], iBg[2], iBg[3], iBg[4])
+                    enableBtn:SetBackdropBorderColor(iBd[1], iBd[2], iBd[3], iBd[4])
+                    enableLbl:SetTextColor(0.55, 0.57, 0.62, 1)
+                    enableLbl:SetText("○ DISABLED")
+                end
+            end
+
+            enableBtn:SetScript("OnClick", function()
+                addon:SetModuleEnabled("augment", not addon:IsModuleEnabled("augment"))
+                RefreshEnableBtn()
+                if f.setDetailCardsVisible then
+                    f.setDetailCardsVisible(addon:IsModuleEnabled("augment"))
+                end
+            end)
+
+            enableBtn:Hide()
+            f.detailEnableBtn = enableBtn
+            f.detailEnableBtn._refresh = RefreshEnableBtn
+        end
+    end
+
     local subCategoryScroll = CreateFrame("ScrollFrame", nil, subCategoryView, "UIPanelScrollFrameTemplate")
     subCategoryScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
     subCategoryScroll:SetPoint("BOTTOMRIGHT", -40, 40)
@@ -59,12 +162,97 @@ function addon.DashboardDetailView_Init(env)
 
     addon.Dashboard_ApplySmoothScroll(subCategoryScroll, subCategoryContent, 60, true)
 
+    -- Debounced resize → reflow for the responsive 2-column module-row grid.
+    -- f._layoutModuleRows is set while a module-row page is shown; cleared by ClearSubTiles.
+    local relayoutTimer = nil
+    subCategoryView:SetScript("OnSizeChanged", function()
+        if f._layoutModuleRows then
+            if relayoutTimer then relayoutTimer:Cancel() end
+            relayoutTimer = C_Timer.NewTimer(0.15, function()
+                relayoutTimer = nil
+                if f._layoutModuleRows then f._layoutModuleRows(false) end
+            end)
+        end
+    end)
+
+    -- Embedded tooltip preview strip: pinned above the scroll area on Insight
+    -- option pages (always visible regardless of scroll). Insight mounts its
+    -- mock tooltips into this host; mode (global/player/npc/item) follows the
+    -- page's dashboardPreviewMode.
+    local detailPreviewHost = CreateFrame("Frame", nil, detailView)
+    detailPreviewHost:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
+    detailPreviewHost:SetPoint("TOPRIGHT", -40, dashScrollTopOffsetModule)
+    detailPreviewHost:SetHeight(1)
+    detailPreviewHost:Hide()
+    do
+        local previewRelayout
+        local previewLastW
+        detailPreviewHost:SetScript("OnSizeChanged", function(self, w)
+            -- React to width changes only — each preview's Refresh sets the
+            -- height itself, and re-running on that change would loop.
+            if not self:IsShown() then return end
+            if previewLastW and w and math.abs(w - previewLastW) < 2 then return end
+            previewLastW = w
+            if previewRelayout then previewRelayout:Cancel() end
+            previewRelayout = C_Timer.NewTimer(0.10, function()
+                previewRelayout = nil
+                if not self:IsShown() then return end
+                if addon.Insight and addon.Insight.RefreshEmbeddedPreview then
+                    addon.Insight.RefreshEmbeddedPreview()
+                end
+                if addon.Augment and addon.Augment.RefreshEmbeddedTHPreview then
+                    addon.Augment.RefreshEmbeddedTHPreview()
+                end
+            end)
+        end)
+    end
+
     -- Detail Card Container (Scrollable)
     local detailScroll = CreateFrame("ScrollFrame", nil, detailView, "UIPanelScrollFrameTemplate")
     detailScroll:SetPoint("TOPLEFT", 40, dashScrollTopOffsetModule)
     detailScroll:SetPoint("BOTTOMRIGHT", -40, 40)
     detailScroll.ScrollBar:Hide()
     detailScroll.ScrollBar:ClearAllPoints()
+
+    -- Show/hide the preview strip and re-anchor detailScroll below it.
+    -- @param previewMode string|nil "global"|"player"|"npc"|"item"|"talkingHead" to show, nil to hide
+    local function ApplyDetailPreviewStrip(previewMode)
+        -- Hide any previously-mounted preview before switching modes.
+        local function HideAllPreviews()
+            if addon.Insight and addon.Insight.HideEmbeddedPreview then addon.Insight.HideEmbeddedPreview() end
+            if addon.Augment and addon.Augment.HideEmbeddedTHPreview then addon.Augment.HideEmbeddedTHPreview() end
+        end
+
+        if previewMode == "talkingHead" then
+            local augment = addon.Augment
+            if augment and augment.MountEmbeddedTHPreview and augment.RefreshEmbeddedTHPreview then
+                HideAllPreviews()
+                augment.MountEmbeddedTHPreview(detailPreviewHost)
+                detailPreviewHost:Show()
+                augment.RefreshEmbeddedTHPreview()
+                detailScroll:ClearAllPoints()
+                detailScroll:SetPoint("TOPLEFT", detailPreviewHost, "BOTTOMLEFT", 0, -8)
+                detailScroll:SetPoint("BOTTOMRIGHT", detailView, "BOTTOMRIGHT", -40, 40)
+                return
+            end
+        end
+
+        local insight = addon.Insight
+        if previewMode and insight and insight.MountEmbeddedPreview and insight.SetDashboardPreviewMode then
+            HideAllPreviews()
+            insight.MountEmbeddedPreview(detailPreviewHost)
+            detailPreviewHost:Show()
+            insight.SetDashboardPreviewMode(previewMode)  -- refreshes + sizes the host
+            detailScroll:ClearAllPoints()
+            detailScroll:SetPoint("TOPLEFT", detailPreviewHost, "BOTTOMLEFT", 0, -8)
+            detailScroll:SetPoint("BOTTOMRIGHT", detailView, "BOTTOMRIGHT", -40, 40)
+        else
+            detailPreviewHost:Hide()
+            detailScroll:ClearAllPoints()
+            detailScroll:SetPoint("TOPLEFT", detailView, "TOPLEFT", 40, dashScrollTopOffsetModule)
+            detailScroll:SetPoint("BOTTOMRIGHT", detailView, "BOTTOMRIGHT", -40, 40)
+        end
+    end
 
     local detailContent = CreateFrame("Frame", nil, detailScroll)
     detailContent:SetSize(contentWidth, 1)
@@ -117,6 +305,14 @@ function addon.DashboardDetailView_Init(env)
                 end
             end
         end
+    end
+
+    -- Exposed so fixed header buttons can show/hide cards after a module toggle.
+    f.setDetailCardsVisible = function(visible)
+        for _, card in ipairs(currentDetailCards) do
+            if visible then card:Show() else card:Hide() end
+        end
+        UpdateDetailLayout()
     end
 
     local function NavigateToOption(entry)
@@ -448,6 +644,7 @@ function addon.DashboardDetailView_Init(env)
     end
 
     local currentSubTiles = {}
+    local moduleRowWatcher = nil  -- ticker polling for view-width changes on the categories page
 
     local function ClearSubTiles()
         for _, tile in ipairs(currentSubTiles) do
@@ -456,6 +653,9 @@ function addon.DashboardDetailView_Init(env)
         wipe(currentSubTiles)
         wipe(dashAccentRefs.subcatAccents)
         wipe(dashAccentRefs.subcatDividers)
+        f._layoutModuleRows = nil
+        if moduleRowWatcher then moduleRowWatcher:Cancel() end
+        moduleRowWatcher = nil
     end
 
     -- Match options section-card transparency (OptionsWidgets SectionCardBg / SectionCardBorder)
@@ -574,6 +774,212 @@ function addon.DashboardDetailView_Init(env)
         return tile
     end
 
+    -- Full-width module-style row for subcategory navigation.
+    -- Used instead of CreateSubCategoryTile when categories carry icon+accentColor metadata.
+    -- Visual language matches DashboardHomeWelcome MakeToggleCard (accent rail, glow, icon, name, desc, chevron).
+    local function CreateCategoryModuleRow(parent, cat, modName)
+        local DC    = addon.DashboardConstants or {}
+        local CARD_H    = DC.HOME_TOGGLE_CARD_H   or 88
+        local ICON_SIZE = DC.HOME_TOGGLE_ICON_SIZE or 36
+        local ac = cat.accentColor or { 0.40, 0.80, 1.0 }
+        local mr, mg, mb = ac[1], ac[2], ac[3]
+        -- Mini-modules carry getEnabled/setEnabled; those rows get an enable/disable pill.
+        local hasToggle = (cat.enabledKey and cat.setEnabled) and true or false
+
+        local card = CreateFrame("Button", nil, parent)
+        card:SetHeight(CARD_H)
+        card:SetClipsChildren(true)
+
+        local cardBg = card:CreateTexture(nil, "BACKGROUND")
+        cardBg:SetAllPoints()
+        cardBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+        card.cardBg = cardBg
+
+        local cardInner = card:CreateTexture(nil, "BORDER")
+        cardInner:SetPoint("TOPLEFT", 1, -1)
+        cardInner:SetPoint("BOTTOMRIGHT", -1, 1)
+        cardInner:SetColorTexture(1, 1, 1, 0.02)
+
+        local accentRail = card:CreateTexture(nil, "ARTWORK")
+        accentRail:SetWidth(4)
+        accentRail:SetPoint("TOPLEFT", 0, 0)
+        accentRail:SetPoint("BOTTOMLEFT", 0, 0)
+        accentRail:SetColorTexture(mr, mg, mb, 1)
+
+        local accentGlow = card:CreateTexture(nil, "ARTWORK")
+        accentGlow:SetWidth(12)
+        accentGlow:SetPoint("TOPLEFT", accentRail, "TOPRIGHT", 0, 0)
+        accentGlow:SetPoint("BOTTOMLEFT", accentRail, "BOTTOMRIGHT", 0, 0)
+        accentGlow:SetColorTexture(mr, mg, mb, 0.08)
+
+        local chevronWell = card:CreateTexture(nil, "ARTWORK")
+        chevronWell:SetPoint("TOPRIGHT", 0, 0)
+        chevronWell:SetPoint("BOTTOMRIGHT", 0, 0)
+        chevronWell:SetWidth(60)
+        chevronWell:SetColorTexture(mr, mg, mb, 0.05)
+
+        local divider = card:CreateTexture(nil, "ARTWORK")
+        divider:SetHeight(1)
+        divider:SetPoint("BOTTOMLEFT", 0, 0)
+        divider:SetPoint("BOTTOMRIGHT", 0, 0)
+        local cdr, cdg, cdb = GetAccentColor()
+        divider:SetColorTexture(cdr, cdg, cdb, 0.15)
+        tinsert(dashAccentRefs.cardDividers, divider)
+
+        local iconTex = card:CreateTexture(nil, "ARTWORK")
+        iconTex:SetSize(ICON_SIZE, ICON_SIZE)
+        iconTex:SetPoint("LEFT", card, "LEFT", 18, 0)
+        if cat.icon then
+            if type(cat.icon) == "number" then
+                iconTex:SetTexture(cat.icon)
+            elseif cat.icon:find("[\\/]") then
+                iconTex:SetTexture(cat.icon)
+            else
+                iconTex:SetTexture("Interface\\Icons\\" .. cat.icon)
+            end
+        end
+
+        -- Layout: name row shares horizontal space with pill+chevron; desc always spans full width.
+        -- This ensures desc is never truncated even on narrow 2-column cards.
+        local NAME_H = 18
+        local DESC_H = 36   -- tall enough for 2-3 wrapped lines at 11px
+        local GAP    = 4
+        local baseH  = NAME_H + GAP + DESC_H
+        local topInset = math.floor(math.max(6, (CARD_H - math.max(ICON_SIZE, baseH)) / 2 + 0.5))
+
+        -- Labels created without anchors; RIGHT anchors are set after chevron/pill below.
+        local nameLbl = MakeText(card, cat.name and cat.name:upper() or "", 13, mr, mg, mb, "LEFT")
+        nameLbl:SetHeight(NAME_H)
+        nameLbl:SetWordWrap(false)
+
+        local descLbl = MakeText(card, cat.desc or "", 11, 0.55, 0.57, 0.62, "LEFT")
+        descLbl:SetHeight(DESC_H)
+        descLbl:SetWordWrap(true)
+        descLbl:SetJustifyV("TOP")
+
+        -- Chevron created before the reposition block so nameLbl can anchor its RIGHT to it.
+        local chevron = MakeText(card, ">", 14, mr, mg, mb, "CENTER")
+        chevron:SetSize(12, 18)
+        chevron:SetAlpha(0.7)
+
+        -- Optional enable/disable pill (mini-modules only).
+        -- Pill is pinned to TOPRIGHT of the name row so it never overlaps the desc text.
+        local pillBtn
+        if hasToggle then
+            local PILL_W, PILL_H, PILL_THUMB = 40, 20, 15
+            pillBtn = CreateFrame("Button", nil, card)
+            pillBtn:SetSize(PILL_W, PILL_H)
+            pillBtn:SetPoint("TOPRIGHT", card, "TOPRIGHT", -12, -(topInset - 1))
+            pillBtn:SetFrameLevel(card:GetFrameLevel() + 5)
+            -- Chevron sits left of pill, vertically aligned to it
+            chevron:SetPoint("RIGHT", pillBtn, "LEFT", -8, 0)
+            chevron:SetPoint("TOP",   pillBtn, "TOP",  0,  0)
+
+            local pillBg = pillBtn:CreateTexture(nil, "BACKGROUND")
+            pillBg:SetAllPoints()
+            pillBg:SetColorTexture(0.18, 0.18, 0.22, 0.9)
+            local pillBorder = pillBtn:CreateTexture(nil, "BORDER")
+            pillBorder:SetPoint("TOPLEFT", -1, 1)
+            pillBorder:SetPoint("BOTTOMRIGHT", 1, -1)
+            pillBorder:SetColorTexture(1, 1, 1, 0.07)
+            local pillGlow = pillBtn:CreateTexture(nil, "BORDER")
+            pillGlow:SetPoint("TOPLEFT", -3, 3)
+            pillGlow:SetPoint("BOTTOMRIGHT", 3, -3)
+            pillGlow:SetColorTexture(mr, mg, mb, 0.08)
+            local thumb = pillBtn:CreateTexture(nil, "ARTWORK")
+            thumb:SetSize(PILL_THUMB, PILL_THUMB)
+            thumb:SetTexture("Interface\\Buttons\\WHITE8X8")
+            thumb:SetVertexColor(1, 1, 1, 0.92)
+
+            local THUMB_OFF, THUMB_ON = 3, PILL_W - PILL_THUMB - 3
+            card._applyPill = function(on)
+                thumb:ClearAllPoints()
+                thumb:SetPoint("LEFT", pillBtn, "LEFT", on and THUMB_ON or THUMB_OFF, 0)
+                if on then
+                    pillBg:SetColorTexture(mr, mg, mb, 0.85)
+                    pillGlow:SetColorTexture(mr, mg, mb, 0.20)
+                else
+                    pillBg:SetColorTexture(0.18, 0.18, 0.22, 0.9)
+                    pillGlow:SetColorTexture(mr, mg, mb, 0.04)
+                end
+            end
+        else
+            -- No pill: chevron floats right edge, vertically centered
+            chevron:SetPoint("RIGHT",  card, "RIGHT",  -18, 0)
+            chevron:SetPoint("CENTER", card, "CENTER",   0, 0)
+        end
+
+        -- Now position everything. Name's RIGHT anchors to chevron LEFT (pill/chevron area).
+        -- Desc's RIGHT anchors to the card edge — full width, never clipped by pill.
+        iconTex:ClearAllPoints()
+        iconTex:SetPoint("TOPLEFT", card, "TOPLEFT", 18, -topInset)
+        nameLbl:ClearAllPoints()
+        nameLbl:SetPoint("TOPLEFT", iconTex, "TOPRIGHT", 10, 0)
+        nameLbl:SetPoint("RIGHT", chevron, "LEFT", -6, 0)
+        descLbl:ClearAllPoints()
+        descLbl:SetPoint("TOPLEFT", nameLbl, "BOTTOMLEFT", 0, -GAP)
+        -- Stop desc at the chevronWell boundary (60px from right) so text never bleeds
+        -- into the toggle/chevron zone regardless of card width.
+        descLbl:SetPoint("RIGHT", card, "RIGHT", -62, 0)
+
+        local function CurrentEnabled()
+            if not hasToggle then return true end
+            return cat.getEnabled and cat.getEnabled() ~= false
+        end
+
+        local function ApplyRowState(enabled)
+            if enabled then
+                if iconTex.SetDesaturated then iconTex:SetDesaturated(false) end
+                iconTex:SetVertexColor(1, 1, 1, 1)
+                accentRail:SetColorTexture(mr, mg, mb, 1)
+                accentGlow:SetColorTexture(mr, mg, mb, 0.08)
+                nameLbl:SetTextColor(mr, mg, mb)
+                descLbl:SetTextColor(0.55, 0.57, 0.62)
+            else
+                if iconTex.SetDesaturated then iconTex:SetDesaturated(true) end
+                iconTex:SetVertexColor(0.50, 0.52, 0.56, 0.70)
+                accentRail:SetColorTexture(mr, mg, mb, 0.30)
+                accentGlow:SetColorTexture(mr, mg, mb, 0.03)
+                nameLbl:SetTextColor(0.44, 0.46, 0.50)
+                descLbl:SetTextColor(0.36, 0.38, 0.42)
+            end
+            if card._applyPill then card._applyPill(enabled) end
+        end
+        ApplyRowState(CurrentEnabled())
+
+        card:SetScript("OnEnter", function()
+            cardBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, SBgA)
+            chevron:SetAlpha(1)
+        end)
+        card:SetScript("OnLeave", function()
+            cardBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+            chevron:SetAlpha(0.7)
+        end)
+        card:SetScript("OnClick", function()
+            local opts = type(cat.options) == "function" and cat.options() or cat.options
+            f.OpenCategoryDetail(modName, cat.name, opts)
+        end)
+
+        if pillBtn then
+            pillBtn:SetScript("OnClick", function()
+                local newOn = not CurrentEnabled()
+                if cat.setEnabled then cat.setEnabled(newOn) end
+                ApplyRowState(newOn)
+                if f.DashboardApplyGroupSubcats then
+                    f.DashboardApplyGroupSubcats(cat.moduleKey or f.currentModuleKey or "augment")
+                end
+            end)
+            pillBtn:SetScript("OnEnter", function()
+                cardBg:SetColorTexture(SBgHoverR, SBgHoverG, SBgHoverB, SBgA)
+            end)
+            pillBtn:SetScript("OnLeave", function()
+                cardBg:SetColorTexture(SBg[1], SBg[2], SBg[3], SBgA)
+            end)
+        end
+
+        return card, CARD_H
+    end
+
     local function ShouldShowDashboardSubcategory(moduleKey, cat)
         if not cat then return false end
         if moduleKey == "axis" and cat.key == "Modules" then
@@ -608,11 +1014,10 @@ function addon.DashboardDetailView_Init(env)
             addon.DashboardPreview.SetActiveModuleKey(matchedModuleKey)
         end
 
-        if matchedCatIdx then
-            local selCat = addon.OptionCategories[matchedCatIdx]
-            if selCat and selCat.dashboardPreviewMode and addon.Insight and addon.Insight.SetDashboardPreviewMode then
-                addon.Insight.SetDashboardPreviewMode(selCat.dashboardPreviewMode)
-            end
+        do
+            local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
+            local previewMode = selCat and selCat.dashboardPreviewMode or nil
+            ApplyDetailPreviewStrip(previewMode)
         end
 
         ClearDetailCards()
@@ -621,8 +1026,27 @@ function addon.DashboardDetailView_Init(env)
         detailContent:Show()
         detailScroll:SetVerticalScroll(0)
 
-        if f.detailTitle then 
+        if f.detailTitle then
             f.detailTitle:SetText(modName:upper() .. "  >  " .. catName:upper())
+        end
+
+        -- Show fixed header buttons only for pages that expose them.
+        do
+            local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
+            local isAugment = selCat and selCat.key == "AugmentImprovements"
+            if f.detailPreviewBtn then
+                if isAugment then
+                    f.detailPreviewBtn._onClick = function()
+                        if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
+                    end
+                    f.detailPreviewBtn:Show()
+                else
+                    f.detailPreviewBtn:Hide()
+                end
+            end
+            if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
+            if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
+            if f.detailEnableBtn then f.detailEnableBtn:Hide() end
         end
 
         f.BuildAccordionDetail(catName, options)
@@ -695,7 +1119,89 @@ function addon.DashboardDetailView_Init(env)
                 f.detailTitle:SetText(modName:upper() .. " CATEGORIES")
             end
 
+        -- Use module-style rows if categories carry icon metadata, otherwise use tile grid.
+        local useModuleRows = cats[1] and cats[1].icon
         local tileYOffset = 0
+
+        if useModuleRows then
+            -- Create all tiles first (no positioning yet)
+            for _, cat in ipairs(cats) do
+                local tile = CreateCategoryModuleRow(subCategoryContent, cat, modName)
+                tinsert(currentSubTiles, tile)
+            end
+
+            -- Responsive 2-column layout function. Called on first render (animate=true)
+            -- and again on resize (animate=false) via the OnSizeChanged hook above.
+            local DC_mod = addon.DashboardConstants or {}
+            local CARD_H_MOD = DC_mod.HOME_TOGGLE_CARD_H or 88
+            local VGAP = DC_mod.HOME_TOGGLE_CARD_GAP or 8
+            local HGAP = 12  -- gap between the two columns
+
+            local function LayoutModuleRows(animate)
+                -- Derive available width from the view frame (avoids stale GetWidth on
+                -- anchor-sized frames that haven't completed layout when OnSizeChanged fires).
+                local viewW = subCategoryView:GetWidth()
+                if not viewW or viewW < 100 then viewW = contentWidth + 80 end
+                local availW = math.max(200, viewW - 80)  -- match scroll frame 40px insets
+                subCategoryContent:SetWidth(availW)
+
+                -- Switch to 1 column when the view is too narrow for two decent cards.
+                local MIN_COL_W = 260
+                local cols = (availW >= MIN_COL_W * 2 + HGAP) and 2 or 1
+                local cardW = math.floor((availW - (cols - 1) * HGAP) / cols)
+
+                for i, tile in ipairs(currentSubTiles) do
+                    local col = (i - 1) % cols
+                    local row = math.floor((i - 1) / cols)
+                    local tx  = col * (cardW + HGAP)
+                    local ty  = SUBCAT_TOP_PAD + row * (CARD_H_MOD + VGAP)
+                    tile:SetWidth(cardW)
+                    tile:ClearAllPoints()
+                    if animate then
+                        tile:SetAlpha(0)
+                        tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", tx, -(ty + 20))
+                        local idx = i
+                        if C_Timer and C_Timer.After then
+                            C_Timer.After(idx * 0.05, function()
+                                if tile:IsShown() then
+                                    tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", tx, -ty)
+                                    UIFrameFadeIn(tile, 0.2, 0, 1)
+                                end
+                            end)
+                        else
+                            tile:SetAlpha(1)
+                            tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", tx, -ty)
+                        end
+                    else
+                        tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", tx, -ty)
+                    end
+                end
+
+                local totalRows = math.ceil(#currentSubTiles / cols)
+                subCategoryContent:SetHeight(math.max(1, SUBCAT_TOP_PAD + totalRows * (CARD_H_MOD + VGAP)))
+            end
+
+            LayoutModuleRows(true)
+            f._layoutModuleRows = LayoutModuleRows
+
+            -- Ticker polls every 0.25s for view-width changes so the grid reflows when
+            -- the dashboard is resized — more reliable than OnSizeChanged on hidden views.
+            local watchW = subCategoryView:GetWidth() or 0
+            if moduleRowWatcher then moduleRowWatcher:Cancel() end
+            moduleRowWatcher = C_Timer.NewTicker(0.25, function()
+                if not f._layoutModuleRows then
+                    if moduleRowWatcher then moduleRowWatcher:Cancel() end
+                    moduleRowWatcher = nil
+                    return
+                end
+                local w = subCategoryView:GetWidth() or 0
+                if math.abs(w - watchW) > 4 then
+                    watchW = w
+                    f._layoutModuleRows(false)
+                end
+            end)
+        else
+            -- Standard 2-column tile grid (non-Augment modules)
             for i, cat in ipairs(cats) do
                 local options = type(cat.options) == "function" and cat.options() or cat.options
                 local tile = CreateSubCategoryTile(subCategoryContent, cat.name, i, options, modName, cat.desc)
@@ -704,10 +1210,10 @@ function addon.DashboardDetailView_Init(env)
                 local row = math.floor((i-1) / 2)
                 tileYOffset = math.max(tileYOffset, SUBCAT_TOP_PAD + (row + 1) * TILE_ROW_STRIDE)
 
-                -- Staggered Cascade Entrance (faster per UX feedback)
+                -- Staggered Cascade Entrance
                 tile:SetAlpha(0)
                 local _, _, _, xVal, yVal = tile:GetPoint()
-                if xVal and yVal then
+                if xVal ~= nil and yVal ~= nil then
                     tile:SetPoint("TOPLEFT", subCategoryContent, "TOPLEFT", xVal, yVal - 20)
                     if C_Timer and C_Timer.After then
                         C_Timer.After(i * 0.05, function()
@@ -722,6 +1228,7 @@ function addon.DashboardDetailView_Init(env)
                 end
             end
             subCategoryContent:SetHeight(math.max(1, tileYOffset))
+        end
             if mk == "insight" and addon.Insight and addon.Insight.SetDashboardPreviewMode then
                 addon.Insight.SetDashboardPreviewMode("global")
             end
@@ -741,8 +1248,10 @@ function addon.DashboardDetailView_Init(env)
             ShowDetailHeader()
             detailContent:Show()
             detailScroll:SetVerticalScroll(0)
+            -- Single-category modules carry no Insight preview strip.
+            ApplyDetailPreviewStrip(nil)
 
-            if f.detailTitle then 
+            if f.detailTitle then
                 local titleText = name:upper()
                 if moduleKey and moduleLabels[moduleKey] then
                     local modName = moduleLabels[moduleKey]
@@ -750,7 +1259,25 @@ function addon.DashboardDetailView_Init(env)
                         titleText = modName:upper() .. "  >  " .. name:upper()
                     end
                 end
-                f.detailTitle:SetText(titleText) 
+                f.detailTitle:SetText(titleText)
+            end
+
+            -- Show fixed header buttons only for pages that expose them.
+            do
+                local isAugment = cats[1] and cats[1].key == "AugmentImprovements"
+                if f.detailPreviewBtn then
+                    if isAugment then
+                        f.detailPreviewBtn._onClick = function()
+                            if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
+                        end
+                        f.detailPreviewBtn:Show()
+                    else
+                        f.detailPreviewBtn:Hide()
+                    end
+                end
+                if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
+                if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
+                if f.detailEnableBtn then f.detailEnableBtn:Hide() end
             end
 
             if cats[1] then
@@ -1477,11 +2004,15 @@ function addon.DashboardDetailView_Init(env)
                     end
                     detailOptionFrames[optId] = widget
                 elseif opt.type == "talkingHeadPreview" then
-                    local previewWidget = addon.Presence and addon.Presence.CreateTalkingHeadPreviewWidget and
-                        addon.Presence.CreateTalkingHeadPreviewWidget(currentCard.settingsContainer)
-                    widget = previewWidget and previewWidget.frame or nil
-                    if widget and previewWidget.Refresh then
-                        widget.Refresh = previewWidget.Refresh
+                    -- Preview is in the pinned strip above the scroll area; register a
+                    -- zero-height proxy so refreshIds = { "talkingHeadPreview" } still
+                    -- triggers RefreshEmbeddedTHPreview when option values change.
+                    widget = CreateFrame("Frame", nil, currentCard.settingsContainer)
+                    widget:SetHeight(0)
+                    widget.Refresh = function()
+                        if addon.Augment and addon.Augment.RefreshEmbeddedTHPreview then
+                            addon.Augment.RefreshEmbeddedTHPreview()
+                        end
                     end
                     detailOptionFrames[optId] = widget
                 elseif opt.type == "header" then
@@ -2017,6 +2548,172 @@ function addon.DashboardDetailView_Init(env)
                         end
                     end)
                     widget = cmfContainer
+                elseif opt.type == "columns" then
+                    -- Two-column layout: renders left/right option sets side by side in one card.
+                    -- Individual column options do not support visibleWhen (use card-level visibility instead).
+                    local COL_GAP      = 20
+                    local COL_ITEM_GAP = 6
+
+                    local colFrame = CreateFrame("Frame", nil, currentCard.settingsContainer)
+                    colFrame:SetHeight(1)
+
+                    local leftCol = CreateFrame("Frame", nil, colFrame)
+                    leftCol:SetPoint("TOPLEFT", colFrame, "TOPLEFT", 0, 0)
+                    leftCol:SetPoint("RIGHT",   colFrame, "CENTER",  -(COL_GAP / 2), 0)
+
+                    local rightCol = CreateFrame("Frame", nil, colFrame)
+                    rightCol:SetPoint("TOPLEFT", leftCol,  "TOPRIGHT", COL_GAP, 0)
+                    rightCol:SetPoint("RIGHT",   colFrame, "RIGHT",    0, 0)
+
+                    local vDivider = colFrame:CreateTexture(nil, "ARTWORK")
+                    vDivider:SetWidth(1)
+                    vDivider:SetPoint("TOP",    leftCol, "TOPRIGHT",    COL_GAP / 2, 0)
+                    vDivider:SetPoint("BOTTOM", leftCol, "BOTTOMRIGHT", COL_GAP / 2, 0)
+                    vDivider:SetColorTexture(0.25, 0.25, 0.3, 0.6)
+
+                    local function BuildColumnContent(col, colDef)
+                        if not colDef then return 0 end
+                        local yOff = 0
+
+                        if colDef.title then
+                            local titleFs = MakeText(col, colDef.title:upper(), 11, 0.5, 0.52, 0.62, "LEFT")
+                            titleFs:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
+                            titleFs:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                            titleFs:SetHeight(16)
+                            yOff = yOff + 16 + 6
+
+                            local rule = col:CreateTexture(nil, "ARTWORK")
+                            rule:SetHeight(1)
+                            rule:SetColorTexture(0.25, 0.25, 0.3, 0.6)
+                            rule:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
+                            rule:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                            yOff = yOff + 1 + 8
+                        end
+
+                        for _, copt in ipairs(colDef.options or {}) do
+                            local cg = copt.get
+                            local cs = copt.set
+                            if not cg and copt.dbKey then
+                                cg = function() return _G.OptionsData_GetDB(copt.dbKey, copt.default) end
+                            end
+                            if not cs and copt.dbKey then
+                                cs = function(v) _G.OptionsData_SetDB(copt.dbKey, v) end
+                            end
+                            if copt.refreshIds and cs then
+                                local origCs = cs
+                                local skipKey = copt.dbKey
+                                cs = function(v)
+                                    origCs(v)
+                                    RefreshLinkedTargets(copt.refreshIds, skipKey)
+                                end
+                            end
+
+                            -- Sub-section header within a column (same visual style as column title).
+                            if copt.type == "section" then
+                                if yOff > 0 then yOff = yOff + 6 end  -- extra breathing room between sections
+                                local secFs = MakeText(col, copt.name:upper(), 11, 0.5, 0.52, 0.62, "LEFT")
+                                secFs:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
+                                secFs:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                                secFs:SetHeight(16)
+                                yOff = yOff + 16 + 4
+                                local secRule = col:CreateTexture(nil, "ARTWORK")
+                                secRule:SetHeight(1)
+                                secRule:SetColorTexture(0.25, 0.25, 0.3, 0.6)
+                                secRule:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -yOff)
+                                secRule:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                                yOff = yOff + 1 + 8
+                            end
+
+                            local w
+                            if copt.type == "binary" or copt.type == "toggle" then
+                                w = _G.OptionsWidgets_CreateToggleSwitch(col, copt.name, copt.desc or "", cg, cs, copt.disabled, copt.tooltip)
+                            elseif copt.type == "slider" then
+                                w = _G.OptionsWidgets_CreateSlider(col, copt.name, copt.desc or "", cg, cs, copt.min or 0, copt.max or 100, copt.disabled, copt.step or 1, copt.tooltip, true)
+                            elseif copt.type == "dropdown" then
+                                local dopts = type(copt.options) == "function" and copt.options() or copt.options
+                                w = _G.OptionsWidgets_CreateCustomDropdown(col, copt.name, copt.desc or "", dopts, cg, cs, copt.displayFn, copt.searchable, copt.disabled, copt.tooltip, nil, copt.fontPreviewInList, copt.preserveOrder)
+                            elseif copt.type == "color" then
+                                w = _G.OptionsWidgets_CreateColorSwatch(col, copt.name, copt.desc or "", cg, cs, copt.hasAlpha, copt.tooltip)
+                            elseif copt.type == "button" then
+                                w = _G.OptionsWidgets_CreateButton(col, copt.name, cs or copt.onClick, { tooltip = copt.tooltip })
+                            end
+
+                            if w then
+                                w:ClearAllPoints()
+                                w:SetPoint("TOPLEFT", col, "TOPLEFT", 0, -(yOff + COL_ITEM_GAP))
+                                w:SetPoint("RIGHT",   col, "RIGHT",   0,  0)
+                                local h = w:GetHeight() or 40
+                                yOff = yOff + h + COL_ITEM_GAP
+
+                                if copt.dbKey then
+                                    detailOptionFrames[copt.dbKey] = w
+                                    currentCard.optionIds[copt.dbKey] = true
+                                end
+                            end
+                        end
+
+                        return yOff
+                    end
+
+                    local myCard = currentCard
+                    local leftH  = BuildColumnContent(leftCol,  opt.left)
+                    local rightH = BuildColumnContent(rightCol, opt.right)
+                    local colH   = math.max(leftH, rightH) + 10
+
+                    leftCol:SetHeight(colH)
+                    rightCol:SetHeight(colH)
+                    colFrame:SetHeight(colH)
+
+                    -- Responsive: stack columns vertically on narrow dashboards
+                    local COL_STACK_THRESHOLD = 380
+                    local applyingColLayout   = false
+                    local function ApplyColumnLayout(w)
+                        if applyingColLayout or w < 1 then return end
+                        applyingColLayout = true
+                        if w < COL_STACK_THRESHOLD then
+                            leftCol:ClearAllPoints()
+                            leftCol:SetPoint("TOPLEFT", colFrame, "TOPLEFT", 0, 0)
+                            leftCol:SetPoint("RIGHT",   colFrame, "RIGHT",   0, 0)
+                            leftCol:SetHeight(leftH + 10)
+                            rightCol:ClearAllPoints()
+                            rightCol:SetPoint("TOPLEFT", leftCol,  "BOTTOMLEFT", 0, -12)
+                            rightCol:SetPoint("RIGHT",   colFrame, "RIGHT",      0,  0)
+                            rightCol:SetHeight(rightH + 10)
+                            vDivider:Hide()
+                            colFrame:SetHeight(leftH + rightH + 32)
+                        else
+                            leftCol:ClearAllPoints()
+                            leftCol:SetPoint("TOPLEFT", colFrame, "TOPLEFT", 0, 0)
+                            leftCol:SetPoint("RIGHT",   colFrame, "CENTER",  -(COL_GAP / 2), 0)
+                            leftCol:SetHeight(colH)
+                            rightCol:ClearAllPoints()
+                            rightCol:SetPoint("TOPLEFT", leftCol,  "TOPRIGHT", COL_GAP, 0)
+                            rightCol:SetPoint("RIGHT",   colFrame, "RIGHT",    0, 0)
+                            rightCol:SetHeight(colH)
+                            vDivider:Show()
+                            colFrame:SetHeight(colH)
+                        end
+                        applyingColLayout = false
+                        if C_Timer and C_Timer.After then
+                            C_Timer.After(0, function()
+                                if myCard and myCard.widgetList then
+                                    DoInstantRelayout(myCard, false, false)
+                                    UpdateDetailLayout()
+                                end
+                            end)
+                        end
+                    end
+
+                    colFrame:SetScript("OnSizeChanged", function(self, w)
+                        ApplyColumnLayout(w)
+                    end)
+                    if C_Timer and C_Timer.After then
+                        C_Timer.After(0, function()
+                            ApplyColumnLayout(colFrame:GetWidth() or 0)
+                        end)
+                    end
+
+                    widget = colFrame
                 end
 
                 if widget then

@@ -13,7 +13,11 @@ A template key is provided for you at the top of the `enUS.lua` file, as seen be
 ```
 L["TERM"]                                                = " "
 ```
-### Please mention in the commit and PR message if  `node tools/restructure_locales.js` was run.
+If any locale **KEYS and/or STRINGS** were changed, mention in the PR if  the changes were propagated to all horizon locales.
+This can be done manually or through automation.
+
+Horizon Suite does have a tool to automate this in `tools/restructure_locales.js` and can be triggered by entering `node tools/restructure_locales.js` in the terminal.
+This tool, at time of writing documentation, does contain some errors or inconsistencies in relation to `locales/horizon/enUS.lua`.
 
 ## Key Nomenclature
 Each key follows the same format.

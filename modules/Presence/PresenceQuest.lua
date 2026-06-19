@@ -32,14 +32,14 @@ local UI_MSG_THROTTLE = 1.0
 -- Quest text detection
 -- ============================================================================
 
---- Returns true if the quest title is a Blizzard DNT (Do Not Translate) internal quest.
---- @param questName string|nil Quest title from C_QuestLog.GetTitleForQuestID
---- @return boolean
+-- Returns true if the quest title is a Blizzard DNT (Do Not Translate) internal quest.
+-- @param questName string|nil Quest title from C_QuestLog.GetTitleForQuestID
+-- @return boolean
 local function IsDNTQuest(questName)
     return questName and questName:find("%[DNT%]")
 end
 
---- Build locale-safe keywords for quest text detection at load time.
+-- Build locale-safe keywords for quest text detection at load time.
 local questTextKeywords = { "slain", "destroyed", "Quest Accepted", "Complete" }
 local questAcceptedKeywords = { "Quest Accepted", "Accepted" }
 do
@@ -93,9 +93,9 @@ do
     end
 end
 
---- Returns true if the message looks like quest objective progress.
---- @param msg string|nil Message text to check
---- @return boolean
+-- Returns true if the message looks like quest objective progress.
+-- @param msg string|nil Message text to check
+-- @return boolean
 local function IsQuestText(msg)
     if not msg then return false end
     if msg:find("%d+/%d+") or msg:find("%%") then return true end
@@ -105,10 +105,10 @@ local function IsQuestText(msg)
     return false
 end
 
---- Normalize quest update text to "X/Y Objective" format.
---- Strips leading "x/1 " for single-step objectives only.
---- @param s string Raw text (e.g. "Burn Deepsflayer Nests: 3/6", "Objective (3/5)")
---- @return string
+-- Normalize quest update text to "X/Y Objective" format.
+-- Strips leading "x/1 " for single-step objectives only.
+-- @param s string Raw text (e.g. "Burn Deepsflayer Nests: 3/6", "Objective (3/5)")
+-- @return string
 local function NormalizeQuestUpdateText(s)
     if not s or s == "" then return s or "" end
     s = strtrim(s)
@@ -144,14 +144,14 @@ local pendingQuestUpdateIDs = {}
 local cacheMatchRetryPending = {}
 local recentlyDisposed = {}
 local pendingNonBlind = {}
---- Normalized UI_INFO_MESSAGE text keyed by questID; consumed in ExecuteQuestUpdate (wrong-line fix for multi-objective).
+-- Normalized UI_INFO_MESSAGE text keyed by questID; consumed in ExecuteQuestUpdate (wrong-line fix for multi-objective).
 local pendingQuestObjectiveHint = {}
 
 local lastUIInfoMsg, lastUIInfoTime = nil, 0
 local pendingStandaloneTimer = nil
 
---- Remove cached quest state for a quest that is no longer relevant.
---- @param questID number
+-- Remove cached quest state for a quest that is no longer relevant.
+-- @param questID number
 local function DisposeQuestState(questID)
     if not questID then return end
     lastQuestObjectivesCache[questID] = nil
@@ -185,12 +185,12 @@ local function Strip(s)
     return (addon.Presence and addon.Presence.StripMarkup) and addon.Presence.StripMarkup(s) or (s or "")
 end
 
---- Process debounced quest objective update; shows QUEST_UPDATE or skips if unchanged/blind.
---- @param questID number
---- @param isBlindUpdate boolean
---- @param source string|nil Event name for debug
---- @param isRetry boolean|nil True when this is a deferred re-sample after 0/X
---- @param isCacheMatchRetry boolean|nil True when this is a re-sample after cache match
+-- Process debounced quest objective update; shows QUEST_UPDATE or skips if unchanged/blind.
+-- @param questID number
+-- @param isBlindUpdate boolean
+-- @param source string|nil Event name for debug
+-- @param isRetry boolean|nil True when this is a deferred re-sample after 0/X
+-- @param isCacheMatchRetry boolean|nil True when this is a re-sample after cache match
 local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCacheMatchRetry)
     pendingQuestUpdateIDs[questID] = nil
     if not questID or questID <= 0 then return end
@@ -382,10 +382,10 @@ local function ExecuteQuestUpdate(questID, isBlindUpdate, source, isRetry, isCac
     addon.Presence.QueueOrPlay("QUEST_UPDATE", title, normalized, { questID = questID, source = source })
 end
 
---- Entry point for requesting an update. Resets the timer to ensure we only process the *final* state.
---- @param questID number
---- @param isBlindUpdate boolean
---- @param source string|nil Event name for debug
+-- Entry point for requesting an update. Resets the timer to ensure we only process the *final* state.
+-- @param questID number
+-- @param isBlindUpdate boolean
+-- @param source string|nil Event name for debug
 local function RequestQuestUpdate(questID, isBlindUpdate, source)
     if not questID then return end
 
@@ -411,7 +411,7 @@ end
 -- Quest ID resolution
 -- ============================================================================
 
---- Guess active quest ID for blind QUEST_LOG_UPDATE/UI_INFO_MESSAGE.
+-- Guess active quest ID for blind QUEST_LOG_UPDATE/UI_INFO_MESSAGE.
 local function GetWorldQuestIDForObjectiveUpdate()
     local super = (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) and C_SuperTrack.GetSuperTrackedQuestID() or 0
     if super and super > 0 then
@@ -446,9 +446,9 @@ local function GetWorldQuestIDForObjectiveUpdate()
     return nil
 end
 
---- Resolve quest ID by matching normalized objective text against quest log.
---- @param normalizedObjectiveText string Normalized "X/Y Objective" format
---- @return number|nil questID if a matching quest is found
+-- Resolve quest ID by matching normalized objective text against quest log.
+-- @param normalizedObjectiveText string Normalized "X/Y Objective" format
+-- @return number|nil questID if a matching quest is found
 local function GetQuestIDFromObjectiveText(normalizedObjectiveText)
     if not normalizedObjectiveText or normalizedObjectiveText == "" then return nil end
     if not C_QuestLog or not C_QuestLog.GetQuestObjectives then return nil end
@@ -494,8 +494,8 @@ end
 -- Event handlers (public entry points)
 -- ============================================================================
 
---- Handle QUEST_ACCEPTED. Shows quest accept notification.
---- @param questID number
+-- Handle QUEST_ACCEPTED. Shows quest accept notification.
+-- @param questID number
 local function Quest_OnQuestAccepted(questID)
     if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
     if questID and C_QuestLog and C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetInfo then
@@ -525,8 +525,8 @@ local function Quest_OnQuestAccepted(questID)
     end
 end
 
---- Handle QUEST_TURNED_IN. Shows quest complete notification.
---- @param questID number
+-- Handle QUEST_TURNED_IN. Shows quest complete notification.
+-- @param questID number
 local function Quest_OnQuestTurnedIn(questID)
     if addon.Presence and addon.Presence.ShouldSuppressType and addon.Presence.ShouldSuppressType() then return end
     local L = addon.L or {}
@@ -552,20 +552,20 @@ local function Quest_OnQuestTurnedIn(questID)
     DisposeQuestState(questID)
 end
 
---- Handle QUEST_REMOVED. Disposes cached quest state.
---- @param questID number
+-- Handle QUEST_REMOVED. Disposes cached quest state.
+-- @param questID number
 local function Quest_OnQuestRemoved(questID)
     DisposeQuestState(questID)
 end
 
---- Handle QUEST_WATCH_UPDATE. Requests debounced quest objective update.
---- @param questID number
+-- Handle QUEST_WATCH_UPDATE. Requests debounced quest objective update.
+-- @param questID number
 local function Quest_OnQuestWatchUpdate(questID)
     DbgWQ("EVENT: QUEST_WATCH_UPDATE", questID)
     RequestQuestUpdate(questID, false, "QUEST_WATCH_UPDATE")
 end
 
---- Handle QUEST_LOG_UPDATE. Blind scan for active quest; requests debounced update.
+-- Handle QUEST_LOG_UPDATE. Blind scan for active quest; requests debounced update.
 local function Quest_OnQuestLogUpdate()
     if addon.Presence._suppressQuestUpdateOnReload then return end
 
@@ -576,9 +576,9 @@ local function Quest_OnQuestLogUpdate()
     end
 end
 
---- Handle UI_INFO_MESSAGE. Maps quest progress messages to quests; shows standalone popup when unmapped.
---- @param msgType number
---- @param msg string
+-- Handle UI_INFO_MESSAGE. Maps quest progress messages to quests; shows standalone popup when unmapped.
+-- @param msgType number
+-- @param msg string
 local function Quest_OnUIInfoMessage(msgType, msg)
     if not msg then return end
 
@@ -649,15 +649,15 @@ local function Quest_OnUIInfoMessage(msgType, msg)
     end
 end
 
---- Return the set of quest IDs with pending debounced updates (for standalone path check).
---- @return table questID -> true
+-- Return the set of quest IDs with pending debounced updates (for standalone path check).
+-- @return table questID -> true
 local function Quest_GetPendingQuestUpdateIDs()
     return pendingQuestUpdateIDs
 end
 
---- Print quest objective cache keys and pending flags to chat (Presence live debug companion).
---- @param printFn function|nil Same signature as DumpDebug's `p` (optional prefix handler)
---- @return nil
+-- Print quest objective cache keys and pending flags to chat (Presence live debug companion).
+-- @param printFn function|nil Same signature as DumpDebug's `p` (optional prefix handler)
+-- @return nil
 local function DumpQuestObjectiveCaches(printFn)
     local p = printFn or (addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end)
     p("|cFF00CCFF--- Quest objective cache (PresenceQuest) ---|r")

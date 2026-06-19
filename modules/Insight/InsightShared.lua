@@ -145,8 +145,8 @@ Insight.CINEMATIC_BACKDROP = {
 -- SHARED HELPERS
 -- ============================================================================
 
---- True when Horizon Suite has the Insight module enabled in options.
---- @return boolean
+-- True when Horizon Suite has the Insight module enabled in options.
+-- @return boolean
 function Insight.IsInsightEnabled()
     return addon:IsModuleEnabled("insight")
 end
@@ -185,11 +185,11 @@ end
 
 function Insight.easeOut(t) return 1 - (1 - t) * (1 - t) end
 
---- Iterate a UTF-8 byte string one character at a time so multi-byte (CJK,
---- accented) item and player names stay intact when we wrap each char in
---- |cff…|r for gradients.
---- @param s string
---- @return table
+-- Iterate a UTF-8 byte string one character at a time so multi-byte (CJK,
+-- accented) item and player names stay intact when we wrap each char in
+-- |cff…|r for gradients.
+-- @param s string
+-- @return table
 function Insight.Utf8Chars(s)
     local out = {}
     local i, n = 1, #s
@@ -208,29 +208,33 @@ function Insight.Utf8Chars(s)
     return out
 end
 
---- Strip Blizzard colour-escape sequences (`|cAARRGGBB…|r`) from a string.
---- Used before re-wrapping text as a per-character gradient.
---- @param text string
---- @return string
+-- Strip Blizzard colour-escape sequences (`|cAARRGGBB…|r`) from a string.
+-- Used before re-wrapping text as a per-character gradient.
+-- @param text string
+-- @return string
 function Insight.StripColourEscapes(text)
     if type(text) ~= "string" or text == "" then return "" end
     return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 end
 
---- Build a two-stop horizontal gradient (darker → brighter) of the given
---- base RGB colour over `plain` text, as a single |cff…|r-escaped string.
---- Shared by the item-name gradient (InsightItemTooltip) and the
---- player-name gradient (InsightPlayerTooltip).
---- @param plain string Plain text to colour
---- @param r number Base red (0..1)
---- @param g number Base green (0..1)
---- @param b number Base blue (0..1)
---- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
-function Insight.BuildNameGradient(plain, r, g, b)
-    local r1, g1, b1 = r * 0.65, g * 0.65, b * 0.65
-    local r2 = math.min(1, r * 1.20 + 0.15)
-    local g2 = math.min(1, g * 1.20 + 0.15)
-    local b2 = math.min(1, b * 1.20 + 0.15)
+-- Build a two-stop horizontal gradient (darker → brighter) of the given
+-- base RGB colour over `plain` text, as a single |cff…|r-escaped string.
+-- Shared by the item-name gradient (InsightItemTooltip) and the
+-- player-name gradient (InsightPlayerTooltip).
+-- @param plain string Plain text to colour
+-- @param r number Base red (0..1)
+-- @param g number Base green (0..1)
+-- @param b number Base blue (0..1)
+-- @return string Escape-coded gradient text (or `plain` if there's nothing to colour)
+function Insight.BuildNameGradient(plain, r, g, b, bias)
+    local shift = (type(bias) == "number") and (bias / 100) or 0
+    local clamp = math.max
+    local r1 = clamp(0, math.min(1, r * 0.65 + shift))
+    local g1 = clamp(0, math.min(1, g * 0.65 + shift))
+    local b1 = clamp(0, math.min(1, b * 0.65 + shift))
+    local r2 = clamp(0, math.min(1, r * 1.20 + 0.15 + shift))
+    local g2 = clamp(0, math.min(1, g * 1.20 + 0.15 + shift))
+    local b2 = clamp(0, math.min(1, b * 1.20 + 0.15 + shift))
 
     local chars = Insight.Utf8Chars(plain)
     local n = #chars
@@ -251,7 +255,7 @@ function Insight.BuildNameGradient(plain, r, g, b)
     return table.concat(parts)
 end
 
---- Iterate over tooltip lines; fn(i, left, right) receives line index and font strings.
+-- Iterate over tooltip lines; fn(i, left, right) receives line index and font strings.
 function Insight.ForTooltipLines(tooltip, fn)
     if not tooltip then return end
     local name = tooltip:GetName()
@@ -264,11 +268,11 @@ function Insight.ForTooltipLines(tooltip, fn)
     end
 end
 
---- Safe get text from a font string as a plain Lua string (safe for string.* / :gsub).
---- GetText can return a secret string on Midnight; that value must not be passed to string APIs from addon code.
---- Returns "" on error, nil text, or if coercion fails.
---- @param font table FontString|nil
---- @return string
+-- Safe get text from a font string as a plain Lua string (safe for string.* / :gsub).
+-- GetText can return a secret string on Midnight; that value must not be passed to string APIs from addon code.
+-- Returns "" on error, nil text, or if coercion fails.
+-- @param font table FontString|nil
+-- @return string
 function Insight.SafeGetFontText(font)
     if not font then return "" end
     local ok, out = pcall(function()
@@ -282,11 +286,11 @@ function Insight.SafeGetFontText(font)
     return (ok and out) or ""
 end
 
---- Safely check if font string text equals any of the given values. Returns false on taint/secret string.
---- Use instead of SafeGetFontText + == to avoid "attempt to compare secret string" errors in secure contexts.
---- @param font table FontString
---- @param ... string Values to compare against
---- @return boolean
+-- Safely check if font string text equals any of the given values. Returns false on taint/secret string.
+-- Use instead of SafeGetFontText + == to avoid "attempt to compare secret string" errors in secure contexts.
+-- @param font table FontString
+-- @param ... string Values to compare against
+-- @return boolean
 function Insight.SafeFontTextEquals(font, ...)
     if not font then return false end
     local expected = {...}
@@ -302,7 +306,7 @@ function Insight.SafeFontTextEquals(font, ...)
     return (ok and result) or false
 end
 
---- Add a section separator line to tooltip.
+-- Add a section separator line to tooltip.
 function Insight.AddSectionSeparator(tooltip, r, g, b)
     if not tooltip then return end
     local mode = addon.GetDB("insightSeparatorMode", nil)
@@ -321,7 +325,7 @@ function Insight.AddSectionSeparator(tooltip, r, g, b)
     end
 end
 
---- Apply stored anchor position to frame.
+-- Apply stored anchor position to frame.
 function Insight.ApplyStoredAnchor(frame)
     if not frame then return end
     frame:ClearAllPoints()
@@ -334,12 +338,12 @@ function Insight.ApplyStoredAnchor(frame)
     )
 end
 
---- Print to addon chat; no-op if HSPrint unavailable.
+-- Print to addon chat; no-op if HSPrint unavailable.
 function Insight.Print(...)
     if addon.HSPrint then addon.HSPrint(...) end
 end
 
---- Print multiple lines.
+-- Print multiple lines.
 function Insight.PrintBlock(lines)
     if not addon.HSPrint then return end
     for _, line in ipairs(lines) do
@@ -347,7 +351,7 @@ function Insight.PrintBlock(lines)
     end
 end
 
---- Scale value for Insight module.
+-- Scale value for Insight module.
 function Insight.Scaled(v)
     return (addon.ScaledForModule or addon.Scaled or function(x) return x end)(v, "insight")
 end
@@ -361,7 +365,7 @@ function Insight.ApplyNativeTooltipScale(tooltip)
     tooltip:SetScale(scale)
 end
 
---- Strip NineSlice from tooltip; ApplyBackdrop applies cinematic styling.
+-- Strip NineSlice from tooltip; ApplyBackdrop applies cinematic styling.
 function Insight.StripNineSlice(tooltip)
     if tooltip and tooltip.NineSlice then
         tooltip.NineSlice:SetAlpha(0)
@@ -374,8 +378,21 @@ function Insight.RestoreNineSlice(tooltip)
     end
 end
 
-function Insight.GetBackdropColor()
+local BG_COLOR_KEY = {
+    player = "insightPlayerBgColor",
+    npc    = "insightNpcBgColor",
+    item   = "insightItemBgColor",
+}
+
+function Insight.GetBackdropColor(tooltipType)
     local r, g, b = Insight.PANEL_BG[1], Insight.PANEL_BG[2], Insight.PANEL_BG[3]
+    local key = tooltipType and BG_COLOR_KEY[tooltipType]
+    if key then
+        local c = addon.GetDB(key, nil)
+        if c and type(c) == "table" and c[1] and c[2] and c[3] then
+            r, g, b = c[1], c[2], c[3]
+        end
+    end
     local a = tonumber(addon.GetDB("insightBgOpacity", Insight.PANEL_BG[4])) or Insight.PANEL_BG[4]
     if a > 1 then a = a / 100 end -- legacy: stored as 0-100
     return r, g, b, a
@@ -387,7 +404,7 @@ function Insight.ApplyBackdrop(tooltip)
         Mixin(tooltip, BackdropTemplateMixin)
     end
     tooltip:SetBackdrop(Insight.CINEMATIC_BACKDROP)
-    local r, g, b, a = Insight.GetBackdropColor()
+    local r, g, b, a = Insight.GetBackdropColor(tooltip._insightTooltipType)
     tooltip:SetBackdropColor(r, g, b, a)
     tooltip:SetBackdropBorderColor(Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3], Insight.PANEL_BORDER[4])
 end
@@ -495,14 +512,109 @@ function Insight.StyleTooltipFull(tooltip)
     StyleFonts(tooltip)
 end
 
+-- GameTooltip computes its size from line metrics measured with the fonts
+-- in effect at layout time. StyleFonts swaps lines to the Insight font (often
+-- larger, esp. the header), and GameTooltip does NOT re-measure after a font
+-- change — not even on a second Show(). Long names/titles then overflow the
+-- right border, and the taller lines eat the bottom padding. Measure the
+-- styled lines ourselves and grow the frame to fit (width and height).
+function Insight.FixTooltipSize(tooltip)
+    if not tooltip or tooltip._insightPreviewMock or not tooltip.GetWidth then return end
+
+    -- Non-wrapping lines (the header) need GetStringWidth: the full text width.
+    -- GetWrappedWidth there returns the laid-out rect width, which is the very
+    -- stale-layout width we are correcting — it under-measures and the text
+    -- still overflows. Wrapping lines need GetWrappedWidth, since their
+    -- GetStringWidth is the unwrapped single-line width and would over-widen.
+    -- Widths can be secret numbers under tainted execution (Midnight); they
+    -- cannot be compared directly. tostring→tonumber inside pcall launders
+    -- them to plain Lua numbers (same pattern as the CHAT_MSG_LOOT GUID fix).
+    local function LineWidth(fs)
+        local w = 0
+        pcall(function()
+            local wraps = false
+            pcall(function() if fs:CanWordWrap() then wraps = true end end)
+            local raw
+            if wraps and fs.GetWrappedWidth then
+                raw = fs:GetWrappedWidth()
+            else
+                raw = fs:GetStringWidth()
+            end
+            w = tonumber(tostring(raw)) or 0
+        end)
+        return w
+    end
+
+    local maxW = 0
+    Insight.ForTooltipLines(tooltip, function(i, left, right)
+        local w = left and LineWidth(left) or 0
+        if right then
+            local rw = LineWidth(right)
+            -- Right-anchored text shares the line; keep a readable gap between columns.
+            if rw > 0 then w = w + rw + 14 end
+        end
+        if w > maxW then maxW = w end
+    end)
+    if maxW <= 0 then return end
+
+    -- Side inset: distance from the tooltip edge to line 1's left edge (~10px default).
+    local inset = 10
+    pcall(function()
+        local name = tooltip:GetName()
+        local l1 = name and _G[name .. "TextLeft1"]
+        if l1 then
+            local x = tonumber(tostring(select(4, l1:GetPoint(1))))
+            if x and x > 0 and x < 30 then inset = x end
+        end
+    end)
+
+    pcall(function()
+        -- +2: OUTLINE draws ~1px beyond glyph metrics per side, not included
+        -- in GetStringWidth.
+        local needed = math.ceil(maxW + inset * 2 + 2)
+        local current = tonumber(tostring(tooltip:GetWidth())) or 0
+        if needed > current then
+            tooltip:SetWidth(needed)
+        end
+    end)
+
+    -- Height: the engine sized the frame for the shorter default-font lines,
+    -- so the last line crowds the bottom border. Find the lowest line bottom
+    -- and grow the frame until the bottom inset matches the side inset.
+    -- GetTop/GetBottom are screen coords at the same effective scale for the
+    -- tooltip and its child font strings, so the difference is in local units.
+    pcall(function()
+        local tooltipTop = tonumber(tostring(tooltip:GetTop()))
+        if not tooltipTop then return end
+        local lowest = nil
+        Insight.ForTooltipLines(tooltip, function(i, left, right)
+            for _, fs in ipairs({ left, right }) do
+                if fs and LineWidth(fs) > 0 then
+                    local b = tonumber(tostring(fs:GetBottom()))
+                    if b and (not lowest or b < lowest) then lowest = b end
+                end
+            end
+        end)
+        if not lowest then return end
+        local needed = math.ceil((tooltipTop - lowest) + inset)
+        local current = tonumber(tostring(tooltip:GetHeight())) or 0
+        if needed > current then
+            tooltip:SetHeight(needed)
+        end
+    end)
+end
+
+-- Back-compat alias (older call sites / external references).
+Insight.FixTooltipWidth = Insight.FixTooltipSize
+
 -- ============================================================================
 -- CLASS ICON (Default / RondoMedia / custom media via core/ClassIconMedia.lua)
 -- ============================================================================
 
 local VALID_INSIGHT_CLASS_ICON_SOURCE = { custom = true, default = true, rondomedia = true, specoverride = true }
 
---- Tooltip class icon pack: Horizon (custom), Blizzard default atlas, or RondoMedia.
---- @return string "custom" | "default" | "rondomedia"
+-- Tooltip class icon pack: Horizon (custom), Blizzard default atlas, or RondoMedia.
+-- @return string "custom" | "default" | "rondomedia"
 function Insight.GetClassIconSource()
     local def = Insight.DEFAULT_CLASS_ICON_SOURCE
     local s = (addon.GetDB and addon.GetDB("insightClassIconSource", def)) or def
@@ -512,11 +624,11 @@ function Insight.GetClassIconSource()
     return s
 end
 
---- Returns texture string for class icon, or nil if icons disabled.
---- Respects insightClassIconSource: "custom" (Horizon bundled) | "default" | "rondomedia".
---- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
---- @param size number|nil Display size; omit to use GetInsightClassIconDisplaySize() (larger for custom source).
---- @return string|nil Texture markup or nil
+-- Returns texture string for class icon, or nil if icons disabled.
+-- Respects insightClassIconSource: "custom" (Horizon bundled) | "default" | "rondomedia".
+-- @param classFile string UnitClass classFile (DEATHKNIGHT, etc.)
+-- @param size number|nil Display size; omit to use GetInsightClassIconDisplaySize() (larger for custom source).
+-- @return string|nil Texture markup or nil
 function Insight.GetClassIconTexture(classFile, size)
     if not addon.GetDB("insightShowIcons", true) or not classFile then return nil end
     if size == nil then
@@ -534,8 +646,8 @@ function Insight.GetClassIconTexture(classFile, size)
     return nil
 end
 
---- Register RondoMedia class icons with LibSharedMedia (delegates to addon.RegisterRondoClassIconsWithLSM).
---- @return nil
+-- Register RondoMedia class icons with LibSharedMedia (delegates to addon.RegisterRondoClassIconsWithLSM).
+-- @return nil
 function Insight.RegisterRondoClassIconsWithLSM()
     if addon.RegisterRondoClassIconsWithLSM then
         addon.RegisterRondoClassIconsWithLSM()

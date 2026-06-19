@@ -2,10 +2,10 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
-## Version: 5.0.2
+## Version: 5.1.0
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator, IconBrowser
-## IconTexture: Interface\AddOns\HorizonSuite\HorizonLogo
+## IconTexture: Interface\AddOns\HorizonSuite\Docs\Branding\HorizonLogo.blp
 ## X-Curse-Project-ID: 1457844
 ## X-Wago-ID: jK8gY56y
 
@@ -26,6 +26,17 @@ Libs/LibSharedMedia-3.0/LibStub/LibStub.lua
 Libs/LibSharedMedia-3.0/CallbackHandler-1.0/CallbackHandler-1.0.lua
 Libs/LibSharedMedia-3.0/LibSharedMedia-3.0/LibSharedMedia-3.0.lua
 core/Config.lua
+core/migrations/MigrationRunner.lua
+core/migrations/20260221_combat_visibility.lua
+core/migrations/20260223_vista_presence_rename.lua
+core/migrations/20260301_classcolor_key_rename.lua
+core/migrations/20260403_dashboard_bg_midnight.lua
+core/migrations/20260403_2_dashboard_bg_teldrassil.lua
+core/migrations/20260406_quest_type_icons_default_on.lua
+core/migrations/20260410_focus_click_profile.lua
+core/migrations/20260507_mplus_always_show_reset.lua
+core/migrations/20260527_cache_augment_rename.lua
+core/migrations/20260527_2_cleanup_legacy_flags.lua
 core/Core.lua
 core/UrlCopyDialog.lua
 core/ProfileIO.lua
@@ -44,10 +55,10 @@ modules/Focus/FocusState.lua
 modules/Focus/FocusClickConfig.lua
 modules/Focus/FocusCategories.lua
 modules/Focus/FocusColors.lua
-modules/Focus/FocusDailies.lua
-modules/Focus/FocusTrackedQuests.lua
-modules/Focus/FocusWorldQuests.lua
-modules/Focus/FocusRares.lua
+modules/Focus/providers/FocusDailies.lua
+modules/Focus/providers/FocusTrackedQuests.lua
+modules/Focus/providers/FocusWorldQuests.lua
+modules/Focus/providers/FocusRares.lua
 modules/Focus/scenarios/FocusScenarioBase.lua
 modules/Focus/scenarios/FocusScenarioRegistry.lua
 modules/Focus/scenarios/FocusDungeons.lua
@@ -58,25 +69,27 @@ modules/Focus/scenarios/FocusScenarioAbundance.lua
 modules/Focus/scenarios/FocusScenarioWorld.lua
 modules/Focus/scenarios/FocusScenario.lua
 modules/Focus/scenarios/FocusMplusBlock.lua
-modules/Focus/FocusAchievements.lua
-modules/Focus/FocusEndeavors.lua
-modules/Focus/FocusDecor.lua
-modules/Focus/FocusAppearances.lua
-modules/Focus/FocusRecipes.lua
-modules/Focus/FocusAdventureGuide.lua
-modules/Focus/FocusAggregator.lua
-modules/Focus/FocusAuctionCraftDialog.lua
-modules/Focus/FocusEntryPool.lua
-modules/Focus/FocusEntryRenderer.lua
-modules/Focus/FocusSectionHeaders.lua
-modules/Focus/FocusAnimation.lua
-modules/Focus/FocusLayout.lua
-modules/Focus/FocusCollapse.lua
-modules/Focus/FocusFloatingItem.lua
-modules/Focus/FocusInteractions.lua
-modules/Focus/FocusBlizzard.lua
+modules/Focus/providers/FocusAchievements.lua
+modules/Focus/providers/FocusEndeavors.lua
+modules/Focus/providers/FocusDecor.lua
+modules/Focus/providers/FocusAppearances.lua
+modules/Focus/providers/FocusRecipes.lua
+modules/Focus/providers/FocusAdventureGuide.lua
+modules/Focus/rendering/FocusAggregator.lua
+modules/Focus/integrations/RareScannerFocus.lua
+modules/Focus/integrations/SilverDragonFocus.lua
+modules/Focus/integration/FocusAuctionCraftDialog.lua
+modules/Focus/rendering/FocusEntryPool.lua
+modules/Focus/rendering/FocusEntryRenderer.lua
+modules/Focus/rendering/FocusSectionHeaders.lua
+modules/Focus/layout/FocusAnimation.lua
+modules/Focus/layout/FocusLayout.lua
+modules/Focus/layout/FocusCollapse.lua
+modules/Focus/interactions/FocusFloatingItem.lua
+modules/Focus/interactions/FocusInteractions.lua
+modules/Focus/integration/FocusBlizzard.lua
 modules/Focus/FocusEvents.lua
-modules/Focus/FocusUnacceptedPopup.lua
+modules/Focus/integration/FocusUnacceptedPopup.lua
 modules/Focus/FocusSlash.lua
 modules/Focus/FocusModule.lua
 
@@ -90,15 +103,17 @@ modules/Presence/PresenceEvents.lua
 modules/Presence/PresenceErrors.lua
 modules/Presence/PresenceSlash.lua
 modules/Presence/PresenceModule.lua
-options/modules/defaults/OptionsDefaultsPresenceTalkingHead.lua
-modules/Presence/PresenceTalkingHead.lua
 
-modules/Augment/AugmentState.lua
-modules/Augment/AugmentParsing.lua
-modules/Augment/AugmentBlizzard.lua
-modules/Augment/AugmentCore.lua
-modules/Augment/AugmentEvents.lua
-modules/Augment/AugmentSlash.lua
+modules/Augment/LootFrame/AugmentState.lua
+modules/Augment/LootFrame/AugmentParsing.lua
+modules/Augment/LootFrame/AugmentBlizzard.lua
+modules/Augment/LootFrame/AugmentCore.lua
+modules/Augment/LootFrame/AugmentEvents.lua
+modules/Augment/LootFrame/AugmentSlash.lua
+modules/Augment/SelfHighlight/AugmentSelfHighlight.lua
+modules/Augment/AutoVendor/AugmentVendor.lua
+modules/Augment/TalkingHead/AugmentTalkingHead.lua
+modules/Augment/AchievementTracker/AugmentAchievementTracker.lua
 modules/Augment/AugmentModule.lua
 
 modules/Vista/VistaCore.lua
@@ -117,9 +132,15 @@ modules/Essence/EssenceCore.lua
 modules/Essence/EssenceSlash.lua
 modules/Essence/EssenceModule.lua
 options/OptionsWidgets.lua
+options/HorizonColorPicker.lua
 options/OptionsDefaults.lua
 options/OptionsData.lua
 options/OptionsHelpers.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentLootFrame.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentSelfHighlight.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentAutoVendor.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentTalkingHead.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentAchievementTracker.lua
 options/modules/defaults/OptionsDefaultsAugment.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
@@ -135,7 +156,8 @@ options/modules/OptionsInsight.lua
 options/modules/OptionsEssence.lua
 options/modules/OptionsVista.lua
 options/modules/OptionsAugment.lua
-options/modules/OptionsPresenceTalkingHead.lua
+options/modules/OptionsAugmentTalkingHead.lua
+options/modules/OptionsFocusIntegrations.lua
 options/OptionsSearch.lua
 options/OptionsPanel.lua
 options/SettingsBridge.lua

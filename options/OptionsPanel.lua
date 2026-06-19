@@ -1248,7 +1248,7 @@ local function FinalizeCard(card)
     end)
 end
 
---- Build one options category: section cards, toggles, sliders, dropdowns, color matrix, reorder list; wires get/set and refreshers.
+-- Build one options category: section cards, toggles, sliders, dropdowns, color matrix, reorder list; wires get/set and refreshers.
 -- @param tab table Tab frame with topAnchor
 -- @param tabIndex number Category index (1-based)
 -- @param options table Array of option descriptors (type, name, dbKey, get, set, etc.)
@@ -1522,8 +1522,8 @@ local function BuildCategory(tab, tabIndex, options, refreshers, optionFrames)
         elseif opt.type == "talkingHeadPreview" and currentCard then
             local cardContent = currentCard.contentContainer or currentCard
             local contentAnchor = currentCard.contentAnchor
-            local previewWidget = addon.Presence and addon.Presence.CreateTalkingHeadPreviewWidget and
-                addon.Presence.CreateTalkingHeadPreviewWidget(cardContent)
+            local previewWidget = addon.Augment and addon.Augment.CreateTalkingHeadPreviewWidget and
+                addon.Augment.CreateTalkingHeadPreviewWidget(cardContent)
             local previewFrame = previewWidget and previewWidget.frame
             if previewFrame then
                 previewFrame:SetPoint("TOPLEFT", contentAnchor, "BOTTOMLEFT", 0, -OptionGap)

@@ -161,6 +161,21 @@ local function SafeUnitExistsKnown(unit)
     end
     return exists
 end
+-- Expose for use in other Insight files (NPC tooltip, player tooltip).
+Insight.SafeUnitExistsKnown = SafeUnitExistsKnown
+
+-- True when a unit token has usable data, even if not physically present.
+-- UnitExists returns false for party/raid members in a different zone, but
+-- name/class/level APIs are still populated from client-side sync.
+local function UnitHasData(u)
+    if SafeUnitExistsKnown(u) == true then return true end
+    local hasName = false
+    pcall(function()
+        local n = UnitName(u)
+        if n then hasName = true end
+    end)
+    return hasName
+end
 
 local function HookGameTooltipLifecycle()
     GameTooltip:HookScript("OnShow", function(self)
@@ -197,12 +212,29 @@ local function HookGameTooltipLifecycle()
     end)
     -- Reset instance token on every SetUnit so Blizzard periodic refreshes
     -- (nameplates, target frames) always re-process our custom lines even if
-    -- they reuse the same dataInstanceID. _insightStyled is NOT cleared here —
-    -- backdrop/font styling persists and doesn't need reapplying per refresh.
+    -- they reuse the same dataInstanceID. _insightStyled is also cleared:
+    -- a unit swap without a hide/show cycle (someone walking through the
+    -- cursor) rebuilds the lines, so per-line font sizes and the width
+    -- re-measure in ProcessUnitTooltip must run again or the tooltip keeps
+    -- the previous unit's width. SetFont fast-paths via cachedPath, so the
+    -- repeat styling pass is cheap.
     hooksecurefunc(GameTooltip, "SetUnit", function(self)
         self._insightUnitTooltipInstance = nil
+        self._insightStyled = nil
     end)
 
+    -- Blizzard refreshes unit tooltip content periodically while hovered and
+    -- each refresh re-runs the engine layout with metrics measured against the
+    -- pre-Insight fonts, shrinking the frame so styled text overflows the
+    -- right border and crowds the bottom one. Rather than chase every refresh
+    -- path, re-assert the size every frame a unit tooltip is visible.
+    -- FixTooltipSize only grows the frame and bails when the size already
+    -- fits, so the steady-state cost is one measurement pass over ~10 lines.
+    GameTooltip:HookScript("OnUpdate", function(self)
+        if not self._insightUnitTooltip then return end
+        if not Insight.IsInsightEnabled() then return end
+        Insight.FixTooltipSize(self)
+    end)
 end
 
 local function HookTooltipLifecycle(tt)
@@ -273,7 +305,7 @@ end
 -- Show() runs HookTooltipOnShow → ApplyBackdrop, which resets border to PANEL_BORDER.
 -- Process*Tooltip sets reaction/class border before Show(); re-apply after Show returns.
 local function ReapplyUnitTooltipBorder(tooltip, unit, isPlayer)
-    if not tooltip or not tooltip.SetBackdropBorderColor or not unit or SafeUnitExistsKnown(unit) ~= true then return end
+    if not tooltip or not tooltip.SetBackdropBorderColor or not unit or not UnitHasData(unit) then return end
     if isPlayer then
         local trp3d
         if addon.GetDB("insightTRP3BorderColor", false) and addon.GetDB("insightTRP3Enabled", true) and Insight.GetTRP3PlayerData then
@@ -306,12 +338,15 @@ local function GetPreviewPlayerBorderColor()
         return 0.72, 0.53, 1.0, 0.60
     end
 
+    -- Preview mimics the logged-in character (faction / class colour).
+    local live = Insight.GetLivePlayerPreviewData and Insight.GetLivePlayerPreviewData()
     local mode = addon.GetDB("insightPlayerTooltipBorder", "class")
     if mode == "faction" then
-        local faction = TRP3_API and addon.GetDB("insightTRP3Enabled", true) and "Horde" or "Alliance"
+        local faction = (live and live.faction) or "Alliance"
         local fc = Insight.FACTION_COLORS and Insight.FACTION_COLORS[faction]
         if fc then return fc[1], fc[2], fc[3], 0.60 end
     elseif mode == "class" then
+        if live then return live.classR, live.classG, live.classB, 0.60 end
         return 0.77, 0.12, 0.23, 0.60
     end
 
@@ -320,10 +355,11 @@ end
 
 -- PlayerFrame / party frames: tooltip owns unit "player" or "party1" while mouseover is often empty.
 -- GetUnit() may return a secret unit token on Midnight; never compare the string (e.g. to "").
+-- Party/raid members in a different zone fail UnitExists but still have data via UnitHasData.
 local function ResolveTooltipUnitToken(tooltip)
     if tooltip and tooltip.GetUnit then
         local ok, u = pcall(tooltip.GetUnit, tooltip)
-        if ok and SafeUnitExistsKnown(u) == true then
+        if ok and UnitHasData(u) then
             return u
         end
     end
@@ -378,6 +414,18 @@ local function ProcessUnitTooltip(tooltip)
         if not tooltip._insightStyled then
             Insight.StyleTooltipFull(tooltip)
             tooltip._insightStyled = true
+            -- Fonts changed after the tooltip already sized itself with Blizzard's
+            -- defaults; re-Show() so GameTooltip re-measures width for the new fonts
+            -- (long names/titles at a larger header size otherwise overflow the border).
+            tooltip._insightSuppressOnShowStyle = true
+            tooltip:Show()
+            tooltip._insightSuppressOnShowStyle = nil
+            -- Show() can repopulate Blizzard health/power text; strip once more.
+            StripHealthAndPowerText(tooltip)
+            -- Re-Show() alone does not re-measure widths after a font change;
+            -- widen the frame manually for the styled fonts. The GameTooltip
+            -- OnUpdate hook re-asserts this every frame against engine stomps.
+            Insight.FixTooltipSize(tooltip)
         end
         pcall(ReapplyUnitTooltipBorder, tooltip, unit, isPlayer)
     else
@@ -386,6 +434,10 @@ local function ProcessUnitTooltip(tooltip)
         if not tooltip._insightStyled then
             Insight.StyleFonts(tooltip)
             tooltip._insightStyled = true
+            tooltip._insightSuppressOnShowStyle = true
+            tooltip:Show()
+            tooltip._insightSuppressOnShowStyle = nil
+            Insight.FixTooltipSize(tooltip)
         end
     end
 end
@@ -541,7 +593,7 @@ end
 
 local function ApplyLiveBackdropColor(tooltip)
     if not tooltip or not TooltipPlainShown(tooltip) or not tooltip.SetBackdropColor then return end
-    local r, g, b, a = Insight.GetBackdropColor()
+    local r, g, b, a = Insight.GetBackdropColor(tooltip._insightTooltipType)
     tooltip:SetBackdropColor(r, g, b, a)
 end
 
@@ -551,14 +603,14 @@ end
 
 local PREVIEW_MODES = { global = true, player = true, npc = true, item = true }
 
---- Select which tooltip sample the dashboard preview shows when an Insight options page is active.
---- @param mode string "global" | "player" | "npc" | "item"
---- @return nil
+-- Select which tooltip sample the dashboard preview shows when an Insight options page is active.
+-- @param mode string "global" | "player" | "npc" | "item"
+-- @return nil
 function Insight.SetDashboardPreviewMode(mode)
     if type(mode) ~= "string" or not PREVIEW_MODES[mode] then return end
     Insight.dashboardPreviewMode = mode
-    if addon.DashboardPreview and addon.DashboardPreview.NotifyRefresh then
-        addon.DashboardPreview.NotifyRefresh()
+    if Insight.RefreshEmbeddedPreview then
+        Insight.RefreshEmbeddedPreview()
     end
 end
 
@@ -567,16 +619,9 @@ local PREVIEW_PAD_TOP    = 8
 local PREVIEW_PAD_SIDE   = 10
 local PREVIEW_PAD_BOTTOM = 10
 local PREVIEW_LINE_GAP   = 2
-local PREVIEW_BASE_WIDTH        = 260   -- single player preview
-local PREVIEW_GLOBAL_BASE_WIDTH = 290   -- global stacked preview without TRP3 (extra room for badge tags line)
-local PREVIEW_GLOBAL_WIDTH      = 320   -- global stacked preview with TRP3 (long RP name)
-local PREVIEW_NPC_WIDTH    = 200   -- compact NPC sample; +20 so Layout(w-20) gives innerW=160
-local PREVIEW_ITEM_WIDTH   = 215   -- compact item sample; +20 so Layout(w-20) gives innerW=175
-local PREVIEW_MAX_WIDTH  = 460
 
 local pulloutMock = nil
 local globalPlayerMock, globalNpcMock, globalItemMock = nil, nil, nil
-local globalMockHost = nil
 
 -- ---- Mock tooltip (AddLine / ClearLines / NumLines / Layout) ----
 
@@ -648,186 +693,175 @@ local function CreateMockTooltipFrame(parent, nameSuffix)
         self:SetHeight(math.max(math.abs(yOffset) + PREVIEW_PAD_BOTTOM, 40))
     end
 
+    -- Widest line at its natural (unwrapped) width, plus side padding. Sizes
+    -- the mock like a real GameTooltip instead of the old per-font-point
+    -- width heuristics. Call after content + StyleFonts; un-constrains each
+    -- line first so GetStringWidth reports the full text width.
+    function mock:MeasureNaturalWidth()
+        local maxW = 0
+        for i = 1, self._lineCount do
+            local fs = _G[mockName .. "TextLeft" .. i]
+            if fs and fs._insightPlainLineShown then
+                fs:SetWidth(0)
+                local w = fs:GetStringWidth() or 0
+                if w > maxW then maxW = w end
+            end
+        end
+        return math.ceil(maxW + PREVIEW_PAD_SIDE * 2 + 2)
+    end
+
     return mock
 end
 
--- Returns the raw (unscaled) DB font size — used only for width ratio calculations.
-local function GetPreviewFontSetting(keys, fallback)
-    local size = tonumber(fallback) or Insight.BODY_SIZE
-    if addon.GetDB then
-        for _, key in ipairs(keys) do
-            size = math.max(size, tonumber(addon.GetDB(key, size)) or size)
-        end
-    end
-    return size
-end
-
-local function GetPreviewPulloutWidth()
-    local mode = Insight.dashboardPreviewMode or "global"
-    local baseWidth, fontSize
-    if mode == "npc" then
-        baseWidth = PREVIEW_NPC_WIDTH
-        fontSize  = GetPreviewFontSetting({ "insightNpcHeaderSize", "insightNpcBodySize" }, Insight.HEADER_SIZE)
-    elseif mode == "item" then
-        baseWidth = PREVIEW_ITEM_WIDTH
-        fontSize  = GetPreviewFontSetting({ "insightItemHeaderSize", "insightItemBodySize", "insightItemTransmogSize" }, Insight.HEADER_SIZE)
-    elseif mode == "player" then
-        baseWidth = PREVIEW_BASE_WIDTH
-        fontSize  = GetPreviewFontSetting({ "insightPlayerHeaderSize", "insightPlayerBodySize", "insightPlayerBadgesSize", "insightPlayerStatsSize", "insightPlayerMountSize" }, Insight.HEADER_SIZE)
-    else
-        -- global mode: wider when TRP3 is enabled so the RP name has room; falls back to base width otherwise
-        baseWidth = (TRP3_API and addon.GetDB("insightTRP3Enabled", true)) and PREVIEW_GLOBAL_WIDTH or PREVIEW_GLOBAL_BASE_WIDTH
-        fontSize  = GetPreviewFontSetting({ "insightHeaderSize", "insightBodySize", "insightBadgesSize", "insightStatsSize", "insightMountSize", "insightTransmogSize" }, Insight.HEADER_SIZE)
-    end
-    -- Scale compact NPC/item samples more gently so preview-only font choices do not make
-    -- short tooltips much wider than their live-game content.
-    local scalePerPoint = (mode == "npc" or mode == "item") and 10 or 20
-    local maxWidth = (mode == "npc" or mode == "item") and 300 or PREVIEW_MAX_WIDTH
-    local extra = math.max(0, fontSize - Insight.HEADER_SIZE) * scalePerPoint
-    -- Widen player preview when AFK/DND appears inline on the name line
-    if mode == "player" and addon.GetDB("insightStatusBadgeAFK", true) and addon.GetDB("insightStatusBadgeAFKInHeader", false) then
-        baseWidth = baseWidth + 55
-    end
-    return math.floor(math.min(maxWidth, baseWidth + extra) + 0.5)
-end
-
-local function RefreshPullout()
-    if not pulloutMock then return end
-    local mode = Insight.dashboardPreviewMode or "global"
-
-    if mode == "global" then
-        -- Hide the single mock; render three separate bordered tooltip frames.
-        pulloutMock:ClearLines()
-        pulloutMock:Hide()
-        if not (globalPlayerMock and globalNpcMock and globalItemMock and globalMockHost) then return end
-
-        local SUB_GAP = 8
-        Insight.previewRendering = true
-
-        -- Player sub-mock
-        globalPlayerMock:ClearLines()
-        Insight.ApplyBackdrop(globalPlayerMock)
-        if Insight.RenderTestTooltipContent then Insight.RenderTestTooltipContent(globalPlayerMock) end
-        globalPlayerMock._insightTooltipType = "player"
-        Insight.StyleFonts(globalPlayerMock)
-        globalPlayerMock:SetBackdropBorderColor(GetPreviewPlayerBorderColor())
-        -- Mirror pulloutMock's TOPLEFT+RIGHT anchor setup so the frame width
-        -- is constrained by anchors before Layout runs, giving identical
-        -- word-wrap behaviour to the single-player preview.
-        globalPlayerMock:ClearAllPoints()
-        globalPlayerMock:SetPoint("TOPLEFT", globalMockHost, "TOPLEFT", 10, -10)
-        globalPlayerMock:SetPoint("RIGHT", globalMockHost, "RIGHT", -10, 0)
-        local playerMockW = GetPreviewPulloutWidth()
-        -- Subtract host side-insets so the mock border stays inside the pullout.
-        -- Both global widths (290 and 320) exceed PREVIEW_BASE_WIDTH, so this always fires in global mode.
-        if playerMockW > PREVIEW_BASE_WIDTH then playerMockW = playerMockW - 20 end
-        globalPlayerMock:Layout(playerMockW)
-        globalPlayerMock:Show()
-
-        -- NPC sub-mock
-        globalNpcMock:ClearLines()
-        Insight.ApplyBackdrop(globalNpcMock)
-        if Insight.RenderNpcPreviewContent then Insight.RenderNpcPreviewContent(globalNpcMock) end
-        globalNpcMock._insightTooltipType = "npc"
-        Insight.StyleFonts(globalNpcMock)
-        local nbr, nbg, nbb = 0.9, 0.35, 0.35
+-- Border colour for a preview mock of the given sample type.
+local function GetPreviewBorderColor(mode)
+    if mode == "player" then
+        return GetPreviewPlayerBorderColor()
+    elseif mode == "npc" then
+        local r, g, b = 0.9, 0.35, 0.35
         if FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then
-            local c = FACTION_BAR_COLORS[2]; nbr, nbg, nbb = c.r, c.g, c.b
+            local c = FACTION_BAR_COLORS[2]
+            r, g, b = c.r, c.g, c.b
         end
-        globalNpcMock:SetBackdropBorderColor(nbr, nbg, nbb, 0.60)
-        globalNpcMock:ClearAllPoints()
-        globalNpcMock:SetPoint("TOPLEFT", globalPlayerMock, "BOTTOMLEFT", 0, -SUB_GAP)
-        globalNpcMock:Layout(PREVIEW_NPC_WIDTH)
-        globalNpcMock:Show()
-
-        -- Item sub-mock
-        globalItemMock:ClearLines()
-        Insight.ApplyBackdrop(globalItemMock)
-        if Insight.RenderItemPreviewContent then Insight.RenderItemPreviewContent(globalItemMock) end
-        globalItemMock._insightTooltipType = "item"
-        Insight.StyleFonts(globalItemMock)
-        local ibr, ibg, ibb = Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3]
-        if addon.GetDB("insightItemQualityBorder", true) then
-            local itemID = Insight.DASHBOARD_PREVIEW_ITEM_ID or 168602
-            if C_Item and C_Item.GetItemInfo then
-                local info = C_Item.GetItemInfo(itemID)
-                local q = info and info.quality
-                if q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q] then
-                    local qc = ITEM_QUALITY_COLORS[q]; ibr, ibg, ibb = qc.r, qc.g, qc.b
-                end
+        return r, g, b, 0.60
+    end
+    -- item
+    local r, g, b = Insight.PANEL_BORDER[1], Insight.PANEL_BORDER[2], Insight.PANEL_BORDER[3]
+    if addon.GetDB("insightItemQualityBorder", true) then
+        local itemID = Insight.DASHBOARD_PREVIEW_ITEM_ID or 168602
+        if C_Item and C_Item.GetItemInfo then
+            local _, _, q = C_Item.GetItemInfo(itemID)
+            if q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q] then
+                local qc = ITEM_QUALITY_COLORS[q]
+                r, g, b = qc.r, qc.g, qc.b
             end
         end
-        globalItemMock:SetBackdropBorderColor(ibr, ibg, ibb, 0.60)
-        globalItemMock:ClearAllPoints()
-        globalItemMock:SetPoint("TOPLEFT", globalNpcMock, "BOTTOMLEFT", 0, -SUB_GAP)
-        globalItemMock:Layout(PREVIEW_ITEM_WIDTH)
-        globalItemMock:Show()
+    end
+    return r, g, b, 0.60
+end
 
-        Insight.previewRendering = nil
-        return
+-- Render one mock as the given sample type, then lay it out at its measured
+-- natural width clamped to maxW. Returns the laid-out width.
+local function RenderMockAs(mock, mode, maxW)
+    mock:ClearLines()
+    Insight.ApplyBackdrop(mock)
+    Insight.previewRendering = true
+    if mode == "player" and Insight.RenderTestTooltipContent then
+        Insight.RenderTestTooltipContent(mock)
+    elseif mode == "npc" and Insight.RenderNpcPreviewContent then
+        Insight.RenderNpcPreviewContent(mock)
+    elseif mode == "item" and Insight.RenderItemPreviewContent then
+        Insight.RenderItemPreviewContent(mock)
+    end
+    Insight.previewRendering = nil
+    mock._insightTooltipType = mode
+    Insight.StyleFonts(mock)
+    mock:SetBackdropBorderColor(GetPreviewBorderColor(mode))
+    local w = mock:MeasureNaturalWidth()
+    if maxW and w > maxW then w = maxW end
+    if w < 140 then w = 140 end
+    mock:Layout(w)
+    mock:Show()
+    return w
+end
+
+-- ---- Embedded preview strip (hosted at the top of Insight options pages by
+-- DashboardDetailView; replaces the old right-side pullout) ----
+
+local embeddedHost = nil
+
+-- Mount (or re-mount) the preview mocks into the host frame. Idempotent.
+-- @param host Frame owned by DashboardDetailView
+function Insight.MountEmbeddedPreview(host)
+    if not host then return end
+    embeddedHost = host
+    if not pulloutMock then
+        pulloutMock      = CreateMockTooltipFrame(host)
+        globalPlayerMock = CreateMockTooltipFrame(host, "Player")
+        globalNpcMock    = CreateMockTooltipFrame(host, "Npc")
+        globalItemMock   = CreateMockTooltipFrame(host, "Item")
+    else
+        for _, mock in ipairs({ pulloutMock, globalPlayerMock, globalNpcMock, globalItemMock }) do
+            mock:SetParent(host)
+            mock:ClearAllPoints()
+        end
+    end
+end
+
+-- Lay out the active preview(s) for the current dashboardPreviewMode and size
+-- the host to fit. Global mode shows player/npc/item side by side; the per-type
+-- pages show their single sample.
+-- @return number host height (0 when not mounted)
+function Insight.RefreshEmbeddedPreview()
+    local host = embeddedHost
+    if not (host and pulloutMock) then return 0 end
+    local mode = Insight.dashboardPreviewMode or "global"
+
+    local hostW = host:GetWidth() or 0
+    if hostW < 200 then hostW = 640 end
+    local PAD, GAP = 10, 10
+
+    local stripH = 0
+    if mode == "global" then
+        pulloutMock:ClearLines()
+        pulloutMock:Hide()
+        -- Player sample is the tallest/widest; give it more room than the
+        -- compact NPC/item samples (42% / 29% / 29% of the row).
+        local rowW = hostW - PAD * 2 - GAP * 2
+        local entries = {
+            { globalPlayerMock, "player", math.max(200, math.floor(rowW * 0.42)) },
+            { globalNpcMock,    "npc",    math.max(160, math.floor(rowW * 0.29)) },
+            { globalItemMock,   "item",   math.max(160, math.floor(rowW * 0.29)) },
+        }
+        -- Render first so the real widths are known, then centre the row.
+        local totalW = 0
+        for _, entry in ipairs(entries) do
+            if entry[1] then
+                entry[4] = RenderMockAs(entry[1], entry[2], entry[3])
+                totalW = totalW + entry[4] + GAP
+            end
+        end
+        if totalW > 0 then totalW = totalW - GAP end
+        local x = math.max(PAD, math.floor((hostW - totalW) / 2))
+        for _, entry in ipairs(entries) do
+            local mock, w = entry[1], entry[4]
+            if mock and w then
+                mock:ClearAllPoints()
+                mock:SetPoint("TOPLEFT", host, "TOPLEFT", x, -PAD)
+                x = x + w + GAP
+                local h = (mock:GetHeight() or 0) + PAD * 2
+                if h > stripH then stripH = h end
+            end
+        end
+    else
+        if globalPlayerMock then globalPlayerMock:Hide() end
+        if globalNpcMock    then globalNpcMock:Hide()    end
+        if globalItemMock   then globalItemMock:Hide()   end
+        pulloutMock:ClearAllPoints()
+        RenderMockAs(pulloutMock, mode, hostW - PAD * 2)
+        pulloutMock:SetPoint("TOP", host, "TOP", 0, -PAD)
+        stripH = (pulloutMock:GetHeight() or 0) + PAD * 2
     end
 
-    -- Non-global modes: hide sub-mocks, use the single pulloutMock.
+    local h = math.max(60, math.ceil(stripH))
+    host:SetHeight(h)
+    return h
+end
+
+-- Hide all embedded preview mocks (e.g. when another module's preview takes over the host).
+function Insight.HideEmbeddedPreview()
+    if pulloutMock      then pulloutMock:Hide()      end
     if globalPlayerMock then globalPlayerMock:Hide() end
     if globalNpcMock    then globalNpcMock:Hide()    end
     if globalItemMock   then globalItemMock:Hide()   end
-
-    pulloutMock:ClearLines()
-    pulloutMock:Show()
-    Insight.ApplyBackdrop(pulloutMock)
-    Insight.previewRendering = true
-    if mode == "item" and Insight.RenderItemPreviewContent then
-        Insight.RenderItemPreviewContent(pulloutMock)
-    elseif mode == "npc" and Insight.RenderNpcPreviewContent then
-        Insight.RenderNpcPreviewContent(pulloutMock)
-    elseif mode == "player" and Insight.RenderTestTooltipContent then
-        Insight.RenderTestTooltipContent(pulloutMock)
-    end
-    Insight.previewRendering = nil
-    pulloutMock._insightTooltipType = mode
-    Insight.StyleFonts(pulloutMock)
-    local br, bg, bb, ba
-    if mode == "player" then
-        br, bg, bb, ba = GetPreviewPlayerBorderColor()
-    else
-        br = (mode == "item") and Insight.PANEL_BORDER[1] or 0.77
-        bg = (mode == "item") and Insight.PANEL_BORDER[2] or 0.12
-        bb = (mode == "item") and Insight.PANEL_BORDER[3] or 0.23
-        ba = (mode == "item") and Insight.PANEL_BORDER[4] or 0.60
-    end
-    if mode == "npc" and FACTION_BAR_COLORS and FACTION_BAR_COLORS[2] then
-        local c = FACTION_BAR_COLORS[2]
-        br, bg, bb = c.r, c.g, c.b
-    elseif mode == "item" and addon.GetDB("insightItemQualityBorder", true) then
-        local id = Insight.DASHBOARD_PREVIEW_ITEM_ID or 168602
-        if C_Item and C_Item.GetItemInfo then
-            local info = C_Item.GetItemInfo(id)
-            local q = info and info.quality
-            if q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q] then
-                local qc = ITEM_QUALITY_COLORS[q]
-                br, bg, bb = qc.r, qc.g, qc.b
-            end
-        end
-    end
-    pulloutMock:SetBackdropBorderColor(br, bg, bb, ba)
-    -- Subtract host side-insets so Layout's SetWidth call doesn't overflow the pullout host.
-    pulloutMock:Layout(GetPreviewPulloutWidth() - 20)
 end
 
---- Toggle dashboard preview pullout (delegates to shared options shell).
-function Insight.TogglePreviewPullout()
-    if addon.DashboardPreview and addon.DashboardPreview.TogglePullout then
-        addon.DashboardPreview.TogglePullout()
-    end
-end
+-- @deprecated The right-side pullout is gone; previews are embedded at the top
+-- of Insight options pages. Kept as no-ops for any external callers.
+function Insight.TogglePreviewPullout() end
+function Insight.ClosePullout() end
 
-function Insight.ClosePullout()
-    if addon.DashboardPreview and addon.DashboardPreview.ClosePullout then
-        addon.DashboardPreview.ClosePullout()
-    end
-end
-
---- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
+-- @deprecated Prefer addon.DashboardPreview.InitDashboard; kept for callers.
 function Insight.EnsurePreviewTab(dashFrame)
     if addon.DashboardPreview and addon.DashboardPreview.InitDashboard then
         addon.DashboardPreview.InitDashboard(dashFrame)
@@ -838,9 +872,9 @@ end
 -- TRP3 SUPPRESSOR
 -- ============================================================================
 
---- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
---- own frame is suppressed and Insight's enriched GameTooltip stays visible.
---- Called once when "totalRP3" finishes loading (or at Init if already loaded).
+-- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
+-- own frame is suppressed and Insight's enriched GameTooltip stays visible.
+-- Called once when "totalRP3" finishes loading (or at Init if already loaded).
 function Insight.InstallTRP3Suppressor()
     local trp3Tooltip = _G["TRP3_CharacterTooltip"]
     if not trp3Tooltip or Insight._trp3HookInstalled then return end
@@ -881,7 +915,7 @@ function Insight.ShowAnchorFrame()
     ShowAnchorFrame()
 end
 
---- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
+-- Toggle anchor visibility. Show if hidden, hide if shown. Used by settings button.
 function Insight.ToggleAnchorFrame()
     if TooltipPlainShown(anchorFrame) then
         HideAnchorFrame()
@@ -903,8 +937,8 @@ function Insight.ApplyInsightOptions()
         end
         ApplyLiveBackdropColor(tt)
     end
-    if addon.DashboardPreview and addon.DashboardPreview.NotifyRefresh then
-        addon.DashboardPreview.NotifyRefresh()
+    if Insight.RefreshEmbeddedPreview then
+        Insight.RefreshEmbeddedPreview()
     end
     HideStyledTooltipsIfCombatSuppressionActive()
 end
@@ -970,39 +1004,9 @@ function Insight.Init()
         Insight.InstallTRP3Suppressor()
     end
 
-    if addon.DashboardPreview and addon.DashboardPreview.Register then
-        addon.DashboardPreview.Register("insight", {
-            width = GetPreviewPulloutWidth,
-            title = "TOOLTIP PREVIEW",
-            subtitle = "Updates as you change settings",
-            tabTooltipTitle = "Tooltip Preview",
-            tabTooltipBody = "Live preview — updates as you\nchange Insight settings.",
-            MountContent = function(host)
-                globalMockHost = host
-                if not pulloutMock then
-                    pulloutMock = CreateMockTooltipFrame(host)
-                else
-                    pulloutMock:SetParent(host)
-                    pulloutMock:ClearAllPoints()
-                end
-                pulloutMock:SetPoint("TOPLEFT", host, "TOPLEFT", 10, -10)
-                pulloutMock:SetPoint("RIGHT", host, "RIGHT", -10, 0)
-                pulloutMock:SetHeight(300)
-                if not globalPlayerMock then
-                    globalPlayerMock = CreateMockTooltipFrame(host, "Player")
-                    globalNpcMock    = CreateMockTooltipFrame(host, "Npc")
-                    globalItemMock   = CreateMockTooltipFrame(host, "Item")
-                else
-                    globalPlayerMock:SetParent(host); globalPlayerMock:ClearAllPoints()
-                    globalNpcMock:SetParent(host);    globalNpcMock:ClearAllPoints()
-                    globalItemMock:SetParent(host);   globalItemMock:ClearAllPoints()
-                end
-            end,
-            refresh = function()
-                RefreshPullout()
-            end,
-        })
-    end
+    -- Previews are embedded at the top of Insight options pages
+    -- (Insight.MountEmbeddedPreview / RefreshEmbeddedPreview, hosted by
+    -- DashboardDetailView); the right-side pullout is no longer registered.
 end
 
 function Insight.Disable()
@@ -1058,13 +1062,19 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
     end
     if event == "UPDATE_MOUSEOVER_UNIT" then
         if not Insight.IsInsightEnabled() then return end
-        if SafeUnitExistsKnown("mouseover") == false
+        if SafeUnitExistsKnown("mouseover") ~= true
             and TooltipPlainShown(GameTooltip)
             and GameTooltip._insightUnitTooltip then
             C_Timer.After(0, function()
-                if SafeUnitExistsKnown("mouseover") ~= false then return end
+                if SafeUnitExistsKnown("mouseover") == true then return end
                 if not TooltipPlainShown(GameTooltip) then return end
                 if not GameTooltip._insightUnitTooltip then return end
+                -- Don't hide if the tooltip is bound to a party/raid member in a
+                -- different zone — no world mouseover but unit data is still valid.
+                if GameTooltip.GetUnit then
+                    local ok, u = pcall(GameTooltip.GetUnit, GameTooltip)
+                    if ok and UnitHasData(u) then return end
+                end
                 GameTooltip:Hide()
             end)
         end
@@ -1091,7 +1101,7 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
                     if not Insight.IsInsightEnabled() then return end
                     if not TooltipPlainShown(GameTooltip) then return end
                     if not GameTooltip._insightUnitTooltip then return end
-                    if SafeUnitExistsKnown("mouseover") ~= false then return end
+                    if SafeUnitExistsKnown("mouseover") == true then return end
                     GameTooltip:Hide()
                 end)
             end
@@ -1112,16 +1122,53 @@ eventFrame:SetScript("OnEvent", function(self, event, guid)
 end)
 
 -- ============================================================================
+-- STUCK-TOOLTIP FALLBACK POLL
+-- Catches cases where UPDATE_MOUSEOVER_UNIT never fires (e.g. fixed anchor,
+-- UI reload edge cases). Throttled to POLL_INTERVAL seconds; exits cheaply
+-- each frame when the tooltip is not an insight unit tooltip.
+-- ============================================================================
+
+local POLL_INTERVAL = 0.25
+local pollAccum     = 0
+local pollFrame     = CreateFrame("Frame")
+pollFrame:SetScript("OnUpdate", function(_, elapsed)
+    pollAccum = pollAccum + elapsed
+    if pollAccum < POLL_INTERVAL then return end
+    pollAccum = 0
+    if not Insight.IsInsightEnabled() then return end
+    if not TooltipPlainShown(GameTooltip) then return end
+    if not GameTooltip._insightUnitTooltip then return end
+    if SafeUnitExistsKnown("mouseover") == true then return end
+    -- Don't hide if the tooltip is bound to a party/raid member in a different
+    -- zone — no world mouseover but unit data (name/class/level) is still valid.
+    if GameTooltip.GetUnit then
+        local ok, u = pcall(GameTooltip.GetUnit, GameTooltip)
+        if ok and UnitHasData(u) then return end
+    end
+    GameTooltip:Hide()
+end)
+
+-- ============================================================================
 -- SLASH COMMANDS
 -- ============================================================================
 
 local function HandleInsightSlash(msg)
-    if not addon:IsModuleEnabled("insight") then
-        Insight.Print("Horizon Insight is disabled. Enable it in Horizon Suite options.")
+    local cmd = strtrim(msg or ""):lower()
+
+    if cmd == "toggle" then
+        if InCombatLockdown() then
+            Insight.Print("Cannot toggle Insight during combat.")
+            return
+        end
+        addon:SetModuleEnabled("insight", not addon:IsModuleEnabled("insight"))
+        Insight.Print("Insight " .. (addon:IsModuleEnabled("insight") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
         return
     end
 
-    local cmd = strtrim(msg or ""):lower()
+    if not addon:IsModuleEnabled("insight") then
+        Insight.Print("Horizon Insight is disabled. Use /h insight toggle to enable it.")
+        return
+    end
 
     if cmd == "anchor" then
         local mode = GetAnchorMode()
@@ -1141,7 +1188,7 @@ local function HandleInsightSlash(msg)
             ShowAnchorFrame()
         end
 
-    elseif cmd == "resetpos" then
+    elseif cmd == "reset" or cmd == "resetpos" then
         addon.SetDB("insightFixedPoint", FIXED_POINT)
         addon.SetDB("insightFixedX", FIXED_X)
         addon.SetDB("insightFixedY", FIXED_Y)
@@ -1166,19 +1213,15 @@ local function HandleInsightSlash(msg)
     else
         Insight.PrintBlock({
             "Horizon Insight",
-            "  /insight, /h insight     This help",
-            "  /insight anchor   Toggle cursor / fixed positioning",
-            "  /insight move     Show draggable anchor to set fixed position",
-            "  /insight resetpos Reset fixed position to default",
-            "  /insight test     Show a sample styled tooltip",
+            "  /h insight          This help",
+            "  /h insight toggle   Enable / disable Insight module",
+            "  /h insight anchor   Toggle cursor / fixed positioning",
+            "  /h insight move     Show draggable anchor to set fixed position",
+            "  /h insight reset    Reset fixed position to default",
+            "  /h insight test     Show a sample styled tooltip",
         })
     end
 end
-
-SLASH_HORIZONSUITEINSIGHT1 = "/insight"
-SLASH_HORIZONSUITEINSIGHT2 = "/hsi"
-SLASH_HORIZONSUITEINSIGHT3 = "/mtt"
-SlashCmdList["HORIZONSUITEINSIGHT"] = HandleInsightSlash
 
 local function HandleInsightDebugSlash(msg)
     local cmd = strtrim(msg or ""):lower()
@@ -1186,23 +1229,12 @@ local function HandleInsightDebugSlash(msg)
     if cmd == "" or cmd == "help" then
         Insight.PrintBlock({
             "Insight debug commands (/h debug insight [cmd]):",
-            "  debuglive - Toggle live debug log panel",
+            "  debuglive - Toggle live debug log panel (DEV_MODE required)",
             "  status    - Print config + cache count",
             "  lsm       - Test LibSharedMedia classicon registration",
             "  path      - Show class icon paths (Rondo + custom sample)",
             "  trp3      - Diagnose TRP3 data for current mouseover unit",
         })
-        return
-    end
-
-    if cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            Insight.Print("Debug requires DEV_MODE = true in core/Logger.lua")
-            return
-        end
-        local v = not addon.Log.isEnabled("insight")
-        if Insight.SetDebugLive then Insight.SetDebugLive(v) end
-        Insight.Print("Insight debug log: " .. (v and "on" or "off"))
         return
     end
 
@@ -1459,6 +1491,9 @@ if addon.RegisterSlashHandler then
 end
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("insight", HandleInsightDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("insight", function(v) if Insight.SetDebugLive then Insight.SetDebugLive(v) end end)
 end
 
 addon.Insight = Insight

@@ -143,14 +143,14 @@ do
     end
 end
 
---- Scan tooltip lines for an "Upgrade Level: <Track> n/m" label and return
---- the mapped ItemQuality tier, or nil if no track is present. Anchored on
---- the localised upgrade-line format so flavour text containing a track
---- word ("Explorer", "Champion", …) cannot trigger a false positive.
---- Wrapped in pcall: line text may be a secret string on some Midnight
---- tooltip sources.
---- @param tooltip table GameTooltip-like frame
---- @return number|nil ItemQuality index (1..6)
+-- Scan tooltip lines for an "Upgrade Level: <Track> n/m" label and return
+-- the mapped ItemQuality tier, or nil if no track is present. Anchored on
+-- the localised upgrade-line format so flavour text containing a track
+-- word ("Explorer", "Champion", …) cannot trigger a false positive.
+-- Wrapped in pcall: line text may be a secret string on some Midnight
+-- tooltip sources.
+-- @param tooltip table GameTooltip-like frame
+-- @return number|nil ItemQuality index (1..6)
 function Insight.DetectUpgradeTrackQuality(tooltip)
     local result
     pcall(function()
@@ -170,10 +170,14 @@ function Insight.DetectUpgradeTrackQuality(tooltip)
     return result
 end
 
+local function GetItemGradientBias()
+    return tonumber(addon.GetDB("insightItemGradientBias", 0)) or 0
+end
+
 local function BuildGradientString(plain, quality)
     local colors = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
     if not colors then return plain end
-    return Insight.BuildNameGradient(plain, colors.r, colors.g, colors.b)
+    return Insight.BuildNameGradient(plain, colors.r, colors.g, colors.b, GetItemGradientBias())
 end
 
 -- Reentrancy guard: our own SetText / SetTextColor calls trigger the same
@@ -206,11 +210,11 @@ local function WriteGradient(tooltip, fs, incomingText)
     gradientReentry[fs] = nil
 end
 
---- Apply the gradient to the tooltip's name line immediately. Callers must
---- have stashed the effective quality on tooltip._insightItemQuality first
---- (OnItemTooltip does this, RenderItemPreviewContent does it too). The
---- persistent hook keeps the gradient alive across later Blizzard writes.
---- @param tooltip table GameTooltip-like frame with <name>TextLeft1 FontString
+-- Apply the gradient to the tooltip's name line immediately. Callers must
+-- have stashed the effective quality on tooltip._insightItemQuality first
+-- (OnItemTooltip does this, RenderItemPreviewContent does it too). The
+-- persistent hook keeps the gradient alive across later Blizzard writes.
+-- @param tooltip table GameTooltip-like frame with <name>TextLeft1 FontString
 function Insight.ApplyItemNameGradient(tooltip)
     local name = tooltip:GetName()
     if not name then return end
@@ -219,11 +223,11 @@ function Insight.ApplyItemNameGradient(tooltip)
     WriteGradient(tooltip, fs, nil)
 end
 
---- Install the SetText / SetFormattedText / SetTextColor hooks on the
---- tooltip's first-line FontString so any later Blizzard write (mid-display
---- refresh, layout pass, comparison reposition) gets re-wrapped with our
---- gradient in the same frame. Idempotent per-tooltip.
---- @param tooltip table GameTooltip-like frame
+-- Install the SetText / SetFormattedText / SetTextColor hooks on the
+-- tooltip's first-line FontString so any later Blizzard write (mid-display
+-- refresh, layout pass, comparison reposition) gets re-wrapped with our
+-- gradient in the same frame. Idempotent per-tooltip.
+-- @param tooltip table GameTooltip-like frame
 function Insight.InstallItemNameGradientHook(tooltip)
     if tooltip._insightGradientTextHooked then return end
     tooltip._insightGradientTextHooked = true
@@ -253,10 +257,10 @@ end
 -- ITEM BLOCK BUILDERS
 -- ============================================================================
 
---- Add appearance (transmog) block to tooltip.
---- @param tooltip table GameTooltip or other tooltip frame
---- @param itemID number Item ID
---- @return boolean true if block was added
+-- Add appearance (transmog) block to tooltip.
+-- @param tooltip table GameTooltip or other tooltip frame
+-- @param itemID number Item ID
+-- @return boolean true if block was added
 function Insight.AddAppearanceBlock(tooltip, itemID)
     if not Insight.IsInsightEnabled() or not ShowTransmog() then return false end
     if not C_TransmogCollection or not itemID then return false end
@@ -276,12 +280,12 @@ function Insight.AddAppearanceBlock(tooltip, itemID)
     return true
 end
 
---- Process item tooltip: add structured Insight blocks (appearance, etc.).
---- Adds a section separator only when at least one block will be shown.
---- @param tooltip table GameTooltip or other tooltip frame
---- @param itemID number Item ID
---- @param quality number|nil Item quality for separator tint
---- @return boolean true if any block was added
+-- Process item tooltip: add structured Insight blocks (appearance, etc.).
+-- Adds a section separator only when at least one block will be shown.
+-- @param tooltip table GameTooltip or other tooltip frame
+-- @param itemID number Item ID
+-- @param quality number|nil Item quality for separator tint
+-- @return boolean true if any block was added
 function Insight.ProcessItemTooltip(tooltip, itemID, quality)
     if not Insight.IsInsightEnabled() or not itemID then return false end
 
@@ -302,9 +306,9 @@ function Insight.ProcessItemTooltip(tooltip, itemID, quality)
     return Insight.AddAppearanceBlock(tooltip, itemID)
 end
 
---- Render sample item tooltip content for the options dashboard preview.
---- @param tooltip table Mock tooltip with AddLine and optional ClearLines
---- @return nil
+-- Render sample item tooltip content for the options dashboard preview.
+-- @param tooltip table Mock tooltip with AddLine and optional ClearLines
+-- @return nil
 function Insight.RenderItemPreviewContent(tooltip)
     if not tooltip or not tooltip.AddLine then return end
     local itemID = Insight.DASHBOARD_PREVIEW_ITEM_ID

@@ -26,7 +26,6 @@ local MODAL_PAD          = 18
 local MODAL_TITLE_H      = 50
 local MODAL_FOOTER_H     = 56
 local MODAL_LOGO_SIZE    = 32
-local MODAL_LOGO_PATH    = "Interface\\AddOns\\HorizonSuite\\HorizonLogo"
 local MODAL_BTN_W        = 168
 local MODAL_BTN_H        = 24
 local MODAL_BTN_GAP      = 12
@@ -131,7 +130,7 @@ local function BuildModal()
     local logo = f:CreateTexture(nil, "ARTWORK")
     logo:SetSize(MODAL_LOGO_SIZE, MODAL_LOGO_SIZE)
     logo:SetPoint("TOPLEFT", f, "TOPLEFT", MODAL_PAD, -MODAL_PAD)
-    logo:SetTexture(MODAL_LOGO_PATH)
+    logo:SetTexture(addon.ICON_PATH)
     f._logo = logo
 
     local brand = f:CreateFontString(nil, "OVERLAY")

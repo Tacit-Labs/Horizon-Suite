@@ -8,9 +8,8 @@ if not addon or not addon.Presence or not addon.RegisterSlashHandler then return
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 
---- Handle /horizon presence [cmd] subcommands. Returns true if handled, false to pass to parent handler.
---- @param msg string Subcommand (zone, subzone, discover, level, boss, ach, quest, wq, wqaccept, accept, update, scenario, all, debug, debuglive, help)
---- @return boolean
+-- Handle /horizon presence [cmd] subcommands.
+-- @param msg string Subcommand (toggle, zone, subzone, discover, level, boss, ach, quest, wq, wqaccept, accept, update, scenario, all, help)
 local function HandlePresenceSlash(msg)
     local cmd = strtrim(msg or ""):lower()
     -- Accept optional leading "test " prefix (matches PR test-plan phrasing).
@@ -18,6 +17,16 @@ local function HandlePresenceSlash(msg)
     -- Long-form aliases for parity with documentation.
     if cmd == "worldquest" then cmd = "wq"
     elseif cmd == "worldquestaccept" then cmd = "wqaccept"
+    end
+
+    if cmd == "toggle" then
+        if InCombatLockdown() then
+            HSPrint("Cannot toggle Presence during combat.")
+            return
+        end
+        addon:SetModuleEnabled("presence", not addon:IsModuleEnabled("presence"))
+        HSPrint("Presence " .. (addon:IsModuleEnabled("presence") and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"))
+        return
     end
 
     if cmd == "level" then
@@ -80,6 +89,7 @@ local function HandlePresenceSlash(msg)
         end
     elseif cmd == "" or cmd == "help" then
         local L = addon.L or {}
+        HSPrint("  /h presence toggle  - Enable / disable Presence module")
         HSPrint(L["PRESENCE_TEST_COMMANDS"])
         HSPrint(L["PRESENCE_H_HELP_TEST_CURRENT"])
         HSPrint(L["PRESENCE_H_ZONE_TEST"])
@@ -97,11 +107,7 @@ local function HandlePresenceSlash(msg)
         HSPrint(L["PRESENCE_H_ACHIEVEMENT_PROGRESS_TEST"])
         HSPrint(L["PRESENCE_H_DEMO_REEL_TYPES"])
         addon.Presence.QueueOrPlay("ZONE_CHANGE", GetZoneText() or "Unknown Zone", GetSubZoneText() or "")
-    else
-        return false
     end
-
-    return true
 end
 
 local function HandlePresenceDebugSlash(msg)
@@ -111,7 +117,7 @@ local function HandlePresenceDebugSlash(msg)
         HSPrint("Presence debug commands (/h debug presence [cmd]):")
         HSPrint("  debug      - Dump state to chat")
         HSPrint("  debugtypes - Dump notification toggles and Blizzard suppression state")
-        HSPrint("  debuglive  - Toggle live debug panel (log as events happen)")
+        HSPrint("  debuglive  - Toggle live debug panel (DEV_MODE required)")
         return
     end
 
@@ -125,21 +131,15 @@ local function HandlePresenceDebugSlash(msg)
             HSPrint("DumpBlizzardSuppression not available")
         end
 
-    elseif cmd == "debuglive" then
-        if not addon.Log.isDevMode() then
-            HSPrint("Debug requires DEV_MODE = true in core/Logger.lua")
-            return true
-        end
-        local on = addon.Presence.ToggleDebugLive and addon.Presence.ToggleDebugLive()
-        HSPrint("Presence live debug: " .. (on and "on" or "off"))
-
     else
         HSPrint("Unknown debug command. Use /h debug presence for help.")
     end
 end
 
 addon.RegisterSlashHandler("presence", HandlePresenceSlash)
-addon.Presence.HandlePresenceSlash = HandlePresenceSlash
 if addon.RegisterSlashHandlerDebug then
     addon.RegisterSlashHandlerDebug("presence", HandlePresenceDebugSlash)
+end
+if addon.RegisterDebugLive then
+    addon.RegisterDebugLive("presence", function(v) if addon.Presence.SetDebugLive then addon.Presence.SetDebugLive(v) end end)
 end

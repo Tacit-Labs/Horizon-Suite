@@ -125,10 +125,10 @@ local function GetQuestZoneName(questID)
      end
      return nil
  end
---- button is useful.  This includes explicit Group quests, World Bosses,
---- Elite World Quests, and Raid quests.
---- @param questID number
---- @return boolean
+-- button is useful.  This includes explicit Group quests, World Bosses,
+-- Elite World Quests, and Raid quests.
+-- @param questID number
+-- @return boolean
 local function IsGroupQuest(questID)
     if not questID or questID <= 0 then return false end
 

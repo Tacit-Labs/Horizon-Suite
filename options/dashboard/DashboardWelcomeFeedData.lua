@@ -7,7 +7,7 @@
 
 local addon = _G.HorizonSuite
 
---- @type table[] Welcome feed: onboarding content (getting started, contributors, localisations, embedded guide).
+-- @type table[] Welcome feed: onboarding content (getting started, contributors, localisations, embedded guide).
 addon.DashboardWelcomeFeed = {
     {
         id = "welcome_hero",

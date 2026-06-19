@@ -19,7 +19,7 @@ end
 local eventFrame = CreateFrame("Frame")
 local eventsRegistered = false
 
---- Rare defeated detection state.
+-- Rare defeated detection state.
 local rareVignetteSnapshot = {}
 local rareSnapshotInit = false
 local lastCombatTime = 0
@@ -28,8 +28,8 @@ local RARE_DEBOUNCE = 0.5
 local RARE_COOLDOWN = 10
 local rareDefeatedCooldowns = {}
 
---- Build current rare entryKey -> title map. Uses addon.GetRaresOnMap when Focus loaded, else addon.GetRareNamesOnMap.
---- @return table entryKey -> name
+-- Build current rare entryKey -> title map. Uses addon.GetRaresOnMap when Focus loaded, else addon.GetRareNamesOnMap.
+-- @return table entryKey -> name
 local function BuildRareSnapshot()
     local out = {}
     if addon.GetRaresOnMap then
@@ -218,7 +218,7 @@ local function OnPlayerRegenEnabled()
     lastCombatTime = GetTime()
 end
 
---- Detect disappeared rares; show toast when one vanishes within combat window.
+-- Detect disappeared rares; show toast when one vanishes within combat window.
 local function ExecuteRareDefeatedCheck()
     if not IsPresenceTypeEnabled("presenceRareDefeated", nil, true) then return end
     if not addon.GetRaresOnMap and not addon.GetRareNamesOnMap then return end
@@ -295,8 +295,8 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     if fn then fn(event, ...) end
 end)
 
---- Register all Presence events. Idempotent.
---- @return nil
+-- Register all Presence events. Idempotent.
+-- @return nil
 local function EnableEvents()
     if eventsRegistered then return end
     for _, evt in ipairs(PRESENCE_EVENTS) do
@@ -309,8 +309,8 @@ local function EnableEvents()
     end)
 end
 
---- Unregister all Presence events.
---- @return nil
+-- Unregister all Presence events.
+-- @return nil
 local function DisableEvents()
     if not eventsRegistered then return end
     for _, evt in ipairs(PRESENCE_EVENTS) do
