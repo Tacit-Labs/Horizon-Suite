@@ -11,11 +11,14 @@ The most direct way to do so is through our Discord server. We do check our Curs
 [![Discord Server](https://img.shields.io/badge/Discord-black?&style=for-the-badge&logo=discord&logoSize=auto)](https://discord.gg/nFabdZmvSB)[![Patreon Page](https://img.shields.io/badge/patreon-donate?&style=for-the-badge&label=%20&logo=patreon&logoSize=auto&color=000000)](https://www.patreon.com/c/HorizonSuite)[![Ko-fi Page](https://img.shields.io/badge/Ko--fi-black?&style=for-the-badge&logo=kofi&logoSize=auto&logoColor=FF6433)](https://ko-fi.com/horizonsuite)
 
 **Contributions are always welcome!**
-|Contribution Type|Corresponding File for More Information|
-|----------------------|--------------------------------------------------|
-For coding conventions, see `Docs/Contributions/Code.md`.
-For GitHub contributions, see `Docs/Contributions/Repository/Repository.md`.
-For locale guidelines, see `Docs/Contributions/Translate.md`.
+|[Standard Operating Procedures](https://github.com/Tacit-Labs/Horizon-Suite/wiki/Standard-Operating-Procedures-%5BSOPs%5D)|||||
+|-|-|-|-|-|
+|[**General Points of Contact**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/Standard-Operating-Procedures-%5BSOPs%5D#standard-operating-procedures-sops)|
+|[**GenerativeAI**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GenerativeAI%E2%80%90SOP)|[**"Human Clause"**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GenerativeAI%E2%80%90SOP#generative-ai)|[**Conventional Commits**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GenerativeAI%E2%80%90SOP#commit-messages)|
+|[**GitHub**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/Standard-Operating-Procedures-%5BSOPs%5D#github)|[**Branches**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GitHub%E2%80%90SOP-%5BBranches%5D)|[**Issues**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GitHub%E2%80%90SOP-%5BIssues%5D)|[**Pull Requests**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/GitHub%E2%80%90SOP-%5BPRs%5D)|[**Wiki**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/(SOP)-GitHub:-Wiki#edits)|
+|[**Discord**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/Standard-Operating-Procedures-%5BSOPs%5D#discord)|
+|[**Codebase**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/Standard-Operating-Procedures-%5BSOPs%5D#codebase)|[**Conventions**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/Codebase%E2%80%90SOP-%5BConventions%5D)|[**Locales**](https://github.com/Tacit-Labs/Horizon-Suite/wiki/Codebase%E2%80%90SOP-%5BLocales%5D)|
+
 
 ---
 
