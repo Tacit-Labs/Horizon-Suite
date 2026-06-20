@@ -62,25 +62,11 @@ core/GameMenuButton.lua
 modules/Focus/FocusState.lua
 modules/Focus/FocusClickConfig.lua
 modules/Focus/FocusCategories.lua
-<<<<<<< HEAD
-modules/Focus/FocusColors.lua
+modules/Focus/FocusColours.lua
 modules/Focus/providers/FocusDailies.lua
 modules/Focus/providers/FocusTrackedQuests.lua
 modules/Focus/providers/FocusWorldQuests.lua
 modules/Focus/providers/FocusRares.lua
-||||||| parent of e9e5c05 (Changed `FocusColors.lua` to `FocusColours.lua`)
-modules/Focus/FocusColors.lua
-modules/Focus/FocusDailies.lua
-modules/Focus/FocusTrackedQuests.lua
-modules/Focus/FocusWorldQuests.lua
-modules/Focus/FocusRares.lua
-=======
-modules/Focus/FocusColours.lua
-modules/Focus/FocusDailies.lua
-modules/Focus/FocusTrackedQuests.lua
-modules/Focus/FocusWorldQuests.lua
-modules/Focus/FocusRares.lua
->>>>>>> e9e5c05 (Changed `FocusColors.lua` to `FocusColours.lua`)
 modules/Focus/scenarios/FocusScenarioBase.lua
 modules/Focus/scenarios/FocusScenarioRegistry.lua
 modules/Focus/scenarios/FocusDungeons.lua
@@ -154,7 +140,6 @@ modules/Essence/EssenceCore.lua
 modules/Essence/EssenceSlash.lua
 modules/Essence/EssenceModule.lua
 options/OptionsWidgets.lua
-options/HorizonColourPicker.lua
 options/HorizonColourPicker.lua
 options/OptionsDefaults.lua
 options/OptionsData.lua
