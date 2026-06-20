@@ -60,7 +60,7 @@ const description = [
     `Non-English strings vs **${total}** keys (enUS fallback does not count):\n`,
     lines.join('\n'),
     '**Want to help?**',
-    'See `translate.md` from the `contributions/` folder in the [GitHub](https://github.com/Tacit-Labs/Horizon-Suite) repository.',
+    'See `(SOP) Codebase: Locales` in Horizon Suite Repository\'s Wiki`.',
     'New languages are absolutely welcome, full instructions are inside the file.',
     'Every translated line helps!',
 ].join('\n');

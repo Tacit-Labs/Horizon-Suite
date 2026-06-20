@@ -2,7 +2,6 @@
     Horizon Suite - Presence - Core
     Cinematic zone text and notification display. Frame, layers, animation engine,
     and public QueueOrPlay API. Ported from ModernZoneText.
-    Step-by-step flow notes: notes/PresenceCore.md
 
     Design notes:
     - Colour is resolved at show time only (resolveColors, getDiscoveryColor); OnUpdate

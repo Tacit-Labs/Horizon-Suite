@@ -220,7 +220,7 @@ L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI 
 • Brazilian Portuguese (ptBR) — `locales/ptBR.lua`
 • Chinese (zhCN) — `locales/zhCN.lua`
 
-See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
+See (SOP) Codebase: Locales [Horizon Suite's Repository's Wiki]. Additional locales are welcome via Discord.]=]
 
 -- =====================================================================
 -- options/dashboard/DashboardIntegrationsView.lua — third-party integrations list

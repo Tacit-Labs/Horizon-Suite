@@ -242,7 +242,7 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[感谢所有�
 -- • Brazilian Portuguese (ptBR) — `locales/ptBR.lua`
 -- • Chinese (zhCN) — `locales/zhCN.lua`
 -- 
--- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
+-- see (SOP) Codebase: Locales [Horizon Suite's Repository's Wiki]. Additional locales are welcome via Discord.]=]
 
 
 

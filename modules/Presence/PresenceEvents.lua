@@ -2,7 +2,6 @@
     Horizon Suite - Presence - Event Dispatch
     Thin dispatcher: registers events, delegates to domain modules (Quest, Zone, Scenario, Achievement).
     Owns: ADDON_LOADED, PLAYER_LEVEL_UP, RAID_BOSS_EMOTE, RARE_DEFEATED, PLAYER_ENTERING_WORLD.
-    Step-by-step flow notes: notes/PresenceEvents.md
 ]]
 
 local addon = _G.HorizonSuite

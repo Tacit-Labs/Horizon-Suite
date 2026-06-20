@@ -662,7 +662,7 @@ end
 -- ============================================================================
 -- BRAND DISPLAY
 -- Fixed English product and module display names — NOT localised.
--- UI sentences/descriptions belong in addon.L; see contributions/translate.md.
+-- UI sentences/descriptions belong in addon.L; see (SOP) Codebase: Locales [Wiki]
 -- ============================================================================
 
 addon.BrandDisplay = {
