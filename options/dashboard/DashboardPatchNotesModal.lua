@@ -136,7 +136,7 @@ local function BuildModal()
     local brand = f:CreateFontString(nil, "OVERLAY")
     brand:SetFont("Fonts\\FRIZQT__.TTF", 13, "OUTLINE")
     brand:SetPoint("TOPLEFT", logo, "TOPRIGHT", 10, -2)
-    brand:SetText((L["NAME_ADDON"]):upper())
+    brand:SetText((L["NAME_SUITE"]):upper())
     brand:SetTextColor(0.88, 0.88, 0.92)
     f._brand = brand
 

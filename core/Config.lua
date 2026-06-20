@@ -666,20 +666,20 @@ end
 -- ============================================================================
 
 addon.BrandDisplay = {
-    optionsTitle = "HORIZON SUITE",
+    optionsTitle = (L["NAME_SUITE"]):upper(),
     -- Short name for minimap icon tooltip title (not localised).
     minimapTooltipTitle = "Horizon",
-    productName = "Horizon Suite",
+    productName = (L["NAME_SUITE"]):upper(),
     horizonInsight = "Horizon Insight",
     module = {
-        axis = L["NAME_ADDON_DASHBOARD"],
-        focus = L["NAME_ADDON_OBJECTIVES"],
-        presence = L["NAME_ADDON_TOASTS"],
-        vista = L["NAME_ADDON_MINIMAP"],
-        insight = L["NAME_ADDON_TOOLTIPS"],
-        augment = L["NAME_ADDON_LOOT"],
-        essence = L["NAME_ADDON_CHARACTER"],
-        meridian = L["NAME_ADDON_C-----S"],
+        axis = L["NAME_SUITE_DASHBOARD"],
+        focus = L["NAME_SUITE_OBJECTIVES"],
+        presence = L["NAME_SUITE_TOASTS"],
+        vista = L["NAME_SUITE_MINIMAP"],
+        insight = L["NAME_SUITE_TOOLTIPS"],
+        augment = L["NAME_SUITE_LOOT"],
+        essence = L["NAME_SUITE_CHARACTER"],
+        meridian = L["NAME_SUITE_C-----S"],
     },
     -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
     simple = {

@@ -219,7 +219,7 @@ local function EnsureAhCraftFrame()
     local suiteLbl = dragZone:CreateFontString(nil, "OVERLAY")
     suiteLbl:SetFont(AH_CRAFT_F_HEAD, 13, "OUTLINE")
     suiteLbl:SetPoint("TOPLEFT", dragZone, "TOPLEFT", AH_CRAFT_PAD, -(AH_CRAFT_ACCENT_H + addon.Scaled(10)))
-    suiteLbl:SetText(L["NAME_ADDON"]:upper())  -- uppercase matches the dialog chrome design
+    suiteLbl:SetText(L["NAME_SUITE"]:upper())  -- uppercase matches the dialog chrome design
     suiteLbl:SetTextColor(0.88, 0.88, 0.92, 1)
 
     local subtitleLbl = dragZone:CreateFontString(nil, "OVERLAY")
