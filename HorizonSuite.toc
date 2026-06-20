@@ -5,7 +5,7 @@
 ## Version: 5.1.0
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator, IconBrowser
-## IconTexture: Interface\AddOns\HorizonSuite\Docs\Branding\HorizonLogo.blp
+## IconTexture: Interface\AddOns\HorizonSuite\Docs\HorizonLogo.blp
 ## X-Curse-Project-ID: 1457844
 ## X-Wago-ID: jK8gY56y
 
