@@ -133,7 +133,7 @@ end
 local function EnsurePicker()
     if P then return P end
 
-    local f = CreateFrame("Frame", "HorizonColorPicker", UIParent, "BackdropTemplate")
+    local f = CreateFrame("Frame", "HorizonColourPicker", UIParent, "BackdropTemplate")
     f:SetSize(PICKER_W, PICKER_H)
     f:SetPoint("CENTER")
     f:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -178,7 +178,7 @@ local function EnsurePicker()
     -- Esc closes (cancel). Registered as a special frame.
     f:SetScript("OnKeyDown", function(_, key) if key == "ESCAPE" then CancelClose() end end)
     f:SetPropagateKeyboardInput(true)
-    tinsert(UISpecialFrames, "HorizonColorPicker")
+    tinsert(UISpecialFrames, "HorizonColourPicker")
 
     -- ColorSelect: hue/sat wheel + value bar.
     local cs = CreateFrame("ColorSelect", nil, f)

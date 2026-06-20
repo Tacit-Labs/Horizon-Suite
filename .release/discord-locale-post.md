@@ -14,7 +14,7 @@ Spanish    (esES)     ████████░░░  79%
 ```
 
 ### Want to help?
-See `translate.md` from the `contributions/` folder in the [GitHub](https://github.com/Tacit-Labs/Horizon-Suite) repository.
+See `(SOP) Codebase: Locales` in Horizon Suite Repository's Wiki`..
 
 New languages are absolutely welcome, full instructions are inside the file.
 Every translated line helps!

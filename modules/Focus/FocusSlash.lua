@@ -29,8 +29,8 @@ local function StopColorCheck(announce)
     addon.SetDB("completedObjectiveColor", DeepCopy(colorCheckState.restore.completedObjectiveColor))
     addon.SetDB("useCompletedObjectiveColor", colorCheckState.restore.useCompletedObjectiveColor)
 
-    if addon.ApplyFocusColors then
-        addon.ApplyFocusColors()
+    if addon.ApplyFocusColours then
+        addon.ApplyFocusColours()
     elseif addon.FullLayout then
         addon.FullLayout()
     end
@@ -461,8 +461,8 @@ local function HandleFocusSlash(msg)
             addon.SetDB("completedObjectiveColor", { step.color[1], step.color[2], step.color[3] })
             addon.SetDB("useCompletedObjectiveColor", true)
 
-            if addon.ApplyFocusColors then
-                addon.ApplyFocusColors()
+            if addon.ApplyFocusColours then
+                addon.ApplyFocusColours()
             elseif addon.FullLayout then
                 addon.FullLayout()
             end

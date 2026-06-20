@@ -16,15 +16,15 @@ L["TERM"]                                                = " "
 -- Branding — Horizon Suite, module names, and third-party brand names
 -- Never user copy; these are product/brand identifiers only.
 
-L["NAME_ADDON"]                                               = "Horizon Suite"
-L["NAME_ADDON_OBJECTIVES"]                                    = "Focus"
-L["NAME_ADDON_TOASTS"]                                        = "Presence"
-L["NAME_ADDON_MINIMAP"]                                       = "Vista"
-L["NAME_ADDON_TOOLTIPS"]                                      = "Insight"
-L["NAME_ADDON_CHARACTER"]                                     = "Essence"
-L["NAME_ADDON_LOOT"]                                          = "Augment"
-L["NAME_ADDON_C-----S"]                                       = "Meridian"
-L["NAME_ADDON_DASHBOARD"]                                     = "Axis"
+L["NAME_SUITE"]                                               = "Horizon Suite"
+L["NAME_SUITE_OBJECTIVES"]                                    = "Focus"
+L["NAME_SUITE_TOASTS"]                                        = "Presence"
+L["NAME_SUITE_MINIMAP"]                                       = "Vista"
+L["NAME_SUITE_TOOLTIPS"]                                      = "Insight"
+L["NAME_SUITE_CHARACTER"]                                     = "Essence"
+L["NAME_SUITE_LOOT"]                                          = "Augment"
+L["NAME_SUITE_COMPASS"]                                       = "Meridian"
+L["NAME_SUITE_DASHBOARD"]                                     = "Axis"
 L["NAME_DISCORD"]                                             = "Discord"
 L["NAME_KO_FI"]                                               = "Ko-fi"
 L["NAME_PATREON"]                                             = "Patreon"
@@ -105,7 +105,7 @@ L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"]                          = "Minikarte"
 L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"]                         = "Tooltips"
 L["AXIS_MODULE_NAME_SIMPLE_LOOT"]                             = "Beutebenachrichtigungen"
 L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"]                        = "Charakterdatenblatt"
-L["AXIS_MODULE_NAME_SIMPLE_C-----S"]                          = "Meridian"
+L["AXIS_MODULE_NAME_SIMPLE_COMPASS"]                          = "Meridian"
 L["MODULE_RELOAD_HINT"]                                       = "Interface für Anwendung von Moduländerungen neuladen."
 L["PROFILE_RELOAD_HINT"]                                      = "Interface für Anwendung von Profiländerungen neuladen."
 L["RELOAD_UI"]                                                = "UI neuladen"
@@ -241,13 +241,13 @@ L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Vielen Dank a
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Lokalisierungen"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[Die Addon-Oberfläche ist lokalisiert für:
 
-• Deutsch (deDE) — `locales/horizon/deDE.lua`
-• Englisch (enUS) — `locales/horizon/enUS.lua`
-• Spanisch (esES) — `locales/horizon/esES.lua`
-• Französisch (frFR) — `locales/horizon/frFR.lua`
-• Koreanisch (koKR) — `locales/horizon/koKR.lua`
-• Brasilianisch-Portugiesisch (ptBR) — `locales/horizon/ptBR.lua`
-• Chinesisch (zhCN) — `locales/horizon/zhCN.lua`
+• Deutsch (deDE) — `locales/deDE.lua`
+• Englisch (enUS) — `locales/enUS.lua`
+• Spanisch (esES) — `locales/esES.lua`
+• Französisch (frFR) — `locales/frFR.lua`
+• Koreanisch (koKR) — `locales/koKR.lua`
+• Brasilianisch-Portugiesisch (ptBR) — `locales/ptBR.lua`
+• Chinesisch (zhCN) — `locales/zhCN.lua`
 
 Beiträge für zusätzliche Lokalisierungen sind via Discord willkommen.]=]
 
@@ -756,7 +756,7 @@ L["AXIS_SPEC_OVERRIDE"]                                       = "Übersteuerung 
 L["AXIS_SPEC_OVERRIDE_DESC"]                                  = "Anzeige des nativen Blizzard-Spezialisierungssymbols anstelle des Klassensymbols. Zeigt Klassensymbol an, bis Inspektionsdaten verfügbar sind."
 L["AXIS_SPEC_OVERRIDE_INSPECT_NOTE"]                          = "Die Übersteuerung mit Spezialisierung benötigt Inspektionsdaten — erscheint kurz nach dem Mouseover."
 L["AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Benutzerdefiniert (Addon-Medien)"
-L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Benutzerdefiniert: Platziere eine TGA-Datei pro Klasse unter media/CustomClassIcons/<CLASS>/<class lower>.tga (z.B. WARRIOR/warrior.tga), anschließend Interface neuladen."
+L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Benutzerdefiniert: media/CustomClassIcons/*.blp"
 L["AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]       = "RondoMedia-Klassensymbole von RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
 L["AXIS_DEFAULT"]                                             = "Standard"
 L["AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]            = "Fraktion, Spezialisierung, Reittier und Mythisch-Plus-Symbole in Tooltips anzeigen."

@@ -1860,4 +1860,4 @@ All notable changes to Horizon Suite are documented here.
 
 ## [0.5] and earlier
 
-Initial release and earlier versions. See README.md for full feature list.
+Initial release and earlier versions. See Docs/ReadMe.md for full feature list.

@@ -16,15 +16,15 @@ L["TERM"]                                                = " "
 -- Branding — Horizon Suite, module names, and third-party brand names
 -- Never user copy; these are product/brand identifiers only.
 
--- L["NAME_ADDON"]                                            = "Horizon Suite"
--- L["NAME_ADDON_OBJECTIVES"]                                 = "Focus"
--- L["NAME_ADDON_TOASTS"]                                     = "Presence"
--- L["NAME_ADDON_MINIMAP"]                                    = "Vista"
--- L["NAME_ADDON_TOOLTIPS"]                                   = "Insight"
--- L["NAME_ADDON_CHARACTER"]                                  = "Essence"
--- L["NAME_ADDON_LOOT"]                                       = "Augment"
--- L["NAME_ADDON_C-----S"]                                    = "Meridian"
--- L["NAME_ADDON_DASHBOARD"]                                  = "Axis"
+-- L["NAME_SUITE"]                                            = "Horizon Suite"
+-- L["NAME_SUITE_OBJECTIVES"]                                 = "Focus"
+-- L["NAME_SUITE_TOASTS"]                                     = "Presence"
+-- L["NAME_SUITE_MINIMAP"]                                    = "Vista"
+-- L["NAME_SUITE_TOOLTIPS"]                                   = "Insight"
+-- L["NAME_SUITE_CHARACTER"]                                  = "Essence"
+-- L["NAME_SUITE_LOOT"]                                       = "Augment"
+-- L["NAME_SUITE_COMPASS"]                                    = "Meridian"
+-- L["NAME_SUITE_DASHBOARD"]                                  = "Axis"
 -- L["NAME_DISCORD"]                                          = "Discord"
 -- L["NAME_KO_FI"]                                            = "Ko-fi"
 -- L["NAME_PATREON"]                                          = "Patreon"
@@ -105,7 +105,7 @@ L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"]                          = "小地图"
 L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"]                         = "鼠标提示"
 L["AXIS_MODULE_NAME_SIMPLE_LOOT"]                             = "拾取弹窗"
 L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"]                        = "角色面板"
-L["AXIS_MODULE_NAME_SIMPLE_C-----S"]                          = "Meridian"
+L["AXIS_MODULE_NAME_SIMPLE_COMPASS"]                          = "Meridian"
 L["MODULE_RELOAD_HINT"]                                       = "请重新加载界面（Reload UI）以完成模块修改的应用。"
 L["PROFILE_RELOAD_HINT"]                                      = "请重新加载界面（Reload UI）以完成配置文件修改的应用。"
 L["RELOAD_UI"]                                                = "重载界面"
@@ -234,15 +234,15 @@ L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[感谢所有�
 -- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                    = "Localisations"
 -- L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
 -- 
--- • German (deDE) — `locales/horizon/deDE.lua`
--- • English (enUS) — `locales/horizon/enUS.lua`
--- • Spanish (esES) — `locales/horizon/esES.lua`
--- • French (frFR) — `locales/horizon/frFR.lua`
--- • Korean (koKR) — `locales/horizon/koKR.lua`
--- • Brazilian Portuguese (ptBR) — `locales/horizon/ptBR.lua`
--- • Chinese (zhCN) — `locales/horizon/zhCN.lua`
+-- • German (deDE) — `locales/deDE.lua`
+-- • English (enUS) — `locales/enUS.lua`
+-- • Spanish (esES) — `locales/esES.lua`
+-- • French (frFR) — `locales/frFR.lua`
+-- • Korean (koKR) — `locales/koKR.lua`
+-- • Brazilian Portuguese (ptBR) — `locales/ptBR.lua`
+-- • Chinese (zhCN) — `locales/zhCN.lua`
 -- 
--- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
+-- see (SOP) Codebase: Locales [Horizon Suite's Repository's Wiki]. Additional locales are welcome via Discord.]=]
 
 
 
@@ -746,7 +746,7 @@ L["AXIS_HOVERING_A_MOUNTED_PLAYER_THEIR_MOUNT"]               = "悬停已坐骑
 -- L["AXIS_SPEC_OVERRIDE_DESC"]                               = "Show the native Blizzard spec icon instead of the class icon. Falls back to class icon until inspect data arrives."
 -- L["AXIS_SPEC_OVERRIDE_INSPECT_NOTE"]                       = "Spec override requires inspect data — appears after hovering for a moment."
 -- L["AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Custom (addon media)"
--- L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Custom: place one .tga per class under media/CustomClassIcons/<CLASS>/<class lower>.tga (e.g. WARRIOR/warrior.tga), then /reload."
+-- L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Custom: media/CustomClassIcons/*.blp."
 -- L["AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]    = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
 -- L["AXIS_DEFAULT"]                                          = "Default"
 -- L["AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]         = "Show faction, spec, mount, and Mythic+ icons in tooltips."

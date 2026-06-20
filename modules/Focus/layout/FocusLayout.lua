@@ -1585,9 +1585,9 @@ local function FullLayout()
     end
 end
 
--- Lightweight color refresh: updates main header title, section headers, entry colors, and dividers without FullLayout.
--- Used during live color picker drag and when class-colour toggles change.
-function addon.ApplyFocusColors()
+--- Lightweight color refresh: updates main header title, section headers, entry colors, and dividers without FullLayout.
+--- Used during live color picker drag and when class-colour toggles change.
+function addon.ApplyFocusColours()
     if not addon.focus or not addon.focus.enabled then return end
     local function ApplyTextureColorKeepAlpha(tex, color)
         if not tex or not tex.IsShown or not tex:IsShown() or not color then return end

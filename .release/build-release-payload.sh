@@ -32,7 +32,7 @@ REPO_NAME="${REPO##*/}"
 BODY=$(VERSION="$VERSION" python3 <<'PYEOF'
 import os, re
 version = os.environ['VERSION']
-content = open('CHANGELOG.md').read()
+content = open('Docs/Changelog.md').read()
 # Match `## [VERSION] ...` heading and capture until next `## [` or end of file.
 pattern = r'##\s*\[' + re.escape(version) + r'\][^\n]*\n+(.*?)(?=\n##\s*\[|\Z)'
 m = re.search(pattern, content, re.DOTALL)

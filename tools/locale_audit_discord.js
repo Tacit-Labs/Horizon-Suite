@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Locale audit → Discord embed payload (locales/horizon/).
+  Locale audit → Discord embed payload (locales/).
   Usage: node tools/locale_audit_discord.js
  */
 
@@ -10,7 +10,7 @@ const { parseEnUS, parseLocaleTranslations } = require('./lib/parseLocalisationE
 const { decodedStringFromLuaRhs } = require('./lib/localeHash.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOC = path.join(ROOT, 'locales/horizon');
+const LOC = path.join(ROOT, 'locales');
 
 const LOCALES = [
     { code: 'deDE', flag: '\uD83C\uDDE9\uD83C\uDDEA', name: 'German' },
@@ -60,7 +60,7 @@ const description = [
     `Non-English strings vs **${total}** keys (enUS fallback does not count):\n`,
     lines.join('\n'),
     '**Want to help?**',
-    'See `translate.md` from the `contributions/` folder in the [GitHub](https://github.com/Tacit-Labs/Horizon-Suite) repository.',
+    'See `(SOP) Codebase: Locales` in Horizon Suite Repository\'s Wiki`.',
     'New languages are absolutely welcome, full instructions are inside the file.',
     'Every translated line helps!',
 ].join('\n');

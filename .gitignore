@@ -13,17 +13,8 @@ Thumbs.db
 .codesight/
 *.sublime-*
 
-# Local dev notes (not for version control)
-AGENTS.md
-CLAUDE.md
-TRP3_INTEGRATION_SUMMARY.md
 # Brainstorming visual-companion mockups (local only)
 .superpowers/
-# Dev / listing assets (screenshots, GIFs, internal notes); also excluded from addon zips via .pkgmeta
-# (`docs/*` + negation instead of `docs/`: on case-insensitive filesystems this rule
-# also matches the tracked Docs/ tree, and a wholly-excluded parent dir cannot be re-included)
-docs/*
-!docs/Engineering/
 
 
 # Generated release artifacts (local review only)
@@ -33,14 +24,7 @@ docs/*
 
 # Local dev tools
 .luacheckrc
-tools/pipeline-viewer.html
-tools/options_viz.html
-tools/serve-pipeline.ps1
-tools/gitlab-issues-dry-run.json
-tools/gitlab-issues-dry-run-example.json
-tools/gitlab-issue-import-results.json
 /wowapi/
-assets\social
 
 # Python bytecode
 __pycache__/

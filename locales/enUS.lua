@@ -12,15 +12,15 @@ L["TERM"]                                                = " "
 -- Branding — Horizon Suite, module names, and third-party brand names
 -- Never user copy; these are product/brand identifiers only.
 -- =====================================================================
-L["NAME_ADDON"]                                               = "Horizon Suite"
-L["NAME_ADDON_OBJECTIVES"]                                    = "Focus"
-L["NAME_ADDON_TOASTS"]                                        = "Presence"
-L["NAME_ADDON_MINIMAP"]                                       = "Vista"
-L["NAME_ADDON_TOOLTIPS"]                                      = "Insight"
-L["NAME_ADDON_CHARACTER"]                                     = "Essence"
-L["NAME_ADDON_LOOT"]                                          = "Augment"
-L["NAME_ADDON_C-----S"]                                       = "Meridian"
-L["NAME_ADDON_DASHBOARD"]                                     = "Axis"
+L["NAME_SUITE"]                                               = "Horizon Suite"
+L["NAME_SUITE_OBJECTIVES"]                                    = "Focus"
+L["NAME_SUITE_TOASTS"]                                        = "Presence"
+L["NAME_SUITE_MINIMAP"]                                       = "Vista"
+L["NAME_SUITE_TOOLTIPS"]                                      = "Insight"
+L["NAME_SUITE_CHARACTER"]                                     = "Essence"
+L["NAME_SUITE_LOOT"]                                          = "Augment"
+L["NAME_SUITE_COMPASS"]                                       = "Meridian"
+L["NAME_SUITE_DASHBOARD"]                                     = "Axis"
 L["NAME_DISCORD"]                                             = "Discord"
 L["NAME_KO_FI"]                                               = "Ko-fi"
 L["NAME_PATREON"]                                             = "Patreon"
@@ -78,7 +78,7 @@ L["SEARCH_SETTINGS"]                                    = "Search Settings..."
 L["SEARCH_FONTS"]                                             = "Search Fonts..."
 
 -- =====================================================================
--- HorizonColorPicker.lua — Custom colour picker
+-- HorizonColourPicker.lua — Custom colour picker
 -- =====================================================================
 L["COLOR_PICKER_TITLE"]                                       = "Choose a colour"
 L["COLOR_SAVE_CURRENT"]                                       = "Save current colour"
@@ -108,7 +108,7 @@ L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"]                          = "Minimap"
 L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"]                         = "Tooltips"
 L["AXIS_MODULE_NAME_SIMPLE_LOOT"]                             = "Enhancements"
 L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"]                        = "Character Sheet"
-L["AXIS_MODULE_NAME_SIMPLE_C-----S"]                          = "Meridian"
+L["AXIS_MODULE_NAME_SIMPLE_COMPASS"]                          = "Meridian"
 L["MODULE_RELOAD_HINT"]                                       = "Reload the interface to finish applying module changes."
 L["PROFILE_RELOAD_HINT"]                                      = "Reload the interface to finish applying profile changes."
 L["RELOAD_UI"]                                                = "Reload UI"
@@ -212,15 +212,15 @@ L["DASH_WELCOME_SUPPORTERS_BODY"]                             = [=[Thank you to 
 L["DASH_WELCOME_LOCALISATIONS_HEADING"]                       = "Localisations"
 L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
 
-• German (deDE) — `locales/horizon/deDE.lua`
-• English (enUS) — `locales/horizon/enUS.lua`
-• Spanish (esES) — `locales/horizon/esES.lua`
-• French (frFR) — `locales/horizon/frFR.lua`
-• Korean (koKR) — `locales/horizon/koKR.lua`
-• Brazilian Portuguese (ptBR) — `locales/horizon/ptBR.lua`
-• Chinese (zhCN) — `locales/horizon/zhCN.lua`
+• German (deDE) — `locales/deDE.lua`
+• English (enUS) — `locales/enUS.lua`
+• Spanish (esES) — `locales/esES.lua`
+• French (frFR) — `locales/frFR.lua`
+• Korean (koKR) — `locales/koKR.lua`
+• Brazilian Portuguese (ptBR) — `locales/ptBR.lua`
+• Chinese (zhCN) — `locales/zhCN.lua`
 
-See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
+See (SOP) Codebase: Locales [Horizon Suite's Repository's Wiki]. Additional locales are welcome via Discord.]=]
 
 -- =====================================================================
 -- options/dashboard/DashboardIntegrationsView.lua — third-party integrations list
@@ -834,7 +834,7 @@ L["AXIS_SPEC_OVERRIDE"]                                       = "Spec Override"
 L["AXIS_SPEC_OVERRIDE_DESC"]                                  = "Show the native Blizzard spec icon instead of the class icon. Falls back to class icon until inspect data arrives."
 L["AXIS_SPEC_OVERRIDE_INSPECT_NOTE"]                          = "Spec override requires inspect data — appears after hovering for a moment."
 L["AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Horizon"
-L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Horizon: bundled icons under media/CustomClassIcons/<CLASS>/<class lower>.tga (e.g. WARRIOR/warrior.tga); replace files and /reload to override."
+L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Custom: media/CustomClassIcons/*.blp"
 L["AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]       = "RondoMedia class icons by RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
 L["AXIS_DEFAULT"]                                             = "Default"
 L["AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]            = "Show faction, spec, mount, and Mythic+ icons in tooltips."

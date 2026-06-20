@@ -125,8 +125,8 @@ function OptionsData_SetDB(key, value)
         if key == "classColorEssence" and addon.Essence and addon.Essence.ApplyEssenceOptions then
             addon.Essence.ApplyEssenceOptions()
         end
-        if key == "classColorFocus" and addon.ApplyFocusColors then
-            addon.ApplyFocusColors()
+        if key == "classColorFocus" and addon.ApplyFocusColours then
+            addon.ApplyFocusColours()
         end
         if key == "classColorPresence" and addon.Presence and addon.Presence.ApplyPresenceOptions then
             addon.Presence.ApplyPresenceOptions()
@@ -214,7 +214,7 @@ function OptionsData_NotifyMainAddon_Live()
     if applyTy then applyTy() end
     if addon.ApplyBackdropOpacity then addon.ApplyBackdropOpacity() end
     if addon.ApplyBorderVisibility then addon.ApplyBorderVisibility() end
-    if addon.ApplyFocusColors then addon.ApplyFocusColors() end
+    if addon.ApplyFocusColours then addon.ApplyFocusColours() end
     if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
     if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
 end
@@ -233,7 +233,7 @@ function OptionsData_NotifyMainAddon()
     -- Re-apply colours and bar textures on visible entries; FullLayout repositions
     -- but does not re-run the per-entry renderer that calls SetTexture, so without
     -- this call texture/colour changes wait for an aggregator pass or /reload.
-    if addon.ApplyFocusColors then addon.ApplyFocusColors() end
+    if addon.ApplyFocusColours then addon.ApplyFocusColours() end
     if addon.RequestRefresh then addon.RequestRefresh()
     elseif _G.HorizonSuite_RequestRefresh then _G.HorizonSuite_RequestRefresh() end
     local fullLayout = addon.FullLayout or _G.HorizonSuite_FullLayout

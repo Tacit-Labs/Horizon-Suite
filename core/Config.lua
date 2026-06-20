@@ -237,7 +237,7 @@ addon.TimerFont:SetFont(addon.FONT_PATH, addon.TITLE_SIZE, "OUTLINE")
 addon.OptionsFont = CreateFont("HorizonSuiteOptionsFont")
 addon.OptionsFont:SetFont(addon.FONT_PATH, addon.OBJ_SIZE, "OUTLINE")
 
--- Values are UI_* locale keys so tracker/options pick up translations; see locales/horizon/enUS.lua (Tracker section labels).
+-- Values are UI_* locale keys so tracker/options pick up translations; see locales/enUS.lua (Tracker section labels).
 addon.SECTION_LABELS = {
     FOCUSED       = "UI_FOCUSED_QUEST",
     CURRENT       = "UI_CURRENT_QUEST",
@@ -662,24 +662,24 @@ end
 -- ============================================================================
 -- BRAND DISPLAY
 -- Fixed English product and module display names — NOT localised.
--- UI sentences/descriptions belong in addon.L; see contributions/translate.md.
+-- UI sentences/descriptions belong in addon.L; see (SOP) Codebase: Locales [Wiki]
 -- ============================================================================
 
 addon.BrandDisplay = {
-    optionsTitle = "HORIZON SUITE",
+    optionsTitle = (L["NAME_SUITE"]):upper(),
     -- Short name for minimap icon tooltip title (not localised).
     minimapTooltipTitle = "Horizon",
-    productName = "Horizon Suite",
+    productName = L["NAME_SUITE"],
     horizonInsight = "Horizon Insight",
     module = {
-        axis = L["NAME_ADDON_DASHBOARD"],
-        focus = L["NAME_ADDON_OBJECTIVES"],
-        presence = L["NAME_ADDON_TOASTS"],
-        vista = L["NAME_ADDON_MINIMAP"],
-        insight = L["NAME_ADDON_TOOLTIPS"],
-        augment = L["NAME_ADDON_LOOT"],
-        essence = L["NAME_ADDON_CHARACTER"],
-        meridian = L["NAME_ADDON_C-----S"],
+        axis = L["NAME_SUITE_DASHBOARD"],
+        focus = L["NAME_SUITE_OBJECTIVES"],
+        presence = L["NAME_SUITE_TOASTS"],
+        vista = L["NAME_SUITE_MINIMAP"],
+        insight = L["NAME_SUITE_TOOLTIPS"],
+        augment = L["NAME_SUITE_LOOT"],
+        essence = L["NAME_SUITE_CHARACTER"],
+        meridian = L["NAME_SUITE_COMPASS"],
     },
     -- Human-readable descriptions shown in "Subtitle" and "simple" name modes.
     simple = {
@@ -690,7 +690,7 @@ addon.BrandDisplay = {
         insight  = L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"],
         augment  = L["AXIS_MODULE_NAME_SIMPLE_LOOT"],
         essence  = L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"],
-        meridian = L["AXIS_MODULE_NAME_SIMPLE_C-----S"],
+        meridian = L["AXIS_MODULE_NAME_SIMPLE_COMPASS"],
     },
 }
 

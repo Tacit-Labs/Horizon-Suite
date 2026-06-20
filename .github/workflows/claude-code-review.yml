@@ -5,7 +5,7 @@ on:
     types: [opened, ready_for_review]
     paths-ignore:
       - '**/*.md'
-      - 'docs/**'
+      - 'Docs/**'
       - '.github/**'
 
 jobs:
