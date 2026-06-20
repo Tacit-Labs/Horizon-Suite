@@ -669,7 +669,7 @@ addon.BrandDisplay = {
     optionsTitle = (L["NAME_SUITE"]):upper(),
     -- Short name for minimap icon tooltip title (not localised).
     minimapTooltipTitle = "Horizon",
-    productName = (L["NAME_SUITE"]):upper(),
+    productName = L["NAME_SUITE"],
     horizonInsight = "Horizon Insight",
     module = {
         axis = L["NAME_SUITE_DASHBOARD"],
