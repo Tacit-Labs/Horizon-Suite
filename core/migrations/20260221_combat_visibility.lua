@@ -1,9 +1,12 @@
-﻿-- Horizon Suite — Migration 20260221
--- CRITICAL: NEVER RENAME OR MODIFY THIS FILE IN ANY FUNCTIONAL WAY
--- Introduced: v3.1.0 (2026-02-21) — "Add combat visibility options (Show/Fade/Hide)"
--- Converts the legacy boolean hideInCombat toggle to the new combatVisibility enum
--- ("show" | "fade" | "hide") across every stored profile.
--- The root-level hideInCombat is used as fallback for profiles that never had their own.
+﻿--[[
+Migration: v3.1.0 (2026-02-21) 
+ ─────────────────────────────────────────────────────────────────────────────
+ CRITICAL: NEVER RENAME OR MODIFY THIS FILE IN ANY FUNCTIONAL WAY
+ ─────────────────────────────────────────────────────────────────────────────
+ Add Combat Visibility options (Show/Fade/Hide)
+    - Convert legacy boolean `hideInCombat` toggle to combatVisibility enum
+    - Root-level: `hideInCombat` used as a fallback if no option was previously set.
+]]--
 
 local addon = _G.HorizonSuite
 if not addon or not addon.RegisterMigration then return end
@@ -25,3 +28,14 @@ addon.RegisterMigration({
         end
     end,
 })
+
+
+--[[
+Migration: v3.1.0 (2026-02-21) 
+ ─────────────────────────────────────────────────────────────────────────────
+ CRITICAL: NEVER RENAME OR MODIFY THIS FILE IN ANY FUNCTIONAL WAY
+ ─────────────────────────────────────────────────────────────────────────────
+ Add Combat Visibility options (Show/Fade/Hide)
+    - Convert legacy boolean `hideInCombat` toggle to combatVisibility enum
+    - Root-level: `hideInCombat` used as a fallback if no option was previously set.
+]]--
