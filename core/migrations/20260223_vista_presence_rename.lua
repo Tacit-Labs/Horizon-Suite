@@ -34,3 +34,24 @@ addon.RegisterMigration({
     end,
 })
 
+--[[
+Migration: v3.0.0 (2026-02-23)
+ ─────────────────────────────────────────────────────────────────────────────
+ CRITICAL: NEVER RENAME OR MODIFY THIS FILE IN ANY FUNCTIONAL WAY
+ ─────────────────────────────────────────────────────────────────────────────
+ Add Per-Type toggles to Vista &  Presence.
+    - `Vista` DB key reset and disabled module by default.
+    - `Presence` DB key holds repurposed data from Vista DB Key.
+        - Zone-Text
+        - Presence
+ 
+]]--
+
+-- NOTE: The actual transform runs inline inside EnsureModulesDB (HorizonSuite.lua),
+-- not here. It must execute before the profile sync that immediately follows in
+-- EnsureModulesDB, making it timing-sensitive for the runner (which fires later,
+-- after EnsureProfilesAndMigrateLegacy). EnsureModulesDB writes
+-- db._migrations["20260223"] = true when it runs, so by the time RunMigrations
+-- iterates registered migrations the outer `if not db._migrations[m.id]` check is
+-- already false — run() is never reached. This file exists purely for bookkeeping
+-- so the migration appears in the ordered registry.
