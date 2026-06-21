@@ -3,8 +3,8 @@ Migration: v3.1.0 (2026-02-21)
  ─────────────────────────────────────────────────────────────────────────────
  CRITICAL: NEVER RENAME OR MODIFY THIS FILE IN ANY FUNCTIONAL WAY
  ─────────────────────────────────────────────────────────────────────────────
- Add Combat Visibility options (Show/Fade/Hide)
-    - Convert legacy boolean `hideInCombat` toggle to combatVisibility enum
+ Add Combat Visibility options (Show/Fade/Hide).
+    - Convert legacy boolean `hideInCombat` toggle to combatVisibility enum.
     - Root-level: `hideInCombat` used as a fallback if no option was previously set.
 ]]--
 
@@ -28,14 +28,3 @@ addon.RegisterMigration({
         end
     end,
 })
-
-
---[[
-Migration: v3.1.0 (2026-02-21) 
- ─────────────────────────────────────────────────────────────────────────────
- CRITICAL: NEVER RENAME OR MODIFY THIS FILE IN ANY FUNCTIONAL WAY
- ─────────────────────────────────────────────────────────────────────────────
- Add Combat Visibility options (Show/Fade/Hide)
-    - Convert legacy boolean `hideInCombat` toggle to combatVisibility enum
-    - Root-level: `hideInCombat` used as a fallback if no option was previously set.
-]]--

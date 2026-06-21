@@ -33,3 +33,4 @@ addon.RegisterMigration({
         end
     end,
 })
+
