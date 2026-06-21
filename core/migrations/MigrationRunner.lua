@@ -1,8 +1,7 @@
 --[[
     Horizon Suite — Migration Runner
     ─────────────────────────────────────────────────────────────────────────────
-    IT IS ABSOLUTELY CRITICAL THAT A MIGRATION FILE IS NEVER
-    RENAMED OR MODIFIED IN ANY FUNCTIONAL WAY ONCE MERGED
+    CRITICAL: NEVER RENAME OR MODIFY THIS FILE IN ANY FUNCTIONAL WAY
     ─────────────────────────────────────────────────────────────────────────────
     Lightweight, timestamp-ordered, one-shot migration framework for HorizonDB.
 
