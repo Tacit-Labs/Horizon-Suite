@@ -178,6 +178,15 @@ local category = {
                       set = function(v) setDB("alertsSoundFriends", v) end,
                       disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
                     },
+                    { type = "button",
+                      name = L["AUGMENT_ALERTS_SOUND_PREVIEW"] or "Preview Sounds",
+                      tooltip = L["AUGMENT_ALERTS_SOUND_PREVIEW_DESC"] or "Play each alert sound once in sequence.",
+                      onClick = function()
+                          if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewSounds then
+                              addon.Augment.Alerts.PreviewSounds()
+                          end
+                      end,
+                    },
                 },
             },
         },

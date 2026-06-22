@@ -47,3 +47,21 @@ function A.PreviewAlerts()
         end)
     end
 end
+
+-- Plays each distinct alert sound once in sequence, bypassing enabled flags
+-- and cooldowns so the user can audition them from the options page.
+function A.PreviewSounds()
+    local D = addon.AUGMENT_DEFAULTS
+    local channel = A.GetDB("alertsSoundChannel", D.alertsSoundChannel)
+    local played = {}
+    local delay = 0
+    for _, kind in ipairs({ "DURABILITY", "BAGS", "MAIL", "VAULT", "FRIEND_ON", "FRIEND_OFF" }) do
+        local sound = A.KIND_SOUNDS[kind]
+        if sound and not played[sound] then
+            played[sound] = true
+            local s = sound
+            C_Timer.After(delay, function() pcall(PlaySound, s, channel) end)
+            delay = delay + 0.8
+        end
+    end
+end
