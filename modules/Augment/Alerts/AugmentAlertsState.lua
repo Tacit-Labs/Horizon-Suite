@@ -86,7 +86,7 @@ A.KIND_ICONS = {
     DURABILITY = "Interface\\Icons\\Trade_BlackSmithing",
     BAGS       = "Interface\\Icons\\INV_Misc_Bag_08",
     MAIL       = "Interface\\Icons\\INV_Letter_15",
-    VAULT      = "Interface\\Icons\\INV_Crate_03",
+    VAULT      = { atlas = "GreatVault-32x32" },
     FRIEND_ON  = "Interface\\FriendsFrame\\StatusIcon-Online",
     FRIEND_OFF = "Interface\\FriendsFrame\\StatusIcon-Offline",
 }

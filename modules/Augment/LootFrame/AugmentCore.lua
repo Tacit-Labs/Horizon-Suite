@@ -333,13 +333,13 @@ function Augment.InitFrames()
     end)
 
     editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
-    editTitle:SetFont(Augment.GetFontPath(), S(14), "OUTLINE")
+    editTitle:SetFontObject(GameFontNormalLarge)
     editTitle:SetTextColor(0.4, 0.8, 1.0, 1)
     editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
     editTitle:SetText("LOOT TOAST AREA")
 
     editHint = editOverlay:CreateFontString(nil, "OVERLAY")
-    editHint:SetFont(Augment.GetFontPath(), S(10), "OUTLINE")
+    editHint:SetFontObject(GameFontNormalSmall)
     editHint:SetTextColor(0.7, 0.7, 0.7, 1)
     editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
     editHint:SetText("Drag · Shift-click preview")
@@ -895,8 +895,14 @@ local function CreateEditModePanel()
 
     local function ShowTip(anchor)
         GameTooltip:SetOwner(anchor, "ANCHOR_CURSOR")
-        GameTooltip:SetText("Horizon Suite", 0.25, 0.78, 1.0, 1)
-        GameTooltip:AddLine("- Loot Frame", 1, 1, 1, 1)
+        GameTooltip:SetText("Toggle Horizon Suite", 1, 1, 1, 1, true)
+        GameTooltip:AddLine("Show the following Horizon Suite elements in Edit Mode:", 1, 1, 1, 1, true)
+        GameTooltip:AddLine("- Loot Frame", 0.8, 0.8, 0.8, 1)
+        if editModePanel.onCheckboxToggle then
+            GameTooltip:AddLine("- Alerts", 0.8, 0.8, 0.8, 1)
+        end
+        GameTooltip:AddLine(" ", 1, 1, 1, 1)
+        GameTooltip:AddLine("This checkbox only controls their visibility in Edit Mode. It will not enable or disable these modules.", 0.7, 0.7, 0.7, 1, true)
         GameTooltip:Show()
     end
     local function HideTip() GameTooltip:Hide() end
@@ -919,6 +925,7 @@ local function CreateEditModePanel()
                 if state.activeCount == 0 then Frame:Hide() end
             end
         end
+        if editModePanel.onCheckboxToggle then editModePanel.onCheckboxToggle(checked) end
     end)
 
     -- Each tick, scan for any shown UIParent child near the expected addon-panel
@@ -961,6 +968,8 @@ local function CreateEditModePanel()
         self:ClearAllPoints()
         self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
     end)
+
+    Augment.editModePanel = editModePanel
 end
 
 function Augment.HookNativeEditMode()
@@ -1120,8 +1129,6 @@ function Augment.ApplyScale()
             end
         end
     end
-    if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
-    if editHint    then editHint:SetFont(fontPath,  S(10), "OUTLINE") end
     if anchorFrame then anchorFrame:SetWidth(S(Augment.TOTAL_WIDTH)) end
     if anchorLabel then anchorLabel:SetFont(fontPath, S(12), "OUTLINE") end
     if anchorHint  then anchorHint:SetFont(fontPath,  S(10), "OUTLINE") end
