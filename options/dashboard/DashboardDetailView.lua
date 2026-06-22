@@ -70,7 +70,9 @@ function addon.DashboardDetailView_Init(env)
             f.detailPreviewBtn = previewBtn
 
             local resetBtn = CW(f, L["AXIS_RESET_POSITION"] or "Reset Position", function()
-                if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+                if f.detailResetBtn and f.detailResetBtn._onClick then
+                    f.detailResetBtn._onClick()
+                end
             end, { width = 150, height = 28 })
             resetBtn:SetFrameLevel(fl)
             resetBtn:ClearAllPoints()
@@ -1052,7 +1054,23 @@ function addon.DashboardDetailView_Init(env)
                     f.detailPreviewBtn:Hide()
                 end
             end
-            if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
+            if f.detailResetBtn then
+                if isAugment then
+                    f.detailResetBtn._onClick = function()
+                        if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+                    end
+                    f.detailResetBtn:Show()
+                elseif isAugmentAlerts then
+                    f.detailResetBtn._onClick = function()
+                        if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ResetPosition then
+                            addon.Augment.Alerts.ResetPosition()
+                        end
+                    end
+                    f.detailResetBtn:Show()
+                else
+                    f.detailResetBtn:Hide()
+                end
+            end
             if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
             if f.detailEnableBtn then f.detailEnableBtn:Hide() end
         end
@@ -1291,7 +1309,23 @@ function addon.DashboardDetailView_Init(env)
                         f.detailPreviewBtn:Hide()
                     end
                 end
-                if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
+                if f.detailResetBtn then
+                    if isAugment then
+                        f.detailResetBtn._onClick = function()
+                            if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+                        end
+                        f.detailResetBtn:Show()
+                    elseif isAugmentAlerts then
+                        f.detailResetBtn._onClick = function()
+                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ResetPosition then
+                                addon.Augment.Alerts.ResetPosition()
+                            end
+                        end
+                        f.detailResetBtn:Show()
+                    else
+                        f.detailResetBtn:Hide()
+                    end
+                end
                 if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
                 if f.detailEnableBtn then f.detailEnableBtn:Hide() end
             end

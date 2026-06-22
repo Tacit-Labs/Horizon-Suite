@@ -354,6 +354,12 @@ function A.RestoreSavedPosition()
     A.ApplyStoredAnchor(Frame)
 end
 
+function A.ResetPosition()
+    if not framesCreated then return end
+    A.ClearPosition()
+    A.ApplyStoredAnchor(Frame)
+end
+
 -- ============================================================================
 -- BLIZZARD NATIVE EDIT MODE
 -- Mirrors LootFrame's Augment.HookNativeEditMode/ToggleEditMode/

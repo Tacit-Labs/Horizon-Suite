@@ -160,3 +160,11 @@ function A.SavePosition(point, relPoint, x, y)
     addon.SetDB("alertsX", x)
     addon.SetDB("alertsY", y)
 end
+
+function A.ClearPosition()
+    if not addon.SetDB then return end
+    addon.SetDB("alertsPoint", nil)
+    addon.SetDB("alertsRelPoint", nil)
+    addon.SetDB("alertsX", nil)
+    addon.SetDB("alertsY", nil)
+end
