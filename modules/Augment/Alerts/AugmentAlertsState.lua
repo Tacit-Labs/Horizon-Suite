@@ -33,12 +33,20 @@ Y.DB_KEYS.alertsMaxVisible          = true
 Y.DB_KEYS.alertsScale               = true
 Y.DB_KEYS.alertsOpacity             = true
 Y.DB_KEYS.alertsFontPath            = true
+Y.DB_KEYS.alertsFontSize            = true
+Y.DB_KEYS.alertsHoldDuration        = true
 Y.DB_KEYS.alertsEditModeShow        = true
 Y.DB_KEYS.alertsPoint               = true
 Y.DB_KEYS.alertsRelPoint            = true
 Y.DB_KEYS.alertsX                   = true
 Y.DB_KEYS.alertsY                   = true
 Y.DB_KEYS.alertsDebugLive           = true
+Y.DB_KEYS.alertsSoundChannel        = true
+Y.DB_KEYS.alertsSoundDurability     = true
+Y.DB_KEYS.alertsSoundBags           = true
+Y.DB_KEYS.alertsSoundMail           = true
+Y.DB_KEYS.alertsSoundVault          = true
+Y.DB_KEYS.alertsSoundFriends        = true
 
 -- Per-kind colours (3 float keys each, mirrors talkingHeadNameColorR/G/B).
 for _, prefix in ipairs({
@@ -104,6 +112,26 @@ function A.GetKindColor(kind)
     local g = tonumber(getDB(prefix .. "G", D[prefix .. "G"])) or D[prefix .. "G"] or 1
     local b = tonumber(getDB(prefix .. "B", D[prefix .. "B"])) or D[prefix .. "B"] or 1
     return r, g, b
+end
+
+-- Maps each kind to its own sound-mute DB key. FRIEND_ON/FRIEND_OFF share one
+-- key ("Friends") since they're a single toggle in the Alert Types section too.
+local KIND_SOUND_KEY = {
+    DURABILITY = "alertsSoundDurability",
+    BAGS       = "alertsSoundBags",
+    MAIL       = "alertsSoundMail",
+    VAULT      = "alertsSoundVault",
+    FRIEND_ON  = "alertsSoundFriends",
+    FRIEND_OFF = "alertsSoundFriends",
+}
+
+-- @param kind string  one of A.KNOWN_KINDS
+-- @return boolean  whether this kind's sound is muted independently of the master alertsSoundEnabled switch
+function A.IsSoundEnabledForKind(kind)
+    local key = KIND_SOUND_KEY[kind]
+    if not key then return true end
+    local D = addon.AUGMENT_DEFAULTS
+    return getDB(key, D[key]) ~= false
 end
 
 A.KIND_SOUNDS = {

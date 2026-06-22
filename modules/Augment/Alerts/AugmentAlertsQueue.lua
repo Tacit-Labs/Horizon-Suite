@@ -32,6 +32,7 @@ A.IsInCombat = isInCombat
 function A.PlaySoundForKind(kind)
     local D = addon.AUGMENT_DEFAULTS
     if not A.GetDB("alertsSoundEnabled", D.alertsSoundEnabled) then return end
+    if not A.IsSoundEnabledForKind(kind) then return end
     local sound = A.KIND_SOUNDS[kind]
     if not sound then return end
 
@@ -41,7 +42,8 @@ function A.PlaySoundForKind(kind)
     if (now - last) < cooldown then return end
     lastSoundAt[kind] = now
 
-    pcall(PlaySound, sound, "Master")
+    local channel = A.GetDB("alertsSoundChannel", D.alertsSoundChannel)
+    pcall(PlaySound, sound, channel)
 end
 
 local function emit(kind, title, body, meta)

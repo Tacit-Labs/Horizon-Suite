@@ -81,7 +81,9 @@ function addon.DashboardDetailView_Init(env)
             f.detailResetBtn = resetBtn
 
             local anchorBtn = CW(f, L["AXIS_ANCHOR_MOVE"] or "Show Anchor", function()
-                if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
+                if f.detailAnchorBtn and f.detailAnchorBtn._onClick then
+                    f.detailAnchorBtn._onClick()
+                end
             end, { width = 170, height = 28 })
             anchorBtn:SetFrameLevel(fl)
             anchorBtn:ClearAllPoints()
@@ -1071,7 +1073,23 @@ function addon.DashboardDetailView_Init(env)
                     f.detailResetBtn:Hide()
                 end
             end
-            if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
+            if f.detailAnchorBtn then
+                if isAugment then
+                    f.detailAnchorBtn._onClick = function()
+                        if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
+                    end
+                    f.detailAnchorBtn:Show()
+                elseif isAugmentAlerts then
+                    f.detailAnchorBtn._onClick = function()
+                        if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
+                            addon.Augment.Alerts.ToggleEditMode()
+                        end
+                    end
+                    f.detailAnchorBtn:Show()
+                else
+                    f.detailAnchorBtn:Hide()
+                end
+            end
             if f.detailEnableBtn then f.detailEnableBtn:Hide() end
         end
 
@@ -1326,7 +1344,23 @@ function addon.DashboardDetailView_Init(env)
                         f.detailResetBtn:Hide()
                     end
                 end
-                if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
+                if f.detailAnchorBtn then
+                    if isAugment then
+                        f.detailAnchorBtn._onClick = function()
+                            if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
+                        end
+                        f.detailAnchorBtn:Show()
+                    elseif isAugmentAlerts then
+                        f.detailAnchorBtn._onClick = function()
+                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.ToggleEditMode then
+                                addon.Augment.Alerts.ToggleEditMode()
+                            end
+                        end
+                        f.detailAnchorBtn:Show()
+                    else
+                        f.detailAnchorBtn:Hide()
+                    end
+                end
                 if f.detailEnableBtn then f.detailEnableBtn:Hide() end
             end
 

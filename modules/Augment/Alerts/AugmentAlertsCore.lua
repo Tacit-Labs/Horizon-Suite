@@ -62,9 +62,14 @@ local function GetFontPath()
 end
 A.GetFontPath = GetFontPath
 
+local function GetFontSize()
+    local D = addon.AUGMENT_DEFAULTS
+    return tonumber(A.GetDB("alertsFontSize", D.alertsFontSize)) or D.alertsFontSize
+end
+
 local function UpdateFontObject()
     if not AlertsFontObj then return end
-    AlertsFontObj:SetFont(GetFontPath(), S(13), "OUTLINE")
+    AlertsFontObj:SetFont(GetFontPath(), S(GetFontSize()), "OUTLINE")
 end
 
 local function Ease(t) return 1 - (1 - t) * (1 - t) end
@@ -297,15 +302,16 @@ function A.ShowToast(kind, title, body, meta)
     entry.body:SetText(body)
     entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
 
+    local D = addon.AUGMENT_DEFAULTS
+
     entry.active  = true
     entry.elapsed = 0
-    entry.holdDur = tonumber(meta and meta.duration) or A.DEFAULT_HOLD
+    entry.holdDur = tonumber(meta and meta.duration) or tonumber(A.GetDB("alertsHoldDuration", D.alertsHoldDuration)) or D.alertsHoldDuration
     entry.stackY  = 0
     entry.smoothY = 0
     -- Snapshot opacity at show-time so this toast's alpha is consistent
     -- throughout its lifecycle without a per-frame DB read (mirrors LootFrame's
     -- entry.maxAlpha pattern in AugmentCore.lua).
-    local D = addon.AUGMENT_DEFAULTS
     entry.maxAlpha = math.max(0.1, math.min(1.0,
         (tonumber(A.GetDB("alertsOpacity", D.alertsOpacity)) or D.alertsOpacity) / 100))
 

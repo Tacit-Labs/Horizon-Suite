@@ -27,15 +27,25 @@ D.alertsMailEnabled           = false
 D.alertsVaultEnabled          = false
 D.alertsFriendsEnabled        = false
 
--- Sound
+-- Sound. Channel default matches LootFrame's augmentSoundChannel ("SFX").
+-- The per-kind toggles mute a single kind's sound independently of the
+-- master alertsSoundEnabled switch; FRIEND_ON/FRIEND_OFF share one toggle.
 D.alertsSoundEnabled          = true
 D.alertsSoundCooldown         = 4
+D.alertsSoundChannel          = "SFX"
+D.alertsSoundDurability       = true
+D.alertsSoundBags             = true
+D.alertsSoundMail             = true
+D.alertsSoundVault            = true
+D.alertsSoundFriends          = true
 
 -- Display
 D.alertsMaxVisible            = 3
 D.alertsScale                 = 1.0
 D.alertsOpacity               = 100
 D.alertsFontPath              = "__global__"
+D.alertsFontSize              = 13
+D.alertsHoldDuration          = 4.0
 D.alertsEditModeShow          = true
 
 -- Position keys (alertsPoint/alertsRelPoint/alertsX/alertsY) have no
@@ -62,3 +72,5 @@ LIM.alertsSoundCooldown       = { min = 0,   max = 30  }
 LIM.alertsMaxVisible          = { min = 1,   max = 6   }
 LIM.alertsScale               = { min = 0.5, max = 2.0 }
 LIM.alertsOpacity             = { min = 10,  max = 100 }
+LIM.alertsFontSize            = { min = 8,   max = 20  }
+LIM.alertsHoldDuration        = { min = 1,   max = 12  }
