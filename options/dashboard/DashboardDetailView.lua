@@ -2710,7 +2710,7 @@ function addon.DashboardDetailView_Init(env)
 
                             local w
                             if copt.type == "binary" or copt.type == "toggle" then
-                                w = _G.OptionsWidgets_CreateToggleSwitch(col, copt.name, copt.desc or "", cg, cs, copt.disabled, copt.tooltip)
+                                w = _G.OptionsWidgets_CreateToggleSwitch(col, copt.name, copt.desc or "", cg, cs, copt.disabled, copt.tooltip, copt.shiftClick)
                             elseif copt.type == "slider" then
                                 w = _G.OptionsWidgets_CreateSlider(col, copt.name, copt.desc or "", cg, cs, copt.min or 0, copt.max or 100, copt.disabled, copt.step or 1, copt.tooltip, true)
                             elseif copt.type == "dropdown" then
