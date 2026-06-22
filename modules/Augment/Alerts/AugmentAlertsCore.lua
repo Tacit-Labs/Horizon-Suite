@@ -117,12 +117,20 @@ local function CreateEntry(parent)
     })
     f:SetBackdropColor(0, 0, 0, 0.75)
 
-    -- Minimalist style: colored square behind the icon (hidden by default).
+    -- Minimalist style: colored border square + dark inner fill (both hidden by default).
     local iconBg = f:CreateTexture(nil, "BORDER")
     local bgSzInit = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
     iconBg:SetSize(bgSzInit, bgSzInit)
     iconBg:SetPoint("LEFT", f, "LEFT", 0, 0)
     iconBg:Hide()
+
+    -- Dark fill sits between iconBg and the icon so transparent icons (e.g. Friends,
+    -- Vault) don't bleed the kind colour through — only the 1px border shows colour.
+    local iconDark = f:CreateTexture(nil, "ARTWORK", nil, -1)
+    iconDark:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
+    iconDark:SetPoint("CENTER", iconBg, "CENTER", 0, 0)
+    iconDark:SetColorTexture(0, 0, 0, 0.85)
+    iconDark:Hide()
 
     local icon = f:CreateTexture(nil, "ARTWORK")
     icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
@@ -148,7 +156,7 @@ local function CreateEntry(parent)
     f:Hide()
 
     return {
-        frame = f, iconBg = iconBg, icon = icon, title = title, body = body,
+        frame = f, iconBg = iconBg, iconDark = iconDark, icon = icon, title = title, body = body,
         active = false, elapsed = 0, holdDur = A.DEFAULT_HOLD,
         stackY = 0, smoothY = 0, maxAlpha = 1,
     }
@@ -165,6 +173,9 @@ local function ApplyEntryStyle(entry, style, r, g, b)
         entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
         entry.iconBg:SetColorTexture(r, g, b, 0.85)
         entry.iconBg:Show()
+        local iconSz = S(A.ICON_SIZE)
+        entry.iconDark:SetSize(iconSz, iconSz)
+        entry.iconDark:Show()
         entry.icon:ClearAllPoints()
         entry.icon:SetPoint("CENTER", entry.iconBg, "CENTER", 0, 0)
         -- Anchor text to iconBg edges (not frame) so the title/body stay within
@@ -184,6 +195,7 @@ local function ApplyEntryStyle(entry, style, r, g, b)
         })
         entry.frame:SetBackdropColor(0, 0, 0, 0.75)
         entry.iconBg:Hide()
+        entry.iconDark:Hide()
         entry.icon:ClearAllPoints()
         entry.icon:SetPoint("LEFT", entry.frame, "LEFT", 8, 0)
         entry.title:ClearAllPoints()
