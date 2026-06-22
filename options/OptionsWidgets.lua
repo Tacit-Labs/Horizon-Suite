@@ -342,6 +342,12 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
+    if shiftClickFn then
+        -- btn only covers the track/pill; hook the row so shift-clicking the label fires too.
+        row:HookScript("OnMouseUp", function(_, button)
+            if button == "LeftButton" and IsShiftKeyDown() then shiftClickFn() end
+        end)
+    end
     local effectiveTooltip = JoinTooltip(description, tooltip)
     if shiftClickFn then
         local hint = "Shift-click to preview."
