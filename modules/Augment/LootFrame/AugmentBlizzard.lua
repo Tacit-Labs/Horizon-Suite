@@ -96,7 +96,11 @@ local function SuppressAlertSystem(system)
             reenableGuard[system] = true
             hooksecurefunc(system, "SetEnabled", function(self, enabled)
                 if enabled and suppressedSystems[self] then
-                    self:SetEnabled(false)
+                    -- Wrap in securecallfunction so this insecure re-suppress
+                    -- doesn't taint callers that invoke SetEnabled from a secure
+                    -- context (e.g. Blizzard_TokenUI preparing the currency
+                    -- transfer flow, which then calls RequestCurrencyFromAccountCharacter).
+                    securecallfunction(self.SetEnabled, self, false)
                 end
             end)
         end
@@ -182,7 +186,7 @@ local function InstallAlertHook()
                 if addon:IsModuleEnabled("augment")
                     and addon.GetDB and addon.GetDB("augmentSuppressBlizzard", true)
                 then
-                    SuppressAlertSystem(system)
+                    securecallfunction(SuppressAlertSystem, system)
                 end
             end)
             alertRegHookInstalled = true
