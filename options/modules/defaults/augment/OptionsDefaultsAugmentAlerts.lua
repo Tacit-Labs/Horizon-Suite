@@ -48,6 +48,7 @@ D.alertsFontSize              = 13
 D.alertsHoldDuration          = 4.0
 D.alertsEditModeShow          = true
 D.alertsStyle                 = "horizon"
+D.alertsTextOutlineType       = "OUTLINE"
 
 -- Position keys (alertsPoint/alertsRelPoint/alertsX/alertsY) have no
 -- meaningful default — nil means "use A.DEFAULT_ANCHOR/X/Y".

@@ -68,9 +68,15 @@ local function GetFontSize()
     return tonumber(A.GetDB("alertsFontSize", D.alertsFontSize)) or D.alertsFontSize
 end
 
+local function GetFontFlags()
+    if not addon.GetDB then return "OUTLINE" end
+    local D = addon.AUGMENT_DEFAULTS
+    return A.GetDB("alertsTextOutlineType", D.alertsTextOutlineType) or "OUTLINE"
+end
+
 local function UpdateFontObject()
     if not AlertsFontObj then return end
-    AlertsFontObj:SetFont(GetFontPath(), S(GetFontSize()), "")
+    AlertsFontObj:SetFont(GetFontPath(), S(GetFontSize()), GetFontFlags())
 end
 
 local function Ease(t) return 1 - (1 - t) * (1 - t) end
