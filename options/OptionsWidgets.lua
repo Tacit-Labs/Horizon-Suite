@@ -981,11 +981,13 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local dis = isDisabled()
         if dis then
             btn:Disable()
+            SetTextColor(label,   Def.TextColorSection)
             SetTextColor(btnText, Def.TextColorSection)
             chevron:SetAlpha(0.5)
             btnBg:SetAlpha(0.6)
         else
             btn:Enable()
+            SetTextColor(label,   Def.TextColorLabel)
             SetTextColor(btnText, Def.TextColorLabel)
             chevron:SetAlpha(1)
             btnBg:SetAlpha(1)
