@@ -215,6 +215,11 @@ function A.InitFrames()
 
     A.Frame = Frame
 
+    -- Defer font re-application to the next frame, matching LootFrame's pattern.
+    -- The global font object may not have been applied yet when InitFrames runs
+    -- synchronously at login, causing GetFontPath() to fall back to the game default.
+    C_Timer.After(0, function() A.ApplyScale() end)
+
     -- Table-field call, so definition order below doesn't matter (A.HookNativeEditMode
     -- is assigned before this ever runs — InitFrames only executes from Enable(), well
     -- after file load).
@@ -303,11 +308,12 @@ function A.ShowToast(kind, title, body, meta)
     local r, g, b = A.GetKindColor(kind)
     local kindIcon = A.KIND_ICONS[kind]
     if type(kindIcon) == "table" and kindIcon.atlas then
-        entry.icon:SetAtlas(kindIcon.atlas, true)
+        entry.icon:SetAtlas(kindIcon.atlas, false)
     else
         entry.icon:SetTexture(kindIcon)
         entry.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     end
+    entry.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
     entry.title:SetText(title)
     entry.title:SetTextColor(r, g, b, 1)
     entry.body:SetText(body)

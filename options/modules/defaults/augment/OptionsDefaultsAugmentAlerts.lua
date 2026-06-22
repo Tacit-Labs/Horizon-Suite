@@ -30,14 +30,14 @@ D.alertsFriendsEnabled        = false
 -- Sound. Channel default matches LootFrame's augmentSoundChannel ("SFX").
 -- The per-kind toggles mute a single kind's sound independently of the
 -- master alertsSoundEnabled switch; FRIEND_ON/FRIEND_OFF share one toggle.
-D.alertsSoundEnabled          = true
+D.alertsSoundEnabled          = false
 D.alertsSoundCooldown         = 4
 D.alertsSoundChannel          = "SFX"
-D.alertsSoundDurability       = true
-D.alertsSoundBags             = true
-D.alertsSoundMail             = true
-D.alertsSoundVault            = true
-D.alertsSoundFriends          = true
+D.alertsSoundDurability       = false
+D.alertsSoundBags             = false
+D.alertsSoundMail             = false
+D.alertsSoundVault            = false
+D.alertsSoundFriends          = false
 
 -- Display
 D.alertsMaxVisible            = 3
