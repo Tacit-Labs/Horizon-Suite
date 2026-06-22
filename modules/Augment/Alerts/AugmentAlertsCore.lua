@@ -22,7 +22,8 @@ A.POOL_SIZE    = 6
 A.WIDTH        = 280
 A.HEIGHT       = 44
 A.ICON_SIZE    = 32
-A.ICON_BG_PAD  = 1  -- colored square border per side in Minimalist style (matches LootFrame's BORDER_PAD)
+A.ICON_BG_PAD    = 1  -- colored square border per side in Minimalist style (matches LootFrame's BORDER_PAD)
+A.ICON_BG_MARGIN = 3  -- left-edge gap between frame and iconBg in Minimalist style
 A.LINE_SPACING = 6
 A.LINE_HEIGHT  = A.HEIGHT + A.LINE_SPACING
 A.ENTRANCE_DUR = 0.25
@@ -121,7 +122,7 @@ local function CreateEntry(parent)
     local iconBg = f:CreateTexture(nil, "BORDER")
     local bgSzInit = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
     iconBg:SetSize(bgSzInit, bgSzInit)
-    iconBg:SetPoint("LEFT", f, "LEFT", 0, 0)
+    iconBg:SetPoint("LEFT", f, "LEFT", A.ICON_BG_MARGIN, 0)
     iconBg:Hide()
 
     -- Dark fill sits between iconBg and the icon so transparent icons (e.g. Friends,
@@ -170,7 +171,7 @@ local function ApplyEntryStyle(entry, style, r, g, b)
         local bgSz = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
         entry.iconBg:SetSize(bgSz, bgSz)
         entry.iconBg:ClearAllPoints()
-        entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
+        entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", A.ICON_BG_MARGIN, 0)
         entry.iconBg:SetColorTexture(r, g, b, 0.85)
         entry.iconBg:Show()
         local iconSz = S(A.ICON_SIZE)
