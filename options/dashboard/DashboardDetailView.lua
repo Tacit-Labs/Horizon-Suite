@@ -2026,7 +2026,7 @@ function addon.DashboardDetailView_Init(env)
 
                 local widget
                 if opt.type == "binary" or opt.type == "toggle" then
-                    widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.disabled, opt.tooltip)
+                    widget = _G.OptionsWidgets_CreateToggleSwitch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.disabled, opt.tooltip, opt.shiftClick)
                     if widget then
                         if opt.hidden and type(opt.hidden) == "function" then
                             local origRefresh = widget.Refresh

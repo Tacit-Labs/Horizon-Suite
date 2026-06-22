@@ -149,6 +149,7 @@ local category = {
                       get = function() return getDB("alertsSoundDurability", D.alertsSoundDurability) end,
                       set = function(v) setDB("alertsSoundDurability", v) end,
                       disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
+                      shiftClick = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PlaySoundPreview then addon.Augment.Alerts.PlaySoundPreview("DURABILITY") end end,
                     },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_SOUND_BAGS"], desc = L["AUGMENT_ALERTS_SOUND_BAGS_DESC"],
@@ -156,6 +157,7 @@ local category = {
                       get = function() return getDB("alertsSoundBags", D.alertsSoundBags) end,
                       set = function(v) setDB("alertsSoundBags", v) end,
                       disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
+                      shiftClick = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PlaySoundPreview then addon.Augment.Alerts.PlaySoundPreview("BAGS") end end,
                     },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_SOUND_MAIL"], desc = L["AUGMENT_ALERTS_SOUND_MAIL_DESC"],
@@ -163,6 +165,7 @@ local category = {
                       get = function() return getDB("alertsSoundMail", D.alertsSoundMail) end,
                       set = function(v) setDB("alertsSoundMail", v) end,
                       disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
+                      shiftClick = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PlaySoundPreview then addon.Augment.Alerts.PlaySoundPreview("MAIL") end end,
                     },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_SOUND_VAULT"], desc = L["AUGMENT_ALERTS_SOUND_VAULT_DESC"],
@@ -170,6 +173,7 @@ local category = {
                       get = function() return getDB("alertsSoundVault", D.alertsSoundVault) end,
                       set = function(v) setDB("alertsSoundVault", v) end,
                       disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
+                      shiftClick = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PlaySoundPreview then addon.Augment.Alerts.PlaySoundPreview("VAULT") end end,
                     },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_SOUND_FRIENDS"], desc = L["AUGMENT_ALERTS_SOUND_FRIENDS_DESC"],
@@ -177,15 +181,7 @@ local category = {
                       get = function() return getDB("alertsSoundFriends", D.alertsSoundFriends) end,
                       set = function(v) setDB("alertsSoundFriends", v) end,
                       disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
-                    },
-                    { type = "button",
-                      name = L["AUGMENT_ALERTS_SOUND_PREVIEW"] or "Preview Sounds",
-                      tooltip = L["AUGMENT_ALERTS_SOUND_PREVIEW_DESC"] or "Play each alert sound once in sequence.",
-                      onClick = function()
-                          if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewSounds then
-                              addon.Augment.Alerts.PreviewSounds()
-                          end
-                      end,
+                      shiftClick = function() if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PlaySoundPreview then addon.Augment.Alerts.PlaySoundPreview("FRIEND_ON") end end,
                     },
                 },
             },

@@ -199,7 +199,7 @@ local TOGGLE_TRACK_W, TOGGLE_TRACK_H = 48, 22
 local TOGGLE_INSET = 2
 local TOGGLE_THUMB_SIZE = 18
 
-function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip)
+function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip, shiftClickFn)
     local row = CreateFrame("Frame", nil, parent)
     row:SetHeight(32)
     local searchText = (labelText or "") .. " " .. (description or "")
@@ -309,6 +309,7 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
 
     btn:SetScript("OnClick", function()
         if disabledFn and disabledFn() == true then return end
+        if IsShiftKeyDown() and shiftClickFn then shiftClickFn(); return end
         if row.animStart then return end  -- Debounce: ignore clicks during animation (prevents double-click reverting)
         local newOn = not get()
         set(newOn)
@@ -331,6 +332,10 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     row:Refresh()
     ApplyRowHoverHighlight(row)
     local effectiveTooltip = JoinTooltip(description, tooltip)
+    if shiftClickFn then
+        local hint = "Shift-click to preview."
+        effectiveTooltip = (effectiveTooltip ~= "" and (effectiveTooltip .. "\n\n") or "") .. hint
+    end
     ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
