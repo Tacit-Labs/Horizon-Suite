@@ -1,0 +1,140 @@
+--[[
+    Horizon Suite - Augment / Alerts - options category
+    Self-registers into addon.OptionCategories after OptionsData.lua runs.
+]]
+
+local addon = _G.HorizonSuite
+if not addon or not addon.OptionCategories then return end
+
+local L   = addon.L
+local D   = addon.AUGMENT_DEFAULTS
+local LIM = addon.AUGMENT_LIMITS
+local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
+
+local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
+local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
+local Section = addon.Section
+
+-- Re-apply live state after a toggle/slider changes. Cheap to call on every
+-- option change since each step early-outs when nothing actually needs it.
+local function applyAlerts()
+    local A = addon.Augment and addon.Augment.Alerts
+    if not A then return end
+    if A.UpdateEventRegistrations then A.UpdateEventRegistrations() end
+    if A.ApplyScale then A.ApplyScale() end
+    if A.RestoreSavedPosition then A.RestoreSavedPosition() end
+end
+
+local category = {
+    key         = "AugmentAlerts",
+    name        = L["AUGMENT_ALERTS"],
+    desc        = L["AUGMENT_ALERTS_PAGE_DESC"],
+    icon        = "Interface\\Icons\\INV_Misc_Bell_01",
+    accentColor = { 0.95, 0.65, 0.25 },
+    moduleKey   = "augment",
+    enabledKey  = "augmentAlertsEnabled",
+    getEnabled  = function() return getDB("augmentAlertsEnabled", D.augmentAlertsEnabled) ~= false end,
+    setEnabled  = function(v)
+        v = v and true or false
+        setDB("augmentAlertsEnabled", v)
+        if addon.IsModuleEnabled and not addon:IsModuleEnabled("augment") then return end
+        local A = addon.Augment and addon.Augment.Alerts
+        if not A then return end
+        if v then A.Enable() else A.Disable() end
+    end,
+    options = {
+        Section(L["AUGMENT_ALERTS_KINDS"]),
+        { type = "columns",
+            left = {
+                options = {
+                    { type = "toggle",
+                      name = L["AUGMENT_ALERTS_DURABILITY"], desc = L["AUGMENT_ALERTS_DURABILITY_DESC"],
+                      dbKey = "alertsDurabilityEnabled",
+                      get = function() return getDB("alertsDurabilityEnabled", D.alertsDurabilityEnabled) end,
+                      set = function(v) setDB("alertsDurabilityEnabled", v); applyAlerts() end,
+                    },
+                    { type = "slider",
+                      name = L["AUGMENT_ALERTS_DURABILITY_THRESHOLD"], desc = L["AUGMENT_ALERTS_DURABILITY_THRESHOLD_DESC"],
+                      dbKey = "alertsDurabilityThreshold",
+                      min = LIM.alertsDurabilityThreshold.min, max = LIM.alertsDurabilityThreshold.max,
+                      get = function() return math.max(LIM.alertsDurabilityThreshold.min, math.min(LIM.alertsDurabilityThreshold.max, tonumber(getDB("alertsDurabilityThreshold", D.alertsDurabilityThreshold)) or D.alertsDurabilityThreshold)) end,
+                      set = function(v) setDB("alertsDurabilityThreshold", clamp(v, "alertsDurabilityThreshold")) end,
+                      disabled = function() return not getDB("alertsDurabilityEnabled", D.alertsDurabilityEnabled) end,
+                    },
+                    { type = "toggle",
+                      name = L["AUGMENT_ALERTS_BAGS"], desc = L["AUGMENT_ALERTS_BAGS_DESC"],
+                      dbKey = "alertsBagsEnabled",
+                      get = function() return getDB("alertsBagsEnabled", D.alertsBagsEnabled) end,
+                      set = function(v) setDB("alertsBagsEnabled", v); applyAlerts() end,
+                    },
+                    { type = "slider",
+                      name = L["AUGMENT_ALERTS_BAGS_THRESHOLD"], desc = L["AUGMENT_ALERTS_BAGS_THRESHOLD_DESC"],
+                      dbKey = "alertsBagsThreshold",
+                      min = LIM.alertsBagsThreshold.min, max = LIM.alertsBagsThreshold.max,
+                      get = function() return math.max(LIM.alertsBagsThreshold.min, math.min(LIM.alertsBagsThreshold.max, tonumber(getDB("alertsBagsThreshold", D.alertsBagsThreshold)) or D.alertsBagsThreshold)) end,
+                      set = function(v) setDB("alertsBagsThreshold", clamp(v, "alertsBagsThreshold")) end,
+                      disabled = function() return not getDB("alertsBagsEnabled", D.alertsBagsEnabled) end,
+                    },
+                    { type = "toggle",
+                      name = L["AUGMENT_ALERTS_MAIL"], desc = L["AUGMENT_ALERTS_MAIL_DESC"],
+                      dbKey = "alertsMailEnabled",
+                      get = function() return getDB("alertsMailEnabled", D.alertsMailEnabled) end,
+                      set = function(v) setDB("alertsMailEnabled", v); applyAlerts() end,
+                    },
+                    { type = "toggle",
+                      name = L["AUGMENT_ALERTS_VAULT"], desc = L["AUGMENT_ALERTS_VAULT_DESC"],
+                      dbKey = "alertsVaultEnabled",
+                      get = function() return getDB("alertsVaultEnabled", D.alertsVaultEnabled) end,
+                      set = function(v) setDB("alertsVaultEnabled", v); applyAlerts() end,
+                    },
+                    { type = "toggle",
+                      name = L["AUGMENT_ALERTS_FRIENDS"], desc = L["AUGMENT_ALERTS_FRIENDS_DESC"],
+                      dbKey = "alertsFriendsEnabled",
+                      get = function() return getDB("alertsFriendsEnabled", D.alertsFriendsEnabled) end,
+                      set = function(v) setDB("alertsFriendsEnabled", v); applyAlerts() end,
+                    },
+                },
+            },
+            right = {
+                options = {
+                    { type = "section", name = L["AUGMENT_ALERTS_SOUND_DISPLAY"] },
+                    { type = "toggle",
+                      name = L["AUGMENT_ALERTS_SOUND_ENABLED"], desc = L["AUGMENT_ALERTS_SOUND_ENABLED_DESC"],
+                      dbKey = "alertsSoundEnabled",
+                      get = function() return getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
+                      set = function(v) setDB("alertsSoundEnabled", v) end,
+                    },
+                    { type = "slider",
+                      name = L["AUGMENT_ALERTS_SOUND_COOLDOWN"], desc = L["AUGMENT_ALERTS_SOUND_COOLDOWN_DESC"],
+                      dbKey = "alertsSoundCooldown",
+                      min = LIM.alertsSoundCooldown.min, max = LIM.alertsSoundCooldown.max,
+                      get = function() return math.max(LIM.alertsSoundCooldown.min, math.min(LIM.alertsSoundCooldown.max, tonumber(getDB("alertsSoundCooldown", D.alertsSoundCooldown)) or D.alertsSoundCooldown)) end,
+                      set = function(v) setDB("alertsSoundCooldown", clamp(v, "alertsSoundCooldown")) end,
+                      disabled = function() return not getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
+                    },
+                    { type = "slider",
+                      name = L["AUGMENT_ALERTS_MAX_VISIBLE"], desc = L["AUGMENT_ALERTS_MAX_VISIBLE_DESC"],
+                      dbKey = "alertsMaxVisible",
+                      min = LIM.alertsMaxVisible.min, max = LIM.alertsMaxVisible.max,
+                      get = function() return math.max(LIM.alertsMaxVisible.min, math.min(LIM.alertsMaxVisible.max, tonumber(getDB("alertsMaxVisible", D.alertsMaxVisible)) or D.alertsMaxVisible)) end,
+                      set = function(v) setDB("alertsMaxVisible", clamp(v, "alertsMaxVisible")) end,
+                    },
+                    { type = "slider",
+                      name = L["AUGMENT_ALERTS_SCALE"], desc = L["AUGMENT_ALERTS_SCALE_DESC"],
+                      dbKey = "alertsScale",
+                      min = LIM.alertsScale.min, max = LIM.alertsScale.max, step = 0.1,
+                      get = function() return math.max(LIM.alertsScale.min, math.min(LIM.alertsScale.max, tonumber(getDB("alertsScale", D.alertsScale)) or D.alertsScale)) end,
+                      set = function(v) setDB("alertsScale", clamp(v, "alertsScale")); applyAlerts() end,
+                    },
+                },
+            },
+        },
+    },
+}
+
+-- Insert after the last Augment category to preserve sidebar order
+local insertAt = #addon.OptionCategories + 1
+for i, cat in ipairs(addon.OptionCategories) do
+    if cat.moduleKey == "augment" then insertAt = i + 1 end
+end
+table.insert(addon.OptionCategories, insertAt, category)
