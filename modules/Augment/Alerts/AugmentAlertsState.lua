@@ -31,6 +31,7 @@ Y.DB_KEYS.alertsSoundEnabled        = true
 Y.DB_KEYS.alertsSoundCooldown       = true
 Y.DB_KEYS.alertsMaxVisible          = true
 Y.DB_KEYS.alertsScale               = true
+Y.DB_KEYS.alertsOpacity             = true
 Y.DB_KEYS.alertsFontPath            = true
 Y.DB_KEYS.alertsEditModeShow        = true
 Y.DB_KEYS.alertsPoint               = true
@@ -38,6 +39,16 @@ Y.DB_KEYS.alertsRelPoint            = true
 Y.DB_KEYS.alertsX                   = true
 Y.DB_KEYS.alertsY                   = true
 Y.DB_KEYS.alertsDebugLive           = true
+
+-- Per-kind colours (3 float keys each, mirrors talkingHeadNameColorR/G/B).
+for _, prefix in ipairs({
+    "alertsDurabilityColor", "alertsBagsColor", "alertsMailColor",
+    "alertsVaultColor", "alertsFriendOnColor", "alertsFriendOffColor",
+}) do
+    Y.DB_KEYS[prefix .. "R"] = true
+    Y.DB_KEYS[prefix .. "G"] = true
+    Y.DB_KEYS[prefix .. "B"] = true
+end
 
 -- Explicit nil-check so a stored `false` is not silently replaced by the default.
 local function getDB(k, d)
@@ -72,14 +83,28 @@ A.KIND_ICONS = {
     FRIEND_OFF = "Interface\\FriendsFrame\\StatusIcon-Offline",
 }
 
-A.KIND_COLORS = {
-    DURABILITY = { 0.90, 0.30, 0.20 },
-    BAGS       = { 0.90, 0.70, 0.20 },
-    MAIL       = { 0.30, 0.70, 1.00 },
-    VAULT      = { 0.65, 0.40, 0.95 },
-    FRIEND_ON  = { 0.20, 0.90, 0.30 },
-    FRIEND_OFF = { 0.60, 0.60, 0.60 },
+-- Maps each kind to its colour's DB key prefix (see OptionsAugmentAlerts.lua
+-- for the matching colour pickers and OptionsDefaultsAugmentAlerts.lua for defaults).
+local KIND_COLOR_PREFIX = {
+    DURABILITY = "alertsDurabilityColor",
+    BAGS       = "alertsBagsColor",
+    MAIL       = "alertsMailColor",
+    VAULT      = "alertsVaultColor",
+    FRIEND_ON  = "alertsFriendOnColor",
+    FRIEND_OFF = "alertsFriendOffColor",
 }
+
+-- @param kind string  one of A.KNOWN_KINDS
+-- @return number, number, number  r, g, b (falls back to white if the kind is unknown)
+function A.GetKindColor(kind)
+    local prefix = KIND_COLOR_PREFIX[kind]
+    if not prefix then return 1, 1, 1 end
+    local D = addon.AUGMENT_DEFAULTS
+    local r = tonumber(getDB(prefix .. "R", D[prefix .. "R"])) or D[prefix .. "R"] or 1
+    local g = tonumber(getDB(prefix .. "G", D[prefix .. "G"])) or D[prefix .. "G"] or 1
+    local b = tonumber(getDB(prefix .. "B", D[prefix .. "B"])) or D[prefix .. "B"] or 1
+    return r, g, b
+end
 
 A.KIND_SOUNDS = {
     DURABILITY = (SOUNDKIT and SOUNDKIT.UI_BNET_TOAST_DEFAULT) or 80638,

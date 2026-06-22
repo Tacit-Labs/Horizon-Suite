@@ -130,7 +130,7 @@ local function CreateEntry(parent)
     return {
         frame = f, icon = icon, title = title, body = body,
         active = false, elapsed = 0, holdDur = A.DEFAULT_HOLD,
-        stackY = 0, smoothY = 0,
+        stackY = 0, smoothY = 0, maxAlpha = 1,
     }
 end
 
@@ -245,15 +245,16 @@ function A.UpdateEntry(entry, dt)
     local holdEnd = entEnd + entry.holdDur
     local fadeEnd = holdEnd + A.EXIT_DUR
     local alpha, slideX
+    local maxA = entry.maxAlpha or 1
 
     if t < entEnd then
         local p = Ease(t / A.ENTRANCE_DUR)
-        alpha  = p
+        alpha  = p * maxA
         slideX = A.SLIDE_DIST * (1 - p)
     elseif t < holdEnd then
-        alpha, slideX = 1, 0
+        alpha, slideX = maxA, 0
     elseif t < fadeEnd then
-        alpha  = 1 - Ease((t - holdEnd) / A.EXIT_DUR)
+        alpha  = (1 - Ease((t - holdEnd) / A.EXIT_DUR)) * maxA
         slideX = 0
     else
         entry.active = false
@@ -289,18 +290,24 @@ function A.ShowToast(kind, title, body, meta)
         end
     end
 
-    local color = A.KIND_COLORS[kind] or { 1, 1, 1 }
+    local r, g, b = A.GetKindColor(kind)
     entry.icon:SetTexture(A.KIND_ICONS[kind])
     entry.title:SetText(title)
-    entry.title:SetTextColor(color[1], color[2], color[3], 1)
+    entry.title:SetTextColor(r, g, b, 1)
     entry.body:SetText(body)
-    entry.frame:SetBackdropBorderColor(color[1], color[2], color[3], 0.7)
+    entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
 
     entry.active  = true
     entry.elapsed = 0
     entry.holdDur = tonumber(meta and meta.duration) or A.DEFAULT_HOLD
     entry.stackY  = 0
     entry.smoothY = 0
+    -- Snapshot opacity at show-time so this toast's alpha is consistent
+    -- throughout its lifecycle without a per-frame DB read (mirrors LootFrame's
+    -- entry.maxAlpha pattern in AugmentCore.lua).
+    local D = addon.AUGMENT_DEFAULTS
+    entry.maxAlpha = math.max(0.1, math.min(1.0,
+        (tonumber(A.GetDB("alertsOpacity", D.alertsOpacity)) or D.alertsOpacity) / 100))
 
     entry.frame:SetAlpha(0)
     entry.frame:ClearAllPoints()

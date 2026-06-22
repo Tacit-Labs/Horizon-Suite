@@ -34,11 +34,23 @@ D.alertsSoundCooldown         = 4
 -- Display
 D.alertsMaxVisible            = 3
 D.alertsScale                 = 1.0
+D.alertsOpacity               = 100
 D.alertsFontPath              = "__global__"
 D.alertsEditModeShow          = true
 
 -- Position keys (alertsPoint/alertsRelPoint/alertsX/alertsY) have no
 -- meaningful default — nil means "use A.DEFAULT_ANCHOR/X/Y".
+
+-- Per-kind colours. Values are the same accents the kinds shipped with
+-- before they became user-configurable (see AugmentAlertsState.lua's
+-- A.GetKindColor) — changing these only changes the fallback, not anyone's
+-- already-saved colour.
+D.alertsDurabilityColorR, D.alertsDurabilityColorG, D.alertsDurabilityColorB = 0.90, 0.30, 0.20
+D.alertsBagsColorR,       D.alertsBagsColorG,       D.alertsBagsColorB       = 0.90, 0.70, 0.20
+D.alertsMailColorR,       D.alertsMailColorG,       D.alertsMailColorB       = 0.30, 0.70, 1.00
+D.alertsVaultColorR,      D.alertsVaultColorG,      D.alertsVaultColorB      = 0.65, 0.40, 0.95
+D.alertsFriendOnColorR,   D.alertsFriendOnColorG,   D.alertsFriendOnColorB   = 0.20, 0.90, 0.30
+D.alertsFriendOffColorR,  D.alertsFriendOffColorG,  D.alertsFriendOffColorB  = 0.60, 0.60, 0.60
 
 -- Debug
 D.alertsDebugLive             = false
@@ -49,3 +61,4 @@ LIM.alertsBagsThreshold       = { min = 50,  max = 100 }
 LIM.alertsSoundCooldown       = { min = 0,   max = 30  }
 LIM.alertsMaxVisible          = { min = 1,   max = 6   }
 LIM.alertsScale               = { min = 0.5, max = 2.0 }
+LIM.alertsOpacity             = { min = 10,  max = 100 }

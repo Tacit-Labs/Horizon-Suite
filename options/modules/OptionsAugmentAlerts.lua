@@ -15,6 +15,23 @@ local function getDB(k, d) return addon.OptionsData_GetDB(k, d) end
 local function setDB(k, v) addon.OptionsData_SetDB(k, v) end
 local Section = addon.Section
 
+local FONT_USE_GLOBAL                  = addon.FONT_USE_GLOBAL
+local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
+local DisplayPerElementFont            = addon.DisplayPerElementFont
+
+-- One colour picker per kind, all sharing the same get/set/default shape
+-- (3 float DB keys per kind — see AugmentAlertsState.lua's A.GetKindColor).
+local function ColorOption(nameKey, descKey, prefix)
+    return {
+        type = "color",
+        name = L[nameKey], desc = L[descKey],
+        dbKey = prefix,
+        default = { D[prefix .. "R"], D[prefix .. "G"], D[prefix .. "B"] },
+        get = function() return getDB(prefix .. "R", D[prefix .. "R"]), getDB(prefix .. "G", D[prefix .. "G"]), getDB(prefix .. "B", D[prefix .. "B"]) end,
+        set = function(r, g, b) setDB(prefix .. "R", r); setDB(prefix .. "G", g); setDB(prefix .. "B", b) end,
+    }
+end
+
 -- Re-apply live state after a toggle/slider changes. Cheap to call on every
 -- option change since each step early-outs when nothing actually needs it.
 local function applyAlerts()
@@ -126,6 +143,41 @@ local category = {
                       get = function() return math.max(LIM.alertsScale.min, math.min(LIM.alertsScale.max, tonumber(getDB("alertsScale", D.alertsScale)) or D.alertsScale)) end,
                       set = function(v) setDB("alertsScale", clamp(v, "alertsScale")); applyAlerts() end,
                     },
+                    { type = "slider",
+                      name = L["AUGMENT_ALERTS_OPACITY"], desc = L["AUGMENT_ALERTS_OPACITY_DESC"],
+                      dbKey = "alertsOpacity",
+                      min = LIM.alertsOpacity.min, max = LIM.alertsOpacity.max,
+                      get = function() return math.max(LIM.alertsOpacity.min, math.min(LIM.alertsOpacity.max, tonumber(getDB("alertsOpacity", D.alertsOpacity)) or D.alertsOpacity)) end,
+                      set = function(v) setDB("alertsOpacity", clamp(v, "alertsOpacity")) end,
+                    },
+                    { type = "dropdown",
+                      name = L["AUGMENT_ALERTS_FONT"], desc = L["AUGMENT_ALERTS_FONT_DESC"],
+                      dbKey = "alertsFontPath",
+                      searchable = true,
+                      options = function() return GetPerElementFontDropdownOptions("alertsFontPath") end,
+                      get = function() return getDB("alertsFontPath", FONT_USE_GLOBAL) end,
+                      set = function(v) setDB("alertsFontPath", v); applyAlerts() end,
+                      displayFn = DisplayPerElementFont,
+                      fontPreviewInList = true,
+                    },
+                },
+            },
+        },
+
+        Section(L["AUGMENT_ALERTS_COLORS"]),
+        { type = "columns",
+            left = {
+                options = {
+                    ColorOption("AUGMENT_ALERTS_DURABILITY_COLOR", "AUGMENT_ALERTS_DURABILITY_COLOR_DESC", "alertsDurabilityColor"),
+                    ColorOption("AUGMENT_ALERTS_BAGS_COLOR",       "AUGMENT_ALERTS_BAGS_COLOR_DESC",       "alertsBagsColor"),
+                    ColorOption("AUGMENT_ALERTS_MAIL_COLOR",       "AUGMENT_ALERTS_MAIL_COLOR_DESC",       "alertsMailColor"),
+                },
+            },
+            right = {
+                options = {
+                    ColorOption("AUGMENT_ALERTS_VAULT_COLOR",          "AUGMENT_ALERTS_VAULT_COLOR_DESC",          "alertsVaultColor"),
+                    ColorOption("AUGMENT_ALERTS_FRIEND_ON_COLOR",      "AUGMENT_ALERTS_FRIEND_ON_COLOR_DESC",      "alertsFriendOnColor"),
+                    ColorOption("AUGMENT_ALERTS_FRIEND_OFF_COLOR",     "AUGMENT_ALERTS_FRIEND_OFF_COLOR_DESC",     "alertsFriendOffColor"),
                 },
             },
         },
