@@ -32,6 +32,7 @@ Y.DB_KEYS.alertsSoundCooldown       = true
 Y.DB_KEYS.alertsMaxVisible          = true
 Y.DB_KEYS.alertsScale               = true
 Y.DB_KEYS.alertsFontPath            = true
+Y.DB_KEYS.alertsEditModeShow        = true
 Y.DB_KEYS.alertsPoint               = true
 Y.DB_KEYS.alertsRelPoint            = true
 Y.DB_KEYS.alertsX                   = true

@@ -36,6 +36,13 @@ local Frame
 local framesCreated = false
 local AlertsFontObj
 
+-- Blizzard native Edit Mode integration (mirrors LootFrame's
+-- Augment.HookNativeEditMode in AugmentCore.lua). editMode = manual toggle
+-- (A.ToggleEditMode); nativeEditMode = Blizzard's Edit Mode is open.
+local editMode = false
+local nativeEditMode = false
+local editOverlay, editTitle, editHint, editModePanel
+
 local function GetFontPath()
     local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
     if global then return global end
@@ -71,6 +78,19 @@ function A.ApplyStoredAnchor(frame)
     y = tonumber(y) or A.DEFAULT_Y
     frame:ClearAllPoints()
     frame:SetPoint(point, UIParent, relPoint, x, y)
+end
+
+-- After StartMoving/StopMovingOrSizing, WoW internally re-anchors to
+-- ("TOPLEFT", UIParent, "BOTTOMLEFT", screenX, screenTopY), making GetPoint()
+-- return TOPLEFT regardless of how the frame was originally anchored. Recompute
+-- explicitly for a TOP/TOP anchor (A.DEFAULT_ANCHOR) instead of trusting GetPoint().
+local function SaveFramePosition()
+    local left, right, top = Frame:GetLeft(), Frame:GetRight(), Frame:GetTop()
+    if not left or not right or not top then return end
+    local centerX = (left + right) / 2
+    local x = math.floor(centerX - (UIParent:GetLeft() + UIParent:GetRight()) / 2 + 0.5)
+    local y = math.floor(top - UIParent:GetTop() + 0.5)
+    A.SavePosition("TOP", "TOP", x, y)
 end
 
 local function CreateEntry(parent)
@@ -124,6 +144,47 @@ function A.InitFrames()
     A.ApplyStoredAnchor(Frame)
     Frame:Hide()
     Frame:SetClampedToScreen(true)
+    Frame:EnableMouse(true)
+
+    -- Edit overlay — shown while Blizzard's native Edit Mode is open (or via
+    -- A.ToggleEditMode), drag-repositions Frame, mirrors LootFrame's editOverlay.
+    editOverlay = CreateFrame("Frame", nil, Frame, "BackdropTemplate")
+    editOverlay:SetAllPoints(Frame)
+    editOverlay:SetBackdrop({
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets   = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    editOverlay:SetBackdropColor(0, 0, 0, 0.5)
+    editOverlay:SetBackdropBorderColor(0.95, 0.65, 0.25, 0.8)
+    editOverlay:SetFrameLevel(Frame:GetFrameLevel() + 10)
+    editOverlay:EnableMouse(false)
+    editOverlay:RegisterForDrag("LeftButton")
+    editOverlay:SetScript("OnDragStart", function()
+        if InCombatLockdown() then return end
+        Frame:SetMovable(true)
+        Frame:StartMoving()
+    end)
+    editOverlay:SetScript("OnDragStop", function()
+        if InCombatLockdown() then return end
+        Frame:StopMovingOrSizing()
+        Frame:SetMovable(false)
+        SaveFramePosition()
+    end)
+    editOverlay:Hide()
+
+    editTitle = editOverlay:CreateFontString(nil, "OVERLAY")
+    editTitle:SetFont(GetFontPath(), S(14), "OUTLINE")
+    editTitle:SetTextColor(0.95, 0.65, 0.25, 1)
+    editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
+    editTitle:SetText("ALERTS AREA")
+
+    editHint = editOverlay:CreateFontString(nil, "OVERLAY")
+    editHint:SetFont(GetFontPath(), S(10), "OUTLINE")
+    editHint:SetTextColor(0.7, 0.7, 0.7, 1)
+    editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
+    editHint:SetText("Drag to move")
 
     AlertsFontObj = _G["HorizonSuiteAlertsFont"] or CreateFont("HorizonSuiteAlertsFont")
     UpdateFontObject()
@@ -134,7 +195,7 @@ function A.InitFrames()
 
     Frame:SetScript("OnUpdate", function(self, dt)
         if activeCount == 0 then
-            self:Hide()
+            if not editMode and not nativeEditMode then self:Hide() end
             return
         end
         for i = 1, A.POOL_SIZE do
@@ -143,6 +204,11 @@ function A.InitFrames()
     end)
 
     A.Frame = Frame
+
+    -- Table-field call, so definition order below doesn't matter (A.HookNativeEditMode
+    -- is assigned before this ever runs — InitFrames only executes from Enable(), well
+    -- after file load).
+    A.HookNativeEditMode()
 end
 
 local function GetPoolCap()
@@ -255,7 +321,9 @@ function A.ClearActiveToasts()
         end
     end
     activeCount = 0
-    if Frame then Frame:Hide() end
+    -- Don't force-hide Frame here: while editMode/nativeEditMode is active it
+    -- must stay visible even with zero active toasts. The OnUpdate hide-check
+    -- (which respects both flags) takes care of it on the very next tick.
 end
 
 -- Re-apply scale and font to all pool entries. Called when the Alerts scale
@@ -269,9 +337,170 @@ function A.ApplyScale()
         e.frame:SetSize(S(A.WIDTH), S(A.HEIGHT))
         e.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
     end
+    local fontPath = GetFontPath()
+    if editTitle then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
+    if editHint  then editHint:SetFont(fontPath,  S(10), "OUTLINE") end
 end
 
 function A.RestoreSavedPosition()
     if not framesCreated then return end
     A.ApplyStoredAnchor(Frame)
+end
+
+-- ============================================================================
+-- BLIZZARD NATIVE EDIT MODE
+-- Mirrors LootFrame's Augment.HookNativeEditMode/ToggleEditMode/
+-- CreateEditModePanel (AugmentCore.lua) so the Alerts toast stack is
+-- draggable the same way inside Blizzard's Edit Mode, with its own
+-- DB-backed position (alertsPoint/alertsRelPoint/alertsX/alertsY) and its
+-- own "show this overlay" checkbox (alertsEditModeShow) independent of
+-- LootFrame's equivalents.
+-- ============================================================================
+
+-- Manual toggle (no Blizzard Edit Mode required) — same effect as opening
+-- native Edit Mode with the panel checkbox on, for testing/positioning outside it.
+function A.ToggleEditMode()
+    if not framesCreated then return end
+    editMode = not editMode
+    if editMode then
+        editOverlay:EnableMouse(true)
+        editOverlay:Show()
+        Frame:Show()
+        A.Enqueue("DURABILITY", addon.L["ALERTS_DURABILITY_TITLE"],
+            string.format(addon.L["ALERTS_DURABILITY_BODY"], 25))
+    else
+        if not nativeEditMode then editOverlay:EnableMouse(false) end
+        editOverlay:Hide()
+    end
+end
+
+local function CreateEditModePanel()
+    if editModePanel then return end
+
+    editModePanel = CreateFrame("Frame", nil, UIParent)
+    editModePanel:SetSize(168, 44)
+    editModePanel:SetFrameStrata("DIALOG")
+    editModePanel:SetFrameLevel(200)
+    editModePanel:EnableMouse(true)
+    editModePanel:Hide()
+
+    editModePanel.Border = CreateFrame("Frame", nil, editModePanel, "DialogBorderTranslucentTemplate")
+
+    local checkbox = CreateFrame("CheckButton", nil, editModePanel, "UICheckButtonTemplate")
+    checkbox:SetSize(26, 26)
+    checkbox:SetPoint("LEFT", editModePanel, "LEFT", 14, 0)
+    editModePanel.checkbox = checkbox
+
+    local label = editModePanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightMedium")
+    label:SetText("Horizon Suite")
+    label:SetTextColor(0.95, 0.65, 0.25, 1.0)
+    label:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
+
+    local function ShowTip(anchor)
+        GameTooltip:SetOwner(anchor, "ANCHOR_CURSOR")
+        GameTooltip:SetText("Horizon Suite", 0.95, 0.65, 0.25, 1)
+        GameTooltip:AddLine("- Alerts", 1, 1, 1, 1)
+        GameTooltip:Show()
+    end
+    local function HideTip() GameTooltip:Hide() end
+    editModePanel:SetScript("OnEnter", function(self) ShowTip(self) end)
+    editModePanel:SetScript("OnLeave", HideTip)
+    checkbox:SetScript("OnEnter", function(self) ShowTip(self) end)
+    checkbox:SetScript("OnLeave", HideTip)
+
+    checkbox:SetScript("OnClick", function(self)
+        local checked = self:GetChecked() and true or false
+        if addon.SetDB then addon.SetDB("alertsEditModeShow", checked) end
+        if nativeEditMode and framesCreated then
+            if checked then
+                editOverlay:EnableMouse(true)
+                editOverlay:Show()
+                Frame:Show()
+            else
+                editOverlay:EnableMouse(false)
+                editOverlay:Hide()
+                if activeCount == 0 then Frame:Hide() end
+            end
+        end
+    end)
+
+    -- Each tick, scan for any shown UIParent child near the expected addon-panel
+    -- position and anchor below it — this naturally stacks under LootFrame's own
+    -- edit-mode panel (and any other addon's) without hardcoding a dependency on it.
+    editModePanel.t = 1
+    editModePanel:SetScript("OnUpdate", function(self, elapsed)
+        self.t = self.t + elapsed
+        if self.t < 0.25 then return end
+        self.t = 0
+        if not EditModeManagerFrame or not EditModeManagerFrame:IsShown() then return end
+
+        local x = EditModeManagerFrame:GetRight() - 16
+        local y = EditModeManagerFrame:GetTop() - 104
+
+        local function safeIsShown(f)
+            local ok, v = pcall(f.IsShown, f); return ok and v
+        end
+        if not self.aboveFrame or not safeIsShown(self.aboveFrame) then
+            self.aboveFrame = nil
+            for _, child in ipairs({ UIParent:GetChildren() }) do
+                if child ~= self and safeIsShown(child) then
+                    local _, cl = pcall(child.GetLeft, child)
+                    local _, ct = pcall(child.GetTop, child)
+                    if type(cl) == "number" and type(ct) == "number"
+                        and math.abs(cl - x) < 60 and math.abs(ct - y) < 30
+                    then
+                        self.aboveFrame = child
+                        break
+                    end
+                end
+            end
+        end
+        if self.aboveFrame and safeIsShown(self.aboveFrame) then
+            local _, bottom = pcall(self.aboveFrame.GetBottom, self.aboveFrame)
+            if type(bottom) == "number" then y = bottom - 20 end
+        end
+
+        self:ClearAllPoints()
+        self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+    end)
+end
+
+function A.HookNativeEditMode()
+    EventRegistry:RegisterCallback("EditMode.Enter", function()
+        if not framesCreated then return end
+        nativeEditMode = true
+        local D = addon.AUGMENT_DEFAULTS
+        local showOverlay = not addon.GetDB or addon.GetDB("alertsEditModeShow", D.alertsEditModeShow) ~= false
+        if editModePanel then
+            if editModePanel.checkbox then
+                editModePanel.checkbox:SetChecked(showOverlay)
+            end
+            editModePanel:Show()
+        end
+        if showOverlay then
+            editOverlay:EnableMouse(true)
+            editOverlay:Show()
+            Frame:Show()
+            A.Enqueue("DURABILITY", addon.L["ALERTS_DURABILITY_TITLE"],
+                string.format(addon.L["ALERTS_DURABILITY_BODY"], 25))
+        end
+    end, "HorizonSuiteAugmentAlerts")
+
+    EventRegistry:RegisterCallback("EditMode.Exit", function()
+        if not framesCreated then return end
+        -- Defer to next frame, same reasoning as LootFrame: Blizzard's synchronous
+        -- EditMode exit chain can taint secure frame state if we react inline.
+        C_Timer.After(0, function()
+            nativeEditMode = false
+            if not editMode then
+                editOverlay:EnableMouse(false)
+                editOverlay:Hide()
+            end
+            if editModePanel then editModePanel:Hide() end
+            SaveFramePosition()
+            if activeCount == 0 and not editMode then Frame:Hide() end
+        end)
+    end, "HorizonSuiteAugmentAlerts")
+
+    CreateEditModePanel()
 end

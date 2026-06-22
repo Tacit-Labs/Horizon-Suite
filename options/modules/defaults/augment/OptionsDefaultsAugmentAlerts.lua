@@ -35,6 +35,7 @@ D.alertsSoundCooldown         = 4
 D.alertsMaxVisible            = 3
 D.alertsScale                 = 1.0
 D.alertsFontPath              = "__global__"
+D.alertsEditModeShow          = true
 
 -- Position keys (alertsPoint/alertsRelPoint/alertsX/alertsY) have no
 -- meaningful default — nil means "use A.DEFAULT_ANCHOR/X/Y".
