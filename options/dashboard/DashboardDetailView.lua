@@ -1034,10 +1034,18 @@ function addon.DashboardDetailView_Init(env)
         do
             local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
             local isAugment = selCat and selCat.key == "AugmentImprovements"
+            local isAugmentAlerts = selCat and selCat.key == "AugmentAlerts"
             if f.detailPreviewBtn then
                 if isAugment then
                     f.detailPreviewBtn._onClick = function()
                         if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
+                    end
+                    f.detailPreviewBtn:Show()
+                elseif isAugmentAlerts then
+                    f.detailPreviewBtn._onClick = function()
+                        if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewAlerts then
+                            addon.Augment.Alerts.PreviewAlerts()
+                        end
                     end
                     f.detailPreviewBtn:Show()
                 else
@@ -1265,10 +1273,18 @@ function addon.DashboardDetailView_Init(env)
             -- Show fixed header buttons only for pages that expose them.
             do
                 local isAugment = cats[1] and cats[1].key == "AugmentImprovements"
+                local isAugmentAlerts = cats[1] and cats[1].key == "AugmentAlerts"
                 if f.detailPreviewBtn then
                     if isAugment then
                         f.detailPreviewBtn._onClick = function()
                             if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
+                        end
+                        f.detailPreviewBtn:Show()
+                    elseif isAugmentAlerts then
+                        f.detailPreviewBtn._onClick = function()
+                            if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.PreviewAlerts then
+                                addon.Augment.Alerts.PreviewAlerts()
+                            end
                         end
                         f.detailPreviewBtn:Show()
                     else
