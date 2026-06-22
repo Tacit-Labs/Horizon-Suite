@@ -151,7 +151,18 @@ local function ApplyOptionTooltip(frame, tooltip)
     frame:EnableMouse(true)
     frame:HookScript("OnEnter", function()
         GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-        GameTooltip:SetText(tt, 1, 1, 1, 1, true)
+        -- Split on \n\n so callers can append extra lines (e.g. shift-click hints).
+        -- First segment → SetText (white title); subsequent segments → AddLine (grey).
+        local segments = {}
+        for seg in (tt .. "\n\n"):gmatch("(.-)\n\n") do
+            seg = seg:match("^%s*(.-)%s*$")
+            if seg ~= "" then segments[#segments + 1] = seg end
+        end
+        if #segments == 0 then segments[1] = tt end
+        GameTooltip:SetText(segments[1], 1, 1, 1, 1, true)
+        for i = 2, #segments do
+            GameTooltip:AddLine(segments[i], 0.7, 0.7, 0.7, true)
+        end
         GameTooltip:Show()
     end)
     frame:HookScript("OnLeave", function()
@@ -308,8 +319,8 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     end
 
     btn:SetScript("OnClick", function()
-        if disabledFn and disabledFn() == true then return end
         if IsShiftKeyDown() and shiftClickFn then shiftClickFn(); return end
+        if disabledFn and disabledFn() == true then return end
         if row.animStart then return end  -- Debounce: ignore clicks during animation (prevents double-click reverting)
         local newOn = not get()
         set(newOn)
