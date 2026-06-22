@@ -22,6 +22,7 @@ A.POOL_SIZE    = 6
 A.WIDTH        = 280
 A.HEIGHT       = 44
 A.ICON_SIZE    = 32
+A.ICON_BG_PAD  = 2  -- colored square border per side in Minimalist style (matches LootFrame's BORDER_PAD)
 A.LINE_SPACING = 6
 A.LINE_HEIGHT  = A.HEIGHT + A.LINE_SPACING
 A.ENTRANCE_DUR = 0.25
@@ -112,7 +113,8 @@ local function CreateEntry(parent)
 
     -- Minimalist style: colored square behind the icon (hidden by default).
     local iconBg = f:CreateTexture(nil, "BORDER")
-    iconBg:SetSize(S(A.HEIGHT), S(A.HEIGHT))
+    local bgSzInit = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
+    iconBg:SetSize(bgSzInit, bgSzInit)
     iconBg:SetPoint("LEFT", f, "LEFT", 0, 0)
     iconBg:Hide()
 
@@ -151,7 +153,7 @@ end
 local function ApplyEntryStyle(entry, style, r, g, b)
     if style == "minimalist" then
         entry.frame:SetBackdrop(nil)
-        local bgSz = S(A.HEIGHT)
+        local bgSz = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
         entry.iconBg:SetSize(bgSz, bgSz)
         entry.iconBg:ClearAllPoints()
         entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
