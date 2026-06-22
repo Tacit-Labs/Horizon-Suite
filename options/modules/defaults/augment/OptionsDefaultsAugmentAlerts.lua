@@ -15,15 +15,16 @@ local LIM = addon.AUGMENT_LIMITS
 -- Alerts mini-module master switch (pill)
 D.augmentAlertsEnabled        = true
 
--- Per-kind toggles. Friends defaults off — online/offline alerts can be
--- noisy for anyone with a large friends list; the other four are quiet,
--- low-frequency status alerts so they default on.
-D.alertsDurabilityEnabled     = true
+-- Per-kind toggles. All default off: the engine and all five kinds are
+-- fully wired up, but none has been verified in-game yet (no live test pass
+-- has been done on this branch). Flip a kind on here once it's been
+-- confirmed working, rather than shipping it live to every profile by default.
+D.alertsDurabilityEnabled     = false
 D.alertsDurabilityThreshold   = 30
-D.alertsBagsEnabled           = true
+D.alertsBagsEnabled           = false
 D.alertsBagsThreshold         = 90
-D.alertsMailEnabled           = true
-D.alertsVaultEnabled          = true
+D.alertsMailEnabled           = false
+D.alertsVaultEnabled          = false
 D.alertsFriendsEnabled        = false
 
 -- Sound
