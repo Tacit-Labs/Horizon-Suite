@@ -120,6 +120,7 @@ local category = {
                       dbKey = "alertsSoundEnabled",
                       get = function() return getDB("alertsSoundEnabled", D.alertsSoundEnabled) end,
                       set = function(v) setDB("alertsSoundEnabled", v) end,
+                      disabled = function() return true end,
                     },
                     { type = "dropdown",
                       name = L["AUGMENT_ALERTS_SOUND_CHANNEL"], desc = L["AUGMENT_ALERTS_SOUND_CHANNEL_DESC"],
