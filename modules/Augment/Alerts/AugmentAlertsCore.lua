@@ -167,13 +167,14 @@ local function ApplyEntryStyle(entry, style, r, g, b)
         entry.iconBg:Show()
         entry.icon:ClearAllPoints()
         entry.icon:SetPoint("CENTER", entry.iconBg, "CENTER", 0, 0)
-        local textX = bgSz + 8
+        -- Anchor text to iconBg edges (not frame) so the title/body stay within
+        -- the colored square regardless of the frame's extra vertical padding.
         entry.title:ClearAllPoints()
-        entry.title:SetPoint("TOPLEFT",    entry.frame, "TOPLEFT",    textX, -S(2))
-        entry.title:SetPoint("RIGHT",      entry.frame, "RIGHT",      -8,    0)
+        entry.title:SetPoint("TOPLEFT",   entry.iconBg, "TOPRIGHT",    8, -2)
+        entry.title:SetPoint("RIGHT",     entry.frame,  "RIGHT",      -8,  0)
         entry.body:ClearAllPoints()
-        entry.body:SetPoint("BOTTOMLEFT",  entry.frame, "BOTTOMLEFT", textX,  S(2))
-        entry.body:SetPoint("RIGHT",       entry.frame, "RIGHT",      -8,    0)
+        entry.body:SetPoint("BOTTOMLEFT", entry.iconBg, "BOTTOMRIGHT", 8,  2)
+        entry.body:SetPoint("RIGHT",      entry.frame,  "RIGHT",      -8,  0)
     else -- "horizon"
         entry.frame:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
