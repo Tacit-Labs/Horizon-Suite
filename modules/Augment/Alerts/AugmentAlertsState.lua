@@ -47,6 +47,7 @@ Y.DB_KEYS.alertsSoundBags           = true
 Y.DB_KEYS.alertsSoundMail           = true
 Y.DB_KEYS.alertsSoundVault          = true
 Y.DB_KEYS.alertsSoundFriends        = true
+Y.DB_KEYS.alertsStyle               = true
 
 -- Per-kind colours (3 float keys each, mirrors talkingHeadNameColorR/G/B).
 for _, prefix in ipairs({

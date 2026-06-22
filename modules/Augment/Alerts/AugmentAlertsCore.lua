@@ -101,6 +101,7 @@ end
 local function CreateEntry(parent)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     f:SetSize(S(A.WIDTH), S(A.HEIGHT))
+    -- Default to Horizon backdrop; ApplyEntryStyle will override for other styles.
     f:SetBackdrop({
         bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -108,6 +109,12 @@ local function CreateEntry(parent)
         insets   = { left = 2, right = 2, top = 2, bottom = 2 },
     })
     f:SetBackdropColor(0, 0, 0, 0.75)
+
+    -- Minimalist style: colored square behind the icon (hidden by default).
+    local iconBg = f:CreateTexture(nil, "BORDER")
+    iconBg:SetSize(S(A.HEIGHT), S(A.HEIGHT))
+    iconBg:SetPoint("LEFT", f, "LEFT", 0, 0)
+    iconBg:Hide()
 
     local icon = f:CreateTexture(nil, "ARTWORK")
     icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
@@ -133,10 +140,50 @@ local function CreateEntry(parent)
     f:Hide()
 
     return {
-        frame = f, icon = icon, title = title, body = body,
+        frame = f, iconBg = iconBg, icon = icon, title = title, body = body,
         active = false, elapsed = 0, holdDur = A.DEFAULT_HOLD,
         stackY = 0, smoothY = 0, maxAlpha = 1,
     }
+end
+
+-- Apply layout and background for the given style. Called on every ShowToast
+-- and on ApplyScale for active entries so live style changes take effect.
+local function ApplyEntryStyle(entry, style, r, g, b)
+    if style == "minimalist" then
+        entry.frame:SetBackdrop(nil)
+        local bgSz = S(A.HEIGHT)
+        entry.iconBg:SetSize(bgSz, bgSz)
+        entry.iconBg:ClearAllPoints()
+        entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
+        entry.iconBg:SetColorTexture(r, g, b, 0.85)
+        entry.iconBg:Show()
+        entry.icon:ClearAllPoints()
+        entry.icon:SetPoint("CENTER", entry.iconBg, "CENTER", 0, 0)
+        local textX = bgSz + 8
+        entry.title:ClearAllPoints()
+        entry.title:SetPoint("TOPLEFT",    entry.frame, "TOPLEFT",    textX, -S(2))
+        entry.title:SetPoint("RIGHT",      entry.frame, "RIGHT",      -8,    0)
+        entry.body:ClearAllPoints()
+        entry.body:SetPoint("BOTTOMLEFT",  entry.frame, "BOTTOMLEFT", textX,  S(2))
+        entry.body:SetPoint("RIGHT",       entry.frame, "RIGHT",      -8,    0)
+    else -- "horizon"
+        entry.frame:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 10,
+            insets   = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        entry.frame:SetBackdropColor(0, 0, 0, 0.75)
+        entry.iconBg:Hide()
+        entry.icon:ClearAllPoints()
+        entry.icon:SetPoint("LEFT", entry.frame, "LEFT", 8, 0)
+        entry.title:ClearAllPoints()
+        entry.title:SetPoint("TOPLEFT",   entry.icon, "TOPRIGHT",    8, -2)
+        entry.title:SetPoint("RIGHT",     entry.frame, "RIGHT",     -8,  0)
+        entry.body:ClearAllPoints()
+        entry.body:SetPoint("BOTTOMLEFT", entry.icon, "BOTTOMRIGHT", 8,  2)
+        entry.body:SetPoint("RIGHT",      entry.frame, "RIGHT",     -8,  0)
+    end
 end
 
 -- Lazy init, called once from Enable() (DB is ready at that point).
@@ -314,6 +361,11 @@ function A.ShowToast(kind, title, body, meta)
         entry.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     end
     entry.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
+
+    local D = addon.AUGMENT_DEFAULTS
+    entry._kind = kind
+    ApplyEntryStyle(entry, A.GetDB("alertsStyle", D.alertsStyle), r, g, b)
+
     entry.title:SetText(title)
     entry.title:SetTextColor(r, g, b, 1)
     entry.body:SetText(body)
@@ -362,10 +414,16 @@ function A.ApplyScale()
     if not framesCreated then return end
     UpdateFontObject()
     Frame:SetSize(S(A.WIDTH), S(A.LINE_HEIGHT))
+    local D = addon.AUGMENT_DEFAULTS
+    local style = A.GetDB("alertsStyle", D.alertsStyle)
     for i = 1, A.POOL_SIZE do
         local e = pool[i]
         e.frame:SetSize(S(A.WIDTH), S(A.HEIGHT))
         e.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
+        if e._kind then
+            local r, g, b = A.GetKindColor(e._kind)
+            ApplyEntryStyle(e, style, r, g, b)
+        end
     end
 end
 
