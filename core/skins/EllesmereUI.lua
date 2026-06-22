@@ -1,8 +1,15 @@
 local addon = _G.HorizonSuite
 if not addon then return end
 
-addon.GameMenuButtonSkins = addon.GameMenuButtonSkins or {}
-table.insert(addon.GameMenuButtonSkins, function(button)
+-- Reading EllesmereUI's globals (_G.EllesmereUI / _G.EllesmereUIDB) and calling
+-- its functions taints the current execution with EllesmereUI's taint. This skin
+-- runs from our GameMenu button path, which calls GameMenuFrame:Layout(), so that
+-- taint can ride back into HorizonSuite and get us blamed for protected actions we
+-- never touched (e.g. RequestCurrencyFromAccountCharacter). Run the body through
+-- securecallfunction so any taint acquired here is rolled back when we return.
+local securecallfunction = securecallfunction
+
+local function applyEllesmereUISkin(button)
     local EUI = _G.EllesmereUI
     if not EUI then return end
     local RS = EUI.RESKIN
@@ -54,5 +61,15 @@ table.insert(addon.GameMenuButtonSkins, function(button)
         local euiFont = EUI.GetFontPath and EUI.GetFontPath("blizzardSkin") or nil
         local _, size, flags = fs:GetFont()
         fs:SetFont(euiFont or "Fonts\\FRIZQT__.TTF", (size or 14) - 2, flags or "")
+    end
+end
+
+addon.GameMenuButtonSkins = addon.GameMenuButtonSkins or {}
+table.insert(addon.GameMenuButtonSkins, function(button)
+    -- Contain EllesmereUI's taint to this callback; never let it leak to our caller.
+    if securecallfunction then
+        securecallfunction(applyEllesmereUISkin, button)
+    else
+        applyEllesmereUISkin(button)
     end
 end)

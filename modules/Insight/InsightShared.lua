@@ -281,7 +281,13 @@ function Insight.SafeGetFontText(font)
             return ""
         end
         local ok3, plain = pcall(tostring, val)
-        return (ok3 and plain) or ""
+        if not ok3 or plain == nil then return "" end
+        -- tostring preserves secrecy on Midnight: a secret string yields another
+        -- secret string, not a plain one. Force a comparison so a still-secret value
+        -- throws here (caught by the outer pcall -> "") instead of leaking to string
+        -- APIs and callers like SplitRealmName. A successful compare proves it's plain.
+        if plain == "" then return "" end
+        return plain
     end)
     return (ok and out) or ""
 end
