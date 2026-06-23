@@ -225,7 +225,7 @@ addon.FOCUS_DEFAULTS = {
     showScenarioHeaderCurrenciesInTitle = true,
     cinematicScenarioBar      = true,
     -- Content types
-    showWorldQuests           = true,
+    focusShowWorldQuests      = true,
     showRareBosses            = true,
     showRareLoot              = false,
     rareNavArrowSize          = 14,
