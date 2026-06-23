@@ -458,7 +458,7 @@ local function OnQuestAccepted(questID)
             C_QuestLog.AddQuestWatch(questID)
         end
     end
-    if isWQ and not addon.GetDB("showWorldQuests", true) then
+    if isWQ and not addon.GetDB("focusShowWorldQuests", true) then
         addon.focus.nearbyQuestCacheDirty = true
     end
 

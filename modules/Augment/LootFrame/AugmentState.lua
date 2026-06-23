@@ -7,10 +7,10 @@ local addon = _G.HorizonSuite
 if not addon then return end
 
 addon.Augment = addon.Augment or {}
-addon.augment = addon.augment or {}
+addon.Augment.state = addon.Augment.state or {}
 
 local Y = addon.Augment
-local y = addon.augment
+local y = addon.Augment.state
 
 -- ============================================================================
 -- CONSTANTS
@@ -121,7 +121,7 @@ Y.REP_ICON        = "Interface\\Icons\\Achievement_Reputation_01"
 Y.UNKNOWN_ICON    = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 -- ============================================================================
--- RUNTIME STATE (addon.augment)
+-- RUNTIME STATE (addon.Augment.state)
 -- ============================================================================
 
 y.pool           = y.pool or {}
