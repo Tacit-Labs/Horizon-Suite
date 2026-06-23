@@ -203,16 +203,36 @@ end
 local function ConfirmAndStart(slot, endTime, endText)
     local D = addon.AUGMENT_DEFAULTS
     if F.GetDB("flightTimerConfirmFlight", D.flightTimerConfirmFlight) then
+        -- Only one pending confirmation makes sense at a time; a second
+        -- TakeTaxiNode call (e.g. via macro/keybind while this popup is
+        -- still open) would otherwise overwrite F.taxiSrc/Dst before this
+        -- dialog's OnAccept runs, so close any stale one first.
+        StaticPopup_Hide("HORIZONFLIGHTTIMERCONFIRM")
+
         StaticPopupDialogs.HORIZONFLIGHTTIMERCONFIRM = StaticPopupDialogs.HORIZONFLIGHTTIMERCONFIRM or {
             button1 = OKAY, button2 = CANCEL,
-            OnAccept = function(_, data) F.Bar.Start(data.endTime); oldTakeTaxiNode(data.slot) end,
+            -- Restore the snapshotted src/dst before starting the bar, in case
+            -- F.taxiSrc/Dst were reassigned by a second TakeTaxiNode call
+            -- that happened while this dialog was open.
+            OnAccept = function(_, data)
+                F.taxiSrcName, F.taxiSrc = data.srcName, data.src
+                F.taxiDstName, F.taxiDst = data.dstName, data.dst
+                F.Bar.Start(data.endTime)
+                oldTakeTaxiNode(data.slot)
+            end,
             timeout = 0, exclusive = 1, hideOnEscape = 1,
         }
         StaticPopupDialogs.HORIZONFLIGHTTIMERCONFIRM.text =
             format(L["FLIGHT_TIMER_CONFIRM_POPUP"], "|cffffff00" .. F.taxiDstName .. (endTime and (" (" .. endText .. ")") or "") .. "|r")
 
         local dialog = StaticPopup_Show("HORIZONFLIGHTTIMERCONFIRM")
-        if dialog then dialog.data = { slot = slot, endTime = endTime } end
+        if dialog then
+            dialog.data = {
+                slot = slot, endTime = endTime,
+                src = F.taxiSrc, srcName = F.taxiSrcName,
+                dst = F.taxiDst, dstName = F.taxiDstName,
+            }
+        end
     else
         F.Bar.Start(endTime)
         oldTakeTaxiNode(slot)
@@ -283,13 +303,26 @@ local function HookSuppression()
     hooksecurefunc("TaxiRequestEarlyLanding", function() if F.enabled then F.porttaken = true end end)
     hooksecurefunc("AcceptBattlefieldPort", function(_, accept) if F.enabled then F.porttaken = accept and true or F.porttaken end end)
     hooksecurefunc(C_SummonInfo, "ConfirmSummon", function() if F.enabled then F.porttaken = true end end)
-    hooksecurefunc("CompleteLFGRoleCheck", function(bool) if F.enabled then F.porttaken = bool end end)
-    hooksecurefunc("CompleteLFGReadyCheck", function(bool) if F.enabled then F.porttaken = bool end end)
+    -- Escalate-only, like AcceptBattlefieldPort above: declining a role/ready
+    -- check (bool=false) doesn't mean the player wasn't ported by something
+    -- else earlier in the same flight, so it must never clear an existing
+    -- true flag back to false.
+    hooksecurefunc("CompleteLFGRoleCheck", function(bool) if F.enabled then F.porttaken = bool and true or F.porttaken end end)
+    hooksecurefunc("CompleteLFGReadyCheck", function(bool) if F.enabled then F.porttaken = bool and true or F.porttaken end end)
 end
 
 -- ============================================================================
 -- LIFECYCLE
 -- ============================================================================
+
+-- RefreshFactionlessZoneNodes walks every UiMapID Blizzard has (~3000) to find
+-- which taxi nodes belong to cross-faction continents. The underlying data
+-- only changes when a campaign quest/achievement unlocks a node or a content
+-- patch adds one - not within a single zone transition - so PLAYER_ENTERING_WORLD
+-- (which fires on every loading screen) is throttled rather than rescanning
+-- on every single zone change for the rest of the session.
+local FACTIONLESS_RESCAN_THROTTLE = 300
+local lastFactionlessRescan = 0
 
 frame:SetScript("OnEvent", function(_, event, ...)
     if event == "TAXIMAP_OPENED" then
@@ -300,7 +333,11 @@ frame:SetScript("OnEvent", function(_, event, ...)
         local uiMapSystem = ...
         F.InitSource(uiMapSystem == Enum.UIMapSystem.Taxi)
     elseif event == "PLAYER_ENTERING_WORLD" then
-        F.RefreshFactionlessZoneNodes()
+        local now = GetTime()
+        if now - lastFactionlessRescan > FACTIONLESS_RESCAN_THROTTLE then
+            lastFactionlessRescan = now
+            F.RefreshFactionlessZoneNodes()
+        end
     end
 end)
 
@@ -310,6 +347,7 @@ function F.EnableEvents()
     HookSuppression()
     frame:RegisterEvent("TAXIMAP_OPENED")
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    lastFactionlessRescan = GetTime()
     F.RefreshFactionlessZoneNodes()
 end
 

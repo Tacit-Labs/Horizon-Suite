@@ -2273,6 +2273,7 @@ L["FOCUS_COMPLETED_CHECKMARK"]                                = "|TInterface\\\\
 -- L["FLIGHT_TIMER_DATA"]                                        = "Data"
 -- L["FLIGHT_TIMER_RESET_LEARNED"]                               = "Reset Learned Flight Times"
 -- L["FLIGHT_TIMER_RESET_LEARNED_DESC"]                          = "Clears flight times learned from your own play, without affecting the built-in dataset."
+-- L["FLIGHT_TIMER_RESET_LEARNED_CONFIRM"]                       = "Clear all flight times learned from your own play? The built-in dataset is not affected."
 -- L["FLIGHT_TIMER_DURATION"]                                    = "Duration: "
 -- L["FLIGHT_TIMER_CONFIRM_POPUP"]                               = "Take flight to\n\n%s ?"
 -- L["FLIGHT_TIMER_TIME_ADDED"]                                  = "%s to %s: flight time recorded (%s)"

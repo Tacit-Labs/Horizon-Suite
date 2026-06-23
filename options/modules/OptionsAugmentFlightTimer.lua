@@ -25,6 +25,21 @@ local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math
 
 local function F() return addon.Augment and addon.Augment.FlightTimer end
 
+if StaticPopupDialogs then
+    StaticPopupDialogs.HORIZONFLIGHTTIMER_RESET_LEARNED = StaticPopupDialogs.HORIZONFLIGHTTIMER_RESET_LEARNED or {
+        text = L["FLIGHT_TIMER_RESET_LEARNED_CONFIRM"],
+        button1 = (_G.YES or "Yes"),
+        button2 = (_G.CANCEL or "Cancel"),
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        OnAccept = function()
+            local f = F()
+            if f and f.ResetLearnedData then f.ResetLearnedData() end
+        end,
+    }
+end
+
 local function applyLayout()
     local f = F()
     if f and f.Bar and f.Bar.ApplyLayout then f.Bar.ApplyLayout() end
@@ -107,8 +122,7 @@ local category = {
 
         Section(L["FLIGHT_TIMER_DATA"]),
         Button(L["FLIGHT_TIMER_RESET_LEARNED"], L["FLIGHT_TIMER_RESET_LEARNED_DESC"], function()
-            local f = F()
-            if f and f.ResetLearnedData then f.ResetLearnedData() end
+            if StaticPopup_Show then StaticPopup_Show("HORIZONFLIGHTTIMER_RESET_LEARNED") end
         end),
     },
 }

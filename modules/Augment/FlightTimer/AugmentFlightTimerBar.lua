@@ -271,6 +271,9 @@ end)
 -- @param endTime number|nil  seconds, or nil if unknown (shows the
 --   "unknown duration" fill instead of a countdown/up)
 function Bar.Start(endTime)
+    local D = addon.AUGMENT_DEFAULTS
+    local width = tonumber(F.GetDB("flightTimerWidth", D.flightTimerWidth)) or D.flightTimerWidth
+
     EnsureFrame()
     RestorePosition()
     Bar.ApplyLayout()
@@ -281,7 +284,7 @@ function Bar.Start(endTime)
     if endTime then
         sb:SetMinMaxValues(0, endTime)
         sb:SetValue(endTime)
-        ratio = (tonumber(F.GetDB("flightTimerWidth", addon.AUGMENT_DEFAULTS.flightTimerWidth)) or 300) / endTime
+        ratio = width / endTime
         spark:SetPoint("CENTER", sb, "LEFT", 0, 0)
         local r, g, b = F.GetColor("flightTimerBarColor")
         sb:SetStatusBarColor(r, g, b, 1)
@@ -296,8 +299,8 @@ function Bar.Start(endTime)
 
     F.porttaken = nil
     elapsed, totalTime, startTime = 0, 0, GetTime()
-    takeoff, inworld = true, true
-    throttle = min(0.2, (endTime or 50) / (tonumber(F.GetDB("flightTimerWidth", addon.AUGMENT_DEFAULTS.flightTimerWidth)) or 300))
+    takeoff, inworld, outworld = true, true, nil
+    throttle = min(0.2, (endTime or 50) / width)
 
     watcherFrame:RegisterEvent("LFG_PROPOSAL_DONE")
     watcherFrame:RegisterEvent("LFG_PROPOSAL_SUCCEEDED")
@@ -322,8 +325,15 @@ function Bar.Stop()
     activeEndTime, activeEndText = nil, nil
 end
 
--- Briefly shows the bar with sample data so the player can position it.
+-- Briefly shows the bar with sample data so the player can position it. No-ops
+-- while disabled (showing a "working" bar would contradict the disabled
+-- state) or while a real flight's ticker is already running (Preview would
+-- otherwise overwrite the live flight's `ratio`/display state, corrupting it
+-- for the rest of that flight).
 function Bar.Preview()
+    if not F.enabled then return end
+    if sb and sb:GetScript("OnUpdate") then return end
+
     EnsureFrame()
     RestorePosition()
     Bar.ApplyLayout()
@@ -332,10 +342,12 @@ function Bar.Preview()
     F.taxiDstName = F.taxiDstName or L["FLIGHT_TIMER_PREVIEW_DEST"]
     UpdateTimeDisplay()
 
+    local D = addon.AUGMENT_DEFAULTS
+    local width = tonumber(F.GetDB("flightTimerWidth", D.flightTimerWidth)) or D.flightTimerWidth
     local previewEnd = 90
     sb:SetMinMaxValues(0, previewEnd)
     sb:SetValue(previewEnd * 0.4)
-    ratio = (tonumber(F.GetDB("flightTimerWidth", addon.AUGMENT_DEFAULTS.flightTimerWidth)) or 300) / previewEnd
+    ratio = width / previewEnd
     spark:SetPoint("CENTER", sb, "LEFT", previewEnd * 0.6 * ratio, 0)
     spark:Show()
     local r, g, b = F.GetColor("flightTimerBarColor")

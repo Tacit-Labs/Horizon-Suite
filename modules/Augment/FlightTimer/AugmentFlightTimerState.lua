@@ -139,6 +139,7 @@ function F.SetLearnedTime(faction, srcNodeID, dstNodeID, seconds)
     learned[faction] = learned[faction] or {}
     learned[faction][srcNodeID] = learned[faction][srcNodeID] or {}
     learned[faction][srcNodeID][dstNodeID] = seconds
+    if F.InvalidateDstNodesCache then F.InvalidateDstNodesCache() end
 end
 
 -- Clears all self-learned corrections without touching the bundled dataset.
@@ -146,4 +147,5 @@ function F.ResetLearnedData()
     local db = rootDB()
     if not db then return end
     db.flightTimerLearned = {}
+    if F.InvalidateDstNodesCache then F.InvalidateDstNodesCache() end
 end

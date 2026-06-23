@@ -109,25 +109,46 @@ end
 -- buffs/routes more accurately than the shipped averages.
 -- ============================================================================
 
+-- Cached per srcNodeID for the session (tooltip hovers re-query the same
+-- handful of taxi nodes repeatedly while a map is open), invalidated only
+-- when learned data actually changes - see F.InvalidateDstNodesCache, called
+-- from AugmentFlightTimerState.lua's SetLearnedTime/ResetLearnedData.
+local dstNodesCache = {}
+
+function F.InvalidateDstNodesCache()
+    wipe(dstNodesCache)
+end
+
 -- @param srcNodeID number|string
 -- @return table|nil  { [dstNodeID] = seconds, ..., name = "Source Name" }
 function F.GetDstNodes(srcNodeID)
     if not srcNodeID then return nil end
+
+    local cached = dstNodesCache[srcNodeID]
+    if cached ~= nil then
+        if cached == false then return nil end
+        return cached
+    end
 
     local bucket = F.noFactionZoneNodes[srcNodeID] and "FactionlessZones" or playerFaction
     local bundled = F.BUNDLED_DATA[bucket] and F.BUNDLED_DATA[bucket][srcNodeID]
     local learned = F.GetLearnedData()
     learned = learned and learned[bucket] and learned[bucket][srcNodeID]
 
-    if not bundled and not learned then return nil end
-    if not learned then return bundled end
-
-    local merged = {}
-    if bundled then
-        for k, v in pairs(bundled) do merged[k] = v end
+    local result
+    if not bundled and not learned then
+        result = false
+    elseif not learned then
+        result = bundled
+    else
+        result = {}
+        for k, v in pairs(bundled) do result[k] = v end
+        for k, v in pairs(learned) do result[k] = v end
     end
-    for k, v in pairs(learned) do merged[k] = v end
-    return merged
+
+    dstNodesCache[srcNodeID] = result
+    if result == false then return nil end
+    return result
 end
 
 -- ============================================================================
