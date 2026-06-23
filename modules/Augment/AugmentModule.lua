@@ -25,6 +25,7 @@ addon:RegisterModule("augment", {
             local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled",     false) ~= false
             local atOn     = (not GetDB or GetDB("augmentAchievementTrackerEnabled", false) ~= false)
                              and not (addon.IsModuleEnabled and addon:IsModuleEnabled("focus"))
+            local skyridingOn = not GetDB or GetDB("skyridingEnabled", false) ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
             -- Loot Frame mini-module: only register loot events + suppress Blizzard toasts when on.
             if lootOn then
@@ -39,6 +40,7 @@ addon:RegisterModule("augment", {
             -- Always call: UpdateTalkingHead self-gates on the pill and restores native when off.
             if addon.Augment.UpdateTalkingHead then addon.Augment.UpdateTalkingHead() end
             if atOn and addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Enable() end
+            if skyridingOn and addon.Augment.Skyriding then addon.Augment.Skyriding.Enable() end
         end
     end,
 
@@ -47,6 +49,7 @@ addon:RegisterModule("augment", {
             if addon.Augment.Vendor then addon.Augment.Vendor.Disable() end
             if addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Disable() end
             if addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Disable() end
+            if addon.Augment.Skyriding then addon.Augment.Skyriding.Disable() end
             if addon.Augment.DisableTalkingHead then addon.Augment.DisableTalkingHead() end
             if addon.Augment.DisableEvents then addon.Augment.DisableEvents() end
             if addon.Augment.RestoreBlizzard then addon.Augment.RestoreBlizzard() end
