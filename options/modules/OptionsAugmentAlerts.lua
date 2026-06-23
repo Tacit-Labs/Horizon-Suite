@@ -262,20 +262,20 @@ local category = {
             },
         },
 
-        Section(L["AUGMENT_ALERTS_COLORS"]),
+        Section(L["AUGMENT_ALERTS_COLOURS"]),
         { type = "columns",
             left = {
                 options = {
-                    ColorOption("AUGMENT_ALERTS_DURABILITY_COLOR", "AUGMENT_ALERTS_DURABILITY_COLOR_DESC", "alertsDurabilityColor"),
-                    ColorOption("AUGMENT_ALERTS_BAGS_COLOR",       "AUGMENT_ALERTS_BAGS_COLOR_DESC",       "alertsBagsColor"),
-                    ColorOption("AUGMENT_ALERTS_MAIL_COLOR",       "AUGMENT_ALERTS_MAIL_COLOR_DESC",       "alertsMailColor"),
+                    ColorOption("AUGMENT_ALERTS_DURABILITY_COLOUR", "AUGMENT_ALERTS_DURABILITY_COLOUR_DESC", "alertsDurabilityColor"),
+                    ColorOption("AUGMENT_ALERTS_BAGS_COLOUR",       "AUGMENT_ALERTS_BAGS_COLOUR_DESC",       "alertsBagsColor"),
+                    ColorOption("AUGMENT_ALERTS_MAIL_COLOUR",       "AUGMENT_ALERTS_MAIL_COLOUR_DESC",       "alertsMailColor"),
                 },
             },
             right = {
                 options = {
-                    ColorOption("AUGMENT_ALERTS_VAULT_COLOR",          "AUGMENT_ALERTS_VAULT_COLOR_DESC",          "alertsVaultColor"),
-                    ColorOption("AUGMENT_ALERTS_FRIEND_ON_COLOR",      "AUGMENT_ALERTS_FRIEND_ON_COLOR_DESC",      "alertsFriendOnColor"),
-                    ColorOption("AUGMENT_ALERTS_FRIEND_OFF_COLOR",     "AUGMENT_ALERTS_FRIEND_OFF_COLOR_DESC",     "alertsFriendOffColor"),
+                    ColorOption("AUGMENT_ALERTS_VAULT_COLOUR",          "AUGMENT_ALERTS_VAULT_COLOUR_DESC",          "alertsVaultColor"),
+                    ColorOption("AUGMENT_ALERTS_FRIEND_ON_COLOUR",      "AUGMENT_ALERTS_FRIEND_ON_COLOUR_DESC",      "alertsFriendOnColor"),
+                    ColorOption("AUGMENT_ALERTS_FRIEND_OFF_COLOUR",     "AUGMENT_ALERTS_FRIEND_OFF_COLOUR_DESC",     "alertsFriendOffColor"),
                 },
             },
         },
