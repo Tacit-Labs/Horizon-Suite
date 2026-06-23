@@ -129,13 +129,6 @@ local function GetTitleColor(category)
         return SanitizeColor(cm.categories[key].title, addon.QUEST_COLORS[category] or addon.QUEST_COLORS.DEFAULT)
     end
 
-    -- Legacy per-category questColors support (for safety if migration didn't run yet).
-    local db = addon.GetDB and addon.GetDB("questColors", nil)
-    if db then
-        if db[category] then return SanitizeColor(db[category], addon.QUEST_COLORS[category] or addon.QUEST_COLORS.DEFAULT) end
-        if category == "CALLING" and db.WORLD then return SanitizeColor(db.WORLD, addon.QUEST_COLORS.WORLD or addon.QUEST_COLORS.DEFAULT) end
-    end
-
     return addon.QUEST_COLORS[category] or addon.QUEST_COLORS.DEFAULT
 end
 

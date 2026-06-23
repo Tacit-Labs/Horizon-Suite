@@ -38,6 +38,7 @@ core/migrations/20260507_mplus_always_show_reset.lua
 core/migrations/20260527_cache_augment_rename.lua
 core/migrations/20260527_2_cleanup_legacy_flags.lua
 core/migrations/20260617_db_key_convention_cleanup.lua
+core/migrations/20260617_2_legacy_cleanup.lua
 modules/Focus/FocusLayoutState.lua
 core/Core.lua
 core/UrlCopyDialog.lua
