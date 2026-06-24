@@ -4,7 +4,7 @@
 ## Author: Crystilac
 ## Version: 5.1.0
 ## SavedVariables: HorizonDB
-## OptionalDeps: Auctionator, IconBrowser
+## OptionalDeps: Auctionator, IconBrowser, Horizon-RareScanner, Horizon-SilverDragon
 ## IconTexture: Interface\AddOns\HorizonSuite\Docs\Branding\HorizonLogo.blp
 ## X-Curse-Project-ID: 1457844
 ## X-Wago-ID: jK8gY56y
