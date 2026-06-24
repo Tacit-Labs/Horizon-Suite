@@ -416,9 +416,15 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     tinsert(currentDetailCards, currentCard)
                 end
                 
-                -- Store the option identifier to track its parent card
-                local optId = opt.dbKey or (opt.type == "presencePreview" and "presencePreview") or (opt.type == "talkingHeadPreview" and "talkingHeadPreview") or (opt.type == "moduleReloadPrompt" and "_module_reload_prompt") or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
-                currentCard.optionIds[optId] = true
+                -- Store the option identifier to track its parent card (for search-jump).
+                -- moduleReloadPrompt is excluded from search results, so skip it here.
+                local optId = opt.type ~= "moduleReloadPrompt" and (
+                    opt.dbKey
+                    or (opt.type == "presencePreview" and "presencePreview")
+                    or (opt.type == "talkingHeadPreview" and "talkingHeadPreview")
+                    or (moduleSubName .. "_" .. (type(opt.name)=="function" and opt.name() or opt.name or ""):gsub("%s+", "_"))
+                )
+                if optId then currentCard.optionIds[optId] = true end
 
                 -- Per-setting "(New!)" suffix: declared via `isNew = "<version>"`.
                 -- Display-only for now; ack-on-interaction is intentionally not wired.
