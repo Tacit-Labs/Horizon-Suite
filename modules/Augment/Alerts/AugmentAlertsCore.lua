@@ -497,6 +497,21 @@ function A.ToggleEditMode()
     end
 end
 
+function A.HideAnchorFrame()
+    if not framesCreated then return end
+    if editMode then
+        editMode = false
+        if not nativeEditMode then
+            editOverlay:EnableMouse(false)
+            editOverlay:Hide()
+        end
+    end
+    SaveFramePosition()
+    if activeCount == 0 and not nativeEditMode and not editMode then
+        Frame:Hide()
+    end
+end
+
 local function CreateEditModePanel()
     if editModePanel then return end
 

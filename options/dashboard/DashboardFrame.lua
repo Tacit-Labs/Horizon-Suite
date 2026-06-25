@@ -1330,6 +1330,12 @@ function addon.Dashboard_BuildMainFrame()
                         pcall(closeList)
                     end
                 end
+                if addon.Augment and addon.Augment.HideAnchorFrame then
+                    addon.Augment.HideAnchorFrame()
+                end
+                if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.HideAnchorFrame then
+                    addon.Augment.Alerts.HideAnchorFrame()
+                end
                 if GameTooltip and GameTooltip:IsShown() then
                     GameTooltip:Hide()
                 end
