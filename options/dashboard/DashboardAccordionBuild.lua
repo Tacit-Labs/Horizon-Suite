@@ -473,7 +473,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "color" then
-                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
+                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip, opt.liveThrottle)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "presencePreview" then
                     local previewWidget = addon.Presence and addon.Presence.CreatePreviewWidget and addon.Presence.CreatePreviewWidget(currentCard.settingsContainer, {

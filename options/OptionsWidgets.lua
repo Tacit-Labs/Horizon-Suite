@@ -1373,7 +1373,7 @@ function _G.OptionsWidgets_CreateMiniSwatch(parent, labelText, defaultTbl, getTb
 end
 
 -- Simplified Color Swatch for Dashboard (no anchor required, uses get/set functions)
-function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip)
+function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip, liveThrottle)
     local row = CreateFrame("Frame", nil, parent)
     row:SetHeight(32)
     local searchText = (labelText or "") .. " " .. (description or "")
@@ -1424,6 +1424,7 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
         addon.OpenColorPicker({
             r = r, g = g, b = b, a = a, hasAlpha = hasAlpha,
             default = { r, g, b, a },
+            liveThrottle = liveThrottle,
             onChange = function(nr, ng, nb, na)
                 if hasAlpha then set(nr, ng, nb, na) else set(nr, ng, nb, 1) end
                 swatch:Refresh()

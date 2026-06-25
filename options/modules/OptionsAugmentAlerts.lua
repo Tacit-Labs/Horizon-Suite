@@ -26,9 +26,17 @@ local function ColorOption(nameKey, descKey, prefix)
         type = "color",
         name = L[nameKey], desc = L[descKey],
         dbKey = prefix,
+        liveThrottle = 0.08,
         default = { D[prefix .. "R"], D[prefix .. "G"], D[prefix .. "B"] },
         get = function() return getDB(prefix .. "R", D[prefix .. "R"]), getDB(prefix .. "G", D[prefix .. "G"]), getDB(prefix .. "B", D[prefix .. "B"]) end,
-        set = function(r, g, b) setDB(prefix .. "R", r); setDB(prefix .. "G", g); setDB(prefix .. "B", b) end,
+        set = function(r, g, b)
+            local batchingLive = addon._colorPickerLive and true or false
+            if batchingLive then addon._suspendColorPickerLiveNotify = true end
+            setDB(prefix .. "R", r)
+            setDB(prefix .. "G", g)
+            if batchingLive then addon._suspendColorPickerLiveNotify = nil end
+            setDB(prefix .. "B", b)
+        end,
     }
 end
 

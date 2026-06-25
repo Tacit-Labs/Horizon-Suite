@@ -434,21 +434,29 @@ end
 
 -- Re-apply scale and font to all pool entries. Called when the Alerts scale
 -- or font option changes.
-function A.ApplyScale()
+function A.ApplyColors()
     if not framesCreated then return end
-    UpdateFontObject()
-    Frame:SetSize(S(A.WIDTH), S(A.LINE_HEIGHT))
     local D = addon.AUGMENT_DEFAULTS
     local style = A.GetDB("alertsStyle", D.alertsStyle)
     for i = 1, A.POOL_SIZE do
         local e = pool[i]
-        e.frame:SetSize(S(A.WIDTH), S(A.HEIGHT))
-        e.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
-        if e._kind then
+        if e and e._kind then
             local r, g, b = A.GetKindColor(e._kind)
             ApplyEntryStyle(e, style, r, g, b)
         end
     end
+end
+
+function A.ApplyScale()
+    if not framesCreated then return end
+    UpdateFontObject()
+    Frame:SetSize(S(A.WIDTH), S(A.LINE_HEIGHT))
+    for i = 1, A.POOL_SIZE do
+        local e = pool[i]
+        e.frame:SetSize(S(A.WIDTH), S(A.HEIGHT))
+        e.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
+    end
+    A.ApplyColors()
 end
 
 function A.RestoreSavedPosition()

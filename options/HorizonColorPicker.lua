@@ -54,6 +54,8 @@ addon.ParseHexColor = ParseHexColor
 -- Singleton state.
 local P            -- the picker frame (built lazily)
 local state = { spec = nil, r = 1, g = 1, b = 1, a = 1, hasAlpha = false, suppress = false, orig = {} }
+local lastLiveFireAt = 0
+local liveFireQueued = false
 
 -- Account-wide saved palette: an ordered list of hex strings at the SavedVariables root
 -- (HorizonDB.customPalette), independent of profiles.
@@ -114,6 +116,27 @@ end
 local function FireChange()
     local s = state.spec
     if s and s.onChange then s.onChange(state.r, state.g, state.b, state.a) end
+end
+
+local function FireChangeLive()
+    local throttle = (state.spec and tonumber(state.spec.liveThrottle)) or 0.03
+    if throttle <= 0 then
+        FireChange()
+        return
+    end
+    local now = GetTime and GetTime() or 0
+    if (now - lastLiveFireAt) >= throttle then
+        lastLiveFireAt = now
+        FireChange()
+        return
+    end
+    if liveFireQueued or not (C_Timer and C_Timer.After) then return end
+    liveFireQueued = true
+    C_Timer.After(throttle, function()
+        liveFireQueued = false
+        lastLiveFireAt = GetTime and GetTime() or 0
+        FireChange()
+    end)
 end
 
 local function ConfirmClose()
@@ -221,7 +244,7 @@ local function EnsurePicker()
         if state.suppress then return end
         state.r, state.g, state.b = r, g, b
         if P and P.Refresh then P:Refresh() end
-        FireChange()
+        FireChangeLive()
     end)
 
     -- New (live) vs Current (original) comparison.
@@ -347,7 +370,7 @@ local function EnsurePicker()
             state.a = n
             placeAlpha()
             f.newSwatch:SetColorTexture(state.r, state.g, state.b, state.a)
-            FireChange()
+            FireChangeLive()
         end)
     end)
     f.alphaRow = alphaRow
@@ -507,6 +530,8 @@ function addon.OpenColorPicker(spec)
     state.spec = spec or {}
     state.confirmed = false
     addon._colorPickerLive = true  -- live mode: option setters skip the heavy refresh while dragging
+    lastLiveFireAt = 0
+    liveFireQueued = false
     state.hasAlpha = spec.hasAlpha and true or false
     state.r, state.g, state.b = spec.r or 1, spec.g or 1, spec.b or 1
     state.a = state.hasAlpha and (spec.a or 1) or 1
