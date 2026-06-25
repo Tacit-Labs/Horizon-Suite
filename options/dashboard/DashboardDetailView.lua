@@ -63,7 +63,6 @@ function addon.DashboardDetailView_Init(env)
                     f.detailPreviewBtn._onClick()
                 end
             end, { width = 116, height = 28 })
-            if previewBtn.SetLabel then previewBtn:SetLabel("Preview") end
             previewBtn:SetFrameLevel(fl)
             previewBtn:ClearAllPoints()
             previewBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -48, y)
@@ -86,7 +85,6 @@ function addon.DashboardDetailView_Init(env)
                     f.detailAnchorBtn._onClick()
                 end
             end, { width = 128, height = 28 })
-            if anchorBtn.SetLabel then anchorBtn:SetLabel("Edit Position") end
             anchorBtn:SetFrameLevel(fl)
             anchorBtn:ClearAllPoints()
             anchorBtn:SetPoint("TOPRIGHT", resetBtn, "TOPLEFT", -8, 0)
