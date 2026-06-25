@@ -918,11 +918,6 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     -- Ensure the dropdown list scrolls internally and doesn't forward wheel events to the parent panel.
     scrollFrame:EnableMouseWheel(true)
     list:EnableMouseWheel(true)
-    -- SetPropagateMouseMotion is not a protected method, so no combat guard is needed; calling it
-    -- unconditionally also covers dropdowns first built in combat (avoids hover bleed-through).
-    scrollFrame:SetPropagateMouseMotion(false)
-    list:SetPropagateMouseMotion(false)
-
     -- Row height for open list; updated in populate when fontPreviewInList (taller rows for glyph clearance).
     local listRowHeight = 22
 
