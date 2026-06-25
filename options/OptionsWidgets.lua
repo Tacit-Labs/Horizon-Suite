@@ -427,7 +427,6 @@ local SLIDER_GLOW_ALPHA_ON    = 0.80
 local SLIDER_ACTIVE_DUR       = 0.12
 -- Built-in glow texture (no custom assets).
 local SLIDER_GLOW_TEXTURE     = "Interface\\Cooldown\\star4"
-
 -- Apply the slim fill gradient (dark → accent) derived from the live Def.TrackOn, so a
 -- class-colour change retints it through the normal Refresh path. Falls back to a flat
 -- fill on clients without SetGradient/CreateColor.
@@ -664,6 +663,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
                 -- Commit final value on release so the DB is up-to-date.
                 local finalV = snapToStep(math.max(minVal, math.min(maxVal, normToValue(startNorm))))
                 if finalV ~= lastCommittedSnapped then
+                    lastCommittedSnapped = finalV
                     set(finalV)
                 end
                 return
@@ -672,12 +672,9 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
             local delta = (x - startX) / dragFillWidth
             local n = math.max(0, math.min(1, startNorm + delta))
             local v = normToValue(n)
-            -- Only call set() when the snapped value changes.
-            local snappedV = snapToStep(v)
-            if snappedV ~= lastCommittedSnapped then
-                lastCommittedSnapped = snappedV
-                set(snappedV)
-            end
+            -- During drag, keep the visual responsive but defer the expensive set()
+            -- path until release. Many sliders fan out into full module apply/layout
+            -- work, which is too costly to run every drag tick.
             -- Update the visual LAST so the smooth position wins over any row:Refresh()
             -- the set() callback may trigger (which would otherwise snap the handle = lag).
             updateFromValue(v)
