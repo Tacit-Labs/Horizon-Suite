@@ -166,6 +166,8 @@ end
 -- Apply layout and background for the given style. Called on every ShowToast
 -- and on ApplyScale for active entries so live style changes take effect.
 local function ApplyEntryStyle(entry, style, r, g, b)
+    entry.title:SetTextColor(r, g, b, 1)
+    entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
     if style == "minimalist" then
         entry.frame:SetBackdrop(nil)
         local bgSz = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
