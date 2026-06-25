@@ -392,6 +392,10 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
     SetTextColor(lbl, Def.TextColorLabel)
     lbl:SetText(labelText or "")
     lbl:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn._label = lbl
+    function btn:SetLabel(text)
+        lbl:SetText(text or "")
+    end
 
     btn:SetScript("OnClick", function()
         if onClick then onClick() end
@@ -583,6 +587,21 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
 
     local fillWidth = trackWidth - 2 * SLIDER_TRACK_INSET
     local thumbTravel = fillWidth - SLIDER_THUMB_W
+    local function recalcSliderMetrics()
+        trackWidth = math.max(track:GetWidth() or 180, 1)
+        fillWidth = math.max(trackWidth - 2 * SLIDER_TRACK_INSET, 1)
+        thumbTravel = math.max(fillWidth - SLIDER_THUMB_W, 0)
+    end
+    local function updateResponsiveTrackWidth()
+        local rowWidth = row:GetWidth() or 0
+        if rowWidth <= 0 then return end
+        local responsiveW = math.floor(rowWidth * 0.36)
+        responsiveW = math.max(120, math.min(180, responsiveW))
+        if math.abs((track:GetWidth() or 0) - responsiveW) >= 1 then
+            track:SetWidth(responsiveW)
+            recalcSliderMetrics()
+        end
+    end
 
     -- Now assign the body — all closures above that captured the upvalue slot will see this.
     updateFromValue = function(v)
@@ -683,12 +702,18 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end
 
     function row:Refresh()
+        updateResponsiveTrackWidth()
         ApplyFillGradient(trackFill)
         glow:SetVertexColor(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3])
         -- Don't reposition the handle from the DB mid-drag; the drag handler owns it.
         if not dragging then updateFromValue(get()) end
         applyDisabledVisuals()
     end
+
+    row:SetScript("OnSizeChanged", function()
+        updateResponsiveTrackWidth()
+        if not dragging then updateFromValue(get()) end
+    end)
 
     row:Refresh()
     ApplyRowHoverHighlight(row)

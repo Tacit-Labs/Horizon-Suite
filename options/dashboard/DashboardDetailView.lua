@@ -62,7 +62,8 @@ function addon.DashboardDetailView_Init(env)
                 if f.detailPreviewBtn and f.detailPreviewBtn._onClick then
                     f.detailPreviewBtn._onClick()
                 end
-            end, { width = 140, height = 28 })
+            end, { width = 116, height = 28 })
+            if previewBtn.SetLabel then previewBtn:SetLabel("Preview") end
             previewBtn:SetFrameLevel(fl)
             previewBtn:ClearAllPoints()
             previewBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -48, y)
@@ -73,18 +74,19 @@ function addon.DashboardDetailView_Init(env)
                 if f.detailResetBtn and f.detailResetBtn._onClick then
                     f.detailResetBtn._onClick()
                 end
-            end, { width = 150, height = 28 })
+            end, { width = 134, height = 28 })
             resetBtn:SetFrameLevel(fl)
             resetBtn:ClearAllPoints()
             resetBtn:SetPoint("TOPRIGHT", previewBtn, "TOPLEFT", -8, 0)
             resetBtn:Hide()
             f.detailResetBtn = resetBtn
 
-            local anchorBtn = CW(f, L["AXIS_ANCHOR_MOVE"] or "Show Anchor", function()
+            local anchorBtn = CW(f, L["AXIS_ANCHOR_MOVE"] or "Edit Position", function()
                 if f.detailAnchorBtn and f.detailAnchorBtn._onClick then
                     f.detailAnchorBtn._onClick()
                 end
-            end, { width = 170, height = 28 })
+            end, { width = 128, height = 28 })
+            if anchorBtn.SetLabel then anchorBtn:SetLabel("Edit Position") end
             anchorBtn:SetFrameLevel(fl)
             anchorBtn:ClearAllPoints()
             anchorBtn:SetPoint("TOPRIGHT", resetBtn, "TOPLEFT", -8, 0)

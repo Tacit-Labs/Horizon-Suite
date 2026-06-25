@@ -1118,7 +1118,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             if copt.type == "binary" or copt.type == "toggle" then
                                 w = _G.OptionsWidgets_CreateToggleSwitch(col, copt.name, copt.desc or "", cg, cs, copt.disabled, copt.tooltip)
                             elseif copt.type == "slider" then
-                                w = _G.OptionsWidgets_CreateSlider(col, copt.name, copt.desc or "", cg, cs, copt.min or 0, copt.max or 100, copt.disabled, copt.step or 1, copt.tooltip, true)
+                                w = _G.OptionsWidgets_CreateSlider(col, copt.name, copt.desc or "", cg, cs, copt.min or 0, copt.max or 100, copt.disabled, copt.step or 1, copt.tooltip)
                             elseif copt.type == "dropdown" then
                                 local dopts = type(copt.options) == "function" and copt.options() or copt.options
                                 w = _G.OptionsWidgets_CreateCustomDropdown(col, copt.name, copt.desc or "", dopts, cg, cs, copt.displayFn, copt.searchable, copt.disabled, copt.tooltip, nil, copt.fontPreviewInList, copt.preserveOrder)
@@ -1155,7 +1155,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     colFrame:SetHeight(colH)
 
                     -- Responsive: stack columns vertically on narrow dashboards
-                    local COL_STACK_THRESHOLD = 380
+                    local MIN_COLUMN_WIDTH    = 320
+                    local COL_STACK_THRESHOLD = (MIN_COLUMN_WIDTH * 2) + COL_GAP
                     local applyingColLayout   = false
                     local function ApplyColumnLayout(w)
                         if applyingColLayout or w < 1 then return end
