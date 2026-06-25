@@ -114,6 +114,10 @@ Tooltips that actually tell you who/what you're looking at.
 - [Auctionator](https://www.curseforge.com/wow/addons/auctionator)
 - [Total RP 3](https://www.curseforge.com/wow/addons/total-rp-3)
 - [World Quest Tracker](https://www.curseforge.com/wow/addons/world-quest-tracker)
+- [RareScanner](https://www.curseforge.com/wow/addons/rarescanner)
+  - **Requires** [Horizon Suite - RareScanner](https://www.curseforge.com/wow/addons/horizon-suite-rarescanner)
+- [SilverDragon](https://www.curseforge.com/wow/addons/silver-dragon)
+  - **Requires** [Horizon Suite - SilverDraggon](https://www.curseforge.com/wow/addons/horizon-suite-silverdragon)
 
 **Feel free to send us a message about which AddOns you would like integrated into Horizon Suite!**
 
