@@ -146,10 +146,10 @@ local TOGGLE_ANIM_DUR = 0.15
 -- Apply optional hover tooltip to option rows (desc = inline; tooltip = hover detail).
 local function ApplyOptionTooltip(frame, tooltip)
     if not tooltip or tooltip == "" then return end
-    local tt = type(tooltip) == "function" and tooltip() or tooltip
-    if not tt or tt == "" then return end
     frame:EnableMouse(true)
     frame:HookScript("OnEnter", function()
+        local tt = type(tooltip) == "function" and tooltip() or tooltip
+        if not tt or tt == "" then return end
         GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
         -- Split on \n\n so callers can append extra lines (e.g. shift-click hints).
         -- First segment → SetText (white title); subsequent segments → AddLine (grey).
@@ -174,7 +174,12 @@ end
 
 -- Combine an inline description and a hover tooltip into one tooltip string (blank-line separated).
 local function JoinTooltip(desc, tip)
-    if type(tip) == "function" then tip = tip() end
+    if type(tip) == "function" then
+        return function()
+            local liveTip = tip()
+            return (desc or "") .. (desc and liveTip and "\n\n" or "") .. (liveTip or "")
+        end
+    end
     return (desc or "") .. (desc and tip and "\n\n" or "") .. (tip or "")
 end
 
@@ -957,6 +962,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
     local function closeList()
         if addon._OnDropdownClosed then addon._OnDropdownClosed(closeList) end
+        if addon._DropdownCloseList then addon._DropdownCloseList[closeList] = nil end
         if searchable and searchEdit and searchEdit:HasFocus() then
             searchEdit:ClearFocus()
         end
@@ -1130,10 +1136,12 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             optionButtons[i]:Hide()
         end
 
-        if addon._OnDropdownOpened then addon._OnDropdownOpened(closeList) end
-        list:Show()
-        catch:Show()
-    end
+    if addon._OnDropdownOpened then addon._OnDropdownOpened(closeList) end
+    addon._DropdownCloseList = addon._DropdownCloseList or {}
+    addon._DropdownCloseList[closeList] = true
+    list:Show()
+    catch:Show()
+end
 
     if searchable and searchEdit then
         searchEdit:SetScript("OnTextChanged", function() populate() end)

@@ -40,6 +40,39 @@ local function applyAlerts()
     if A.UpdateEventRegistrations then A.UpdateEventRegistrations() end
     if A.ApplyScale then A.ApplyScale() end
     if A.RestoreSavedPosition then A.RestoreSavedPosition() end
+    if A.Bags and A.Bags.RefreshReminderState then A.Bags.RefreshReminderState() end
+    if A.Durability and A.Durability.RefreshReminderState then A.Durability.RefreshReminderState() end
+end
+
+local function GetBagThresholdHint()
+    local A = addon.Augment and addon.Augment.Alerts
+    if A and A.GetThresholdHint then
+        return A.GetThresholdHint()
+    end
+    local threshold = tonumber(getDB("alertsBagsThreshold", D.alertsBagsThreshold)) or D.alertsBagsThreshold
+    local total = 0
+    for bag = 0, NUM_BAG_SLOTS do
+        local slots = C_Container and C_Container.GetContainerNumSlots and C_Container.GetContainerNumSlots(bag)
+        if slots and slots > 0 then
+            total = total + slots
+        end
+    end
+    if total <= 0 then
+        return L["AUGMENT_ALERTS_BAGS_THRESHOLD_DESC"]
+    end
+
+    local maxFree = math.floor(total * (100 - threshold) / 100)
+    return string.format("%s\n\nWith your current bag capacity, this triggers at %d or fewer free slots total.\n\nIf you are already above the threshold when you enable Alerts, it waits until bags dip back below it and fill up again.", L["AUGMENT_ALERTS_BAGS_THRESHOLD_DESC"], maxFree)
+end
+
+local function GetReminderOptions()
+    return {
+        { L["AUGMENT_ALERTS_THRESHOLD"], "threshold" },
+        { "1 Minute", "1min" },
+        { "5 Minutes", "5min" },
+        { "10 Minutes", "10min" },
+        { "30 Minutes", "30min" },
+    }
 end
 
 local category = {
@@ -69,6 +102,7 @@ local category = {
                       dbKey = "alertsDurabilityEnabled",
                       get = function() return getDB("alertsDurabilityEnabled", D.alertsDurabilityEnabled) end,
                       set = function(v) setDB("alertsDurabilityEnabled", v); applyAlerts() end,
+                      refreshIds = { "alertsDurabilityThreshold" },
                     },
                     { type = "slider",
                       name = L["AUGMENT_ALERTS_DURABILITY_THRESHOLD"], desc = L["AUGMENT_ALERTS_DURABILITY_THRESHOLD_DESC"],
@@ -78,11 +112,21 @@ local category = {
                       set = function(v) setDB("alertsDurabilityThreshold", clamp(v, "alertsDurabilityThreshold")) end,
                       disabled = function() return not getDB("alertsDurabilityEnabled", D.alertsDurabilityEnabled) end,
                     },
+                    { type = "dropdown",
+                      name = L["AUGMENT_ALERTS_DURABILITY_REMINDER"], desc = L["AUGMENT_ALERTS_DURABILITY_REMINDER_DESC"],
+                      dbKey = "alertsDurabilityReminder",
+                      options = GetReminderOptions(),
+                      get = function() return getDB("alertsDurabilityReminder", D.alertsDurabilityReminder) end,
+                      set = function(v) setDB("alertsDurabilityReminder", v); applyAlerts() end,
+                      disabled = function() return not getDB("alertsDurabilityEnabled", D.alertsDurabilityEnabled) end,
+                      preserveOrder = true,
+                    },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_BAGS"], desc = L["AUGMENT_ALERTS_BAGS_DESC"],
                       dbKey = "alertsBagsEnabled",
                       get = function() return getDB("alertsBagsEnabled", D.alertsBagsEnabled) end,
                       set = function(v) setDB("alertsBagsEnabled", v); applyAlerts() end,
+                      refreshIds = { "alertsBagsThreshold" },
                     },
                     { type = "slider",
                       name = L["AUGMENT_ALERTS_BAGS_THRESHOLD"], desc = L["AUGMENT_ALERTS_BAGS_THRESHOLD_DESC"],
@@ -91,6 +135,16 @@ local category = {
                       get = function() return math.max(LIM.alertsBagsThreshold.min, math.min(LIM.alertsBagsThreshold.max, tonumber(getDB("alertsBagsThreshold", D.alertsBagsThreshold)) or D.alertsBagsThreshold)) end,
                       set = function(v) setDB("alertsBagsThreshold", clamp(v, "alertsBagsThreshold")) end,
                       disabled = function() return not getDB("alertsBagsEnabled", D.alertsBagsEnabled) end,
+                      tooltip = GetBagThresholdHint,
+                    },
+                    { type = "dropdown",
+                      name = L["AUGMENT_ALERTS_BAGS_REMINDER"], desc = L["AUGMENT_ALERTS_BAGS_REMINDER_DESC"],
+                      dbKey = "alertsBagsReminder",
+                      options = GetReminderOptions(),
+                      get = function() return getDB("alertsBagsReminder", D.alertsBagsReminder) end,
+                      set = function(v) setDB("alertsBagsReminder", v); applyAlerts() end,
+                      disabled = function() return not getDB("alertsBagsEnabled", D.alertsBagsEnabled) end,
+                      preserveOrder = true,
                     },
                     { type = "toggle",
                       name = L["AUGMENT_ALERTS_MAIL"], desc = L["AUGMENT_ALERTS_MAIL_DESC"],

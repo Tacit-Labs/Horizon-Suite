@@ -21,8 +21,10 @@ D.augmentAlertsEnabled        = true
 -- confirmed working, rather than shipping it live to every profile by default.
 D.alertsDurabilityEnabled     = false
 D.alertsDurabilityThreshold   = 30
+D.alertsDurabilityReminder    = "threshold"
 D.alertsBagsEnabled           = false
 D.alertsBagsThreshold         = 90
+D.alertsBagsReminder          = "threshold"
 D.alertsMailEnabled           = false
 D.alertsVaultEnabled          = false
 D.alertsFriendsEnabled        = false
