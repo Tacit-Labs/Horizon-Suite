@@ -8,6 +8,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
@@ -41,12 +42,12 @@ function M.HandleFriendListUpdate()
 
     for name in pairs(current) do
         if not onlineSnapshot[name] then
-            A.Enqueue("FRIEND_ON", name, addon.L["ALERTS_FRIEND_ON_BODY"])
+            A.Enqueue("FRIEND_ON", name, L["ALERTS_FRIEND_ON_BODY"])
         end
     end
     for name in pairs(onlineSnapshot) do
         if not current[name] then
-            A.Enqueue("FRIEND_OFF", name, addon.L["ALERTS_FRIEND_OFF_BODY"])
+            A.Enqueue("FRIEND_OFF", name, L["ALERTS_FRIEND_OFF_BODY"])
         end
     end
 

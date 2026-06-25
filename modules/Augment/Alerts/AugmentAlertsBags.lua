@@ -5,6 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
@@ -45,8 +46,8 @@ function M.CheckAndNotify()
     if fullPct >= threshold then
         if armed then
             armed = false
-            A.Enqueue("BAGS", addon.L["ALERTS_BAGS_TITLE"],
-                string.format(addon.L["ALERTS_BAGS_BODY"], math.floor(fullPct)))
+            A.Enqueue("BAGS", L["ALERTS_BAGS_TITLE"],
+                string.format(L["ALERTS_BAGS_BODY"], math.floor(fullPct)))
         end
     else
         armed = true

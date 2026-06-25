@@ -8,6 +8,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
@@ -31,7 +32,7 @@ function M.CheckAndNotify()
 
     local has = HasRewards()
     if has and not hadRewards then
-        A.Enqueue("VAULT", addon.L["ALERTS_VAULT_TITLE"], addon.L["ALERTS_VAULT_BODY"])
+        A.Enqueue("VAULT", L["ALERTS_VAULT_TITLE"], L["ALERTS_VAULT_BODY"])
     end
     hadRewards = has
 end

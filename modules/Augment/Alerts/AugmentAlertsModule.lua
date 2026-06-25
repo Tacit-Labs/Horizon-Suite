@@ -5,6 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
@@ -27,18 +28,18 @@ end
 -- it be visually verified *before* anything is turned on, not after.
 function A.PreviewAlerts()
     if not addon:IsModuleEnabled("augment") then
-        if addon.HSPrint then addon.HSPrint("Augment: Module is disabled — enable it first.") end
+        if addon.HSPrint then addon.HSPrint(L["ALERTS_PREVIEW_AUGMENT_DISABLED"]) end
         return
     end
     A.InitFrames()
     A.RestoreSavedPosition()
 
     local samples = {
-        { "DURABILITY", addon.L["ALERTS_DURABILITY_TITLE"], string.format(addon.L["ALERTS_DURABILITY_BODY"], 25) },
-        { "BAGS",       addon.L["ALERTS_BAGS_TITLE"],       string.format(addon.L["ALERTS_BAGS_BODY"], 95) },
-        { "MAIL",       addon.L["ALERTS_MAIL_TITLE"],       addon.L["ALERTS_MAIL_BODY"] },
-        { "VAULT",      addon.L["ALERTS_VAULT_TITLE"],      addon.L["ALERTS_VAULT_BODY"] },
-        { "FRIEND_ON",  "Thrall",                           addon.L["ALERTS_FRIEND_ON_BODY"] },
+        { "DURABILITY", L["ALERTS_DURABILITY_TITLE"], string.format(L["ALERTS_DURABILITY_BODY"], 25) },
+        { "BAGS",       L["ALERTS_BAGS_TITLE"],       string.format(L["ALERTS_BAGS_BODY"], 95) },
+        { "MAIL",       L["ALERTS_MAIL_TITLE"],       L["ALERTS_MAIL_BODY"] },
+        { "VAULT",      L["ALERTS_VAULT_TITLE"],      L["ALERTS_VAULT_BODY"] },
+        { "FRIEND_ON",  L["ALERTS_PREVIEW_FRIEND_NAME"], L["ALERTS_FRIEND_ON_BODY"] },
     }
 
     for i, s in ipairs(samples) do

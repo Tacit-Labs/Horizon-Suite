@@ -7,6 +7,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
@@ -49,8 +50,8 @@ function M.CheckAndNotify()
     if pct < threshold then
         if armed then
             armed = false
-            A.Enqueue("DURABILITY", addon.L["ALERTS_DURABILITY_TITLE"],
-                string.format(addon.L["ALERTS_DURABILITY_BODY"], math.floor(pct)))
+            A.Enqueue("DURABILITY", L["ALERTS_DURABILITY_TITLE"],
+                string.format(L["ALERTS_DURABILITY_BODY"], math.floor(pct)))
         end
     else
         armed = true

@@ -5,6 +5,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
@@ -24,7 +25,7 @@ function M.CheckAndNotify()
 
     local has = HasNewMail() and true or false
     if has and not hadMail then
-        A.Enqueue("MAIL", addon.L["ALERTS_MAIL_TITLE"], addon.L["ALERTS_MAIL_BODY"])
+        A.Enqueue("MAIL", L["ALERTS_MAIL_TITLE"], L["ALERTS_MAIL_BODY"])
     end
     hadMail = has
 end

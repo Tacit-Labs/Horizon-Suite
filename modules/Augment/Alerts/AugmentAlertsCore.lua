@@ -8,6 +8,7 @@
 ]]
 
 local addon = _G.HorizonSuite
+local L = addon.L
 local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
@@ -256,13 +257,13 @@ function A.InitFrames()
     editTitle:SetFontObject(GameFontNormalLarge)
     editTitle:SetTextColor(0.95, 0.65, 0.25, 1)
     editTitle:SetPoint("CENTER", editOverlay, "CENTER", 0, 10)
-    editTitle:SetText("ALERTS AREA")
+    editTitle:SetText(L["ALERTS_EDIT_MODE_AREA"])
 
     editHint = editOverlay:CreateFontString(nil, "OVERLAY")
     editHint:SetFontObject(GameFontNormalSmall)
     editHint:SetTextColor(0.7, 0.7, 0.7, 1)
     editHint:SetPoint("CENTER", editOverlay, "CENTER", 0, -8)
-    editHint:SetText("Drag · Shift-click preview")
+    editHint:SetText(L["ALERTS_EDIT_MODE_HINT"])
 
     AlertsFontObj = _G["HorizonSuiteAlertsFont"] or CreateFont("HorizonSuiteAlertsFont")
     UpdateFontObject()
@@ -478,8 +479,8 @@ function A.ToggleEditMode()
         editOverlay:EnableMouse(true)
         editOverlay:Show()
         Frame:Show()
-        A.Enqueue("DURABILITY", addon.L["ALERTS_DURABILITY_TITLE"],
-            string.format(addon.L["ALERTS_DURABILITY_BODY"], 25))
+        A.Enqueue("DURABILITY", L["ALERTS_DURABILITY_TITLE"],
+            string.format(L["ALERTS_DURABILITY_BODY"], 25))
     else
         if not nativeEditMode then editOverlay:EnableMouse(false) end
         editOverlay:Hide()
@@ -527,17 +528,17 @@ local function CreateEditModePanel()
     editModePanel.checkbox = checkbox
 
     local label = editModePanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightMedium")
-    label:SetText("Horizon Suite")
+    label:SetText(L["NAME_ADDON"])
     label:SetTextColor(0.95, 0.65, 0.25, 1.0)
     label:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
 
     local function ShowTip(anchor)
         GameTooltip:SetOwner(anchor, "ANCHOR_CURSOR")
-        GameTooltip:SetText("Toggle Horizon Suite", 1, 1, 1, 1, true)
-        GameTooltip:AddLine("Show the following Horizon Suite elements in Edit Mode:", 1, 1, 1, 1, true)
-        GameTooltip:AddLine("- Alerts", 0.8, 0.8, 0.8, 1)
+        GameTooltip:SetText(L["ALERTS_EDIT_MODE_TOGGLE_HORIZON"], 1, 1, 1, 1, true)
+        GameTooltip:AddLine(L["ALERTS_EDIT_MODE_SHOW_ELEMENTS"], 1, 1, 1, 1, true)
+        GameTooltip:AddLine(L["ALERTS_EDIT_MODE_ALERTS_ITEM"], 0.8, 0.8, 0.8, 1)
         GameTooltip:AddLine(" ", 1, 1, 1, 1)
-        GameTooltip:AddLine("This checkbox only controls their visibility in Edit Mode. It will not enable or disable these modules.", 0.7, 0.7, 0.7, 1, true)
+        GameTooltip:AddLine(L["ALERTS_EDIT_MODE_VISIBILITY_ONLY"], 0.7, 0.7, 0.7, 1, true)
         GameTooltip:Show()
     end
     local function HideTip() GameTooltip:Hide() end
@@ -619,8 +620,8 @@ function A.HookNativeEditMode()
             editOverlay:EnableMouse(true)
             editOverlay:Show()
             Frame:Show()
-            A.Enqueue("DURABILITY", addon.L["ALERTS_DURABILITY_TITLE"],
-                string.format(addon.L["ALERTS_DURABILITY_BODY"], 25))
+            A.Enqueue("DURABILITY", L["ALERTS_DURABILITY_TITLE"],
+                string.format(L["ALERTS_DURABILITY_BODY"], 25))
         end
     end, "HorizonSuiteAugmentAlerts")
 
