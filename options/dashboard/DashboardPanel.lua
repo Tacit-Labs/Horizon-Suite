@@ -84,6 +84,10 @@ addon.ShowDashboard = function()
 end
 _G.HorizonSuite_ShowDashboard = addon.ShowDashboard
 
+-- Legacy alias — CoreSlash and any external callers that used the old OptionsPanel entry point.
+addon.ShowOptions = addon.ShowDashboard
+_G.HorizonSuite_ShowOptions = addon.ShowDashboard
+
 -- dashboardLastView (root SavedVar) records the user's last "real" location
 -- so the dashboard can resume there. Schema:
 --   { kind = "news" }

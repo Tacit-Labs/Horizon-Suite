@@ -116,10 +116,10 @@ local function GetTitleColor(category)
     -- Scanner integrations store their color under a dedicated DB key separate from
     -- the color matrix, so check it first before falling through to the matrix.
     if category == "SILVERDRAGON" then
-        local c = addon.GetDB and addon.GetDB("sd_color")
+        local c = addon.GetDB and addon.GetDB("sdColor")
         if type(c) == "table" and c[1] then return c end
     elseif category == "RARESCANNER" then
-        local c = addon.GetDB and addon.GetDB("rs_color")
+        local c = addon.GetDB and addon.GetDB("rsColor")
         if type(c) == "table" and c[1] then return c end
     end
 
@@ -127,13 +127,6 @@ local function GetTitleColor(category)
     local key = MatrixKey(category)
     if cm and cm.categories and cm.categories[key] and cm.categories[key].title then
         return SanitizeColor(cm.categories[key].title, addon.QUEST_COLORS[category] or addon.QUEST_COLORS.DEFAULT)
-    end
-
-    -- Legacy per-category questColors support (for safety if migration didn't run yet).
-    local db = addon.GetDB and addon.GetDB("questColors", nil)
-    if db then
-        if db[category] then return SanitizeColor(db[category], addon.QUEST_COLORS[category] or addon.QUEST_COLORS.DEFAULT) end
-        if category == "CALLING" and db.WORLD then return SanitizeColor(db.WORLD, addon.QUEST_COLORS.WORLD or addon.QUEST_COLORS.DEFAULT) end
     end
 
     return addon.QUEST_COLORS[category] or addon.QUEST_COLORS.DEFAULT

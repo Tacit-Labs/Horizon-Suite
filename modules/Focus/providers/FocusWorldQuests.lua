@@ -142,7 +142,7 @@ local function GetNearbyQuestIDs()
         return nearbySet, taskQuestOnlySet
     end
 
-    local showWQ = addon.GetDB("showWorldQuests", true)
+    local showWQ = addon.GetDB("focusShowWorldQuests", true)
     -- Track which mapIDs have already been queried via GetTaskQuestsForMap so the quest-hub
     -- fallback below cannot re-query a map already handled in the main loop.
     local queriedTaskMaps = {}
