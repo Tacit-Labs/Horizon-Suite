@@ -76,5 +76,5 @@ LIM.alertsSoundCooldown       = { min = 0,   max = 30  }
 LIM.alertsMaxVisible          = { min = 1,   max = 6   }
 LIM.alertsScale               = { min = 0.5, max = 2.0 }
 LIM.alertsOpacity             = { min = 10,  max = 100 }
-LIM.alertsFontSize            = { min = 8,   max = 20  }
+LIM.alertsFontSize            = { min = 12,  max = 16  }
 LIM.alertsHoldDuration        = { min = 1,   max = 12  }
