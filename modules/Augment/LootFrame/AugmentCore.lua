@@ -7,7 +7,7 @@ local addon = _G.HorizonSuite
 if not addon or not addon.Augment then return end
 local L = addon.L
 local Augment = addon.Augment
-local state = addon.augment
+local state = addon.Augment.state
 
 -- ============================================================================
 -- MODULE-LEVEL HELPERS
