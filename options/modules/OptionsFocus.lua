@@ -676,7 +676,7 @@ local categories = {
         moduleKey = "focus",
         options = {
             Section(L["FOCUS_WORLD_QUESTS"]),
-            Toggle(L["ZONE_WORLD_QUESTS"], L["AUTO_ADD_WQS_YOUR_CURRENT_ZONE"], "showWorldQuests", D.showWorldQuests, { tooltip = L["TRACKED_NEARBY_WQS_APPEAR_BLIZZARD_DEFAULT"] }),
+            Toggle(L["ZONE_WORLD_QUESTS"], L["AUTO_ADD_WQS_YOUR_CURRENT_ZONE"], "focusShowWorldQuests", D.focusShowWorldQuests, { tooltip = L["TRACKED_NEARBY_WQS_APPEAR_BLIZZARD_DEFAULT"] }),
             Section(L["FOCUS_RARE_BOSSES"]),
             Toggle(L["FOCUS_RARE_BOSSES"], L["UI_RARE_BOSS_VIGNETTES_LIST"], "showRareBosses", D.showRareBosses),
             Toggle(L["UI_RARE_LOOT"], L["UI_TREASURE_ITEM_VIGNETTES_RARE_LOOT"], "showRareLoot", D.showRareLoot),

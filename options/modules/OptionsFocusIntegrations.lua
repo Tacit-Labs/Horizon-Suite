@@ -464,19 +464,19 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         Color(
             L["FOCUS_INTEGRATION_RARE_COLOR"],
             L["FOCUS_INTEGRATION_RARE_COLOR_DESC"],
-            "rs_color",
+            "rsColor",
             { 0.20, 0.85, 0.75 },
             {
-                id          = "rs_color",
+                id          = "rsColor",
                 disabled    = RSDisabled,
                 visibleWhen = RSSubVisible,
                 get         = function()
-                    local c = addon.GetDB("rs_color")
+                    local c = addon.GetDB("rsColor")
                     if type(c) == "table" and c[1] then return c[1], c[2], c[3] end
                     return 0.20, 0.85, 0.75
                 end,
                 set         = function(r, g, b)
-                    setDB("rs_color", { r, g, b })
+                    setDB("rsColor", { r, g, b })
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
             }
@@ -784,19 +784,19 @@ addon.OptionCategories[#addon.OptionCategories + 1] = {
         Color(
             L["FOCUS_INTEGRATION_RARE_COLOR"],
             L["FOCUS_INTEGRATION_RARE_COLOR_DESC"],
-            "sd_color",
+            "sdColor",
             { 0.78, 0.87, 1.00 },
             {
-                id          = "sd_color",
+                id          = "sdColor",
                 disabled    = SDDisabled,
                 visibleWhen = SDSubVisible,
                 get         = function()
-                    local c = addon.GetDB("sd_color")
+                    local c = addon.GetDB("sdColor")
                     if type(c) == "table" and c[1] then return c[1], c[2], c[3] end
                     return 0.78, 0.87, 1.00
                 end,
                 set         = function(r, g, b)
-                    setDB("sd_color", { r, g, b })
+                    setDB("sdColor", { r, g, b })
                     if addon.ScheduleRefresh then addon.ScheduleRefresh() end
                 end,
             }

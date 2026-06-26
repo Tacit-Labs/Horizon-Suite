@@ -176,14 +176,35 @@ addon.QUEST_COLORS = {
     ADVENTURE  = { 0.90, 0.80, 0.50 },  -- artifact gold (WoW e6cc80; distinct from CAMPAIGN)
 }
 
+-- ============================================================================
+-- CORE-OWNED DB KEYS
+-- ============================================================================
+-- DB key convention: per-module settings are prefixed <module><Setting> in
+-- camelCase (e.g. focusShowWorldQuests, augmentMaxVisible). The keys below are
+-- the exceptions — legitimately global/core-owned, not tied to one module:
+--   - Every key in addon.AXIS_DEFAULTS (options/modules/defaults/OptionsDefaultsAxis.lua):
+--     dashboard chrome/theme, classColor<Module> tinting, <module>UIScale,
+--     globalUIScale, perModuleScaling, minimapButton*, sidebarCollapseMode,
+--     moduleNameDisplay, autoShowPatchNotesOnLogin, useGlobalFont.
+--   - rsColor / sdColor (below) — RareScanner / SilverDragon integration accent colors.
+-- fontPath is NOT in this list and is NOT a convention violation to fix later —
+-- it is an intentionally-kept legacy root-level compatibility key documented in
+-- options/OptionsData.lua, doubling as the cross-module "Global Font" fallback
+-- sentinel for Augment/Vista/Presence/Insight.
+-- This is not an exhaustive registry of all DB keys — per-module keys live in
+-- their own *_DEFAULTS table (FOCUS_DEFAULTS, AUGMENT_DEFAULTS, etc.) and are
+-- the source of truth for who owns a given key. See options/OptionsData.lua
+-- for the convention rule.
+-- ============================================================================
+
 -- Returns the effective quest color for a category, checking DB overrides first.
 -- RS and SD support user-defined colors stored as {r,g,b} tables in the DB.
 function addon.GetQuestColor(cat)
     if cat == "RARESCANNER" then
-        local c = addon.GetDB("rs_color")
+        local c = addon.GetDB("rsColor")
         if type(c) == "table" and c[1] then return c end
     elseif cat == "SILVERDRAGON" then
-        local c = addon.GetDB("sd_color")
+        local c = addon.GetDB("sdColor")
         if type(c) == "table" and c[1] then return c end
     end
     return addon.QUEST_COLORS and addon.QUEST_COLORS[cat]

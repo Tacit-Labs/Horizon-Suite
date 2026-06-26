@@ -21,7 +21,6 @@ addon.VISTA_KEYS = {
     vistaTimeUseLocal = true, vistaTime24Hour = true,
     vistaZoneDisplayMode = true,
     vistaZoneVerticalPos = true, vistaCoordVerticalPos = true, vistaTimeVerticalPos = true, vistaPerfVerticalPos = true, vistaDiffVerticalPos = true,
-    vistaShowDefaultMinimapButtons = true,  -- legacy key kept for compatibility
     vistaLock = true,
     vistaPoint = true, vistaRelPoint = true, vistaX = true, vistaY = true,
     vistaDrawerBtnX = true, vistaDrawerBtnY = true,

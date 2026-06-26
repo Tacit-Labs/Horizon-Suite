@@ -7,7 +7,7 @@ local addon = _G.HorizonSuite
 if not addon or not addon.Augment then return end
 
 local Y = addon.Augment
-local y = addon.augment
+local y = addon.Augment.state
 
 local eventFrame
 local eventsRegistered = false

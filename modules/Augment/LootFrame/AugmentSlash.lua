@@ -7,7 +7,7 @@ local addon = _G.HorizonSuite
 if not addon or not addon.Augment or not addon.RegisterSlashHandler then return end
 
 local Y = addon.Augment
-local y = addon.augment
+local y = addon.Augment.state
 
 local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite:|r " .. tostring(msg or "")) end
 

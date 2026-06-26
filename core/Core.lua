@@ -1398,15 +1398,9 @@ scrollChild:SetWidth(addon.GetPanelWidth())
 scrollChild:SetHeight(1)
 scrollChild:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, 0)
 
-addon.focus = addon.focus or {}
-addon.focus.layout = addon.focus.layout or {
-    scrollOffset = 0,
-    targetHeight = addon.MIN_HEIGHT,
-    currentHeight = addon.MIN_HEIGHT,
-    sectionIdx = 0,
-}
+-- addon.focus.layout is initialised by modules/Focus/FocusLayoutState.lua (loads earlier).
+-- Reset scrollOffset unconditionally: the scrollFrame/scrollChild above were just (re)created.
 addon.focus.layout.scrollOffset = 0
-addon.focus.layout.scrollBottomOffset = addon.focus.layout.scrollBottomOffset or 0
 
 local function ApplyScrollOffset(offset)
     scrollChild:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, offset)
@@ -1710,9 +1704,8 @@ HS:SetScript("OnDragStop", function(self)
     SavePanelPosition()
 end)
 
--- Hover fade: track mouse over for show-on-mouseover mode
-addon.focus = addon.focus or {}
-addon.focus.hoverFade = addon.focus.hoverFade or { mouseOver = false, fadeState = nil, fadeTime = 0 }
+-- Hover fade: track mouse over for show-on-mouseover mode.
+-- addon.focus.hoverFade is initialised by modules/Focus/FocusLayoutState.lua (loads earlier).
 HS:SetScript("OnEnter", function()
     addon.focus.hoverFade.mouseOver = true
     if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
