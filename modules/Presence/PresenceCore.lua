@@ -1383,23 +1383,20 @@ local function ApplyPresenceOptions()
     F:SetScale(getFrameScale())
     local function reapplyLayerFonts(layer)
         if not layer then return end
-        local function fix(fs, getPath, getOutline)
+        -- getSize is optional: title/subtitle keep their per-toast variant size (preserved
+        -- from the font string), while discovery re-reads its own configured size.
+        local function fix(fs, getPath, getOutline, getSize)
             if not fs then return end
             local _, sz = fs:GetFont()
-            if sz then SetSafeFont(fs, getPath(), sz, getOutline()) end
+            local size = (getSize and getSize()) or sz
+            if size then SetSafeFont(fs, getPath(), size, getOutline()) end
         end
-        fix(layer.titleText,       getPresenceTitleFontPath,    getPresenceTitleFontOutline)
-        fix(layer.titleShadow,     getPresenceTitleFontPath,    getPresenceTitleFontOutline)
-        fix(layer.subText,         getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        fix(layer.subShadow,       getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        -- Discovery has its own font family, outline, and size, so apply it explicitly
-        -- (fix() would preserve the current size instead of the configured one).
-        if layer.discoveryText then
-            SetSafeFont(layer.discoveryText, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
-        end
-        if layer.discoveryShadow then
-            SetSafeFont(layer.discoveryShadow, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
-        end
+        fix(layer.titleText,       getPresenceTitleFontPath,     getPresenceTitleFontOutline)
+        fix(layer.titleShadow,     getPresenceTitleFontPath,     getPresenceTitleFontOutline)
+        fix(layer.subText,         getPresenceSubtitleFontPath,  getPresenceSubtitleFontOutline)
+        fix(layer.subShadow,       getPresenceSubtitleFontPath,  getPresenceSubtitleFontOutline)
+        fix(layer.discoveryText,   getPresenceDiscoveryFontPath, getPresenceDiscoveryFontOutline, getPresenceDiscoverySize)
+        fix(layer.discoveryShadow, getPresenceDiscoveryFontPath, getPresenceDiscoveryFontOutline, getPresenceDiscoverySize)
     end
     reapplyLayerFonts(curLayer)
     reapplyLayerFonts(oldLayer)
