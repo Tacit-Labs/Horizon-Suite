@@ -357,6 +357,11 @@ local function getPresenceSubtitleFontOutline()
     return raw
 end
 
+local function getPresenceDiscoverySize()
+    local raw = tonumber(addon.GetDB and addon.GetDB("presenceDiscoverySize", DISCOVERY_SIZE)) or DISCOVERY_SIZE
+    return math.max(12, math.min(40, math.floor(raw)))
+end
+
 -- Per-FontString hook that re-asserts our desired font path whenever a
 -- font-replacement addon (e.g. Platynator) overrides SetFont or SetFontObject.
 -- Size is nil so PlayCinematic's variant-sized SetSafeFont calls go through unchanged;
@@ -548,12 +553,12 @@ local function CreateLayer(parent)
     L.subShadow:SetPoint("CENTER", L.subText, "CENTER", shadowX, shadowY)
 
     L.discoveryShadow = parent:CreateFontString(nil, "BORDER")
-    SetSafeFont(L.discoveryShadow, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, getPresenceSubtitleFontOutline())
+    SetSafeFont(L.discoveryShadow, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
     L.discoveryShadow:SetTextColor(0, 0, 0, shadowA)
     L.discoveryShadow:SetJustifyH("CENTER")
 
     L.discoveryText = parent:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(L.discoveryText, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, getPresenceSubtitleFontOutline())
+    SetSafeFont(L.discoveryText, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
     L.discoveryText:SetTextColor(1, 1, 1, 1)  -- neutral; resolved at show via getDiscoveryColor
     L.discoveryText:SetJustifyH("CENTER")
     L.discoveryText:SetPoint("TOP", L.subText, "BOTTOM", 0, -5)
@@ -1369,8 +1374,14 @@ local function ApplyPresenceOptions()
         fix(layer.titleShadow,     getPresenceTitleFontPath,    getPresenceTitleFontOutline)
         fix(layer.subText,         getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
         fix(layer.subShadow,       getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        fix(layer.discoveryText,   getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        fix(layer.discoveryShadow, getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        -- Discovery follows the subtitle font family/outline but has its own configurable
+        -- size, so apply it explicitly (fix() would preserve the current size instead).
+        if layer.discoveryText then
+            SetSafeFont(layer.discoveryText, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
+        end
+        if layer.discoveryShadow then
+            SetSafeFont(layer.discoveryShadow, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
+        end
     end
     reapplyLayerFonts(curLayer)
     reapplyLayerFonts(oldLayer)

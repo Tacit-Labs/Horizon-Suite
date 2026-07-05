@@ -43,6 +43,7 @@ addon.PRESENCE_KEYS = {
     presenceSubtitleFontPath = true,
     presenceTitleFontOutline = true,
     presenceSubtitleFontOutline = true,
+    presenceDiscoverySize = true,
     presenceZoneTypeColoring = true,
     presenceZoneColorFriendly = true,
     presenceZoneColorHostile = true,
@@ -90,6 +91,7 @@ addon.PRESENCE_DEFAULTS = {
     presenceSecondaryMediumSz      = 22,
     presencePrimarySmallSz         = 28,
     presenceSecondarySmallSz       = 20,
+    presenceDiscoverySize          = 16,
     presenceZoneTypeColoring       = false,
 }
 
@@ -106,5 +108,6 @@ addon.PRESENCE_LIMITS = {
     presenceSecondaryMediumSz = { min = 12,   max = 40  },
     presencePrimarySmallSz    = { min = 12,   max = 72  },
     presenceSecondarySmallSz  = { min = 12,   max = 40  },
+    presenceDiscoverySize     = { min = 12,   max = 40  },
 }
 
