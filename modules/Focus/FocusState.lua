@@ -5,7 +5,8 @@
 
 local addon = _G.HorizonSuite
 
--- Merge into existing addon.focus if Core created layout early; otherwise create fresh.
+-- Full-table reassignment below; carry layout/hoverFade through from FocusLayoutState.lua
+-- (loaded earlier), which owns their initial shape.
 local existing = addon.focus
 addon.focus = {
     enabled         = false,
@@ -52,22 +53,9 @@ addon.focus = {
         fadeInFromAlpha = nil,
     },
 
-    hoverFade = {
-        mouseOver = false,
-        fadeState = nil,  -- "in" | "out" | nil
-        fadeTime  = 0,
-    },
+    hoverFade = existing.hoverFade,
 
-    layout = (existing and existing.layout) or {
-        targetHeight  = addon.MIN_HEIGHT,
-        currentHeight = addon.MIN_HEIGHT,
-        sectionIdx    = 0,
-        scrollOffset  = 0,
-        -- Distance from the bottom of the scroll content (maxScr - scrollOffset). Used in
-        -- grow-up mode to keep the viewport pinned to the bottom (Objectives header) so
-        -- the highest-priority section stays visible across layouts. 0 = pinned to bottom.
-        scrollBottomOffset = 0,
-    },
+    layout = existing.layout,
 
     promotion = {
         prevWorld  = {},

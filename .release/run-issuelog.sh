@@ -4,14 +4,12 @@ set -e
 # Hero Message & Category Messages (Bugs / Features / Improvements) with an optional 'None'.
 # Requires gh CLI and GITHUB_TOKEN (or gh auth).
 
-# Output files:
-#  .release/discord-issuelog-payload-....
-#  ....hero.json
-#  ....bugs.json
-#  ....features.json
-#  ....improvements.json
-#  ....ideas.json
-#  ....none.json (when applicable)
+# Output files (.release/discord-issuelog-payload-<type>.json):
+#  ....hero.json            (always)
+#  ....bugs.json            (when count > 0)
+#  ....features.json        (when count > 0)
+#  ....improvements.json    (when count > 0)
+#  ....uncategorised.json   (when count > 0 — issues with no GitHub issue type)
 
 export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-Tacit-Labs/Horizon-Suite}"
 REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
@@ -25,13 +23,17 @@ USERNAME="Horizon Suite Issue Bot"
 # GraphQL is required because the REST endpoint used by `gh issue list --json` doesn't expose GitHub's Issue Types (Bug / Enhancement / ...).
 OWNER="${GITHUB_REPOSITORY%/*}"
 NAME="${GITHUB_REPOSITORY#*/}"
+# Single-quote the query so the shell leaves $owner/$name/$endCursor intact —
+# they are gh GraphQL variables (supplied by -F and --paginate), NOT shell vars.
+# `|| true` keeps set -e from killing us on a gh error before the shape check below
+# can surface a useful diagnostic.
 ISSUES_RAW=$(gh api graphql --paginate \
   -F owner="$OWNER" -F name="$NAME" \
-  -f query="query($owner: String!, $name: String!, $endCursor: String) {
+  -f query='query($owner: String!, $name: String!, $endCursor: String) {
         repository(owner: $owner, name: $name) {
         issues(first: 100, states: OPEN, after: $endCursor) {
         pageInfo { hasNextPage endCursor }
-        
+
         nodes {
         number title url body createdAt
         labels(first: 30) { nodes { name } }
@@ -39,7 +41,7 @@ ISSUES_RAW=$(gh api graphql --paginate \
       }
     }
   }
-}" 2>&1)
+}' 2>&1) || true
 
 # Flatten pages (each `gh --paginate` response is its own JSON doc) into a single array shaped like the old REST response, plus an `issueType` field.
 ISSUES=$(printf '%s' "$ISSUES_RAW" | jq -s '[ .[].data.repository.issues.nodes[] | {
@@ -75,25 +77,28 @@ while IFS= read -r line; do
   issue_type=$(echo "$line" | jq -r '.issueType // ""')
   issue_type_lc=$(echo "$issue_type" | tr '[:upper:]' '[:lower:]')
   
+  # NOTE: $labels_lc is lower-cased above, so the regexes must be lower-case too;
+  # the assigned $module values stay capitalised (module_emoji / headers use them).
   module=""
-  if    [[ "$labels_lc" =~ \[Module\]\ Axis ]]; then module="Axis"
-  elif [[ "$labels_lc" =~ \[Module\]\ Cache ]]; then module="Cache"
-  elif [[ "$labels_lc" =~ \[Module\]\ Essence ]]; then module="Essence"
-  elif [[ "$labels_lc" =~ \[Module\]\ Flow ]]; then module="Flow"
-  elif [[ "$labels_lc" =~ \[Module\]\ Focus ]]; then module="Focus"
-  elif [[ "$labels_lc" =~ \[Module\]\ Insight ]]; then module="Insight"
-  elif [[ "$labels_lc" =~ \[Module\]\ Meridian ]]; then module="Meridian"
-  elif [[ "$labels_lc" =~ \[Module\]\ Presence ]]; then module="Presence"
-  elif [[ "$labels_lc" =~ \[Module\]\ Vista ]]; then module="Vista"
+  if    [[ "$labels_lc" =~ \[module\]\ axis ]]; then module="Axis"
+  elif [[ "$labels_lc" =~ \[module\]\ augment ]]; then module="Augment"
+  elif [[ "$labels_lc" =~ \[module\]\ cache ]]; then module="Cache"
+  elif [[ "$labels_lc" =~ \[module\]\ essence ]]; then module="Essence"
+  elif [[ "$labels_lc" =~ \[module\]\ flow ]]; then module="Flow"
+  elif [[ "$labels_lc" =~ \[module\]\ focus ]]; then module="Focus"
+  elif [[ "$labels_lc" =~ \[module\]\ insight ]]; then module="Insight"
+  elif [[ "$labels_lc" =~ \[module\]\ meridian ]]; then module="Meridian"
+  elif [[ "$labels_lc" =~ \[module\]\ presence ]]; then module="Presence"
+  elif [[ "$labels_lc" =~ \[module\]\ vista ]]; then module="Vista"
   fi
 
   # Priority glyph + rank
   prio=""
   prio_rank=5
-  if    [[ "$labels_lc" =~ \[Priority\]\ Critical ]]       then prio="🔴 "; prio_rank=1
-  elif [[ "$labels_lc" =~ \[Priority\]\ High ]]         then prio="🟠 "; prio_rank=2
-  elif [[ "$labels_lc" =~ \[Priority\]\ Medium ]]    then prio="🟡 "; prio_rank=3
-  elif [[ "$labels_lc" =~ \[Priority\]\ Low ]]          then prio="🟢 "; prio_rank=4
+  if    [[ "$labels_lc" =~ \[priority\]\ critical ]]; then prio="🔴 "; prio_rank=1
+  elif [[ "$labels_lc" =~ \[priority\]\ high ]]; then prio="🟠 "; prio_rank=2
+  elif [[ "$labels_lc" =~ \[priority\]\ medium ]]; then prio="🟡 "; prio_rank=3
+  elif [[ "$labels_lc" =~ \[priority\]\ low ]]; then prio="🟢 "; prio_rank=4
   else prio="👋 "; prio_rank=0
   fi
 
@@ -121,13 +126,13 @@ while IFS= read -r line; do
   #   2. Module Labels
   #   3. No Category
   bucket=""
-     if [ "$issue_type_lc" = "Bug" ]; then bucket="bugs"
+     if [ "$issue_type_lc" = "bug" ]; then bucket="bugs"
         BUGS="${BUGS}${sort_line}"$'\n'
         count_bugs=$((count_bugs + 1))
-  elif [ "$issue_type_lc" = "Feature" ]; then bucket="features"
+  elif [ "$issue_type_lc" = "feature" ]; then bucket="features"
         FEATURES="${FEATURES}${sort_line}"$'\n'
         count_features=$((count_features + 1))
-  elif [ "$issue_type_lc" = "Improvement" ]; then bucket="improvements"
+  elif [ "$issue_type_lc" = "improvement" ]; then bucket="improvements"
         IMPROVEMENTS="${IMPROVEMENTS}${sort_line}"$'\n'
         count_improvements=$((count_improvements + 1))
   else
@@ -139,6 +144,16 @@ while IFS= read -r line; do
   MODULES["$mod_key"]=$((${MODULES["$mod_key"]:-0} + 1))
 
 done < <(echo "$ISSUES" | jq -c '.[]' 2>/dev/null || true)
+
+# Counters start empty and are only ever incremented, so a category with zero
+# issues stays "" — normalise to 0 before any arithmetic / numeric tests.
+# `total` drives the proportional progress bar (every issue lands in exactly
+# one bucket, so the four counts sum to the open total).
+count_bugs=${count_bugs:-0}
+count_features=${count_features:-0}
+count_improvements=${count_improvements:-0}
+count_none=${count_none:-0}
+total=$((count_bugs + count_features + count_improvements + count_none))
 
 # --- Progress bar (20 cells, proportional per category) ---
 bar_cells=20
@@ -170,7 +185,7 @@ progress_block=$(printf \
   "$(make_bar "$feature_cells" '█')" "$count_features" \
   "$(make_bar "$improvement_cells" '█')" "$count_improvements" )
 if [ "$count_none" -gt 0 ];
-then progress_block="${progress_block}"$'\n'"$(printf 'No Category %s %3d' "$(make_bar "$none_cells" '█')" "$count_none")"
+then progress_block="${progress_block}"$'\n'"$(printf 'No Category   %s %3d' "$(make_bar "$none_cells" '█')" "$count_none")"
 fi
 
 # --- Top modules (pill style) ---
@@ -183,7 +198,12 @@ if [ ${#MODULES[@]} -gt 0 ]; then
   )
 fi
 
-HERO_DESC=$(printf "%s · **%d** open issues\n\n\n%s\n\n**This week**   \033[38;5;9m↗ \033[39m%d  \033[38;5;10m↘ \033[39m%d  \033[38;5;11m→ \033[39mNet %s\n")
+# Lead with the open count, then the proportional bar inside a code fence so it
+# renders monospaced (and therefore aligned) in Discord. A "this week ↗/↘/Net"
+# line lived here previously but referenced opened/closed deltas this script never
+# computes (only OPEN issues are fetched) and emitted raw ANSI escapes that Discord
+# embeds don't render — dropped until those deltas are actually sourced.
+HERO_DESC=$(printf '**%d** open issues\n\n```\n%s\n```' "$open_total" "$progress_block")
 if [ -n "$module_pills" ]; then
   HERO_DESC="${HERO_DESC}"$'\n'"**Prevalence** ${module_pills}"
 fi
@@ -199,6 +219,7 @@ truncate_content() {
 module_emoji() {
   case "$1" in
     Axis)      printf '🌐' ;;
+    Augment)   printf '💰' ;;
     Cache)     printf '🎒' ;;
     Essence)   printf '📜' ;;
     Flow)      printf '💬' ;;
@@ -333,6 +354,7 @@ COLOR_BUGS=15548997         # red
 COLOR_FEATURES=5763719      # green
 COLOR_IMPROVEMENTS=3447003  # blue
 COLOR_NONE=9807270         # slate gray
+COLOR_HERO=8872191         # #8760FF Horizon brand purple
 
 mkdir -p .release
 rm -f .release/discord-issuelog-payload-*.json
@@ -343,6 +365,7 @@ HERO_EMBED=$(jq -n \
   --arg title "HorizonSuite ▸ Open Issues" \
   --arg url "$REPO_URL/issues" \
   --argjson desc "$HERO_DESC_JSON" \
+  --argjson color "$COLOR_HERO" \
   --arg thumb "$HORIZON_LOGO" \
   --arg ts "$TIMESTAMP" \
   '{title: $title, url: $url, description: $desc, color: $color, thumbnail: {url: $thumb}, timestamp: $ts}')

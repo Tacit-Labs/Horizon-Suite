@@ -14,6 +14,17 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.1.1"] = {
+        date = "2026-07-05",
+        {
+            section = "Improvements",
+            bullets = {
+                "General: general updates and fixes.",
+                "Focus: the RareScanner and SilverDragon bridge add-ons now register as optional dependencies, so they load in the correct order and their integration alerts surface reliably.",
+            },
+        },
+    },
+
     ["5.1.0"] = {
         date = "2026-06-19",
         {

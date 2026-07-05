@@ -11,12 +11,28 @@ if not _G[addon.DATABASE] then _G[addon.DATABASE] = {} end
 local L = addon.L
 
 -- ---------------------------------------------------------------------------
+-- DB key naming convention: per-module settings are prefixed <module><Setting>
+-- in camelCase (e.g. focusShowWorldQuests, augmentMaxVisible). Global/core-owned
+-- keys (dashboard chrome, UI scale, minimap button, integration accent colors)
+-- are the documented exception — see the registry comment in core/Config.lua.
+-- Source of truth for "who owns this key": check the per-module *_DEFAULTS
+-- table first (FOCUS_DEFAULTS, AUGMENT_DEFAULTS, etc.), then AXIS_DEFAULTS.
+-- This is a foundation pass, not a full audit: most existing keys have not
+-- been checked against this rule yet. Outliers corrected so far (via migration
+-- core/migrations/20260617_db_key_convention_cleanup.lua): showWorldQuests ->
+-- focusShowWorldQuests, rs_color -> rsColor, sd_color -> sdColor. New keys
+-- going forward should follow the convention from the start.
+-- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
 -- Migration: early global-font implementation used fontPath as the override key.
 -- If useGlobalFont is true but globalOverrideFontPath was never written, the saved
 -- fontPath is the old override value.  Copy it to the dedicated key.
--- fontPath is intentionally kept: it serves as the per-module "Global Font" sentinel
--- fallback (Augment, Vista, Presence, Insight all fall through to fontPath when their
--- own per-module key is "__global__" and the override is off).
+-- fontPath is intentionally kept (NOT a convention violation to fix later): it
+-- serves as the per-module "Global Font" sentinel fallback (Augment, Vista,
+-- Presence, Insight all fall through to fontPath when their own per-module key
+-- is "__global__" and the override is off), and this block is a legacy
+-- root-level compatibility shim predating the profile system.
 -- ---------------------------------------------------------------------------
 do
     local db = _G[addon.DATABASE]
@@ -46,7 +62,7 @@ end
 
 function OptionsData_SetDB(key, value)
     addon.SetDB(key, value)
-    if key == "showWorldQuests" and addon.focus and addon.focus.collapse then
+    if key == "focusShowWorldQuests" and addon.focus and addon.focus.collapse then
         if value == false then
             addon.focus.collapse.pendingWQCollapse = true
         elseif value == true then
@@ -55,7 +71,7 @@ function OptionsData_SetDB(key, value)
     end
     -- When the "Show in-zone world quests" toggle is flipped on, invalidate the nearby
     -- WQ scan augment so the next FullLayout immediately re-scans for the current zone.
-    if key == "showWorldQuests" and value == true and addon.focus then
+    if key == "focusShowWorldQuests" and value == true and addon.focus then
         addon.focus.nearbyQuestAugmentDirty = true
         addon.focus.nearbyQuestAugment = nil
         addon.focus.nearbyTaskQuestAugment = nil
