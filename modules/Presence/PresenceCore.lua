@@ -769,6 +769,8 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, 
 
     local showDiscovery = opts.showDiscovery or (not forPreview and addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
     if showDiscovery then
+        SetSafeFont(layer.discoveryText,   getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
+        SetSafeFont(layer.discoveryShadow, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
         layer.discoveryText:SetText(L["PRESENCE_DISCOVERED"])
         layer.discoveryShadow:SetText(L["PRESENCE_DISCOVERED"])
         local dc = getDiscoveryColor()
