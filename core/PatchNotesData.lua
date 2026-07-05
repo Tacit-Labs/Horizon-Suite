@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.1.2"] = {
+        date = "2026-07-05",
+        {
+            section = "Improvements",
+            bullets = {
+                "Presence: the zone/area \"Discovered\" line now has its own font, outline, and size controls, instead of inheriting the subtitle font.",
+            },
+        },
+    },
+
     ["5.1.1"] = {
         date = "2026-07-05",
         {

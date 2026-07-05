@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.1.2] – 2026-07-05
+
+### 🔧 Improvements
+- **(Presence)** The zone/area "Discovered" line now has its own font, outline, and size controls in Presence typography, instead of inheriting the subtitle font.
+
+---
+
 ## [5.1.1] – 2026-07-05
 
 ### 🔧 Improvements
