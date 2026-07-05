@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.1.1] – 2026-07-05
+
+### 🔧 Improvements
+- **(General)** General updates and fixes.
+- **(Focus)** The RareScanner and SilverDragon bridge add-ons now register as optional dependencies, so they load in the correct order and their integration alerts surface reliably.
+
+---
+
 ## [5.1.0] – 2026-06-19
 
 ### ✨ New Features
