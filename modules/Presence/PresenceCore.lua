@@ -357,6 +357,25 @@ local function getPresenceSubtitleFontOutline()
     return raw
 end
 
+local function getPresenceDiscoveryFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
+    local raw = addon.GetDB and addon.GetDB("presenceDiscoveryFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
+    if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
+    return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
+end
+
+local function getPresenceDiscoveryFontOutline()
+    local raw = addon.GetDB and addon.GetDB("presenceDiscoveryFontOutline", "OUTLINE")
+    if raw == nil then return "OUTLINE" end
+    return raw
+end
+
+local function getPresenceDiscoverySize()
+    local raw = tonumber(addon.GetDB and addon.GetDB("presenceDiscoverySize", DISCOVERY_SIZE)) or DISCOVERY_SIZE
+    return math.max(12, math.min(40, math.floor(raw)))
+end
+
 -- Per-FontString hook that re-asserts our desired font path whenever a
 -- font-replacement addon (e.g. Platynator) overrides SetFont or SetFontObject.
 -- Size is nil so PlayCinematic's variant-sized SetSafeFont calls go through unchanged;
@@ -392,6 +411,10 @@ end
 
 local function GetPresenceSubFont()
     return getPresenceSubtitleFontPath(), nil, getPresenceSubtitleFontOutline()
+end
+
+local function GetPresenceDiscoveryFont()
+    return getPresenceDiscoveryFontPath(), nil, getPresenceDiscoveryFontOutline()
 end
 
 -- Variant-based sizes: large (sz 48), medium (sz 36), small (sz 28). Each has primary + secondary.
@@ -548,12 +571,12 @@ local function CreateLayer(parent)
     L.subShadow:SetPoint("CENTER", L.subText, "CENTER", shadowX, shadowY)
 
     L.discoveryShadow = parent:CreateFontString(nil, "BORDER")
-    SetSafeFont(L.discoveryShadow, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, getPresenceSubtitleFontOutline())
+    SetSafeFont(L.discoveryShadow, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
     L.discoveryShadow:SetTextColor(0, 0, 0, shadowA)
     L.discoveryShadow:SetJustifyH("CENTER")
 
     L.discoveryText = parent:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(L.discoveryText, getPresenceSubtitleFontPath(), DISCOVERY_SIZE, getPresenceSubtitleFontOutline())
+    SetSafeFont(L.discoveryText, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
     L.discoveryText:SetTextColor(1, 1, 1, 1)  -- neutral; resolved at show via getDiscoveryColor
     L.discoveryText:SetJustifyH("CENTER")
     L.discoveryText:SetPoint("TOP", L.subText, "BOTTOM", 0, -5)
@@ -565,8 +588,8 @@ local function CreateLayer(parent)
     LockDirectFont(L.titleText,       GetPresenceTitleFont)
     LockDirectFont(L.subShadow,       GetPresenceSubFont)
     LockDirectFont(L.subText,         GetPresenceSubFont)
-    LockDirectFont(L.discoveryShadow, GetPresenceSubFont)
-    LockDirectFont(L.discoveryText,   GetPresenceSubFont)
+    LockDirectFont(L.discoveryShadow, GetPresenceDiscoveryFont)
+    LockDirectFont(L.discoveryText,   GetPresenceDiscoveryFont)
 
     return L
 end
@@ -746,6 +769,8 @@ local function ApplyToastContentToLayer(layer, typeName, title, subtitle, opts, 
 
     local showDiscovery = opts.showDiscovery or (not forPreview and addon.Presence.pendingDiscovery and (typeName == "ZONE_CHANGE" or typeName == "SUBZONE_CHANGE") and (not addon.GetDB or addon.GetDB("showPresenceDiscovery", true)))
     if showDiscovery then
+        SetSafeFont(layer.discoveryText,   getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
+        SetSafeFont(layer.discoveryShadow, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
         layer.discoveryText:SetText(L["PRESENCE_DISCOVERED"])
         layer.discoveryShadow:SetText(L["PRESENCE_DISCOVERED"])
         local dc = getDiscoveryColor()
@@ -1360,17 +1385,20 @@ local function ApplyPresenceOptions()
     F:SetScale(getFrameScale())
     local function reapplyLayerFonts(layer)
         if not layer then return end
-        local function fix(fs, getPath, getOutline)
+        -- getSize is optional: title/subtitle keep their per-toast variant size (preserved
+        -- from the font string), while discovery re-reads its own configured size.
+        local function fix(fs, getPath, getOutline, getSize)
             if not fs then return end
             local _, sz = fs:GetFont()
-            if sz then SetSafeFont(fs, getPath(), sz, getOutline()) end
+            local size = (getSize and getSize()) or sz
+            if size then SetSafeFont(fs, getPath(), size, getOutline()) end
         end
-        fix(layer.titleText,       getPresenceTitleFontPath,    getPresenceTitleFontOutline)
-        fix(layer.titleShadow,     getPresenceTitleFontPath,    getPresenceTitleFontOutline)
-        fix(layer.subText,         getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        fix(layer.subShadow,       getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        fix(layer.discoveryText,   getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        fix(layer.discoveryShadow, getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
+        fix(layer.titleText,       getPresenceTitleFontPath,     getPresenceTitleFontOutline)
+        fix(layer.titleShadow,     getPresenceTitleFontPath,     getPresenceTitleFontOutline)
+        fix(layer.subText,         getPresenceSubtitleFontPath,  getPresenceSubtitleFontOutline)
+        fix(layer.subShadow,       getPresenceSubtitleFontPath,  getPresenceSubtitleFontOutline)
+        fix(layer.discoveryText,   getPresenceDiscoveryFontPath, getPresenceDiscoveryFontOutline, getPresenceDiscoverySize)
+        fix(layer.discoveryShadow, getPresenceDiscoveryFontPath, getPresenceDiscoveryFontOutline, getPresenceDiscoverySize)
     end
     reapplyLayerFonts(curLayer)
     reapplyLayerFonts(oldLayer)
