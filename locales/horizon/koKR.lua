@@ -1482,6 +1482,7 @@ L["PRESENCE_FONT_FAMILY_SUBTITLE"]                            = "부제목 글�
 -- L["PRESENCE_LARGE_NOTIFICATIONS"]                          = "Large Notifications"
 -- L["PRESENCE_MEDIUM_NOTIFICATIONS"]                         = "Medium Notifications"
 -- L["PRESENCE_SMALL_NOTIFICATIONS"]                          = "Small Notifications"
+-- L["PRESENCE_DISCOVERY_NOTIFICATIONS"]                      = "Discovery Notifications"
 -- L["PRESENCE_LARGE_PRIMARY_SIZE"]                           = "Large Primary Size"
 -- L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_TITLES_ZONE"]     = "Font size for large notification titles (zone, quest complete, achievement, etc.)."
 -- L["PRESENCE_LARGE_SECONDARY_SIZE"]                         = "Large Secondary Size"

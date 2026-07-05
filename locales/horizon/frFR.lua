@@ -1483,6 +1483,7 @@ L["PRESENCE_RESET_PRESENCE_TYPOGRAPHY_OPTIONS_FONTS_SIZES"]   = "Réinitialise t
 L["PRESENCE_LARGE_NOTIFICATIONS"]                             = "Grandes notifications"
 L["PRESENCE_MEDIUM_NOTIFICATIONS"]                            = "Notifications moyennes"
 L["PRESENCE_SMALL_NOTIFICATIONS"]                             = "Petites notifications"
+-- L["PRESENCE_DISCOVERY_NOTIFICATIONS"]                      = "Discovery Notifications"
 L["PRESENCE_LARGE_PRIMARY_SIZE"]                              = "Taille primaire des grandes notifications"
 L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_TITLES_ZONE"]        = "Taille du texte des titres de grandes notifications (zones, quête terminée, haut fait, etc.)."
 L["PRESENCE_LARGE_SECONDARY_SIZE"]                            = "Taille secondaire des grandes notifications"

@@ -1492,6 +1492,7 @@ L["PRESENCE_RESET_PRESENCE_TYPOGRAPHY_OPTIONS_FONTS_SIZES"]   = "Setzt sämtlich
 L["PRESENCE_LARGE_NOTIFICATIONS"]                             = "Große Benachrichtigungen"
 L["PRESENCE_MEDIUM_NOTIFICATIONS"]                            = "Mittlere Benachrichtigungen"
 L["PRESENCE_SMALL_NOTIFICATIONS"]                             = "Kleine Benachrichtigungen"
+-- L["PRESENCE_DISCOVERY_NOTIFICATIONS"]                      = "Discovery Notifications"
 L["PRESENCE_LARGE_PRIMARY_SIZE"]                              = "Schriftgröße großer Primärzeilen"
 L["PRESENCE_FONT_SIZE_LARGE_NOTIFICATION_TITLES_ZONE"]        = "Schriftgröße für große Benachrichtigungstitel (Zonenwechsel, Quest-Abschluss, Erfolge, etc.)"
 L["PRESENCE_LARGE_SECONDARY_SIZE"]                            = "Schriftgröße großer Sekundärzeilen"
