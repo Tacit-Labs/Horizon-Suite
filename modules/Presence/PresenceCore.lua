@@ -357,6 +357,20 @@ local function getPresenceSubtitleFontOutline()
     return raw
 end
 
+local function getPresenceDiscoveryFontPath()
+    local global = addon.GetActiveGlobalFont and addon.GetActiveGlobalFont()
+    if global then return global end
+    local raw = addon.GetDB and addon.GetDB("presenceDiscoveryFontPath", PRESENCE_FONT_USE_GLOBAL) or PRESENCE_FONT_USE_GLOBAL
+    if raw == PRESENCE_FONT_USE_GLOBAL or not raw or raw == "" then return getPresenceFontPath() end
+    return (addon.ResolveFontPath and addon.ResolveFontPath(raw)) or raw
+end
+
+local function getPresenceDiscoveryFontOutline()
+    local raw = addon.GetDB and addon.GetDB("presenceDiscoveryFontOutline", "OUTLINE")
+    if raw == nil then return "OUTLINE" end
+    return raw
+end
+
 local function getPresenceDiscoverySize()
     local raw = tonumber(addon.GetDB and addon.GetDB("presenceDiscoverySize", DISCOVERY_SIZE)) or DISCOVERY_SIZE
     return math.max(12, math.min(40, math.floor(raw)))
@@ -397,6 +411,10 @@ end
 
 local function GetPresenceSubFont()
     return getPresenceSubtitleFontPath(), nil, getPresenceSubtitleFontOutline()
+end
+
+local function GetPresenceDiscoveryFont()
+    return getPresenceDiscoveryFontPath(), nil, getPresenceDiscoveryFontOutline()
 end
 
 -- Variant-based sizes: large (sz 48), medium (sz 36), small (sz 28). Each has primary + secondary.
@@ -553,12 +571,12 @@ local function CreateLayer(parent)
     L.subShadow:SetPoint("CENTER", L.subText, "CENTER", shadowX, shadowY)
 
     L.discoveryShadow = parent:CreateFontString(nil, "BORDER")
-    SetSafeFont(L.discoveryShadow, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
+    SetSafeFont(L.discoveryShadow, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
     L.discoveryShadow:SetTextColor(0, 0, 0, shadowA)
     L.discoveryShadow:SetJustifyH("CENTER")
 
     L.discoveryText = parent:CreateFontString(nil, "OVERLAY")
-    SetSafeFont(L.discoveryText, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
+    SetSafeFont(L.discoveryText, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
     L.discoveryText:SetTextColor(1, 1, 1, 1)  -- neutral; resolved at show via getDiscoveryColor
     L.discoveryText:SetJustifyH("CENTER")
     L.discoveryText:SetPoint("TOP", L.subText, "BOTTOM", 0, -5)
@@ -570,8 +588,8 @@ local function CreateLayer(parent)
     LockDirectFont(L.titleText,       GetPresenceTitleFont)
     LockDirectFont(L.subShadow,       GetPresenceSubFont)
     LockDirectFont(L.subText,         GetPresenceSubFont)
-    LockDirectFont(L.discoveryShadow, GetPresenceSubFont)
-    LockDirectFont(L.discoveryText,   GetPresenceSubFont)
+    LockDirectFont(L.discoveryShadow, GetPresenceDiscoveryFont)
+    LockDirectFont(L.discoveryText,   GetPresenceDiscoveryFont)
 
     return L
 end
@@ -1374,13 +1392,13 @@ local function ApplyPresenceOptions()
         fix(layer.titleShadow,     getPresenceTitleFontPath,    getPresenceTitleFontOutline)
         fix(layer.subText,         getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
         fix(layer.subShadow,       getPresenceSubtitleFontPath, getPresenceSubtitleFontOutline)
-        -- Discovery follows the subtitle font family/outline but has its own configurable
-        -- size, so apply it explicitly (fix() would preserve the current size instead).
+        -- Discovery has its own font family, outline, and size, so apply it explicitly
+        -- (fix() would preserve the current size instead of the configured one).
         if layer.discoveryText then
-            SetSafeFont(layer.discoveryText, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
+            SetSafeFont(layer.discoveryText, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
         end
         if layer.discoveryShadow then
-            SetSafeFont(layer.discoveryShadow, getPresenceSubtitleFontPath(), getPresenceDiscoverySize(), getPresenceSubtitleFontOutline())
+            SetSafeFont(layer.discoveryShadow, getPresenceDiscoveryFontPath(), getPresenceDiscoverySize(), getPresenceDiscoveryFontOutline())
         end
     end
     reapplyLayerFonts(curLayer)
