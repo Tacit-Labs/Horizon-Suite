@@ -32,7 +32,8 @@ docs/*
 .release/discord-release-payload.json
 
 # Local dev tools
-.luacheckrc
+# NOTE: .luacheckrc is intentionally tracked (see .github/workflows/luacheck.yml) so CI
+# and contributors share one lint config; do not re-add it here.
 tools/pipeline-viewer.html
 tools/options_viz.html
 tools/serve-pipeline.ps1
