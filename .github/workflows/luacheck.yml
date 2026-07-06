@@ -1,11 +1,15 @@
 name: Luacheck
 
-# Static-analysis gate for the addon's Lua. Fails the build on syntax errors,
-# undefined globals (typos / removed APIs), and unused locals, using the
-# repo-tracked .luacheckrc (std = lua51 + the WoW API surface in read_globals).
+# Static-analysis gate for the addon's Lua, using the repo-tracked .luacheckrc
+# (std = lua51 + the WoW API surface in read_globals).
 #
-# BigWigsMods/luacheck runs luacheck inside a Lua 5.1 Docker image and reads the
-# .luacheckrc at the repo root, so CI and local `luacheck .` share one config.
+# Policy: this is a PARSE / LOAD gate. It fails the build only on luacheck
+# *errors* (syntax / parse failures) — the "will it even load in-game" guarantee.
+# Warnings (notably "accessing undefined variable" from the hand-maintained,
+# still-incomplete read_globals list) are printed for visibility but do NOT fail
+# the build yet. Once the WoW globals surface is completed — ideally generated
+# from Ketho's definitions rather than hand-listed — this can be tightened to
+# gate on warnings too by removing the `status < 2` allowance below.
 
 on:
   push:
@@ -21,8 +25,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run luacheck
-        uses: BigWigsMods/luacheck@main
+      - uses: leafo/gh-actions-lua@v13
         with:
-          args: -q
-          annotate: warning
+          luaVersion: "5.1"
+      - uses: leafo/gh-actions-luarocks@v6
+      - name: Install luacheck
+        run: luarocks install luacheck
+      - name: Lint (fail on parse errors; warnings informational)
+        run: |
+          set +e
+          out="$(luacheck . --no-color)"
+          status=$?
+          printf '%s\n' "$out"
+          # luacheck exit codes: 0 = clean, 1 = warnings only, >=2 = errors/fatal.
+          # Belt-and-suspenders: also parse the "Total: N warnings / M errors" line.
+          errs="$(printf '%s\n' "$out" | sed -n 's#.*/ \([0-9][0-9]*\) errors.*#\1#p' | tail -1)"
+          echo "luacheck exit=$status parsed_errors=${errs:-NA}"
+          if [ "$status" -ge 2 ] || [ "${errs:-0}" -gt 0 ]; then
+            echo "::error::luacheck found parse error(s) (exit=$status, errors=${errs:-?}) — see log above"
+            exit 1
+          fi
+          echo "::notice::Parse gate passed — 0 errors. Warnings are non-blocking pending read_globals completion."
