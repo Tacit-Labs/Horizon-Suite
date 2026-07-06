@@ -119,6 +119,7 @@ modules/Augment/TalkingHead/AugmentTalkingHead.lua
 modules/Augment/AchievementTracker/AugmentAchievementTracker.lua
 modules/Augment/AugmentModule.lua
 
+modules/Vista/VistaTeleports.lua
 modules/Vista/VistaCore.lua
 modules/Vista/VistaSlash.lua
 modules/Vista/VistaModule.lua
