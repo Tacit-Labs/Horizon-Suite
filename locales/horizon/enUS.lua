@@ -82,6 +82,7 @@ L["SEARCH_FONTS"]                                             = "Search Fonts...
 -- =====================================================================
 L["COLOR_PICKER_TITLE"]                                       = "Choose a colour"
 L["COLOR_SAVE_CURRENT"]                                       = "Save current colour"
+L["COLOR_RESTORE_CLASS"]                                      = "Right-click: restore class colour"
 L["OPACITY"]                                                  = "Opacity"
 
 -- =====================================================================
