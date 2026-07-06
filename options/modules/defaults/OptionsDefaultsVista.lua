@@ -30,7 +30,7 @@ addon.VISTA_KEYS = {
     -- Teleport menu
     vistaTeleportGroup_hearthstone = true, vistaTeleportGroup_profession = true,
     vistaTeleportGroup_class = true, vistaTeleportGroup_dungeon = true,
-    vistaTeleportGroup_event = true, vistaTeleportGroup_other = true,
+    vistaTeleportGroup_event = true,
     vistaTeleportShowCooldowns = true, vistaTeleportShowRecents = true, vistaTeleportEnableFavorites = true,
     vistaTeleportFavorites = true, vistaTeleportRecent = true,  -- runtime tables (SetDB routing only)
     vistaQueueBtnX = true, vistaQueueBtnY = true,
@@ -145,7 +145,7 @@ addon.VISTA_DEFAULTS = {
     -- Teleport menu (favourites/recents tables are created lazily, so not defaulted here)
     vistaTeleportGroup_hearthstone = true, vistaTeleportGroup_profession = true,
     vistaTeleportGroup_class = true, vistaTeleportGroup_dungeon = true,
-    vistaTeleportGroup_event = true, vistaTeleportGroup_other = true,
+    vistaTeleportGroup_event = true,
     vistaTeleportShowCooldowns = true, vistaTeleportShowRecents = true, vistaTeleportEnableFavorites = true,
     vistaBorderShow = true, vistaBorderWidth = 1,
     vistaBorderColorR = 1, vistaBorderColorG = 1, vistaBorderColorB = 1, vistaBorderColorA = 0.15,

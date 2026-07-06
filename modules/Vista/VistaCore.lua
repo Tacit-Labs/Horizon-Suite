@@ -1947,7 +1947,7 @@ function LayoutTeleportMenu(menu)
         if addon.Vista.AllTeleportGroupsHidden and addon.Vista.AllTeleportGroupsHidden() then
             emptyMsg = L["VISTA_TELEPORT_ALL_GROUPS_HIDDEN"]
         else
-            emptyMsg = L["VISTA_NO_TELEPORTS_UNLOCKED"]
+            emptyMsg = L["VISTA_TELEPORT_NONE_UNLOCKED"]
         end
         er:SetText(emptyMsg)
         er:Show()

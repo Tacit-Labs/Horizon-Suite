@@ -18,13 +18,12 @@ local GROUP_ORDER = {
     class       = 3,
     dungeon     = 4,
     event       = 5,
-    other       = 6,
 }
 
 -- Localized display label for a teleport group (read lazily at menu-build time,
 -- so a missing locale at file scope can never cascade into a load-time error).
 function addon.Vista.GroupLabel(group)
-    local key = "VISTA_TELEPORT_GROUP_" .. string.upper(group or "other")
+    local key = "VISTA_TELEPORT_GROUP_" .. string.upper(group or "")
     return L[key]
 end
 
@@ -231,11 +230,11 @@ addon.Vista.TeleportCatalog = {
     { kind = "spell", id = 1254555, group = "dungeon" }, -- Path of Unyielding Blight
     { kind = "spell", id = 1254557, group = "dungeon" }, -- Path of the Crowning Pinnacle
 
-    -- Event / other teleport toys & items
-    { kind = "toy",   id = 205255, group = "other" }, -- Niffen Diggin' Mitts (Zaralek Cavern)
+    -- Event / miscellaneous teleport toys & items
+    { kind = "toy",   id = 205255, group = "event" }, -- Niffen Diggin' Mitts (Zaralek Cavern)
     { kind = "toy",   id = 243056, group = "event" }, -- Delver's Mana-Bound Ethergate
-    { kind = "item",  id = 234389, group = "other" }, -- Gallagio Loyalty Rewards Card: Silver
-    { kind = "item",  id = 234390, group = "other" }, -- Gallagio Loyalty Rewards Card: Gold
+    { kind = "item",  id = 234389, group = "event" }, -- Gallagio Loyalty Rewards Card: Silver
+    { kind = "item",  id = 234390, group = "event" }, -- Gallagio Loyalty Rewards Card: Gold
 }
 
 local FALLBACK_ICON = 134400
@@ -303,20 +302,20 @@ local function GroupRank(g)
     return GROUP_ORDER[g or ""] or 99
 end
 
--- Groups that have their own visibility toggle. Anything outside this set is
--- gated by the "other" catch-all instead.
+-- Groups that have their own visibility toggle. Entries whose group is not in
+-- this set are not shown.
 local KNOWN_GROUPS = {
     hearthstone = true, profession = true, class = true,
-    dungeon = true, event = true, other = true,
+    dungeon = true, event = true,
 }
 
--- True if the given teleport group is enabled for display. Unknown groups fall
--- through to the "other" catch-all toggle. Every group defaults to shown — we
--- pass `true` as the default so an un-touched profile shows everything (rather
--- than keying off whether the value has been written yet).
+-- True if the given teleport group is enabled for display. Groups outside
+-- KNOWN_GROUPS are never shown. Every known group defaults to shown — we pass
+-- `true` as the default so an un-touched profile shows everything (rather than
+-- keying off whether the value has been written yet).
 local function GroupEnabled(group)
-    local g = group or "other"
-    if not KNOWN_GROUPS[g] then g = "other" end
+    local g = group or ""
+    if not KNOWN_GROUPS[g] then return false end
     return addon.GetDB("vistaTeleportGroup_" .. g, true) and true or false
 end
 

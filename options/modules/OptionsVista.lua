@@ -82,7 +82,6 @@ local categories = {
             Toggle(L["VISTA_TELEPORT_GROUP_CLASS"], L["VISTA_TELEPORT_GROUP_CLASS_DESC"], "vistaTeleportGroup_class", D.vistaTeleportGroup_class),
             Toggle(L["VISTA_TELEPORT_GROUP_DUNGEON"], L["VISTA_TELEPORT_GROUP_DUNGEON_DESC"], "vistaTeleportGroup_dungeon", D.vistaTeleportGroup_dungeon),
             Toggle(L["VISTA_TELEPORT_GROUP_EVENT"], L["VISTA_TELEPORT_GROUP_EVENT_DESC"], "vistaTeleportGroup_event", D.vistaTeleportGroup_event),
-            Toggle(L["VISTA_TELEPORT_GROUP_OTHER"], L["VISTA_TELEPORT_GROUP_OTHER_DESC"], "vistaTeleportGroup_other", D.vistaTeleportGroup_other),
             Header(L["VISTA_TELEPORT_MENU_BEHAVIOUR"]),
             Toggle(L["VISTA_TELEPORT_SHOW_COOLDOWNS"], L["VISTA_TELEPORT_SHOW_COOLDOWNS_DESC"], "vistaTeleportShowCooldowns", D.vistaTeleportShowCooldowns),
             Toggle(L["VISTA_TELEPORT_SHOW_RECENTS"], L["VISTA_TELEPORT_SHOW_RECENTS_DESC"], "vistaTeleportShowRecents", D.vistaTeleportShowRecents),
