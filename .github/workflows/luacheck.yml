@@ -1,0 +1,28 @@
+name: Luacheck
+
+# Static-analysis gate for the addon's Lua. Fails the build on syntax errors,
+# undefined globals (typos / removed APIs), and unused locals, using the
+# repo-tracked .luacheckrc (std = lua51 + the WoW API surface in read_globals).
+#
+# BigWigsMods/luacheck runs luacheck inside a Lua 5.1 Docker image and reads the
+# .luacheckrc at the repo root, so CI and local `luacheck .` share one config.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  luacheck:
+    name: Lint (luacheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run luacheck
+        uses: BigWigsMods/luacheck@main
+        with:
+          args: -q
+          annotate: warning

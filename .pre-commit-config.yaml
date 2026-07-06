@@ -1,0 +1,17 @@
+# Optional local pre-commit hook mirroring the CI Luacheck gate, so lint failures
+# surface before you push instead of in CI.
+#
+# One-time setup:
+#   pipx install pre-commit            # or: pip install pre-commit
+#   pre-commit install                 # installs the git hook in this clone
+# Requires luacheck on PATH:
+#   luarocks install luacheck          # (needs lua 5.1 + luarocks)
+#
+# The hook shells out to your local luacheck, which reads the repo-tracked
+# .luacheckrc. `rev` is pinned to a branch for now — run `pre-commit autoupdate`
+# to pin it to an immutable tag/commit.
+repos:
+  - repo: https://github.com/Calinou/pre-commit-luacheck
+    rev: master
+    hooks:
+      - id: luacheck

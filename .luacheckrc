@@ -1,0 +1,416 @@
+-- luacheck configuration for HorizonSuite (WoW retail addon)
+-- Run: luacheck .
+
+std = "lua51"
+
+-- Ignore patterns
+-- NOTE: exclude_files is case-sensitive on CI (Linux runners); match the on-disk
+-- casing exactly ("Libs/", not "libs/") or the vendored libs get linted in CI.
+exclude_files = {
+    "Libs/",     -- vendored libraries (LibStub, LibSharedMedia, AceGUI, ...)
+    "tools/",
+    "locales/",  -- translation strings; long lines are expected
+    "wowapi/",   -- Blizzard API documentation stubs, not our code
+}
+
+-- Ignore common non-critical warnings
+ignore = {
+    "212",  -- unused argument (common in event callbacks: self, event, ...)
+    "311",  -- value assigned to variable is unused (common in WoW API returns)
+    "611",  -- line contains only whitespace
+    "612",  -- line contains trailing whitespace
+    "613",  -- trailing whitespace in string
+    "614",  -- trailing whitespace in comment
+    "631",  -- line too long
+}
+
+-- Addon-defined globals (we create/write these)
+globals = {
+    -- Addon namespace + saved variables
+    "HorizonDB",
+    "HorizonBetaDB",
+    "_HorizonSuite_Loading",
+    "HorizonSuite",
+    "HorizonSuiteBeta",
+    "HorizonSuite_ShowOptions",
+    "HorizonSuite_ApplyTypography",
+    "HorizonSuite_ApplyDimensions",
+    "HorizonSuite_RequestRefresh",
+    "HorizonSuite_FullLayout",
+
+    -- Binding names (set by TOC)
+    "BINDING_NAME_CLICK_HSCollapseButton_LeftButton",
+    "BINDING_NAME_CLICK_HSNearbyToggleButton_LeftButton",
+    "BINDING_NAME_CLICK_HSSecureItemOverlay_LeftButton",
+
+    -- Slash command globals (WoW pattern: set SLASH_X1/2 + SlashCmdList.X)
+    "SLASH_MODERNQUESTTRACKER1",
+    "SLASH_MODERNQUESTTRACKER2",
+    "SLASH_HSEDIT1",
+    "SLASH_HSOPT1",
+    "SLASH_HORIZONSUITE1",
+    "SLASH_HORIZONSUITE2",
+    "SLASH_INSIGHT1",
+    "SLASH_HSINSIGHT1",
+    "SLASH_HORIZONSUITEINSIGHT1",
+    "SLASH_HORIZONSUITEINSIGHT2",
+    "SLASH_HORIZONSUITEINSIGHT3",
+
+    -- WoW global tables we mutate
+    "SlashCmdList",
+    "StaticPopupDialogs",
+
+    -- Options system inter-file globals (defined in one file, used in others)
+    "OptionsData_GetDB",
+    "OptionsData_SetDB",
+    "OptionsData_BuildSearchIndex",
+    "OptionsData_NotifyMainAddon",
+    "OptionsData_NotifyMainAddon_Live",
+    "OptionsData_SetUpdateFontsRef",
+    "OptionsWidgets_CreateButton",
+    "OptionsWidgets_CreateColorSwatchRow",
+    "OptionsWidgets_CreateCustomDropdown",
+    "OptionsWidgets_CreateMiniSwatch",
+    "OptionsWidgets_CreateReorderList",
+    "OptionsWidgets_CreateSearchInput",
+    "OptionsWidgets_CreateSectionCard",
+    "OptionsWidgets_CreateSectionHeader",
+    "OptionsWidgets_CreateSlider",
+    "OptionsWidgets_CreateToggleSwitch",
+    "OptionsWidgets_SetDef",
+}
+
+-- WoW API globals (we read these, not write)
+read_globals = {
+    -- C_* namespaces
+    "C_AddOns",
+    "C_AreaPoiInfo",
+    "C_ChallengeMode",
+    "C_ClassColor",
+    "C_ContentTracking",
+    "C_CurrencyInfo",
+    "C_DelvesUI",
+    "C_Endeavors",
+    "C_FriendList",
+    "C_GossipInfo",
+    "C_HousingCatalog",
+    "C_HousingDecor",
+    "C_Item",
+    "C_LFGList",
+    "C_Map",
+    "C_Minimap",
+    "C_MountJournal",
+    "C_MythicPlus",
+    "C_NeighborhoodInitiative",
+    "C_PaperDollInfo",
+    "C_PartyInfo",
+    "C_PerksActivities",
+    "C_PlayerHousing",
+    "C_PlayerInfo",
+    "C_PvP",
+    "C_QuestHub",
+    "C_QuestInfoSystem",
+    "C_QuestLine",
+    "C_QuestLog",
+    "C_Scenario",
+    "C_ScenarioInfo",
+    "C_Spell",
+    "C_SuperTrack",
+    "C_TaskQuest",
+    "C_Timer",
+    "C_TooltipInfo",
+    "C_TradeSkillUI",
+    "C_TransmogCollection",
+    "C_UIWidgetManager",
+    "C_UnitAuras",
+    "C_VignetteInfo",
+
+    -- Frame / UI creation
+    "CreateFrame",
+    "CreateFont",
+    "UIParent",
+    "GameTooltip",
+    "WorldMapFrame",
+    "Minimap",
+    "BackdropTemplate",
+    "SecureActionButtonTemplate",
+    "TooltipDataProcessor",
+
+    -- Blizzard frame globals
+    "ObjectiveTrackerFrame",
+    "ObjectiveTrackerBonusBannerFrame",
+    "ObjectiveTrackerTopBannerFrame",
+    "MinimapCluster",
+    "MinimapBackdrop",
+    "MinimapZoneText",
+    "MinimapZoomIn",
+    "MinimapZoomOut",
+    "Minimap_ZoomOutClick",
+    "MiniMapMailFrame",
+    "MiniMapMailIcon",
+    "MiniMapTracking",
+    "ZoneTextFrame",
+    "SubZoneTextFrame",
+    "LevelUpDisplay",
+    "RaidBossEmoteFrame",
+    "EventToastManagerFrame",
+    "WorldQuestCompleteBannerFrame",
+    "BossBanner",
+    "TimeManagerFrame",
+    "TimeManagerClockButton",
+    "UIErrorsFrame",
+    "AlertFrame",
+    "AddonCompartmentFrame",
+    "ItemRefTooltip",
+    "ShoppingTooltip1",
+    "ShoppingTooltip2",
+    "EmbeddedItemTooltip",
+    "ColorPickerFrame",
+    "LootFrame",
+    "LootAlertFrame",
+    "LootAlertSystem",
+    "LootWonAlertFrame",
+    "LootWonAlertSystem",
+    "LootUpgradeAlertFrame",
+    "LootUpgradeAlertSystem",
+    "MoneyWonAlertFrame",
+    "MoneyWonAlertSystem",
+    "HousingFrame",
+    "HousingDashboardFrame",
+    "UISpecialFrames",
+    "NumberFontNormal",
+    "NumberFontNormalSmallGray",
+    "GameFontNormal",
+    "GameFontNormalSmall",
+
+    -- Unit functions
+    "UnitName",
+    "UnitPVPName",
+    "UnitClass",
+    "UnitRace",
+    "UnitLevel",
+    "UnitIsAFK",
+    "UnitIsDND",
+    "UnitHealth",
+    "UnitHealthMax",
+    "UnitMana",
+    "UnitIsUnit",
+    "UnitExists",
+    "UnitGUID",
+    "UnitInRaid",
+    "UnitInParty",
+    "UnitIsPlayer",
+    "UnitIsPVP",
+    "UnitReaction",
+    "UnitClassification",
+    "UnitCreatureType",
+    "UnitHonorLevel",
+    "UnitFactionGroup",
+    "UnitAffectingCombat",
+    "IsInGroup",
+    "GetNumGroupMembers",
+    "GetUnitName",
+    "GetGuildInfo",
+    "CanInspect",
+    "InspectUnit",
+    "NotifyInspect",
+    "GetInspectSpecialization",
+    "GetAverageItemLevel",
+
+    -- Time / game state
+    "GetTime",
+    "GetServerTime",
+    "GetRealmName",
+    "GetNormalizedRealmName",
+    "GetLocale",
+    "GetInstanceInfo",
+    "IsInInstance",
+    "GetZoneText",
+    "GetSubZoneText",
+    "GetZonePVPInfo",
+    "GetMinimapZoneText",
+    "IsResting",
+    "InCombatLockdown",
+    "GetDifficultyInfo",
+    "GetWorldElapsedTime",
+    "GetGameTime",
+    "GetFramerate",
+    "GetNetStats",
+    "HasNewMail",
+    "date",
+
+    -- Character / specialization
+    "GetNumSpecializations",
+    "GetSpecialization",
+    "GetSpecializationInfo",
+    "GetSpecializationInfoByID",
+    "GetSpecializationRoleByID",
+
+    -- Quest functions
+    "GetQuestLogTitle",
+    "GetQuestLink",
+    "GetQuestObjectives",
+    "CanAbandonQuest",
+    "AbandonQuest",
+    "SetAbandonQuest",
+    "QuestLogPushQuest",
+    "ShowQuestComplete",
+    "GetQuestLogSpecialItemInfo",
+    "GetQuestLogRewardMoney",
+    "GetQuestLogRewardXP",
+    "GetQuestLogRewardHonor",
+    "GetQuestLogRewardInfo",
+    "GetNumQuestLogRewards",
+    "GetNumQuestLogRewardCurrencies",
+    "GetQuestLogRewardCurrencyInfo",
+
+    -- Item functions
+    "GetItemInfo",
+    "GetItemInfoInstant",
+    "GetItemQualityColor",
+    "GetItemCount",
+    "GetItemCooldown",
+    "IsEquippedItem",
+    "GetInventorySlotInfo",
+
+    -- Map / minimap
+    "GetMapInfo",
+    "GetCurrentMapAreaID",
+
+    -- Spell / ability
+    "GetSpellLink",
+    "GetSpellInfo",
+    "GetSpellTexture",
+
+    -- Achievement functions
+    "GetAchievementInfo",
+    "GetAchievementLink",
+    "GetAchievementCriteriaInfo",
+    "GetAchievementNumCriteria",
+    "GetTrackedAchievements",
+    "AddTrackedAchievement",
+    "RemoveTrackedAchievement",
+
+    -- UI functions
+    "HideUIPanel",
+    "ShowUIPanel",
+    "ToggleQuestLog",
+    "ToggleWorldMap",
+    "ToggleTimeManager",
+    "ToggleEncounterJournal",
+    "ToggleHousingDashboard",
+    "ToggleDropDownMenu",
+    "CloseDropDownMenus",
+    "ReloadUI",
+    "hooksecurefunc",
+    "ClearCursor",
+    "GetCursorPosition",
+    "IsModifiedClick",
+    "IsShiftKeyDown",
+    "IsControlKeyDown",
+    "IsAltKeyDown",
+    "IsMouseButtonDown",
+    "GetBindingKey",
+    "GetMouseFocus",
+    "StaticPopup_Show",
+    "QuestMapFrame_OpenToQuestDetails",
+    "AchievementFrame_LoadUI",
+    "OpenAchievementFrameToAchievement",
+    "OpenQuestLog",
+    "InterfaceOptions_AddCategory",
+    "PVEFrame_ShowFrame",
+    "LFGListUtil_FindQuestGroup",
+    "HousingFramesUtil",
+    "ChatFrameUtil",
+    "ContentTrackingUtil",
+    "ProfessionsUtil",
+    "GetCVarTableValue",
+    "GetCVarNumberOrDefault",
+
+    -- Dropdown API
+    "UIDropDownMenu_Initialize",
+    "UIDropDownMenu_CreateInfo",
+    "UIDropDownMenu_AddButton",
+    "EasyMenu",
+
+    -- Formatting
+    "FormatLargeNumber",
+    "BreakUpLargeNumbers",
+    "GetCoinTextureString",
+    "IsPlayerAtEffectiveMaxLevel",
+    "GetMaxPlayerLevel",
+    "GetClassAtlas",
+    "CreateAtlasMarkup",
+    "CreateColor",
+
+    -- Sound
+    "PlaySound",
+    "PlaySoundFile",
+    "StopSound",
+
+    -- Addon management
+    "IsAddOnLoaded",
+    "EnableAddOn",
+    "DisableAddOn",
+    "GetAddOnInfo",
+    "GetAddOnEnableState",
+    "GetAddOnMetadata",
+    "GetCVar",
+    "SetCVar",
+    "Settings",
+    "LibStub",
+
+    -- WoW Lua extras (not in standard lua51)
+    "wipe",
+    "tinsert",
+    "tremove",
+    "tContains",
+    "tIndexOf",
+    "print",
+    "debugstack",
+    "strlower",
+    "strupper",
+    "strtrim",
+    "strfind",
+    "strsplit",
+    "strjoin",
+    "strmatch",
+    "gsub",
+    "format",
+
+    -- Object constructors
+    "Item",
+    "UiMapPoint",
+
+    -- Mixins
+    "Mixin",
+    "CreateFromMixins",
+    "BackdropTemplateMixin",
+
+    -- WoW UI animation helpers
+    "UIFrameFadeIn",
+    "UIFrameFadeOut",
+
+    -- WoW constants / enums
+    "Enum",
+    "SOUNDKIT",
+    "RAID_CLASS_COLORS",
+    "ITEM_QUALITY_COLORS",
+    "FACTION_BAR_COLORS",
+    "HONOR",
+    "COMBAT_XP_GAIN",
+    "GOLD_AMOUNT",
+    "SILVER_AMOUNT",
+    "COPPER_AMOUNT",
+    "NO",
+    "YES",
+    "OKAY",
+    "CANCEL",
+    "RESET",
+    "LE_PARTY_CATEGORY_INSTANCE",
+    "LE_QUEST_FREQUENCY_DAILY",
+    "LE_QUEST_FREQUENCY_WEEKLY",
+    "FACTION_STANDING_INCREASED",
+    "FACTION_STANDING_INCREASED_GENERIC",
+    "FACTION_STANDING_DECREASED",
+}
