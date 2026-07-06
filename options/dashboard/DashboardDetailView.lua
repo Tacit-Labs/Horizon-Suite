@@ -70,7 +70,9 @@ function addon.DashboardDetailView_Init(env)
             f.detailPreviewBtn = previewBtn
 
             local resetBtn = CW(f, L["AXIS_RESET_POSITION"] or "Reset Position", function()
-                if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+                if f.detailResetBtn and f.detailResetBtn._onClick then
+                    f.detailResetBtn._onClick()
+                end
             end, { width = 150, height = 28 })
             resetBtn:SetFrameLevel(fl)
             resetBtn:ClearAllPoints()
@@ -1043,17 +1045,39 @@ function addon.DashboardDetailView_Init(env)
         do
             local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
             local isAugment = selCat and selCat.key == "AugmentImprovements"
+            local isAugmentFlightTimer = selCat and selCat.key == "AugmentFlightTimer"
             if f.detailPreviewBtn then
                 if isAugment then
                     f.detailPreviewBtn._onClick = function()
                         if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
                     end
                     f.detailPreviewBtn:Show()
+                elseif isAugmentFlightTimer then
+                    f.detailPreviewBtn._onClick = function()
+                        local ft = addon.Augment and addon.Augment.FlightTimer
+                        if ft and ft.Bar and ft.Bar.Preview then ft.Bar.Preview() end
+                    end
+                    f.detailPreviewBtn:Show()
                 else
                     f.detailPreviewBtn:Hide()
                 end
             end
-            if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
+            if f.detailResetBtn then
+                if isAugment then
+                    f.detailResetBtn._onClick = function()
+                        if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+                    end
+                    f.detailResetBtn:Show()
+                elseif isAugmentFlightTimer then
+                    f.detailResetBtn._onClick = function()
+                        local ft = addon.Augment and addon.Augment.FlightTimer
+                        if ft and ft.Bar and ft.Bar.ResetPosition then ft.Bar.ResetPosition() end
+                    end
+                    f.detailResetBtn:Show()
+                else
+                    f.detailResetBtn:Hide()
+                end
+            end
             if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
             if f.detailEnableBtn then f.detailEnableBtn:Hide() end
         end
@@ -1274,17 +1298,39 @@ function addon.DashboardDetailView_Init(env)
             -- Show fixed header buttons only for pages that expose them.
             do
                 local isAugment = cats[1] and cats[1].key == "AugmentImprovements"
+                local isAugmentFlightTimer = cats[1] and cats[1].key == "AugmentFlightTimer"
                 if f.detailPreviewBtn then
                     if isAugment then
                         f.detailPreviewBtn._onClick = function()
                             if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
                         end
                         f.detailPreviewBtn:Show()
+                    elseif isAugmentFlightTimer then
+                        f.detailPreviewBtn._onClick = function()
+                            local ft = addon.Augment and addon.Augment.FlightTimer
+                            if ft and ft.Bar and ft.Bar.Preview then ft.Bar.Preview() end
+                        end
+                        f.detailPreviewBtn:Show()
                     else
                         f.detailPreviewBtn:Hide()
                     end
                 end
-                if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
+                if f.detailResetBtn then
+                    if isAugment then
+                        f.detailResetBtn._onClick = function()
+                            if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+                        end
+                        f.detailResetBtn:Show()
+                    elseif isAugmentFlightTimer then
+                        f.detailResetBtn._onClick = function()
+                            local ft = addon.Augment and addon.Augment.FlightTimer
+                            if ft and ft.Bar and ft.Bar.ResetPosition then ft.Bar.ResetPosition() end
+                        end
+                        f.detailResetBtn:Show()
+                    else
+                        f.detailResetBtn:Hide()
+                    end
+                end
                 if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
                 if f.detailEnableBtn then f.detailEnableBtn:Hide() end
             end

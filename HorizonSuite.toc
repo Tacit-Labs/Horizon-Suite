@@ -117,6 +117,13 @@ modules/Augment/SelfHighlight/AugmentSelfHighlight.lua
 modules/Augment/AutoVendor/AugmentVendor.lua
 modules/Augment/TalkingHead/AugmentTalkingHead.lua
 modules/Augment/AchievementTracker/AugmentAchievementTracker.lua
+modules/Augment/FlightTimer/AugmentFlightTimerData.lua
+modules/Augment/FlightTimer/AugmentFlightTimerState.lua
+modules/Augment/FlightTimer/AugmentFlightTimerEstimator.lua
+modules/Augment/FlightTimer/AugmentFlightTimerEvents.lua
+modules/Augment/FlightTimer/AugmentFlightTimerTooltip.lua
+modules/Augment/FlightTimer/AugmentFlightTimerBar.lua
+modules/Augment/FlightTimer/AugmentFlightTimerModule.lua
 modules/Augment/AugmentModule.lua
 
 modules/Vista/VistaCore.lua
@@ -144,6 +151,7 @@ options/modules/defaults/augment/OptionsDefaultsAugmentSelfHighlight.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAutoVendor.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentTalkingHead.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAchievementTracker.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentFlightTimer.lua
 options/modules/defaults/OptionsDefaultsAugment.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
@@ -160,6 +168,7 @@ options/modules/OptionsEssence.lua
 options/modules/OptionsVista.lua
 options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua
+options/modules/OptionsAugmentFlightTimer.lua
 options/modules/OptionsFocusIntegrations.lua
 options/OptionsSearch.lua
 options/HorizonIconPicker.lua
