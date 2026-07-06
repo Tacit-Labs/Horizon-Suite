@@ -5,8 +5,8 @@ Driven by the community and customised for each member's sensibilities.
 ### Current Versions
 
 ![CurseForge Release V#](https://img.shields.io/curseforge/v/1457844?style=for-the-badge&label=%20&color=black&logo=curseforge&logoSize=auto)![GitHub Release V#](https://img.shields.io/github/v/release/Tacit-Labs/Horizon-Suite?sort=date&display_name=release&style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto&label=%20&color=black)![WoW - Retail Version](https://img.shields.io/curseforge/game-versions/1457844?style=for-the-badge&logo=battledotnet&label=%20&color=black)
-![GitHub License](https://img.shields.io/github/license/Tacit-Labs/Horizon-Suite?style=for-the-badge&label=&logo=opensourceinitiative&logoSize=auto&color=black)![GitHub commits since latest release (number)](https://img.shields.io/github/commits-since/Tacit-Labs/Horizon-Suite/latest/dev?sort=date&style=for-the-badge&label=%20&labelColor=black&color=darkgreen)![GitHub "commit(s) since" latest release (text)](https://img.shields.io/badge/commit(s)_since-black?style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto)
-![GitHub "last commit was" (dev)](https://img.shields.io/github/last-commit/Tacit-Labs/Horizon-Suite/dev?style=for-the-badge&label=most%20recent%20development%20branch%20commit%20was&logo=githublogoSize=auto&color=darkgreen&labelColor=black)
+![GitHub License](https://img.shields.io/github/license/Tacit-Labs/Horizon-Suite?style=for-the-badge&label=&logo=opensourceinitiative&logoSize=auto&color=black)![GitHub commits since latest release (number)](https://img.shields.io/github/commits-since/Tacit-Labs/Horizon-Suite/latest/main?sort=date&style=for-the-badge&label=%20&labelColor=black&color=darkgreen)![GitHub "commit(s) since" latest release (text)](https://img.shields.io/badge/commit(s)_since-black?style=for-the-badge&logo=github&logoColor=0FBF3E&logoSize=auto)
+![GitHub "last commit was" (main)](https://img.shields.io/github/last-commit/Tacit-Labs/Horizon-Suite/main?style=for-the-badge&label=most%20recent%20commit%20was&logo=githublogoSize=auto&color=darkgreen&labelColor=black)
 
 ---
 

@@ -1,14 +1,16 @@
 name: Branch Janitor
-# Deletes merged feature-style branches on a weekly schedule. The repo's
-# delete_branch_on_merge setting is intentionally OFF (so `dev` is never
-# auto-deleted on a promotion merge) — this workflow is the cleanup mechanism
-# that fills the gap, with explicit guards that make it impossible to touch
-# `main`, `dev`, or anything that doesn't match a feature-style prefix.
+# Deletes merged feature-style branches on a weekly schedule. Under the
+# single-branch trunk model, feature branches merge straight into `main`;
+# this workflow prunes them after a grace window, with explicit guards that
+# make it impossible to touch `main` or anything that doesn't match a
+# feature-style prefix. (Retained even if delete_branch_on_merge is enabled
+# on the repo — it also sweeps branches whose PRs were merged before that
+# setting, or via squash paths that leave the head ref behind.)
 #
 # Safety design (each is a hard gate):
 #   1. Allowlist of branch prefixes — anything else is left alone
-#   2. Denylist of permanent branches (main, dev) — never touched even if a
-#      future bug somehow makes them match the prefix
+#   2. Denylist of the permanent branch (main) — never touched even if a
+#      future bug somehow makes it match the prefix
 #   3. Must have a merged PR with that branch as head — unmerged WIP is safe
 #   4. Merge must be ≥ GRACE_DAYS old — recent merges keep their branch around
 #      for cherry-picks
@@ -55,7 +57,7 @@ jobs:
           # Tunables. Update these in one place if the team's branch naming
           # conventions change. Anything outside the allowlist is left alone.
           # ------------------------------------------------------------------
-          PROTECTED_BRANCHES=("main" "dev")
+          PROTECTED_BRANCHES=("main")
           # Allowlist regex. Matches: feature/, fix/, bug/, chore/, docs/,
           # refactor/, test/, hotfix/. `bug/` is included because legacy work
           # in this repo used it before the org adopted `fix/`.
