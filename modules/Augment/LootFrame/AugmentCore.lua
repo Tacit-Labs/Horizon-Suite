@@ -893,10 +893,19 @@ local function CreateEditModePanel()
     label:SetTextColor(0.25, 0.78, 1.0, 1.0)
     label:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
 
+    -- Other Augment mini-modules (Alerts, Skyriding, ...) attach their own
+    -- overlay toggle here via Augment.AddEditModePanelListener instead of each
+    -- creating a second checkbox — one "Horizon Suite" toggle controls every
+    -- Horizon Suite Edit Mode element (mirrors Plumber's design).
+    editModePanel.labels = { "Loot Frame" }
+    editModePanel.toggleListeners = {}
+
     local function ShowTip(anchor)
         GameTooltip:SetOwner(anchor, "ANCHOR_CURSOR")
         GameTooltip:SetText("Horizon Suite", 0.25, 0.78, 1.0, 1)
-        GameTooltip:AddLine("- Loot Frame", 1, 1, 1, 1)
+        for _, lbl in ipairs(editModePanel.labels) do
+            GameTooltip:AddLine("- " .. lbl, 1, 1, 1, 1)
+        end
         GameTooltip:Show()
     end
     local function HideTip() GameTooltip:Hide() end
@@ -918,6 +927,9 @@ local function CreateEditModePanel()
                 editOverlay:Hide()
                 if state.activeCount == 0 then Frame:Hide() end
             end
+        end
+        for _, listener in ipairs(editModePanel.toggleListeners) do
+            listener(checked)
         end
     end)
 
@@ -1002,6 +1014,18 @@ function Augment.HookNativeEditMode()
         end)
     end, "HorizonSuiteAugment")
     CreateEditModePanel()
+    Augment.editModePanel = editModePanel
+end
+
+-- Other Augment mini-modules call this once (from their own InitFrames, after
+-- Augment.InitFrames has already run — AugmentModule.lua guarantees that
+-- ordering) to attach to this shared checkbox instead of creating a second one.
+-- @param label string  short name shown as a tooltip bullet (e.g. "Alerts")
+-- @param onToggle function(checked: boolean)  called whenever the checkbox is clicked
+function Augment.AddEditModePanelListener(label, onToggle)
+    if not editModePanel then return end
+    table.insert(editModePanel.labels, label)
+    table.insert(editModePanel.toggleListeners, onToggle)
 end
 
 function Augment.RestoreSavedPosition()

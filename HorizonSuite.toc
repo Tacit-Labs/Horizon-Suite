@@ -117,6 +117,14 @@ modules/Augment/SelfHighlight/AugmentSelfHighlight.lua
 modules/Augment/AutoVendor/AugmentVendor.lua
 modules/Augment/TalkingHead/AugmentTalkingHead.lua
 modules/Augment/AchievementTracker/AugmentAchievementTracker.lua
+modules/Augment/Skyriding/AugmentSkyridingAPI.lua
+modules/Augment/Skyriding/AugmentSkyridingState.lua
+modules/Augment/Skyriding/AugmentSkyridingEvents.lua
+modules/Augment/Skyriding/AugmentSkyridingCore.lua
+modules/Augment/Skyriding/AugmentSkyridingBarStyle.lua
+modules/Augment/Skyriding/AugmentSkyridingCircularStyle.lua
+modules/Augment/Skyriding/AugmentSkyridingDerby.lua
+modules/Augment/Skyriding/AugmentSkyridingModule.lua
 modules/Augment/AugmentModule.lua
 
 modules/Vista/VistaCore.lua
@@ -144,6 +152,7 @@ options/modules/defaults/augment/OptionsDefaultsAugmentSelfHighlight.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAutoVendor.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentTalkingHead.lua
 options/modules/defaults/augment/OptionsDefaultsAugmentAchievementTracker.lua
+options/modules/defaults/augment/OptionsDefaultsAugmentSkyriding.lua
 options/modules/defaults/OptionsDefaultsAugment.lua
 options/modules/defaults/OptionsDefaultsPresence.lua
 options/modules/defaults/OptionsDefaultsInsight.lua
@@ -160,6 +169,7 @@ options/modules/OptionsEssence.lua
 options/modules/OptionsVista.lua
 options/modules/OptionsAugment.lua
 options/modules/OptionsAugmentTalkingHead.lua
+options/modules/OptionsAugmentSkyriding.lua
 options/modules/OptionsFocusIntegrations.lua
 options/OptionsSearch.lua
 options/HorizonIconPicker.lua

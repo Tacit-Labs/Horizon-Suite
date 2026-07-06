@@ -47,6 +47,22 @@ function addon.DashboardDetailView_Init(env)
     local function ShowDetailHeader() env.showDetailHeader() end
     local function ShowSubcategoryHeader() env.showSubcategoryHeader() end
 
+    -- Per-category Preview/Reset Position/Show Anchor dispatch for pages that
+    -- expose a draggable, previewable frame (Loot Frame, Alerts, Skyriding, ...).
+    -- A category key with no entry here simply hides all three buttons.
+    local CategoryActions = {
+        AugmentImprovements = {
+            preview = function() if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end end,
+            reset   = function() if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end end,
+            anchor  = function() if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end end,
+        },
+        AugmentSkyriding = {
+            preview = function() local S = addon.Augment and addon.Augment.Skyriding; if S and S.Preview then S.Preview() end end,
+            reset   = function() local S = addon.Augment and addon.Augment.Skyriding; if S and S.ResetPosition then S.ResetPosition() end end,
+            anchor  = function() local S = addon.Augment and addon.Augment.Skyriding; if S and S.ToggleEditMode then S.ToggleEditMode() end end,
+        },
+    }
+
     -- Fixed action buttons for detail pages — live outside the scroll frame so they
     -- never scroll away. Created here to avoid the 200-local limit in DashboardFrame.lua.
     -- The first three use OptionsWidgets_CreateButton to match the card button style.
@@ -70,7 +86,7 @@ function addon.DashboardDetailView_Init(env)
             f.detailPreviewBtn = previewBtn
 
             local resetBtn = CW(f, L["AXIS_RESET_POSITION"] or "Reset Position", function()
-                if addon.Augment and addon.Augment.ResetPosition then addon.Augment.ResetPosition() end
+                if f.detailResetBtn and f.detailResetBtn._onClick then f.detailResetBtn._onClick() end
             end, { width = 150, height = 28 })
             resetBtn:SetFrameLevel(fl)
             resetBtn:ClearAllPoints()
@@ -79,7 +95,7 @@ function addon.DashboardDetailView_Init(env)
             f.detailResetBtn = resetBtn
 
             local anchorBtn = CW(f, L["AXIS_ANCHOR_MOVE"] or "Show Anchor", function()
-                if addon.Augment and addon.Augment.ToggleAnchorFrame then addon.Augment.ToggleAnchorFrame() end
+                if f.detailAnchorBtn and f.detailAnchorBtn._onClick then f.detailAnchorBtn._onClick() end
             end, { width = 170, height = 28 })
             anchorBtn:SetFrameLevel(fl)
             anchorBtn:ClearAllPoints()
@@ -1042,19 +1058,23 @@ function addon.DashboardDetailView_Init(env)
         -- Show fixed header buttons only for pages that expose them.
         do
             local selCat = matchedCatIdx and addon.OptionCategories[matchedCatIdx]
-            local isAugment = selCat and selCat.key == "AugmentImprovements"
+            local actions = selCat and CategoryActions[selCat.key]
             if f.detailPreviewBtn then
-                if isAugment then
-                    f.detailPreviewBtn._onClick = function()
-                        if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
-                    end
+                if actions then
+                    f.detailPreviewBtn._onClick = actions.preview
                     f.detailPreviewBtn:Show()
                 else
                     f.detailPreviewBtn:Hide()
                 end
             end
-            if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
-            if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
+            if f.detailResetBtn then
+                f.detailResetBtn._onClick = actions and actions.reset
+                if actions then f.detailResetBtn:Show() else f.detailResetBtn:Hide() end
+            end
+            if f.detailAnchorBtn then
+                f.detailAnchorBtn._onClick = actions and actions.anchor
+                if actions then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end
+            end
             if f.detailEnableBtn then f.detailEnableBtn:Hide() end
         end
 
@@ -1273,19 +1293,23 @@ function addon.DashboardDetailView_Init(env)
 
             -- Show fixed header buttons only for pages that expose them.
             do
-                local isAugment = cats[1] and cats[1].key == "AugmentImprovements"
+                local actions = cats[1] and CategoryActions[cats[1].key]
                 if f.detailPreviewBtn then
-                    if isAugment then
-                        f.detailPreviewBtn._onClick = function()
-                            if addon.Augment and addon.Augment.PreviewToasts then addon.Augment.PreviewToasts() end
-                        end
+                    if actions then
+                        f.detailPreviewBtn._onClick = actions.preview
                         f.detailPreviewBtn:Show()
                     else
                         f.detailPreviewBtn:Hide()
                     end
                 end
-                if f.detailResetBtn  then if isAugment then f.detailResetBtn:Show()  else f.detailResetBtn:Hide()  end end
-                if f.detailAnchorBtn then if isAugment then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end end
+                if f.detailResetBtn then
+                    f.detailResetBtn._onClick = actions and actions.reset
+                    if actions then f.detailResetBtn:Show() else f.detailResetBtn:Hide() end
+                end
+                if f.detailAnchorBtn then
+                    f.detailAnchorBtn._onClick = actions and actions.anchor
+                    if actions then f.detailAnchorBtn:Show() else f.detailAnchorBtn:Hide() end
+                end
                 if f.detailEnableBtn then f.detailEnableBtn:Hide() end
             end
 
