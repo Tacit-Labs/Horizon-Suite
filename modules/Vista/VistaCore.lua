@@ -1744,6 +1744,34 @@ local function MenuFontPath()
     return (addon.GetDefaultFontPath and addon.GetDefaultFontPath()) or "Fonts\\FRIZQT__.TTF"
 end
 
+-- Anchor a row/star tooltip to the outer edge of the teleport menu, flanking it
+-- left or right by the menu's screen side so it never covers the list (mirrors
+-- Focus's addon.focus.AnchorTooltip). Vertically aligns to the hovered owner.
+local function AnchorTeleportTooltip(tooltip, owner, menu)
+    if not tooltip or not tooltip.SetOwner or not owner then return end
+    if menu and menu.GetLeft and menu:GetLeft() then
+        local cx = menu.GetCenter and menu:GetCenter()
+        local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
+        local menuOnRight = cx and uiw > 0 and cx > uiw * 0.5
+        local yOffset = 0
+        local ownerTop, menuTop = owner.GetTop and owner:GetTop(), menu:GetTop()
+        if ownerTop and menuTop then yOffset = ownerTop - menuTop end
+        tooltip:SetOwner(owner, "ANCHOR_NONE")
+        tooltip:ClearAllPoints()
+        if menuOnRight then
+            tooltip:SetPoint("TOPRIGHT", menu, "TOPLEFT", -4, yOffset)
+        else
+            tooltip:SetPoint("TOPLEFT", menu, "TOPRIGHT", 4, yOffset)
+        end
+        return
+    end
+    -- Fallback when the menu isn't positioned yet: flank the owner by screen side.
+    local ocx = owner.GetCenter and owner:GetCenter()
+    local uiw = (UIParent and UIParent.GetWidth and UIParent:GetWidth()) or 0
+    local ownerOnRight = ocx and uiw > 0 and ocx > uiw * 0.5
+    tooltip:SetOwner(owner, ownerOnRight and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
+end
+
 -- Split entries into pages by accumulated rendered height, counting each section
 -- header (every section change, including the first row on a page) as well as the
 -- rows themselves — so a page with many headers holds fewer rows, and toggling a
@@ -1842,7 +1870,7 @@ local function CreateTeleportRow(menu, idx)
     end)
     row._star:SetScript("OnEnter", function(s)
         if not GameTooltip then return end
-        GameTooltip:SetOwner(s, "ANCHOR_RIGHT")
+        AnchorTeleportTooltip(GameTooltip, s, menu)
         GameTooltip:SetText(L["VISTA_TELEPORT_FAVOURITE_TIP"], 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
@@ -1850,7 +1878,7 @@ local function CreateTeleportRow(menu, idx)
     row:SetScript("OnEnter", function(self)
         local e = self._entry
         if not e or not GameTooltip then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        AnchorTeleportTooltip(GameTooltip, self, menu)
         pcall(function()
             if e.kind == "spell" then
                 GameTooltip:SetSpellByID(e.id)
