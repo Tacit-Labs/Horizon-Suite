@@ -17,18 +17,42 @@ local externalProviders = {}
 -- Integration modules that handle rare/treasure display (suppress built-in scanner when any is active).
 local rareProviders = {}
 
--- Entry sort mode: alpha, questType, zone, level (DB key entrySortMode, default questType)
-local VALID_ENTRY_SORT = { alpha = true, questType = true, zone = true, level = true }
+-- Entry sort mode: alpha, questType, zone, level, proximity (DB key entrySortMode, default questType)
+local VALID_ENTRY_SORT = { alpha = true, questType = true, zone = true, level = true, proximity = true }
 
 local currentSortGroup  -- set before each table.sort so comparator knows its group
 
--- Current entry sort mode from DB (alpha, questType, zone, or level).
+-- Current entry sort mode from DB (alpha, questType, zone, level, or proximity).
 -- @return string Sort mode key
 local function GetSortMode()
     local mode = addon.GetDB("entrySortMode", DEFAULT_SORT_MODE)
     if type(mode) == "string" and VALID_ENTRY_SORT[mode] then return mode end
     return DEFAULT_SORT_MODE
 end
+
+-- Rebuilds addon.focus.proximityRank from the current quest-watch order. After a proximity sort
+-- pass, watch index 1 is the nearest quest, so a lower rank means nearer. Read-only: iterates the
+-- watch list without reordering it.
+local function RefreshProximityRankFromWatches()
+    local focus = addon.focus
+    if not focus then return end
+    local rank = focus.proximityRank
+    if type(rank) ~= "table" then rank = {}; focus.proximityRank = rank else wipe(rank) end
+    local n = (C_QuestLog.GetNumQuestWatches and C_QuestLog.GetNumQuestWatches()) or 0
+    for i = 1, n do
+        local qid = C_QuestLog.GetQuestIDForQuestWatchIndex and C_QuestLog.GetQuestIDForQuestWatchIndex(i)
+        if qid then rank[qid] = i end
+    end
+end
+
+-- Reorders the quest-watch list nearest-first using the game's built-in proximity sort, then
+-- refreshes the rank map. Called on zone change and when the proximity sort mode is selected;
+-- pcall-guarded because SortQuestWatches can be absent on some builds.
+local function SortQuestWatchesByProximity()
+    if C_QuestLog.SortQuestWatches then pcall(C_QuestLog.SortQuestWatches) end
+    RefreshProximityRankFromWatches()
+end
+addon.SortFocusQuestWatchesByProximity = SortQuestWatchesByProximity
 
 -- Category order for questType sort (lower = earlier)
 local CATEGORY_SORT_ORDER = {
@@ -153,6 +177,15 @@ local function CompareEntriesBySortMode(a, b)
     if mode == "level" then
         local la, lb = a.level or 0, b.level or 0
         if la ~= lb then return la > lb end
+        return ta < tb
+    end
+    if mode == "proximity" then
+        -- Nearest-first by quest-watch rank (index 1 = closest). Unwatched entries (no rank)
+        -- sort after ranked ones; alpha breaks ties within the same rank / among unranked.
+        local rank = addon.focus and addon.focus.proximityRank
+        local ra = (rank and a.questID and rank[a.questID]) or math.huge
+        local rb = (rank and b.questID and rank[b.questID]) or math.huge
+        if ra ~= rb then return ra < rb end
         return ta < tb
     end
     return ta < tb
@@ -281,6 +314,18 @@ local function SortAndGroupQuests(quests)
         else
             local grp = categoryToGroup[q.category] or DEFAULT_GROUP
             groups[grp][#groups[grp] + 1] = q
+        end
+    end
+
+    -- Proximity mode: reorder the watch list once after a zone change (dirty), then reuse that
+    -- order on subsequent refreshes so within-zone movement doesn't churn the list.
+    if GetSortMode() == "proximity" then
+        local focus = addon.focus
+        if focus and (focus.proximityDirty or type(focus.proximityRank) ~= "table") then
+            SortQuestWatchesByProximity()
+            focus.proximityDirty = false
+        else
+            RefreshProximityRankFromWatches()
         end
     end
 

@@ -1647,6 +1647,7 @@ L["FOCUS_LOG_MAX_SLOTS"]                                      = "In log / max sl
 L["FOCUS_ALPHABETICAL"]                                       = "Alphabetical"
 L["FOCUS_QUEST_TYPE"]                                         = "Quest Type"
 L["FOCUS_QUEST_LEVEL"]                                        = "Quest Level"
+L["FOCUS_PROXIMITY"]                                          = "Proximity (Closest First)"
 
 -- =====================================================================
 -- OptionsData.lua Misc
