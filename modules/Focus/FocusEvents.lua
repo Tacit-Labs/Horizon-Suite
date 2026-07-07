@@ -481,8 +481,6 @@ end
 
 local function OnQuestWatchListChanged(questID, added)
     if not addon.focus.enabled then ScheduleRefresh(); return end
-    -- A newly watched quest lands at the end of the list; re-sort by proximity to place it.
-    if added then addon.focus.proximityDirty = true end
     if questID and addon.IsQuestWorldQuest and addon.IsQuestWorldQuest(questID) then
         if not addon.focus.recentlyUntrackedWorldQuests then addon.focus.recentlyUntrackedWorldQuests = {} end
         if added then
@@ -532,8 +530,6 @@ local function OnZoneChanged(event)
     addon.focus.zoneJustChanged = true
     addon.focus.lastPlayerMapID = nil
     addon.focus.lastZoneMapID = nil
-    -- Re-run the proximity watch sort on the next refresh (consumed only in proximity sort mode).
-    addon.focus.proximityDirty = true
     -- Nearby WQ cache self-invalidates via zoneMapID compare in GetNearbyQuestIDs.
     -- Without wiping prevGroupKey, FullLayout treats rows as moving into CURRENT/CURRENT_EVENT
     -- and returns early, leaving stale visuals until reload.

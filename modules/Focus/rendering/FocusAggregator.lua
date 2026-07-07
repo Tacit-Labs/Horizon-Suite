@@ -30,29 +30,32 @@ local function GetSortMode()
     return DEFAULT_SORT_MODE
 end
 
--- Rebuilds addon.focus.proximityRank from the current quest-watch order. After a proximity sort
--- pass, watch index 1 is the nearest quest, so a lower rank means nearer. Read-only: iterates the
--- watch list without reordering it.
-local function RefreshProximityRankFromWatches()
+-- Rebuilds addon.focus.proximityRank by ranking the shown quests by their live squared distance to
+-- the player (C_QuestLog.GetDistanceSqToQuest). Nearest quest gets rank 1. Distance is recomputed
+-- every pass, so the order tracks the player's position and re-ranks on zone AND sub-zone changes
+-- (SortQuestWatches only re-ranks on full map changes, so it is deliberately not used here).
+-- Quests with no on-continent position are left unranked and fall to the bottom via the comparator.
+local function RefreshProximityRank(quests)
     local focus = addon.focus
     if not focus then return end
     local rank = focus.proximityRank
     if type(rank) ~= "table" then rank = {}; focus.proximityRank = rank else wipe(rank) end
-    local n = (C_QuestLog.GetNumQuestWatches and C_QuestLog.GetNumQuestWatches()) or 0
-    for i = 1, n do
-        local qid = C_QuestLog.GetQuestIDForQuestWatchIndex and C_QuestLog.GetQuestIDForQuestWatchIndex(i)
-        if qid then rank[qid] = i end
+    if not (C_QuestLog and C_QuestLog.GetDistanceSqToQuest) then return end
+    local ranked, seen = {}, {}
+    for _, q in ipairs(quests) do
+        local qid = q.questID
+        if qid and qid > 0 and not seen[qid] then
+            seen[qid] = true
+            -- pcall: GetDistanceSqToQuest can throw on invalid/non-quest IDs (achievements, rares).
+            local ok, distSq, onContinent = pcall(C_QuestLog.GetDistanceSqToQuest, qid)
+            if ok and onContinent and distSq then
+                ranked[#ranked + 1] = { qid = qid, dist = distSq }
+            end
+        end
     end
+    table.sort(ranked, function(a, b) return a.dist < b.dist end)
+    for i = 1, #ranked do rank[ranked[i].qid] = i end
 end
-
--- Reorders the quest-watch list nearest-first using the game's built-in proximity sort, then
--- refreshes the rank map. Called on zone change and when the proximity sort mode is selected;
--- pcall-guarded because SortQuestWatches can be absent on some builds.
-local function SortQuestWatchesByProximity()
-    if C_QuestLog.SortQuestWatches then pcall(C_QuestLog.SortQuestWatches) end
-    RefreshProximityRankFromWatches()
-end
-addon.SortFocusQuestWatchesByProximity = SortQuestWatchesByProximity
 
 -- Category order for questType sort (lower = earlier)
 local CATEGORY_SORT_ORDER = {
@@ -317,16 +320,10 @@ local function SortAndGroupQuests(quests)
         end
     end
 
-    -- Proximity mode: reorder the watch list once after a zone change (dirty), then reuse that
-    -- order on subsequent refreshes so within-zone movement doesn't churn the list.
+    -- Proximity mode: rank the shown quests by live distance to the player each pass, so the order
+    -- tracks position and re-ranks whenever a refresh runs (zone/sub-zone change, quest updates).
     if GetSortMode() == "proximity" then
-        local focus = addon.focus
-        if focus and (focus.proximityDirty or type(focus.proximityRank) ~= "table") then
-            SortQuestWatchesByProximity()
-            focus.proximityDirty = false
-        else
-            RefreshProximityRankFromWatches()
-        end
+        RefreshProximityRank(quests)
     end
 
     for _, key in ipairs(order) do
