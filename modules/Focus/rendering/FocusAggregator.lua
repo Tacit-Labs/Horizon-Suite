@@ -35,11 +35,13 @@ end
 -- every pass, so the order tracks the player's position and re-ranks on zone AND sub-zone changes
 -- (SortQuestWatches only re-ranks on full map changes, so it is deliberately not used here).
 -- Quests with no on-continent position are left unranked and fall to the bottom via the comparator.
+-- Also records the nearest quest as addon.focus.proximityClosestQID for the auto super-track driver.
 local function RefreshProximityRank(quests)
     local focus = addon.focus
     if not focus then return end
     local rank = focus.proximityRank
     if type(rank) ~= "table" then rank = {}; focus.proximityRank = rank else wipe(rank) end
+    focus.proximityClosestQID = nil
     if not (C_QuestLog and C_QuestLog.GetDistanceSqToQuest) then return end
     local ranked, seen = {}, {}
     for _, q in ipairs(quests) do
@@ -55,6 +57,24 @@ local function RefreshProximityRank(quests)
     end
     table.sort(ranked, function(a, b) return a.dist < b.dist end)
     for i = 1, #ranked do rank[ranked[i].qid] = i end
+    focus.proximityClosestQID = ranked[1] and ranked[1].qid or nil
+end
+
+-- Auto super-track driver for the "Auto-Focus Closest Quest" toggle. Drives the game's super-track
+-- (which feeds the Focused Quest section and the on-screen waypoint) to the nearest tracked quest
+-- recorded by RefreshProximityRank. Idempotent: only re-assigns when the closest quest actually
+-- changes, so it never self-triggers the SUPER_TRACKING_CHANGED -> refresh loop. While enabled it
+-- owns the super-track slot; a manual focus is reclaimed on the next pass by design (turn the toggle
+-- off to focus manually). Called once per FullLayout, after the primary SortAndGroupQuests pass.
+local function ApplyProximityAutoSuperTrack()
+    if not addon.GetDB("proximityAutoSuperTrack", false) then return end
+    if not (C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID) then return end
+    local focus = addon.focus
+    local closest = focus and focus.proximityClosestQID
+    if not closest or closest <= 0 then return end
+    local ok, cur = pcall(C_SuperTrack.GetSuperTrackedQuestID)
+    if ok and cur == closest then return end
+    pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
 end
 
 -- Category order for questType sort (lower = earlier)
@@ -322,7 +342,9 @@ local function SortAndGroupQuests(quests)
 
     -- Proximity mode: rank the shown quests by live distance to the player each pass, so the order
     -- tracks position and re-ranks whenever a refresh runs (zone/sub-zone change, quest updates).
-    if GetSortMode() == "proximity" then
+    -- Also run the ranker (for its nearest-quest record) when auto super-track is on, so that toggle
+    -- works with any sort mode, not just proximity sort.
+    if GetSortMode() == "proximity" or addon.GetDB("proximityAutoSuperTrack", false) then
         RefreshProximityRank(quests)
     end
 
@@ -909,4 +931,5 @@ end
 
 addon.ReadTrackedQuests   = ReadTrackedQuests
 addon.SortAndGroupQuests  = SortAndGroupQuests
+addon.ApplyProximityAutoSuperTrack = ApplyProximityAutoSuperTrack
 addon.GetSortMode         = GetSortMode

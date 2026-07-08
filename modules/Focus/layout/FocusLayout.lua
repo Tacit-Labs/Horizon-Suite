@@ -658,6 +658,9 @@ local function FullLayout()
     SchedulePlaceholderRefreshes(quests)
     addon.UpdateFloatingQuestItem(quests)
     local grouped = addon.SortAndGroupQuests(quests)
+    -- Drive super-track to the nearest quest when the auto-focus toggle is on (once per layout, off
+    -- the primary aggregation pass so secondary SortAndGroupQuests callers don't move the waypoint).
+    if addon.ApplyProximityAutoSuperTrack then addon.ApplyProximityAutoSuperTrack() end
 
     -- Track whether all categories are individually collapsed (for grow-up header positioning).
     local allCatCollapsed = addon.GetDB("showSectionHeaders", true)
