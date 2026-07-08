@@ -897,6 +897,7 @@ local function FullLayout()
     end
     local newlyAcquiredKeys = {}
     local newEntryInserted  = false
+    local reordered         = false  -- a surviving entry changed ordinal position (e.g. proximity re-rank)
     for _, grp in ipairs(grouped) do
         -- Skip entry acquisition for groups that are collapsed during panel-collapsed fall-through.
         if pcegForAcquire and not pcegForAcquire[grp.key] then
@@ -1242,6 +1243,18 @@ local function FullLayout()
                     entry.staggerDelay = entryIndex * addon.FOCUS_ANIM.stagger
                     entryIndex = entryIndex + 1
 
+                    -- Detect a pure reorder (same entry, new ordinal slot) so the slide block below
+                    -- animates it to its new Y. categoryIndex changes on re-rank but not when a row
+                    -- merely shifts because a neighbour's height changed, so height reflows still
+                    -- snap as before. Skip freshly-acquired rows (owned by the insert path) and
+                    -- nil indices (non-quest rows that carry no ordinal).
+                    local catIdx = qData.categoryIndex
+                    if catIdx ~= nil and entry._lastCatIndex ~= nil
+                        and entry._lastCatIndex ~= catIdx and not newlyAcquiredKeys[key] then
+                        reordered = true
+                    end
+                    entry._lastCatIndex = catIdx
+
                     if not entry:IsShown() and (entry.animState == "active" or entry.animState == "idle") and addon.GetDB("animations", true) then
                         local key = qData.entryKey or qData.questID
                         if isCategoryChangeReflow and (not categoryChangeSlideUpStarts or not categoryChangeSlideUpStarts[key]) then
@@ -1461,7 +1474,7 @@ local function FullLayout()
     -- already cancels the scrollChild-local Y change. Subtracting the delta from prevY
     -- keeps the animation start at the correct on-screen position (a no-op in grow-up with
     -- bottom-pinned content, a normal slide in grow-down or when scroll cannot compensate).
-    if (newEntryInserted or questRemoved) and shouldAnimateQuestInsert then
+    if (newEntryInserted or questRemoved or reordered) and shouldAnimateQuestInsert then
         local scrollDelta = (addon.focus.layout.scrollOffset or 0) - preInsertScrollOffset
         if preInsertY and next(preInsertY) then
             for i = 1, addon.POOL_SIZE do
