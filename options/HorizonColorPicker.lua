@@ -21,6 +21,9 @@ local WHEEL_SIZE = 128
 local VALUE_W = 24
 local ALPHA_TRACK_H = 10
 local ALPHA_THUMB = 14
+local ALPHA_ROW_H = 32      -- opacity (label + slider) row height
+local ALPHA_ROW_GAP = 16    -- gap between the value row and the opacity row
+local ALPHA_SECTION_H = ALPHA_ROW_GAP + ALPHA_ROW_H  -- vertical space reclaimed when a colour has no alpha
 
 local PRESET_COLS = 4
 local PRESET_GAP = 6
@@ -28,11 +31,80 @@ local PALETTE_CAP = 6  -- max user-saved colours (class + 6 saved + "+" = 8 cell
 -- Derived widths so the hex+RGB row and the preset grid each fill their column edge-to-edge.
 local CONTENT_W = PICKER_W - 28                                            -- usable width (14px pad each side)
 local FIELD_GAP = 8
-local FIELD_W = math.floor((CONTENT_W - 3 * FIELD_GAP) / 4)                -- hex + R + G + B fill the row
+-- The hex field shows 6 chars (#RRGGBB) while each R/G/B shows up to 3, so give hex a wider column
+-- and split the remainder across the three number fields. This lets the value text sit comfortably
+-- at a fixed compact size instead of forcing the hex font to shrink to fit an equal-quarter column.
+local HEX_FIELD_W = math.floor(CONTENT_W * 0.31)
+local NUM_FIELD_W = math.floor((CONTENT_W - HEX_FIELD_W - 3 * FIELD_GAP) / 3)
+-- Value inputs (hex + R/G/B and their #/R/G/B labels) render at a fixed compact size, decoupled from
+-- the dashboard font size, so a large dashboard font can't blow them out of their boxes. They still
+-- follow the dashboard *typeface*: registering at this constant means the shared font refresh keeps
+-- re-applying the current path at this size (rather than the scaled Def.LabelSize).
+local VALUE_FONT_SIZE = 13
 local RIGHTCOL_W = PICKER_W - 14 - (14 + (WHEEL_SIZE + VALUE_W + 24) + 14) -- right column (compare/presets) width
 local PRESET_SIZE = math.floor((RIGHTCOL_W - (PRESET_COLS - 1) * PRESET_GAP) / PRESET_COLS)
 
 local function Round(x) return math.floor(x * 255 + 0.5) end
+
+-- A hidden FontString used purely to measure rendered text widths for the value-field auto-fit.
+local measureFS
+local function MeasuredWidth(path, size, flags, text)
+    if not measureFS then
+        measureFS = UIParent:CreateFontString(nil, "BACKGROUND")
+        measureFS:Hide()
+    end
+    if not path or not measureFS:SetFont(path, size, flags or "") then return 0 end
+    measureFS:SetText(text or "")
+    return (measureFS.GetUnboundedStringWidth and measureFS:GetUnboundedStringWidth())
+        or measureFS:GetStringWidth() or 0
+end
+
+-- Build a worst-case sample: `len` copies of the widest glyph in `charset` at this font/size, so the
+-- fit below holds for *any* value the field can show (not just the colour currently displayed).
+local function WorstCaseSample(path, size, flags, charset, len)
+    local widest, widestW = charset:sub(1, 1), 0
+    for i = 1, #charset do
+        local c = charset:sub(i, i)
+        local w = MeasuredWidth(path, size, flags, c)
+        if w > widestW then widestW, widest = w, c end
+    end
+    return widest:rep(len)
+end
+
+-- Shrink editBox's font (down from baseSize, never below FIT_MIN_SIZE) until `sample` fits the box's
+-- current text width. The options UI shares one dashboard typeface, and a wide font overflows these
+-- narrow hex/RGB inputs at the base size — this keeps the value text inside its box at any font.
+local FIT_MIN_SIZE = 8
+local FIT_PAD = 4  -- px reserved inside the box for the EditBox cursor + a little border breathing room
+local function FitEditBoxFont(editBox, sample, baseSize, widthOverride)
+    if not editBox then return end
+    local maxW = widthOverride or editBox:GetWidth()
+    if not maxW or maxW <= 1 then return end
+    maxW = maxW - FIT_PAD  -- so the glyph edge never kisses the border and the cursor stays visible
+    local path, _, flags = editBox:GetFont()
+    if not path then return end
+    local size = baseSize or 13
+    while size > FIT_MIN_SIZE and MeasuredWidth(path, size, flags, sample) > maxW do
+        size = size - 1
+    end
+    editBox:SetFont(path, size, flags)
+end
+
+-- Wire a value EditBox so its font auto-fits its content both now and whenever its resolved width
+-- changes — layout settling after the picker is shown, or the shared dashboard font swapping to a
+-- wider/narrower face. OnSizeChanged hands us the new width directly, sidestepping GetWidth()
+-- returning a stale (pre-layout) value in the same frame the picker is shown.
+local function WireValueFit(editBox, charset, len)
+    if not editBox then return end
+    local function refit(_, w)
+        local base = VALUE_FONT_SIZE
+        local path, _, flags = editBox:GetFont()
+        if not path then return end
+        FitEditBoxFont(editBox, WorstCaseSample(path, base, flags, charset, len), base, w)
+    end
+    editBox.HorizonRefitFont = refit
+    editBox:HookScript("OnSizeChanged", refit)  -- (self, width, height) → w is the resolved width
+end
 
 -- Parse a hex colour string ("ff0000", "#ff0000", "f00") to r,g,b in 0-1, or nil. (Moved here from
 -- OptionsWidgets.lua; exported so anything else can reuse it.)
@@ -54,8 +126,6 @@ addon.ParseHexColor = ParseHexColor
 -- Singleton state.
 local P            -- the picker frame (built lazily)
 local state = { spec = nil, r = 1, g = 1, b = 1, a = 1, hasAlpha = false, suppress = false, orig = {} }
-local lastLiveFireAt = 0
-local liveFireQueued = false
 
 -- Account-wide saved palette: an ordered list of hex strings at the SavedVariables root
 -- (HorizonDB.customPalette), independent of profiles.
@@ -102,6 +172,39 @@ local function RemoveFromPalette(i)
     if P and P.BuildPalette then P:BuildPalette() end
 end
 
+-- Class swatch dismissal flag (account-wide, alongside the saved palette). When set, the
+-- auto-derived class swatch is hidden from the palette row; the "+" cell offers a restore.
+local function ClassSwatchHidden()
+    local db = _G[addon.DATABASE]
+    return db and db.hideClassColorSwatch == true
+end
+
+local function SetClassSwatchHidden(hidden)
+    addon.EnsureDB()
+    local db = _G[addon.DATABASE]
+    if not db then return end
+    db.hideClassColorSwatch = hidden or nil  -- store nil when shown to keep SV tidy
+    if P and P.BuildPalette then P:BuildPalette() end
+end
+
+-- Persisted picker position (account-wide, alongside the saved palette), so a dragged picker reopens
+-- where the user left it instead of recentring. Stored as a plain point/relPoint/offset table; always
+-- restored relative to UIParent (the frame's parent and the space it's dragged within).
+local function SavedPickerPoint()
+    local db = _G[addon.DATABASE]
+    return db and db.colorPickerPos
+end
+
+local function SavePickerPoint(frame)
+    if not frame then return end
+    addon.EnsureDB()
+    local db = _G[addon.DATABASE]
+    if not db then return end
+    local point, _, relPoint, x, y = frame:GetPoint(1)
+    if not point then return end
+    db.colorPickerPos = { point = point, relPoint = relPoint or point, x = x or 0, y = y or 0 }
+end
+
 -- The player's class colour (ungated — always available as a quick-pick).
 local function PlayerClassColor()
     local _, classFile = UnitClass("player")
@@ -116,27 +219,6 @@ end
 local function FireChange()
     local s = state.spec
     if s and s.onChange then s.onChange(state.r, state.g, state.b, state.a) end
-end
-
-local function FireChangeLive()
-    local throttle = (state.spec and tonumber(state.spec.liveThrottle)) or 0.03
-    if throttle <= 0 then
-        FireChange()
-        return
-    end
-    local now = GetTime and GetTime() or 0
-    if (now - lastLiveFireAt) >= throttle then
-        lastLiveFireAt = now
-        FireChange()
-        return
-    end
-    if liveFireQueued or not (C_Timer and C_Timer.After) then return end
-    liveFireQueued = true
-    C_Timer.After(throttle, function()
-        liveFireQueued = false
-        lastLiveFireAt = GetTime and GetTime() or 0
-        FireChange()
-    end)
 end
 
 local function ConfirmClose()
@@ -163,6 +245,7 @@ local function EnsurePicker()
     f:SetToplevel(true)
     f:EnableMouse(true)
     f:SetMovable(true)
+    f:SetClampedToScreen(true)  -- keep on-screen while dragging (and guard a stale saved position)
     f:Hide()
     if f.SetBackdrop and addon.OptionsWidgetsSectionCardBackdrop then
         f:SetBackdrop(addon.OptionsWidgetsSectionCardBackdrop)
@@ -181,7 +264,7 @@ local function EnsurePicker()
     drag:SetPoint("TOPLEFT", 0, 0); drag:SetPoint("TOPRIGHT", f, "TOPRIGHT", -34, 0); drag:SetHeight(34)
     drag:EnableMouse(true); drag:RegisterForDrag("LeftButton")
     drag:SetScript("OnDragStart", function() f:StartMoving() end)
-    drag:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
+    drag:SetScript("OnDragStop", function() f:StopMovingOrSizing(); SavePickerPoint(f) end)
 
     local close = CreateFrame("Button", nil, f)
     close:SetSize(20, 20); close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -10)
@@ -244,7 +327,7 @@ local function EnsurePicker()
         if state.suppress then return end
         state.r, state.g, state.b = r, g, b
         if P and P.Refresh then P:Refresh() end
-        FireChangeLive()
+        FireChange()
     end)
 
     -- New (live) vs Current (original) comparison.
@@ -265,20 +348,20 @@ local function EnsurePicker()
 
     -- Hex input.
     local hexWrap = CreateFrame("Frame", nil, f)
-    hexWrap:SetSize(FIELD_W, 22)
+    hexWrap:SetSize(HEX_FIELD_W, 22)
     hexWrap:SetPoint("TOPLEFT", cs, "BOTTOMLEFT", 0, -16)  -- combined hex + R/G/B row below the wheel
     local hexBg = hexWrap:CreateTexture(nil, "BACKGROUND")
     hexBg:SetAllPoints(hexWrap)
     hexBg:SetColorTexture(Def.InputBg[1], Def.InputBg[2], Def.InputBg[3], Def.InputBg[4])
     if addon.CreateBorder then addon.CreateBorder(hexWrap, Def.InputBorder) end
     local hexHash = hexWrap:CreateFontString(nil, "OVERLAY")
-    SafeFont(hexHash, Def.FontPath, Def.LabelSize, nil)
+    SafeFont(hexHash, Def.FontPath, VALUE_FONT_SIZE, nil)
     hexHash:SetPoint("LEFT", hexWrap, "LEFT", 6, 0); hexHash:SetText("#")
     hexHash:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
     local hex = CreateFrame("EditBox", nil, hexWrap)
     hex:SetPoint("LEFT", hexHash, "RIGHT", 4, 0); hex:SetPoint("RIGHT", hexWrap, "RIGHT", -4, 0)
     hex:SetHeight(20); hex:SetAutoFocus(false); hex:SetMaxLetters(6)
-    SafeFont(hex, Def.FontPath, Def.LabelSize, nil)
+    SafeFont(hex, Def.FontPath, VALUE_FONT_SIZE, nil)
     hex:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
     local function commitHex(self)
         local r, g, b = ParseHexColor(self:GetText())
@@ -293,11 +376,11 @@ local function EnsurePicker()
     -- R/G/B 0-255 fields.
     local function makeNumField(labelText, anchorTo)
         local wrap = CreateFrame("Frame", nil, f)
-        wrap:SetSize(FIELD_W, 22)
+        wrap:SetSize(NUM_FIELD_W, 22)
         if anchorTo then wrap:SetPoint("LEFT", anchorTo, "RIGHT", FIELD_GAP, 0)
         else wrap:SetPoint("LEFT", hexWrap, "RIGHT", FIELD_GAP, 0) end  -- R right of hex, same line
         local lab = wrap:CreateFontString(nil, "OVERLAY")
-        SafeFont(lab, Def.FontPath, Def.LabelSize, nil)
+        SafeFont(lab, Def.FontPath, VALUE_FONT_SIZE, nil)
         lab:SetPoint("LEFT", wrap, "LEFT", 0, 0); lab:SetText(labelText)
         lab:SetTextColor(Def.TextColorSection[1], Def.TextColorSection[2], Def.TextColorSection[3], 1)
         local boxWrap = CreateFrame("Frame", nil, wrap)
@@ -309,7 +392,7 @@ local function EnsurePicker()
         local box = CreateFrame("EditBox", nil, boxWrap)
         box:SetPoint("TOPLEFT", 4, 0); box:SetPoint("BOTTOMRIGHT", -4, 0)
         box:SetAutoFocus(false); box:SetNumeric(true); box:SetMaxLetters(3); box:SetJustifyH("CENTER")
-        SafeFont(box, Def.FontPath, Def.LabelSize, nil)
+        SafeFont(box, Def.FontPath, VALUE_FONT_SIZE, nil)
         box:SetTextColor(Def.TextColorLabel[1], Def.TextColorLabel[2], Def.TextColorLabel[3], 1)
         return box
     end
@@ -330,11 +413,18 @@ local function EnsurePicker()
     end
     f.rBox, f.gBox, f.bBox = rBox, gBox, bBox
 
+    -- Auto-fit the value fonts to their boxes (hex shows 6 chars, R/G/B up to 3) so a wide dashboard
+    -- font never overflows. Driven by OnSizeChanged so it uses the real resolved width, not a stale one.
+    WireValueFit(f.hex, "0123456789ABCDEF", 6)
+    WireValueFit(f.rBox, "0123456789", 3)
+    WireValueFit(f.gBox, "0123456789", 3)
+    WireValueFit(f.bBox, "0123456789", 3)
+
     -- Alpha row (shown only when hasAlpha).
     local alphaRow = CreateFrame("Frame", nil, f)
-    alphaRow:SetPoint("TOPLEFT", hexWrap, "BOTTOMLEFT", 0, -16)
+    alphaRow:SetPoint("TOPLEFT", hexWrap, "BOTTOMLEFT", 0, -ALPHA_ROW_GAP)
     alphaRow:SetPoint("RIGHT", f, "RIGHT", -14, 0)
-    alphaRow:SetHeight(32)
+    alphaRow:SetHeight(ALPHA_ROW_H)
     local alphaLbl = alphaRow:CreateFontString(nil, "OVERLAY")
     SafeFont(alphaLbl, Def.FontPath, Def.LabelSize, nil)
     alphaLbl:SetPoint("TOPLEFT", alphaRow, "TOPLEFT", 0, 0); alphaLbl:SetText((L and L["OPACITY"]) or "Opacity")
@@ -370,7 +460,7 @@ local function EnsurePicker()
             state.a = n
             placeAlpha()
             f.newSwatch:SetColorTexture(state.r, state.g, state.b, state.a)
-            FireChangeLive()
+            FireChange()
         end)
     end)
     f.alphaRow = alphaRow
@@ -416,21 +506,35 @@ local function EnsurePicker()
         local function hideBadgeIfAway()
             if not (b:IsMouseOver() or xbadge:IsMouseOver()) then xbadge:Hide() end
         end
-        xbadge:SetScript("OnClick", function() if b._index then RemoveFromPalette(b._index) end end)
+        xbadge:SetScript("OnClick", function()
+            if b._kind == "class" then
+                SetClassSwatchHidden(true)        -- hide the auto class swatch (restorable via "+")
+            elseif b._index then
+                RemoveFromPalette(b._index)
+            end
+        end)
         xbadge:SetScript("OnLeave", hideBadgeIfAway)
-        b:SetScript("OnClick", function()
+        b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        b:SetScript("OnClick", function(_, mouseButton)
             if b._kind == "add" then
-                AddCurrentToPalette()
+                if mouseButton == "RightButton" then
+                    if ClassSwatchHidden() then SetClassSwatchHidden(false) end  -- restore class swatch
+                else
+                    AddCurrentToPalette()
+                end
             elseif b._color then
                 f.colorSelect:SetColorRGB(b._color[1], b._color[2], b._color[3])  -- OnColorSelect refreshes + fires
             end
         end)
         b:SetScript("OnEnter", function()
-            if b._kind == "saved" then
+            if b._kind == "saved" or b._kind == "class" then
                 xbadge:Show()
             elseif b._kind == "add" then
                 GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
                 GameTooltip:SetText((L and L["COLOR_SAVE_CURRENT"]) or "Save current colour", 1, 1, 1, 1, true)
+                if ClassSwatchHidden() then
+                    GameTooltip:AddLine((L and L["COLOR_RESTORE_CLASS"]) or "Right-click: restore class colour", 0.7, 0.7, 0.7, true)
+                end
                 GameTooltip:Show()
             end
         end)
@@ -440,13 +544,16 @@ local function EnsurePicker()
     end
     function f:BuildPalette()
         local cells = {}
+        local classHidden = ClassSwatchHidden()
         local cr, cg, cb = PlayerClassColor()
-        if cr then cells[#cells + 1] = { kind = "class", color = { cr, cg, cb } } end
+        if cr and not classHidden then cells[#cells + 1] = { kind = "class", color = { cr, cg, cb } } end
         local saved = LoadPalette()
         for idx = 1, #saved do
             cells[#cells + 1] = { kind = "saved", color = saved[idx], index = idx }
         end
-        if #saved < PALETTE_CAP then cells[#cells + 1] = { kind = "add" } end
+        -- Keep the "+" cell when the class swatch is hidden (with a class colour to restore), so the
+        -- restore right-click stays reachable even once the saved palette is at its cap.
+        if #saved < PALETTE_CAP or (classHidden and cr) then cells[#cells + 1] = { kind = "add" } end
         for i = 1, #cells do
             local cell = cells[i]
             local b = paletteButton(i)
@@ -521,6 +628,25 @@ local function EnsurePicker()
         if f.bBox and not f.bBox:HasFocus() then f.bBox:SetText(Round(state.b)) end
         if state.hasAlpha and f.placeAlpha then f.placeAlpha() end
     end
+
+    -- Re-fit the hex + R/G/B value fonts so their widest possible content always fits the box. Run
+    -- after the shared font refresh has applied the current dashboard typeface (see OpenColorPicker);
+    -- OnSizeChanged then corrects it once the boxes resolve their real width.
+    function f:FitValueFonts()
+        for _, box in ipairs({ f.hex, f.rBox, f.gBox, f.bBox }) do
+            if box.HorizonRefitFont then box.HorizonRefitFont() end
+        end
+    end
+
+    -- The value fonts are pinned to a fixed size, but the shared font refresh re-applies that size
+    -- (at the new typeface) whenever the dashboard font changes — re-fit afterwards, while the picker
+    -- is open, so a wide face still shrinks to fit instead of being left blown up until the next open.
+    -- EnsurePicker runs once (singleton), so this installs the hook a single time.
+    if _G.OptionsWidgets_RefreshFonts then
+        hooksecurefunc("OptionsWidgets_RefreshFonts", function()
+            if P and P:IsShown() then P:FitValueFonts() end
+        end)
+    end
     P = f
     return P
 end
@@ -530,8 +656,6 @@ function addon.OpenColorPicker(spec)
     state.spec = spec or {}
     state.confirmed = false
     addon._colorPickerLive = true  -- live mode: option setters skip the heavy refresh while dragging
-    lastLiveFireAt = 0
-    liveFireQueued = false
     state.hasAlpha = spec.hasAlpha and true or false
     state.r, state.g, state.b = spec.r or 1, spec.g or 1, spec.b or 1
     state.a = state.hasAlpha and (spec.a or 1) or 1
@@ -542,12 +666,25 @@ function addon.OpenColorPicker(spec)
     state.suppress = false
     if f.Refresh then f:Refresh() end
     f.alphaRow:SetShown(state.hasAlpha)
+    -- Collapse the frame when there's no opacity slider so the footer sits just below the value row,
+    -- instead of leaving the (hidden) alpha row's space as dead air.
+    f:SetHeight(state.hasAlpha and PICKER_H or (PICKER_H - ALPHA_SECTION_H))
     if state.hasAlpha and f.placeAlpha then f.placeAlpha() end
     f:BuildPalette()
     -- The picker is a singleton (built once), so unlike per-open widgets it won't have picked up a
     -- font change since it was built. Re-apply the current dashboard font via the shared refresh so
     -- our registered fontstrings match the rest of the options UI every time it opens.
-    if addon.OptionsWidgets_RefreshFonts then addon.OptionsWidgets_RefreshFonts() end
-    f:ClearAllPoints(); f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    if _G.OptionsWidgets_RefreshFonts then _G.OptionsWidgets_RefreshFonts() end
+    -- Restore the last dragged position if the user moved the picker before; otherwise centre it.
+    f:ClearAllPoints()
+    local pos = SavedPickerPoint()
+    if pos and pos.point then
+        f:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
+    else
+        f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    end
     f:Show(); f:Raise()
+    -- After the dashboard typeface is applied and the frame is laid out, shrink the value fonts so
+    -- the hex/RGB text always fits inside its box (a wide custom font overflows at the base size).
+    if f.FitValueFonts then f:FitValueFonts() end
 end

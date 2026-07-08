@@ -2,7 +2,7 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
-## Version: 5.1.0
+## Version: 5.1.2
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator, IconBrowser, Horizon-RareScanner, Horizon-SilverDragon
 ## IconTexture: Interface\AddOns\HorizonSuite\Docs\Branding\HorizonLogo.blp
@@ -129,6 +129,7 @@ modules/Augment/Alerts/AugmentAlertsFriends.lua
 modules/Augment/Alerts/AugmentAlertsModule.lua
 modules/Augment/AugmentModule.lua
 
+modules/Vista/VistaTeleports.lua
 modules/Vista/VistaCore.lua
 modules/Vista/VistaSlash.lua
 modules/Vista/VistaModule.lua

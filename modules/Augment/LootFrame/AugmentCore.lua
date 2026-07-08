@@ -1129,6 +1129,8 @@ function Augment.ApplyScale()
             end
         end
     end
+    if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
+    if editHint    then editHint:SetFont(fontPath,  S(10), "OUTLINE") end
     if anchorFrame then anchorFrame:SetWidth(S(Augment.TOTAL_WIDTH)) end
     if anchorLabel then anchorLabel:SetFont(fontPath, S(12), "OUTLINE") end
     if anchorHint  then anchorHint:SetFont(fontPath,  S(10), "OUTLINE") end

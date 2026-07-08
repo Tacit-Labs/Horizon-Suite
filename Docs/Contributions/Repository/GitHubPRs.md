@@ -1,12 +1,11 @@
 # GitHub Pull Requests
 
-All PRs should be directed to `dev/` and will require a review from a staff-member.
-Staff-members that may merge into `dev/` are listed in `.github/CODEOWNERS`.
+All PRs should be directed to `main`. A PR is always required — direct pushes to
+`main` are blocked — and PRs are squash-merged to keep history linear.
 
-Newer contributors cannot approve merges but are given write access to allow branch/PR creation.
-
-Nobody can approve their own PR on the `dev` branch except for extenuating circumstances.
-These circumstances include, but are not limited to, a `hotfix/` branch, relative urgency that does not warrant a `hotfix/` branch, and excess lack of activity from other developers.
+Review is optional: a director may self-merge their own PR, which is a clean
+merge under the trunk ruleset. Request a reviewer whenever a change genuinely
+warrants a second pair of eyes (anything risky, cross-module, or user-facing).
 
 <br>
 
