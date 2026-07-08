@@ -1618,6 +1618,10 @@ function addon.ApplyFocusColors()
                     s.chevron:SetTextColor(color[1], color[2], color[3], secA)
                 end
                 s.shadow:SetTextColor(0, 0, 0, shadowAlpha)
+                if s.count and s.count:IsShown() then
+                    s.count:SetTextColor(color[1], color[2], color[3], secA)
+                    if s.countShadow then s.countShadow:SetTextColor(0, 0, 0, shadowAlpha) end
+                end
             end
         end
     end
