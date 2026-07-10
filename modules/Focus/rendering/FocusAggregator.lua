@@ -115,6 +115,20 @@ local function ToggleProximityAutoSuperTrack()
     local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite - Focus:|r " .. tostring(msg or "")) end
     if L then
         HSPrint(newVal and L["FOCUS_SLASH_AUTOFOCUS_ON"] or L["FOCUS_SLASH_AUTOFOCUS_OFF"])
+        if addon.ShowFocusToggleToast then
+            -- Gold matches the FOCUSED section accent; muted slate for off.
+            if newVal then
+                addon.ShowFocusToggleToast(L["FOCUS_AUTOFOCUS_TOAST_ON"], 1.00, 0.92, 0.40)
+            else
+                addon.ShowFocusToggleToast(L["FOCUS_AUTOFOCUS_TOAST_OFF"], 0.75, 0.78, 0.85)
+            end
+        end
+    end
+    -- Keep an open options dashboard in sync: sweep every built control's Refresh so the
+    -- Auto-Focus pill and the dependent Include Untracked row update without reopening.
+    local dash = _G.HorizonSuiteDashboard
+    if dash and dash.IsShown and dash:IsShown() and dash._refreshDashboardDetailOptionFonts then
+        dash._refreshDashboardDetailOptionFonts()
     end
     if addon.RequestRefresh then addon.RequestRefresh() end
     if addon.FullLayout then addon.FullLayout() end

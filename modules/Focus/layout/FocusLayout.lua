@@ -240,6 +240,59 @@ autoFocusToggleKeybindBtn:SetScript("OnClick", function()
 end)
 autoFocusToggleKeybindBtn:RegisterForClicks("AnyUp")
 
+-- Small centered confirmation toast for on-the-fly toggles (keybind/slash), so the state change is
+-- visible without watching chat. Singleton frame; DIALOG strata keeps it above the options
+-- dashboard (HIGH). A re-show while visible updates the text in place and restarts the hold,
+-- skipping the fade-in so rapid presses don't blink.
+local toggleToast
+local function ShowFocusToggleToast(message, r, g, b)
+    if not message or message == "" then return end
+    local f = toggleToast
+    if not f then
+        f = CreateFrame("Frame", nil, UIParent)
+        f:SetFrameStrata("DIALOG")
+        f:SetPoint("TOP", UIParent, "TOP", 0, -240)
+        f:SetHeight(36)
+        local bg = f:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(0.06, 0.06, 0.10, 0.88)
+        local txt = f:CreateFontString(nil, "OVERLAY")
+        txt:SetFontObject(addon.TitleFont)
+        txt:SetPoint("CENTER")
+        f.text = txt
+        f:Hide()
+        toggleToast = f
+    end
+    f.text:SetText(message)
+    f.text:SetTextColor(r or 0.92, g or 0.94, b or 0.98)
+    f:SetWidth(math.ceil((f.text:GetStringWidth() or 0) + 44))
+    local FADE_IN, HOLD, FADE_OUT = 0.15, 1.6, 0.45
+    if not addon.GetDB("animations", true) then FADE_IN, FADE_OUT = 0, 0 end
+    if f:IsShown() and f:GetAlpha() > 0 then
+        f.elapsed = FADE_IN
+        f:SetAlpha(1)
+    else
+        f.elapsed = 0
+        f:SetAlpha(FADE_IN > 0 and 0 or 1)
+        f:Show()
+    end
+    f:SetScript("OnUpdate", function(self, dt)
+        self.elapsed = self.elapsed + dt
+        local t = self.elapsed
+        if t < FADE_IN then
+            self:SetAlpha(t / FADE_IN)
+        elseif t < FADE_IN + HOLD then
+            self:SetAlpha(1)
+        elseif t < FADE_IN + HOLD + FADE_OUT then
+            self:SetAlpha(1 - (t - FADE_IN - HOLD) / FADE_OUT)
+        else
+            self:SetScript("OnUpdate", nil)
+            self:Hide()
+        end
+    end)
+end
+addon.ShowFocusToggleToast = ShowFocusToggleToast
+
 -- Full layout of the objectives panel.
 -- @brief Computes and applies the complete tracker layout: visibility, quest list, section headers, entry positions, scroll height.
 -- Algorithm: (1) Bail if disabled or in combat. (2) Hide panel if instance visibility
