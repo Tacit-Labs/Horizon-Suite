@@ -14,6 +14,29 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.2.0"] = {
+        date = "2026-07-10",
+        {
+            section = "New Features",
+            bullets = {
+                "Vista: Vista button for quick teleport overview (toys, hearthstones, etc.) — Minimap button opens a menu of unlocked teleports (hearthstones, profession, class, dungeon & raid, event) with favourites, recents, and cooldowns; cast in place without opening the map or bags.",
+                "Focus: Proximity sort and auto-focus closest quest — New Proximity (Closest First) sort mode, plus an optional Auto-Focus Closest Quest toggle (/h focus autofocus and a keybind) that keeps the waypoint on the nearest quest.",
+            },
+        },
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: Total achievement points on Achievements header — Optional readout of your account achievement points on the Achievements section header (off by default).",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Options: Colour picker hex and RGB values stay readable with large fonts, the window collapses when opacity is unused, and it remembers its dragged position.",
+            },
+        },
+    },
+
     ["5.1.2"] = {
         date = "2026-07-05",
         {

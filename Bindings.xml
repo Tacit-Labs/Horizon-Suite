@@ -5,6 +5,9 @@
   <Binding name="CLICK HSNearbyToggleButton:LeftButton" description="Toggle Nearby Group" category="Horizon Suite">
     if _G.HSNearbyToggleButton and _G.HSNearbyToggleButton:GetScript("OnClick") then _G.HSNearbyToggleButton:GetScript("OnClick")() end
   </Binding>
+  <Binding name="CLICK HSAutoFocusToggleButton:LeftButton" description="Toggle Auto-Focus Closest Quest" category="Horizon Suite">
+    if _G.HSAutoFocusToggleButton and _G.HSAutoFocusToggleButton:GetScript("OnClick") then _G.HSAutoFocusToggleButton:GetScript("OnClick")() end
+  </Binding>
   <Binding name="CLICK HSSecureItemOverlay:LeftButton" description="Use Floating Quest Item" category="Horizon Suite">
   </Binding>
 </Bindings>

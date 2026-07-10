@@ -113,5 +113,11 @@ addon.focus = {
     -- Quest-based timer cache for WQ/task/calling; avoids countdown jump from C_TaskQuest fallback on refresh.
     -- [questID] = { duration, startTime }; cleared when quest expires, completes, or leaves tracker.
     questTimerCache                   = {},
+
+    -- Proximity sort / Auto-Focus Closest Quest (FocusAggregator RefreshProximityRank).
+    -- proximityRank: [questID] = rank (1 = closest). proximityClosestQID/DistSq: nearest candidate.
+    proximityRank                     = {},
+    proximityClosestQID               = nil,
+    proximityClosestDistSq            = nil,
 }
 

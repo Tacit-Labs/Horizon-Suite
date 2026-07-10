@@ -1,4 +1,4 @@
-﻿if GetLocale() ~= "frFR" then return end
+if GetLocale() ~= "frFR" then return end
 
 local addon = _G.HorizonSuite
 if not addon then return end
@@ -7,15 +7,10 @@ local L = setmetatable({}, { __index = addon.L })
 addon.L = L
 addon.StandardFont = UNIT_NAME_FONT
 
--- Template Key, feel free to copy/paste. 
-L["TERM"]                                                = " "
--- Do not change anything except for the information inside of the quotation marks.
--- To inactivate the key, make it a comment stub (prefaced with -- ) as this line is.
-
-
+-- =====================================================================
 -- Branding — Horizon Suite, module names, and third-party brand names
 -- Never user copy; these are product/brand identifiers only.
-
+-- =====================================================================
 -- L["NAME_ADDON"]                                            = "Horizon Suite"
 -- L["NAME_ADDON_OBJECTIVES"]                                 = "Focus"
 -- L["NAME_ADDON_TOASTS"]                                     = "Presence"
@@ -33,9 +28,9 @@ L["TERM"]                                                = " "
 -- L["NAME_WAGO"]                                             = "Wago"
 -- L["NAME_TOMTOM"]                                           = "TomTom"
 
-
+-- =====================================================================
 -- OptionsPanel.lua — Section headers
-
+-- =====================================================================
 L["QUEST_TYPES"]                                              = "Types de quêtes"
 L["ELEMENT_OVERRIDES"]                                        = "Couleurs par élément"
 L["PER_CATEGORY"]                                             = "Couleurs par catégorie"
@@ -44,17 +39,17 @@ L["SECTION_OVERRIDES"]                                        = "Couleurs de sec
 L["OTHER_COLOURS"]                                            = "Autres couleurs"
 L["OTHER"]                                                    = "Autres"
 
-
+-- =====================================================================
 -- OptionsPanel.lua — Colour row labels (collapsible group sub-rows)
-
+-- =====================================================================
 -- L["FOCUS_SECTION"]                                         = "Section"
 L["FOCUS_TITLE"]                                              = "Titre"
 -- L["FOCUS_ZONE"]                                            = "Zone"
 L["FOCUS_OBJECTIVE"]                                          = "Objectif"
 
-
+-- =====================================================================
 -- OptionsPanel.lua — Toggle switch labels & tooltips
-
+-- =====================================================================
 L["FOCUS_READY_TURN_OVERRIDES_BASE_COLOURS"]                  = "Choisir des couleurs différentes pour la section À Rendre"
 L["FOCUS_READY_TURN_COLOURS_QUESTS"]                          = "La section À Rendre utilisera ses propres couleurs."
 L["FOCUS_CURRENT_ZONE_OVERRIDES_BASE_COLOURS"]                = "Choisir des couleurs différentes pour la section Zone Actuelle"
@@ -65,9 +60,9 @@ L["FOCUS_DISTINCT_COLOUR_COMPLETED_OBJECTIVES"]               = "Utiliser une co
 L["FOCUS_COMPLETED_OBJECTIVES_COLOURS_CHANGE"]                = "Activé : les objectifs terminés (ex. 1/1) utilisent la couleur suivante. Désactivé : ils utilisent la même couleur que les objectifs incomplets."
 L["FOCUS_COMPLETED_OBJECTIVE"]                                = "Objectif terminé"
 
-
+-- =====================================================================
 -- OptionsPanel.lua — Button labels
-
+-- =====================================================================
 L["FOCUS_RESET"]                                              = "Réinitialiser"
 L["FOCUS_RESET_QUEST_TYPES"]                                  = "Réinitialiser les types de quêtes"
 L["FOCUS_RESET_OVERRIDES"]                                    = "Réinitialiser les couleurs personnalisées"
@@ -75,20 +70,28 @@ L["FOCUS_RESET_DEFAULTS"]                                     = "Tout réinitial
 L["FOCUS_RESET_TO_DEFAULTS"]                                  = "Réinitialiser les valeurs par défaut"
 L["FOCUS_RESET_DEFAULT"]                                      = "Réinitialiser la valeur par défaut"
 
-
+-- =====================================================================
 -- OptionsPanel.lua — Search bar placeholder
-
-L["SEARCH_SETTINGS"]                                    = "Recherche..."
+-- =====================================================================
+L["SEARCH_SETTINGS"]                                          = "Recherche..."
 L["SEARCH_FONTS"]                                             = "Rechercher une police..."
 
+-- =====================================================================
+-- HorizonColorPicker.lua — Custom colour picker
+-- =====================================================================
+-- L["COLOR_PICKER_TITLE"]                                    = "Choose a colour"
+-- L["COLOR_SAVE_CURRENT"]                                    = "Save current colour"
+-- L["COLOR_RESTORE_CLASS"]                                   = "Right-click: restore class colour"
+-- L["OPACITY"]                                               = "Opacity"
 
+-- =====================================================================
 -- OptionsPanel.lua — Resize handle tooltip
-
+-- =====================================================================
 L["FOCUS_DRAG_RESIZE"]                                        = "Glisser pour redimensionner"
 
-
+-- =====================================================================
 -- OptionsData.lua Category names (sidebar)
-
+-- =====================================================================
 L["PROFILES"]                                                 = "Profils"
 -- L["MODULES"]                                               = "Modules"
 -- L["MODULE_TOGGLES"]                                        = "Module Toggles"
@@ -103,16 +106,16 @@ L["PROFILES"]                                                 = "Profils"
 -- L["AXIS_MODULE_NAME_SIMPLE_NOTIFICATIONS"]                 = "Notifications"
 -- L["AXIS_MODULE_NAME_SIMPLE_MINIMAP"]                       = "Minimap"
 -- L["AXIS_MODULE_NAME_SIMPLE_TOOLTIPS"]                      = "Tooltips"
--- L["AXIS_MODULE_NAME_SIMPLE_LOOT"]                          = "Loot Toasts"
+L["AXIS_MODULE_NAME_SIMPLE_LOOT"]                             = "Loot Toasts"
 -- L["AXIS_MODULE_NAME_SIMPLE_CHARACTER"]                     = "Character Sheet"
 -- L["AXIS_MODULE_NAME_SIMPLE_C-----S"]                       = "Meridian"
 -- L["MODULE_RELOAD_HINT"]                                    = "Reload the interface to finish applying module changes."
 -- L["PROFILE_RELOAD_HINT"]                                   = "Reload the interface to finish applying profile changes."
 -- L["RELOAD_UI"]                                             = "Reload UI"
 
-
+-- =====================================================================
 -- options/dashboard/HomeWelcome.lua — First-run welcome
-
+-- =====================================================================
 -- L["DASH_WHATS_NEW"]                                        = "Patch Notes"
 -- L["DASH_FULL_CHANGELOG"]                                   = "Full Changelog"
 -- L["DASH_WHATS_NEW_UNREAD_SUFFIX"]                          = " (New!)"
@@ -133,93 +136,62 @@ L["PROFILES"]                                                 = "Profils"
 -- L["DASH_NEWS_HEAD_SUB"]                                    = "Latest updates & community highlights"
 -- L["DASH_NEWS_BADGE_NEW"]                                   = "New"
 -- L["DASH_NEWS_BADGE_HIGHLIGHT"]                             = "Highlight"
--- L["DASH_NEWS_FEATURED_EYEBROW"]                             = "Feature Update"
+-- L["DASH_NEWS_FEATURED_EYEBROW"]                            = "Feature Update"
 -- L["DASH_NEWS_HIGHLIGHT_EYEBROW"]                           = "Community"
 -- L["DASH_NEWS_ROADMAP_EYEBROW"]                             = "Roadmap"
--- L["DASH_NEWS_STARTING_EYEBROW"]                         = "Get Started"
+-- L["DASH_NEWS_STARTING_EYEBROW"]                            = "Get Started"
 -- L["DASH_NEWS_CTA_OPEN_FOCUS"]                              = "Open Focus settings"
 -- L["DASH_NEWS_CTA_VIEW_ARTIST"]                             = "View artist link"
 -- L["DASH_NEWS_CTA_OPEN_PATCH_NOTES"]                        = "Open Patch Notes"
--- L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "News hub • Editorial layout"
+L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "News hub • Editorial layout"
 -- L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                       = "Patch notes"
 -- L["DASH_NEWS_CTA_OPEN_GUIDE"]                              = "Open Quick Start"
--- L["DASH_NEWS_FEATURED_TITLE"]                     = "Gradient Tooltip Fonts, Dynamic Focus Tooltips, a New! Indicator, and Module Name Options"
--- L["DASH_NEWS_FEATURED_TAGLINE"]                   = "Surprise! Customise your Insight tooltips with gradient font based on class-style character names and item quality. Highlight newly implemented features with a New! indicator, and experience dynamic tooltips in Focus that intelligently shift their anchor left or right based on screen position."
--- L["DASH_NEWS_FEATURED_BODY"]                      = "Additionally, we've introduced a new |cffaaaaaaAxis > Module Name Style|r setting, allowing you to choose how module names are displayed: Horizon (code-name only, default), Subtitle (e.g., Vista – Minimap), or Simple/Simple (simplified, plain-language names)."
--- L["DASH_NEWS_FEATURED_META"]                      = "Insight • Dynamic Tooltips • Gradient Font • Available Now"
--- L["DASH_NEWS_HIGHLIGHT_TITLE"]                           = "A full Horizon class icon set is now bundled"
--- L["DASH_NEWS_HIGHLIGHT_BODY"]                               = "Switch Class icon style to Horizon under Axis > Global Toggles to use the new set across the suite. The dashboard now surfaces the full strip here so the update reads like a release, not a footnote."
--- L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis • Global Toggles • Art by Gabriel C"
--- L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "More curated updates will land here next"
--- L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = "This space is now structured for featured stories, release highlights, and smaller follow-up cards. Until the next round of updates lands, Patch Notes remains the fastest way to catch every change."
--- L["DASH_NEWS_ROADMAP_BOTTOM_TITLE"]                                 = "Handheld support in the works"
--- L["DASH_NEWS_ROADMAP_BOTTOM_BODY"]                                  = "We're planning better support for smaller screens and handheld play—resize-friendly layouts, sensible defaults when the UI is scaled down, and fewer cramped panels. Details will land in |cffaaaaaaPatch Notes|r as pieces ship."
--- L["DASH_NEWS_ROADMAP_META"]                            = "News hub • Editorial layout • Curated in addon"
+L["DASH_NEWS_FEATURED_TITLE"]                                 = "Gradient Tooltip Fonts, Dynamic Focus Tooltips, a New! Indicator, and Module Name Options"
+L["DASH_NEWS_FEATURED_TAGLINE"]                               = "Surprise! Customise your Insight tooltips with gradient font based on class-style character names and item quality. Highlight newly implemented features with a New! indicator, and experience dynamic tooltips in Focus that intelligently shift their anchor left or right based on screen position."
+L["DASH_NEWS_FEATURED_BODY"]                                  = "Additionally, we've introduced a new |cffaaaaaaAxis > Module Name Style|r setting, allowing you to choose how module names are displayed: Horizon (code-name only, default), Subtitle (e.g., Vista – Minimap), or Simple/Simple (simplified, plain-language names)."
+L["DASH_NEWS_FEATURED_META"]                                  = "Insight • Dynamic Tooltips • Gradient Font • Available Now"
+L["DASH_NEWS_HIGHLIGHT_TITLE"]                                = "A full Horizon class icon set is now bundled"
+L["DASH_NEWS_HIGHLIGHT_BODY"]                                 = "Switch Class icon style to Horizon under Axis > Global Toggles to use the new set across the suite. The dashboard now surfaces the full strip here so the update reads like a release, not a footnote."
+L["DASH_NEWS_HIGHLIGHT_META"]                                 = "Axis • Global Toggles • Art by Gabriel C"
+L["DASH_NEWS_ROADMAP_TOP_TITLE"]                              = "More curated updates will land here next"
+L["DASH_NEWS_ROADMAP_TOP_BODY"]                               = "This space is now structured for featured stories, release highlights, and smaller follow-up cards. Until the next round of updates lands, Patch Notes remains the fastest way to catch every change."
+L["DASH_NEWS_ROADMAP_BOTTOM_TITLE"]                           = "Handheld support in the works"
+L["DASH_NEWS_ROADMAP_BOTTOM_BODY"]                            = "We're planning better support for smaller screens and handheld play—resize-friendly layouts, sensible defaults when the UI is scaled down, and fewer cramped panels. Details will land in |cffaaaaaaPatch Notes|r as pieces ship."
+L["DASH_NEWS_ROADMAP_META"]                                   = "News hub • Editorial layout • Curated in addon"
 -- L["DASH_NEWS_QUICK_START_TITLE"]                           = "Need the quick tour again?"
 -- L["DASH_NEWS_QUICK_START_BODY"]                            = "Quick Start stays a useful companion to News: use it when you want a fast reminder of what each module does, where to enable it, and which pages are worth opening first after an update."
 -- L["DASH_NEWS_QUICK_START_META"]                            = "Guide • Onboarding • Always available"
-
-
--- options/dashboard/DashboardIntegrationsView.lua
-
--- L["DASH_INTEGRATIONS_TAB"]                                    = "Integrations"
--- L["DASH_INTEGRATIONS_HEAD_SUB"]                               = "Third-party addons that Horizon Suite plays nicely with"
--- L["DASH_INT_SUMMARY"]                                         = "%d of %d integrations active"
--- L["DASH_INT_SUMMARY_DISABLED"]                                = "%d disabled"
--- L["DASH_INT_SUMMARY_EMPTY"]                                   = "These addons aren't installed yet — try them to unlock extra features."
--- L["DASH_INT_STATUS_ENABLED"]                                  = "Installed"
--- L["DASH_INT_STATUS_DISABLED"]                                 = "Disabled"
--- L["DASH_INT_STATUS_MISSING"]                                  = "Not installed"
--- L["DASH_INT_STATUS_BUNDLED"]                                  = "Bundled"
--- L["DASH_INT_STATUS_PENDING"]                                  = "Reload needed"
--- L["DASH_INT_CTA_GET"]                                         = "Install"
--- L["DASH_INT_CTA_ENABLE"]                                      = "Enable"
--- L["DASH_INT_CTA_RELOAD"]                                      = "Reload UI"
--- L["DASH_INT_CTA_SETTINGS"]                                    = "Settings"
--- L["DASH_INT_NEW_BADGE"]                                       = "New"
--- L["DASH_INT_ATT_DESC"]                                        = "All The Things tracks every collectible in the game (mounts, pets, transmog, achievements, recipes)."
--- L["DASH_INT_ATT_WHAT"]                                        = "Focus rare-mob tooltips show ATT's loot drops, transmog availability, and collection status."
--- L["DASH_INT_AUCTIONATOR_DESC"]                                = "Auctionator is a streamlined auction house addon with shopping lists, posting, and price history."
--- L["DASH_INT_AUCTIONATOR_WHAT"]                                = "Focus's craft dialog uses Auctionator to search reagent prices and check mat costs."
--- L["DASH_INT_TRP3_DESC"]                                       = "Total RP 3 is a comprehensive roleplay profile and lore addon."
--- L["DASH_INT_TRP3_WHAT"]                                       = "Insight tooltips show TRP3 character profile data — RP name, pronouns, IC/OOC status, custom race and class, guild, Currently text, and character icon."
--- L["DASH_INT_RONDOMEDIA_DESC"]                                 = "Rondo Media is a curated class icon set used by Horizon Suite when installed."
--- L["DASH_INT_RONDOMEDIA_WHAT"]                                 = "Class icons in Insight tooltips and Focus rows."
--- L["DASH_INT_WQT_DESC"]                                        = "World Quest Tracker is a popular world-quest filtering addon."
--- L["DASH_INT_WQT_WHAT"]                                        = "Focus hides its tracker while WQT is open to keep the screen clean."
--- L["DASH_INT_LSM_DESC"]                                        = "LibSharedMedia is a shared font and texture registry used across many addons."
--- L["DASH_INT_LSM_WHAT"]                                        = "Adds extra font and statusbar texture options to Horizon Suite when installed."
 -- L["DASH_WELCOME_TITLE"]                                    = "Welcome to Horizon Suite"
--- L["DASH_WELCOME_HEAD_SUB"]                                    = "What each module does and where to turn them on"
--- L["DASH_WELCOME_INTRO"]                                       = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
+L["DASH_WELCOME_HEAD_SUB"]                                    = "What each module does and where to turn them on"
+L["DASH_WELCOME_INTRO"]                                       = "Horizon Suite is modular — enable only the pieces you want. Turning a module on or off applies on reload. Expand Contributors or Localisations below for credits and supported languages. Use Open module toggles under Modules, or open Axis, then Modules, in the sidebar. You can return to this Welcome page anytime from the sidebar."
 -- L["DASH_WELCOME_HERO_EYEBROW"]                             = "Welcome"
--- L["DASH_WELCOME_HERO_TITLE"]                                  = "A modular UI suite that lets you keep only the parts you want."
--- L["DASH_WELCOME_HERO_TAGLINE"]                                = "Tune Horizon around your tracker, notifications, minimap, tooltips, and character UI without committing to one giant overhaul."
--- L["DASH_WELCOME_HERO_BODY"]                                   = "Start by choosing the modules you actually want to run, then use the guide below to understand where everything lives. Patch Notes and News stay close by whenever you want a fast catch-up on what changed."
+L["DASH_WELCOME_HERO_TITLE"]                                  = "A modular UI suite that lets you keep only the parts you want."
+L["DASH_WELCOME_HERO_TAGLINE"]                                = "Tune Horizon around your tracker, notifications, minimap, tooltips, and character UI without committing to one giant overhaul."
+L["DASH_WELCOME_HERO_BODY"]                                   = "Start by choosing the modules you actually want to run, then use the guide below to understand where everything lives. Patch Notes and News stay close by whenever you want a fast catch-up on what changed."
 -- L["DASH_WELCOME_START_HERE"]                               = "Start Here"
--- L["DASH_WELCOME_CTA_MODULES"]                                 = "Open Modules"
+L["DASH_WELCOME_CTA_MODULES"]                                 = "Open Modules"
 -- L["DASH_WELCOME_CTA_PATCH_NOTES"]                          = "Open Patch Notes"
 -- L["DASH_WELCOME_CTA_NEWS"]                                 = "Open News"
--- L["DASH_WELCOME_ACTION_MODULES_TITLE"]                        = "Choose the parts of Horizon you want"
--- L["DASH_WELCOME_ACTION_MODULES_BODY"]                         = "Use the dashboard home to turn modules on or off, then reload when you are ready to apply larger setup changes."
--- L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                        = "Catch up on what changed"
--- L["DASH_WELCOME_ACTION_UPDATES_BODY"]                         = "Patch Notes and News are the fastest way to see new presets, art, polish passes, and module changes between releases."
--- L["DASH_WELCOME_ACTION_NEWS_TITLE"]                           = "See the editorial update feed"
--- L["DASH_WELCOME_ACTION_NEWS_BODY"]                            = "Open News for featured stories, roadmap notes, art highlights, and smaller curated updates in one place."
--- L["DASH_WELCOME_LEARN_BODY"]                                  = "Use this section as the guided overview of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
+L["DASH_WELCOME_ACTION_MODULES_TITLE"]                        = "Choose the parts of Horizon you want"
+L["DASH_WELCOME_ACTION_MODULES_BODY"]                         = "Use the dashboard home to turn modules on or off, then reload when you are ready to apply larger setup changes."
+L["DASH_WELCOME_ACTION_UPDATES_TITLE"]                        = "Catch up on what changed"
+L["DASH_WELCOME_ACTION_UPDATES_BODY"]                         = "Patch Notes and News are the fastest way to see new presets, art, polish passes, and module changes between releases."
+L["DASH_WELCOME_ACTION_NEWS_TITLE"]                           = "See the editorial update feed"
+L["DASH_WELCOME_ACTION_NEWS_BODY"]                            = "Open News for featured stories, roadmap notes, art highlights, and smaller curated updates in one place."
+L["DASH_WELCOME_LEARN_BODY"]                                  = "Use this section as the guided overview of Horizon: what each module does, how to get started, and where to go next once the basics are in place."
 L["DASH_WELCOME_PATH"]                                        = "%s → %s → %s"
 -- L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_HEADING"]              = "Blizzard+ click profile"
--- L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                    = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
+L["DASH_WELCOME_FOCUS_BLIZZARD_PLUS_BODY"]                    = [=[Focus now uses |cffffffffBlizzard+|r by default — Blizzard-style quest row clicks with a few Horizon conveniences. Open |cffaaaaaaFocus > Interactions|r and use |cffaaaaaaClick profile|r to see the preset; |cffffffffHorizon+|r and full |cffffffffCustom|r shortcuts are on the way.]=]
 -- L["DASH_WELCOME_COMING_SOON_TITLE"]                        = "Coming Soon"
 -- L["DASH_WELCOME_COMING_SOON_TAGLINE"]                      = "New welcome experiences are on the way."
 -- L["DASH_WELCOME_COMING_SOON_BODY"]                         = [=[Watch this space — we will post updates here and in |cffaaaaaaPatch Notes|r. Join |cffaaaaaaDiscord|r from the links below for news and feedback.]=]
--- L["DASH_WELCOME_CLASS_ICONS_HEADING"]                         = "Horizon class icons"
--- L["DASH_WELCOME_CLASS_ICONS_LEAD"]                            = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r under |cffaaaaaaAxis → Global Toggles|r (Class icon style).]=]
+L["DASH_WELCOME_CLASS_ICONS_HEADING"]                         = "Horizon class icons"
+L["DASH_WELCOME_CLASS_ICONS_LEAD"]                            = [=[We have added a bundled set of custom class icons — now the default when you choose |cffaaaaaaHorizon|r under |cffaaaaaaAxis → Global Toggles|r (Class icon style).]=]
 -- L["DASH_WELCOME_CLASS_ICONS_THANK_BOOFULS"]                = [=[Thank you, Boofuls, for commissioning this art and helping bring these icons to everyone.]=]
 -- L["DASH_WELCOME_CLASS_ICONS_CREATED_PREFIX"]               = "• Created by "
 -- L["DASH_WELCOME_CLASS_ICONS_ARTIST_NAME"]                  = "Gabriel C"
 -- L["DASH_WELCOME_CONTRIBUTORS_HEADING"]                     = "Contributors"
--- L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Thanks to everyone who has contributed to Horizon Suite:
+L["DASH_WELCOME_CONTRIBUTORS_BODY"]                           = [=[Thanks to everyone who has contributed to Horizon Suite:
 -- • Feanor — Development
 -- • Marthix — Development
 -- • Swift — Coordinator
@@ -233,7 +205,7 @@ L["DASH_WELCOME_PATH"]                                        = "%s → %s → %
 -- L["DASH_WELCOME_SUPPORTERS_HEADING"]                       = "Supporters"
 -- L["DASH_WELCOME_SUPPORTERS_BODY"]                          = [=[Thank you to everyone who supports Horizon Suite through Ko-fi, Patreon, and other channels.]=]
 -- L["DASH_WELCOME_LOCALISATIONS_HEADING"]                    = "Localisations"
--- L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
+L["DASH_WELCOME_LOCALISATIONS_BODY"]                          = [=[The addon UI is localised for:
 -- 
 -- • German (deDE) — `locales/horizon/deDE.lua`
 -- • English (enUS) — `locales/horizon/enUS.lua`
@@ -245,18 +217,56 @@ L["DASH_WELCOME_PATH"]                                        = "%s → %s → %
 -- 
 -- See contributions/translate.md in the repo for how to contribute. Additional locales are welcome via Discord.]=]
 
+-- =====================================================================
+-- options/dashboard/DashboardIntegrationsView.lua — third-party integrations list
+-- =====================================================================
+-- L["DASH_INTEGRATIONS_TAB"]                                 = "Integrations"
+-- L["DASH_INTEGRATIONS_HEAD_SUB"]                            = "Third-party addons that Horizon Suite plays nicely with"
 
+-- Summary line at the top of the page
+-- L["DASH_INT_SUMMARY"]                                      = "%d of %d integrations active"
+-- L["DASH_INT_SUMMARY_DISABLED"]                             = "%d disabled"
+-- L["DASH_INT_SUMMARY_EMPTY"]                                = "These addons aren't installed yet — try them to unlock extra features."
 
+-- Status pill labels
+-- L["DASH_INT_STATUS_ENABLED"]                               = "Installed"
+-- L["DASH_INT_STATUS_DISABLED"]                              = "Disabled"
+-- L["DASH_INT_STATUS_MISSING"]                               = "Not installed"
+-- L["DASH_INT_STATUS_BUNDLED"]                               = "Bundled"
+-- L["DASH_INT_STATUS_PENDING"]                               = "Reload needed"
+
+-- CTA labels
+-- L["DASH_INT_CTA_GET"]                                      = "Install"
+-- L["DASH_INT_CTA_ENABLE"]                                   = "Enable"
+-- L["DASH_INT_CTA_RELOAD"]                                   = "Reload UI"
+-- L["DASH_INT_CTA_SETTINGS"]                                 = "Settings"
+-- L["DASH_INT_NEW_BADGE"]                                    = "New"
+
+-- Per-integration copy
+-- L["DASH_INT_ATT_DESC"]                                     = "All The Things tracks every collectible in the game (mounts, pets, transmog, achievements, recipes)."
+-- L["DASH_INT_ATT_WHAT"]                                     = "Focus rare-mob tooltips show ATT's loot drops, transmog availability, and collection status."
+-- L["DASH_INT_AUCTIONATOR_DESC"]                             = "Auctionator is a streamlined auction house addon with shopping lists, posting, and price history."
+-- L["DASH_INT_AUCTIONATOR_WHAT"]                             = "Focus's craft dialog uses Auctionator to search reagent prices and check mat costs."
+-- L["DASH_INT_TRP3_DESC"]                                    = "Total RP 3 is a comprehensive roleplay profile and lore addon."
+-- L["DASH_INT_TRP3_WHAT"]                                    = "Insight tooltips show TRP3 character profile data — RP name, pronouns, IC/OOC status, custom race and class, guild, Currently text, and character icon."
+-- L["DASH_INT_RONDOMEDIA_DESC"]                              = "Rondo Media is a curated class icon set used by Horizon Suite when installed."
+-- L["DASH_INT_RONDOMEDIA_WHAT"]                              = "Class icons in Insight tooltips and Focus rows."
+-- L["DASH_INT_WQT_DESC"]                                     = "World Quest Tracker is a popular world-quest filtering addon."
+-- L["DASH_INT_WQT_WHAT"]                                     = "Focus hides its tracker while WQT is open to keep the screen clean."
+-- L["DASH_INT_LSM_DESC"]                                     = "LibSharedMedia is a shared font and texture registry used across many addons."
+-- L["DASH_INT_LSM_WHAT"]                                     = "Adds extra font and statusbar texture options to Horizon Suite when installed."
+
+-- =====================================================================
 -- options/dashboard/ModuleGuide.lua — In-game module quick-start
-
--- L["DASH_GUIDE_TAB"]                                           = "Guide"
+-- =====================================================================
+L["DASH_GUIDE_TAB"]                                           = "Guide"
 -- L["DASH_GUIDE_HEAD_SUB"]                                   = "What each part of Horizon does"
 -- L["DASH_GUIDE_HERO_TITLE"]                                 = "Getting started with Horizon Suite"
--- L["DASH_GUIDE_HERO_TAGLINE"]                                  = "A modular UI toolkit for quests, notifications, the minimap, and more."
--- L["DASH_GUIDE_HERO_INTRO"]                                    = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
+L["DASH_GUIDE_HERO_TAGLINE"]                                  = "A modular UI toolkit for quests, notifications, the minimap, and more."
+L["DASH_GUIDE_HERO_INTRO"]                                    = "Pick the modules you want, tune them in the sidebar, and reload when you toggle something on or off. This page is always here — open it anytime from the Guide row under Welcome."
 -- L["DASH_GUIDE_HERO_THEME_PROMPT"]                          = [=[Under |cffaaaaaaAxis > Global Settings|r, set |cff73b4ff|Hhsdash:classcolours|hclass-colour tinting|h|r for the dashboard and modules, and pick a |cff73b4ff|Hhsdash:theme|hDashboard theme|h|r.]=]
--- L["DASH_GUIDE_HORIZON_HEADING"]                               = "What is Horizon Suite?"
--- L["DASH_GUIDE_HORIZON_BULLETS"]                               = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
+L["DASH_GUIDE_HORIZON_HEADING"]                               = "What is Horizon Suite?"
+L["DASH_GUIDE_HORIZON_BULLETS"]                               = [=[• Axis — Profiles, module on/off, global toggles, typography, and other suite-wide settings.
 -- • Focus — Quest and content tracker: quests, world quests, scenarios, rares, achievements, and more in coloured sections.
 -- • Presence — Large cinematic toasts for zones, quests, scenarios, achievements, level up, and similar moments.
 -- • Vista — Minimap chrome: zone text, coordinates, clock, and a collector for minimap buttons.
@@ -264,13 +274,13 @@ L["DASH_WELCOME_PATH"]                                        = "%s → %s → %
 -- • Augment — Loot toasts and bag presentation.
 -- • Essence — Character sheet with 3D model, item level, stats, and gear grid.
 -- • Meridian — Coming soon.]=]
--- L["DASH_GUIDE_MOD_AXIS_BODY"]                                 = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Toggles for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
--- L["DASH_GUIDE_MOD_FOCUS_BODY"]                                = [=[Focus replaces the default objective list with a flexible tracker. Tracked quests, world quests, scenarios, rares, achievements, endeavors, decor, recipes, and more are grouped into coloured section headers so you can scan quickly.
+L["DASH_GUIDE_MOD_AXIS_BODY"]                                 = "Axis is the control centre: switch profiles, enable or disable whole modules, open Global Toggles for class colours and UI scale, and reach typography and appearance options that apply across Horizon. Start here when you first install or when you want a lighter footprint by turning modules off."
+L["DASH_GUIDE_MOD_FOCUS_BODY"]                                = [=[Focus replaces the default objective list with a flexible tracker. Tracked quests, world quests, scenarios, rares, achievements, endeavors, decor, recipes, and more are grouped into coloured section headers so you can scan quickly.
 -- Sections only appear when they have something to show — for example Current (recent progress), Current zone, Ready to turn in, World / weekly / daily / Prey, campaign and special quests, delves and scenarios, rare bosses and loot, achievements and collections, and time-limited or zone events.
 
 -- Use Focus → Sorting & filtering to reorder sections, and Focus → Content to choose which types of content appear.]=]
 -- L["DASH_GUIDE_PRESENCE_INTRO"]                             = "Presence shows large, styled alerts for moments that used to be separate Blizzard popups — zone changes, quest progress, achievements, scenarios, and more. You can turn each type on or off and tune typography in Presence settings."
--- L["DASH_GUIDE_PRESENCE_BODY"]                                 = [=[Typical Presence toasts include:
+L["DASH_GUIDE_PRESENCE_BODY"]                                 = [=[Typical Presence toasts include:
 -- • Zone and subzone discovery text when you enter new areas.
 -- • Quest accepted, objective progress, quest complete, and world quest complete.
 -- • Scenario start, progress updates, and completion (including delve-style flow).
@@ -279,26 +289,26 @@ L["DASH_WELCOME_PATH"]                                        = "%s → %s → %
 -- L["DASH_GUIDE_PRESENCE_BLIZZARD"]                          = [=[When a Presence type is enabled, Horizon can hide the matching default UI so you don’t get duplicates — for example zone name banners, the level-up frame, boss emote bar, event toast manager, world-quest completion banner, and some objective bonus banners. Turn a Presence type off in settings to let the default game UI show again for that category.]=]
 -- L["DASH_GUIDE_MOD_VISTA_BODY"]                             = "Vista wraps your minimap with readable zone and subzone text, optional coordinates and clock, and a bar that collects stray minimap buttons so they stay tidy. Tune layout and colours under Vista in the sidebar."
 -- L["DASH_GUIDE_MOD_INSIGHT_BODY"]                           = "Insight extends Blizzard tooltips for players, NPCs, and items — class and faction colouring, spec and icon lines, optional Mythic+ score, item level, mount collection hints, and cleaner separators. Each tooltip type has its own category under Insight."
--- L["DASH_GUIDE_MOD_AUGMENT_BODY"]                             = "Augment handles loot feedback: styled loot toasts for items, money, currency, and reputation, plus options that tie into how rewards are shown. Enable it when you want Horizon’s presentation instead of the default loot popups."
+-- L["DASH_GUIDE_MOD_AUGMENT_BODY"]                           = "Augment handles loot feedback: styled loot toasts for items, money, currency, and reputation, plus options that tie into how rewards are shown. Enable it when you want Horizon’s presentation instead of the default loot popups."
 -- L["DASH_GUIDE_MOD_ESSENCE_BODY"]                           = "Essence is an optional character sheet: 3D model, item level, primary stats, and a gear grid so you can review your equipment at a glance. Open Essence in the sidebar to adjust layout and visibility."
--- L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                             = "Coming soon."
--- L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                       = "Core settings hub: profiles, modules, and global toggles."
+L["DASH_GUIDE_MOD_MERIDIAN_BODY"]                             = "Coming soon."
+L["DASH_AXIS_MODULE_SHORT_DESCRIPTION"]                       = "Core settings hub: profiles, modules, and global toggles."
 -- L["DASH_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS"]            = "Objective tracker for quests, world quests, rares, achievements, scenarios."
 -- L["DASH_ZONE_TEXT_AND_NOTIFICATIONS"]                      = "Zone text and notifications."
 -- L["DASH_MINIMAP_ZONE_TEXT_COORDS_BUTTON"]                  = "Minimap with zone text, coords, time, and button collector."
 -- L["DASH_TOOLTIPS_CLASS_COLOURS_SPEC_FACTION"]              = "Tooltips with class colours, spec, and faction icons."
 -- L["DASH_LOOT_TOASTS_ITEMS_MONEY_CURRENCY"]                 = "Loot toasts for items, money, currency, reputation, and bag overhaul."
 -- L["DASH_ESSENCE_MODULE_SHORT_DESCRIPTION"]                 = "Custom character sheet with 3D model, item level, stats, and gear grid."
--- L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                   = "Coming soon."
+L["DASH_MERIDIAN_MODULE_SHORT_DESCRIPTION"]                   = "Coming soon."
 -- L["DASH_WELCOME_COMMUNITY_HEADING"]                        = "Community & Support"
 -- L["DASH_COPY_LINK_X"]                                      = "Copy link — %s"
 -- L["HOME_HEAD_SUB"]                                         = "Enable and configure your modules"
--- L["HOME_MOD_FOCUS_SHORT"]                                     = "Track spells, cooldowns, and procs."
--- L["HOME_MOD_PRESENCE_SHORT"]                                  = "Enhance nameplates and unit frames."
--- L["HOME_MOD_VISTA_SHORT"]                                     = "Enrich the world map and minimap."
--- L["HOME_MOD_INSIGHT_SHORT"]                                   = "Add context to tooltips and inspects."
--- L["HOME_MOD_AUGMENT_SHORT"]                                     = "Smart loot and item management."
--- L["HOME_MOD_ESSENCE_SHORT"]                                   = "Custom HUD elements and action bars."
+L["HOME_MOD_FOCUS_SHORT"]                                     = "Track spells, cooldowns, and procs."
+L["HOME_MOD_PRESENCE_SHORT"]                                  = "Enhance nameplates and unit frames."
+L["HOME_MOD_VISTA_SHORT"]                                     = "Enrich the world map and minimap."
+L["HOME_MOD_INSIGHT_SHORT"]                                   = "Add context to tooltips and inspects."
+L["HOME_MOD_AUGMENT_SHORT"]                                   = "Smart loot and item management."
+L["HOME_MOD_ESSENCE_SHORT"]                                   = "Custom HUD elements and action bars."
 -- L["DASH_RESIZE_TOOLTIP"]                                   = "Drag to resize\nRight-click to reset"
 -- L["HOME_RELOAD_PROMPT"]                                    = "Reload to apply module changes."
 -- L["RELOAD_UI"]                                             = "Reload UI"
@@ -312,9 +322,9 @@ L["DASH_APPEARANCE"]                                          = "Apparence"
 L["DASH_COLOURS"]                                             = "Couleurs"
 -- L["DASH_ORGANISATION"]                                     = "Organisation"
 
-
+-- =====================================================================
 -- OptionsData.lua Section headers
-
+-- =====================================================================
 L["FOCUS_PANEL_BEHAVIOUR"]                                    = "Comportement du panneau"
 -- L["FOCUS_DIMENSIONS"]                                      = "Dimensions"
 -- L["FOCUS_INSTANCE"]                                        = "Instance"
@@ -336,6 +346,9 @@ L["FOCUS_ACHIEVEMENTS"]                                       = "Hauts faits"
 -- L["FOCUS_ACHIEVEMENT_PROGRESS_BARS"]                       = "Achievement Progress Bars"
 -- L["FOCUS_ACHIEVEMENT_PROGRESS_BARS_DESC"]                  = "Show a progress bar under tracked achievements that report numeric criteria (including 0/1 and X/Y). Independent of Quest Progress Bars."
 -- L["FOCUS_ACHIEVEMENT_PROGRESS_BARS_TIP"]                   = "Uses the same bar colours, texture, and font as other Focus progress bars when those options are visible."
+-- L["FOCUS_ACHIEVEMENT_POINTS_HEADER"]                       = "Total Points in Header"
+-- L["FOCUS_ACHIEVEMENT_POINTS_HEADER_DESC"]                  = "Show your total account achievement points on the right of the Achievements section header."
+-- L["FOCUS_ACHIEVEMENT_POINTS_HEADER_TIP"]                   = "Only appears while the Achievements section is visible. Uses the section header's colour and font."
 L["FOCUS_ENDEAVORS"]                                          = "Initiatives"
 L["FOCUS_DECOR"]                                              = "Décoration"
 -- L["FOCUS_APPEARANCES"]                                     = "Appearances"
@@ -368,9 +381,9 @@ L["FOCUS_DELVE_COMPLETE"]                                     = "Gouffre termin�
 L["FOCUS_TRACKING"]                                           = "Suivi"
 L["FOCUS_SCENARIO_BAR"]                                       = "Barre de scénario"
 
-
+-- =====================================================================
 -- OptionsData.lua Profiles
-
+-- =====================================================================
 -- L["AXIS_CURRENT_PROFILE"]                                  = "Current Profile"
 -- L["AXIS_SELECT_PROFILE_CURRENTLY"]                         = "Select the profile currently in use."
 -- L["AXIS_GLOBAL_PROFILE_ACCOUNT_WIDE"]                      = "Use global profile (account-wide)"
@@ -401,18 +414,18 @@ L["FOCUS_SCENARIO_BAR"]                                       = "Barre de scéna
 -- L["AXIS_DELETE_SELECTED"]                                  = "Delete Selected"
 -- L["AXIS_DELETE_SELECTED_PROFILE"]                          = "Delete Selected Profile"
 -- L["AXIS_DELETE"]                                           = "Delete"
--- L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                         = "Deletes the Selected Profile."
+-- L["AXIS_DELETE_SELECTED_PROFILE_DESC"]                     = "Deletes the Selected Profile."
 -- L["AXIS_GLOBAL_PROFILE"]                                   = "Global Profile"
 -- L["AXIS_PER_SPEC_PROFILES"]                                = "Per-Spec Profiles"
 
-
+-- =====================================================================
 -- OptionsData.lua Modules
-
+-- =====================================================================
 L["AXIS_ENABLE_FOCUS_MODULE"]                                 = "Activer le module Focus"
 L["AXIS_OBJECTIVE_TRACKER_QUESTS_WORLD_QUESTS_R"]             = "Affiche le suivi des objectifs pour les quêtes, expéditions, boss rares, hauts faits et scénarios."
 L["AXIS_ENABLE_PRESENCE_MODULE"]                              = "Activer le module Presence"
 L["AXIS_CINEMATIC_ZONE_TEXT_NOTIFICATIONS_ZONE_CHANGES"]      = "Texte de zone cinématique et notifications (changement de zone, montée de niveau, emotes de boss, hauts faits, mises à jour de quêtes)."
-L["AXIS_ENABLE_AUGMENT_MODULE"]                                 = "Activer le module Augment"
+L["AXIS_ENABLE_AUGMENT_MODULE"]                               = "Activer le module Augment"
 L["AXIS_CINEMATIC_LOOT_NOTIFICATIONS_ITEMS_MONEY_CURRENCY"]   = "Alertes cinématiques de butin (objets, argent, monnaies, réputation)."
 L["AXIS_ENABLE_VISTA_MODULE"]                                 = "Activer le module Vista"
 L["AXIS_CINEMATIC_SQUARE_MINIMAP_ZONE_TEXT_COORDINATES"]      = "Minicarte carrée cinématique avec texte de zone, coordonnées et rubrique à boutons."
@@ -421,24 +434,24 @@ L["AXIS_SCALING"]                                             = "Mise à l'éche
 L["AXIS_GLOBAL_TOGGLES"]                                      = "Réglages globaux"
 -- L["AXIS_DASHBOARD_SECTION"]                                = "Dashboard"
 -- L["AXIS_GLOBAL_FONT_SECTION"]                              = "Global Font"
--- L["AXIS_USE_GLOBAL_FONT"]                                 = "Global Font Override"
--- L["AXIS_USE_GLOBAL_FONT_DESC"]                            = "Force all modules to use a single font, overriding any per-module or per-element font choices."
--- L["AXIS_GLOBAL_FONT_PICKER"]                              = "Font"
--- L["AXIS_GLOBAL_FONT_PICKER_DESC"]                         = "The font applied across all modules when Global Font Override is enabled."
--- L["AXIS_SIDEBAR_SECTION"]                                     = "Sidebar"
--- L["AXIS_SIDEBAR_COLLAPSE_MODE"]                               = "Category Behaviour"
--- L["AXIS_SIDEBAR_COLLAPSE_MODE_DESC"]                          = "Controls how sidebar module groups expand and collapse while navigating."
--- L["AXIS_SIDEBAR_COLLAPSE_MODE_TOOLTIP"]                       = "Auto — only the active module is expanded; navigating to another collapses the previous one.\n\nManual — groups stay open or closed until you click their header to toggle them.\n\nAxis+ — Axis is always expanded; all other modules follow Auto behaviour."
--- L["AXIS_SIDEBAR_COLLAPSE_AUTO"]                               = "Auto"
--- L["AXIS_SIDEBAR_COLLAPSE_MANUAL"]                             = "Manual"
--- L["AXIS_SIDEBAR_COLLAPSE_AXIS_PLUS"]                          = "Axis+"
+-- L["AXIS_USE_GLOBAL_FONT"]                                  = "Global Font Override"
+-- L["AXIS_USE_GLOBAL_FONT_DESC"]                             = "Force all modules to use a single font, overriding any per-module or per-element font choices."
+-- L["AXIS_GLOBAL_FONT_PICKER"]                               = "Font"
+-- L["AXIS_GLOBAL_FONT_PICKER_DESC"]                          = "The font applied across all modules when Global Font Override is enabled."
+-- L["AXIS_SIDEBAR_SECTION"]                                  = "Sidebar"
+-- L["AXIS_SIDEBAR_COLLAPSE_MODE"]                            = "Category Behaviour"
+-- L["AXIS_SIDEBAR_COLLAPSE_MODE_DESC"]                       = "Controls how sidebar module groups expand and collapse while navigating."
+-- L["AXIS_SIDEBAR_COLLAPSE_MODE_TOOLTIP"]                    = "Auto — only the active module is expanded; navigating to another collapses the previous one.\n\nManual — groups stay open or closed until you click their header to toggle them.\n\nAxis+ — Axis is always expanded; all other modules follow Auto behaviour."
+-- L["AXIS_SIDEBAR_COLLAPSE_AUTO"]                            = "Auto"
+-- L["AXIS_SIDEBAR_COLLAPSE_MANUAL"]                          = "Manual"
+-- L["AXIS_SIDEBAR_COLLAPSE_AXIS_PLUS"]                       = "Axis+"
 -- L["AXIS_GLOBAL_SCALE_SECTION"]                             = "Global Scale"
 -- L["AXIS_MINIMAP_ICON_SECTION"]                             = "Minimap Icon"
 -- L["AXIS_MINIMAP_ICON_CIRCULAR"]                            = "Circular icon"
--- L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                          = "Round the Horizon minimap icon and add a gold ring border to match calendar, clock, and other circular minimap buttons."
--- L["AXIS_GAME_MENU_SECTION"]                               = "Game Menu"
--- L["AXIS_SHOW_GAME_MENU_BUTTON"]                           = "Show in Game Menu"
--- L["AXIS_SHOW_GAME_MENU_BUTTON_DESC"]                      = "Show a Horizon Suite shortcut in the Game menu for quick access to the dashboard."
+L["AXIS_MINIMAP_ICON_CIRCULAR_DESC"]                          = "Round the Horizon minimap icon and add a gold ring border to match calendar, clock, and other circular minimap buttons."
+-- L["AXIS_GAME_MENU_SECTION"]                                = "Game Menu"
+-- L["AXIS_SHOW_GAME_MENU_BUTTON"]                            = "Show in Game Menu"
+-- L["AXIS_SHOW_GAME_MENU_BUTTON_DESC"]                       = "Show a Horizon Suite shortcut in the Game menu for quick access to the dashboard."
 -- L["AXIS_CLASS_THEME_SECTION"]                              = "Class Theme"
 -- L["AXIS_GLOBAL_CLASS_THEME"]                               = "Global Class Theme"
 -- L["AXIS_CLASS_THEME_DASHBOARD"]                            = "Dashboard"
@@ -551,7 +564,7 @@ L["AXIS_SCALE_AUGMENT_LOOT_TOAST_MODULE"]                       = "Échelle du m
 -- L["AUGMENT_ALERTS_BAGS_COLOUR_DESC"]                          = "Accent colour used for the Bags Nearly Full toast."
 -- L["AUGMENT_ALERTS_MAIL_COLOUR"]                               = "New Mail Colour"
 -- L["AUGMENT_ALERTS_MAIL_COLOUR_DESC"]                          = "Accent colour used for the New Mail toast."
--- L["AUGMENT_ALERTS_VAULT_COLUR"]                              = "Great Vault Colour"
+-- L["AUGMENT_ALERTS_VAULT_COLOUR"]                              = "Great Vault Colour"
 -- L["AUGMENT_ALERTS_VAULT_COLOUR_DESC"]                         = "Accent colour used for the Great Vault Ready toast."
 -- L["AUGMENT_ALERTS_FRIEND_ON_COLOUR"]                          = "Friend Online Colour"
 -- L["AUGMENT_ALERTS_FRIEND_ON_COLOUR_DESC"]                     = "Accent colour used when a friend comes online."
@@ -618,6 +631,145 @@ L["AXIS_SCALE_AUGMENT_LOOT_TOAST_MODULE"]                       = "Échelle du m
 -- L["AUGMENT_FONT_SIZE_DESC"]                                  = "Text point size for loot toast labels (8–28)."
 -- L["AUGMENT_TOAST_SCALE"]                                     = "Toast Scale"
 -- L["AUGMENT_TOAST_SCALE_DESC"]                                = "Overall size multiplier for loot toasts (50–200%)."
+-- L["AUGMENT_IMPROVEMENTS"]                                  = "Loot Frame"
+-- L["AUGMENT_IMPROVEMENTS_PAGE_DESC"]                        = "Loot toast settings, sound options, typography, and native Blizzard notification control."
+-- L["AUGMENT_TOAST_SETTINGS"]                                = "Toast Settings"
+L["AUGMENT_SCALE"]                                            = "Échelle Augment"
+L["AXIS_SCALE_AUGMENT_LOOT_TOAST_MODULE"]                     = "Échelle du module d'alerte de butin Augment (50–200 %)."
+L["AUGMENT_FONT"]                                             = "Loot Toast Font"
+-- L["AUGMENT_FONT_FAMILY"]                                   = "Font family used for loot toast text. Use 'Use global font' to follow the addon-wide font."
+-- L["AUGMENT_ICON_SIZE"]                                     = "Icon Size"
+-- L["AUGMENT_ICON_SIZE_DESC"]                                = "Icon size used for Loot Toasts (8-64 px)."
+-- L["AUGMENT_ICON_GAP"]                                      = "Icon Gap"
+-- L["AUGMENT_ICON_GAP_DESC"]                                 = "Gap between icons and text for Loot toasts (0-32 px)."
+-- L["AUGMENT_TOAST_TYPES"]                                   = "Toast Types"
+-- L["AUGMENT_TOAST_TYPES_PAGE_DESC"]                         = "Choose which loot types trigger a toast notification."
+-- L["AUGMENT_SHOW_ITEMS"]                                    = "Item Toasts"
+-- L["AUGMENT_SHOW_ITEMS_DESC"]                               = "Show a toast when you loot an item."
+-- L["AUGMENT_SHOW_PUSHED_ITEMS"]                             = "Upgrade & Reward Toasts"
+-- L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"]                        = "Show a toast when an item is delivered to your bags (upgrades, Catalyst, quest rewards)."
+-- L["AUGMENT_SHOW_MONEY"]                                    = "Money Toasts"
+-- L["AUGMENT_SHOW_MONEY_DESC"]                               = "Show a toast when you loot gold."
+-- L["AUGMENT_SHOW_CURRENCY"]                                 = "Currency Toasts"
+-- L["AUGMENT_SHOW_CURRENCY_DESC"]                            = "Show a toast when you receive a currency."
+-- L["AUGMENT_SHOW_REP"]                                      = "Reputation Toasts"
+-- L["AUGMENT_SHOW_REP_DESC"]                                 = "Show a toast when your reputation changes."
+-- L["AUGMENT_STYLE_SECTION"]                                 = "Style"
+-- L["AUGMENT_FONT_SECTION"]                                  = "Font"
+-- L["AUGMENT_TEXT_OUTLINE_TYPE"]                             = "Outline Type"
+-- L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"]                        = "The style of text outline applied to loot toast labels."
+-- L["AUGMENT_STACKING_SECTION"]                              = "Stacking"
+-- L["AUGMENT_STACK_DUPLICATES"]                              = "Stack Duplicate Loots"
+-- L["AUGMENT_STACK_DUPLICATES_DESC"]                         = "When the same item or currency drops multiple times while a toast is still visible, update the count on the existing row instead of creating a new one."
+-- L["AUGMENT_STACK_COUNT_BEFORE_NAME"]                       = "Show item count before name"
+-- L["AUGMENT_STACK_COUNT_BEFORE_NAME_DESC"]                  = "Show the item count before the item name in the toast."
+-- L["AUGMENT_CONDENSE_JUNK"]                                 = "Condense Junk Items"
+-- L["AUGMENT_CONDENSE_JUNK_DESC"]                            = "Merge all grey quality items into a single row showing a combined count (e.g. Junk x12)."
+-- L["AUGMENT_JUNK_LABEL"]                                    = "Junk"
+-- L["AUGMENT_BLIZZARD_SECTION"]                              = "Blizzard Toasts"
+-- L["AUGMENT_SUPPRESS_BLIZZARD"]                             = "Hide Default Blizzard Toasts"
+-- L["AUGMENT_SUPPRESS_BLIZZARD_DESC"]                        = "Suppress Blizzard's built-in loot alert toasts. When enabled, Augment notifications replace them entirely. When disabled, both systems show simultaneously."
+-- L["AUGMENT_VENDOR"]                                        = "Auto Vendor"
+-- L["AUGMENT_VENDOR_DESC"]                                   = "Automatically sell grey items and repair gear when a merchant window opens."
+-- L["AUGMENT_VENDOR_SELLER_SECTION"]                         = "Auto Seller"
+-- L["AUGMENT_VENDOR_SELLER_ENABLE"]                          = "Enable Auto Seller"
+-- L["AUGMENT_VENDOR_SELLER_ENABLE_DESC"]                     = "Enable automatic selling when a vendor window opens. Configure which items are sold below."
+-- L["AUGMENT_VENDOR_SELLER_GREY"]                            = "Sell Grey Items"
+-- L["AUGMENT_VENDOR_SELLER_GREY_DESC"]                       = "Sell all grey (poor quality) items when a vendor window opens."
+-- L["AUGMENT_VENDOR_SELLER_UNUSABLE"]                        = "Sell Unusable"
+-- L["AUGMENT_VENDOR_SELLER_UNUSABLE_DESC"]                   = "Sell soulbound gear your class cannot equip."
+-- L["AUGMENT_VENDOR_SELLER_NONOPTIMAL"]                      = "Sell Non-Optimal"
+-- L["AUGMENT_VENDOR_SELLER_NONOPTIMAL_DESC"]                 = "Sell soulbound armor that is a sub-optimal type for your class (e.g. cloth on a Warrior)."
+-- L["AUGMENT_VENDOR_SELLER_LOW_LEVEL"]                       = "Sell Low Level"
+-- L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_DESC"]                  = "Sell soulbound weapons and armor below the item level threshold."
+-- L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_THRESHOLD"]             = "Item Level Threshold"
+-- L["AUGMENT_VENDOR_SELLER_LOW_LEVEL_THRESHOLD_DESC"]        = "Sell soulbound gear below this item level (items with a Use: or Equip: effect are skipped)."
+-- L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS"]                   = "Sell Fortune Cards"
+-- L["AUGMENT_VENDOR_SELLER_FORTUNE_CARDS_DESC"]              = "Sell cheap Darkmoon Fortune Cards."
+-- L["AUGMENT_VENDOR_SELLER_LEGION_RELICS"]                   = "Sell Legion Relics"
+-- L["AUGMENT_VENDOR_SELLER_LEGION_RELICS_DESC"]              = "Sell Legion artifact relic items."
+-- L["AUGMENT_VENDOR_REPAIR_SECTION"]                         = "Auto Repair"
+-- L["AUGMENT_VENDOR_REPAIR_ENABLE"]                          = "Enable Auto Repair"
+-- L["AUGMENT_VENDOR_REPAIR_ENABLE_DESC"]                     = "Automatically repair all gear when a vendor window opens."
+-- L["AUGMENT_VENDOR_REPAIR_GUILDBANK"]                       = "Use Guild Bank"
+-- L["AUGMENT_VENDOR_REPAIR_GUILDBANK_DESC"]                  = "Use guild bank funds to pay for repairs when available and affordable."
+-- L["AUGMENT_VENDOR_VERBOSITY"]                              = "Chat Messages"
+-- L["AUGMENT_VENDOR_VERBOSITY_DESC"]                         = "Whether to print a summary in chat after automatic actions."
+-- L["AUGMENT_VENDOR_VERBOSITY_SILENT"]                       = "Silent"
+-- L["AUGMENT_VENDOR_VERBOSITY_SUMMARY"]                      = "Summary"
+-- L["AUGMENT_VENDOR_SOLD_SUMMARY"]                           = "Sold %d item(s) for %s."
+-- L["AUGMENT_VENDOR_REPAIRED"]                               = "Repaired all items for %s."
+-- L["AUGMENT_VENDOR_REPAIRED_GUILD"]                         = "Repaired all items for %s (guild bank)."
+-- L["AUGMENT_SELF_HIGHLIGHT"]                                = "Self Highlight"
+-- L["AUGMENT_SELF_HIGHLIGHT_DESC"]                           = "Automatically applies your character's self-highlight based on combat state and target hostility."
+-- L["AUGMENT_SELF_HIGHLIGHT_BEHAVIOUR"]                      = "Behaviour"
+-- L["AUGMENT_SELF_HIGHLIGHT_ENABLE"]                         = "Enable Self Highlight"
+-- L["AUGMENT_SELF_HIGHLIGHT_ENABLE_DESC"]                    = "Manage the self-highlight effect based on combat state and target hostility."
+-- L["AUGMENT_SELF_HIGHLIGHT_MODE"]                           = "Highlight Mode"
+-- L["AUGMENT_SELF_HIGHLIGHT_MODE_DESC"]                      = "Visual style applied when the highlight is active."
+-- L["AUGMENT_SELF_HIGHLIGHT_MODE_OUTLINE"]                   = "Outline"
+-- L["AUGMENT_SELF_HIGHLIGHT_MODE_CIRCLE"]                    = "Circle"
+-- L["AUGMENT_SELF_HIGHLIGHT_MODE_ICON"]                      = "Icon"
+-- L["AUGMENT_SELF_HIGHLIGHT_MODE_OUTLINECIRCLE"]             = "Outline + Circle"
+-- L["AUGMENT_SELF_HIGHLIGHT_MODE_OUTLINEICON"]               = "Outline + Icon"
+-- L["AUGMENT_SELF_HIGHLIGHT_TRIGGERS"]                       = "Triggers"
+-- L["AUGMENT_SELF_HIGHLIGHT_COMBAT"]                         = "In Combat"
+-- L["AUGMENT_SELF_HIGHLIGHT_COMBAT_DESC"]                    = "Activate the highlight when entering combat."
+-- L["AUGMENT_SELF_HIGHLIGHT_HOSTILE"]                        = "Hostile Target"
+-- L["AUGMENT_SELF_HIGHLIGHT_HOSTILE_DESC"]                   = "Activate the highlight when targeting a hostile unit."
+-- L["AUGMENT_ACHIEVEMENT_TRACKER"]                           = "Achievement Tracker"
+-- L["AUGMENT_ACHIEVEMENT_TRACKER_DESC"]                      = "Automatically removes earned achievements from the tracking list. Only available when Focus is disabled -- Focus handles tracked achievements natively."
+-- L["AUGMENT_PREVIEW_SECTION"]                               = "Preview"
+-- L["AUGMENT_PREVIEW"]                                       = "Preview Toasts"
+-- L["AUGMENT_PREVIEW_DESC"]                                  = "Fire a sample toast for each enabled type using your current settings."
+-- L["AUGMENT_PREVIEW_PAGE_DESC"]                             = "Test the current toast layout with sample notifications."
+-- L["AUGMENT_MIN_QUALITY"]                                   = "Minimum Item Quality"
+-- L["AUGMENT_MIN_QUALITY_DESC"]                              = "Hide item toasts below this quality threshold."
+-- L["AUGMENT_TOAST_OPACITY"]                                 = "Toast Opacity"
+-- L["AUGMENT_TOAST_OPACITY_DESC"]                            = "Maximum opacity of loot toasts (%)."
+-- L["AUGMENT_MAX_VISIBLE_SECTION"]                           = "Visibility"
+-- L["AUGMENT_MAX_VISIBLE"]                                   = "Max Visible Toasts"
+-- L["AUGMENT_MAX_VISIBLE_DESC"]                              = "Maximum number of loot toasts visible at once."
+-- L["AUGMENT_HOLD_DURATIONS"]                                = "Hold Durations"
+-- L["AUGMENT_HOLD_DURATIONS_PAGE_DESC"]                      = "Configure how long each type of loot toast stays visible."
+-- L["AUGMENT_HOLD_ITEM"]                                     = "Item Hold Time"
+-- L["AUGMENT_HOLD_ITEM_DESC"]                                = "How long Common, Uncommon, and Rare item toasts remain on screen (seconds)."
+-- L["AUGMENT_HOLD_EPIC"]                                     = "Epic Hold Time"
+-- L["AUGMENT_HOLD_EPIC_DESC"]                                = "How long Epic item toasts remain on screen (seconds)."
+-- L["AUGMENT_HOLD_LEGENDARY"]                                = "Legendary Hold Time"
+-- L["AUGMENT_HOLD_LEGENDARY_DESC"]                           = "How long Legendary item toasts remain on screen (seconds)."
+-- L["AUGMENT_HOLD_MONEY"]                                    = "Money Hold Time"
+-- L["AUGMENT_HOLD_MONEY_DESC"]                               = "How long money toasts remain on screen (seconds)."
+-- L["AUGMENT_HOLD_CURRENCY"]                                 = "Currency Hold Time"
+-- L["AUGMENT_HOLD_CURRENCY_DESC"]                            = "How long currency toasts remain on screen (seconds)."
+-- L["AUGMENT_HOLD_REP"]                                      = "Reputation Hold Time"
+-- L["AUGMENT_HOLD_REP_DESC"]                                 = "How long reputation toasts remain on screen (seconds)."
+-- L["AUGMENT_SOUNDS"]                                        = "Sounds"
+-- L["AUGMENT_SOUNDS_PAGE_DESC"]                              = "Sound playback settings for loot toast notifications."
+-- L["AUGMENT_SOUND_ENABLED"]                                 = "Enable Sounds"
+-- L["AUGMENT_SOUND_ENABLED_DESC"]                            = "Master toggle for loot toast sounds."
+-- L["AUGMENT_SOUND_CHANNEL"]                                 = "Sound Channel"
+-- L["AUGMENT_SOUND_CHANNEL_DESC"]                            = "Audio mixer channel used for toast sounds."
+-- L["AUGMENT_SOUND_CH_SFX"]                                  = "Sound Effects"
+-- L["AUGMENT_SOUND_CH_MASTER"]                               = "Master"
+-- L["AUGMENT_SOUND_CH_DIALOG"]                               = "Dialog"
+-- L["AUGMENT_SOUND_CH_AMBIENCE"]                             = "Ambience"
+-- L["AUGMENT_SOUND_CH_MUSIC"]                                = "Music"
+-- L["AUGMENT_SOUND_ITEMS"]                                   = "Item Sounds"
+-- L["AUGMENT_SOUND_ITEMS_DESC"]                              = "Play a sound for epic and legendary item toasts."
+-- L["AUGMENT_SOUND_MONEY"]                                   = "Money Sounds"
+-- L["AUGMENT_SOUND_MONEY_DESC"]                              = "Play a sound when you loot gold."
+-- L["AUGMENT_SOUND_CURRENCY"]                                = "Currency Sounds"
+-- L["AUGMENT_SOUND_CURRENCY_DESC"]                           = "Play a sound when you receive a currency."
+-- L["AUGMENT_SOUND_REP"]                                     = "Reputation Sounds"
+-- L["AUGMENT_SOUND_REP_DESC"]                                = "Play a sound when your reputation changes."
+-- L["AUGMENT_TYPOGRAPHY_PAGE_DESC"]                          = "Font and text display options for loot toasts."
+-- L["AUGMENT_TEXT_OUTLINE"]                                  = "Text Outline"
+-- L["AUGMENT_TEXT_OUTLINE_DESC"]                             = "Display toast text with an outline."
+-- L["AUGMENT_FONT_SIZE"]                                     = "Font Size"
+-- L["AUGMENT_FONT_SIZE_DESC"]                                = "Text point size for loot toast labels (8–28)."
+-- L["AUGMENT_TOAST_SCALE"]                                   = "Toast Scale"
+-- L["AUGMENT_TOAST_SCALE_DESC"]                              = "Overall size multiplier for loot toasts (50–200%)."
 L["AXIS_ENABLE_HORIZON_INSIGHT_MODULE"]                       = "Activer le module Horizon Insight"
 L["AXIS_CINEMATIC_TOOLTIPS_CLASS_COLOURS_SPEC_DISPLAY"]       = "Infobulles cinématiques avec couleurs de classe, spécialisation et icônes de faction."
 L["AXIS_TOOLTIP_ANCHOR_MODE"]                                 = "Mode d'ancrage des infobulles"
@@ -637,9 +789,9 @@ L["AXIS_RESET_FIXED_POSITION_DEFAULT"]                        = "Réinitialiser 
 -- L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED"]                        = "Dynamic Position for Focus Tooltips"
 -- L["INSIGHT_FOCUS_DYNAMIC_IN_FIXED_DESC"]                   = "When fixed anchor is on, Focus tracker tooltips still attach to the outer edge of the Horizon panel so they never cover the tracker."
 -- L["INSIGHT_CURSOR_OFFSET_X"]                               = "Cursor Offset X"
--- L["INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["INSIGHT_CURSOR_OFFSET_X_DESC"]                             = "Horizontal pixel offset from the default cursor tooltip position (cursor anchor only)."
 -- L["INSIGHT_CURSOR_OFFSET_Y"]                               = "Cursor Offset Y"
--- L["INSIGHT_CURSOR_OFFSET_Y_DESC"]                             = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
+L["INSIGHT_CURSOR_OFFSET_Y_DESC"]                             = "Vertical pixel offset from the default cursor tooltip position (cursor anchor only)."
 L["AXIS_TOOLTIP_BACKGROUND_COLOUR"]                           = "Couleur de fond des infobulles"
 L["AXIS_COLOUR_OF_TOOLTIP_BACKGROUND"]                        = "Couleur de fond des infobulles."
 L["AXIS_TOOLTIP_BACKGROUND_OPACITY"]                          = "Opacité du fond des infobulles"
@@ -648,10 +800,10 @@ L["AXIS_TOOLTIP_FONT"]                                        = "Police de l'inf
 L["AXIS_FONT_FAMILY_TOOLTIP_TEXT"]                            = "Famille de police utilisée pour le texte de l'infobulle."
 -- L["INSIGHT_BODY_SIZE"]                                     = "Body Size"
 -- L["INSIGHT_BODY_FONT_SIZE"]                                = "Body Font Size."
--- L["INSIGHT_BADGES_SIZE"]                                      = "Badges Size"
--- L["INSIGHT_BADGES_FONT_SIZE"]                                 = "Status Badges Font Size."
--- L["INSIGHT_STATS_SIZE"]                                       = "Stats Size"
--- L["INSIGHT_STATS_FONT_SIZE"]                                  = "M+ score, item level, and honor level font size."
+L["INSIGHT_BADGES_SIZE"]                                      = "Badges Size"
+L["INSIGHT_BADGES_FONT_SIZE"]                                 = "Status Badges Font Size."
+L["INSIGHT_STATS_SIZE"]                                       = "Stats Size"
+L["INSIGHT_STATS_FONT_SIZE"]                                  = "M+ score, item level, and honor level font size."
 -- L["INSIGHT_MOUNT_SIZE"]                                    = "Mount Size"
 -- L["INSIGHT_MOUNT_FONT_SIZE"]                               = "Mount name, source, and ownership font size."
 -- L["INSIGHT_MOUNT_OWNERSHIP_DISPLAY"]                       = "Mount Collection Indicator"
@@ -662,37 +814,38 @@ L["AXIS_FONT_FAMILY_TOOLTIP_TEXT"]                            = "Famille de poli
 -- L["INSIGHT_MOUNT_NOT_OWNED"]                               = "You don't own this mount"
 -- L["INSIGHT_TRANSMOG_SIZE"]                                 = "Transmog Size"
 -- L["INSIGHT_TRANSMOG_FONT_SIZE"]                            = "Item appearance status font size."
--- L["INSIGHT_TRP3_CHARACTER_ICON"]                                                = "Character Icon"
--- L["INSIGHT_TRP3_CHARACTER_ICON_DESC"]                                                = "Show the player's TRP3 character icon before their name, replacing the faction symbol."
--- L["INSIGHT_TRP3_TITLE"]                                                = "Full Title"
--- L["INSIGHT_TRP3_TITLE_DESC"]                                                = "Show the player's full title (e.g. <Keeper of the Dawnguard >) as a line below the name."
--- L["INSIGHT_TRP3_NAME"]                                                = "RP Name"
--- L["INSIGHT_TRP3_NAME_DESC"]                                                = "Replace the WoW character name with the player's TRP3 RP name when available."
-
--- L["INSIGHT_TRP3_COLOUR_DESC"]                                                = "Use the player's TRP3 custom name colour instead of their faction or class colour for their name."
--- L["INSIGHT_TRP3_STATUS"]                                                = "IC / OOC Status"
--- L["INSIGHT_TRP3_STATUS_DESC"]                                                = "Show a green [IC] or red [OOC] badge on the name line for players using Total RP 3."
--- L["INSIGHT_TRP3_STATUS_ICON"]                                                = "Use Icon Indicator"
--- L["INSIGHT_TRP3_STATUS_ICON_DESC"]                                                = "Show a coloured green or red dot instead of [IC] / [OOC] text on the name line."
--- L["INSIGHT_TRP3_PRONOUNS"]                                                = "Pronouns"
--- L["INSIGHT_TRP3_PRONOUNS_DESC"]                                                = "Show the player's TRP3 pronouns in the name line."
--- L["INSIGHT_TRP3_RACE_CLASS"]                                                = "Custom Race & Class"
--- L["INSIGHT_TRP3_RACE_CLASS_DESC"]                                                = "Show the player's TRP3 race/class near the bottom when available. The native race/class line moves there as a fallback."
--- L["INSIGHT_TRP3_GUILD"]                                                = "Custom Guild"
--- L["INSIGHT_TRP3_GUILD_DESC"]                                                = "Show the player's TRP3 guild near the bottom when available. The native guide line moves there as a fallback."
--- L["INSIGHT_TRP3_CURRENTLY"]                                                = "Currently"
--- L["INSIGHT_TRP3_CURRENTLY_DESC"]                                                = "Show the player's TRP3 'Currently' status text as a block at the bottom of the tooltip"
--- L["INSIGHT_TRP3_BORDER_COLOUR"]                                                = "Custom Border Colour"
--- L["INSIGHT_TRP3_BORDER_COLOUR_DESC"]                                           = "Tint the tooltip border with the player's TRP3 custom colour instead of their class colour."
+-- L["INSIGHT_TRP3_CHARACTER_ICON"]                           = "Character Icon"
+-- L["INSIGHT_TRP3_CHARACTER_ICON_DESC"]                      = "Show the player's TRP3 character icon before their name, replacing the faction symbol."
+-- L["INSIGHT_TRP3_TITLE"]                                    = "Full Title"
+-- L["INSIGHT_TRP3_TITLE_DESC"]                               = "Show the player's full title (e.g. <Keeper of the Dawnguard >) as a line below the name."
+-- L["INSIGHT_TRP3_NAME"]                                     = "RP Name"
+-- L["INSIGHT_TRP3_NAME_DESC"]                                = "Replace the WoW character name with the player's TRP3 RP name when available."
+-- L["INSIGHT_TRP3_WOW_TITLE"]                                = "WoW Title with RP Name"
+-- L["INSIGHT_TRP3_WOW_TITLE_DESC"]                           = "Keep the character's chosen WoW title (e.g. Star Savior) in front of the RP name. Modifier shows it only while Shift is held."
+-- L["INSIGHT_TRP3_COLOUR_DESC"]                              = "Use the player's TRP3 custom name colour instead of their faction or class colour for their name."
+-- L["INSIGHT_TRP3_STATUS"]                                   = "IC / OOC Status"
+-- L["INSIGHT_TRP3_STATUS_DESC"]                              = "Show a green [IC] or red [OOC] badge on the name line for players using Total RP 3."
+-- L["INSIGHT_TRP3_STATUS_ICON"]                              = "Use Icon Indicator"
+-- L["INSIGHT_TRP3_STATUS_ICON_DESC"]                         = "Show a coloured green or red dot instead of [IC] / [OOC] text on the name line."
+-- L["INSIGHT_TRP3_PRONOUNS"]                                 = "Pronouns"
+-- L["INSIGHT_TRP3_PRONOUNS_DESC"]                            = "Show the player's TRP3 pronouns in the name line."
+-- L["INSIGHT_TRP3_RACE_CLASS"]                               = "Custom Race & Class"
+-- L["INSIGHT_TRP3_RACE_CLASS_DESC"]                          = "Show the player's TRP3 race/class near the bottom when available. The native race/class line moves there as a fallback."
+-- L["INSIGHT_TRP3_GUILD"]                                    = "Custom Guild"
+-- L["INSIGHT_TRP3_GUILD_DESC"]                               = "Show the player's TRP3 guild near the bottom when available. The native guide line moves there as a fallback."
+-- L["INSIGHT_TRP3_CURRENTLY"]                                = "Currently"
+-- L["INSIGHT_TRP3_CURRENTLY_DESC"]                           = "Show the player's TRP3 'Currently' status text as a block at the bottom of the tooltip"
+-- L["INSIGHT_TRP3_BORDER_COLOUR"]                            = "Custom Border Colour"
+-- L["INSIGHT_TRP3_BORDER_COLOUR_DESC"]                       = "Tint the tooltip border with the player's TRP3 custom colour instead of their class colour."
 L["AXIS_TOOLTIPS"]                                            = "Infobulles"
 -- L["INSIGHT_CATEGORY_GLOBAL"]                               = "Global Tooltips"
--- L["INSIGHT_CATEGORY_GLOBAL_DESC"]                             = "Anchor, backdrop, fonts, sizes, and display options shared across tooltip types."
+L["INSIGHT_CATEGORY_GLOBAL_DESC"]                             = "Anchor, backdrop, fonts, sizes, and display options shared across tooltip types."
 -- L["INSIGHT_CATEGORY_PLAYER"]                               = "Player Characters"
--- L["INSIGHT_CATEGORY_PLAYER_DESC"]                             = "Guild rank, titles, badges, PvP, ratings, gear, and mount lines on player tooltips."
--- L["INSIGHT_CATEGORY_TRP3"]                                                = "Total RP 3"
--- L["INSIGHT_CATEGORY_TRP3_DESC"]                                                = "Integrate Total RP 3 character profiles into Insight player tooltips. TRP3's tooltip frame is suppressed; all RP data appears inside Insight's styled GameTooltip"
+L["INSIGHT_CATEGORY_PLAYER_DESC"]                             = "Guild rank, titles, badges, PvP, ratings, gear, and mount lines on player tooltips."
+-- L["INSIGHT_CATEGORY_TRP3"]                                 = "Total RP 3"
+-- L["INSIGHT_CATEGORY_TRP3_DESC"]                            = "Integrate Total RP 3 character profiles into Insight player tooltips. TRP3's tooltip frame is suppressed; all RP data appears inside Insight's styled GameTooltip"
 -- L["INSIGHT_CATEGORY_NPC"]                                  = "NPCs"
--- L["INSIGHT_CATEGORY_NPC_DESC"]                                = "NPC tooltip styling. Extra NPC-only toggles can be added here later."
+L["INSIGHT_CATEGORY_NPC_DESC"]                                = "NPC tooltip styling. Extra NPC-only toggles can be added here later."
 -- L["INSIGHT_CATEGORY_ITEM"]                                 = "Items"
 -- L["INSIGHT_CATEGORY_ITEM_DESC"]                            = "Item tooltip options such as transmog collection status."
 -- L["INSIGHT_SECTION_IDENTITY"]                              = "Identity"
@@ -704,6 +857,11 @@ L["AXIS_TOOLTIPS"]                                            = "Infobulles"
 -- L["INSIGHT_PLAYER_NAME_GRADIENT_DESC"]                     = "Render the player name as a two-stop gradient of their class colour (only applies when the name colour is set to Class)."
 -- L["INSIGHT_GRADIENT_BIAS"]                                 = "Gradient Brightness"
 -- L["INSIGHT_GRADIENT_BIAS_DESC"]                            = "Shift both gradient stops lighter (positive) or darker (negative). Zero gives the default look."
+-- L["INSIGHT_PLAYER_TOOLTIP_BORDER"]                         = "Tooltip Border"
+-- L["INSIGHT_PLAYER_TOOLTIP_BORDER_DESC"]                    = "Choose how player tooltip borders are tinted."
+-- L["INSIGHT_PLAYER_TOOLTIP_BORDER_NONE"]                    = "None"
+-- L["INSIGHT_PLAYER_TOOLTIP_BORDER_CLASS"]                   = "Class"
+-- L["INSIGHT_PLAYER_TOOLTIP_BORDER_FACTION"]                 = "Faction"
 -- L["INSIGHT_REALM_NAMES"]                                   = "Realm Names"
 -- L["INSIGHT_REALM_NAMES_DESC"]                              = "Choose how realm names display in player tooltip names."
 -- L["INSIGHT_REALM_NAMES_FULL"]                              = "Full"
@@ -715,7 +873,7 @@ L["AXIS_TOOLTIPS"]                                            = "Infobulles"
 -- L["INSIGHT_DISPLAY_MODE_HIDE"]                             = "Hide"
 -- L["INSIGHT_DISPLAY_MODE_SHOW"]                             = "Show"
 -- L["INSIGHT_DISPLAY_MODE_MODIFIER"]                         = "Modifier"
--- L["INSIGHT_SECTION_STATUS_PVP"]                               = "Status & PvP"
+L["INSIGHT_SECTION_STATUS_PVP"]                               = "Status & PvP"
 -- L["INSIGHT_STATUS_BADGE_COMBAT"]                           = "Combat"
 -- L["INSIGHT_STATUS_BADGE_COMBAT_DESC"]                      = "Show a Combat badge when the hovered player is in combat."
 -- L["INSIGHT_STATUS_BADGE_AFK"]                              = "AFK / DND"
@@ -723,8 +881,8 @@ L["AXIS_TOOLTIPS"]                                            = "Infobulles"
 -- L["INSIGHT_STATUS_BADGE_AFK_IN_HEADER"]                    = "AFK / DND In Header"
 -- L["INSIGHT_STATUS_BADGE_AFK_IN_HEADER_DESC"]               = "Show AFK / DND inline on the name line. When off, they appear with the other status badges."
 -- DND badge was merged into the AFK / DND toggle; key no longer used in the options UI.
--- L["INSIGHT_STATUS_BADGE_DND"]                              = "DND"
--- L["INSIGHT_STATUS_BADGE_DND_DESC"]                         = "Show a DND badge when the hovered player is marked do not disturb."
+-- L["INSIGHT_STATUS_BADGE_DND"]                             = "DND"
+-- L["INSIGHT_STATUS_BADGE_DND_DESC"]                        = "Show a DND badge when the hovered player is marked do not disturb."
 -- L["INSIGHT_STATUS_BADGE_PVP"]                              = "PvP"
 -- L["INSIGHT_STATUS_BADGE_PVP_DESC"]                         = "Show a PvP badge when the hovered player is flagged for PvP."
 -- L["INSIGHT_STATUS_BADGE_GROUP"]                            = "Group"
@@ -734,7 +892,7 @@ L["AXIS_TOOLTIPS"]                                            = "Infobulles"
 -- L["INSIGHT_STATUS_BADGE_TARGETING"]                        = "Targeting You"
 -- L["INSIGHT_STATUS_BADGE_TARGETING_DESC"]                   = "Show a Targeting You badge when the hovered player has you targeted."
 -- L["INSIGHT_TARGETING_LINE"]                                = "Targeting Line"
--- L["INSIGHT_TARGETING_LINE_DESC"]                          = "Show a Targeting line with the name of whoever the hovered unit is currently targeting."
+-- L["INSIGHT_TARGETING_LINE_DESC"]                           = "Show a Targeting line with the name of whoever the hovered unit is currently targeting."
 -- L["INSIGHT_SECTION_CLASS"]                                 = "Class"
 -- L["INSIGHT_SECTION_RATINGS_GEAR"]                          = "Ratings & Gear"
 -- L["INSIGHT_MYTHIC_SCORE_MODE_DESC"]                        = "Choose when to show Mythic+ score. Show requests inspect data on hover and may not appear instantly. Modifier shows it only while Shift is held."
@@ -744,12 +902,12 @@ L["AXIS_TOOLTIPS"]                                            = "Infobulles"
 -- L["INSIGHT_ACHIEVEMENT_POINTS_MODE_DESC"]                  = "Choose when to show achievement points. For other players, data appears after a brief server request. Modifier shows it only while Shift is held."
 -- L["INSIGHT_RATINGS_ICONS"]                                 = "Rating Icons"
 -- L["INSIGHT_RATINGS_ICONS_DESC"]                            = "Show icons beside Mythic+ score, honor level, and item level."
--- L["INSIGHT_SPEC_ROLE"]                                        = "Spec Icon & Role"
--- L["INSIGHT_SPEC_ROLE_DESC"]                                   = "Show the player's specialization icon and role after inspecting them. Disable to stop Insight from calling NotifyInspect on mouseover."
+L["INSIGHT_SPEC_ROLE"]                                        = "Spec Icon & Role"
+L["INSIGHT_SPEC_ROLE_DESC"]                                   = "Show the player's specialization icon and role after inspecting them. Disable to stop Insight from calling NotifyInspect on mouseover."
 -- L["INSIGHT_SECTION_MOUNT"]                                 = "Mount"
 -- L["INSIGHT_SECTION_DISMISS"]                               = "Unit Tooltip Dismiss"
 -- L["INSIGHT_DISMISS_GRACE"]                                 = "Dismiss Grace"
--- L["INSIGHT_DISMISS_GRACE_DESC"]                               = "How long to wait after the mouse leaves a unit before starting to hide the GameTooltip. Longer grace reduces flicker from brief cursor gaps."
+L["INSIGHT_DISMISS_GRACE_DESC"]                               = "How long to wait after the mouse leaves a unit before starting to hide the GameTooltip. Longer grace reduces flicker from brief cursor gaps."
 -- L["INSIGHT_DISMISS_GRACE_INSTANT"]                         = "Instant"
 -- L["INSIGHT_DISMISS_GRACE_DEFAULT"]                         = "Normal"
 -- L["INSIGHT_DISMISS_GRACE_RELAXED"]                         = "Relaxed"
@@ -757,7 +915,7 @@ L["AXIS_TOOLTIPS"]                                            = "Infobulles"
 -- L["INSIGHT_HIDE_IN_COMBAT"]                                = "Hide Tooltips in Combat"
 -- L["INSIGHT_HIDE_IN_COMBAT_DESC"]                           = "While in combat, close GameTooltip and other Insight-styled tooltip frames and block them from staying open. Applies only when the Insight module is enabled."
 -- L["INSIGHT_FADE_OUT_SEC"]                                  = "Fade-Out Duration"
--- L["INSIGHT_FADE_OUT_SEC_DESC"]                                = "Seconds to fade the unit tooltip after dismiss starts. Zero hides immediately (no fade). Applies to GameTooltip unit tips only."
+L["INSIGHT_FADE_OUT_SEC_DESC"]                                = "Seconds to fade the unit tooltip after dismiss starts. Zero hides immediately (no fade). Applies to GameTooltip unit tips only."
 -- L["INSIGHT_SECTION_ICONS_AND_SEPARATORS"]                  = "Icons & Separators"
 -- L["INSIGHT_SECTION_NPC_TOOLTIP"]                           = "NPC Tooltip"
 -- L["INSIGHT_SECTION_TRANSMOG"]                              = "Transmog"
@@ -817,8 +975,8 @@ L["AXIS_DEFAULT_BLIZZARD_RONDOMEDIA_CLASS_ICONS_TH"]          = "Utilise les ic�
 -- L["AXIS_SPEC_OVERRIDE"]                                    = "Spec Override"
 -- L["AXIS_SPEC_OVERRIDE_DESC"]                               = "Show the native Blizzard spec icon instead of the class icon. Falls back to class icon until inspect data arrives."
 -- L["AXIS_SPEC_OVERRIDE_INSPECT_NOTE"]                       = "Spec override requires inspect data — appears after hovering for a moment."
--- L["AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Custom (addon media)"
--- L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Custom: place one .tga per class under media/CustomClassIcons/<CLASS>/<class lower>.tga (e.g. WARRIOR/warrior.tga), then /reload."
+L["AXIS_CUSTOM_CLASS_ICONS_LABEL"]                            = "Custom (addon media)"
+L["AXIS_CLASS_ICON_SOURCES_TOOLTIP"]                          = "RondoMedia: https://www.curseforge.com/wow/addons/rondomedia — Custom: place one .tga per class under media/CustomClassIcons/<CLASS>/<class lower>.tga (e.g. WARRIOR/warrior.tga), then /reload."
 L["AXIS_RONDOMEDIA_CLASS_ICONS_RONDOFERRARI_HTTPS_WWW"]       = "Icones de classes créées par RondoFerrari — https://www.curseforge.com/wow/addons/rondomedia"
 L["AXIS_DEFAULT"]                                             = "Par défaut"
 L["AXIS_FACTION_SPEC_MOUNT_MYTHIC_ICONS_TOOLTIPS"]            = "SMontrer la faction, la spécialisation, la monture et les icônes de Mythique+ dans les infobulles."
@@ -827,9 +985,9 @@ L["AXIS_GENERAL"]                                             = "Général"
 L["AXIS_RESET_POSITION"]                                      = "Réinitialiser la position"
 L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"]                   = "Réinitialiser la position des alertes de butin."
 
-
+-- =====================================================================
 -- OptionsData.lua Layout
-
+-- =====================================================================
 L["FOCUS_LOCK_POSITION"]                                      = "Verrouiller la position"
 L["FOCUS_PREVENT_DRAGGING_TRACKER"]                           = "Empêche de déplacer le panneau d'objectifs."
 L["FOCUS_GROW_UPWARD"]                                        = "Croissance vers le haut"
@@ -855,9 +1013,9 @@ L["FOCUS_MAX_HEIGHT_OF_SCROLLABLE_LIST_PIXELS"]               = "Hauteur maximal
 -- L["FOCUS_STATIC_PANEL_HEIGHT"]                             = "Static Panel Height"
 -- L["FOCUS_STATIC_PANEL_HEIGHT_DESC"]                        = "Pixel height of the panel when static background is enabled."
 
-
+-- =====================================================================
 -- OptionsData.lua Visibility
-
+-- =====================================================================
 L["FOCUS_ALWAYS_M_BLOCK"]                                     = "Toujours afficher le bloc M+"
 L["FOCUS_M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                = "Affiche le bloc M+ dès qu'une clé Mythique est active."
 L["FOCUS_DUNGEON"]                                            = "Afficher en Donjon"
@@ -885,9 +1043,9 @@ L["FOCUS_VISIBLE_TRACKER_FADED_INVISIBLE"]                    = "Visibilité du 
 L["FOCUS_QUESTS_CURRENT_ZONE"]                                = "Quêtes de la Zone Actuelle uniquement"
 L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"]              = "Masque les quêtes hors de la Zone Actuelle."
 
-
+-- =====================================================================
 -- OptionsData.lua Display — Header
-
+-- =====================================================================
 L["FOCUS_QUEST_COUNT"]                                        = "Afficher le nombre de quêtes"
 L["FOCUS_QUEST_COUNT_HEADER"]                                 = "Affiche le nombre de quêtes dans l'en-tête."
 L["FOCUS_HEADER_COUNT_FORMAT"]                                = "Format du compteur de quêtes"
@@ -905,9 +1063,9 @@ L["FOCUS_COLOUR_OF_OBJECTIVES_HEADER_TEXT"]                   = "Couleur du text
 L["FOCUS_HEADER_HEIGHT"]                                      = "Hauteur de l'en-tête"
 L["FOCUS_HEIGHT_OF_HEADER_BAR_PIXELS"]                        = "Hauteur de la barre d'en-tête en pixels (18–48)."
 
-
+-- =====================================================================
 -- OptionsData.lua Display — List
-
+-- =====================================================================
 L["FOCUS_SECTION_HEADERS"]                                    = "Afficher les en-têtes de section"
 L["FOCUS_CATEGORY_LABELS_ABOVE_GROUP"]                        = "Affiche les catégories au-dessus de chaque groupe."
 L["FOCUS_CATEGORY_HEADERS_COLLAPSED"]                         = "En-têtes des catégories visibles quand replié"
@@ -925,7 +1083,7 @@ L["FOCUS_TOOLTIPS_HOVERING_TRACKER_ENTRIES_ITE"]              = "Afficher les in
 L["FOCUS_WOWHEAD_LINK_TOOLTIPS"]                              = "Afficher le lien WoWhead dans les infobulles"
 L["FOCUS_A_TOOLTIP_SHOWN_ADD_A_LINK"]                         = "Quand l'infobulle est affichée, ajoute un lien vers la page WoWhead de la quête, du haut fait, ou du PNJ."
 -- L["FOCUS_VIEW_WOWHEAD"]                                    = "View on WoWhead"
--- L["FOCUS_WOWHEAD_ALT_CLICK_HINT"]                             = "Alt+click row to copy"
+L["FOCUS_WOWHEAD_ALT_CLICK_HINT"]                             = "Alt+click row to copy"
 -- L["FOCUS_WOWHEAD_HINT_LIST_SEPARATOR"]                     = " · "
 -- L["FOCUS_WOWHEAD_TOOLTIP_HINT_FALLBACK"]                   = "Configure in Focus options"
 -- L["FOCUS_COPY_LINK"]                                       = "Copy link"
@@ -933,11 +1091,11 @@ L["FOCUS_A_TOOLTIP_SHOWN_ADD_A_LINK"]                         = "Quand l'infobul
 L["FOCUS_OBJECTIVE_NUMBERS"]                                  = "Afficher les numéros d'objectifs"
 L["FOCUS_OBJECTIVE_PREFIX"]                                   = "Préfixe d'objectif"
 -- L["FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLOURS"]               = "Colour Objective Progress Numbers"
--- L["FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLOURS_DESC"]             = "Tint X/Y counts: normal colour at 0/n, gold while in progress, green when complete. The slash uses the usual objective colour."
--- L["FOCUS_OBJECTIVE_PREFIX_DESC"]                   = "Prefix each objective with a number, hyphen or bullet point."
+L["FOCUS_OBJECTIVE_PROGRESS_NUMBER_COLOURS_DESC"]             = "Tint X/Y counts: normal colour at 0/n, gold while in progress, green when complete. The slash uses the usual objective colour."
+-- L["FOCUS_OBJECTIVE_PREFIX_DESC"]                           = "Prefix each objective with a number, hyphen or bullet point."
 L["FOCUS_NUMBERS"]                                            = "Chiffres (1. 2. 3.)"
 L["FOCUS_HYPHENS"]                                            = "Tirets (-)"
--- L["FOCUS_BULLET_POINTS"]                                      = "Bullet Points (•)"
+-- L["FOCUS_BULLET_POINTS"]                                   = "Bullet Points (•)"
 L["FOCUS_AFTER_SECTION_HEADER"]                               = "Après l'en-tête de section"
 L["FOCUS_BEFORE_SECTION_HEADER"]                              = "Avant l'en-tête de section"
 L["FOCUS_BELOW_HEADER"]                                       = "Sous l'en-tête header"
@@ -972,9 +1130,9 @@ L["FOCUS_AUTO_TRACK_ICON"]                                    = "Icône de suivi
 L["FOCUS_CHOOSE_WHICH_ICON_DISPLAY_NEXT_AUTO"]                = "Choisissez l'icône affichée à côté des entrées suivies automatiquement en zone."
 L["FOCUS_APPEND_WORLD_QUESTS_WEEKLIES_DAILIES"]               = "Ajoute ** aux expéditions et hebdomadaires/journalières non encore dans le journal de quêtes (de la zone actuelle uniquement)."
 
-
+-- =====================================================================
 -- OptionsData.lua Display — Spacing
-
+-- =====================================================================
 L["FOCUS_COMPACT_MODE"]                                       = "Mode compact"
 L["FOCUS_PRESET_SETS_ENTRY_OBJECTIVE_SPACING_P"]              = "Préréglage : espacement des quêtes et objectifs à 4 et 1 px."
 L["FOCUS_SPACING_PRESET"]                                     = "Préréglage d'espacement"
@@ -995,9 +1153,9 @@ L["FOCUS_SPACING_BELOW_HEADER_PX"]                            = "Espace sous l'e
 L["FOCUS_VERTICAL_GAP_BETWEEN_OBJECTIVES_BAR_QUES"]           = "Espace entre la barre d'objectifs et la liste de quêtes."
 L["FOCUS_RESET_SPACING"]                                      = "Réinitialiser les espaces"
 
-
+-- =====================================================================
 -- OptionsData.lua Display — Other
-
+-- =====================================================================
 L["FOCUS_SHOW_QUEST_LEVEL"]                                   = "Afficher le niveau de quête"
 L["FOCUS_QUEST_LEVEL_NEXT_TITLE"]                             = "Affiche le niveau de quête à côté du titre."
 L["FOCUS_DIM_FOCUSED_QUESTS"]                                 = "Estomper les quêtes non actives"
@@ -1005,9 +1163,9 @@ L["FOCUS_SLIGHTLY_DIM_TITLE_ZONE_OBJECTIVES_SECTION"]         = "Estompe légèr
 L["FOCUS_DIM_UNFOCUSED_ENTRIES"]                              = "Estomper les éléments non mis en avant"
 L["FOCUS_CLICK_A_SECTION_HEADER_EXPAND_CATEGORY"]             = "Cliquer sur un en-tête de section pour agrandir la catégorie."
 
-
+-- =====================================================================
 -- Features — Rare bosses
-
+-- =====================================================================
 L["UI_SHOW_RARE_BOSSES"]                                      = "Afficher les boss rares"
 L["UI_RARE_BOSS_VIGNETTES_LIST"]                              = "Affiche les boss rares dans la liste."
 L["UI_RARE_LOOT"]                                             = "Butin rare"
@@ -1019,15 +1177,15 @@ L["UI_RARE_ADDED_SOUND"]                                      = "Son d'ajout de 
 L["UI_PLAY_A_SOUND_A_RARE"]                                   = "Joue un son quand un rare est ajouté."
 -- L["UI_MINIMAP_PATCH_NOTES_UNREAD_HINT"]                    = "New patch notes — open Axis and choose Patch Notes."
 
-
+-- =====================================================================
 -- OptionsData.lua Features — World quests
-
+-- =====================================================================
 L["FOCUS_ZONE_WORLD_QUESTS"]                                  = "Afficher les expéditions de la zone"
 L["FOCUS_AUTO_ADD_WORLD_QUESTS_YOUR_CURRENT"]                 = "Ajoute automatiquement les expéditions de votre zone. Quand Désactivé : seules les quêtes suivies ou proches sont affichées (réglage par défaut Blizzard)."
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Floating quest item
-
+-- =====================================================================
 L["FOCUS_SHOW_FLOATING_QUEST_ITEM"]                           = "Afficher l'objet de quête flottant"
 L["FOCUS_QUICK_BUTTON_FOCUSED_QUEST_S_USABLE"]                = "Affiche le bouton d'utilisation rapide de l'objet de la quête active."
 L["FOCUS_LOCK_FLOATING_QUEST_ITEM_POSITION"]                  = "Verrouiller la position de l'objet flottant"
@@ -1037,9 +1195,9 @@ L["FOCUS_WHICH_QUEST_S_ITEM_SUPER_TRACKED"]                   = "Quel objet affi
 L["FOCUS_SUPER_TRACKED_FIRST"]                                = "Quête Suivie en priorité"
 L["FOCUS_CURRENT_ZONE_FIRST"]                                 = "Zone Actuelle en priorité"
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Mythic+
-
+-- =====================================================================
 L["FOCUS_MYTHIC_BLOCK"]                                       = "Afficher le bloc Mythique+"
 L["FOCUS_TIMER_COMPLETION_AFFIXES_MYTHIC_DUNGEONS"]           = "Affiche le timer, le % de complétion et les affixes en Mythique+."
 L["FOCUS_M_BLOCK_POSITION"]                                   = "Position du bloc M+"
@@ -1053,9 +1211,9 @@ L["FOCUS_DEFEATED_BOSSES_CHECKMARK_ICON_GREEN"]               = "Affichage des b
 L["FOCUS_CHECKMARK"]                                          = "Coche"
 L["FOCUS_GREEN_COLOUR"]                                       = "Couleur Verte"
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Achievements
-
+-- =====================================================================
 L["PRESENCE_ACHIEVEMENTS"]                                    = "Afficher les hauts faits"
 L["FOCUS_TRACKED_ACHIEVEMENTS_LIST"]                          = "Affiche les hauts faits suivis dans la liste."
 L["FOCUS_COMPLETED_ACHIEVEMENTS"]                             = "Afficher les hauts faits terminés"
@@ -1065,25 +1223,25 @@ L["FOCUS_ACHIEVEMENT_S_ICON_NEXT_TITLE_REQUI"]                = "Affiche l'icôn
 L["FOCUS_MISSING_REQUIREMENTS"]                               = "Afficher uniquement les objectifs manquants"
 L["FOCUS_CRITERIA_YOU_HAVEN_T_COMPLETED_TR"]                  = "Affiche uniquement les critères non terminés pour chaque haut fait suivi. Quand Désactivé : tous les critères sont affichés."
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Endeavors
-
+-- =====================================================================
 L["FOCUS_SHOW_ENDEAVORS"]                                     = "Afficher les Initiatives"
 L["FOCUS_TRACKED_ENDEAVORS_PLAYER_HOUSING_LIST"]              = "Affiche les Initiatives suivies (logement) dans la liste."
 L["FOCUS_COMPLETED_ENDEAVORS"]                                = "Afficher les Initiatives terminées"
 L["FOCUS_INCLUDE_COMPLETED_ENDEAVORS_TRACKER"]                = "Inclut les Initiatives terminées. Quand Désactivé : seuls les Initiatives en cours sont affichées."
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Decor
-
+-- =====================================================================
 L["FOCUS_SHOW_DECOR"]                                         = "Afficher les décorations"
 L["FOCUS_TRACKED_HOUSING_DECOR_LIST"]                         = "Affiche les décorations de Logis suivies dans la liste."
 L["FOCUS_DECOR_ICONS"]                                        = "Afficher les icônes de décorations"
 L["FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Affiche l'icône de chaque décoration à côté du titre. Nécessite « Afficher les icônes de type de quête » dans Affichage."
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Appearances
-
+-- =====================================================================
 -- L["FOCUS_SHOW_APPEARANCES"]                                = "Show Appearances"
 -- L["FOCUS_TRACKED_TRANSMOG_APPEARANCES_LIST"]               = "Show tracked transmog appearances in the list."
 -- L["FOCUS_INCLUDE_COLLECTED_APPEARANCES_TRACKER"]           = "Include collected appearances in the tracker. When off, only appearances you have not yet collected are shown."
@@ -1094,20 +1252,20 @@ L["FOCUS_DECOR_ITEM_S_ICON_NEXT_TITLE"]                       = "Affiche l'icôn
 -- L["FOCUS_SHOW_APPEARANCE_WARDROBE"]                        = "Show Wardrobe"
 -- L["FOCUS_OPEN_APPEARANCES_COLLECTIONS"]                    = "Open Collections"
 -- L["FOCUS_UNTRACK_APPEARANCE"]                              = "Untrack Appearance"
--- L["FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map, Ctrl-click Collections, Ctrl+Shift-click dressing room. Right-click clears focus or untracks."
+L["FOCUS_APPEARANCE_HORIZON_CONTROLS_HINT"]                   = "Horizon: Shift-click map, Ctrl-click Collections, Ctrl+Shift-click dressing room. Right-click clears focus or untracks."
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Adventure Guide
-
+-- =====================================================================
 L["FOCUS_ADVENTURE_GUIDE"]                                    = "Guide d'aventure"
 L["FOCUS_TRAVELER_S_LOG"]                                     = "Afficher le Journal du voyageur"
 L["FOCUS_TRACKED_TRAVELER_S_LOG_OBJECTIVES_SHIFT"]            = "Affiche les objectifs suivis du Journal du voyageur (Maj+clic dans le Guide d'aventure) dans la liste."
 L["FOCUS_AUTO_REMOVE_COMPLETED_ACTIVITIES"]                   = "Retirer automatiquement les activités terminées"
 L["FOCUS_AUTOMATICALLY_STOP_TRACKING_TRAVELER_S_LOG"]         = "Arrête automatiquement le suivi des activités du Journal du voyageur une fois terminées."
 
-
+-- =====================================================================
 -- OptionsData.lua Features — Scenario & Delve
-
+-- =====================================================================
 L["FOCUS_SCENARIO_EVENTS"]                                    = "Afficher les événements de scénario"
 L["FOCUS_ACTIVE_SCENARIO_DELVE_ACTIVITIES_DELVES_APP"]        = "Affiche les Scénarios et les Gouffres actifs. Les Gouffres s'affichent dans GOUFFRES ; les autres dans SCÉNARIO."
 L["FOCUS_TRACK_DELVE_DUNGEON_SCENARIO_ACTIVITIES"]            = "Suivre les activités de Gouffres, Donjons et scénarios."
@@ -1128,12 +1286,12 @@ L["FOCUS_CINEMATIC_SCENARIO_BAR"]                             = "Barre cinémati
 L["FOCUS_TIMER_PROGRESS_BAR_SCENARIO_ENTRIES"]                = "Affiche le timer et la barre de progression pour les scénarios."
 L["FOCUS_TIMER"]                                              = "Afficher le timer"
 L["FOCUS_COUNTDOWN_TIMER_TIMED_QUESTS_EVENTS_SCEN"]           = "Affiche le compte à rebours sur les quêtes chronométrées, événements et scénarios. Désactivé, les timers sont masqués."
--- L["FOCUS_TIMER_SCENARIOS"]                                    = "Timers: scenarios & delves"
--- L["FOCUS_TIMER_SCENARIOS_DESC"]                               = "Countdown timer for scenario, delve, and dungeon tracker entries."
--- L["FOCUS_TIMER_WORLD"]                                        = "Timers: world & callings"
--- L["FOCUS_TIMER_WORLD_DESC"]                                   = "Countdown timer for world quests and callings."
--- L["FOCUS_TIMER_QUEST_LOG"]                                    = "Timers: quest log (timed)"
--- L["FOCUS_TIMER_QUEST_LOG_DESC"]                               = "Countdown timer for dailies, weeklies, and other quest log entries with a time limit."
+L["FOCUS_TIMER_SCENARIOS"]                                    = "Timers: scenarios & delves"
+L["FOCUS_TIMER_SCENARIOS_DESC"]                               = "Countdown timer for scenario, delve, and dungeon tracker entries."
+L["FOCUS_TIMER_WORLD"]                                        = "Timers: world & callings"
+L["FOCUS_TIMER_WORLD_DESC"]                                   = "Countdown timer for world quests and callings."
+L["FOCUS_TIMER_QUEST_LOG"]                                    = "Timers: quest log (timed)"
+L["FOCUS_TIMER_QUEST_LOG_DESC"]                               = "Countdown timer for dailies, weeklies, and other quest log entries with a time limit."
 L["FOCUS_TIMER_DISPLAY"]                                      = "Affichage du timer"
 L["FOCUS_COLOUR_TIMER_REMAINING"]                             = "Couleur du timer selon le temps restant"
 L["FOCUS_GREEN_PLENTY_OF_LEFT_YELLOW_RUNNING"]                = "Vert quand il reste du temps, jaune quand il en reste peu, rouge quand c'est critique."
@@ -1141,9 +1299,9 @@ L["FOCUS_WHERE_COUNTDOWN_BAR_BELOW_OBJECTIVES"]               = "Où afficher le
 L["FOCUS_BAR_BELOW"]                                          = "Barre en dessous"
 L["FOCUS_INLINE_BESIDE_TITLE"]                                = "Texte à côté du titre"
 
-
+-- =====================================================================
 -- OptionsData.lua Typography — Font
-
+-- =====================================================================
 L["FOCUS_FONT_FAMILY"]                                        = "Police."
 L["FOCUS_TITLE_FONT"]                                         = "Police des titres"
 L["VISTA_ZONE_FONT"]                                          = "Police de zone"
@@ -1181,9 +1339,9 @@ L["FOCUS_PROGRESS_BAR_TEXT"]                                  = "Texte de la bar
 L["FOCUS_OUTLINE"]                                            = "Contour"
 L["FOCUS_FONT_OUTLINE_STYLE"]                                 = "Style de contour de police."
 
-
+-- =====================================================================
 -- OptionsData.lua Typography — Text case
-
+-- =====================================================================
 L["FOCUS_HEADER_TEXT_CASE"]                                   = "Casse de l'en-tête"
 L["FOCUS_DISPLAY_CASE_HEADER"]                                = "Casse d'affichage pour l'en-tête."
 L["FOCUS_SECTION_HEADER_CASE"]                                = "Casse des en-têtes de section"
@@ -1191,9 +1349,9 @@ L["FOCUS_DISPLAY_CASE_CATEGORY_LABELS"]                       = "Casse d'afficha
 L["FOCUS_QUEST_TITLE_CASE"]                                   = "Casse des titres de quête"
 L["FOCUS_DISPLAY_CASE_QUEST_TITLES"]                          = "Casse d'affichage pour les titres de quête."
 
-
+-- =====================================================================
 -- OptionsData.lua Typography — Shadow
-
+-- =====================================================================
 L["FOCUS_TEXT_SHADOW"]                                        = "Afficher l'ombre du texte"
 L["FOCUS_ENABLE_DROP_SHADOW_TEXT"]                            = "Active l'ombre portée du texte."
 L["FOCUS_SHADOW_X"]                                           = "Ombre X"
@@ -1203,9 +1361,9 @@ L["FOCUS_VERTICAL_SHADOW_OFFSET"]                             = "Décalage verti
 L["FOCUS_SHADOW_ALPHA"]                                       = "Opacité de l'ombre"
 L["FOCUS_SHADOW_OPACITY"]                                     = "Opacité de l'ombre (0–1)."
 
-
+-- =====================================================================
 -- OptionsData.lua Typography — Mythic+ Typography
-
+-- =====================================================================
 L["FOCUS_MYTHIC_TYPOGRAPHY"]                                  = "Textes Mythique+"
 L["FOCUS_DUNGEON_NAME_SIZE"]                                  = "Taille du nom du donjon"
 L["FOCUS_FONT_SIZE_DUNGEON_NAME_PX"]                          = "Taille de police du nom du donjon (8–32 px)."
@@ -1217,14 +1375,14 @@ L["FOCUS_TIMER_COLOUR"]                                       = "Couleur du time
 L["FOCUS_TEXT_COLOUR_TIMER"]                                  = "Couleur du timer (dans les temps)."
 L["FOCUS_TIMER_OVERTIME_COLOUR"]                              = "Couleur du timer (temps dépassé)"
 L["FOCUS_TEXT_COLOUR_TIMER_LIMIT"]                            = "Couleur du timer quand le temps est écoulé."
--- L["FOCUS_SHOW_SPLIT_TIMER"]                                   = "Split Timer (+1/+2/+3)"
--- L["FOCUS_SHOW_SPLIT_TIMER_DESC"]                              = "Show remaining time to each keystone upgrade cut-off (+1, +2, +3)."
--- L["FOCUS_SPLIT_TIMER_SIZE"]                                   = "Split Timer Size"
--- L["FOCUS_FONT_SIZE_SPLIT_TIMER_PX"]                           = "Font size for split timer (8-32 px)."
--- L["FOCUS_SPLIT_TIMER_COLOUR"]                                 = "Split Timer Colour"
--- L["FOCUS_TEXT_COLOUR_SPLIT_TIMER"]                            = "Text colour for upgrade tiers that are still reachable."
--- L["FOCUS_SPLIT_TIMER_PAST_COLOUR"]                            = "Split Timer Past Colour"
--- L["FOCUS_TEXT_COLOUR_SPLIT_TIMER_PAST"]                       = "Text colour for upgrade tiers that have expired."
+-- L["FOCUS_SHOW_SPLIT_TIMER"]                                = "Split Timer (+1/+2/+3)"
+-- L["FOCUS_SHOW_SPLIT_TIMER_DESC"]                           = "Show remaining time to each keystone upgrade cut-off (+1, +2, +3)."
+-- L["FOCUS_SPLIT_TIMER_SIZE"]                                = "Split Timer Size"
+L["FOCUS_FONT_SIZE_SPLIT_TIMER_PX"]                           = "Font size for split timer (8-32 px)."
+-- L["FOCUS_SPLIT_TIMER_COLOUR"]                              = "Split Timer Colour"
+-- L["FOCUS_TEXT_COLOUR_SPLIT_TIMER"]                         = "Text colour for upgrade tiers that are still reachable."
+-- L["FOCUS_SPLIT_TIMER_PAST_COLOUR"]                         = "Split Timer Past Colour"
+-- L["FOCUS_TEXT_COLOUR_SPLIT_TIMER_PAST"]                    = "Text colour for upgrade tiers that have expired."
 L["FOCUS_PROGRESS_SIZE"]                                      = "Taille de la progression"
 L["FOCUS_FONT_SIZE_ENEMY_FORCES_PX"]                          = "Taille de police des forces ennemies (8–32 px)."
 L["FOCUS_PROGRESS_COLOUR"]                                    = "Couleur de la progression"
@@ -1243,9 +1401,9 @@ L["FOCUS_BOSS_COLOUR"]                                        = "Couleur des nom
 L["FOCUS_TEXT_COLOUR_BOSS_NAMES"]                             = "Couleur du texte des noms de boss."
 L["FOCUS_RESET_MYTHIC_TYPOGRAPHY"]                            = "Réinitialiser les textes M+"
 
-
+-- =====================================================================
 -- OptionsData.lua Appearance
-
+-- =====================================================================
 L["DASH_FRAME"]                                               = "Cadre"
 L["FOCUS_CLASS_COLOURS_DASHBOARD"]                            = "Couleurs de classe - Tableau de bord"
 -- L["FOCUS_CLASS_COLOURS"]                                   = "Class Colours"
@@ -1256,31 +1414,31 @@ L["FOCUS_CLASS_COLOURS_DASHBOARD"]                            = "Couleurs de cla
 -- L["PRESENCE_CLASS_COLOURS_DESC"]                           = "Tint Presence toast title and divider with your class colour."
 -- L["VISTA_CLASS_COLOURS_DESC"]                              = "Tint Vista minimap, addon-bar, and panel borders and text with your class colour."
 -- L["INSIGHT_CLASS_COLOURS_DESC"]                            = "Use class colour for player tooltip name, class line, and border."
--- L["AUGMENT_CLASS_COLOURS_DESC"]                              = "Tint Augment loot icon glow and edit/anchor borders with your class colour."
+-- L["AUGMENT_CLASS_COLOURS_DESC"]                            = "Tint Augment loot icon glow and edit/anchor borders with your class colour."
 -- L["ESSENCE_CLASS_COLOURS_DESC"]                            = "Tint the character name on the Essence sheet with your class colour."
 
-
+-- =====================================================================
 -- OptionsEssence.lua — Essence options panel
-
--- L["ESSENCE_DESC"]                                         = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
--- L["ESSENCE_LOCK_POSITION"]                                    = "Lock Position"
--- L["ESSENCE_LOCK_POSITION_DESC"]                               = "Prevent dragging the panel."
--- L["ESSENCE_RESET_POSITION_DESC"]                              = "Snap the panel back to screen centre."
--- L["ESSENCE_PVP_TITLE"]                                        = "PvP Title"
--- L["ESSENCE_PVP_TITLE_DESC"]                                   = "Show the character's PvP title above the identity line."
--- L["ESSENCE_STAT_BARS"]                                        = "Secondary Stat Bars"
--- L["ESSENCE_STAT_BARS_DESC"]                                   = "Show Crit, Haste, Mastery, and Versatility bars."
--- L["ESSENCE_ILVL_BADGE"]                                       = "Item Level Badge on Gear Slots"
--- L["ESSENCE_ILVL_BADGE_DESC"]                                  = "Show the item level on each equipped gear slot."
--- L["ESSENCE_STAT_CAP"]                                         = "Stat Bar Cap (%)"
--- L["ESSENCE_STAT_CAP_DESC"]                                    = "The percentage shown as a full bar. Lower = more detail at common stat values."
+-- =====================================================================
+-- L["ESSENCE_DESC"]                                          = "Custom character panel with 3D model, item level, secondary stats, and gear slots."
+-- L["ESSENCE_LOCK_POSITION"]                                 = "Lock Position"
+-- L["ESSENCE_LOCK_POSITION_DESC"]                            = "Prevent dragging the panel."
+-- L["ESSENCE_RESET_POSITION_DESC"]                           = "Snap the panel back to screen centre."
+-- L["ESSENCE_PVP_TITLE"]                                     = "PvP Title"
+-- L["ESSENCE_PVP_TITLE_DESC"]                                = "Show the character's PvP title above the identity line."
+-- L["ESSENCE_STAT_BARS"]                                     = "Secondary Stat Bars"
+-- L["ESSENCE_STAT_BARS_DESC"]                                = "Show Crit, Haste, Mastery, and Versatility bars."
+-- L["ESSENCE_ILVL_BADGE"]                                    = "Item Level Badge on Gear Slots"
+-- L["ESSENCE_ILVL_BADGE_DESC"]                               = "Show the item level on each equipped gear slot."
+-- L["ESSENCE_STAT_CAP"]                                      = "Stat Bar Cap (%)"
+-- L["ESSENCE_STAT_CAP_DESC"]                                 = "The percentage shown as a full bar. Lower = more detail at common stat values."
 L["AXIS_CLASS_COLOURS_DESC"]                                  = "Colore les éléments du Tableau de bord, des séparateurs et des surlignages avec la couleur de votre classe."
 -- L["DASH_THEME"]                                            = "Theme"
 -- L["FOCUS_DASHBOARD_BACKGROUND"]                            = "Dashboard Background"
--- L["DASH_BACKGROUND"]                                          = "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."
+L["DASH_BACKGROUND"]                                          = "Background style for the module dashboard window (Axis). Default is flat; Midnight uses bundled artwork; Specialisation (auto) uses the in-game talent UI background for your current specialization."
 -- L["FOCUS_DASHBOARD_BACKGROUND_MINIMALISTIC"]               = "Minimalistic"
 -- L["FOCUS_DASHBOARD_BACKGROUND_MIDNIGHT"]                   = "Midnight"
--- L["FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"]              = "Teldrassil (burning)"
+L["FOCUS_DASHBOARD_BACKGROUND_TELDRASSIL_BURNS"]              = "Teldrassil (burning)"
 -- L["FOCUS_DASHBOARD_BACKGROUND_NIGHTFAE"]                   = "Night Fae"
 -- L["FOCUS_DASHBOARD_BACKGROUND_ARDENWEALD"]                 = "Ardenweald"
 -- L["FOCUS_DASHBOARD_BACKGROUND_ZIN_AZSHARI"]                = "Zin-Azshari"
@@ -1301,14 +1459,14 @@ L["AXIS_CLASS_COLOURS_DESC"]                                  = "Colore les él�
 -- L["DASHBOARD_TYPO_SIZE"]                                   = "Dashboard Text Size"
 -- L["DASHBOARD_TYPO_SIZE_DESC"]                              = "Nudge all dashboard text larger or smaller (−4 to +4), similar to Focus global font offset."
 -- L["DASHBOARD_TYPO_OUTLINE"]                                = "Dashboard Text Outline"
--- L["DASHBOARD_TYPO_OUTLINE_DESC"]                              = "When on, dashboard UI text uses the standard outlined font style. Turn off for a softer, flat look."
+L["DASHBOARD_TYPO_OUTLINE_DESC"]                              = "When on, dashboard UI text uses the standard outlined font style. Turn off for a softer, flat look."
 -- L["DASHBOARD_TYPO_SHADOW"]                                 = "Dashboard Text Shadow"
--- L["DASHBOARD_TYPO_SHADOW_DESC"]                               = "Adds a subtle drop shadow behind dashboard text to improve readability on busy backgrounds."
--- L["DASHBOARD_TYPO_HEADING_COLOUR"]                          = "Heading Colour"
--- L["DASHBOARD_TYPO_HEADING_COLOUR_DESC"]                     = "Colour of the large headings on the Welcome and News tabs. Use a softer tone if pure white feels too bright on HDR displays."
--- L["DASHBOARD_TYPO_HEADING_COLOUR_WHITE"]                    = "White (default)"
--- L["DASHBOARD_TYPO_HEADING_COLOUR_CYAN"]                     = "Cyan (relaxed)"
--- L["DASHBOARD_TYPO_HEADING_COLOUR_GOLD"]                     = "Gold (relaxed)"
+L["DASHBOARD_TYPO_SHADOW_DESC"]                               = "Adds a subtle drop shadow behind dashboard text to improve readability on busy backgrounds."
+-- L["DASHBOARD_TYPO_HEADING_COLOUR"]                         = "Heading Colour"
+-- L["DASHBOARD_TYPO_HEADING_COLOUR_DESC"]                    = "Colour of the large headings on the Welcome and News tabs. Use a softer tone if pure white feels too bright on HDR displays."
+-- L["DASHBOARD_TYPO_HEADING_COLOUR_WHITE"]                   = "White (default)"
+-- L["DASHBOARD_TYPO_HEADING_COLOUR_CYAN"]                    = "Cyan (relaxed)"
+-- L["DASHBOARD_TYPO_HEADING_COLOUR_GOLD"]                    = "Gold (relaxed)"
 L["FOCUS_BACKDROP_OPACITY"]                                   = "Opacité du fond"
 L["FOCUS_PANEL_BACKGROUND_OPACITY"]                           = "Opacité du fond du panneau (0–1)."
 L["FOCUS_BORDER"]                                             = "Afficher la bordure"
@@ -1323,9 +1481,9 @@ L["FOCUS_OPACITY_OF_FOCUSED_QUEST_HIGHLIGHT"]                 = "Opacité de la 
 L["FOCUS_BAR_WIDTH"]                                          = "Largeur de la barre"
 L["FOCUS_WIDTH_OF_BAR_STYLE_HIGHLIGHTS_PX"]                   = "Largeur de la barre de surbrillance (2–6 px)."
 
-
+-- =====================================================================
 -- OptionsData.lua Organisation
-
+-- =====================================================================
 L["FOCUS_ACTIVITY"]                                           = "Activité"
 L["FOCUS_CONTENT"]                                            = "Contenu"
 L["FOCUS_SORTING"]                                            = "Tri"
@@ -1338,12 +1496,18 @@ L["FOCUS_CURRENT_QUEST_WINDOW"]                               = "Fenêtre Quête
 -- L["FOCUS_FOCUSED_QUEST_CATEGORY"]                          = "Focused Quest Category"
 -- L["FOCUS_FOCUSED_QUEST_CATEGORY_DESC"]                     = "Show the super-tracked quest in its own category."
 -- L["FOCUS_FOCUSED_QUEST_CATEGORY_TIP"]                      = "When on, the quest you have focused (super-tracked) is hoisted into a dedicated Focused Quest section. The category can be reordered like any other, so you can pin the focused quest to the top, bottom, or anywhere in the tracker."
+-- L["FOCUS_PROXIMITY_AUTO_SUPERTRACK"]                       = "Auto-Focus Closest Quest"
+-- L["FOCUS_PROXIMITY_AUTO_SUPERTRACK_DESC"]                  = "Automatically focus the nearest tracked quest."
+-- L["FOCUS_PROXIMITY_AUTO_SUPERTRACK_TIP"]                   = "When on, HorizonSuite focuses (super-tracks) whichever tracked quest is physically closest to you, re-evaluating as you move between zones and sub-zones. The nearest quest is pinned to the Focused Quest section (if that is enabled) and the on-screen waypoint points at it. Works with any sort mode. While this is on it owns your focus, so a quest you focus by hand is replaced by the closest one on the next update — toggle it off to focus quests manually, on the fly via /h focus autofocus or a keybinding (Key Bindings > Horizon Suite)."
+-- L["FOCUS_PROXIMITY_INCLUDE_UNTRACKED"]                     = "Include Untracked Quests"
+-- L["FOCUS_PROXIMITY_INCLUDE_UNTRACKED_DESC"]                = "Auto-focus may swap to closer quests you aren't tracking."
+-- L["FOCUS_PROXIMITY_INCLUDE_UNTRACKED_TIP"]                 = "When on, Auto-Focus Closest Quest compares every quest in your quest log, not just the quests shown in the tracker. If an untracked log quest is physically closer than everything you are tracking, it becomes the focused quest and appears in the Focused Quest section until something else is closer."
 L["FOCUS_QUESTS_RECENT_PROGRESS_TOP"]                         = "Afficher en haut du panneau les quêtes avec le progrès le plus récent."
 L["FOCUS_RECENT_QUEST_SECONDS"]                               = "Secondes de progression récentes pour compter comme Quête en Cours (30–120)."
 L["FOCUS_QUEST_PROGRESSION_SECTION"]                          = "Les quêtes qui ont été avancées lors de la dernière minute s'affiche dans une section dédiée."
 -- L["FOCUS_SHOW_ZONE_EVENTS"]                                = "Events in Zone Section"
--- L["FOCUS_SHOW_ZONE_EVENTS_DESC"]                              = "Show the Events in Zone section for nearby unaccepted quests and zone event quests."
--- L["FOCUS_SHOW_ZONE_EVENTS_TIP"]                               = "When off, those quests appear in their normal categories instead."
+L["FOCUS_SHOW_ZONE_EVENTS_DESC"]                              = "Show the Events in Zone section for nearby unaccepted quests and zone event quests."
+L["FOCUS_SHOW_ZONE_EVENTS_TIP"]                               = "When off, those quests appear in their normal categories instead."
 L["FOCUS_CATEGORY_ORDER"]                                     = "Ordre des catégories Focus"
 L["FOCUS_CATEGORIES_REORDER_EXCEPT_DELVES_SCENARIOS"]         = "Glissez pour réordonner. GOUFFRES et SCÉNARIO restent en premier."
 L["FOCUS_CATEGORIES_REORDER_EXCEPT_DELVES_SCENARIOS_TIP"]     = "Glisser pour réordonner. Les Gouffres et les Scenario restent en premier."
@@ -1359,16 +1523,16 @@ L["FOCUS_CLASSIC_CLICK_BEHAVIOUR"]                            = "Utiliser le com
 L["FOCUS_CLASSIC_CLICKS"]                                     = "Clics classiques"
 -- === Focus Click Profiles ===
 -- L["FOCUS_CLICK_PROFILE"]                                   = "Click Profile"
--- L["FOCUS_CLICK_PROFILE_DESC"]                                 = "Choose how mouse clicks on tracker entries behave."
--- L["FOCUS_ICON_CLICK_ACTION"]                                  = "Quest/appearance icon click"
--- L["FOCUS_ICON_CLICK_ACTION_DESC"]                             = "Choose what happens when you click the quest or appearance icon itself, when that icon click behavior is shown."
+L["FOCUS_CLICK_PROFILE_DESC"]                                 = "Choose how mouse clicks on tracker entries behave."
+L["FOCUS_ICON_CLICK_ACTION"]                                  = "Quest/appearance icon click"
+L["FOCUS_ICON_CLICK_ACTION_DESC"]                             = "Choose what happens when you click the quest or appearance icon itself, when that icon click behavior is shown."
 -- L["FOCUS_PROFILE_HORIZON_PLUS"]                            = "Horizon+"
--- L["FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzard Default"
+L["FOCUS_PROFILE_BLIZZARD_DEFAULT"]                           = "Blizzard Default"
 -- L["FOCUS_PROFILE_CUSTOM"]                                  = "Custom"
 -- L["FOCUS_COMING_SOON"]                                     = "Coming soon"
 -- L["FOCUS_CLICK_COMBOS"]                                    = "Custom bindings"
 -- L["FOCUS_CLICK_COMBO_LOCKED_TOOLTIP"]                      = "Fixed for this profile. Select Custom to edit shortcuts."
--- L["FOCUS_CLICK_SAFETY"]                                       = "Safety"
+L["FOCUS_CLICK_SAFETY"]                                       = "Safety"
 -- L["FOCUS_COMBO_LEFT"]                                      = "Left Click"
 -- L["FOCUS_COMBO_SHIFT_LEFT"]                                = "Shift + Left Click"
 -- L["FOCUS_COMBO_CTRL_LEFT"]                                 = "Ctrl + Left Click"
@@ -1380,8 +1544,8 @@ L["FOCUS_CLASSIC_CLICKS"]                                     = "Clics classique
 -- L["FOCUS_CLICK_ACTION_NONE"]                               = "Do nothing"
 -- L["FOCUS_CLICK_ACTION_SUPER_TRACK"]                        = "Focus quest"
 -- L["FOCUS_CLICK_ACTION_OPEN_DETAILS"]                       = "Open relevant details"
--- L["FOCUS_CLICK_ACTION_OPEN_PROFESSION"]                       = "Open profession or quest details"
--- L["FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open quest log"
+L["FOCUS_CLICK_ACTION_OPEN_PROFESSION"]                       = "Open profession or quest details"
+L["FOCUS_CLICK_ACTION_OPEN_QUEST_LOG"]                        = "Open quest log"
 -- L["FOCUS_CLICK_ACTION_UNTRACK"]                            = "Untrack"
 -- L["FOCUS_CLICK_ACTION_CONTEXT_MENU"]                       = "Context menu"
 -- L["FOCUS_CLICK_ACTION_SHARE"]                              = "Share with party"
@@ -1438,9 +1602,9 @@ L["FOCUS_REQUIRES_TOMTOM_POINTS_ARROW_RARE"]                  = "Nécessite TomT
 L["FOCUS_FIND_GROUP"]                                         = "Recherche de groupe"
 L["FOCUS_GROUP_QUEST_SEARCH_CLICK"]                           = "Cliquer pour rechercher un groupe pour cette quête."
 
-
+-- =====================================================================
 -- OptionsData.lua Blacklist
-
+-- =====================================================================
 L["FOCUS_BLACKLIST"]                                          = "Liste noire"
 L["FOCUS_BLACKLIST_UNTRACKED"]                                = "Mettre en liste noire les quêtes arrêtées d'être suivies"
 L["FOCUS_ENABLE_BLACKLIST_UNTRACKED_BEHAVIOUR_ADD_QUEST"]     = "Activer 'Mettre en liste noire les quêtes arrêtées d'être suivies' dans Comportement pour ajouter des quêtes ici."
@@ -1450,9 +1614,9 @@ L["FOCUS_BLACKLISTED_QUESTS"]                                 = "Quêtes en list
 L["FOCUS_PERMANENTLY_SUPPRESSED_QUESTS"]                      = "Quêtes supprimées définitivement"
 L["FOCUS_RIGHT_CLICK_UNTRACK_QUESTS_PERMANENTLY_SUPPRESS"]    = "Clic droit pour retirer les quêtes avec « Quêtes supprimées définitivement » activé afin de les ajouter ici."
 
-
+-- =====================================================================
 -- OptionsData.lua Presence
-
+-- =====================================================================
 L["PRESENCE_QUEST_TYPE_ICONS"]                                = "Afficher les icônes du type de quête"
 L["PRESENCE_QUEST_TYPE_ICON_FOCUS_TRACKER_QUEST"]             = "Affiche dans le suivi : quête acceptée/terminée, expéditions, avancement de quête."
 L["PRESENCE_QUEST_TYPE_ICONS_TOASTS"]                         = "Montrer les icônes de type de quêtes sur les notifications"
@@ -1507,8 +1671,8 @@ L["PRESENCE_SHOW_QUEST_COMPLETE"]                             = "Afficher la com
 L["PRESENCE_NOTIFICATION_COMPLETING_A_QUEST"]                 = "Affiche la notification lors de la complétion d'une quête."
 L["PRESENCE_SHOW_WORLD_QUEST_COMPLETE"]                       = "Afficher la complétion d'expédition"
 L["PRESENCE_NOTIFICATION_COMPLETING_A_WORLD_QUEST"]           = "Affiche la notification lors de la complétion d'une expédition."
--- L["PRESENCE_WORLD_QUEST_SOUND"]                               = "World Quest Sound"
--- L["PRESENCE_WORLD_QUEST_SOUND_DESC"]                          = "Play the default sound when a world quest completes."
+-- L["PRESENCE_WORLD_QUEST_SOUND"]                            = "World Quest Sound"
+-- L["PRESENCE_WORLD_QUEST_SOUND_DESC"]                       = "Play the default sound when a world quest completes."
 L["PRESENCE_QUEST_PROGRESS"]                                  = "Afficher la progression des quêtes"
 L["PRESENCE_NOTIFICATION_QUEST_OBJECTIVES_UPDATE"]            = "Affiche la notification lors de la mise à jour des objectifs."
 L["PRESENCE_OBJECTIVE"]                                       = "Objectif uniquement"
@@ -1571,18 +1735,18 @@ L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_TITLES_QUEST"]       = "Taille du texte
 L["PRESENCE_SMALL_SECONDARY_SIZE"]                            = "Taille secondaire des petites notifications"
 L["PRESENCE_FONT_SIZE_SMALL_NOTIFICATION_SUBTITLES"]          = "Taille de sous-titres des petites notifications."
 
-
+-- =====================================================================
 -- OptionsData.lua Dropdown options — Outline
-
+-- =====================================================================
 L["FOCUS_OUTLINE_NONE"]                                       = "Aucun"
 L["FOCUS_THICK_OUTLINE"]                                      = "Contour épais"
 -- L["FOCUS_SLUG"]                                            = "SLUG"
 -- L["FOCUS_SLUG_OUTLINE"]                                    = "SLUG Outline"
 -- L["FOCUS_SLUG_THICK_OUTLINE"]                              = "SLUG Thick Outline"
 
-
+-- =====================================================================
 -- OptionsData.lua Dropdown options — Highlight style
-
+-- =====================================================================
 L["FOCUS_HIGHLIGHT_BAR_LEFT_EDGE"]                            = "Barre (bord gauche)"
 L["FOCUS_HIGHLIGHT_BAR_RIGHT_EDGE"]                           = "Barre (bord droit)"
 L["FOCUS_HIGHLIGHT_BAR_TOP_EDGE"]                             = "Barre (bord supérieur)"
@@ -1592,15 +1756,15 @@ L["FOCUS_HIGHLIGHT_SOFT_GLOW"]                                = "Lueur douce"
 L["FOCUS_HIGHLIGHT_DUAL_EDGE_BARS"]                           = "Barres doubles"
 L["FOCUS_HIGHLIGHT_PILL_LEFT_ACCENT"]                         = "Accent pilule gauche"
 
-
+-- =====================================================================
 -- OptionsData.lua Dropdown options — M+ position
-
+-- =====================================================================
 L["FOCUS_MYTHICPLUS_POSITION_TOP"]                            = "Haut"
 L["FOCUS_MYTHICPLUS_POSITION_BOTTOM"]                         = "Bas"
 
-
+-- =====================================================================
 -- OptionsData.lua Vista — Text element positions
-
+-- =====================================================================
 L["VISTA_LOCATION_POSITION"]                                  = "Position du nom de zone"
 L["VISTA_PLACE_ZONE_NAME_ABOVE_BELOW_MINIMAP"]                = "Place le nom de zone au-dessus ou en dessous de la minicarte."
 L["VISTA_COORDINATES_POSITION"]                               = "Position des coordonnées"
@@ -1608,49 +1772,50 @@ L["VISTA_PLACE_COORDINATES_ABOVE_BELOW_MINIMAP"]              = "Place les coord
 L["VISTA_CLOCK_POSITION"]                                     = "Position de l'horloge"
 L["VISTA_PLACE_CLOCK_ABOVE_BELOW_MINIMAP"]                    = "Place l'horloge au-dessus ou en dessous de la minicarte."
 
-
+-- =====================================================================
 -- OptionsData.lua Dropdown options — Text case
-
+-- =====================================================================
 L["FOCUS_TEXT_LOWER_CASE"]                                    = "Minuscules"
 L["FOCUS_TEXT_UPPER_CASE"]                                    = "Majuscules"
 L["FOCUS_TEXT_PROPER_CASE"]                                   = "Première lettre en majuscule"
 
-
+-- =====================================================================
 -- OptionsData.lua Dropdown options — Header count format
-
+-- =====================================================================
 L["FOCUS_TRACKED_LOG"]                                        = "Suivies / Dans le journal"
 L["FOCUS_LOG_MAX_SLOTS"]                                      = "Dans le journal / Max"
 
-
+-- =====================================================================
 -- OptionsData.lua Dropdown options — Sort mode
-
+-- =====================================================================
 L["FOCUS_ALPHABETICAL"]                                       = "Alphabétique"
 L["FOCUS_QUEST_TYPE"]                                         = "Type de quête"
 L["FOCUS_QUEST_LEVEL"]                                        = "Niveau de quête"
+-- L["FOCUS_PROXIMITY"]                                       = "Proximity (Closest First)"
 
-
+-- =====================================================================
 -- OptionsData.lua Misc
-
+-- =====================================================================
 L["FOCUS_CUSTOM"]                                             = "Personnalisé"
 L["FOCUS_ORDER"]                                              = "Ordre"
 
-
+-- =====================================================================
 -- Tracker section labels (SECTION_LABELS)
-
+-- =====================================================================
 L["UI_DUNGEON"]                                               = "DONJON"
--- L["UI_RAID"]                                               = "RAID"
+-- L["UI_RAID"]                                               = "Raid"
 L["UI_DELVES"]                                                = "GOUFFRES"
--- L["UI_SCENARIO_EVENTS"]                                       = "SCENARIO"
+L["UI_SCENARIO_EVENTS"]                                       = "SCENARIO"
 L["UI_STAGE"]                                                 = "Niveau"
 L["UI_STAGE_X_X"]                                             = "Niveau %d: %s"
 L["UI_AVAILABLE_IN_ZONE"]                                     = "DISPONIBLE DANS LA ZONE"
 L["UI_EVENTS_IN_ZONE"]                                        = "ÉVÈNEMENTS DANS LA ZONE"
 L["UI_CURRENT_EVENT"]                                         = "ÉVÈNEMENT EN COURS"
 L["UI_CURRENT_QUEST"]                                         = "QUÊTE EN COURS"
--- L["UI_FOCUSED_QUEST"]                                      = "FOCUSED QUEST"
+-- L["UI_FOCUSED_QUEST"]                                      = "Focused Quest"
 L["UI_CURRENT_ZONE"]                                          = "ZONE ACTUELLE"
 L["UI_CAMPAIGN"]                                              = "CAMPAGNE"
--- L["UI_IMPORTANT"]                                          = "IMPORTANT"
+-- L["UI_IMPORTANT"]                                          = "Important"
 L["UI_LEGENDARY"]                                             = "LEGENDAIRE"
 L["UI_WORLD_QUESTS"]                                          = "EXPÉDITIONS"
 L["UI_WEEKLY_QUESTS"]                                         = "QUÊTES HEBDOMDAIRES"
@@ -1669,14 +1834,14 @@ L["UI_DECOR"]                                                 = "DÉCORATION"
 L["UI_QUESTS"]                                                = "QUÊTES"
 L["UI_READY_TO_TURN_IN"]                                      = "À RENDRE"
 
-
+-- =====================================================================
 -- Core.lua, FocusLayout.lua, PresenceCore.lua, FocusUnacceptedPopup.lua
-
+-- =====================================================================
 L["PRESENCE_OBJECTIVES"]                                      = "OBJECTIFS"
 -- L["PRESENCE_OPTIONS"]                                      = "Options"
 L["PRESENCE_OPEN_HORIZON_SUITE"]                              = "Ouvrir Horizon Suite"
 L["PRESENCE_OPEN_FULL_HORIZON_SUITE_OPTIONS"]                 = "Ouvre le panneau d'options complet pour configurer Focus, Presence, Vista et les autres modules."
--- L["AXIS_GAMEMENU_BUTTON"]                                    = "Horizon Suite"
+-- L["AXIS_GAMEMENU_BUTTON"]                                  = "Horizon Suite"
 -- L["PRESENCE_MINIMAP_SECTION"]                              = "Minimap Icon"
 L["PRESENCE_SHOW_MINIMAP_ICON"]                               = "Afficher l'icône sur la minicarte"
 L["PRESENCE_A_CLICKABLE_ICON_MINIMAP_OPENS"]                  = "Affiche une icône cliquable sur la minicarte qui ouvre le panneau d'options."
@@ -1732,11 +1897,11 @@ L["PRESENCE_H_DEMO_REEL_TYPES"]                               = "  /h presence a
 L["PRESENCE_H_DEBUG_DUMP_STATE"]                              = "  /h presence debug    - Rapporte les états dans le chat"
 L["PRESENCE_H_DEBUGLIVE_TOGGLE_LIVE"]                         = "  /h presence debuglive - Activer/désactiver le panneau de debug en direct (journaliser les événements)"
 
-
+-- =====================================================================
 -- OptionsData.lua Vista — General
 L["VISTA_POSITION_LAYOUT"]                                    = "Position & Mise en forme"
 
-
+-- =====================================================================
 L["VISTA_DESC"]                                               = "Minicarte"
 L["VISTA_SIZE"]                                               = "Taille de la minicarte"
 L["VISTA_WIDTH_HEIGHT_OF_MINIMAP_PIXELS"]                     = "Largeur et hauteur de la minicarte en pixels (100–400)."
@@ -1753,9 +1918,9 @@ L["VISTA_AUTO_ZOOM"]                                          = "Zoom automatiqu
 L["VISTA_AUTO_ZOOM_DELAY"]                                    = "Délai de dézoom automatique"
 L["VISTA_SECONDS_AFTER_ZOOMING_BEFORE_AUTO_ZOOM"]             = "Secondes après un zoom avant le dézoom automatique. Mettre à 0 pour désactiver."
 
-
+-- =====================================================================
 -- OptionsData.lua Vista — Typography
-
+-- =====================================================================
 L["VISTA_ZONE_TEXT_HEADER"]                                   = "Texte de zone"
 L["VISTA_ZONE_FONT"]                                          = "Police de zone"
 L["VISTA_FONT_ZONE_NAME_BELOW_MINIMAP"]                       = "Police du nom de zone sous la minicarte."
@@ -1801,9 +1966,9 @@ L["VISTA_COLOUR_NORMAL_DIFFICULTY_TEXT"]                      = "Couleur du text
 L["VISTA_LFR_COLOUR"]                                         = "Couleur LFR"
 L["VISTA_COLOUR_LOOKING_RAID_DIFFICULTY_TEXT"]                = "Couleur du texte de difficulté Raid aléatoire."
 
-
+-- =====================================================================
 -- OptionsData.lua Vista — Visibility
-
+-- =====================================================================
 L["VISTA_TEXT_ELEMENTS"]                                      = "Éléments de texte"
 L["VISTA_ZONE_TEXT"]                                          = "Afficher le texte de zone"
 L["VISTA_ZONE_NAME_BELOW_MINIMAP"]                            = "Affiche le nom de zone sous la minicarte."
@@ -1832,14 +1997,54 @@ L["VISTA_CALENDAR_BUTTON"]                                    = "Afficher le bou
 L["VISTA_MINIMAP_CALENDAR_BUTTON"]                            = "Affiche le bouton de calendrier sur la minicarte."
 L["VISTA_CALENDAR_BUTTON_MOUSEOVER"]                          = "Bouton de calendrier au survol uniquement"
 L["VISTA_HIDE_CALENDAR_BUTTON_UNTIL_YOU_HOVER"]               = "Masque le bouton de calendrier jusqu'au survol de la minicarte."
+-- L["VISTA_TELEPORT_BUTTON"]                                 = "Show Teleport Button"
+-- L["VISTA_TELEPORT_BUTTON_DESC"]                            = "Show a button that lists toys, hearthstones and class teleports the character has unlocked."
+-- L["VISTA_TELEPORT_BUTTON_MOUSEOVER"]                       = "Teleport Button on Mouseover Only"
+-- L["VISTA_TELEPORT_BUTTON_MOUSEOVER_DESC"]                  = "Hide teleport button until you hover over the minimap."
+-- L["VISTA_TELEPORT_BUTTON_TIP"]                             = "Teleports"
+-- L["VISTA_TELEPORT_NONE_UNLOCKED"]                          = "No teleports unlocked"
+-- L["VISTA_TELEPORT_ALL_GROUPS_HIDDEN"]                      = "All teleport groups are hidden"
+-- L["VISTA_TELEPORT_BUTTON_SIZE"]                            = "Teleport Button Size"
+-- L["VISTA_TELEPORT_BUTTON_SIZE_DESC"]                       = "Size of the teleport button (pixels)."
+-- L["VISTA_LOCK_TELEPORT_BUTTON"]                            = "Lock Teleport Button"
+-- L["VISTA_LOCK_TELEPORT_BUTTON_DESC"]                       = "Prevent dragging the teleport button."
+-- L["VISTA_TELEPORT_MENU"]                                   = "Teleport Menu"
+-- L["VISTA_TELEPORT_MENU_BEHAVIOUR"]                         = "Menu Behaviour"
+-- L["VISTA_TELEPORT_GROUPS_HEADER"]                          = "Choose which groups of teleports appear in the menu."
+-- L["VISTA_TELEPORT_GROUP_HEARTHSTONE"]                      = "Hearthstones"
+-- L["VISTA_TELEPORT_GROUP_HEARTHSTONE_DESC"]                 = "Show hearthstone toys and items in the teleport menu."
+-- L["VISTA_TELEPORT_GROUP_PROFESSION"]                       = "Profession Teleports"
+-- L["VISTA_TELEPORT_GROUP_PROFESSION_DESC"]                  = "Show profession teleports (engineering wormholes) in the menu."
+-- L["VISTA_TELEPORT_GROUP_CLASS"]                            = "Class Teleports"
+-- L["VISTA_TELEPORT_GROUP_CLASS_DESC"]                       = "Show class teleports and mage portals in the menu."
+-- L["VISTA_TELEPORT_GROUP_DUNGEON"]                          = "Dungeon & Raid Teleports"
+-- L["VISTA_TELEPORT_GROUP_DUNGEON_DESC"]                     = "Show dungeon and raid (Path of...) teleports in the menu."
+-- L["VISTA_TELEPORT_GROUP_EVENT"]                            = "Event Teleports"
+-- L["VISTA_TELEPORT_GROUP_EVENT_DESC"]                       = "Show seasonal and battleground event teleports in the menu."
+-- L["VISTA_TELEPORT_SHOW_COOLDOWNS"]                         = "Show Cooldowns"
+-- L["VISTA_TELEPORT_SHOW_COOLDOWNS_DESC"]                    = "Show a cooldown swipe on teleport rows that are on cooldown."
+-- L["VISTA_TELEPORT_SHOW_RECENTS"]                           = "Show Recent Teleports"
+-- L["VISTA_TELEPORT_SHOW_RECENTS_DESC"]                      = "List recently used teleports at the top of the menu."
+-- L["VISTA_TELEPORT_ENABLE_FAVOURITES"]                      = "Enable Favourites"
+-- L["VISTA_TELEPORT_ENABLE_FAVOURITES_DESC"]                 = "Allow pinning favourite teleports to the top of the menu."
+-- L["VISTA_TELEPORT_ENABLE_FAVOURITES_TIP"]                  = "Click the star or right-click a row to pin or unpin a teleport as a favourite."
+-- L["VISTA_TELEPORT_FAVOURITES"]                             = "Favourites"
+-- L["VISTA_TELEPORT_RECENT"]                                 = "Recent"
+-- L["VISTA_TELEPORT_FAVOURITE_TIP"]                          = "Pin or unpin this teleport — click the star or right-click the row."
+-- L["VISTA_TELEPORT_CLEAR_RECENT"]                           = "Clear Recent Teleports"
+-- L["VISTA_TELEPORT_CLEAR_RECENT_DESC"]                      = "Empty the recent teleports list."
+-- L["VISTA_TELEPORT_CLEAR_FAVOURITES"]                       = "Clear Teleport Favourites"
+-- L["VISTA_TELEPORT_CLEAR_FAVOURITES_DESC"]                  = "Unpin all favourited teleports."
+-- L["VISTA_TELEPORT_PREV"]                                   = "Prev"
+-- L["VISTA_TELEPORT_NEXT"]                                   = "Next"
 L["VISTA_ZOOM_BUTTONS"]                                       = "Afficher les boutons de zoom"
 L["VISTA_ZOOM_BUTTONS_MINIMAP"]                               = "Affiche les boutons de zoom + et - sur la minicarte."
 L["VISTA_ZOOM_BUTTONS_MOUSEOVER"]                             = "Boutons de zoom au survol uniquement"
 L["VISTA_HIDE_ZOOM_BUTTONS_UNTIL_YOU_HOVER"]                  = "Masque les boutons de zoom jusqu'au survol de la minicarte."
 
-
+-- =====================================================================
 -- OptionsData.lua Vista — Display (Border / Text Positions / Buttons)
-
+-- =====================================================================
 L["VISTA_BORDER"]                                             = "Bordure"
 L["VISTA_BORDER_TIP"]                                         = "Affiche une bordure autour de la minicarte."
 L["VISTA_BORDER_COLOUR"]                                      = "Couleur de la bordure"
@@ -1900,9 +2105,9 @@ L["VISTA_SIZE_OF_MAIL_ICON_PIXELS"]                           = "Taille de l'ic�
 L["VISTA_ADDON_BUTTON_SIZE"]                                  = "Taille des boutons d'addon"
 L["VISTA_SIZE_OF_COLLECTED_ADDON_MINIMAP_BUTTONS"]            = "Taille des boutons d'addon collectés sur la minicarte (pixels)."
 
-
+-- =====================================================================
 -- OptionsData.lua Vista — Minimap Addon Buttons
-
+-- =====================================================================
 -- L["VISTA_COLLECT_HORIZON_MINIMAP"]                         = "Include Horizon Minimap Icon"
 -- L["VISTA_COLLECT_HORIZON_MINIMAP_DESC"]                    = "Put Horizon's own minimap icon in the managed addon bar, right-click panel, or drawer instead of leaving it on the minimap edge."
 -- L["VISTA_SORT_BUTTONS_ALPHA"]                              = "Sort Buttons Alphabetically"
@@ -1923,7 +2128,7 @@ L["VISTA_RIGHT_CLICK_PANEL"]                                  = "Panneau clic dr
 L["VISTA_FLOATING_DRAWER"]                                    = "Tiroir flottant"
 -- L["VISTA_DRAWER_BUTTON_ICON"]                              = "Drawer Button Icon"
 L["VISTA_DRAWER_BUTTON_ICON_DESC"]                            = "Enter a Blizzard icon file ID or texture path. Leave blank to use the default drawer icon."
--- L["VISTA_CHOOSE_ICON"]                                     = "Choose icon"
+-- L["VISTA_CHOOSE_ICON"]                                     = "Choose Icon"
 -- L["VISTA_CHOOSE_DRAWER_ICON"]                              = "Choose Drawer Icon"
 L["VISTA_LOCK_DRAWER_BUTTON_POSITION"]                        = "Verrouiller la position du bouton tiroir"
 L["VISTA_PREVENT_DRAGGING_FLOATING_DRAWER_BUTTON"]            = "Empêche de déplacer le bouton du tiroir flottant."
@@ -1976,9 +2181,9 @@ L["VISTA_ADDON_BUTTONS_DETECTED"]                             = "(Aucun bouton d
 L["VISTA_VISIBLE_BUTTONS_CHECK_INCLUDE"]                      = "Boutons visibles (cocher pour inclure)"
 L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d'addon détecté — ouvrez d'abord votre minicarte)"
 
-
+-- =====================================================================
 -- Inline option / module strings (used in OptionsData / modules; symbolic migration)
-
+-- =====================================================================
 
 -- L["HEROIC_DUNGEON"]                                        = "Heroic Dungeon"
 -- L["HEROIC_RAID"]                                           = "Heroic Raid"
@@ -1996,12 +2201,12 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["AFFIX_TOOLTIPS"]                                        = "Affix Tooltips"
 -- L["AFFECTS_SCENARIO_PROGRESS_TIMER_BARS"]                  = "Also affects scenario progress and timer bars."
 -- L["ALWAYS"]                                                = "Always Show"
--- L["ALWAYS_M_TIMER"]                                           = "Always show M+ timer."
+L["ALWAYS_M_TIMER"]                                           = "Always show M+ timer."
 -- L["AUTO_ADD_WQS_YOUR_CURRENT_ZONE"]                        = "Auto-add WQs in your current zone."
 -- L["AUTO_CLOSE_DELAY_DISABLE"]                              = "Auto-close delay (0 to disable)."
 -- L["AUTO_UNTRACK_FINISHED_ACTIVITIES"]                      = "Auto-untrack finished activities."
 -- L["FOCUS_BAR_UNDER_NUMERIC_OBJECTIVES"]                    = "Bar under numeric objectives (e.g. 3/250)."
--- L["DASH_CLASS_ICONS_RONDOMEDIA"]                              = "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons."
+L["DASH_CLASS_ICONS_RONDOMEDIA"]                              = "Blizzard default or RondoMedia class icon on the Dashboard when Dashboard class colours are on. Independent of Insight tooltip class icons."
 -- L["BLOCK_POSITION"]                                        = "Block Position"
 -- L["BOSS_EMOTES"]                                           = "Boss Emotes"
 -- L["CHOICE_SLOTS"]                                          = "Choice Slots"
@@ -2022,7 +2227,7 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["COMING_SOON"]                                           = "Coming Soon"
 -- L["COMPLETED_BOSS_STYLE"]                                  = "Completed Boss Style"
 -- L["COMPLETED_COUNT"]                                       = "Completed Count"
--- L["FOCUS_TOMTOM_CONFIGURE_DESC"]                              = "Configure click behaviors, tracking rules, and TomTom integration."
+L["FOCUS_TOMTOM_CONFIGURE_DESC"]                              = "Configure click behaviors, tracking rules, and TomTom integration."
 -- L["CONFIGURE_MINIMAP_S_SHAPE_SIZE_POSITION"]               = "Configure the minimap's shape, size, position, and text overlays."
 -- L["CONTESTED_ZONE_COLOUR"]                                 = "Contested Zone Colour"
 -- L["CONTROL_TRACKER_VISIBILITY_WITHIN_DUNGEONS_RAIDS"]      = "Control tracker visibility within dungeons, raids, and PvP."
@@ -2055,7 +2260,7 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["EXPAND_DIRECTION_ANCHOR"]                               = "Expand direction from anchor."
 -- L["FADE_HOVERING"]                                         = "Fade out when not hovering."
 -- L["FOCUS_FINISHING_REAGENTS"]                              = "Finishing Reagents"
--- L["FOCUS_ANIMATIONS"]                                      = "Focus animations"
+-- L["FOCUS_ANIMATIONS"]                                      = "Focus Animations"
 -- L["FONT_SIZE_BAR_LABEL_BAR_HEIGHT"]                        = "Font size for bar label and bar height."
 -- L["FONTS_SIZES_COLOURS_PRESENCE_NOTIFICATIONS"]            = "Fonts, sizes, and colours for Presence notifications."
 -- L["WORLD_QUESTS_WEEKLIES_YOUR_QUEST_LOG"]                  = "For world quests and weeklies not in your quest log."
@@ -2136,7 +2341,7 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["PANEL_BACKGROUND_OPACITY"]                              = "Panel background opacity (0–100%)."
 -- L["PERMANENTLY_HIDE_UNTRACKED_QUESTS"]                     = "Permanently hide untracked quests."
 -- L["PERSONALIZE_COLOUR_PALETTE_TRACKER_TEXT_ELEMENTS"]      = "Personalize the colour palette for tracker text elements."
--- L["POSITIONING_VISIBILITY_AUGMENT_LOOT_TOAST_SYS"]           = "Positioning and visibility for the Augment loot toast system."
+-- L["POSITIONING_VISIBILITY_AUGMENT_LOOT_TOAST_SYS"]         = "Positioning and visibility for the Augment loot toast system."
 -- L["PREVENT_ACCIDENTAL_CLICKS"]                             = "Prevent accidental clicks."
 -- L["QUALITY_INFO"]                                          = "Quality Info"
 -- L["QUEST_ACCEPT"]                                          = "Quest Accept"
@@ -2198,19 +2403,19 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["RECIPES_TIER_QUALITY_PIPS"]                             = "Show quality tier pips for recipes that support qualities."
 -- L["REAGENT_SHOPPING_LIST_RECIPE"]                          = "Show reagent shopping list for each recipe."
 -- L["FOCUS_AH_SEARCH_TITLE"]                                 = "Search Auction House"
--- L["FOCUS_AH_SEARCH_TOOLTIP"]                                  = "Left-click: search for one craft worth of reagents.\nRight-click: enter how many crafts to multiply quantities.\nThe Auction House must be open."
+L["FOCUS_AH_SEARCH_TOOLTIP"]                                  = "Left-click: search for one craft worth of reagents.\nRight-click: enter how many crafts to multiply quantities.\nThe Auction House must be open."
 -- L["FOCUS_AUCTIONATOR_SEARCH"]                              = "Auctionator search button"
 -- L["FOCUS_AUCTIONATOR_SEARCH_DESC"]                         = "Show a button on recipe entries to search for required reagents in the Auction House (requires Auctionator)."
 -- L["FOCUS_AH_CRAFT_DIALOG_SUBTITLE"]                        = "Auction House shopping list"
 -- L["FOCUS_AH_CRAFT_HINT_CRAFT_COUNT"]                       = "Number of crafts to buy materials for (1–999). List quantities are multiplied by this."
--- L["FOCUS_AH_CRAFT_HINT_TIER"]                                 = "Crafting tier 1, 2, or 3 for every Auctionator row, or leave empty to use each item’s tier."
--- L["FOCUS_AH_CRAFT_TIER_ANY"]                               = "Any tier"
+L["FOCUS_AH_CRAFT_HINT_TIER"]                                 = "Crafting tier 1, 2, or 3 for every Auctionator row, or leave empty to use each item’s tier."
+-- L["FOCUS_AH_CRAFT_TIER_ANY"]                               = "Any Tier"
 -- L["FOCUS_AH_CRAFT_TIER_N"]                                 = "Tier %d"
--- L["FOCUS_AH_CRAFT_COUNT_INVALID"]                          = "Enter a whole number from 1 to 999."
+L["FOCUS_AH_CRAFT_COUNT_INVALID"]                             = "Enter a whole number from 1 to 999."
 -- L["RECENT_PROGRESS_TOP"]                                   = "Show recent progress at the top."
 -- L["RECIPE_ICON_NEXT_TITLE_REQUIRES_QUEST"]                 = "Show recipe icon next to title. Requires quest type icons in Display."
 -- L["SECTION_DIVIDERS"]                                      = "Show Section Dividers"
--- L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ block whenever an active keystone is running."
+L["M_BLOCK_WHENEVER_AN_ACTIVE_KEYSTONE"]                      = "Show the M+ block whenever an active keystone is running."
 -- L["TRACKED_PROFESSION_RECIPES_LIST"]                       = "Show tracked profession recipes in the list."
 -- L["TRACKER_HEROIC_DUNGEONS"]                               = "Show tracker in Heroic dungeons. When unset, uses the master dungeon toggle."
 -- L["TRACKER_HEROIC_RAIDS"]                                  = "Show tracker in Heroic raids. When unset, uses the master raid toggle."
@@ -2251,6 +2456,7 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["TALKING_HEAD_MUTE_VOICE_DESC"]                          = "Silence the NPC voice-over when a Talking Head appears."
 -- L["TALKING_HEAD_CUSTOMISE"]                                = "Customise Appearance"
 -- L["TALKING_HEAD_CUSTOMISE_DESC"]                           = "Apply Horizon Suite styling to the Talking Head frame. When disabled, Blizzard defaults are used."
+-- L["TALKING_HEAD_STYLE"]                                    = "Style"
 -- L["TALKING_HEAD_FRAME_CONTENT"]                            = "Content"
 -- L["TALKING_HEAD_NAME_FONT"]                                = "Name Font"
 -- L["TALKING_HEAD_NAME_FONT_DESC"]                           = "Font family for the NPC name."
@@ -2278,6 +2484,7 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["TALKING_HEAD_SCALE"]                                    = "Frame Scale"
 -- L["TALKING_HEAD_SCALE_DESC"]                               = "Scale of the entire Talking Head frame (0.5–2.0)."
 -- L["TALKING_HEAD_CONTENT_PREVIEW"]                          = "Preview"
+-- L["TALKING_HEAD_OTHER"]                                    = "Other"
 -- L["TALKING_HEAD_PREVIEW_NPC_NAME"]                         = "Thrall"
 -- L["TALKING_HEAD_PREVIEW_DIALOGUE"]                         = "I'm just a floating head. Surprising, I know — but Azeroth has seen weirder."
 -- L["TOAST_ICONS"]                                           = "Toast Icons"
@@ -2307,3 +2514,199 @@ L["VISTA_ADDON_BUTTONS_DETECTED_OPEN_YOUR_MINIMAP"]           = "(Aucun bouton d
 -- L["ZONE_NAME_NEW_ZONE"]                                    = "Zone name still appears when entering a new zone."
 -- L["ZONE_TYPE_COLOURING"]                                   = "Zone Type Colouring"
 -- L["FOCUS_COMPLETED_CHECKMARK"]                             = "|TInterface\\\\Buttons\\\\UI-CheckBox-Check:12:12:0:0|t instead of green for done objectives."
+
+-- =====================================================================
+-- Focus — runtime display strings (shown to the player in-game)
+-- =====================================================================
+-- L["FOCUS_DRAG_ITEM_BUTTON_TOOLTIP"]                        = "Drag to move quest item button"
+-- L["FOCUS_QUEST_ICON_TOOLTIP_TITLE"]                        = "Focus quest"
+-- L["FOCUS_QUEST_ICON_TOOLTIP_BODY"]                         = "Click to super-track this quest."
+-- L["FOCUS_LFG_TOOLTIP_TITLE"]                               = "Find a Group"
+-- L["FOCUS_LFG_TOOLTIP_BODY"]                                = "Click to search for a group for this quest."
+-- L["FOCUS_ABANDON_QUEST_CONFIRM"]                           = "Abandon %s?"
+-- L["FOCUS_SEASON_AFFIXES"]                                  = "Season Affixes:"
+-- L["FOCUS_REQUIREMENTS"]                                    = "Requirements:"
+-- L["FOCUS_REWARDS"]                                         = "Rewards:"
+-- L["FOCUS_HOUSING_XP"]                                      = "Housing XP"
+-- L["FOCUS_RECIPE_CHOICE_ANY"]                               = "Item (any)"
+-- L["FOCUS_RECIPE_ITEM"]                                     = "Item"
+-- L["FOCUS_RECIPE_REQUIRES_FMT"]                             = "Requires: %s"
+-- L["FOCUS_RECIPE_CAN_CRAFT_FMT"]                            = "Can craft: %s"
+-- L["FOCUS_RECIPE_QUALITY_PREFIX"]                           = "Quality: "
+-- L["FOCUS_DISPLAY_DUNGEON"]                                 = "Dungeon"
+-- L["FOCUS_DISPLAY_SCENARIO"]                                = "Scenario"
+-- L["FOCUS_DISPLAY_WORLD_SCENARIO"]                          = "World Scenario"
+-- L["FOCUS_DISPLAY_RITUAL_SITES"]                            = "Ritual Sites"
+-- L["FOCUS_DISPLAY_OBJECTIVES"]                              = "Objectives"
+-- L["FOCUS_DISPLAY_DELVE"]                                   = "Delve"
+-- L["FOCUS_DISPLAY_DELVE_TIER_FMT"]                          = "%s - Tier %d"
+-- L["FOCUS_DISPLAY_MPLUS"]                                   = "Mythic+"
+-- L["FOCUS_QUEST_COMPLETE"]                                  = "Quest Complete"
+-- L["FOCUS_UNKNOWN"]                                         = "Unknown"
+-- L["FOCUS_QUEST_TYPE_OTHER"]                                = "Other"
+
+-- =====================================================================
+-- Focus — slash command output (/h focus, /h debug focus)
+-- =====================================================================
+-- L["FOCUS_SLASH_HELP_COMMANDS"]                             = "Focus commands:"
+-- L["FOCUS_SLASH_HELP_SHOW"]                                 = "  /h focus            - Show this help"
+-- L["FOCUS_SLASH_HELP_TOGGLE"]                               = "  /h focus toggle     - Enable / disable"
+-- L["FOCUS_SLASH_HELP_COLLAPSE"]                             = "  /h focus collapse   - Collapse / expand panel"
+-- L["FOCUS_SLASH_HELP_NEARBY"]                               = "  /h focus nearby     - Toggle Nearby (Current Zone) group"
+-- L["FOCUS_SLASH_HELP_AUTOFOCUS"]                            = "  /h focus autofocus  - Toggle Auto-Focus Closest Quest"
+-- L["FOCUS_SLASH_HELP_RESET"]                                = "  /h focus clear      - Reset to live data"
+-- L["FOCUS_SLASH_HELP_RESETPOS"]                             = "  /h focus reset      - Reset panel to default position"
+-- L["FOCUS_SLASH_HELP_TEST"]                                 = "  /h focus test       - Show with test data"
+-- L["FOCUS_SLASH_HELP_TESTITEM"]                             = "  /h focus testitem   - Inject one debug quest with item (real quests stay)"
+-- L["FOCUS_SLASH_HELP_TESTSOUND"]                            = "  /h focus testsound  - Play the rare-added notification sound"
+-- L["FOCUS_SLASH_HELP_COLORCHECK"]                           = "  /h focus colorcheck - Cycle focus colors (title/objective/zone/section/highlight), then restore"
+-- L["FOCUS_SLASH_TIP_COLLAPSE"]                              = "  Click the header row to collapse / expand."
+-- L["FOCUS_SLASH_TIP_SCROLL"]                                = "  Scroll with mouse wheel when content overflows."
+-- L["FOCUS_SLASH_TIP_DRAG"]                                  = "  Drag the panel to reposition it (saved across sessions)."
+-- L["FOCUS_SLASH_TIP_CLICK"]                                 = "  Left-click a quest or rare to super-track; Left-click auto-complete quests to complete them."
+-- L["FOCUS_SLASH_TIP_BLIZZARD_PLUS"]                         = "  Blizzard+: Shift+Left untracks; Right-click opens a context menu on quests and tracked non-quest rows (achievements, recipes, etc.)."
+-- L["FOCUS_SLASH_DBG_HELP_HEADER"]                           = "Focus debug commands (/h debug focus [cmd] \226\128\148 or /hfs delvedebug for delve diagnostics):"
+-- L["FOCUS_SLASH_DBG_HELP_DEBUGLIVE"]                        = "  debuglive  - Toggle live debug log panel"
+-- L["FOCUS_SLASH_DBG_HELP_SCENDEBUG"]                        = "  scendebug - Scenario timer debug (also: /h scenario debug)"
+-- L["FOCUS_SLASH_DBG_HELP_DEVMODE"]                          = "  devmode - Show Blizzard tracker alongside Focus for comparison"
+-- L["FOCUS_SLASH_DBG_HELP_OTHERS"]                           = "  wqdebug, nearbydebug, headercountdebug, groupdebug"
+-- L["FOCUS_SLASH_DBG_HELP_OTHERS2"]                          = "  delvedebug, mplusaffixdebug, mplusdebug, endeavordebug, achievementdebug"
+-- L["FOCUS_SLASH_DBG_HELP_OTHERS3"]                          = "  recipedebug, unaccepted, clicktodebug, clickdebug, profiledebug"
+-- L["FOCUS_SLASH_TOGGLE_COMBAT"]                             = "Cannot toggle during combat."
+-- L["FOCUS_SLASH_ENABLED"]                                   = "|cFF00FF00Focus enabled|r"
+-- L["FOCUS_SLASH_DISABLED"]                                  = "|cFFFF0000Focus disabled|r"
+-- L["FOCUS_SLASH_COLLAPSED"]                                 = "Panel collapsed."
+-- L["FOCUS_SLASH_EXPANDED"]                                  = "Panel expanded."
+-- L["FOCUS_SLASH_NEARBY_SHOWN"]                              = "Nearby group shown."
+-- L["FOCUS_SLASH_NEARBY_HIDDEN"]                             = "Nearby group hidden."
+-- L["FOCUS_SLASH_AUTOFOCUS_ON"]                              = "Auto-Focus Closest Quest enabled."
+-- L["FOCUS_SLASH_AUTOFOCUS_OFF"]                             = "Auto-Focus Closest Quest disabled - focus is yours to set manually."
+-- L["FOCUS_AUTOFOCUS_TOAST_ON"]                              = "Auto-Focus: On"
+-- L["FOCUS_AUTOFOCUS_TOAST_OFF"]                             = "Auto-Focus: Off"
+-- L["FOCUS_SLASH_SOUND_PLAYED_FMT"]                          = "Played rare-added sound (choice: %s)."
+-- L["FOCUS_SLASH_SOUND_FAILED_FMT"]                          = "PlaySound rare failed: %s"
+-- L["FOCUS_SLASH_SOUND_PLAYED"]                              = "Played rare-added sound."
+-- L["FOCUS_SLASH_SOUND_UNAVAILABLE"]                         = "Could not play sound."
+-- L["FOCUS_SLASH_TEST_STARTED"]                              = "Showing test data (all categories and groupings)..."
+-- L["FOCUS_SLASH_TESTITEM_INJECTED"]                         = "Injected one debug quest with a quest item (real quests remain). Use /h focus clear to remove."
+-- L["FOCUS_SLASH_RESET_DONE"]                                = "Reset tracker to live data."
+-- L["FOCUS_SLASH_RESETPOS_DONE"]                             = "Position reset to default."
+-- L["FOCUS_SLASH_COLORCHECK_STOPPED"]                        = "Colour check stopped and original colours restored."
+-- L["FOCUS_SLASH_COLORCHECK_DONE"]                           = "Colour check complete. Original colours restored."
+-- L["FOCUS_SLASH_COLORCHECK_STEP_FMT"]                       = "Colour check %d/%d: %s"
+-- L["FOCUS_SLASH_COLORCHECK_NO_TIMER"]                       = "Colour check unavailable (C_Timer not found)."
+-- L["FOCUS_SLASH_STATE_ON"]                                  = "on"
+-- L["FOCUS_SLASH_STATE_OFF"]                                 = "off"
+-- L["FOCUS_SLASH_DBG_DEV_MODE_REQUIRED"]                     = "Debug requires DEV_MODE = true in core/Logger.lua"
+-- L["FOCUS_SLASH_DBG_FOCUS_LOG_FMT"]                         = "Focus debug log: %s"
+-- L["FOCUS_SLASH_DBG_WQ_UNAVAILABLE"]                        = "DumpWorldQuestDiscovery not available."
+-- L["FOCUS_SLASH_DBG_SCEN_LOG_FMT"]                          = "Scenario debug logging: %s"
+-- L["FOCUS_SLASH_DBG_DEVMODE_FMT"]                           = "Dev mode (Blizzard tracker): %s"
+-- L["FOCUS_SLASH_DBG_MPLUS_PREVIEW_FMT"]                     = "M+ block debug preview: %s"
+-- L["FOCUS_SLASH_DBG_NEARBY_UNAVAIL"]                        = "GetNearbyDebugInfo not available."
+-- L["FOCUS_SLASH_DBG_HEADER_UNAVAIL"]                        = "DebugHeaderCount not available."
+-- L["FOCUS_SLASH_DBG_UNACCEPTED_OPENED"]                     = "Opened unaccepted quests popup."
+-- L["FOCUS_SLASH_DBG_UNACCEPTED_UNAVAIL"]                    = "ShowUnacceptedPopup not available."
+-- L["FOCUS_SLASH_DBG_CLICK_DISPATCH_ON"]                     = "Focus click dispatch debug: |cff00ff00ON|r (quest row clicks print profile/combo/action)"
+-- L["FOCUS_SLASH_DBG_CLICK_DISPATCH_OFF"]                    = "Focus click dispatch debug: |cffff0000OFF|r"
+
+-- =====================================================================
+-- Focus — Delve spell fallback name
+-- =====================================================================
+-- L["FOCUS_DELVE_SPELL_FALLBACK_FMT"]                        = "Spell %d"
+-- L["FOCUS_SLASH_DBG_RECIPE_NO_TRACKED"]                     = "No tracked recipes. Track some in the profession UI, or use: /horizon recipedebug 12345"
+-- L["FOCUS_AH_RECIPE_FALLBACK"]                              = "Recipe"
+-- Integrations tab — Focus options
+-- =====================================================================
+-- L["FOCUS_INTEGRATION"]                                     = "Integrations"
+-- L["FOCUS_INTEGRATION_DESC"]                                = "Configure companion addon integrations for the Focus tracker."
+
+-- Shared rare-integration keys (used by both RareScanner and SilverDragon).
+-- L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE"]                 = "Nav Arrow Size"
+-- L["FOCUS_INTEGRATION_RARE_NAV_ARROW_SIZE_DESC"]            = "Size of the previous/next navigation arrows shown in the section header when multiple alerts are queued."
+-- L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY"]                = "Kill Alert Duration"
+-- L["FOCUS_INTEGRATION_RARE_KILL_FADE_DELAY_DESC"]           = "Seconds to keep the alert visible after the rare is killed. During this time the name shows (Killed) in red and the 3D portrait is desaturated. Set to 0 to remove instantly."
+-- L["FOCUS_INTEGRATION_RARE_FOUND_FADE_DELAY_DESC"]          = "Seconds to keep the alert visible after a loot vignette is looted. During this time the name shows (Found) in green. Set to 0 to remove instantly."
+-- L["FOCUS_INTEGRATION_RARE_MAX_ALERTS"]                     = "Alert Queue Limit"
+-- L["FOCUS_INTEGRATION_RARE_MAX_ALERTS_DESC"]                = "Maximum number of rare alerts kept in the queue at once. When the limit is reached, the oldest entry is removed first (FIFO)."
+-- L["FOCUS_INTEGRATION_RARE_SHOW_COORDS"]                    = "Show Coordinates"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_COORDS_DESC"]               = "Show the X, Y map coordinates for the detected rare below its name in the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARE_COORD_WAYPOINT"]                 = "Click Coords to Set Waypoint"
+-- L["FOCUS_INTEGRATION_RARE_COORD_WAYPOINT_DESC"]            = "Clicking the coordinates line sets a waypoint at the rare's location. Hold Shift to share the location in chat instead."
+-- L["FOCUS_INTEGRATION_RARE_USE_TOMTOM"]                     = "Use TomTom"
+-- L["FOCUS_INTEGRATION_RARE_USE_TOMTOM_DESC"]                = "Send the waypoint to TomTom instead of the default Blizzard map pin. Requires TomTom to be installed."
+-- L["FOCUS_INTEGRATION_RARE_TOMTOM_INVALID"]                 = "TomTom is not installed."
+-- L["FOCUS_INTEGRATION_RARE_AUTO_WAYPOINT"]                  = "Auto-set Waypoint"
+-- L["FOCUS_INTEGRATION_RARE_AUTO_WAYPOINT_DESC"]             = "Automatically set a waypoint when a rare alert fires."
+-- L["FOCUS_INTEGRATION_RARE_CLICK_TO_TARGET_DESC"]           = "Left-clicking a rare alert entry in Focus will attempt to target the NPC and apply a skull raid marker if it is on a visible nameplate."
+-- L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT"]                  = "Show NPC Portrait"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_PORTRAIT_DESC"]             = "Show the rare NPC portrait in the icon column of its Focus tracker entry."
+-- L["FOCUS_INTEGRATION_RARE_MODEL_POSITION"]                 = "Portrait Position"
+-- L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_DESC"]            = "Which side of the tracker entry to display the 3D portrait on."
+-- L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_RIGHT"]           = "Right"
+-- L["FOCUS_INTEGRATION_RARE_MODEL_POSITION_LEFT"]            = "Left"
+-- L["FOCUS_INTEGRATION_RARE_MODEL_SIZE"]                     = "Portrait Size"
+-- L["FOCUS_INTEGRATION_RARE_MODEL_SIZE_DESC"]                = "Size of the 3D portrait in pixels."
+-- L["FOCUS_INTEGRATION_RARE_MODEL_OFFSET_X"]                 = "Portrait X Offset"
+-- L["FOCUS_INTEGRATION_RARE_MODEL_OFFSET_X_DESC"]            = "Horizontal offset in pixels. Negative nudges the portrait left, positive nudges it right."
+-- L["FOCUS_INTEGRATION_RARE_SHOW_VIGNETTE_ICON"]             = "Show Vignette Icon"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_VIGNETTE_ICON_DESC"]        = "Show the minimap vignette icon next to the NPC name in the Focus tracker entry."
+-- L["FOCUS_INTEGRATION_RARE_CLICK_TO_TARGET"]                = "Click Name to Target + Mark"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO"]                  = "Show Time Since Detection"
+-- L["FOCUS_INTEGRATION_RARE_SHOW_SEEN_AGO_DESC"]             = "Display how long ago the rare was first detected below its name in the Focus tracker. Updates every minute."
+-- L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_LABEL"]            = "Rares"
+-- L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES"]            = "Keep Section Titled Rares"
+-- L["FOCUS_INTEGRATION_RARE_SECTION_TITLE_RARES_DESC"]       = "Show this integration's Focus section title as Rares instead of the addon name."
+-- L["FOCUS_INTEGRATION_RARE_COLOR"]                          = "Alert Color"
+-- L["FOCUS_INTEGRATION_RARE_COLOR_DESC"]                     = "Color used to highlight this integration's alerts in the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL"]                 = "Ctrl+Click to Copy Wowhead URL"
+-- L["FOCUS_INTEGRATION_RARE_CTRL_CLICK_URL_DESC"]            = "Hold Ctrl and click the NPC name or a loot icon to open a copy dialog with the Wowhead URL."
+-- L["FOCUS_INTEGRATION_RARE_NO_WOWHEAD_ID"]                  = "No Wowhead ID available for this entry."
+
+-- RareScanner-specific keys.
+-- L["FOCUS_INTEGRATION_RARESCANNER"]                         = "RareScanner"
+-- L["FOCUS_INTEGRATION_RARESCANNER_INVALID"]                 = "Horizon - RareScanner is not installed."
+-- L["FOCUS_INTEGRATION_RARESCANNER_COMPANION"]               = "Requires the Horizon - RareScanner companion addon (available on CurseForge and Wago)."
+-- L["FOCUS_INTEGRATION_RARESCANNER_ENABLE"]                  = "Enable RareScanner Integration"
+-- L["FOCUS_INTEGRATION_RARESCANNER_ENABLE_DESC"]             = "Replace Focus built-in rare and treasure alerts with RareScanner data."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES"]              = "Show Rare Bosses"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_RARES_DESC"]         = "Show rare NPC alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_TREASURES"]          = "Show Treasures"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_TREASURES_DESC"]     = "Show treasure and container alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_EVENTS"]             = "Show Events"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_EVENTS_DESC"]        = "Show rare event alerts from RareScanner inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT"]               = "Show Potential Loot"
+-- L["FOCUS_INTEGRATION_RARESCANNER_SHOW_LOOT_DESC"]          = "Show potential loot item icons in a row below the rare name in the Focus tracker."
+-- L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY"]        = "Minimum Loot Quality"
+-- L["FOCUS_INTEGRATION_RARESCANNER_MIN_LOOT_QUALITY_DESC"]   = "Only show loot icons for items of this quality or higher."
+-- L["FOCUS_INTEGRATION_RARESCANNER_LOOT_PER_ROW"]            = "Loot Icons Per Row"
+-- L["FOCUS_INTEGRATION_RARESCANNER_LOOT_PER_ROW_DESC"]       = "Maximum number of loot item icons displayed per row (3–8)."
+-- L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN"]                = "Fire Test Alert"
+-- L["FOCUS_INTEGRATION_RARESCANNER_TEST_BTN_DESC"]           = "Simulates a rare NPC detection using RareScanner's built-in test (Time-Lost Proto-Drake)."
+
+-- SilverDragon-specific keys.
+-- L["FOCUS_INTEGRATION_SILVERDRAGON"]                        = "SilverDragon"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_DESC"]                   = "Configure the SilverDragon companion addon integration for the Focus tracker."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_INVALID"]                = "Horizon - SilverDragon is not installed."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_COMPANION"]              = "Requires the Horizon - SilverDragon companion addon (available on CurseForge and Wago)."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_ENABLE"]                 = "Enable SilverDragon Integration"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_ENABLE_DESC"]            = "Show SilverDragon rare alerts inside the Focus tracker."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES"]             = "Show Rare NPCs"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_RARES_DESC"]        = "Show rare NPC alerts detected by SilverDragon in the Focus tracker."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_LOOT"]              = "Show Loot Containers"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_SHOW_LOOT_DESC"]         = "Show loot container alerts (chests, rare loot objects) detected by SilverDragon in the Focus tracker."
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_TEST_BTN"]               = "Fire Test Alert"
+-- L["FOCUS_INTEGRATION_SILVERDRAGON_TEST_BTN_DESC"]          = "Simulates a SilverDragon rare detection (Humar the Pridelord)."
+
+-- Dashboard Integrations feed — RareScanner and SilverDragon cards.
+-- L["DASH_INT_RS_DESC"]                                      = "Replaces Focus built-in rare alerts with RareScanner data, complete with loot previews, coordinates, and waypoints."
+-- L["DASH_INT_RS_WHAT"]                                      = "Rich rare NPC, treasure, and event alerts with loot item icons, coordinates, TomTom waypoints, and click-to-target support. Also requires the Horizon - RareScanner companion addon."
+-- L["DASH_INT_SD_DESC"]                                      = "Shows SilverDragon rare NPC alerts inside the Focus tracker."
+-- L["DASH_INT_SD_WHAT"]                                      = "Rare NPC alerts with 3D portrait, coordinates, TomTom waypoints, and click-to-target support. Also requires the Horizon - SilverDragon companion addon."
+
+-- Companion (bridge) addon status pill labels — shown on RS / SD integration cards.
+-- L["DASH_INT_COMPANION_ENABLED"]                            = "Bridge: Active"
+-- L["DASH_INT_COMPANION_DISABLED"]                           = "Bridge: Off"
+-- L["DASH_INT_COMPANION_MISSING"]                            = "Bridge: Missing"
+-- L["DASH_INT_CTA_GET_COMPANION"]                            = "Install Bridge"
+

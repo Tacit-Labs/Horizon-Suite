@@ -108,6 +108,7 @@ local function ShowFocusShortHelp()
     HSPrint(L["FOCUS_SLASH_HELP_TOGGLE"])
     HSPrint(L["FOCUS_SLASH_HELP_COLLAPSE"])
     HSPrint(L["FOCUS_SLASH_HELP_NEARBY"])
+    HSPrint(L["FOCUS_SLASH_HELP_AUTOFOCUS"])
     HSPrint(L["FOCUS_SLASH_HELP_RESET"])
     HSPrint(L["FOCUS_SLASH_HELP_RESETPOS"])
     HSPrint(L["FOCUS_SLASH_HELP_TEST"])
@@ -182,6 +183,12 @@ local function HandleFocusSlash(msg)
             HSPrint(L["FOCUS_SLASH_NEARBY_SHOWN"])
         else
             HSPrint(L["FOCUS_SLASH_NEARBY_HIDDEN"])
+        end
+
+    elseif cmd == "autofocus" then
+        -- Chat feedback comes from the shared toggle so slash and keybinding stay consistent.
+        if addon.ToggleProximityAutoSuperTrack then
+            addon.ToggleProximityAutoSuperTrack()
         end
 
     elseif cmd == "testsound" then

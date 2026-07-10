@@ -708,6 +708,20 @@ local function CreateSectionHeader(parent)
     s.text:SetPoint("BOTTOMLEFT", s, "BOTTOMLEFT", labelX, 0)
     s.shadow:SetPoint("CENTER", s.text, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
 
+    -- Optional right-aligned value (e.g. total achievement points on the Achievements
+    -- header). Hidden unless AcquireSectionHeader populates it for a matching group.
+    s.count = s:CreateFontString(nil, "OVERLAY")
+    s.count:SetFontObject(addon.SectionFont)
+    s.count:SetJustifyH("RIGHT")
+    s.countShadow = s:CreateFontString(nil, "BORDER")
+    s.countShadow:SetFontObject(addon.SectionFont)
+    s.countShadow:SetJustifyH("RIGHT")
+    s.count:ClearAllPoints()
+    s.count:SetPoint("BOTTOMRIGHT", s, "BOTTOMRIGHT", -_S(2), 0)
+    s.countShadow:SetPoint("CENTER", s.count, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+    s.count:Hide()
+    s.countShadow:Hide()
+
     -- Full header clickable area (chevron is inside frame now).
     s:SetHitRectInsets(0, 0, 0, 0)
 
@@ -972,6 +986,7 @@ local function ClearEntry(entry, full)
     entry._lastEntryX     = nil
     entry._lastEntryY     = nil
     entry._lastEntryWidth = nil
+    entry._lastCatIndex   = nil  -- reorder-detection ordinal; stale value must not survive re-acquire
     -- Clear PopulateEntry's data signature so an entry re-acquired for a different quest
     -- re-populates from scratch instead of hitting the same-signature fast-path.
     entry._populateSig    = nil
