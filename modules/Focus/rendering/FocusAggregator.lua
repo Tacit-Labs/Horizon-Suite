@@ -63,12 +63,10 @@ local function RefreshProximityRank(quests)
     focus.proximityClosestDistSq = first and first.dist or nil
 end
 
--- Auto super-track driver for the "Auto-Focus Closest Quest" toggle. Drives the game's super-track
--- (which feeds the Focused Quest section and the on-screen waypoint) to the nearest tracked quest
--- recorded by RefreshProximityRank. Idempotent: only re-assigns when the closest quest actually
--- changes, so it never self-triggers the SUPER_TRACKING_CHANGED -> refresh loop. While enabled it
--- owns the super-track slot; a manual focus is reclaimed on the next pass by design (turn the toggle
--- off to focus manually). Called once per FullLayout, after the primary SortAndGroupQuests pass.
+--- Drive super-track to the nearest quest when Auto-Focus Closest Quest is enabled.
+--- Idempotent: only re-assigns when the closest quest changes. Called once per FullLayout
+--- (including collapsed layouts) after the primary SortAndGroupQuests rank pass.
+--- @return nil
 local function ApplyProximityAutoSuperTrack()
     if not addon.GetDB("proximityAutoSuperTrack", false) then return end
     if not (C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID) then return end
@@ -104,10 +102,9 @@ local function ApplyProximityAutoSuperTrack()
     pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
 end
 
--- On-the-fly toggle for the auto-focus driver: the slash command and the keybinding both route
--- here so the flip, chat feedback, and refresh stay consistent with the options panel toggle.
--- Turning it off leaves the currently focused quest in place — it simply stops being auto-managed,
--- so the user can immediately focus a quest by hand.
+--- Toggle Auto-Focus Closest Quest (slash and keybinding share this path).
+--- Turning it off leaves the current focus in place and stops auto-managing it.
+--- @return boolean New enabled state
 local function ToggleProximityAutoSuperTrack()
     local newVal = not addon.GetDB("proximityAutoSuperTrack", false)
     addon.SetDB("proximityAutoSuperTrack", newVal)
@@ -130,7 +127,7 @@ local function ToggleProximityAutoSuperTrack()
     if dash and dash.IsShown and dash:IsShown() and dash._refreshDashboardDetailOptionFonts then
         dash._refreshDashboardDetailOptionFonts()
     end
-    if addon.RequestRefresh then addon.RequestRefresh() end
+    if addon.ScheduleRefresh then addon.ScheduleRefresh() end
     if addon.FullLayout then addon.FullLayout() end
     return newVal
 end
@@ -261,8 +258,8 @@ local function CompareEntriesBySortMode(a, b)
         return ta < tb
     end
     if mode == "proximity" then
-        -- Nearest-first by quest-watch rank (index 1 = closest). Unwatched entries (no rank)
-        -- sort after ranked ones; alpha breaks ties within the same rank / among unranked.
+        -- Nearest-first by live distance rank (index 1 = closest). Unranked entries
+        -- (no on-continent position) sort after ranked ones; alpha breaks ties.
         local rank = addon.focus and addon.focus.proximityRank
         local ra = (rank and a.questID and rank[a.questID]) or math.huge
         local rb = (rank and b.questID and rank[b.questID]) or math.huge

@@ -245,6 +245,12 @@ autoFocusToggleKeybindBtn:RegisterForClicks("AnyUp")
 -- dashboard (HIGH). A re-show while visible updates the text in place and restarts the hold,
 -- skipping the fade-in so rapid presses don't blink.
 local toggleToast
+--- Show a short centered confirmation toast (e.g. Auto-Focus on/off from keybind or slash).
+--- @param message string Toast text
+--- @param r number|nil Red 0–1 (default ~0.92)
+--- @param g number|nil Green 0–1 (default ~0.94)
+--- @param b number|nil Blue 0–1 (default ~0.98)
+--- @return nil
 local function ShowFocusToggleToast(message, r, g, b)
     if not message or message == "" then return end
     local f = toggleToast
@@ -572,6 +578,7 @@ local function FullLayout()
     end
 
     local collapsedFallThrough = false
+    local collapsedRanked = false
     if addon.focus.collapsed then
         if addon.focus.collapse.pendingWQCollapse then
             addon.focus.collapse.pendingWQCollapse = false
@@ -595,6 +602,7 @@ local function FullLayout()
             -- Collapsed-with-headers: show section headers. If any category is expanded, fall through
             -- to full layout to show that category's entries (expand category only, not whole tracker).
             local grouped = addon.SortAndGroupQuests(quests)
+            collapsedRanked = true
             local showSections = #grouped >= 1 and addon.GetDB("showSectionHeaders", true)
             local anyExpanded = false
             local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
@@ -694,6 +702,15 @@ local function FullLayout()
         end
 
         if not collapsedFallThrough then
+            -- Keep Auto-Focus Closest Quest driving the waypoint while the panel is collapsed.
+            -- Headers-only already ranked above; plain collapsed still needs a rank pass so
+            -- proximityClosestQID is current before Apply.
+            if addon.GetDB("proximityAutoSuperTrack", false) then
+                if not collapsedRanked then
+                    addon.SortAndGroupQuests(quests)
+                end
+                if addon.ApplyProximityAutoSuperTrack then addon.ApplyProximityAutoSuperTrack() end
+            end
             if #quests > 0 then
                 ApplyShowAlpha()
                 addon.HS:Show()
