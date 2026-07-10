@@ -146,15 +146,10 @@ L["DASH_NEWS_CTA_OPEN_PATCH_NOTES"]                           = "Änderungshinwe
 L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "Neuigkeitenbereich • Redaktionelles Layout"
 L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                          = "Änderungshinweise"
 L["DASH_NEWS_CTA_OPEN_GUIDE"]                                 = "Schnelleinstieg öffnen"
-L["DASH_NEWS_FEATURED_TITLE"]                                 = "Addon-Integrationsbereich"
-L["DASH_NEWS_FEATURED_TAGLINE"]                               = [=[Schau dir den neuen Integrationsbereich an, wo du stets alle Addons mit vollständiger Horizon-Unterstützung im Blick behältst!
-
-Horizon zeigt dort anhand automatischer Erkennung an, welche Addons aus der Liste installiert sind. Für etwaige fehlende Addons wird ein Installations-Link angeboten, der dich zur CurseForge-Seite des jeweiligen Addons führt.
-
-Ein besonders stark gewünschtes Addon ist mit von der Partie: |cfff5e1a4Total Roleplay 3|r!
-TRP3 ist nun in Horizons Tooltip-Modul 'Insight' vollintegriert. Damit kann frei gewählt werden, was beim Rollenspiel anzegzeigt werden soll - kombiniert mit der minimalistischen Ästhetik von Horizon.]=]
-L["DASH_NEWS_FEATURED_BODY"]                                  = "Der Horizon-Integrationsbereich ist unten in der Seitenleiste erreichbar. Für Vorschläge weiterer Integration sind wir sehr offen – Tritt unserem Discord bei und teile uns mit, welche Addons du gerne in Horizon integriert sehen würdest!"
-L["DASH_NEWS_FEATURED_META"]                                  = "Axis   •   Quality of Life   •   Jetzt verfügbar"
+-- L["DASH_NEWS_FEATURED_TITLE"] = "Augment Alerts"
+-- L["DASH_NEWS_FEATURED_TAGLINE"] = "Stay on top of the little things without another addon — low durability, bags nearly full, new mail, Great Vault rewards ready, and friends coming online or offline. Each alert kind has its own toggle, threshold, and colour under |cfff5e1a4Augment > Alerts|r. Everything starts off until you turn a kind on, so nothing surprises you after an update."
+-- L["DASH_NEWS_FEATURED_BODY"] = "Open Augment > Alerts to enable the kinds you care about, preview the toasts, and place them in Edit Mode alongside your loot toasts."
+-- L["DASH_NEWS_FEATURED_META"] = "Augment   •   Quality of Life   •   Available Now"
 L["DASH_NEWS_HIGHLIGHT_TITLE"]                                = "Die Horizon-Suite integriert sich jetzt in das Spielmenü"
 L["DASH_NEWS_HIGHLIGHT_BODY"]                                 = "Wir haben nun eine eigene Horizon-Schaltfläche in das native Spielmenü eingefügt. Vollständig kompatibel mit ElvUIs Schaltfläche im Spielmenü. Das Beste aus beiden Welten!"
 L["DASH_NEWS_HIGHLIGHT_META"]                                 = "Axis   •   Quality of Life   •   In Arbeit"

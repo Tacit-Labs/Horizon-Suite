@@ -147,15 +147,12 @@ L["DASH_NEWS_CTA_OPEN_PATCH_NOTES"]                           = "Open Patch Note
 L["DASH_NEWS_EDITORIAL_FOOTER_PREFIX"]                        = "Axis • Coming Soon"
 L["DASH_NEWS_EDITORIAL_FOOTER_LINK"]                          = "Patch notes"
 L["DASH_NEWS_CTA_OPEN_GUIDE"]                                 = "Open Quick Start"
-L["DASH_NEWS_FEATURED_TITLE"]                        = "AddOn Integrations List"
-L["DASH_NEWS_FEATURED_TAGLINE"]                      = [=[Check out our new Integrations page where you can remain up to date on which AddOns are fully integrated into Horizon Suite!
+L["DASH_NEWS_FEATURED_TITLE"]                        = "Augment Alerts"
+L["DASH_NEWS_FEATURED_TAGLINE"]                      = [=[Stay on top of the little things without another addon — low durability, bags nearly full, new mail, Great Vault rewards ready, and friends coming online or offline.
 
-The page automatically detects which AddOns from the list are installed and will display an 'Install' link that will direct you to the CurseForge page for any AddOn that may be missing.
-
-One AddOn in particular has been long-awaited, |cfff5e1a4Total Roleplay 3|r!
-TRP3 is now fully integrated into Horizon's style of tooltips, allowing you to see only what you want during roleplay while still enjoying the minimalist aesthetic that Horizon offers.]=]
-L["DASH_NEWS_FEATURED_BODY"]                         = "The integrations page can be viewed by clicking the button at the bottom of the sidebar, next to search! If you have a suggestion for an AddOn to integrate, feel free to let us know on Discord!"
-L["DASH_NEWS_FEATURED_META"]                         = "Axis   •   Quality of Life   •   Available Now"
+Each alert kind has its own toggle, threshold, and colour under |cfff5e1a4Augment > Alerts|r. Everything starts off until you turn a kind on, so nothing surprises you after an update.]=]
+L["DASH_NEWS_FEATURED_BODY"]                         = "Open Augment > Alerts to enable the kinds you care about, preview the toasts, and place them in Edit Mode alongside your loot toasts."
+L["DASH_NEWS_FEATURED_META"]                         = "Augment   •   Quality of Life   •   Available Now"
 L["DASH_NEWS_HIGHLIGHT_TITLE"]                                 = "Horizon Suite now has a Game Menu Button"
 L["DASH_NEWS_HIGHLIGHT_BODY"]                                  = "The first example of which is that we're now accessible through Blizzard's native Game Menu with our own button! For those who use ElvUI, our menu button is also compatible with theirs, meaning nobody has to choose between the two."
 L["DASH_NEWS_HIGHLIGHT_META"]                               = "Axis   •   Quality of Life   •   Work in Progress"
