@@ -152,6 +152,29 @@ local function AcquireSectionHeader(groupKey, focusedGroupKey)
     end
     s.shadow:SetTextColor(0, 0, 0, shadowAlpha)
 
+    -- Total account achievement points on the Achievements header (opt-in).
+    if s.count then
+        local pts
+        if groupKey == "ACHIEVEMENTS" and addon.GetDB("showAchievementSectionPoints", false) then
+            local ok, v = pcall(GetTotalAchievementPoints)
+            if ok and type(v) == "number" and v > 0 then pts = v end
+        end
+        if pts then
+            local ptsStr = (addon.FormatNumberWithGrouping and addon.FormatNumberWithGrouping(pts)) or tostring(pts)
+            addon.SetTextWithShadow(s.count, s.countShadow, ptsStr)
+            -- Re-anchor each acquire so live shadow-offset changes track the label shadow.
+            s.countShadow:ClearAllPoints()
+            s.countShadow:SetPoint("CENTER", s.count, "CENTER", addon.SHADOW_OX, addon.SHADOW_OY)
+            s.count:SetTextColor(color[1], color[2], color[3], secA)
+            s.countShadow:SetTextColor(0, 0, 0, shadowAlpha)
+            s.count:Show()
+            s.countShadow:Show()
+        else
+            s.count:Hide()
+            s.countShadow:Hide()
+        end
+    end
+
     -- Ensure a small visual gap between the chevron and the label text.
     if s.chevron and s.text then
         local CHEVRON_GAP_PX = addon.SECTION_CHEVRON_GAP_PX or 4

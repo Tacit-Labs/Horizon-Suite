@@ -287,6 +287,7 @@ read_globals = {
     "GetAchievementLink",
     "GetAchievementCriteriaInfo",
     "GetAchievementNumCriteria",
+    "GetTotalAchievementPoints",
     "GetTrackedAchievements",
     "AddTrackedAchievement",
     "RemoveTrackedAchievement",

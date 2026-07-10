@@ -239,6 +239,7 @@ addon.FOCUS_DEFAULTS = {
     showAchievementIcons      = true,
     achievementOnlyMissingRequirements = false,
     showAchievementProgressBars = false,
+    showAchievementSectionPoints = false,
     showEndeavors             = true,
     showCompletedEndeavors    = false,
     showDecor                 = true,
