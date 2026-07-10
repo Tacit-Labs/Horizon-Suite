@@ -234,6 +234,71 @@ nearbyToggleKeybindBtn:SetScript("OnClick", function()
 end)
 nearbyToggleKeybindBtn:RegisterForClicks("AnyUp")
 
+local autoFocusToggleKeybindBtn = CreateFrame("Button", "HSAutoFocusToggleButton", nil)
+autoFocusToggleKeybindBtn:SetScript("OnClick", function()
+    if addon.ToggleProximityAutoSuperTrack then addon.ToggleProximityAutoSuperTrack() end
+end)
+autoFocusToggleKeybindBtn:RegisterForClicks("AnyUp")
+
+-- Small centered confirmation toast for on-the-fly toggles (keybind/slash), so the state change is
+-- visible without watching chat. Singleton frame; DIALOG strata keeps it above the options
+-- dashboard (HIGH). A re-show while visible updates the text in place and restarts the hold,
+-- skipping the fade-in so rapid presses don't blink.
+local toggleToast
+--- Show a short centered confirmation toast (e.g. Auto-Focus on/off from keybind or slash).
+--- @param message string Toast text
+--- @param r number|nil Red 0–1 (default ~0.92)
+--- @param g number|nil Green 0–1 (default ~0.94)
+--- @param b number|nil Blue 0–1 (default ~0.98)
+--- @return nil
+local function ShowFocusToggleToast(message, r, g, b)
+    if not message or message == "" then return end
+    local f = toggleToast
+    if not f then
+        f = CreateFrame("Frame", nil, UIParent)
+        f:SetFrameStrata("DIALOG")
+        f:SetPoint("TOP", UIParent, "TOP", 0, -240)
+        f:SetHeight(36)
+        local bg = f:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(0.06, 0.06, 0.10, 0.88)
+        local txt = f:CreateFontString(nil, "OVERLAY")
+        txt:SetFontObject(addon.TitleFont)
+        txt:SetPoint("CENTER")
+        f.text = txt
+        f:Hide()
+        toggleToast = f
+    end
+    f.text:SetText(message)
+    f.text:SetTextColor(r or 0.92, g or 0.94, b or 0.98)
+    f:SetWidth(math.ceil((f.text:GetStringWidth() or 0) + 44))
+    local FADE_IN, HOLD, FADE_OUT = 0.15, 1.6, 0.45
+    if not addon.GetDB("animations", true) then FADE_IN, FADE_OUT = 0, 0 end
+    if f:IsShown() and f:GetAlpha() > 0 then
+        f.elapsed = FADE_IN
+        f:SetAlpha(1)
+    else
+        f.elapsed = 0
+        f:SetAlpha(FADE_IN > 0 and 0 or 1)
+        f:Show()
+    end
+    f:SetScript("OnUpdate", function(self, dt)
+        self.elapsed = self.elapsed + dt
+        local t = self.elapsed
+        if t < FADE_IN then
+            self:SetAlpha(t / FADE_IN)
+        elseif t < FADE_IN + HOLD then
+            self:SetAlpha(1)
+        elseif t < FADE_IN + HOLD + FADE_OUT then
+            self:SetAlpha(1 - (t - FADE_IN - HOLD) / FADE_OUT)
+        else
+            self:SetScript("OnUpdate", nil)
+            self:Hide()
+        end
+    end)
+end
+addon.ShowFocusToggleToast = ShowFocusToggleToast
+
 -- Full layout of the objectives panel.
 -- @brief Computes and applies the complete tracker layout: visibility, quest list, section headers, entry positions, scroll height.
 -- Algorithm: (1) Bail if disabled or in combat. (2) Hide panel if instance visibility
@@ -513,6 +578,7 @@ local function FullLayout()
     end
 
     local collapsedFallThrough = false
+    local collapsedRanked = false
     if addon.focus.collapsed then
         if addon.focus.collapse.pendingWQCollapse then
             addon.focus.collapse.pendingWQCollapse = false
@@ -536,6 +602,7 @@ local function FullLayout()
             -- Collapsed-with-headers: show section headers. If any category is expanded, fall through
             -- to full layout to show that category's entries (expand category only, not whole tracker).
             local grouped = addon.SortAndGroupQuests(quests)
+            collapsedRanked = true
             local showSections = #grouped >= 1 and addon.GetDB("showSectionHeaders", true)
             local anyExpanded = false
             local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
@@ -635,6 +702,15 @@ local function FullLayout()
         end
 
         if not collapsedFallThrough then
+            -- Keep Auto-Focus Closest Quest driving the waypoint while the panel is collapsed.
+            -- Headers-only already ranked above; plain collapsed still needs a rank pass so
+            -- proximityClosestQID is current before Apply.
+            if addon.GetDB("proximityAutoSuperTrack", false) then
+                if not collapsedRanked then
+                    addon.SortAndGroupQuests(quests)
+                end
+                if addon.ApplyProximityAutoSuperTrack then addon.ApplyProximityAutoSuperTrack() end
+            end
             if #quests > 0 then
                 ApplyShowAlpha()
                 addon.HS:Show()
@@ -658,6 +734,9 @@ local function FullLayout()
     SchedulePlaceholderRefreshes(quests)
     addon.UpdateFloatingQuestItem(quests)
     local grouped = addon.SortAndGroupQuests(quests)
+    -- Drive super-track to the nearest quest when the auto-focus toggle is on (once per layout, off
+    -- the primary aggregation pass so secondary SortAndGroupQuests callers don't move the waypoint).
+    if addon.ApplyProximityAutoSuperTrack then addon.ApplyProximityAutoSuperTrack() end
 
     -- Track whether all categories are individually collapsed (for grow-up header positioning).
     local allCatCollapsed = addon.GetDB("showSectionHeaders", true)
@@ -897,6 +976,7 @@ local function FullLayout()
     end
     local newlyAcquiredKeys = {}
     local newEntryInserted  = false
+    local reordered         = false  -- a surviving entry changed ordinal position (e.g. proximity re-rank)
     for _, grp in ipairs(grouped) do
         -- Skip entry acquisition for groups that are collapsed during panel-collapsed fall-through.
         if pcegForAcquire and not pcegForAcquire[grp.key] then
@@ -1242,6 +1322,18 @@ local function FullLayout()
                     entry.staggerDelay = entryIndex * addon.FOCUS_ANIM.stagger
                     entryIndex = entryIndex + 1
 
+                    -- Detect a pure reorder (same entry, new ordinal slot) so the slide block below
+                    -- animates it to its new Y. categoryIndex changes on re-rank but not when a row
+                    -- merely shifts because a neighbour's height changed, so height reflows still
+                    -- snap as before. Skip freshly-acquired rows (owned by the insert path) and
+                    -- nil indices (non-quest rows that carry no ordinal).
+                    local catIdx = qData.categoryIndex
+                    if catIdx ~= nil and entry._lastCatIndex ~= nil
+                        and entry._lastCatIndex ~= catIdx and not newlyAcquiredKeys[key] then
+                        reordered = true
+                    end
+                    entry._lastCatIndex = catIdx
+
                     if not entry:IsShown() and (entry.animState == "active" or entry.animState == "idle") and addon.GetDB("animations", true) then
                         local key = qData.entryKey or qData.questID
                         if isCategoryChangeReflow and (not categoryChangeSlideUpStarts or not categoryChangeSlideUpStarts[key]) then
@@ -1461,7 +1553,7 @@ local function FullLayout()
     -- already cancels the scrollChild-local Y change. Subtracting the delta from prevY
     -- keeps the animation start at the correct on-screen position (a no-op in grow-up with
     -- bottom-pinned content, a normal slide in grow-down or when scroll cannot compensate).
-    if (newEntryInserted or questRemoved) and shouldAnimateQuestInsert then
+    if (newEntryInserted or questRemoved or reordered) and shouldAnimateQuestInsert then
         local scrollDelta = (addon.focus.layout.scrollOffset or 0) - preInsertScrollOffset
         if preInsertY and next(preInsertY) then
             for i = 1, addon.POOL_SIZE do

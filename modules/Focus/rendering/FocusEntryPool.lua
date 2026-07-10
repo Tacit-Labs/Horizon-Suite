@@ -986,6 +986,7 @@ local function ClearEntry(entry, full)
     entry._lastEntryX     = nil
     entry._lastEntryY     = nil
     entry._lastEntryWidth = nil
+    entry._lastCatIndex   = nil  -- reorder-detection ordinal; stale value must not survive re-acquire
     -- Clear PopulateEntry's data signature so an entry re-acquired for a different quest
     -- re-populates from scratch instead of hitting the same-signature fast-path.
     entry._populateSig    = nil
