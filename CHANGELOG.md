@@ -6,7 +6,21 @@ All notable changes to Horizon Suite are documented here.
 
 ## [Unreleased]
 
-<!-- Changelog entries are generated from merged dev PRs (enriched with referenced issues) at release time. -->
+<!-- Changelog entries are generated from merged main PRs (enriched with referenced issues) at release time. -->
+
+---
+
+## [5.2.0] – 2026-07-10
+
+### ✨ New Features
+- **(Vista) Vista button for quick teleport overview (toys, hearthstones, etc.)** — Minimap button opens a menu of unlocked teleports (hearthstones, profession, class, dungeon & raid, event) with favourites, recents, and cooldowns; cast in place without opening the map or bags.
+- **(Focus) Proximity sort and auto-focus closest quest** — New Proximity (Closest First) sort mode, plus an optional Auto-Focus Closest Quest toggle (`/h focus autofocus` and a keybind) that keeps the waypoint on the nearest quest.
+
+### 🔧 Improvements
+- **(Focus) Total achievement points on Achievements header** — Optional readout of your account achievement points on the Achievements section header (off by default).
+
+### 🐛 Fixes
+- **(Options)** Colour picker hex and RGB values stay readable with large fonts, the window collapses when opacity is unused, and it remembers its dragged position.
 
 ---
 
