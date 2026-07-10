@@ -8,7 +8,7 @@ if not addon or not addon.RegisterModule then return end
 
 addon:RegisterModule("augment", {
     title       = "Augment",
-    description = "Loot notifications, vendor automation, self-highlight, Talking Head customisation, and achievement tracking.",
+    description = "Loot notifications, vendor automation, self-highlight, Talking Head customisation, achievement tracking, and status alerts.",
     order       = 30,
 
     OnInit = function()
@@ -25,6 +25,7 @@ addon:RegisterModule("augment", {
             local shOn     = not GetDB or GetDB("augmentSelfHighlightEnabled",     false) ~= false
             local atOn     = (not GetDB or GetDB("augmentAchievementTrackerEnabled", false) ~= false)
                              and not (addon.IsModuleEnabled and addon:IsModuleEnabled("focus"))
+            local alertsOn = not GetDB or GetDB("augmentAlertsEnabled",              true)  ~= false
             if addon.Augment.InitFrames then addon.Augment.InitFrames() end
             -- Loot Frame mini-module: only register loot events + suppress Blizzard toasts when on.
             if lootOn then
@@ -39,6 +40,7 @@ addon:RegisterModule("augment", {
             -- Always call: UpdateTalkingHead self-gates on the pill and restores native when off.
             if addon.Augment.UpdateTalkingHead then addon.Augment.UpdateTalkingHead() end
             if atOn and addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Enable() end
+            if alertsOn and addon.Augment.Alerts then addon.Augment.Alerts.Enable() end
         end
     end,
 
@@ -47,6 +49,7 @@ addon:RegisterModule("augment", {
             if addon.Augment.Vendor then addon.Augment.Vendor.Disable() end
             if addon.Augment.SelfHighlight then addon.Augment.SelfHighlight.Disable() end
             if addon.Augment.AchievementTracker then addon.Augment.AchievementTracker.Disable() end
+            if addon.Augment.Alerts then addon.Augment.Alerts.Disable() end
             if addon.Augment.DisableTalkingHead then addon.Augment.DisableTalkingHead() end
             if addon.Augment.DisableEvents then addon.Augment.DisableEvents() end
             if addon.Augment.RestoreBlizzard then addon.Augment.RestoreBlizzard() end

@@ -1,0 +1,60 @@
+--[[
+    Horizon Suite - Augment / Alerts - Module
+    Enable/Disable surface called from AugmentModule.lua, mirroring the
+    Vendor/SelfHighlight/AchievementTracker mini-modules' lifecycle.
+]]
+
+local addon = _G.HorizonSuite
+local L = addon.L
+local Y = addon and addon.Augment
+local A = Y and Y.Alerts
+if not A then return end
+
+function A.Enable()
+    A.InitFrames()
+    A.RestoreSavedPosition()
+    A.EnableEvents()
+end
+
+function A.Disable()
+    A.DisableEvents()
+    A.ClearActiveToasts()
+end
+
+-- Fires one sample toast per kind, bypassing each kind's own enabled flag.
+-- Unlike Augment's loot-toast PreviewToasts() (AugmentSlash.lua), which only
+-- previews already-enabled types, every Alerts kind ships disabled by
+-- default (see OptionsDefaultsAugmentAlerts.lua) — the point here is to let
+-- it be visually verified *before* anything is turned on, not after.
+function A.PreviewAlerts()
+    if not addon:IsModuleEnabled("augment") then
+        if addon.HSPrint then addon.HSPrint(L["ALERTS_PREVIEW_AUGMENT_DISABLED"]) end
+        return
+    end
+    A.InitFrames()
+    A.RestoreSavedPosition()
+
+    local samples = {
+        { "DURABILITY", L["ALERTS_DURABILITY_TITLE"], string.format(L["ALERTS_DURABILITY_BODY"], 25) },
+        { "BAGS",       L["ALERTS_BAGS_TITLE"],       string.format(L["ALERTS_BAGS_BODY"], 95) },
+        { "MAIL",       L["ALERTS_MAIL_TITLE"],       L["ALERTS_MAIL_BODY"] },
+        { "VAULT",      L["ALERTS_VAULT_TITLE"],      L["ALERTS_VAULT_BODY"] },
+        { "FRIEND_ON",  L["ALERTS_PREVIEW_FRIEND_NAME"], L["ALERTS_FRIEND_ON_BODY"] },
+    }
+
+    for i, s in ipairs(samples) do
+        C_Timer.After((i - 1) * 0.3, function()
+            A.Enqueue(s[1], s[2], s[3])
+        end)
+    end
+end
+
+-- Plays a single kind's sound immediately, bypassing enabled flags and
+-- cooldowns. Used by the Shift-click preview on each per-kind sound toggle.
+function A.PlaySoundPreview(kind)
+    local sound = A.KIND_SOUNDS and A.KIND_SOUNDS[kind]
+    if not sound then return end
+    local D = addon.AUGMENT_DEFAULTS
+    local channel = A.GetDB("alertsSoundChannel", D.alertsSoundChannel)
+    pcall(PlaySound, sound, channel)
+end

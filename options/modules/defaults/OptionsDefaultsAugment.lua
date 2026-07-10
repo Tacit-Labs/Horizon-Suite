@@ -12,5 +12,8 @@ addon.AUGMENT_DEFAULTS = addon.AUGMENT_DEFAULTS or {}
 addon.AUGMENT_LIMITS   = addon.AUGMENT_LIMITS   or {}
 
 -- Position keys have no meaningful defaults (nil = use anchor frame position).
-addon.AUGMENT_KEYS = { augmentPoint = true, augmentRelPoint = true, augmentX = true, augmentY = true }
+addon.AUGMENT_KEYS = {
+    augmentPoint = true, augmentRelPoint = true, augmentX = true, augmentY = true,
+    alertsPoint  = true, alertsRelPoint  = true, alertsX  = true, alertsY  = true,
+}
 for k in pairs(addon.AUGMENT_DEFAULTS) do addon.AUGMENT_KEYS[k] = true end

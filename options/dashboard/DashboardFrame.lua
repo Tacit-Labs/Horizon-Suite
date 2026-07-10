@@ -1323,6 +1323,23 @@ function addon.Dashboard_BuildMainFrame()
             f:HookScript("OnShow", function()
                 C_Timer.After(0, DashboardApplyKeyboardPropagation)
             end)
+            f:HookScript("OnHide", function()
+                if f.HideSearchDropdown then f.HideSearchDropdown() end
+                if addon._DropdownCloseList then
+                    for closeList in pairs(addon._DropdownCloseList) do
+                        pcall(closeList)
+                    end
+                end
+                if addon.Augment and addon.Augment.HideAnchorFrame then
+                    addon.Augment.HideAnchorFrame()
+                end
+                if addon.Augment and addon.Augment.Alerts and addon.Augment.Alerts.HideAnchorFrame then
+                    addon.Augment.Alerts.HideAnchorFrame()
+                end
+                if GameTooltip and GameTooltip:IsShown() then
+                    GameTooltip:Hide()
+                end
+            end)
 
 
 

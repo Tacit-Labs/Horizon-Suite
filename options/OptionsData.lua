@@ -112,7 +112,9 @@ function OptionsData_SetDB(key, value)
     if addon.ESSENCE_KEYS and addon.ESSENCE_KEYS[key] and addon.Essence and addon.Essence.ApplyEssenceOptions then
         addon.Essence.ApplyEssenceOptions()
     end
-    if addon.AUGMENT_KEYS and addon.AUGMENT_KEYS[key] and addon.Augment and addon.Augment.ApplyAugmentOptions then
+    if addon.AUGMENT_KEYS and addon.AUGMENT_KEYS[key]
+        and addon.Augment and addon.Augment.ApplyAugmentOptions
+        and not (addon._colorPickerLive and COLOR_LIVE_KEYS[key]) then
         addon.Augment.ApplyAugmentOptions()
     end
     if addon.DASHBOARD_CLASS_ICON_KEYS and addon.DASHBOARD_CLASS_ICON_KEYS[key] then
@@ -199,7 +201,8 @@ function OptionsData_SetDB(key, value)
         addon.Insight.ApplyInsightOptions()
     end
     if addon._colorPickerLive and COLOR_LIVE_KEYS[key] then
-        OptionsData_NotifyMainAddon_Live()
+        if addon._suspendColorPickerLiveNotify then return end
+        OptionsData_NotifyMainAddon_Live(key)
         return
     end
     -- Scale keys are handled by debounced callbacks in the slider set lambdas.
@@ -224,15 +227,48 @@ function OptionsData_SetDB(key, value)
     OptionsData_NotifyMainAddon()
 end
 
--- Lightweight notify for live color picker: updates visuals without FullLayout.
-function OptionsData_NotifyMainAddon_Live()
+-- Lightweight notify for live color picker: update only the visual surface tied
+-- to the changed key, without the heavy FullLayout path.
+function OptionsData_NotifyMainAddon_Live(key)
+    if key == "backdropOpacity" or key == "backdropColorR" or key == "backdropColorG" or key == "backdropColorB" then
+        if addon.ApplyBackdropOpacity then addon.ApplyBackdropOpacity() end
+        return
+    end
+
+    if key == "sectionDividerColor" then
+        if addon.ApplyBorderVisibility then addon.ApplyBorderVisibility() end
+        return
+    end
+
+    if key == "highlightColor" or key == "completedObjectiveColor" or key == "sectionColors"
+        or key == "progressBarFillColor" or key == "progressBarTextColor" or key == "colorMatrix" then
+        if addon.ApplyFocusColors then addon.ApplyFocusColors() end
+        return
+    end
+
+    if addon.VISTA_COLOR_LIVE_KEYS and addon.VISTA_COLOR_LIVE_KEYS[key] then
+        if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
+        return
+    end
+
+    if key and key:find("^alerts") then
+        if addon.Augment and addon.Augment.Alerts then
+            if addon.Augment.Alerts.ApplyColors then
+                addon.Augment.Alerts.ApplyColors()
+            elseif addon.Augment.Alerts.ApplyScale then
+                addon.Augment.Alerts.ApplyScale()
+            end
+        end
+        return
+    end
+
+    if key == "insightBgOpacity" and addon.Insight and addon.Insight.ApplyInsightOptions then
+        addon.Insight.ApplyInsightOptions()
+        return
+    end
+
     local applyTy = addon.ApplyTypography or _G.HorizonSuite_ApplyTypography
     if applyTy then applyTy() end
-    if addon.ApplyBackdropOpacity then addon.ApplyBackdropOpacity() end
-    if addon.ApplyBorderVisibility then addon.ApplyBorderVisibility() end
-    if addon.ApplyFocusColors then addon.ApplyFocusColors() end
-    if addon.Vista and addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
-    if addon.Insight and addon.Insight.ApplyInsightOptions then addon.Insight.ApplyInsightOptions() end
 end
 
 function OptionsData_NotifyMainAddon()

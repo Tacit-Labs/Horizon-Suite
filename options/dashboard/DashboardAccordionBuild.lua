@@ -415,7 +415,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     currentCard.widgetList = {}
                     tinsert(currentDetailCards, currentCard)
                 end
-                
+
                 -- Store the option identifier to track its parent card (for search-jump).
                 -- moduleReloadPrompt is excluded from search results, so skip it here.
                 local optId = opt.type ~= "moduleReloadPrompt" and (
@@ -473,7 +473,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     widget = _G.OptionsWidgets_CreateCustomDropdown(currentCard.settingsContainer, displayName, opt.desc or "", opt.options, g, s, opt.displayFn, opt.searchable, opt.disabled, opt.tooltip, resetBtn, opt.fontPreviewInList, opt.preserveOrder)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "color" then
-                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip)
+                    widget = _G.OptionsWidgets_CreateColorSwatch(currentCard.settingsContainer, displayName, opt.desc or "", g, s, opt.hasAlpha, opt.tooltip, opt.liveThrottle)
                     if widget and widget.Refresh then detailOptionFrames[optId] = widget end
                 elseif opt.type == "presencePreview" then
                     local previewWidget = addon.Presence and addon.Presence.CreatePreviewWidget and addon.Presence.CreatePreviewWidget(currentCard.settingsContainer, {
@@ -566,23 +566,23 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     -- Emulate a mini-card inside the settings container
                     local cmContainer = CreateFrame("Frame", nil, currentCard.settingsContainer)
                     local yOff = 0
-                    
+
                     local lbl = _G.OptionsWidgets_CreateSectionHeader(cmContainer, opt.name or "Colors")
                     lbl:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff)
                     lbl:SetPoint("RIGHT", cmContainer, "RIGHT", 0, 0)
                     yOff = yOff - 24
-                    
+
                     local keys = opt.keys or addon.COLOR_KEYS_ORDER or {}
                     local defaultMap = opt.defaultMap or addon.QUEST_COLORS or {}
                     local swatches = {}
-                    
+
                     local sub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["QUEST_TYPES"])
                     sub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff)
                     yOff = yOff - 20
-                    
+
                     for _, key in ipairs(keys) do
                         local getTbl = function() local db = _G.OptionsData_GetDB(opt.dbKey, nil) return db and db[key] end
-                        local setKeyVal = function(v) 
+                        local setKeyVal = function(v)
                             addon.EnsureDB()
                             local _rdb = _G[addon.DATABASE]
                             if not _rdb[opt.dbKey] then _rdb[opt.dbKey] = {} end
@@ -597,7 +597,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         yOff = yOff - 28
                         swatches[#swatches+1] = row
                     end
-                    
+
                     local resetBtn = _G.OptionsWidgets_CreateButton(cmContainer, L["FOCUS_RESET_QUEST_TYPES"], function()
                         _G.OptionsData_SetDB(opt.dbKey, nil)
                         _G.OptionsData_SetDB("sectionColors", nil)
@@ -610,7 +610,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     local overridesSub = _G.OptionsWidgets_CreateSectionHeader(cmContainer, L["ELEMENT_OVERRIDES"])
                     overridesSub:SetPoint("TOPLEFT", cmContainer, "TOPLEFT", 0, yOff - 10)
                     yOff = yOff - 30
-                    
+
                     local overrideRows = {}
                     for _, ov in ipairs(opt.overrides or {}) do
                         local getTbl = function() return _G.OptionsData_GetDB(ov.dbKey, nil) end
@@ -622,7 +622,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                         yOff = yOff - 28
                         overrideRows[#overrideRows+1] = row
                     end
-                    
+
                     local resetOv = _G.OptionsWidgets_CreateButton(cmContainer, L["FOCUS_RESET_OVERRIDES"], function()
                         for _, ov in ipairs(opt.overrides or {}) do _G.OptionsData_SetDB(ov.dbKey, nil) end
                         for _, r in ipairs(overrideRows) do if r.Refresh then r:Refresh() end end
@@ -1118,7 +1118,7 @@ function addon.DashboardAccordionBuild_Init(f, p)
                             if copt.type == "binary" or copt.type == "toggle" then
                                 w = _G.OptionsWidgets_CreateToggleSwitch(col, copt.name, copt.desc or "", cg, cs, copt.disabled, copt.tooltip)
                             elseif copt.type == "slider" then
-                                w = _G.OptionsWidgets_CreateSlider(col, copt.name, copt.desc or "", cg, cs, copt.min or 0, copt.max or 100, copt.disabled, copt.step or 1, copt.tooltip, true)
+                                w = _G.OptionsWidgets_CreateSlider(col, copt.name, copt.desc or "", cg, cs, copt.min or 0, copt.max or 100, copt.disabled, copt.step or 1, copt.tooltip)
                             elseif copt.type == "dropdown" then
                                 local dopts = type(copt.options) == "function" and copt.options() or copt.options
                                 w = _G.OptionsWidgets_CreateCustomDropdown(col, copt.name, copt.desc or "", dopts, cg, cs, copt.displayFn, copt.searchable, copt.disabled, copt.tooltip, nil, copt.fontPreviewInList, copt.preserveOrder)
@@ -1155,7 +1155,8 @@ function addon.DashboardAccordionBuild_Init(f, p)
                     colFrame:SetHeight(colH)
 
                     -- Responsive: stack columns vertically on narrow dashboards
-                    local COL_STACK_THRESHOLD = 380
+                    local MIN_COLUMN_WIDTH    = 320
+                    local COL_STACK_THRESHOLD = (MIN_COLUMN_WIDTH * 2) + COL_GAP
                     local applyingColLayout   = false
                     local function ApplyColumnLayout(w)
                         if applyingColLayout or w < 1 then return end

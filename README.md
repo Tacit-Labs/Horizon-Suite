@@ -19,6 +19,7 @@ Now with loot that deserves to be seen in a style personal to you.
 
 - **Styled toasts for everything** — Items, money, currency, and reputation gains slide in with quality-coloured presentation and smooth animations.
 - **Epic and legendary treatment** — Extended display time, shine effects, and optional sounds when something worth celebrating drops.
+- **Status alerts** — Optional toasts for low durability, bags nearly full, new mail, Great Vault rewards ready, and friends coming online or offline. Each kind has its own toggle, threshold, and colour under Augment → Alerts.
 
 ---
 

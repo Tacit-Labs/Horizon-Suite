@@ -146,12 +146,23 @@ local TOGGLE_ANIM_DUR = 0.15
 -- Apply optional hover tooltip to option rows (desc = inline; tooltip = hover detail).
 local function ApplyOptionTooltip(frame, tooltip)
     if not tooltip or tooltip == "" then return end
-    local tt = type(tooltip) == "function" and tooltip() or tooltip
-    if not tt or tt == "" then return end
     frame:EnableMouse(true)
     frame:HookScript("OnEnter", function()
+        local tt = type(tooltip) == "function" and tooltip() or tooltip
+        if not tt or tt == "" then return end
         GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-        GameTooltip:SetText(tt, 1, 1, 1, 1, true)
+        -- Split on \n\n so callers can append extra lines (e.g. shift-click hints).
+        -- First segment → SetText (white title); subsequent segments → AddLine (grey).
+        local segments = {}
+        for seg in (tt .. "\n\n"):gmatch("(.-)\n\n") do
+            seg = seg:match("^%s*(.-)%s*$")
+            if seg ~= "" then segments[#segments + 1] = seg end
+        end
+        if #segments == 0 then segments[1] = tt end
+        GameTooltip:SetText(segments[1], 1, 1, 1, 1, true)
+        for i = 2, #segments do
+            GameTooltip:AddLine(segments[i], 0.7, 0.7, 0.7, true)
+        end
         GameTooltip:Show()
     end)
     frame:HookScript("OnLeave", function()
@@ -163,7 +174,12 @@ end
 
 -- Combine an inline description and a hover tooltip into one tooltip string (blank-line separated).
 local function JoinTooltip(desc, tip)
-    if type(tip) == "function" then tip = tip() end
+    if type(tip) == "function" then
+        return function()
+            local liveTip = tip()
+            return (desc or "") .. (desc and liveTip and "\n\n" or "") .. (liveTip or "")
+        end
+    end
     return (desc or "") .. (desc and tip and "\n\n" or "") .. (tip or "")
 end
 
@@ -199,7 +215,7 @@ local TOGGLE_TRACK_W, TOGGLE_TRACK_H = 48, 22
 local TOGGLE_INSET = 2
 local TOGGLE_THUMB_SIZE = 18
 
-function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip)
+function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, get, set, disabledFn, tooltip, shiftClickFn)
     local row = CreateFrame("Frame", nil, parent)
     row:SetHeight(32)
     local searchText = (labelText or "") .. " " .. (description or "")
@@ -308,6 +324,7 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
     end
 
     btn:SetScript("OnClick", function()
+        if IsShiftKeyDown() and shiftClickFn then shiftClickFn(); return end
         if disabledFn and disabledFn() == true then return end
         if row.animStart then return end  -- Debounce: ignore clicks during animation (prevents double-click reverting)
         local newOn = not get()
@@ -330,7 +347,17 @@ function _G.OptionsWidgets_CreateToggleSwitch(parent, labelText, description, ge
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
+    if shiftClickFn then
+        -- btn only covers the track/pill; hook the row so shift-clicking the label fires too.
+        row:HookScript("OnMouseUp", function(_, button)
+            if button == "LeftButton" and IsShiftKeyDown() then shiftClickFn() end
+        end)
+    end
     local effectiveTooltip = JoinTooltip(description, tooltip)
+    if shiftClickFn then
+        local hint = "Shift-click to preview."
+        effectiveTooltip = (effectiveTooltip ~= "" and (effectiveTooltip .. "\n\n") or "") .. hint
+    end
     ApplyOptionTooltip(row, effectiveTooltip)
     return row
 end
@@ -365,6 +392,10 @@ function _G.OptionsWidgets_CreateButton(parent, labelText, onClick, opts)
     SetTextColor(lbl, Def.TextColorLabel)
     lbl:SetText(labelText or "")
     lbl:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn._label = lbl
+    function btn:SetLabel(text)
+        lbl:SetText(text or "")
+    end
 
     btn:SetScript("OnClick", function()
         if onClick then onClick() end
@@ -396,7 +427,6 @@ local SLIDER_GLOW_ALPHA_ON    = 0.80
 local SLIDER_ACTIVE_DUR       = 0.12
 -- Built-in glow texture (no custom assets).
 local SLIDER_GLOW_TEXTURE     = "Interface\\Cooldown\\star4"
-
 -- Apply the slim fill gradient (dark → accent) derived from the live Def.TrackOn, so a
 -- class-colour change retints it through the normal Refresh path. Falls back to a flat
 -- fill on clients without SetGradient/CreateColor.
@@ -556,6 +586,21 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
 
     local fillWidth = trackWidth - 2 * SLIDER_TRACK_INSET
     local thumbTravel = fillWidth - SLIDER_THUMB_W
+    local function recalcSliderMetrics()
+        trackWidth = math.max(track:GetWidth() or 180, 1)
+        fillWidth = math.max(trackWidth - 2 * SLIDER_TRACK_INSET, 1)
+        thumbTravel = math.max(fillWidth - SLIDER_THUMB_W, 0)
+    end
+    local function updateResponsiveTrackWidth()
+        local rowWidth = row:GetWidth() or 0
+        if rowWidth <= 0 then return end
+        local responsiveW = math.floor(rowWidth * 0.36)
+        responsiveW = math.max(120, math.min(180, responsiveW))
+        if math.abs((track:GetWidth() or 0) - responsiveW) >= 1 then
+            track:SetWidth(responsiveW)
+            recalcSliderMetrics()
+        end
+    end
 
     -- Now assign the body — all closures above that captured the upvalue slot will see this.
     updateFromValue = function(v)
@@ -618,6 +663,7 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
                 -- Commit final value on release so the DB is up-to-date.
                 local finalV = snapToStep(math.max(minVal, math.min(maxVal, normToValue(startNorm))))
                 if finalV ~= lastCommittedSnapped then
+                    lastCommittedSnapped = finalV
                     set(finalV)
                 end
                 return
@@ -626,12 +672,9 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
             local delta = (x - startX) / dragFillWidth
             local n = math.max(0, math.min(1, startNorm + delta))
             local v = normToValue(n)
-            -- Only call set() when the snapped value changes.
-            local snappedV = snapToStep(v)
-            if snappedV ~= lastCommittedSnapped then
-                lastCommittedSnapped = snappedV
-                set(snappedV)
-            end
+            -- During drag, keep the visual responsive but defer the expensive set()
+            -- path until release. Many sliders fan out into full module apply/layout
+            -- work, which is too costly to run every drag tick.
             -- Update the visual LAST so the smooth position wins over any row:Refresh()
             -- the set() callback may trigger (which would otherwise snap the handle = lag).
             updateFromValue(v)
@@ -656,12 +699,18 @@ function _G.OptionsWidgets_CreateSlider(parent, labelText, description, get, set
     end
 
     function row:Refresh()
+        updateResponsiveTrackWidth()
         ApplyFillGradient(trackFill)
         glow:SetVertexColor(Def.TrackOn[1], Def.TrackOn[2], Def.TrackOn[3])
         -- Don't reposition the handle from the DB mid-drag; the drag handler owns it.
         if not dragging then updateFromValue(get()) end
         applyDisabledVisuals()
     end
+
+    row:SetScript("OnSizeChanged", function()
+        updateResponsiveTrackWidth()
+        if not dragging then updateFromValue(get()) end
+    end)
 
     row:Refresh()
     ApplyRowHoverHighlight(row)
@@ -891,11 +940,6 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
     -- Ensure the dropdown list scrolls internally and doesn't forward wheel events to the parent panel.
     scrollFrame:EnableMouseWheel(true)
     list:EnableMouseWheel(true)
-    -- SetPropagateMouseMotion is not a protected method, so no combat guard is needed; calling it
-    -- unconditionally also covers dropdowns first built in combat (avoids hover bleed-through).
-    scrollFrame:SetPropagateMouseMotion(false)
-    list:SetPropagateMouseMotion(false)
-
     -- Row height for open list; updated in populate when fontPreviewInList (taller rows for glyph clearance).
     local listRowHeight = 22
 
@@ -935,6 +979,7 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
 
     local function closeList()
         if addon._OnDropdownClosed then addon._OnDropdownClosed(closeList) end
+        if addon._DropdownCloseList then addon._DropdownCloseList[closeList] = nil end
         if searchable and searchEdit and searchEdit:HasFocus() then
             searchEdit:ClearFocus()
         end
@@ -959,11 +1004,13 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
         local dis = isDisabled()
         if dis then
             btn:Disable()
+            SetTextColor(label,   Def.TextColorSection)
             SetTextColor(btnText, Def.TextColorSection)
             chevron:SetAlpha(0.5)
             btnBg:SetAlpha(0.6)
         else
             btn:Enable()
+            SetTextColor(label,   Def.TextColorLabel)
             SetTextColor(btnText, Def.TextColorLabel)
             chevron:SetAlpha(1)
             btnBg:SetAlpha(1)
@@ -1106,10 +1153,12 @@ function _G.OptionsWidgets_CreateCustomDropdown(parent, labelText, description, 
             optionButtons[i]:Hide()
         end
 
-        if addon._OnDropdownOpened then addon._OnDropdownOpened(closeList) end
-        list:Show()
-        catch:Show()
-    end
+    if addon._OnDropdownOpened then addon._OnDropdownOpened(closeList) end
+    addon._DropdownCloseList = addon._DropdownCloseList or {}
+    addon._DropdownCloseList[closeList] = true
+    list:Show()
+    catch:Show()
+end
 
     if searchable and searchEdit then
         searchEdit:SetScript("OnTextChanged", function() populate() end)
@@ -1346,7 +1395,7 @@ function _G.OptionsWidgets_CreateMiniSwatch(parent, labelText, defaultTbl, getTb
 end
 
 -- Simplified Color Swatch for Dashboard (no anchor required, uses get/set functions)
-function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip)
+function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get, set, hasAlpha, tooltip, liveThrottle)
     local row = CreateFrame("Frame", nil, parent)
     row:SetHeight(32)
     local searchText = (labelText or "") .. " " .. (description or "")
@@ -1397,6 +1446,7 @@ function _G.OptionsWidgets_CreateColorSwatch(parent, labelText, description, get
         addon.OpenColorPicker({
             r = r, g = g, b = b, a = a, hasAlpha = hasAlpha,
             default = { r, g, b, a },
+            liveThrottle = liveThrottle,
             onChange = function(nr, ng, nb, na)
                 if hasAlpha then set(nr, ng, nb, na) else set(nr, ng, nb, 1) end
                 swatch:Refresh()

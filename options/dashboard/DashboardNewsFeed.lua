@@ -19,8 +19,8 @@ addon.DashboardNewsFeed = {
         bodyKey = "DASH_NEWS_FEATURED_BODY",
         metaKey = "DASH_NEWS_FEATURED_META",
         artPath = "Interface/AddOns/HorizonSuite/media/dashboard/FeaturedImage.png",
-        artWidth = 485,
-        artHeight = 329,
+        artWidth = 393,
+        artHeight = 333,
         artFit = "contain",
     },
     {
