@@ -234,6 +234,12 @@ nearbyToggleKeybindBtn:SetScript("OnClick", function()
 end)
 nearbyToggleKeybindBtn:RegisterForClicks("AnyUp")
 
+local autoFocusToggleKeybindBtn = CreateFrame("Button", "HSAutoFocusToggleButton", nil)
+autoFocusToggleKeybindBtn:SetScript("OnClick", function()
+    if addon.ToggleProximityAutoSuperTrack then addon.ToggleProximityAutoSuperTrack() end
+end)
+autoFocusToggleKeybindBtn:RegisterForClicks("AnyUp")
+
 -- Full layout of the objectives panel.
 -- @brief Computes and applies the complete tracker layout: visibility, quest list, section headers, entry positions, scroll height.
 -- Algorithm: (1) Bail if disabled or in combat. (2) Hide panel if instance visibility

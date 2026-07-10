@@ -42,6 +42,7 @@ local function RefreshProximityRank(quests)
     local rank = focus.proximityRank
     if type(rank) ~= "table" then rank = {}; focus.proximityRank = rank else wipe(rank) end
     focus.proximityClosestQID = nil
+    focus.proximityClosestDistSq = nil
     if not (C_QuestLog and C_QuestLog.GetDistanceSqToQuest) then return end
     local ranked, seen = {}, {}
     for _, q in ipairs(quests) do
@@ -57,7 +58,9 @@ local function RefreshProximityRank(quests)
     end
     table.sort(ranked, function(a, b) return a.dist < b.dist end)
     for i = 1, #ranked do rank[ranked[i].qid] = i end
-    focus.proximityClosestQID = ranked[1] and ranked[1].qid or nil
+    local first = ranked[1]
+    focus.proximityClosestQID = first and first.qid or nil
+    focus.proximityClosestDistSq = first and first.dist or nil
 end
 
 -- Auto super-track driver for the "Auto-Focus Closest Quest" toggle. Drives the game's super-track
@@ -70,11 +73,52 @@ local function ApplyProximityAutoSuperTrack()
     if not addon.GetDB("proximityAutoSuperTrack", false) then return end
     if not (C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID) then return end
     local focus = addon.focus
-    local closest = focus and focus.proximityClosestQID
+    if not focus then return end
+    local closest, closestDist = focus.proximityClosestQID, focus.proximityClosestDistSq
+
+    -- Optionally widen the candidate pool to the whole quest log, so an untracked quest that is
+    -- physically closer than everything in the tracker wins the focus. Quests already ranked by
+    -- RefreshProximityRank are skipped (they were considered above). A winning untracked quest is
+    -- displayed via the aggregator's super-tracked catch-all and self-cleans once something else
+    -- becomes closer: losing the super-track drops it from the tracker again.
+    if addon.GetDB("proximityAutoIncludeUntracked", false)
+        and C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetInfo
+        and C_QuestLog.GetDistanceSqToQuest then
+        local rank = focus.proximityRank
+        for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+            local info = C_QuestLog.GetInfo(i)
+            local qid = info and not info.isHeader and not info.isHidden and info.questID
+            if qid and qid > 0 and not (rank and rank[qid]) then
+                -- pcall: GetDistanceSqToQuest can throw on quests with no valid map position.
+                local ok, distSq, onContinent = pcall(C_QuestLog.GetDistanceSqToQuest, qid)
+                if ok and onContinent and distSq and (not closestDist or distSq < closestDist) then
+                    closest, closestDist = qid, distSq
+                end
+            end
+        end
+    end
+
     if not closest or closest <= 0 then return end
     local ok, cur = pcall(C_SuperTrack.GetSuperTrackedQuestID)
     if ok and cur == closest then return end
     pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
+end
+
+-- On-the-fly toggle for the auto-focus driver: the slash command and the keybinding both route
+-- here so the flip, chat feedback, and refresh stay consistent with the options panel toggle.
+-- Turning it off leaves the currently focused quest in place — it simply stops being auto-managed,
+-- so the user can immediately focus a quest by hand.
+local function ToggleProximityAutoSuperTrack()
+    local newVal = not addon.GetDB("proximityAutoSuperTrack", false)
+    addon.SetDB("proximityAutoSuperTrack", newVal)
+    local L = addon.L
+    local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite - Focus:|r " .. tostring(msg or "")) end
+    if L then
+        HSPrint(newVal and L["FOCUS_SLASH_AUTOFOCUS_ON"] or L["FOCUS_SLASH_AUTOFOCUS_OFF"])
+    end
+    if addon.RequestRefresh then addon.RequestRefresh() end
+    if addon.FullLayout then addon.FullLayout() end
+    return newVal
 end
 
 -- Category order for questType sort (lower = earlier)
@@ -932,4 +976,5 @@ end
 addon.ReadTrackedQuests   = ReadTrackedQuests
 addon.SortAndGroupQuests  = SortAndGroupQuests
 addon.ApplyProximityAutoSuperTrack = ApplyProximityAutoSuperTrack
+addon.ToggleProximityAutoSuperTrack = ToggleProximityAutoSuperTrack
 addon.GetSortMode         = GetSortMode
