@@ -14,6 +14,23 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.3.0"] = {
+        date = "2026-07-18",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: Alerts mini-module — Status toasts for low durability, bags nearly full, new mail, Great Vault rewards ready, and friends coming online/offline, with a Dashboard page, Edit Mode positioning, and per-kind toggles (off by default until you enable them).",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Core: Opening the Game Menu with EllesmereUI no longer triggers a protected-action error blamed on Horizon.",
+                "Augment: Currency transfers no longer hit an action-forbidden error from loot-alert suppression.",
+            },
+        },
+    },
+
     ["5.2.0"] = {
         date = "2026-07-10",
         {
