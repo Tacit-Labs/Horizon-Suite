@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.3.2] – 2026-07-18
+
+### 🐛 Fixes
+- **(Insight)** Player tooltips in battlegrounds and arenas no longer error when Midnight hides unit names from addons.
+
+---
+
 ## [5.3.1] – 2026-07-18
 
 ### 🐛 Fixes
