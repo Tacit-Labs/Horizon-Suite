@@ -524,21 +524,42 @@ local function PvPHasContent(unit)
     return GetHonorLevelIfShown(unit) ~= nil
 end
 
+-- Launder a possibly-secret string to a plain Lua string, or nil.
+-- In PvP/BG/arena (SecretInActivePvPMatch), UnitName/GetUnitName/UnitPVPName
+-- return secret strings: never compare or pattern-match those from tainted code.
 local function SafePlainString(value)
-    local ok, text = pcall(function()
-        if value == nil then return nil end
-        local s = tostring(value)
-        if type(s) == "string" and s ~= "" then
-            return s
+    if value == nil then return nil end
+    -- Canonical Midnight scrub: secrets become nil before any compare/tostring.
+    -- pcall: scrubsecretvalues/issecretvalue may be restricted on some tainted paths.
+    if scrubsecretvalues then
+        local scrubOk, scrubbed = pcall(scrubsecretvalues, value)
+        if scrubOk then
+            value = scrubbed
+            if value == nil then return nil end
         end
-        return nil
+    end
+    if issecretvalue then
+        local secretOk, isSecret = pcall(issecretvalue, value)
+        if secretOk and isSecret then return nil end
+    end
+    local ok, text = pcall(function()
+        local s = tostring(value)
+        if type(s) ~= "string" then return nil end
+        -- Prove plainness: comparing a still-secret string throws (caught below).
+        if s == "" then return nil end
+        return s
     end)
-    return ok and text or nil
+    if not ok or text == nil then return nil end
+    if issecretvalue then
+        local secretOk, isSecret = pcall(issecretvalue, text)
+        if secretOk and isSecret then return nil end
+    end
+    return text
 end
 
 -- Expose for sibling Insight tooltip files (e.g. NPC targeting) that need to
 -- launder a possibly-secret string before display.
-Insight.SafePlainString = Insight.SafePlainString or SafePlainString
+Insight.SafePlainString = SafePlainString
 
 local function GetSafeGuildInfo(unit)
     local guildName, guildRankName, guildRealm
@@ -621,9 +642,26 @@ local function GetRealmNameMode()
 end
 
 local function SplitRealmName(name)
-    if type(name) ~= "string" or name == "" then return name end
-    local base, realm = name:match("^(.-)%-(.+)$")
-    if not base or base == "" or not realm or realm == "" then return name end
+    if type(name) ~= "string" then return name end
+    if issecretvalue then
+        local secretOk, isSecret = pcall(issecretvalue, name)
+        if secretOk and isSecret then return name end
+    end
+    local base, realm
+    local ok = pcall(function()
+        if name == "" then
+            base = name
+            return
+        end
+        -- string.match: avoid colon-method metatable access on edge-case secrets.
+        local b, r = string.match(name, "^(.-)%-(.+)$")
+        if not b or b == "" or not r or r == "" then
+            base = name
+        else
+            base, realm = b, r
+        end
+    end)
+    if not ok then return name end
     return base, realm
 end
 
@@ -671,6 +709,9 @@ local function FormatTitleNameSpan(titlePart, namePart, titlePosition, nameR, na
     return nameSpan .. titleSpan .. realmSpan
 end
 
+-- Returns displayName, isOpaque.
+-- isOpaque=true means the name is a secret/raw value safe only for SetText/concat,
+-- not for compares, realm splitting, or gradient character walks.
 local function GetPlayerDisplayName(unit, nameLeft)
     local namePart
     pcall(function()
@@ -678,10 +719,27 @@ local function GetPlayerDisplayName(unit, nameLeft)
         namePart = SafePlainString(n)
     end)
     if not namePart or namePart == "" then
-        namePart = Insight.SafeGetFontText(nameLeft) or ""
+        local fontText = Insight.SafeGetFontText(nameLeft)
+        if fontText and fontText ~= "" then
+            namePart = fontText
+        end
     end
-    local baseName, realmSuffix = GetRealmDisplayParts(namePart)
-    return baseName .. realmSuffix
+    if namePart and namePart ~= "" then
+        local baseName, realmSuffix = GetRealmDisplayParts(namePart)
+        return (baseName or namePart) .. (realmSuffix or ""), false
+    end
+    -- PvP/BG/arena: identity is secret. Pass the raw value through to SetText
+    -- (widgets accept secrets; concatenation is allowed) without inspecting it.
+    local raw
+    pcall(function() raw = GetUnitName(unit, true) end)
+    -- Use boolean test only — comparing a secret string to nil throws.
+    if not raw and nameLeft then
+        pcall(function()
+            local okGet, val = pcall(nameLeft.GetText, nameLeft)
+            if okGet then raw = val end
+        end)
+    end
+    return raw, true
 end
 
 local function GetInlineStatusTag(unit)
@@ -1202,55 +1260,63 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             end)
         end
         if not displayText then
-            local namePart = GetPlayerDisplayName(unit, nameLeft)
-            if useGradient then
-                -- Force vertex colour to white so our |cff escapes aren't
-                -- dampened by Blizzard's SetTextColor.
-                displayText = Insight.BuildNameGradient(Insight.StripColourEscapes(namePart), nameR, nameG, nameB, GetPlayerGradientBias())
-                nameLeft:SetTextColor(1, 1, 1, 1)
-            else
-                displayText = namePart
-                nameLeft:SetTextColor(nameR, nameG, nameB)
+            local namePart, isOpaque = GetPlayerDisplayName(unit, nameLeft)
+            if namePart then
+                -- Opaque (secret) names: SetText/concat only — no gradient or string inspect.
+                if isOpaque or not useGradient then
+                    displayText = namePart
+                    if not isOpaque then
+                        nameLeft:SetTextColor(nameR, nameG, nameB)
+                    end
+                else
+                    -- Force vertex colour to white so our |cff escapes aren't
+                    -- dampened by Blizzard's SetTextColor.
+                    displayText = Insight.BuildNameGradient(Insight.StripColourEscapes(namePart), nameR, nameG, nameB, GetPlayerGradientBias())
+                    nameLeft:SetTextColor(1, 1, 1, 1)
+                end
             end
         end
-        -- TRP3 RP name: replace WoW character name with RP name when available
-        if trp3Data and trp3Data.rpName and ShowTRP3RPName() then
-            if wowTitlePart and ShowWowTitleWithTRP3() then
-                -- Keep the WoW character title around the RP name (option-gated)
-                displayText = FormatTitleNameSpan(wowTitlePart, trp3Data.rpName, wowTitlePosition, nameR, nameG, nameB, useGradient, "")
-                if useGradient then
+        if displayText then
+            -- TRP3 RP name: replace WoW character name with RP name when available
+            if trp3Data and trp3Data.rpName and ShowTRP3RPName() then
+                if wowTitlePart and ShowWowTitleWithTRP3() then
+                    -- Keep the WoW character title around the RP name (option-gated)
+                    displayText = FormatTitleNameSpan(wowTitlePart, trp3Data.rpName, wowTitlePosition, nameR, nameG, nameB, useGradient, "")
+                    if useGradient then
+                        nameLeft:SetTextColor(1, 1, 1, 1)
+                    else
+                        nameLeft:SetTextColor(nameR, nameG, nameB)
+                    end
+                elseif useGradient then
+                    displayText = Insight.BuildNameGradient(trp3Data.rpName, nameR, nameG, nameB, GetPlayerGradientBias())
                     nameLeft:SetTextColor(1, 1, 1, 1)
                 else
+                    displayText = FormatNameSpan(trp3Data.rpName, nameR, nameG, nameB, false)
                     nameLeft:SetTextColor(nameR, nameG, nameB)
                 end
-            elseif useGradient then
-                displayText = Insight.BuildNameGradient(trp3Data.rpName, nameR, nameG, nameB, GetPlayerGradientBias())
-                nameLeft:SetTextColor(1, 1, 1, 1)
-            else
-                displayText = FormatNameSpan(trp3Data.rpName, nameR, nameG, nameB, false)
-                nameLeft:SetTextColor(nameR, nameG, nameB)
             end
-        end
-        -- Build TRP3 suffix: IC/OOC badge only (pronouns moved to title line)
-        local trp3Suffix = ""
-        if trp3Data then
-            if trp3Data.isIC ~= nil and ShowTRP3ICStatus() then
-                if ShowTRP3ICStatusIcon() then
-                    trp3Suffix = trp3Suffix .. (trp3Data.isIC
-                        and " |TInterface\\Common\\Indicator-Green:12:12:0:0|t"
-                        or  " |TInterface\\Common\\Indicator-Red:12:12:0:0|t")
-                else
-                    trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+            -- Build TRP3 suffix: IC/OOC badge only (pronouns moved to title line)
+            local trp3Suffix = ""
+            if trp3Data then
+                if trp3Data.isIC ~= nil and ShowTRP3ICStatus() then
+                    if ShowTRP3ICStatusIcon() then
+                        trp3Suffix = trp3Suffix .. (trp3Data.isIC
+                            and " |TInterface\\Common\\Indicator-Green:12:12:0:0|t"
+                            or  " |TInterface\\Common\\Indicator-Red:12:12:0:0|t")
+                    else
+                        trp3Suffix = trp3Suffix .. (trp3Data.isIC and " |cff55ff55[IC]|r" or " |cffff5555[OOC]|r")
+                    end
                 end
             end
+            local trp3IconMarkup = ""
+            if trp3Data and trp3Data.icon and ShowTRP3Icon() then
+                trp3IconMarkup = "|TInterface\\Icons\\" .. trp3Data.icon .. ":14:14:0:0|t "
+            end
+            -- TRP3 icon replaces the faction symbol; fall back to faction when no TRP3 icon
+            local namePrefix = (trp3IconMarkup ~= "" and trp3IconMarkup) or icon
+            -- Concatenation with secret strings is allowed; SetText accepts secrets.
+            nameLeft:SetText(namePrefix .. displayText .. GetInlineStatusTag(unit) .. trp3Suffix)
         end
-        local trp3IconMarkup = ""
-        if trp3Data and trp3Data.icon and ShowTRP3Icon() then
-            trp3IconMarkup = "|TInterface\\Icons\\" .. trp3Data.icon .. ":14:14:0:0|t "
-        end
-        -- TRP3 icon replaces the faction symbol; fall back to faction when no TRP3 icon
-        local namePrefix = (trp3IconMarkup ~= "" and trp3IconMarkup) or icon
-        nameLeft:SetText(namePrefix .. displayText .. GetInlineStatusTag(unit) .. trp3Suffix)
     end
 
     -- 2. Border tint
