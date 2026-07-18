@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.3.1"] = {
+        date = "2026-07-18",
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: Opening Blizzard Edit Mode with Total RP 3 no longer shows Boss Warnings errors blamed on Horizon Suite.",
+            },
+        },
+    },
+
     ["5.3.0"] = {
         date = "2026-07-18",
         {

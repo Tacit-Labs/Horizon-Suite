@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.3.1] – 2026-07-18
+
+### 🐛 Fixes
+- **(Insight)** Opening Blizzard Edit Mode with Total RP 3 no longer shows Boss Warnings errors blamed on Horizon Suite.
+
+---
+
 ## [5.3.0] – 2026-07-18
 
 ### ✨ New Features
