@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.3.3"] = {
+        date = "2026-07-20",
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: Total RP 3 character info once again shows inside Horizon's tooltip, while Blizzard Edit Mode stays free of errors blamed on Horizon Suite.",
+            },
+        },
+    },
+
     ["5.3.2"] = {
         date = "2026-07-18",
         {

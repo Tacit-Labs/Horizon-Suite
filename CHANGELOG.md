@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.3.3] – 2026-07-20
+
+### 🐛 Fixes
+- **(Insight)** Total RP 3 character info once again shows inside Horizon's tooltip, while Blizzard Edit Mode stays free of errors blamed on Horizon Suite.
+
+---
+
 ## [5.3.2] – 2026-07-18
 
 ### 🐛 Fixes
