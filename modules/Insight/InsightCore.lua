@@ -860,46 +860,91 @@ end
 -- TRP3 SUPPRESSOR
 -- ============================================================================
 
--- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's
--- own frame is suppressed and Insight's enriched GameTooltip stays visible.
--- Called once when "totalRP3" finishes loading (or at Init if already loaded).
+-- TRP3's own tooltip config key controlling whether it hides the default
+-- GameTooltip (RegisterTooltip.lua → registerConfigKey("tooltip_char_HideOriginal", true)).
+local TRP3_HIDE_ORIGINAL_KEY = "tooltip_char_HideOriginal"
+
+local function TRP3ConfigReady()
+    return TRP3_API and TRP3_API.configuration
+        and TRP3_API.configuration.getValue
+        and TRP3_API.configuration.setValue
+end
+
+-- pcall: TRP3 getValue/setValue assert if the key is not registered yet
+-- (config registers during TRP3's module init, which may lag ADDON_LOADED).
+local function GetTRP3HideOriginal()
+    if not TRP3ConfigReady() then return nil end
+    local ok, value = pcall(TRP3_API.configuration.getValue, TRP3_HIDE_ORIGINAL_KEY)
+    if ok then return value end
+    return nil
+end
+
+local function SetTRP3HideOriginal(value)
+    if not TRP3ConfigReady() then return false end
+    return pcall(TRP3_API.configuration.setValue, TRP3_HIDE_ORIGINAL_KEY, value)
+end
+
+-- Align TRP3's "Hide the original tooltip" setting with our integration state.
 --
--- CRITICAL: Do not replace GameTooltip.Hide with an addon closure. A permanent
--- wrapper taints every Blizzard Hide() call — Edit Mode's RefreshHudTooltip
--- calls GameTooltip_Hide() then RefreshEncounterEvents, which compares secret
--- numbers and throws LUA_WARNING (execution tainted by HorizonSuite).
+-- We do NOT intercept GameTooltip:Hide(): assigning GameTooltip.Hide taints it
+-- for the session and makes Edit Mode (RefreshEncounterEvents) throw
+-- secret-number LUA_WARNINGs. Instead, when the integration is on we turn TRP3's
+-- own hide-original option off so TRP3 never calls GameTooltip:Hide(), and we
+-- suppress TRP3's own frame in the Show hook. The user's original value is
+-- captured once and restored when the integration is turned off / disabled.
+--- @param forceOff boolean|nil When true, restore TRP3's setting regardless of
+---   Insight state (used by Disable, which runs before the module flag flips).
+function Insight.ApplyTRP3Integration(forceOff)
+    if not Insight._trp3HookInstalled then return end
+
+    local integrationOn = not forceOff
+        and Insight.IsInsightEnabled()
+        and (not addon.GetDB or addon.GetDB("insightTRP3Enabled", true) ~= false)
+
+    if integrationOn then
+        if Insight._trp3SavedHideOriginal == nil then
+            local current = GetTRP3HideOriginal()
+            -- Only remember a genuine user value; treat our own false as unset.
+            if current ~= nil then
+                Insight._trp3SavedHideOriginal = current
+            end
+        end
+        SetTRP3HideOriginal(false)
+    elseif Insight._trp3SavedHideOriginal ~= nil then
+        SetTRP3HideOriginal(Insight._trp3SavedHideOriginal)
+        Insight._trp3SavedHideOriginal = nil
+    end
+end
+
+-- Hook TRP3_CharacterTooltip:Show() so that when Insight is active, TRP3's own
+-- frame is suppressed and Insight's enriched GameTooltip stays visible.
+-- Called once when "totalRP3" finishes loading (or at Init if already loaded).
 function Insight.InstallTRP3Suppressor()
     local trp3Tooltip = _G["TRP3_CharacterTooltip"]
     if not trp3Tooltip or Insight._trp3HookInstalled then return end
     Insight._trp3HookInstalled = true
 
-    -- If TRP3 hides GameTooltip after/during its Show, re-show Insight content.
-    -- hooksecurefunc isolates taint from Blizzard callers (unlike replacing Hide).
-    hooksecurefunc(GameTooltip, "Hide", function(self)
-        if not Insight._suppressTRP3Hide then return end
-        if not Insight.IsInsightEnabled() then return end
-        Insight._suppressTRP3Hide = false
-        if self._insightPlainShown == true or self._insightUnitTooltip then
-            self:Show()
-        end
-    end)
-
     hooksecurefunc(trp3Tooltip, "Show", function(self)
         if not Insight.IsInsightEnabled() then return end
         if addon.GetDB and addon.GetDB("insightTRP3Enabled", true) == false then return end
-        -- Suppress TRP3's frame; our GameTooltip already carries TRP3 RP data.
+        -- Suppress TRP3's own frame; Insight's GameTooltip carries the RP data.
+        -- TRP3's hide-original option is forced off (see ApplyTRP3Integration),
+        -- so TRP3 does not hide GameTooltip and no tainting override is needed.
         self:Hide()
-        -- TRP3 often hides GameTooltip inside its Show() before this post-hook;
-        -- restore immediately if we still own the unit/Insight tooltip.
-        if GameTooltip._insightPlainShown == true or GameTooltip._insightUnitTooltip then
-            GameTooltip:Show()
-        end
-        -- Also catch a Hide() that runs just after Show returns.
-        Insight._suppressTRP3Hide = true
-        C_Timer.After(0, function()
-            Insight._suppressTRP3Hide = false
-        end)
     end)
+
+    -- TRP3's config registers during its module init, which can lag this hook;
+    -- retry a few times until the key exists, then align the setting.
+    local attempts = 0
+    local function tryApply()
+        attempts = attempts + 1
+        if GetTRP3HideOriginal() ~= nil then
+            Insight.ApplyTRP3Integration()
+        elseif attempts < 10 then
+            C_Timer.After(0.5, tryApply)
+        end
+    end
+    tryApply()
 end
 
 -- ============================================================================
@@ -935,6 +980,8 @@ function Insight.ApplyInsightOptions()
     if Insight.RefreshEmbeddedPreview then
         Insight.RefreshEmbeddedPreview()
     end
+    -- Re-align TRP3's hide-original setting when the Total RP toggle changes.
+    Insight.ApplyTRP3Integration()
     HideStyledTooltipsIfCombatSuppressionActive()
 end
 
@@ -1006,6 +1053,9 @@ end
 
 function Insight.Disable()
     addon.Log.debug("insight", "Disable")
+    -- Restore TRP3's original hide-original setting. Force off: OnDisable runs
+    -- before the module-enabled flag flips, so IsInsightEnabled() is still true.
+    Insight.ApplyTRP3Integration(true)
     HideAnchorFrame()
     for _, tt in ipairs(tooltipsToStyle) do
         if tt then
