@@ -201,6 +201,31 @@ local function HookGameTooltipLifecycle()
         end
     end)
     GameTooltip:HookScript("OnHide", function(self)
+        -- TRP3 hides GameTooltip while presenting its own frame. Keep Insight
+        -- ownership so InstallTRP3Suppressor can Show() again with content intact.
+        -- Use hook-owned plain booleans only (IsShown can be secret on Midnight).
+        -- Also treat "still over a player" as TRP3-steal: Hide can run inside
+        -- TRP3 Show before TRP3's OnShow sets _trp3FrameShown.
+        if Insight._trp3ExpectGameTooltip
+            and Insight.IsInsightEnabled()
+            and addon.GetDB("insightTRP3Enabled", true)
+        then
+            if Insight._trp3FrameShown or Insight._suppressTRP3Hide then
+                return
+            end
+            local stillOverPlayer = false
+            if SafeUnitExistsKnown("mouseover") == true then
+                pcall(function()
+                    if UnitIsPlayer("mouseover") then
+                        stillOverPlayer = true
+                    end
+                end)
+            end
+            if stillOverPlayer then
+                return
+            end
+        end
+        Insight._trp3ExpectGameTooltip = false
         self._insightPlainShown = false
         self._insightUnitTooltipInstance = nil
         self._insightItemQuality = nil
@@ -391,6 +416,12 @@ local function ProcessUnitTooltip(tooltip)
         end
     end)
     tooltip._insightTooltipType = isPlayer and "player" or "npc"
+    -- Arm TRP3 restore: TRP3 may Hide GameTooltip before our Show post-hook runs.
+    if isPlayer and addon.GetDB("insightTRP3Enabled", true) then
+        Insight._trp3ExpectGameTooltip = true
+    else
+        Insight._trp3ExpectGameTooltip = false
+    end
 
     StripHealthAndPowerText(tooltip)
 
@@ -868,10 +899,33 @@ end
 -- wrapper taints every Blizzard Hide() call — Edit Mode's RefreshHudTooltip
 -- calls GameTooltip_Hide() then RefreshEncounterEvents, which compares secret
 -- numbers and throws LUA_WARNING (execution tainted by HorizonSuite).
+--
+-- Restore path (post-5.3.1): TRP3 Hide() runs OnHide which used to clear
+-- _insightUnitTooltip before the Hide post-hook could re-Show. Snapshot via
+-- _trp3ExpectGameTooltip (set in ProcessUnitTooltip) + _trp3FrameShown
+-- (OnShow/OnHide on TRP3's frame) so OnHide skips cleanup while TRP3 steals,
+-- then Show GameTooltip again after suppressing TRP3's frame.
+local function RestoreInsightGameTooltipAfterTRP3()
+    if not Insight._trp3ExpectGameTooltip then return end
+    if not Insight.IsInsightEnabled() then return end
+    if addon.GetDB and addon.GetDB("insightTRP3Enabled", true) == false then return end
+    GameTooltip._insightPlainShown = true
+    GameTooltip._insightUnitTooltip = true
+    GameTooltip:Show()
+end
+
 function Insight.InstallTRP3Suppressor()
     local trp3Tooltip = _G["TRP3_CharacterTooltip"]
     if not trp3Tooltip or Insight._trp3HookInstalled then return end
     Insight._trp3HookInstalled = true
+
+    -- Plain booleans for OnHide guard (do not read IsShown from tainted paths).
+    trp3Tooltip:HookScript("OnShow", function()
+        Insight._trp3FrameShown = true
+    end)
+    trp3Tooltip:HookScript("OnHide", function()
+        Insight._trp3FrameShown = false
+    end)
 
     -- If TRP3 hides GameTooltip after/during its Show, re-show Insight content.
     -- hooksecurefunc isolates taint from Blizzard callers (unlike replacing Hide).
@@ -879,9 +933,7 @@ function Insight.InstallTRP3Suppressor()
         if not Insight._suppressTRP3Hide then return end
         if not Insight.IsInsightEnabled() then return end
         Insight._suppressTRP3Hide = false
-        if self._insightPlainShown == true or self._insightUnitTooltip then
-            self:Show()
-        end
+        RestoreInsightGameTooltipAfterTRP3()
     end)
 
     hooksecurefunc(trp3Tooltip, "Show", function(self)
@@ -890,10 +942,9 @@ function Insight.InstallTRP3Suppressor()
         -- Suppress TRP3's frame; our GameTooltip already carries TRP3 RP data.
         self:Hide()
         -- TRP3 often hides GameTooltip inside its Show() before this post-hook;
-        -- restore immediately if we still own the unit/Insight tooltip.
-        if GameTooltip._insightPlainShown == true or GameTooltip._insightUnitTooltip then
-            GameTooltip:Show()
-        end
+        -- restore from the ProcessUnitTooltip snapshot (ownership flags may
+        -- already have been cleared if OnHide ran without the frame-shown guard).
+        RestoreInsightGameTooltipAfterTRP3()
         -- Also catch a Hide() that runs just after Show returns.
         Insight._suppressTRP3Hide = true
         C_Timer.After(0, function()
@@ -1006,6 +1057,9 @@ end
 
 function Insight.Disable()
     addon.Log.debug("insight", "Disable")
+    Insight._trp3ExpectGameTooltip = false
+    Insight._trp3FrameShown = false
+    Insight._suppressTRP3Hide = false
     HideAnchorFrame()
     for _, tt in ipairs(tooltipsToStyle) do
         if tt then
