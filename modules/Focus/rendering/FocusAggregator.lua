@@ -114,8 +114,12 @@ local function SetOwnedSuperTrack(closest)
         focus.proximityAutoOwnedQID = closest
         return
     end
-    pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
-    focus.proximityAutoOwnedQID = closest
+    local setOk = pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
+    if not setOk then return end
+    local verifyOk, verifyCur = pcall(C_SuperTrack.GetSuperTrackedQuestID)
+    if verifyOk and verifyCur == closest then
+        focus.proximityAutoOwnedQID = closest
+    end
 end
 
 --- Drive super-track to the nearest quest when Auto-Focus Closest Quest is enabled.
