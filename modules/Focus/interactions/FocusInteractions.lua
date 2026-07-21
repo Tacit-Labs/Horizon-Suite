@@ -1114,9 +1114,15 @@ local function HandleQuestIconAction(entry)
         local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
         if currentFocused and currentFocused == questID then
             C_SuperTrack.SetSuperTrackedQuestID(0)
+            if addon.MarkProximityManualOverride then
+                addon.MarkProximityManualOverride(0)
+            end
             if addon.ClearQuestWaypoint then addon.ClearQuestWaypoint() end
         else
             C_SuperTrack.SetSuperTrackedQuestID(questID)
+            if addon.MarkProximityManualOverride then
+                addon.MarkProximityManualOverride(questID)
+            end
             if addon.GetDB("tomtomQuestWaypoint", false) and addon.SetQuestWaypoint then
                 addon.SetQuestWaypoint(questID, true)
             end
@@ -1495,6 +1501,9 @@ QUEST_ACTIONS["superTrack"] = function(entry)
             if C_QuestLog.AddQuestWatch then C_QuestLog.AddQuestWatch(entry.questID) end
             if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
                 C_SuperTrack.SetSuperTrackedQuestID(entry.questID)
+                if addon.MarkProximityManualOverride then
+                    addon.MarkProximityManualOverride(entry.questID)
+                end
             end
             if addon.GetDB("tomtomQuestWaypoint", false) then
                 SetQuestWaypoint(entry.questID, true)
@@ -1502,6 +1511,9 @@ QUEST_ACTIONS["superTrack"] = function(entry)
         else
             if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
                 C_SuperTrack.SetSuperTrackedQuestID(entry.questID)
+                if addon.MarkProximityManualOverride then
+                    addon.MarkProximityManualOverride(entry.questID)
+                end
             end
         end
         local wqtPanel = _G.WorldQuestTrackerScreenPanel
@@ -1515,9 +1527,15 @@ QUEST_ACTIONS["superTrack"] = function(entry)
         local currentFocused = C_SuperTrack.GetSuperTrackedQuestID()
         if currentFocused and currentFocused == entry.questID then
             C_SuperTrack.SetSuperTrackedQuestID(0)
+            if addon.MarkProximityManualOverride then
+                addon.MarkProximityManualOverride(0)
+            end
             if addon.GetDB("tomtomQuestWaypoint", false) then ClearQuestWaypoint() end
         else
             C_SuperTrack.SetSuperTrackedQuestID(entry.questID)
+            if addon.MarkProximityManualOverride then
+                addon.MarkProximityManualOverride(entry.questID)
+            end
             if addon.GetDB("tomtomQuestWaypoint", false) then
                 SetQuestWaypoint(entry.questID, true)
             end
