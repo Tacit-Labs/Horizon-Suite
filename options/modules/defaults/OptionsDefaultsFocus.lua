@@ -154,6 +154,7 @@ addon.FOCUS_DEFAULTS = {
     filterByZone              = false,
     showFocusedQuestCategory  = true,
     proximityAutoSuperTrack   = false,
+    proximityAutoBehaviour    = "always",
     proximityAutoIncludeUntracked = false,
     showCurrentQuestCategory  = true,
     currentQuestWindowSec     = 60,

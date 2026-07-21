@@ -63,9 +63,67 @@ local function RefreshProximityRank(quests)
     focus.proximityClosestDistSq = first and first.dist or nil
 end
 
+local VALID_PROXIMITY_AUTO_BEHAVIOUR = {
+    always = true,
+    respectManual = true,
+    onlyWhenUnfocused = true,
+}
+
+local function GetProximityAutoBehaviour()
+    local mode = addon.GetDB("proximityAutoBehaviour", "always")
+    if type(mode) == "string" and VALID_PROXIMITY_AUTO_BEHAVIOUR[mode] then
+        return mode
+    end
+    return "always"
+end
+
+--- Clear Respect Manual override and owned QID bookkeeping.
+--- @return nil
+local function ClearProximityManualOverride()
+    local focus = addon.focus
+    if not focus then return end
+    focus.proximityManualOverride = false
+    focus.proximityAutoOwnedQID = nil
+end
+
+--- Record a player-driven focus change for Respect Manual behaviour.
+--- questID 0/nil clears override (player cleared focus). Other IDs set override when Auto-Focus
+--- is on and behaviour is respectManual, unless the ID is the current closest or already owned.
+--- @param questID number|nil
+--- @return nil
+local function MarkProximityManualOverride(questID)
+    local focus = addon.focus
+    if not focus then return end
+    if not questID or questID <= 0 then
+        focus.proximityManualOverride = false
+        return
+    end
+    if not addon.GetDB("proximityAutoSuperTrack", false) then return end
+    if GetProximityAutoBehaviour() ~= "respectManual" then return end
+    if questID == focus.proximityClosestQID or questID == focus.proximityAutoOwnedQID then
+        return
+    end
+    focus.proximityManualOverride = true
+end
+
+local function SetOwnedSuperTrack(closest)
+    local focus = addon.focus
+    if not focus then return end
+    local ok, cur = pcall(C_SuperTrack.GetSuperTrackedQuestID)
+    if ok and cur == closest then
+        focus.proximityAutoOwnedQID = closest
+        return
+    end
+    local setOk = pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
+    if not setOk then return end
+    local verifyOk, verifyCur = pcall(C_SuperTrack.GetSuperTrackedQuestID)
+    if verifyOk and verifyCur == closest then
+        focus.proximityAutoOwnedQID = closest
+    end
+end
+
 --- Drive super-track to the nearest quest when Auto-Focus Closest Quest is enabled.
---- Idempotent: only re-assigns when the closest quest changes. Called once per FullLayout
---- (including collapsed layouts) after the primary SortAndGroupQuests rank pass.
+--- Behaviour: always | respectManual | onlyWhenUnfocused (DB proximityAutoBehaviour).
 --- @return nil
 local function ApplyProximityAutoSuperTrack()
     if not addon.GetDB("proximityAutoSuperTrack", false) then return end
@@ -97,17 +155,57 @@ local function ApplyProximityAutoSuperTrack()
     end
 
     if not closest or closest <= 0 then return end
+
+    local behaviour = GetProximityAutoBehaviour()
     local ok, cur = pcall(C_SuperTrack.GetSuperTrackedQuestID)
-    if ok and cur == closest then return end
-    pcall(C_SuperTrack.SetSuperTrackedQuestID, closest)
+    if not ok then return end
+    cur = cur or 0
+
+    if behaviour == "always" then
+        focus.proximityManualOverride = false
+        SetOwnedSuperTrack(closest)
+        return
+    end
+
+    if behaviour == "onlyWhenUnfocused" then
+        if cur and cur > 0 then return end
+        SetOwnedSuperTrack(closest)
+        return
+    end
+
+    -- respectManual
+    if focus.proximityManualOverride then
+        if not cur or cur <= 0 then
+            focus.proximityManualOverride = false
+        elseif cur ~= focus.proximityAutoOwnedQID then
+            -- Still holding a non-owned focus (or owned quest abandoned: treat as gone).
+            local stillValid = true
+            if C_QuestLog and C_QuestLog.GetLogIndexForQuestID then
+                local idx = C_QuestLog.GetLogIndexForQuestID(cur)
+                if not idx then stillValid = false end
+            end
+            if stillValid then return end
+            focus.proximityManualOverride = false
+        end
+    end
+
+    if cur and cur > 0 and cur ~= closest and cur ~= focus.proximityAutoOwnedQID then
+        focus.proximityManualOverride = true
+        return
+    end
+
+    SetOwnedSuperTrack(closest)
 end
 
 --- Toggle Auto-Focus Closest Quest (slash and keybinding share this path).
---- Turning it off leaves the current focus in place and stops auto-managing it.
+--- Enabling clears Respect Manual override so automation resumes.
 --- @return boolean New enabled state
 local function ToggleProximityAutoSuperTrack()
     local newVal = not addon.GetDB("proximityAutoSuperTrack", false)
     addon.SetDB("proximityAutoSuperTrack", newVal)
+    if newVal then
+        ClearProximityManualOverride()
+    end
     local L = addon.L
     local HSPrint = addon.HSPrint or function(msg) print("|cFF00CCFFHorizon Suite - Focus:|r " .. tostring(msg or "")) end
     if L then
@@ -988,4 +1086,6 @@ addon.ReadTrackedQuests   = ReadTrackedQuests
 addon.SortAndGroupQuests  = SortAndGroupQuests
 addon.ApplyProximityAutoSuperTrack = ApplyProximityAutoSuperTrack
 addon.ToggleProximityAutoSuperTrack = ToggleProximityAutoSuperTrack
+addon.ClearProximityManualOverride = ClearProximityManualOverride
+addon.MarkProximityManualOverride = MarkProximityManualOverride
 addon.GetSortMode         = GetSortMode
