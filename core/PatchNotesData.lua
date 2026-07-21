@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.3.4"] = {
+        date = "2026-07-21",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: Auto-Focus Behaviour — choose Always Closest, Respect Manual Focus, or Only When Unfocused so a nearby quest does not override the one you focused on purpose.",
+            },
+        },
+    },
+
     ["5.3.3"] = {
         date = "2026-07-20",
         {

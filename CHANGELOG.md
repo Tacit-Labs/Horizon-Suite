@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.3.4] – 2026-07-21
+
+### 🔧 Improvements
+- **(Focus) Auto-Focus Behaviour** — Choose Always Closest, Respect Manual Focus, or Only When Unfocused so a nearby quest does not override the one you focused on purpose.
+
+---
+
 ## [5.3.3] – 2026-07-20
 
 ### 🐛 Fixes
