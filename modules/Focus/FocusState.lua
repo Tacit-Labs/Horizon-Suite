@@ -119,5 +119,8 @@ addon.focus = {
     proximityRank                     = {},
     proximityClosestQID               = nil,
     proximityClosestDistSq            = nil,
+    -- Auto-Focus behaviour (session): last QID we set; true when player overrode under respectManual.
+    proximityAutoOwnedQID             = nil,
+    proximityManualOverride           = false,
 }
 
