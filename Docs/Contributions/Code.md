@@ -17,7 +17,7 @@ Variables should be nouns, Functions should be verbs, and so on.
 |----------:|------------|-----------|-------------|
 |WoW API|American English|SetColorTexture|WoW uses American English for their internal properties.|
 |External Hooks|Case/Characters|GITHUB_TOKEN|External Hooks may follow a multitude of naming schemes.|
-|Folders with `.`|Case/Characters|run-activity-post.sh|Crystilac does not hold these to the same standard, developer preference.|
+|Folders with `.`|Case/Characters|build-release-payload.sh|Crystilac does not hold these to the same standard, developer preference.|
 |core/migrations|Case/Characters|20260221_combat_visibility.lua|Prioritise referential capacity (`YYYYMMDD_brief_description_of_change`).|
 
 These examples are not a comprehensive list for their respective locations.

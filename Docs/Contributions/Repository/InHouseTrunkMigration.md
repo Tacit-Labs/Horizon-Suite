@@ -110,5 +110,8 @@ Run `governance/drift-check.sh` to confirm the live state matches the spec.
   Wago/Discord) is WoW-addon-specific and stays. No release-please.
 - **Labels** — the legacy `[Priority]`/`[Module]`/`[Upkeep]` scheme stays; it is
   an explicitly documented exception in tacit-claude `docs/issue-types-and-labels.md`.
-- **Discord workflows** — `activity-feed.yml` and `issuelog.yml` stay.
+- **Discord workflows** — `activity-feed.yml` and `issuelog.yml` stayed through
+  the migration, then were removed on 2026-07-27 in the July Actions-minutes
+  work (~80 billed min/month of per-event and daily posting). The release
+  Discord post in `release.yml` is unaffected.
 - **`claude-code-review.yml`** — stays (matches the org self-review pattern).
