@@ -174,6 +174,43 @@ A.DEFAULT_ANCHOR = "TOP"
 A.DEFAULT_X      = 0
 A.DEFAULT_Y      = -180
 
+-- Layout enums: icon side, slide-in side, stack grow direction.
+-- @return string "left"|"right"
+function A.GetIconSide()
+    local D = addon.AUGMENT_DEFAULTS
+    local v = A.GetDB("alertsIconSide", D.alertsIconSide)
+    if v == "right" then return "right" end
+    return "left"
+end
+
+-- @return string "left"|"right"
+function A.GetSlideSide()
+    local D = addon.AUGMENT_DEFAULTS
+    local v = A.GetDB("alertsSlideSide", D.alertsSlideSide)
+    if v == "left" then return "left" end
+    return "right"
+end
+
+-- @return string "up"|"down"
+function A.GetGrowDirection()
+    local D = addon.AUGMENT_DEFAULTS
+    local v = A.GetDB("alertsGrowDirection", D.alertsGrowDirection)
+    if v == "up" then return "up" end
+    return "down"
+end
+
+-- Vertical attach edge for toast entries (TOP or BOTTOM).
+-- @return string
+function A.GetEntryAttachPoint()
+    return (A.GetGrowDirection() == "up") and "BOTTOM" or "TOP"
+end
+
+-- Sign for entrance slideX (+1 from right, -1 from left).
+-- @return number
+function A.GetSlideSign()
+    return (A.GetSlideSide() == "left") and -1 or 1
+end
+
 function A.GetPosition()
     if not addon.GetDB then
         return nil, nil, A.DEFAULT_X, A.DEFAULT_Y

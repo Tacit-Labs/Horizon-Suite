@@ -77,6 +77,12 @@ local AugmentFontObj
 local function UpdateAugmentFontObject()
     if not AugmentFontObj then return end
     AugmentFontObj:SetFont(Augment.GetFontPath(), S(GetFontSize()), GetFontFlags())
+    -- Keep FontObject justify in sync with icon side. Linked FontStrings re-inherit
+    -- this on FontObject updates; leaving it at LEFT broke Icon Side = Right.
+    local justify = (Augment.GetIconSide and Augment.GetIconSide() == "right") and "RIGHT" or "LEFT"
+    if AugmentFontObj.SetJustifyH then
+        AugmentFontObj:SetJustifyH(justify)
+    end
 end
 
 -- mode: "in" = ease-in, "inOut" = ease-in-out, default = ease-out (quadratic)
@@ -137,15 +143,75 @@ end
 
 -- After StartMoving/StopMovingOrSizing, WoW internally re-anchors to
 -- ("TOPLEFT", UIParent, "BOTTOMLEFT", screenX, screenTopY), making GetPoint()
--- return TOPLEFT. Saving that causes Frame to grow downward and toasts to
--- appear below the anchor. Normalize to BOTTOMRIGHT/BOTTOMRIGHT instead.
+-- return TOPLEFT. Normalize to a corner matching grow direction + slide side
+-- so the stack stays on the correct side of the anchor.
+local function NormalizeLootSavePoint()
+    local grow = Augment.GetGrowDirection and Augment.GetGrowDirection() or "up"
+    local slide = Augment.GetSlideSide and Augment.GetSlideSide() or "right"
+    local h = (slide == "left") and "LEFT" or "RIGHT"
+    local v = (grow == "down") and "TOP" or "BOTTOM"
+    return v .. h
+end
+
+local function SaveNormalizedLootPosition(frame)
+    if not frame then return end
+    local point = NormalizeLootSavePoint()
+    local left, right = frame:GetLeft(), frame:GetRight()
+    local top, bottom = frame:GetTop(), frame:GetBottom()
+    if not left or not right or not top or not bottom then return end
+    local x, y
+    if point == "BOTTOMRIGHT" or point == "TOPRIGHT" then
+        x = math.floor(right - UIParent:GetRight() + 0.5)
+    else
+        x = math.floor(left - UIParent:GetLeft() + 0.5)
+    end
+    if point == "BOTTOMRIGHT" or point == "BOTTOMLEFT" then
+        y = math.floor(bottom - UIParent:GetBottom() + 0.5)
+    else
+        y = math.floor(top - UIParent:GetTop() + 0.5)
+    end
+    Augment.SavePosition(point, point, x, y)
+end
+
 local function SaveFramePosition()
-    local right  = Frame:GetRight()
-    local bottom = Frame:GetBottom()
-    if not right or not bottom then return end
-    local x = math.floor(right  - UIParent:GetRight()  + 0.5)
-    local y = math.floor(bottom - UIParent:GetBottom() + 0.5)
-    Augment.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
+    SaveNormalizedLootPosition(Frame)
+end
+
+-- Re-anchor icon + text/shadow for the current icon-side setting.
+-- @param entry table pool entry
+local function ApplyToastIconLayout(entry)
+    if not entry or not entry.frame or not entry.iconBgAnchor then return end
+    local iconSide = Augment.GetIconSide and Augment.GetIconSide() or "left"
+    local gap = S(Augment.ICON_GAP)
+    local textW = S(Augment.TEXT_WIDTH)
+    entry.iconBgAnchor:ClearAllPoints()
+
+    local function layoutFS(fs, isShadow)
+        if not fs then return end
+        fs:ClearAllPoints()
+        local xOff = isShadow and (gap + 1) or gap
+        local yOff = isShadow and -1 or 0
+        if iconSide == "right" then
+            -- Single RIGHT anchor, auto width: string sizes to content and sits
+            -- flush against the icon. Avoids JustifyH, which was sticking on LEFT
+            -- for most pool rows (short names gapped, long names looked fine).
+            fs:SetWidth(0)
+            fs:SetJustifyH("RIGHT")
+            fs:SetPoint("RIGHT", entry.iconBgAnchor, "LEFT", -xOff, yOff)
+        else
+            fs:SetWidth(textW)
+            fs:SetJustifyH("LEFT")
+            fs:SetPoint("LEFT", entry.iconBgAnchor, "RIGHT", xOff, yOff)
+        end
+    end
+
+    if iconSide == "right" then
+        entry.iconBgAnchor:SetPoint("RIGHT", entry.frame, "RIGHT", 0, 0)
+    else
+        entry.iconBgAnchor:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
+    end
+    layoutFS(entry.shadow, true)
+    layoutFS(entry.text, false)
 end
 
 -- ============================================================================
@@ -162,7 +228,8 @@ local function CreateToastEntry(parent)
 
     -- Fixed invisible texture used purely as a stable anchor for text/shadow.
     -- iconBg (and its stack siblings) reposition during the fan layout, but
-    -- text must never move, so it anchors here instead.
+    -- text must never move, so it anchors here instead. Side is applied by
+    -- ApplyToastIconLayout (icon left/right option).
     local iconBgAnchor = f:CreateTexture(nil, "BACKGROUND")
     iconBgAnchor:SetSize(S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2), S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2))
     iconBgAnchor:SetPoint("LEFT", f, "LEFT", 0, 0)
@@ -214,17 +281,11 @@ local function CreateToastEntry(parent)
     local shadow = f:CreateFontString(nil, "BORDER")
     shadow:SetFontObject(AugmentFontObj)
     shadow:SetTextColor(0, 0, 0, 0.7)
-    shadow:SetJustifyH("LEFT")
-    shadow:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Augment.ICON_GAP) + 1, -1)
-    shadow:SetPoint("RIGHT", f, "RIGHT", 1, -1)
     shadow:SetWordWrap(false)
 
     local text = f:CreateFontString(nil, "OVERLAY")
     text:SetFontObject(AugmentFontObj)
     text:SetTextColor(1, 1, 1, 1)
-    text:SetJustifyH("LEFT")
-    text:SetPoint("LEFT", iconBgAnchor, "RIGHT", S(Augment.ICON_GAP), 0)
-    text:SetPoint("RIGHT", f, "RIGHT", 0, 0)
     text:SetWordWrap(false)
 
     LockDirectFont(shadow, GetToastFont)
@@ -238,7 +299,8 @@ local function CreateToastEntry(parent)
     clickBtn:RegisterForClicks("AnyUp")
     clickBtn:SetScript("OnEnter", function(self)
         if not f._itemLink then return end
-        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        local anchor = (Augment.GetIconSide and Augment.GetIconSide() == "right") and "ANCHOR_RIGHT" or "ANCHOR_LEFT"
+        GameTooltip:SetOwner(self, anchor)
         GameTooltip:SetHyperlink(f._itemLink)
         GameTooltip:Show()
     end)
@@ -254,7 +316,7 @@ local function CreateToastEntry(parent)
     f:SetAlpha(0)
     f:Hide()
 
-    return {
+    local entry = {
         frame       = f,
         iconBgAnchor = iconBgAnchor,
         iconBg      = iconBg,
@@ -275,6 +337,8 @@ local function CreateToastEntry(parent)
         smoothY  = 0,
         driftY   = 0,
     }
+    ApplyToastIconLayout(entry)
+    return entry
 end
 
 -- ============================================================================
@@ -381,11 +445,7 @@ function Augment.InitFrames()
     anchorFrame:SetScript("OnDragStop", function(self)
         if InCombatLockdown() then return end
         self:StopMovingOrSizing()
-        local right  = self:GetRight()  or 0
-        local bottom = self:GetBottom() or 0
-        local x = math.floor(right  - UIParent:GetRight()  + 0.5)
-        local y = math.floor(bottom - UIParent:GetBottom() + 0.5)
-        Augment.SavePosition("BOTTOMRIGHT", "BOTTOMRIGHT", x, y)
+        SaveNormalizedLootPosition(self)
         Augment.ApplyStoredAnchor(Frame)
     end)
     anchorFrame:SetScript("OnMouseUp", function(self, button)
@@ -540,10 +600,14 @@ UpdateEntry = function(entry, dt)
     local maxA    = entry.maxAlpha or 1
     local alpha, slideX, scale
 
+    local slideSign = entry.slideSign or 1
+    local attachPoint = entry.attachPoint or "BOTTOMRIGHT"
+    local growDown = attachPoint:sub(1, 3) == "TOP"
+
     if t < entEnd then
         local p = Ease(t / entranceDur)
         alpha  = p * maxA
-        slideX = Augment.SLIDE_DIST * (1 - p)
+        slideX = slideSign * Augment.SLIDE_DIST * (1 - p)
         scale  = CalcEntranceScale(p, isEpicOrLegendary, popPeak)
 
     elseif t < holdEnd then
@@ -578,10 +642,13 @@ UpdateEntry = function(entry, dt)
     UpdateIconGlow(entry, t, isEpicOrLegendary, entEnd, holdEnd)
     SmoothStack(entry, dt)
 
+    local yOff = entry.smoothY + entry.driftY
+    if growDown then yOff = -yOff end
+
     entry.frame:SetAlpha(alpha)
     entry.frame:SetScale(scale or 1)
     entry.frame:ClearAllPoints()
-    entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT", slideX, entry.smoothY + entry.driftY)
+    entry.frame:SetPoint(attachPoint, Frame, attachPoint, slideX, yOff)
 end
 
 -- ============================================================================
@@ -805,6 +872,8 @@ function Augment.ShowToast(data)
     entry.text:SetText(displayText)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
     entry.shadow:SetText(displayText)
+    -- Apply after SetText so width/justify/anchors win over any FontString reset.
+    ApplyToastIconLayout(entry)
     entry.frame._itemLink = data.link
     entry._itemKey     = effectiveKey
     entry._count       = initialCount
@@ -824,6 +893,9 @@ function Augment.ShowToast(data)
     entry.stackY   = 0
     entry.smoothY  = 0
     entry.driftY   = 0
+    -- Snapshot layout so mid-toast option flips don't yank active animations.
+    entry.attachPoint = (Augment.GetEntryAttachPoint and Augment.GetEntryAttachPoint()) or "BOTTOMRIGHT"
+    entry.slideSign   = (Augment.GetSlideSign and Augment.GetSlideSign()) or 1
 
     entry.frame:SetAlpha(0)
     entry.frame:SetScale(1)
@@ -838,7 +910,7 @@ function Augment.ShowToast(data)
     end
 
     entry.frame:ClearAllPoints()
-    entry.frame:SetPoint("BOTTOMRIGHT", Frame, "BOTTOMRIGHT", Augment.SLIDE_DIST, 0)
+    entry.frame:SetPoint(entry.attachPoint, Frame, entry.attachPoint, entry.slideSign * Augment.SLIDE_DIST, 0)
     entry.frame:Show()
     Frame:Show()
 
@@ -1072,8 +1144,16 @@ end
 function Augment.ApplyAugmentOptions()
     if not IsReady() then return end
     ApplyAugmentClassChrome()
-    if anchorFrame:IsShown() then Augment.ApplyStoredAnchor(anchorFrame) end
-    Augment.ApplyStoredAnchor(Frame)
+    -- Re-normalize the live frame to the current grow/slide corner so switching
+    -- Grow Direction (e.g. Down for top-of-screen) keeps the same on-screen spot
+    -- while toast stacking uses the matching edge.
+    if Frame then
+        SaveNormalizedLootPosition(Frame)
+        Augment.ApplyStoredAnchor(Frame)
+    end
+    if anchorFrame and anchorFrame:IsShown() then
+        Augment.ApplyStoredAnchor(anchorFrame)
+    end
     if Augment.ApplyScale then Augment.ApplyScale() end
     if Augment.ApplyBlizzardSuppression then Augment.ApplyBlizzardSuppression() end
     if Augment.SelfHighlight then Augment.SelfHighlight.Evaluate() end
@@ -1114,19 +1194,10 @@ function Augment.ApplyScale()
             if e.shine  then e.shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8)) end
             -- Explicit per-FontString SetFont overrides any direct-set override a
             -- third-party addon may have applied on top of our FontObject.
-            -- Also re-anchor text/shadow so ICON_GAP changes take effect on live entries.
-            if e.shadow then
-                e.shadow:ClearAllPoints()
-                e.shadow:SetPoint("LEFT",  e.iconBgAnchor, "RIGHT", S(Augment.ICON_GAP) + 1, -1)
-                e.shadow:SetPoint("RIGHT", e.frame,         "RIGHT", 1, -1)
-                e.shadow:SetFont(fontPath, fontSize, fontFlags)
-            end
-            if e.text then
-                e.text:ClearAllPoints()
-                e.text:SetPoint("LEFT",  e.iconBgAnchor, "RIGHT", S(Augment.ICON_GAP), 0)
-                e.text:SetPoint("RIGHT", e.frame,         "RIGHT", 0, 0)
-                e.text:SetFont(fontPath, fontSize, fontFlags)
-            end
+            -- Layout after SetFont so justify/anchors are not clobbered.
+            if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end
+            if e.text then e.text:SetFont(fontPath, fontSize, fontFlags) end
+            ApplyToastIconLayout(e)
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
