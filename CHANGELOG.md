@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.3.5] – 2026-08-02
+
+### 🔧 Improvements
+- **(Augment) Toast layout options** — Choose icon side, slide-in side, and grow direction separately for loot and alert toasts (including grow down for top-of-screen placement).
+
+---
+
 ## [5.3.4] – 2026-07-21
 
 ### 🔧 Improvements
