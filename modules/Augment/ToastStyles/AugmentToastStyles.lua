@@ -102,15 +102,17 @@ local function AnchorDualText(entry, anchor, iconSide, gap)
     end
 end
 
-local function AnchorSingleText(entry, anchor, iconSide, gap)
+local function AnchorSingleText(entry, anchor, iconSide, gap, textWidth)
     local function AnchorFontString(fontString, isShadow)
         if not fontString then return end
         local xOffset = isShadow and (gap + 1) or gap
         local yOffset = isShadow and -1 or 0
         fontString:ClearAllPoints()
         if iconSide == "right" then
+            fontString:SetWidth(0)
             fontString:SetPoint("RIGHT", anchor, "LEFT", -xOffset, yOffset)
         else
+            if textWidth then fontString:SetWidth(textWidth) end
             fontString:SetPoint("LEFT", anchor, "RIGHT", xOffset, yOffset)
         end
     end
@@ -119,15 +121,15 @@ local function AnchorSingleText(entry, anchor, iconSide, gap)
     AnchorFontString(entry.text, false)
 end
 
-local function AnchorText(entry, textMode, anchor, iconSide, gap)
+local function AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
     if textMode == "dual" then
         AnchorDualText(entry, anchor, iconSide, gap)
     else
-        AnchorSingleText(entry, anchor, iconSide, gap)
+        AnchorSingleText(entry, anchor, iconSide, gap, textWidth)
     end
 end
 
-local function ApplyFramed(entry, textMode, iconSide, iconSize, gap)
+local function ApplyFramed(entry, textMode, iconSide, iconSize, gap, textWidth)
     if entry.frame.SetBackdrop then
         entry.frame:SetBackdrop(TOOLTIP_BACKDROP)
         entry.frame:SetBackdropColor(0, 0, 0, 0.75)
@@ -139,10 +141,10 @@ local function ApplyFramed(entry, textMode, iconSide, iconSize, gap)
     local anchor = entry.iconBgAnchor or entry.icon
     if anchor ~= entry.icon then anchor:SetSize(iconSize, iconSize) end
     AnchorIcon(entry, anchor, iconSide, M.EDGE)
-    AnchorText(entry, textMode, anchor, iconSide, gap)
+    AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
 end
 
-local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, pad, r, g, b)
+local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, textWidth, pad, r, g, b)
     if entry.frame.SetBackdrop then entry.frame:SetBackdrop(nil) end
 
     local background = entry.iconBg
@@ -175,14 +177,14 @@ local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, pa
     entry.icon:SetSize(iconSize, iconSize)
     entry.icon:ClearAllPoints()
     entry.icon:SetPoint("CENTER", background, "CENTER", 0, 0)
-    AnchorText(entry, textMode, anchor, iconSide, gap)
+    AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
 end
 
 --- Apply shared toast chrome. Does not set text strings.
 --- @param entry table Toast regions and frame
 --- @param style string|nil Raw DB style value
 --- @param colors table Text tint and optional icon fill RGB
---- @param layout table Text mode, icon placement, dimensions, and scale helper
+--- @param layout table Text mode, icon placement, dimensions, optional unscaled textWidth, and scale helper
 --- @return nil
 function TS.ApplyChrome(entry, style, colors, layout)
     style = TS.Normalize(style)
@@ -197,18 +199,19 @@ function TS.ApplyChrome(entry, style, colors, layout)
     local scale = layout.scale
     local iconSize = scale(layout.iconSize)
     local gap = scale(layout.iconGap)
+    local textWidth = layout.textWidth and scale(layout.textWidth)
     local pad = scale(layout.iconBgPad)
 
     SetTextColor(entry, textMode, r, g, b)
     SetJustification(entry, textMode, justify)
 
     if style == "framed" then
-        ApplyFramed(entry, textMode, iconSide, iconSize, gap)
+        ApplyFramed(entry, textMode, iconSide, iconSize, gap, textWidth)
         if entry.frame.SetBackdropBorderColor then
             entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
         end
         return
     end
 
-    ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, pad, fillR, fillG, fillB)
+    ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, textWidth, pad, fillR, fillG, fillB)
 end
