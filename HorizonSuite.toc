@@ -107,6 +107,7 @@ modules/Presence/PresenceErrors.lua
 modules/Presence/PresenceSlash.lua
 modules/Presence/PresenceModule.lua
 
+modules/Augment/ToastStyles/AugmentToastStyles.lua
 modules/Augment/LootFrame/AugmentState.lua
 modules/Augment/LootFrame/AugmentParsing.lua
 modules/Augment/LootFrame/AugmentBlizzard.lua
