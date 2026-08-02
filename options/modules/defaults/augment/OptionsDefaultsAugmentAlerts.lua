@@ -51,6 +51,9 @@ D.alertsHoldDuration          = 4.0
 D.alertsEditModeShow          = true
 D.alertsStyle                 = "horizon"
 D.alertsTextOutlineType       = "OUTLINE"
+D.alertsIconSide              = "left"
+D.alertsSlideSide             = "right"
+D.alertsGrowDirection         = "down"
 
 -- Position keys (alertsPoint/alertsRelPoint/alertsX/alertsY) have no
 -- meaningful default — nil means "use A.DEFAULT_ANCHOR/X/Y".

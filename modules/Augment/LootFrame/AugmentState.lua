@@ -52,6 +52,46 @@ function Y.GetIconGap()
     return (addon.GetDB and tonumber(addon.GetDB("augmentIconGap", D.augmentIconGap))) or D.augmentIconGap
 end
 
+-- Layout enums: icon side, slide-in side, stack grow direction.
+-- @return string "left"|"right"
+function Y.GetIconSide()
+    local D = addon.AUGMENT_DEFAULTS
+    local v = (addon.GetDB and addon.GetDB("augmentIconSide", D.augmentIconSide)) or D.augmentIconSide
+    if v == "right" then return "right" end
+    return "left"
+end
+
+-- @return string "left"|"right"
+function Y.GetSlideSide()
+    local D = addon.AUGMENT_DEFAULTS
+    local v = (addon.GetDB and addon.GetDB("augmentSlideSide", D.augmentSlideSide)) or D.augmentSlideSide
+    if v == "left" then return "left" end
+    return "right"
+end
+
+-- @return string "up"|"down"
+function Y.GetGrowDirection()
+    local D = addon.AUGMENT_DEFAULTS
+    local v = (addon.GetDB and addon.GetDB("augmentGrowDirection", D.augmentGrowDirection)) or D.augmentGrowDirection
+    if v == "down" then return "down" end
+    return "up"
+end
+
+-- Parent-edge attach point for toast entries (e.g. BOTTOMRIGHT).
+-- Horizontal edge follows slide side; vertical edge follows grow direction.
+-- @return string
+function Y.GetEntryAttachPoint()
+    local h = (Y.GetSlideSide() == "left") and "LEFT" or "RIGHT"
+    local v = (Y.GetGrowDirection() == "down") and "TOP" or "BOTTOM"
+    return v .. h
+end
+
+-- Sign for entrance slideX (+1 from right, -1 from left).
+-- @return number
+function Y.GetSlideSign()
+    return (Y.GetSlideSide() == "left") and -1 or 1
+end
+
 Y.ICON_SIZE       = 34
 Y.BORDER_PAD      = 1
 Y.ENTRY_HEIGHT    = Y.ICON_SIZE + Y.BORDER_PAD * 2

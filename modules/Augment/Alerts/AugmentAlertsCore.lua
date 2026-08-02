@@ -96,14 +96,20 @@ end
 -- After StartMoving/StopMovingOrSizing, WoW internally re-anchors to
 -- ("TOPLEFT", UIParent, "BOTTOMLEFT", screenX, screenTopY), making GetPoint()
 -- return TOPLEFT regardless of how the frame was originally anchored. Recompute
--- explicitly for a TOP/TOP anchor (A.DEFAULT_ANCHOR) instead of trusting GetPoint().
+-- explicitly for TOP or BOTTOM (matching grow direction) instead of trusting GetPoint().
 local function SaveFramePosition()
-    local left, right, top = Frame:GetLeft(), Frame:GetRight(), Frame:GetTop()
-    if not left or not right or not top then return end
+    local left, right, top, bottom = Frame:GetLeft(), Frame:GetRight(), Frame:GetTop(), Frame:GetBottom()
+    if not left or not right or not top or not bottom then return end
     local centerX = (left + right) / 2
     local x = math.floor(centerX - (UIParent:GetLeft() + UIParent:GetRight()) / 2 + 0.5)
-    local y = math.floor(top - UIParent:GetTop() + 0.5)
-    A.SavePosition("TOP", "TOP", x, y)
+    local point = (A.GetGrowDirection and A.GetGrowDirection() == "up") and "BOTTOM" or "TOP"
+    local y
+    if point == "BOTTOM" then
+        y = math.floor(bottom - UIParent:GetBottom() + 0.5)
+    else
+        y = math.floor(top - UIParent:GetTop() + 0.5)
+    end
+    A.SavePosition(point, point, x, y)
 end
 
 local function CreateEntry(parent)
@@ -168,27 +174,43 @@ end
 local function ApplyEntryStyle(entry, style, r, g, b)
     entry.title:SetTextColor(r, g, b, 1)
     entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
+    local iconSide = (A.GetIconSide and A.GetIconSide()) or "left"
+    local iconRight = iconSide == "right"
+    local justify = iconRight and "RIGHT" or "LEFT"
+    entry.title:SetJustifyH(justify)
+    entry.body:SetJustifyH(justify)
     if style == "minimalist" then
         entry.frame:SetBackdrop(nil)
         local bgSz = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
         entry.iconBg:SetSize(bgSz, bgSz)
         entry.iconBg:ClearAllPoints()
-        entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
+        if iconRight then
+            entry.iconBg:SetPoint("RIGHT", entry.frame, "RIGHT", 0, 0)
+        else
+            entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
+        end
         entry.iconBg:SetColorTexture(r, g, b, 0.85)
         entry.iconBg:Show()
         local iconSz = S(A.ICON_SIZE)
         entry.iconDark:SetSize(iconSz, iconSz)
         entry.iconDark:Show()
         entry.icon:ClearAllPoints()
-        entry.icon:SetPoint("CENTER", entry.iconBg, "CENTER", 1, 0)
+        entry.icon:SetPoint("CENTER", entry.iconBg, "CENTER", iconRight and -1 or 1, 0)
         -- Anchor text to iconBg edges (not frame) so the title/body stay within
         -- the colored square regardless of the frame's extra vertical padding.
         entry.title:ClearAllPoints()
-        entry.title:SetPoint("TOPLEFT",   entry.iconBg, "TOPRIGHT",    8, -2)
-        entry.title:SetPoint("RIGHT",     entry.frame,  "RIGHT",      -8,  0)
         entry.body:ClearAllPoints()
-        entry.body:SetPoint("BOTTOMLEFT", entry.iconBg, "BOTTOMRIGHT", 8,  2)
-        entry.body:SetPoint("RIGHT",      entry.frame,  "RIGHT",      -8,  0)
+        if iconRight then
+            entry.title:SetPoint("TOPRIGHT",   entry.iconBg, "TOPLEFT",    -8, -2)
+            entry.title:SetPoint("LEFT",      entry.frame,  "LEFT",        8,  0)
+            entry.body:SetPoint("BOTTOMRIGHT", entry.iconBg, "BOTTOMLEFT", -8,  2)
+            entry.body:SetPoint("LEFT",       entry.frame,  "LEFT",        8,  0)
+        else
+            entry.title:SetPoint("TOPLEFT",   entry.iconBg, "TOPRIGHT",    8, -2)
+            entry.title:SetPoint("RIGHT",     entry.frame,  "RIGHT",      -8,  0)
+            entry.body:SetPoint("BOTTOMLEFT", entry.iconBg, "BOTTOMRIGHT", 8,  2)
+            entry.body:SetPoint("RIGHT",      entry.frame,  "RIGHT",      -8,  0)
+        end
     else -- "horizon"
         entry.frame:SetBackdrop({
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -200,13 +222,21 @@ local function ApplyEntryStyle(entry, style, r, g, b)
         entry.iconBg:Hide()
         entry.iconDark:Hide()
         entry.icon:ClearAllPoints()
-        entry.icon:SetPoint("LEFT", entry.frame, "LEFT", 8, 0)
         entry.title:ClearAllPoints()
-        entry.title:SetPoint("TOPLEFT",   entry.icon, "TOPRIGHT",    8, -2)
-        entry.title:SetPoint("RIGHT",     entry.frame, "RIGHT",     -8,  0)
         entry.body:ClearAllPoints()
-        entry.body:SetPoint("BOTTOMLEFT", entry.icon, "BOTTOMRIGHT", 8,  2)
-        entry.body:SetPoint("RIGHT",      entry.frame, "RIGHT",     -8,  0)
+        if iconRight then
+            entry.icon:SetPoint("RIGHT", entry.frame, "RIGHT", -8, 0)
+            entry.title:SetPoint("TOPRIGHT",   entry.icon, "TOPLEFT",    -8, -2)
+            entry.title:SetPoint("LEFT",       entry.frame, "LEFT",       8,  0)
+            entry.body:SetPoint("BOTTOMRIGHT", entry.icon, "BOTTOMLEFT", -8,  2)
+            entry.body:SetPoint("LEFT",       entry.frame, "LEFT",       8,  0)
+        else
+            entry.icon:SetPoint("LEFT", entry.frame, "LEFT", 8, 0)
+            entry.title:SetPoint("TOPLEFT",   entry.icon, "TOPRIGHT",    8, -2)
+            entry.title:SetPoint("RIGHT",     entry.frame, "RIGHT",     -8,  0)
+            entry.body:SetPoint("BOTTOMLEFT", entry.icon, "BOTTOMRIGHT", 8,  2)
+            entry.body:SetPoint("RIGHT",      entry.frame, "RIGHT",     -8,  0)
+        end
     end
 end
 
@@ -333,10 +363,14 @@ function A.UpdateEntry(entry, dt)
     local alpha, slideX
     local maxA = entry.maxAlpha or 1
 
+    local slideSign = entry.slideSign or 1
+    local attachPoint = entry.attachPoint or "TOP"
+    local growUp = attachPoint == "BOTTOM"
+
     if t < entEnd then
         local p = Ease(t / A.ENTRANCE_DUR)
         alpha  = p * maxA
-        slideX = A.SLIDE_DIST * (1 - p)
+        slideX = slideSign * A.SLIDE_DIST * (1 - p)
     elseif t < holdEnd then
         alpha, slideX = maxA, 0
     elseif t < fadeEnd then
@@ -353,9 +387,11 @@ function A.UpdateEntry(entry, dt)
     local gap = entry.stackY - entry.smoothY
     entry.smoothY = math.abs(gap) > 0.5 and (entry.smoothY + gap * math.min(A.NUDGE_SPEED * dt, 1)) or entry.stackY
 
+    local yOff = growUp and entry.smoothY or -entry.smoothY
+
     entry.frame:SetAlpha(alpha)
     entry.frame:ClearAllPoints()
-    entry.frame:SetPoint("TOP", Frame, "TOP", slideX, -entry.smoothY)
+    entry.frame:SetPoint(attachPoint, Frame, attachPoint, slideX, yOff)
 end
 
 -- Show one toast. Only called from AugmentAlertsQueue.lua's internal emit()
@@ -402,6 +438,9 @@ function A.ShowToast(kind, title, body, meta)
     entry.holdDur = tonumber(meta and meta.duration) or tonumber(A.GetDB("alertsHoldDuration", D.alertsHoldDuration)) or D.alertsHoldDuration
     entry.stackY  = 0
     entry.smoothY = 0
+    -- Snapshot layout so mid-toast option flips don't yank active animations.
+    entry.attachPoint = (A.GetEntryAttachPoint and A.GetEntryAttachPoint()) or "TOP"
+    entry.slideSign   = (A.GetSlideSign and A.GetSlideSign()) or 1
     -- Snapshot opacity at show-time so this toast's alpha is consistent
     -- throughout its lifecycle without a per-frame DB read (mirrors LootFrame's
     -- entry.maxAlpha pattern in AugmentCore.lua).
@@ -410,7 +449,7 @@ function A.ShowToast(kind, title, body, meta)
 
     entry.frame:SetAlpha(0)
     entry.frame:ClearAllPoints()
-    entry.frame:SetPoint("TOP", Frame, "TOP", A.SLIDE_DIST, 0)
+    entry.frame:SetPoint(entry.attachPoint, Frame, entry.attachPoint, entry.slideSign * A.SLIDE_DIST, 0)
     entry.frame:Show()
     Frame:Show()
 
@@ -456,6 +495,7 @@ function A.ApplyScale()
         e.frame:SetSize(S(A.WIDTH), S(A.HEIGHT))
         e.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
     end
+    -- Refreshes icon/text layout (icon side) on entries that have been shown.
     A.ApplyColors()
 end
 
