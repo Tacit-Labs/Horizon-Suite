@@ -17,6 +17,7 @@ local LIM = addon.AUGMENT_LIMITS
 D.augmentLootFrameEnabled    = true
 
 -- Toast appearance
+D.augmentToastStyle          = "compact"
 D.augmentFontPath            = "__global__"
 D.augmentFontSize            = 14
 D.augmentUIScale             = 1.0

@@ -49,6 +49,8 @@ D.alertsFontPath              = "__global__"
 D.alertsFontSize              = 14
 D.alertsHoldDuration          = 4.0
 D.alertsEditModeShow          = true
+D.alertsToastStyle            = "framed"
+-- Legacy default retained for the one-release alertsStyle migration window.
 D.alertsStyle                 = "horizon"
 D.alertsTextOutlineType       = "OUTLINE"
 D.alertsIconSize              = 34

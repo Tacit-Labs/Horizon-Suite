@@ -52,6 +52,15 @@ function Y.GetIconGap()
     return (addon.GetDB and tonumber(addon.GetDB("augmentIconGap", D.augmentIconGap))) or D.augmentIconGap
 end
 
+--- Return the normalized loot-toast style.
+--- @return string styleID "compact", "framed", or "accent"
+function Y.GetToastStyle()
+    local D = addon.AUGMENT_DEFAULTS
+    local raw = addon.GetDB and addon.GetDB("augmentToastStyle", D.augmentToastStyle) or D.augmentToastStyle
+    local TS = Y.ToastStyles
+    return (TS and TS.Normalize and TS.Normalize(raw)) or "compact"
+end
+
 -- Layout enums: icon side, slide-in side, stack grow direction.
 -- @return string "left"|"right"
 function Y.GetIconSide()
@@ -106,11 +115,11 @@ Y.DEFAULT_ANCHOR  = "BOTTOMRIGHT"
 Y.DEFAULT_X       = -30
 Y.DEFAULT_Y       = 250
 
-Y.ENTRANCE_DUR    = 0.28
-Y.EXIT_DUR        = 0.45
-Y.SLIDE_DIST      = 18
+Y.ENTRANCE_DUR    = Y.ToastMotion.ENTRANCE_DUR
+Y.EXIT_DUR        = Y.ToastMotion.EXIT_DUR
+Y.SLIDE_DIST      = Y.ToastMotion.SLIDE_DIST
 Y.EXIT_DRIFT      = 10
-Y.NUDGE_SPEED     = 10
+Y.NUDGE_SPEED     = Y.ToastMotion.NUDGE_SPEED
 
 Y.HOLD_ITEM       = 5.0
 Y.HOLD_EPIC       = 6.5
@@ -188,6 +197,7 @@ Y.DB_KEYS = {
     augmentX                = true,
     augmentY                = true,
     augmentFontPath         = true,
+    augmentToastStyle       = true,
     augmentShowItems        = true,
     augmentShowMoney        = true,
     augmentShowCurrency     = true,

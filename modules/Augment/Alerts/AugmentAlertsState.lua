@@ -17,6 +17,11 @@ local Y = addon.Augment
 Y.Alerts = Y.Alerts or {}
 local A = Y.Alerts
 
+A.ENTRANCE_DUR = Y.ToastMotion.ENTRANCE_DUR
+A.EXIT_DUR     = Y.ToastMotion.EXIT_DUR
+A.SLIDE_DIST   = Y.ToastMotion.SLIDE_DIST
+A.NUDGE_SPEED  = Y.ToastMotion.NUDGE_SPEED
+
 -- Register this mini-module's DB keys into the shared routing table so
 -- OptionsData.lua dispatches writes without a manual allowlist.
 Y.DB_KEYS.augmentAlertsEnabled      = true
@@ -49,7 +54,7 @@ Y.DB_KEYS.alertsSoundBags           = true
 Y.DB_KEYS.alertsSoundMail           = true
 Y.DB_KEYS.alertsSoundVault          = true
 Y.DB_KEYS.alertsSoundFriends        = true
-Y.DB_KEYS.alertsStyle               = true
+Y.DB_KEYS.alertsToastStyle          = true
 Y.DB_KEYS.alertsTextOutlineType     = true
 Y.DB_KEYS.alertsIconSize            = true
 Y.DB_KEYS.alertsIconGap             = true
@@ -75,6 +80,15 @@ local function getDB(k, d)
     return v
 end
 A.GetDB = getDB
+
+--- Return the normalized alerts-toast style.
+--- @return string styleID "compact", "framed", or "accent"
+function A.GetToastStyle()
+    local D = addon.AUGMENT_DEFAULTS
+    local raw = A.GetDB("alertsToastStyle", D.alertsToastStyle)
+    local TS = Y.ToastStyles
+    return (TS and TS.Normalize and TS.Normalize(raw)) or "framed"
+end
 
 -- ============================================================================
 -- KNOWN KINDS
