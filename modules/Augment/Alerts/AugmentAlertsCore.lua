@@ -13,6 +13,8 @@ local Y = addon and addon.Augment
 local A = Y and Y.Alerts
 if not A then return end
 
+local M = Y.ToastMotion
+
 local function S(v)
     local D = addon.AUGMENT_DEFAULTS
     local scale = tonumber(A.GetDB("alertsScale", D.alertsScale)) or D.alertsScale
@@ -27,11 +29,7 @@ A.ICON_BG_PAD  = 1  -- colored square border per side in Minimalist style (match
 A.ICON_GAP     = 10
 A.LINE_SPACING = 5
 A.LINE_HEIGHT  = A.HEIGHT + A.LINE_SPACING
-A.ENTRANCE_DUR = 0.28
-A.EXIT_DUR     = 0.45
-A.SLIDE_DIST   = 18
 A.DEFAULT_HOLD = 4.0
-A.NUDGE_SPEED  = 10
 
 local pool = {}
 local activeCount = 0
@@ -81,7 +79,9 @@ local function UpdateFontObject()
     AlertsFontObj:SetFont(GetFontPath(), S(GetFontSize()), GetFontFlags())
 end
 
-local function Ease(t) return 1 - (1 - t) * (1 - t) end
+local function Ease(t, mode)
+    return M.Ease(t, mode)
+end
 
 function A.ApplyStoredAnchor(frame)
     if not frame then return end
@@ -116,7 +116,7 @@ end
 local function CreateEntry(parent)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     f:SetSize(S(A.WIDTH), S(A.HEIGHT))
-    -- Default to Horizon backdrop; ApplyEntryStyle will override for other styles.
+    -- Default backdrop is replaced by shared toast chrome when the entry is shown.
     f:SetBackdrop({
         bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -171,77 +171,19 @@ local function CreateEntry(parent)
     }
 end
 
--- Apply layout and background for the given style. Called on every ShowToast
--- and on ApplyScale for active entries so live style changes take effect.
-local function ApplyEntryStyle(entry, style, r, g, b)
+-- Apply shared layout and background chrome without changing toast text.
+local function ApplyEntryChrome(entry, r, g, b)
+    local TS = Y.ToastStyles
+    if not TS or not TS.ApplyChrome then return end
     entry.title:SetTextColor(r, g, b, 1)
-    entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
-    local iconSide = (A.GetIconSide and A.GetIconSide()) or "left"
-    local iconRight = iconSide == "right"
-    local justify = iconRight and "RIGHT" or "LEFT"
-    local gap = S(A.ICON_GAP)
-    local edge = 8  -- outer frame inset (independent of icon–text gap)
-    entry.title:SetJustifyH(justify)
-    entry.body:SetJustifyH(justify)
-    if style == "minimalist" then
-        entry.frame:SetBackdrop(nil)
-        local bgSz = S(A.ICON_SIZE + A.ICON_BG_PAD * 2)
-        entry.iconBg:SetSize(bgSz, bgSz)
-        entry.iconBg:ClearAllPoints()
-        if iconRight then
-            entry.iconBg:SetPoint("RIGHT", entry.frame, "RIGHT", 0, 0)
-        else
-            entry.iconBg:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
-        end
-        entry.iconBg:SetColorTexture(r, g, b, 0.85)
-        entry.iconBg:Show()
-        local iconSz = S(A.ICON_SIZE)
-        entry.iconDark:SetSize(iconSz, iconSz)
-        entry.iconDark:Show()
-        entry.icon:ClearAllPoints()
-        entry.icon:SetPoint("CENTER", entry.iconBg, "CENTER", iconRight and -1 or 1, 0)
-        -- Anchor text to iconBg edges (not frame) so the title/body stay within
-        -- the colored square regardless of the frame's extra vertical padding.
-        entry.title:ClearAllPoints()
-        entry.body:ClearAllPoints()
-        if iconRight then
-            entry.title:SetPoint("TOPRIGHT",   entry.iconBg, "TOPLEFT",    -gap, -2)
-            entry.title:SetPoint("LEFT",      entry.frame,  "LEFT",        edge,  0)
-            entry.body:SetPoint("BOTTOMRIGHT", entry.iconBg, "BOTTOMLEFT", -gap,  2)
-            entry.body:SetPoint("LEFT",       entry.frame,  "LEFT",        edge,  0)
-        else
-            entry.title:SetPoint("TOPLEFT",   entry.iconBg, "TOPRIGHT",    gap, -2)
-            entry.title:SetPoint("RIGHT",     entry.frame,  "RIGHT",      -edge,  0)
-            entry.body:SetPoint("BOTTOMLEFT", entry.iconBg, "BOTTOMRIGHT", gap,  2)
-            entry.body:SetPoint("RIGHT",      entry.frame,  "RIGHT",      -edge,  0)
-        end
-    else -- "horizon"
-        entry.frame:SetBackdrop({
-            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-            edgeSize = 10,
-            insets   = { left = 2, right = 2, top = 2, bottom = 2 },
-        })
-        entry.frame:SetBackdropColor(0, 0, 0, 0.75)
-        entry.iconBg:Hide()
-        entry.iconDark:Hide()
-        entry.icon:ClearAllPoints()
-        entry.title:ClearAllPoints()
-        entry.body:ClearAllPoints()
-        if iconRight then
-            entry.icon:SetPoint("RIGHT", entry.frame, "RIGHT", -edge, 0)
-            entry.title:SetPoint("TOPRIGHT",   entry.icon, "TOPLEFT",    -gap, -2)
-            entry.title:SetPoint("LEFT",       entry.frame, "LEFT",       edge,  0)
-            entry.body:SetPoint("BOTTOMRIGHT", entry.icon, "BOTTOMLEFT", -gap,  2)
-            entry.body:SetPoint("LEFT",       entry.frame, "LEFT",       edge,  0)
-        else
-            entry.icon:SetPoint("LEFT", entry.frame, "LEFT", edge, 0)
-            entry.title:SetPoint("TOPLEFT",   entry.icon, "TOPRIGHT",    gap, -2)
-            entry.title:SetPoint("RIGHT",     entry.frame, "RIGHT",     -edge,  0)
-            entry.body:SetPoint("BOTTOMLEFT", entry.icon, "BOTTOMRIGHT", gap,  2)
-            entry.body:SetPoint("RIGHT",      entry.frame, "RIGHT",     -edge,  0)
-        end
-    end
+    TS.ApplyChrome(entry, A.GetToastStyle(), { r = r, g = g, b = b }, {
+        textMode  = "dual",
+        iconSide  = (A.GetIconSide and A.GetIconSide()) or "left",
+        iconSize  = A.ICON_SIZE,
+        iconGap   = A.ICON_GAP,
+        iconBgPad = A.ICON_BG_PAD,
+        scale     = S,
+    })
 end
 
 -- Lazy init, called once from Enable() (DB is ready at that point).
@@ -361,9 +303,9 @@ function A.UpdateEntry(entry, dt)
     if not entry.active then return end
     entry.elapsed = entry.elapsed + dt
     local t = entry.elapsed
-    local entEnd  = A.ENTRANCE_DUR
+    local entEnd  = M.ENTRANCE_DUR
     local holdEnd = entEnd + entry.holdDur
-    local fadeEnd = holdEnd + A.EXIT_DUR
+    local fadeEnd = holdEnd + M.EXIT_DUR
     local alpha, slideX
     local maxA = entry.maxAlpha or 1
 
@@ -372,13 +314,13 @@ function A.UpdateEntry(entry, dt)
     local growUp = attachPoint == "BOTTOM"
 
     if t < entEnd then
-        local p = Ease(t / A.ENTRANCE_DUR)
+        local p = Ease(t / M.ENTRANCE_DUR)
         alpha  = p * maxA
-        slideX = slideSign * A.SLIDE_DIST * (1 - p)
+        slideX = slideSign * M.SLIDE_DIST * (1 - p)
     elseif t < holdEnd then
         alpha, slideX = maxA, 0
     elseif t < fadeEnd then
-        alpha  = (1 - Ease((t - holdEnd) / A.EXIT_DUR)) * maxA
+        alpha  = (1 - Ease((t - holdEnd) / M.EXIT_DUR)) * maxA
         slideX = 0
     else
         entry.active = false
@@ -389,7 +331,7 @@ function A.UpdateEntry(entry, dt)
     end
 
     local gap = entry.stackY - entry.smoothY
-    entry.smoothY = math.abs(gap) > 0.5 and (entry.smoothY + gap * math.min(A.NUDGE_SPEED * dt, 1)) or entry.stackY
+    entry.smoothY = math.abs(gap) > 0.5 and (entry.smoothY + gap * math.min(M.NUDGE_SPEED * dt, 1)) or entry.stackY
 
     local yOff = growUp and entry.smoothY or -entry.smoothY
 
@@ -426,14 +368,11 @@ function A.ShowToast(kind, title, body, meta)
     end
     entry.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
 
-    local D = addon.AUGMENT_DEFAULTS
     entry._kind = kind
-    ApplyEntryStyle(entry, A.GetDB("alertsStyle", D.alertsStyle), r, g, b)
+    ApplyEntryChrome(entry, r, g, b)
 
     entry.title:SetText(title)
-    entry.title:SetTextColor(r, g, b, 1)
     entry.body:SetText(body)
-    entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
 
     local D = addon.AUGMENT_DEFAULTS
 
@@ -453,7 +392,7 @@ function A.ShowToast(kind, title, body, meta)
 
     entry.frame:SetAlpha(0)
     entry.frame:ClearAllPoints()
-    entry.frame:SetPoint(entry.attachPoint, Frame, entry.attachPoint, entry.slideSign * A.SLIDE_DIST, 0)
+    entry.frame:SetPoint(entry.attachPoint, Frame, entry.attachPoint, entry.slideSign * M.SLIDE_DIST, 0)
     entry.frame:Show()
     Frame:Show()
 
@@ -479,13 +418,11 @@ end
 -- or font option changes.
 function A.ApplyColors()
     if not framesCreated then return end
-    local D = addon.AUGMENT_DEFAULTS
-    local style = A.GetDB("alertsStyle", D.alertsStyle)
     for i = 1, A.POOL_SIZE do
         local e = pool[i]
         if e and e._kind then
             local r, g, b = A.GetKindColor(e._kind)
-            ApplyEntryStyle(e, style, r, g, b)
+            ApplyEntryChrome(e, r, g, b)
         end
     end
 end
