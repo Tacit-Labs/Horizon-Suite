@@ -85,14 +85,11 @@ local function UpdateAugmentFontObject()
     end
 end
 
--- mode: "in" = ease-in, "inOut" = ease-in-out, default = ease-out (quadratic)
+-- Shared easing (mode: "in" = ease-in, "inOut" = ease-in-out, default = ease-out).
+-- Delegates to Augment.ToastMotion.Ease so Loot and Alerts toasts animate identically.
+local M = Augment.ToastMotion
 local function Ease(t, mode)
-    if mode == "in"    then return t * t end
-    if mode == "inOut" then
-        if t < 0.5 then return 2 * t * t end
-        return 1 - ((-2 * t + 2) * (-2 * t + 2)) / 2
-    end
-    return 1 - (1 - t) * (1 - t)
+    return M.Ease(t, mode)
 end
 
 -- ============================================================================
@@ -177,41 +174,43 @@ local function SaveFramePosition()
     SaveNormalizedLootPosition(Frame)
 end
 
--- Re-anchor icon + text/shadow for the current icon-side setting.
+-- Re-anchor icon + text/shadow for the current icon-side setting and toast
+-- style, and refresh shared chrome (Framed backdrop, colour fills) via
+-- ToastStyles.ApplyChrome. Colours come from the entry's snapshotted
+-- _r/_g/_b (text) and _bgR/_bgG/_bgB (icon fill), set at ShowToast time;
+-- both default to white so unshown pool entries render like their
+-- pre-chrome state.
 -- @param entry table pool entry
 local function ApplyToastIconLayout(entry)
     if not entry or not entry.frame or not entry.iconBgAnchor then return end
-    local iconSide = Augment.GetIconSide and Augment.GetIconSide() or "left"
-    local gap = S(Augment.ICON_GAP)
-    local textW = S(Augment.TEXT_WIDTH)
-    entry.iconBgAnchor:ClearAllPoints()
+    local TS = Augment.ToastStyles
+    if not TS or not TS.ApplyChrome then return end
 
-    local function layoutFS(fs, isShadow)
-        if not fs then return end
-        fs:ClearAllPoints()
-        local xOff = isShadow and (gap + 1) or gap
-        local yOff = isShadow and -1 or 0
-        if iconSide == "right" then
-            -- Single RIGHT anchor, auto width: string sizes to content and sits
-            -- flush against the icon. Avoids JustifyH, which was sticking on LEFT
-            -- for most pool rows (short names gapped, long names looked fine).
-            fs:SetWidth(0)
-            fs:SetJustifyH("RIGHT")
-            fs:SetPoint("RIGHT", entry.iconBgAnchor, "LEFT", -xOff, yOff)
-        else
-            fs:SetWidth(textW)
-            fs:SetJustifyH("LEFT")
-            fs:SetPoint("LEFT", entry.iconBgAnchor, "RIGHT", xOff, yOff)
-        end
-    end
+    local style = TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "compact")
+    TS.ApplyChrome(entry, style, {
+        r  = entry._r   or 1, g  = entry._g   or 1, b  = entry._b   or 1,
+        br = entry._bgR or entry._r or 1,
+        bg = entry._bgG or entry._g or 1,
+        bb = entry._bgB or entry._b or 1,
+    }, {
+        textMode  = "single",
+        iconSide  = Augment.GetIconSide and Augment.GetIconSide() or "left",
+        iconSize  = Augment.ICON_SIZE,
+        iconGap   = Augment.ICON_GAP,
+        iconBgPad = Augment.BORDER_PAD,
+        textWidth = Augment.TEXT_WIDTH,
+        scale     = S,
+    })
 
-    if iconSide == "right" then
-        entry.iconBgAnchor:SetPoint("RIGHT", entry.frame, "RIGHT", 0, 0)
-    else
-        entry.iconBgAnchor:SetPoint("LEFT", entry.frame, "LEFT", 0, 0)
+    -- Stack fan (iconBg2/iconBg3) is Compact-only; Framed/Accent always render a
+    -- single icon, so hide fan siblings here to avoid fighting the single-icon
+    -- anchor ApplyChrome just set.
+    if style ~= "compact" then
+        if entry.icon2   then entry.icon2:Hide()   end
+        if entry.icon3   then entry.icon3:Hide()   end
+        if entry.iconBg2 then entry.iconBg2:Hide() end
+        if entry.iconBg3 then entry.iconBg3:Hide() end
     end
-    layoutFS(entry.shadow, true)
-    layoutFS(entry.text, false)
 end
 
 -- ============================================================================
@@ -223,7 +222,7 @@ end
 local STACK_OVERLAP = 0.15
 
 local function CreateToastEntry(parent)
-    local f = CreateFrame("Frame", nil, parent)
+    local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     f:SetSize(S(Augment.TOTAL_WIDTH), S(Augment.ENTRY_HEIGHT))
 
     -- Fixed invisible texture used purely as a stable anchor for text/shadow.
@@ -731,7 +730,11 @@ end
 -- Each layer gets its own border/background so they look like individual item slots.
 -- count < 2 restores everything to single-icon state.
 local function UpdateStackIcons(entry, count)
-    local numIcons = math.min(count, 3)
+    -- Stack fan is Compact-only (see ApplyToastIconLayout); Framed/Accent always
+    -- collapse to a single icon regardless of merged count.
+    local TS = Augment.ToastStyles
+    local style = (TS and TS.Normalize and TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "compact")) or "compact"
+    local numIcons = (style == "compact") and math.min(count, 3) or 1
     local iconLayers = { entry.icon,   entry.icon2,   entry.icon3   }  -- front → back
     local bgLayers   = { entry.iconBg, entry.iconBg2, entry.iconBg3 }
     local bgBase     = S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2)
@@ -868,11 +871,15 @@ function Augment.ShowToast(data)
 
     entry.icon:SetTexture(data.icon)
     entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
+    entry._r, entry._g, entry._b       = data.r, data.g, data.b
     entry._bgR, entry._bgG, entry._bgB = data.br, data.bg, data.bb
     entry.text:SetText(displayText)
     entry.text:SetTextColor(data.r, data.g, data.b, 1)
     entry.shadow:SetText(displayText)
     -- Apply after SetText so width/justify/anchors win over any FontString reset.
+    -- Chrome (icon/text anchors + style backdrop) before UpdateStackIcons below,
+    -- so the fan positions itself relative to the freshly-placed anchor instead
+    -- of being immediately undone by ApplyChrome's single-icon anchor reset.
     ApplyToastIconLayout(entry)
     entry.frame._itemLink = data.link
     entry._itemKey     = effectiveKey
@@ -1183,7 +1190,17 @@ function Augment.ApplyScale()
             local bgSz = S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2)
             if e.iconBgAnchor then e.iconBgAnchor:SetSize(bgSz, bgSz) end
             if e.iconBg       then e.iconBg:SetSize(bgSz, bgSz) end
-            -- For active junk stacks re-run the layout so sizes/positions rescale correctly.
+            if e.shine  then e.shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8)) end
+            -- Explicit per-FontString SetFont overrides any direct-set override a
+            -- third-party addon may have applied on top of our FontObject.
+            -- Layout after SetFont so justify/anchors are not clobbered.
+            if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end
+            if e.text then e.text:SetFont(fontPath, fontSize, fontFlags) end
+            -- Chrome first (icon/text anchors, style backdrop); a stack-fan re-run
+            -- must come after so it positions icons off the freshly-placed anchor
+            -- instead of being immediately undone by ApplyChrome's anchor reset.
+            ApplyToastIconLayout(e)
+            -- For active junk stacks re-run the fan layout so sizes/positions rescale correctly.
             if e.active and e._itemKey == JUNK_KEY and e._count and e._count >= 2 then
                 UpdateStackIcons(e, e._count)
             else
@@ -1191,13 +1208,6 @@ function Augment.ApplyScale()
                 if e.icon2 then e.icon2:Hide() end
                 if e.icon  then e.icon:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE)) end
             end
-            if e.shine  then e.shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8)) end
-            -- Explicit per-FontString SetFont overrides any direct-set override a
-            -- third-party addon may have applied on top of our FontObject.
-            -- Layout after SetFont so justify/anchors are not clobbered.
-            if e.shadow then e.shadow:SetFont(fontPath, fontSize, fontFlags) end
-            if e.text then e.text:SetFont(fontPath, fontSize, fontFlags) end
-            ApplyToastIconLayout(e)
         end
     end
     if editTitle   then editTitle:SetFont(fontPath, S(14), "OUTLINE") end
