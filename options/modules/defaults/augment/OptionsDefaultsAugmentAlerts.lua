@@ -46,11 +46,13 @@ D.alertsMaxVisible            = 3
 D.alertsScale                 = 1.0
 D.alertsOpacity               = 100
 D.alertsFontPath              = "__global__"
-D.alertsFontSize              = 13
+D.alertsFontSize              = 14
 D.alertsHoldDuration          = 4.0
 D.alertsEditModeShow          = true
 D.alertsStyle                 = "horizon"
 D.alertsTextOutlineType       = "OUTLINE"
+D.alertsIconSize              = 34
+D.alertsIconGap               = 10
 D.alertsIconSide              = "left"
 D.alertsSlideSide             = "right"
 D.alertsGrowDirection         = "down"
@@ -79,5 +81,7 @@ LIM.alertsSoundCooldown       = { min = 0,   max = 30  }
 LIM.alertsMaxVisible          = { min = 1,   max = 6   }
 LIM.alertsScale               = { min = 0.5, max = 2.0 }
 LIM.alertsOpacity             = { min = 10,  max = 100 }
-LIM.alertsFontSize            = { min = 12,  max = 16  }
+LIM.alertsFontSize            = { min = 8,   max = 20  }
 LIM.alertsHoldDuration        = { min = 1,   max = 12  }
+LIM.alertsIconSize            = { min = 8,   max = 64  }
+LIM.alertsIconGap             = { min = 0,   max = 32  }

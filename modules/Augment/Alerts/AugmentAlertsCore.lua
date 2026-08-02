@@ -22,13 +22,14 @@ end
 A.POOL_SIZE    = 6
 A.WIDTH        = 280
 A.HEIGHT       = 44
-A.ICON_SIZE    = 32
+A.ICON_SIZE    = 34
 A.ICON_BG_PAD  = 1  -- colored square border per side in Minimalist style (matches LootFrame's BORDER_PAD)
-A.LINE_SPACING = 6
+A.ICON_GAP     = 10
+A.LINE_SPACING = 5
 A.LINE_HEIGHT  = A.HEIGHT + A.LINE_SPACING
-A.ENTRANCE_DUR = 0.25
-A.EXIT_DUR     = 0.4
-A.SLIDE_DIST   = 16
+A.ENTRANCE_DUR = 0.28
+A.EXIT_DUR     = 0.45
+A.SLIDE_DIST   = 18
 A.DEFAULT_HOLD = 4.0
 A.NUDGE_SPEED  = 10
 
@@ -144,10 +145,11 @@ local function CreateEntry(parent)
     icon:SetPoint("LEFT", f, "LEFT", 8, 0)
     icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
+    local gap = S(A.ICON_GAP)
     local title = f:CreateFontString(nil, "OVERLAY")
     title:SetFontObject(AlertsFontObj)
     title:SetJustifyH("LEFT")
-    title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 8, -2)
+    title:SetPoint("TOPLEFT", icon, "TOPRIGHT", gap, -2)
     title:SetPoint("RIGHT", f, "RIGHT", -8, 0)
     title:SetWordWrap(false)
 
@@ -155,7 +157,7 @@ local function CreateEntry(parent)
     body:SetFontObject(AlertsFontObj)
     body:SetTextColor(0.85, 0.85, 0.85, 1)
     body:SetJustifyH("LEFT")
-    body:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 8, 2)
+    body:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", gap, 2)
     body:SetPoint("RIGHT", f, "RIGHT", -8, 0)
     body:SetWordWrap(false)
 
@@ -177,6 +179,8 @@ local function ApplyEntryStyle(entry, style, r, g, b)
     local iconSide = (A.GetIconSide and A.GetIconSide()) or "left"
     local iconRight = iconSide == "right"
     local justify = iconRight and "RIGHT" or "LEFT"
+    local gap = S(A.ICON_GAP)
+    local edge = 8  -- outer frame inset (independent of icon–text gap)
     entry.title:SetJustifyH(justify)
     entry.body:SetJustifyH(justify)
     if style == "minimalist" then
@@ -201,15 +205,15 @@ local function ApplyEntryStyle(entry, style, r, g, b)
         entry.title:ClearAllPoints()
         entry.body:ClearAllPoints()
         if iconRight then
-            entry.title:SetPoint("TOPRIGHT",   entry.iconBg, "TOPLEFT",    -8, -2)
-            entry.title:SetPoint("LEFT",      entry.frame,  "LEFT",        8,  0)
-            entry.body:SetPoint("BOTTOMRIGHT", entry.iconBg, "BOTTOMLEFT", -8,  2)
-            entry.body:SetPoint("LEFT",       entry.frame,  "LEFT",        8,  0)
+            entry.title:SetPoint("TOPRIGHT",   entry.iconBg, "TOPLEFT",    -gap, -2)
+            entry.title:SetPoint("LEFT",      entry.frame,  "LEFT",        edge,  0)
+            entry.body:SetPoint("BOTTOMRIGHT", entry.iconBg, "BOTTOMLEFT", -gap,  2)
+            entry.body:SetPoint("LEFT",       entry.frame,  "LEFT",        edge,  0)
         else
-            entry.title:SetPoint("TOPLEFT",   entry.iconBg, "TOPRIGHT",    8, -2)
-            entry.title:SetPoint("RIGHT",     entry.frame,  "RIGHT",      -8,  0)
-            entry.body:SetPoint("BOTTOMLEFT", entry.iconBg, "BOTTOMRIGHT", 8,  2)
-            entry.body:SetPoint("RIGHT",      entry.frame,  "RIGHT",      -8,  0)
+            entry.title:SetPoint("TOPLEFT",   entry.iconBg, "TOPRIGHT",    gap, -2)
+            entry.title:SetPoint("RIGHT",     entry.frame,  "RIGHT",      -edge,  0)
+            entry.body:SetPoint("BOTTOMLEFT", entry.iconBg, "BOTTOMRIGHT", gap,  2)
+            entry.body:SetPoint("RIGHT",      entry.frame,  "RIGHT",      -edge,  0)
         end
     else -- "horizon"
         entry.frame:SetBackdrop({
@@ -225,17 +229,17 @@ local function ApplyEntryStyle(entry, style, r, g, b)
         entry.title:ClearAllPoints()
         entry.body:ClearAllPoints()
         if iconRight then
-            entry.icon:SetPoint("RIGHT", entry.frame, "RIGHT", -8, 0)
-            entry.title:SetPoint("TOPRIGHT",   entry.icon, "TOPLEFT",    -8, -2)
-            entry.title:SetPoint("LEFT",       entry.frame, "LEFT",       8,  0)
-            entry.body:SetPoint("BOTTOMRIGHT", entry.icon, "BOTTOMLEFT", -8,  2)
-            entry.body:SetPoint("LEFT",       entry.frame, "LEFT",       8,  0)
+            entry.icon:SetPoint("RIGHT", entry.frame, "RIGHT", -edge, 0)
+            entry.title:SetPoint("TOPRIGHT",   entry.icon, "TOPLEFT",    -gap, -2)
+            entry.title:SetPoint("LEFT",       entry.frame, "LEFT",       edge,  0)
+            entry.body:SetPoint("BOTTOMRIGHT", entry.icon, "BOTTOMLEFT", -gap,  2)
+            entry.body:SetPoint("LEFT",       entry.frame, "LEFT",       edge,  0)
         else
-            entry.icon:SetPoint("LEFT", entry.frame, "LEFT", 8, 0)
-            entry.title:SetPoint("TOPLEFT",   entry.icon, "TOPRIGHT",    8, -2)
-            entry.title:SetPoint("RIGHT",     entry.frame, "RIGHT",     -8,  0)
-            entry.body:SetPoint("BOTTOMLEFT", entry.icon, "BOTTOMRIGHT", 8,  2)
-            entry.body:SetPoint("RIGHT",      entry.frame, "RIGHT",     -8,  0)
+            entry.icon:SetPoint("LEFT", entry.frame, "LEFT", edge, 0)
+            entry.title:SetPoint("TOPLEFT",   entry.icon, "TOPRIGHT",    gap, -2)
+            entry.title:SetPoint("RIGHT",     entry.frame, "RIGHT",     -edge,  0)
+            entry.body:SetPoint("BOTTOMLEFT", entry.icon, "BOTTOMRIGHT", gap,  2)
+            entry.body:SetPoint("RIGHT",      entry.frame, "RIGHT",     -edge,  0)
         end
     end
 end
@@ -488,6 +492,9 @@ end
 
 function A.ApplyScale()
     if not framesCreated then return end
+    if A.GetIconSize then A.ICON_SIZE = A.GetIconSize() end
+    if A.GetIconGap then A.ICON_GAP = A.GetIconGap() end
+    A.LINE_HEIGHT = A.HEIGHT + A.LINE_SPACING
     UpdateFontObject()
     Frame:SetSize(S(A.WIDTH), S(A.LINE_HEIGHT))
     for i = 1, A.POOL_SIZE do
@@ -495,7 +502,7 @@ function A.ApplyScale()
         e.frame:SetSize(S(A.WIDTH), S(A.HEIGHT))
         e.icon:SetSize(S(A.ICON_SIZE), S(A.ICON_SIZE))
     end
-    -- Refreshes icon/text layout (icon side) on entries that have been shown.
+    -- Refreshes icon/text layout (icon side, size, gap) on entries that have been shown.
     A.ApplyColors()
 end
 

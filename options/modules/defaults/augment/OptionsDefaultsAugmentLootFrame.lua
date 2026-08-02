@@ -18,7 +18,7 @@ D.augmentLootFrameEnabled    = true
 
 -- Toast appearance
 D.augmentFontPath            = "__global__"
-D.augmentFontSize            = 16
+D.augmentFontSize            = 14
 D.augmentUIScale             = 1.0
 D.augmentIconSize            = 34
 D.augmentIconGap             = 10

@@ -17,7 +17,7 @@ local y = addon.Augment.state
 -- ============================================================================
 
 Y.FONT_PATH       = "Fonts\\FRIZQT__.TTF"  -- ultimate fallback; prefer Y.GetFontPath()
-Y.FONT_SIZE       = 16
+Y.FONT_SIZE       = 14
 
 local FONT_USE_GLOBAL = "__global__"
 
@@ -106,9 +106,9 @@ Y.DEFAULT_ANCHOR  = "BOTTOMRIGHT"
 Y.DEFAULT_X       = -30
 Y.DEFAULT_Y       = 250
 
-Y.ENTRANCE_DUR    = 0.3
-Y.EXIT_DUR        = 0.5
-Y.SLIDE_DIST      = 20
+Y.ENTRANCE_DUR    = 0.28
+Y.EXIT_DUR        = 0.45
+Y.SLIDE_DIST      = 18
 Y.EXIT_DRIFT      = 10
 Y.NUDGE_SPEED     = 10
 
