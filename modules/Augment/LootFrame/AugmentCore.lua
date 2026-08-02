@@ -251,6 +251,16 @@ local function CreateToastEntry(parent)
     iconBg:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
     iconBg:SetColorTexture(1, 1, 1, 0.8)
 
+    -- Dark fill sits between iconBg and the icon so transparent icons don't bleed
+    -- the kind colour through in Accent (mirrors Alerts' iconDark). Compact never
+    -- shows this (entry.iconDarkOnCompact is left unset) so Accent stays visually
+    -- distinct from Compact's plain colour chip.
+    local iconDark = f:CreateTexture(nil, "ARTWORK", nil, -1)
+    iconDark:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE))
+    iconDark:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
+    iconDark:SetColorTexture(0, 0, 0, 0.85)
+    iconDark:Hide()
+
     -- Stack icons — back-to-front so ARTWORK z-order mirrors depth.
     local icon3 = f:CreateTexture(nil, "ARTWORK")
     icon3:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE))
@@ -321,6 +331,7 @@ local function CreateToastEntry(parent)
         iconBg      = iconBg,
         iconBg2     = iconBg2,
         iconBg3     = iconBg3,
+        iconDark    = iconDark,
         icon        = icon,
         icon2       = icon2,
         icon3       = icon3,
@@ -870,7 +881,9 @@ function Augment.ShowToast(data)
         or  data.text
 
     entry.icon:SetTexture(data.icon)
-    entry.iconBg:SetColorTexture(data.br, data.bg, data.bb, 0.8)
+    -- iconBg's colour is (re)applied by ApplyToastIconLayout below via ApplyChrome
+    -- (ApplyUnframed reads entry._bgR/_bgG/_bgB set on the next lines; Framed hides
+    -- iconBg entirely), so setting it here first was dead work.
     entry._r, entry._g, entry._b       = data.r, data.g, data.b
     entry._bgR, entry._bgG, entry._bgB = data.br, data.bg, data.bb
     entry.text:SetText(displayText)
@@ -1173,7 +1186,15 @@ function Augment.ApplyScale()
     local Y = addon.Augment
     Y.ICON_SIZE    = Y.GetIconSize()
     Y.ICON_GAP     = Y.GetIconGap()
-    Y.ENTRY_HEIGHT = Y.ICON_SIZE + Y.BORDER_PAD * 2
+    local tightHeight = Y.ICON_SIZE + Y.BORDER_PAD * 2
+    local style = Y.ToastStyles and Y.ToastStyles.Normalize
+        and Y.ToastStyles.Normalize(Y.GetToastStyle and Y.GetToastStyle() or "compact")
+    -- Framed's tooltip-style backdrop needs headroom beyond the icon (see
+    -- ToastMotion.CHROME_HEIGHT_PAD) so its border doesn't overlap the icon/text.
+    -- Compact/Accent keep the tight height since their chrome has no hard border.
+    Y.ENTRY_HEIGHT = (style == "framed")
+        and math.max(tightHeight, Y.ICON_SIZE + Y.ToastMotion.CHROME_HEIGHT_PAD)
+        or tightHeight
     Y.LINE_HEIGHT  = Y.ENTRY_HEIGHT + Y.LINE_SPACING
     Y.TOTAL_WIDTH  = (Y.ICON_SIZE + Y.BORDER_PAD * 2) + Y.ICON_GAP + Y.TEXT_WIDTH
     if Augment.InvalidateCoinTextures then Augment.InvalidateCoinTextures() end
@@ -1190,6 +1211,7 @@ function Augment.ApplyScale()
             local bgSz = S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2)
             if e.iconBgAnchor then e.iconBgAnchor:SetSize(bgSz, bgSz) end
             if e.iconBg       then e.iconBg:SetSize(bgSz, bgSz) end
+            if e.iconDark     then e.iconDark:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE)) end
             if e.shine  then e.shine:SetSize(S(Augment.ICON_SIZE + 8), S(Augment.ICON_SIZE + 8)) end
             -- Explicit per-FontString SetFont overrides any direct-set override a
             -- third-party addon may have applied on top of our FontObject.

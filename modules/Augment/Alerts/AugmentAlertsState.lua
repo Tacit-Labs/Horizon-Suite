@@ -17,11 +17,6 @@ local Y = addon.Augment
 Y.Alerts = Y.Alerts or {}
 local A = Y.Alerts
 
-A.ENTRANCE_DUR = Y.ToastMotion.ENTRANCE_DUR
-A.EXIT_DUR     = Y.ToastMotion.EXIT_DUR
-A.SLIDE_DIST   = Y.ToastMotion.SLIDE_DIST
-A.NUDGE_SPEED  = Y.ToastMotion.NUDGE_SPEED
-
 -- Register this mini-module's DB keys into the shared routing table so
 -- OptionsData.lua dispatches writes without a manual allowlist.
 Y.DB_KEYS.augmentAlertsEnabled      = true

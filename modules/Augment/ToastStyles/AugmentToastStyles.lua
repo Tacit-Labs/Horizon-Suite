@@ -19,6 +19,11 @@ M.EXIT_DUR     = 0.45
 M.SLIDE_DIST   = 18
 M.NUDGE_SPEED  = 10
 M.EDGE         = 8
+-- Height headroom a Framed backdrop needs beyond the icon so the tooltip-style
+-- border/edge doesn't overlap the icon or text. Alerts' fixed HEIGHT (44 for a
+-- 34px icon) is the reference ratio; Loot derives its per-style entry height
+-- from this same constant (see AugmentCore.lua ApplyScale).
+M.CHROME_HEIGHT_PAD = 10
 
 local TOOLTIP_BACKDROP = {
     bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -167,7 +172,12 @@ local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, te
 
     if entry.iconDark then
         entry.iconDark:SetSize(iconSize, iconSize)
-        if style == "accent" then
+        -- Alerts always want the dark fill on both unframed styles (opt in via
+        -- entry.iconDarkOnCompact) so transparent icons never bleed the kind
+        -- colour through in Compact. Loot leaves iconDarkOnCompact unset so
+        -- Accent gets the dark fill but Compact stays a plain colour chip,
+        -- keeping the two loot styles visually distinct.
+        if style == "accent" or entry.iconDarkOnCompact then
             entry.iconDark:Show()
         else
             entry.iconDark:Hide()
@@ -206,7 +216,13 @@ function TS.ApplyChrome(entry, style, colors, layout)
     SetJustification(entry, textMode, justify)
 
     if style == "framed" then
-        ApplyFramed(entry, textMode, iconSide, iconSize, gap, textWidth)
+        -- Framed insets the icon by EDGE on the near side (see ApplyFramed's
+        -- AnchorIcon call below) but single-text mode uses a fixed textWidth
+        -- sized for the unframed (0-inset) layout. Shrink it by 2*EDGE so
+        -- EDGE + icon + gap + text still fits inside the backdrop instead of
+        -- overflowing past the frame's visual right edge.
+        local framedTextWidth = textWidth and math.max(0, textWidth - (2 * M.EDGE))
+        ApplyFramed(entry, textMode, iconSide, iconSize, gap, framedTextWidth)
         if entry.frame.SetBackdropBorderColor then
             entry.frame:SetBackdropBorderColor(r, g, b, 0.7)
         end

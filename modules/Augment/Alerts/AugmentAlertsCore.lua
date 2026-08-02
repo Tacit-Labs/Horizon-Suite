@@ -23,11 +23,14 @@ end
 
 A.POOL_SIZE    = 6
 A.WIDTH        = 280
-A.HEIGHT       = 44
 A.ICON_SIZE    = 34
 A.ICON_BG_PAD  = 1  -- colored square border per side in Minimalist style (matches LootFrame's BORDER_PAD)
 A.ICON_GAP     = 10
 A.LINE_SPACING = 5
+-- Row height must fit the icon plus Framed's backdrop chrome (M.CHROME_HEIGHT_PAD);
+-- 44 is the floor for the default 34px icon. Recomputed live in ApplyScale when
+-- Icon Size changes so large icons don't overflow stacked rows.
+A.HEIGHT       = math.max(44, A.ICON_SIZE + M.CHROME_HEIGHT_PAD)
 A.LINE_HEIGHT  = A.HEIGHT + A.LINE_SPACING
 A.DEFAULT_HOLD = 4.0
 
@@ -168,6 +171,10 @@ local function CreateEntry(parent)
         frame = f, iconBg = iconBg, iconDark = iconDark, icon = icon, title = title, body = body,
         active = false, elapsed = 0, holdDur = A.DEFAULT_HOLD,
         stackY = 0, smoothY = 0, maxAlpha = 1,
+        -- Alerts icons are frequently transparent (Friends, Vault); show the dark
+        -- fill on both unframed styles so the kind colour never bleeds through
+        -- Compact's chip (see ToastStyles.ApplyUnframed).
+        iconDarkOnCompact = true,
     }
 end
 
@@ -431,6 +438,9 @@ function A.ApplyScale()
     if not framesCreated then return end
     if A.GetIconSize then A.ICON_SIZE = A.GetIconSize() end
     if A.GetIconGap then A.ICON_GAP = A.GetIconGap() end
+    -- Large icons need a taller row than the 44px default so they don't overflow
+    -- into neighbouring stacked toasts.
+    A.HEIGHT = math.max(44, A.ICON_SIZE + M.CHROME_HEIGHT_PAD)
     A.LINE_HEIGHT = A.HEIGHT + A.LINE_SPACING
     UpdateFontObject()
     Frame:SetSize(S(A.WIDTH), S(A.LINE_HEIGHT))
