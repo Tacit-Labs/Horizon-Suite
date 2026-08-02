@@ -149,12 +149,16 @@ local function ApplyFramed(entry, textMode, iconSide, iconSize, gap, textWidth)
     AnchorText(entry, textMode, anchor, iconSide, gap, textWidth)
 end
 
-local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, textWidth, pad, r, g, b)
+-- Extra unscaled px per side on Accent's colour square beyond Compact's tight chip.
+local ACCENT_PAD_EXTRA = 4
+
+local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, textWidth, pad, accentExtra, r, g, b)
     if entry.frame.SetBackdrop then entry.frame:SetBackdrop(nil) end
 
     local background = entry.iconBg
     local anchor = entry.iconBgAnchor or background
-    local backgroundSize = iconSize + pad * 2
+    -- Compact: tight chip (icon + pad). Accent: larger colour block + dark under-icon.
+    local backgroundSize = iconSize + (pad + (accentExtra or 0)) * 2
 
     if anchor ~= background then anchor:SetSize(backgroundSize, backgroundSize) end
     AnchorIcon(entry, anchor, iconSide, 0)
@@ -172,12 +176,11 @@ local function ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, te
 
     if entry.iconDark then
         entry.iconDark:SetSize(iconSize, iconSize)
-        -- Alerts always want the dark fill on both unframed styles (opt in via
-        -- entry.iconDarkOnCompact) so transparent icons never bleed the kind
-        -- colour through in Compact. Loot leaves iconDarkOnCompact unset so
-        -- Accent gets the dark fill but Compact stays a plain colour chip,
-        -- keeping the two loot styles visually distinct.
-        if style == "accent" or entry.iconDarkOnCompact then
+        entry.iconDark:ClearAllPoints()
+        entry.iconDark:SetPoint("CENTER", background, "CENTER", 0, 0)
+        -- Accent only: dark underlay (stops transparent icons bleeding the
+        -- colour fill, and visually separates Accent from Compact's tight chip).
+        if style == "accent" then
             entry.iconDark:Show()
         else
             entry.iconDark:Hide()
@@ -229,5 +232,6 @@ function TS.ApplyChrome(entry, style, colors, layout)
         return
     end
 
-    ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, textWidth, pad, fillR, fillG, fillB)
+    local accentExtra = (style == "accent") and scale(ACCENT_PAD_EXTRA) or 0
+    ApplyUnframed(entry, style, textMode, iconSide, iconSize, gap, textWidth, pad, accentExtra, fillR, fillG, fillB)
 end

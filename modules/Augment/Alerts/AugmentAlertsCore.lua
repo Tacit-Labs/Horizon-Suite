@@ -171,10 +171,6 @@ local function CreateEntry(parent)
         frame = f, iconBg = iconBg, iconDark = iconDark, icon = icon, title = title, body = body,
         active = false, elapsed = 0, holdDur = A.DEFAULT_HOLD,
         stackY = 0, smoothY = 0, maxAlpha = 1,
-        -- Alerts icons are frequently transparent (Friends, Vault); show the dark
-        -- fill on both unframed styles so the kind colour never bleeds through
-        -- Compact's chip (see ToastStyles.ApplyUnframed).
-        iconDarkOnCompact = true,
     }
 end
 

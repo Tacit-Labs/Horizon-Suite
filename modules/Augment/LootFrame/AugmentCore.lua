@@ -253,8 +253,7 @@ local function CreateToastEntry(parent)
 
     -- Dark fill sits between iconBg and the icon so transparent icons don't bleed
     -- the kind colour through in Accent (mirrors Alerts' iconDark). Compact never
-    -- shows this (entry.iconDarkOnCompact is left unset) so Accent stays visually
-    -- distinct from Compact's plain colour chip.
+    -- shows this so Accent stays a larger colour block with a dark under-icon.
     local iconDark = f:CreateTexture(nil, "ARTWORK", nil, -1)
     iconDark:SetSize(S(Augment.ICON_SIZE), S(Augment.ICON_SIZE))
     iconDark:SetPoint("CENTER", iconBgAnchor, "CENTER", 0, 0)
