@@ -58,7 +58,7 @@ function Y.GetToastStyle()
     local D = addon.AUGMENT_DEFAULTS
     local raw = addon.GetDB and addon.GetDB("augmentToastStyle", D.augmentToastStyle) or D.augmentToastStyle
     local TS = Y.ToastStyles
-    return (TS and TS.Normalize and TS.Normalize(raw)) or "compact"
+    return (TS and TS.Normalize and TS.Normalize(raw)) or "framed"
 end
 
 -- Layout enums: icon side, slide-in side, stack grow direction.
@@ -118,7 +118,7 @@ Y.DEFAULT_Y       = 250
 Y.ENTRANCE_DUR    = Y.ToastMotion.ENTRANCE_DUR
 Y.EXIT_DUR        = Y.ToastMotion.EXIT_DUR
 Y.SLIDE_DIST      = Y.ToastMotion.SLIDE_DIST
-Y.EXIT_DRIFT      = 10
+Y.EXIT_DRIFT      = Y.ToastMotion.EXIT_DRIFT
 Y.NUDGE_SPEED     = Y.ToastMotion.NUDGE_SPEED
 
 Y.HOLD_ITEM       = 5.0

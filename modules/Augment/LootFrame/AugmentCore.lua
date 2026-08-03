@@ -186,7 +186,7 @@ local function ApplyToastIconLayout(entry)
     local TS = Augment.ToastStyles
     if not TS or not TS.ApplyChrome then return end
 
-    local style = TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "compact")
+    local style = TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "framed")
     TS.ApplyChrome(entry, style, {
         r  = entry._r   or 1, g  = entry._g   or 1, b  = entry._b   or 1,
         br = entry._bgR or entry._r or 1,
@@ -743,7 +743,7 @@ local function UpdateStackIcons(entry, count)
     -- Stack fan is Compact-only (see ApplyToastIconLayout); Framed/Accent always
     -- collapse to a single icon regardless of merged count.
     local TS = Augment.ToastStyles
-    local style = (TS and TS.Normalize and TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "compact")) or "compact"
+    local style = (TS and TS.Normalize and TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "framed")) or "framed"
     local numIcons = (style == "compact") and math.min(count, 3) or 1
     local iconLayers = { entry.icon,   entry.icon2,   entry.icon3   }  -- front → back
     local bgLayers   = { entry.iconBg, entry.iconBg2, entry.iconBg3 }
@@ -1187,7 +1187,7 @@ function Augment.ApplyScale()
     Y.ICON_GAP     = Y.GetIconGap()
     local tightHeight = Y.ICON_SIZE + Y.BORDER_PAD * 2
     local style = Y.ToastStyles and Y.ToastStyles.Normalize
-        and Y.ToastStyles.Normalize(Y.GetToastStyle and Y.GetToastStyle() or "compact")
+        and Y.ToastStyles.Normalize(Y.GetToastStyle and Y.GetToastStyle() or "framed")
     -- Framed's tooltip-style backdrop needs headroom beyond the icon (see
     -- ToastMotion.CHROME_HEIGHT_PAD) so its border doesn't overlap the icon/text.
     -- Compact/Accent keep the tight height since their chrome has no hard border.

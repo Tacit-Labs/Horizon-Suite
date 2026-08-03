@@ -15,7 +15,7 @@
 - Lua 5.1 only (no `goto`, `//`, native bitwise, `require`)
 - Namespace: `local addon = _G._HorizonSuite_Loading or _G.HorizonSuiteBeta or _G.HorizonSuite` (match file’s existing header pattern)
 - Style IDs: `compact` | `framed` | `accent` only (product names Compact / Framed / Accent)
-- Defaults: loot `augmentToastStyle = "compact"`; alerts `alertsToastStyle = "framed"`
+- Defaults: loot `augmentToastStyle = "framed"`; alerts `alertsToastStyle = "framed"`
 - Content stays native: loot one line (`text`/`shadow`); alerts title + body
 - Shared base motion only; loot epic/legend pop/shine stay local
 - One-shot migration via `addon.RegisterMigration` + `db._migrations[id]` (never gate on data conditions alone)
@@ -54,7 +54,7 @@
 - Consumes: `addon.Augment` table (must exist; create `addon.Augment = addon.Augment or {}` if loot State usually creates it — check `AugmentState.lua` load order; ToastStyles loads first so initialize `addon.Augment`)
 - Produces:
   - `addon.Augment.ToastStyles.Normalize(style) → "compact"|"framed"|"accent"`
-  - `addon.Augment.ToastMotion` table: `ENTRANCE_DUR=0.28`, `EXIT_DUR=0.45`, `SLIDE_DIST=18`, `NUDGE_SPEED=10`, `EDGE=8`, `Ease(t, mode)`
+  - `addon.Augment.ToastMotion` table: `ENTRANCE_DUR=0.28`, `EXIT_DUR=0.45`, `SLIDE_DIST=18`, `EXIT_DRIFT=10`, `NUDGE_SPEED=10`, `EDGE=8`, `Ease(t, mode)`
   - `addon.Augment.ToastStyles.ApplyChrome(entry, style, colors, layout)` — see signature below
 
 **ApplyChrome contract:**
@@ -172,7 +172,7 @@ git commit -m "feat(augment): add shared ToastStyles chrome and motion module"
 Loot defaults file:
 
 ```lua
-D.augmentToastStyle = "compact"
+D.augmentToastStyle = "framed"
 ```
 
 Alerts defaults file:
@@ -234,7 +234,7 @@ addon.RegisterMigration({
                     prof.alertsToastStyle = MAP[prof.alertsStyle] or "framed"
                 end
                 if prof.augmentToastStyle == nil then
-                    prof.augmentToastStyle = "compact"
+                    prof.augmentToastStyle = "framed"
                 end
             end
         end
@@ -469,7 +469,7 @@ git commit -m "feat(augment): Axis Compact/Framed/Accent style pickers for loot 
 No code unless fixes are needed.
 
 - [ ] **Step 1: Defaults / migration**
-  - Fresh profile: loot Compact, alerts Framed
+  - Fresh profile: loot Framed, alerts Framed
   - Old profile with `alertsStyle=minimalist`: becomes Accent after one load
 
 - [ ] **Step 2: Parity**

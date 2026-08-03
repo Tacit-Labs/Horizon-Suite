@@ -17,9 +17,9 @@ In simple terms: both toast systems share the same three “skins” and the sam
 | Parity bar | Matching chrome + base motion when the same style is selected; not identical line count |
 | Style catalog | Three skins with product names: **Compact**, **Framed**, **Accent** |
 | Controls | Separate Axis pickers per system (no global lock, no “match other” toggle) |
-| Defaults | Loot → Compact; Alerts → Framed (preserve today’s looks) |
+| Defaults | Loot → Framed; Alerts → Framed (matching first-run chrome) |
 | Architecture | Shared chrome + motion module; separate pools and content paths |
-| Motion | Shared base entrance/exit/slide/nudge; loot epic/legend pop + shine stay loot-only |
+| Motion | Shared base entrance/exit/slide/nudge/exit-drift (ease-in exit); loot epic/legend pop + shine stay loot-only |
 | Content | Style owns chrome only; loot one line; alerts title + body |
 
 ## Style catalog
@@ -51,7 +51,7 @@ Responsibilities:
 
 | Key | Default | Notes |
 |-----|---------|--------|
-| `augmentToastStyle` | `compact` | Loot picker |
+| `augmentToastStyle` | `framed` | Loot picker |
 | `alertsToastStyle` | `framed` | Alerts picker |
 
 **Migration (one-shot):**
@@ -86,7 +86,7 @@ Short Augment capability line: shared toast styles (Compact / Framed / Accent) a
 ## Verification
 
 - Same style on both → matching chrome and base slide/fade; loot still one line; alerts still title + body
-- Defaults: loot Compact, alerts Framed (after migration of existing alerts styles)
+- Defaults: loot Framed, alerts Framed (after migration of existing alerts styles)
 - Epic/legend pop + shine still work on loot under any chrome style
 - Per-system icon side / slide / grow / size / gap still work
 - `/reload` keeps chosen styles

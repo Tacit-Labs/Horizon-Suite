@@ -21,7 +21,10 @@ addon.RegisterMigration({
                     prof.alertsToastStyle = MAP[prof.alertsStyle] or "framed"
                 end
                 if prof.augmentToastStyle == nil then
-                    prof.augmentToastStyle = "compact"
+                    -- Match alerts: first-run / unset loot style is Framed so both
+                    -- stacks share chrome out of the box. Compact remains available
+                    -- as an explicit picker choice.
+                    prof.augmentToastStyle = "framed"
                 end
             end
         end

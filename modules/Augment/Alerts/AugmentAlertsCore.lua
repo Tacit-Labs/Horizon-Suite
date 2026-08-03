@@ -170,7 +170,7 @@ local function CreateEntry(parent)
     return {
         frame = f, iconBg = iconBg, iconDark = iconDark, icon = icon, title = title, body = body,
         active = false, elapsed = 0, holdDur = A.DEFAULT_HOLD,
-        stackY = 0, smoothY = 0, maxAlpha = 1,
+        stackY = 0, smoothY = 0, driftY = 0, maxAlpha = 1,
     }
 end
 
@@ -323,8 +323,11 @@ function A.UpdateEntry(entry, dt)
     elseif t < holdEnd then
         alpha, slideX = maxA, 0
     elseif t < fadeEnd then
-        alpha  = (1 - Ease((t - holdEnd) / M.EXIT_DUR)) * maxA
+        -- Match loot: ease-in fade + shared EXIT_DRIFT so both stacks leave the same way.
+        local p = Ease((t - holdEnd) / M.EXIT_DUR, "in")
+        alpha  = (1 - p) * maxA
         slideX = 0
+        entry.driftY = (entry.driftY or 0) + (M.EXIT_DRIFT / M.EXIT_DUR) * dt
     else
         entry.active = false
         entry.frame:Hide()
@@ -336,7 +339,8 @@ function A.UpdateEntry(entry, dt)
     local gap = entry.stackY - entry.smoothY
     entry.smoothY = math.abs(gap) > 0.5 and (entry.smoothY + gap * math.min(M.NUDGE_SPEED * dt, 1)) or entry.stackY
 
-    local yOff = growUp and entry.smoothY or -entry.smoothY
+    local yOff = entry.smoothY + (entry.driftY or 0)
+    if not growUp then yOff = -yOff end
 
     entry.frame:SetAlpha(alpha)
     entry.frame:ClearAllPoints()
@@ -384,6 +388,7 @@ function A.ShowToast(kind, title, body, meta)
     entry.holdDur = tonumber(meta and meta.duration) or tonumber(A.GetDB("alertsHoldDuration", D.alertsHoldDuration)) or D.alertsHoldDuration
     entry.stackY  = 0
     entry.smoothY = 0
+    entry.driftY  = 0
     -- Snapshot layout so mid-toast option flips don't yank active animations.
     entry.attachPoint = (A.GetEntryAttachPoint and A.GetEntryAttachPoint()) or "TOP"
     entry.slideSign   = (A.GetSlideSign and A.GetSlideSign()) or 1

@@ -17,6 +17,7 @@ local M = Y.ToastMotion
 M.ENTRANCE_DUR = 0.28
 M.EXIT_DUR     = 0.45
 M.SLIDE_DIST   = 18
+M.EXIT_DRIFT   = 10  -- unscaled px drifted during exit (loot + alerts)
 M.NUDGE_SPEED  = 10
 M.EDGE         = 8
 -- Height headroom a Framed backdrop needs beyond the icon so the tooltip-style
