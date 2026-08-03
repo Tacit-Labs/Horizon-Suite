@@ -114,33 +114,17 @@ local categories = {
                             set = function(v) setDB("augmentGrowDirection", v) end,
                             preserveOrder = true,
                         },
-                        Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
-                    },
-                },
-                right = {
-                    title = L["AUGMENT_TOAST_TYPES"],
-                    options = {
-                        Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems,       { refreshIds = { "augmentMinQuality", "augmentShowPushedItems" } }),
-                        Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
-                        Toggle(L["AUGMENT_SHOW_MONEY"],    L["AUGMENT_SHOW_MONEY_DESC"],    "augmentShowMoney",    D.augmentShowMoney),
-                        Toggle(L["AUGMENT_SHOW_CURRENCY"], L["AUGMENT_SHOW_CURRENCY_DESC"], "augmentShowCurrency", D.augmentShowCurrency),
-                        Toggle(L["AUGMENT_SHOW_REP"],      L["AUGMENT_SHOW_REP_DESC"],      "augmentShowRep",      D.augmentShowRep),
-                    },
-                },
-            },
-
-            -- Style (two-column: Font + Stacking | Hold Durations)
-            Section(L["AUGMENT_STYLE_SECTION"]),
-            { type = "columns",
-                left = {
-                    options = {
-                        { type = "section", name = L["AUGMENT_FONT_SECTION"] },
                         { type = "dropdown",
-                            name = L["AUGMENT_TEXT_OUTLINE_TYPE"], desc = L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"],
-                            dbKey = "augmentTextOutlineType",
-                            options = addon.OUTLINE_OPTIONS,
-                            get = function() return getDB("augmentTextOutlineType", D.augmentTextOutlineType) end,
-                            set = function(v) setDB("augmentTextOutlineType", v) end,
+                            name = L["AUGMENT_TOAST_STYLE"], desc = L["AUGMENT_TOAST_STYLE_DESC"],
+                            dbKey = "augmentToastStyle",
+                            options = {
+                                { L["AUGMENT_TOAST_STYLE_COMPACT"], "compact" },
+                                { L["AUGMENT_TOAST_STYLE_FRAMED"],  "framed"  },
+                                { L["AUGMENT_TOAST_STYLE_ACCENT"],  "accent"  },
+                            },
+                            get = function() return getDB("augmentToastStyle", D.augmentToastStyle) end,
+                            set = function(v) setDB("augmentToastStyle", v) end,
+                            preserveOrder = true,
                         },
                         { type = "dropdown",
                             name = L["AUGMENT_FONT"],
@@ -158,6 +142,33 @@ local categories = {
                             get = function() return getSlider("augmentFontSize") end,
                             set = function(v) setDB("augmentFontSize", clamp(v, "augmentFontSize")) end,
                         },
+                        { type = "dropdown",
+                            name = L["AUGMENT_TEXT_OUTLINE_TYPE"], desc = L["AUGMENT_TEXT_OUTLINE_TYPE_DESC"],
+                            dbKey = "augmentTextOutlineType",
+                            options = addon.OUTLINE_OPTIONS,
+                            get = function() return getDB("augmentTextOutlineType", D.augmentTextOutlineType) end,
+                            set = function(v) setDB("augmentTextOutlineType", v) end,
+                        },
+                        Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
+                    },
+                },
+                right = {
+                    title = L["AUGMENT_TOAST_TYPES"],
+                    options = {
+                        Toggle(L["AUGMENT_SHOW_ITEMS"],        L["AUGMENT_SHOW_ITEMS_DESC"],        "augmentShowItems",       D.augmentShowItems,       { refreshIds = { "augmentMinQuality", "augmentShowPushedItems" } }),
+                        Toggle(L["AUGMENT_SHOW_PUSHED_ITEMS"], L["AUGMENT_SHOW_PUSHED_ITEMS_DESC"], "augmentShowPushedItems", D.augmentShowPushedItems, { disabled = function() return getDB("augmentShowItems", D.augmentShowItems) == false end }),
+                        Toggle(L["AUGMENT_SHOW_MONEY"],    L["AUGMENT_SHOW_MONEY_DESC"],    "augmentShowMoney",    D.augmentShowMoney),
+                        Toggle(L["AUGMENT_SHOW_CURRENCY"], L["AUGMENT_SHOW_CURRENCY_DESC"], "augmentShowCurrency", D.augmentShowCurrency),
+                        Toggle(L["AUGMENT_SHOW_REP"],      L["AUGMENT_SHOW_REP_DESC"],      "augmentShowRep",      D.augmentShowRep),
+                    },
+                },
+            },
+
+            -- Style (two-column: Stacking | Hold Durations)
+            Section(L["AUGMENT_STYLE_SECTION"]),
+            { type = "columns",
+                left = {
+                    options = {
                         { type = "section", name = L["AUGMENT_STACKING_SECTION"] },
                         Toggle(L["AUGMENT_STACK_DUPLICATES"],        L["AUGMENT_STACK_DUPLICATES_DESC"],        "augmentStackDuplicates",      D.augmentStackDuplicates),
                         Toggle(L["AUGMENT_STACK_COUNT_BEFORE_NAME"], L["AUGMENT_STACK_COUNT_BEFORE_NAME_DESC"], "augmentStackCountBeforeName", D.augmentStackCountBeforeName),

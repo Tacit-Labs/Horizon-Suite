@@ -49,8 +49,13 @@ Y.DB_KEYS.alertsSoundBags           = true
 Y.DB_KEYS.alertsSoundMail           = true
 Y.DB_KEYS.alertsSoundVault          = true
 Y.DB_KEYS.alertsSoundFriends        = true
-Y.DB_KEYS.alertsStyle               = true
+Y.DB_KEYS.alertsToastStyle          = true
 Y.DB_KEYS.alertsTextOutlineType     = true
+Y.DB_KEYS.alertsIconSize            = true
+Y.DB_KEYS.alertsIconGap             = true
+Y.DB_KEYS.alertsIconSide            = true
+Y.DB_KEYS.alertsSlideSide           = true
+Y.DB_KEYS.alertsGrowDirection       = true
 
 -- Per-kind colours (3 float keys each, mirrors talkingHeadNameColorR/G/B).
 for _, prefix in ipairs({
@@ -70,6 +75,15 @@ local function getDB(k, d)
     return v
 end
 A.GetDB = getDB
+
+--- Return the normalized alerts-toast style.
+--- @return string styleID "compact", "framed", or "accent"
+function A.GetToastStyle()
+    local D = addon.AUGMENT_DEFAULTS
+    local raw = A.GetDB("alertsToastStyle", D.alertsToastStyle)
+    local TS = Y.ToastStyles
+    return (TS and TS.Normalize and TS.Normalize(raw)) or "framed"
+end
 
 -- ============================================================================
 -- KNOWN KINDS
@@ -175,6 +189,28 @@ A.DEFAULT_X      = 0
 A.DEFAULT_Y      = -180
 
 -- Layout enums: icon side, slide-in side, stack grow direction.
+-- @return number
+function A.GetIconSize()
+    local D = addon.AUGMENT_DEFAULTS
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS.alertsIconSize
+    local v = tonumber(A.GetDB("alertsIconSize", D.alertsIconSize)) or D.alertsIconSize
+    if lim then
+        return math.max(lim.min, math.min(lim.max, v))
+    end
+    return v
+end
+
+-- @return number
+function A.GetIconGap()
+    local D = addon.AUGMENT_DEFAULTS
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS.alertsIconGap
+    local v = tonumber(A.GetDB("alertsIconGap", D.alertsIconGap)) or D.alertsIconGap
+    if lim then
+        return math.max(lim.min, math.min(lim.max, v))
+    end
+    return v
+end
+
 -- @return string "left"|"right"
 function A.GetIconSide()
     local D = addon.AUGMENT_DEFAULTS
