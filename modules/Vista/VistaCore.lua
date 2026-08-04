@@ -133,7 +133,7 @@ do
     local PANEL_BORDER_DEFAULT = { 0.3, 0.4, 0.6, 0.7 }
     local MASK_SQUARE_V   = "Interface\\ChatFrame\\ChatFrameBackground"
     local MASK_CIRCULAR_V = 186178
-    local BTN_DEFAULTS = { tracking=22, calendar=22, teleport=22, queue=22, mail=20, craftingOrder=20, addon=26 }
+    local BTN_DEFAULTS = { tracking=22, calendar=22, teleport=22, queue=22, landing=36, mail=20, craftingOrder=20, addon=26 }
 
     -- Font / size
     G.ZoneFont   = function() return ResolveFont("vistaZoneFontPath") end
@@ -250,18 +250,22 @@ do
     G.ShowTracking      = function() return DB("vistaShowTracking",      true)  end
     G.ShowCalendar      = function() return DB("vistaShowCalendar",      true)  end
     G.ShowTeleport      = function() return DB("vistaShowTeleport",      true)  end
+    G.ShowLanding       = function() return DB("vistaShowLanding",       true)  end
     -- Defaults mirror VISTA_DEFAULTS (all true); GetDB returns the passed default
     -- when the key is unwritten, so a false here would override the options panel
     -- and leave a mouseover-only button stuck permanently visible.
     G.MouseoverTracking = function() return DB("vistaMouseoverTracking", true) end
     G.MouseoverCalendar = function() return DB("vistaMouseoverCalendar", true) end
     G.MouseoverTeleport = function() return DB("vistaMouseoverTeleport", true) end
+    -- Landing defaults false: Omnium Folio / expansion pulses must stay visible.
+    G.MouseoverLanding  = function() return DB("vistaMouseoverLanding",  false) end
 
     -- Button sizes
     G.TrackingBtnSize = function() return tonumber(DB("vistaTrackingBtnSize", BTN_DEFAULTS.tracking)) or BTN_DEFAULTS.tracking end
     G.CalendarBtnSize = function() return tonumber(DB("vistaCalendarBtnSize", BTN_DEFAULTS.calendar)) or BTN_DEFAULTS.calendar end
     G.TeleportBtnSize = function() return tonumber(DB("vistaTeleportBtnSize", BTN_DEFAULTS.teleport)) or BTN_DEFAULTS.teleport end
     G.QueueBtnSize    = function() return tonumber(DB("vistaQueueBtnSize",    BTN_DEFAULTS.queue))    or BTN_DEFAULTS.queue    end
+    G.LandingBtnSize  = function() return tonumber(DB("vistaLandingBtnSize",  BTN_DEFAULTS.landing))  or BTN_DEFAULTS.landing  end
     G.MailIconSize    = function() return tonumber(DB("vistaMailIconSize",     BTN_DEFAULTS.mail))     or BTN_DEFAULTS.mail     end
     G.CraftingOrderIconSize = function() return tonumber(DB("vistaCraftingOrderIconSize", BTN_DEFAULTS.craftingOrder)) or BTN_DEFAULTS.craftingOrder end
     G.AddonBtnSize    = function() return tonumber(DB("vistaAddonBtnSize",     BTN_DEFAULTS.addon))    or BTN_DEFAULTS.addon    end
@@ -270,6 +274,7 @@ do
         elseif k=="calendar" then return G.CalendarBtnSize()
         elseif k=="teleport" then return G.TeleportBtnSize()
         elseif k=="queue"    then return G.QueueBtnSize()
+        elseif k=="landing"  then return G.LandingBtnSize()
         else return BTN_DEFAULTS.tracking end
     end
 
@@ -490,6 +495,7 @@ local drawerOpen = false
 local rightClickPanel, rightClickVisible = nil, false
 local defaultProxies = {}
 local queueAnchor  -- dedicated draggable anchor for QueueStatusButton
+local landingPageAnchor  -- draggable anchor for ExpansionLandingPageMinimapButton (Omnium Folio)
 local mailAnchor, craftingOrderAnchor  -- draggable anchors for mail + crafting-order indicators
 local vistaLastKnownZone, autoZoomTimer
 
@@ -2126,7 +2132,8 @@ function LayoutTeleportMenu(menu)
 end
 
 -- ============================================================================
--- DEFAULT BUTTON PROXIES  (tracking, calendar/landing page)
+-- DEFAULT BUTTON PROXIES  (tracking, calendar, teleport)
+-- Expansion landing / Omnium Folio uses CreateLandingPageAnchor (native button).
 -- ============================================================================
 
 local SuppressDefaultBlizzardButtons, CreateDefaultButtonProxies, RefreshDefaultButtonProxiesFromDB
@@ -2328,9 +2335,12 @@ local function ProxyVisFuncs()
 end
 
 SuppressDefaultBlizzardButtons = function()
+    -- ExpansionLandingPageMinimapButton is NOT suppressed: Midnight Omnium Folio
+    -- (and other expansion landing overlays) require the native button for Show,
+    -- pulses, and helptips. Vista reparents it via CreateLandingPageAnchor.
     local allNames = {
         "MiniMapTracking", "MinimapTrackingFrame", "MiniMapTrackingButton",
-        "ExpansionLandingPageMinimapButton", "GarrisonLandingPageMinimapButton",
+        "GarrisonLandingPageMinimapButton",
         "TimeManagerClockButton", "GameTimeFrame", "MiniMapInstanceDifficulty",
     }
     for _, name in ipairs(allNames) do
@@ -2735,6 +2745,308 @@ do
     end
 end
 
+-- ============================================================================
+-- LANDING PAGE ANCHOR (Omnium Folio / ExpansionLandingPageMinimapButton)
+-- ============================================================================
+-- Native button kept alive so Blizzard pulses, helptips, and unlock alerts work.
+-- Scoped in do/end to stay under the chunk local limit.
+
+local CreateLandingPageAnchor, RefreshLandingPageAnchor, SyncLandingPageAnchorGeometry
+do
+    local LANDING_ANCHOR_PAD = 6
+    Vista._landingReattach = Vista._landingReattach or { internal = false, timer = nil, dragging = false }
+
+    local function GetLandingPageButton()
+        return _G.ExpansionLandingPageMinimapButton
+    end
+
+    local function LandingButtonNeedsReattach(realBtn)
+        if not realBtn or not landingPageAnchor then return false end
+        if Vista._landingReattach.dragging then return false end
+        if not G.ShowLanding() then return false end
+        local okP, parent = pcall(function() return realBtn:GetParent() end)
+        if not okP or parent ~= landingPageAnchor then return true end
+        local okN, n = pcall(function() return realBtn:GetNumPoints() end)
+        if not okN or not n or n < 1 then return true end
+        local okPt, pt, rel, relPt, ox, oy = pcall(function() return realBtn:GetPoint(1) end)
+        if not okPt or not rel then return true end
+        if rel ~= landingPageAnchor then return true end
+        if pt ~= "CENTER" or relPt ~= "CENTER" then return true end
+        ox = tonumber(ox) or 0
+        oy = tonumber(oy) or 0
+        if math.abs(ox) > 0.5 or math.abs(oy) > 0.5 then return true end
+        return false
+    end
+
+    local function AttachLandingButtonToAnchor()
+        if not landingPageAnchor then return end
+        if Vista._landingReattach.dragging then return end
+        local realBtn = GetLandingPageButton()
+        if not realBtn then return end
+
+        Vista._landingReattach.internal = true
+        pcall(function()
+            local btnSz = G.LandingBtnSize()
+            pcall(function() realBtn:SetParent(landingPageAnchor) end)
+            pcall(function() realBtn:ClearAllPoints() end)
+            pcall(function() realBtn:SetPoint("CENTER", landingPageAnchor, "CENTER", 0, 0) end)
+            pcall(function() realBtn:SetSize(btnSz, btnSz) end)
+            pcall(function() realBtn:SetScale(1) end)
+            pcall(function() realBtn:SetFrameStrata("HIGH") end)
+            pcall(function() realBtn:SetFrameLevel(landingPageAnchor:GetFrameLevel() + 1) end)
+            pcall(function() realBtn:SetIgnoreParentAlpha(true) end)
+        end)
+        Vista._landingReattach.internal = false
+    end
+
+    local function ScheduleLandingButtonReattach()
+        local LR = Vista._landingReattach
+        if LR.dragging then return end
+        if not landingPageAnchor or not G.ShowLanding() then return end
+        if LR.internal then return end
+        local realBtn = GetLandingPageButton()
+        if realBtn and not LandingButtonNeedsReattach(realBtn) then return end
+        if LR.timer then return end
+        LR.timer = C_Timer.NewTimer(0, function()
+            LR.timer = nil
+            if LR.dragging then return end
+            if not landingPageAnchor or not G.ShowLanding() then return end
+            local btn = GetLandingPageButton()
+            if btn and LandingButtonNeedsReattach(btn) then
+                AttachLandingButtonToAnchor()
+            end
+            RefreshLandingPageAnchor()
+        end)
+    end
+
+    local function ApplyLandingMouseoverAlpha(realBtn)
+        if not realBtn or not realBtn:IsShown() then return end
+        if not G.ShowLanding() then return end
+        if not G.MouseoverLanding() then
+            realBtn:SetAlpha(1)
+            return
+        end
+        local locked = DB("vistaLocked_proxy_landing", true)
+        if realBtn:IsMouseOver() or (Minimap and Minimap:IsMouseOver()) then
+            realBtn:SetAlpha(1)
+        else
+            realBtn:SetAlpha(locked and 0 or 0.5)
+        end
+    end
+
+    local function SaveLandingAnchorFromFrame(frame)
+        if not landingPageAnchor or not frame then return end
+        local ox, oy = ComputeMinimapCenterOffset(frame)
+        if not ox then return end
+        SetDB("vistaEX_proxy_landing", ox)
+        SetDB("vistaEY_proxy_landing", oy)
+        landingPageAnchor:ClearAllPoints()
+        landingPageAnchor:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
+        AttachLandingButtonToAnchor()
+    end
+
+    local function BeginLandingDrag(frame)
+        if DB("vistaLocked_proxy_landing", true) then return end
+        if InCombatLockdown() then return end
+        if not frame then return end
+        -- StartMoving must run on the same frame that received OnDragStart
+        -- (child-on-anchor splits break drag tracking — see crafting-order note).
+        Vista._landingReattach.dragging = true
+        frame:StartMoving()
+    end
+
+    local function EndLandingDrag(frame)
+        if not frame then return end
+        frame:StopMovingOrSizing()
+        Vista._landingReattach.dragging = false
+        SaveLandingAnchorFromFrame(frame)
+    end
+
+    RefreshLandingPageAnchor = function()
+        if not landingPageAnchor then return end
+        local realBtn = GetLandingPageButton()
+        local locked = DB("vistaLocked_proxy_landing", true)
+
+        if not G.ShowLanding() then
+            landingPageAnchor:SetAlpha(0)
+            landingPageAnchor._border:Hide()
+            landingPageAnchor:EnableMouse(false)
+            landingPageAnchor:Show()
+            if realBtn then
+                pcall(function() realBtn:SetAlpha(0) end)
+                pcall(function() realBtn:EnableMouse(false) end)
+            end
+            return
+        end
+
+        if realBtn and LandingButtonNeedsReattach(realBtn) then
+            AttachLandingButtonToAnchor()
+        end
+        landingPageAnchor:Show()
+
+        if realBtn then
+            pcall(function() realBtn:EnableMouse(true) end)
+            pcall(function() realBtn:SetMovable(not locked) end)
+            ApplyLandingMouseoverAlpha(realBtn)
+        end
+
+        if not locked then
+            landingPageAnchor:SetAlpha(1)
+            landingPageAnchor:EnableMouse(true)
+            -- Placeholder only when Blizzard has not shown the landing button yet
+            local shown = realBtn and realBtn:IsShown()
+            landingPageAnchor._border:SetShown(not shown)
+        else
+            landingPageAnchor:SetAlpha(0)
+            landingPageAnchor:EnableMouse(false)
+            landingPageAnchor._border:Hide()
+        end
+    end
+
+    CreateLandingPageAnchor = function()
+        local realBtn = GetLandingPageButton()
+        if not realBtn then return end
+
+        if landingPageAnchor then
+            RefreshLandingPageAnchor()
+            return
+        end
+
+        local btnSz = G.LandingBtnSize()
+        local anchorSz = btnSz + LANDING_ANCHOR_PAD * 2
+
+        landingPageAnchor = CreateFrame("Frame", "HorizonSuiteVistaLandingAnchor", UIParent)
+        landingPageAnchor:SetSize(anchorSz, anchorSz)
+        landingPageAnchor:SetFrameStrata("HIGH")
+        landingPageAnchor:SetClampedToScreen(true)
+        landingPageAnchor:SetMovable(true)
+        landingPageAnchor:EnableMouse(true)
+
+        local savedX = tonumber(DB("vistaEX_proxy_landing", nil))
+        local savedY = tonumber(DB("vistaEY_proxy_landing", nil))
+        if savedX and savedY then
+            landingPageAnchor:SetPoint("CENTER", Minimap, "CENTER", savedX, savedY)
+        else
+            -- Default: top-left corner (tracking is top-right; calendar bottom-left)
+            local inset = VISTA_MINIMAP_CORNER_INSET
+            local mmW = Minimap:GetWidth() or 200
+            local mmH = Minimap:GetHeight() or mmW
+            local halfW, halfH = mmW * 0.5, mmH * 0.5
+            local pad = inset + anchorSz * 0.5
+            landingPageAnchor:SetPoint("CENTER", Minimap, "CENTER", -halfW + pad, halfH - pad)
+        end
+
+        local border = landingPageAnchor:CreateTexture(nil, "OVERLAY")
+        border:SetSize(btnSz, btnSz)
+        border:SetPoint("CENTER", landingPageAnchor, "CENTER", 0, 0)
+        local atlasOk = pcall(function() border:SetAtlas("midnight-landingbutton-up") end)
+        if not atlasOk then
+            pcall(function() border:SetAtlas("landingpage-minimapbutton") end)
+        end
+        border:SetAlpha(0.5)
+        border:Hide()
+        landingPageAnchor._border = border
+
+        -- Drag via the anchor when the native button is hidden (unlocked placeholder).
+        landingPageAnchor:RegisterForDrag("LeftButton")
+        landingPageAnchor:SetScript("OnDragStart", function(self)
+            BeginLandingDrag(self)
+        end)
+        landingPageAnchor:SetScript("OnDragStop", function(self)
+            EndLandingDrag(self)
+        end)
+
+        AttachLandingButtonToAnchor()
+
+        -- Native button sits above the anchor and receives all mouse input once
+        -- Omnium Folio is unlocked — drag must be registered on the button itself.
+        pcall(function()
+            realBtn:SetMovable(true)
+            realBtn:RegisterForDrag("LeftButton")
+        end)
+        if not realBtn._vistaLandingDragHooked then
+            realBtn._vistaLandingDragHooked = true
+            realBtn:HookScript("OnDragStart", function(self)
+                BeginLandingDrag(self)
+            end)
+            realBtn:HookScript("OnDragStop", function(self)
+                EndLandingDrag(self)
+            end)
+        end
+
+        if hooksecurefunc and not realBtn._vistaLandingHooked then
+            realBtn._vistaLandingHooked = true
+            hooksecurefunc(realBtn, "SetParent", function(self, parent)
+                if parent ~= landingPageAnchor and landingPageAnchor and G.ShowLanding() then
+                    ScheduleLandingButtonReattach()
+                end
+            end)
+            hooksecurefunc(realBtn, "SetPoint", function(self)
+                if Vista._landingReattach.internal then return end
+                if not G.ShowLanding() then return end
+                if not LandingButtonNeedsReattach(self) then return end
+                ScheduleLandingButtonReattach()
+            end)
+            hooksecurefunc(realBtn, "ClearAllPoints", function(self)
+                if Vista._landingReattach.internal then return end
+                if not G.ShowLanding() then return end
+                if not LandingButtonNeedsReattach(self) then return end
+                ScheduleLandingButtonReattach()
+            end)
+            hooksecurefunc(realBtn, "Show", function(self)
+                if Vista._landingReattach.internal then return end
+                if not G.ShowLanding() then
+                    -- Keep the frame "shown" for Blizzard state, but invisible/unclickable
+                    -- when the user disabled the landing button in Vista options.
+                    pcall(function() self:SetAlpha(0) end)
+                    pcall(function() self:EnableMouse(false) end)
+                    return
+                end
+                ScheduleLandingButtonReattach()
+                RefreshLandingPageAnchor()
+            end)
+            hooksecurefunc(realBtn, "Hide", function()
+                if Vista._landingReattach.internal then return end
+                RefreshLandingPageAnchor()
+            end)
+            hooksecurefunc(realBtn, "SetSize", function(self)
+                if Vista._landingReattach.internal then return end
+                if not G.ShowLanding() then return end
+                local wantSz = G.LandingBtnSize()
+                local w, h = self:GetSize()
+                if w and h and (math.abs(w - wantSz) > 0.5 or math.abs(h - wantSz) > 0.5) then
+                    Vista._landingReattach.internal = true
+                    pcall(function() self:SetSize(wantSz, wantSz) end)
+                    Vista._landingReattach.internal = false
+                end
+            end)
+            realBtn:HookScript("OnEnter", function()
+                if G.ShowLanding() and G.MouseoverLanding() then
+                    realBtn:SetAlpha(1)
+                end
+            end)
+            realBtn:HookScript("OnLeave", function()
+                ApplyLandingMouseoverAlpha(realBtn)
+            end)
+        end
+
+        RefreshLandingPageAnchor()
+    end
+
+    SyncLandingPageAnchorGeometry = function()
+        if not landingPageAnchor then return end
+        local btnSz = G.LandingBtnSize()
+        landingPageAnchor:SetSize(btnSz + LANDING_ANCHOR_PAD * 2, btnSz + LANDING_ANCHOR_PAD * 2)
+        if landingPageAnchor._border then
+            landingPageAnchor._border:ClearAllPoints()
+            landingPageAnchor._border:SetSize(btnSz, btnSz)
+            landingPageAnchor._border:SetPoint("CENTER", landingPageAnchor, "CENTER", 0, 0)
+        end
+        AttachLandingButtonToAnchor()
+        RefreshLandingPageAnchor()
+    end
+end
+
 local INTERNAL_BLACKLIST, BLIZZARD_DEFAULT_BUTTONS, ClusterAndOtherAddonNamePatterns, buttonOriginalState, proxyButtonCache
 do
     INTERNAL_BLACKLIST = {
@@ -2743,6 +3055,7 @@ do
         ["HorizonSuiteVistaButtonBar"]   = true,
         ["HorizonSuiteVistaDrawerBtn"]   = true,
         ["HorizonSuiteVistaQueueAnchor"] = true,
+        ["HorizonSuiteVistaLandingAnchor"] = true,
         ["HorizonSuiteVistaMailAnchor"]  = true,
         ["HorizonSuiteVistaCraftingOrderAnchor"] = true,
         ["MinimapBackdrop"]              = true,
@@ -4206,6 +4519,7 @@ local VISTA_OPTION_KEYS_SKIP_MINIMAP_COLLECT = {
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
     vistaShowTeleport = true, vistaMouseoverTeleport = true,
+    vistaShowLanding = true, vistaMouseoverLanding = true,
     vistaEX_zone = true, vistaEY_zone = true,
     vistaEX_coord = true, vistaEY_coord = true,
     vistaEX_time = true, vistaEY_time = true,
@@ -4225,7 +4539,7 @@ local VISTA_OPTION_KEYS_SKIP_MINIMAP_COLLECT = {
     vistaDiffColor_looking_for_raid_R = true, vistaDiffColor_looking_for_raid_G = true, vistaDiffColor_looking_for_raid_B = true,
     vistaPanelBgR = true, vistaPanelBgG = true, vistaPanelBgB = true, vistaPanelBgA = true,
     vistaPanelBorderR = true, vistaPanelBorderG = true, vistaPanelBorderB = true, vistaPanelBorderA = true,
-    vistaTrackingBtnSize = true, vistaCalendarBtnSize = true,
+    vistaTrackingBtnSize = true, vistaCalendarBtnSize = true, vistaLandingBtnSize = true,
     vistaDrawerIcon = true,
 }
 
@@ -4374,6 +4688,9 @@ local function ApplyOptions_Buttons(changedKey)
     if queueAnchor and SyncQueueAnchorGeometry then
         SyncQueueAnchorGeometry()
     end
+    if landingPageAnchor and SyncLandingPageAnchorGeometry then
+        SyncLandingPageAnchorGeometry()
+    end
     if drawerButton then
         local addonSz = G.AddonBtnSize()
         drawerButton:SetSize(addonSz + 4, addonSz + 4)
@@ -4424,6 +4741,7 @@ local function ApplyOptions_Buttons(changedKey)
         C_Timer.After(0.05, CollectMinimapButtons)
     end
     CreateQueueAnchor()
+    CreateLandingPageAnchor()
 end
 
 -- Apply Vista minimap/overlay options from DB.
@@ -4446,6 +4764,7 @@ function Vista.ApplyLockOnlyOptions()
     ApplyOptions_TextDraggableLocks()
     ApplyDrawerButtonLockState()
     if Vista.RefreshQueueProxies then Vista.RefreshQueueProxies() end
+    if Vista.RefreshLandingPageAnchor then Vista.RefreshLandingPageAnchor() end
     if Vista.RefreshMailAnchor then Vista.RefreshMailAnchor() end
     if Vista.RefreshCraftingOrderAnchor then Vista.RefreshCraftingOrderAnchor() end
     RefreshDefaultButtonProxiesFromDB()
@@ -4541,6 +4860,7 @@ function Vista.Init()
     SuppressBlizzardCraftingOrder()
     CreateDefaultButtonProxies()
     CreateQueueAnchor()
+    CreateLandingPageAnchor()
 
     UpdateZoneText()
     UpdateDifficultyText()
@@ -4559,6 +4879,7 @@ function Vista.Init()
         if G.ButtonMode() == BTN_MODE_MOUSEOVER then
             hoverTarget = 1; hoverElapsed = 0; barCloseDelayElapsed = 0
         end
+        if Vista.RefreshLandingPageAnchor then Vista.RefreshLandingPageAnchor() end
     end)
     Minimap:HookScript("OnLeave", function()
         if collectorBar and collectorBar:IsMouseOver() then return end
@@ -4566,6 +4887,7 @@ function Vista.Init()
             if btn:IsMouseOver() then return end
         end
         hoverTarget = 0; hoverElapsed = 0; barCloseDelayElapsed = 0
+        if Vista.RefreshLandingPageAnchor then Vista.RefreshLandingPageAnchor() end
     end)
 
     Minimap:HookScript("OnMouseUp", function(_, button)
@@ -4617,6 +4939,7 @@ function Vista.Init()
             C_Timer.After(2.0, function()
                 reStrip()
                 CollectMinimapButtons()
+                CreateLandingPageAnchor()
                 SyncCraftingOrderFromNative()
                 UpdateCraftingOrderIndicator()
             end)
@@ -4774,7 +5097,9 @@ function Vista.ResetOverlayPositionsToDefaults()
         "vistaEX_diff", "vistaEY_diff",
         "vistaEX_proxy_tracking", "vistaEY_proxy_tracking",
         "vistaEX_proxy_calendar", "vistaEY_proxy_calendar",
+        "vistaEX_proxy_teleport", "vistaEY_proxy_teleport",
         "vistaEX_proxy_queue", "vistaEY_proxy_queue",
+        "vistaEX_proxy_landing", "vistaEY_proxy_landing",
         "vistaEX_proxy_mail", "vistaEY_proxy_mail",
         "vistaEX_proxy_craftingOrder", "vistaEY_proxy_craftingOrder",
         "vistaEX_zoomIn", "vistaEY_zoomIn",
@@ -4807,6 +5132,10 @@ end
 
 function Vista.RefreshQueueProxies()
     RefreshQueueAnchor()
+end
+
+function Vista.RefreshLandingPageAnchor()
+    RefreshLandingPageAnchor()
 end
 
 function Vista.RefreshMailAnchor()
