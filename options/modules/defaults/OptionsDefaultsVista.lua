@@ -27,6 +27,7 @@ addon.VISTA_KEYS = {
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
     vistaShowTeleport = true, vistaMouseoverTeleport = true,
+    vistaShowLanding = true, vistaMouseoverLanding = true,
     -- Teleport menu
     vistaTeleportGroup_hearthstone = true, vistaTeleportGroup_profession = true,
     vistaTeleportGroup_class = true, vistaTeleportGroup_dungeon = true,
@@ -40,11 +41,12 @@ addon.VISTA_KEYS = {
     vistaEX_time = true, vistaEY_time = true,
     vistaEX_perf = true, vistaEY_perf = true,
     vistaEX_diff = true, vistaEY_diff = true,
-    -- Proxy button positions (tracking + calendar + queue only; landing page removed)
+    -- Proxy button positions (tracking, calendar, teleport, queue, landing/Omnium Folio, mail, crafting)
     ["vistaEX_proxy_tracking"] = true, ["vistaEY_proxy_tracking"] = true,
     ["vistaEX_proxy_calendar"] = true, ["vistaEY_proxy_calendar"] = true,
     ["vistaEX_proxy_teleport"] = true, ["vistaEY_proxy_teleport"] = true,
     ["vistaEX_proxy_queue"]    = true, ["vistaEY_proxy_queue"]    = true,
+    ["vistaEX_proxy_landing"]  = true, ["vistaEY_proxy_landing"]  = true,
     ["vistaEX_proxy_mail"]     = true, ["vistaEY_proxy_mail"]     = true,
     ["vistaEX_proxy_craftingOrder"] = true, ["vistaEY_proxy_craftingOrder"] = true,
     -- Lock toggles
@@ -54,6 +56,7 @@ addon.VISTA_KEYS = {
     ["vistaLocked_proxy_calendar"] = true,
     ["vistaLocked_proxy_teleport"] = true,
     ["vistaLocked_proxy_queue"]    = true,
+    ["vistaLocked_proxy_landing"]  = true,
     ["vistaLocked_proxy_mail"]     = true,
     ["vistaLocked_proxy_craftingOrder"] = true,
     ["vistaQueueHandlingDisabled"] = true,
@@ -74,6 +77,7 @@ addon.VISTA_KEYS = {
     vistaCraftingOrderBlink = true,
     -- Button sizes (separate per type)
     vistaTrackingBtnSize = true, vistaCalendarBtnSize = true, vistaTeleportBtnSize = true, vistaQueueBtnSize = true,
+    vistaLandingBtnSize = true,
     vistaMailIconSize = true, vistaCraftingOrderIconSize = true, vistaAddonBtnSize = true,
     -- Text colors
     vistaZoneColorR = true, vistaZoneColorG = true, vistaZoneColorB = true,
@@ -125,6 +129,7 @@ addon.VISTA_SKIP_FULL_LAYOUT_KEYS = {
     ["vistaLocked_proxy_calendar"]     = true,
     ["vistaLocked_proxy_teleport"]     = true,
     ["vistaLocked_proxy_queue"]        = true,
+    ["vistaLocked_proxy_landing"]      = true,
     ["vistaLocked_proxy_mail"]         = true,
     ["vistaLocked_proxy_craftingOrder"] = true,
     ["vistaQueueHandlingDisabled"] = true,
@@ -142,6 +147,7 @@ addon.VISTA_DEFAULTS = {
     vistaShowTracking = true, vistaMouseoverTracking = true,
     vistaShowCalendar = true, vistaMouseoverCalendar = true,
     vistaShowTeleport = true, vistaMouseoverTeleport = true,
+    vistaShowLanding = true, vistaMouseoverLanding = false,
     -- Teleport menu (favourites/recents tables are created lazily, so not defaulted here)
     vistaTeleportGroup_hearthstone = true, vistaTeleportGroup_profession = true,
     vistaTeleportGroup_class = true, vistaTeleportGroup_dungeon = true,
@@ -156,10 +162,12 @@ addon.VISTA_DEFAULTS = {
     vistaDiffVerticalPos = "bottom",  vistaLocked_diff = false,
     vistaLocked_proxy_tracking = true, vistaLocked_proxy_calendar = true,
     vistaLocked_proxy_teleport = true,
-    vistaLocked_proxy_queue = true, vistaLocked_proxy_mail = true,
+    vistaLocked_proxy_queue = true, vistaLocked_proxy_landing = true,
+    vistaLocked_proxy_mail = true,
     vistaLocked_proxy_craftingOrder = true,
     vistaQueueHandlingDisabled = false,
     vistaTrackingBtnSize = 22, vistaCalendarBtnSize = 22, vistaTeleportBtnSize = 22, vistaQueueBtnSize = 22,
+    vistaLandingBtnSize = 36,
     vistaMailIconSize = 20, vistaMailBlink = true,
     vistaCraftingOrderIconSize = 20, vistaCraftingOrderBlink = true,
     vistaAddonBtnSize = 26,
@@ -198,6 +206,7 @@ addon.VISTA_LIMITS = {
     vistaCalendarBtnSize       = { min = 14,  max = 40  },
     vistaTeleportBtnSize       = { min = 14,  max = 40  },
     vistaQueueBtnSize          = { min = 14,  max = 40  },
+    vistaLandingBtnSize        = { min = 20,  max = 48  },
     vistaMailIconSize          = { min = 14,  max = 40  },
     vistaCraftingOrderIconSize = { min = 14,  max = 40  },
     vistaAddonBtnSize          = { min = 16,  max = 48  },
