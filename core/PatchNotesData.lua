@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.4.0"] = {
+        date = "2026-08-04",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: shared toast styles — Compact, Framed, or Accent chrome for loot toasts and status alerts, with matching slide and fade timing (chosen separately so both can match or differ). Fresh installs default both stacks to Framed.",
+            },
+        },
+    },
+
     ["5.3.5"] = {
         date = "2026-08-02",
         {
