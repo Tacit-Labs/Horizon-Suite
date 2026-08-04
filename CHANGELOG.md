@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.4.0] – 2026-08-04
+
+### ✨ New Features
+- **(Augment) Shared toast styles** — Compact, Framed, or Accent chrome for loot toasts and status alerts, with matching slide and fade timing (chosen separately so both can match or differ). Fresh installs default both stacks to Framed.
+
+---
+
 ## [5.3.5] – 2026-08-02
 
 ### 🔧 Improvements
