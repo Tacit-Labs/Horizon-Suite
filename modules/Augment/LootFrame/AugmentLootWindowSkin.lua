@@ -16,9 +16,30 @@ local TOOLTIP_BACKDROP = {
     insets   = { left = 2, right = 2, top = 2, bottom = 2 },
 }
 
+-- Match AugmentCore: clamp augmentUIScale and scale raw layout values.
+local function S(v)
+    local lim = addon.AUGMENT_LIMITS and addon.AUGMENT_LIMITS.augmentUIScale
+    local def = addon.AUGMENT_DEFAULTS and addon.AUGMENT_DEFAULTS.augmentUIScale or 1
+    local scale = 1
+    if lim then
+        scale = math.max(lim.min, math.min(lim.max,
+            tonumber(addon.GetDB and addon.GetDB("augmentUIScale", def)) or 1))
+    else
+        scale = tonumber(addon.GetDB and addon.GetDB("augmentUIScale", def)) or 1
+    end
+    return v * scale
+end
+
 local hooksInstalled = false
 local skinActive = false
-local savedRegions = {}  -- [region] = { shown = bool, ... } for best-effort restore
+local savedRegions = {}  -- [region] = wasShown (bool) for best-effort restore
+
+-- Record prior visibility once; used by DisableLootWindowSkin to re-Show only if shown.
+local function RememberRegion(region)
+    if region and savedRegions[region] == nil then
+        savedRegions[region] = (region.IsShown and region:IsShown()) and true or false
+    end
+end
 
 -- LootFrame may lack BackdropTemplate; child frame holds tooltip-style chrome behind content.
 local function GetBackdropHost(frame)
@@ -56,9 +77,7 @@ function Y.SkinStripDefaultArt(frame)
     for i = 1, #names do
         local region = frame[names[i]]
         if region and region.Hide then
-            if savedRegions[region] == nil then
-                savedRegions[region] = true
-            end
+            RememberRegion(region)
             pcall(region.Hide, region)
         end
     end
@@ -69,7 +88,7 @@ function Y.SkinStripDefaultArt(frame)
             if r and r.GetObjectType and r:GetObjectType() == "Texture" and r.Hide then
                 local draw = r.GetDrawLayer and r:GetDrawLayer()
                 if draw == "BORDER" or draw == "BACKGROUND" then
-                    if savedRegions[r] == nil then savedRegions[r] = true end
+                    RememberRegion(r)
                     pcall(r.Hide, r)
                 end
             end
@@ -93,12 +112,12 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
 
     if not frame._hsAugmentChromeStrip then
         local strip = frame:CreateTexture(nil, "ARTWORK")
-        strip:SetWidth(3)
         strip:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
         strip:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
         frame._hsAugmentChromeStrip = strip
     end
     local strip = frame._hsAugmentChromeStrip
+    strip:SetWidth(S(3))
 
     if style == "framed" then
         ClearWindowBackdrop(frame) -- reset then re-apply framed backdrop below
@@ -107,6 +126,7 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
         end
         local backdropHost = GetBackdropHost(frame)
         if backdropHost.SetBackdrop then
+            TOOLTIP_BACKDROP.edgeSize = S(10)
             backdropHost:SetBackdrop(TOOLTIP_BACKDROP)
             backdropHost:SetBackdropColor(0, 0, 0, 0.75)
             backdropHost:SetBackdropBorderColor(accentR, accentG, accentB, 0.7)
@@ -192,7 +212,7 @@ local function SkinOneLootButton(button, quality)
     local fontPath = Y.GetFontPath and Y.GetFontPath() or "Fonts\\FRIZQT__.TTF"
     local text, icon = ResolveLootButtonRegions(button)
     if text and text.SetFont then
-        pcall(text.SetFont, text, fontPath, 13, "OUTLINE")
+        pcall(text.SetFont, text, fontPath, S(13), "OUTLINE")
         Y.SkinApplySlotQuality(text, quality)
     end
 
@@ -207,14 +227,17 @@ local function SkinOneLootButton(button, quality)
     end
 
     -- Accent/Compact: quality-tinted icon pad behind icon (create once; resize on style change).
-    -- Accent padExtra=4 / alpha=0.85 matches ToastStyles ACCENT_PAD_EXTRA fidelity.
+    -- Accent padExtra=4 / alpha=0.85 matches ToastStyles ACCENT_PAD_EXTRA fidelity (via S()).
     if style == "accent" or style == "compact" then
         if icon then
             if not button._hsIconPad then
-                button._hsIconPad = button:CreateTexture(nil, "BACKGROUND")
+                -- sublevel -1 so pad draws under ItemButtonTemplate icon (also BACKGROUND)
+                button._hsIconPad = button:CreateTexture(nil, "BACKGROUND", nil, -1)
+            elseif button._hsIconPad.SetDrawLayer then
+                button._hsIconPad:SetDrawLayer("BACKGROUND", -1)
             end
             local pad = button._hsIconPad
-            local padExtra = (style == "accent") and 4 or 1
+            local padExtra = S((style == "accent") and 4 or 1)
             if button._hsIconPadExtra ~= padExtra or button._hsIconPadIcon ~= icon then
                 pad:ClearAllPoints()
                 pad:SetPoint("TOPLEFT", icon, "TOPLEFT", -padExtra, padExtra)
@@ -229,11 +252,13 @@ local function SkinOneLootButton(button, quality)
         button._hsIconPad:Hide()
     end
 
-    -- Hide default slot border textures when present (Framed keeps Blizzard border).
+    -- Hide default slot border textures when present; Framed re-shows if we hid them earlier.
     local border = button.IconBorder or button.NormalTexture
     if border and border.Hide and style ~= "framed" then
-        if savedRegions[border] == nil then savedRegions[border] = true end
+        RememberRegion(border)
         pcall(border.Hide, border)
+    elseif border and border.Show then
+        pcall(border.Show, border)
     end
 end
 
@@ -245,7 +270,7 @@ local function ApplyMoneyLineSkin()
 
     local function SkinMoneyFontString(fs)
         if fs and fs.SetFont then
-            pcall(fs.SetFont, fs, fontPath, 12, "OUTLINE")
+            pcall(fs.SetFont, fs, fontPath, S(12), "OUTLINE")
         end
     end
 
@@ -298,10 +323,32 @@ local function ApplyMoneyLineSkin()
     end
 end
 
+-- Resolve loot slot for GetLootSlotInfo (ScrollBox slotIndex, legacy slot/GetID, or paged index).
+local function ResolveLootSlot(button, fallbackIndex)
+    local slot = button.slotIndex or button.slot
+    if not slot and button.GetID then
+        local id = button:GetID()
+        if id and id > 0 then
+            slot = id
+        end
+    end
+    if not slot then
+        local frame = _G.LootFrame
+        local numButtons = _G.LOOTFRAME_NUMBUTTONS
+        if frame and frame.page and numButtons and fallbackIndex then
+            -- Legacy paged loot: on-screen button index is not the loot slot.
+            slot = fallbackIndex + (frame.page - 1) * numButtons
+        else
+            slot = fallbackIndex
+        end
+    end
+    return slot
+end
+
 -- Skin one shown button using slot index for GetLootSlotInfo quality.
 local function SkinLootButtonBySlot(button, fallbackIndex)
     if not button or not button.IsShown or not button:IsShown() then return end
-    local slot = button.slot or (button.GetID and button:GetID()) or fallbackIndex
+    local slot = ResolveLootSlot(button, fallbackIndex)
     local ok, _, _, _, _, quality = pcall(GetLootSlotInfo, slot)
     SkinOneLootButton(button, ok and quality or 1)
 end
@@ -351,7 +398,7 @@ local function ApplyPersonalLootSkin()
         title = frame.TitleContainer.TitleText
     end
     if title and title.SetFont then
-        pcall(title.SetFont, title, fontPath, 14, "OUTLINE")
+        pcall(title.SetFont, title, fontPath, S(14), "OUTLINE")
         title:SetTextColor(ar, ag, ab, 1)
     end
 
@@ -380,10 +427,13 @@ local function InstallHooks()
     hooksInstalled = true
 end
 
---- Re-apply loot window skin (chrome + slot rows).
+--- Re-apply loot window skin (chrome + slot rows) when LootFrame is shown.
 --- @return nil
 function Y.RefreshLootWindowSkin()
-    ApplyPersonalLootSkin()
+    local frame = _G.LootFrame
+    if frame and frame.IsShown and frame:IsShown() then
+        ApplyPersonalLootSkin()
+    end
 end
 
 --- Enable personal loot window skin and install show/update hooks.
@@ -430,8 +480,8 @@ end
 --- @return nil
 function Y.DisableLootWindowSkin()
     skinActive = false
-    for region in pairs(savedRegions) do
-        if region and region.Show then pcall(region.Show, region) end
+    for region, wasShown in pairs(savedRegions) do
+        if wasShown and region and region.Show then pcall(region.Show, region) end
     end
     wipe(savedRegions)
     local frame = _G.LootFrame
