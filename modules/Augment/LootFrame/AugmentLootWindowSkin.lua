@@ -232,6 +232,7 @@ local function SkinOneLootButton(button, quality)
     -- Hide default slot border textures when present (Framed keeps Blizzard border).
     local border = button.IconBorder or button.NormalTexture
     if border and border.Hide and style ~= "framed" then
+        if savedRegions[border] == nil then savedRegions[border] = true end
         pcall(border.Hide, border)
     end
 end
@@ -395,9 +396,49 @@ function Y.EnableLootWindowSkin()
     end
 end
 
---- Disable personal loot window skin (restore in Task 5).
+-- Best-effort: hide icon pads and re-Show IconBorder/NormalTexture on loot slots.
+local function RestoreLootButtonArt(button)
+    if not button then return end
+    if button._hsIconPad and button._hsIconPad.Hide then
+        button._hsIconPad:Hide()
+    end
+    local border = button.IconBorder or button.NormalTexture
+    if border and border.Show then
+        pcall(border.Show, border)
+    end
+end
+
+local function RestoreLootSlotArt()
+    local numButtons = (_G.LOOTFRAME_NUMBUTTONS) or 4
+    for index = 1, numButtons do
+        RestoreLootButtonArt(_G["LootButton" .. index])
+    end
+    local frame = _G.LootFrame
+    local scrollBox = frame and frame.ScrollBox
+    if scrollBox and scrollBox.GetFrames then
+        local frames = scrollBox:GetFrames()
+        if frames then
+            for _, button in ipairs(frames) do
+                RestoreLootButtonArt(button)
+            end
+        end
+    end
+end
+
+--- Disable personal loot window skin and best-effort restore Blizzard art.
+--- hooksInstalled stays true (hooksecurefunc cannot unhook); skinActive gates work.
 --- @return nil
 function Y.DisableLootWindowSkin()
     skinActive = false
-    -- restore in Task 5
+    for region in pairs(savedRegions) do
+        if region and region.Show then pcall(region.Show, region) end
+    end
+    wipe(savedRegions)
+    local frame = _G.LootFrame
+    if frame then
+        if frame._hsAugmentChromeStrip then frame._hsAugmentChromeStrip:Hide() end
+        if frame._hsAugmentChromeBg then frame._hsAugmentChromeBg:Hide() end
+        ClearWindowBackdrop(frame)
+    end
+    RestoreLootSlotArt()
 end

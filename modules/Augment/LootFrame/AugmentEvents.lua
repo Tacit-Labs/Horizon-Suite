@@ -73,6 +73,14 @@ handlers.ADDON_LOADED = function(msg)
     then
         Y.ApplyBlizzardSuppression()
     end
+    -- Skin personal LootFrame once Blizzard_LootFrame loads (loot mini-module on).
+    if msg == "Blizzard_LootFrame"
+        and addon:IsModuleEnabled("augment")
+        and addon.GetDB and addon.GetDB("augmentLootFrameEnabled", true) ~= false
+        and Y.EnableLootWindowSkin
+    then
+        Y.EnableLootWindowSkin()
+    end
 end
 
 local function OnPlayerReady()

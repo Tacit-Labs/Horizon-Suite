@@ -43,9 +43,11 @@ local categories = {
             if v then
                 if Y.EnableEvents then Y.EnableEvents() end
                 if Y.ApplyBlizzardSuppression then Y.ApplyBlizzardSuppression() end
+                if Y.EnableLootWindowSkin then Y.EnableLootWindowSkin() end
             else
                 if Y.DisableEvents then Y.DisableEvents() end
                 if Y.RestoreBlizzard then Y.RestoreBlizzard() end
+                if Y.DisableLootWindowSkin then Y.DisableLootWindowSkin() end
                 if Y.ClearActiveToasts then Y.ClearActiveToasts() end
             end
         end,
