@@ -101,6 +101,10 @@ function Y.SkinApplyWindowChrome(frame, style, accentR, accentG, accentB)
     local strip = frame._hsAugmentChromeStrip
 
     if style == "framed" then
+        ClearWindowBackdrop(frame) -- reset then re-apply framed backdrop below
+        if frame._hsAugmentChromeBg then
+            frame._hsAugmentChromeBg:Hide()
+        end
         local backdropHost = GetBackdropHost(frame)
         if backdropHost.SetBackdrop then
             backdropHost:SetBackdrop(TOOLTIP_BACKDROP)
@@ -149,20 +153,89 @@ function Y.SkinApplySlotQuality(fontString, quality)
     fontString:SetTextColor(r, g, b, 1)
 end
 
---- Re-apply loot window skin when LootFrame is visible (full apply in Task 3–4).
---- @return nil
-function Y.RefreshLootWindowSkin()
-    if not skinActive then return end
-    local frame = _G.LootFrame
-    if not frame or not frame.IsShown or not frame:IsShown() then return end
-    -- Full apply filled in Task 3–4
+-- Highest visible loot slot quality colour, or muted white/grey when empty.
+local function GetLootAccentColor()
+    local bestQ = -1
+    local r, g, b = 0.7, 0.7, 0.7
+    local num = GetNumLootItems and GetNumLootItems() or 0
+    for slot = 1, num do
+        -- GetLootSlotInfo: texture, item, quantity, currencyID, quality, locked, isQuestItem, questID, isActive
+        local ok, _, _, _, _, quality = pcall(GetLootSlotInfo, slot)
+        if ok and quality and quality > bestQ then
+            bestQ = quality
+            if ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
+                local c = ITEM_QUALITY_COLORS[quality]
+                r, g, b = c.r, c.g, c.b
+            end
+        end
+    end
+    return r, g, b, bestQ
 end
 
---- Enable personal loot window skin hooks (hooks in Task 3).
+-- Slot chrome filled in Task 4.
+local function ApplyLootSlotsSkin()
+end
+
+local function ApplyPersonalLootSkin()
+    if not skinActive then return end
+    local frame = _G.LootFrame
+    if not frame then return end
+
+    -- Strip before chrome so BACKGROUND/BORDER hide does not clear our textures.
+    Y.SkinStripDefaultArt(frame)
+    local ar, ag, ab = GetLootAccentColor()
+    local style = Y.GetToastStyle and Y.GetToastStyle() or "framed"
+    Y.SkinApplyWindowChrome(frame, style, ar, ag, ab)
+
+    local fontPath = Y.GetFontPath and Y.GetFontPath() or "Fonts\\FRIZQT__.TTF"
+    local title = frame.TitleText or _G.LootFrameTitleText
+    if not title and frame.TitleContainer then
+        title = frame.TitleContainer.TitleText
+    end
+    if title and title.SetFont then
+        pcall(title.SetFont, title, fontPath, 14, "OUTLINE")
+        title:SetTextColor(ar, ag, ab, 1)
+    end
+
+    ApplyLootSlotsSkin()
+end
+
+local function InstallHooks()
+    if hooksInstalled then return end
+    local frame = _G.LootFrame
+    if not frame then return end
+
+    frame:HookScript("OnShow", function()
+        if skinActive then ApplyPersonalLootSkin() end
+    end)
+
+    if _G.LootFrame_Update then
+        hooksecurefunc("LootFrame_Update", function()
+            if skinActive then ApplyPersonalLootSkin() end
+        end)
+    elseif frame.Update then
+        hooksecurefunc(frame, "Update", function()
+            if skinActive then ApplyPersonalLootSkin() end
+        end)
+    end
+
+    hooksInstalled = true
+end
+
+--- Re-apply loot window skin (chrome + slots when Task 4 lands).
+--- @return nil
+function Y.RefreshLootWindowSkin()
+    ApplyPersonalLootSkin()
+end
+
+--- Enable personal loot window skin and install show/update hooks.
 --- @return nil
 function Y.EnableLootWindowSkin()
     skinActive = true
-    -- hooks in Task 3
+    if _G.LootFrame then
+        InstallHooks()
+        if _G.LootFrame:IsShown() then ApplyPersonalLootSkin() end
+    end
 end
 
 --- Disable personal loot window skin (restore in Task 5).
