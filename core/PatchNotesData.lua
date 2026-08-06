@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.4.1"] = {
+        date = "2026-08-06",
+        {
+            section = "Fixes",
+            bullets = {
+                "Vista: Omnium Folio minimap button restored, with show, lock, size, and position options like other Vista buttons.",
+            },
+        },
+    },
+
     ["5.4.0"] = {
         date = "2026-08-04",
         {
