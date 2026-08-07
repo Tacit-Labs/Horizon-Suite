@@ -31,8 +31,111 @@ local function S(v)
 end
 
 local hooksInstalled = false
+local movableInstalled = false
 local skinActive = false
 local savedRegions = {}  -- [region] = wasShown (bool) for best-effort restore
+local L = addon.L
+
+-- ============================================================================
+-- PERSONAL LOOT WINDOW POSITION (drag)
+-- ============================================================================
+
+--- @return boolean
+local function HasCustomLootWindowPosition()
+    if not addon.GetDB then return false end
+    return addon.GetDB("augmentLootWindowX", nil) ~= nil
+end
+
+--- Save Blizzard LootFrame anchor after the player drags it.
+--- @param point string
+--- @param relPoint string
+--- @param x number
+--- @param y number
+--- @return nil
+function Y.SaveLootWindowPosition(point, relPoint, x, y)
+    if not addon.SetDB then return end
+    addon.SetDB("augmentLootWindowPoint", point)
+    addon.SetDB("augmentLootWindowRelPoint", relPoint)
+    addon.SetDB("augmentLootWindowX", x)
+    addon.SetDB("augmentLootWindowY", y)
+end
+
+--- Clear saved loot window position so Blizzard under-mouse / default placement returns.
+--- @return nil
+function Y.ClearLootWindowPosition()
+    if not addon.SetDB then return end
+    addon.SetDB("augmentLootWindowPoint", nil)
+    addon.SetDB("augmentLootWindowRelPoint", nil)
+    addon.SetDB("augmentLootWindowX", nil)
+    addon.SetDB("augmentLootWindowY", nil)
+    if addon.HSPrint and L and L["AUGMENT_LOOT_WINDOW_POSITION_RESET"] then
+        addon.HSPrint(L["AUGMENT_LOOT_WINDOW_POSITION_RESET"])
+    end
+end
+
+--- Re-apply a saved custom position over Blizzard's under-mouse placement.
+--- @return nil
+local function ApplyLootWindowPosition()
+    if not skinActive then return end
+    if not HasCustomLootWindowPosition() then return end
+    local frame = _G.LootFrame
+    if not frame then return end
+    if InCombatLockdown and InCombatLockdown() then return end
+    local point = addon.GetDB("augmentLootWindowPoint", "TOPLEFT") or "TOPLEFT"
+    local relPoint = addon.GetDB("augmentLootWindowRelPoint", "BOTTOMLEFT") or "BOTTOMLEFT"
+    local x = tonumber(addon.GetDB("augmentLootWindowX", 0)) or 0
+    local y = tonumber(addon.GetDB("augmentLootWindowY", 0)) or 0
+    frame:ClearAllPoints()
+    frame:SetPoint(point, UIParent, relPoint, x, y)
+end
+
+--- Enable drag on Blizzard LootFrame while the Augment skin is active.
+--- Slot buttons keep click priority; drag from chrome/title. Shift+Right-click resets.
+--- @param frame Frame
+--- @return nil
+local function InstallMovable(frame)
+    if movableInstalled or not frame then return end
+
+    if frame.SetClampedToScreen then
+        frame:SetClampedToScreen(true)
+    end
+    if frame.EnableMouse then
+        frame:EnableMouse(true)
+    end
+    if frame.RegisterForDrag then
+        frame:RegisterForDrag("LeftButton")
+    end
+
+    frame:HookScript("OnDragStart", function(self)
+        if not skinActive then return end
+        if InCombatLockdown and InCombatLockdown() then return end
+        self:SetMovable(true)
+        self:StartMoving()
+    end)
+
+    frame:HookScript("OnDragStop", function(self)
+        if InCombatLockdown and InCombatLockdown() then
+            pcall(function() self:StopMovingOrSizing() end)
+            return
+        end
+        self:StopMovingOrSizing()
+        self:SetMovable(false)
+        if not skinActive then return end
+        local point, _, relPoint, x, y = self:GetPoint(1)
+        if point and x and y then
+            Y.SaveLootWindowPosition(point, relPoint or point, x, y)
+        end
+    end)
+
+    frame:HookScript("OnMouseUp", function(_, button)
+        if not skinActive then return end
+        if button == "RightButton" and IsShiftKeyDown and IsShiftKeyDown() then
+            Y.ClearLootWindowPosition()
+        end
+    end)
+
+    movableInstalled = true
+end
 
 -- Record prior visibility once; used by DisableLootWindowSkin to re-Show only if shown.
 local function RememberRegion(region)
@@ -410,8 +513,14 @@ local function InstallHooks()
     local frame = _G.LootFrame
     if not frame then return end
 
+    InstallMovable(frame)
+
     frame:HookScript("OnShow", function()
-        if skinActive then ApplyPersonalLootSkin() end
+        if skinActive then
+            ApplyPersonalLootSkin()
+            -- After Blizzard's same-tick under-mouse positioning.
+            C_Timer.After(0, ApplyLootWindowPosition)
+        end
     end)
 
     if _G.LootFrame_Update then
@@ -424,6 +533,14 @@ local function InstallHooks()
         end)
     end
 
+    if _G.LootFrame_Show then
+        hooksecurefunc("LootFrame_Show", function()
+            if skinActive then
+                C_Timer.After(0, ApplyLootWindowPosition)
+            end
+        end)
+    end
+
     hooksInstalled = true
 end
 
@@ -433,6 +550,7 @@ function Y.RefreshLootWindowSkin()
     local frame = _G.LootFrame
     if frame and frame.IsShown and frame:IsShown() then
         ApplyPersonalLootSkin()
+        ApplyLootWindowPosition()
     end
 end
 
@@ -442,7 +560,10 @@ function Y.EnableLootWindowSkin()
     skinActive = true
     if _G.LootFrame then
         InstallHooks()
-        if _G.LootFrame:IsShown() then ApplyPersonalLootSkin() end
+        if _G.LootFrame:IsShown() then
+            ApplyPersonalLootSkin()
+            ApplyLootWindowPosition()
+        end
     end
 end
 

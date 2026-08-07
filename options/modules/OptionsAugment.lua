@@ -13,6 +13,7 @@ local GetPerElementFontDropdownOptions = addon.GetPerElementFontDropdownOptions
 local DisplayPerElementFont            = addon.DisplayPerElementFont
 local Section                          = addon.Section
 local Toggle                           = addon.Toggle
+local Button                           = addon.Button
 local D   = addon.AUGMENT_DEFAULTS
 local LIM = addon.AUGMENT_LIMITS
 local function clamp(v, key) local lim = LIM[key]; return math.max(lim.min, math.min(lim.max, v)) end
@@ -152,6 +153,10 @@ local categories = {
                             set = function(v) setDB("augmentTextOutlineType", v) end,
                         },
                         Toggle(L["AUGMENT_SUPPRESS_BLIZZARD"], L["AUGMENT_SUPPRESS_BLIZZARD_DESC"], "augmentSuppressBlizzard", D.augmentSuppressBlizzard),
+                        Button(L["AUGMENT_LOOT_WINDOW_RESET_POSITION"], L["AUGMENT_LOOT_WINDOW_RESET_POSITION_DESC"], function()
+                            local Y = addon.Augment
+                            if Y and Y.ClearLootWindowPosition then Y.ClearLootWindowPosition() end
+                        end),
                     },
                 },
                 right = {

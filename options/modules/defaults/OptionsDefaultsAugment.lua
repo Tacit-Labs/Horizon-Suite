@@ -15,5 +15,8 @@ addon.AUGMENT_LIMITS   = addon.AUGMENT_LIMITS   or {}
 addon.AUGMENT_KEYS = {
     augmentPoint = true, augmentRelPoint = true, augmentX = true, augmentY = true,
     alertsPoint  = true, alertsRelPoint  = true, alertsX  = true, alertsY  = true,
+    -- Personal loot window drag position (nil = Blizzard under-mouse / default)
+    augmentLootWindowPoint = true, augmentLootWindowRelPoint = true,
+    augmentLootWindowX = true, augmentLootWindowY = true,
 }
 for k in pairs(addon.AUGMENT_DEFAULTS) do addon.AUGMENT_KEYS[k] = true end

@@ -221,6 +221,11 @@ Y.DB_KEYS = {
     augmentSoundRep         = true,
     augmentEditModeShow     = true,
     augmentLootFrameEnabled = true,
+    -- Personal loot window drag position (nil = Blizzard under-mouse / default)
+    augmentLootWindowPoint    = true,
+    augmentLootWindowRelPoint = true,
+    augmentLootWindowX        = true,
+    augmentLootWindowY        = true,
     -- SelfHighlight and AutoVendor mini-modules append their own keys below.
 }
 
