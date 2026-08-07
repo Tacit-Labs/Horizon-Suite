@@ -262,11 +262,42 @@ end
 -- AutoSeller
 -- ============================================================================
 
-local sellQueue   = {}
-local sellSession = { value = 0, count = 0 }
+local sellQueue     = {}
+local sellSession   = { value = 0, count = 0 }
+local merchantOpen  = false
+-- Backpack + equipped bags + reagent bag (NUM_TOTAL_EQUIPPED_BAG_SLOTS == 5).
+local MAX_BAG_INDEX = NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4
+
+local function IsSellerEnabled()
+    local D = addon.AUGMENT_DEFAULTS
+    return getDB("autoSellerEnabled", D and D.autoSellerEnabled) ~= false
+end
+
+-- Greys / junk: prefer Blizzard's paced sell-all path (wowapi C_MerchantFrame).
+local function SellJunkItems()
+    local D = addon.AUGMENT_DEFAULTS
+    if getDB("autoSellerGrey", D.autoSellerGrey) == false then return end
+    if not C_MerchantFrame or not C_MerchantFrame.SellAllJunkItems then return end
+    local numJunk = (C_MerchantFrame.GetNumJunkItems and C_MerchantFrame.GetNumJunkItems()) or 0
+    if numJunk <= 0 then return end
+
+    local startGold = GetMoney()
+    C_MerchantFrame.SellAllJunkItems()
+
+    if getDB("autoSellerVerbosity", D.autoSellerVerbosity) == "none" then return end
+    -- Engine sells one stack per frame; sample gold after pacing finishes.
+    C_Timer.After(0.5, function()
+        if not merchantOpen then return end
+        local earned = GetMoney() - startGold
+        if earned > 0 then
+            local L = addon.L
+            Print(string.format(L["AUGMENT_VENDOR_SOLD_SUMMARY"], numJunk, C_CurrencyInfo.GetCoinTextureString(earned)))
+        end
+    end)
+end
 
 local function SellNextItem()
-    if not getDB("autoSellerEnabled", false) then
+    if not IsSellerEnabled() then
         sellQueue = {}
         sellSession.value = 0
         sellSession.count = 0
@@ -281,9 +312,9 @@ local function SellNextItem()
         sellSession.count = 0
         return
     end
-    -- If the merchant closed mid-chain, abort cleanly without accumulating
-    -- sell value for items that were never actually sold.
-    if not MerchantFrame or not MerchantFrame:IsShown() then
+    -- Abort if the merchant closed mid-chain (event flag, not frame:IsShown —
+    -- skins / replacements can desync MerchantFrame visibility).
+    if not merchantOpen then
         sellQueue = {}
         sellSession.value = 0
         sellSession.count = 0
@@ -304,18 +335,29 @@ local function SellNextItem()
 end
 
 local function DoSell()
-    if not getDB("autoSellerEnabled", false) then return end
+    if not IsSellerEnabled() then return end
     sellQueue = {}
     sellSession.value = 0
     sellSession.count = 0
     -- Clear per-session tooltip cache so newly looted items are rescanned
     itemsBOP      = {}
     itemsUseEquip = {}
-    for bag = 0, 4 do
+
+    -- Poor-quality junk via the engine API (matches the bag coin overlay).
+    SellJunkItems()
+
+    -- Optional filters (unusable / non-optimal / low-level / etc.) still use
+    -- the manual UseContainerItem queue. Greys are skipped when the native
+    -- junk API is available so we do not double-sell.
+    local useNativeJunk = C_MerchantFrame and C_MerchantFrame.SellAllJunkItems
+    for bag = 0, MAX_BAG_INDEX do
         for slot = 1, C_Container.GetContainerNumSlots(bag) do
             local link = C_Container.GetContainerItemLink(bag, slot)
             if link and ShouldSell(link) then
-                table.insert(sellQueue, { bag = bag, slot = slot, link = link })
+                local _, _, quality = C_Item.GetItemInfo(link)
+                if not (useNativeJunk and quality == 0) then
+                    table.insert(sellQueue, { bag = bag, slot = slot, link = link })
+                end
             end
         end
     end
@@ -330,8 +372,14 @@ local eventFrame = CreateFrame("Frame")
 
 eventFrame:SetScript("OnEvent", function(_, event)
     if event == "MERCHANT_SHOW" then
+        merchantOpen = true
         DoRepair()
         DoSell()
+    elseif event == "MERCHANT_CLOSED" then
+        merchantOpen = false
+        sellQueue = {}
+        sellSession.value = 0
+        sellSession.count = 0
     end
 end)
 
@@ -344,9 +392,13 @@ Y.Vendor = V
 
 function V.Enable()
     eventFrame:RegisterEvent("MERCHANT_SHOW")
+    eventFrame:RegisterEvent("MERCHANT_CLOSED")
 end
 
 function V.Disable()
     eventFrame:UnregisterAllEvents()
+    merchantOpen = false
     sellQueue = {}
+    sellSession.value = 0
+    sellSession.count = 0
 end

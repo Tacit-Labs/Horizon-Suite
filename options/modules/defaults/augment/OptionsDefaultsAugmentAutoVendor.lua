@@ -13,12 +13,15 @@ local D   = addon.AUGMENT_DEFAULTS
 local LIM = addon.AUGMENT_LIMITS
 
 -- Auto Vendor mini-module master switch (pill)
--- Defaults to true so the event frame is always registered; the inner toggles
--- (autoSellerEnabled, autoRepairEnabled) are the real opt-in gates.
+-- Defaults to true so the event frame is always registered.
+-- Auto Seller defaults on (greys) to match the feature description; Auto Repair
+-- stays opt-in because it spends gold.
 D.augmentVendorEnabled        = true
 
 -- AutoSeller
-D.autoSellerEnabled           = false
+-- Defaults on so the Auto Vendor pill matches its description (sell greys on
+-- merchant open). Auto Repair stays opt-in because it spends gold.
+D.autoSellerEnabled           = true
 D.autoSellerGrey              = true
 D.autoSellerUnusable          = false
 D.autoSellerNonOptimal        = false
