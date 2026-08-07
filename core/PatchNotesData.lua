@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.5.0"] = {
+        date = "2026-08-07",
+        {
+            section = "New Features",
+            bullets = {
+                "Augment: skinned personal loot window — when Auto Loot is off, the personal loot window stays usable and matches Compact / Framed / Accent toast chrome, with a drag position that persists across reload.",
+            },
+        },
+    },
+
     ["5.4.1"] = {
         date = "2026-08-06",
         {

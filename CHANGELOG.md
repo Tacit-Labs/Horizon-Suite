@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.5.0] – 2026-08-07
+
+### ✨ New Features
+- **(Augment) Skinned personal loot window** — When Auto Loot is off, the personal loot window stays usable and matches Compact / Framed / Accent toast chrome, with a drag position that persists across reload.
+
+---
+
 ## [5.4.1] – 2026-08-06
 
 ### 🐛 Fixes
