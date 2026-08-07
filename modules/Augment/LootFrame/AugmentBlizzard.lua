@@ -262,7 +262,8 @@ function Y.SuppressBlizzard()
         end
     end)
 
-    KillBlizzardFrame(LootFrame)
+    -- Do not KillBlizzardFrame(LootFrame): that is the interactive manual-loot UI
+    -- (required when Auto Loot is off). Toast/alert frames only below.
     KillBlizzardFrame(LootAlertFrame)
     KillBlizzardFrame(MoneyWonAlertFrame)
     KillBlizzardFrame(LootUpgradeAlertFrame)

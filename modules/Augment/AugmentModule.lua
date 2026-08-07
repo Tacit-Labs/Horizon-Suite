@@ -31,6 +31,7 @@ addon:RegisterModule("augment", {
             if lootOn then
                 if addon.Augment.EnableEvents then addon.Augment.EnableEvents() end
                 if addon.Augment.ApplyBlizzardSuppression then addon.Augment.ApplyBlizzardSuppression() end
+                if addon.Augment.EnableLootWindowSkin then addon.Augment.EnableLootWindowSkin() end
             end
             if addon.Augment.SetFrameVisible then addon.Augment.SetFrameVisible(true) end
             if addon.Augment.RestoreSavedPosition then addon.Augment.RestoreSavedPosition() end
@@ -53,6 +54,7 @@ addon:RegisterModule("augment", {
             if addon.Augment.DisableTalkingHead then addon.Augment.DisableTalkingHead() end
             if addon.Augment.DisableEvents then addon.Augment.DisableEvents() end
             if addon.Augment.RestoreBlizzard then addon.Augment.RestoreBlizzard() end
+            if addon.Augment.DisableLootWindowSkin then addon.Augment.DisableLootWindowSkin() end
             if addon.Augment.ClearActiveToasts then addon.Augment.ClearActiveToasts() end
             if addon.Augment.SetFrameVisible then addon.Augment.SetFrameVisible(false) end
             if addon.Augment.HideAnchorFrame then addon.Augment.HideAnchorFrame() end

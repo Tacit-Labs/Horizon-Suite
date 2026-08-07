@@ -1175,6 +1175,7 @@ function Augment.ApplyAugmentOptions()
     end
     if Augment.ApplyScale then Augment.ApplyScale() end
     if Augment.ApplyBlizzardSuppression then Augment.ApplyBlizzardSuppression() end
+    if Augment.RefreshLootWindowSkin then Augment.RefreshLootWindowSkin() end
     if Augment.SelfHighlight then Augment.SelfHighlight.Evaluate() end
 end
 

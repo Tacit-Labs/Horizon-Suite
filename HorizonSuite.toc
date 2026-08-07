@@ -112,6 +112,7 @@ modules/Augment/ToastStyles/AugmentToastStyles.lua
 modules/Augment/LootFrame/AugmentState.lua
 modules/Augment/LootFrame/AugmentParsing.lua
 modules/Augment/LootFrame/AugmentBlizzard.lua
+modules/Augment/LootFrame/AugmentLootWindowSkin.lua
 modules/Augment/LootFrame/AugmentCore.lua
 modules/Augment/LootFrame/AugmentEvents.lua
 modules/Augment/LootFrame/AugmentSlash.lua
