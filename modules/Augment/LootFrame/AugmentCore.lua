@@ -740,11 +740,22 @@ end
 -- Each layer gets its own border/background so they look like individual item slots.
 -- count < 2 restores everything to single-icon state.
 local function UpdateStackIcons(entry, count)
-    -- Stack fan is Compact-only (see ApplyToastIconLayout); Framed/Accent always
-    -- collapse to a single icon regardless of merged count.
+    -- Stack fan is Compact-only (see ApplyToastIconLayout); Framed/Accent chrome
+    -- is owned by ApplyChrome. Returning early here is required: the single-icon
+    -- restore below uses Compact chip size/alpha and would wipe Accent's larger
+    -- colour square (ACCENT_PAD_EXTRA) when ShowToast/TryMergeToast call this
+    -- after ApplyToastIconLayout.
     local TS = Augment.ToastStyles
     local style = (TS and TS.Normalize and TS.Normalize(Augment.GetToastStyle and Augment.GetToastStyle() or "framed")) or "framed"
-    local numIcons = (style == "compact") and math.min(count, 3) or 1
+    if style ~= "compact" then
+        if entry.icon2   then entry.icon2:Hide()   end
+        if entry.icon3   then entry.icon3:Hide()   end
+        if entry.iconBg2 then entry.iconBg2:Hide() end
+        if entry.iconBg3 then entry.iconBg3:Hide() end
+        return
+    end
+
+    local numIcons = math.min(count, 3)
     local iconLayers = { entry.icon,   entry.icon2,   entry.icon3   }  -- front → back
     local bgLayers   = { entry.iconBg, entry.iconBg2, entry.iconBg3 }
     local bgBase     = S(Augment.ICON_SIZE + Augment.BORDER_PAD * 2)
@@ -752,7 +763,7 @@ local function UpdateStackIcons(entry, count)
     local anchor     = entry.iconBgAnchor or entry.iconBg  -- fallback for safety
 
     if numIcons < 2 then
-        -- Single icon: restore front icon/bg to full size, hide the rest.
+        -- Single icon: restore front icon/bg to full Compact chip size, hide the rest.
         entry.iconBg:SetSize(bgBase, bgBase)
         entry.iconBg:ClearAllPoints()
         entry.iconBg:SetPoint("CENTER", anchor, "CENTER", 0, 0)
