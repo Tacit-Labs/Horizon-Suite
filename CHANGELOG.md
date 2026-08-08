@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.5.1] – 2026-08-08
+
+### 🐛 Fixes
+- **(Augment)** Auto Vendor sells grey/junk items at merchants again, including items marked with the bag junk coin.
+
+---
+
 ## [5.5.0] – 2026-08-07
 
 ### ✨ New Features
