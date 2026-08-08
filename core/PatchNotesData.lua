@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.5.1"] = {
+        date = "2026-08-08",
+        {
+            section = "Fixes",
+            bullets = {
+                "Augment: Auto Vendor sells grey/junk items at merchants again, including items marked with the bag junk coin.",
+            },
+        },
+    },
+
     ["5.5.0"] = {
         date = "2026-08-07",
         {
