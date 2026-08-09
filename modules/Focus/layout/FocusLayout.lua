@@ -1653,6 +1653,10 @@ local function FullLayout()
     -- Shrink-to-fit: measure widest visible row and resize the panel if needed.
     -- Uses unbounded string widths, so the result is stable across passes and converges
     -- in one deferred FullLayout (no oscillation between widths and wrapping).
+    -- ApplyDimensions must run after dynamicContentWidth changes — FullLayout alone
+    -- sizes entries via GetPanelWidth but does not resize HS/scrollChild. Without that,
+    -- login/reload leaves the panel stuck at the fixed width until options notify
+    -- (toggle) forces ApplyDimensions after a measured pass.
     if addon.GetDB("focusDynamicWidth", false) then
         local rawW = MeasureDynamicContentWidth()
         if rawW > 0 then
@@ -1665,15 +1669,18 @@ local function FullLayout()
                 addon.focus.layout.dynamicContentWidth = target
                 if C_Timer and C_Timer.After then
                     C_Timer.After(0, function()
-                        if addon.focus and addon.focus.enabled and addon.FullLayout then
-                            addon.FullLayout()
-                        end
+                        if not (addon.focus and addon.focus.enabled) then return end
+                        if addon.ApplyDimensions then addon.ApplyDimensions() end
+                        if addon.FullLayout then addon.FullLayout() end
                     end)
+                elseif addon.ApplyDimensions then
+                    addon.ApplyDimensions()
                 end
             end
         end
     elseif addon.focus.layout.dynamicContentWidth ~= nil then
         addon.focus.layout.dynamicContentWidth = nil
+        if addon.ApplyDimensions then addon.ApplyDimensions() end
     end
 end
 
