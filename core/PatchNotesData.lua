@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.5.2"] = {
+        date = "2026-08-09",
+        {
+            section = "Fixes",
+            bullets = {
+                "Augment: Accent toast style matches on loot and alert toasts again.",
+            },
+        },
+    },
+
     ["5.5.1"] = {
         date = "2026-08-08",
         {

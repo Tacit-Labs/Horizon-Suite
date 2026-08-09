@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.5.2] – 2026-08-09
+
+### 🐛 Fixes
+- **(Augment)** Accent toast style matches on loot and alert toasts again.
+
+---
+
 ## [5.5.1] – 2026-08-08
 
 ### 🐛 Fixes
