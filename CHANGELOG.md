@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.5.3] – 2026-08-11
+
+### 🐛 Fixes
+- **(Focus)** Shrink to Fit Content applies on login and reload without toggling the setting.
+
+---
+
 ## [5.5.2] – 2026-08-09
 
 ### 🐛 Fixes
