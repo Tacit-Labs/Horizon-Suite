@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.5.3"] = {
+        date = "2026-08-11",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: Shrink to Fit Content applies on login and reload without toggling the setting.",
+            },
+        },
+    },
+
     ["5.5.2"] = {
         date = "2026-08-09",
         {
