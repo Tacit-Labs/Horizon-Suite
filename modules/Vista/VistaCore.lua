@@ -2583,6 +2583,7 @@ do
             end)
         end)
         Vista._queueReattach.internal = false
+        if Vista._ApplyQueueClusterAlpha then Vista._ApplyQueueClusterAlpha() end
     end
 
     local function ScheduleQueueButtonReattach()
@@ -2631,6 +2632,7 @@ do
             queueAnchor:EnableMouse(false)
             queueAnchor._border:Hide()
         end
+        if Vista._ApplyQueueClusterAlpha then Vista._ApplyQueueClusterAlpha() end
     end
 
     CreateQueueAnchor = function()
@@ -3028,7 +3030,7 @@ do
             end)
             realBtn:HookScript("OnEnter", function()
                 if G.ShowLanding() and G.MouseoverLanding() then
-                    realBtn:SetAlpha(1)
+                    realBtn:SetAlpha(1 * ((Vista._opacity and Vista._opacity.alpha) or 1))
                 end
             end)
             realBtn:HookScript("OnLeave", function()
@@ -4476,11 +4478,7 @@ do
     end
 
     local function frameHovered(f)
-        if not f then return false end
-        local ok, hovered = pcall(function()
-            return f:IsShown() and f:IsMouseOver()
-        end)
-        return ok and hovered
+        return f ~= nil and f:IsShown() and f:IsMouseOver()
     end
 
     local function IsClusterHovered()
@@ -4500,14 +4498,11 @@ do
     end
 
     local function GetClusterTargetAlpha()
+        local key = InCombatLockdown() and "vistaCombatOpacity" or "vistaOpacity"
+        local base = clampPct(DB(key, 100))
+        if base >= 100 then return 1 end
         if IsClusterHovered() then return 1 end
-        local pct
-        if InCombatLockdown() then
-            pct = clampPct(DB("vistaCombatOpacity", 100))
-        else
-            pct = clampPct(DB("vistaOpacity", 100))
-        end
-        return pct / 100
+        return base / 100
     end
 
     local function ApplyLandingClusterAlpha()
@@ -4528,6 +4523,7 @@ do
             pcall(function() q:SetAlpha(Vista._opacity.alpha) end)
         end
     end
+    Vista._ApplyQueueClusterAlpha = ApplyQueueClusterAlpha
 
     local function ApplyClusterAlpha(a)
         if Minimap then Minimap:SetAlpha(a) end
@@ -5120,7 +5116,7 @@ function Vista.Disable()
     end
     if Minimap then Minimap:SetAlpha(1) end
     if circularBorderFrame then circularBorderFrame:SetAlpha(1) end
-    if collectorBar then collectorBar:SetAlpha(1) end
+    if collectorBar then collectorBar:SetAlpha(barAlpha) end
     if barAnchor then barAnchor:SetAlpha(1) end
     if drawerButton then drawerButton:SetAlpha(1) end
     local q = _G.QueueStatusButton or _G.QueueStatusMinimapButton or _G.MiniMapBattlefieldFrame
