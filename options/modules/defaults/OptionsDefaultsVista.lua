@@ -12,6 +12,7 @@ addon.VISTA_KEYS = {
     vistaMapSize = true,
     vistaCircular = true,
     vistaBorderShow = true, vistaBorderWidth = true,
+    vistaOpacity = true, vistaCombatOpacity = true,
     vistaBorderColorR = true, vistaBorderColorG = true, vistaBorderColorB = true, vistaBorderColorA = true,
     vistaZoneFontPath = true, vistaZoneFontSize = true,
     vistaCoordFontPath = true, vistaCoordFontSize = true,
@@ -113,6 +114,12 @@ addon.VISTA_COLOR_LIVE_KEYS = {
     vistaBarBorderR = true, vistaBarBorderG = true, vistaBarBorderB = true, vistaBarBorderA = true,
 }
 
+-- Vista opacity keys: live snap via Vista.ApplyClusterOpacity; skip ApplyOptions / FullLayout.
+addon.VISTA_OPACITY_LIVE_KEYS = {
+    vistaOpacity = true,
+    vistaCombatOpacity = true,
+}
+
 -- Vista-only keys: Vista.ApplyOptions already runs, so skip FullLayout (Focus rebuild unnecessary).
 -- Add a key here only if it must still rebuild the tracker or global dimensions.
 addon.VISTA_KEYS_REQUIRE_NOTIFY = {
@@ -155,6 +162,7 @@ addon.VISTA_DEFAULTS = {
     vistaTeleportShowCooldowns = true, vistaTeleportShowRecents = true, vistaTeleportEnableFavorites = true,
     vistaBorderShow = true, vistaBorderWidth = 1,
     vistaBorderColorR = 1, vistaBorderColorG = 1, vistaBorderColorB = 1, vistaBorderColorA = 0.15,
+    vistaOpacity = 100, vistaCombatOpacity = 100,
     vistaZoneVerticalPos = "bottom",  vistaLocked_zone = true,
     vistaCoordVerticalPos = "bottom", vistaLocked_coord = true,
     vistaTimeVerticalPos = "bottom",  vistaLocked_time = true,
@@ -202,6 +210,8 @@ addon.VISTA_LIMITS = {
     vistaMapSize               = { min = 100, max = 400 },
     vistaAutoZoom              = { min = 0,   max = 30  },
     vistaBorderWidth           = { min = 1,   max = 8   },
+    vistaOpacity               = { min = 0,   max = 100 },
+    vistaCombatOpacity         = { min = 0,   max = 100 },
     vistaTrackingBtnSize       = { min = 14,  max = 40  },
     vistaCalendarBtnSize       = { min = 14,  max = 40  },
     vistaTeleportBtnSize       = { min = 14,  max = 40  },

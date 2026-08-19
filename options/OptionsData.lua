@@ -154,7 +154,9 @@ function OptionsData_SetDB(key, value)
         end
     end
     if addon.VISTA_KEYS and addon.VISTA_KEYS[key] and addon.Vista then
-        if addon._colorPickerLive and addon.VISTA_COLOR_LIVE_KEYS and addon.VISTA_COLOR_LIVE_KEYS[key] then
+        if addon.VISTA_OPACITY_LIVE_KEYS and addon.VISTA_OPACITY_LIVE_KEYS[key] then
+            if addon.Vista.ApplyClusterOpacity then addon.Vista.ApplyClusterOpacity(true) end
+        elseif addon._colorPickerLive and addon.VISTA_COLOR_LIVE_KEYS and addon.VISTA_COLOR_LIVE_KEYS[key] then
             if addon.Vista.ApplyColors then addon.Vista.ApplyColors() end
         elseif addon.Vista.ApplyOptions or addon.Vista.ApplyLockOnlyOptions then
             local fn
