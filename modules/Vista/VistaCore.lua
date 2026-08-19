@@ -4483,6 +4483,7 @@ do
 
     local function IsClusterHovered()
         if frameHovered(Minimap) then return true end
+        if frameHovered(Vista._opacityHit) then return true end
         if frameHovered(circularBorderFrame) then return true end
         if frameHovered(collectorBar) then return true end
         if frameHovered(barAnchor) then return true end
@@ -4525,9 +4526,83 @@ do
     end
     Vista._ApplyQueueClusterAlpha = ApplyQueueClusterAlpha
 
+    -- Minimap:SetAlpha fades the C++ terrain only. Overlay pins (herbs, pings) and
+    -- child frames (decor / mail / tracking proxies) do not inherit that alpha.
+    local function isSuppressedMinimapChild(child)
+        if not child or child == decor then return true end
+        if Minimap.ZoomIn and child == Minimap.ZoomIn then return true end
+        if Minimap.ZoomOut and child == Minimap.ZoomOut then return true end
+        local n = child.GetName and child:GetName()
+        return n == "MinimapZoomIn" or n == "MinimapZoomOut"
+    end
+
+    local function ApplyMinimapChildAlpha(a)
+        if decor then decor:SetAlpha(a) end
+        if not Minimap then return end
+        local ok, children = pcall(function() return { Minimap:GetChildren() } end)
+        if not ok or not children then return end
+        for i = 1, #children do
+            local child = children[i]
+            if not isSuppressedMinimapChild(child) then
+                pcall(function() child:SetAlpha(a) end)
+            end
+        end
+    end
+    Vista._ApplyMinimapChildAlpha = ApplyMinimapChildAlpha
+
+    -- Engine blips (herbs, mailbox, pings, player arrow) are not frames.
+    -- Minimap:SetAlpha cannot fade them; Hide() is the only reliable way at 0.
+    -- A UIParent hit-frame keeps mouseover restore while the map is hidden.
+    local HIDE_EPS = 0.001
+
+    local function EnsureOpacityHit()
+        local hit = Vista._opacityHit
+        if hit then return hit end
+        hit = CreateFrame("Frame", "HorizonSuiteVistaOpacityHit", UIParent)
+        hit:EnableMouse(true)
+        -- Invisible fill so an empty frame still receives mouse over the world.
+        local tex = hit:CreateTexture(nil, "BACKGROUND")
+        tex:SetAllPoints()
+        tex:SetColorTexture(0, 0, 0, 0)
+        hit._tex = tex
+        -- decor's OnUpdate dies when Minimap is hidden; drive opacity from here.
+        hit:SetScript("OnUpdate", function(_, elapsed)
+            if Vista._UpdateClusterOpacity then Vista._UpdateClusterOpacity(elapsed) end
+        end)
+        hit:Hide()
+        Vista._opacityHit = hit
+        return hit
+    end
+
+    local function LayoutOpacityHit(hit)
+        local sz = GetMapSize()
+        hit:SetSize(sz, sz)
+        hit:ClearAllPoints()
+        hit:SetPoint("CENTER", Minimap, "CENTER", 0, 0)
+        -- Minimap is LOW (special widget). A blank Frame at LOW loses the mouse
+        -- to the world once the map is hidden; HIGH intercepts hover.
+        hit:SetFrameStrata("HIGH")
+        hit:SetFrameLevel(1)
+    end
+
     local function ApplyClusterAlpha(a)
-        if Minimap then Minimap:SetAlpha(a) end
-        if circularBorderFrame then circularBorderFrame:SetAlpha(a) end
+        local showMap = DB("vistaShowMinimap", true) ~= false
+        local hit = EnsureOpacityHit()
+        if showMap and a > HIDE_EPS then
+            Minimap:Show()
+            Minimap:SetAlpha(a)
+            ApplyMinimapChildAlpha(a)
+            hit:Hide()
+        else
+            Minimap:Hide()
+            if showMap then
+                LayoutOpacityHit(hit)
+                hit:Show()
+            else
+                hit:Hide()
+            end
+        end
+        if circularBorderFrame then circularBorderFrame:SetAlpha((showMap and a > HIDE_EPS) and a or 0) end
         if drawerButton then drawerButton:SetAlpha(a) end
         if collectorBar then collectorBar:SetAlpha(barAlpha * a) end
         if barAnchor then barAnchor:SetAlpha(a) end
@@ -4550,6 +4625,9 @@ do
             st.elapsed = 0
         end
         if st.alpha == st.target then
+            -- Re-apply overlay alphas while faded so late pins (herbs, pings, queue)
+            -- don't appear fully opaque on a transparent map.
+            if st.alpha < 1 then ApplyMinimapChildAlpha(st.alpha) end
             return
         end
         st.elapsed = st.elapsed + (elapsed or 0)
@@ -5094,7 +5172,11 @@ function Vista.Init()
         elseif event == "PET_BATTLE_OPENING_START" then
             Minimap:Hide()
         elseif event == "PET_BATTLE_CLOSE" then
-            if addon:IsModuleEnabled("vista") then Minimap:Show() end
+            if addon:IsModuleEnabled("vista") and Vista.ApplyClusterOpacity then
+                Vista.ApplyClusterOpacity(true)
+            elseif addon:IsModuleEnabled("vista") then
+                Minimap:Show()
+            end
         elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
             if Vista.ApplyClusterOpacity then Vista.ApplyClusterOpacity(false) end
         end
@@ -5114,7 +5196,9 @@ function Vista.Disable()
         Vista._opacity.target = 1
         Vista._opacity.from = 1
     end
-    if Minimap then Minimap:SetAlpha(1) end
+    if Vista._opacityHit then Vista._opacityHit:Hide() end
+    if Minimap then Minimap:SetAlpha(1); Minimap:Show() end
+    if Vista._ApplyMinimapChildAlpha then Vista._ApplyMinimapChildAlpha(1) end
     if circularBorderFrame then circularBorderFrame:SetAlpha(1) end
     if collectorBar then collectorBar:SetAlpha(barAlpha) end
     if barAnchor then barAnchor:SetAlpha(1) end
