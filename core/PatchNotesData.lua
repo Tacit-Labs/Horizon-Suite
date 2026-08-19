@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.6.0"] = {
+        date = "2026-08-20",
+        {
+            section = "New Features",
+            bullets = {
+                "Vista: default and combat minimap opacity, with hover restoring the cluster to full opacity. At 0 the map hides so tracking icons disappear; hover the empty square to bring it back.",
+            },
+        },
+    },
+
     ["5.5.3"] = {
         date = "2026-08-11",
         {

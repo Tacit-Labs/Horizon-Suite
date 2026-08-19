@@ -2,7 +2,7 @@
 ## Title: Horizon Suite
 ## Notes: Core addon with pluggable modules.
 ## Author: Crystilac
-## Version: 5.5.3
+## Version: 5.6.0
 ## SavedVariables: HorizonDB
 ## OptionalDeps: Auctionator, IconBrowser, Horizon-RareScanner, Horizon-SilverDragon
 ## IconTexture: Interface\AddOns\HorizonSuite\Docs\Branding\HorizonLogo.blp

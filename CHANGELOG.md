@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.6.0] – 2026-08-20
+
+### ✨ New Features
+- **(Vista)** Default and combat minimap opacity, with hover restoring the cluster to full opacity. At 0 the map hides so tracking icons disappear; hover the empty square to bring it back.
+
+---
+
 ## [5.5.3] – 2026-08-11
 
 ### 🐛 Fixes
