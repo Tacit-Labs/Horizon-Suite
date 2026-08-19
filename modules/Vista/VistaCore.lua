@@ -636,7 +636,7 @@ local function SetupMinimap()
     local moduleScale = (addon.GetModuleScale and addon.GetModuleScale("vista")) or 1
     proxy.SetScale(Minimap, (scale or 1.0) * moduleScale * mapScale)
     Minimap:Show()
-    Minimap:SetAlpha(1)
+    if Vista.ApplyClusterOpacity then Vista.ApplyClusterOpacity(true) end
 end
 
 -- ============================================================================
@@ -2822,16 +2822,22 @@ do
     local function ApplyLandingMouseoverAlpha(realBtn)
         if not realBtn or not realBtn:IsShown() then return end
         if not G.ShowLanding() then return end
+        local ca = (Vista._opacity and Vista._opacity.alpha) or 1
         if not G.MouseoverLanding() then
-            realBtn:SetAlpha(1)
+            realBtn:SetAlpha(1 * ca)
             return
         end
         local locked = DB("vistaLocked_proxy_landing", true)
         if realBtn:IsMouseOver() or (Minimap and Minimap:IsMouseOver()) then
-            realBtn:SetAlpha(1)
+            realBtn:SetAlpha(1 * ca)
         else
-            realBtn:SetAlpha(locked and 0 or 0.5)
+            realBtn:SetAlpha((locked and 0 or 0.5) * ca)
         end
+    end
+
+    Vista._ApplyLandingMouseoverAlpha = function()
+        local realBtn = GetLandingPageButton()
+        ApplyLandingMouseoverAlpha(realBtn)
     end
 
     local function SaveLandingAnchorFromFrame(frame)
@@ -3570,7 +3576,8 @@ local function CreateCollectorBar()
     collectorBar:SetClampedToScreen(true)
     collectorBar:SetMovable(true)
     collectorBar:SetSize(1, G.AddonBtnSize())
-    collectorBar:SetAlpha(0)
+    -- barAlpha starts at 0; multiply by cluster opacity
+    Vista._ApplyCollectorBarAlpha()
 
     local savedX = G.MouseoverBarX()
     local savedY = G.MouseoverBarY()
@@ -3692,7 +3699,8 @@ local function CreateCollectorBar()
     barAnchor:SetScript("OnDragStart", function(self)
         if InCombatLockdown() then return end
         barAnchorDragging = true
-        collectorBar:SetAlpha(1)  -- keep bar visible while dragging
+        barAlpha = 1  -- keep bar visible while dragging
+        Vista._ApplyCollectorBarAlpha()
         self:StartMoving()
         -- Live-follow: read anchor screen pos every frame, derive bar CENTER, move bar
         self:SetScript("OnUpdate", function(s)
@@ -4397,6 +4405,7 @@ local function OnHoverUpdate(_, elapsed)
     UpdateCoords(nil, elapsed)
     UpdateTimeText(nil, elapsed)
     UpdatePerfText(nil, elapsed)
+    if Vista._UpdateClusterOpacity then Vista._UpdateClusterOpacity(elapsed) end
 
     -- Only animate the collector bar in mouseover mode
     if G.ButtonMode() ~= BTN_MODE_MOUSEOVER then
@@ -4414,7 +4423,7 @@ local function OnHoverUpdate(_, elapsed)
         hoverTarget = 1
         hoverElapsed = 0
         barCloseDelayElapsed = 0
-        collectorBar:SetAlpha(1)
+        Vista._ApplyCollectorBarAlpha()
         UpdateBarAnchorVisibility()
         return
     end
@@ -4447,8 +4456,130 @@ local function OnHoverUpdate(_, elapsed)
         if barAlpha < 0 then barAlpha = 0 end
     end
     if t >= 1 then barAlpha = hoverTarget; barCloseDelayElapsed = 0 end
-    collectorBar:SetAlpha(barAlpha)
+    Vista._ApplyCollectorBarAlpha()
     UpdateBarAnchorVisibility()
+end
+
+-- ============================================================================
+-- CLUSTER OPACITY (default + combat; hover restores full)
+-- ============================================================================
+-- Queue/landing anchors encode lock-handle visibility with SetAlpha(0) and
+-- SetIgnoreParentAlpha on the real button — never SetAlpha those anchors here.
+Vista._opacity = Vista._opacity or { alpha = 1, target = 1, from = 1, elapsed = 0 }
+
+do
+    local function clampPct(v)
+        v = tonumber(v) or 100
+        if v < 0 then return 0 end
+        if v > 100 then return 100 end
+        return v
+    end
+
+    local function frameHovered(f)
+        if not f then return false end
+        local ok, hovered = pcall(function()
+            return f:IsShown() and f:IsMouseOver()
+        end)
+        return ok and hovered
+    end
+
+    local function IsClusterHovered()
+        if frameHovered(Minimap) then return true end
+        if frameHovered(circularBorderFrame) then return true end
+        if frameHovered(collectorBar) then return true end
+        if frameHovered(barAnchor) then return true end
+        if frameHovered(drawerButton) then return true end
+        if frameHovered(queueAnchor) then return true end
+        if frameHovered(landingPageAnchor) then return true end
+        if defaultProxies then
+            for i = 1, #defaultProxies do
+                if frameHovered(defaultProxies[i]) then return true end
+            end
+        end
+        return false
+    end
+
+    local function GetClusterTargetAlpha()
+        if IsClusterHovered() then return 1 end
+        local pct
+        if InCombatLockdown() then
+            pct = clampPct(DB("vistaCombatOpacity", 100))
+        else
+            pct = clampPct(DB("vistaOpacity", 100))
+        end
+        return pct / 100
+    end
+
+    local function ApplyLandingClusterAlpha()
+        -- GetLandingPageButton is local to the landing do/end — not visible here.
+        if Vista._ApplyLandingMouseoverAlpha then
+            Vista._ApplyLandingMouseoverAlpha()
+            return
+        end
+        local realBtn = _G.ExpansionLandingPageMinimapButton
+        if realBtn and realBtn:IsShown() then
+            pcall(function() realBtn:SetAlpha(Vista._opacity.alpha) end)
+        end
+    end
+
+    local function ApplyQueueClusterAlpha()
+        local q = _G.QueueStatusButton or _G.QueueStatusMinimapButton or _G.MiniMapBattlefieldFrame
+        if q and q:IsShown() then
+            pcall(function() q:SetAlpha(Vista._opacity.alpha) end)
+        end
+    end
+
+    local function ApplyClusterAlpha(a)
+        if Minimap then Minimap:SetAlpha(a) end
+        if circularBorderFrame then circularBorderFrame:SetAlpha(a) end
+        if drawerButton then drawerButton:SetAlpha(a) end
+        if collectorBar then collectorBar:SetAlpha(barAlpha * a) end
+        if barAnchor then barAnchor:SetAlpha(a) end
+        ApplyQueueClusterAlpha()
+        ApplyLandingClusterAlpha()
+    end
+
+    function Vista._ApplyCollectorBarAlpha()
+        if collectorBar then
+            collectorBar:SetAlpha(barAlpha * (Vista._opacity.alpha or 1))
+        end
+    end
+
+    function Vista._UpdateClusterOpacity(elapsed)
+        local st = Vista._opacity
+        local target = GetClusterTargetAlpha()
+        if target ~= st.target then
+            st.from = st.alpha
+            st.target = target
+            st.elapsed = 0
+        end
+        if st.alpha == st.target then
+            return
+        end
+        st.elapsed = st.elapsed + (elapsed or 0)
+        local t = math.min(st.elapsed / FADE_DUR, 1)
+        st.alpha = st.from + (st.target - st.from) * easeOut(t)
+        if t >= 1 then st.alpha = st.target end
+        ApplyClusterAlpha(st.alpha)
+    end
+
+    --- Snap or retarget cluster opacity from hover, combat, and saved sliders.
+    --- @param snap boolean|nil If true, jump to target (slider drag). If false/nil, start a 0.2s lerp.
+    --- @return nil
+    function Vista.ApplyClusterOpacity(snap)
+        local st = Vista._opacity
+        st.target = GetClusterTargetAlpha()
+        if snap then
+            st.alpha = st.target
+            st.from = st.target
+            st.elapsed = FADE_DUR
+            ApplyClusterAlpha(st.alpha)
+            return
+        end
+        st.from = st.alpha
+        st.elapsed = 0
+        ApplyClusterAlpha(st.alpha)
+    end
 end
 
 -- ============================================================================
@@ -4755,6 +4886,7 @@ function Vista.ApplyOptions(changedKey)
     if addon.MinimapButton_ApplyPosition then
         addon.MinimapButton_ApplyPosition()
     end
+    if Vista.ApplyClusterOpacity then Vista.ApplyClusterOpacity(true) end
 end
 
 -- Lightweight apply for position-lock toggles only: no proxy rebuild, no CollectMinimapButtons, no FullLayout (caller skips NotifyMainAddon).
@@ -4782,7 +4914,7 @@ function Vista.FlashMouseoverBar()
     barAlpha   = 1
     hoverTarget = 1
     hoverElapsed = 0
-    collectorBar:SetAlpha(1)
+    Vista._ApplyCollectorBarAlpha()
     UpdateBarAnchorVisibility()
     -- After 3 seconds, fade back out (unless user is hovering or always-visible is on)
     barFlashTimer = C_Timer.NewTimer(3, function()
@@ -4916,6 +5048,8 @@ function Vista.Init()
     eventFrame:RegisterEvent("PET_BATTLE_CLOSE")
     eventFrame:RegisterEvent("MINIMAP_UPDATE_ZOOM")
     eventFrame:RegisterEvent("ADDON_LOADED")
+    eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+    eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_PERSONAL_ORDER_COUNTS") end)
     pcall(function() eventFrame:RegisterEvent("CRAFTINGORDERS_UPDATE_ORDER_COUNT") end)
 
@@ -4965,6 +5099,8 @@ function Vista.Init()
             Minimap:Hide()
         elseif event == "PET_BATTLE_CLOSE" then
             if addon:IsModuleEnabled("vista") then Minimap:Show() end
+        elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
+            if Vista.ApplyClusterOpacity then Vista.ApplyClusterOpacity(false) end
         end
     end)
 
@@ -4977,6 +5113,20 @@ function Vista.Disable()
     addon.Log.debug("vista", "Disable")
     if eventFrame then eventFrame:UnregisterAllEvents(); eventFrame:SetScript("OnEvent", nil) end
     if decor then decor:SetScript("OnUpdate", nil) end
+    if Vista._opacity then
+        Vista._opacity.alpha = 1
+        Vista._opacity.target = 1
+        Vista._opacity.from = 1
+    end
+    if Minimap then Minimap:SetAlpha(1) end
+    if circularBorderFrame then circularBorderFrame:SetAlpha(1) end
+    if collectorBar then collectorBar:SetAlpha(1) end
+    if barAnchor then barAnchor:SetAlpha(1) end
+    if drawerButton then drawerButton:SetAlpha(1) end
+    local q = _G.QueueStatusButton or _G.QueueStatusMinimapButton or _G.MiniMapBattlefieldFrame
+    if q then pcall(function() q:SetAlpha(1) end) end
+    local landing = _G.ExpansionLandingPageMinimapButton
+    if landing then pcall(function() landing:SetAlpha(1) end) end
     HideAllProxyButtons()
     DestroyDrawerButton()
     if not InCombatLockdown() then proxy.SetParent(Minimap, MinimapCluster) end
