@@ -156,6 +156,16 @@ local categories = {
                       end)
                   end
               end },
+            { type = "slider", name = L["VISTA_OPACITY"],
+              desc = L["VISTA_OPACITY_DESC"],
+              dbKey = "vistaOpacity", min = LIM.vistaOpacity.min, max = LIM.vistaOpacity.max, step = 1,
+              get = function() return getSlider("vistaOpacity") end,
+              set = function(v) setDB("vistaOpacity", clamp(v, "vistaOpacity")) end },
+            { type = "slider", name = L["VISTA_COMBAT_OPACITY"],
+              desc = L["VISTA_COMBAT_OPACITY_DESC"],
+              dbKey = "vistaCombatOpacity", min = LIM.vistaCombatOpacity.min, max = LIM.vistaCombatOpacity.max, step = 1,
+              get = function() return getSlider("vistaCombatOpacity") end,
+              set = function(v) setDB("vistaCombatOpacity", clamp(v, "vistaCombatOpacity")) end },
             Section(L["VISTA_TEXT_POSITIONS"]),
             Header(L["VISTA_DRAG_TEXT_ELEMENTS_REPOSITION_LOCK_PREVEN"]),
             { type = "dropdown", name = L["VISTA_LOCATION_POSITION"],
