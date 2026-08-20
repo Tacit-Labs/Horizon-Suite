@@ -1231,7 +1231,8 @@ HS:Hide()
 local hsBg = HS:CreateTexture(nil, "BACKGROUND")
 hsBg:SetAllPoints(HS)
 local backdropColor = (addon.Design and addon.Design.BACKDROP_COLOR) or { 0.08, 0.08, 0.12, 0.90 }
-hsBg:SetColorTexture(backdropColor[1], backdropColor[2], backdropColor[3], backdropColor[4] or 1)
+hsBg:SetColorTexture(backdropColor[1], backdropColor[2], backdropColor[3], 1)
+hsBg:SetAlpha(backdropColor[4] or 1)
 addon.hsBg = hsBg
 
 local borderColor = (addon.Design and addon.Design.BORDER_COLOR) or nil
@@ -1239,17 +1240,55 @@ local hsBorderT, hsBorderB, hsBorderL, hsBorderR = addon.CreateBorder(HS, border
 addon.hsBorderT, addon.hsBorderB = hsBorderT, hsBorderB
 addon.hsBorderL, addon.hsBorderR = hsBorderL, hsBorderR
 
+-- Stored backdrop opacity is 0–1; legacy values were 0–100.
+local function NormalizeBackdropAlpha(value, default)
+    local v = tonumber(value)
+    if v == nil then v = default end
+    if v > 1 then v = v / 100 end
+    if v < 0 then return 0 end
+    if v > 1 then return 1 end
+    return v
+end
+
+--- True when Focus should keep hover tracking (whole-frame fade, backdrop hover, or border hover).
+--- @return boolean
+function addon.IsFocusHoverTrackingEnabled()
+    return addon.GetDB("showOnMouseoverOnly", false)
+        or addon.GetDB("backdropOpacityOnMouseover", false)
+        or addon.GetDB("showBorderOnMouseover", false)
+end
+
+--- Target Focus panel backdrop alpha in [0, 1], using hover opacity when enabled and hovered.
+--- @return number
+function addon.GetFocusBackdropTargetAlpha()
+    local idle = NormalizeBackdropAlpha(addon.GetDB("backdropOpacity", 0), 0)
+    if not addon.GetDB("backdropOpacityOnMouseover", false) then
+        return idle
+    end
+    if addon.IsFocusHoverActive and addon.IsFocusHoverActive() then
+        return NormalizeBackdropAlpha(addon.GetDB("backdropOpacityMouseover", 0.4), 0.4)
+    end
+    return idle
+end
+
+--- Apply the Focus panel backdrop colour and current target opacity.
+--- @return nil
 function addon.ApplyBackdropOpacity()
     if not addon.hsBg then return end
-    local a = tonumber(addon.GetDB("backdropOpacity", 0)) or 0
     local r = tonumber(addon.GetDB("backdropColorR", 0.08)) or 0.08
     local g = tonumber(addon.GetDB("backdropColorG", 0.08)) or 0.08
     local b = tonumber(addon.GetDB("backdropColorB", 0.12)) or 0.12
-    addon.hsBg:SetColorTexture(r, g, b, math.max(0, math.min(1, a)))
+    addon.hsBg:SetColorTexture(r, g, b, 1)
+    addon.hsBg:SetAlpha(addon.GetFocusBackdropTargetAlpha())
 end
 
+--- Show or hide the Focus panel border (always-on, or only while hovered).
+--- @return nil
 function addon.ApplyBorderVisibility()
     local show = addon.GetDB("showBorder", false)
+    if not show and addon.GetDB("showBorderOnMouseover", false) then
+        show = addon.IsFocusHoverActive and addon.IsFocusHoverActive() or false
+    end
     if addon.hsBorderT then addon.hsBorderT:SetShown(show) end
     if addon.hsBorderB then addon.hsBorderB:SetShown(show) end
     if addon.hsBorderL then addon.hsBorderL:SetShown(show) end
@@ -1704,17 +1743,17 @@ HS:SetScript("OnDragStop", function(self)
     SavePanelPosition()
 end)
 
--- Hover fade: track mouse over for show-on-mouseover mode.
+-- Hover fade: track mouse over for show-on-mouseover and backdrop-hover modes.
 -- addon.focus.hoverFade is initialised by modules/Focus/FocusLayoutState.lua (loads earlier).
 HS:SetScript("OnEnter", function()
     addon.focus.hoverFade.mouseOver = true
-    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+    if addon.IsFocusHoverTrackingEnabled() and addon.EnsureFocusUpdateRunning then
         addon.EnsureFocusUpdateRunning()
     end
 end)
 HS:SetScript("OnLeave", function()
     addon.focus.hoverFade.mouseOver = false
-    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+    if addon.IsFocusHoverTrackingEnabled() and addon.EnsureFocusUpdateRunning then
         addon.EnsureFocusUpdateRunning()
     end
 end)

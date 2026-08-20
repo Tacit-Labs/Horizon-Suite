@@ -196,7 +196,7 @@ function OptionsData_SetDB(key, value)
     if key == "lockPosition" and addon.UpdateResizeHandleVisibility then
         addon.UpdateResizeHandleVisibility()
     end
-    if (key == "backdropOpacity" or key == "backdropColorR" or key == "backdropColorG" or key == "backdropColorB") and addon.ApplyBackdropOpacity then
+    if (key == "backdropOpacity" or key == "backdropOpacityMouseover" or key == "backdropOpacityOnMouseover" or key == "backdropColorR" or key == "backdropColorG" or key == "backdropColorB") and addon.ApplyBackdropOpacity then
         addon.ApplyBackdropOpacity()
     end
     if key == "insightBgOpacity" and addon.Insight and addon.Insight.ApplyInsightOptions then
@@ -232,7 +232,7 @@ end
 -- Lightweight notify for live color picker: update only the visual surface tied
 -- to the changed key, without the heavy FullLayout path.
 function OptionsData_NotifyMainAddon_Live(key)
-    if key == "backdropOpacity" or key == "backdropColorR" or key == "backdropColorG" or key == "backdropColorB" then
+    if key == "backdropOpacity" or key == "backdropOpacityMouseover" or key == "backdropColorR" or key == "backdropColorG" or key == "backdropColorB" then
         if addon.ApplyBackdropOpacity then addon.ApplyBackdropOpacity() end
         return
     end

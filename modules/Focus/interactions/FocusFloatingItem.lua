@@ -126,7 +126,7 @@ floatingQuestItemBtn:SetScript("OnEnter", function(self)
     self:SetAlpha(1)
     -- Tooltip from HSSecureItemOverlay only; avoids double GameTooltip Show with Insight fade.
     addon.AttachSecureItemOverlay(self, self._itemLink)
-    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+    if addon.IsFocusHoverTrackingEnabled and addon.IsFocusHoverTrackingEnabled() and addon.EnsureFocusUpdateRunning then
         addon.EnsureFocusUpdateRunning()
     end
 end)
@@ -134,7 +134,7 @@ floatingQuestItemBtn:SetScript("OnLeave", function(self)
     self:SetAlpha(0.9)
     if GameTooltip and GameTooltip:GetOwner() == self then GameTooltip:Hide() end
     addon.DetachSecureItemOverlay(self)
-    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+    if addon.IsFocusHoverTrackingEnabled and addon.IsFocusHoverTrackingEnabled() and addon.EnsureFocusUpdateRunning then
         addon.EnsureFocusUpdateRunning()
     end
 end)

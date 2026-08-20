@@ -296,6 +296,62 @@ local function UpdateHoverFade(dt, useAnim)
     end
 end
 
+local function UpdateBackdropHover(dt, useAnim)
+    local hsBg = addon.hsBg
+    if not hsBg then return end
+    local hf = addon.focus.hoverFade
+    if not hf then return end
+    if not addon.GetDB("backdropOpacityOnMouseover", false) then
+        if hf.bgFadeState then
+            hf.bgFadeState = nil
+            hf.bgFadeTime = 0
+            hf.bgStartAlpha = nil
+            hf.bgTargetAlpha = nil
+            if addon.ApplyBackdropOpacity then addon.ApplyBackdropOpacity() end
+        end
+        return
+    end
+
+    local targetAlpha = addon.GetFocusBackdropTargetAlpha and addon.GetFocusBackdropTargetAlpha() or 0
+    local currentAlpha = hsBg:GetAlpha() or targetAlpha
+
+    if not useAnim then
+        hsBg:SetAlpha(targetAlpha)
+        hf.bgFadeState = nil
+        hf.bgFadeTime = 0
+        hf.bgStartAlpha = nil
+        hf.bgTargetAlpha = nil
+        return
+    end
+
+    if hf.bgFadeState == nil then
+        if math.abs(currentAlpha - targetAlpha) < 0.01 then
+            hsBg:SetAlpha(targetAlpha)
+            return
+        end
+        hf.bgFadeState = "run"
+        hf.bgFadeTime = 0
+        hf.bgStartAlpha = currentAlpha
+    elseif math.abs((hf.bgTargetAlpha or targetAlpha) - targetAlpha) >= 0.01 then
+        hf.bgFadeTime = 0
+        hf.bgStartAlpha = currentAlpha
+    end
+    hf.bgTargetAlpha = targetAlpha
+
+    hf.bgFadeTime = (hf.bgFadeTime or 0) + dt
+    local p = GetProgress(hf.bgFadeTime, 0, anim.dur)
+    local startAlpha = hf.bgStartAlpha or currentAlpha
+    hsBg:SetAlpha(startAlpha + (targetAlpha - startAlpha) * p)
+
+    if p >= 1 then
+        hsBg:SetAlpha(targetAlpha)
+        hf.bgFadeState = nil
+        hf.bgFadeTime = 0
+        hf.bgStartAlpha = nil
+        hf.bgTargetAlpha = nil
+    end
+end
+
 local function UpdateCombatFade(dt, useAnim)
     local combatState = addon.focus.combat.fadeState
     if not combatState then return end
@@ -1102,9 +1158,15 @@ function addon.EnsureFocusUpdateRunning()
         dt = dt or 0
         local useAnim = addon.GetDB("animations", true)
         local mouseoverOnly = addon.GetDB("showOnMouseoverOnly", false)
+        local backdropHover = addon.GetDB("backdropOpacityOnMouseover", false)
+        local borderHover = addon.GetDB("showBorderOnMouseover", false)
         UpdatePanelHeight(dt)
         UpdateCombatFade(dt, useAnim)
         UpdateHoverFade(dt, useAnim)
+        UpdateBackdropHover(dt, useAnim)
+        if borderHover and addon.ApplyBorderVisibility then
+            addon.ApplyBorderVisibility()
+        end
         local anyEntryAnimating = UpdateEntryAnimations(dt, useAnim)
         UpdateSectionHeaderFadeOut(dt, useAnim)
         UpdateCollapseAnimations(dt, useAnim)
@@ -1131,6 +1193,17 @@ function addon.EnsureFocusUpdateRunning()
             local currentAlpha = HS:GetAlpha()
             hoverFadeNeedsUpdate = (addon.focus.hoverFade.fadeState ~= nil) or (math.abs(currentAlpha - targetAlpha) >= 0.01)
         end
+        local backdropHoverNeedsUpdate = false
+        if backdropHover and HS:IsShown() and addon.hsBg then
+            local targetBg = addon.GetFocusBackdropTargetAlpha and addon.GetFocusBackdropTargetAlpha() or 0
+            local currentBg = addon.hsBg:GetAlpha() or 0
+            backdropHoverNeedsUpdate = (addon.focus.hoverFade and addon.focus.hoverFade.bgFadeState ~= nil)
+                or (math.abs(currentBg - targetBg) >= 0.01)
+                or (addon.IsFocusHoverActive and addon.IsFocusHoverActive())
+        end
+        if not backdropHoverNeedsUpdate and borderHover and HS:IsShown() then
+            backdropHoverNeedsUpdate = addon.IsFocusHoverActive and addon.IsFocusHoverActive() or false
+        end
 
         local stillAnimating = anyEntryAnimating
             or anyHoverTitleAnimating
@@ -1141,6 +1214,7 @@ function addon.EnsureFocusUpdateRunning()
             or addon.focus.collapse.headerSlidingToTop
             or (addon.focus.combat and addon.focus.combat.fadeState ~= nil)
             or hoverFadeNeedsUpdate
+            or backdropHoverNeedsUpdate
             or (addon.focus.collapse.groups and next(addon.focus.collapse.groups) ~= nil)
             or next(groupReflowed) ~= nil
             or (addon.focus.collapse.optionCollapseKeys and next(addon.focus.collapse.optionCollapseKeys) ~= nil)

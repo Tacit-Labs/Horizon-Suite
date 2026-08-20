@@ -38,7 +38,7 @@ addon.TYPOGRAPHY_KEYS = {
 -- this list, OptionsData_SetDB skips NotifyMainAddon to avoid FullLayout spam; key-specific
 -- handlers (e.g. ApplyBackdropOpacity) still run.
 addon.COLOR_LIVE_KEYS = {
-    backdropOpacity = true, backdropColorR = true, backdropColorG = true, backdropColorB = true,
+    backdropOpacity = true, backdropOpacityMouseover = true, backdropColorR = true, backdropColorG = true, backdropColorB = true,
     headerColor = true, headerDividerColor = true,
     colorMatrix = true,
     highlightColor = true, completedObjectiveColor = true, sectionColors = true,
