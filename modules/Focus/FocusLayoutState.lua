@@ -24,4 +24,6 @@ addon.focus.hoverFade = addon.focus.hoverFade or {
     mouseOver = false,
     fadeState = nil,  -- "in" | "out" | nil
     fadeTime  = 0,
+    bgFadeState = nil,  -- "in" | "out" | nil
+    bgFadeTime  = 0,
 }

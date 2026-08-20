@@ -103,7 +103,7 @@ Tooltips that actually tell you who/what you're looking at.
 ## 🎨 Visuals & UI Design
 
 - **High-fidelity icons** – Distinct icons for Campaign, Legendary, and World Quests.
-- **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity.
+- **Customizable colours** – Per-category colour control (title, objective, zone, section). Panel backdrop colour and opacity, with optional stronger opacity and a border on mouseover.
 - **Global Toggles (Axis)** – Under **Axis → Global Toggles**, enable class tint per module or all at once (dashboard, Focus, Presence, Vista, Insight, Cache, Essence), pick a **dashboard background** preset (flat Default, Midnight artwork, or **Specialisation (auto)** using Blizzard’s talent UI art for your current spec—with a short crossfade when you change preset or spec), choose **dashboard font** and **dashboard text size** for the settings window (independent of Focus typography), and set global UI scale (50–200%) or per-module scale sliders for Focus, Presence, Vista, Insight, and Cache.
 - **Typography and spacing** – Fonts, sizes, outlines, and spacing sliders. Optional SharedMedia support for fonts from addon packs. Turn-in highlights and progress counts (e.g. 15/18) at a glance.
 - **Progress bar** – Optional bar under objectives with numeric progress (e.g. 3/250). Configurable font, size, colours, and texture (SharedMedia support: Blizzard status bar, Solid, or addon packs). Filter to show for X/Y objectives (e.g. 3/10), percent-only objectives (e.g. 45%), or both.

@@ -88,10 +88,13 @@ addon.FOCUS_DEFAULTS = {
     customHeaderToContentGap  = 6,
     -- Appearance - Frame
     backdropOpacity           = 0,
+    backdropOpacityOnMouseover = false,
+    backdropOpacityMouseover  = 0.4,
     backdropColorR            = 0.08,
     backdropColorG            = 0.08,
     backdropColorB            = 0.12,
     showBorder                = false,
+    showBorderOnMouseover     = false,
     showScrollIndicator       = false,
     scrollIndicatorStyle      = "fade",
     -- Visibility/Fading
@@ -282,6 +285,7 @@ addon.FOCUS_LIMITS = {
     customObjSpacing         = { min = 0,    max = 8    },
     customHeaderToContentGap = { min = 0,    max = 24   },
     backdropOpacity          = { min = 0,    max = 100  },
+    backdropOpacityMouseover = { min = 0,    max = 100  },
     combatFadeOpacity        = { min = 0,    max = 100  },
     fadeOnMouseoverOpacity   = { min = 0,    max = 100  },
     headerHeight             = { min = 18,   max = 48   },

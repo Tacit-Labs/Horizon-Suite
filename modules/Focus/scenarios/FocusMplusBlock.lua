@@ -624,13 +624,13 @@ end
 
 mplusBlock:SetScript("OnEnter", function(self)
     ShowMplusTooltip(self)
-    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+    if addon.IsFocusHoverTrackingEnabled and addon.IsFocusHoverTrackingEnabled() and addon.EnsureFocusUpdateRunning then
         addon.EnsureFocusUpdateRunning()
     end
 end)
 mplusBlock:SetScript("OnLeave", function(self)
     HideMplusTooltip(self)
-    if addon.GetDB("showOnMouseoverOnly", false) and addon.EnsureFocusUpdateRunning then
+    if addon.IsFocusHoverTrackingEnabled and addon.IsFocusHoverTrackingEnabled() and addon.EnsureFocusUpdateRunning then
         addon.EnsureFocusUpdateRunning()
     end
 end)
