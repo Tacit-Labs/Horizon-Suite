@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.6.1"] = {
+        date = "2026-08-20",
+        {
+            section = "Fixes",
+            bullets = {
+                "Augment: opening Edit Mode no longer errors when other addons show resource bars, such as Enhance QoL.",
+            },
+        },
+    },
+
     ["5.6.0"] = {
         date = "2026-08-20",
         {

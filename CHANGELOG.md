@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.6.1] – 2026-08-20
+
+### 🐛 Fixes
+- **(Augment)** Opening Edit Mode no longer errors when other addons show resource bars, such as Enhance QoL.
+
+---
+
 ## [5.6.0] – 2026-08-20
 
 ### ✨ New Features
