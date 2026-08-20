@@ -1034,37 +1034,74 @@ local function CreateEditModePanel()
     -- position (e.g. Plumber) and anchor below it. No addon-name check needed —
     -- avoids load-order races where IsAddOnLoaded returns false for addons that
     -- load after HorizonSuite.
+    -- Midnight: GetLeft/GetTop/IsShown on UIParent children can be secret under
+    -- tainted execution. EQOL resource bars (health/power StatusBars) are the
+    -- usual trigger. pcall around the getter is not enough — arithmetic on the
+    -- returned secret throws. Skip StatusBars; launder remaining coords via
+    -- tostring→tonumber and drop any value still flagged secret.
+    local function SafeIsShown(frame)
+        if not frame then return false end
+        local shown = false
+        pcall(function()
+            if frame:IsShown() then shown = true end
+        end)
+        return shown
+    end
+    local function SafeObjectType(frame)
+        local t
+        pcall(function() t = frame:GetObjectType() end)
+        return t
+    end
+    local function SafeFrameCoord(frame, method)
+        if not frame or not frame[method] then return nil end
+        local n
+        pcall(function()
+            local raw = frame[method](frame)
+            if issecretvalue then
+                local secretOk, isSecret = pcall(issecretvalue, raw)
+                if secretOk and isSecret then return end
+            end
+            local converted = tonumber(tostring(raw))
+            if not converted then return end
+            if issecretvalue then
+                local secretOk, isSecret = pcall(issecretvalue, converted)
+                if secretOk and isSecret then return end
+            end
+            -- Comparison throws on a still-secret number; pcall then leaves n nil.
+            if converted == converted then n = converted end
+        end)
+        return n
+    end
+
     editModePanel.t = 1
     editModePanel:SetScript("OnUpdate", function(self, elapsed)
         self.t = self.t + elapsed
         if self.t < 0.25 then return end
         self.t = 0
-        if not EditModeManagerFrame or not EditModeManagerFrame:IsShown() then return end
+        if not EditModeManagerFrame or not SafeIsShown(EditModeManagerFrame) then return end
 
-        local x = EditModeManagerFrame:GetRight() - 16
-        local y = EditModeManagerFrame:GetTop() - 104
+        local right = SafeFrameCoord(EditModeManagerFrame, "GetRight")
+        local top = SafeFrameCoord(EditModeManagerFrame, "GetTop")
+        if not right or not top then return end
+        local x = right - 16
+        local y = top - 104
 
-        local function safeIsShown(f)
-            local ok, v = pcall(f.IsShown, f); return ok and v
-        end
-        if not self.aboveFrame or not safeIsShown(self.aboveFrame) then
+        if not self.aboveFrame or not SafeIsShown(self.aboveFrame) then
             self.aboveFrame = nil
             for _, child in ipairs({UIParent:GetChildren()}) do
-                if child ~= self and safeIsShown(child) then
-                    local _, cl = pcall(child.GetLeft, child)
-                    local _, ct = pcall(child.GetTop, child)
-                    if type(cl) == "number" and type(ct) == "number"
-                        and math.abs(cl - x) < 60 and math.abs(ct - y) < 30
-                    then
+                if child ~= self and SafeObjectType(child) == "Frame" and SafeIsShown(child) then
+                    local cl = SafeFrameCoord(child, "GetLeft")
+                    local ct = SafeFrameCoord(child, "GetTop")
+                    if cl and ct and math.abs(cl - x) < 60 and math.abs(ct - y) < 30 then
                         self.aboveFrame = child
                         break
                     end
                 end
             end
         end
-        if self.aboveFrame and safeIsShown(self.aboveFrame) then
-            local _, bottom = pcall(self.aboveFrame.GetBottom, self.aboveFrame)
-            if type(bottom) == "number" then y = bottom - 20 end
+        if self.aboveFrame and SafeIsShown(self.aboveFrame) then
+            local bottom = SafeFrameCoord(self.aboveFrame, "GetBottom")
+            if bottom then y = bottom - 20 end
         end
 
         self:ClearAllPoints()
