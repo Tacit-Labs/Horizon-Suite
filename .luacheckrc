@@ -316,7 +316,7 @@ read_globals = {
     "StaticPopup_Show",
     "QuestMapFrame_OpenToQuestDetails",
     "AchievementFrame_LoadUI",
-    "OpenAchievementFrameToAchievement",
+    "ShowAchievementFrameForAchievement",
     "OpenQuestLog",
     "InterfaceOptions_AddCategory",
     "PVEFrame_ShowFrame",
