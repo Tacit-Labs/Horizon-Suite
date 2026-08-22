@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.6.2"] = {
+        date = "2026-08-22",
+        {
+            section = "Improvements",
+            bullets = {
+                "Focus: background opacity change on mouseover — optional stronger backdrop and border only while the cursor is over the tracker.",
+            },
+        },
+    },
+
     ["5.6.1"] = {
         date = "2026-08-20",
         {

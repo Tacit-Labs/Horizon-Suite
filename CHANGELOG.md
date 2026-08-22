@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.6.2] – 2026-08-22
+
+### 🔧 Improvements
+- **(Focus) Background opacity change on mouseover** — Optional stronger backdrop, and a border, only while the cursor is over the tracker.
+
+---
+
 ## [5.6.1] – 2026-08-20
 
 ### 🐛 Fixes
