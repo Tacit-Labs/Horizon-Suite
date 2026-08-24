@@ -1239,6 +1239,7 @@ local function FullLayout()
         if usePanelCollapsedState then
             local pceg = addon.focus.collapse.panelCollapsedExpandedGroups
             isCollapsed = not (pceg and pceg[grp.key])
+        -- Per-category collapse only applies while headers are visible (no expand control otherwise).
         elseif showSections and addon.IsCategoryCollapsed then
             isCollapsed = addon.IsCategoryCollapsed(grp.key)
         end
@@ -1416,8 +1417,10 @@ local function FullLayout()
         end
     end
 
-    -- Safety: hide any entry whose group is collapsed (catches stale/edge cases after panel toggle)
-    if not usePanelCollapsedState and addon.IsCategoryCollapsed then
+    -- Safety: hide any entry whose group is collapsed (catches stale/edge cases after panel toggle).
+    -- Only while section headers are shown. Collapse is a header control; with headers off the
+    -- placement loop already lays those rows out, and hiding them here leaves a blank gap.
+    if showSections and not usePanelCollapsedState and addon.IsCategoryCollapsed then
         for _, entry in pairs(activeMap) do
             if entry and entry.groupKey and entry.animState ~= "collapsing"
                 and addon.IsCategoryCollapsed(entry.groupKey) then
