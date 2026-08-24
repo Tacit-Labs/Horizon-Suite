@@ -14,6 +14,22 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.6.3"] = {
+        date = "2026-08-24",
+        {
+            section = "Improvements",
+            bullets = {
+                "Marked current for World of Warcraft 12.1 so the addon no longer shows as out of date.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: clicking a tracked achievement opens the achievement journal again.",
+            },
+        },
+    },
+
     ["5.6.2"] = {
         date = "2026-08-22",
         {

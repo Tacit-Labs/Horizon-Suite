@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.6.3] – 2026-08-24
+
+### 🔧 Improvements
+- Marked current for World of Warcraft 12.1 so the addon no longer shows as out of date.
+
+### 🐛 Fixes
+- **(Focus)** Clicking a tracked achievement opens the achievement journal again.
+
+---
+
 ## [5.6.2] – 2026-08-22
 
 ### 🔧 Improvements
