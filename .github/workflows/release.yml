@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: WoW Packager
-        uses: BigWigsMods/packager@v2.5.1
+        uses: BigWigsMods/packager@6d50adb6e8517eefef63f4afb16a6518166a6b28 # v2.5.1
 
       - name: Build Discord release payload
         if: success()
@@ -33,7 +33,7 @@ jobs:
       - name: Post to Discord
         if: success()
         continue-on-error: true
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@c840d45a03a323fbc3f7507ac7769dbd91bfb164 # v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_RELEASE }}
           raw-data: .release/discord-release-payload.json
