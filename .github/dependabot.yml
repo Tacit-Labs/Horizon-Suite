@@ -1,0 +1,22 @@
+# Dependabot keeps the action pins in .github/workflows current.
+#
+# Every third-party `uses:` in this org is SHA-pinned with a `# vN` comment, and
+# Dependabot is what moves the SHA and the comment together: weekly, as one
+# grouped PR. The org's drift check fails a repo that has workflows but no
+# github-actions entry here.
+#
+# Add a package ecosystem for the repo's own manifest (npm, gradle, pip) as a
+# second entry when the repo carries one and Dependabot alerts are on for it
+# (see governance/org-config.json#dependabot in tacit-claude for which repos).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/London
+    groups:
+      actions:
+        patterns: ["*"]
