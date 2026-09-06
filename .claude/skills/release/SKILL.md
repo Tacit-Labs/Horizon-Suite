@@ -299,7 +299,11 @@ like anything else.
 **Gate before the tag — the TOC version must have a patch-notes key:**
 
 ```bash
-V=$(grep '^## Version:' HorizonSuite.toc | awk '{print $3}')
+# tr -d '\r' is not optional: .gitattributes checks every file out as CRLF, so
+# awk's $3 carries a trailing carriage return. macOS grep truncates its pattern
+# at that CR and matches anyway; GNU grep on the CI runner does not. Without the
+# strip this passes locally and fails only in CI.
+V=$(grep -m1 '^## Version:' HorizonSuite.toc | tr -d '\r' | awk '{print $3}')
 grep -q "\[\"$V\"\] = {" core/PatchNotesData.lua \
   && echo "OK: PATCH_NOTES has key $V" \
   || { echo "MISSING: no PATCH_NOTES key for $V — players will get an empty popup"; exit 1; }

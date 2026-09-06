@@ -40,9 +40,21 @@ jobs:
         id: toc
         run: |
           set -euo pipefail
-          version=$(grep -m1 '^## Version:' HorizonSuite.toc | awk '{print $3}')
+          # tr -d '\r' is load-bearing. .gitattributes checks every tracked file
+          # out as CRLF, so awk's $3 keeps a trailing carriage return and the
+          # version becomes "5.6.5\r". GNU grep then searches for a key that
+          # cannot exist. macOS grep truncates its pattern at the CR and matches
+          # anyway, so this fails only on the runner — which is exactly how it
+          # got here.
+          version=$(grep -m1 '^## Version:' HorizonSuite.toc | tr -d '\r' | awk '{print $3}')
           if [ -z "$version" ]; then
             echo "::error file=HorizonSuite.toc::Could not read '## Version:' from HorizonSuite.toc"
+            exit 1
+          fi
+          # Guard against a mangled read producing a version that silently
+          # matches nothing downstream.
+          if ! printf '%s' "$version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error file=HorizonSuite.toc::Read '$version' as the version, which is not a bare x.y.z. Refusing to check against it."
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
