@@ -517,7 +517,8 @@ local categories = {
         moduleKey = "focus",
         options = {
             Section(L["FOCUS_FILTERING"]),
-            Toggle(L["CURRENT_ZONE"], L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"], "filterByZone", D.filterByZone),
+            Toggle(L["CURRENT_ZONE"], L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"], "filterByZone", D.filterByZone, { refreshIds = { "alwaysShowCompleteQuests" } }),
+            Toggle(L["FOCUS_ALWAYS_SHOW_COMPLETED_QUESTS"], L["FOCUS_COMPLETED_QUESTS_IGNORE_ZONE_FILTER"], "alwaysShowCompleteQuests", D.alwaysShowCompleteQuests, { tooltip = L["FOCUS_COMPLETED_QUESTS_IGNORE_ZONE_FILTER_TIP"], isNew = "5.6.4", visibleWhen = function() return getDB("filterByZone", D.filterByZone) end, id = "alwaysShowCompleteQuests" }),
             Section(L["GROUPING"]),
             { type = "toggle", name = L["FOCUS_FOCUSED_QUEST_CATEGORY"], desc = L["FOCUS_FOCUSED_QUEST_CATEGORY_DESC"], tooltip = L["FOCUS_FOCUSED_QUEST_CATEGORY_TIP"], dbKey = "showFocusedQuestCategory", isNew = "4.17.7", get = function() return getDB("showFocusedQuestCategory", D.showFocusedQuestCategory) end, set = function(v) setDB("showFocusedQuestCategory", v); if addon.RequestRefresh then addon.RequestRefresh() end; if addon.FullLayout then addon.FullLayout() end end },
             { type = "toggle", name = L["FOCUS_PROXIMITY_AUTO_SUPERTRACK"], desc = L["FOCUS_PROXIMITY_AUTO_SUPERTRACK_DESC"], tooltip = L["FOCUS_PROXIMITY_AUTO_SUPERTRACK_TIP"], dbKey = "proximityAutoSuperTrack", isNew = "5.1.3", get = function() return getDB("proximityAutoSuperTrack", D.proximityAutoSuperTrack) end, set = function(v)

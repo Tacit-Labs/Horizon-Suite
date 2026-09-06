@@ -611,6 +611,7 @@ local function ReadTrackedQuests()
     end
     local playerZone = (addon.GetPlayerCurrentZoneName and addon.GetPlayerCurrentZoneName()) or nil
     local filterByZone = addon.GetDB("filterByZone", false)
+    local alwaysShowComplete = addon.GetDB("alwaysShowCompleteQuests", true)
 
     -- Resolve stable map context once per layout tick.
     local mapCtx = addon.ResolvePlayerMapContext and addon.ResolvePlayerMapContext("player") or nil
@@ -668,12 +669,17 @@ local function ReadTrackedQuests()
         local logIndex = C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetLogIndexForQuestID(questID) or nil
         local isAccepted = addon.IsQuestAccepted and addon.IsQuestAccepted(questID) or (logIndex ~= nil)
         local isExplicitlyTracked = (opts.isTracked == true) or (superTracked and questID == superTracked)
+        -- Completed quests stay visible through "Only show quests in current zone": the turn-in is
+        -- actionable from anywhere, and a click-to-complete quest has no objectives, so no map POI
+        -- puts it in nearbySet. Mirrors the same bypass in CollectTrackedQuests.
+        local isCompleteQuest = C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) or false
+        local bypassZoneFilter = isExplicitlyTracked or (alwaysShowComplete and isCompleteQuest)
         local category = opts.forceCategory or addon.GetQuestCategory(questID)
         if not isAccepted and not isExplicitlyTracked and (category == "WORLD" or category == "CALLING" or category == "WEEKLY" or category == "PREY" or category == "DAILY") then
             if not IsQuestOnPlayerZoneMap(questID) then return end
         end
 
-        if not isExplicitlyTracked and not questMapMatchesPlayer(questID) then return end
+        if not bypassZoneFilter and not questMapMatchesPlayer(questID) then return end
         seen[questID] = true
 
         local baseCategory = (category == "COMPLETE") and addon.GetQuestBaseCategory(questID) or nil
@@ -714,7 +720,7 @@ local function ReadTrackedQuests()
         local completedObjDisplay = addon.GetDB("questCompletedObjectiveDisplay", "off")
         -- Ready-to-turn-in fallback in FocusEntryRenderer needs shownObjs == 0; strip finished
         -- objectives when hide always, or when fade and the quest is complete (same as hide for turn-in).
-        local isComplete = C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) or false
+        local isComplete = isCompleteQuest
         if #objectives > 0
             and (completedObjDisplay == "hide" or (completedObjDisplay == "fade" and isComplete)) then
             objectivesDoneCount, objectivesTotalCount = 0, #objectives
@@ -847,6 +853,7 @@ local function ReadTrackedQuests()
         taskQuestOnlySet = taskQuestOnlySet,
         playerZone = playerZone,
         filterByZone = filterByZone,
+        alwaysShowComplete = alwaysShowComplete,
         seen = seen,
         superTracked = superTracked,
         scenarioRewardQuestIDs = scenarioRewardQuestIDs,
