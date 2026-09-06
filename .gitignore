@@ -9,7 +9,10 @@ Thumbs.db
 .idea/
 .vscode/
 .cursor/
-.claude/
+.claude/*
+# …except the repo-scoped skills, which are part of how this addon is released.
+# git cannot un-ignore a path inside an ignored directory, hence the /* above.
+!.claude/skills/
 .codesight/
 *.sublime-*
 
