@@ -14,6 +14,27 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.6.5"] = {
+        date = "2026-09-06",
+        {
+            section = "Fixes",
+            bullets = {
+                "Core: the patch notes panel was empty after updating to 5.6.4. Those notes now appear here, below this release.",
+            },
+        },
+    },
+
+    ["5.6.4"] = {
+        date = "2026-09-06",
+        {
+            section = "Fixes",
+            bullets = {
+                "Focus: collapsed categories no longer leave a gap when section headers are turned off.",
+                "Focus: quests ready to turn in stay listed when Current Zone Only is on, including click-to-complete quests that have no zone of their own.",
+            },
+        },
+    },
+
     ["5.6.3"] = {
         date = "2026-08-24",
         {
