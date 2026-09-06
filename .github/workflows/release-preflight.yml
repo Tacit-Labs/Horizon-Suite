@@ -1,0 +1,83 @@
+name: Release Preflight
+
+# Guards the two release steps nothing else checks, both of which fail silently.
+#
+# 1. core/PatchNotesData.lua is a hand-maintained Lua table keyed by version
+#    string, and it — not CHANGELOG.md — is what the in-game popup and the
+#    dashboard's Patch Notes page read. Nothing links the two files. When the
+#    TOC version has no matching key the popup still fires, because it keys off
+#    the version having changed rather than off notes existing, and renders an
+#    empty panel while the dashboard shows the previous release as newest.
+#    5.6.4 shipped that way and needed 5.6.5 to correct it: once a player has
+#    seen the empty popup, patchNotesLastViewedVersion is written and that
+#    version's popup never fires for them again, so it cannot be fixed in place.
+#
+# 2. .release/build-release-payload.sh extracts the Discord announcement by
+#    matching `## [VERSION]` in CHANGELOG.md. A heading that does not match
+#    silently degrades to "See the GitHub release page for full notes" — the
+#    workflow still goes green and the release still publishes.
+#
+# Both run on every PR and every push to main rather than only on release
+# commits. The conditions are properties of the tree, true at all times between
+# releases, so there is no "did this PR touch the TOC" condition to get wrong.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  version-metadata:
+    name: Version metadata is complete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the addon version
+        id: toc
+        run: |
+          set -euo pipefail
+          # tr -d '\r' is load-bearing. .gitattributes checks every tracked file
+          # out as CRLF, so awk's $3 keeps a trailing carriage return and the
+          # version becomes "5.6.5\r". GNU grep then searches for a key that
+          # cannot exist. macOS grep truncates its pattern at the CR and matches
+          # anyway, so this fails only on the runner — which is exactly how it
+          # got here.
+          version=$(grep -m1 '^## Version:' HorizonSuite.toc | tr -d '\r' | awk '{print $3}')
+          if [ -z "$version" ]; then
+            echo "::error file=HorizonSuite.toc::Could not read '## Version:' from HorizonSuite.toc"
+            exit 1
+          fi
+          # Guard against a mangled read producing a version that silently
+          # matches nothing downstream.
+          if ! printf '%s' "$version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error file=HorizonSuite.toc::Read '$version' as the version, which is not a bare x.y.z. Refusing to check against it."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Addon version: $version"
+
+      - name: In-game patch notes exist for it
+        run: |
+          set -euo pipefail
+          version='${{ steps.toc.outputs.version }}'
+          if grep -q "\[\"${version}\"\] = {" core/PatchNotesData.lua; then
+            echo "::notice::core/PatchNotesData.lua has an entry for ${version}"
+          else
+            echo "::error file=core/PatchNotesData.lua::No [\"${version}\"] entry. Players updating to ${version} get an empty patch-notes popup, and the dashboard keeps showing the previous release as newest. Add the key before tagging — it cannot be fixed after release, because the popup only ever fires once per version."
+            exit 1
+          fi
+
+      - name: Changelog section exists for it
+        run: |
+          set -euo pipefail
+          version='${{ steps.toc.outputs.version }}'
+          if grep -q "^## \[${version}\]" CHANGELOG.md; then
+            echo "::notice::CHANGELOG.md has a '## [${version}]' section"
+          else
+            echo "::error file=CHANGELOG.md::No '## [${version}]' section. The Discord announcement is extracted by matching that heading and would silently fall back to a bare link to the release page."
+            exit 1
+          fi
