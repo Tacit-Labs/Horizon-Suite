@@ -10,6 +10,14 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.6.4] – 2026-09-06
+
+### 🐛 Fixes
+- **(Focus)** Collapsed categories no longer leave a gap when section headers are turned off.
+- **(Focus)** Quests ready to turn in stay listed when Current Zone Only is on, including click-to-complete quests that have no zone of their own.
+
+---
+
 ## [5.6.3] – 2026-08-24
 
 ### 🔧 Improvements
