@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.6.5"] = {
+        date = "2026-09-06",
+        {
+            section = "Fixes",
+            bullets = {
+                "Core: the patch notes panel was empty after updating to 5.6.4. Those notes now appear here, below this release.",
+            },
+        },
+    },
+
     ["5.6.4"] = {
         date = "2026-09-06",
         {

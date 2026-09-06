@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.6.5] – 2026-09-06
+
+### 🐛 Fixes
+- **(Core)** The patch notes panel was empty after updating to 5.6.4. Those notes now appear in game, below this release.
+
+---
+
 ## [5.6.4] – 2026-09-06
 
 ### 🐛 Fixes
