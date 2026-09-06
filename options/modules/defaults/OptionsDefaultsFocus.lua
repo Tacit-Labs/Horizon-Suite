@@ -155,6 +155,7 @@ addon.FOCUS_DEFAULTS = {
     requireModifierForClickToComplete = false,
     -- Sorting/Filtering
     filterByZone              = false,
+    alwaysShowCompleteQuests  = true,
     showFocusedQuestCategory  = true,
     proximityAutoSuperTrack   = false,
     proximityAutoBehaviour    = "always",

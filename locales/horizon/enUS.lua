@@ -1014,6 +1014,9 @@ L["FOCUS_FADED_OPACITY"]                                      = "Faded Opacity"
 L["FOCUS_VISIBLE_TRACKER_FADED_INVISIBLE"]                    = "How visible the tracker is when faded (0 = invisible)."
 L["FOCUS_QUESTS_CURRENT_ZONE"]                                = "Only show quests in current zone"
 L["FOCUS_HIDE_QUESTS_OUTSIDE_YOUR_CURRENT_ZONE"]              = "Hide quests outside your current zone."
+L["FOCUS_ALWAYS_SHOW_COMPLETED_QUESTS"]                       = "Always show completed quests"
+L["FOCUS_COMPLETED_QUESTS_IGNORE_ZONE_FILTER"]                = "Completed quests stay listed even when Current Zone Only is on."
+L["FOCUS_COMPLETED_QUESTS_IGNORE_ZONE_FILTER_TIP"]            = "A finished quest is worth turning in wherever you are. Click-to-complete quests carry no map location, so a zone filter would otherwise hide them entirely."
 
 -- =====================================================================
 -- OptionsData.lua Display — Header
