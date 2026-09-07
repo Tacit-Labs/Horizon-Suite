@@ -90,6 +90,8 @@ end
 
 local function ShowMount()            return addon.GetDB("insightShowMount",            true)  end
 local function ShowSpecRole()         return addon.GetDB("insightShowSpecRole",          true)  end
+local function ShowSpecName()         return addon.GetDB("insightShowSpecName",          true)  end
+local function ShowHeroTalent()       return addon.GetDB("insightShowHeroTalent",        true)  end
 local function ShowCharacterTitle()   return addon.GetDB("insightShowCharacterTitle",   true)  end
 local function ShowStatusBadges()     return addon.GetDB("insightShowStatusBadges",     true)  end
 local function ShowStatusBadgeCombat()    return addon.GetDB("insightStatusBadgeCombat",    true) end
@@ -187,6 +189,68 @@ local function SpecIconMarkup(specIcon, size)
     size = tonumber(size) or 14
     -- Crop Blizzard spec icons slightly so their baked pale edge blends into the tooltip.
     return "|T" .. specIcon .. ":" .. size .. ":" .. size .. ":0:0:64:64:5:59:5:59|t "
+end
+
+-- Splice the spec name in front of the class name inside Blizzard's own line, so
+-- "Level 80 Night Elf Death Knight" reads "Level 80 Night Elf Frost Death Knight".
+-- Plain find/sub throughout, never gsub: localised class names carry Lua pattern
+-- magic (a hyphen in "Kul Tiran"-style compounds is enough to corrupt a match).
+local function InsertSpecName(text, className, specName)
+    if not text or not className or not specName then return text end
+    if specName == "" or className == "" then return text end
+    local startPos = text:find(className, 1, true)
+    if not startPos then return text end
+    local before = text:sub(1, startPos - 1)
+    -- Some locales already name the spec ahead of the class; don't double it up.
+    if before:find(specName, 1, true) then return text end
+    return before .. specName .. " " .. text:sub(startPos)
+end
+
+local function HeroIconMarkup(heroIcon, size)
+    if not heroIcon then return "" end
+    size = tonumber(size) or 14
+    -- Sub-tree icons come back as a file ID on live builds; accept an atlas name
+    -- as well so a client that changes the field type degrades to no icon, not an error.
+    if type(heroIcon) == "number" then
+        return "|T" .. heroIcon .. ":" .. size .. ":" .. size .. ":0:0|t "
+    elseif type(heroIcon) == "string" and heroIcon ~= "" then
+        return "|A:" .. heroIcon .. ":" .. size .. ":" .. size .. "|a "
+    end
+    return ""
+end
+
+-- Resolve the active hero talent (trait sub-tree) into a display name and icon.
+-- Self reads the live loadout; other players come from the inspect trait config,
+-- which only holds data between NotifyInspect and the next ClearInspectPlayer —
+-- a miss on the first hover is normal and resolves on the INSPECT_READY refresh.
+local function GetHeroTalentInfo(isSelf, specID)
+    local heroName, heroIcon
+    pcall(function()
+        if not (C_Traits and C_Traits.GetSubTreeInfo and C_ClassTalents) then return end
+        if isSelf then
+            local subTreeID = C_ClassTalents.GetActiveHeroTalentSpec and C_ClassTalents.GetActiveHeroTalentSpec()
+            local configID  = C_ClassTalents.GetActiveConfigID and C_ClassTalents.GetActiveConfigID()
+            if not subTreeID or subTreeID <= 0 or not configID then return end
+            local info = C_Traits.GetSubTreeInfo(configID, subTreeID)
+            if info and info.name and info.name ~= "" then
+                heroName, heroIcon = info.name, info.iconElementID
+            end
+            return
+        end
+        local configID = Constants and Constants.TraitConsts and Constants.TraitConsts.INSPECT_TRAIT_CONFIG_ID
+        if not configID or not specID then return end
+        local subTreeIDs = C_ClassTalents.GetHeroTalentSpecsForClassSpec
+            and C_ClassTalents.GetHeroTalentSpecsForClassSpec(configID, specID)
+        if type(subTreeIDs) ~= "table" then return end
+        for _, subTreeID in ipairs(subTreeIDs) do
+            local info = C_Traits.GetSubTreeInfo(configID, subTreeID)
+            if info and info.isActive and info.name and info.name ~= "" then
+                heroName, heroIcon = info.name, info.iconElementID
+                return
+            end
+        end
+    end)
+    return heroName, heroIcon
 end
 
 local function GetSpellNameByID(spellID)
@@ -383,10 +447,13 @@ local function TrySeedSelfInspectCache(unit)
         local _, specName, _, specIcon, role = GetSpecializationInfoByID(specID)
         local _, equipped = GetAverageItemLevel()
         if not specName then return end
+        local heroName, heroIcon = GetHeroTalentInfo(true, specID)
         inspectCache[g] = {
             specName = specName,
             specIcon = specIcon,
             role     = role,
+            heroName = heroName,
+            heroIcon = heroIcon,
             ilvl     = (equipped and equipped > 0) and equipped or nil,
             time     = GetTime(),
         }
@@ -407,10 +474,14 @@ local function CacheInspect(guid, unit)
         end
     end
 
+    local heroName, heroIcon = GetHeroTalentInfo(false, specID)
+
     inspectCache[guid] = {
         specName = specName,
         specIcon = specIcon,
         role     = role,
+        heroName = heroName,
+        heroIcon = heroIcon,
         ilvl     = ilvl,
         time     = GetTime(),
     }
@@ -927,7 +998,7 @@ function Insight.AddStatsBlock(tooltip, unit, cached, sepR, sepG, sepB)
                 isSelf = false
             end
         end)
-        local needsInspect = ShowIlvl() or ShowSpecRole()
+        local needsInspect = ShowIlvl() or ShowSpecRole() or ShowSpecName() or ShowHeroTalent()
         if not needsInspect then
             local src = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
             needsInspect = (src == "specoverride")
@@ -1209,7 +1280,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         cached = GetInspectCachedForUnit(unit)
     end
     if not cached then
-        local needsEarlyInspect = ShowIlvl() or ShowSpecRole()
+        local needsEarlyInspect = ShowIlvl() or ShowSpecRole() or ShowSpecName() or ShowHeroTalent()
         if not needsEarlyInspect and ShowIcons() then
             local src = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
             needsEarlyInspect = src == "specoverride"
@@ -1353,6 +1424,48 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         local raceIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
         raceIconPrefix = RaceIconMarkup(unit, raceIconPx)
     end
+    -- Compose the class line's replacement text: class or spec icon, the spec name
+    -- folded in front of the class, then the role tag. Kept out of the branch below
+    -- because Blizzard may put race and class on one line or two, and both layouts
+    -- need this treatment. Returns the styled string; never nil.
+    local function BuildClassLineText(text)
+        local iconPrefix = ""
+        if ShowIcons() then
+            local lineIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
+            local source = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
+            if source == "specoverride" then
+                -- Spec override intentionally waits for inspect data instead of flashing a class icon first.
+                if cached and cached.specIcon then
+                    iconPrefix = SpecIconMarkup(cached.specIcon, lineIconPx)
+                end
+            else
+                local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile)
+                if classIcon then
+                    iconPrefix = classIcon
+                elseif ShowSpecRole() and cached and cached.specIcon then
+                    iconPrefix = SpecIconMarkup(cached.specIcon, lineIconPx)
+                end
+            end
+        end
+        local body = text
+        if ShowSpecName() and cached and cached.specName then
+            body = InsertSpecName(text, classNameSafe, cached.specName)
+        end
+        local roleSuffix = ""
+        if ShowSpecRole() and cached and cached.role then
+            local rc = Insight.ROLE_COLORS[cached.role]
+            if rc then
+                local hex = string.format("%02x%02x%02x",
+                    math.floor(rc[1] * 255),
+                    math.floor(rc[2] * 255),
+                    math.floor(rc[3] * 255))
+                local label = cached.role == "TANK" and "Tank"
+                    or cached.role == "HEALER" and "Healer" or "DPS"
+                roleSuffix = "  |cff" .. hex .. label .. "|r"
+            end
+        end
+        return iconPrefix .. body .. roleSuffix
+    end
     Insight.ForTooltipLines(tooltip, function(j, lineLeft, _lineRight)
         if j < 2 or not lineLeft then return end
         pcall(function()
@@ -1385,6 +1498,22 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 if moveRaceClassToBottom then
                     if needsTrp3IdentityLine and not trp3IdentityLine then trp3IdentityLine = lineLeft end
                     lineLeft:SetText("")
+                    -- A combined line carries the class away with it; mark it styled so
+                    -- the branch below doesn't blank a second, non-existent line.
+                    if classNameSafe and text:find(classNameSafe, 1, true) then
+                        classLineStyled = true
+                    end
+                    do return end
+                end
+                -- Blizzard puts race and class on one line ("Level 80 Night Elf Death
+                -- Knight"); when it does, this branch owns the class treatment too,
+                -- because the class branch below will never see the line.
+                if classNameSafe and text:find(classNameSafe, 1, true) then
+                    classLineStyled = true
+                    if classColor then
+                        lineLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
+                    end
+                    lineLeft:SetText(raceIconPrefix .. BuildClassLineText(text))
                 elseif raceIconPrefix ~= "" then
                     lineLeft:SetText(raceIconPrefix .. text)
                 end
@@ -1399,42 +1528,29 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 if classColor then
                     lineLeft:SetTextColor(classColor.r, classColor.g, classColor.b)
                 end
-                local iconPrefix = ""
-                if ShowIcons() then
-                    local lineIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
-                    local source = Insight.GetClassIconSource and Insight.GetClassIconSource() or "custom"
-                    if source == "specoverride" then
-                        -- Spec override intentionally waits for inspect data instead of flashing a class icon first.
-                        if cached and cached.specIcon then
-                            iconPrefix = SpecIconMarkup(cached.specIcon, lineIconPx)
-                        end
-                    else
-                        local classIcon = Insight.GetClassIconTexture and Insight.GetClassIconTexture(classFile)
-                        if classIcon then
-                            iconPrefix = classIcon
-                        elseif ShowSpecRole() and cached and cached.specIcon then
-                            iconPrefix = SpecIconMarkup(cached.specIcon, lineIconPx)
-                        end
-                    end
-                end
-                local roleSuffix = ""
-                if ShowSpecRole() and cached and cached.role then
-                    local rc = Insight.ROLE_COLORS[cached.role]
-                    if rc then
-                        local hex = string.format("%02x%02x%02x",
-                            math.floor(rc[1] * 255),
-                            math.floor(rc[2] * 255),
-                            math.floor(rc[3] * 255))
-                        local label = cached.role == "TANK" and "Tank"
-                            or cached.role == "HEALER" and "Healer" or "DPS"
-                        roleSuffix = "  |cff" .. hex .. label .. "|r"
-                    end
-                end
-                lineLeft:SetText(iconPrefix .. text .. roleSuffix)
+                lineLeft:SetText(BuildClassLineText(text))
             end
         end)
         -- On taint/secret string, pcall catches; skip styling for this line
     end)
+
+    -- Hero talent, on its own line under the class line. Nothing is drawn until the
+    -- inspect data lands, so an unresolved unit shows no gap and the line appears on
+    -- the INSPECT_READY refresh. Added after the native lines so it sits directly
+    -- beneath them; with TRP3 displacing race/class it follows them to the bottom.
+    local function AddHeroTalentLine()
+        if not ShowHeroTalent() then return end
+        if not (cached and cached.heroName) then return end
+        Insight.TagLines(tooltip, "identity", function()
+            local heroIconPx = (addon.GetInsightClassIconDisplaySize and addon.GetInsightClassIconDisplaySize()) or 14
+            local heroPrefix = ShowIcons() and HeroIconMarkup(cached.heroIcon, heroIconPx) or ""
+            tooltip:AddLine(heroPrefix .. cached.heroName,
+                Insight.HERO_COLOR[1], Insight.HERO_COLOR[2], Insight.HERO_COLOR[3])
+        end)
+    end
+    if not moveRaceClassToBottom then
+        AddHeroTalentLine()
+    end
 
     if guildName and guildName ~= "" and not guildLineStyled and not moveGuildToBottom then
         Insight.TagLines(tooltip, "identity", function()
@@ -1474,6 +1590,7 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
                 tooltip:AddLine(raceClassLine, 1, 1, 1)
             end
         end)
+        AddHeroTalentLine()
     end
 
     if moveGuildToBottom then
@@ -1530,6 +1647,7 @@ local function GetLivePlayerPreviewData()
         level = 80, faction = "Alliance",
         guildName = "Ascension", guildRank = "Officer",
         title = nil, specName = nil, specIcon = nil, role = nil,
+        heroName = nil, heroIcon = nil,
         mythicScore = 2847, honorLevel = 247, achievementPoints = 28650, ilvl = 639,
     }
     pcall(function()
@@ -1572,6 +1690,9 @@ local function GetLivePlayerPreviewData()
                 d.specName, d.specIcon, d.role = specName, specIcon, role
             end
         end
+        -- No invented fallback: a character with no hero talent selected has no line
+        -- to preview, which is exactly what their live tooltip does.
+        d.heroName, d.heroIcon = GetHeroTalentInfo(true)
     end)
     pcall(function()
         local summary = C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary
@@ -1802,9 +1923,18 @@ function Insight.RenderTestTooltipContent(tooltip)
         local previewRoleHex = string.format("%02x%02x%02x", math.floor(previewRc[1] * 255), math.floor(previewRc[2] * 255), math.floor(previewRc[3] * 255))
         previewRoleSuffix = "  |cff" .. previewRoleHex .. PREVIEW_ROLE_LABELS[roleKey] .. "|r"
     end
-    local previewSpecClass = (live.specName and (live.specName .. " ") or "") .. live.className
+    local previewSpecClass = (ShowSpecName() and live.specName and (live.specName .. " ") or "") .. live.className
     if not previewMoveRaceClassToBottom then
         tooltip:AddLine(classIconStr .. previewSpecClass .. previewRoleSuffix, testSepR, testSepG, testSepB)
+    end
+    local function AddPreviewHeroTalentLine()
+        if not ShowHeroTalent() or not live.heroName then return end
+        local heroPrefix = showIcons and HeroIconMarkup(live.heroIcon, testIconPx) or ""
+        tooltip:AddLine(heroPrefix .. live.heroName,
+            Insight.HERO_COLOR[1], Insight.HERO_COLOR[2], Insight.HERO_COLOR[3])
+    end
+    if not previewMoveRaceClassToBottom then
+        AddPreviewHeroTalentLine()
     end
 
     -- Live tooltips leave a blank gap here (the cleared native guild/race/class
@@ -1820,6 +1950,7 @@ function Insight.RenderTestTooltipContent(tooltip)
         if raceClassLine and raceClassLine ~= "" then
             tooltip:AddLine(raceClassLine, 1, 1, 1)
         end
+        AddPreviewHeroTalentLine()
     end
     if previewMoveGuildToBottom then
         local guildLine
