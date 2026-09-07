@@ -1284,63 +1284,19 @@ local function HandleInsightDebugSlash(msg)
         return
     end
 
-    -- Midnight makes several unit values secret: they read back as nil/"" through
-    -- the safe accessors, so any branch that matches on line text silently skips.
-    -- This says which lines and which unit values are affected on this client.
+    -- Prints the snapshot Insight.CaptureLineDebug takes while a player tooltip is
+    -- up. Gathering it here instead would sample nothing: a slash command runs with
+    -- no mouseover unit.
     if cmd == "lines" then
-        local unit = "mouseover"
-        local function secrecyOf(value)
-            if value == nil then return "nil" end
-            local ok, isSecret = pcall(function()
-                return issecretvalue and issecretvalue(value) or false
-            end)
-            if not ok then return "?" end
-            if isSecret then return "SECRET" end
-            local okStr, str = pcall(tostring, value)
-            return okStr and ("plain (" .. str .. ")") or "plain (?)"
+        local snapshot = Insight.lastLineDebug
+        if not snapshot or #snapshot == 0 then
+            Insight.Print("No tooltip captured yet — hover a player, then run this again.")
+            return
         end
-
-        local out = { "Insight line debug — unit: " .. unit }
-        local numLines = 0
-        pcall(function() numLines = GameTooltip:NumLines() end)
-        out[#out + 1] = "   NumLines     : " .. tostring(numLines)
-        for i = 1, numLines do
-            local fs = _G["GameTooltipTextLeft" .. i]
-            local raw
-            pcall(function() raw = fs and fs:GetText() end)
-            local safe = (Insight.SafeGetFontText and Insight.SafeGetFontText(fs)) or ""
-            out[#out + 1] = string.format("   line %-2d      : raw=%s  safe=%q", i, secrecyOf(raw), safe)
+        local out = { "Insight line debug — last player tooltip" }
+        for _, line in ipairs(snapshot) do
+            out[#out + 1] = line
         end
-
-        local classFile, classRaw, raceRaw, levelRaw
-        pcall(function() classRaw, classFile = UnitClass(unit) end)
-        pcall(function() raceRaw = UnitRace(unit) end)
-        pcall(function() levelRaw = UnitLevel(unit) end)
-        local localizedClass
-        pcall(function()
-            if classFile and LOCALIZED_CLASS_NAMES_MALE then
-                localizedClass = LOCALIZED_CLASS_NAMES_MALE[classFile]
-            end
-        end)
-        out[#out + 1] = "   classFile    : " .. secrecyOf(classFile)
-        out[#out + 1] = "   UnitClass    : " .. secrecyOf(classRaw)
-        out[#out + 1] = "   LOC_CLASS[]  : " .. secrecyOf(localizedClass)
-        out[#out + 1] = "   UnitRace     : " .. secrecyOf(raceRaw)
-        out[#out + 1] = "   UnitLevel    : " .. secrecyOf(levelRaw)
-
-        local cached
-        pcall(function()
-            local guid = UnitGUID(unit)
-            cached = Insight.inspectCache and Insight.inspectCache[guid]
-        end)
-        if cached then
-            out[#out + 1] = "   cache        : spec=" .. tostring(cached.specName)
-                .. " role=" .. tostring(cached.role)
-                .. " hero=" .. tostring(cached.heroName)
-        else
-            out[#out + 1] = "   cache        : (none)"
-        end
-
         Insight.PrintBlock(out)
         return
     end

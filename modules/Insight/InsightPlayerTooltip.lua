@@ -1219,6 +1219,68 @@ end
 -- PROCESS PLAYER TOOLTIP
 -- ============================================================================
 
+local function SecrecyLabel(value)
+    if value == nil then return "nil" end
+    local ok, isSecret = pcall(function()
+        return issecretvalue and issecretvalue(value) or false
+    end)
+    if not ok then return "?" end
+    if isSecret then return "SECRET" end
+    local okStr, str = pcall(tostring, value)
+    return okStr and ("plain (" .. str .. ")") or "plain (?)"
+end
+
+-- Snapshot the native lines and the unit values the styling branches match on,
+-- before anything below modifies them. Midnight marks several of those values
+-- secret; the safe accessors then yield nil or "" and every text-matching branch
+-- skips without erroring, so the line renders untouched with nothing to see.
+-- Captured here rather than gathered by the slash command because a slash command
+-- runs with no mouseover unit. Printed by /h debug insight lines.
+function Insight.CaptureLineDebug(unit, tooltip)
+    local out = {}
+    pcall(function()
+        local ttName = tooltip:GetName()
+        local numLines = tooltip:NumLines()
+        out[#out + 1] = "   NumLines     : " .. tostring(numLines)
+        for i = 1, numLines do
+            local fs = ttName and _G[ttName .. "TextLeft" .. i]
+            local raw
+            pcall(function() raw = fs and fs:GetText() end)
+            local safe = (Insight.SafeGetFontText and Insight.SafeGetFontText(fs)) or ""
+            out[#out + 1] = "   line " .. i .. "       : raw=" .. SecrecyLabel(raw) .. "  safe=\"" .. safe .. "\""
+        end
+    end)
+
+    local classFile, classRaw, raceRaw, levelRaw, localizedClass
+    pcall(function() classRaw, classFile = UnitClass(unit) end)
+    pcall(function() raceRaw = UnitRace(unit) end)
+    pcall(function() levelRaw = UnitLevel(unit) end)
+    pcall(function()
+        if classFile and LOCALIZED_CLASS_NAMES_MALE then
+            localizedClass = LOCALIZED_CLASS_NAMES_MALE[classFile]
+        end
+    end)
+    out[#out + 1] = "   classFile    : " .. SecrecyLabel(classFile)
+    out[#out + 1] = "   UnitClass    : " .. SecrecyLabel(classRaw)
+    out[#out + 1] = "   LOC_CLASS[]  : " .. SecrecyLabel(localizedClass)
+    out[#out + 1] = "   UnitRace     : " .. SecrecyLabel(raceRaw)
+    out[#out + 1] = "   UnitLevel    : " .. SecrecyLabel(levelRaw)
+
+    local cached
+    pcall(function()
+        cached = inspectCache[UnitGUID(unit)]
+    end)
+    if cached then
+        out[#out + 1] = "   cache        : spec=" .. tostring(cached.specName)
+            .. " role=" .. tostring(cached.role)
+            .. " hero=" .. tostring(cached.heroName)
+    else
+        out[#out + 1] = "   cache        : (none)"
+    end
+
+    Insight.lastLineDebug = out
+end
+
 -- Process player unit tooltip. Full enrichment: name, class/spec/role, PvP, badges, stats, mount.
 -- @param unit string Unit token (e.g. "mouseover")
 -- @param tooltip table GameTooltip
@@ -1234,6 +1296,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
         end
     end)
     if not isUnitPlayer then return false end
+
+    Insight.CaptureLineDebug(unit, tooltip)
 
     local className, classFile, classColor
     pcall(function()
