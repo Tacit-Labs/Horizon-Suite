@@ -110,6 +110,7 @@ function Insight.GetPlayerTooltipBorderColor(unit, classColor, trp3Data)
 end
 
 Insight.SPEC_COLOR      = { 0.65, 0.75, 0.85 }
+Insight.HERO_COLOR      = { 0.72, 0.66, 0.90 }
 Insight.MOUNT_COLOR     = { 0.80, 0.65, 1.00 }
 Insight.MOUNT_SRC_COLOR = { 0.55, 0.55, 0.55 }
 Insight.ILVL_COLOR      = { 0.60, 0.85, 1.00 }

@@ -21,6 +21,8 @@ addon.INSIGHT_KEYS = {
     insightShowIlvl              = true,
     insightItemLevelMode         = true,
     insightShowSpecRole          = true,
+    insightShowSpecName          = true,
+    insightShowHeroTalent        = true,
     insightShowCharacterTitle    = true,
     insightRealmNameMode         = true,
     insightRaceIcons             = true,
@@ -153,6 +155,8 @@ addon.INSIGHT_DEFAULTS = {
     insightMountOwnershipDisplay = "text",
     -- Class
     insightShowSpecRole          = true,
+    insightShowSpecName          = true,
+    insightShowHeroTalent        = true,
     insightRaceIcons             = true,
     insightClassIconSource       = "custom",
     -- Gradient brightness bias

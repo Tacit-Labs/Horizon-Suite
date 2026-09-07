@@ -1279,7 +1279,25 @@ local function HandleInsightDebugSlash(msg)
             "  lsm       - Test LibSharedMedia classicon registration",
             "  path      - Show class icon paths (Rondo + custom sample)",
             "  trp3      - Diagnose TRP3 data for current mouseover unit",
+            "  lines     - Dump tooltip line secrecy for current mouseover unit",
         })
+        return
+    end
+
+    -- Prints the snapshot Insight.CaptureLineDebug takes while a player tooltip is
+    -- up. Gathering it here instead would sample nothing: a slash command runs with
+    -- no mouseover unit.
+    if cmd == "lines" then
+        local snapshot = Insight.lastLineDebug
+        if not snapshot or #snapshot == 0 then
+            Insight.Print("No tooltip captured yet — hover a player, then run this again.")
+            return
+        end
+        local out = { "Insight line debug — last player tooltip" }
+        for _, line in ipairs(snapshot) do
+            out[#out + 1] = line
+        end
+        Insight.PrintBlock(out)
         return
     end
 
