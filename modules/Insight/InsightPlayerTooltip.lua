@@ -1176,8 +1176,10 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
     -- fails so this is a no-op on older clients where taint is not an issue.
     local classNameSafe = className  -- pre-TWW fallback
     pcall(function()
-        if classFile and LOCALIZED_CLASS_NAMES_MALE then
-            local safe = LOCALIZED_CLASS_NAMES_MALE[classFile]
+        if classFile then
+            local sex = UnitSex(unit)
+            local classNameTable = (sex == 3) and LOCALIZED_CLASS_NAMES_FEMALE or LOCALIZED_CLASS_NAMES_MALE
+            local safe = classNameTable and classNameTable[classFile]
             if type(safe) == "string" and safe ~= "" then
                 classNameSafe = safe
             end
