@@ -143,15 +143,37 @@ local function ShowTRP3Guild()       return addon.GetDB("insightTRP3Guild",     
 -- @param unitToken  string|nil  Unit token for live UnitLevel
 -- @param wowFallback table|nil  { race=string, class=string } used when trp3d has no custom data
 -- @return string
+-- Colour-coded Tank/Healer/DPS tag. Shared by the native class line and the TRP3
+-- combined race/class line so the two layouts read identically.
+local function RoleTagMarkup(role)
+    if not role then return "" end
+    local rc = Insight.ROLE_COLORS and Insight.ROLE_COLORS[role]
+    if not rc then return "" end
+    local hex = string.format("%02x%02x%02x",
+        math.floor(rc[1] * 255),
+        math.floor(rc[2] * 255),
+        math.floor(rc[3] * 255))
+    local label = role == "TANK" and "Tank"
+        or role == "HEALER" and "Healer" or "DPS"
+    return "  |cff" .. hex .. label .. "|r"
+end
+
 local function BuildCombinedRaceClassLine(trp3d, classCol, unitToken, wowFallback)
     local racePart, rawClass, useCustomColor
+    local usedWowIdentity = false
     if trp3d and (trp3d.customRace or trp3d.customClass) then
         racePart       = (trp3d.customRace  ~= nil and trp3d.customRace  ~= "") and trp3d.customRace  or ""
         rawClass       = (trp3d.customClass ~= nil and trp3d.customClass ~= "") and trp3d.customClass or ""
         useCustomColor = trp3d.customColorR and ShowTRP3CustomColor()
     elseif wowFallback then
+        usedWowIdentity = true
         racePart = wowFallback.race  or ""
         rawClass  = wowFallback.class or ""
+        -- Only the WoW class carries a spec; a TRP3 custom class is roleplay
+        -- fiction and must not be prefixed with one.
+        if rawClass ~= "" and wowFallback.spec and wowFallback.spec ~= "" then
+            rawClass = wowFallback.spec .. " " .. rawClass
+        end
     else
         return ""
     end
@@ -178,6 +200,8 @@ local function BuildCombinedRaceClassLine(trp3d, classCol, unitToken, wowFallbac
     local line = racePart
     if classPart ~= "" then line = line .. (racePart ~= "" and " " or "") .. classPart end
     if level and level > 0 then line = line .. "  Level " .. tostring(level) end
+    -- Role belongs with the WoW identity; a TRP3 persona line stays in character.
+    if usedWowIdentity then line = line .. RoleTagMarkup(wowFallback.role) end
     return line
 end
 local function ShowTRP3Currently()   return addon.GetDB("insightTRP3Currently",   true) end
@@ -1516,17 +1540,8 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
             body = InsertSpecName(text, classNameSafe, cached.specName)
         end
         local roleSuffix = ""
-        if ShowSpecRole() and cached and cached.role then
-            local rc = Insight.ROLE_COLORS[cached.role]
-            if rc then
-                local hex = string.format("%02x%02x%02x",
-                    math.floor(rc[1] * 255),
-                    math.floor(rc[2] * 255),
-                    math.floor(rc[3] * 255))
-                local label = cached.role == "TANK" and "Tank"
-                    or cached.role == "HEALER" and "Healer" or "DPS"
-                roleSuffix = "  |cff" .. hex .. label .. "|r"
-            end
+        if ShowSpecRole() and cached then
+            roleSuffix = RoleTagMarkup(cached.role)
         end
         return iconPrefix .. body .. roleSuffix
     end
@@ -1649,7 +1664,12 @@ function Insight.ProcessPlayerTooltip(unit, tooltip)
 
     if moveRaceClassToBottom then
         Insight.TagLines(tooltip, "identity", function()
-            local raceClassLine = BuildCombinedRaceClassLine(trp3Data, classColor, unit, { race = raceNameSafe, class = classNameSafe })
+            local raceClassLine = BuildCombinedRaceClassLine(trp3Data, classColor, unit, {
+                race  = raceNameSafe,
+                class = classNameSafe,
+                spec  = (ShowSpecName() and cached and cached.specName) or nil,
+                role  = (ShowSpecRole() and cached and cached.role) or nil,
+            })
             if raceClassLine and raceClassLine ~= "" then
                 tooltip:AddLine(raceClassLine, 1, 1, 1)
             end
@@ -2009,8 +2029,12 @@ function Insight.RenderTestTooltipContent(tooltip)
 
     -- 3a. TRP3 identity fallback (race/class and guild displaced to bottom)
     if previewMoveRaceClassToBottom then
-        local raceClassLine = BuildCombinedRaceClassLine(previewTRP3, previewClassCol, nil,
-            { race = previewRaceName, class = live.className })
+        local raceClassLine = BuildCombinedRaceClassLine(previewTRP3, previewClassCol, nil, {
+            race  = previewRaceName,
+            class = live.className,
+            spec  = (ShowSpecName() and live.specName) or nil,
+            role  = (ShowSpecRole() and live.role) or nil,
+        })
         if raceClassLine and raceClassLine ~= "" then
             tooltip:AddLine(raceClassLine, 1, 1, 1)
         end
