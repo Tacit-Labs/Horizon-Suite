@@ -10,6 +10,16 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.7.0] – 2026-09-09
+
+### ✨ New Features
+- **(Insight) Specialisation and hero talent on player tooltips** — The class line names the specialisation and ends with a colour-coded role tag, and the active hero talent sits on its own line beneath it. Both can be turned off independently under Insight › Player Characters › Class.
+
+### 🐛 Fixes
+- **(Insight)** The role tag no longer goes missing from the identity line when Total RP 3's race and class display is turned on.
+
+---
+
 ## [5.6.5] – 2026-09-06
 
 ### 🐛 Fixes
