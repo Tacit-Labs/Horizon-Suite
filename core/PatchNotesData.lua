@@ -14,6 +14,22 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.7.0"] = {
+        date = "2026-09-09",
+        {
+            section = "New Features",
+            bullets = {
+                "Insight: the class line now names your specialisation and ends with a role tag, with the active hero talent on its own line beneath it. Both toggle under Insight > Player Characters > Class.",
+            },
+        },
+        {
+            section = "Fixes",
+            bullets = {
+                "Insight: the role tag no longer goes missing from the identity line when Total RP 3's race and class display is turned on.",
+            },
+        },
+    },
+
     ["5.6.5"] = {
         date = "2026-09-06",
         {
