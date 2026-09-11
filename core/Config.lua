@@ -72,6 +72,14 @@ addon.DELVE_ENTRY_SPACING   = 12
 addon.DELVE_OBJ_SPACING     = 4
 addon.MIN_HEIGHT      = 50
 
+-- Frame strata the Focus panel may be assigned to, lowest first. The list stops
+-- at HIGH on purpose: DIALOG and above would draw the tracker over static
+-- popups, the Axis dashboard and tooltips, so a player could end up with a
+-- confirmation dialog they cannot read hidden behind their quest list.
+addon.FOCUS_STRATA_DEFAULT = "MEDIUM"
+addon.FOCUS_STRATA_ORDER   = { "BACKGROUND", "LOW", "MEDIUM", "HIGH" }
+addon.FOCUS_STRATA_VALID   = { BACKGROUND = true, LOW = true, MEDIUM = true, HIGH = true }
+
 addon.MAX_CONTENT_HEIGHT = 480
 addon.SCROLL_STEP        = 30
 

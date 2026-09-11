@@ -226,6 +226,7 @@ addon:RegisterModule("focus", {
         addon.ApplyDimensions()
         if addon.ApplyBackdropOpacity then addon.ApplyBackdropOpacity() end
         if addon.ApplyBorderVisibility then addon.ApplyBorderVisibility() end
+        if addon.ApplyFocusFrameStrata then addon.ApplyFocusFrameStrata() end
         if addon.GetDB("collapsed", false) then
             addon.focus.collapsed = true
             addon.chevron:SetText("+")

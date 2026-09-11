@@ -1156,6 +1156,15 @@ function addon.GetCombatVisibility()
     return "show"
 end
 
+-- Resolves the frame strata the Focus panel draws on, falling back to the
+-- default when SavedVariables hold a value that is no longer offered.
+-- @return string one of addon.FOCUS_STRATA_ORDER
+function addon.GetFocusFrameStrata()
+    local v = addon.GetDB("focusFrameStrata", addon.FOCUS_STRATA_DEFAULT)
+    if addon.FOCUS_STRATA_VALID[v] then return v end
+    return addon.FOCUS_STRATA_DEFAULT
+end
+
 function addon.ShouldHideInCombat()
     return (addon.GetCombatVisibility() == "hide") and UnitAffectingCombat("player")
 end
@@ -1224,7 +1233,9 @@ function addon.easeIn(t)   return t * t end
 local HS = CreateFrame("Frame", "HSFrame", UIParent)
 HS:SetSize(addon.GetPanelWidth(), addon.MIN_HEIGHT)
 HS:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", addon.PANEL_X, addon.PANEL_Y)
-HS:SetFrameStrata("MEDIUM")
+-- Load-time default only; SavedVariables are not readable yet. The player's
+-- choice is applied by ApplyFocusFrameStrata on enable and on profile change.
+HS:SetFrameStrata(addon.FOCUS_STRATA_DEFAULT)
 HS:SetClampedToScreen(true)
 HS:Hide()
 
@@ -1280,6 +1291,30 @@ function addon.ApplyBackdropOpacity()
     local b = tonumber(addon.GetDB("backdropColorB", 0.12)) or 0.12
     addon.hsBg:SetColorTexture(r, g, b, 1)
     addon.hsBg:SetAlpha(addon.GetFocusBackdropTargetAlpha())
+end
+
+--- Apply the configured frame strata to the Focus panel and to the frames that
+--- do not inherit it: the M+ block (parented to UIParent, not to the panel) and
+--- pooled quest item buttons (pinned so they clear their own entry's textures).
+--- @return nil
+function addon.ApplyFocusFrameStrata()
+    local strata = addon.GetFocusFrameStrata()
+    if not addon.HS then return end
+    addon.HS:SetFrameStrata(strata)
+
+    if addon.mplusBlock then
+        addon.mplusBlock:SetFrameStrata(strata)
+        addon.mplusBlock:SetFrameLevel(addon.HS:GetFrameLevel() + 5)
+    end
+
+    if addon.pool then
+        for _, entry in ipairs(addon.pool) do
+            if entry.itemBtn then
+                entry.itemBtn:SetFrameStrata(strata)
+                entry.itemBtn:SetFrameLevel(entry:GetFrameLevel() + 10)
+            end
+        end
+    end
 end
 
 --- Show or hide the Focus panel border (always-on, or only while hovered).

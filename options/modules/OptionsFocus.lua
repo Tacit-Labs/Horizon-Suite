@@ -184,6 +184,23 @@ local function getActiveQuestHighlight()
     return v
 end
 
+-- Frame strata dropdown options, built from the shared order in Config so the
+-- offered list and the validation table cannot drift apart.
+-- @return table { {label, value}, ... }
+local function GetFocusFrameStrataOptions()
+    local labels = {
+        BACKGROUND = L["FOCUS_STRATA_BACKGROUND"],
+        LOW        = L["FOCUS_STRATA_LOW"],
+        MEDIUM     = L["FOCUS_STRATA_MEDIUM"],
+        HIGH       = L["FOCUS_STRATA_HIGH"],
+    }
+    local out = {}
+    for _, value in ipairs(addon.FOCUS_STRATA_ORDER) do
+        out[#out + 1] = { labels[value] or value, value }
+    end
+    return out
+end
+
 local categories = {
     {
         key = "Layout",
@@ -192,6 +209,7 @@ local categories = {
         options = {
             Section(L["VISTA_POSITION_LAYOUT"]),
             { type = "toggle", name = L["FOCUS_LOCK_POSITION"], desc = L["FOCUS_PREVENT_DRAGGING_TRACKER"], dbKey = "lockPosition", get = function() return getDB("lockPosition", D.lockPosition) or getDB("focusDynamicWidth", D.focusDynamicWidth) end, set = function(v) setDB("lockPosition", v) end },
+            { type = "dropdown", name = L["FOCUS_FRAME_STRATA"], desc = L["FOCUS_FRAME_STRATA_DESC"], tooltip = L["FOCUS_FRAME_STRATA_TOOLTIP"], dbKey = "focusFrameStrata", searchable = true, options = GetFocusFrameStrataOptions, get = function() return addon.GetFocusFrameStrata() end, set = function(v) setDB("focusFrameStrata", v) end },
             { type = "toggle", name = L["FOCUS_GROW_UPWARD"], desc = L["FOCUS_ANCHOR_BOTTOM_LIST_GROWS_UPWARD"], dbKey = "growUp", get = function() return getDB("growUp", D.growUp) end, set = function(v) setDB("growUp", v); if addon.focus and addon.focus.layout then addon.focus.layout.scrollOffset = 0; addon.focus.layout.scrollBottomOffset = 0 end; if addon.FullLayout then addon.FullLayout() end end, refreshIds = { "growUpHeaderMode" } },
             { type = "dropdown", name = L["FOCUS_GROW_HEADER"], desc = L["KEEP_HEADER_BOTTOM_TOP_UNTIL_COLLAPSED"], tooltip = L["FOCUS_GROWING_UPWARD_KEEP_HEADER_BOTTOM_TOP"], dbKey = "growUpHeaderMode", options = { { L["FOCUS_HEADER_BOTTOM"], "always" }, { L["FOCUS_HEADER_SLIDES_COLLAPSE"], "collapse" } }, get = function() return getDB("growUpHeaderMode", D.growUpHeaderMode) end, set = function(v) setDB("growUpHeaderMode", v); if addon.FullLayout then addon.FullLayout() end end, visibleWhen = function() return getDB("growUp", D.growUp) end },
             { type = "toggle", name = L["FOCUS_START_COLLAPSED"], desc = L["FOCUS_START_HEADER_SHOWN_UNTIL_YOU_EXPAND"], dbKey = "collapsed", get = function() return getDB("collapsed", D.collapsed) end, set = function(v) setDB("collapsed", v) end },
