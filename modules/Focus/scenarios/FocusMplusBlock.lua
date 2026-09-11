@@ -21,6 +21,8 @@ do
     local S = addon.Scaled or function(v) return v end
     mplusBlock:SetSize(addon.GetPanelWidth() - S(addon.PADDING) * 2, S(MPLUS_MIN_HEIGHT))
 end
+-- Tracks the panel rather than inheriting it: the block is parented to UIParent,
+-- so ApplyFocusFrameStrata has to re-point it whenever the panel strata changes.
 mplusBlock:SetFrameStrata(addon.HS:GetFrameStrata())
 mplusBlock:SetFrameLevel(addon.HS:GetFrameLevel() + 5)
 mplusBlock:EnableMouse(true)

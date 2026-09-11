@@ -196,6 +196,9 @@ function OptionsData_SetDB(key, value)
     if key == "lockPosition" and addon.UpdateResizeHandleVisibility then
         addon.UpdateResizeHandleVisibility()
     end
+    if key == "focusFrameStrata" and addon.ApplyFocusFrameStrata then
+        addon.ApplyFocusFrameStrata()
+    end
     if (key == "backdropOpacity" or key == "backdropOpacityMouseover" or key == "backdropOpacityOnMouseover" or key == "backdropColorR" or key == "backdropColorG" or key == "backdropColorB") and addon.ApplyBackdropOpacity then
         addon.ApplyBackdropOpacity()
     end

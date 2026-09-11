@@ -966,6 +966,13 @@ L["AXIS_RESET_LOOT_TOAST_POSITION_DEFAULT"]                   = "Reset loot toas
 -- =====================================================================
 L["FOCUS_LOCK_POSITION"]                                      = "Lock Position"
 L["FOCUS_PREVENT_DRAGGING_TRACKER"]                           = "Prevent dragging the tracker."
+L["FOCUS_FRAME_STRATA"]                                       = "Frame Strata"
+L["FOCUS_FRAME_STRATA_DESC"]                                  = "Which layer the tracker draws on. Raise it to sit above other addons, lower it to tuck it underneath them."
+L["FOCUS_FRAME_STRATA_TOOLTIP"]                               = "Frames on a higher layer always draw over frames on a lower one. Medium is where most addons sit, so High lifts the tracker clear of them and Low or Background puts it behind. Dialogs and tooltips stay above the tracker either way."
+L["FOCUS_STRATA_BACKGROUND"]                                  = "Background"
+L["FOCUS_STRATA_LOW"]                                         = "Low"
+L["FOCUS_STRATA_MEDIUM"]                                      = "Medium"
+L["FOCUS_STRATA_HIGH"]                                        = "High"
 L["FOCUS_GROW_UPWARD"]                                        = "Grow Upward"
 L["FOCUS_GROW_HEADER"]                                        = "Grow-Up Header"
 L["FOCUS_GROWING_UPWARD_KEEP_HEADER_BOTTOM_TOP"]              = "When growing upward: keep header at bottom, or at top until collapsed."

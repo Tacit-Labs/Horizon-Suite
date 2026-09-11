@@ -108,7 +108,7 @@ local function CreateQuestEntry(parent, index)
     e.itemBtn:SetSize(_S(addon.ITEM_BTN_SIZE), _S(addon.ITEM_BTN_SIZE))
     e.itemBtn:SetPoint("TOPRIGHT", e, "TOPRIGHT", 0, 2)
     e.itemBtn:RegisterForClicks("AnyDown", "AnyUp")
-    e.itemBtn:SetFrameStrata("MEDIUM")
+    e.itemBtn:SetFrameStrata(addon.GetFocusFrameStrata())
     e.itemBtn:SetFrameLevel(e:GetFrameLevel() + 10)
     e.itemBtn._ownerEntry = e
 

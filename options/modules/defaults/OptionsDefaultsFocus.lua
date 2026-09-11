@@ -70,6 +70,7 @@ addon.MPLUS_TYPOGRAPHY_KEYS = {
 addon.FOCUS_DEFAULTS = {
     -- Layout
     lockPosition              = false,
+    focusFrameStrata          = addon.FOCUS_STRATA_DEFAULT,
     growUp                    = false,
     growUpHeaderMode          = "always",
     collapsed                 = false,
