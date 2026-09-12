@@ -10,6 +10,13 @@ All notable changes to Horizon Suite are documented here.
 
 ---
 
+## [5.8.0] – 2026-09-12
+
+### ✨ New Features
+- **(Focus) Frame strata** — Choose which layer the tracker draws on, so it sits in front of or behind other addon windows instead of competing with them on the default layer. Dialogs and tooltips always stay above it.
+
+---
+
 ## [5.7.0] – 2026-09-09
 
 ### ✨ New Features

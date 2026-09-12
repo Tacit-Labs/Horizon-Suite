@@ -14,6 +14,16 @@ local addon = _G.HorizonSuite
 
 addon.PATCH_NOTES = {
 
+    ["5.8.0"] = {
+        date = "2026-09-12",
+        {
+            section = "New Features",
+            bullets = {
+                "Focus: choose which layer the tracker draws on, so it sits in front of or behind other addon windows. Dialogs and tooltips always stay above it. Set it under Focus > Layout > Position & Layout.",
+            },
+        },
+    },
+
     ["5.7.0"] = {
         date = "2026-09-09",
         {
